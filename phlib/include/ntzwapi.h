@@ -217,7 +217,7 @@ NTAPI
 ZwAllocateReserveObject(
     __out PHANDLE MemoryReserveHandle,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in RESERVE_OBJECT_TYPE Type
+    __in MEMORY_RESERVE_TYPE Type
     );
 
 NTSYSCALLAPI
@@ -2520,7 +2520,7 @@ ZwQuerySecurityAttributesToken(
     __in HANDLE TokenHandle,
     __in_ecount_opt(NumberOfAttributes) PUNICODE_STRING Attributes,
     __in ULONG NumberOfAttributes,
-    __out_bcount(Length) PVOID Buffer, // PAUTHZ_SECURITY_ATTRIBUTES_INFORMATION
+    __out_bcount(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
     __in ULONG Length,
     __out PULONG ReturnLength
     );

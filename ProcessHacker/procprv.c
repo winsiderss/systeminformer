@@ -1706,9 +1706,9 @@ VOID PhProcessProviderUpdate(
             PPH_PROCESS_ITEM processItem;
 
             if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->CreateTime.QuadPart == process->CreateTime.QuadPart)
-                sysTotalCycleTime += process->CycleTime.QuadPart - processItem->CycleTimeDelta.Value; // existing process
+                sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
             else
-                sysTotalCycleTime += process->CycleTime.QuadPart; // new process
+                sysTotalCycleTime += process->CycleTime; // new process
         }
     } while (process = PH_NEXT_PROCESS(process));
 
@@ -1720,7 +1720,7 @@ VOID PhProcessProviderUpdate(
     {
         PhpUpdateSystemCpuCycleInformation();
         PhInterruptsProcessInformation.KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
-        PhInterruptsProcessInformation.CycleTime = PhCpuTotalSystemCycleTime;
+        PhInterruptsProcessInformation.CycleTime = PhCpuTotalSystemCycleTime.QuadPart;
         sysTotalCycleTime += PhCpuSystemCycleDelta.Delta;
     }
     else
@@ -1899,13 +1899,13 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
-            PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime.QuadPart);
+            PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
 
             // Update VM and I/O statistics.
             processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
             processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
             processItem->WorkingSetPrivateSize = (SIZE_T)process->WorkingSetPrivateSize.QuadPart;
-            processItem->PeakNumberOfThreads = process->ActiveThreadsHighWatermark;
+            processItem->PeakNumberOfThreads = process->NumberOfThreadsHighWatermark;
             processItem->HardFaultCount = process->HardFaultCount;
 
             processItem->IsSuspended = isSuspended;
@@ -1967,7 +1967,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
-            PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime.QuadPart);
+            PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
 
             processItem->SequenceNumber++;
             PhAddItemCircularBuffer_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
@@ -1983,7 +1983,7 @@ VOID PhProcessProviderUpdate(
             processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
             processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
             processItem->WorkingSetPrivateSize = (SIZE_T)process->WorkingSetPrivateSize.QuadPart;
-            processItem->PeakNumberOfThreads = process->ActiveThreadsHighWatermark;
+            processItem->PeakNumberOfThreads = process->NumberOfThreadsHighWatermark;
             processItem->HardFaultCount = process->HardFaultCount;
 
             if (processItem->JustProcessed)

@@ -393,6 +393,50 @@ NtPrivilegedServiceAuditAlarm(
 
 // Authz
 
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE
+{
+    ULONG64 Version;
+    UNICODE_STRING Name;
+} TOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE, *PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE;
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE
+{
+    PVOID pValue;
+    ULONG ValueLength;
+} TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE, *PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE;
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTE_V1
+{
+    UNICODE_STRING Name;
+    USHORT ValueType;
+    USHORT Reserved;
+    ULONG Flags;
+    ULONG ValueCount;
+    union
+    {
+        PLONG64 pInt64;
+        PULONG64 pUint64;
+        PUNICODE_STRING pString;
+        PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE pFqbn;
+        PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE pOctetString;
+    } Values;
+} TOKEN_SECURITY_ATTRIBUTE_V1, *PTOKEN_SECURITY_ATTRIBUTE_V1;
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTES_INFORMATION
+{
+    USHORT Version;
+    USHORT Reserved;
+    ULONG AttributeCount;
+    union
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 pAttributeV1;
+    } Attribute;
+} TOKEN_SECURITY_ATTRIBUTES_INFORMATION, *PTOKEN_SECURITY_ATTRIBUTES_INFORMATION;
+
 #if (PHNT_VERSION >= PHNT_WIN7)
 // rev
 NTSYSCALLAPI
@@ -402,7 +446,7 @@ NtQuerySecurityAttributesToken(
     __in HANDLE TokenHandle,
     __in_ecount_opt(NumberOfAttributes) PUNICODE_STRING Attributes,
     __in ULONG NumberOfAttributes,
-    __out_bcount(Length) PVOID Buffer, // PAUTHZ_SECURITY_ATTRIBUTES_INFORMATION
+    __out_bcount(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
     __in ULONG Length,
     __out PULONG ReturnLength
     );

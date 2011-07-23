@@ -112,24 +112,24 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessDefaultHardErrorMode, // qs: ULONG
     ProcessIoPortHandlers,
     ProcessPooledUsageAndLimits, // q: POOLED_USAGE_AND_LIMITS
-    ProcessWorkingSetWatch, // q: var PROCESS_WS_WATCH_INFORMATION[]; s: void
+    ProcessWorkingSetWatch, // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
     ProcessUserModeIOPL,
     ProcessEnableAlignmentFaultFixup, // s: BOOLEAN
     ProcessPriorityClass, // qs: PROCESS_PRIORITY_CLASS
     ProcessWx86Information,
-    ProcessHandleCount, // 20, q: ULONG, PROCESS_HANDLE_COUNT_EX
+    ProcessHandleCount, // 20, q: ULONG, PROCESS_HANDLE_INFORMATION
     ProcessAffinityMask, // s: KAFFINITY
     ProcessPriorityBoost, // qs: ULONG
     ProcessDeviceMap,
     ProcessSessionInformation, // q: PROCESS_SESSION_INFORMATION
     ProcessForegroundInformation, // s: PROCESS_FOREGROUND_BACKGROUND
     ProcessWow64Information, // q: ULONG_PTR
-    ProcessImageFileName, // q: var UNICODE_STRING
+    ProcessImageFileName, // q: UNICODE_STRING
     ProcessLUIDDeviceMapsEnabled, // q: ULONG
     ProcessBreakOnTermination, // qs: ULONG
     ProcessDebugObjectHandle, // 30, q: HANDLE
     ProcessDebugFlags, // qs: ULONG
-    ProcessHandleTracing, // q: var PROCESS_HANDLE_TRACING_QUERY; s: size 0 disables, otherwise enables
+    ProcessHandleTracing, // q: PROCESS_HANDLE_TRACING_QUERY; s: size 0 disables, otherwise enables
     ProcessIoPriority, // qs: ULONG
     ProcessExecuteFlags, // qs: ULONG
     ProcessResourceManagement,
@@ -139,15 +139,15 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessPagePriority, // q: ULONG
     ProcessInstrumentationCallback, // 40
     ProcessThreadStackAllocation,
-    ProcessWorkingSetWatchEx, // q: var PROCESS_WS_WATCH_INFORMATION_EX[]
-    ProcessImageFileNameWin32, // q: var UNICODE_STRING
+    ProcessWorkingSetWatchEx, // q: PROCESS_WS_WATCH_INFORMATION_EX[]
+    ProcessImageFileNameWin32, // q: UNICODE_STRING
     ProcessImageFileMapping,
-    ProcessAffinityUpdateMode,
-    ProcessMemoryAllocationMode,
-    ProcessGroupInformation, // q: var USHORT[]
+    ProcessAffinityUpdateMode, // qs: PROCESS_AFFINITY_UPDATE_MODE
+    ProcessMemoryAllocationMode, // qs: PROCESS_MEMORY_ALLOCATION_MODE
+    ProcessGroupInformation, // q: USHORT[]
     ProcessTokenVirtualizationEnabled,
-    ProcessConsoleHostProcess,
-    ProcessWindowInformation, // 50
+    ProcessConsoleHostProcess, // q: ULONG_PTR
+    ProcessWindowInformation, // 50, q: PROCESS_WINDOW_INFORMATION
     MaxProcessInfoClass
 } PROCESS_INFORMATION_CLASS;
 #endif
@@ -366,43 +366,35 @@ typedef struct _PROCESS_HANDLE_TRACING_QUERY
 
 #endif
 
-// begin_rev
-
-#ifndef PROCESS_AFFINITY_ENABLE_AUTO_UPDATE
-#define PROCESS_AFFINITY_ENABLE_AUTO_UPDATE 0x1
-#endif
-#define PROCESS_AFFINITY_PERMANENT 0x2
-
-typedef struct _PROCESS_AFFINITY_UPDATE_MODE_INFORMATION
+// private
+typedef union _PROCESS_AFFINITY_UPDATE_MODE
 {
-    ULONG AffinityUpdateMode;
-} PROCESS_AFFINITY_UPDATE_MODE_INFORMATION, *PPROCESS_AFFINITY_UPDATE_MODE_INFORMATION;
+    ULONG Flags;
+    struct
+    {
+        ULONG EnableAutoUpdate : 1;
+        ULONG Permanent : 1;
+        ULONG Reserved : 30;
+    };
+} PROCESS_AFFINITY_UPDATE_MODE, *PPROCESS_AFFINITY_UPDATE_MODE;
 
-// end_rev
-
-// begin_rev
-
-#define PROCESS_MEMORY_VM_TOP_DOWN 0x1
-
-typedef struct _PROCESS_MEMORY_ALLOCATION_MODE_INFORMATION
+// private
+typedef union _PROCESS_MEMORY_ALLOCATION_MODE
 {
-    ULONG MemoryAllocationMode;
-} PROCESS_MEMORY_ALLOCATION_MODE_INFORMATION, *PPROCESS_MEMORY_ALLOCATION_MODE_INFORMATION;
+    ULONG Flags;
+    struct
+    {
+        ULONG TopDown : 1;
+        ULONG Reserved : 31;
+    };
+} PROCESS_MEMORY_ALLOCATION_MODE, *PPROCESS_MEMORY_ALLOCATION_MODE;
 
-// end_rev
-
-// rev
-typedef struct _PROCESS_HANDLE_COUNT_EX
+// private
+typedef struct _PROCESS_HANDLE_INFORMATION
 {
     ULONG HandleCount;
-    ULONG PeakHandleCount;
-} PROCESS_HANDLE_COUNT_EX, *PPROCESS_HANDLE_COUNT_EX;
-
-// rev
-typedef struct _PROCESS_CONSOLE_HOST_PROCESS_INFORMATION
-{
-    ULONG_PTR ConsoleHostProcess;
-} PROCESS_CONSOLE_HOST_PROCESS_INFORMATION, *PPROCESS_CONSOLE_HOST_PROCESS_INFORMATION;
+    ULONG HandleCountHighWatermark;
+} PROCESS_HANDLE_INFORMATION, *PPROCESS_HANDLE_INFORMATION;
 
 // private
 typedef struct _PROCESS_CYCLE_TIME_INFORMATION
@@ -410,6 +402,14 @@ typedef struct _PROCESS_CYCLE_TIME_INFORMATION
     ULONGLONG AccumulatedCycles;
     ULONGLONG CurrentCycleCount;
 } PROCESS_CYCLE_TIME_INFORMATION, *PPROCESS_CYCLE_TIME_INFORMATION;
+
+// private
+typedef struct _PROCESS_WINDOW_INFORMATION
+{
+    ULONG WindowFlags;
+    USHORT WindowTitleLength;
+    WCHAR WindowTitle[1];
+} PROCESS_WINDOW_INFORMATION, *PPROCESS_WINDOW_INFORMATION;
 
 // Thread information structures
 
@@ -437,7 +437,7 @@ typedef struct _THREAD_CYCLE_TIME_INFORMATION
     ULONGLONG CurrentCycleCount;
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
 
-// rev
+// private
 typedef struct _THREAD_TEB_INFORMATION
 {
     PVOID TebInformation; // buffer to place data in
@@ -468,6 +468,15 @@ typedef struct _THREAD_PERFORMANCE_DATA
     COUNTER_READING CycleTime;
     COUNTER_READING HwCounters[MAX_HW_COUNTERS];
 } THREAD_PERFORMANCE_DATA, *PTHREAD_PERFORMANCE_DATA;
+
+// private
+typedef struct _THREAD_PROFILING_INFORMATION
+{
+    ULONG64 HardwareCounters;
+    ULONG Flags;
+    ULONG Enable;
+    PTHREAD_PERFORMANCE_DATA PerformanceData;
+} THREAD_PROFILING_INFORMATION, *PTHREAD_PROFILING_INFORMATION;
 
 // System calls
 
@@ -803,11 +812,11 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeErrorMode, // in ULONG
     PsAttributeStdHandleInfo, // 10, in PPS_STD_HANDLE_INFO
     PsAttributeHandleList, // in PHANDLE
-    PsAttributeGroupAffinity, // in PGROUP_AFFINITY // rev
-    PsAttributePreferredNode, // in PUSHORT // rev
-    PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER // rev
-    PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES // rev
-    PsAttributeExecuteOptions, // in UCHAR // rev
+    PsAttributeGroupAffinity, // in PGROUP_AFFINITY
+    PsAttributePreferredNode, // in PUSHORT
+    PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER
+    PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
+    PsAttributeMitigationOptions, // in UCHAR
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -849,8 +858,8 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeValue(PsAttributePreferredNode, FALSE, TRUE, FALSE)
 #define PS_ATTRIBUTE_IDEAL_PROCESSOR \
     PsAttributeValue(PsAttributeIdealProcessor, TRUE, TRUE, FALSE)
-#define PS_ATTRIBUTE_EXECUTE_OPTIONS \
-    PsAttributeValue(PsAttributeExecuteOptions, FALSE, TRUE, TRUE)
+#define PS_ATTRIBUTE_MITIGATION_OPTIONS \
+    PsAttributeValue(PsAttributeMitigationOptions, FALSE, TRUE, TRUE)
 
 // end_rev
 
@@ -1061,14 +1070,15 @@ NtCreateThreadEx(
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-// begin_rev
-
-typedef enum _RESERVE_OBJECT_TYPE
+// private
+typedef enum _MEMORY_RESERVE_TYPE
 {
-    ReserveObjectUserApc = 0,
-    ReserveObjectIoCompletion = 1,
-    MaximumReserveObject
-} RESERVE_OBJECT_TYPE;
+    MemoryReserveUserApc,
+    MemoryReserveIoCompletion,
+    MemoryReserveTypeMax
+} MEMORY_RESERVE_TYPE;
+
+// begin_rev
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 NTSYSCALLAPI
@@ -1077,7 +1087,7 @@ NTAPI
 NtAllocateReserveObject(
     __out PHANDLE MemoryReserveHandle,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in RESERVE_OBJECT_TYPE Type
+    __in MEMORY_RESERVE_TYPE Type
     );
 #endif
 
@@ -1095,9 +1105,9 @@ NtQueueApcThreadEx(
     );
 #endif
 
-#endif
-
 // end_rev
+
+#endif
 
 // Job Objects
 

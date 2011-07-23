@@ -1,27 +1,5 @@
-/*
- * Process Hacker - 
- *   winsta definitions
- * 
- * Copyright (C) 2010-2011 wj32
- * 
- * This file is part of Process Hacker.
- * 
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-#ifndef WINSTA_H
-#define WINSTA_H
+#ifndef _WINSTA_H
+#define _WINSTA_H
 
 // begin_msdn:http://msdn.microsoft.com/en-us/library/cc248779%28PROT.10%29.aspx
 
@@ -338,23 +316,20 @@ typedef struct _WINSTATIONPRODID
     ULONG OuterMostSessionId;
 } WINSTATIONPRODID, *PWINSTATIONPRODID;
 
-// (fixed struct layout)
 // WinStationRemoteAddress
 typedef struct _WINSTATIONREMOTEADDRESS
 {
+    USHORT sin_family;
     union
     {
-        USHORT sin_family;
         struct
         {
-            USHORT sin_family;
             USHORT sin_port;
             ULONG sin_addr;
             UCHAR sin_zero[8];
         } ipv4;
         struct
         {
-            USHORT sin_family;
             USHORT sin6_port;
             ULONG sin6_flowinfo;
             USHORT sin6_addr[8];
@@ -362,6 +337,58 @@ typedef struct _WINSTATIONREMOTEADDRESS
         } ipv6;
     };
 } WINSTATIONREMOTEADDRESS, *PWINSTATIONREMOTEADDRESS;
+
+// WinStationInformationEx
+
+// private
+typedef struct _WINSTATIONINFORMATIONEX_LEVEL1
+{
+    ULONG SessionId;
+    WINSTATIONSTATECLASS SessionState;
+    ULONG SessionFlags;
+    WINSTATIONNAME WinStationName;
+    WCHAR UserName[USERNAME_LENGTH + 1];
+    WCHAR DomainName[DOMAIN_LENGTH + 1];
+    LARGE_INTEGER LogonTime;
+    LARGE_INTEGER ConnectTime;
+    LARGE_INTEGER DisconnectTime;
+    LARGE_INTEGER LastInputTime;
+    LARGE_INTEGER CurrentTime;
+    PROTOCOLSTATUS ProtocolStatus;
+} WINSTATIONINFORMATIONEX_LEVEL1, *PWINSTATIONINFORMATIONEX_LEVEL1;
+
+// private
+typedef struct _WINSTATIONINFORMATIONEX_LEVEL2
+{
+    ULONG SessionId;
+    WINSTATIONSTATECLASS SessionState;
+    ULONG SessionFlags;
+    WINSTATIONNAME WinStationName;
+    WCHAR SamCompatibleUserName[USERNAME_LENGTH + 1];
+    WCHAR SamCompatibleDomainName[DOMAIN_LENGTH + 1];
+    LARGE_INTEGER LogonTime;
+    LARGE_INTEGER ConnectTime;
+    LARGE_INTEGER DisconnectTime;
+    LARGE_INTEGER LastInputTime;
+    LARGE_INTEGER CurrentTime;
+    PROTOCOLSTATUS ProtocolStatus;
+    WCHAR UserName[257];
+    WCHAR DomainName[256];
+} WINSTATIONINFORMATIONEX_LEVEL2, *PWINSTATIONINFORMATIONEX_LEVEL2;
+
+// private
+typedef union _WINSTATIONINFORMATIONEX_LEVEL
+{
+    WINSTATIONINFORMATIONEX_LEVEL1 WinStationInfoExLevel1;
+    WINSTATIONINFORMATIONEX_LEVEL2 WinStationInfoExLevel2;
+} WINSTATIONINFORMATIONEX_LEVEL, *PWINSTATIONINFORMATIONEX_LEVEL;
+
+// private
+typedef struct _WINSTATIONINFORMATIONEX
+{
+    ULONG Level;
+    WINSTATIONINFORMATIONEX_LEVEL Data;
+} WINSTATIONINFORMATIONEX, *PWINSTATIONINFORMATIONEX;
 
 #define TS_PROCESS_INFO_MAGIC_NT4 0x23495452
 
