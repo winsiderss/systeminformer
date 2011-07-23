@@ -138,14 +138,14 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION
     ProcessPagePriority, // q: ULONG
     ProcessInstrumentationCallback, // 40
-    ProcessThreadStackAllocation,
+    ProcessThreadStackAllocation, // qs: PROCESS_STACK_ALLOCATION_INFORMATION
     ProcessWorkingSetWatchEx, // q: PROCESS_WS_WATCH_INFORMATION_EX[]
     ProcessImageFileNameWin32, // q: UNICODE_STRING
-    ProcessImageFileMapping,
+    ProcessImageFileMapping, // q: HANDLE (input)
     ProcessAffinityUpdateMode, // qs: PROCESS_AFFINITY_UPDATE_MODE
     ProcessMemoryAllocationMode, // qs: PROCESS_MEMORY_ALLOCATION_MODE
     ProcessGroupInformation, // q: USHORT[]
-    ProcessTokenVirtualizationEnabled,
+    ProcessTokenVirtualizationEnabled, // s: ULONG
     ProcessConsoleHostProcess, // q: ULONG_PTR
     ProcessWindowInformation, // 50, q: PROCESS_WINDOW_INFORMATION
     MaxProcessInfoClass
@@ -365,6 +365,14 @@ typedef struct _PROCESS_HANDLE_TRACING_QUERY
 } PROCESS_HANDLE_TRACING_QUERY, *PPROCESS_HANDLE_TRACING_QUERY;
 
 #endif
+
+// private
+typedef struct _PROCESS_STACK_ALLOCATION_INFORMATION
+{
+    SIZE_T ReserveSize;
+    SIZE_T ZeroBits;
+    PVOID StackBase;
+} PROCESS_STACK_ALLOCATION_INFORMATION, *PPROCESS_STACK_ALLOCATION_INFORMATION;
 
 // private
 typedef union _PROCESS_AFFINITY_UPDATE_MODE
