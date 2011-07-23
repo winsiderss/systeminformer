@@ -68,10 +68,10 @@ for %%a in (
     phsync.h
     queuedlock.h
     ref.h
-    rev.h
     symprv.h
     templ.h
     treenew.h
+    winmisc.h
     winsta.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\%%a
 

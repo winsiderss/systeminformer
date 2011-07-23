@@ -1164,17 +1164,17 @@ VOID PhpUpdateProcessStatistics(
 
             if (WindowsVersion >= WINDOWS_7)
             {
-                PROCESS_HANDLE_COUNT_EX handleCount;
+                PROCESS_HANDLE_INFORMATION handleInfo;
 
                 if (NT_SUCCESS(NtQueryInformationProcess(
                     ProcessItem->QueryHandle,
                     ProcessHandleCount,
-                    &handleCount,
-                    sizeof(PROCESS_HANDLE_COUNT_EX),
+                    &handleInfo,
+                    sizeof(PROCESS_HANDLE_INFORMATION),
                     NULL
                     )))
                 {
-                    peakHandles = PhaFormatUInt64(handleCount.PeakHandleCount, TRUE);
+                    peakHandles = PhaFormatUInt64(handleInfo.HandleCountHighWatermark, TRUE);
                 }
             }
 

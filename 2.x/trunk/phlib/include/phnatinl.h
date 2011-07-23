@@ -327,20 +327,20 @@ FORCEINLINE NTSTATUS PhGetProcessConsoleHostProcessId(
     )
 {
     NTSTATUS status;
-    PROCESS_CONSOLE_HOST_PROCESS_INFORMATION consoleHostProcessInfo;
+    ULONG_PTR consoleHostProcess;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessConsoleHostProcess,
-        &consoleHostProcessInfo,
-        sizeof(PROCESS_CONSOLE_HOST_PROCESS_INFORMATION),
+        &consoleHostProcess,
+        sizeof(ULONG_PTR),
         NULL
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    *ConsoleHostProcessId = (HANDLE)consoleHostProcessInfo.ConsoleHostProcess;
+    *ConsoleHostProcessId = (HANDLE)consoleHostProcess;
 
     return status;
 }

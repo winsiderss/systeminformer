@@ -22,6 +22,7 @@
 
 #include "exttools.h"
 #include "resource.h"
+#include <winmisc.h>
 
 typedef struct _MODULE_SERVICES_CONTEXT
 {
@@ -69,8 +70,8 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
         {
             PMODULE_SERVICES_CONTEXT context = (PMODULE_SERVICES_CONTEXT)lParam;
             ULONG win32Result;
-            SC_SERVICE_NAMES_REFERENCING_MODULE_QUERY scQuery;
-            _I_QueryTagInformation I_QueryTagInformation;
+            PQUERY_TAG_INFORMATION I_QueryTagInformation;
+            TAG_INFO_NAMES_REFERENCING_MODULE namesReferencingModule;
             PPH_LIST serviceList;
             PPH_SERVICE_ITEM *serviceItems;
             HWND serviceListHandle;
@@ -89,12 +90,11 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                 return FALSE;
             }
 
-            scQuery.ProcessId = (ULONG)context->ProcessId;
-            scQuery.Module = context->ModuleName;
-            scQuery.Unknown = 0;
-            scQuery.ServiceNames = NULL;
+            memset(&namesReferencingModule, 0, sizeof(TAG_INFO_NAMES_REFERENCING_MODULE));
+            namesReferencingModule.InParams.dwPid = (ULONG)context->ProcessId;
+            namesReferencingModule.InParams.pszModule = context->ModuleName;
 
-            win32Result = I_QueryTagInformation(NULL, ServiceNamesReferencingModuleInformation, &scQuery);
+            win32Result = I_QueryTagInformation(NULL, eTagInfoLevelNamesReferencingModule, &namesReferencingModule);
 
             if (win32Result == ERROR_NO_MORE_ITEMS)
                 win32Result = 0;
@@ -108,13 +108,13 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
 
             serviceList = PhCreateList(16);
 
-            if (scQuery.ServiceNames)
+            if (namesReferencingModule.OutParams.pmszNames)
             {
                 PPH_SERVICE_ITEM serviceItem;
                 PWSTR serviceName;
                 ULONG nameLength;
 
-                serviceName = scQuery.ServiceNames;
+                serviceName = namesReferencingModule.OutParams.pmszNames;
 
                 while (TRUE)
                 {
@@ -129,7 +129,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                     serviceName += nameLength + 1;
                 }
 
-                LocalFree(scQuery.ServiceNames);
+                LocalFree(namesReferencingModule.OutParams.pmszNames);
             }
 
             serviceItems = PhAllocateCopy(serviceList->Items, serviceList->Count * sizeof(PPH_SERVICE_ITEM));

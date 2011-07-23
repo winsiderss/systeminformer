@@ -38,23 +38,45 @@ typedef struct _MEMORY_REGION_INFORMATION
     SIZE_T RegionSize;
 } MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
 
+// private
 typedef struct _MEMORY_WORKING_SET_EX_BLOCK
 {
-    ULONG_PTR Valid : 1;
-    ULONG_PTR ShareCount : 3;
-    ULONG_PTR Win32Protection : 11;
-    ULONG_PTR Shared : 1;
-    ULONG_PTR Node : 6;
-    ULONG_PTR Locked : 1;
-    ULONG_PTR LargePage : 1;
-    ULONG_PTR Priority : 3;
-    ULONG_PTR Reserved : 5;
-
+    union
+    {
+        struct
+        {
+            ULONG_PTR Valid : 1;
+            ULONG_PTR ShareCount : 3;
+            ULONG_PTR Win32Protection : 11;
+            ULONG_PTR Shared : 1;
+            ULONG_PTR Node : 6;
+            ULONG_PTR Locked : 1;
+            ULONG_PTR LargePage : 1;
+            ULONG_PTR Priority : 3;
+            ULONG_PTR Reserved : 4;
+            ULONG_PTR Bad : 1;
 #ifdef _M_X64
-    ULONG_PTR ReservedUlong : 32;
+            ULONG_PTR ReservedUlong : 32;
 #endif
+        };
+        struct
+        {
+            ULONG_PTR Valid : 1;
+            ULONG_PTR Reserved0 : 14;
+            ULONG_PTR Shared : 1;
+            ULONG_PTR Reserved1 : 5;
+            ULONG_PTR PageTable : 1;
+            ULONG_PTR Location : 2;
+            ULONG_PTR Reserved2 : 7;
+            ULONG_PTR Bad : 1;
+#ifdef _M_X64
+            ULONG_PTR ReservedUlong : 32;
+#endif
+        } Invalid;
+    };
 } MEMORY_WORKING_SET_EX_BLOCK, *PMEMORY_WORKING_SET_EX_BLOCK;
 
+// private
 typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
 {
     PVOID VirtualAddress;
@@ -62,7 +84,7 @@ typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
     {
         MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
         ULONG Long;
-    };
+    } u1;
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 
 #define MMPFNLIST_ZERO 0
