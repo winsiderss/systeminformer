@@ -140,6 +140,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
       <DelayLoadDLLs>ProcessHacker.exe;comctl32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <SetChecksum>true</SetChecksum>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -167,6 +168,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX64</TargetMachine>
       <DelayLoadDLLs>ProcessHacker.exe;comctl32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <SetChecksum>true</SetChecksum>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
