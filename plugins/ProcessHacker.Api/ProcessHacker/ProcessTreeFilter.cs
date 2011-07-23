@@ -32,10 +32,12 @@ namespace ProcessHacker.Api
             NativeApi.PhApplyProcessTreeFilters();
         }
 
+        private PhProcessTreeFilter _function;
         private void* _filter;
 
         public ProcessTreeFilter(PhProcessTreeFilter function)
         {
+            _function = function;
             _filter = NativeApi.PhAddProcessTreeFilter(function, IntPtr.Zero);
         }
 
