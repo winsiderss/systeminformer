@@ -28,8 +28,8 @@ namespace ProcessHacker.Api
 {
     public unsafe class CallbackRegistration : IDisposable
     {
-        private PhCallbackFunction _function;
-        private PhCallback* _callback;
+        private readonly PhCallbackFunction _function;
+        private readonly PhCallback* _callback;
         private PhCallbackRegistration* _registration;
 
         public CallbackRegistration(PhCallback* callback, PhCallbackFunction function)
@@ -39,7 +39,7 @@ namespace ProcessHacker.Api
 
             _registration = (PhCallbackRegistration*)Marshal.AllocHGlobal(Marshal.SizeOf(typeof(PhCallbackRegistration)));
 
-            NativeApi.PhRegisterCallback(_callback, function, IntPtr.Zero, _registration);
+            NativeApi.PhRegisterCallback(_callback, _function, IntPtr.Zero, _registration);
         }
 
         public void Dispose()

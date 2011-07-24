@@ -34,6 +34,8 @@ namespace ProcessHacker.Api
 
     public unsafe class PluginInstance
     {
+        private static readonly List<CallbackRegistration> _registrations = new List<CallbackRegistration>();
+
         public static PluginInstance Register(string name, string displayName, string author, string description, string url, bool hasOptions)
         {
             PhPluginInformation* info;
@@ -55,7 +57,6 @@ namespace ProcessHacker.Api
         }
 
         public PhPlugin* Plugin { get; private set; }
-        private List<CallbackRegistration> _registrations = new List<CallbackRegistration>();
 
         private PluginInstance(PhPlugin* plugin)
         {
