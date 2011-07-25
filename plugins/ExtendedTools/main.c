@@ -348,6 +348,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
+    ULONG flags;
     PPH_EMENU_ITEM miscMenu;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
@@ -355,12 +356,17 @@ VOID NTAPI ProcessMenuInitializingCallback(
     else
         processItem = NULL;
 
+    flags = 0;
+
+    if (!processItem)
+        flags = PH_EMENU_DISABLED;
+
     miscMenu = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0);
 
     if (miscMenu)
     {
-        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCESS_UNLOADEDMODULES, L"Unloaded Modules", processItem), -1);
-        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCESS_WSWATCH, L"WS Watch", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_UNLOADEDMODULES, L"Unloaded Modules", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WSWATCH, L"WS Watch", processItem), -1);
     }
 }
 
