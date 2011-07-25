@@ -4424,6 +4424,35 @@ VOID PhTnpProcessScroll(
     }
 }
 
+BOOLEAN PhTnpCanScroll(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Horizontal,
+    __in BOOLEAN Positive
+    )
+{
+    SCROLLINFO scrollInfo;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+
+    if (!Horizontal)
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+    else
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+    if (Positive)
+    {
+        if (scrollInfo.nPage != 0)
+            scrollInfo.nMax -= scrollInfo.nPage - 1;
+
+        return scrollInfo.nPos < scrollInfo.nMax;
+    }
+    else
+    {
+        return scrollInfo.nPos > scrollInfo.nMin;
+    }
+}
+
 VOID PhTnpPaint(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
@@ -5732,7 +5761,8 @@ VOID PhTnpDragSelect(
             leftOrRight = cursorPoint.x < windowRect.left || cursorPoint.x >= windowRect.right;
             aboveOrBelow = cursorPoint.y < windowRect.top || cursorPoint.y >= windowRect.bottom;
 
-            if ((Context->VScrollVisible && aboveOrBelow) || (Context->HScrollVisible && leftOrRight))
+            if ((Context->VScrollVisible && aboveOrBelow && PhTnpCanScroll(Context, FALSE, cursorPoint.y >= windowRect.bottom)) ||
+                (Context->HScrollVisible && leftOrRight && PhTnpCanScroll(Context, FALSE, cursorPoint.x >= windowRect.right)))
             {
                 SetCursorPos(cursorPoint.x, cursorPoint.y);
             }
