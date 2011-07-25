@@ -567,6 +567,12 @@ VOID PhTnpProcessScroll(
     __in LONG DeltaX
     );
 
+BOOLEAN PhTnpCanScroll(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Horizontal,
+    __in BOOLEAN Positive
+    );
+
 // Drawing
 
 VOID PhTnpPaint(
