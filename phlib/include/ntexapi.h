@@ -2241,6 +2241,89 @@ NtIsUILanguageComitted(
     );
 #endif
 
+// NLS
+
+// begin_private
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtInitializeNlsFiles(
+    __out PVOID *BaseAddress,
+    __out PLCID DefaultLocaleId,
+    __out PLARGE_INTEGER DefaultCasingTableSize
+    );
+#else
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtInitializeNlsFiles(
+    __out PVOID *BaseAddress,
+    __out PLCID DefaultLocaleId,
+    __out PLARGE_INTEGER DefaultCasingTableSize,
+    __out_opt PULONG CurrentNLSVersion
+    );
+#endif
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetNlsSectionPtr(
+    __in ULONG SectionType,
+    __in ULONG SectionData,
+    __in PVOID ContextData,
+    __out PVOID *SectionPointer,
+    __out PULONG SectionSize
+    );
+
+#if (PHNT_VERSION < PHNT_WIN7)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAcquireCMFViewOwnership(
+    __out PULONGLONG TimeStamp,
+    __out PBOOLEAN tokenTaken,
+    __in BOOLEAN replaceExisting
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReleaseCMFViewOwnership(
+    VOID
+    );
+
+#endif
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtMapCMFModule(
+    __in ULONG What,
+    __in ULONG Index,
+    __out_opt PULONG CacheIndexOut,
+    __out_opt PULONG CacheFlagsOut,
+    __out_opt PULONG ViewSizeOut,
+    __out_opt PVOID *BaseAddress
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetMUIRegistryInfo(
+    __in ULONG Flags,
+    __inout PULONG DataSize,
+    __out PVOID Data
+    );
+
+#endif
+
+// end_private
+
 // Global atoms
 
 NTSYSCALLAPI

@@ -1563,7 +1563,7 @@ RtlUpcaseUnicodeStringToCountedOemString(
     __in BOOLEAN AllocateDestinationString
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlMultiByteToUnicodeN(
@@ -1574,7 +1574,7 @@ RtlMultiByteToUnicodeN(
     __in ULONG BytesInMultiByteString
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlMultiByteToUnicodeSize(
@@ -1583,7 +1583,7 @@ RtlMultiByteToUnicodeSize(
     __in ULONG BytesInMultiByteString
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToMultiByteN(
@@ -1594,7 +1594,7 @@ RtlUnicodeToMultiByteN(
     __in ULONG BytesInUnicodeString
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToMultiByteSize(
@@ -1941,6 +1941,20 @@ VOID
 NTAPI
 RtlCleanUpTEBLangLists(
     VOID
+    );
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetLocaleFileMappingAddress(
+    __out PVOID *BaseAddress,
+    __out PLCID DefaultLocaleId,
+    __out PLARGE_INTEGER DefaultCasingTableSize
     );
 
 #endif
@@ -2292,6 +2306,21 @@ FORCEINLINE VOID RtlExitUserThread_R(
     ExitThread(ExitStatus);
 }
 
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateUserStack(
+    __in_opt SIZE_T CommittedStackSize,
+    __in_opt SIZE_T MaximumStackSize,
+    __in_opt ULONG_PTR ZeroBits,
+    __in SIZE_T PageSize,
+    __in ULONG_PTR ReserveAlignment,
+    __out PINITIAL_TEB InitialTeb
+    );
 #endif
 
 NTSYSAPI
@@ -3448,7 +3477,7 @@ typedef struct _RTL_DEBUG_INFORMATION
     PVOID Reserved[4];
 } RTL_DEBUG_INFORMATION, *PRTL_DEBUG_INFORMATION;
 
-NTSYSCALLAPI
+NTSYSAPI
 PRTL_DEBUG_INFORMATION
 NTAPI
 RtlCreateQueryDebugBuffer(
@@ -3456,12 +3485,35 @@ RtlCreateQueryDebugBuffer(
     __in BOOLEAN UseEventPair
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyQueryDebugBuffer(
     __in PRTL_DEBUG_INFORMATION Buffer
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+// private
+NTSYSAPI
+PVOID
+NTAPI
+RtlCommitDebugInfo(
+    __inout PRTL_DEBUG_INFORMATION Buffer,
+    __in SIZE_T Size
+    );
+
+// private
+NTSYSAPI
+VOID
+NTAPI
+RtlDeCommitDebugInfo(
+    __inout PRTL_DEBUG_INFORMATION Buffer,
+    __in PVOID p,
+    __in SIZE_T Size
+    );
+
+#endif
 
 #define RTL_QUERY_PROCESS_MODULES 0x00000001
 #define RTL_QUERY_PROCESS_BACKTRACES 0x00000002
@@ -3476,7 +3528,7 @@ RtlDestroyQueryDebugBuffer(
 #define RTL_QUERY_PROCESS_CS_OWNER 0x00000400 // rev
 #define RTL_QUERY_PROCESS_NONINVASIVE 0x80000000
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryProcessDebugInformation(
@@ -3487,7 +3539,7 @@ RtlQueryProcessDebugInformation(
 
 // Messages
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFindMessage(
@@ -4210,6 +4262,30 @@ RtlFindLastBackwardRunClear(
     __in ULONG FromIndex,
     __out PULONG StartingRunIndex
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlInterlockedClearBitRun(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
+    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlInterlockedSetBitRun(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
+    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
+    );
+
+#endif
 
 // Handle tables
 
@@ -5226,6 +5302,18 @@ NTAPI
 RtlReleasePrivilege(
     __in PVOID StatePointer
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRemovePrivileges(
+    __in HANDLE hToken,
+    __in PULONG PrivilegesToKeep,
+    __in ULONG PrivilegeCount
+    );
+#endif
 
 // Private namespaces
 

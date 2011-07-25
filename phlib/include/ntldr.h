@@ -259,6 +259,44 @@ LdrVerifyImageMatchesChecksum(
     __out_opt PUSHORT ImageCharacteristics
     );
 
+// private
+typedef struct _LDR_IMPORT_CALLBACK_INFO
+{
+    PLDR_IMPORT_MODULE_CALLBACK ImportCallbackRoutine;
+    PVOID ImportCallbackParameter;
+} LDR_IMPORT_CALLBACK_INFO, *PLDR_IMPORT_CALLBACK_INFO;
+
+// private
+typedef struct _LDR_SECTION_INFO
+{
+    HANDLE SectionHandle;
+    ACCESS_MASK DesiredAccess;
+    POBJECT_ATTRIBUTES ObjA;
+    ULONG SectionPageProtection;
+    ULONG AllocationAttributes;
+} LDR_SECTION_INFO, *PLDR_SECTION_INFO;
+
+// private
+typedef struct _LDR_VERIFY_IMAGE_INFO
+{
+    ULONG Size;
+    ULONG Flags;
+    LDR_IMPORT_CALLBACK_INFO CallbackInfo;
+    LDR_SECTION_INFO SectionInfo;
+    USHORT ImageCharacteristics;
+} LDR_VERIFY_IMAGE_INFO, *PLDR_VERIFY_IMAGE_INFO;
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrVerifyImageMatchesChecksumEx(
+    __in HANDLE ImageFileHandle,
+    __inout PLDR_VERIFY_IMAGE_INFO VerifyInfo
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_VISTA)
 // private
 NTSYSAPI
@@ -328,6 +366,43 @@ LdrUnregisterDllNotification(
 #endif
 
 // end_msdn
+
+// Load as data table
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrAddLoadAsDataTable(
+    __in PVOID Module,
+    __in PWSTR FilePath,
+    __in SIZE_T Size,
+    __in HANDLE Handle
+    );
+
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrRemoveLoadAsDataTable(
+    __in PVOID InitModule,
+    __out_opt PVOID *BaseModule,
+    __out_opt PSIZE_T Size,
+    __in ULONG Flags
+    );
+
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetFileNameFromLoadAsDataTable(
+    __in PVOID Module,
+    __out PVOID *pFileNamePrt
+    );
+
+#endif
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
