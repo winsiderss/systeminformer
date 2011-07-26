@@ -512,6 +512,9 @@
     <ClInclude Include="include\colmgr.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\mainwndp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp">

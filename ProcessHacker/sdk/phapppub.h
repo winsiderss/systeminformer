@@ -385,6 +385,8 @@ PhWritePhTextHeader(
 
 // mainwnd
 
+#define PH_MAINWND_CLASS_NAME L"ProcessHacker"
+
 PHAPPAPI extern HWND PhMainWndHandle;
 
 #define WM_PH_SHOW_PROCESS_PROPERTIES (WM_APP + 120)

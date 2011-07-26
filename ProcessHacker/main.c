@@ -28,21 +28,37 @@
 #include <hexedit.h>
 #include <shlobj.h>
 
-VOID PhActivatePreviousInstance();
+LONG PhMainMessageLoop(
+    VOID
+    );
 
-VOID PhInitializeCommonControls();
+VOID PhActivatePreviousInstance(
+    VOID
+    );
 
-VOID PhInitializeKph();
+VOID PhInitializeCommonControls(
+    VOID
+    );
 
-BOOLEAN PhInitializeAppSystem();
+VOID PhInitializeKph(
+    VOID
+    );
 
-ATOM PhRegisterWindowClass();
+BOOLEAN PhInitializeAppSystem(
+    VOID
+    );
 
-VOID PhpInitializeSettings();
+VOID PhpInitializeSettings(
+    VOID
+    );
 
-VOID PhpProcessStartupParameters();
+VOID PhpProcessStartupParameters(
+    VOID
+    );
 
-VOID PhpEnablePrivileges();
+VOID PhpEnablePrivileges(
+    VOID
+    );
 
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
@@ -57,7 +73,6 @@ PPH_STRING PhProcDbFileName = NULL;
 PPH_STRING PhSettingsFileName = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_STARTUP_PARAMETERS PhStartupParameters;
-PWSTR PhWindowClassName = L"ProcessHacker";
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
@@ -74,7 +89,7 @@ INT WINAPI WinMain(
     __in INT nCmdShow
     )
 {
-    ULONG result;
+    LONG result;
 #ifdef DEBUG
     PHP_BASE_THREAD_DBG dbg;
 #endif
@@ -88,7 +103,6 @@ INT WINAPI WinMain(
     if (!PhInitializeAppSystem())
         return 1;
 
-    PhRegisterWindowClass();
     PhInitializeCommonControls();
 
     if (PhCurrentTokenQueryHandle)
@@ -236,7 +250,9 @@ INT WINAPI WinMain(
     RtlExitUserProcess(result);
 }
 
-INT PhMainMessageLoop()
+LONG PhMainMessageLoop(
+    VOID
+    )
 {
     BOOL result;
     MSG message;
@@ -282,7 +298,7 @@ INT PhMainMessageLoop()
         PhDrainAutoPool(&BaseAutoPool);
     }
 
-    return (INT)message.wParam;
+    return (LONG)message.wParam;
 }
 
 VOID PhRegisterDialog(
@@ -318,11 +334,13 @@ VOID PhApplyUpdateInterval(
     PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
 }
 
-VOID PhActivatePreviousInstance()
+VOID PhActivatePreviousInstance(
+    VOID
+    )
 {
     HWND hwnd;
 
-    hwnd = FindWindow(PhWindowClassName, NULL);
+    hwnd = FindWindow(PH_MAINWND_CLASSNAME, NULL);
 
     if (hwnd)
     {
@@ -338,7 +356,9 @@ VOID PhActivatePreviousInstance()
     }
 }
 
-VOID PhInitializeCommonControls()
+VOID PhInitializeCommonControls(
+    VOID
+    )
 {
     INITCOMMONCONTROLSEX icex;
 
@@ -421,7 +441,9 @@ VOID PhInitializeFont(
         PhIconTitleFont = CreateFontIndirect(&iconTitleFont);
 }
 
-VOID PhInitializeKph()
+VOID PhInitializeKph(
+    VOID
+    )
 {
     static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
     PPH_STRING kprocesshackerFileName;
@@ -438,7 +460,9 @@ VOID PhInitializeKph()
     }
 }
 
-BOOLEAN PhInitializeAppSystem()
+BOOLEAN PhInitializeAppSystem(
+    VOID
+    )
 {
     PhApplicationName = L"Process Hacker";
 
@@ -464,28 +488,9 @@ BOOLEAN PhInitializeAppSystem()
     return TRUE;
 }
 
-ATOM PhRegisterWindowClass()
-{
-    WNDCLASSEX wcex;
-
-    memset(&wcex, 0, sizeof(WNDCLASSEX));
-    wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = 0;
-    wcex.lpfnWndProc = PhMainWndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
-    wcex.hInstance = PhInstanceHandle;
-    wcex.hIcon = LoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    //wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
-    wcex.lpszClassName = PhWindowClassName;
-    wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
-
-    return RegisterClassEx(&wcex);
-}
-
-VOID PhpInitializeSettings()
+VOID PhpInitializeSettings(
+    VOID
+    )
 {
     NTSTATUS status;
 
@@ -720,7 +725,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     return TRUE;
 }
 
-VOID PhpProcessStartupParameters()
+VOID PhpProcessStartupParameters(
+    VOID
+    )
 {
     static PH_COMMAND_LINE_OPTION options[] =
     {
@@ -835,7 +842,9 @@ VOID PhpProcessStartupParameters()
     }
 }
 
-VOID PhpEnablePrivileges()
+VOID PhpEnablePrivileges(
+    VOID
+    )
 {
     HANDLE tokenHandle;
 

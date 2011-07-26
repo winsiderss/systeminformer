@@ -36,7 +36,9 @@ static PVOID ComCtl32Handle;
 static LONG SmallIconWidth;
 static LONG SmallIconHeight;
 
-BOOLEAN PhTreeNewInitialization()
+BOOLEAN PhTreeNewInitialization(
+    VOID
+    )
 {
     WNDCLASSEX c = { sizeof(c) };
 
@@ -5521,7 +5523,9 @@ VOID PhTnpGetHeaderTooltipText(
     Context->TooltipUnfolding = FALSE;
 }
 
-PWSTR PhTnpMakeContextAtom()
+PWSTR PhTnpMakeContextAtom(
+    VOID
+    )
 {
     PH_DEFINE_MAKE_ATOM(L"PhLib_TreeNewContext");
 }

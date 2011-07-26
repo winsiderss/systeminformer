@@ -324,6 +324,7 @@
     <ClInclude Include="..\phlib\circbuf_i.h" />
     <ClInclude Include="..\phlib\format_i.h" />
     <ClInclude Include="include\colmgr.h" />
+    <ClInclude Include="include\mainwndp.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\uimodels.h" />
     <ClInclude Include="mxml\config.h" />

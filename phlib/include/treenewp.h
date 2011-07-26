@@ -653,7 +653,9 @@ VOID PhTnpGetHeaderTooltipText(
     __out PWSTR *Text
     );
 
-PWSTR PhTnpMakeContextAtom();
+PWSTR PhTnpMakeContextAtom(
+    VOID
+    );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
     __in HWND hwnd,
