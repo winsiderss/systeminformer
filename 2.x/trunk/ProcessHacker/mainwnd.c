@@ -23,11 +23,12 @@
 #define PH_MAINWND_PRIVATE
 #include <phapp.h>
 #include <settings.h>
-#include <cpysave.h>
-#include <memsrch.h>
-#include <symprv.h>
 #include <emenu.h>
 #include <phplug.h>
+#include <cpysave.h>
+#include <mainwndp.h>
+#include <memsrch.h>
+#include <symprv.h>
 #include <windowsx.h>
 #include <shlobj.h>
 #include <winsta.h>
@@ -42,177 +43,6 @@ typedef HRESULT (WINAPI *_LoadIconMetric)(
     __in int lims,
     __out HICON *phico
     );
-
-VOID PhMainWndOnCreate();
-
-ULONG_PTR PhpMainWndAddMenuItem(
-    __in PPH_PLUGIN Plugin,
-    __in HMENU ParentMenu,
-    __in_opt PWSTR InsertAfter,
-    __in ULONG Flags,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PVOID Context
-    );
-
-PPH_ADDITIONAL_TAB_PAGE PhpAddTabPage(
-    __in PPH_ADDITIONAL_TAB_PAGE TabPage
-    );
-
-VOID PhMainWndOnLayout(
-    __inout HDWP *deferHandle
-    );
-
-VOID PhMainWndTabControlOnLayout(
-    __inout HDWP *deferHandle
-    );
-
-VOID PhMainWndTabControlOnNotify(
-    __in LPNMHDR Header
-    );
-
-VOID PhMainWndTabControlOnSelectionChanged();
-
-VOID PhReloadSysParameters();
-
-VOID PhpInitialLoadSettings();
-
-VOID PhMainSymInitHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-NTSTATUS PhpDelayedLoadFunction(
-    __in PVOID Parameter
-    );
-
-VOID PhpSaveWindowState();
-
-VOID PhpSaveAllSettings();
-
-VOID PhpSetCheckOpacityMenu(
-    __in BOOLEAN AssumeAllUnchecked,
-    __in ULONG Opacity
-    );
-
-VOID PhpSetWindowOpacity(
-    __in ULONG Opacity
-    );
-
-VOID PhpSelectTabPage(
-    __in ULONG Index
-    );
-
-VOID PhpPrepareForEarlyShutdown();
-
-VOID PhpCancelEarlyShutdown();
-
-VOID PhpNeedServiceTreeList();
-
-VOID PhpInitializeMainMenu(
-    __in HMENU MenuHandle
-    );
-
-VOID PhpProcessMenuCommand(
-    __in HMENU MenuHandle,
-    __in ULONG ItemIndex,
-    __in ULONG ItemId,
-    __in ULONG_PTR ItemData
-    );
-
-BOOLEAN PhpProcessComputerCommand(
-    __in ULONG Id
-    );
-
-BOOLEAN PhpProcessProcessPriorityCommand(
-    __in ULONG Id,
-    __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-VOID PhpRefreshUsersMenu();
-
-VOID PhpAddIconProcesses(
-    __in PPH_EMENU_ITEM Menu,
-    __in ULONG NumberOfProcesses
-    );
-
-VOID PhpShowIconContextMenu(
-    __in POINT Location
-    );
-
-BOOLEAN PhpCurrentUserProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
-    __in_opt PVOID Context
-    );
-
-BOOLEAN PhpSignedProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
-    __in_opt PVOID Context
-    );
-
-PPH_PROCESS_ITEM PhpGetSelectedProcess();
-
-VOID PhpGetSelectedProcesses(
-    __out PPH_PROCESS_ITEM **Processes,
-    __out PULONG NumberOfProcesses
-    );
-
-VOID PhpShowProcessProperties(
-    __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-VOID PhpSetProcessMenuPriorityChecks(
-    __in PPH_EMENU Menu,
-    __in PPH_PROCESS_ITEM Process,
-    __in BOOLEAN SetPriority,
-    __in BOOLEAN SetIoPriority,
-    __in BOOLEAN SetPagePriority
-    );
-
-VOID PhMainWndOnProcessAdded(
-    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG RunId
-    );
-
-VOID PhMainWndOnProcessModified(
-    __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-VOID PhMainWndOnProcessRemoved(
-    __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-VOID PhMainWndOnProcessesUpdated();
-
-VOID PhMainWndOnServiceAdded(
-    __in __assumeRefs(1) PPH_SERVICE_ITEM ServiceItem,
-    __in ULONG RunId
-    );
-
-VOID PhMainWndOnServiceModified(
-    __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
-    );
-
-VOID PhMainWndOnServiceRemoved(
-    __in PPH_SERVICE_ITEM ServiceItem
-    );
-
-VOID PhMainWndOnServicesUpdated();
-
-VOID PhMainWndOnNetworkItemAdded(
-    __in ULONG RunId,
-    __in __assumeRefs(1) PPH_NETWORK_ITEM NetworkItem
-    );
-
-VOID PhMainWndOnNetworkItemModified(
-    __in PPH_NETWORK_ITEM NetworkItem
-    );
-
-VOID PhMainWndOnNetworkItemRemoved(
-    __in PPH_NETWORK_ITEM NetworkItem
-    );
-
-VOID PhMainWndOnNetworkItemsUpdated();
 
 PHAPPAPI HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
@@ -307,33 +137,18 @@ BOOLEAN PhMainWndInitialization(
     }
 
     // This was added to be able to delay-load dbghelp.dll and symsrv.dll.
-    PhRegisterCallback(&PhSymInitCallback, PhMainSymInitHandler, NULL, &SymInitRegistration);
+    PhRegisterCallback(&PhSymInitCallback, PhMwpSymInitHandler, NULL, &SymInitRegistration);
 
-    // Initialize the providers.
-    {
-        ULONG interval = PhGetIntegerSetting(L"UpdateInterval");
+    PhMwpInitializeProviders();
 
-        if (interval == 0)
-        {
-            interval = 1000;
-            PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
-        }
-
-        PhInitializeProviderThread(&PhPrimaryProviderThread, interval);
-        PhInitializeProviderThread(&PhSecondaryProviderThread, interval);
-    }
-
-    PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &ProcessProviderRegistration);
-    PhSetEnabledProvider(&ProcessProviderRegistration, TRUE);
-    PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
-    PhSetEnabledProvider(&ServiceProviderRegistration, TRUE);
-    PhRegisterProvider(&PhPrimaryProviderThread, PhNetworkProviderUpdate, NULL, &NetworkProviderRegistration);
+    if (!PhMwpInitializeWindowClass())
+        return FALSE;
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
     windowRectangle.Size = PhGetIntegerPairSetting(L"MainWindowSize");
 
     PhMainWndHandle = CreateWindow(
-        PhWindowClassName,
+        PH_MAINWND_CLASSNAME,
         PhApplicationName,
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         windowRectangle.Left,
@@ -350,7 +165,7 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
-    PhpInitializeMainMenu(PhMainWndMenuHandle);
+    PhMwpInitializeMainMenu(PhMainWndMenuHandle);
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(
@@ -416,16 +231,16 @@ BOOLEAN PhMainWndInitialization(
 
     DrawMenuBar(PhMainWndHandle);
 
-    PhReloadSysParameters();
+    PhMwpOnSettingChange();
 
     // Initialize child controls.
-    PhMainWndOnCreate();
+    PhMwpInitializeControls();
 
-    PhpInitialLoadSettings();
+    PhMwpLoadSettings();
     PhLogInitialization();
-    PhQueueItemGlobalWorkQueue(PhpDelayedLoadFunction, NULL);
+    PhQueueItemGlobalWorkQueue(PhMwpDelayedLoadFunction, NULL);
 
-    PhMainWndTabControlOnSelectionChanged();
+    PhMwpSelectionChangedTabControl();
 
     // Perform a layout.
     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
@@ -461,12 +276,12 @@ BOOLEAN PhMainWndInitialization(
 
     // TS notification registration is done in the delayed load function. It's therefore 
     // possible that we miss a notification, but it's a trade-off.
-    PhpRefreshUsersMenu();
+    PhMwpUpdateUsersMenu();
 
     return TRUE;
 }
 
-LRESULT CALLBACK PhMainWndProc(
+LRESULT CALLBACK PhMwpWndProc(
     __in HWND hWnd,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -477,2733 +292,126 @@ LRESULT CALLBACK PhMainWndProc(
     {
     case WM_DESTROY:
         {
-            ULONG mask;
-            ULONG i;
-
-            if (!PhMainWndExiting)
-                ProcessHacker_SaveAllSettings(hWnd);
-
-            // Remove all icons to prevent them hanging around after we exit.
-
-            mask = NotifyIconMask;
-            NotifyIconMask = 0; // prevent further icon updating
-
-            for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-            {
-                if (mask & i)
-                    PhRemoveNotifyIcon(i);
-            }
-
-            // Notify plugins that we are shutting down.
-
-            if (PhPluginsEnabled)
-                PhUnloadPlugins();
-
-            PostQuitMessage(0);
+            PhMwpOnDestroy();
         }
         break;
     case WM_SETTINGCHANGE:
         {
-            PhReloadSysParameters();
+            PhMwpOnSettingChange();
         }
         break;
     case WM_COMMAND:
         {
-            INT id = LOWORD(wParam);
-
-            switch (id)
-            {
-            case ID_ESC_EXIT:
-                {
-                    if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
-                        ShowWindow(hWnd, SW_HIDE);
-                }
-                break;
-            case ID_HACKER_RUN:
-                {
-                    if (RunFileDlg)
-                    {
-                        SelectedRunAsMode = 0;
-                        RunFileDlg(hWnd, NULL, NULL, NULL, NULL, 0);
-                    }
-                }
-                break;
-            case ID_HACKER_RUNASADMINISTRATOR:
-                {
-                    if (RunFileDlg)
-                    {
-                        SelectedRunAsMode = RUNAS_MODE_ADMIN;
-                        RunFileDlg(
-                            hWnd,
-                            NULL,
-                            NULL,
-                            NULL, 
-                            L"Type the name of a program that will be opened under alternate credentials.",
-                            0
-                            );
-                    }
-                }
-                break;
-            case ID_HACKER_RUNASLIMITEDUSER:
-                {
-                    if (RunFileDlg)
-                    {
-                        SelectedRunAsMode = RUNAS_MODE_LIMITED;
-                        RunFileDlg(
-                            hWnd,
-                            NULL,
-                            NULL,
-                            NULL, 
-                            L"Type the name of a program that will be opened under standard user privileges.",
-                            0
-                            );
-                    }
-                }
-                break;
-            case ID_HACKER_RUNAS:
-                {
-                    PhShowRunAsDialog(hWnd, NULL);
-                }
-                break;
-            case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
-                {
-                    ProcessHacker_PrepareForEarlyShutdown(hWnd);
-
-                    if (PhShellProcessHacker(hWnd, L"-v", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, TRUE, 0, NULL))
-                    {
-                        ProcessHacker_Destroy(hWnd);
-                    }
-                    else
-                    {
-                        ProcessHacker_CancelEarlyShutdown(hWnd);
-                    }
-                }
-                break;
-            case ID_HACKER_SAVE:
-                {
-                    static PH_FILETYPE_FILTER filters[] =
-                    {
-                        { L"Text files (*.txt;*.log)", L"*.txt;*.log" },
-                        { L"Comma-separated values (*.csv)", L"*.csv" },
-                        { L"All files (*.*)", L"*.*" }
-                    };
-                    PVOID fileDialog = PhCreateSaveFileDialog();
-
-                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-                    PhSetFileDialogFileName(fileDialog, L"Process Hacker.txt");
-
-                    if (PhShowFileDialog(hWnd, fileDialog))
-                    {
-                        NTSTATUS status;
-                        PPH_STRING fileName;
-                        PPH_FILE_STREAM fileStream;
-
-                        fileName = PhGetFileDialogFileName(fileDialog);
-                        PhaDereferenceObject(fileName);
-
-                        if (NT_SUCCESS(status = PhCreateFileStream(
-                            &fileStream,
-                            fileName->Buffer,
-                            FILE_GENERIC_WRITE,
-                            FILE_SHARE_READ,
-                            FILE_OVERWRITE_IF,
-                            0
-                            )))
-                        {
-                            ULONG mode;
-                            ULONG selectedTab;
-                            PPH_LIST lines = NULL;
-
-                            if (PhEndsWithString2(fileName, L".csv", TRUE))
-                                mode = PH_EXPORT_MODE_CSV;
-                            else
-                                mode = PH_EXPORT_MODE_TABS;
-
-                            PhWritePhTextHeader(fileStream);
-
-                            selectedTab = TabCtrl_GetCurSel(TabControlHandle);
-
-                            if (selectedTab == ProcessesTabIndex)
-                                PhWriteProcessTree(fileStream, mode);
-                            else if (selectedTab == ServicesTabIndex)
-                                PhWriteServiceList(fileStream, mode);
-                            else if (selectedTab == NetworkTabIndex)
-                                lines = PhGetListViewLines(NetworkTreeListHandle, mode);
-
-                            if (lines)
-                            {
-                                ULONG i;
-
-                                for (i = 0; i < lines->Count; i++)
-                                {
-                                    PPH_STRING line;
-
-                                    line = lines->Items[i];
-                                    PhWriteStringAsAnsiFileStream(fileStream, &line->sr);
-                                    PhDereferenceObject(line);
-                                    PhWriteStringAsAnsiFileStream2(fileStream, L"\r\n");
-                                }
-
-                                PhDereferenceObject(lines);
-                            }
-
-                            PhDereferenceObject(fileStream);
-                        }
-
-                        if (!NT_SUCCESS(status))
-                            PhShowStatus(hWnd, L"Unable to create the file", status, 0);
-                    }
-
-                    PhFreeFileDialog(fileDialog);
-                }
-                break;
-            case ID_HACKER_FINDHANDLESORDLLS:
-                {
-                    PhShowFindObjectsDialog();
-                }
-                break;
-            case ID_HACKER_OPTIONS:
-                {
-                    PhShowOptionsDialog(hWnd);
-                }
-                break;
-            case ID_HACKER_PLUGINS:
-                {
-                    PhShowPluginsDialog(hWnd);
-                }
-                break;
-            case ID_COMPUTER_LOCK:
-            case ID_COMPUTER_LOGOFF:
-            case ID_COMPUTER_SLEEP:
-            case ID_COMPUTER_HIBERNATE:
-            case ID_COMPUTER_RESTART:
-            case ID_COMPUTER_SHUTDOWN:
-            case ID_COMPUTER_POWEROFF:
-                PhpProcessComputerCommand(LOWORD(wParam));
-                break;
-            case ID_HACKER_EXIT:
-                ProcessHacker_Destroy(hWnd);
-                break;
-            case ID_VIEW_SYSTEMINFORMATION:
-                PhShowSystemInformationDialog();
-                break;
-            case ID_TRAYICONS_CPUHISTORY:
-            case ID_TRAYICONS_CPUUSAGE:
-            case ID_TRAYICONS_IOHISTORY:
-            case ID_TRAYICONS_COMMITHISTORY:
-            case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
-                {
-                    ULONG i;
-                    BOOLEAN enable;
-
-                    switch (LOWORD(wParam))
-                    {
-                    case ID_TRAYICONS_CPUHISTORY:
-                        i = PH_ICON_CPU_HISTORY;
-                        break;
-                    case ID_TRAYICONS_CPUUSAGE:
-                        i = PH_ICON_CPU_USAGE;
-                        break;
-                    case ID_TRAYICONS_IOHISTORY:
-                        i = PH_ICON_IO_HISTORY;
-                        break;
-                    case ID_TRAYICONS_COMMITHISTORY:
-                        i = PH_ICON_COMMIT_HISTORY;
-                        break;
-                    case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
-                        i = PH_ICON_PHYSICAL_HISTORY;
-                        break;
-                    }
-
-                    enable = !(GetMenuState(PhMainWndMenuHandle, LOWORD(wParam), 0) & MF_CHECKED);
-
-                    if (enable)
-                    {
-                        NotifyIconMask |= i;
-                        PhAddNotifyIcon(i);
-                    }
-                    else
-                    {
-                        NotifyIconMask &= ~i;
-                        PhRemoveNotifyIcon(i);
-                    }
-
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        LOWORD(wParam),
-                        enable ? MF_CHECKED : MF_UNCHECKED
-                        );
-                }
-                break;
-            case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
-                {
-                    if (!CurrentUserFilterEntry)
-                    {
-                        CurrentUserFilterEntry = PhAddProcessTreeFilter(PhpCurrentUserProcessTreeFilter, NULL);
-                    }
-                    else
-                    {
-                        PhRemoveProcessTreeFilter(CurrentUserFilterEntry);
-                        CurrentUserFilterEntry = NULL;
-                    }
-
-                    PhApplyProcessTreeFilters();
-
-                    PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_HIDEPROCESSESFROMOTHERUSERS,
-                        CurrentUserFilterEntry ? MF_CHECKED : MF_UNCHECKED
-                        );
-                }
-                break;
-            case ID_VIEW_HIDESIGNEDPROCESSES:
-                {
-                    if (!SignedFilterEntry)
-                    {
-                        if (!PhEnableProcessQueryStage2)
-                        {
-                            PhShowInformation(
-                                hWnd,
-                                L"This filter cannot function because digital signature checking is not enabled. "
-                                L"Enable it in Options > Advanced and restart Process Hacker."
-                                );
-                        }
-
-                        SignedFilterEntry = PhAddProcessTreeFilter(PhpSignedProcessTreeFilter, NULL);
-                    }
-                    else
-                    {
-                        PhRemoveProcessTreeFilter(SignedFilterEntry);
-                        SignedFilterEntry = NULL;
-                    }
-
-                    PhApplyProcessTreeFilters();
-
-                    PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_HIDESIGNEDPROCESSES,
-                        SignedFilterEntry ? MF_CHECKED : MF_UNCHECKED
-                        );
-                }
-                break;
-            case ID_VIEW_SHOWCPUBELOW001:
-                {
-                    PH_SET_INTEGER_CACHED_SETTING(ShowCpuBelow001, !PhCsShowCpuBelow001);
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_SHOWCPUBELOW001,
-                        PhCsShowCpuBelow001 ? MF_CHECKED : MF_UNCHECKED
-                        );
-                    PhInvalidateAllProcessNodes();
-                }
-                break;
-            case ID_VIEW_ALWAYSONTOP:
-                {
-                    BOOLEAN topMost;
-
-                    topMost = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, 0) & MF_CHECKED);
-                    SetWindowPos(PhMainWndHandle, topMost ? HWND_TOPMOST : HWND_NOTOPMOST,
-                        0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-                    PhSetIntegerSetting(L"MainWindowAlwaysOnTop", topMost);
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_ALWAYSONTOP,
-                        topMost ? MF_CHECKED : MF_UNCHECKED
-                        );
-                }
-                break;
-            case ID_OPACITY_10:
-            case ID_OPACITY_20:
-            case ID_OPACITY_30:
-            case ID_OPACITY_40:
-            case ID_OPACITY_50:
-            case ID_OPACITY_60:
-            case ID_OPACITY_70:
-            case ID_OPACITY_80:
-            case ID_OPACITY_90:
-            case ID_OPACITY_OPAQUE:
-                {
-                    ULONG opacity;
-
-                    opacity = 100 - (((ULONG)LOWORD(wParam) - ID_OPACITY_10) + 1) * 10;
-                    PhSetIntegerSetting(L"MainWindowOpacity", opacity);
-                    PhpSetWindowOpacity(opacity);
-                    PhpSetCheckOpacityMenu(TRUE, opacity);
-                }
-                break;
-            case ID_VIEW_REFRESH:
-                {
-                    PhBoostProvider(&ProcessProviderRegistration, NULL);
-                    PhBoostProvider(&ServiceProviderRegistration, NULL);
-                }
-                break;
-            case ID_UPDATEINTERVAL_FAST:
-            case ID_UPDATEINTERVAL_NORMAL:
-            case ID_UPDATEINTERVAL_BELOWNORMAL:
-            case ID_UPDATEINTERVAL_SLOW:
-            case ID_UPDATEINTERVAL_VERYSLOW:
-                {
-                    ULONG interval;
-
-                    switch (LOWORD(wParam))
-                    {
-                    case ID_UPDATEINTERVAL_FAST:
-                        interval = 500;
-                        break;
-                    case ID_UPDATEINTERVAL_NORMAL:
-                        interval = 1000;
-                        break;
-                    case ID_UPDATEINTERVAL_BELOWNORMAL:
-                        interval = 2000;
-                        break;
-                    case ID_UPDATEINTERVAL_SLOW:
-                        interval = 5000;
-                        break;
-                    case ID_UPDATEINTERVAL_VERYSLOW:
-                        interval = 10000;
-                        break;
-                    }
-
-                    PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
-                    PhApplyUpdateInterval(interval);
-                    CheckMenuRadioItem(
-                        PhMainWndMenuHandle,
-                        ID_UPDATEINTERVAL_FAST,
-                        ID_UPDATEINTERVAL_VERYSLOW,
-                        LOWORD(wParam),
-                        MF_BYCOMMAND
-                        );
-                }
-                break;
-            case ID_VIEW_UPDATEAUTOMATICALLY:
-                {
-                    UpdateAutomatically = !UpdateAutomatically;
-
-                    PhSetEnabledProvider(&ProcessProviderRegistration, UpdateAutomatically);
-                    PhSetEnabledProvider(&ServiceProviderRegistration, UpdateAutomatically);
-
-                    if (TabCtrl_GetCurSel(TabControlHandle) == NetworkTabIndex)
-                        PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
-
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_UPDATEAUTOMATICALLY,
-                        UpdateAutomatically ? MF_CHECKED : MF_UNCHECKED
-                        );
-                }
-                break;
-            case ID_TOOLS_CREATESERVICE:
-                {
-                    PhShowCreateServiceDialog(hWnd);
-                }
-                break;
-            case ID_TOOLS_HIDDENPROCESSES:
-                {
-                    PhShowHiddenProcessesDialog();
-                }
-                break;
-            case ID_TOOLS_PAGEFILES:
-                {
-                    PhShowPagefilesDialog(hWnd);
-                }
-                break;
-            case ID_TOOLS_VERIFYFILESIGNATURE:
-                {
-                    static PH_FILETYPE_FILTER filters[] =
-                    {
-                        { L"Executable files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl" },
-                        { L"All files (*.*)", L"*.*" }
-                    };
-                    PVOID fileDialog = PhCreateOpenFileDialog();
-
-                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-
-                    if (PhShowFileDialog(hWnd, fileDialog))
-                    {
-                        PPH_STRING fileName;
-                        VERIFY_RESULT result;
-                        PPH_STRING signerName;
-
-                        fileName = PhGetFileDialogFileName(fileDialog);
-                        result = PhVerifyFile(fileName->Buffer, &signerName);
-
-                        if (result == VrTrusted)
-                        {
-                            PhShowInformation(hWnd, L"\"%s\" is trusted and signed by \"%s\".",
-                                fileName->Buffer, signerName->Buffer);
-                        }
-                        else if (result == VrNoSignature)
-                        {
-                            PhShowInformation(hWnd, L"\"%s\" does not have a digital signature.",
-                                fileName->Buffer);
-                        }
-                        else
-                        {
-                            PhShowInformation(hWnd, L"\"%s\" is not trusted.",
-                                fileName->Buffer);
-                        }
-
-                        if (signerName)
-                            PhDereferenceObject(signerName);
-
-                        PhDereferenceObject(fileName);
-                    }
-
-                    PhFreeFileDialog(fileDialog);
-                }
-                break;
-            case ID_USER_CONNECT:
-                {
-                    PhUiConnectSession(hWnd, SelectedUserSessionId);
-                }
-                break;
-            case ID_USER_DISCONNECT:
-                {
-                    PhUiDisconnectSession(hWnd, SelectedUserSessionId);
-                }
-                break;
-            case ID_USER_LOGOFF:
-                {
-                    PhUiLogoffSession(hWnd, SelectedUserSessionId);
-                }
-                break;
-            case ID_USER_REMOTECONTROL:
-                {
-                    PhShowSessionShadowDialog(hWnd, SelectedUserSessionId);
-                }
-                break;
-            case ID_USER_SENDMESSAGE:
-                {
-                    PhShowSessionSendMessageDialog(hWnd, SelectedUserSessionId);
-                }
-                break;
-            case ID_USER_PROPERTIES:
-                {
-                    PhShowSessionProperties(hWnd, SelectedUserSessionId);
-                }
-                break;
-            case ID_HELP_LOG:
-                {
-                    PhShowLogDialog();
-                }
-                break;
-            case ID_HELP_DONATE:
-                {
-                    PhShellExecute(hWnd, L"https://sourceforge.net/project/project_donations.php?group_id=242527", NULL);
-                }
-                break;
-            case ID_HELP_DEBUGCONSOLE:
-                {
-                    PhShowDebugConsole();
-                }
-                break;
-            case ID_HELP_ABOUT:
-                {
-                    PhShowAboutDialog(hWnd);
-                }
-                break;
-            case ID_PROCESS_TERMINATE:
-                {
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-
-                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
-                    PhReferenceObjects(processes, numberOfProcesses);
-
-                    if (PhUiTerminateProcesses(hWnd, processes, numberOfProcesses))
-                        PhDeselectAllProcessNodes();
-
-                    PhDereferenceObjects(processes, numberOfProcesses);
-                    PhFree(processes);
-                }
-                break;
-            case ID_PROCESS_TERMINATETREE:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-
-                        if (PhUiTerminateTreeProcess(hWnd, processItem))
-                            PhDeselectAllProcessNodes();
-
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_SUSPEND:
-                {
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-
-                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
-                    PhReferenceObjects(processes, numberOfProcesses);
-                    PhUiSuspendProcesses(hWnd, processes, numberOfProcesses);
-                    PhDereferenceObjects(processes, numberOfProcesses);
-                    PhFree(processes);
-                }
-                break;
-            case ID_PROCESS_RESUME:
-                {
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-
-                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
-                    PhReferenceObjects(processes, numberOfProcesses);
-                    PhUiResumeProcesses(hWnd, processes, numberOfProcesses);
-                    PhDereferenceObjects(processes, numberOfProcesses);
-                    PhFree(processes);
-                }
-                break;
-            case ID_PROCESS_RESTART:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-
-                        if (PhUiRestartProcess(hWnd, processItem))
-                            PhDeselectAllProcessNodes();
-
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_CREATEDUMPFILE:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhUiCreateDumpFileProcess(hWnd, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_DEBUG:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhUiDebugProcess(hWnd, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_VIRTUALIZATION:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhUiSetVirtualizationProcess(
-                            hWnd,
-                            processItem,
-                            !SelectedProcessVirtualizationEnabled
-                            );
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_AFFINITY:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhShowProcessAffinityDialog(hWnd, processItem, NULL);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_TERMINATOR:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        // The object relies on the list view reference, which could 
-                        // disappear if we don't reference the object here.
-                        PhReferenceObject(processItem);
-                        PhShowProcessTerminatorDialog(hWnd, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_MISCELLANEOUS_DETACHFROMDEBUGGER:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhUiDetachFromDebuggerProcess(hWnd, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_MISCELLANEOUS_GDIHANDLES:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhShowGdiHandlesDialog(hWnd, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_MISCELLANEOUS_HEAPS:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhShowProcessHeapsDialog(hWnd, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_MISCELLANEOUS_INJECTDLL:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhUiInjectDllProcess(hWnd, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_I_0:
-            case ID_I_1:
-            case ID_I_2:
-            case ID_I_3:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        ULONG ioPriority;
-
-                        switch (id)
-                        {
-                            case ID_I_0:
-                                ioPriority = 0;
-                                break;
-                            case ID_I_1:
-                                ioPriority = 1;
-                                break;
-                            case ID_I_2:
-                                ioPriority = 2;
-                                break;
-                            case ID_I_3:
-                                ioPriority = 3;
-                                break;
-                        }
-
-                        PhReferenceObject(processItem);
-                        PhUiSetIoPriorityProcess(hWnd, processItem, ioPriority);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PAGEPRIORITY_1:
-            case ID_PAGEPRIORITY_2:
-            case ID_PAGEPRIORITY_3:
-            case ID_PAGEPRIORITY_4:
-            case ID_PAGEPRIORITY_5:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        ULONG pagePriority;
-
-                        switch (id)
-                        {
-                            case ID_PAGEPRIORITY_1:
-                                pagePriority = 1;
-                                break;
-                            case ID_PAGEPRIORITY_2:
-                                pagePriority = 2;
-                                break;
-                            case ID_PAGEPRIORITY_3:
-                                pagePriority = 3;
-                                break;
-                            case ID_PAGEPRIORITY_4:
-                                pagePriority = 4;
-                                break;
-                            case ID_PAGEPRIORITY_5:
-                                pagePriority = 5;
-                                break;
-                        }
-
-                        PhReferenceObject(processItem);
-                        PhUiSetPagePriorityProcess(hWnd, processItem, pagePriority);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_MISCELLANEOUS_REDUCEWORKINGSET:
-                {
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-
-                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
-                    PhReferenceObjects(processes, numberOfProcesses);
-                    PhUiReduceWorkingSetProcesses(hWnd, processes, numberOfProcesses);
-                    PhDereferenceObjects(processes, numberOfProcesses);
-                    PhFree(processes);
-                }
-                break;
-            case ID_MISCELLANEOUS_RUNAS:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem && processItem->FileName)
-                    {
-                        PhSetStringSetting2(L"RunAsProgram", &processItem->FileName->sr);
-                        PhShowRunAsDialog(hWnd, NULL);
-                    }
-                }
-                break;
-            case ID_MISCELLANEOUS_RUNASTHISUSER:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhShowRunAsDialog(hWnd, processItem->ProcessId);
-                    }
-                }
-                break;
-            case ID_PRIORITY_REALTIME:
-            case ID_PRIORITY_HIGH:
-            case ID_PRIORITY_ABOVENORMAL:
-            case ID_PRIORITY_NORMAL:
-            case ID_PRIORITY_BELOWNORMAL:
-            case ID_PRIORITY_IDLE:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhpProcessProcessPriorityCommand(id, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_WINDOW_BRINGTOFRONT:
-                {
-                    if (IsWindow(SelectedProcessWindowHandle))
-                    {
-                        WINDOWPLACEMENT placement = { sizeof(placement) };
-
-                        GetWindowPlacement(SelectedProcessWindowHandle, &placement);
-
-                        if (placement.showCmd == SW_MINIMIZE)
-                            ShowWindowAsync(SelectedProcessWindowHandle, SW_RESTORE);
-                        else
-                            SetForegroundWindow(SelectedProcessWindowHandle);
-                    }
-                }
-                break;
-            case ID_WINDOW_RESTORE:
-                {
-                    if (IsWindow(SelectedProcessWindowHandle))
-                    {
-                        ShowWindowAsync(SelectedProcessWindowHandle, SW_RESTORE);
-                    }
-                }
-                break;
-            case ID_WINDOW_MINIMIZE:
-                {
-                    if (IsWindow(SelectedProcessWindowHandle))
-                    {
-                        ShowWindowAsync(SelectedProcessWindowHandle, SW_MINIMIZE);
-                    }
-                }
-                break;
-            case ID_WINDOW_MAXIMIZE:
-                {
-                    if (IsWindow(SelectedProcessWindowHandle))
-                    {
-                        ShowWindowAsync(SelectedProcessWindowHandle, SW_MAXIMIZE);
-                    }
-                }
-                break;
-            case ID_WINDOW_CLOSE:
-                {
-                    if (IsWindow(SelectedProcessWindowHandle))
-                    {
-                        PostMessage(SelectedProcessWindowHandle, WM_CLOSE, 0, 0);
-                    }
-                }
-                break;
-            case ID_PROCESS_PROPERTIES:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        // No reference needed; no messages pumped.
-                        PhpShowProcessProperties(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_OPENFILELOCATION:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem && processItem->FileName)
-                    {
-                        PhReferenceObject(processItem);
-                        PhShellExploreFile(hWnd, processItem->FileName->Buffer);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_SEARCHONLINE:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhSearchOnlineString(hWnd, processItem->ProcessName->Buffer);
-                    }
-                }
-                break;
-            case ID_PROCESS_COPY:
-                {
-                    PhCopyProcessTree();
-                }
-                break;
-            case ID_SERVICE_GOTOPROCESS:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
-                    PPH_PROCESS_NODE processNode;
-
-                    if (serviceItem)
-                    {
-                        if (processNode = PhFindProcessNode(serviceItem->ProcessId))
-                        {
-                            PhpSelectTabPage(ProcessesTabIndex);
-                            SetFocus(ProcessTreeListHandle);
-                            PhSelectAndEnsureVisibleProcessNode(processNode);
-                        }
-                    }
-                }
-                break;
-            case ID_SERVICE_START:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
-
-                    if (serviceItem)
-                    {
-                        PhReferenceObject(serviceItem);
-                        PhUiStartService(hWnd, serviceItem);
-                        PhDereferenceObject(serviceItem);
-                    }
-                }
-                break;
-            case ID_SERVICE_CONTINUE:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
-
-                    if (serviceItem)
-                    {
-                        PhReferenceObject(serviceItem);
-                        PhUiContinueService(hWnd, serviceItem);
-                        PhDereferenceObject(serviceItem);
-                    }
-                }
-                break;
-            case ID_SERVICE_PAUSE:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
-
-                    if (serviceItem)
-                    {
-                        PhReferenceObject(serviceItem);
-                        PhUiPauseService(hWnd, serviceItem);
-                        PhDereferenceObject(serviceItem);
-                    }
-                }
-                break;
-            case ID_SERVICE_STOP:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
-
-                    if (serviceItem)
-                    {
-                        PhReferenceObject(serviceItem);
-                        PhUiStopService(hWnd, serviceItem);
-                        PhDereferenceObject(serviceItem);
-                    }
-                }
-                break;
-            case ID_SERVICE_DELETE:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
-
-                    if (serviceItem)
-                    {
-                        PhReferenceObject(serviceItem);
-
-                        if (PhUiDeleteService(hWnd, serviceItem))
-                            PhDeselectAllServiceNodes();
-
-                        PhDereferenceObject(serviceItem);
-                    }
-                }
-                break;
-            case ID_SERVICE_PROPERTIES:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
-
-                    if (serviceItem)
-                    {
-                        // The object relies on the list view reference, which could 
-                        // disappear if we don't reference the object here.
-                        PhReferenceObject(serviceItem);
-                        PhShowServiceProperties(hWnd, serviceItem);
-                        PhDereferenceObject(serviceItem);
-                    }
-                }
-                break;
-            case ID_SERVICE_COPY:
-                {
-                    PhCopyServiceList();
-                }
-                break;
-            case ID_NETWORK_GOTOPROCESS:
-                {
-                    PPH_NETWORK_ITEM networkItem = PhGetSelectedNetworkItem();
-                    PPH_PROCESS_NODE processNode;
-
-                    if (networkItem)
-                    {
-                        if (processNode = PhFindProcessNode(networkItem->ProcessId))
-                        {
-                            PhpSelectTabPage(ProcessesTabIndex);
-                            SetFocus(ProcessTreeListHandle);
-                            PhSelectAndEnsureVisibleProcessNode(processNode);
-                        }
-                    }
-                }
-                break;
-            case ID_NETWORK_VIEWSTACK:
-                {
-                    PPH_NETWORK_ITEM networkItem = PhGetSelectedNetworkItem();
-
-                    if (networkItem)
-                    {
-                        PhReferenceObject(networkItem);
-                        PhShowNetworkStackDialog(hWnd, networkItem);
-                        PhDereferenceObject(networkItem);
-                    }
-                }
-                break;
-            case ID_NETWORK_CLOSE:
-                {
-                    PPH_NETWORK_ITEM *networkItems;
-                    ULONG numberOfNetworkItems;
-
-                    PhGetSelectedNetworkItems(&networkItems, &numberOfNetworkItems);
-                    PhReferenceObjects(networkItems, numberOfNetworkItems);
-
-                    if (PhUiCloseConnections(hWnd, networkItems, numberOfNetworkItems))
-                        PhSetStateAllListViewItems(NetworkTreeListHandle, 0, LVIS_SELECTED);
-
-                    PhDereferenceObjects(networkItems, numberOfNetworkItems);
-                    PhFree(networkItems);
-                }
-                break;
-            case ID_NETWORK_COPY:
-                {
-                    PhCopyListView(NetworkTreeListHandle);
-                }
-                break;
-            case ID_TAB_NEXT:
-                {
-                    ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
-
-                    if (selectedIndex != MaxTabIndex)
-                        selectedIndex++;
-                    else
-                        selectedIndex = 0;
-
-                    PhpSelectTabPage(selectedIndex);
-                    SetFocus(TabControlHandle);
-                }
-                break;
-            case ID_TAB_PREV:
-                {
-                    ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
-
-                    if (selectedIndex != 0)
-                        selectedIndex--;
-                    else
-                        selectedIndex = MaxTabIndex;
-
-                    PhpSelectTabPage(selectedIndex);
-                    SetFocus(TabControlHandle);
-                }
-                break;
-            }
+            PhMwpOnCommand(LOWORD(wParam));
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (NeedsMaximize)
-            {
-                ShowWindow(hWnd, SW_MAXIMIZE);
-                NeedsMaximize = FALSE;
-            }
+            PhMwpOnShowWindow(!!wParam, (ULONG)lParam);
         }
         break;
     case WM_SYSCOMMAND:
         {
-            switch (wParam)
-            {
-            case SC_CLOSE:
-                {
-                    if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
-                    {
-                        ShowWindow(hWnd, SW_HIDE);
-                        return 0;
-                    }
-                }
-                break;
-            case SC_MINIMIZE:
-                {
-                    // Save the current window state because we 
-                    // may not have a chance to later.
-                    PhpSaveWindowState();
-
-                    if (PhGetIntegerSetting(L"HideOnMinimize") && NotifyIconMask != 0)
-                    {
-                        ShowWindow(hWnd, SW_HIDE);
-                        return 0;
-                    }
-                }
-                break;
-            }
+            if (PhMwpOnSysCommand((ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))
+                return 0;
         }
-        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        break;
     case WM_MENUCOMMAND:
         {
-            ULONG index = (ULONG)wParam;
-            HMENU menuHandle = (HMENU)lParam;
-            MENUITEMINFO menuItemInfo;
-
-            menuItemInfo.cbSize = sizeof(MENUITEMINFO);
-            menuItemInfo.fMask = MIIM_ID | MIIM_DATA;
-
-            if (GetMenuItemInfo(menuHandle, index, TRUE, &menuItemInfo))
-            {
-                PhpProcessMenuCommand(menuHandle, index, menuItemInfo.wID, menuItemInfo.dwItemData);
-            }
+            PhMwpOnMenuCommand((ULONG)wParam, (HMENU)lParam);
         }
         break;
     case WM_SIZE:
         {
-            if (!IsIconic(hWnd))
-            {
-                HDWP deferHandle = BeginDeferWindowPos(2);
-                PhMainWndOnLayout(&deferHandle);
-                EndDeferWindowPos(deferHandle);
-            }
+            PhMwpOnSize();
         }
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 400, 340);
+            PhMwpOnSizing((ULONG)wParam, (PRECT)lParam);
         }
         break;
     case WM_SETFOCUS:
         {
-            INT selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
-
-            if (selectedIndex == ProcessesTabIndex)
-                SetFocus(ProcessTreeListHandle);
-            else if (selectedIndex == ServicesTabIndex)
-                SetFocus(ServiceTreeListHandle);
-            else if (selectedIndex == NetworkTabIndex)
-                SetFocus(NetworkTreeListHandle);
+            PhMwpOnSetFocus();
         }
         break;
     case WM_NOTIFY:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
+            LRESULT result;
 
-            if (header->hwndFrom == TabControlHandle)
-            {
-                PhMainWndTabControlOnNotify(header);
-            }
-            else if (header->code == RFN_VALIDATE)
-            {
-                LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)header;
-
-                if (SelectedRunAsMode == RUNAS_MODE_ADMIN)
-                {
-                    if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile,
-                        NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
-                    {
-                        return RF_CANCEL;
-                    }
-                    else
-                    {
-                        return RF_RETRY;
-                    }
-                }
-                else if (SelectedRunAsMode == RUNAS_MODE_LIMITED)
-                {
-                    NTSTATUS status;
-                    HANDLE tokenHandle;
-                    HANDLE newTokenHandle;
-
-                    if (NT_SUCCESS(status = NtOpenProcessToken(
-                        NtCurrentProcess(),
-                        TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS | 
-                        TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
-                        &tokenHandle
-                        )))
-                    {
-                        if (NT_SUCCESS(status = PhFilterTokenForLimitedUser(
-                            tokenHandle,
-                            &newTokenHandle
-                            )))
-                        {
-                            status = PhCreateProcessWin32(
-                                NULL,
-                                (PWSTR)runFileDlg->lpszFile,
-                                NULL,
-                                NULL,
-                                0,
-                                newTokenHandle,
-                                NULL,
-                                NULL
-                                );
-
-                            NtClose(newTokenHandle);
-                        }
-
-                        NtClose(tokenHandle);
-                    }
-
-                    if (NT_SUCCESS(status))
-                    {
-                        return RF_CANCEL;
-                    }
-                    else
-                    {
-                        PhShowStatus(hWnd, L"Unable to execute the program", status, 0);
-                        return RF_RETRY;
-                    }
-                }
-            }
+            if (PhMwpOnNotify((NMHDR *)lParam, &result))
+                return result;
         }
         break;
     case WM_WTSSESSION_CHANGE:
         {
-            if (wParam == WTS_SESSION_LOGON || wParam == WTS_SESSION_LOGOFF)
-            {
-                PhpRefreshUsersMenu();
-            }
-        }
-        break;
-    case WM_PH_ACTIVATE:
-        {
-            if (!PhMainWndExiting)
-            {
-                if (!IsWindowVisible(hWnd))
-                {
-                    ShowWindow(hWnd, SW_SHOW);
-                }
-
-                if (IsIconic(hWnd))
-                {
-                    ShowWindow(hWnd, SW_RESTORE);
-                }
-
-                return PH_ACTIVATE_REPLY;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        break;
-    case WM_PH_SHOW_PROCESS_PROPERTIES:
-        {
-            PhpShowProcessProperties((PPH_PROCESS_ITEM)lParam);
-        }
-        break;
-    case WM_PH_DESTROY:
-        {
-            DestroyWindow(hWnd);
-        }
-        break;
-    case WM_PH_SAVE_ALL_SETTINGS:
-        {
-            PhpSaveAllSettings();
-        }
-        break;
-    case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
-        {
-            PhpPrepareForEarlyShutdown();
-        }
-        break;
-    case WM_PH_CANCEL_EARLY_SHUTDOWN:
-        {
-            PhpCancelEarlyShutdown();
-        }
-        break;
-    case WM_PH_DELAYED_LOAD_COMPLETED:
-        {
-            // Nothing
-        }
-        break;
-    case WM_PH_NOTIFY_ICON_MESSAGE:
-        {
-            switch (LOWORD(lParam))
-            {
-            case WM_LBUTTONDOWN:
-                {
-                    if (PhGetIntegerSetting(L"IconSingleClick"))
-                        SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0);
-                }
-                break;
-            case WM_LBUTTONDBLCLK:
-                {
-                    if (!PhGetIntegerSetting(L"IconSingleClick"))
-                        SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0);
-                }
-                break;
-            case WM_RBUTTONUP:
-                {
-                    POINT location;
-
-                    GetCursorPos(&location);
-                    PhpShowIconContextMenu(location);
-                }
-                break;
-            }
-        }
-        break;
-    case WM_PH_TOGGLE_VISIBLE:
-        {
-            if (IsIconic(PhMainWndHandle))
-            {
-                ShowWindow(PhMainWndHandle, SW_RESTORE);
-                SetForegroundWindow(PhMainWndHandle);
-            }
-            else if (IsWindowVisible(PhMainWndHandle))
-            {
-                ShowWindow(PhMainWndHandle, SW_HIDE);
-            }
-            else
-            {
-                ShowWindow(PhMainWndHandle, SW_SHOW);
-                SetForegroundWindow(PhMainWndHandle);
-            }
-        }
-        break;
-    case WM_PH_SHOW_MEMORY_EDITOR:
-        {
-            PPH_SHOWMEMORYEDITOR showMemoryEditor = (PPH_SHOWMEMORYEDITOR)lParam;
-
-            PhShowMemoryEditorDialog(
-                showMemoryEditor->ProcessId,
-                showMemoryEditor->BaseAddress,
-                showMemoryEditor->RegionSize,
-                showMemoryEditor->SelectOffset,
-                showMemoryEditor->SelectLength
-                );
-            PhFree(showMemoryEditor);
-        }
-        break;
-    case WM_PH_SHOW_MEMORY_RESULTS:
-        {
-            PPH_SHOWMEMORYRESULTS showMemoryResults = (PPH_SHOWMEMORYRESULTS)lParam;
-
-            PhShowMemoryResultsDialog(
-                showMemoryResults->ProcessId,
-                showMemoryResults->Results
-                );
-            PhDereferenceMemoryResults(
-                (PPH_MEMORY_RESULT *)showMemoryResults->Results->Items,
-                showMemoryResults->Results->Count
-                );
-            PhDereferenceObject(showMemoryResults->Results);
-            PhFree(showMemoryResults);
-        }
-        break;
-    case WM_PH_SELECT_TAB_PAGE:
-        {
-            ULONG index = (ULONG)wParam;
-
-            PhpSelectTabPage(index);
-
-            if (index == ProcessesTabIndex)
-                SetFocus(ProcessTreeListHandle);
-            else if (index == ServicesTabIndex)
-                SetFocus(ServiceTreeListHandle);
-            else if (index == NetworkTabIndex)
-                SetFocus(NetworkTreeListHandle);
-        }
-        break;
-    case WM_PH_GET_LAYOUT_PADDING:
-        {
-            PRECT rect = (PRECT)lParam;
-
-            *rect = LayoutPadding;
-        }
-        break;
-    case WM_PH_SET_LAYOUT_PADDING:
-        {
-            PRECT rect = (PRECT)lParam;
-
-            LayoutPadding = *rect;
-        }
-        break;
-    case WM_PH_SELECT_PROCESS_NODE:
-        {
-            PhSelectAndEnsureVisibleProcessNode((PPH_PROCESS_NODE)lParam);
-        }
-        break;
-    case WM_PH_SELECT_SERVICE_ITEM:
-        {
-            PPH_SERVICE_NODE serviceNode;
-
-            PhpNeedServiceTreeList();
-
-            // For compatibility, lParam is a service item, not node.
-            if (serviceNode = PhFindServiceNode((PPH_SERVICE_ITEM)lParam))
-            {
-                PhSelectAndEnsureVisibleServiceNode(serviceNode);
-            }
-        }
-        break;
-    case WM_PH_SELECT_NETWORK_ITEM:
-        {
-            INT lvItemIndex;
-
-            PhSetStateAllListViewItems(NetworkTreeListHandle, 0, LVIS_SELECTED);
-            lvItemIndex = PhFindListViewItemByParam(NetworkTreeListHandle, -1, (PVOID)lParam);
-
-            if (lvItemIndex != -1)
-            {
-                ListView_SetItemState(NetworkTreeListHandle, lvItemIndex,
-                    LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-            }
-        }
-        break;
-    case WM_PH_UPDATE_FONT:
-        {
-            PPH_STRING fontHexString;
-            LOGFONT font;
-
-            fontHexString = PhGetStringSetting(L"Font");
-
-            if (
-                fontHexString->Length / 2 / 2 == sizeof(LOGFONT) &&
-                PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
-                )
-            {
-                HFONT newFont;
-
-                newFont = CreateFontIndirect(&font);
-
-                if (newFont)
-                {
-                    if (CurrentCustomFont)
-                        DeleteObject(CurrentCustomFont);
-
-                    CurrentCustomFont = newFont;
-
-                    SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
-                    SendMessage(ServiceTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
-                    SendMessage(NetworkTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
-                }
-            }
-
-            PhDereferenceObject(fontHexString);
-        }
-        break;
-    case WM_PH_GET_FONT:
-        return SendMessage(ProcessTreeListHandle, WM_GETFONT, 0, 0);
-    case WM_PH_INVOKE:
-        {
-            VOID (NTAPI *function)(PVOID);
-
-            function = (PVOID)lParam;
-            function((PVOID)wParam);
-        }
-        break;
-    case WM_PH_ADD_MENU_ITEM:
-        {
-            PPH_ADDMENUITEM addMenuItem = (PPH_ADDMENUITEM)lParam;
-
-            return (LRESULT)PhpMainWndAddMenuItem(
-                addMenuItem->Plugin,
-                addMenuItem->ParentMenu,
-                addMenuItem->InsertAfter,
-                addMenuItem->Flags,
-                addMenuItem->Id,
-                addMenuItem->Text,
-                addMenuItem->Context
-                );
-        }
-        break;
-    case WM_PH_ADD_TAB_PAGE:
-        {
-            return (LRESULT)PhpAddTabPage((PPH_ADDITIONAL_TAB_PAGE)lParam);
-        }
-        break;
-    case WM_PH_PROCESS_ADDED:
-        {
-            ULONG runId = (ULONG)wParam;
-            PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)lParam;
-
-            PhMainWndOnProcessAdded(processItem, runId);
-        }
-        break;
-    case WM_PH_PROCESS_MODIFIED:
-        {
-            PhMainWndOnProcessModified((PPH_PROCESS_ITEM)lParam);
-        }
-        break;
-    case WM_PH_PROCESS_REMOVED:
-        {
-            PhMainWndOnProcessRemoved((PPH_PROCESS_ITEM)lParam);
-        }
-        break;
-    case WM_PH_PROCESSES_UPDATED:
-        {
-            PhMainWndOnProcessesUpdated();
-        }
-        break;
-    case WM_PH_SERVICE_ADDED:
-        {
-            ULONG runId = (ULONG)wParam;
-            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)lParam;
-
-            PhMainWndOnServiceAdded(serviceItem, runId);
-        }
-        break;
-    case WM_PH_SERVICE_MODIFIED:
-        {
-            PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)lParam;
-
-            PhMainWndOnServiceModified(serviceModifiedData);
-            PhFree(serviceModifiedData);
-        }
-        break;
-    case WM_PH_SERVICE_REMOVED:
-        {
-            PhMainWndOnServiceRemoved((PPH_SERVICE_ITEM)lParam);
-        }
-        break;
-    case WM_PH_SERVICES_UPDATED:
-        {
-            PhMainWndOnServicesUpdated();
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_ADDED:
-        {
-            ULONG runId = (ULONG)wParam;
-            PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)lParam;
-
-            PhMainWndOnNetworkItemAdded(runId, networkItem);
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_MODIFIED:
-        {
-            PhMainWndOnNetworkItemModified((PPH_NETWORK_ITEM)lParam);
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_REMOVED:
-        {
-            PhMainWndOnNetworkItemRemoved((PPH_NETWORK_ITEM)lParam);
-        }
-        break;
-    case WM_PH_NETWORK_ITEMS_UPDATED:
-        {
-            PhMainWndOnNetworkItemsUpdated();
+            PhMwpOnWtsSessionChange((ULONG)wParam, (ULONG)lParam);
         }
         break;
     }
 
-    REFLECT_MESSAGE(NetworkTreeListHandle, uMsg, wParam, lParam);
+    if (uMsg >= WM_PH_FIRST && uMsg <= WM_PH_LAST)
+    {
+        return PhMwpOnUserMessage(uMsg, wParam, lParam);
+    }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-VOID PhReloadSysParameters()
-{
-    PhSysWindowColor = GetSysColor(COLOR_WINDOW);
-
-    if (PhApplicationFont)
-        DeleteObject(PhApplicationFont);
-    if (PhBoldMessageFont)
-        DeleteObject(PhBoldMessageFont);
-    PhInitializeFont(PhMainWndHandle);
-    SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
-}
-
-VOID PhpInitialLoadSettings()
-{
-    ULONG opacity;
-    ULONG id;
-    PPH_STRING customFont;
-    ULONG i;
-
-    if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
-    {
-        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, MF_CHECKED);
-        SetWindowPos(PhMainWndHandle, HWND_TOPMOST, 0, 0, 0, 0,
-            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE);
-    }
-
-    opacity = PhGetIntegerSetting(L"MainWindowOpacity");
-
-    if (opacity != 0)
-        PhpSetWindowOpacity(opacity);
-
-    PhpSetCheckOpacityMenu(TRUE, opacity);
-
-    switch (PhGetIntegerSetting(L"UpdateInterval"))
-    {
-    case 500:
-        id = ID_UPDATEINTERVAL_FAST;
-        break;
-    case 1000:
-        id = ID_UPDATEINTERVAL_NORMAL;
-        break;
-    case 2000:
-        id = ID_UPDATEINTERVAL_BELOWNORMAL;
-        break;
-    case 5000:
-        id = ID_UPDATEINTERVAL_SLOW;
-        break;
-    case 10000:
-        id = ID_UPDATEINTERVAL_VERYSLOW;
-        break;
-    default:
-        id = -1;
-        break;
-    }
-
-    if (id != -1)
-    {
-        CheckMenuRadioItem(
-            PhMainWndMenuHandle,
-            ID_UPDATEINTERVAL_FAST,
-            ID_UPDATEINTERVAL_VERYSLOW,
-            id,
-            MF_BYCOMMAND
-            );
-    }
-
-    PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
-    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
-    PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
-    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
-    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
-    PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
-
-    NotifyIconMask = PhGetIntegerSetting(L"IconMask");
-
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconMask & i)
-        {
-            switch (i)
-            {
-            case PH_ICON_CPU_HISTORY:
-                id = ID_TRAYICONS_CPUHISTORY;
-                break;
-            case PH_ICON_IO_HISTORY:
-                id = ID_TRAYICONS_IOHISTORY;
-                break;
-            case PH_ICON_COMMIT_HISTORY:
-                id = ID_TRAYICONS_COMMITHISTORY;
-                break;
-            case PH_ICON_PHYSICAL_HISTORY:
-                id = ID_TRAYICONS_PHYSICALMEMORYHISTORY;
-                break;
-            case PH_ICON_CPU_USAGE:
-                id = ID_TRAYICONS_CPUUSAGE;
-                break;
-            }
-
-            CheckMenuItem(PhMainWndMenuHandle, id, MF_CHECKED);
-        }
-    }
-
-    NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
-
-    if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
-    {
-        CurrentUserFilterEntry = PhAddProcessTreeFilter(PhpCurrentUserProcessTreeFilter, NULL);
-        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, MF_CHECKED);
-    }
-
-    if (PhGetIntegerSetting(L"HideSignedProcesses"))
-    {
-        SignedFilterEntry = PhAddProcessTreeFilter(PhpSignedProcessTreeFilter, NULL);
-        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDESIGNEDPROCESSES, MF_CHECKED);
-    }
-
-    if (PhEnableCycleCpuUsage)
-    {
-        if (PhCsShowCpuBelow001)
-        {
-            CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_CHECKED);
-        }
-    }
-    else
-    {
-        EnableMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_GRAYED | MF_DISABLED);
-    }
-
-    customFont = PhGetStringSetting(L"Font");
-
-    if (customFont->Length / 2 / 2 == sizeof(LOGFONT))
-        SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
-
-    PhDereferenceObject(customFont);
-
-    PhLoadSettingsProcessTreeList();
-    // Service and network list settings are loaded on demand.
-}
-
-VOID PhMainSymInitHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+BOOLEAN PhMwpInitializeWindowClass(
+    VOID
     )
 {
-    PPH_STRING dbghelpPath;
-    HMODULE dbghelpModule;
-
-    dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
-
-    if (dbghelpModule = LoadLibrary(dbghelpPath->Buffer))
-    {
-        PPH_STRING fullDbghelpPath;
-        ULONG indexOfFileName;
-        PH_STRINGREF dbghelpFolder;
-        PPH_STRING symsrvPath;
-
-        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
-
-        if (fullDbghelpPath)
-        {
-            if (indexOfFileName != -1)
-            {
-                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
-
-                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
-                dbghelpFolder.Length = (USHORT)(indexOfFileName * sizeof(WCHAR));
-
-                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
-                LoadLibrary(symsrvPath->Buffer);
-                PhDereferenceObject(symsrvPath);
-            }
-
-            PhDereferenceObject(fullDbghelpPath);
-        }
-    }
-    else
-    {
-        LoadLibrary(L"dbghelp.dll");
-    }
-
-    PhDereferenceObject(dbghelpPath);
-
-    PhSymbolProviderDynamicImport();
-}
-
-static NTSTATUS PhpDelayedLoadFunction(
-    __in PVOID Parameter
-    )
-{
-    ULONG i;
-
-    // Register for window station notifications.
-    WinStationRegisterConsoleNotification(NULL, PhMainWndHandle, WNOTIFY_ALL_SESSIONS);
-
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconMask & i)
-            PhAddNotifyIcon(i);
-    }
-
-    // Make sure we get closed late in the shutdown process.
-    SetProcessShutdownParameters(0x100, 0);
-
-    DelayedLoadCompleted = TRUE;
-    //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
-
-    return STATUS_SUCCESS;
-}
-
-VOID PhpSaveWindowState()
-{
-    WINDOWPLACEMENT placement = { sizeof(placement) };
-
-    GetWindowPlacement(PhMainWndHandle, &placement);
-
-    if (placement.showCmd == SW_NORMAL)
-        PhSetIntegerSetting(L"MainWindowState", SW_NORMAL);
-    else if (placement.showCmd == SW_MAXIMIZE)
-        PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
-}
-
-VOID PhpSaveAllSettings()
-{
-    PhSaveSettingsProcessTreeList();
-    if (ServiceTreeListLoaded)
-        PhSaveSettingsServiceTreeList();
-    if (NetworkTreeListLoaded)
-        PhSaveSettingsNetworkTreeList();
-
-    PhSetIntegerSetting(L"IconMask", NotifyIconMask);
-    PhSetIntegerSetting(L"IconNotifyMask", NotifyIconNotifyMask);
-
-    PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", PhMainWndHandle);
-
-    PhpSaveWindowState();
-
-    if (PhSettingsFileName)
-        PhSaveSettings(PhSettingsFileName->Buffer);
-}
-
-VOID PhpSetCheckOpacityMenu(
-    __in BOOLEAN AssumeAllUnchecked,
-    __in ULONG Opacity
-    )
-{
-    // The setting is stored backwards - 0 means opaque, 100 means transparent.
-    CheckMenuRadioItem(
-        PhMainWndMenuHandle,
-        ID_OPACITY_10,
-        ID_OPACITY_OPAQUE,
-        ID_OPACITY_10 + (10 - Opacity / 10) - 1,
-        MF_BYCOMMAND
-        );
-}
-
-VOID PhpSetWindowOpacity(
-    __in ULONG Opacity
-    )
-{
-    if (Opacity == 0)
-    {
-        // Make things a bit faster by removing the WS_EX_LAYERED bit.
-        PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, 0);
-        RedrawWindow(PhMainWndHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
-        return;
-    }
-
-    PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, WS_EX_LAYERED);
-
-    // Disallow opacity values of less than 10%.
-    if (Opacity > 90)
-        return;
-
-    SetLayeredWindowAttributes(
-        PhMainWndHandle,
-        0,
-        (BYTE)(255 * (100 - Opacity) / 100),
-        LWA_ALPHA
-        );
-}
-
-VOID PhpSelectTabPage(
-    __in ULONG Index
-    )
-{
-    TabCtrl_SetCurSel(TabControlHandle, Index);
-    PhMainWndTabControlOnSelectionChanged();
-}
-
-VOID PhpPrepareForEarlyShutdown()
-{
-    PhpSaveAllSettings();
-    PhMainWndExiting = TRUE;
-}
-
-VOID PhpCancelEarlyShutdown()
-{
-    PhMainWndExiting = FALSE;
-}
-
-VOID PhpNeedServiceTreeList()
-{
-    if (!ServiceTreeListLoaded)
-    {
-        ServiceTreeListLoaded = TRUE;
-
-        PhLoadSettingsServiceTreeList();
-
-        if (ServicesPendingList)
-        {
-            PPH_SERVICE_ITEM serviceItem;
-            ULONG enumerationKey = 0;
-
-            while (PhEnumPointerList(ServicesPendingList, &enumerationKey, (PPVOID)&serviceItem))
-            {
-                PhMainWndOnServiceAdded(serviceItem, 1);
-            }
-
-            // Force a re-draw.
-            PhMainWndOnServicesUpdated();
-
-            PhSwapReference(&ServicesPendingList, NULL);
-        }
-    }
-}
-
-VOID PhpNeedNetworkTreeList()
-{
-    if (!NetworkTreeListLoaded)
-    {
-        NetworkTreeListLoaded = TRUE;
-
-        PhLoadSettingsNetworkTreeList();
-    }
-}
-
-VOID PhpInitializeMainMenu(
-    __in HMENU MenuHandle
-    )
-{
-    MENUINFO menuInfo;
-
-    menuInfo.cbSize = sizeof(MENUINFO);
-    menuInfo.fMask = MIM_STYLE;
-    menuInfo.dwStyle = MNS_NOTIFYBYPOS;
-    SetMenuInfo(MenuHandle, &menuInfo);
-}
-
-VOID PhpProcessMenuCommand(
-    __in HMENU MenuHandle,
-    __in ULONG ItemIndex,
-    __in ULONG ItemId,
-    __in ULONG_PTR ItemData
-    )
-{
-    switch (ItemId)
-    {
-    case ID_PLUGIN_MENU_ITEM:
-        {
-            PPH_PLUGIN_MENU_ITEM menuItem;
-
-            menuItem = (PPH_PLUGIN_MENU_ITEM)ItemData;
-
-            if (menuItem)
-            {
-                menuItem->OwnerWindow = PhMainWndHandle;
-                PhInvokeCallback(PhGetPluginCallback(menuItem->Plugin, PluginCallbackMenuItem), menuItem);
-            }
-
-            return;
-        }
-        break;
-    case ID_USER_CONNECT:
-    case ID_USER_DISCONNECT:
-    case ID_USER_LOGOFF:
-    case ID_USER_REMOTECONTROL:
-    case ID_USER_SENDMESSAGE:
-    case ID_USER_PROPERTIES:
-        {
-            SelectedUserSessionId = (ULONG)ItemData;
-        }
-        break;
-    }
-
-    SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
-}
-
-BOOLEAN PhpProcessComputerCommand(
-    __in ULONG Id
-    )
-{
-    switch (Id)
-    {
-    case ID_COMPUTER_LOCK:
-        PhUiLockComputer(PhMainWndHandle);
-        return TRUE;
-    case ID_COMPUTER_LOGOFF:
-        PhUiLogoffComputer(PhMainWndHandle);
-        return TRUE;
-    case ID_COMPUTER_SLEEP:
-        PhUiSleepComputer(PhMainWndHandle);
-        return TRUE;
-    case ID_COMPUTER_HIBERNATE:
-        PhUiHibernateComputer(PhMainWndHandle);
-        return TRUE;
-    case ID_COMPUTER_RESTART:
-        PhUiRestartComputer(PhMainWndHandle);
-        return TRUE;
-    case ID_COMPUTER_SHUTDOWN:
-        PhUiShutdownComputer(PhMainWndHandle);
-        return TRUE;
-    case ID_COMPUTER_POWEROFF:
-        PhUiPoweroffComputer(PhMainWndHandle);
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PhpProcessProcessPriorityCommand(
-    __in ULONG Id,
-    __in PPH_PROCESS_ITEM ProcessItem
-    )
-{
-    ULONG priorityClass;
-
-    switch (Id)
-    {
-    case ID_PRIORITY_REALTIME:
-        priorityClass = PROCESS_PRIORITY_CLASS_REALTIME;
-        break;
-    case ID_PRIORITY_HIGH:
-        priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
-        break;
-    case ID_PRIORITY_ABOVENORMAL:
-        priorityClass = PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
-        break;
-    case ID_PRIORITY_NORMAL:
-        priorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
-        break;
-    case ID_PRIORITY_BELOWNORMAL:
-        priorityClass = PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
-        break;
-    case ID_PRIORITY_IDLE:
-        priorityClass = PROCESS_PRIORITY_CLASS_IDLE;
-        break;
-    default:
-        return FALSE;
-    }
-
-    PhUiSetPriorityProcess(PhMainWndHandle, ProcessItem, priorityClass);
-
-    return TRUE;
-}
-
-VOID PhpRefreshUsersMenu()
-{
-    HMENU menu;
-    PSESSIONIDW sessions;
-    ULONG numberOfSessions;
-    ULONG i;
-    ULONG j;
-    MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
-
-    menu = GetSubMenu(PhMainWndMenuHandle, 3);
-
-    // Delete all items in the Users menu.
-    while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;
-
-    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
-    {
-        for (i = 0; i < numberOfSessions; i++)
-        {
-            HMENU userMenu;
-            PPH_STRING menuText;
-            PPH_STRING escapedMenuText;
-            WINSTATIONINFORMATION winStationInfo;
-            ULONG returnLength;
-            ULONG numberOfItems;
-
-            if (!WinStationQueryInformationW(
-                NULL,
-                sessions[i].SessionId,
-                WinStationInformation,
-                &winStationInfo,
-                sizeof(WINSTATIONINFORMATION),
-                &returnLength
-                ))
-            {
-                winStationInfo.Domain[0] = 0;
-                winStationInfo.UserName[0] = 0;
-            }
-
-            if (winStationInfo.Domain[0] == 0 || winStationInfo.UserName[0] == 0)
-            {
-                // Probably the Services or RDP-Tcp session.
-                continue;
-            }
-
-            menuText = PhFormatString(
-                L"%u: %s\\%s",
-                sessions[i].SessionId,
-                winStationInfo.Domain,
-                winStationInfo.UserName
-                );
-            escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
-            PhDereferenceObject(menuText);
-
-            userMenu = GetSubMenu(LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_USER)), 0);
-            AppendMenu(
-                menu,
-                MF_STRING | MF_POPUP,
-                (UINT_PTR)userMenu,
-                escapedMenuText->Buffer
-                );
-
-            PhDereferenceObject(escapedMenuText);
-
-            menuItemInfo.fMask = MIIM_DATA;
-            menuItemInfo.dwItemData = sessions[i].SessionId;
-
-            numberOfItems = GetMenuItemCount(userMenu);
-
-            if (numberOfItems != -1)
-            {
-                for (j = 0; j < numberOfItems; j++)
-                    SetMenuItemInfo(userMenu, j, TRUE, &menuItemInfo);
-            }
-        }
-
-        WinStationFreeMemory(sessions);
-    }
-
-    DrawMenuBar(PhMainWndHandle);
-}
-
-static int __cdecl IconProcessesCpuUsageCompare(
-    __in const void *elem1,
-    __in const void *elem2
-    )
-{
-    PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
-    PPH_PROCESS_ITEM processItem2 = *(PPH_PROCESS_ITEM *)elem2;
-
-    return -singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
-}
-
-static int __cdecl IconProcessesNameCompare(
-    __in const void *elem1,
-    __in const void *elem2
-    )
-{
-    PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
-    PPH_PROCESS_ITEM processItem2 = *(PPH_PROCESS_ITEM *)elem2;
-
-    return PhCompareString(processItem1->ProcessName, processItem2->ProcessName, TRUE);
-}
-
-VOID PhpAddIconProcesses(
-    __in PPH_EMENU_ITEM Menu,
-    __in ULONG NumberOfProcesses
-    )
-{
-    ULONG i;
-    PPH_PROCESS_ITEM *processItems;
-    ULONG numberOfProcessItems;
-    PPH_LIST processList;
-    PPH_PROCESS_ITEM processItem;
-
-    PhEnumProcessItems(&processItems, &numberOfProcessItems);
-    processList = PhCreateList(numberOfProcessItems);
-    PhAddItemsList(processList, processItems, numberOfProcessItems);
-
-    // Remove non-real processes.
-    for (i = 0; i < processList->Count; i++)
-    {
-        processItem = processList->Items[i];
-
-        if (!PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
-        {
-            PhRemoveItemList(processList, i);
-            i--;
-        }
-    }
-
-    // Remove processes with zero CPU usage and those running as other users.
-    for (i = 0; i < processList->Count && processList->Count > NumberOfProcesses; i++)
-    {
-        processItem = processList->Items[i];
-
-        if (
-            processItem->CpuUsage == 0 ||
-            !processItem->UserName ||
-            (PhCurrentUserName && !PhEqualString(processItem->UserName, PhCurrentUserName, TRUE))
-            )
-        {
-            PhRemoveItemList(processList, i);
-            i--;
-        }
-    }
-
-    // Sort the processes by CPU usage and remove the extra processes at the end of the list.
-    qsort(processList->Items, processList->Count, sizeof(PVOID), IconProcessesCpuUsageCompare);
-
-    if (processList->Count > NumberOfProcesses)
-    {
-        PhRemoveItemsList(processList, NumberOfProcesses, processList->Count - NumberOfProcesses);
-    }
-
-    // Lastly, sort by name.
-    qsort(processList->Items, processList->Count, sizeof(PVOID), IconProcessesNameCompare);
-
-    // Delete all menu items.
-    PhRemoveAllEMenuItems(Menu);
-
-    // Add the processes.
-
-    for (i = 0; i < processList->Count; i++)
-    {
-        PPH_EMENU_ITEM subMenu;
-        PPH_EMENU_ITEM priorityMenu;
-        HBITMAP iconBitmap;
-        CLIENT_ID clientId;
-        PPH_STRING clientIdName;
-        PPH_STRING escapedName;
-
-        processItem = processList->Items[i];
-
-        // Priority
-
-        priorityMenu = PhCreateEMenuItem(0, 0, L"Priority", NULL, NULL);
-
-        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"Real Time", NULL, NULL), -1);
-        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"High", NULL, NULL), -1);
-        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"Above Normal", NULL, NULL), -1);
-        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_NORMAL, L"Normal", NULL, NULL), -1);
-        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"Below Normal", NULL, NULL), -1);
-        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_IDLE, L"Idle", NULL, NULL), -1);
-
-        PhpSetProcessMenuPriorityChecks(priorityMenu, processItem, TRUE, FALSE, FALSE);
-
-        // Process
-
-        clientId.UniqueProcess = processItem->ProcessId;
-        clientId.UniqueThread = NULL;
-
-        clientIdName = PhGetClientIdName(&clientId);
-        escapedName = PhEscapeStringForMenuPrefix(&clientIdName->sr);
-        PhDereferenceObject(clientIdName);
-        PhaDereferenceObject(escapedName);
-
-        subMenu = PhCreateEMenuItem(
-            0,
-            0,
-            escapedName->Buffer,
-            NULL,
-            processItem->ProcessId
-            );
-
-        // Menu icons only work properly on Vista and above.
-        if (WindowsVersion >= WINDOWS_VISTA)
-        {
-            if (processItem->SmallIcon)
-            {
-                iconBitmap = PhIconToBitmap(processItem->SmallIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-            }
-            else
-            {
-                HICON icon;
-
-                PhGetStockApplicationIcon(&icon, NULL);
-                iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
-            }
-        }
-        else
-        {
-            iconBitmap = NULL;
-        }
-
-        subMenu->Bitmap = iconBitmap;
-        subMenu->Flags |= PH_EMENU_BITMAP_OWNED; // automatically destroy the bitmap when necessary
-
-        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATE, L"Terminate", NULL, NULL), -1);
-        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"Suspend", NULL, NULL), -1);
-        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Resume", NULL, NULL), -1);
-        PhInsertEMenuItem(subMenu, priorityMenu, -1);
-        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_PROPERTIES, L"Properties", NULL, NULL), -1);
-
-        PhInsertEMenuItem(Menu, subMenu, -1);
-    }
-
-    PhDereferenceObject(processList);
-    PhDereferenceObjects(processItems, numberOfProcessItems);
-    PhFree(processItems);
-}
-
-VOID PhpShowIconContextMenu(
-    __in POINT Location
-    )
-{
-    PPH_EMENU menu;
-    PPH_EMENU_ITEM item;
-    ULONG numberOfProcesses;
-    ULONG id;
-    ULONG i;
-
-    // This function seems to be called recursively under some circumstances.
-    // To reproduce:
-    // 1. Hold right mouse button on tray icon, then left click.
-    // 2. Make the menu disappear by clicking on the menu then clicking somewhere else.
-    // So, don't store any global state or bad things will happen.
-
-    menu = PhCreateEMenu();
-    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_ICON), 0);
-
-    // Check the Notifications menu items.
-    for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconNotifyMask & i)
-        {
-            switch (i)
-            {
-            case PH_NOTIFY_PROCESS_CREATE:
-                id = ID_NOTIFICATIONS_NEWPROCESSES;
-                break;
-            case PH_NOTIFY_PROCESS_DELETE:
-                id = ID_NOTIFICATIONS_TERMINATEDPROCESSES;
-                break;
-            case PH_NOTIFY_SERVICE_CREATE:
-                id = ID_NOTIFICATIONS_NEWSERVICES;
-                break;
-            case PH_NOTIFY_SERVICE_DELETE:
-                id = ID_NOTIFICATIONS_DELETEDSERVICES;
-                break;
-            case PH_NOTIFY_SERVICE_START:
-                id = ID_NOTIFICATIONS_STARTEDSERVICES;
-                break;
-            case PH_NOTIFY_SERVICE_STOP:
-                id = ID_NOTIFICATIONS_STOPPEDSERVICES;
-                break;
-            }
-
-            PhSetFlagsEMenuItem(menu, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-        }
-    }
-
-    // Add processes to the menu.
-
-    numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
-    item = PhFindEMenuItem(menu, 0, L"Processes", 0);
-
-    if (item)
-        PhpAddIconProcesses(item, numberOfProcesses);
-
-    // Give plugins a chance to modify the menu.
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-        menuInfo.Menu = menu;
-        menuInfo.OwnerWindow = PhMainWndHandle;
-
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackIconMenuInitializing), &menuInfo);
-    }
-
-    SetForegroundWindow(PhMainWndHandle); // window must be foregrounded so menu will disappear properly
-    item = PhShowEMenu(
-        menu,
-        PhMainWndHandle,
-        PH_EMENU_SHOW_LEFTRIGHT,
-        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-        Location.x,
-        Location.y
-        );
-
-    if (item)
-    {
-        PPH_EMENU_ITEM parentItem;
-        HANDLE processId;
-        BOOLEAN handled = FALSE;
-
-        parentItem = item->Parent;
-
-        while (parentItem)
-        {
-            if (parentItem->Context)
-                processId = parentItem->Context;
-
-            parentItem = parentItem->Parent;
-        }
-
-        if (PhPluginsEnabled && !handled)
-            handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
-
-        if (!handled)
-            handled = PhpProcessComputerCommand(item->Id);
-
-        if (!handled)
-        {
-            switch (item->Id)
-            {
-            case ID_ICON_SHOWHIDEPROCESSHACKER:
-                SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
-                break;
-            case ID_ICON_SYSTEMINFORMATION:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
-                break;
-            case ID_NOTIFICATIONS_ENABLEALL:
-                NotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
-                break;
-            case ID_NOTIFICATIONS_DISABLEALL:
-                NotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
-                break;
-            case ID_NOTIFICATIONS_NEWPROCESSES:
-            case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
-            case ID_NOTIFICATIONS_NEWSERVICES:
-            case ID_NOTIFICATIONS_STARTEDSERVICES:
-            case ID_NOTIFICATIONS_STOPPEDSERVICES:
-            case ID_NOTIFICATIONS_DELETEDSERVICES:
-                {
-                    ULONG bit;
-
-                    switch (item->Id)
-                    {
-                    case ID_NOTIFICATIONS_NEWPROCESSES:
-                        bit = PH_NOTIFY_PROCESS_CREATE;
-                        break;
-                    case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
-                        bit = PH_NOTIFY_PROCESS_DELETE;
-                        break;
-                    case ID_NOTIFICATIONS_NEWSERVICES:
-                        bit = PH_NOTIFY_SERVICE_CREATE;
-                        break;
-                    case ID_NOTIFICATIONS_STARTEDSERVICES:
-                        bit = PH_NOTIFY_SERVICE_START;
-                        break;
-                    case ID_NOTIFICATIONS_STOPPEDSERVICES:
-                        bit = PH_NOTIFY_SERVICE_STOP;
-                        break;
-                    case ID_NOTIFICATIONS_DELETEDSERVICES:
-                        bit = PH_NOTIFY_SERVICE_DELETE;
-                        break;
-                    }
-
-                    NotifyIconNotifyMask ^= bit;
-                }
-                break;
-            case ID_PROCESS_TERMINATE:
-            case ID_PROCESS_SUSPEND:
-            case ID_PROCESS_RESUME:
-            case ID_PROCESS_PROPERTIES:
-                {
-                    PPH_PROCESS_ITEM processItem;
-
-                    if (processItem = PhReferenceProcessItem(processId))
-                    {
-                        switch (item->Id)
-                        {
-                        case ID_PROCESS_TERMINATE:
-                            PhUiTerminateProcesses(PhMainWndHandle, &processItem, 1);
-                            break;
-                        case ID_PROCESS_SUSPEND:
-                            PhUiSuspendProcesses(PhMainWndHandle, &processItem, 1);
-                            break;
-                        case ID_PROCESS_RESUME:
-                            PhUiResumeProcesses(PhMainWndHandle, &processItem, 1);
-                            break;
-                        case ID_PROCESS_PROPERTIES:
-                            ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
-                            break;
-                        }
-
-                        PhDereferenceObject(processItem);
-                    }
-                    else
-                    {
-                        PhShowError(PhMainWndHandle, L"The process does not exist.");
-                    }
-                }
-                break;
-            case ID_PRIORITY_REALTIME:
-            case ID_PRIORITY_HIGH:
-            case ID_PRIORITY_ABOVENORMAL:
-            case ID_PRIORITY_NORMAL:
-            case ID_PRIORITY_BELOWNORMAL:
-            case ID_PRIORITY_IDLE:
-                {
-                    PPH_PROCESS_ITEM processItem;
-
-                    if (processItem = PhReferenceProcessItem(processId))
-                    {
-                        PhpProcessProcessPriorityCommand(item->Id, processItem);
-                        PhDereferenceObject(processItem);
-                    }
-                    else
-                    {
-                        PhShowError(PhMainWndHandle, L"The process does not exist.");
-                    }
-                }
-                break;
-            case ID_ICON_EXIT:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
-                break;
-            }
-        }
-    }
-
-    PhDestroyEMenu(menu);
-}
-
-VOID PhShowIconNotification(
-    __in PWSTR Title,
-    __in PWSTR Text,
-    __in ULONG Flags
-    )
-{
-    ULONG i;
-
-    // Find a visible icon to display the balloon tip on.
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconMask & i)
-        {
-            PhShowBalloonTipNotifyIcon(i, Title, Text, 10, Flags);
-            break;
-        }
-    }
-}
-
-BOOLEAN PhpCurrentUserProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
-    __in_opt PVOID Context
-    )
-{
-    if (!ProcessNode->ProcessItem->UserName)
-        return FALSE;
-
-    if (!PhCurrentUserName)
-        return FALSE;
-
-    if (!PhEqualString(ProcessNode->ProcessItem->UserName, PhCurrentUserName, TRUE))
+    WNDCLASSEX wcex;
+
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = 0;
+    wcex.lpfnWndProc = PhMwpWndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = 0;
+    wcex.hInstance = PhInstanceHandle;
+    wcex.hIcon = LoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+    //wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
+    wcex.lpszClassName = PH_MAINWND_CLASSNAME;
+    wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
+
+    if (!RegisterClassEx(&wcex))
         return FALSE;
 
     return TRUE;
 }
 
-BOOLEAN PhpSignedProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
-    __in_opt PVOID Context
+VOID PhMwpInitializeProviders(
+    VOID
     )
 {
-    if (ProcessNode->ProcessItem->VerifyResult == VrTrusted)
-        return FALSE;
+    ULONG interval;
 
-    return TRUE;
-}
+    interval = PhGetIntegerSetting(L"UpdateInterval");
 
-PPH_PROCESS_ITEM PhpGetSelectedProcess()
-{
-    return PhGetSelectedProcessItem();
-}
-
-VOID PhpGetSelectedProcesses(
-    __out PPH_PROCESS_ITEM **Processes,
-    __out PULONG NumberOfProcesses
-    )
-{
-    PhGetSelectedProcessItems(Processes, NumberOfProcesses);
-}
-
-VOID PhpShowProcessProperties(
-    __in PPH_PROCESS_ITEM ProcessItem
-    )
-{
-    PPH_PROCESS_PROPCONTEXT propContext;
-
-    propContext = PhCreateProcessPropContext(
-        PhMainWndHandle,
-        ProcessItem
-        );
-
-    if (propContext)
+    if (interval == 0)
     {
-        PhShowProcessProperties(propContext);
-        PhDereferenceObject(propContext);
+        interval = 1000;
+        PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
     }
+
+    PhInitializeProviderThread(&PhPrimaryProviderThread, interval);
+    PhInitializeProviderThread(&PhSecondaryProviderThread, interval);
+
+    PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &ProcessProviderRegistration);
+    PhSetEnabledProvider(&ProcessProviderRegistration, TRUE);
+    PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
+    PhSetEnabledProvider(&ServiceProviderRegistration, TRUE);
+    PhRegisterProvider(&PhPrimaryProviderThread, PhNetworkProviderUpdate, NULL, &NetworkProviderRegistration);
 }
 
-static VOID NTAPI ProcessAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+VOID PhMwpInitializeControls(
+    VOID
     )
-{
-    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
-
-    // Reference the process item so it doesn't get deleted before 
-    // we handle the event in the main thread.
-    PhReferenceObject(processItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_PROCESS_ADDED,
-        (WPARAM)PhGetRunIdProvider(&ProcessProviderRegistration),
-        (LPARAM)processItem
-        );
-}
-
-static VOID NTAPI ProcessModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_PROCESS_MODIFIED, 0, (LPARAM)processItem);
-}
-
-static VOID NTAPI ProcessRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
-
-    // We already have a reference to the process item, so we don't need to 
-    // reference it here.
-    PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
-}
-
-static VOID NTAPI ProcessesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
-}
-
-static VOID NTAPI ProcessesUpdatedForIconsHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    // We do icon updating on the provider thread so we don't block the main GUI when 
-    // explorer is not responding.
-
-    if (NotifyIconMask & PH_ICON_CPU_HISTORY)
-        PhUpdateIconCpuHistory();
-    if (NotifyIconMask & PH_ICON_IO_HISTORY)
-        PhUpdateIconIoHistory();
-    if (NotifyIconMask & PH_ICON_COMMIT_HISTORY)
-        PhUpdateIconCommitHistory();
-    if (NotifyIconMask & PH_ICON_PHYSICAL_HISTORY)
-        PhUpdateIconPhysicalHistory();
-    if (NotifyIconMask & PH_ICON_CPU_USAGE)
-        PhUpdateIconCpuUsage();
-}
-
-static VOID NTAPI ServiceAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
-
-    PhReferenceObject(serviceItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_SERVICE_ADDED,
-        PhGetRunIdProvider(&ServiceProviderRegistration),
-        (LPARAM)serviceItem
-        );
-}
-
-static VOID NTAPI ServiceModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
-    PPH_SERVICE_MODIFIED_DATA copy;
-
-    copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
-
-    PostMessage(PhMainWndHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
-}
-
-static VOID NTAPI ServiceRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_SERVICE_REMOVED, 0, (LPARAM)serviceItem);
-}
-
-static VOID NTAPI ServicesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, 0, 0);
-}
-
-static VOID NTAPI NetworkItemAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PhReferenceObject(networkItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_NETWORK_ITEM_ADDED,
-        PhGetRunIdProvider(&NetworkProviderRegistration),
-        (LPARAM)networkItem
-        );
-}
-
-static VOID NTAPI NetworkItemModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_MODIFIED, 0, (LPARAM)networkItem);
-}
-
-static VOID NTAPI NetworkItemRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_REMOVED, 0, (LPARAM)networkItem);
-}
-
-static VOID NTAPI NetworkItemsUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
-}
-
-VOID PhMainWndOnCreate()
 {
     TabControlHandle = CreateWindow(
         WC_TABCONTROL,
@@ -3281,87 +489,2108 @@ VOID PhMainWndOnCreate()
 
     PhRegisterCallback(
         &PhProcessAddedEvent,
-        ProcessAddedHandler,
+        PhMwpProcessAddedHandler,
         NULL,
         &ProcessAddedRegistration
         );
     PhRegisterCallback(
         &PhProcessModifiedEvent,
-        ProcessModifiedHandler,
+        PhMwpProcessModifiedHandler,
         NULL,
         &ProcessModifiedRegistration
         );
     PhRegisterCallback(
         &PhProcessRemovedEvent,
-        ProcessRemovedHandler,
+        PhMwpProcessRemovedHandler,
         NULL,
         &ProcessRemovedRegistration
         );
     PhRegisterCallback(
         &PhProcessesUpdatedEvent,
-        ProcessesUpdatedHandler,
+        PhMwpProcessesUpdatedHandler,
         NULL,
         &ProcessesUpdatedRegistration
         );
     PhRegisterCallback(
         &PhProcessesUpdatedEvent,
-        ProcessesUpdatedForIconsHandler,
+        PhMwpProcessesUpdatedForIconsHandler,
         NULL,
         &ProcessesUpdatedForIconsRegistration
         );
 
     PhRegisterCallback(
         &PhServiceAddedEvent,
-        ServiceAddedHandler,
+        PhMwpServiceAddedHandler,
         NULL,
         &ServiceAddedRegistration
         );
     PhRegisterCallback(
         &PhServiceModifiedEvent,
-        ServiceModifiedHandler,
+        PhMwpServiceModifiedHandler,
         NULL,
         &ServiceModifiedRegistration
         );
     PhRegisterCallback(
         &PhServiceRemovedEvent,
-        ServiceRemovedHandler,
+        PhMwpServiceRemovedHandler,
         NULL,
         &ServiceRemovedRegistration
         );
     PhRegisterCallback(
         &PhServicesUpdatedEvent,
-        ServicesUpdatedHandler,
+        PhMwpServicesUpdatedHandler,
         NULL,
         &ServicesUpdatedRegistration
         );
 
     PhRegisterCallback(
         &PhNetworkItemAddedEvent,
-        NetworkItemAddedHandler,
+        PhMwpNetworkItemAddedHandler,
         NULL,
         &NetworkItemAddedRegistration
         );
     PhRegisterCallback(
         &PhNetworkItemModifiedEvent,
-        NetworkItemModifiedHandler,
+        PhMwpNetworkItemModifiedHandler,
         NULL,
         &NetworkItemModifiedRegistration
         );
     PhRegisterCallback(
         &PhNetworkItemRemovedEvent,
-        NetworkItemRemovedHandler,
+        PhMwpNetworkItemRemovedHandler,
         NULL,
         &NetworkItemRemovedRegistration
         );
     PhRegisterCallback(
         &PhNetworkItemsUpdatedEvent,
-        NetworkItemsUpdatedHandler,
+        PhMwpNetworkItemsUpdatedHandler,
         NULL,
         &NetworkItemsUpdatedRegistration
         );
 }
 
-VOID PhpApplyLayoutPadding(
+NTSTATUS PhMwpDelayedLoadFunction(
+    __in PVOID Parameter
+    )
+{
+    ULONG i;
+
+    // Register for window station notifications.
+    WinStationRegisterConsoleNotification(NULL, PhMainWndHandle, WNOTIFY_ALL_SESSIONS);
+
+    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+    {
+        if (NotifyIconMask & i)
+            PhAddNotifyIcon(i);
+    }
+
+    // Make sure we get closed late in the shutdown process.
+    SetProcessShutdownParameters(0x100, 0);
+
+    DelayedLoadCompleted = TRUE;
+    //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhMwpOnDestroy(
+    VOID
+    )
+{
+    ULONG mask;
+    ULONG i;
+
+    if (!PhMainWndExiting)
+        ProcessHacker_SaveAllSettings(PhMainWndHandle);
+
+    // Remove all icons to prevent them hanging around after we exit.
+
+    mask = NotifyIconMask;
+    NotifyIconMask = 0; // prevent further icon updating
+
+    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+    {
+        if (mask & i)
+            PhRemoveNotifyIcon(i);
+    }
+
+    // Notify plugins that we are shutting down.
+
+    if (PhPluginsEnabled)
+        PhUnloadPlugins();
+
+    PostQuitMessage(0);
+}
+
+VOID PhMwpOnSettingChange(
+    VOID
+    )
+{
+    PhSysWindowColor = GetSysColor(COLOR_WINDOW);
+
+    if (PhApplicationFont)
+        DeleteObject(PhApplicationFont);
+    if (PhBoldMessageFont)
+        DeleteObject(PhBoldMessageFont);
+
+    PhInitializeFont(PhMainWndHandle);
+
+    SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
+}
+
+VOID PhMwpOnCommand(
+    __in ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case ID_ESC_EXIT:
+        {
+            if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
+                ShowWindow(PhMainWndHandle, SW_HIDE);
+        }
+        break;
+    case ID_HACKER_RUN:
+        {
+            if (RunFileDlg)
+            {
+                SelectedRunAsMode = 0;
+                RunFileDlg(PhMainWndHandle, NULL, NULL, NULL, NULL, 0);
+            }
+        }
+        break;
+    case ID_HACKER_RUNASADMINISTRATOR:
+        {
+            if (RunFileDlg)
+            {
+                SelectedRunAsMode = RUNAS_MODE_ADMIN;
+                RunFileDlg(
+                    PhMainWndHandle,
+                    NULL,
+                    NULL,
+                    NULL, 
+                    L"Type the name of a program that will be opened under alternate credentials.",
+                    0
+                    );
+            }
+        }
+        break;
+    case ID_HACKER_RUNASLIMITEDUSER:
+        {
+            if (RunFileDlg)
+            {
+                SelectedRunAsMode = RUNAS_MODE_LIMITED;
+                RunFileDlg(
+                    PhMainWndHandle,
+                    NULL,
+                    NULL,
+                    NULL, 
+                    L"Type the name of a program that will be opened under standard user privileges.",
+                    0
+                    );
+            }
+        }
+        break;
+    case ID_HACKER_RUNAS:
+        {
+            PhShowRunAsDialog(PhMainWndHandle, NULL);
+        }
+        break;
+    case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
+        {
+            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+
+            if (PhShellProcessHacker(PhMainWndHandle, L"-v", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, TRUE, 0, NULL))
+            {
+                ProcessHacker_Destroy(PhMainWndHandle);
+            }
+            else
+            {
+                ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+            }
+        }
+        break;
+    case ID_HACKER_SAVE:
+        {
+            static PH_FILETYPE_FILTER filters[] =
+            {
+                { L"Text files (*.txt;*.log)", L"*.txt;*.log" },
+                { L"Comma-separated values (*.csv)", L"*.csv" },
+                { L"All files (*.*)", L"*.*" }
+            };
+            PVOID fileDialog = PhCreateSaveFileDialog();
+
+            PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+            PhSetFileDialogFileName(fileDialog, L"Process Hacker.txt");
+
+            if (PhShowFileDialog(PhMainWndHandle, fileDialog))
+            {
+                NTSTATUS status;
+                PPH_STRING fileName;
+                PPH_FILE_STREAM fileStream;
+
+                fileName = PhGetFileDialogFileName(fileDialog);
+                PhaDereferenceObject(fileName);
+
+                if (NT_SUCCESS(status = PhCreateFileStream(
+                    &fileStream,
+                    fileName->Buffer,
+                    FILE_GENERIC_WRITE,
+                    FILE_SHARE_READ,
+                    FILE_OVERWRITE_IF,
+                    0
+                    )))
+                {
+                    ULONG mode;
+                    ULONG selectedTab;
+                    PPH_LIST lines = NULL;
+
+                    if (PhEndsWithString2(fileName, L".csv", TRUE))
+                        mode = PH_EXPORT_MODE_CSV;
+                    else
+                        mode = PH_EXPORT_MODE_TABS;
+
+                    PhWritePhTextHeader(fileStream);
+
+                    selectedTab = TabCtrl_GetCurSel(TabControlHandle);
+
+                    if (selectedTab == ProcessesTabIndex)
+                        PhWriteProcessTree(fileStream, mode);
+                    else if (selectedTab == ServicesTabIndex)
+                        PhWriteServiceList(fileStream, mode);
+                    else if (selectedTab == NetworkTabIndex)
+                        lines = PhGetListViewLines(NetworkTreeListHandle, mode);
+
+                    if (lines)
+                    {
+                        ULONG i;
+
+                        for (i = 0; i < lines->Count; i++)
+                        {
+                            PPH_STRING line;
+
+                            line = lines->Items[i];
+                            PhWriteStringAsAnsiFileStream(fileStream, &line->sr);
+                            PhDereferenceObject(line);
+                            PhWriteStringAsAnsiFileStream2(fileStream, L"\r\n");
+                        }
+
+                        PhDereferenceObject(lines);
+                    }
+
+                    PhDereferenceObject(fileStream);
+                }
+
+                if (!NT_SUCCESS(status))
+                    PhShowStatus(PhMainWndHandle, L"Unable to create the file", status, 0);
+            }
+
+            PhFreeFileDialog(fileDialog);
+        }
+        break;
+    case ID_HACKER_FINDHANDLESORDLLS:
+        {
+            PhShowFindObjectsDialog();
+        }
+        break;
+    case ID_HACKER_OPTIONS:
+        {
+            PhShowOptionsDialog(PhMainWndHandle);
+        }
+        break;
+    case ID_HACKER_PLUGINS:
+        {
+            PhShowPluginsDialog(PhMainWndHandle);
+        }
+        break;
+    case ID_COMPUTER_LOCK:
+    case ID_COMPUTER_LOGOFF:
+    case ID_COMPUTER_SLEEP:
+    case ID_COMPUTER_HIBERNATE:
+    case ID_COMPUTER_RESTART:
+    case ID_COMPUTER_SHUTDOWN:
+    case ID_COMPUTER_POWEROFF:
+        PhMwpExecuteComputerCommand(Id);
+        break;
+    case ID_HACKER_EXIT:
+        ProcessHacker_Destroy(PhMainWndHandle);
+        break;
+    case ID_VIEW_SYSTEMINFORMATION:
+        PhShowSystemInformationDialog();
+        break;
+    case ID_TRAYICONS_CPUHISTORY:
+    case ID_TRAYICONS_CPUUSAGE:
+    case ID_TRAYICONS_IOHISTORY:
+    case ID_TRAYICONS_COMMITHISTORY:
+    case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
+        {
+            ULONG i;
+            BOOLEAN enable;
+
+            switch (Id)
+            {
+            case ID_TRAYICONS_CPUHISTORY:
+                i = PH_ICON_CPU_HISTORY;
+                break;
+            case ID_TRAYICONS_CPUUSAGE:
+                i = PH_ICON_CPU_USAGE;
+                break;
+            case ID_TRAYICONS_IOHISTORY:
+                i = PH_ICON_IO_HISTORY;
+                break;
+            case ID_TRAYICONS_COMMITHISTORY:
+                i = PH_ICON_COMMIT_HISTORY;
+                break;
+            case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
+                i = PH_ICON_PHYSICAL_HISTORY;
+                break;
+            }
+
+            enable = !(GetMenuState(PhMainWndMenuHandle, Id, 0) & MF_CHECKED);
+
+            if (enable)
+            {
+                NotifyIconMask |= i;
+                PhAddNotifyIcon(i);
+            }
+            else
+            {
+                NotifyIconMask &= ~i;
+                PhRemoveNotifyIcon(i);
+            }
+
+            CheckMenuItem(
+                PhMainWndMenuHandle,
+                Id,
+                enable ? MF_CHECKED : MF_UNCHECKED
+                );
+        }
+        break;
+    case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
+        {
+            if (!CurrentUserFilterEntry)
+            {
+                CurrentUserFilterEntry = PhAddProcessTreeFilter(PhMwpCurrentUserProcessTreeFilter, NULL);
+            }
+            else
+            {
+                PhRemoveProcessTreeFilter(CurrentUserFilterEntry);
+                CurrentUserFilterEntry = NULL;
+            }
+
+            PhApplyProcessTreeFilters();
+
+            PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
+            CheckMenuItem(
+                PhMainWndMenuHandle,
+                ID_VIEW_HIDEPROCESSESFROMOTHERUSERS,
+                CurrentUserFilterEntry ? MF_CHECKED : MF_UNCHECKED
+                );
+        }
+        break;
+    case ID_VIEW_HIDESIGNEDPROCESSES:
+        {
+            if (!SignedFilterEntry)
+            {
+                if (!PhEnableProcessQueryStage2)
+                {
+                    PhShowInformation(
+                        PhMainWndHandle,
+                        L"This filter cannot function because digital signature checking is not enabled. "
+                        L"Enable it in Options > Advanced and restart Process Hacker."
+                        );
+                }
+
+                SignedFilterEntry = PhAddProcessTreeFilter(PhMwpSignedProcessTreeFilter, NULL);
+            }
+            else
+            {
+                PhRemoveProcessTreeFilter(SignedFilterEntry);
+                SignedFilterEntry = NULL;
+            }
+
+            PhApplyProcessTreeFilters();
+
+            PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
+            CheckMenuItem(
+                PhMainWndMenuHandle,
+                ID_VIEW_HIDESIGNEDPROCESSES,
+                SignedFilterEntry ? MF_CHECKED : MF_UNCHECKED
+                );
+        }
+        break;
+    case ID_VIEW_SHOWCPUBELOW001:
+        {
+            PH_SET_INTEGER_CACHED_SETTING(ShowCpuBelow001, !PhCsShowCpuBelow001);
+            CheckMenuItem(
+                PhMainWndMenuHandle,
+                ID_VIEW_SHOWCPUBELOW001,
+                PhCsShowCpuBelow001 ? MF_CHECKED : MF_UNCHECKED
+                );
+            PhInvalidateAllProcessNodes();
+        }
+        break;
+    case ID_VIEW_ALWAYSONTOP:
+        {
+            BOOLEAN topMost;
+
+            topMost = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, 0) & MF_CHECKED);
+            SetWindowPos(PhMainWndHandle, topMost ? HWND_TOPMOST : HWND_NOTOPMOST,
+                0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+            PhSetIntegerSetting(L"MainWindowAlwaysOnTop", topMost);
+            CheckMenuItem(
+                PhMainWndMenuHandle,
+                ID_VIEW_ALWAYSONTOP,
+                topMost ? MF_CHECKED : MF_UNCHECKED
+                );
+        }
+        break;
+    case ID_OPACITY_10:
+    case ID_OPACITY_20:
+    case ID_OPACITY_30:
+    case ID_OPACITY_40:
+    case ID_OPACITY_50:
+    case ID_OPACITY_60:
+    case ID_OPACITY_70:
+    case ID_OPACITY_80:
+    case ID_OPACITY_90:
+    case ID_OPACITY_OPAQUE:
+        {
+            ULONG opacity;
+
+            opacity = 100 - ((Id - ID_OPACITY_10) + 1) * 10;
+            PhSetIntegerSetting(L"MainWindowOpacity", opacity);
+            PhMwpSetWindowOpacity(opacity);
+            PhMwpSetCheckOpacityMenu(TRUE, opacity);
+        }
+        break;
+    case ID_VIEW_REFRESH:
+        {
+            PhBoostProvider(&ProcessProviderRegistration, NULL);
+            PhBoostProvider(&ServiceProviderRegistration, NULL);
+        }
+        break;
+    case ID_UPDATEINTERVAL_FAST:
+    case ID_UPDATEINTERVAL_NORMAL:
+    case ID_UPDATEINTERVAL_BELOWNORMAL:
+    case ID_UPDATEINTERVAL_SLOW:
+    case ID_UPDATEINTERVAL_VERYSLOW:
+        {
+            ULONG interval;
+
+            switch (Id)
+            {
+            case ID_UPDATEINTERVAL_FAST:
+                interval = 500;
+                break;
+            case ID_UPDATEINTERVAL_NORMAL:
+                interval = 1000;
+                break;
+            case ID_UPDATEINTERVAL_BELOWNORMAL:
+                interval = 2000;
+                break;
+            case ID_UPDATEINTERVAL_SLOW:
+                interval = 5000;
+                break;
+            case ID_UPDATEINTERVAL_VERYSLOW:
+                interval = 10000;
+                break;
+            }
+
+            PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
+            PhApplyUpdateInterval(interval);
+            CheckMenuRadioItem(
+                PhMainWndMenuHandle,
+                ID_UPDATEINTERVAL_FAST,
+                ID_UPDATEINTERVAL_VERYSLOW,
+                Id,
+                MF_BYCOMMAND
+                );
+        }
+        break;
+    case ID_VIEW_UPDATEAUTOMATICALLY:
+        {
+            UpdateAutomatically = !UpdateAutomatically;
+
+            PhSetEnabledProvider(&ProcessProviderRegistration, UpdateAutomatically);
+            PhSetEnabledProvider(&ServiceProviderRegistration, UpdateAutomatically);
+
+            if (TabCtrl_GetCurSel(TabControlHandle) == NetworkTabIndex)
+                PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
+
+            CheckMenuItem(
+                PhMainWndMenuHandle,
+                ID_VIEW_UPDATEAUTOMATICALLY,
+                UpdateAutomatically ? MF_CHECKED : MF_UNCHECKED
+                );
+        }
+        break;
+    case ID_TOOLS_CREATESERVICE:
+        {
+            PhShowCreateServiceDialog(PhMainWndHandle);
+        }
+        break;
+    case ID_TOOLS_HIDDENPROCESSES:
+        {
+            PhShowHiddenProcessesDialog();
+        }
+        break;
+    case ID_TOOLS_PAGEFILES:
+        {
+            PhShowPagefilesDialog(PhMainWndHandle);
+        }
+        break;
+    case ID_TOOLS_VERIFYFILESIGNATURE:
+        {
+            static PH_FILETYPE_FILTER filters[] =
+            {
+                { L"Executable files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl" },
+                { L"All files (*.*)", L"*.*" }
+            };
+            PVOID fileDialog = PhCreateOpenFileDialog();
+
+            PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+            if (PhShowFileDialog(PhMainWndHandle, fileDialog))
+            {
+                PPH_STRING fileName;
+                VERIFY_RESULT result;
+                PPH_STRING signerName;
+
+                fileName = PhGetFileDialogFileName(fileDialog);
+                result = PhVerifyFile(fileName->Buffer, &signerName);
+
+                if (result == VrTrusted)
+                {
+                    PhShowInformation(PhMainWndHandle, L"\"%s\" is trusted and signed by \"%s\".",
+                        fileName->Buffer, signerName->Buffer);
+                }
+                else if (result == VrNoSignature)
+                {
+                    PhShowInformation(PhMainWndHandle, L"\"%s\" does not have a digital signature.",
+                        fileName->Buffer);
+                }
+                else
+                {
+                    PhShowInformation(PhMainWndHandle, L"\"%s\" is not trusted.",
+                        fileName->Buffer);
+                }
+
+                if (signerName)
+                    PhDereferenceObject(signerName);
+
+                PhDereferenceObject(fileName);
+            }
+
+            PhFreeFileDialog(fileDialog);
+        }
+        break;
+    case ID_USER_CONNECT:
+        {
+            PhUiConnectSession(PhMainWndHandle, SelectedUserSessionId);
+        }
+        break;
+    case ID_USER_DISCONNECT:
+        {
+            PhUiDisconnectSession(PhMainWndHandle, SelectedUserSessionId);
+        }
+        break;
+    case ID_USER_LOGOFF:
+        {
+            PhUiLogoffSession(PhMainWndHandle, SelectedUserSessionId);
+        }
+        break;
+    case ID_USER_REMOTECONTROL:
+        {
+            PhShowSessionShadowDialog(PhMainWndHandle, SelectedUserSessionId);
+        }
+        break;
+    case ID_USER_SENDMESSAGE:
+        {
+            PhShowSessionSendMessageDialog(PhMainWndHandle, SelectedUserSessionId);
+        }
+        break;
+    case ID_USER_PROPERTIES:
+        {
+            PhShowSessionProperties(PhMainWndHandle, SelectedUserSessionId);
+        }
+        break;
+    case ID_HELP_LOG:
+        {
+            PhShowLogDialog();
+        }
+        break;
+    case ID_HELP_DONATE:
+        {
+            PhShellExecute(PhMainWndHandle, L"https://sourceforge.net/project/project_donations.php?group_id=242527", NULL);
+        }
+        break;
+    case ID_HELP_DEBUGCONSOLE:
+        {
+            PhShowDebugConsole();
+        }
+        break;
+    case ID_HELP_ABOUT:
+        {
+            PhShowAboutDialog(PhMainWndHandle);
+        }
+        break;
+    case ID_PROCESS_TERMINATE:
+        {
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+
+            if (PhUiTerminateProcesses(PhMainWndHandle, processes, numberOfProcesses))
+                PhDeselectAllProcessNodes();
+
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
+        }
+        break;
+    case ID_PROCESS_TERMINATETREE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+
+                if (PhUiTerminateTreeProcess(PhMainWndHandle, processItem))
+                    PhDeselectAllProcessNodes();
+
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_SUSPEND:
+        {
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+            PhUiSuspendProcesses(PhMainWndHandle, processes, numberOfProcesses);
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
+        }
+        break;
+    case ID_PROCESS_RESUME:
+        {
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+            PhUiResumeProcesses(PhMainWndHandle, processes, numberOfProcesses);
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
+        }
+        break;
+    case ID_PROCESS_RESTART:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+
+                if (PhUiRestartProcess(PhMainWndHandle, processItem))
+                    PhDeselectAllProcessNodes();
+
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_CREATEDUMPFILE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiCreateDumpFileProcess(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_DEBUG:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiDebugProcess(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_VIRTUALIZATION:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiSetVirtualizationProcess(
+                    PhMainWndHandle,
+                    processItem,
+                    !SelectedProcessVirtualizationEnabled
+                    );
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_AFFINITY:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowProcessAffinityDialog(PhMainWndHandle, processItem, NULL);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_TERMINATOR:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                // The object relies on the list view reference, which could 
+                // disappear if we don't reference the object here.
+                PhReferenceObject(processItem);
+                PhShowProcessTerminatorDialog(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_DETACHFROMDEBUGGER:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiDetachFromDebuggerProcess(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_GDIHANDLES:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowGdiHandlesDialog(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_HEAPS:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowProcessHeapsDialog(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_INJECTDLL:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiInjectDllProcess(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_I_0:
+    case ID_I_1:
+    case ID_I_2:
+    case ID_I_3:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                ULONG ioPriority;
+
+                switch (Id)
+                {
+                    case ID_I_0:
+                        ioPriority = 0;
+                        break;
+                    case ID_I_1:
+                        ioPriority = 1;
+                        break;
+                    case ID_I_2:
+                        ioPriority = 2;
+                        break;
+                    case ID_I_3:
+                        ioPriority = 3;
+                        break;
+                }
+
+                PhReferenceObject(processItem);
+                PhUiSetIoPriorityProcess(PhMainWndHandle, processItem, ioPriority);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PAGEPRIORITY_1:
+    case ID_PAGEPRIORITY_2:
+    case ID_PAGEPRIORITY_3:
+    case ID_PAGEPRIORITY_4:
+    case ID_PAGEPRIORITY_5:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                ULONG pagePriority;
+
+                switch (Id)
+                {
+                    case ID_PAGEPRIORITY_1:
+                        pagePriority = 1;
+                        break;
+                    case ID_PAGEPRIORITY_2:
+                        pagePriority = 2;
+                        break;
+                    case ID_PAGEPRIORITY_3:
+                        pagePriority = 3;
+                        break;
+                    case ID_PAGEPRIORITY_4:
+                        pagePriority = 4;
+                        break;
+                    case ID_PAGEPRIORITY_5:
+                        pagePriority = 5;
+                        break;
+                }
+
+                PhReferenceObject(processItem);
+                PhUiSetPagePriorityProcess(PhMainWndHandle, processItem, pagePriority);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_REDUCEWORKINGSET:
+        {
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+            PhUiReduceWorkingSetProcesses(PhMainWndHandle, processes, numberOfProcesses);
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
+        }
+        break;
+    case ID_MISCELLANEOUS_RUNAS:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem && processItem->FileName)
+            {
+                PhSetStringSetting2(L"RunAsProgram", &processItem->FileName->sr);
+                PhShowRunAsDialog(PhMainWndHandle, NULL);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_RUNASTHISUSER:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhShowRunAsDialog(PhMainWndHandle, processItem->ProcessId);
+            }
+        }
+        break;
+    case ID_PRIORITY_REALTIME:
+    case ID_PRIORITY_HIGH:
+    case ID_PRIORITY_ABOVENORMAL:
+    case ID_PRIORITY_NORMAL:
+    case ID_PRIORITY_BELOWNORMAL:
+    case ID_PRIORITY_IDLE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhMwpExecuteProcessPriorityCommand(Id, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_WINDOW_BRINGTOFRONT:
+        {
+            if (IsWindow(SelectedProcessWindowHandle))
+            {
+                WINDOWPLACEMENT placement = { sizeof(placement) };
+
+                GetWindowPlacement(SelectedProcessWindowHandle, &placement);
+
+                if (placement.showCmd == SW_MINIMIZE)
+                    ShowWindowAsync(SelectedProcessWindowHandle, SW_RESTORE);
+                else
+                    SetForegroundWindow(SelectedProcessWindowHandle);
+            }
+        }
+        break;
+    case ID_WINDOW_RESTORE:
+        {
+            if (IsWindow(SelectedProcessWindowHandle))
+            {
+                ShowWindowAsync(SelectedProcessWindowHandle, SW_RESTORE);
+            }
+        }
+        break;
+    case ID_WINDOW_MINIMIZE:
+        {
+            if (IsWindow(SelectedProcessWindowHandle))
+            {
+                ShowWindowAsync(SelectedProcessWindowHandle, SW_MINIMIZE);
+            }
+        }
+        break;
+    case ID_WINDOW_MAXIMIZE:
+        {
+            if (IsWindow(SelectedProcessWindowHandle))
+            {
+                ShowWindowAsync(SelectedProcessWindowHandle, SW_MAXIMIZE);
+            }
+        }
+        break;
+    case ID_WINDOW_CLOSE:
+        {
+            if (IsWindow(SelectedProcessWindowHandle))
+            {
+                PostMessage(SelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+            }
+        }
+        break;
+    case ID_PROCESS_PROPERTIES:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                // No reference needed; no messages pumped.
+                PhMwpShowProcessProperties(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_OPENFILELOCATION:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem && processItem->FileName)
+            {
+                PhReferenceObject(processItem);
+                PhShellExploreFile(PhMainWndHandle, processItem->FileName->Buffer);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_SEARCHONLINE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhSearchOnlineString(PhMainWndHandle, processItem->ProcessName->Buffer);
+            }
+        }
+        break;
+    case ID_PROCESS_COPY:
+        {
+            PhCopyProcessTree();
+        }
+        break;
+    case ID_SERVICE_GOTOPROCESS:
+        {
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+            PPH_PROCESS_NODE processNode;
+
+            if (serviceItem)
+            {
+                if (processNode = PhFindProcessNode(serviceItem->ProcessId))
+                {
+                    PhMwpSelectTabPage(ProcessesTabIndex);
+                    SetFocus(ProcessTreeListHandle);
+                    PhSelectAndEnsureVisibleProcessNode(processNode);
+                }
+            }
+        }
+        break;
+    case ID_SERVICE_START:
+        {
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+
+            if (serviceItem)
+            {
+                PhReferenceObject(serviceItem);
+                PhUiStartService(PhMainWndHandle, serviceItem);
+                PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    case ID_SERVICE_CONTINUE:
+        {
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+
+            if (serviceItem)
+            {
+                PhReferenceObject(serviceItem);
+                PhUiContinueService(PhMainWndHandle, serviceItem);
+                PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    case ID_SERVICE_PAUSE:
+        {
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+
+            if (serviceItem)
+            {
+                PhReferenceObject(serviceItem);
+                PhUiPauseService(PhMainWndHandle, serviceItem);
+                PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    case ID_SERVICE_STOP:
+        {
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+
+            if (serviceItem)
+            {
+                PhReferenceObject(serviceItem);
+                PhUiStopService(PhMainWndHandle, serviceItem);
+                PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    case ID_SERVICE_DELETE:
+        {
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+
+            if (serviceItem)
+            {
+                PhReferenceObject(serviceItem);
+
+                if (PhUiDeleteService(PhMainWndHandle, serviceItem))
+                    PhDeselectAllServiceNodes();
+
+                PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    case ID_SERVICE_PROPERTIES:
+        {
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+
+            if (serviceItem)
+            {
+                // The object relies on the list view reference, which could 
+                // disappear if we don't reference the object here.
+                PhReferenceObject(serviceItem);
+                PhShowServiceProperties(PhMainWndHandle, serviceItem);
+                PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    case ID_SERVICE_COPY:
+        {
+            PhCopyServiceList();
+        }
+        break;
+    case ID_NETWORK_GOTOPROCESS:
+        {
+            PPH_NETWORK_ITEM networkItem = PhGetSelectedNetworkItem();
+            PPH_PROCESS_NODE processNode;
+
+            if (networkItem)
+            {
+                if (processNode = PhFindProcessNode(networkItem->ProcessId))
+                {
+                    PhMwpSelectTabPage(ProcessesTabIndex);
+                    SetFocus(ProcessTreeListHandle);
+                    PhSelectAndEnsureVisibleProcessNode(processNode);
+                }
+            }
+        }
+        break;
+    case ID_NETWORK_VIEWSTACK:
+        {
+            PPH_NETWORK_ITEM networkItem = PhGetSelectedNetworkItem();
+
+            if (networkItem)
+            {
+                PhReferenceObject(networkItem);
+                PhShowNetworkStackDialog(PhMainWndHandle, networkItem);
+                PhDereferenceObject(networkItem);
+            }
+        }
+        break;
+    case ID_NETWORK_CLOSE:
+        {
+            PPH_NETWORK_ITEM *networkItems;
+            ULONG numberOfNetworkItems;
+
+            PhGetSelectedNetworkItems(&networkItems, &numberOfNetworkItems);
+            PhReferenceObjects(networkItems, numberOfNetworkItems);
+
+            if (PhUiCloseConnections(PhMainWndHandle, networkItems, numberOfNetworkItems))
+                PhSetStateAllListViewItems(NetworkTreeListHandle, 0, LVIS_SELECTED);
+
+            PhDereferenceObjects(networkItems, numberOfNetworkItems);
+            PhFree(networkItems);
+        }
+        break;
+    case ID_NETWORK_COPY:
+        {
+            PhCopyListView(NetworkTreeListHandle);
+        }
+        break;
+    case ID_TAB_NEXT:
+        {
+            ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+            if (selectedIndex != MaxTabIndex)
+                selectedIndex++;
+            else
+                selectedIndex = 0;
+
+            PhMwpSelectTabPage(selectedIndex);
+            SetFocus(TabControlHandle);
+        }
+        break;
+    case ID_TAB_PREV:
+        {
+            ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+            if (selectedIndex != 0)
+                selectedIndex--;
+            else
+                selectedIndex = MaxTabIndex;
+
+            PhMwpSelectTabPage(selectedIndex);
+            SetFocus(TabControlHandle);
+        }
+        break;
+    }
+}
+
+VOID PhMwpOnShowWindow(
+    __in BOOLEAN Showing,
+    __in ULONG State
+    )
+{
+    if (NeedsMaximize)
+    {
+        ShowWindow(PhMainWndHandle, SW_MAXIMIZE);
+        NeedsMaximize = FALSE;
+    }
+}
+
+BOOLEAN PhMwpOnSysCommand(
+    __in ULONG Type,
+    __in LONG CursorScreenX,
+    __in LONG CursorScreenY
+    )
+{
+    switch (Type)
+    {
+    case SC_CLOSE:
+        {
+            if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
+            {
+                ShowWindow(PhMainWndHandle, SW_HIDE);
+                return TRUE;
+            }
+        }
+        break;
+    case SC_MINIMIZE:
+        {
+            // Save the current window state because we 
+            // may not have a chance to later.
+            PhMwpSaveWindowSettings();
+
+            if (PhGetIntegerSetting(L"HideOnMinimize") && NotifyIconMask != 0)
+            {
+                ShowWindow(PhMainWndHandle, SW_HIDE);
+                return TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+VOID PhMwpOnMenuCommand(
+    __in ULONG Index,
+    __in HMENU Menu
+    )
+{
+    MENUITEMINFO menuItemInfo;
+
+    menuItemInfo.cbSize = sizeof(MENUITEMINFO);
+    menuItemInfo.fMask = MIIM_ID | MIIM_DATA;
+
+    if (GetMenuItemInfo(Menu, Index, TRUE, &menuItemInfo))
+    {
+        PhMwpDispatchMenuCommand(Menu, Index, menuItemInfo.wID, menuItemInfo.dwItemData);
+    }
+}
+
+VOID PhMwpOnSize(
+    VOID
+    )
+{
+    if (!IsIconic(PhMainWndHandle))
+    {
+        HDWP deferHandle;
+
+        deferHandle = BeginDeferWindowPos(2);
+        PhMwpLayout(&deferHandle);
+        EndDeferWindowPos(deferHandle);
+    }
+}
+
+VOID PhMwpOnSizing(
+    __in ULONG Edge,
+    __in PRECT DragRectangle
+    )
+{
+    PhResizingMinimumSize(DragRectangle, Edge, 400, 340);
+}
+
+VOID PhMwpOnSetFocus(
+    VOID
+    )
+{
+    INT selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+    if (selectedIndex == ProcessesTabIndex)
+        SetFocus(ProcessTreeListHandle);
+    else if (selectedIndex == ServicesTabIndex)
+        SetFocus(ServiceTreeListHandle);
+    else if (selectedIndex == NetworkTabIndex)
+        SetFocus(NetworkTreeListHandle);
+}
+
+BOOLEAN PhMwpOnNotify(
+    __in NMHDR *Header,
+    __out LRESULT *Result
+    )
+{
+    if (Header->hwndFrom == TabControlHandle)
+    {
+        PhMwpNotifyTabControl(Header);
+    }
+    else if (Header->code == RFN_VALIDATE)
+    {
+        LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)Header;
+
+        if (SelectedRunAsMode == RUNAS_MODE_ADMIN)
+        {
+            if (PhShellExecuteEx(PhMainWndHandle, (PWSTR)runFileDlg->lpszFile,
+                NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+            {
+                *Result = RF_CANCEL;
+            }
+            else
+            {
+                *Result = RF_RETRY;
+            }
+
+            return TRUE;
+        }
+        else if (SelectedRunAsMode == RUNAS_MODE_LIMITED)
+        {
+            NTSTATUS status;
+            HANDLE tokenHandle;
+            HANDLE newTokenHandle;
+
+            if (NT_SUCCESS(status = NtOpenProcessToken(
+                NtCurrentProcess(),
+                TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS | 
+                TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
+                &tokenHandle
+                )))
+            {
+                if (NT_SUCCESS(status = PhFilterTokenForLimitedUser(
+                    tokenHandle,
+                    &newTokenHandle
+                    )))
+                {
+                    status = PhCreateProcessWin32(
+                        NULL,
+                        (PWSTR)runFileDlg->lpszFile,
+                        NULL,
+                        NULL,
+                        0,
+                        newTokenHandle,
+                        NULL,
+                        NULL
+                        );
+
+                    NtClose(newTokenHandle);
+                }
+
+                NtClose(tokenHandle);
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                *Result = RF_CANCEL;
+            }
+            else
+            {
+                PhShowStatus(PhMainWndHandle, L"Unable to execute the program", status, 0);
+                *Result = RF_RETRY;
+            }
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+VOID PhMwpOnWtsSessionChange(
+    __in ULONG Reason,
+    __in ULONG SessionId
+    )
+{
+    if (Reason == WTS_SESSION_LOGON || Reason == WTS_SESSION_LOGOFF)
+    {
+        PhMwpUpdateUsersMenu();
+    }
+}
+
+ULONG_PTR PhMwpOnUserMessage(
+    __in ULONG Message,
+    __in ULONG_PTR WParam,
+    __in ULONG_PTR LParam
+    )
+{
+    switch (Message)
+    {
+    case WM_PH_ACTIVATE:
+        {
+            if (!PhMainWndExiting)
+            {
+                if (!IsWindowVisible(PhMainWndHandle))
+                {
+                    ShowWindow(PhMainWndHandle, SW_SHOW);
+                }
+
+                if (IsIconic(PhMainWndHandle))
+                {
+                    ShowWindow(PhMainWndHandle, SW_RESTORE);
+                }
+
+                return PH_ACTIVATE_REPLY;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        break;
+    case WM_PH_SHOW_PROCESS_PROPERTIES:
+        {
+            PhMwpShowProcessProperties((PPH_PROCESS_ITEM)LParam);
+        }
+        break;
+    case WM_PH_DESTROY:
+        {
+            DestroyWindow(PhMainWndHandle);
+        }
+        break;
+    case WM_PH_SAVE_ALL_SETTINGS:
+        {
+            PhMwpSaveSettings();
+        }
+        break;
+    case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
+        {
+            PhMwpSaveSettings();
+            PhMainWndExiting = TRUE;
+        }
+        break;
+    case WM_PH_CANCEL_EARLY_SHUTDOWN:
+        {
+            PhMainWndExiting = FALSE;
+        }
+        break;
+    case WM_PH_DELAYED_LOAD_COMPLETED:
+        {
+            // Nothing
+        }
+        break;
+    case WM_PH_NOTIFY_ICON_MESSAGE:
+        {
+            switch (LOWORD(LParam))
+            {
+            case WM_LBUTTONDOWN:
+                {
+                    if (PhGetIntegerSetting(L"IconSingleClick"))
+                        SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                }
+                break;
+            case WM_LBUTTONDBLCLK:
+                {
+                    if (!PhGetIntegerSetting(L"IconSingleClick"))
+                        SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                }
+                break;
+            case WM_RBUTTONUP:
+                {
+                    POINT location;
+
+                    GetCursorPos(&location);
+                    PhMwpShowIconContextMenu(location);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_PH_TOGGLE_VISIBLE:
+        {
+            if (IsIconic(PhMainWndHandle))
+            {
+                ShowWindow(PhMainWndHandle, SW_RESTORE);
+                SetForegroundWindow(PhMainWndHandle);
+            }
+            else if (IsWindowVisible(PhMainWndHandle))
+            {
+                ShowWindow(PhMainWndHandle, SW_HIDE);
+            }
+            else
+            {
+                ShowWindow(PhMainWndHandle, SW_SHOW);
+                SetForegroundWindow(PhMainWndHandle);
+            }
+        }
+        break;
+    case WM_PH_SHOW_MEMORY_EDITOR:
+        {
+            PPH_SHOWMEMORYEDITOR showMemoryEditor = (PPH_SHOWMEMORYEDITOR)LParam;
+
+            PhShowMemoryEditorDialog(
+                showMemoryEditor->ProcessId,
+                showMemoryEditor->BaseAddress,
+                showMemoryEditor->RegionSize,
+                showMemoryEditor->SelectOffset,
+                showMemoryEditor->SelectLength
+                );
+            PhFree(showMemoryEditor);
+        }
+        break;
+    case WM_PH_SHOW_MEMORY_RESULTS:
+        {
+            PPH_SHOWMEMORYRESULTS showMemoryResults = (PPH_SHOWMEMORYRESULTS)LParam;
+
+            PhShowMemoryResultsDialog(
+                showMemoryResults->ProcessId,
+                showMemoryResults->Results
+                );
+            PhDereferenceMemoryResults(
+                (PPH_MEMORY_RESULT *)showMemoryResults->Results->Items,
+                showMemoryResults->Results->Count
+                );
+            PhDereferenceObject(showMemoryResults->Results);
+            PhFree(showMemoryResults);
+        }
+        break;
+    case WM_PH_SELECT_TAB_PAGE:
+        {
+            ULONG index = (ULONG)WParam;
+
+            PhMwpSelectTabPage(index);
+
+            if (index == ProcessesTabIndex)
+                SetFocus(ProcessTreeListHandle);
+            else if (index == ServicesTabIndex)
+                SetFocus(ServiceTreeListHandle);
+            else if (index == NetworkTabIndex)
+                SetFocus(NetworkTreeListHandle);
+        }
+        break;
+    case WM_PH_GET_LAYOUT_PADDING:
+        {
+            PRECT rect = (PRECT)LParam;
+
+            *rect = LayoutPadding;
+        }
+        break;
+    case WM_PH_SET_LAYOUT_PADDING:
+        {
+            PRECT rect = (PRECT)LParam;
+
+            LayoutPadding = *rect;
+        }
+        break;
+    case WM_PH_SELECT_PROCESS_NODE:
+        {
+            PhSelectAndEnsureVisibleProcessNode((PPH_PROCESS_NODE)LParam);
+        }
+        break;
+    case WM_PH_SELECT_SERVICE_ITEM:
+        {
+            PPH_SERVICE_NODE serviceNode;
+
+            PhMwpNeedServiceTreeList();
+
+            // For compatibility, LParam is a service item, not node.
+            if (serviceNode = PhFindServiceNode((PPH_SERVICE_ITEM)LParam))
+            {
+                PhSelectAndEnsureVisibleServiceNode(serviceNode);
+            }
+        }
+        break;
+    case WM_PH_SELECT_NETWORK_ITEM:
+        {
+            PPH_NETWORK_NODE networkNode;
+
+            PhMwpNeedNetworkTreeList();
+
+            // For compatibility, LParam is a network item, not node.
+            if (networkNode = PhFindNetworkNode((PPH_NETWORK_ITEM)LParam))
+            {
+                PhSelectAndEnsureVisibleNetworkNode(networkNode);
+            }
+        }
+        break;
+    case WM_PH_UPDATE_FONT:
+        {
+            PPH_STRING fontHexString;
+            LOGFONT font;
+
+            fontHexString = PhGetStringSetting(L"Font");
+
+            if (
+                fontHexString->Length / 2 / 2 == sizeof(LOGFONT) &&
+                PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+                )
+            {
+                HFONT newFont;
+
+                newFont = CreateFontIndirect(&font);
+
+                if (newFont)
+                {
+                    if (CurrentCustomFont)
+                        DeleteObject(CurrentCustomFont);
+
+                    CurrentCustomFont = newFont;
+
+                    SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
+                    SendMessage(ServiceTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
+                    SendMessage(NetworkTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
+                }
+            }
+
+            PhDereferenceObject(fontHexString);
+        }
+        break;
+    case WM_PH_GET_FONT:
+        return SendMessage(ProcessTreeListHandle, WM_GETFONT, 0, 0);
+    case WM_PH_INVOKE:
+        {
+            VOID (NTAPI *function)(PVOID);
+
+            function = (PVOID)LParam;
+            function((PVOID)WParam);
+        }
+        break;
+    case WM_PH_ADD_MENU_ITEM:
+        {
+            PPH_ADDMENUITEM addMenuItem = (PPH_ADDMENUITEM)LParam;
+
+            return PhMwpAddPluginMenuItem(
+                addMenuItem->Plugin,
+                addMenuItem->ParentMenu,
+                addMenuItem->InsertAfter,
+                addMenuItem->Flags,
+                addMenuItem->Id,
+                addMenuItem->Text,
+                addMenuItem->Context
+                );
+        }
+        break;
+    case WM_PH_ADD_TAB_PAGE:
+        {
+            return (ULONG_PTR)PhMwpAddTabPage((PPH_ADDITIONAL_TAB_PAGE)LParam);
+        }
+        break;
+    case WM_PH_PROCESS_ADDED:
+        {
+            ULONG runId = (ULONG)WParam;
+            PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)LParam;
+
+            PhMwpOnProcessAdded(processItem, runId);
+        }
+        break;
+    case WM_PH_PROCESS_MODIFIED:
+        {
+            PhMwpOnProcessModified((PPH_PROCESS_ITEM)LParam);
+        }
+        break;
+    case WM_PH_PROCESS_REMOVED:
+        {
+            PhMwpOnProcessRemoved((PPH_PROCESS_ITEM)LParam);
+        }
+        break;
+    case WM_PH_PROCESSES_UPDATED:
+        {
+            PhMwpOnProcessesUpdated();
+        }
+        break;
+    case WM_PH_SERVICE_ADDED:
+        {
+            ULONG runId = (ULONG)WParam;
+            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)LParam;
+
+            PhMwpOnServiceAdded(serviceItem, runId);
+        }
+        break;
+    case WM_PH_SERVICE_MODIFIED:
+        {
+            PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)LParam;
+
+            PhMwpOnServiceModified(serviceModifiedData);
+            PhFree(serviceModifiedData);
+        }
+        break;
+    case WM_PH_SERVICE_REMOVED:
+        {
+            PhMwpOnServiceRemoved((PPH_SERVICE_ITEM)LParam);
+        }
+        break;
+    case WM_PH_SERVICES_UPDATED:
+        {
+            PhMwpOnServicesUpdated();
+        }
+        break;
+    case WM_PH_NETWORK_ITEM_ADDED:
+        {
+            ULONG runId = (ULONG)WParam;
+            PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)LParam;
+
+            PhMwpOnNetworkItemAdded(runId, networkItem);
+        }
+        break;
+    case WM_PH_NETWORK_ITEM_MODIFIED:
+        {
+            PhMwpOnNetworkItemModified((PPH_NETWORK_ITEM)LParam);
+        }
+        break;
+    case WM_PH_NETWORK_ITEM_REMOVED:
+        {
+            PhMwpOnNetworkItemRemoved((PPH_NETWORK_ITEM)LParam);
+        }
+        break;
+    case WM_PH_NETWORK_ITEMS_UPDATED:
+        {
+            PhMwpOnNetworkItemsUpdated();
+        }
+        break;
+    }
+
+    return 0;
+}
+
+VOID NTAPI PhMwpProcessAddedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    // Reference the process item so it doesn't get deleted before 
+    // we handle the event in the main thread.
+    PhReferenceObject(processItem);
+    PostMessage(
+        PhMainWndHandle,
+        WM_PH_PROCESS_ADDED,
+        (WPARAM)PhGetRunIdProvider(&ProcessProviderRegistration),
+        (LPARAM)processItem
+        );
+}
+
+VOID NTAPI PhMwpProcessModifiedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_PROCESS_MODIFIED, 0, (LPARAM)processItem);
+}
+
+VOID NTAPI PhMwpProcessRemovedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    // We already have a reference to the process item, so we don't need to 
+    // reference it here.
+    PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
+}
+
+VOID NTAPI PhMwpProcessesUpdatedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
+}
+
+VOID NTAPI PhMwpProcessesUpdatedForIconsHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    // We do icon updating on the provider thread so we don't block the main GUI when 
+    // explorer is not responding.
+
+    if (NotifyIconMask & PH_ICON_CPU_HISTORY)
+        PhUpdateIconCpuHistory();
+    if (NotifyIconMask & PH_ICON_IO_HISTORY)
+        PhUpdateIconIoHistory();
+    if (NotifyIconMask & PH_ICON_COMMIT_HISTORY)
+        PhUpdateIconCommitHistory();
+    if (NotifyIconMask & PH_ICON_PHYSICAL_HISTORY)
+        PhUpdateIconPhysicalHistory();
+    if (NotifyIconMask & PH_ICON_CPU_USAGE)
+        PhUpdateIconCpuUsage();
+}
+
+VOID NTAPI PhMwpServiceAddedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
+
+    PhReferenceObject(serviceItem);
+    PostMessage(
+        PhMainWndHandle,
+        WM_PH_SERVICE_ADDED,
+        PhGetRunIdProvider(&ServiceProviderRegistration),
+        (LPARAM)serviceItem
+        );
+}
+
+VOID NTAPI PhMwpServiceModifiedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
+    PPH_SERVICE_MODIFIED_DATA copy;
+
+    copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
+
+    PostMessage(PhMainWndHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
+}
+
+VOID NTAPI PhMwpServiceRemovedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_SERVICE_REMOVED, 0, (LPARAM)serviceItem);
+}
+
+VOID NTAPI PhMwpServicesUpdatedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, 0, 0);
+}
+
+VOID NTAPI PhMwpNetworkItemAddedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
+
+    PhReferenceObject(networkItem);
+    PostMessage(
+        PhMainWndHandle,
+        WM_PH_NETWORK_ITEM_ADDED,
+        PhGetRunIdProvider(&NetworkProviderRegistration),
+        (LPARAM)networkItem
+        );
+}
+
+VOID NTAPI PhMwpNetworkItemModifiedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_MODIFIED, 0, (LPARAM)networkItem);
+}
+
+VOID NTAPI PhMwpNetworkItemRemovedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_REMOVED, 0, (LPARAM)networkItem);
+}
+
+VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
+}
+
+VOID PhMwpLoadSettings(
+    VOID
+    )
+{
+    ULONG opacity;
+    ULONG id;
+    PPH_STRING customFont;
+    ULONG i;
+
+    if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
+    {
+        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, MF_CHECKED);
+        SetWindowPos(PhMainWndHandle, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE);
+    }
+
+    opacity = PhGetIntegerSetting(L"MainWindowOpacity");
+
+    if (opacity != 0)
+        PhMwpSetWindowOpacity(opacity);
+
+    PhMwpSetCheckOpacityMenu(TRUE, opacity);
+
+    switch (PhGetIntegerSetting(L"UpdateInterval"))
+    {
+    case 500:
+        id = ID_UPDATEINTERVAL_FAST;
+        break;
+    case 1000:
+        id = ID_UPDATEINTERVAL_NORMAL;
+        break;
+    case 2000:
+        id = ID_UPDATEINTERVAL_BELOWNORMAL;
+        break;
+    case 5000:
+        id = ID_UPDATEINTERVAL_SLOW;
+        break;
+    case 10000:
+        id = ID_UPDATEINTERVAL_VERYSLOW;
+        break;
+    default:
+        id = -1;
+        break;
+    }
+
+    if (id != -1)
+    {
+        CheckMenuRadioItem(
+            PhMainWndMenuHandle,
+            ID_UPDATEINTERVAL_FAST,
+            ID_UPDATEINTERVAL_VERYSLOW,
+            id,
+            MF_BYCOMMAND
+            );
+    }
+
+    PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
+    PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
+    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
+    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
+    PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
+
+    NotifyIconMask = PhGetIntegerSetting(L"IconMask");
+
+    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+    {
+        if (NotifyIconMask & i)
+        {
+            switch (i)
+            {
+            case PH_ICON_CPU_HISTORY:
+                id = ID_TRAYICONS_CPUHISTORY;
+                break;
+            case PH_ICON_IO_HISTORY:
+                id = ID_TRAYICONS_IOHISTORY;
+                break;
+            case PH_ICON_COMMIT_HISTORY:
+                id = ID_TRAYICONS_COMMITHISTORY;
+                break;
+            case PH_ICON_PHYSICAL_HISTORY:
+                id = ID_TRAYICONS_PHYSICALMEMORYHISTORY;
+                break;
+            case PH_ICON_CPU_USAGE:
+                id = ID_TRAYICONS_CPUUSAGE;
+                break;
+            }
+
+            CheckMenuItem(PhMainWndMenuHandle, id, MF_CHECKED);
+        }
+    }
+
+    NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
+
+    if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
+    {
+        CurrentUserFilterEntry = PhAddProcessTreeFilter(PhMwpCurrentUserProcessTreeFilter, NULL);
+        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, MF_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"HideSignedProcesses"))
+    {
+        SignedFilterEntry = PhAddProcessTreeFilter(PhMwpSignedProcessTreeFilter, NULL);
+        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDESIGNEDPROCESSES, MF_CHECKED);
+    }
+
+    if (PhEnableCycleCpuUsage)
+    {
+        if (PhCsShowCpuBelow001)
+        {
+            CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_CHECKED);
+        }
+    }
+    else
+    {
+        EnableMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_GRAYED | MF_DISABLED);
+    }
+
+    customFont = PhGetStringSetting(L"Font");
+
+    if (customFont->Length / 2 / 2 == sizeof(LOGFONT))
+        SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+
+    PhDereferenceObject(customFont);
+
+    PhLoadSettingsProcessTreeList();
+    // Service and network list settings are loaded on demand.
+}
+
+VOID PhMwpSaveSettings(
+    VOID
+    )
+{
+    PhSaveSettingsProcessTreeList();
+    if (ServiceTreeListLoaded)
+        PhSaveSettingsServiceTreeList();
+    if (NetworkTreeListLoaded)
+        PhSaveSettingsNetworkTreeList();
+
+    PhSetIntegerSetting(L"IconMask", NotifyIconMask);
+    PhSetIntegerSetting(L"IconNotifyMask", NotifyIconNotifyMask);
+
+    PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", PhMainWndHandle);
+
+    PhMwpSaveWindowSettings();
+
+    if (PhSettingsFileName)
+        PhSaveSettings(PhSettingsFileName->Buffer);
+}
+
+VOID PhMwpSaveWindowSettings(
+    VOID
+    )
+{
+    WINDOWPLACEMENT placement = { sizeof(placement) };
+
+    GetWindowPlacement(PhMainWndHandle, &placement);
+
+    if (placement.showCmd == SW_NORMAL)
+        PhSetIntegerSetting(L"MainWindowState", SW_NORMAL);
+    else if (placement.showCmd == SW_MAXIMIZE)
+        PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
+}
+
+VOID PhMwpSymInitHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_STRING dbghelpPath;
+    HMODULE dbghelpModule;
+
+    dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
+
+    if (dbghelpModule = LoadLibrary(dbghelpPath->Buffer))
+    {
+        PPH_STRING fullDbghelpPath;
+        ULONG indexOfFileName;
+        PH_STRINGREF dbghelpFolder;
+        PPH_STRING symsrvPath;
+
+        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
+
+        if (fullDbghelpPath)
+        {
+            if (indexOfFileName != -1)
+            {
+                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
+
+                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
+                dbghelpFolder.Length = (USHORT)(indexOfFileName * sizeof(WCHAR));
+
+                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
+                LoadLibrary(symsrvPath->Buffer);
+                PhDereferenceObject(symsrvPath);
+            }
+
+            PhDereferenceObject(fullDbghelpPath);
+        }
+    }
+    else
+    {
+        LoadLibrary(L"dbghelp.dll");
+    }
+
+    PhDereferenceObject(dbghelpPath);
+
+    PhSymbolProviderDynamicImport();
+}
+
+VOID PhMwpApplyLayoutPadding(
     __inout PRECT Rect,
     __in PRECT Padding
     )
@@ -3372,7 +2601,151 @@ VOID PhpApplyLayoutPadding(
     Rect->bottom -= Padding->bottom;
 }
 
-ULONG_PTR PhpMainWndAddMenuItem(
+VOID PhMwpLayout(
+    __inout HDWP *DeferHandle
+    )
+{
+    RECT rect;
+
+    // Resize the tab control.
+    // Don't defer the resize. The tab control doesn't repaint properly.
+
+    GetClientRect(PhMainWndHandle, &rect);
+    PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
+
+    SetWindowPos(TabControlHandle, NULL,
+        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+        SWP_NOACTIVATE | SWP_NOZORDER);
+    UpdateWindow(TabControlHandle);
+
+    PhMwpLayoutTabControl(DeferHandle);
+}
+
+VOID PhMwpSetCheckOpacityMenu(
+    __in BOOLEAN AssumeAllUnchecked,
+    __in ULONG Opacity
+    )
+{
+    // The setting is stored backwards - 0 means opaque, 100 means transparent.
+    CheckMenuRadioItem(
+        PhMainWndMenuHandle,
+        ID_OPACITY_10,
+        ID_OPACITY_OPAQUE,
+        ID_OPACITY_10 + (10 - Opacity / 10) - 1,
+        MF_BYCOMMAND
+        );
+}
+
+VOID PhMwpSetWindowOpacity(
+    __in ULONG Opacity
+    )
+{
+    if (Opacity == 0)
+    {
+        // Make things a bit faster by removing the WS_EX_LAYERED bit.
+        PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, 0);
+        RedrawWindow(PhMainWndHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+        return;
+    }
+
+    PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, WS_EX_LAYERED);
+
+    // Disallow opacity values of less than 10%.
+    if (Opacity > 90)
+        return;
+
+    SetLayeredWindowAttributes(
+        PhMainWndHandle,
+        0,
+        (BYTE)(255 * (100 - Opacity) / 100),
+        LWA_ALPHA
+        );
+}
+
+BOOLEAN PhMwpExecuteComputerCommand(
+    __in ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case ID_COMPUTER_LOCK:
+        PhUiLockComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_LOGOFF:
+        PhUiLogoffComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_SLEEP:
+        PhUiSleepComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_HIBERNATE:
+        PhUiHibernateComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_RESTART:
+        PhUiRestartComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_SHUTDOWN:
+        PhUiShutdownComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_POWEROFF:
+        PhUiPoweroffComputer(PhMainWndHandle);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PhMwpInitializeMainMenu(
+    __in HMENU Menu
+    )
+{
+    MENUINFO menuInfo;
+
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_STYLE;
+    menuInfo.dwStyle = MNS_NOTIFYBYPOS;
+    SetMenuInfo(Menu, &menuInfo);
+}
+
+VOID PhMwpDispatchMenuCommand(
+    __in HMENU MenuHandle,
+    __in ULONG ItemIndex,
+    __in ULONG ItemId,
+    __in ULONG_PTR ItemData
+    )
+{
+    switch (ItemId)
+    {
+    case ID_PLUGIN_MENU_ITEM:
+        {
+            PPH_PLUGIN_MENU_ITEM menuItem;
+
+            menuItem = (PPH_PLUGIN_MENU_ITEM)ItemData;
+
+            if (menuItem)
+            {
+                menuItem->OwnerWindow = PhMainWndHandle;
+                PhInvokeCallback(PhGetPluginCallback(menuItem->Plugin, PluginCallbackMenuItem), menuItem);
+            }
+
+            return;
+        }
+        break;
+    case ID_USER_CONNECT:
+    case ID_USER_DISCONNECT:
+    case ID_USER_LOGOFF:
+    case ID_USER_REMOTECONTROL:
+    case ID_USER_SENDMESSAGE:
+    case ID_USER_PROPERTIES:
+        {
+            SelectedUserSessionId = (ULONG)ItemData;
+        }
+        break;
+    }
+
+    SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
+}
+
+ULONG_PTR PhMwpAddPluginMenuItem(
     __in PPH_PLUGIN Plugin,
     __in HMENU ParentMenu,
     __in_opt PWSTR InsertAfter,
@@ -3476,81 +2849,34 @@ ULONG_PTR PhpMainWndAddMenuItem(
     }
 }
 
-PPH_ADDITIONAL_TAB_PAGE PhpAddTabPage(
-    __in PPH_ADDITIONAL_TAB_PAGE TabPage
-    )
-{
-    PPH_ADDITIONAL_TAB_PAGE newTabPage;
-    HDWP deferHandle;
-
-    if (!AdditionalTabPageList)
-        AdditionalTabPageList = PhCreateList(2);
-
-    newTabPage = PhAllocateCopy(TabPage, sizeof(PH_ADDITIONAL_TAB_PAGE));
-    PhAddItemList(AdditionalTabPageList, newTabPage);
-
-    newTabPage->Index = PhAddTabControlTab(TabControlHandle, MAXINT, newTabPage->Text);
-    MaxTabIndex = newTabPage->Index;
-
-    if (newTabPage->WindowHandle)
-        BringWindowToTop(newTabPage->WindowHandle);
-
-    // The tab control might need multiple lines, so we need to refresh the layout.
-    deferHandle = BeginDeferWindowPos(1);
-    PhMainWndTabControlOnLayout(&deferHandle);
-    EndDeferWindowPos(deferHandle);
-
-    return newTabPage;
-}
-
-VOID PhMainWndOnLayout(
-    __inout HDWP *deferHandle
-    )
-{
-    RECT rect;
-
-    // Resize the tab control.
-    // Don't defer the resize. The tab control doesn't repaint properly.
-
-    GetClientRect(PhMainWndHandle, &rect);
-    PhpApplyLayoutPadding(&rect, &LayoutPadding);
-
-    SetWindowPos(TabControlHandle, NULL,
-        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-        SWP_NOACTIVATE | SWP_NOZORDER);
-    UpdateWindow(TabControlHandle);
-
-    PhMainWndTabControlOnLayout(deferHandle);
-}
-
-VOID PhMainWndTabControlOnLayout(
-    __inout HDWP *deferHandle
+VOID PhMwpLayoutTabControl(
+    __inout HDWP *DeferHandle
     )
 {
     RECT rect;
     INT selectedIndex;
 
     GetClientRect(PhMainWndHandle, &rect);
-    PhpApplyLayoutPadding(&rect, &LayoutPadding);
+    PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
     TabCtrl_AdjustRect(TabControlHandle, FALSE, &rect);
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
     if (selectedIndex == ProcessesTabIndex)
     {
-        *deferHandle = DeferWindowPos(*deferHandle, ProcessTreeListHandle, NULL, 
+        *DeferHandle = DeferWindowPos(*DeferHandle, ProcessTreeListHandle, NULL, 
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
     else if (selectedIndex == ServicesTabIndex)
     {
-        *deferHandle = DeferWindowPos(*deferHandle, ServiceTreeListHandle, NULL,
+        *DeferHandle = DeferWindowPos(*DeferHandle, ServiceTreeListHandle, NULL,
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
     else if (selectedIndex == NetworkTabIndex)
     {
-        *deferHandle = DeferWindowPos(*deferHandle, NetworkTreeListHandle, NULL,
+        *DeferHandle = DeferWindowPos(*DeferHandle, NetworkTreeListHandle, NULL,
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
@@ -3573,7 +2899,7 @@ VOID PhMainWndTabControlOnLayout(
 
                 if (tabPage->WindowHandle)
                 {
-                    *deferHandle = DeferWindowPos(*deferHandle, tabPage->WindowHandle, NULL,
+                    *DeferHandle = DeferWindowPos(*DeferHandle, tabPage->WindowHandle, NULL,
                         rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
                         SWP_NOACTIVATE | SWP_NOZORDER);
                 }
@@ -3584,17 +2910,19 @@ VOID PhMainWndTabControlOnLayout(
     }
 }
 
-VOID PhMainWndTabControlOnNotify(
-    __in LPNMHDR Header
+VOID PhMwpNotifyTabControl(
+    __in NMHDR *Header
     )
 {
     if (Header->code == TCN_SELCHANGE)
     {
-        PhMainWndTabControlOnSelectionChanged();
+        PhMwpSelectionChangedTabControl();
     }
 }
 
-VOID PhMainWndTabControlOnSelectionChanged()
+VOID PhMwpSelectionChangedTabControl(
+    VOID
+    )
 {
     INT selectedIndex;
     HDWP deferHandle;
@@ -3602,17 +2930,17 @@ VOID PhMainWndTabControlOnSelectionChanged()
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
     deferHandle = BeginDeferWindowPos(1);
-    PhMainWndTabControlOnLayout(&deferHandle);
+    PhMwpLayoutTabControl(&deferHandle);
     EndDeferWindowPos(deferHandle);
 
     // Built-in tabs
 
     if (selectedIndex == ServicesTabIndex)
-        PhpNeedServiceTreeList();
+        PhMwpNeedServiceTreeList();
 
     if (selectedIndex == NetworkTabIndex)
     {
-        PhpNeedNetworkTreeList();
+        PhMwpNeedNetworkTreeList();
 
         PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
 
@@ -3646,33 +2974,534 @@ VOID PhMainWndTabControlOnSelectionChanged()
     }
 }
 
-BOOL CALLBACK PhpEnumProcessWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(
+    __in PPH_ADDITIONAL_TAB_PAGE TabPage
     )
 {
-    ULONG processId;
-    HWND parentWindow;
+    PPH_ADDITIONAL_TAB_PAGE newTabPage;
+    HDWP deferHandle;
 
-    if (!IsWindowVisible(hwnd))
-        return TRUE;
+    if (!AdditionalTabPageList)
+        AdditionalTabPageList = PhCreateList(2);
 
-    GetWindowThreadProcessId(hwnd, &processId);
+    newTabPage = PhAllocateCopy(TabPage, sizeof(PH_ADDITIONAL_TAB_PAGE));
+    PhAddItemList(AdditionalTabPageList, newTabPage);
 
-    if (
-        processId == (ULONG)lParam &&
-        !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        GetWindowTextLength(hwnd) != 0
-        )
+    newTabPage->Index = PhAddTabControlTab(TabControlHandle, MAXINT, newTabPage->Text);
+    MaxTabIndex = newTabPage->Index;
+
+    if (newTabPage->WindowHandle)
+        BringWindowToTop(newTabPage->WindowHandle);
+
+    // The tab control might need multiple lines, so we need to refresh the layout.
+    deferHandle = BeginDeferWindowPos(1);
+    PhMwpLayoutTabControl(&deferHandle);
+    EndDeferWindowPos(deferHandle);
+
+    return newTabPage;
+}
+
+VOID PhMwpSelectTabPage(
+    __in ULONG Index
+    )
+{
+    TabCtrl_SetCurSel(TabControlHandle, Index);
+    PhMwpSelectionChangedTabControl();
+}
+
+static int __cdecl IconProcessesCpuUsageCompare(
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
+    PPH_PROCESS_ITEM processItem2 = *(PPH_PROCESS_ITEM *)elem2;
+
+    return -singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
+}
+
+static int __cdecl IconProcessesNameCompare(
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
+    PPH_PROCESS_ITEM processItem2 = *(PPH_PROCESS_ITEM *)elem2;
+
+    return PhCompareString(processItem1->ProcessName, processItem2->ProcessName, TRUE);
+}
+
+VOID PhMwpAddIconProcesses(
+    __in PPH_EMENU_ITEM Menu,
+    __in ULONG NumberOfProcesses
+    )
+{
+    ULONG i;
+    PPH_PROCESS_ITEM *processItems;
+    ULONG numberOfProcessItems;
+    PPH_LIST processList;
+    PPH_PROCESS_ITEM processItem;
+
+    PhEnumProcessItems(&processItems, &numberOfProcessItems);
+    processList = PhCreateList(numberOfProcessItems);
+    PhAddItemsList(processList, processItems, numberOfProcessItems);
+
+    // Remove non-real processes.
+    for (i = 0; i < processList->Count; i++)
     {
-        SelectedProcessWindowHandle = hwnd;
-        return FALSE;
+        processItem = processList->Items[i];
+
+        if (!PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+        {
+            PhRemoveItemList(processList, i);
+            i--;
+        }
     }
+
+    // Remove processes with zero CPU usage and those running as other users.
+    for (i = 0; i < processList->Count && processList->Count > NumberOfProcesses; i++)
+    {
+        processItem = processList->Items[i];
+
+        if (
+            processItem->CpuUsage == 0 ||
+            !processItem->UserName ||
+            (PhCurrentUserName && !PhEqualString(processItem->UserName, PhCurrentUserName, TRUE))
+            )
+        {
+            PhRemoveItemList(processList, i);
+            i--;
+        }
+    }
+
+    // Sort the processes by CPU usage and remove the extra processes at the end of the list.
+    qsort(processList->Items, processList->Count, sizeof(PVOID), IconProcessesCpuUsageCompare);
+
+    if (processList->Count > NumberOfProcesses)
+    {
+        PhRemoveItemsList(processList, NumberOfProcesses, processList->Count - NumberOfProcesses);
+    }
+
+    // Lastly, sort by name.
+    qsort(processList->Items, processList->Count, sizeof(PVOID), IconProcessesNameCompare);
+
+    // Delete all menu items.
+    PhRemoveAllEMenuItems(Menu);
+
+    // Add the processes.
+
+    for (i = 0; i < processList->Count; i++)
+    {
+        PPH_EMENU_ITEM subMenu;
+        PPH_EMENU_ITEM priorityMenu;
+        HBITMAP iconBitmap;
+        CLIENT_ID clientId;
+        PPH_STRING clientIdName;
+        PPH_STRING escapedName;
+
+        processItem = processList->Items[i];
+
+        // Priority
+
+        priorityMenu = PhCreateEMenuItem(0, 0, L"Priority", NULL, NULL);
+
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"Real Time", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"High", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"Above Normal", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_NORMAL, L"Normal", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"Below Normal", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_IDLE, L"Idle", NULL, NULL), -1);
+
+        PhMwpSetProcessMenuPriorityChecks(priorityMenu, processItem, TRUE, FALSE, FALSE);
+
+        // Process
+
+        clientId.UniqueProcess = processItem->ProcessId;
+        clientId.UniqueThread = NULL;
+
+        clientIdName = PhGetClientIdName(&clientId);
+        escapedName = PhEscapeStringForMenuPrefix(&clientIdName->sr);
+        PhDereferenceObject(clientIdName);
+        PhaDereferenceObject(escapedName);
+
+        subMenu = PhCreateEMenuItem(
+            0,
+            0,
+            escapedName->Buffer,
+            NULL,
+            processItem->ProcessId
+            );
+
+        // Menu icons only work properly on Vista and above.
+        if (WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (processItem->SmallIcon)
+            {
+                iconBitmap = PhIconToBitmap(processItem->SmallIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            }
+            else
+            {
+                HICON icon;
+
+                PhGetStockApplicationIcon(&icon, NULL);
+                iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            }
+        }
+        else
+        {
+            iconBitmap = NULL;
+        }
+
+        subMenu->Bitmap = iconBitmap;
+        subMenu->Flags |= PH_EMENU_BITMAP_OWNED; // automatically destroy the bitmap when necessary
+
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATE, L"Terminate", NULL, NULL), -1);
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"Suspend", NULL, NULL), -1);
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Resume", NULL, NULL), -1);
+        PhInsertEMenuItem(subMenu, priorityMenu, -1);
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_PROPERTIES, L"Properties", NULL, NULL), -1);
+
+        PhInsertEMenuItem(Menu, subMenu, -1);
+    }
+
+    PhDereferenceObject(processList);
+    PhDereferenceObjects(processItems, numberOfProcessItems);
+    PhFree(processItems);
+}
+
+VOID PhMwpShowIconContextMenu(
+    __in POINT Location
+    )
+{
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM item;
+    ULONG numberOfProcesses;
+    ULONG id;
+    ULONG i;
+
+    // This function seems to be called recursively under some circumstances.
+    // To reproduce:
+    // 1. Hold right mouse button on tray icon, then left click.
+    // 2. Make the menu disappear by clicking on the menu then clicking somewhere else.
+    // So, don't store any global state or bad things will happen.
+
+    menu = PhCreateEMenu();
+    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_ICON), 0);
+
+    // Check the Notifications menu items.
+    for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
+    {
+        if (NotifyIconNotifyMask & i)
+        {
+            switch (i)
+            {
+            case PH_NOTIFY_PROCESS_CREATE:
+                id = ID_NOTIFICATIONS_NEWPROCESSES;
+                break;
+            case PH_NOTIFY_PROCESS_DELETE:
+                id = ID_NOTIFICATIONS_TERMINATEDPROCESSES;
+                break;
+            case PH_NOTIFY_SERVICE_CREATE:
+                id = ID_NOTIFICATIONS_NEWSERVICES;
+                break;
+            case PH_NOTIFY_SERVICE_DELETE:
+                id = ID_NOTIFICATIONS_DELETEDSERVICES;
+                break;
+            case PH_NOTIFY_SERVICE_START:
+                id = ID_NOTIFICATIONS_STARTEDSERVICES;
+                break;
+            case PH_NOTIFY_SERVICE_STOP:
+                id = ID_NOTIFICATIONS_STOPPEDSERVICES;
+                break;
+            }
+
+            PhSetFlagsEMenuItem(menu, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+        }
+    }
+
+    // Add processes to the menu.
+
+    numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
+    item = PhFindEMenuItem(menu, 0, L"Processes", 0);
+
+    if (item)
+        PhMwpAddIconProcesses(item, numberOfProcesses);
+
+    // Give plugins a chance to modify the menu.
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+        menuInfo.Menu = menu;
+        menuInfo.OwnerWindow = PhMainWndHandle;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackIconMenuInitializing), &menuInfo);
+    }
+
+    SetForegroundWindow(PhMainWndHandle); // window must be foregrounded so menu will disappear properly
+    item = PhShowEMenu(
+        menu,
+        PhMainWndHandle,
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        Location.x,
+        Location.y
+        );
+
+    if (item)
+    {
+        PPH_EMENU_ITEM parentItem;
+        HANDLE processId;
+        BOOLEAN handled = FALSE;
+
+        parentItem = item->Parent;
+
+        while (parentItem)
+        {
+            if (parentItem->Context)
+                processId = parentItem->Context;
+
+            parentItem = parentItem->Parent;
+        }
+
+        if (PhPluginsEnabled && !handled)
+            handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
+
+        if (!handled)
+            handled = PhMwpExecuteComputerCommand(item->Id);
+
+        if (!handled)
+        {
+            switch (item->Id)
+            {
+            case ID_ICON_SHOWHIDEPROCESSHACKER:
+                SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                break;
+            case ID_ICON_SYSTEMINFORMATION:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
+                break;
+            case ID_NOTIFICATIONS_ENABLEALL:
+                NotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
+                break;
+            case ID_NOTIFICATIONS_DISABLEALL:
+                NotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
+                break;
+            case ID_NOTIFICATIONS_NEWPROCESSES:
+            case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
+            case ID_NOTIFICATIONS_NEWSERVICES:
+            case ID_NOTIFICATIONS_STARTEDSERVICES:
+            case ID_NOTIFICATIONS_STOPPEDSERVICES:
+            case ID_NOTIFICATIONS_DELETEDSERVICES:
+                {
+                    ULONG bit;
+
+                    switch (item->Id)
+                    {
+                    case ID_NOTIFICATIONS_NEWPROCESSES:
+                        bit = PH_NOTIFY_PROCESS_CREATE;
+                        break;
+                    case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
+                        bit = PH_NOTIFY_PROCESS_DELETE;
+                        break;
+                    case ID_NOTIFICATIONS_NEWSERVICES:
+                        bit = PH_NOTIFY_SERVICE_CREATE;
+                        break;
+                    case ID_NOTIFICATIONS_STARTEDSERVICES:
+                        bit = PH_NOTIFY_SERVICE_START;
+                        break;
+                    case ID_NOTIFICATIONS_STOPPEDSERVICES:
+                        bit = PH_NOTIFY_SERVICE_STOP;
+                        break;
+                    case ID_NOTIFICATIONS_DELETEDSERVICES:
+                        bit = PH_NOTIFY_SERVICE_DELETE;
+                        break;
+                    }
+
+                    NotifyIconNotifyMask ^= bit;
+                }
+                break;
+            case ID_PROCESS_TERMINATE:
+            case ID_PROCESS_SUSPEND:
+            case ID_PROCESS_RESUME:
+            case ID_PROCESS_PROPERTIES:
+                {
+                    PPH_PROCESS_ITEM processItem;
+
+                    if (processItem = PhReferenceProcessItem(processId))
+                    {
+                        switch (item->Id)
+                        {
+                        case ID_PROCESS_TERMINATE:
+                            PhUiTerminateProcesses(PhMainWndHandle, &processItem, 1);
+                            break;
+                        case ID_PROCESS_SUSPEND:
+                            PhUiSuspendProcesses(PhMainWndHandle, &processItem, 1);
+                            break;
+                        case ID_PROCESS_RESUME:
+                            PhUiResumeProcesses(PhMainWndHandle, &processItem, 1);
+                            break;
+                        case ID_PROCESS_PROPERTIES:
+                            ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                            break;
+                        }
+
+                        PhDereferenceObject(processItem);
+                    }
+                    else
+                    {
+                        PhShowError(PhMainWndHandle, L"The process does not exist.");
+                    }
+                }
+                break;
+            case ID_PRIORITY_REALTIME:
+            case ID_PRIORITY_HIGH:
+            case ID_PRIORITY_ABOVENORMAL:
+            case ID_PRIORITY_NORMAL:
+            case ID_PRIORITY_BELOWNORMAL:
+            case ID_PRIORITY_IDLE:
+                {
+                    PPH_PROCESS_ITEM processItem;
+
+                    if (processItem = PhReferenceProcessItem(processId))
+                    {
+                        PhMwpExecuteProcessPriorityCommand(item->Id, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                    else
+                    {
+                        PhShowError(PhMainWndHandle, L"The process does not exist.");
+                    }
+                }
+                break;
+            case ID_ICON_EXIT:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
+                break;
+            }
+        }
+    }
+
+    PhDestroyEMenu(menu);
+}
+
+VOID PhShowIconNotification(
+    __in PWSTR Title,
+    __in PWSTR Text,
+    __in ULONG Flags
+    )
+{
+    ULONG i;
+
+    // Find a visible icon to display the balloon tip on.
+    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+    {
+        if (NotifyIconMask & i)
+        {
+            PhShowBalloonTipNotifyIcon(i, Title, Text, 10, Flags);
+            break;
+        }
+    }
+}
+
+BOOLEAN PhMwpPluginNotifyEvent(
+    __in ULONG Type,
+    __in PVOID Parameter
+    )
+{
+    PH_PLUGIN_NOTIFY_EVENT notifyEvent;
+
+    notifyEvent.Type = Type;
+    notifyEvent.Handled = FALSE;
+    notifyEvent.Parameter = Parameter;
+
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNotifyEvent), &notifyEvent);
+
+    return notifyEvent.Handled;
+}
+
+VOID PhMwpShowProcessProperties(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PPH_PROCESS_PROPCONTEXT propContext;
+
+    propContext = PhCreateProcessPropContext(
+        PhMainWndHandle,
+        ProcessItem
+        );
+
+    if (propContext)
+    {
+        PhShowProcessProperties(propContext);
+        PhDereferenceObject(propContext);
+    }
+}
+
+BOOLEAN PhMwpCurrentUserProcessTreeFilter(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    )
+{
+    if (!ProcessNode->ProcessItem->UserName)
+        return FALSE;
+
+    if (!PhCurrentUserName)
+        return FALSE;
+
+    if (!PhEqualString(ProcessNode->ProcessItem->UserName, PhCurrentUserName, TRUE))
+        return FALSE;
 
     return TRUE;
 }
 
-VOID PhpSetProcessMenuPriorityChecks(
+BOOLEAN PhMwpSignedProcessTreeFilter(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    )
+{
+    if (ProcessNode->ProcessItem->VerifyResult == VrTrusted)
+        return FALSE;
+
+    return TRUE;
+}
+
+BOOLEAN PhMwpExecuteProcessPriorityCommand(
+    __in ULONG Id,
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    ULONG priorityClass;
+
+    switch (Id)
+    {
+    case ID_PRIORITY_REALTIME:
+        priorityClass = PROCESS_PRIORITY_CLASS_REALTIME;
+        break;
+    case ID_PRIORITY_HIGH:
+        priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
+        break;
+    case ID_PRIORITY_ABOVENORMAL:
+        priorityClass = PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
+        break;
+    case ID_PRIORITY_NORMAL:
+        priorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
+        break;
+    case ID_PRIORITY_BELOWNORMAL:
+        priorityClass = PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
+        break;
+    case ID_PRIORITY_IDLE:
+        priorityClass = PROCESS_PRIORITY_CLASS_IDLE;
+        break;
+    default:
+        return FALSE;
+    }
+
+    PhUiSetPriorityProcess(PhMainWndHandle, ProcessItem, priorityClass);
+
+    return TRUE;
+}
+
+VOID PhMwpSetProcessMenuPriorityChecks(
     __in PPH_EMENU Menu,
     __in PPH_PROCESS_ITEM Process,
     __in BOOLEAN SetPriority,
@@ -3814,7 +3643,33 @@ VOID PhpSetProcessMenuPriorityChecks(
     }
 }
 
-VOID PhpInitializeProcessMenu(
+static BOOL CALLBACK EnumProcessWindowsProc(
+    __in HWND hwnd,
+    __in LPARAM lParam
+    )
+{
+    ULONG processId;
+    HWND parentWindow;
+
+    if (!IsWindowVisible(hwnd))
+        return TRUE;
+
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    if (
+        processId == (ULONG)lParam &&
+        !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
+        GetWindowTextLength(hwnd) != 0
+        )
+    {
+        SelectedProcessWindowHandle = hwnd;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID PhMwpInitializeProcessMenu(
     __in PPH_EMENU Menu,
     __in PPH_PROCESS_ITEM *Processes,
     __in ULONG NumberOfProcesses
@@ -3919,7 +3774,7 @@ VOID PhpInitializeProcessMenu(
     // Priority
     if (NumberOfProcesses == 1)
     {
-        PhpSetProcessMenuPriorityChecks(Menu, Processes[0], TRUE, TRUE, TRUE);
+        PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0], TRUE, TRUE, TRUE);
     }
 
     item = PhFindEMenuItem(Menu, 0, L"Window", 0);
@@ -3933,7 +3788,7 @@ VOID PhpInitializeProcessMenu(
 
             // Get a handle to the process' top-level window (if any).
             SelectedProcessWindowHandle = NULL;
-            EnumWindows(PhpEnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
+            EnumWindows(EnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
 
             if (!SelectedProcessWindowHandle)
                 item->Flags |= PH_EMENU_DISABLED;
@@ -3969,7 +3824,7 @@ VOID PhShowProcessContextMenu(
     PPH_PROCESS_ITEM *processes;
     ULONG numberOfProcesses;
 
-    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+    PhGetSelectedProcessItems(&processes, &numberOfProcesses);
 
     if (numberOfProcesses != 0)
     {
@@ -3980,7 +3835,7 @@ VOID PhShowProcessContextMenu(
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_PROCESS), 0);
         PhSetFlagsEMenuItem(menu, ID_PROCESS_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-        PhpInitializeProcessMenu(menu, processes, numberOfProcesses);
+        PhMwpInitializeProcessMenu(menu, processes, numberOfProcesses);
 
         if (PhPluginsEnabled)
         {
@@ -4020,7 +3875,153 @@ VOID PhShowProcessContextMenu(
     PhFree(processes);
 }
 
-VOID PhpInitializeServiceMenu(
+VOID PhMwpOnProcessAdded(
+    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG RunId
+    )
+{
+    PPH_PROCESS_NODE processNode;
+
+    if (!ProcessesNeedsRedraw)
+    {
+        TreeNew_SetRedraw(ProcessTreeListHandle, FALSE);
+        ProcessesNeedsRedraw = TRUE;
+    }
+
+    processNode = PhAddProcessNode(ProcessItem, RunId);
+
+    if (RunId != 1)
+    {
+        PPH_PROCESS_ITEM parentProcess;
+        HANDLE parentProcessId = NULL;
+        PPH_STRING parentName = NULL;
+
+        if (parentProcess = PhReferenceProcessItemForParent(
+            ProcessItem->ParentProcessId,
+            ProcessItem->ProcessId,
+            &ProcessItem->CreateTime
+            ))
+        {
+            parentProcessId = parentProcess->ProcessId;
+            parentName = parentProcess->ProcessName;
+        }
+
+        PhLogProcessEntry(
+            PH_LOG_ENTRY_PROCESS_CREATE,
+            ProcessItem->ProcessId,
+            ProcessItem->ProcessName,
+            parentProcessId,
+            parentName
+            );
+
+        if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE)
+        {
+            if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_PROCESS_CREATE, ProcessItem))
+            {
+                PhShowIconNotification(L"Process Created", PhaFormatString(
+                    L"The process %s (%u) was created by %s (%u)",
+                    ProcessItem->ProcessName->Buffer,
+                    (ULONG)ProcessItem->ProcessId,
+                    PhGetStringOrDefault(parentName, L"Unknown Process"),
+                    (ULONG)ProcessItem->ParentProcessId
+                    )->Buffer, NIIF_INFO);
+            }
+        }
+
+        if (parentProcess)
+            PhDereferenceObject(parentProcess);
+    }
+
+    // PhCreateProcessNode has its own reference.
+    PhDereferenceObject(ProcessItem);
+}
+
+VOID PhMwpOnProcessModified(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+
+    if (SignedFilterEntry)
+        PhApplyProcessTreeFilters();
+}
+
+VOID PhMwpOnProcessRemoved(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    if (!ProcessesNeedsRedraw)
+    {
+        TreeNew_SetRedraw(ProcessTreeListHandle, FALSE);
+        ProcessesNeedsRedraw = TRUE;
+    }
+
+    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName, NULL, NULL);
+
+    if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
+    {
+        if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_PROCESS_DELETE, ProcessItem))
+        {
+            PhShowIconNotification(L"Process Terminated", PhaFormatString(
+                L"The process %s (%u) was terminated.",
+                ProcessItem->ProcessName->Buffer,
+                (ULONG)ProcessItem->ProcessId
+                )->Buffer, NIIF_INFO);
+        }
+    }
+
+    PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+}
+
+VOID PhMwpOnProcessesUpdated(
+    VOID
+    )
+{
+    // The modified notification is only sent for special cases.
+    // We have to invalidate the text on each update.
+    PhTickProcessNodes();
+
+    if (PhPluginsEnabled)
+    {
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
+    }
+
+    if (ProcessesNeedsRedraw)
+    {
+        TreeNew_SetRedraw(ProcessTreeListHandle, TRUE);
+        ProcessesNeedsRedraw = FALSE;
+    }
+}
+
+VOID PhMwpNeedServiceTreeList(
+    VOID
+    )
+{
+    if (!ServiceTreeListLoaded)
+    {
+        ServiceTreeListLoaded = TRUE;
+
+        PhLoadSettingsServiceTreeList();
+
+        if (ServicesPendingList)
+        {
+            PPH_SERVICE_ITEM serviceItem;
+            ULONG enumerationKey = 0;
+
+            while (PhEnumPointerList(ServicesPendingList, &enumerationKey, (PPVOID)&serviceItem))
+            {
+                PhMwpOnServiceAdded(serviceItem, 1);
+            }
+
+            // Force a re-draw.
+            PhMwpOnServicesUpdated();
+
+            PhSwapReference(&ServicesPendingList, NULL);
+        }
+    }
+}
+
+VOID PhMwpInitializeServiceMenu(
     __in PPH_EMENU Menu,
     __in PPH_SERVICE_ITEM *Services,
     __in ULONG NumberOfServices
@@ -4115,7 +4116,7 @@ VOID PhShowServiceContextMenu(
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_SERVICE), 0);
         PhSetFlagsEMenuItem(menu, ID_SERVICE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-        PhpInitializeServiceMenu(menu, services, numberOfServices);
+        PhMwpInitializeServiceMenu(menu, services, numberOfServices);
 
         if (PhPluginsEnabled)
         {
@@ -4155,7 +4156,203 @@ VOID PhShowServiceContextMenu(
     PhFree(services);
 }
 
-VOID PhpInitializeNetworkMenu(
+VOID PhMwpOnServiceAdded(
+    __in __assumeRefs(1) PPH_SERVICE_ITEM ServiceItem,
+    __in ULONG RunId
+    )
+{
+    PPH_SERVICE_NODE serviceNode;
+
+    if (ServiceTreeListLoaded)
+    {
+        if (!ServicesNeedsRedraw)
+        {
+            TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
+            ServicesNeedsRedraw = TRUE;
+        }
+
+        serviceNode = PhAddServiceNode(ServiceItem, RunId);
+        // ServiceItem dereferenced below
+    }
+    else
+    {
+        if (!ServicesPendingList)
+            ServicesPendingList = PhCreatePointerList(100);
+
+        PhAddItemPointerList(ServicesPendingList, ServiceItem);
+    }
+
+    if (RunId != 1)
+    {
+        PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_CREATE, ServiceItem->Name, ServiceItem->DisplayName);
+
+        if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
+        {
+            if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_CREATE, ServiceItem))
+            {
+                PhShowIconNotification(L"Service Created", PhaFormatString(
+                    L"The service %s (%s) has been created.",
+                    ServiceItem->Name->Buffer,
+                    ServiceItem->DisplayName->Buffer
+                    )->Buffer, NIIF_INFO);
+            }
+        }
+    }
+
+    if (ServiceTreeListLoaded)
+        PhDereferenceObject(ServiceItem);
+}
+
+VOID PhMwpOnServiceModified(
+    __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
+    )
+{
+    PH_SERVICE_CHANGE serviceChange;
+    UCHAR logEntryType;
+
+    if (ServiceTreeListLoaded)
+    {
+        //if (!ServicesNeedsRedraw)
+        //{
+        //    TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
+        //    ServicesNeedsRedraw = TRUE;
+        //}
+
+        PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
+    }
+
+    serviceChange = PhGetServiceChange(ServiceModifiedData);
+
+    switch (serviceChange)
+    {
+    case ServiceStarted:
+        logEntryType = PH_LOG_ENTRY_SERVICE_START;
+        break;
+    case ServiceStopped:
+        logEntryType = PH_LOG_ENTRY_SERVICE_STOP;
+        break;
+    case ServiceContinued:
+        logEntryType = PH_LOG_ENTRY_SERVICE_CONTINUE;
+        break;
+    case ServicePaused:
+        logEntryType = PH_LOG_ENTRY_SERVICE_PAUSE;
+        break;
+    default:
+        logEntryType = 0;
+        break;
+    }
+
+    if (logEntryType != 0)
+        PhLogServiceEntry(logEntryType, ServiceModifiedData->Service->Name, ServiceModifiedData->Service->DisplayName);
+
+    if (NotifyIconNotifyMask & (PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
+    {
+        PPH_SERVICE_ITEM serviceItem;
+
+        serviceItem = ServiceModifiedData->Service;
+
+        if (serviceChange == ServiceStarted && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_START))
+        {
+            if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_START, serviceItem))
+            {
+                PhShowIconNotification(L"Service Started", PhaFormatString(
+                    L"The service %s (%s) has been started.",
+                    serviceItem->Name->Buffer,
+                    serviceItem->DisplayName->Buffer
+                    )->Buffer, NIIF_INFO);
+            }
+        }
+        else if (serviceChange == ServiceStopped && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_STOP))
+        {
+            if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_STOP, serviceItem))
+            {
+                PhShowIconNotification(L"Service Stopped", PhaFormatString(
+                    L"The service %s (%s) has been stopped.",
+                    serviceItem->Name->Buffer,
+                    serviceItem->DisplayName->Buffer
+                    )->Buffer, NIIF_INFO);
+            }
+        }
+    }
+}
+
+VOID PhMwpOnServiceRemoved(
+    __in PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    if (ServiceTreeListLoaded)
+    {
+        if (!ServicesNeedsRedraw)
+        {
+            TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
+            ServicesNeedsRedraw = TRUE;
+        }
+    }
+
+    PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
+
+    if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
+    {
+        if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_DELETE, ServiceItem))
+        {
+            PhShowIconNotification(L"Service Deleted", PhaFormatString(
+                L"The service %s (%s) has been deleted.",
+                ServiceItem->Name->Buffer,
+                ServiceItem->DisplayName->Buffer
+                )->Buffer, NIIF_INFO);
+        }
+    }
+
+    if (ServiceTreeListLoaded)
+    {
+        PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
+    }
+    else
+    {
+        if (ServicesPendingList)
+        {
+            HANDLE pointerHandle;
+
+            // Remove the service from the pending list so we don't try to add it 
+            // later.
+
+            if (pointerHandle = PhFindItemPointerList(ServicesPendingList, ServiceItem))
+                PhRemoveItemPointerList(ServicesPendingList, pointerHandle);
+
+            PhDereferenceObject(ServiceItem);
+        }
+    }
+}
+
+VOID PhMwpOnServicesUpdated(
+    VOID
+    )
+{
+    if (ServiceTreeListLoaded)
+    {
+        PhTickServiceNodes();
+
+        if (ServicesNeedsRedraw)
+        {
+            TreeNew_SetRedraw(ServiceTreeListHandle, TRUE);
+            ServicesNeedsRedraw = FALSE;
+        }
+    }
+}
+
+VOID PhMwpNeedNetworkTreeList(
+    VOID
+    )
+{
+    if (!NetworkTreeListLoaded)
+    {
+        NetworkTreeListLoaded = TRUE;
+
+        PhLoadSettingsNetworkTreeList();
+    }
+}
+
+VOID PhMwpInitializeNetworkMenu(
     __in PPH_EMENU Menu,
     __in PPH_NETWORK_ITEM *NetworkItems,
     __in ULONG NumberOfNetworkItems
@@ -4226,7 +4423,7 @@ VOID PhShowNetworkContextMenu(
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_NETWORK), 0);
         PhSetFlagsEMenuItem(menu, ID_NETWORK_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-        PhpInitializeNetworkMenu(menu, networkItems, numberOfNetworkItems);
+        PhMwpInitializeNetworkMenu(menu, networkItems, numberOfNetworkItems);
 
         if (PhPluginsEnabled)
         {
@@ -4266,321 +4463,7 @@ VOID PhShowNetworkContextMenu(
     PhFree(networkItems);
 }
 
-BOOLEAN PhpPluginNotifyEvent(
-    __in ULONG Type,
-    __in PVOID Parameter
-    )
-{
-    PH_PLUGIN_NOTIFY_EVENT notifyEvent;
-
-    notifyEvent.Type = Type;
-    notifyEvent.Handled = FALSE;
-    notifyEvent.Parameter = Parameter;
-
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNotifyEvent), &notifyEvent);
-
-    return notifyEvent.Handled;
-}
-
-VOID PhMainWndOnProcessAdded(
-    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG RunId
-    )
-{
-    PPH_PROCESS_NODE processNode;
-
-    if (!ProcessesNeedsRedraw)
-    {
-        TreeNew_SetRedraw(ProcessTreeListHandle, FALSE);
-        ProcessesNeedsRedraw = TRUE;
-    }
-
-    processNode = PhAddProcessNode(ProcessItem, RunId);
-
-    if (RunId != 1)
-    {
-        PPH_PROCESS_ITEM parentProcess;
-        HANDLE parentProcessId = NULL;
-        PPH_STRING parentName = NULL;
-
-        if (parentProcess = PhReferenceProcessItemForParent(
-            ProcessItem->ParentProcessId,
-            ProcessItem->ProcessId,
-            &ProcessItem->CreateTime
-            ))
-        {
-            parentProcessId = parentProcess->ProcessId;
-            parentName = parentProcess->ProcessName;
-        }
-
-        PhLogProcessEntry(
-            PH_LOG_ENTRY_PROCESS_CREATE,
-            ProcessItem->ProcessId,
-            ProcessItem->ProcessName,
-            parentProcessId,
-            parentName
-            );
-
-        if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE)
-        {
-            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_PROCESS_CREATE, ProcessItem))
-            {
-                PhShowIconNotification(L"Process Created", PhaFormatString(
-                    L"The process %s (%u) was created by %s (%u)",
-                    ProcessItem->ProcessName->Buffer,
-                    (ULONG)ProcessItem->ProcessId,
-                    PhGetStringOrDefault(parentName, L"Unknown Process"),
-                    (ULONG)ProcessItem->ParentProcessId
-                    )->Buffer, NIIF_INFO);
-            }
-        }
-
-        if (parentProcess)
-            PhDereferenceObject(parentProcess);
-    }
-
-    // PhCreateProcessNode has its own reference.
-    PhDereferenceObject(ProcessItem);
-}
-
-VOID PhMainWndOnProcessModified(
-    __in PPH_PROCESS_ITEM ProcessItem
-    )
-{
-    PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
-
-    if (SignedFilterEntry)
-        PhApplyProcessTreeFilters();
-}
-
-VOID PhMainWndOnProcessRemoved(
-    __in PPH_PROCESS_ITEM ProcessItem
-    )
-{
-    if (!ProcessesNeedsRedraw)
-    {
-        TreeNew_SetRedraw(ProcessTreeListHandle, FALSE);
-        ProcessesNeedsRedraw = TRUE;
-    }
-
-    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName, NULL, NULL);
-
-    if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
-    {
-        if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_PROCESS_DELETE, ProcessItem))
-        {
-            PhShowIconNotification(L"Process Terminated", PhaFormatString(
-                L"The process %s (%u) was terminated.",
-                ProcessItem->ProcessName->Buffer,
-                (ULONG)ProcessItem->ProcessId
-                )->Buffer, NIIF_INFO);
-        }
-    }
-
-    PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
-}
-
-VOID PhMainWndOnProcessesUpdated()
-{
-    // The modified notification is only sent for special cases.
-    // We have to invalidate the text on each update.
-    PhTickProcessNodes();
-
-    if (PhPluginsEnabled)
-    {
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
-    }
-
-    if (ProcessesNeedsRedraw)
-    {
-        TreeNew_SetRedraw(ProcessTreeListHandle, TRUE);
-        ProcessesNeedsRedraw = FALSE;
-    }
-}
-
-VOID PhMainWndOnServiceAdded(
-    __in __assumeRefs(1) PPH_SERVICE_ITEM ServiceItem,
-    __in ULONG RunId
-    )
-{
-    PPH_SERVICE_NODE serviceNode;
-
-    if (ServiceTreeListLoaded)
-    {
-        if (!ServicesNeedsRedraw)
-        {
-            TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
-            ServicesNeedsRedraw = TRUE;
-        }
-
-        serviceNode = PhAddServiceNode(ServiceItem, RunId);
-        // ServiceItem dereferenced below
-    }
-    else
-    {
-        if (!ServicesPendingList)
-            ServicesPendingList = PhCreatePointerList(100);
-
-        PhAddItemPointerList(ServicesPendingList, ServiceItem);
-    }
-
-    if (RunId != 1)
-    {
-        PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_CREATE, ServiceItem->Name, ServiceItem->DisplayName);
-
-        if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
-        {
-            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_CREATE, ServiceItem))
-            {
-                PhShowIconNotification(L"Service Created", PhaFormatString(
-                    L"The service %s (%s) has been created.",
-                    ServiceItem->Name->Buffer,
-                    ServiceItem->DisplayName->Buffer
-                    )->Buffer, NIIF_INFO);
-            }
-        }
-    }
-
-    if (ServiceTreeListLoaded)
-        PhDereferenceObject(ServiceItem);
-}
-
-VOID PhMainWndOnServiceModified(
-    __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
-    )
-{
-    PH_SERVICE_CHANGE serviceChange;
-    UCHAR logEntryType;
-
-    if (ServiceTreeListLoaded)
-    {
-        //if (!ServicesNeedsRedraw)
-        //{
-        //    TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
-        //    ServicesNeedsRedraw = TRUE;
-        //}
-
-        PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
-    }
-
-    serviceChange = PhGetServiceChange(ServiceModifiedData);
-
-    switch (serviceChange)
-    {
-    case ServiceStarted:
-        logEntryType = PH_LOG_ENTRY_SERVICE_START;
-        break;
-    case ServiceStopped:
-        logEntryType = PH_LOG_ENTRY_SERVICE_STOP;
-        break;
-    case ServiceContinued:
-        logEntryType = PH_LOG_ENTRY_SERVICE_CONTINUE;
-        break;
-    case ServicePaused:
-        logEntryType = PH_LOG_ENTRY_SERVICE_PAUSE;
-        break;
-    default:
-        logEntryType = 0;
-        break;
-    }
-
-    if (logEntryType != 0)
-        PhLogServiceEntry(logEntryType, ServiceModifiedData->Service->Name, ServiceModifiedData->Service->DisplayName);
-
-    if (NotifyIconNotifyMask & (PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
-    {
-        PPH_SERVICE_ITEM serviceItem;
-
-        serviceItem = ServiceModifiedData->Service;
-
-        if (serviceChange == ServiceStarted && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_START))
-        {
-            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_START, serviceItem))
-            {
-                PhShowIconNotification(L"Service Started", PhaFormatString(
-                    L"The service %s (%s) has been started.",
-                    serviceItem->Name->Buffer,
-                    serviceItem->DisplayName->Buffer
-                    )->Buffer, NIIF_INFO);
-            }
-        }
-        else if (serviceChange == ServiceStopped && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_STOP))
-        {
-            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_STOP, serviceItem))
-            {
-                PhShowIconNotification(L"Service Stopped", PhaFormatString(
-                    L"The service %s (%s) has been stopped.",
-                    serviceItem->Name->Buffer,
-                    serviceItem->DisplayName->Buffer
-                    )->Buffer, NIIF_INFO);
-            }
-        }
-    }
-}
-
-VOID PhMainWndOnServiceRemoved(
-    __in PPH_SERVICE_ITEM ServiceItem
-    )
-{
-    if (ServiceTreeListLoaded)
-    {
-        if (!ServicesNeedsRedraw)
-        {
-            TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
-            ServicesNeedsRedraw = TRUE;
-        }
-    }
-
-    PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
-
-    if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
-    {
-        if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_DELETE, ServiceItem))
-        {
-            PhShowIconNotification(L"Service Deleted", PhaFormatString(
-                L"The service %s (%s) has been deleted.",
-                ServiceItem->Name->Buffer,
-                ServiceItem->DisplayName->Buffer
-                )->Buffer, NIIF_INFO);
-        }
-    }
-
-    if (ServiceTreeListLoaded)
-    {
-        PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
-    }
-    else
-    {
-        if (ServicesPendingList)
-        {
-            HANDLE pointerHandle;
-
-            // Remove the service from the pending list so we don't try to add it 
-            // later.
-
-            if (pointerHandle = PhFindItemPointerList(ServicesPendingList, ServiceItem))
-                PhRemoveItemPointerList(ServicesPendingList, pointerHandle);
-
-            PhDereferenceObject(ServiceItem);
-        }
-    }
-}
-
-VOID PhMainWndOnServicesUpdated()
-{
-    if (ServiceTreeListLoaded)
-    {
-        PhTickServiceNodes();
-
-        if (ServicesNeedsRedraw)
-        {
-            TreeNew_SetRedraw(ServiceTreeListHandle, TRUE);
-            ServicesNeedsRedraw = FALSE;
-        }
-    }
-}
-
-VOID PhMainWndOnNetworkItemAdded(
+VOID PhMwpOnNetworkItemAdded(
     __in ULONG RunId,
     __in __assumeRefs(1) PPH_NETWORK_ITEM NetworkItem
     )
@@ -4597,14 +4480,14 @@ VOID PhMainWndOnNetworkItemAdded(
     PhDereferenceObject(NetworkItem);
 }
 
-VOID PhMainWndOnNetworkItemModified(
+VOID PhMwpOnNetworkItemModified(
     __in PPH_NETWORK_ITEM NetworkItem
     )
 {
     PhUpdateNetworkNode(PhFindNetworkNode(NetworkItem));
 }
 
-VOID PhMainWndOnNetworkItemRemoved(
+VOID PhMwpOnNetworkItemRemoved(
     __in PPH_NETWORK_ITEM NetworkItem
     )
 {
@@ -4617,7 +4500,7 @@ VOID PhMainWndOnNetworkItemRemoved(
     PhRemoveNetworkNode(PhFindNetworkNode(NetworkItem));
 }
 
-VOID PhMainWndOnNetworkItemsUpdated()
+VOID PhMwpOnNetworkItemsUpdated()
 {
     PhTickNetworkNodes();
 
@@ -4626,4 +4509,87 @@ VOID PhMainWndOnNetworkItemsUpdated()
         TreeNew_SetRedraw(NetworkTreeListHandle, TRUE);
         NetworkNeedsRedraw = FALSE;
     }
+}
+
+VOID PhMwpUpdateUsersMenu(
+    VOID
+    )
+{
+    HMENU menu;
+    PSESSIONIDW sessions;
+    ULONG numberOfSessions;
+    ULONG i;
+    ULONG j;
+    MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
+
+    menu = GetSubMenu(PhMainWndMenuHandle, 3);
+
+    // Delete all items in the Users menu.
+    while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;
+
+    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
+    {
+        for (i = 0; i < numberOfSessions; i++)
+        {
+            HMENU userMenu;
+            PPH_STRING menuText;
+            PPH_STRING escapedMenuText;
+            WINSTATIONINFORMATION winStationInfo;
+            ULONG returnLength;
+            ULONG numberOfItems;
+
+            if (!WinStationQueryInformationW(
+                NULL,
+                sessions[i].SessionId,
+                WinStationInformation,
+                &winStationInfo,
+                sizeof(WINSTATIONINFORMATION),
+                &returnLength
+                ))
+            {
+                winStationInfo.Domain[0] = 0;
+                winStationInfo.UserName[0] = 0;
+            }
+
+            if (winStationInfo.Domain[0] == 0 || winStationInfo.UserName[0] == 0)
+            {
+                // Probably the Services or RDP-Tcp session.
+                continue;
+            }
+
+            menuText = PhFormatString(
+                L"%u: %s\\%s",
+                sessions[i].SessionId,
+                winStationInfo.Domain,
+                winStationInfo.UserName
+                );
+            escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
+            PhDereferenceObject(menuText);
+
+            userMenu = GetSubMenu(LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_USER)), 0);
+            AppendMenu(
+                menu,
+                MF_STRING | MF_POPUP,
+                (UINT_PTR)userMenu,
+                escapedMenuText->Buffer
+                );
+
+            PhDereferenceObject(escapedMenuText);
+
+            menuItemInfo.fMask = MIIM_DATA;
+            menuItemInfo.dwItemData = sessions[i].SessionId;
+
+            numberOfItems = GetMenuItemCount(userMenu);
+
+            if (numberOfItems != -1)
+            {
+                for (j = 0; j < numberOfItems; j++)
+                    SetMenuItemInfo(userMenu, j, TRUE, &menuItemInfo);
+            }
+        }
+
+        WinStationFreeMemory(sessions);
+    }
+
+    DrawMenuBar(PhMainWndHandle);
 }
