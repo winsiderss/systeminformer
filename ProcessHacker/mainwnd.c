@@ -109,6 +109,17 @@ VOID PhpCancelEarlyShutdown();
 
 VOID PhpNeedServiceTreeList();
 
+VOID PhpInitializeMainMenu(
+    __in HMENU MenuHandle
+    );
+
+VOID PhpProcessMenuCommand(
+    __in HMENU MenuHandle,
+    __in ULONG ItemIndex,
+    __in ULONG ItemId,
+    __in ULONG_PTR ItemData
+    );
+
 BOOLEAN PhpProcessComputerCommand(
     __in ULONG Id
     );
@@ -255,7 +266,6 @@ static PH_CALLBACK_REGISTRATION NetworkItemRemovedRegistration;
 static PH_CALLBACK_REGISTRATION NetworkItemsUpdatedRegistration;
 static BOOLEAN NetworkNeedsRedraw = FALSE;
 
-static PPH_PLUGIN_MENU_ITEM SelectedMenuItemPlugin;
 static ULONG SelectedRunAsMode;
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
@@ -339,6 +349,8 @@ BOOLEAN PhMainWndInitialization(
 
     if (!PhMainWndHandle)
         return FALSE;
+
+    PhpInitializeMainMenu(PhMainWndMenuHandle);
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(
@@ -1553,22 +1565,6 @@ LRESULT CALLBACK PhMainWndProc(
                 }
                 break;
             }
-
-            if (PhPluginsEnabled)
-            {
-                if (id >= IDPLUGINS && id < IDPLUGINS_END)
-                {
-                    if (SelectedMenuItemPlugin && SelectedMenuItemPlugin->RealId == (ULONG)id)
-                    {
-                        SelectedMenuItemPlugin->OwnerWindow = hWnd;
-
-                        PhInvokeCallback(
-                            PhGetPluginCallback(SelectedMenuItemPlugin->Plugin, PluginCallbackMenuItem),
-                            SelectedMenuItemPlugin
-                            );
-                    }
-                }
-            }
         }
         break;
     case WM_SHOWWINDOW:
@@ -1609,43 +1605,18 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
-    case WM_MENUSELECT:
+    case WM_MENUCOMMAND:
         {
-            switch (LOWORD(wParam))
+            ULONG index = (ULONG)wParam;
+            HMENU menuHandle = (HMENU)lParam;
+            MENUITEMINFO menuItemInfo;
+
+            menuItemInfo.cbSize = sizeof(MENUITEMINFO);
+            menuItemInfo.fMask = MIIM_ID | MIIM_DATA;
+
+            if (GetMenuItemInfo(menuHandle, index, TRUE, &menuItemInfo))
             {
-            case ID_USER_CONNECT:
-            case ID_USER_DISCONNECT:
-            case ID_USER_LOGOFF:
-            case ID_USER_SENDMESSAGE:
-            case ID_USER_PROPERTIES:
-                {
-                    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-
-                    menuItemInfo.fMask = MIIM_DATA;
-
-                    if (GetMenuItemInfo((HMENU)lParam, LOWORD(wParam), FALSE, &menuItemInfo))
-                    {
-                        SelectedUserSessionId = (ULONG)menuItemInfo.dwItemData;
-                    }
-                }
-                break;
-            }
-
-            if (PhPluginsEnabled)
-            {
-                USHORT id = LOWORD(wParam);
-
-                if (id >= IDPLUGINS && id < IDPLUGINS_END)
-                {
-                    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-
-                    menuItemInfo.fMask = MIIM_DATA;
-
-                    if (GetMenuItemInfo((HMENU)lParam, LOWORD(wParam), FALSE, &menuItemInfo))
-                    {
-                        SelectedMenuItemPlugin = (PPH_PLUGIN_MENU_ITEM)menuItemInfo.dwItemData;
-                    }
-                }
+                PhpProcessMenuCommand(menuHandle, index, menuItemInfo.wID, menuItemInfo.dwItemData);
             }
         }
         break;
@@ -2418,6 +2389,57 @@ VOID PhpNeedNetworkTreeList()
 
         PhLoadSettingsNetworkTreeList();
     }
+}
+
+VOID PhpInitializeMainMenu(
+    __in HMENU MenuHandle
+    )
+{
+    MENUINFO menuInfo;
+
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_STYLE;
+    menuInfo.dwStyle = MNS_NOTIFYBYPOS;
+    SetMenuInfo(MenuHandle, &menuInfo);
+}
+
+VOID PhpProcessMenuCommand(
+    __in HMENU MenuHandle,
+    __in ULONG ItemIndex,
+    __in ULONG ItemId,
+    __in ULONG_PTR ItemData
+    )
+{
+    switch (ItemId)
+    {
+    case ID_PLUGIN_MENU_ITEM:
+        {
+            PPH_PLUGIN_MENU_ITEM menuItem;
+
+            menuItem = (PPH_PLUGIN_MENU_ITEM)ItemData;
+
+            if (menuItem)
+            {
+                menuItem->OwnerWindow = PhMainWndHandle;
+                PhInvokeCallback(PhGetPluginCallback(menuItem->Plugin, PluginCallbackMenuItem), menuItem);
+            }
+
+            return;
+        }
+        break;
+    case ID_USER_CONNECT:
+    case ID_USER_DISCONNECT:
+    case ID_USER_LOGOFF:
+    case ID_USER_REMOTECONTROL:
+    case ID_USER_SENDMESSAGE:
+    case ID_USER_PROPERTIES:
+        {
+            SelectedUserSessionId = (ULONG)ItemData;
+        }
+        break;
+    }
+
+    SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
 }
 
 BOOLEAN PhpProcessComputerCommand(
@@ -3423,7 +3445,7 @@ ULONG_PTR PhpMainWndAddMenuItem(
     }
     else
     {
-        menuItem->RealId = PhPluginReserveIds(1);
+        menuItem->RealId = ID_PLUGIN_MENU_ITEM;
 
         menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
         menuItemInfo.wID = menuItem->RealId;
