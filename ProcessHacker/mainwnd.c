@@ -2486,7 +2486,7 @@ VOID PhMwpLoadSettings(
         CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDESIGNEDPROCESSES, MF_CHECKED);
     }
 
-    if (PhEnableCycleCpuUsage)
+    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
     {
         if (PhCsShowCpuBelow001)
         {
