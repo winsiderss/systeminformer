@@ -447,7 +447,10 @@ VOID PhpAdvancedPageLoad(
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetDlgItemCheckForSetting(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
+
+    if (WindowsVersion >= WINDOWS_7)
+        SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
+
     SetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
 
     // Replace Task Manager
@@ -521,7 +524,10 @@ VOID PhpAdvancedPageSave(
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetSettingForDlgItemCheck(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
-    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
+
+    if (WindowsVersion >= WINDOWS_7)
+        SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
+
     PhSetIntegerSetting(L"SampleCount", GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE));
 
     // Replace Task Manager
