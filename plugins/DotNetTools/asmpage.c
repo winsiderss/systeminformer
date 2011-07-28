@@ -902,7 +902,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     Context->TraceClrV2 = ClrV2;
     Context->TraceResult = 0;
     Context->TraceHandleActive = 0;
-    Context->TraceResult = 0;
+    Context->TraceHandle = 0;
 
     threadHandle = PhCreateThread(0, UpdateDotNetTraceInfoThreadStart, Context);
 

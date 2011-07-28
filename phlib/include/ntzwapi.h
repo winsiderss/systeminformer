@@ -1513,8 +1513,7 @@ NTAPI
 ZwInitializeNlsFiles(
     __out PVOID *BaseAddress,
     __out PLCID DefaultLocaleId,
-    __out PLARGE_INTEGER DefaultCasingTableSize,
-    __out_opt PULONG CurrentNLSVersion
+    __out PLARGE_INTEGER DefaultCasingTableSize
     );
 
 NTSYSCALLAPI
