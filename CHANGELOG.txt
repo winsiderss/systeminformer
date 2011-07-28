@@ -1,5 +1,9 @@
 Process Hacker
 
+2.20
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.19
  * NEW/IMPROVED:
    * Added cycle-based CPU usage for Windows 7
