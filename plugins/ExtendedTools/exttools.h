@@ -98,7 +98,7 @@ extern PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory;
 
 typedef struct _ET_PROCESS_ETW_BLOCK
 {
-    LONG RefCount;
+    LIST_ENTRY ListEntry;
     PPH_PROCESS_ITEM ProcessItem;
 
     ULONG DiskReadCount;
@@ -127,7 +127,7 @@ typedef struct _ET_PROCESS_ETW_BLOCK
 
 typedef struct _ET_NETWORK_ETW_BLOCK
 {
-    LONG RefCount;
+    LIST_ENTRY ListEntry;
     PPH_NETWORK_ITEM NetworkItem;
 
     ULONG ReceiveCount;
@@ -156,35 +156,11 @@ VOID EtEtwStatisticsInitialization();
 
 VOID EtEtwStatisticsUninitialization();
 
-PET_PROCESS_ETW_BLOCK EtCreateProcessEtwBlock(
+PET_PROCESS_ETW_BLOCK EtGetProcessEtwBlock(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
-VOID EtReferenceProcessEtwBlock(
-    __inout PET_PROCESS_ETW_BLOCK Block
-    );
-
-VOID EtDereferenceProcessEtwBlock(
-    __inout PET_PROCESS_ETW_BLOCK Block
-    );
-
-PET_PROCESS_ETW_BLOCK EtFindProcessEtwBlock(
-    __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-PET_NETWORK_ETW_BLOCK EtCreateNetworkEtwBlock(
-    __in PPH_NETWORK_ITEM NetworkItem
-    );
-
-VOID EtReferenceNetworkEtwBlock(
-    __inout PET_NETWORK_ETW_BLOCK Block
-    );
-
-VOID EtDereferenceNetworkEtwBlock(
-    __inout PET_NETWORK_ETW_BLOCK Block
-    );
-
-PET_NETWORK_ETW_BLOCK EtFindNetworkEtwBlock(
+PET_NETWORK_ETW_BLOCK EtGetNetworkEtwBlock(
     __in PPH_NETWORK_ITEM NetworkItem
     );
 

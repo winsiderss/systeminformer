@@ -1,6 +1,8 @@
 #ifndef PH_PHPLUG_H
 #define PH_PHPLUG_H
 
+#include <extmgr.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -214,6 +216,7 @@ typedef struct _PH_PLUGIN
     PH_PLUGIN_INFORMATION Information;
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
+    PH_EM_APP_CONTEXT AppContext;
 } PH_PLUGIN, *PPH_PLUGIN;
 
 PHAPPAPI
@@ -350,6 +353,26 @@ PhPluginAddTreeNewColumn(
     __in ULONG SubId,
     __in_opt PVOID Context,
     __in_opt PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhPluginSetObjectExtension(
+    __in PPH_PLUGIN Plugin,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in ULONG ExtensionSize,
+    __in_opt PPH_EM_OBJECT_CALLBACK CreateCallback,
+    __in_opt PPH_EM_OBJECT_CALLBACK DeleteCallback
+    );
+
+PHAPPAPI
+PVOID
+NTAPI
+PhPluginGetObjectExtension(
+    __in PPH_PLUGIN Plugin,
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType
     );
 
 #ifdef __cplusplus

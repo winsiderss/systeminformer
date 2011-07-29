@@ -25,6 +25,7 @@
 #include <kphuser.h>
 #include <phsvc.h>
 #include <settings.h>
+#include <extmgri.h>
 #include <hexedit.h>
 #include <shlobj.h>
 
@@ -215,6 +216,7 @@ INT WINAPI WinMain(
 
     PhInitializeAutoPool(&BaseAutoPool);
 
+    PhEmInitialization();
     PhGuiSupportInitialization();
     PhTreeNewInitialization();
     PhGraphControlInitialization();

@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <extmgri.h>
 #include <phplug.h>
 #include <cpysave.h>
 
@@ -178,7 +179,7 @@ PPH_SERVICE_NODE PhAddServiceNode(
 {
     PPH_SERVICE_NODE serviceNode;
 
-    serviceNode = PhAllocate(sizeof(PH_SERVICE_NODE));
+    serviceNode = PhAllocate(PhEmGetObjectSize(EmServiceNodeType, sizeof(PH_SERVICE_NODE)));
     memset(serviceNode, 0, sizeof(PH_SERVICE_NODE));
     PhInitializeTreeNewNode(&serviceNode->Node);
 
@@ -203,6 +204,8 @@ PPH_SERVICE_NODE PhAddServiceNode(
 
     PhAddEntryHashtable(ServiceNodeHashtable, &serviceNode);
     PhAddItemList(ServiceNodeList, serviceNode);
+
+    PhEmCallObjectOperation(EmServiceNodeType, serviceNode, EmObjectCreate);
 
     TreeNew_NodesStructured(ServiceTreeListHandle);
 
@@ -256,6 +259,8 @@ VOID PhpRemoveServiceNode(
     )
 {
     ULONG index;
+
+    PhEmCallObjectOperation(EmServiceNodeType, ServiceNode, EmObjectDelete);
 
     // Remove from hashtable/list and cleanup.
 

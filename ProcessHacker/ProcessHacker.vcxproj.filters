@@ -444,6 +444,9 @@
     <ClCompile Include="netlist.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="extmgr.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -513,6 +516,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\mainwndp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\extmgr.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\extmgri.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

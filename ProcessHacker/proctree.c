@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <extmgri.h>
 #include <phplug.h>
 #include <cpysave.h>
 
@@ -269,7 +270,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
     PPH_PROCESS_NODE parentNode;
     ULONG i;
 
-    processNode = PhAllocate(sizeof(PH_PROCESS_NODE));
+    processNode = PhAllocate(PhEmGetObjectSize(EmProcessNodeType, sizeof(PH_PROCESS_NODE)));
     memset(processNode, 0, sizeof(PH_PROCESS_NODE));
     PhInitializeTreeNewNode(&processNode->Node);
 
@@ -378,6 +379,8 @@ PPH_PROCESS_NODE PhAddProcessNode(
     if (ProcessTreeFilterList)
         processNode->Node.Visible = PhpApplyProcessTreeFiltersToNode(processNode);
 
+    PhEmCallObjectOperation(EmProcessNodeType, processNode, EmObjectCreate);
+
     TreeNew_NodesStructured(ProcessTreeListHandle);
 
     return processNode;
@@ -436,6 +439,8 @@ VOID PhpRemoveProcessNode(
 {
     ULONG index;
     ULONG i;
+
+    PhEmCallObjectOperation(EmProcessNodeType, ProcessNode, EmObjectDelete);
 
     if (ProcessNode->Parent)
     {

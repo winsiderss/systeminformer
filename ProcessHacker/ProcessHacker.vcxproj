@@ -234,6 +234,7 @@
     <ClCompile Include="cmdmode.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="dbgcon.c" />
+    <ClCompile Include="extmgr.c" />
     <ClCompile Include="findobj.c" />
     <ClCompile Include="gdihndl.c" />
     <ClCompile Include="heapinfo.c" />
@@ -324,6 +325,8 @@
     <ClInclude Include="..\phlib\circbuf_i.h" />
     <ClInclude Include="..\phlib\format_i.h" />
     <ClInclude Include="include\colmgr.h" />
+    <ClInclude Include="include\extmgr.h" />
+    <ClInclude Include="include\extmgri.h" />
     <ClInclude Include="include\mainwndp.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\uimodels.h" />

@@ -24,6 +24,7 @@
 #include <settings.h>
 #include <emenu.h>
 #include <phplug.h>
+#include <extmgri.h>
 #define CINTERFACE
 #define COBJMACROS
 #include <mscoree.h>
@@ -563,18 +564,19 @@ VOID PhpExecuteCallbackForAllPlugins(
 }
 
 BOOLEAN PhpValidatePluginName(
-    __in PWSTR Name
+    __in PPH_STRINGREF Name
     )
 {
-    SIZE_T i;
-    SIZE_T count;
+    ULONG i;
+    PWSTR buffer;
+    ULONG count;
 
-    count = wcslen(Name);
+    buffer = Name->Buffer;
+    count = Name->Length / sizeof(WCHAR);
 
     for (i = 0; i < count; i++)
     {
-        if (!iswalnum(Name[i]) && Name[i] != ' ' && Name[i] != '.' &&
-            Name[i] != '_')
+        if (!iswalnum(buffer[i]) && buffer[i] != ' ' && buffer[i] != '.' && buffer[i] != '_')
         {
             return FALSE;
         }
@@ -606,11 +608,14 @@ PPH_PLUGIN PhRegisterPlugin(
     )
 {
     PPH_PLUGIN plugin;
+    PH_STRINGREF pluginName;
     PPH_AVL_LINKS existingLinks;
     ULONG i;
     PPH_STRING fileName;
 
-    if (!PhpValidatePluginName(Name))
+    PhInitializeStringRef(&pluginName, Name);
+
+    if (!PhpValidatePluginName(&pluginName))
         return NULL;
 
     if (DllBase)
@@ -653,6 +658,8 @@ PPH_PLUGIN PhRegisterPlugin(
 
     for (i = 0; i < PluginCallbackMaximum; i++)
         PhInitializeCallback(&plugin->Callbacks[i]);
+
+    PhEmInitializeAppContext(&plugin->AppContext, &pluginName);
 
     if (Information)
         *Information = &plugin->Information;
@@ -939,5 +946,51 @@ BOOLEAN PhPluginAddTreeNewColumn(
         SubId,
         Context,
         SortFunction
+        );
+}
+
+/**
+ * Sets the object extension size and callbacks for an object type.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param ObjectType The type of object for which the extension is being registered.
+ * \param ExtensionSize The size of the extension, in bytes.
+ * \param CreateCallback The object creation callback.
+ * \param DeleteCallback The object deletion callback.
+ */
+VOID PhPluginSetObjectExtension(
+    __in PPH_PLUGIN Plugin,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in ULONG ExtensionSize,
+    __in_opt PPH_EM_OBJECT_CALLBACK CreateCallback,
+    __in_opt PPH_EM_OBJECT_CALLBACK DeleteCallback
+    )
+{
+    PhEmSetObjectExtension(
+        &Plugin->AppContext,
+        ObjectType,
+        ExtensionSize,
+        CreateCallback,
+        DeleteCallback
+        );
+}
+
+/**
+ * Gets the object extension for an object.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param Object The object.
+ * \param ObjectType The type of object for which an extension has been registered.
+ */
+PVOID PhPluginGetObjectExtension(
+    __in PPH_PLUGIN Plugin,
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType
+    )
+{
+    return PhEmGetObjectExtension(
+        &Plugin->AppContext,
+        ObjectType,
+        Object
         );
 }

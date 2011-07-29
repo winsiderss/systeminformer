@@ -22,6 +22,7 @@
 
 #define PH_MODPRV_PRIVATE
 #include <phapp.h>
+#include <extmgri.h>
 
 typedef struct _PH_MODULE_QUERY_DATA
 {
@@ -176,13 +177,14 @@ PPH_MODULE_ITEM PhCreateModuleItem()
 
     if (!NT_SUCCESS(PhCreateObject(
         &moduleItem,
-        sizeof(PH_MODULE_ITEM),
+        PhEmGetObjectSize(EmModuleItemType, sizeof(PH_MODULE_ITEM)),
         0,
         PhModuleItemType
         )))
         return NULL;
 
     memset(moduleItem, 0, sizeof(PH_MODULE_ITEM));
+    PhEmCallObjectOperation(EmModuleItemType, moduleItem, EmObjectCreate);
 
     return moduleItem;
 }
@@ -193,6 +195,8 @@ VOID PhpModuleItemDeleteProcedure(
     )
 {
     PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)Object;
+
+    PhEmCallObjectOperation(EmModuleItemType, moduleItem, EmObjectDelete);
 
     if (moduleItem->Name) PhDereferenceObject(moduleItem->Name);
     if (moduleItem->FileName) PhDereferenceObject(moduleItem->FileName);

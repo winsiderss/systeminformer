@@ -23,6 +23,7 @@
 #define PH_SRVPRV_PRIVATE
 #include <phapp.h>
 #include <winevt.h>
+#include <extmgri.h>
 
 typedef DWORD (WINAPI *_NotifyServiceStatusChangeW)(
     __in SC_HANDLE hService,
@@ -125,7 +126,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
 
     if (!NT_SUCCESS(PhCreateObject(
         &serviceItem,
-        sizeof(PH_SERVICE_ITEM),
+        PhEmGetObjectSize(EmServiceItemType, sizeof(PH_SERVICE_ITEM)),
         0,
         PhServiceItemType
         )))
@@ -148,6 +149,8 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
             PhPrintUInt32(serviceItem->ProcessIdString, (ULONG)serviceItem->ProcessId);
     }
 
+    PhEmCallObjectOperation(EmServiceItemType, serviceItem, EmObjectCreate);
+
     return serviceItem;
 }
 
@@ -157,6 +160,8 @@ VOID PhpServiceItemDeleteProcedure(
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Object;
+
+    PhEmCallObjectOperation(EmServiceItemType, serviceItem, EmObjectDelete);
 
     if (serviceItem->Name) PhDereferenceObject(serviceItem->Name);
     if (serviceItem->DisplayName) PhDereferenceObject(serviceItem->DisplayName);

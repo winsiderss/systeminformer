@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <extmgri.h>
 #include <phplug.h>
 
 BOOLEAN PhpModuleNodeHashtableCompareFunction(
@@ -205,7 +206,7 @@ PPH_MODULE_NODE PhAddModuleNode(
 {
     PPH_MODULE_NODE moduleNode;
 
-    moduleNode = PhAllocate(sizeof(PH_MODULE_NODE));
+    moduleNode = PhAllocate(PhEmGetObjectSize(EmModuleNodeType, sizeof(PH_MODULE_NODE)));
     memset(moduleNode, 0, sizeof(PH_MODULE_NODE));
     PhInitializeTreeNewNode(&moduleNode->Node);
 
@@ -230,6 +231,8 @@ PPH_MODULE_NODE PhAddModuleNode(
 
     PhAddEntryHashtable(Context->NodeHashtable, &moduleNode);
     PhAddItemList(Context->NodeList, moduleNode);
+
+    PhEmCallObjectOperation(EmModuleNodeType, moduleNode, EmObjectCreate);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
 
@@ -284,6 +287,8 @@ VOID PhpDestroyModuleNode(
     __in PPH_MODULE_NODE ModuleNode
     )
 {
+    PhEmCallObjectOperation(EmModuleNodeType, ModuleNode, EmObjectDelete);
+
     if (ModuleNode->TooltipText) PhDereferenceObject(ModuleNode->TooltipText);
 
     if (ModuleNode->SizeText) PhDereferenceObject(ModuleNode->SizeText);
