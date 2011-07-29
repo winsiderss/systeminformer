@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <extmgri.h>
 #include <phplug.h>
 #include <colmgr.h>
 
@@ -246,40 +247,6 @@ BOOLEAN PhCmForwardSort(
     return TRUE;
 }
 
-BOOLEAN PhCmpParseCompoundId(
-    __in PPH_STRINGREF CompoundId,
-    __out PPH_STRINGREF PluginName,
-    __out PULONG SubId
-    )
-{
-    PH_STRINGREF firstPart;
-    PH_STRINGREF secondPart;
-    ULONG64 integer;
-
-    firstPart = *CompoundId;
-
-    if (firstPart.Length == 0)
-        return FALSE;
-    if (firstPart.Buffer[0] != '+')
-        return FALSE;
-
-    firstPart.Buffer++;
-    firstPart.Length -= sizeof(WCHAR);
-
-    PhSplitStringRefAtChar(&firstPart, '+', &firstPart, &secondPart);
-
-    if (firstPart.Length == 0 || secondPart.Length == 0)
-        return FALSE;
-
-    if (!PhStringToInteger64(&secondPart, 10, &integer))
-        return FALSE;
-
-    *PluginName = firstPart;
-    *SubId = (ULONG)integer;
-
-    return TRUE;
-}
-
 BOOLEAN PhCmLoadSettings(
     __in HWND TreeNewHandle,
     __in PPH_STRINGREF Settings
@@ -348,7 +315,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 if (!Manager)
                     continue;
-                if (!PhCmpParseCompoundId(&valuePart, &pluginName, &subId))
+                if (!PhEmParseCompoundId(&valuePart, &pluginName, &subId))
                     continue;
 
                 cmColumn = PhCmFindColumn(Manager, &pluginName, subId);
@@ -486,7 +453,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 if (
                     Manager &&
-                    PhCmpParseCompoundId(&valuePart, &pluginName, &subId) &&
+                    PhEmParseCompoundId(&valuePart, &pluginName, &subId) &&
                     (cmColumn = PhCmFindColumn(Manager, &pluginName, subId))
                     )
                 {

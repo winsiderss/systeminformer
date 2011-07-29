@@ -77,6 +77,7 @@ for %%a in (
 
 for %%a in (
     colmgr.h
+    extmgr.h
     hidnproc.h
     phplug.h
     providers.h

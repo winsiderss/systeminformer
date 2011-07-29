@@ -60,6 +60,7 @@
 #define PH_PROCPRV_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
+#include <extmgri.h>
 #include <phplug.h>
 #include <winsta.h>
 
@@ -440,7 +441,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 
     if (!NT_SUCCESS(PhCreateObject(
         &processItem,
-        sizeof(PH_PROCESS_ITEM),
+        PhEmGetObjectSize(EmProcessItemType, sizeof(PH_PROCESS_ITEM)),
         0,
         PhProcessItemType
         )))
@@ -464,6 +465,8 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     PhInitializeCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, PhStatisticsSampleCount);
     //PhInitializeCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, PhStatisticsSampleCount);
 
+    PhEmCallObjectOperation(EmProcessItemType, processItem, EmObjectCreate);
+
     return processItem;
 }
 
@@ -474,6 +477,8 @@ VOID PhpProcessItemDeleteProcedure(
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Object;
     ULONG i;
+
+    PhEmCallObjectOperation(EmProcessItemType, processItem, EmObjectDelete);
 
     PhDeleteCircularBuffer_FLOAT(&processItem->CpuKernelHistory);
     PhDeleteCircularBuffer_FLOAT(&processItem->CpuUserHistory);

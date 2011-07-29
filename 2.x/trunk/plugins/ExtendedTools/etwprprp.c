@@ -121,14 +121,8 @@ INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(
             context = PhAllocate(sizeof(ET_DISKNET_CONTEXT));
             propPageContext->Context = context;
             context->WindowHandle = hwndDlg;
-            context->Block = EtFindProcessEtwBlock(processItem);
+            context->Block = EtGetProcessEtwBlock(processItem);
             context->Enabled = TRUE;
-
-            if (!context->Block)
-            {
-                // The process has probably terminated. Create a fake block.
-                context->Block = EtCreateProcessEtwBlock(processItem);
-            }
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -143,7 +137,6 @@ INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
-            EtDereferenceProcessEtwBlock(context->Block);
             PhFree(context);
 
             PhPropPageDlgProcDestroy(hwndDlg);

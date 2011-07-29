@@ -127,8 +127,7 @@ VOID EtEtwProcessTreeNewMessage(
         if (!EtEtwEnabled)
             return;
 
-        if (!(block = EtFindProcessEtwBlock(processNode->ProcessItem)))
-            return;
+        block = EtGetProcessEtwBlock(processNode->ProcessItem);
 
         PhAcquireQueuedLockExclusive(&block->TextCacheLock);
 
@@ -235,8 +234,6 @@ VOID EtEtwProcessTreeNewMessage(
         }
 
         PhReleaseQueuedLockExclusive(&block->TextCacheLock);
-
-        EtDereferenceProcessEtwBlock(block);
     }
 }
 
@@ -256,16 +253,8 @@ LONG EtpProcessTreeNewSortFunction(
     if (!EtEtwEnabled)
         return 0;
 
-    if (!(block1 = EtFindProcessEtwBlock(node1->ProcessItem)))
-    {
-        return 0;
-    }
-
-    if (!(block2 = EtFindProcessEtwBlock(node2->ProcessItem)))
-    {
-        EtDereferenceProcessEtwBlock(block1);
-        return 0;
-    }
+    block1 = EtGetProcessEtwBlock(node1->ProcessItem);
+    block2 = EtGetProcessEtwBlock(node2->ProcessItem);
 
     result = 0;
 
@@ -333,9 +322,6 @@ LONG EtpProcessTreeNewSortFunction(
         break;
     }
 
-    EtDereferenceProcessEtwBlock(block1);
-    EtDereferenceProcessEtwBlock(block2);
-
     return result;
 }
 
@@ -383,8 +369,7 @@ VOID EtEtwNetworkTreeNewMessage(
         if (!EtEtwEnabled)
             return;
 
-        if (!(block = EtFindNetworkEtwBlock(networkNode->NetworkItem)))
-            return;
+        block = EtGetNetworkEtwBlock(networkNode->NetworkItem);
 
         PhAcquireQueuedLockExclusive(&block->TextCacheLock);
 
@@ -451,8 +436,6 @@ VOID EtEtwNetworkTreeNewMessage(
         }
 
         PhReleaseQueuedLockExclusive(&block->TextCacheLock);
-
-        EtDereferenceNetworkEtwBlock(block);
     }
 }
 
@@ -472,16 +455,8 @@ LONG EtpNetworkTreeNewSortFunction(
     if (!EtEtwEnabled)
         return 0;
 
-    if (!(block1 = EtFindNetworkEtwBlock(node1->NetworkItem)))
-    {
-        return 0;
-    }
-
-    if (!(block2 = EtFindNetworkEtwBlock(node2->NetworkItem)))
-    {
-        EtDereferenceNetworkEtwBlock(block1);
-        return 0;
-    }
+    block1 = EtGetNetworkEtwBlock(node1->NetworkItem);
+    block2 = EtGetNetworkEtwBlock(node2->NetworkItem);
 
     result = 0;
 
@@ -518,9 +493,6 @@ LONG EtpNetworkTreeNewSortFunction(
         result = uintcmp(block1->ReceiveRawDelta.Delta + block1->SendRawDelta.Delta, block2->ReceiveRawDelta.Delta + block2->SendRawDelta.Delta);
         break;
     }
-
-    EtDereferenceNetworkEtwBlock(block1);
-    EtDereferenceNetworkEtwBlock(block2);
 
     return result;
 }

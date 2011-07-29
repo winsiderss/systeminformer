@@ -26,6 +26,7 @@
 #include <ws2tcpip.h>
 #include <ws2ipdef.h>
 #include <iphlpapi.h>
+#include <extmgri.h>
 
 typedef struct _PH_NETWORK_CONNECTION
 {
@@ -185,13 +186,14 @@ PPH_NETWORK_ITEM PhCreateNetworkItem()
 
     if (!NT_SUCCESS(PhCreateObject(
         &networkItem,
-        sizeof(PH_NETWORK_ITEM),
+        PhEmGetObjectSize(EmNetworkItemType, sizeof(PH_NETWORK_ITEM)),
         0,
         PhNetworkItemType
         )))
         return NULL;
-    
+
     memset(networkItem, 0, sizeof(PH_NETWORK_ITEM));
+    PhEmCallObjectOperation(EmNetworkItemType, networkItem, EmObjectCreate);
 
     return networkItem;
 }
@@ -202,6 +204,8 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Object;
+
+    PhEmCallObjectOperation(EmNetworkItemType, networkItem, EmObjectDelete);
 
     if (networkItem->ProcessName)
         PhDereferenceObject(networkItem->ProcessName);

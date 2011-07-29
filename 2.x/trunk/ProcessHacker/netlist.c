@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <extmgri.h>
 #include <phplug.h>
 #include <cpysave.h>
 
@@ -176,7 +177,7 @@ PPH_NETWORK_NODE PhAddNetworkNode(
 {
     PPH_NETWORK_NODE networkNode;
 
-    networkNode = PhAllocate(sizeof(PH_NETWORK_NODE));
+    networkNode = PhAllocate(PhEmGetObjectSize(EmNetworkNodeType, sizeof(PH_NETWORK_NODE)));
     memset(networkNode, 0, sizeof(PH_NETWORK_NODE));
     PhInitializeTreeNewNode(&networkNode->Node);
 
@@ -204,6 +205,8 @@ PPH_NETWORK_NODE PhAddNetworkNode(
 
     PhAddEntryHashtable(NetworkNodeHashtable, &networkNode);
     PhAddItemList(NetworkNodeList, networkNode);
+
+    PhEmCallObjectOperation(EmNetworkNodeType, networkNode, EmObjectCreate);
 
     TreeNew_NodesStructured(NetworkTreeListHandle);
 
@@ -257,6 +260,8 @@ VOID PhpRemoveNetworkNode(
     )
 {
     ULONG index;
+
+    PhEmCallObjectOperation(EmNetworkNodeType, NetworkNode, EmObjectDelete);
 
     // Remove from hashtable/list and cleanup.
 
