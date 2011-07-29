@@ -2,6 +2,7 @@ Process Hacker
 
 2.20
  * NEW/IMPROVED:
+   * Implemented Properties button for Thread handles
  * FIXED:
    * Fixed file name resolution bug
 

@@ -206,6 +206,14 @@ VOID PhShowHandleProperties(
     PropertySheet(&propSheetHeader);
 }
 
+static VOID PhpShowProcessPropContext(
+    __in PVOID Parameter
+    )
+{
+    PhShowProcessProperties(Parameter);
+    PhDereferenceObject(Parameter);
+}
+
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -241,6 +249,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 showPropertiesButton = TRUE;
             }
             else if (PhEqualString2(context->HandleItem->TypeName, L"Process", TRUE))
+            {
+                showPropertiesButton = TRUE;
+            }
+            else if (PhEqualString2(context->HandleItem->TypeName, L"Thread", TRUE))
             {
                 showPropertiesButton = TRUE;
             }
@@ -414,6 +426,77 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                             {
                                 ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
                                 PhDereferenceObject(processItem);
+                            }
+                            else
+                            {
+                                PhShowError(hwndDlg, L"The process does not exist.");
+                            }
+                        }
+                    }
+                    else if (PhEqualString2(context->HandleItem->TypeName, L"Thread", TRUE))
+                    {
+                        HANDLE processHandle;
+                        CLIENT_ID clientId;
+                        PPH_PROCESS_ITEM processItem;
+                        PPH_PROCESS_PROPCONTEXT propContext;
+
+                        clientId.UniqueProcess = NULL;
+                        clientId.UniqueThread = NULL;
+
+                        if (PhKphHandle)
+                        {
+                            if (NT_SUCCESS(PhOpenProcess(
+                                &processHandle,
+                                ProcessQueryAccess,
+                                context->ProcessId
+                                )))
+                            {
+                                THREAD_BASIC_INFORMATION basicInfo;
+
+                                if (NT_SUCCESS(KphQueryInformationObject(
+                                    PhKphHandle,
+                                    processHandle,
+                                    context->HandleItem->Handle,
+                                    KphObjectThreadBasicInformation,
+                                    &basicInfo,
+                                    sizeof(THREAD_BASIC_INFORMATION),
+                                    NULL
+                                    )))
+                                {
+                                    clientId = basicInfo.ClientId;
+                                }
+
+                                NtClose(processHandle);
+                            }
+                        }
+                        else
+                        {
+                            HANDLE handle;
+                            THREAD_BASIC_INFORMATION basicInfo;
+
+                            if (NT_SUCCESS(PhpDuplicateHandleFromProcess(
+                                &handle,
+                                ThreadQueryAccess,
+                                context
+                                )))
+                            {
+                                if (NT_SUCCESS(PhGetThreadBasicInformation(handle, &basicInfo)))
+                                    clientId = basicInfo.ClientId;
+
+                                NtClose(handle);
+                            }
+                        }
+
+                        if (clientId.UniqueProcess)
+                        {
+                            processItem = PhReferenceProcessItem(clientId.UniqueProcess);
+
+                            if (processItem)
+                            {
+                                propContext = PhCreateProcessPropContext(PhMainWndHandle, processItem);
+                                PhDereferenceObject(processItem);
+                                PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
+                                ProcessHacker_Invoke(PhMainWndHandle, PhpShowProcessPropContext, propContext);
                             }
                             else
                             {
