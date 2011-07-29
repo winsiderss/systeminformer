@@ -5398,7 +5398,17 @@ PPH_STRING PhResolveDevicePrefix(
         prefixLength = PhDevicePrefixes[i].Length;
 
         if (prefixLength != 0)
-            isPrefix = PhStartsWithStringRef(&Name->sr, &PhDevicePrefixes[i], TRUE);
+        {
+            if (PhStartsWithStringRef(&Name->sr, &PhDevicePrefixes[i], TRUE))
+            {
+                // To ensure we match the longest prefix, make sure the next character is a backslash or 
+                // the path is equal to the prefix.
+                if (Name->Length == prefixLength || Name->Buffer[prefixLength / sizeof(WCHAR)] == '\\')
+                {
+                    isPrefix = TRUE;
+                }
+            }
+        }
 
         PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
 
@@ -5432,23 +5442,29 @@ PPH_STRING PhResolveDevicePrefix(
             prefixLength = PhDeviceMupPrefixes[i]->Length;
 
             if (prefixLength != 0)
-                isPrefix = PhStartsWithString(Name, PhDeviceMupPrefixes[i], TRUE);
+            {
+                if (PhStartsWithString(Name, PhDeviceMupPrefixes[i], TRUE))
+                {
+                    // To ensure we match the longest prefix, make sure the next character is a backslash.
+                    // Don't resolve if the name *is* the prefix. Otherwise, we will end up with a useless 
+                    // string like "\".
+                    if (Name->Length != prefixLength && Name->Buffer[prefixLength / sizeof(WCHAR)] == '\\')
+                    {
+                        isPrefix = TRUE;
+                    }
+                }
+            }
 
             if (isPrefix)
             {
-                // Don't resolve if the name *is* the prefix. Otherwise, we will end up 
-                // with a useless string like "\".
-                if (Name->Length - prefixLength != 0)
-                {
-                    // \path
-                    newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - prefixLength);
-                    newName->Buffer[0] = '\\';
-                    memcpy(
-                        &newName->Buffer[1],
-                        &Name->Buffer[prefixLength / sizeof(WCHAR)],
-                        Name->Length - prefixLength
-                        );
-                }
+                // \path
+                newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - prefixLength);
+                newName->Buffer[0] = '\\';
+                memcpy(
+                    &newName->Buffer[1],
+                    &Name->Buffer[prefixLength / sizeof(WCHAR)],
+                    Name->Length - prefixLength
+                    );
 
                 break;
             }
