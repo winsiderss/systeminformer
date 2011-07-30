@@ -259,7 +259,7 @@ BOOLEAN PhCmLoadSettings(
 BOOLEAN PhCmLoadSettingsEx(
     __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
-    __in ULONG Flags,
+    __reserved ULONG Flags,
     __in PPH_STRINGREF Settings,
     __in_opt PPH_STRINGREF SortSettings
     )
@@ -378,9 +378,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 if (columnPtr)
                 {
-                    if (!(Flags & PH_CM_IGNORE_VISIBILITY))
-                        setColumn.Visible = TRUE;
-
+                    setColumn.Visible = TRUE;
                     setColumn.Width = (*columnPtr)->Width;
                     TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
 
@@ -389,7 +387,7 @@ BOOLEAN PhCmLoadSettingsEx(
                     if (hasFixedColumn && !setColumn.Fixed && (*columnPtr)->DisplayIndex != 0)
                         (*columnPtr)->DisplayIndex--;
                 }
-                else if (!(Flags & PH_CM_IGNORE_VISIBILITY) && !setColumn.Fixed) // never hide the fixed column
+                else if (!setColumn.Fixed) // never hide the fixed column
                 {
                     setColumn.Visible = FALSE;
                     TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &setColumn);
