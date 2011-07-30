@@ -162,11 +162,8 @@ VOID PhLoadSettingsThreadList(
     PH_STRINGREF settings;
     PPH_STRING sortSettings;
     PH_TREENEW_COLUMN column;
-
-    PhInitializeEmptyStringRef(&settings);
-    sortSettings = PhGetStringSetting(L"ThreadTreeListSort");
-    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, PH_CM_IGNORE_VISIBILITY, &settings, &sortSettings->sr);
-    PhDereferenceObject(sortSettings);
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
 
     if (!Context->UseCycleTime)
     {
@@ -180,6 +177,19 @@ VOID PhLoadSettingsThreadList(
         column.Id = PHTHTLC_SERVICE;
         column.Visible = TRUE;
         TreeNew_SetColumn(Context->TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &column);
+    }
+
+    PhInitializeEmptyStringRef(&settings);
+    sortSettings = PhGetStringSetting(L"ThreadTreeListSort");
+    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings, &sortSettings->sr);
+    PhDereferenceObject(sortSettings);
+
+    TreeNew_GetSort(Context->TreeNewHandle, &sortColumn, &sortOrder);
+
+    // Make sure we're not sorting by an invisible column.
+    if (sortOrder != NoSortOrder && !(TreeNew_GetColumn(Context->TreeNewHandle, sortColumn, &column) && column.Visible))
+    {
+        TreeNew_SetSort(Context->TreeNewHandle, PHTHTLC_CYCLESDELTA, DescendingSortOrder);
     }
 }
 
