@@ -2176,7 +2176,17 @@ BOOLEAN PhTnpAddColumn(
 
     if (realColumn->Visible)
     {
+        BOOLEAN updateHeaders;
+
+        updateHeaders = FALSE;
+
+        if (!realColumn->Fixed && realColumn->DisplayIndex != Header_GetItemCount(Context->HeaderHandle))
+            updateHeaders = TRUE;
+
         realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
+
+        if (updateHeaders)
+            PhTnpUpdateColumnHeaders(Context);
     }
     else
     {
@@ -2298,7 +2308,7 @@ BOOLEAN PhTnpChangeColumn(
             updateLayout = TRUE;
         }
 
-        if (!addingOrRemoving)
+        if (!addingOrRemoving && realColumn->Visible)
         {
             PhTnpChangeColumnHeader(Context, Mask, realColumn);
 
@@ -2325,12 +2335,26 @@ BOOLEAN PhTnpChangeColumn(
     {
         if (Column->Visible)
         {
+            BOOLEAN updateHeaders;
+
+            updateHeaders = FALSE;
+
             if (realColumn->Fixed)
+            {
                 realColumn->DisplayIndex = 0;
+            }
             else
-                realColumn->DisplayIndex = Header_GetItemCount(Context->HeaderHandle);
+            {
+                if (Mask & TN_COLUMN_DISPLAYINDEX)
+                    updateHeaders = TRUE;
+                else
+                    realColumn->DisplayIndex = Header_GetItemCount(Context->HeaderHandle);
+            }
 
             realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
+
+            if (updateHeaders)
+                PhTnpUpdateColumnHeaders(Context);
         }
         else
         {
@@ -3408,7 +3432,10 @@ VOID PhTnpSelectRange(
         }
     }
 
-    Context->Callback(Context->Handle, TreeNewSelectionChanged, NULL, NULL, Context->CallbackContext);
+    if (changedStart <= changedEnd)
+    {
+        Context->Callback(Context->Handle, TreeNewSelectionChanged, NULL, NULL, Context->CallbackContext);
+    }
 
     if (ChangedStart)
         *ChangedStart = changedStart;
@@ -6032,6 +6059,11 @@ VOID PhTnpProcessDragSelect(
 
         rowRect.top = rowRect.bottom;
         rowRect.bottom += Context->RowHeight;
+    }
+
+    if (changedStart <= changedEnd)
+    {
+        Context->Callback(Context->Handle, TreeNewSelectionChanged, NULL, NULL, Context->CallbackContext);
     }
 
     if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
