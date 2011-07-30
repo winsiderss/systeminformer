@@ -387,10 +387,13 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
+    if (!(Context->Style & TN_STYLE_NO_COLUMN_REORDER))
+        headerStyle |= HDS_DRAGDROP;
+
     if (!(Context->HeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | headerStyle | HDS_DRAGDROP,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | headerStyle,
         0,
         0,
         0,
@@ -550,7 +553,7 @@ VOID PhTnpOnPaint(
         return;
     }
 
-    if (GetUpdateRect(hwnd, &updateRect, FALSE))
+    if (GetUpdateRect(hwnd, &updateRect, FALSE) && (updateRect.left | updateRect.right | updateRect.top | updateRect.bottom))
     {
         if (Context->DoubleBuffered)
         {
@@ -1431,35 +1434,7 @@ BOOLEAN PhTnpOnNotify(
                 if (Header_GetItem(Header->hwndFrom, nmHeader->iItem, &item))
                 {
                     column = (PPH_TREENEW_COLUMN)item.lParam;
-
-                    if (column->Id == Context->SortColumn)
-                    {
-                        if (Context->TriState)
-                        {
-                            if (Context->SortOrder == AscendingSortOrder)
-                                Context->SortOrder = DescendingSortOrder;
-                            else if (Context->SortOrder == DescendingSortOrder)
-                                Context->SortOrder = NoSortOrder;
-                            else
-                                Context->SortOrder = AscendingSortOrder;
-                        }
-                        else
-                        {
-                            if (Context->SortOrder == AscendingSortOrder)
-                                Context->SortOrder = DescendingSortOrder;
-                            else
-                                Context->SortOrder = AscendingSortOrder;
-                        }
-                    }
-                    else
-                    {
-                        Context->SortColumn = column->Id;
-                        Context->SortOrder = AscendingSortOrder;
-                    }
-
-                    PhTnpSetColumnHeaderSortIcon(Context, column);
-
-                    Context->Callback(Context->Handle, TreeNewSortChanged, NULL, NULL, Context->CallbackContext);
+                    PhTnpProcessSortColumn(Context, column);
                 }
             }
         }
@@ -2013,7 +1988,6 @@ VOID PhTnpLayout(
     rect.bottom = clientRect.bottom;
     Header_Layout(Context->HeaderHandle, &hdl);
     SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
-    UpdateWindow(Context->HeaderHandle);
 
     if (Context->TooltipsHandle)
     {
@@ -2272,6 +2246,11 @@ BOOLEAN PhTnpChangeColumn(
     if (Mask & TN_COLUMN_FLAG_CUSTOMDRAW)
     {
         realColumn->CustomDraw = Column->CustomDraw;
+    }
+
+    if (Mask & TN_COLUMN_FLAG_SORTDESCENDING)
+    {
+        realColumn->SortDescending = Column->SortDescending;
     }
 
     if (Mask & (TN_COLUMN_TEXT | TN_COLUMN_WIDTH | TN_COLUMN_ALIGNMENT | TN_COLUMN_DISPLAYINDEX))
@@ -2711,6 +2690,61 @@ VOID PhTnpProcessResizeColumn(
     rect.top = Context->HeaderHeight;
     rect.right = columnLeft + Column->Width;
     RedrawWindow(Context->Handle, &rect, NULL, RDW_INVALIDATE | RDW_UPDATENOW); // must be RedrawWindow
+}
+
+VOID PhTnpProcessSortColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_COLUMN NewColumn
+    )
+{
+    if (NewColumn->Id == Context->SortColumn)
+    {
+        if (Context->TriState)
+        {
+            if (!NewColumn->SortDescending)
+            {
+                // Ascending -> Descending -> None
+
+                if (Context->SortOrder == AscendingSortOrder)
+                    Context->SortOrder = DescendingSortOrder;
+                else if (Context->SortOrder == DescendingSortOrder)
+                    Context->SortOrder = NoSortOrder;
+                else
+                    Context->SortOrder = AscendingSortOrder;
+            }
+            else
+            {
+                // Descending -> Ascending -> None
+
+                if (Context->SortOrder == DescendingSortOrder)
+                    Context->SortOrder = AscendingSortOrder;
+                else if (Context->SortOrder == AscendingSortOrder)
+                    Context->SortOrder = NoSortOrder;
+                else
+                    Context->SortOrder = DescendingSortOrder;
+            }
+        }
+        else
+        {
+            if (Context->SortOrder == AscendingSortOrder)
+                Context->SortOrder = DescendingSortOrder;
+            else
+                Context->SortOrder = AscendingSortOrder;
+        }
+    }
+    else
+    {
+        Context->SortColumn = NewColumn->Id;
+
+        if (!NewColumn->SortDescending)
+            Context->SortOrder = AscendingSortOrder;
+        else
+            Context->SortOrder = DescendingSortOrder;
+    }
+
+    PhTnpSetColumnHeaderSortIcon(Context, NewColumn);
+
+    Context->Callback(Context->Handle, TreeNewSortChanged, NULL, NULL, Context->CallbackContext);
 }
 
 BOOLEAN PhTnpSetColumnHeaderSortIcon(

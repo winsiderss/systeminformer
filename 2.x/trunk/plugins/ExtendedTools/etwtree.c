@@ -58,6 +58,7 @@ VOID EtpAddTreeNewColumn(
     PH_TREENEW_COLUMN column;
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.SortDescending = TRUE;
     column.Text = Text;
     column.Width = Width;
     column.Alignment = Alignment;

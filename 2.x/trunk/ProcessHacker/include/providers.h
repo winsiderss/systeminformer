@@ -567,16 +567,12 @@ typedef struct _PH_THREAD_ITEM
     KTHREAD_STATE State;
     KWAIT_REASON WaitReason;
     LONG PriorityWin32;
-    PPH_STRING PriorityWin32String;
     PPH_STRING ServiceName;
 
     HANDLE ThreadHandle;
 
     BOOLEAN IsGuiThread;
     BOOLEAN JustResolved;
-
-    PPH_STRING ContextSwitchesDeltaString;
-    PPH_STRING CyclesDeltaString;
 
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;

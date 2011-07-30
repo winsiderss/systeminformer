@@ -388,10 +388,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->ThreadHandle) NtClose(threadItem->ThreadHandle);
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
     if (threadItem->StartAddressFileName) PhDereferenceObject(threadItem->StartAddressFileName);
-    if (threadItem->PriorityWin32String) PhDereferenceObject(threadItem->PriorityWin32String);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
-    if (threadItem->ContextSwitchesDeltaString) PhDereferenceObject(threadItem->ContextSwitchesDeltaString);
-    if (threadItem->CyclesDeltaString) PhDereferenceObject(threadItem->CyclesDeltaString);
 }
 
 BOOLEAN PhpThreadHashtableCompareFunction(
@@ -860,7 +857,6 @@ VOID PhThreadProviderUpdate(
 
             // Get the Win32 priority.
             threadItem->PriorityWin32 = GetThreadPriority(threadItem->ThreadHandle);
-            threadItem->PriorityWin32String = PhGetThreadPriorityWin32String(threadItem->PriorityWin32);
 
             if (PhTestEvent(&threadProvider->SymbolsLoadedEvent))
             {
@@ -983,25 +979,6 @@ VOID PhThreadProviderUpdate(
 
                 if (threadItem->ContextSwitchesDelta.Delta != oldDelta)
                 {
-                    if (threadItem->ContextSwitchesDelta.Delta != 0)
-                    {
-                        PH_FORMAT format;
-
-                        format.Type = UInt32FormatType | FormatGroupDigits;
-                        format.u.UInt32 = threadItem->ContextSwitchesDelta.Delta;
-                        PhSwapReference2(
-                            &threadItem->ContextSwitchesDeltaString,
-                            PhFormat(&format, 1, 0)
-                            );
-                    }
-                    else
-                    {
-                        PhSwapReference2(
-                            &threadItem->ContextSwitchesDeltaString,
-                            PhReferenceEmptyString()
-                            );
-                    }
-
                     modified = TRUE;
                 }
             }
@@ -1025,21 +1002,6 @@ VOID PhThreadProviderUpdate(
 
                     if (threadItem->CyclesDelta.Delta != oldDelta)
                     {
-                        if (threadItem->CyclesDelta.Delta != 0)
-                        {
-                            PhSwapReference2(
-                                &threadItem->CyclesDeltaString,
-                                PhFormatUInt64(threadItem->CyclesDelta.Delta, TRUE)
-                                );
-                        }
-                        else
-                        {
-                            PhSwapReference2(
-                                &threadItem->CyclesDeltaString,
-                                PhReferenceEmptyString()
-                                );
-                        }
-
                         modified = TRUE;
                     }
                 }
@@ -1053,11 +1015,6 @@ VOID PhThreadProviderUpdate(
 
                 if (threadItem->PriorityWin32 != oldPriorityWin32)
                 {
-                    PPH_STRING priorityWin32String;
-
-                    priorityWin32String = PhGetThreadPriorityWin32String(threadItem->PriorityWin32);
-                    PhSwapReference2(&threadItem->PriorityWin32String, priorityWin32String);
-
                     modified = TRUE;
                 }
             }

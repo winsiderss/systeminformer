@@ -3,6 +3,7 @@ Process Hacker
 2.20
  * NEW/IMPROVED:
    * Implemented Properties button for Thread handles
+   * Set descending sort as the default for most numeric columns
  * FIXED:
    * Fixed file name resolution bug
 

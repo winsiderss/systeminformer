@@ -420,6 +420,11 @@ VOID PhTnpProcessResizeColumn(
     __in LONG Delta
     );
 
+VOID PhTnpProcessSortColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_COLUMN NewColumn
+    );
+
 BOOLEAN PhTnpSetColumnHeaderSortIcon(
     __in PPH_TREENEW_CONTEXT Context,
     __in_opt PPH_TREENEW_COLUMN SortColumnPointer

@@ -252,12 +252,13 @@ BOOLEAN PhCmLoadSettings(
     __in PPH_STRINGREF Settings
     )
 {
-    return PhCmLoadSettingsEx(TreeNewHandle, NULL, Settings, NULL);
+    return PhCmLoadSettingsEx(TreeNewHandle, NULL, 0, Settings, NULL);
 }
 
 BOOLEAN PhCmLoadSettingsEx(
     __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
+    __in ULONG Flags,
     __in PPH_STRINGREF Settings,
     __in_opt PPH_STRINGREF SortSettings
     )
@@ -278,159 +279,171 @@ BOOLEAN PhCmLoadSettingsEx(
     LONG orderArray[PH_CM_ORDER_LIMIT];
     LONG maxOrder;
 
-    if (Settings->Length == 0)
-        return FALSE;
-
-    columnHashtable = PhCreateSimpleHashtable(20);
-
-    memset(orderArray, 0, sizeof(orderArray));
-
-    remainingColumnPart = *Settings;
-
-    while (remainingColumnPart.Length != 0)
+    if (Settings->Length != 0)
     {
-        PPH_TREENEW_COLUMN column;
-        ULONG id;
-        ULONG displayIndex;
-        ULONG width;
+        columnHashtable = PhCreateSimpleHashtable(20);
 
-        PhSplitStringRefAtChar(&remainingColumnPart, '|', &columnPart, &remainingColumnPart);
+        memset(orderArray, 0, sizeof(orderArray));
 
-        if (columnPart.Length != 0)
+        remainingColumnPart = *Settings;
+
+        while (remainingColumnPart.Length != 0)
         {
-            // Id
+            PPH_TREENEW_COLUMN column;
+            ULONG id;
+            ULONG displayIndex;
+            ULONG width;
 
-            PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
+            PhSplitStringRefAtChar(&remainingColumnPart, '|', &columnPart, &remainingColumnPart);
 
-            if (valuePart.Length == 0)
-                goto CleanupExit;
-
-            if (valuePart.Buffer[0] == '+')
+            if (columnPart.Length != 0)
             {
-                PH_STRINGREF pluginName;
-                ULONG subId;
-                PPH_CM_COLUMN cmColumn;
+                // Id
 
-                // This is a plugin-owned column.
+                PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
 
-                if (!Manager)
-                    continue;
-                if (!PhEmParseCompoundId(&valuePart, &pluginName, &subId))
-                    continue;
-
-                cmColumn = PhCmFindColumn(Manager, &pluginName, subId);
-
-                if (!cmColumn)
-                    continue; // can't find the column, skip this part
-
-                id = cmColumn->Id;
-            }
-            else
-            {
-                if (!PhStringToInteger64(&valuePart, 10, &integer))
+                if (valuePart.Length == 0)
                     goto CleanupExit;
 
-                id = (ULONG)integer;
+                if (valuePart.Buffer[0] == '+')
+                {
+                    PH_STRINGREF pluginName;
+                    ULONG subId;
+                    PPH_CM_COLUMN cmColumn;
+
+                    // This is a plugin-owned column.
+
+                    if (!Manager)
+                        continue;
+                    if (!PhEmParseCompoundId(&valuePart, &pluginName, &subId))
+                        continue;
+
+                    cmColumn = PhCmFindColumn(Manager, &pluginName, subId);
+
+                    if (!cmColumn)
+                        continue; // can't find the column, skip this part
+
+                    id = cmColumn->Id;
+                }
+                else
+                {
+                    if (!PhStringToInteger64(&valuePart, 10, &integer))
+                        goto CleanupExit;
+
+                    id = (ULONG)integer;
+                }
+
+                // Display Index
+
+                PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
+
+                if (valuePart.Length == 0 || !PhStringToInteger64(&valuePart, 10, &integer))
+                    goto CleanupExit;
+
+                displayIndex = (ULONG)integer;
+
+                // Width
+
+                if (columnPart.Length == 0 || !PhStringToInteger64(&columnPart, 10, &integer))
+                    goto CleanupExit;
+
+                width = (ULONG)integer;
+
+                column = PhAllocate(sizeof(PH_TREENEW_COLUMN));
+                column->Id = id;
+                column->DisplayIndex = displayIndex;
+                column->Width = width;
+                PhAddItemSimpleHashtable(columnHashtable, (PVOID)column->Id, column);
             }
-
-            // Display Index
-
-            PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
-
-            if (valuePart.Length == 0 || !PhStringToInteger64(&valuePart, 10, &integer))
-                goto CleanupExit;
-
-            displayIndex = (ULONG)integer;
-
-            // Width
-
-            if (columnPart.Length == 0 || !PhStringToInteger64(&columnPart, 10, &integer))
-                goto CleanupExit;
-
-            width = (ULONG)integer;
-
-            column = PhAllocate(sizeof(PH_TREENEW_COLUMN));
-            column->Id = id;
-            column->DisplayIndex = displayIndex;
-            column->Width = width;
-            PhAddItemSimpleHashtable(columnHashtable, (PVOID)column->Id, column);
         }
-    }
 
-    TreeNew_SetRedraw(TreeNewHandle, FALSE);
+        TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
-    // Set visibility and width.
+        // Set visibility and width.
 
-    i = 0;
-    count = 0;
-    total = TreeNew_GetColumnCount(TreeNewHandle);
-    hasFixedColumn = !!TreeNew_GetFixedColumn(TreeNewHandle);
+        i = 0;
+        count = 0;
+        total = TreeNew_GetColumnCount(TreeNewHandle);
+        hasFixedColumn = !!TreeNew_GetFixedColumn(TreeNewHandle);
 
-    while (count < total)
-    {
-        PH_TREENEW_COLUMN setColumn;
-        PPH_TREENEW_COLUMN *columnPtr;
-
-        if (TreeNew_GetColumn(TreeNewHandle, i, &setColumn))
+        while (count < total)
         {
-            columnPtr = (PPH_TREENEW_COLUMN *)PhFindItemSimpleHashtable(columnHashtable, (PVOID)i);
+            PH_TREENEW_COLUMN setColumn;
+            PPH_TREENEW_COLUMN *columnPtr;
 
-            if (columnPtr)
+            if (TreeNew_GetColumn(TreeNewHandle, i, &setColumn))
             {
-                setColumn.Width = (*columnPtr)->Width;
-                setColumn.Visible = TRUE;
-                TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
+                columnPtr = (PPH_TREENEW_COLUMN *)PhFindItemSimpleHashtable(columnHashtable, (PVOID)i);
 
-                TreeNew_GetColumn(TreeNewHandle, i, &setColumn); // get the Fixed and ViewIndex for use in the second pass
-                (*columnPtr)->Fixed = setColumn.Fixed;
-                (*columnPtr)->s.ViewIndex = setColumn.s.ViewIndex;
+                if (columnPtr)
+                {
+                    if (!(Flags & PH_CM_IGNORE_VISIBILITY))
+                        setColumn.Visible = TRUE;
 
-                // For compatibility reasons, normal columns have their display indicies stored 
-                // one higher than usual (so they start from 1, not 0). Fix that here.
-                if (hasFixedColumn && !(*columnPtr)->Fixed && (*columnPtr)->DisplayIndex != 0)
-                    (*columnPtr)->DisplayIndex--;
+                    setColumn.Width = (*columnPtr)->Width;
+                    TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
+
+                    // For compatibility reasons, normal columns have their display indicies stored 
+                    // one higher than usual (so they start from 1, not 0). Fix that here.
+                    if (hasFixedColumn && !setColumn.Fixed && (*columnPtr)->DisplayIndex != 0)
+                        (*columnPtr)->DisplayIndex--;
+                }
+                else if (!(Flags & PH_CM_IGNORE_VISIBILITY) && !setColumn.Fixed) // never hide the fixed column
+                {
+                    setColumn.Visible = FALSE;
+                    TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &setColumn);
+                }
+
+                count++;
             }
-            else if (!setColumn.Fixed) // never hide the fixed column
-            {
-                setColumn.Visible = FALSE;
-                TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &setColumn);
-            }
 
-            count++;
+            i++;
         }
 
-        i++;
-    }
+        // Do a second pass to create the order array. This is because the ViewIndex of each column 
+        // were unstable in the previous pass since we were both adding and removing columns.
 
-    // Do a second pass to create the order array. This is because the ViewIndex of each column 
-    // were unstable in the previous pass since we were both adding and removing columns.
+        PhBeginEnumHashtable(columnHashtable, &enumContext);
+        maxOrder = 0;
 
-    PhBeginEnumHashtable(columnHashtable, &enumContext);
-    maxOrder = 0;
-
-    while (pair = PhNextEnumHashtable(&enumContext))
-    {
-        PPH_TREENEW_COLUMN column;
-
-        column = pair->Value;
-
-        if (column->Fixed)
-            continue; // fixed column cannot be re-ordered
-
-        if (column->DisplayIndex < PH_CM_ORDER_LIMIT)
+        while (pair = PhNextEnumHashtable(&enumContext))
         {
-            orderArray[column->DisplayIndex] = column->s.ViewIndex;
+            PPH_TREENEW_COLUMN column;
+            PH_TREENEW_COLUMN tempColumn;
 
-            if ((ULONG)maxOrder < column->DisplayIndex + 1)
-                maxOrder = column->DisplayIndex + 1;
+            column = pair->Value;
+
+            if (!TreeNew_GetColumn(TreeNewHandle, column->Id, &tempColumn))
+                continue;
+
+            if (tempColumn.Fixed)
+                continue; // fixed column cannot be re-ordered
+
+            if (column->DisplayIndex < PH_CM_ORDER_LIMIT)
+            {
+                orderArray[column->DisplayIndex] = tempColumn.s.ViewIndex;
+
+                if ((ULONG)maxOrder < column->DisplayIndex + 1)
+                    maxOrder = column->DisplayIndex + 1;
+            }
         }
+
+        // Set the order array.
+
+        TreeNew_SetColumnOrderArray(TreeNewHandle, maxOrder, orderArray);
+
+        TreeNew_SetRedraw(TreeNewHandle, TRUE);
+
+        result = TRUE;
+
+CleanupExit:
+        PhBeginEnumHashtable(columnHashtable, &enumContext);
+
+        while (pair = PhNextEnumHashtable(&enumContext))
+            PhFree(pair->Value);
+
+        PhDereferenceObject(columnHashtable);
     }
-
-    // Set the order array.
-
-    TreeNew_SetColumnOrderArray(TreeNewHandle, maxOrder, orderArray);
-
-    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
     // Load sort settings.
 
@@ -475,17 +488,6 @@ BOOLEAN PhCmLoadSettingsEx(
             }
         }
     }
-
-    result = TRUE;
-
-CleanupExit:
-
-    PhBeginEnumHashtable(columnHashtable, &enumContext);
-
-    while (pair = PhNextEnumHashtable(&enumContext))
-        PhFree(pair->Value);
-
-    PhDereferenceObject(columnHashtable);
 
     return result;
 }
