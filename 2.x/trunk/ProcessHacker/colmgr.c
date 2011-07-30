@@ -92,6 +92,7 @@ PPH_CM_COLUMN PhCmCreateColumn(
     tnColumn.Context = column;
     tnColumn.Visible = FALSE;
     tnColumn.CustomDraw = Column->CustomDraw;
+    tnColumn.SortDescending = Column->SortDescending;
     tnColumn.Text = Column->Text;
     tnColumn.Width = Column->Width;
     tnColumn.Alignment = Column->Alignment;
