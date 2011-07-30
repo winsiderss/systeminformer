@@ -33,6 +33,8 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackNetworkTreeNewInitializing = 19, // PPH_PLUGIN_TREENEW_INFORMATION Data [main thread]
     GeneralCallbackModuleTreeNewInitializing = 20, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackModuleTreeNewUninitializing = 21, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
+    GeneralCallbackThreadTreeNewInitializing = 20, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
+    GeneralCallbackThreadTreeNewUninitializing = 21, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -157,6 +159,10 @@ typedef struct _PH_PLUGIN_TREENEW_INFORMATION
     // Only filled in for *Initializing callbacks, not *Uninitializing callbacks.
     union
     {
+        struct
+        {
+            PPH_PROCESS_ITEM ProcessItem;
+        } Thread;
         struct
         {
             PPH_PROCESS_ITEM ProcessItem;

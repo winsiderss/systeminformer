@@ -91,7 +91,7 @@ VOID PhInitializeModuleList(
     // Default columns
     PhAddTreeNewColumn(hwnd, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(hwnd, PHMOTLC_BASEADDRESS, TRUE, L"Base Address", 80, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 2, 0);
 
     PhAddTreeNewColumn(hwnd, PHMOTLC_COMPANYNAME, FALSE, L"Company Name", 180, PH_ALIGN_LEFT, -1, 0);
@@ -99,7 +99,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumn(hwnd, PHMOTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
 
     PhAddTreeNewColumn(hwnd, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
 
@@ -179,7 +179,7 @@ VOID PhLoadSettingsModuleList(
 
     settings = PhGetStringSetting(L"ModuleTreeListColumns");
     sortSettings = PhGetStringSetting(L"ModuleTreeListSort");
-    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, &settings->sr, &sortSettings->sr);
+    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }

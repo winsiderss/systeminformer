@@ -150,7 +150,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
     PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
     PhpAddIntegerPairSetting(L"SysInfoWindowSize", L"620,590");
-    PhpAddStringSetting(L"ThreadListViewColumns", L"");
+    PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder
     PhpAddStringSetting(L"ThreadStackListViewColumns", L"");
     PhpAddIntegerPairSetting(L"ThreadStackWindowSize", L"420,380");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms

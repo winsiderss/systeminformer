@@ -155,7 +155,7 @@ VOID PhLoadSettingsServiceTreeList()
 
     settings = PhGetStringSetting(L"ServiceTreeListColumns");
     sortSettings = PhGetStringSetting(L"ServiceTreeListSort");
-    PhCmLoadSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, &settings->sr, &sortSettings->sr);
+    PhCmLoadSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }

@@ -128,7 +128,7 @@ VOID PhInitializeNetworkTreeList(
     PhAddTreeNewColumn(hwnd, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 6, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_OWNER, WINDOWS_HAS_SERVICE_TAGS, L"Owner", 80, PH_ALIGN_LEFT, 7, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -153,7 +153,7 @@ VOID PhLoadSettingsNetworkTreeList()
 
     settings = PhGetStringSetting(L"NetworkTreeListColumns");
     sortSettings = PhGetStringSetting(L"NetworkTreeListSort");
-    PhCmLoadSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, &settings->sr, &sortSettings->sr);
+    PhCmLoadSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
