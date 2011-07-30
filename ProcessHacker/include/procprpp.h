@@ -104,6 +104,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 #define WM_PH_THREAD_MODIFIED (WM_APP + 202)
 #define WM_PH_THREAD_REMOVED (WM_APP + 203)
 #define WM_PH_THREADS_UPDATED (WM_APP + 204)
+#define WM_PH_THREAD_SELECTION_CHANGED (WM_APP + 205)
 
 typedef struct _PH_THREADS_CONTEXT
 {
@@ -117,9 +118,8 @@ typedef struct _PH_THREADS_CONTEXT
 
     HWND WindowHandle;
 
-    BOOLEAN UseCycleTime;
+    PH_THREAD_LIST_CONTEXT ListContext;
     BOOLEAN NeedsRedraw;
-    BOOLEAN NeedsSort;
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
 
 #define WM_PH_MODULE_ADDED (WM_APP + 211)

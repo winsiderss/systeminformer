@@ -545,6 +545,110 @@ VOID PhWriteNetworkList(
     __in ULONG Mode
     );
 
+// thrdlist
+
+// Columns
+
+#define PHTHTLC_TID 0
+#define PHTHTLC_CYCLESDELTA 1
+#define PHTHTLC_STARTADDRESS 2
+#define PHTHTLC_PRIORITY 3
+#define PHTHTLC_SERVICE 4
+
+#define PHTHTLC_MAXIMUM 5
+
+typedef struct _PH_THREAD_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    HANDLE ThreadId;
+    PPH_THREAD_ITEM ThreadItem;
+
+    PH_STRINGREF TextCache[PHTHTLC_MAXIMUM];
+
+    ULONG ValidMask;
+
+    PPH_STRING CyclesDeltaText; // used for Context Switches Delta as well
+    PPH_STRING PriorityText;
+} PH_THREAD_NODE, *PPH_THREAD_NODE;
+
+typedef struct _PH_THREAD_LIST_CONTEXT
+{
+    HWND ParentWindowHandle;
+    HWND TreeNewHandle;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_CM_MANAGER Cm;
+    BOOLEAN UseCycleTime;
+    BOOLEAN HasServices;
+
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+
+    BOOLEAN EnableStateHighlighting;
+    PPH_POINTER_LIST NodeStateList;
+} PH_THREAD_LIST_CONTEXT, *PPH_THREAD_LIST_CONTEXT;
+
+VOID PhInitializeThreadList(
+    __in HWND ParentWindowHandle,
+    __in HWND TreeNewHandle,
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __out PPH_THREAD_LIST_CONTEXT Context
+    );
+
+VOID PhDeleteThreadList(
+    __in PPH_THREAD_LIST_CONTEXT Context
+    );
+
+VOID PhLoadSettingsThreadList(
+    __inout PPH_THREAD_LIST_CONTEXT Context
+    );
+
+VOID PhSaveSettingsThreadList(
+    __inout PPH_THREAD_LIST_CONTEXT Context
+    );
+
+PPH_THREAD_NODE PhAddThreadNode(
+    __inout PPH_THREAD_LIST_CONTEXT Context,
+    __in PPH_THREAD_ITEM ThreadItem,
+    __in ULONG RunId
+    );
+
+PPH_THREAD_NODE PhFindThreadNode(
+    __in PPH_THREAD_LIST_CONTEXT Context,
+    __in HANDLE ThreadId
+    );
+
+VOID PhRemoveThreadNode(
+    __in PPH_THREAD_LIST_CONTEXT Context,
+    __in PPH_THREAD_NODE ThreadNode
+    );
+
+VOID PhUpdateThreadNode(
+    __in PPH_THREAD_LIST_CONTEXT Context,
+    __in PPH_THREAD_NODE ThreadNode
+    );
+
+VOID PhTickThreadNodes(
+    __in PPH_THREAD_LIST_CONTEXT Context
+    );
+
+PPH_THREAD_ITEM PhGetSelectedThreadItem(
+    __in PPH_THREAD_LIST_CONTEXT Context
+    );
+
+VOID PhGetSelectedThreadItems(
+    __in PPH_THREAD_LIST_CONTEXT Context,
+    __out PPH_THREAD_ITEM **Threads,
+    __out PULONG NumberOfThreads
+    );
+
+VOID PhDeselectAllThreadNodes(
+    __in PPH_THREAD_LIST_CONTEXT Context
+    );
+
 // modlist
 
 // Columns

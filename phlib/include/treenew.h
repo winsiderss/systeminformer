@@ -16,7 +16,8 @@ typedef struct _PH_TREENEW_COLUMN
             ULONG Visible : 1;
             ULONG CustomDraw : 1;
             ULONG Fixed : 1; // whether this is the fixed column
-            ULONG SpareFlags : 29;
+            ULONG SortDescending : 1; // sort descending on initial click rather than ascending
+            ULONG SpareFlags : 28;
         };
     };
     ULONG Id;
@@ -91,6 +92,7 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_NO_DIVIDER 0x4
 #define TN_STYLE_ANIMATE_DIVIDER 0x8
 #define TN_STYLE_NO_COLUMN_SORT 0x10
+#define TN_STYLE_NO_COLUMN_REORDER 0x20
 
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1
@@ -109,6 +111,7 @@ typedef struct _PH_TREENEW_NODE
 #define TN_COLUMN_FLAG_VISIBLE 0x100000
 #define TN_COLUMN_FLAG_CUSTOMDRAW 0x200000
 #define TN_COLUMN_FLAG_FIXED 0x400000
+#define TN_COLUMN_FLAG_SORTDESCENDING 0x800000
 #define TN_COLUMN_FLAGS 0xfff00000
 
 // Cache flags
@@ -527,6 +530,37 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumn(
 
     if (DisplayIndex == -2)
         column.Fixed = TRUE;
+
+    return !!TreeNew_AddColumn(hwnd, &column);
+}
+
+FORCEINLINE BOOLEAN PhAddTreeNewColumnEx(
+    __in HWND hwnd,
+    __in ULONG Id,
+    __in BOOLEAN Visible,
+    __in PWSTR Text,
+    __in ULONG Width,
+    __in ULONG Alignment,
+    __in ULONG DisplayIndex,
+    __in ULONG TextFlags,
+    __in BOOLEAN SortDescending
+    )
+{
+    PH_TREENEW_COLUMN column;
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Id = Id;
+    column.Visible = Visible;
+    column.Text = Text;
+    column.Width = Width;
+    column.Alignment = Alignment;
+    column.DisplayIndex = DisplayIndex;
+    column.TextFlags = TextFlags;
+
+    if (DisplayIndex == -2)
+        column.Fixed = TRUE;
+    if (SortDescending)
+        column.SortDescending = TRUE;
 
     return !!TreeNew_AddColumn(hwnd, &column);
 }

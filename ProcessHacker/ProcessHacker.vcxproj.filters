@@ -447,6 +447,9 @@
     <ClCompile Include="extmgr.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="thrdlist.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
