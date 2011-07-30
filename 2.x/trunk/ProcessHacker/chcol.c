@@ -233,7 +233,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         for (i = 0; i < context->Columns->Count; i++)
                         {
                             PPH_TREENEW_COLUMN column = context->Columns->Items[i];
-                            PH_TREENEW_COLUMN tempColumn;
                             ULONG index;
 
                             index = IndexOfStringInList(activeList, column->Text);
@@ -241,10 +240,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             column->DisplayIndex = index; // the active list box order is the actual display order
 
                             TreeNew_SetColumn(context->ControlHandle, TN_COLUMN_FLAG_VISIBLE, column);
-
-                            // Get the ViewIndex for use in the second pass.
-                            TreeNew_GetColumn(context->ControlHandle, column->Id, &tempColumn);
-                            column->s.ViewIndex = tempColumn.s.ViewIndex;
                         }
 
                         // Do a second pass to create the order array. This is because the ViewIndex of each column 
@@ -252,12 +247,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         for (i = 0; i < context->Columns->Count; i++)
                         {
                             PPH_TREENEW_COLUMN column = context->Columns->Items[i];
+                            PH_TREENEW_COLUMN tempColumn;
 
                             if (column->Visible)
                             {
                                 if (column->DisplayIndex < ORDER_LIMIT)
                                 {
-                                    orderArray[column->DisplayIndex] = column->s.ViewIndex;
+                                    TreeNew_GetColumn(context->ControlHandle, column->Id, &tempColumn);
+
+                                    orderArray[column->DisplayIndex] = tempColumn.s.ViewIndex;
 
                                     if ((ULONG)maxOrder < column->DisplayIndex + 1)
                                         maxOrder = column->DisplayIndex + 1;
