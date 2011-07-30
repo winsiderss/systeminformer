@@ -249,7 +249,6 @@ BOOLEAN PhProcessProviderInitialization()
     PFLOAT usageBuffer;
     PPH_UINT64_DELTA deltaBuffer;
     PPH_CIRCULAR_BUFFER_FLOAT historyBuffer;
-    ULONG i;
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhProcessItemType,
@@ -316,17 +315,7 @@ BOOLEAN PhProcessProviderInitialization()
     PhCpusKernelHistory = historyBuffer;
     PhCpusUserHistory = PhCpusKernelHistory + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
 
-    PhInitializeDelta(&PhCpuSystemCycleDelta);
-    PhInitializeDelta(&PhCpuKernelDelta);
-    PhInitializeDelta(&PhCpuUserDelta);
-    PhInitializeDelta(&PhCpuOtherDelta);
-
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-    {
-        PhInitializeDelta(&PhCpusKernelDelta[i]);
-        PhInitializeDelta(&PhCpusUserDelta[i]);
-        PhInitializeDelta(&PhCpusOtherDelta[i]);
-    }
+    memset(deltaBuffer, 0, sizeof(PH_UINT64_DELTA) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
 
     return TRUE;
 }
@@ -1289,6 +1278,13 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     ProcessItem->UserTime = Process->UserTime;
     ProcessItem->NumberOfHandles = Process->HandleCount;
     ProcessItem->NumberOfThreads = Process->NumberOfThreads;
+    ProcessItem->WorkingSetPrivateSize = (SIZE_T)Process->WorkingSetPrivateSize.QuadPart;
+    ProcessItem->PeakNumberOfThreads = Process->NumberOfThreadsHighWatermark;
+    ProcessItem->HardFaultCount = Process->HardFaultCount;
+
+    // Update VM and I/O counters.
+    ProcessItem->VmCounters = *(PVM_COUNTERS_EX)&Process->PeakVirtualSize;
+    ProcessItem->IoCounters = *(PIO_COUNTERS)&Process->ReadOperationCount;
 }
 
 VOID PhpUpdatePerfInformation()
@@ -1863,6 +1859,11 @@ VOID PhProcessProviderUpdate(
         }
     }
 
+    if (sysTotalTime == 0)
+        sysTotalTime = -1; // max. value
+    if (sysTotalCycleTime == 0)
+        sysTotalCycleTime = -1;
+
     // Look for new processes and update existing ones.
     process = PH_FIRST_PROCESS(processes);
 
@@ -1905,13 +1906,6 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
-
-            // Update VM and I/O statistics.
-            processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
-            processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
-            processItem->WorkingSetPrivateSize = (SIZE_T)process->WorkingSetPrivateSize.QuadPart;
-            processItem->PeakNumberOfThreads = process->NumberOfThreadsHighWatermark;
-            processItem->HardFaultCount = process->HardFaultCount;
 
             processItem->IsSuspended = isSuspended;
 
@@ -1960,6 +1954,7 @@ VOID PhProcessProviderUpdate(
             FLOAT newCpuUsage;
 
             PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
+            PhpUpdateDynamicInfoProcessItem(processItem, process);
 
             // Update the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
@@ -1982,31 +1977,14 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, processItem->VmCounters.PagefileUsage);
             //PhAddItemCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, processItem->VmCounters.WorkingSetSize);
 
-            PhpUpdateDynamicInfoProcessItem(processItem, process);
-
-            // Update VM and I/O statistics.
-            processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
-            processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
-            processItem->WorkingSetPrivateSize = (SIZE_T)process->WorkingSetPrivateSize.QuadPart;
-            processItem->PeakNumberOfThreads = process->NumberOfThreadsHighWatermark;
-            processItem->HardFaultCount = process->HardFaultCount;
-
             if (processItem->JustProcessed)
             {
                 processItem->JustProcessed = FALSE;
                 modified = TRUE;
             }
 
-            if (sysTotalTime != 0)
-            {
-                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
-                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
-            }
-            else
-            {
-                kernelCpuUsage = 0;
-                userCpuUsage = 0;
-            }
+            kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
+            userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
 
             processItem->CpuKernelUsage = kernelCpuUsage;
             processItem->CpuUserUsage = userCpuUsage;
