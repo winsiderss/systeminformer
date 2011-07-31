@@ -371,6 +371,7 @@ PHLIBAPI
 NTSTATUS PhWalkThreadStack(
     __in HANDLE ThreadHandle,
     __in_opt HANDLE ProcessHandle,
+    __in_opt PCLIENT_ID ClientId,
     __in ULONG Flags,
     __in PPH_WALK_THREAD_STACK_CALLBACK Callback,
     __in_opt PVOID Context
