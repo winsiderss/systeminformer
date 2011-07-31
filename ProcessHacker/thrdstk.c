@@ -67,20 +67,6 @@ VOID PhShowThreadStackDialog(
         return;
     }
 
-    // We don't want stupid users screwing up the program 
-    // by stack walking the current thread or something.
-    if (ProcessId == NtCurrentProcessId())
-    {
-        if (!PhShowConfirmMessage(
-            ParentWindowHandle,
-            L"inspect",
-            L"Process Hacker's threads",
-            L"Viewing call stacks of Process Hacker's threads may lead to instability.",
-            TRUE
-            ))
-            return;
-    }
-
     threadStackContext.ProcessId = ProcessId;
     threadStackContext.ThreadId = ThreadId;
     threadStackContext.SymbolProvider = SymbolProvider;
@@ -378,6 +364,10 @@ static NTSTATUS PhpRefreshThreadStack(
 {
     NTSTATUS status;
     ULONG i;
+    CLIENT_ID clientId;
+
+    clientId.UniqueProcess = ThreadStackContext->ProcessId;
+    clientId.UniqueThread = ThreadStackContext->ThreadId;
 
     ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
 
@@ -391,6 +381,7 @@ static NTSTATUS PhpRefreshThreadStack(
     status = PhWalkThreadStack(
         ThreadStackContext->ThreadHandle,
         ThreadStackContext->SymbolProvider->ProcessHandle,
+        &clientId,
         PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK,
         PhpWalkThreadStackCallback,
         ThreadStackContext

@@ -118,6 +118,7 @@ VOID PhUiAnalyzeWaitThread(
     HANDLE processHandle;
     BOOLEAN isWow64;
 #endif
+    CLIENT_ID clientId;
     ANALYZE_WAIT_CONTEXT context;
 
 #ifdef _M_X64
@@ -155,9 +156,13 @@ VOID PhUiAnalyzeWaitThread(
     context.SymbolProvider = SymbolProvider;
     PhInitializeStringBuilder(&context.StringBuilder, 100);
 
+    clientId.UniqueProcess = ProcessId;
+    clientId.UniqueThread = ThreadId;
+
     PhWalkThreadStack(
         threadHandle,
         SymbolProvider->ProcessHandle,
+        &clientId,
         PH_WALK_I386_STACK,
         PhpWalkThreadStackAnalyzeCallback,
         &context

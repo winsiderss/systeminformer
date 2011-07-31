@@ -2061,11 +2061,13 @@ VOID PhpConvertStackFrame(
  * \param ThreadHandle A handle to a thread. The handle 
  * must have THREAD_GET_CONTEXT and THREAD_SUSPEND_RESUME 
  * access. The handle can have any access for kernel stack 
- * walking.
+ * walking. If \a ClientId is not specified, the handle 
+ * should also have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param ProcessHandle A handle to the thread's parent 
  * process. The handle must have PROCESS_QUERY_INFORMATION 
  * and PROCESS_VM_READ access. If a symbol provider is 
  * being used, pass its process handle.
+ * \param ClientId The client ID identifying the thread.
  * \param Flags A combination of flags.
  * \li \c PH_WALK_I386_STACK Walks the x86 stack. On AMD64 
  * systems this flag walks the WOW64 stack.
@@ -2082,6 +2084,7 @@ VOID PhpConvertStackFrame(
 NTSTATUS PhWalkThreadStack(
     __in HANDLE ThreadHandle,
     __in_opt HANDLE ProcessHandle,
+    __in_opt PCLIENT_ID ClientId,
     __in ULONG Flags,
     __in PPH_WALK_THREAD_STACK_CALLBACK Callback,
     __in_opt PVOID Context
@@ -2090,23 +2093,65 @@ NTSTATUS PhWalkThreadStack(
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN suspended = FALSE;
     BOOLEAN processOpened = FALSE;
+    BOOLEAN isCurrentThread = FALSE;
 
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
     {
-        if (!NT_SUCCESS(status = PhOpenThreadProcess(
-            &ProcessHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            ThreadHandle
-            )))
-            return status;
+        if (PhKphHandle || !ClientId)
+        {
+            if (!NT_SUCCESS(status = PhOpenThreadProcess(
+                &ProcessHandle,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                ThreadHandle
+                )))
+                return status;
+        }
+        else
+        {
+            if (!NT_SUCCESS(status = PhOpenProcess(
+                &ProcessHandle,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                ClientId->UniqueProcess
+                )))
+                return status;
+        }
 
         processOpened = TRUE;
     }
 
-    // Suspend the thread to avoid inaccurate results.
-    if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
-        suspended = TRUE;
+    // Determine if the caller specified the current thread.
+    if (ClientId)
+    {
+        if (ClientId->UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
+        {
+            isCurrentThread = TRUE;
+        }
+    }
+    else
+    {
+        THREAD_BASIC_INFORMATION basicInfo;
+
+        if (ThreadHandle == NtCurrentThread())
+        {
+            isCurrentThread = TRUE;
+        }
+        else if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        {
+            if (basicInfo.ClientId.UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
+            {
+                isCurrentThread = TRUE;
+            }
+        }
+    }
+
+    // Suspend the thread to avoid inaccurate results. Don't suspend if we're walking 
+    // the stack of the current thread.
+    if (!isCurrentThread)
+    {
+        if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
+            suspended = TRUE;
+    }
 
     // Kernel stack walk.
     if ((Flags & PH_WALK_KERNEL_STACK) && PhKphHandle)
