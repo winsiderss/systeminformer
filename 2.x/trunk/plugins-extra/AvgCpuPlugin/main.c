@@ -123,13 +123,13 @@ VOID ProcessTreeNewInitializingCallback(
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.SortDescending = TRUE;
-    column.Text = L"Average CPU (10)";
+    column.Text = L"CPU Average (10)";
     column.Width = 45;
     column.Alignment = PH_ALIGN_RIGHT;
     column.TextFlags = DT_RIGHT;
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_AVGCPU10, NULL, AvgCpuSortFunction);
 
-    column.Text = L"Average CPU (60)";
+    column.Text = L"CPU Average (60)";
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_AVGCPU60, NULL, AvgCpuSortFunction);
 }
 
