@@ -6,6 +6,7 @@ Process Hacker
    * Set descending sort as the default for most numeric columns
  * FIXED:
    * Fixed file name resolution bug
+   * Save settings on shutdown/logoff
 
 2.19
  * NEW/IMPROVED:

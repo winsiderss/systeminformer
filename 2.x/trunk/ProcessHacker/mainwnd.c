@@ -295,6 +295,11 @@ LRESULT CALLBACK PhMwpWndProc(
             PhMwpOnDestroy();
         }
         break;
+    case WM_ENDSESSION:
+        {
+            PhMwpOnEndSession();
+        }
+        break;
     case WM_SETTINGCHANGE:
         {
             PhMwpOnSettingChange();
@@ -620,6 +625,13 @@ VOID PhMwpOnDestroy(
         PhUnloadPlugins();
 
     PostQuitMessage(0);
+}
+
+VOID PhMwpOnEndSession(
+    VOID
+    )
+{
+    PhMwpOnDestroy();
 }
 
 VOID PhMwpOnSettingChange(
