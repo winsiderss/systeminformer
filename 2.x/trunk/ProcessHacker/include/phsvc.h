@@ -20,6 +20,10 @@ NTSTATUS PhSvcMain(
     __inout_opt PPHSVC_STOP Stop
     );
 
+VOID PhSvcStop(
+    __inout PPHSVC_STOP Stop
+    );
+
 // svcclient
 
 typedef struct _PHSVC_CLIENT
