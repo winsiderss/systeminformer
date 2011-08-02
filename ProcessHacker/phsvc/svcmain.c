@@ -93,3 +93,15 @@ NTSTATUS PhSvcMain(
 
     return status;
 }
+
+VOID PhSvcStop(
+    __inout PPHSVC_STOP Stop
+    )
+{
+    Stop->Stop = TRUE;
+
+    if (Stop->Event1)
+        NtSetEvent(Stop->Event1, NULL);
+    if (Stop->Event2)
+        NtSetEvent(Stop->Event2, NULL);
+}

@@ -1006,11 +1006,7 @@ static DWORD WINAPI RunAsServiceHandlerEx(
     switch (dwControl)
     {
     case SERVICE_CONTROL_STOP:
-        RunAsServiceStop.Stop = TRUE;
-        if (RunAsServiceStop.Event1)
-            NtSetEvent(RunAsServiceStop.Event1, NULL);
-        if (RunAsServiceStop.Event2)
-            NtSetEvent(RunAsServiceStop.Event2, NULL);
+        PhSvcStop(&RunAsServiceStop);
         return NO_ERROR;
     case SERVICE_CONTROL_INTERROGATE:
         return NO_ERROR;
