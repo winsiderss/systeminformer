@@ -100,7 +100,7 @@ LRESULT CALLBACK PhTnpWndProc(
                 return -1;
         }
         return 0;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             PhTnpDestroyTreeNewContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
