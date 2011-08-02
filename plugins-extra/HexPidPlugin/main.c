@@ -2,19 +2,14 @@
 
 #define PIDHEX_COLUMN_ID 1
 
-typedef struct _PROCESS_ENTRY
+typedef struct _PROCESS_EXTENSION
 {
-    HANDLE ProcessId;
     WCHAR PidHexText[PH_PTR_STR_LEN_1];
-} PROCESS_ENTRY, *PPROCESS_ENTRY;
+} PROCESS_EXTENSION, *PPROCESS_EXTENSION;
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessAddedCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessRemovedCallbackRegistration;
-
-PPH_HASHTABLE ProcessHashtable;
 
 VOID TreeNewMessageCallback(
     __in_opt PVOID Parameter,
@@ -38,12 +33,10 @@ VOID TreeNewMessageCallback(
                 {
                     if (!PH_IS_FAKE_PROCESS_ID(node->ProcessId))
                     {
-                        PPROCESS_ENTRY *entry;
+                        PPROCESS_EXTENSION extension;
 
-                        if (entry = (PPROCESS_ENTRY *)PhFindItemSimpleHashtable(ProcessHashtable, node->ProcessId))
-                        {
-                            PhInitializeStringRef(&getCellText->Text, (*entry)->PidHexText);
-                        }
+                        extension = PhPluginGetObjectExtension(PluginInstance, node->ProcessItem, EmProcessItemType);
+                        PhInitializeStringRef(&getCellText->Text, extension->PidHexText);
                     }
                 }
                 break;
@@ -83,35 +76,16 @@ VOID ProcessTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, PIDHEX_COLUMN_ID, NULL, PidHexSortFunction);
 }
 
-VOID ProcessAddedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+VOID ProcessItemCreateCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
     )
 {
-    PPH_PROCESS_ITEM processItem = Parameter;
-    PPROCESS_ENTRY entry;
+    PPH_PROCESS_ITEM processItem = Object;
+    PPROCESS_EXTENSION extension = Extension;
 
-    entry = PhAllocate(sizeof(PROCESS_ENTRY));
-    memset(entry, 0, sizeof(PROCESS_ENTRY));
-    entry->ProcessId = processItem->ProcessId;
-    _ultow((ULONG)entry->ProcessId, entry->PidHexText, 16);
-
-    PhAddItemSimpleHashtable(ProcessHashtable, entry->ProcessId, entry);
-}
-
-VOID ProcessRemovedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PROCESS_ITEM processItem = Parameter;
-    PPROCESS_ENTRY *entry;
-
-    if (entry = (PPROCESS_ENTRY *)PhFindItemSimpleHashtable(ProcessHashtable, processItem->ProcessId))
-    {
-        PhFree(*entry);
-        PhRemoveItemSimpleHashtable(ProcessHashtable, processItem->ProcessId);
-    }
+    _ultow((ULONG)processItem->ProcessId, extension->PidHexText, 16);
 }
 
 LOGICAL DllMain(
@@ -137,10 +111,9 @@ LOGICAL DllMain(
             TreeNewMessageCallback, NULL, &TreeNewMessageCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
             ProcessTreeNewInitializingCallback, NULL, &ProcessTreeNewInitializingCallbackRegistration);
-        PhRegisterCallback(&PhProcessAddedEvent, ProcessAddedCallback, NULL, &ProcessAddedCallbackRegistration);
-        PhRegisterCallback(&PhProcessRemovedEvent, ProcessRemovedCallback, NULL, &ProcessRemovedCallbackRegistration);
 
-        ProcessHashtable = PhCreateSimpleHashtable(80);
+        PhPluginSetObjectExtension(PluginInstance, EmProcessItemType, sizeof(PROCESS_EXTENSION),
+            ProcessItemCreateCallback, NULL);
     }
 
     return TRUE;
