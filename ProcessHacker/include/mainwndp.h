@@ -32,6 +32,10 @@ VOID PhMwpOnDestroy(
     VOID
     );
 
+VOID PhMwpOnEndSession(
+    VOID
+    );
+
 VOID PhMwpOnSettingChange(
     VOID
     );
