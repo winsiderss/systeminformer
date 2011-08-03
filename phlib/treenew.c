@@ -1478,7 +1478,15 @@ BOOLEAN PhTnpOnNotify(
         break;
     case NM_RCLICK:
         {
-            Context->Callback(Context->Handle, TreeNewHeaderRightClick, NULL, NULL, Context->CallbackContext);
+            if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
+            {
+                PH_TREENEW_HEADER_MOUSE_EVENT mouseEvent;
+
+                PhTnpGetMessagePos(hwnd, &mouseEvent.Location);
+                PhTnpGetMessagePos(Header->hwndFrom, &mouseEvent.HeaderLocation);
+                mouseEvent.Column = PhTnpHitTestHeader(Context, Header->hwndFrom == Context->FixedHeaderHandle, &mouseEvent.HeaderLocation, NULL);
+                Context->Callback(hwnd, TreeNewHeaderRightClick, &mouseEvent, NULL, Context->CallbackContext);
+            }
         }
         break;
     case TTN_GETDISPINFO:

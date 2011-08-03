@@ -197,7 +197,7 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewRightDoubleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
     TreeNewContextMenu, // PPOINT Parameter1
 
-    TreeNewHeaderRightClick,
+    TreeNewHeaderRightClick, // PPH_TREENEW_HEADER_MOUSE_EVENT Parameter1
     TreeNewIncrementalSearch, // PPH_TREENEW_SEARCH_EVENT Parameter1
 
     TreeNewColumnResized, // PPH_TREENEW_COLUMN Parameter1
@@ -308,6 +308,13 @@ typedef struct _PH_TREENEW_NODE_EVENT
     PVOID Reserved1;
     PVOID Reserved2;
 } PH_TREENEW_NODE_EVENT, *PPH_TREENEW_NODE_EVENT;
+
+typedef struct _PH_TREENEW_HEADER_MOUSE_EVENT
+{
+    POINT Location;
+    POINT HeaderLocation;
+    PPH_TREENEW_COLUMN Column;
+} PH_TREENEW_HEADER_MOUSE_EVENT, *PPH_TREENEW_HEADER_MOUSE_EVENT;
 
 typedef struct _PH_TREENEW_SEARCH_EVENT
 {
