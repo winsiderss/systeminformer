@@ -195,7 +195,7 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewRightClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
     TreeNewLeftDoubleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
     TreeNewRightDoubleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
-    TreeNewContextMenu, // PPOINT Parameter1
+    TreeNewContextMenu, // PPH_TREENEW_CONTEXT_MENU Parameter1
 
     TreeNewHeaderRightClick, // PPH_TREENEW_HEADER_MOUSE_EVENT Parameter1
     TreeNewIncrementalSearch, // PPH_TREENEW_SEARCH_EVENT Parameter1
@@ -309,6 +309,15 @@ typedef struct _PH_TREENEW_NODE_EVENT
     PVOID Reserved2;
 } PH_TREENEW_NODE_EVENT, *PPH_TREENEW_NODE_EVENT;
 
+typedef struct _PH_TREENEW_CONTEXT_MENU
+{
+    POINT Location;
+    POINT ClientLocation;
+    PPH_TREENEW_NODE Node;
+    PPH_TREENEW_COLUMN Column;
+    BOOLEAN KeyboardInvoked;
+} PH_TREENEW_CONTEXT_MENU, *PPH_TREENEW_CONTEXT_MENU;
+
 typedef struct _PH_TREENEW_HEADER_MOUSE_EVENT
 {
     POINT Location;
@@ -362,7 +371,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_SETMARKNODE (WM_USER + 36)
 #define TNM_SETHOTNODE (WM_USER + 37)
 #define TNM_SETEXTENDEDFLAGS (WM_USER + 38)
-#define TNM_LAST (WM_USER + 38)
+#define TNM_GETCALLBACK (WM_USER + 39)
+#define TNM_HITTEST (WM_USER + 40)
+#define TNM_LAST (WM_USER + 40)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -471,6 +482,12 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_SetExtendedFlags(hWnd, Mask, Value) \
     SendMessage((hWnd), TNM_SETEXTENDEDFLAGS, (WPARAM)(Mask), (LPARAM)(Value))
+
+#define TreeNew_GetCallback(hWnd, Callback, Context) \
+    SendMessage((hWnd), TNM_GETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
+
+#define TreeNew_HitTest(hWnd, HitTest) \
+    SendMessage((hWnd), TNM_HITTEST, 0, (LPARAM)(HitTest))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {
