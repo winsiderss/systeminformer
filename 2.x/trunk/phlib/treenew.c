@@ -1162,7 +1162,7 @@ VOID PhTnpOnMouseWheel(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->HScrollPosition = scrollInfo.nPos;
-            PhTnpLayout(Context);
+            PhTnpLayout(Context); // takes care of the tooltip as well
             PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
         }
     }
@@ -1175,7 +1175,10 @@ VOID PhTnpOnContextMenu(
     __in LONG CursorScreenY
     )
 {
-    POINT location;
+    POINT clientPoint;
+    BOOLEAN keyboardInvoked;
+    PH_TREENEW_HIT_TEST hitTest;
+    PH_TREENEW_CONTEXT_MENU contextMenu;
 
     if (CursorScreenX == -1 && CursorScreenX == -1)
     {
@@ -1183,6 +1186,8 @@ VOID PhTnpOnContextMenu(
         BOOLEAN found;
         RECT windowRect;
         RECT rect;
+
+        keyboardInvoked = TRUE;
 
         // Context menu was invoked via keyboard. Display the context menu at 
         // the selected item.
@@ -1198,20 +1203,25 @@ VOID PhTnpOnContextMenu(
             }
         }
 
-        GetWindowRect(hwnd, &windowRect);
-        CursorScreenX = windowRect.left;
-        CursorScreenY = windowRect.top;
-
         if (found && PhTnpGetRowRects(Context, i, i, FALSE, &rect) &&
             rect.top >= Context->ClientRect.top && rect.top < Context->ClientRect.bottom)
         {
-            CursorScreenX += rect.left + SmallIconWidth / 2;
-            CursorScreenY += rect.top + Context->RowHeight / 2;
+            clientPoint.x = rect.left + SmallIconWidth / 2;
+            clientPoint.y = rect.top + Context->RowHeight / 2;
         }
+        else
+        {
+            clientPoint.x = 0;
+            clientPoint.y = 0;
+        }
+
+        GetWindowRect(hwnd, &windowRect);
+        CursorScreenX = windowRect.left + clientPoint.x;
+        CursorScreenY = windowRect.top + clientPoint.y;
     }
     else
     {
-        POINT clientPoint;
+        keyboardInvoked = FALSE;
 
         clientPoint.x = CursorScreenX;
         clientPoint.y = CursorScreenY;
@@ -1224,10 +1234,17 @@ VOID PhTnpOnContextMenu(
         }
     }
 
-    location.x = CursorScreenX;
-    location.y = CursorScreenY;
+    hitTest.Point = clientPoint;
+    hitTest.InFlags = TN_TEST_COLUMN;
+    PhTnpHitTest(Context, &hitTest);
 
-    Context->Callback(hwnd, TreeNewContextMenu, &location, NULL, Context->CallbackContext);
+    contextMenu.Location.x = CursorScreenX;
+    contextMenu.Location.y = CursorScreenY;
+    contextMenu.ClientLocation = clientPoint;
+    contextMenu.Node = hitTest.Node;
+    contextMenu.Column = hitTest.Column;
+    contextMenu.KeyboardInvoked = keyboardInvoked;
+    Context->Callback(hwnd, TreeNewContextMenu, &contextMenu, NULL, Context->CallbackContext);
 }
 
 VOID PhTnpOnVScroll(
@@ -1768,8 +1785,29 @@ ULONG_PTR PhTnpOnUserMessage(
         PhTnpSetHotNode(Context, (PPH_TREENEW_NODE)LParam, FALSE);
         return TRUE;
     case TNM_SETEXTENDEDFLAGS:
-        Context->ExtendedFlags &= ~(ULONG)WParam;
-        Context->ExtendedFlags |= (ULONG)LParam;
+        Context->ExtendedFlags = (Context->ExtendedFlags & ~(ULONG)WParam) | ((ULONG)LParam & (ULONG)WParam);
+        return TRUE;
+    case TNM_GETCALLBACK:
+        {
+            PPH_TREENEW_CALLBACK *callback = (PPH_TREENEW_CALLBACK *)LParam;
+            PVOID *callbackContext = (PVOID *)WParam;
+
+            if (callback)
+            {
+                if (Context->Callback != PhTnpNullCallback)
+                    *callback = Context->Callback;
+                else
+                    *callback = NULL;
+            }
+
+            if (callbackContext)
+            {
+                *callbackContext = Context->CallbackContext;
+            }
+        }
+        return TRUE;
+    case TNM_HITTEST:
+        PhTnpHitTest(Context, (PPH_TREENEW_HIT_TEST)LParam);
         return TRUE;
     }
 

@@ -132,8 +132,7 @@ FORCEINLINE VOID PhSetWindowStyle(
     LONG_PTR style;
 
     style = GetWindowLongPtr(Handle, GWL_STYLE);
-    style &= ~Mask;
-    style |= Value;
+    style = (style & ~Mask) | (Value & Mask);
     SetWindowLongPtr(Handle, GWL_STYLE, style);
 }
 
@@ -146,8 +145,7 @@ FORCEINLINE VOID PhSetWindowExStyle(
     LONG_PTR style;
 
     style = GetWindowLongPtr(Handle, GWL_EXSTYLE);
-    style &= ~Mask;
-    style |= Value;
+    style = (style & ~Mask) | (Value & Mask);
     SetWindowLongPtr(Handle, GWL_EXSTYLE, style);
 }
 
