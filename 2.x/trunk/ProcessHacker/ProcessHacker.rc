@@ -418,14 +418,6 @@ BEGIN
     END
 END
 
-IDR_PROCESSHEADER MENU
-BEGIN
-    POPUP "Header"
-    BEGIN
-        MENUITEM "&Choose Columns...",          ID_HEADER_CHOOSECOLUMNS
-    END
-END
-
 IDR_MEMORY MENU
 BEGIN
     POPUP "Memory"
@@ -449,22 +441,6 @@ BEGIN
         MENUITEM "Contains (case-insensitive)...", ID_FILTER_CONTAINS_CASEINSENSITIVE
         MENUITEM "Regex...",                    ID_FILTER_REGEX
         MENUITEM "Regex (case-insensitive)...", ID_FILTER_REGEX_CASEINSENSITIVE
-    END
-END
-
-IDR_SERVICEHEADER MENU
-BEGIN
-    POPUP "Header"
-    BEGIN
-        MENUITEM "&Choose Columns...",          ID_HEADER_CHOOSECOLUMNS
-    END
-END
-
-IDR_GENERICHEADER MENU
-BEGIN
-    POPUP "Header"
-    BEGIN
-        MENUITEM "&Choose Columns...",          ID_HEADER_CHOOSECOLUMNS
     END
 END
 

@@ -87,7 +87,6 @@
 #define IDR_ICON                        173
 #define IDD_SYSINFO_PANEL               174
 #define IDD_GDIHANDLES                  175
-#define IDR_PROCESSHEADER               177
 #define IDD_LOG                         178
 #define IDD_OPTSYMBOLS                  179
 #define IDD_MEMEDIT                     180
@@ -96,9 +95,7 @@
 #define IDD_MEMRESULTS                  183
 #define IDR_MEMFILTER                   184
 #define IDD_MEMSTRING                   185
-#define IDR_SERVICEHEADER               185
 #define IDD_OPTGRAPHS                   186
-#define IDR_GENERICHEADER               186
 #define IDD_PLUGINS                     187
 #define IDD_HANDLESTATS                 188
 #define IDD_PROCRECORD                  189
@@ -608,7 +605,6 @@
 #define ID_NOTIFICATIONS_STOPPEDSERVICES 40184
 #define ID_NOTIFICATIONS_DELETEDSERVICES 40185
 #define ID_MISCELLANEOUS_GDIHANDLES     40188
-#define ID_HEADER_CHOOSECOLUMNS         40189
 #define ID_ESC_EXIT                     40190
 #define ID_PROCESS_COPY                 40194
 #define ID_THREAD_COPY                  40195
