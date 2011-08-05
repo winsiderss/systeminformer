@@ -25,6 +25,7 @@
 #include <extmgri.h>
 #include <phplug.h>
 #include <cpysave.h>
+#include <emenu.h>
 
 VOID PhpEnableColumnCustomDraw(
     __in HWND hwnd,
@@ -2435,41 +2436,24 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         return TRUE;
     case TreeNewHeaderRightClick:
         {
-            HMENU menu;
-            HMENU subMenu;
-            POINT point;
+            PH_TN_COLUMN_MENU_DATA data;
 
-            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PROCESSHEADER));
-            subMenu = GetSubMenu(menu, 0);
-            GetCursorPos(&point);
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
 
-            if ((UINT)TrackPopupMenu(
-                subMenu,
-                TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-                point.x,
-                point.y,
-                0,
-                hwnd,
-                NULL
-                ) == ID_HEADER_CHOOSECOLUMNS)
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhProcessTreeNewColumnMenu(&data);
+
+            if (data.ProcessedId == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
             {
-                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_NEW);
                 PhpUpdateNeedCyclesInformation();
-
-                // Make sure the column we're sorting by is actually visible, 
-                // and if not, don't sort any more.
-                if (ProcessTreeListSortOrder != NoSortOrder)
-                {
-                    PH_TREENEW_COLUMN column;
-
-                    TreeNew_GetColumn(ProcessTreeListHandle, ProcessTreeListSortColumn, &column);
-
-                    if (!column.Visible)
-                        TreeNew_SetSort(ProcessTreeListHandle, 0, NoSortOrder);
-                }
             }
 
-            DestroyMenu(menu);
+            PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
     case TreeNewLeftDoubleClick:

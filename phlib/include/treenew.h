@@ -320,6 +320,7 @@ typedef struct _PH_TREENEW_CONTEXT_MENU
 
 typedef struct _PH_TREENEW_HEADER_MOUSE_EVENT
 {
+    POINT ScreenLocation;
     POINT Location;
     POINT HeaderLocation;
     PPH_TREENEW_COLUMN Column;
@@ -373,7 +374,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_SETEXTENDEDFLAGS (WM_USER + 38)
 #define TNM_GETCALLBACK (WM_USER + 39)
 #define TNM_HITTEST (WM_USER + 40)
-#define TNM_LAST (WM_USER + 40)
+#define TNM_GETVISIBLECOLUMNCOUNT (WM_USER + 41)
+#define TNM_LAST (WM_USER + 41)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -488,6 +490,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_HitTest(hWnd, HitTest) \
     SendMessage((hWnd), TNM_HITTEST, 0, (LPARAM)(HitTest))
+
+#define TreeNew_GetVisibleColumnCount(hWnd) \
+    ((ULONG)SendMessage((hWnd), TNM_GETVISIBLECOLUMNCOUNT, 0, 0))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {
