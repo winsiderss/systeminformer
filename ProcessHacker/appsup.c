@@ -1106,7 +1106,7 @@ VOID PhpEnsureValidSortColumnTreeNew(
     }
 }
 
-BOOLEAN PhProcessTreeNewColumnMenu(
+BOOLEAN PhHandleTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data
     )
 {

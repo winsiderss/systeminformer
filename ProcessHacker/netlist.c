@@ -604,7 +604,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
-            PhProcessTreeNewColumnMenu(&data);
+            PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
