@@ -24,6 +24,7 @@
 #include <settings.h>
 #include <cpysave.h>
 #include <phappres.h>
+#include <emenu.h>
 #include "mxml/mxml.h"
 #include <winsta.h>
 #include <dbghelp.h>
@@ -1013,4 +1014,143 @@ BOOLEAN PhShellProcessHacker(
         PhDeleteStringBuilder(&sb);
 
     return result;
+}
+
+VOID PhInitializeTreeNewColumnMenu(
+    __inout PPH_TN_COLUMN_MENU_DATA Data
+    )
+{
+    PPH_EMENU_ITEM hideColumnMenuItem;
+    PPH_EMENU_ITEM chooseColumnsMenuItem;
+
+    Data->Menu = PhCreateEMenu();
+    Data->Selection = NULL;
+    Data->ProcessedId = 0;
+
+    hideColumnMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_HIDE_COLUMN_ID, L"Hide Column", NULL, NULL);
+    chooseColumnsMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID, L"Choose Columns...", NULL, NULL);
+    PhInsertEMenuItem(Data->Menu, hideColumnMenuItem, -1);
+    PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, -1);
+
+    if (!Data->MouseEvent || !Data->MouseEvent->Column ||
+        Data->MouseEvent->Column->Fixed || // don't allow the fixed column to be hidden
+        TreeNew_GetVisibleColumnCount(Data->TreeNewHandle) < 2 // don't allow the user to remove all columns
+        )
+    {
+        hideColumnMenuItem->Flags |= PH_EMENU_DISABLED;
+    }
+}
+
+VOID PhpEnsureValidSortColumnTreeNew(
+    __inout HWND TreeNewHandle,
+    __in ULONG DefaultSortColumn,
+    __in PH_SORT_ORDER DefaultSortOrder
+    )
+{
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
+
+    // Make sure the column we're sorting by is actually visible, and if not, don't sort anymore.
+
+    TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
+
+    if (sortOrder != NoSortOrder)
+    {
+        PH_TREENEW_COLUMN column;
+
+        TreeNew_GetColumn(TreeNewHandle, sortColumn, &column);
+
+        if (!column.Visible)
+        {
+            if (DefaultSortOrder != NoSortOrder)
+            {
+                // Make sure the default sort column is visible.
+                TreeNew_GetColumn(TreeNewHandle, DefaultSortColumn, &column);
+
+                if (!column.Visible)
+                {
+                    ULONG maxId;
+                    ULONG id;
+                    BOOLEAN found;
+
+                    // Use the first visible column.
+                    maxId = TreeNew_GetMaxId(TreeNewHandle);
+                    id = 0;
+                    found = FALSE;
+
+                    while (id <= maxId)
+                    {
+                        if (TreeNew_GetColumn(TreeNewHandle, id, &column))
+                        {
+                            if (column.Visible)
+                            {
+                                DefaultSortColumn = id;
+                                found = TRUE;
+                                break;
+                            }
+                        }
+
+                        id++;
+                    }
+
+                    if (!found)
+                    {
+                        DefaultSortColumn = 0;
+                        DefaultSortOrder = NoSortOrder;
+                    }
+                }
+            }
+
+            TreeNew_SetSort(TreeNewHandle, DefaultSortColumn, DefaultSortOrder);
+        }
+    }
+}
+
+BOOLEAN PhProcessTreeNewColumnMenu(
+    __inout PPH_TN_COLUMN_MENU_DATA Data
+    )
+{
+    if (!Data->Selection)
+        return FALSE;
+
+    switch (Data->Selection->Id)
+    {
+    case PH_TN_COLUMN_MENU_HIDE_COLUMN_ID:
+        {
+            PH_TREENEW_COLUMN column;
+
+            if (Data->MouseEvent && Data->MouseEvent->Column && !Data->MouseEvent->Column->Fixed)
+            {
+                column.Id = Data->MouseEvent->Column->Id;
+                column.Visible = FALSE;
+                TreeNew_SetColumn(Data->TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &column);
+                PhpEnsureValidSortColumnTreeNew(Data->TreeNewHandle, Data->DefaultSortColumn, Data->DefaultSortOrder);
+                InvalidateRect(Data->TreeNewHandle, NULL, FALSE);
+            }
+        }
+        break;
+    case PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID:
+        {
+            PhShowChooseColumnsDialog(Data->TreeNewHandle, Data->TreeNewHandle, PH_CONTROL_TYPE_TREE_NEW);
+            PhpEnsureValidSortColumnTreeNew(Data->TreeNewHandle, Data->DefaultSortColumn, Data->DefaultSortOrder);
+        }
+        break;
+    default:
+        return FALSE;
+    }
+
+    Data->ProcessedId = Data->Selection->Id;
+
+    return TRUE;
+}
+
+VOID PhDeleteTreeNewColumnMenu(
+    __in PPH_TN_COLUMN_MENU_DATA Data
+    )
+{
+    if (Data->Menu)
+    {
+        PhDestroyEMenu(Data->Menu);
+        Data->Menu = NULL;
+    }
 }

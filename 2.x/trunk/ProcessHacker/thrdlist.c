@@ -577,41 +577,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             // Customizable columns are disabled until we can figure out how to make it 
             // co-operate with the column adjustments (e.g. Cycles Delta vs Context Switches Delta, 
             // Service column).
-
-            //HMENU menu;
-            //HMENU subMenu;
-            //POINT point;
-
-            //menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_GENERICHEADER));
-            //subMenu = GetSubMenu(menu, 0);
-            //GetCursorPos(&point);
-
-            //if ((UINT)TrackPopupMenu(
-            //    subMenu,
-            //    TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-            //    point.x,
-            //    point.y,
-            //    0,
-            //    hwnd,
-            //    NULL
-            //    ) == ID_HEADER_CHOOSECOLUMNS)
-            //{
-            //    PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_NEW);
-
-            //    // Make sure the column we're sorting by is actually visible, 
-            //    // and if not, don't sort any more.
-            //    if (context->TreeNewSortOrder != NoSortOrder)
-            //    {
-            //        PH_TREENEW_COLUMN column;
-
-            //        TreeNew_GetColumn(hwnd, context->TreeNewSortColumn, &column);
-
-            //        if (!column.Visible)
-            //            TreeNew_SetSort(hwnd, PHTHTLC_CYCLESDELTA, DescendingSortOrder);
-            //    }
-            //}
-
-            //DestroyMenu(menu);
         }
         return TRUE;
     case TreeNewLeftDoubleClick:
