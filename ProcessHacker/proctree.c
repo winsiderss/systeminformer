@@ -2448,10 +2448,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhProcessTreeNewColumnMenu(&data);
 
-            if (data.ProcessedId == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
-            {
+            if (data.ProcessedId == PH_TN_COLUMN_MENU_HIDE_COLUMN_ID || data.ProcessedId == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
                 PhpUpdateNeedCyclesInformation();
-            }
 
             PhDeleteTreeNewColumnMenu(&data);
         }
