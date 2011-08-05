@@ -25,6 +25,7 @@
 #include <extmgri.h>
 #include <phplug.h>
 #include <cpysave.h>
+#include <emenu.h>
 
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
     __in PVOID Entry1,
@@ -608,40 +609,18 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         return TRUE;
     case TreeNewHeaderRightClick:
         {
-            HMENU menu;
-            HMENU subMenu;
-            POINT point;
+            PH_TN_COLUMN_MENU_DATA data;
 
-            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_SERVICEHEADER));
-            subMenu = GetSubMenu(menu, 0);
-            GetCursorPos(&point);
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
 
-            if ((UINT)TrackPopupMenu(
-                subMenu,
-                TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-                point.x,
-                point.y,
-                0,
-                hwnd,
-                NULL
-                ) == ID_HEADER_CHOOSECOLUMNS)
-            {
-                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_NEW);
-
-                // Make sure the column we're sorting by is actually visible, 
-                // and if not, sort by the default column.
-                if (ServiceTreeListSortOrder != NoSortOrder)
-                {
-                    PH_TREENEW_COLUMN column;
-
-                    TreeNew_GetColumn(ServiceTreeListHandle, ServiceTreeListSortColumn, &column);
-
-                    if (!column.Visible)
-                        TreeNew_SetSort(ServiceTreeListHandle, 0, AscendingSortOrder);
-                }
-            }
-
-            DestroyMenu(menu);
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhProcessTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
     case TreeNewLeftDoubleClick:

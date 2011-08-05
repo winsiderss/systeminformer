@@ -275,6 +275,33 @@ BOOLEAN PhShellProcessHacker(
     __out_opt PHANDLE ProcessHandle
     );
 
+typedef struct _PH_TN_COLUMN_MENU_DATA
+{
+    HWND TreeNewHandle;
+    PPH_TREENEW_HEADER_MOUSE_EVENT MouseEvent;
+    ULONG DefaultSortColumn;
+    PH_SORT_ORDER DefaultSortOrder;
+
+    struct _PH_EMENU_ITEM *Menu;
+    struct _PH_EMENU_ITEM *Selection;
+    ULONG ProcessedId;
+} PH_TN_COLUMN_MENU_DATA, *PPH_TN_COLUMN_MENU_DATA;
+
+#define PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ((ULONG)-1)
+#define PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID ((ULONG)-2)
+
+VOID PhInitializeTreeNewColumnMenu(
+    __inout PPH_TN_COLUMN_MENU_DATA Data
+    );
+
+BOOLEAN PhProcessTreeNewColumnMenu(
+    __inout PPH_TN_COLUMN_MENU_DATA Data
+    );
+
+VOID PhDeleteTreeNewColumnMenu(
+    __in PPH_TN_COLUMN_MENU_DATA Data
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(

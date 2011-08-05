@@ -24,6 +24,24 @@
  * The tree new is a tree view with columns. Unlike the old tree list control, 
  * which was a wrapper around the list view control, this control was written 
  * from scratch.
+ *
+ * Current issues not included in any comments:
+ *  * Adding, removing or changing columns does not cause invalidation.
+ *  * It is not possible to change a column to make it fixed. The current 
+ *    fixed column must be removed and the new fixed column must then be added.
+ *  * Unfolding tooltips do not work properly with text that is centered or 
+ *    right-aligned. (The problem lies in PhTnpGetCellParts.)
+ *  * When there are no visible normal columns, the space usually occupied by 
+ *    the normal column headers is filled with a solid background color. We 
+ *    should catch this and paint the usual themed background there instead.
+ *
+ * Possible additions:
+ *  * More flexible mouse input callbacks to allow custom controls inside 
+ *    columns.
+ *  * Allow custom drawn columns to customize their behaviour when 
+ *    TN_FLAG_ITEM_DRAG_SELECT is set (e.g. disable drag selection over certain 
+ *    areas).
+ *  * Virtual mode
  */
 
 #include <phgui.h>
@@ -1498,9 +1516,16 @@ BOOLEAN PhTnpOnNotify(
             if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
             {
                 PH_TREENEW_HEADER_MOUSE_EVENT mouseEvent;
+                ULONG position;
 
-                PhTnpGetMessagePos(hwnd, &mouseEvent.Location);
-                PhTnpGetMessagePos(Header->hwndFrom, &mouseEvent.HeaderLocation);
+                position = GetMessagePos();
+                mouseEvent.ScreenLocation.x = GET_X_LPARAM(position);
+                mouseEvent.ScreenLocation.y = GET_Y_LPARAM(position);
+
+                mouseEvent.Location = mouseEvent.ScreenLocation;
+                ScreenToClient(hwnd, &mouseEvent.Location);
+                mouseEvent.HeaderLocation = mouseEvent.ScreenLocation;
+                ScreenToClient(Header->hwndFrom, &mouseEvent.HeaderLocation);
                 mouseEvent.Column = PhTnpHitTestHeader(Context, Header->hwndFrom == Context->FixedHeaderHandle, &mouseEvent.HeaderLocation, NULL);
                 Context->Callback(hwnd, TreeNewHeaderRightClick, &mouseEvent, NULL, Context->CallbackContext);
             }
@@ -1595,7 +1620,8 @@ ULONG_PTR PhTnpOnUserMessage(
         break;
     case TNM_GETCOLUMNORDERARRAY:
         {
-            // TODO
+            // TODO: To avoid exposing ViewIndex to users, the user should really be passing in 
+            // an array of IDs and these should then be mapped to their header control indicies.
             return Header_GetOrderArray(Context->HeaderHandle, (ULONG)WParam, (PLONG)LParam);
         }
         break;
@@ -1809,6 +1835,8 @@ ULONG_PTR PhTnpOnUserMessage(
     case TNM_HITTEST:
         PhTnpHitTest(Context, (PPH_TREENEW_HIT_TEST)LParam);
         return TRUE;
+    case TNM_GETVISIBLECOLUMNCOUNT:
+        return Context->NumberOfColumnsByDisplay + (Context->FixedColumnVisible ? 1 : 0);
     }
 
     return 0;

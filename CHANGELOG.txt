@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Implemented Properties button for Thread handles
    * Set descending sort as the default for most numeric columns
+   * Added Hide Column to header context menu
  * FIXED:
    * Fixed file name resolution bug
    * Save settings on shutdown/logoff
