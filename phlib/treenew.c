@@ -5505,7 +5505,10 @@ BOOLEAN PhTnpPrepareTooltipShow(
         SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->TooltipFont, FALSE);
     }
 
-    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, Context->NewTooltipMaximumWidth);
+    if (Context->NewTooltipMaximumWidth <= MAXSHORT) // seems to be the maximum value that the tooltip control supports
+        SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, Context->NewTooltipMaximumWidth);
+    else
+        SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
 
     if (!Context->TooltipUnfolding)
     {
