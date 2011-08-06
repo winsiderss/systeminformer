@@ -571,7 +571,6 @@
     <None Include="resources\tick.bmp">
       <Filter>Resources</Filter>
     </None>
-    <None Include="TODO.txt" />
     <None Include="resources\application.ico">
       <Filter>Resources</Filter>
     </None>
@@ -582,6 +581,9 @@
       <Filter>Resources</Filter>
     </None>
     <None Include="resources\cog_go.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="TODO.txt">
       <Filter>Resources</Filter>
     </None>
   </ItemGroup>

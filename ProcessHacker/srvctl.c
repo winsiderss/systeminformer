@@ -126,24 +126,24 @@ VOID PhpFixProcessServicesControls(
         {
         case SERVICE_RUNNING:
             {
-                SetWindowText(startButton, L"Stop");
-                SetWindowText(pauseButton, L"Pause");
+                SetWindowText(startButton, L"S&top");
+                SetWindowText(pauseButton, L"&Pause");
                 EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
             }
             break;
         case SERVICE_PAUSED:
             {
-                SetWindowText(startButton, L"Stop");
-                SetWindowText(pauseButton, L"Continue");
+                SetWindowText(startButton, L"S&top");
+                SetWindowText(pauseButton, L"C&ontinue");
                 EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
             }
             break;
         case SERVICE_STOPPED:
             {
-                SetWindowText(startButton, L"Start");
-                SetWindowText(pauseButton, L"Pause");
+                SetWindowText(startButton, L"&Start");
+                SetWindowText(pauseButton, L"&Pause");
                 EnableWindow(startButton, TRUE);
                 EnableWindow(pauseButton, FALSE);
             }
@@ -153,8 +153,8 @@ VOID PhpFixProcessServicesControls(
         case SERVICE_PAUSE_PENDING:
         case SERVICE_STOP_PENDING:
             {
-                SetWindowText(startButton, L"Start");
-                SetWindowText(pauseButton, L"Pause");
+                SetWindowText(startButton, L"&Start");
+                SetWindowText(pauseButton, L"&Pause");
                 EnableWindow(startButton, FALSE);
                 EnableWindow(pauseButton, FALSE);
             }
@@ -177,8 +177,8 @@ VOID PhpFixProcessServicesControls(
     }
     else
     {
-        SetWindowText(startButton, L"Start");
-        SetWindowText(pauseButton, L"Pause");
+        SetWindowText(startButton, L"&Start");
+        SetWindowText(pauseButton, L"&Pause");
         EnableWindow(startButton, FALSE);
         EnableWindow(pauseButton, FALSE);
         SetWindowText(descriptionLabel, L"");
