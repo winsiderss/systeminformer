@@ -700,7 +700,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     node->ModuleItem->FileName,
                     &node->ModuleItem->VersionInfo,
                     NULL,
-                    80
+                    0
                     );
 
                 // Make sure we don't try to create the tooltip text again.
