@@ -55,9 +55,7 @@ PPH_STRING PhGetProcessTooltipText(
 
     if (Process->CommandLine)
     {
-        tempString = PhEllipsisString(Process->CommandLine, 80);
-        PhAppendStringBuilder(&stringBuilder, tempString);
-        PhDereferenceObject(tempString);
+        PhAppendStringBuilder(&stringBuilder, Process->CommandLine);
         PhAppendCharStringBuilder(&stringBuilder, '\n');
     }
 
@@ -67,7 +65,7 @@ PPH_STRING PhGetProcessTooltipText(
         Process->FileName,
         &Process->VersionInfo,
         L"    ",
-        76
+        0
         );
 
     if (!PhIsNullOrEmptyString(tempString))
@@ -116,7 +114,7 @@ PPH_STRING PhGetProcessTooltipText(
                             knownCommandLine.RunDllAsApp.FileName,
                             &versionInfo,
                             L"    ",
-                            76
+                            0
                             );
 
                         if (!PhIsNullOrEmptyString(tempString))
@@ -164,7 +162,7 @@ PPH_STRING PhGetProcessTooltipText(
                             knownCommandLine.ComSurrogate.FileName,
                             &versionInfo,
                             L"    ",
-                            76
+                            0
                             );
 
                         if (!PhIsNullOrEmptyString(tempString))
@@ -460,7 +458,7 @@ PPH_STRING PhGetServiceTooltipText(
                     fileName,
                     &versionInfo,
                     L"    ",
-                    76
+                    0
                     );
 
                 if (!PhIsNullOrEmptyString(tempString))

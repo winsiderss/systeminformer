@@ -120,6 +120,7 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_NCDESTROY:
         {
+            context->Callback(hwnd, TreeNewDestroying, NULL, NULL, context->CallbackContext);
             PhTnpDestroyTreeNewContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
@@ -5412,7 +5413,7 @@ VOID PhTnpInitializeTooltips(
     SetProp(Context->HeaderHandle, PhTnpMakeContextAtom(), (HANDLE)Context);
     SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
 
-    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, 400);
+    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
     Context->TooltipFont = Context->Font;
 }
@@ -5452,6 +5453,7 @@ VOID PhTnpGetTooltipText(
         getCellTooltip.Unfolding = FALSE;
         PhInitializeEmptyStringRef(&getCellTooltip.Text);
         getCellTooltip.Font = Context->Font;
+        getCellTooltip.MaximumWidth = TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH;
 
         if (PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts) &&
             (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
@@ -5483,6 +5485,8 @@ VOID PhTnpGetTooltipText(
 
         if (!Context->NewTooltipFont)
             Context->NewTooltipFont = Context->Font;
+
+        Context->NewTooltipMaximumWidth = getCellTooltip.MaximumWidth;
     }
 
     if (Context->TooltipText)
@@ -5500,6 +5504,8 @@ BOOLEAN PhTnpPrepareTooltipShow(
         Context->TooltipFont = Context->NewTooltipFont;
         SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->TooltipFont, FALSE);
     }
+
+    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, Context->NewTooltipMaximumWidth);
 
     if (!Context->TooltipUnfolding)
     {
@@ -5655,6 +5661,7 @@ VOID PhTnpGetHeaderTooltipText(
 
     // Always use the default font for column header tooltips.
     Context->NewTooltipFont = Context->Font;
+    Context->NewTooltipMaximumWidth = TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH;
     Context->TooltipUnfolding = FALSE;
 }
 

@@ -125,6 +125,7 @@ typedef struct _PH_TREENEW_CONTEXT
     RECT TooltipRect; // text rectangle of an unfolding tooltip
     HFONT TooltipFont;
     HFONT NewTooltipFont;
+    ULONG NewTooltipMaximumWidth;
     ULONG TooltipColumnId;
     WNDPROC FixedHeaderOldWndProc;
     WNDPROC HeaderOldWndProc;
@@ -722,6 +723,7 @@ VOID PhTnpGetMessagePos(
 #define TNP_TOOLTIPS_ITEM 0
 #define TNP_TOOLTIPS_FIXED_HEADER 1
 #define TNP_TOOLTIPS_HEADER 2
+#define TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH 550
 
 #define TNP_ANIMATE_DIVIDER_INTERVAL 10
 #define TNP_ANIMATE_DIVIDER_INCREMENT 17

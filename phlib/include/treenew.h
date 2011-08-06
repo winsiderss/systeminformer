@@ -203,6 +203,8 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewColumnResized, // PPH_TREENEW_COLUMN Parameter1
     TreeNewColumnReordered,
 
+    TreeNewDestroying,
+
     MaxTreeNewMessage
 } PH_TREENEW_MESSAGE;
 
@@ -274,6 +276,7 @@ typedef struct _PH_TREENEW_GET_CELL_TOOLTIP
     BOOLEAN Unfolding;
     PH_STRINGREF Text;
     HFONT Font;
+    ULONG MaximumWidth;
 } PH_TREENEW_GET_CELL_TOOLTIP, *PPH_TREENEW_GET_CELL_TOOLTIP;
 
 typedef struct _PH_TREENEW_CUSTOM_DRAW
