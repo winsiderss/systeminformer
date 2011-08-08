@@ -51,7 +51,7 @@
     <ClCompile Include="wswatch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="etwtree.c">
+    <ClCompile Include="treeext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

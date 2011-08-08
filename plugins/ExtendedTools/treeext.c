@@ -1,6 +1,6 @@
 /*
  * Process Hacker Extended Tools - 
- *   ETW process and network tree support
+ *   process and network tree support
  * 
  * Copyright (C) 2011 wj32
  * 
@@ -21,6 +21,9 @@
  */
 
 #include "exttools.h"
+#define CINTERFACE
+#define COBJMACROS
+#include <netfw.h>
 
 LONG EtpProcessTreeNewSortFunction(
     __in PVOID Node1,
@@ -43,7 +46,11 @@ typedef struct _COLUMN_INFO
     ULONG Width;
     ULONG Alignment;
     ULONG TextFlags;
+    BOOLEAN SortDescending;
 } COLUMN_INFO, *PCOLUMN_INFO;
+
+static GUID IID_INetFwMgr_I = { 0xf7898af5, 0xcac4, 0x4632, { 0xa2, 0xec, 0xda, 0x06, 0xe5, 0x11, 0x1a, 0xf2 } };
+static GUID CLSID_NetFwMgr_I = { 0x304ce942, 0x6e39, 0x40d8, { 0x94, 0x3a, 0xb9, 0x13, 0xc4, 0x0c, 0x9c, 0xd4 } };
 
 VOID EtpAddTreeNewColumn(
     __in PPH_PLUGIN_TREENEW_INFORMATION TreeNewInfo,
@@ -52,13 +59,14 @@ VOID EtpAddTreeNewColumn(
     __in ULONG Width,
     __in ULONG Alignment,
     __in ULONG TextFlags,
+    __in BOOLEAN SortDescending,
     __in PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
     )
 {
     PH_TREENEW_COLUMN column;
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
-    column.SortDescending = TRUE;
+    column.SortDescending = SortDescending;
     column.Text = Text;
     column.Width = Width;
     column.Alignment = Alignment;
@@ -80,26 +88,26 @@ VOID EtEtwProcessTreeNewInitializing(
 {
     static COLUMN_INFO columns[] =
     {
-        { ETPRTNC_DISKREADS, L"Disk Reads", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKWRITES, L"Disk Writes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKREADBYTES, L"Disk Read Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKWRITEBYTES, L"Disk Write Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKTOTALBYTES, L"Disk Total Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKREADSDELTA, L"Disk Reads Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKWRITESDELTA, L"Disk Writes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKREADBYTESDELTA, L"Disk Read Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKWRITEBYTESDELTA, L"Disk Write Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_DISKTOTALBYTESDELTA, L"Disk Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKRECEIVES, L"Network Receives", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKSENDS, L"Network Sends", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKRECEIVEBYTES, L"Network Receive Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKSENDBYTES, L"Network Send Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKTOTALBYTES, L"Network Total Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKRECEIVESDELTA, L"Network Receives Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKSENDSDELTA, L"Network Sends Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKRECEIVEBYTESDELTA, L"Network Receive Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKSENDBYTESDELTA, L"Network Send Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETPRTNC_NETWORKTOTALBYTESDELTA, L"Network Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT }
+        { ETPRTNC_DISKREADS, L"Disk Reads", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKWRITES, L"Disk Writes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKREADBYTES, L"Disk Read Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKWRITEBYTES, L"Disk Write Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKTOTALBYTES, L"Disk Total Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKREADSDELTA, L"Disk Reads Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKWRITESDELTA, L"Disk Writes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKREADBYTESDELTA, L"Disk Read Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKWRITEBYTESDELTA, L"Disk Write Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKTOTALBYTESDELTA, L"Disk Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKRECEIVES, L"Network Receives", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKSENDS, L"Network Sends", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKRECEIVEBYTES, L"Network Receive Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKSENDBYTES, L"Network Send Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKTOTALBYTES, L"Network Total Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKRECEIVESDELTA, L"Network Receives Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKSENDSDELTA, L"Network Sends Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKRECEIVEBYTESDELTA, L"Network Receive Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKSENDBYTESDELTA, L"Network Send Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKTOTALBYTESDELTA, L"Network Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -108,7 +116,7 @@ VOID EtEtwProcessTreeNewInitializing(
     for (i = 0; i < sizeof(columns) / sizeof(COLUMN_INFO); i++)
     {
         EtpAddTreeNewColumn(treeNewInfo, columns[i].SubId, columns[i].Text, columns[i].Width, columns[i].Alignment,
-            columns[i].TextFlags, EtpProcessTreeNewSortFunction);
+            columns[i].TextFlags, columns[i].SortDescending, EtpProcessTreeNewSortFunction);
     }
 }
 
@@ -122,13 +130,10 @@ VOID EtEtwProcessTreeNewMessage(
     {
         PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
         PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)getCellText->Node;
-        PET_PROCESS_ETW_BLOCK block;
+        PET_PROCESS_BLOCK block;
         PPH_STRING text;
 
-        if (!EtEtwEnabled)
-            return;
-
-        block = EtGetProcessEtwBlock(processNode->ProcessItem);
+        block = EtGetProcessBlock(processNode->ProcessItem);
 
         PhAcquireQueuedLockExclusive(&block->TextCacheLock);
 
@@ -248,14 +253,11 @@ LONG EtpProcessTreeNewSortFunction(
     LONG result;
     PPH_PROCESS_NODE node1 = Node1;
     PPH_PROCESS_NODE node2 = Node2;
-    PET_PROCESS_ETW_BLOCK block1;
-    PET_PROCESS_ETW_BLOCK block2;
+    PET_PROCESS_BLOCK block1;
+    PET_PROCESS_BLOCK block2;
 
-    if (!EtEtwEnabled)
-        return 0;
-
-    block1 = EtGetProcessEtwBlock(node1->ProcessItem);
-    block2 = EtGetProcessEtwBlock(node2->ProcessItem);
+    block1 = EtGetProcessBlock(node1->ProcessItem);
+    block2 = EtGetProcessBlock(node2->ProcessItem);
 
     result = 0;
 
@@ -332,16 +334,17 @@ VOID EtEtwNetworkTreeNewInitializing(
 {
     static COLUMN_INFO columns[] =
     {
-        { ETNETNC_RECEIVES, L"Receives", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_SENDS, L"Sends", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_RECEIVEBYTES, L"Receive Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_SENDBYTES, L"Send Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_TOTALBYTES, L"Total Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_RECEIVESDELTA, L"Receives Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_SENDSDELTA, L"Sends Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_RECEIVEBYTESDELTA, L"Receive Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_SENDBYTESDELTA, L"Send Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT },
-        { ETNETNC_TOTALBYTESDELTA, L"Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT }
+        { ETNETNC_RECEIVES, L"Receives", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_SENDS, L"Sends", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_RECEIVEBYTES, L"Receive Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_SENDBYTES, L"Send Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_TOTALBYTES, L"Total Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_RECEIVESDELTA, L"Receives Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_SENDSDELTA, L"Sends Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_RECEIVEBYTESDELTA, L"Receive Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_SENDBYTESDELTA, L"Send Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_TOTALBYTESDELTA, L"Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_FIREWALLSTATUS, L"Firewall Status", 170, PH_ALIGN_LEFT, 0, FALSE }
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -350,7 +353,18 @@ VOID EtEtwNetworkTreeNewInitializing(
     for (i = 0; i < sizeof(columns) / sizeof(COLUMN_INFO); i++)
     {
         EtpAddTreeNewColumn(treeNewInfo, columns[i].SubId, columns[i].Text, columns[i].Width, columns[i].Alignment,
-            columns[i].TextFlags, EtpNetworkTreeNewSortFunction);
+            columns[i].TextFlags, columns[i].SortDescending, EtpNetworkTreeNewSortFunction);
+    }
+}
+
+VOID EtpUpdateFirewallStatus(
+    __inout PET_NETWORK_BLOCK Block
+    )
+{
+    if (!Block->FirewallStatusValid)
+    {
+        Block->FirewallStatus = EtQueryFirewallStatus(Block->NetworkItem);
+        Block->FirewallStatusValid = TRUE;
     }
 }
 
@@ -364,13 +378,10 @@ VOID EtEtwNetworkTreeNewMessage(
     {
         PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
         PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)getCellText->Node;
-        PET_NETWORK_ETW_BLOCK block;
+        PET_NETWORK_BLOCK block;
         PPH_STRING text;
 
-        if (!EtEtwEnabled)
-            return;
-
-        block = EtGetNetworkEtwBlock(networkNode->NetworkItem);
+        block = EtGetNetworkBlock(networkNode->NetworkItem);
 
         PhAcquireQueuedLockExclusive(&block->TextCacheLock);
 
@@ -425,6 +436,27 @@ VOID EtEtwNetworkTreeNewMessage(
                 if (block->ReceiveRawDelta.Delta + block->SendRawDelta.Delta != 0)
                     text = PhFormatSize(block->ReceiveRawDelta.Delta + block->SendRawDelta.Delta, -1);
                 break;
+            case ETNETNC_FIREWALLSTATUS:
+                {
+                    static PPH_STRING strings[FirewallMaximumStatus];
+                    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+                    if (PhBeginInitOnce(&initOnce))
+                    {
+                        strings[FirewallUnknownStatus] = NULL;
+                        strings[FirewallAllowedNotRestricted] = PhCreateString(L"Allowed, not restricted");
+                        strings[FirewallAllowedRestricted] = PhCreateString(L"Allowed, restricted");
+                        strings[FirewallNotAllowedNotRestricted] = PhCreateString(L"Not allowed, not restricted");
+                        strings[FirewallNotAllowedRestricted] = PhCreateString(L"Not allowed, restricted");
+                        PhEndInitOnce(&initOnce);
+                    }
+
+                    EtpUpdateFirewallStatus(block);
+
+                    if (block->FirewallStatus < FirewallMaximumStatus)
+                        text = strings[block->FirewallStatus];
+                }
+                break;
             }
 
             if (text)
@@ -450,14 +482,11 @@ LONG EtpNetworkTreeNewSortFunction(
     LONG result;
     PPH_NETWORK_NODE node1 = Node1;
     PPH_NETWORK_NODE node2 = Node2;
-    PET_NETWORK_ETW_BLOCK block1;
-    PET_NETWORK_ETW_BLOCK block2;
+    PET_NETWORK_BLOCK block1;
+    PET_NETWORK_BLOCK block2;
 
-    if (!EtEtwEnabled)
-        return 0;
-
-    block1 = EtGetNetworkEtwBlock(node1->NetworkItem);
-    block2 = EtGetNetworkEtwBlock(node2->NetworkItem);
+    block1 = EtGetNetworkBlock(node1->NetworkItem);
+    block2 = EtGetNetworkBlock(node2->NetworkItem);
 
     result = 0;
 
@@ -493,7 +522,91 @@ LONG EtpNetworkTreeNewSortFunction(
     case ETNETNC_TOTALBYTESDELTA:
         result = uintcmp(block1->ReceiveRawDelta.Delta + block1->SendRawDelta.Delta, block2->ReceiveRawDelta.Delta + block2->SendRawDelta.Delta);
         break;
+    case ETNETNC_FIREWALLSTATUS:
+        EtpUpdateFirewallStatus(block1);
+        EtpUpdateFirewallStatus(block2);
+        result = intcmp(block1->FirewallStatus, block2->FirewallStatus);
+        break;
     }
+
+    return result;
+}
+
+ET_FIREWALL_STATUS EtQueryFirewallStatus(
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    static INetFwMgr* manager = NULL;
+    ET_FIREWALL_STATUS result;
+    PPH_PROCESS_ITEM processItem;
+    BSTR imageFileNameBStr;
+    BSTR localAddressBStr;
+    VARIANT allowed;
+    VARIANT restricted;
+
+    if (!manager)
+    {
+        if (!SUCCEEDED(CoCreateInstance(&CLSID_NetFwMgr_I, NULL, CLSCTX_INPROC_SERVER, &IID_INetFwMgr_I, &manager)))
+            return FirewallUnknownStatus;
+
+        if (!manager)
+            return FirewallUnknownStatus;
+    }
+
+    processItem = PhReferenceProcessItem(NetworkItem->ProcessId);
+
+    if (!processItem)
+        return FirewallUnknownStatus;
+
+    if (!processItem->FileName)
+    {
+        PhDereferenceObject(processItem);
+        return FirewallUnknownStatus;
+    }
+
+    result = FirewallUnknownStatus;
+
+    if (imageFileNameBStr = SysAllocStringLen(processItem->FileName->Buffer, processItem->FileName->Length / sizeof(WCHAR)))
+    {
+        localAddressBStr = NULL;
+
+        if (!PhIsNullIpAddress(&NetworkItem->LocalEndpoint.Address))
+            localAddressBStr = SysAllocString(NetworkItem->LocalAddressString);
+
+        if (SUCCEEDED(INetFwMgr_IsPortAllowed(
+            manager,
+            imageFileNameBStr,
+            (NetworkItem->ProtocolType & PH_IPV6_NETWORK_TYPE) ? NET_FW_IP_VERSION_V6 : NET_FW_IP_VERSION_V4,
+            NetworkItem->LocalEndpoint.Port,
+            localAddressBStr,
+            (NetworkItem->ProtocolType & PH_UDP_PROTOCOL_TYPE) ? NET_FW_IP_PROTOCOL_UDP : NET_FW_IP_PROTOCOL_TCP,
+            &allowed,
+            &restricted
+            )))
+        {
+            if (allowed.boolVal)
+            {
+                if (restricted.boolVal)
+                    result = FirewallAllowedRestricted;
+                else
+                    result = FirewallAllowedNotRestricted;
+            }
+            else
+            {
+                if (restricted.boolVal)
+                    result = FirewallNotAllowedRestricted;
+                else
+                    result = FirewallNotAllowedNotRestricted;
+            }
+        }
+
+        if (localAddressBStr)
+            SysFreeString(localAddressBStr);
+
+        SysFreeString(imageFileNameBStr);
+    }
+
+    PhDereferenceObject(processItem);
 
     return result;
 }

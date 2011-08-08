@@ -88,7 +88,33 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ProcessItemCreateCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    );
+
+VOID NTAPI ProcessItemDeleteCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    );
+
+VOID NTAPI NetworkItemCreateCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    );
+
+VOID NTAPI NetworkItemDeleteCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    );
+
 PPH_PLUGIN PluginInstance;
+LIST_ENTRY EtProcessBlockListHead;
+LIST_ENTRY EtNetworkBlockListHead;
 HWND ProcessTreeNewHandle;
 HWND NetworkTreeNewHandle;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -207,6 +233,24 @@ LOGICAL DllMain(
                 NetworkTreeNewInitializingCallback,
                 NULL,
                 &NetworkTreeNewInitializingCallbackRegistration
+                );
+
+            InitializeListHead(&EtProcessBlockListHead);
+            InitializeListHead(&EtNetworkBlockListHead);
+
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmProcessItemType,
+                sizeof(ET_PROCESS_BLOCK),
+                ProcessItemCreateCallback,
+                ProcessItemDeleteCallback
+                );
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmNetworkItemType,
+                sizeof(ET_NETWORK_BLOCK),
+                NetworkItemCreateCallback,
+                NetworkItemDeleteCallback
                 );
 
             {
@@ -459,4 +503,104 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
 
     NetworkTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtEtwNetworkTreeNewInitializing(Parameter);
+}
+
+PET_PROCESS_BLOCK EtGetProcessBlock(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    return PhPluginGetObjectExtension(PluginInstance, ProcessItem, EmProcessItemType);
+}
+
+PET_NETWORK_BLOCK EtGetNetworkBlock(
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    return PhPluginGetObjectExtension(PluginInstance, NetworkItem, EmNetworkItemType);
+}
+
+VOID EtInitializeProcessBlock(
+    __out PET_PROCESS_BLOCK Block,
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    memset(Block, 0, sizeof(ET_PROCESS_BLOCK));
+    Block->ProcessItem = ProcessItem;
+    PhInitializeQueuedLock(&Block->TextCacheLock);
+    InsertTailList(&EtProcessBlockListHead, &Block->ListEntry);
+}
+
+VOID EtDeleteProcessBlock(
+    __in PET_PROCESS_BLOCK Block
+    )
+{
+    ULONG i;
+
+    for (i = 1; i <= ETPRTNC_MAXIMUM; i++)
+    {
+        PhSwapReference(&Block->TextCache[i], NULL);
+    }
+
+    RemoveEntryList(&Block->ListEntry);
+}
+
+VOID EtInitializeNetworkBlock(
+    __out PET_NETWORK_BLOCK Block,
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    memset(Block, 0, sizeof(ET_NETWORK_BLOCK));
+    Block->NetworkItem = NetworkItem;
+    PhInitializeQueuedLock(&Block->TextCacheLock);
+    InsertTailList(&EtNetworkBlockListHead, &Block->ListEntry);
+}
+
+VOID EtDeleteNetworkBlock(
+    __in PET_NETWORK_BLOCK Block
+    )
+{
+    ULONG i;
+
+    for (i = 1; i <= ETNETNC_MAXIMUM; i++)
+    {
+        PhSwapReference(&Block->TextCache[i], NULL);
+    }
+
+    RemoveEntryList(&Block->ListEntry);
+}
+
+VOID NTAPI ProcessItemCreateCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    )
+{
+    EtInitializeProcessBlock(Extension, Object);
+}
+
+VOID NTAPI ProcessItemDeleteCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    )
+{
+    EtDeleteProcessBlock(Extension);
+}
+
+VOID NTAPI NetworkItemCreateCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    )
+{
+    EtInitializeNetworkBlock(Extension, Object);
+}
+
+VOID NTAPI NetworkItemDeleteCallback(
+    __in PVOID Object,
+    __in PH_EM_OBJECT_TYPE ObjectType,
+    __in PVOID Extension
+    )
+{
+    EtDeleteNetworkBlock(Extension);
 }
