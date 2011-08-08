@@ -1,3 +1,6 @@
+1.5
+ * Added Firewall Status column
+
 1.4
  * Added ETW columns for processes and network connections
 

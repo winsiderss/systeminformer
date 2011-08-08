@@ -169,7 +169,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="etwmon.c" />
-    <ClCompile Include="etwtree.c" />
+    <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />
     <ClCompile Include="etwprprp.c" />
     <ClCompile Include="etwsys.c" />
