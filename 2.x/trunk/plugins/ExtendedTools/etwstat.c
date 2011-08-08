@@ -23,30 +23,6 @@
 #include "exttools.h"
 #include "etwmon.h"
 
-VOID NTAPI ProcessItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    );
-
-VOID NTAPI ProcessItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    );
-
-VOID NTAPI NetworkItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    );
-
-VOID NTAPI NetworkItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    );
-
 VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -56,9 +32,6 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
-
-LIST_ENTRY EtEtwBlockListHead;
-LIST_ENTRY EtEtwNetworkBlockListHead;
 
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
@@ -93,9 +66,6 @@ VOID EtEtwStatisticsInitialization()
     {
         ULONG sampleCount;
 
-        InitializeListHead(&EtEtwBlockListHead);
-        InitializeListHead(&EtEtwNetworkBlockListHead);
-
         sampleCount = PhGetIntegerSetting(L"SampleCount");
         PhInitializeCircularBuffer_ULONG(&EtDiskReadHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtDiskWriteHistory, sampleCount);
@@ -103,21 +73,6 @@ VOID EtEtwStatisticsInitialization()
         PhInitializeCircularBuffer_ULONG(&EtNetworkSendHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtMaxDiskHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtMaxNetworkHistory, sampleCount);
-
-        PhPluginSetObjectExtension(
-            PluginInstance,
-            EmProcessItemType,
-            sizeof(ET_PROCESS_ETW_BLOCK),
-            ProcessItemCreateCallback,
-            ProcessItemDeleteCallback
-            );
-        PhPluginSetObjectExtension(
-            PluginInstance,
-            EmNetworkItemType,
-            sizeof(ET_NETWORK_ETW_BLOCK),
-            NetworkItemCreateCallback,
-            NetworkItemDeleteCallback
-            );
 
         PhRegisterCallback(
             &PhProcessesUpdatedEvent,
@@ -139,76 +94,12 @@ VOID EtEtwStatisticsUninitialization()
     EtEtwMonitorUninitialization();
 }
 
-PET_PROCESS_ETW_BLOCK EtGetProcessEtwBlock(
-    __in PPH_PROCESS_ITEM ProcessItem
-    )
-{
-    return PhPluginGetObjectExtension(PluginInstance, ProcessItem, EmProcessItemType);
-}
-
-PET_NETWORK_ETW_BLOCK EtGetNetworkEtwBlock(
-    __in PPH_NETWORK_ITEM NetworkItem
-    )
-{
-    return PhPluginGetObjectExtension(PluginInstance, NetworkItem, EmNetworkItemType);
-}
-
-VOID EtInitializeProcessEtwBlock(
-    __out PET_PROCESS_ETW_BLOCK Block,
-    __in PPH_PROCESS_ITEM ProcessItem
-    )
-{
-    memset(Block, 0, sizeof(ET_PROCESS_ETW_BLOCK));
-    Block->ProcessItem = ProcessItem;
-    PhInitializeQueuedLock(&Block->TextCacheLock);
-    InsertTailList(&EtEtwBlockListHead, &Block->ListEntry);
-}
-
-VOID EtDeleteProcessEtwBlock(
-    __in PET_PROCESS_ETW_BLOCK Block
-    )
-{
-    ULONG i;
-
-    for (i = 1; i <= ETPRTNC_MAXIMUM; i++)
-    {
-        PhSwapReference(&Block->TextCache[i], NULL);
-    }
-
-    RemoveEntryList(&Block->ListEntry);
-}
-
-VOID EtInitializeNetworkEtwBlock(
-    __out PET_NETWORK_ETW_BLOCK Block,
-    __in PPH_NETWORK_ITEM NetworkItem
-    )
-{
-    memset(Block, 0, sizeof(ET_NETWORK_ETW_BLOCK));
-    Block->NetworkItem = NetworkItem;
-    PhInitializeQueuedLock(&Block->TextCacheLock);
-    InsertTailList(&EtEtwNetworkBlockListHead, &Block->ListEntry);
-}
-
-VOID EtDeleteNetworkEtwBlock(
-    __in PET_NETWORK_ETW_BLOCK Block
-    )
-{
-    ULONG i;
-
-    for (i = 1; i <= ETNETNC_MAXIMUM; i++)
-    {
-        PhSwapReference(&Block->TextCache[i], NULL);
-    }
-
-    RemoveEntryList(&Block->ListEntry);
-}
-
 VOID EtProcessDiskEvent(
     __in PET_ETW_DISK_EVENT Event
     )
 {
     PPH_PROCESS_ITEM processItem;
-    PET_PROCESS_ETW_BLOCK block;
+    PET_PROCESS_BLOCK block;
 
     if (Event->Type == EtEtwDiskReadType)
     {
@@ -223,7 +114,7 @@ VOID EtProcessDiskEvent(
 
     if (processItem = PhReferenceProcessItem(Event->ClientId.UniqueProcess))
     {
-        block = EtGetProcessEtwBlock(processItem);
+        block = EtGetProcessBlock(processItem);
 
         if (Event->Type == EtEtwDiskReadType)
         {
@@ -245,9 +136,9 @@ VOID EtProcessNetworkEvent(
     )
 {
     PPH_PROCESS_ITEM processItem;
-    PET_PROCESS_ETW_BLOCK block;
+    PET_PROCESS_BLOCK block;
     PPH_NETWORK_ITEM networkItem;
-    PET_NETWORK_ETW_BLOCK networkBlock;
+    PET_NETWORK_BLOCK networkBlock;
 
     if (Event->Type == EtEtwNetworkReceiveType)
     {
@@ -265,7 +156,7 @@ VOID EtProcessNetworkEvent(
 
     if (processItem = PhReferenceProcessItem(Event->ClientId.UniqueProcess))
     {
-        block = EtGetProcessEtwBlock(processItem);
+        block = EtGetProcessBlock(processItem);
 
         if (Event->Type == EtEtwNetworkReceiveType)
         {
@@ -288,7 +179,7 @@ VOID EtProcessNetworkEvent(
         Event->ClientId.UniqueProcess
         ))
     {
-        networkBlock = EtGetNetworkEtwBlock(networkItem);
+        networkBlock = EtGetNetworkBlock(networkItem);
 
         if (Event->Type == EtEtwNetworkReceiveType)
         {
@@ -305,42 +196,6 @@ VOID EtProcessNetworkEvent(
     }
 }
 
-static VOID NTAPI ProcessItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    )
-{
-    EtInitializeProcessEtwBlock(Extension, Object);
-}
-
-static VOID NTAPI ProcessItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    )
-{
-    EtDeleteProcessEtwBlock(Extension);
-}
-
-static VOID NTAPI NetworkItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    )
-{
-    EtInitializeNetworkEtwBlock(Extension, Object);
-}
-
-static VOID NTAPI NetworkItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
-    )
-{
-    EtDeleteNetworkEtwBlock(Extension);
-}
-
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -350,9 +205,9 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
     PLIST_ENTRY listEntry;
     ULONG maxDiskValue = 0;
-    PET_PROCESS_ETW_BLOCK maxDiskBlock = NULL;
+    PET_PROCESS_BLOCK maxDiskBlock = NULL;
     ULONG maxNetworkValue = 0;
-    PET_PROCESS_ETW_BLOCK maxNetworkBlock = NULL;
+    PET_PROCESS_BLOCK maxNetworkBlock = NULL;
 
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it 
     // manually.
@@ -368,13 +223,13 @@ static VOID NTAPI ProcessesUpdatedCallback(
     // Update per-process statistics.
     // Note: no lock is needed because we only ever modify the hashtable on this same thread.
 
-    listEntry = EtEtwBlockListHead.Flink;
+    listEntry = EtProcessBlockListHead.Flink;
 
-    while (listEntry != &EtEtwBlockListHead)
+    while (listEntry != &EtProcessBlockListHead)
     {
-        PET_PROCESS_ETW_BLOCK block;
+        PET_PROCESS_BLOCK block;
 
-        block = CONTAINING_RECORD(listEntry, ET_PROCESS_ETW_BLOCK, ListEntry);
+        block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
         PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
         PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
@@ -465,14 +320,14 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
     // Update per-connection statistics.
     // Note: no lock is needed because we only ever modify the hashtable on this same thread.
 
-    listEntry = EtEtwNetworkBlockListHead.Flink;
+    listEntry = EtNetworkBlockListHead.Flink;
 
-    while (listEntry != &EtEtwNetworkBlockListHead)
+    while (listEntry != &EtNetworkBlockListHead)
     {
-        PET_NETWORK_ETW_BLOCK block;
+        PET_NETWORK_BLOCK block;
         PH_UINT32_DELTA oldDeltas[4];
 
-        block = CONTAINING_RECORD(listEntry, ET_NETWORK_ETW_BLOCK, ListEntry);
+        block = CONTAINING_RECORD(listEntry, ET_NETWORK_BLOCK, ListEntry);
 
         memcpy(oldDeltas, block->Deltas, sizeof(block->Deltas));
 

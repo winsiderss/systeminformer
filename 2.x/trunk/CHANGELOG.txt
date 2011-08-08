@@ -6,6 +6,8 @@ Process Hacker
    * Set descending sort as the default for most numeric columns
    * Added Hide Column to header context menu
    * Removed tooltip text truncation
+   * Updated ExtendedTools plugin:
+     * Added Firewall Status column
  * FIXED:
    * Fixed file name resolution bug
    * Save settings on shutdown/logoff

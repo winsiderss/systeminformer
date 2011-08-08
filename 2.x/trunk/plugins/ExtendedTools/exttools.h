@@ -5,6 +5,8 @@
 #include <phdk.h>
 
 extern PPH_PLUGIN PluginInstance;
+extern LIST_ENTRY EtProcessBlockListHead;
+extern LIST_ENTRY EtNetworkBlockListHead;
 extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
 
@@ -25,7 +27,7 @@ VOID EtEtwProcessPropertiesInitializing(
     __in PVOID Parameter
     );
 
-// etwtree
+// treeext
 
 #define ETPRTNC_DISKREADS 1
 #define ETPRTNC_DISKWRITES 2
@@ -67,7 +69,8 @@ VOID EtEtwProcessTreeNewMessage(
 #define ETNETNC_RECEIVEBYTESDELTA 8
 #define ETNETNC_SENDBYTESDELTA 9
 #define ETNETNC_TOTALBYTESDELTA 10
-#define ETNETNC_MAXIMUM 10
+#define ETNETNC_FIREWALLSTATUS 11
+#define ETNETNC_MAXIMUM 11
 
 VOID EtEtwNetworkTreeNewInitializing(
     __in PVOID Parameter
@@ -75,6 +78,20 @@ VOID EtEtwNetworkTreeNewInitializing(
 
 VOID EtEtwNetworkTreeNewMessage(
     __in PVOID Parameter
+    );
+
+typedef enum _ET_FIREWALL_STATUS
+{
+    FirewallUnknownStatus,
+    FirewallAllowedNotRestricted,
+    FirewallAllowedRestricted,
+    FirewallNotAllowedNotRestricted,
+    FirewallNotAllowedRestricted,
+    FirewallMaximumStatus
+} ET_FIREWALL_STATUS;
+
+ET_FIREWALL_STATUS EtQueryFirewallStatus(
+    __in PPH_NETWORK_ITEM NetworkItem
     );
 
 // etwstat
@@ -96,73 +113,9 @@ extern PH_CIRCULAR_BUFFER_ULONG EtNetworkSendHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxDiskHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory;
 
-typedef struct _ET_PROCESS_ETW_BLOCK
-{
-    LIST_ENTRY ListEntry;
-    PPH_PROCESS_ITEM ProcessItem;
-
-    ULONG DiskReadCount;
-    ULONG DiskWriteCount;
-    ULONG NetworkReceiveCount;
-    ULONG NetworkSendCount;
-
-    ULONG DiskReadRaw;
-    ULONG DiskWriteRaw;
-    ULONG NetworkReceiveRaw;
-    ULONG NetworkSendRaw;
-
-    PH_UINT32_DELTA DiskReadDelta;
-    PH_UINT32_DELTA DiskReadRawDelta;
-    PH_UINT32_DELTA DiskWriteDelta;
-    PH_UINT32_DELTA DiskWriteRawDelta;
-    PH_UINT32_DELTA NetworkReceiveDelta;
-    PH_UINT32_DELTA NetworkReceiveRawDelta;
-    PH_UINT32_DELTA NetworkSendDelta;
-    PH_UINT32_DELTA NetworkSendRawDelta;
-
-    PH_QUEUED_LOCK TextCacheLock;
-    PPH_STRING TextCache[ETPRTNC_MAXIMUM + 1];
-    BOOLEAN TextCacheValid[ETPRTNC_MAXIMUM + 1];
-} ET_PROCESS_ETW_BLOCK, *PET_PROCESS_ETW_BLOCK;
-
-typedef struct _ET_NETWORK_ETW_BLOCK
-{
-    LIST_ENTRY ListEntry;
-    PPH_NETWORK_ITEM NetworkItem;
-
-    ULONG ReceiveCount;
-    ULONG SendCount;
-    ULONG ReceiveRaw;
-    ULONG SendRaw;
-
-    union
-    {
-        struct
-        {
-            PH_UINT32_DELTA ReceiveDelta;
-            PH_UINT32_DELTA ReceiveRawDelta;
-            PH_UINT32_DELTA SendDelta;
-            PH_UINT32_DELTA SendRawDelta;
-        };
-        PH_UINT32_DELTA Deltas[4];
-    };
-
-    PH_QUEUED_LOCK TextCacheLock;
-    PPH_STRING TextCache[ETNETNC_MAXIMUM + 1];
-    BOOLEAN TextCacheValid[ETNETNC_MAXIMUM + 1];
-} ET_NETWORK_ETW_BLOCK, *PET_NETWORK_ETW_BLOCK;
-
 VOID EtEtwStatisticsInitialization();
 
 VOID EtEtwStatisticsUninitialization();
-
-PET_PROCESS_ETW_BLOCK EtGetProcessEtwBlock(
-    __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-PET_NETWORK_ETW_BLOCK EtGetNetworkEtwBlock(
-    __in PPH_NETWORK_ITEM NetworkItem
-    );
 
 // etwsys
 
@@ -211,6 +164,75 @@ VOID EtShowUnloadedDllsDialog(
 VOID EtShowWsWatchDialog(
     __in HWND ParentWindowHandle,
     __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+// main (extensions)
+
+typedef struct _ET_PROCESS_BLOCK
+{
+    LIST_ENTRY ListEntry;
+    PPH_PROCESS_ITEM ProcessItem;
+
+    ULONG DiskReadCount;
+    ULONG DiskWriteCount;
+    ULONG NetworkReceiveCount;
+    ULONG NetworkSendCount;
+
+    ULONG DiskReadRaw;
+    ULONG DiskWriteRaw;
+    ULONG NetworkReceiveRaw;
+    ULONG NetworkSendRaw;
+
+    PH_UINT32_DELTA DiskReadDelta;
+    PH_UINT32_DELTA DiskReadRawDelta;
+    PH_UINT32_DELTA DiskWriteDelta;
+    PH_UINT32_DELTA DiskWriteRawDelta;
+    PH_UINT32_DELTA NetworkReceiveDelta;
+    PH_UINT32_DELTA NetworkReceiveRawDelta;
+    PH_UINT32_DELTA NetworkSendDelta;
+    PH_UINT32_DELTA NetworkSendRawDelta;
+
+    PH_QUEUED_LOCK TextCacheLock;
+    PPH_STRING TextCache[ETPRTNC_MAXIMUM + 1];
+    BOOLEAN TextCacheValid[ETPRTNC_MAXIMUM + 1];
+} ET_PROCESS_BLOCK, *PET_PROCESS_BLOCK;
+
+typedef struct _ET_NETWORK_BLOCK
+{
+    LIST_ENTRY ListEntry;
+    PPH_NETWORK_ITEM NetworkItem;
+
+    ULONG ReceiveCount;
+    ULONG SendCount;
+    ULONG ReceiveRaw;
+    ULONG SendRaw;
+
+    union
+    {
+        struct
+        {
+            PH_UINT32_DELTA ReceiveDelta;
+            PH_UINT32_DELTA ReceiveRawDelta;
+            PH_UINT32_DELTA SendDelta;
+            PH_UINT32_DELTA SendRawDelta;
+        };
+        PH_UINT32_DELTA Deltas[4];
+    };
+
+    ET_FIREWALL_STATUS FirewallStatus;
+    BOOLEAN FirewallStatusValid;
+
+    PH_QUEUED_LOCK TextCacheLock;
+    PPH_STRING TextCache[ETNETNC_MAXIMUM + 1];
+    BOOLEAN TextCacheValid[ETNETNC_MAXIMUM + 1];
+} ET_NETWORK_BLOCK, *PET_NETWORK_BLOCK;
+
+PET_PROCESS_BLOCK EtGetProcessBlock(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+PET_NETWORK_BLOCK EtGetNetworkBlock(
+    __in PPH_NETWORK_ITEM NetworkItem
     );
 
 #endif

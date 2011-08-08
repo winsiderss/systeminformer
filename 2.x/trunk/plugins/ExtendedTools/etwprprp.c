@@ -28,7 +28,7 @@
 typedef struct _ET_DISKNET_CONTEXT
 {
     HWND WindowHandle;
-    PET_PROCESS_ETW_BLOCK Block;
+    PET_PROCESS_BLOCK Block;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     BOOLEAN Enabled;
 } ET_DISKNET_CONTEXT, *PET_DISKNET_CONTEXT;
@@ -76,7 +76,7 @@ VOID EtpUpdateDiskNetworkInfo(
     __in PET_DISKNET_CONTEXT Context
     )
 {
-    PET_PROCESS_ETW_BLOCK block = Context->Block;
+    PET_PROCESS_BLOCK block = Context->Block;
 
     SetDlgItemText(hwndDlg, IDC_ZREADS_V, PhaFormatUInt64(block->DiskReadCount, TRUE)->Buffer);
     SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhaFormatSize(block->DiskReadRawDelta.Value, -1)->Buffer);
@@ -121,7 +121,7 @@ INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(
             context = PhAllocate(sizeof(ET_DISKNET_CONTEXT));
             propPageContext->Context = context;
             context->WindowHandle = hwndDlg;
-            context->Block = EtGetProcessEtwBlock(processItem);
+            context->Block = EtGetProcessBlock(processItem);
             context->Enabled = TRUE;
 
             PhRegisterCallback(
