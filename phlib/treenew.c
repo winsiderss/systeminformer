@@ -5911,7 +5911,7 @@ VOID PhTnpDragSelect(
             aboveOrBelow = cursorPoint.y < windowRect.top || cursorPoint.y >= windowRect.bottom;
 
             if ((Context->VScrollVisible && aboveOrBelow && PhTnpCanScroll(Context, FALSE, cursorPoint.y >= windowRect.bottom)) ||
-                (Context->HScrollVisible && leftOrRight && PhTnpCanScroll(Context, FALSE, cursorPoint.x >= windowRect.right)))
+                (Context->HScrollVisible && leftOrRight && PhTnpCanScroll(Context, TRUE, cursorPoint.x >= windowRect.right)))
             {
                 SetCursorPos(cursorPoint.x, cursorPoint.y);
             }
