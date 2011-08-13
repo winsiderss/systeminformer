@@ -16,6 +16,11 @@
 #include "Urlmon.h"
 #include "mxml.h"
 #include <Wincrypt.h>
+#include <stdio.h>
+#include <windows.h>
+#include <Wincrypt.h>
+
+#define MD5LEN  16
 
 #define BUFFER_LEN 512
 #define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
@@ -25,6 +30,7 @@
 extern PPH_PLUGIN PluginInstance;
 #endif
 
+static HANDLE dlFile;
 static PPH_HASH_CONTEXT hashCtx;
 static BOOL Install = FALSE;
 static HINTERNET initialize, connection, file;
