@@ -22,36 +22,19 @@
 
 #include "updater.h"
 
-VOID DisposeHandles()
-{
-	if (file)
-		InternetCloseHandle(file);
-
-	if (connection)
-		InternetCloseHandle(connection);
-
-	if (initialize)
-		InternetCloseHandle(initialize);
-
-	//if (remoteVersion)
-		//PhDereferenceObject(remoteVersion);
-
-	//if (localFilePath)
-		//PhDereferenceObject(localFilePath);
-}
-
-
-static NTSTATUS WorkerThreadStart(__in PVOID Parameter)
+static NTSTATUS WorkerThreadStart(
+	__in PVOID Parameter
+	)
 {
 	LONG result;
 	DWORD dwBytes;
-	CHAR buf[1024];
 	mxml_node_t *xmlNode;
 	PPH_STRING local;
-	HINTERNET initialize, connection, file;
 
 	HWND hwndDlg = (HWND)Parameter;
 	local = PhGetPhVersion();
+
+	DisposeHandles();
 
 	// Initialize the wininet library.
 	initialize = InternetOpen(
@@ -89,92 +72,98 @@ static NTSTATUS WorkerThreadStart(__in PVOID Parameter)
 	// Send the HTTP request.
 	if (HttpSendRequest(file, NULL, 0, NULL, 0))
 	{
-		memset(buf, 0, sizeof(buf));
+		DWORD dwContentLen = 0;
+		DWORD dwBufLen = sizeof(dwContentLen);
+		DWORD dwBytesRead = 0, dwBytesWritten = 0;
+		INT xPercent = 0;
 
-		// Read the resulting xml into our buffer.
-		while (InternetReadFile(file, &buf, sizeof(buf), &dwBytes))
+		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
-			if (dwBytes == 0)
+			char *buffer = (char*)PhAllocate(BUFFER_LEN);
+
+			// Read the resulting xml into our buffer.
+			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytes))
 			{
-				// We're done.
+				if (dwBytes == 0)
+				{
+					// We're done.
+					break;
+				}
+			}
+
+
+
+			// Check our buffer (dont know if this is correct)
+			if (buffer == NULL || strlen(buffer) == 0)
+				return STATUS_FILE_CORRUPT_ERROR;
+
+			// Load our XML.
+			xmlNode = mxmlLoadString(NULL, buffer, MXML_NO_CALLBACK); // MXML_OPAQUE_CALLBACK
+
+			// Check our XML.
+			if (xmlNode->type != MXML_ELEMENT)
+			{
+				mxmlDelete(xmlNode);
+
+				return STATUS_FILE_CORRUPT_ERROR;
+			}
+
+			// Find the ver node.
+			xmlNode = mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
+
+			// create a PPH_STRING from our ANSI node.
+			remoteVersion = PhCreateStringFromAnsi(xmlNode->child->value.text.string);
+
+			// Compare our version strings (You can replace local->Buffer or remoteVersion->Buffer with say L"2.10" for testing).
+			result = PhCompareUnicodeStringZNatural(remoteVersion->Buffer, L"2.10", TRUE);
+
+			switch (result)
+			{
+			case 1:
+				{
+					PPH_STRING summaryText = PhFormatString(L"Process Hacker %s is available.", remoteVersion->Buffer);
+
+					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);
+					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+					PhDereferenceObject(summaryText);
+				}
+				break;
+			case 0:
+				{
+					PPH_STRING summaryText = PhFormatString(L"You're running the latest version: %s", remoteVersion->Buffer);
+
+					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+					PhDereferenceObject(summaryText);
+				}
+				break;
+			case -1:
+				{
+					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
+
+					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+					PhDereferenceObject(summaryText);
+				}
+				break;
+			default:
+				{
+					OutputDebugString(L"PH Update Check: Unknown Result.");
+				}
 				break;
 			}
 		}
 	}
 	else
 	{
-		InternetCloseHandle(file);
-		InternetCloseHandle(connection);
-		InternetCloseHandle(initialize);
+		DisposeHandles();
 
-		// we return NTSTATUS codes for our thread, return the last win32 error as one.
 		return PhGetLastWin32ErrorAsNtStatus();
-	}
-
-	// Check our buffer (dont know if this is correct)
-	if (buf == NULL || strlen(buf) == 0)
-		return STATUS_FILE_CORRUPT_ERROR;
-
-	// Load our XML.
-	xmlNode = mxmlLoadString(NULL, buf, MXML_NO_CALLBACK); // MXML_OPAQUE_CALLBACK
-
-	// Check our XML.
-	if (xmlNode->type != MXML_ELEMENT)
-	{
-		mxmlDelete(xmlNode);
-
-		return STATUS_FILE_CORRUPT_ERROR;
-	}
-
-	// Find the ver node.
-	xmlNode = mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
-
-	// create a PPH_STRING from our ANSI node.
-	remoteVersion = PhCreateStringFromAnsi(xmlNode->child->value.text.string);
-
-	// Compare our version strings (You can replace local->Buffer or remoteVersion->Buffer with say L"2.10" for testing).
-	result = PhCompareUnicodeStringZNatural(remoteVersion->Buffer, L"2.10", TRUE);
-
-	switch (result)
-	{
-	case 1:
-		{
-			PPH_STRING summaryText = PhFormatString(L"Process Hacker %s is available.", remoteVersion->Buffer);
-						
-			ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-			PhDereferenceObject(summaryText);
-		}
-		break;
-	case 0:
-		{
-			PPH_STRING summaryText = PhFormatString(L"You're running the latest version: %s", remoteVersion->Buffer);
-
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-			PhDereferenceObject(summaryText);
-		}
-		break;
-	case -1:
-		{
-			PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
-
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-			PhDereferenceObject(summaryText);
-		}
-		break;
-	default:
-		{
-			OutputDebugString(L"PH Update Check: Unknown Result.");
-		}
-		break;
 	}
 
 	PhDereferenceObject(local);
 
-	/*close file , terminate server connection and deinitialize the wininet library*/
 	DisposeHandles();
 
 	return STATUS_SUCCESS;
@@ -189,6 +178,8 @@ static NTSTATUS DownloadWorkerThreadStart(
     TCHAR lpTempPathBuffer[MAX_PATH];
 	HWND hwndDlg = (HWND)Parameter;
 	HWND hwndProgress = GetDlgItem(hwndDlg,IDC_PROGRESS1);
+
+	DisposeHandles();
 
 	ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);
 	
@@ -268,7 +259,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
-			char statusText[32];
 			char *buffer = (char*)PhAllocate(BUFFER_LEN);
 			DWORD dwTotalReadSize = 0;
 
@@ -288,10 +278,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				PostMessage(hwndProgress, PBM_SETPOS, xPercent, 0);
 				{
-					// Begin ugly code that needs to be rewritten.
-					PPH_STRING str;
-					sprintf(statusText, "Downloaded: %d%%", xPercent);
-					str = PhCreateStringFromAnsi(statusText);
+					PPH_STRING str = PhFormatString(L"Downloaded: %d%%", xPercent);
 
 					SetDlgItemText(hwndDlg, IDC_STATUS, str->Buffer);
 
@@ -318,6 +305,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 		else
 		{
 			// DWORD err = GetLastError();
+
 			// No content length...impossible to calculate % complete so just read until we are done.
 			DWORD dwBytesRead = 0;
 			DWORD dwBytesWritten = 0;
@@ -333,8 +321,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					OutputDebugString(L"WriteFile failed");
-					return PhGetLastWin32ErrorAsNtStatus();
+					NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
+
+					LogEvent(L"WriteFile failed %s", result);
+
+					return result;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
@@ -349,14 +340,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 	}
 	else
 	{
-		//OutputDebugString(L"HttpSendRequest failed");
+		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
 
-		PPH_STRING str = PhFormatString(L"HttpSendRequest failed %s", PhGetLastWin32ErrorAsNtStatus());
+		LogEvent(L"HttpSendRequest failed %s", result);
 
-		PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
-
-		// we return NTSTATUS codes for our thread, return the last win32 error as one.
-		return PhGetLastWin32ErrorAsNtStatus();
+		return result;
 	}
 
 	if (dlFile)
@@ -390,12 +378,9 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 			Install = FALSE;
 		}
 		break;
-	case WM_CLOSE:
 	case WM_DESTROY:
 		{
 			DisposeHandles();
-
-			EndDialog(hwndDlg, IDOK);
 		}
 		break;
 	case WM_COMMAND:
@@ -441,7 +426,6 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 	return FALSE;
 }
 
-
 BOOL PhInstalledUsingSetup() 
 {
 	LONG result;
@@ -457,4 +441,33 @@ BOOL PhInstalledUsingSetup()
 		return FALSE;
 	
 	return TRUE;
+}
+
+VOID LogEvent(__in __format_string PWSTR Format, __in __format_string PWSTR extra)
+{
+	PPH_STRING msgString = PhFormatString(Format, extra);
+
+	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, msgString);
+
+	OutputDebugString(msgString->Buffer);
+
+	PhDereferenceObject(msgString);
+}
+
+VOID DisposeHandles()
+{
+	if (file)
+		InternetCloseHandle(file);
+
+	if (connection)
+		InternetCloseHandle(connection);
+
+	if (initialize)
+		InternetCloseHandle(initialize);
+
+	//if (remoteVersion)
+		//PhDereferenceObject(remoteVersion);
+
+	//if (localFilePath)
+		//PhDereferenceObject(localFilePath);
 }
