@@ -1020,6 +1020,8 @@ VOID PhInitializeTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data
     )
 {
+    PPH_EMENU_ITEM sizeColumnToFitMenuItem;
+    PPH_EMENU_ITEM sizeAllColumnsToFitMenuItem;
     PPH_EMENU_ITEM hideColumnMenuItem;
     PPH_EMENU_ITEM chooseColumnsMenuItem;
 
@@ -1027,10 +1029,21 @@ VOID PhInitializeTreeNewColumnMenu(
     Data->Selection = NULL;
     Data->ProcessedId = 0;
 
+    sizeColumnToFitMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_SIZE_COLUMN_TO_FIT_ID, L"Size Column to Fit", NULL, NULL);
+    sizeAllColumnsToFitMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_SIZE_ALL_COLUMNS_TO_FIT_ID, L"Size All Columns to Fit", NULL, NULL);
     hideColumnMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_HIDE_COLUMN_ID, L"Hide Column", NULL, NULL);
     chooseColumnsMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID, L"Choose Columns...", NULL, NULL);
+
+    PhInsertEMenuItem(Data->Menu, sizeColumnToFitMenuItem, -1);
+    PhInsertEMenuItem(Data->Menu, sizeAllColumnsToFitMenuItem, -1);
     PhInsertEMenuItem(Data->Menu, hideColumnMenuItem, -1);
+    PhInsertEMenuItem(Data->Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
     PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, -1);
+
+    if (!Data->MouseEvent || !Data->MouseEvent->Column)
+    {
+        sizeColumnToFitMenuItem->Flags |= PH_EMENU_DISABLED;
+    }
 
     if (!Data->MouseEvent || !Data->MouseEvent->Column ||
         Data->MouseEvent->Column->Fixed || // don't allow the fixed column to be hidden
@@ -1115,6 +1128,29 @@ BOOLEAN PhHandleTreeNewColumnMenu(
 
     switch (Data->Selection->Id)
     {
+    case PH_TN_COLUMN_MENU_SIZE_COLUMN_TO_FIT_ID:
+        {
+            if (Data->MouseEvent && Data->MouseEvent->Column)
+            {
+                TreeNew_AutoSizeColumn(Data->TreeNewHandle, Data->MouseEvent->Column->Id);
+            }
+        }
+        break;
+    case PH_TN_COLUMN_MENU_SIZE_ALL_COLUMNS_TO_FIT_ID:
+        {
+            ULONG maxId;
+            ULONG id;
+
+            maxId = TreeNew_GetMaxId(Data->TreeNewHandle);
+            id = 0;
+
+            while (id <= maxId)
+            {
+                TreeNew_AutoSizeColumn(Data->TreeNewHandle, id);
+                id++;
+            }
+        }
+        break;
     case PH_TN_COLUMN_MENU_HIDE_COLUMN_ID:
         {
             PH_TREENEW_COLUMN column;
