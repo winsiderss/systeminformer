@@ -55,7 +55,6 @@ static NTSTATUS WorkerThreadStart(
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
 			char *buffer = (char*)PhAllocate(BUFFER_LEN);
-			PPH_STRING summaryText;
 			// Read the resulting xml into our buffer.
 			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytes))
 			{
@@ -84,7 +83,7 @@ static NTSTATUS WorkerThreadStart(
 			// Find the size node.
 			xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
 
-			result = VersionParser("2.10", "2.20");
+			result = VersionParser("2.00", "2.10");
 
 			switch (result)
 			{
@@ -112,29 +111,46 @@ static NTSTATUS WorkerThreadStart(
 
 					PhDereferenceObject(summaryText);
 
-					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);
+					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);			
+					// Enable the IDC_RELDATE text
+					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
+					// Enable the IDC_SIZE text
+					ShowWindow(GetDlgItem(hwndDlg, IDC_SIZE), SW_SHOW);
 				}
 				break;
 			case 0:
-				{
-					PPH_STRING summaryText = PhFormatString(L"You're running the latest version: %s", remoteVersion->Buffer);
+				{	
+					PPH_STRING summaryText;
+					// create a PPH_STRING from our ANSI node.
+					summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+					summaryText = PhFormatString(L"You're running the latest version: %s", summaryText->Buffer);
+
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
 					PhDereferenceObject(summaryText);
+
+					// Enable the Download/Install button
+					EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
 				}
 				break;
 			case -1:
-				{
-					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
+				{	
+					PPH_STRING summaryText;
+					// create a PPH_STRING from our ANSI node.
+					summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+					summaryText = PhFormatString(L"You're running a newer version: %s", summaryText->Buffer);
+
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
 					PhDereferenceObject(summaryText);
 				}
 				break;
 			default:
-				{	
-					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
-					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+				{			
+					PPH_STRING summaryText;
+					// create a PPH_STRING from our ANSI node.
+					summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+					summaryText = PhFormatString(L"You're running a newer version: %s", summaryText->Buffer);
 				
 					PhDereferenceObject(summaryText);
 
@@ -200,7 +216,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	if (dlFile == INVALID_HANDLE_VALUE)
 	{
-		return PhGetLastWin32ErrorAsNtStatus();
+		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
+
+		LogEvent(PhFormatString(TEXT("Updater: GetTempPath failed (%d)"), result));
+
+		return result;
 	}
 
 	SetDlgItemText(hwndDlg, IDC_STATUS, L"Connecting");
@@ -367,10 +387,8 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 						// Enable the progressbar
 						ShowWindow(GetDlgItem(hwndDlg, IDC_PROGRESS1), SW_SHOW);
 			            // Enable the status text
-						ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);
-						// Enable the Download/Install button
-						EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
-	
+						ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);					    
+						
 						SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
 
 						PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
@@ -445,7 +463,6 @@ VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
 	}
 }
-
 
 INT VersionParser(char* version1, char* version2) 
 {

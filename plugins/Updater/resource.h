@@ -18,7 +18,9 @@
 #define IDC_DISPLAYSTYLECOMBO           1004
 #define IDC_MESSAGE2                    1005
 #define IDC_DISPLAYSTYLETEXT            1005
+#define IDC_RELDATE                     1005
 #define IDC_MESSAGE3                    1006
+#define IDC_SIZE                        1006
 #define IDC_SYSLINK1                    1007
 #define IDC_EDIT1                       1008
 
