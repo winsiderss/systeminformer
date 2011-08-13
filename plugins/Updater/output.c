@@ -22,13 +22,20 @@
 
 #include "updater.h"
 
+mxml_type_t PhpSettingsLoadCallback(
+    __in mxml_node_t *node
+    )
+{
+    return MXML_OPAQUE;
+}
+
 static NTSTATUS WorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
 	int result;
 	DWORD dwBytes;
-	mxml_node_t *xmlNode;
+	mxml_node_t *xmlNode, *xmlNode2, *xmlNode3, *xmlNode4;
 	PPH_STRING local;
 	DWORD dwContentLen = 0;				
 	int xPercent = 0;	
@@ -40,38 +47,7 @@ static NTSTATUS WorkerThreadStart(
 
 	local = PhGetPhVersion();
 
-	// Initialize the wininet library.
-	initialize = InternetOpen(
-		L"PH Updater", // user-agent
-		INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration	 
-		NULL, 
-		NULL, 
-		0
-		);
-
-	// Connect to the server.
-	connection = InternetConnect(
-		initialize,
-		L"processhacker.sourceforge.net", 
-		INTERNET_DEFAULT_HTTP_PORT,
-		NULL, 
-		NULL, 
-		INTERNET_SERVICE_HTTP, 
-		0, 
-		0
-		);
-
-	// Open the HTTP request.
-	file = HttpOpenRequest(
-		connection, 
-		NULL, 
-		L"/updater.php", 
-		NULL, 
-		NULL, 
-		NULL, 
-		INTERNET_FLAG_DONT_CACHE, // Specify this flag here to disable Internet* API caching.
-		0
-		);
+	InitializeConnection(FALSE, L"processhacker.sourceforge.net", L"/updater.php");
 
 	// Send the HTTP request.
 	if (HttpSendRequest(file, NULL, 0, NULL, 0))
@@ -79,7 +55,7 @@ static NTSTATUS WorkerThreadStart(
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
 			char *buffer = (char*)PhAllocate(BUFFER_LEN);
-
+			PPH_STRING summaryText;
 			// Read the resulting xml into our buffer.
 			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytes))
 			{
@@ -91,7 +67,7 @@ static NTSTATUS WorkerThreadStart(
 			}
 
 			// Load our XML.
-			xmlNode = mxmlLoadString(NULL, buffer, MXML_NO_CALLBACK); // MXML_OPAQUE_CALLBACK
+			xmlNode = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
 
 			// Check our XML.
 			if (xmlNode->type != MXML_ELEMENT)
@@ -102,13 +78,11 @@ static NTSTATUS WorkerThreadStart(
 			}
 
 			// Find the ver node.
-			xmlNode = mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
-
-			// create a PPH_STRING from our ANSI node.
-			remoteVersion = PhCreateStringFromAnsi(xmlNode->child->value.text.string);
-
-			// Compare our version strings (You can replace local->Buffer or remoteVersion->Buffer with say L"2.10" for testing).
-			//result = PhCompareUnicodeStringZNatural(remoteVersion->Buffer, L"2.10", TRUE); xmlNode->child->value.text.string
+			xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
+			// Find the reldate node.
+			xmlNode3 = mxmlFindElement(xmlNode, xmlNode, "reldate", NULL, NULL, MXML_DESCEND);
+			// Find the size node.
+			xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
 
 			result = VersionParser("2.10", "2.20");
 
@@ -116,13 +90,29 @@ static NTSTATUS WorkerThreadStart(
 			{
 			case 1:
 				{
-					PPH_STRING summaryText = PhFormatString(L"Process Hacker %s is available.", remoteVersion->Buffer);
-
-					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);
-					
+					PPH_STRING summaryText;
+					// create a PPH_STRING from our ANSI node.
+					summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+					summaryText = PhFormatString(L"Process Hacker %s is available.", summaryText->Buffer);
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
 					PhDereferenceObject(summaryText);
+
+					// create a PPH_STRING from our ANSI node.
+					summaryText = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);	
+					summaryText = PhFormatString(L"Released: %s", summaryText->Buffer);
+					SetDlgItemText(hwndDlg, IDC_MESSAGE2, summaryText->Buffer);
+					
+					PhDereferenceObject(summaryText);
+
+					// create a PPH_STRING from our ANSI node.
+					summaryText = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);	
+					summaryText = PhFormatString(L"Size: %s", summaryText->Buffer);
+					SetDlgItemText(hwndDlg, IDC_MESSAGE3, summaryText->Buffer);
+
+					PhDereferenceObject(summaryText);
+
+					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);
 				}
 				break;
 			case 0:
@@ -189,45 +179,14 @@ static NTSTATUS DownloadWorkerThreadStart(
 	{
 		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
 
-		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", result));
+		LogEvent(PhFormatString(TEXT("Updater: GetTempPath failed (%d)"), result));
 
 		return result;
 	}	
 
 	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
 
-	// Initialize the wininet library.
-	initialize = InternetOpen(
-		L"PH Updater", // user-agent
-		INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration	 
-		NULL, 
-		NULL, 
-		0
-		);
-
-	// Connect to the server.
-	connection = InternetConnect(
-		initialize,
-		L"sourceforge.net", 
-		INTERNET_DEFAULT_HTTP_PORT,
-		NULL, 
-		NULL, 
-		INTERNET_SERVICE_HTTP, 
-		0, 
-		0
-		);
-	
-	// Open the HTTP request.
-	file = HttpOpenRequest(
-		connection, 
-		NULL, 
-		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download", 
-		NULL, 
-		NULL, 
-		NULL, 
-		0, //INTERNET_FLAG_DONT_CACHE, // Specify this flag here to disable Internet* API caching.
-		0
-		);
+	InitializeConnection(FALSE, L"sourceforge.net", L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download");
 
 	// Open output file
 	dlFile = CreateFile(
@@ -273,27 +232,32 @@ static NTSTATUS DownloadWorkerThreadStart(
 				dwTotalReadSize += dwBytesRead;
 				xPercent = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
 
-				PostMessage(hwndProgress, PBM_SETPOS, xPercent, 0);
+				SendMessage(hwndProgress, PBM_SETPOS, xPercent, 0);
 				{
-					PPH_STRING str = PhFormatString(L"Downloaded: %d%%", xPercent);
-					
+					PPH_STRING str;
+					PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
+					PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+
+					str = PhFormatString(L"Downloaded: %d%% (%s)", xPercent, dlCurrent->Buffer);
+
 					SetDlgItemText(hwndDlg, IDC_STATUS, str->Buffer);
 
 					PhDereferenceObject(str);
+					PhDereferenceObject(dlCurrent);
+					PhDereferenceObject(dlLength);
 				}
+
+				Sleep(5);
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
-
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed %s", result));
-
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
 					break;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
-				{
-					// File write error
+				{	
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile dwBytesRead != dwBytesWritte (%d)", PhGetLastWin32ErrorAsNtStatus()));
 					break;                
 				}
 
@@ -320,9 +284,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
-
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed %s", result));
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
 
 					break;
 				}
@@ -341,7 +303,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 	{
 		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
 
-		LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed %d", result));
+		LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)", result));
 
 		return result;
 	}
@@ -435,6 +397,58 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 	return FALSE;
 }
 
+VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
+{
+		// Initialize the wininet library.
+	initialize = InternetOpen(
+		L"PH Updater", // user-agent
+		INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration	 
+		NULL, 
+		NULL, 
+		0
+		);
+
+	if (!initialize)
+	{
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+	}
+
+	// Connect to the server.
+	connection = InternetConnect(
+		initialize,
+		host, 
+		INTERNET_DEFAULT_HTTP_PORT,
+		NULL, 
+		NULL, 
+		INTERNET_SERVICE_HTTP, 
+		0, 
+		0
+		);
+
+	if (!connection)
+	{
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+	}
+	
+	// Open the HTTP request.
+	file = HttpOpenRequest(
+		connection, 
+		NULL, 
+		path, 
+		NULL, 
+		NULL, 
+		NULL, 
+		useCache ? INTERNET_FLAG_DONT_CACHE : 0, // Specify this flag here to disable Internet* API caching.
+		0
+		);
+
+	if (!file)
+	{
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+	}
+}
+
+
 INT VersionParser(char* version1, char* version2) 
 {
 	INT i = 0, a1 = 0, b1 = 0, ret = 0;
@@ -486,7 +500,7 @@ BOOL PhInstalledUsingSetup()
 	return TRUE;
 }
 
-VOID LogEvent(__in PPH_STRING str)
+VOID LogEvent(PPH_STRING str)
 {
 	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
 	

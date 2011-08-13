@@ -14,7 +14,7 @@
 #include <windows.h>
 #include <wininet.h>
 #include "Urlmon.h"
-#include "../../ProcessHacker/mxml/mxml.h"
+#include "mxml.h"
 #include <Wincrypt.h>
 
 #define BUFFER_LEN 512
@@ -25,6 +25,7 @@
 extern PPH_PLUGIN PluginInstance;
 #endif
 
+static PPH_HASH_CONTEXT hashCtx;
 static BOOL Install = FALSE;
 static HINTERNET initialize, connection, file;
 static PPH_STRING remoteVersion;
@@ -71,5 +72,7 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path);
 
 #endif
