@@ -792,12 +792,24 @@ VOID UpdateStatusBar()
             case STATUS_MAXCPUPROCESS:
                 if (statistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(statistics.MaxCpuProcessId)))
                 {
-                    text[count] = PhFormatString(
-                        L"%s (%u): %.2f%%",
-                        processItem->ProcessName->Buffer,
-                        (ULONG)processItem->ProcessId,
-                        processItem->CpuUsage * 100
-                        );
+                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                    {
+                        text[count] = PhFormatString(
+                            L"%s (%u): %.2f%%",
+                            processItem->ProcessName->Buffer,
+                            (ULONG)processItem->ProcessId,
+                            processItem->CpuUsage * 100
+                            );
+                    }
+                    else
+                    {
+                        text[count] = PhFormatString(
+                            L"%s: %.2f%%",
+                            processItem->ProcessName->Buffer,
+                            processItem->CpuUsage * 100
+                            );
+                    }
+
                     PhDereferenceObject(processItem);
                 }
                 else
@@ -812,12 +824,24 @@ VOID UpdateStatusBar()
             case STATUS_MAXIOPROCESS:
                 if (statistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(statistics.MaxIoProcessId)))
                 {
-                    text[count] = PhFormatString(
-                        L"%s (%u): %s",
-                        processItem->ProcessName->Buffer,
-                        (ULONG)processItem->ProcessId,
-                        PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
-                        );
+                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                    {
+                        text[count] = PhFormatString(
+                            L"%s (%u): %s",
+                            processItem->ProcessName->Buffer,
+                            (ULONG)processItem->ProcessId,
+                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                            );
+                    }
+                    else
+                    {
+                        text[count] = PhFormatString(
+                            L"%s: %s",
+                            processItem->ProcessName->Buffer,
+                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                            );
+                    }
+
                     PhDereferenceObject(processItem);
                 }
                 else
