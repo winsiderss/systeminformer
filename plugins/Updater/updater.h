@@ -30,7 +30,11 @@ static PPH_STRING localFilePath;
 extern PPH_PLUGIN PluginInstance;
 #endif
 
+VOID DisposeHandles();
 BOOL PhInstalledUsingSetup();
+
+VOID LogEvent(__in __format_string PWSTR Format,
+    ...);
 
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
