@@ -284,7 +284,7 @@ VOID PhSearchMemoryString(
                 byte = buffer[i];
                 printable = PhCharIsPrintable[byte];
 
-                // To find strings Process Hacker uses a small state machine.
+                // To find strings Process Hacker uses a state table.
                 // * byte2 - byte before previous byte
                 // * byte1 - previous byte
                 // * byte - current byte
