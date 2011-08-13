@@ -26,15 +26,19 @@ static NTSTATUS WorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	LONG result;
+	int result;
 	DWORD dwBytes;
 	mxml_node_t *xmlNode;
 	PPH_STRING local;
-
+	DWORD dwContentLen = 0;				
+	int xPercent = 0;	
+	DWORD dwBufLen = sizeof(BUFFER_LEN);
+	DWORD dwBytesRead = 0, dwBytesWritten = 0;
 	HWND hwndDlg = (HWND)Parameter;
-	local = PhGetPhVersion();
-
+	
 	DisposeHandles();
+
+	local = PhGetPhVersion();
 
 	// Initialize the wininet library.
 	initialize = InternetOpen(
@@ -72,11 +76,6 @@ static NTSTATUS WorkerThreadStart(
 	// Send the HTTP request.
 	if (HttpSendRequest(file, NULL, 0, NULL, 0))
 	{
-		DWORD dwContentLen = 0;
-		DWORD dwBufLen = sizeof(dwContentLen);
-		DWORD dwBytesRead = 0, dwBytesWritten = 0;
-		INT xPercent = 0;
-
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
 			char *buffer = (char*)PhAllocate(BUFFER_LEN);
@@ -90,12 +89,6 @@ static NTSTATUS WorkerThreadStart(
 					break;
 				}
 			}
-
-
-
-			// Check our buffer (dont know if this is correct)
-			if (buffer == NULL || strlen(buffer) == 0)
-				return STATUS_FILE_CORRUPT_ERROR;
 
 			// Load our XML.
 			xmlNode = mxmlLoadString(NULL, buffer, MXML_NO_CALLBACK); // MXML_OPAQUE_CALLBACK
@@ -115,7 +108,9 @@ static NTSTATUS WorkerThreadStart(
 			remoteVersion = PhCreateStringFromAnsi(xmlNode->child->value.text.string);
 
 			// Compare our version strings (You can replace local->Buffer or remoteVersion->Buffer with say L"2.10" for testing).
-			result = PhCompareUnicodeStringZNatural(remoteVersion->Buffer, L"2.10", TRUE);
+			//result = PhCompareUnicodeStringZNatural(remoteVersion->Buffer, L"2.10", TRUE); xmlNode->child->value.text.string
+
+			result = VersionParser("2.10", "2.20");
 
 			switch (result)
 			{
@@ -124,6 +119,7 @@ static NTSTATUS WorkerThreadStart(
 					PPH_STRING summaryText = PhFormatString(L"Process Hacker %s is available.", remoteVersion->Buffer);
 
 					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);
+					
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
 					PhDereferenceObject(summaryText);
@@ -132,7 +128,6 @@ static NTSTATUS WorkerThreadStart(
 			case 0:
 				{
 					PPH_STRING summaryText = PhFormatString(L"You're running the latest version: %s", remoteVersion->Buffer);
-
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
 					PhDereferenceObject(summaryText);
@@ -141,15 +136,19 @@ static NTSTATUS WorkerThreadStart(
 			case -1:
 				{
 					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
-
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
 					PhDereferenceObject(summaryText);
 				}
 				break;
 			default:
-				{
-					OutputDebugString(L"PH Update Check: Unknown Result.");
+				{	
+					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
+					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+				
+					PhDereferenceObject(summaryText);
+
+					LogEvent(L"Updater: Update check unknown result: %s", result);
 				}
 				break;
 			}
@@ -157,14 +156,16 @@ static NTSTATUS WorkerThreadStart(
 	}
 	else
 	{
+		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
+
 		DisposeHandles();
 
-		return PhGetLastWin32ErrorAsNtStatus();
+		LogEvent(L"Updater: HttpSendRequest failed (%d)", status);
+
+		return status;
 	}
 
 	PhDereferenceObject(local);
-
-	DisposeHandles();
 
 	return STATUS_SUCCESS;
 }
@@ -181,20 +182,16 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	DisposeHandles();
 
-	ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);
-	
-	SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
-
-	PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
-	PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
-
 	// Get the temp path env string (no guarantee it's a valid path).
 	dwRetVal = GetTempPath(MAX_PATH, lpTempPathBuffer);
 
 	if (dwRetVal > MAX_PATH || dwRetVal == 0)
 	{
-		OutputDebugString(L"GetTempPath failed");
-		return PhGetLastWin32ErrorAsNtStatus();
+		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
+
+		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", result));
+
+		return result;
 	}	
 
 	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
@@ -228,7 +225,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 		NULL, 
 		NULL, 
 		NULL, 
-		INTERNET_FLAG_DONT_CACHE, // Specify this flag here to disable Internet* API caching.
+		0, //INTERNET_FLAG_DONT_CACHE, // Specify this flag here to disable Internet* API caching.
 		0
 		);
 
@@ -279,7 +276,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 				PostMessage(hwndProgress, PBM_SETPOS, xPercent, 0);
 				{
 					PPH_STRING str = PhFormatString(L"Downloaded: %d%%", xPercent);
-
+					
 					SetDlgItemText(hwndDlg, IDC_STATUS, str->Buffer);
 
 					PhDereferenceObject(str);
@@ -287,9 +284,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					OutputDebugString(L"WriteFile failed");
-					
-					return PhGetLastWin32ErrorAsNtStatus();
+					NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
+
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed %s", result));
+
+					break;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
@@ -323,9 +322,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 				{
 					NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
 
-					LogEvent(L"WriteFile failed %s", result);
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed %s", result));
 
-					return result;
+					break;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
@@ -342,7 +341,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 	{
 		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
 
-		LogEvent(L"HttpSendRequest failed %s", result);
+		LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed %d", result));
 
 		return result;
 	}
@@ -378,17 +377,15 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 			Install = FALSE;
 		}
 		break;
-	case WM_DESTROY:
-		{
-			DisposeHandles();
-		}
-		break;
 	case WM_COMMAND:
 		{
 			switch (LOWORD(wParam))
 			{
+			case IDCANCEL:
 			case IDOK:
 				{
+					DisposeHandles();
+
 					EndDialog(hwndDlg, IDOK);
 				}
 				break;
@@ -405,16 +402,28 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
 					if (PhInstalledUsingSetup())
 					{	
+						HWND hwndProgress = GetDlgItem(hwndDlg,IDC_PROGRESS1);
+
 						// Enable the progressbar
 						ShowWindow(GetDlgItem(hwndDlg, IDC_PROGRESS1), SW_SHOW);
+			            // Enable the status text
+						ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);
 						// Enable the Download/Install button
 						EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
+	
+						SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
+
+						PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
+						PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
+
 						// Star our Downloader thread
 						PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);   
 					}
 					else
 					{
-						OutputDebugString(L"Key Does Not Exist.\n");
+						NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
+
+						LogEvent(PhFormatString(L"Updater: PhInstalledUsingSetup failed: %d", result));
 					}
 				}
 				break;
@@ -424,6 +433,40 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 	}
 
 	return FALSE;
+}
+
+INT VersionParser(char* version1, char* version2) 
+{
+	INT i = 0, a1 = 0, b1 = 0, ret = 0;
+	size_t a = strlen(version1); 
+	size_t b = strlen(version2);
+
+	if (b > a) 
+		a = b;
+
+	for (i = 0; i < a; i++) 
+	{
+		a1 += version1[i];
+		b1 += version2[i];
+	}
+
+	if (b1 > a1)
+	{
+		// second version is fresher
+		ret = 1; 
+	}
+	else if (b1 == a1) 
+	{
+		// versions is equal
+		ret = 0;
+	}
+	else 
+	{
+		// first version is fresher
+		ret = -1; 
+	}
+
+	return ret;
 }
 
 BOOL PhInstalledUsingSetup() 
@@ -443,15 +486,13 @@ BOOL PhInstalledUsingSetup()
 	return TRUE;
 }
 
-VOID LogEvent(__in __format_string PWSTR Format, __in __format_string PWSTR extra)
+VOID LogEvent(__in PPH_STRING str)
 {
-	PPH_STRING msgString = PhFormatString(Format, extra);
-
-	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, msgString);
-
-	OutputDebugString(msgString->Buffer);
-
-	PhDereferenceObject(msgString);
+	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
+	
+	OutputDebugString(str->Buffer);
+	
+	PhDereferenceObject(str);
 }
 
 VOID DisposeHandles()
