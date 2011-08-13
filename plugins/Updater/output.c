@@ -78,7 +78,7 @@ static NTSTATUS WorkerThreadStart(
 			// Find the size node.
 			xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
 			// Find the sha1 node.
-			xmlNode = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
+			xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
 
 			// create a PPH_STRING from our ANSI node.
 			summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
@@ -114,7 +114,7 @@ static NTSTATUS WorkerThreadStart(
 					// Enable the IDC_RELDATE text
 					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
 					// Enable the IDC_SIZE text
-					ShowWindow(GetDlgItem(hwndDlg, IDC_SIZE), SW_SHOW);
+					ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
 				}
 				break;
 			case 0:
@@ -162,6 +162,12 @@ static NTSTATUS WorkerThreadStart(
 
 		LogEvent(L"Updater: HttpSendRequest failed (%d)", status);
 
+		mxmlDelete(xmlNode);
+		mxmlDelete(xmlNode2);
+		mxmlDelete(xmlNode3);
+		mxmlDelete(xmlNode4);
+		mxmlDelete(xmlNode5);
+
 		DisposeHandles();
 
 		return status;
@@ -201,7 +207,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 	{
 		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
 
-		LogEvent(PhFormatString(TEXT("Updater: GetTempPath failed (%d)"), result));
+		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", result));
 
 		return result;
 	}	
@@ -381,9 +387,9 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 					if (PhInstalledUsingSetup())
 					{	
 						HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
-
+						
 						// Enable the progressbar
-						ShowWindow(GetDlgItem(hwndDlg, IDC_PROGRESS1), SW_SHOW);
+						ShowWindow(hwndProgress, SW_SHOW);
 			            // Enable the status text
 						ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);					    
 						
