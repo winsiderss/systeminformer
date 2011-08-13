@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Mini-XML">
+      <UniqueIdentifier>{5980ea07-62e9-4335-b683-cc44a3eee386}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -20,6 +23,36 @@
     </ClCompile>
     <ClCompile Include="output.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ExtendedServices\options.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-attr.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-entity.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-file.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-index.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-node.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-private.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-search.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-set.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-string.c">
+      <Filter>Mini-XML</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -37,5 +70,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
+    <None Include="resources\sflogo.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

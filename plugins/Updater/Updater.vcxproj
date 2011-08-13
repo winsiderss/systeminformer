@@ -71,7 +71,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)bin\$(Configuration)64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)obj\$(Configuration)64\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)bin\$(Configuration)64\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)bin\$(Configuration)64\plugins\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)obj\$(Configuration)64\</IntDir>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
@@ -170,6 +170,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-attr.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-entity.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-file.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-index.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-node.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-private.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-search.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-set.c" />
+    <ClCompile Include="..\..\ProcessHacker\mxml\mxml-string.c" />
+    <ClCompile Include="..\ExtendedServices\options.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="output.c" />
   </ItemGroup>
