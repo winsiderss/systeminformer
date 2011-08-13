@@ -21,17 +21,24 @@
 #define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
 #define UPDATE_MENUITEM 1
 
+#ifndef MAIN_PRIVATE
+extern PPH_PLUGIN PluginInstance;
+#endif
+
 static BOOL Install = FALSE;
 static HINTERNET initialize, connection, file;
 static PPH_STRING remoteVersion;
 static PPH_STRING localFilePath;
 
-#ifndef MAIN_PRIVATE
-extern PPH_PLUGIN PluginInstance;
-#endif
+PPH_PLUGIN PluginInstance;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 VOID DisposeHandles();
 BOOL PhInstalledUsingSetup();
+
+INT VersionParser(char* version1, char* version2);
 
 VOID LogEvent(__in __format_string PWSTR Format,
     ...);
@@ -46,11 +53,19 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     );
 
-PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+VOID NTAPI ShowOptionsCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
 
 INT_PTR CALLBACK NetworkOutputDlgProc(      
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK OptionsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
