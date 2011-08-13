@@ -1,13 +1,34 @@
 #ifndef NETTOOLS_H
 #define NETTOOLS_H
+#ifndef UNICODE
+#define UNICODE
+#endif
 
-// main
+#pragma comment(lib, "Wininet.lib")
+#pragma comment(lib, "Urlmon.lib")
+#pragma comment(lib, "Advapi32.lib")
+
+#include "phdk.h"
+#include "resource.h"
+#include <stdio.h>
+#include <windows.h>
+#include <wininet.h>
+#include "Urlmon.h"
+#include "../../ProcessHacker/mxml/mxml.h"
+#include <Wincrypt.h>
+
+#define BUFFER_LEN 512
+#define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
+#define UPDATE_MENUITEM 1
+
+static BOOL Install = FALSE;
+static HINTERNET initialize, connection, file;
+static PPH_STRING remoteVersion;
+static PPH_STRING localFilePath;
 
 #ifndef MAIN_PRIVATE
 extern PPH_PLUGIN PluginInstance;
 #endif
-
-#define UPDATE_MENUITEM 1
 
 BOOL PhInstalledUsingSetup();
 
@@ -33,56 +54,3 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     );
 
 #endif
-
-
-
-
-#ifndef UNICODE
-#define UNICODE
-#endif
-
-#include <stdio.h>
-#include <windows.h>
-
-#include <wininet.h>
-#include "Urlmon.h"
-#include "../../ProcessHacker/mxml/mxml.h"
-
-#include <Wincrypt.h>
-
-
-#ifdef DBG
-#define ASYNC_ASSERT(x) \
-    do                  \
-    {                   \
-        if (x)          \
-        {               \
-            break;      \
-        }               \
-        DebugBreak();   \
-    }                   \
-    while (FALSE, FALSE)
-#else
-#define ASYNC_ASSERT(x)
-#endif
-
-#define BUFFER_LEN  4096
-#define ERR_MSG_LEN 512
-
-#define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
-
-#pragma comment(lib, "wininet.lib")
-#pragma comment(lib, "Urlmon.lib")
-#pragma comment(lib, "Advapi32.lib")
-//
-// Structure to store configuration in that was gathered from
-// passed in arguments
-//
-
-typedef struct _CONFIGURATION
-{
-    DWORD Method;                 // Method, GET or POST
-    LPWSTR HostName;              // Host to connect to
-    LPWSTR ResourceOnServer;      // Resource to get from the server
-    LPWSTR OutputFileName;        // File to write the data received from the server
-} CONFIGURATION, *PCONFIGURATION;

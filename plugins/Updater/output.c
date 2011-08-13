@@ -20,16 +20,7 @@
 * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma comment(lib, "Wininet.lib")
-
-#include "phdk.h"
 #include "updater.h"
-#include "resource.h"
-
-static volatile BOOL Install = FALSE;
-static HINTERNET initialize, connection, file;
-static PPH_STRING remoteVersion;
-static PPH_STRING localFilePath;
 
 VOID DisposeHandles()
 {
@@ -98,7 +89,7 @@ static NTSTATUS WorkerThreadStart(__in PVOID Parameter)
 	// Send the HTTP request.
 	if (HttpSendRequest(file, NULL, 0, NULL, 0))
 	{
-		memset(&buf, 0, sizeof(buf));
+		memset(buf, 0, sizeof(buf));
 
 		// Read the resulting xml into our buffer.
 		while (InternetReadFile(file, &buf, sizeof(buf), &dwBytes))
@@ -129,7 +120,11 @@ static NTSTATUS WorkerThreadStart(__in PVOID Parameter)
 
 	// Check our XML.
 	if (xmlNode->type != MXML_ELEMENT)
+	{
+		mxmlDelete(xmlNode);
+
 		return STATUS_FILE_CORRUPT_ERROR;
+	}
 
 	// Find the ver node.
 	xmlNode = mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
@@ -137,18 +132,8 @@ static NTSTATUS WorkerThreadStart(__in PVOID Parameter)
 	// create a PPH_STRING from our ANSI node.
 	remoteVersion = PhCreateStringFromAnsi(xmlNode->child->value.text.string);
 
-	//{
-	//	mxml_node_t *xmlNode2;
-	//	PPH_STRING remote2;
-	//	// Find the ver node.
-	//	xmlNode2 = mxmlFindElement(xmlNode->child, xmlNode, "reldate", NULL, NULL, MXML_DESCEND);
-
-	//	// create a PPH_STRING from our ANSI node.
-	//	remote2 = PhCreateStringFromAnsi(xmlNode->child->value.text.string);
-	//}
-
 	// Compare our version strings (You can replace local->Buffer or remoteVersion->Buffer with say L"2.10" for testing).
-	result = PhCompareUnicodeStringZNatural(L"2.20", L"2.10", TRUE);
+	result = PhCompareUnicodeStringZNatural(remoteVersion->Buffer, L"2.10", TRUE);
 
 	switch (result)
 	{
@@ -284,13 +269,13 @@ static NTSTATUS DownloadWorkerThreadStart(
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
 			char statusText[32];
-			char *buffer = (char*)PhAllocate(dwContentLen + 1);
+			char *buffer = (char*)PhAllocate(BUFFER_LEN);
 			DWORD dwTotalReadSize = 0;
 
 			// Reset Progressbar state.
-			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, ~PBS_MARQUEE);
+			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
 
-			while (InternetReadFile(file, buffer, 1024, &dwBytesRead))
+			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytesRead))
 			{
 				if (dwBytesRead == 0)
 				{
@@ -336,9 +321,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 			// No content length...impossible to calculate % complete so just read until we are done.
 			DWORD dwBytesRead = 0;
 			DWORD dwBytesWritten = 0;
-			char *buffer = (char*)PhAllocate(1024);
+			char *buffer = (char*)PhAllocate(BUFFER_LEN);
 		
-			while (InternetReadFile(file, buffer, 1024, &dwBytesRead))
+			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytesRead))
 			{	
 				if (dwBytesRead == 0)
 				{
@@ -459,28 +444,17 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
 BOOL PhInstalledUsingSetup() 
 {
-	long lRet;
+	LONG result;
 	HKEY hKey;
-	char temp[150];
-	DWORD dwBufLen;
 
-	// Open location
-	lRet = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1", 0, KEY_QUERY_VALUE, &hKey);
+	// Check uninstall entries for the 'Process_Hacker2_is1' registry key.
+	result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1", 0, KEY_QUERY_VALUE, &hKey);
 
-	if (lRet != ERROR_SUCCESS)
-		return FALSE;
-
-	dwBufLen = (DWORD)PhAllocate((SIZE_T)&temp);
-
-	// Get key
-	lRet = RegQueryValueEx( hKey, L"InstallLocation", NULL, NULL, (BYTE*)&temp, &dwBufLen);
-
-	if (lRet != ERROR_SUCCESS)
-		return FALSE;
-
-	// Close key
+	// Cleanup
 	NtClose(hKey);
+
+	if (result != ERROR_SUCCESS)
+		return FALSE;
 	
-	// Got this far, then key exists
 	return TRUE;
 }
