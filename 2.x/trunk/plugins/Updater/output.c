@@ -247,8 +247,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 					PhDereferenceObject(dlLength);
 				}
 
-				Sleep(5);
-
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
