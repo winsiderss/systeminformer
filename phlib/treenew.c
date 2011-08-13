@@ -1838,6 +1838,20 @@ ULONG_PTR PhTnpOnUserMessage(
         return TRUE;
     case TNM_GETVISIBLECOLUMNCOUNT:
         return Context->NumberOfColumnsByDisplay + (Context->FixedColumnVisible ? 1 : 0);
+    case TNM_AUTOSIZECOLUMN:
+        {
+            ULONG id = (ULONG)WParam;
+            PPH_TREENEW_COLUMN column;
+
+            if (!(column = PhTnpLookupColumnById(Context, id)))
+                return FALSE;
+
+            if (!column->Visible)
+                return FALSE;
+
+            PhTnpAutoSizeColumnHeader(Context, column->Fixed ? Context->FixedHeaderHandle : Context->HeaderHandle, column);
+        }
+        return TRUE;
     }
 
     return 0;

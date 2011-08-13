@@ -4,7 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Implemented Properties button for Thread handles
    * Set descending sort as the default for most numeric columns
-   * Added Hide Column to header context menu
+   * Extended header context menu
    * Removed tooltip text truncation
    * Updated ExtendedTools plugin:
      * Added Firewall Status column
