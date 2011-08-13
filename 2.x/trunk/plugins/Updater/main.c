@@ -90,36 +90,36 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
+	__in_opt PVOID Parameter,
+	__in_opt PVOID Context
+	)
 {
-    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+	PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
 
-    switch (menuItem->Id)
-    {
+	switch (menuItem->Id)
+	{
 	case UPDATE_MENUITEM:
 		{
 			DialogBox(
-				PluginInstance->DllBase,
+				(HINSTANCE)PluginInstance->DllBase,
 				MAKEINTRESOURCE(IDD_OUTPUT),
 				PhMainWndHandle,
 				NetworkOutputDlgProc
 				);
 		}
 		break;
-    }
+	}
 }
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
+	__in_opt PVOID Parameter,
+	__in_opt PVOID Context
+	)
 {
-    DialogBox(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parameter,
-        OptionsDlgProc
-       );
+	DialogBox(
+		(HINSTANCE)PluginInstance->DllBase,
+		MAKEINTRESOURCE(IDD_OPTIONS),
+		(HWND)Parameter,
+		OptionsDlgProc
+		);
 }
