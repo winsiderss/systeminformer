@@ -5,11 +5,9 @@
 #define IDD_OUTPUT                      101
 #define IDB_BITMAP1                     105
 #define IDD_DIALOG1                     106
-#define ID_MESSAGE                      107
 #define IDD_OPTIONS                     109
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_MESSAGE                     1002
-#define IDC_ENABLESTATUSBAR             1002
 #define IDC_ENABLETOOLBAR2              1002
 #define IDC_CHECKHASH                   1002
 #define IDC_PROGRESS1                   1003
@@ -20,7 +18,7 @@
 #define IDC_DISPLAYSTYLETEXT            1005
 #define IDC_RELDATE                     1005
 #define IDC_MESSAGE3                    1006
-#define IDC_SIZE                        1006
+#define IDC_DLSIZE                      1006
 #define IDC_SYSLINK1                    1007
 #define IDC_EDIT1                       1008
 
