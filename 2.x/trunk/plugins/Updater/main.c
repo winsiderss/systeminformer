@@ -46,7 +46,7 @@ LOGICAL DllMain(
             info->Author = L"dmex";
             info->Description = L"Process Hacker Update Checker.";
 			info->Url = L"http://processhacker.sourceforge.net/forums/viewtopic.php?f=18&t=273";
-            info->HasOptions = FALSE;
+            info->HasOptions = TRUE;
 			
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
@@ -60,46 +60,26 @@ LOGICAL DllMain(
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
+
+			 PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+
+			  /*static PH_SETTING_CREATE settings[] =
+                {
+                    { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" }
+                };
+
+                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));*/
         }
         break;
     }
 
     return TRUE;
 }
-
-//INT VersionParser(char* version1, char* version2) 
-//{
-//	INT i = 0, a1 = 0, b1 = 0, ret = 0;
-//	size_t a = strlen(version1); 
-//	size_t b = strlen(version2);
-//
-//	if (b > a) 
-//		a = b;
-//
-//	for (i = 0; i < a; i++) 
-//	{
-//		a1 += version1[i];
-//		b1 += version2[i];
-//	}
-//
-//	if (b1 > a1)
-//	{
-//		// second version is fresher
-//		ret = 1; 
-//	}
-//	else if (b1 == a1) 
-//	{
-//		// versions is equal
-//		ret = 0;
-//	}
-//	else 
-//	{
-//		// first version is fresher
-//		ret = -1; 
-//	}
-//
-//	return ret;
-//}
 
 VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
@@ -129,4 +109,17 @@ VOID NTAPI MenuItemCallback(
 		}
 		break;
     }
+}
+
+VOID NTAPI ShowOptionsCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    DialogBox(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        (HWND)Parameter,
+        OptionsDlgProc
+       );
 }
