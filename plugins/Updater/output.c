@@ -27,18 +27,29 @@ static NTSTATUS WorkerThreadStart(
 	)
 {
 	INT xPercent = 0, result = -2;
-	DWORD status = 0, dwBytes = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(BUFFER_LEN);
-	mxml_node_t *xmlNode, *xmlNode2, *xmlNode3, *xmlNode4, *xmlNode5;
-	HWND hwndDlg = (HWND)Parameter;
-	BOOL bResult = FALSE;
-
-	if (status = InitializeConnection(
+	HWND hwndDlg = Parameter, hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+	mxml_node_t 
+		*xmlNode, 
+		*xmlNode2, 
+		*xmlNode3, 
+		*xmlNode4, 
+		*xmlNode5;
+	DWORD
+		dwRetVal = 0, 
+		dwTotalReadSize = 0, 
+		dwBytes = 0, 
+		dwContentLen = 0, 
+		dwBytesRead = 0,
+		dwBytesWritten = 0, 
+		dwBufLen = sizeof(BUFFER_LEN);
+	
+	if (dwRetVal = InitializeConnection(
 		EnableCache, 
 		L"processhacker.sourceforge.net", 
 		L"/updater.php"
 		))
 	{
-		return status;
+		return dwRetVal;
 	}
 
 	// Send the HTTP request.
@@ -52,10 +63,7 @@ static NTSTATUS WorkerThreadStart(
 			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytes))
 			{
 				if (dwBytes == 0)
-				{
-					// We're done.
 					break;
-				}
 			}
 
 			// Load our XML.
@@ -110,8 +118,8 @@ static NTSTATUS WorkerThreadStart(
 
 					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
-
-					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);			
+					
+					EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);		
 					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
 					ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
 				}
@@ -148,50 +156,51 @@ static NTSTATUS WorkerThreadStart(
 				}
 				break;
 			}
-
-			mxmlRelease(xmlNode);
 		}
 	}
 	else
 	{
-		status = GetLastError();
+		dwRetVal = GetLastError();
 
-		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)\r\n", status));
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", dwRetVal));
 
-		return status;
+		return dwRetVal;
 	}
 
-	PhUpdaterState = Downloading;
+	mxmlRelease(xmlNode);
+	DisposeConnection();
 
-	return status;
+	PhUpdaterState = Downloading;
+		
+	return dwRetVal;
 }
 
 static NTSTATUS DownloadWorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	INT xPercent = 0;
-	DWORD status = 0, dwRetVal = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);				
+	INT i = 0, xPercent = 0;
+	LONG hashLength = 0;
+	DWORD dwRetVal = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);					
+	PH_HASH_CONTEXT hashContext = { 0 };
 	HWND hwndDlg = Parameter, hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
 
-	Sleep(1000);
-
-	if (status = InitializeConnection(
-		EnableCache, 
-		L"sourceforge.net", 
-		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download"
+	if (dwRetVal = InitializeConnection(
+		EnableCache,
+		L"sourceforge.net",
+		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download?use_mirror=waix"
 		))
 	{
-		return status;
+		return dwRetVal;
 	}
 
-	if (status = CreateTempPath())
+	if (dwRetVal = CreateTempPath())
 	{
-		return status;
+		return dwRetVal;
 	}
 
 	// Open output file
-	TempFileFile = CreateFile(
+	TempFileHandle = CreateFile(
 		localFilePath->Buffer,
 		GENERIC_WRITE,
 		FILE_SHARE_WRITE,
@@ -200,28 +209,33 @@ static NTSTATUS DownloadWorkerThreadStart(
 		FILE_ATTRIBUTE_NORMAL,
 		0);
 
-	if (TempFileFile == INVALID_HANDLE_VALUE)
+	if (TempFileHandle == INVALID_HANDLE_VALUE)
 	{
-		status = GetLastError();
+		dwRetVal = GetLastError();
 
-		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)\r\n", status));
+		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", dwRetVal));
 
-		return status;
+		return dwRetVal;
 	}
 
 	Updater_SetStatusText(hwndDlg, L"Connecting");
+	EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
 
 	// Send the HTTP request.
 	if (HttpSendRequest(file, NULL, 0, NULL, 0))
 	{
+		char fileBuffer[BUFFER_LEN];
+		char hashBuffer[20];
+
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
-			char buffer[BUFFER_LEN];
-
 			// Reset Progressbar state.
 			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
+			
+			// Initialize hash algorithm.
+			PhInitializeHash(&hashContext, Sha1HashAlgorithm);
 
-			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytesRead))
+			while (InternetReadFile(file, fileBuffer, BUFFER_LEN, &dwBytesRead))
 			{
 				if (dwBytesRead == 0)
 				{
@@ -247,15 +261,17 @@ static NTSTATUS DownloadWorkerThreadStart(
 					//PhDereferenceObject(dlLength);
 				}
 
-				if (!WriteFile(TempFileFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				PhUpdateHash(&hashContext, fileBuffer, dwBytesRead);
+
+				if (!WriteFile(TempFileHandle, fileBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
 					break;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
 				{	
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile dwBytesRead != dwBytesWritte (%d)\r\n", GetLastError()));
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile dwBytesRead != dwBytesWritte (%d)", GetLastError()));
 					break;                
 				}
 			}
@@ -263,13 +279,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 		else
 		{
 			// No content length...impossible to calculate % complete so just read until we are done.
-			DWORD dwBytesRead = 0;
-			DWORD dwBytesWritten = 0;
-			char buffer[BUFFER_LEN];
-
 			LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)\r\n", GetLastError()));
 
-			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytesRead))
+			while (InternetReadFile(file, fileBuffer, BUFFER_LEN, &dwBytesRead))
 			{	
 				if (dwBytesRead == 0)
 				{
@@ -277,7 +289,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 					break;
 				}
 
-				if (!WriteFile(TempFileFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				PhUpdateHash(&hashContext, fileBuffer, dwBytesRead);
+
+				if (!WriteFile(TempFileHandle, fileBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
 					break;
@@ -290,102 +304,71 @@ static NTSTATUS DownloadWorkerThreadStart(
 				}
 			}
 		}
+		
+		Updater_SetStatusText(hwndDlg, L"Download Complete");
+
+		// Enable Install button before hashing (user might not care about file hash reault)
+		SetWindowText(GetDlgItem(hwndDlg, IDYES), L"Install");
+		EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);
+		PhUpdaterState = Installing;
+
+		Sleep(1000);
+
+		if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
+		{
+			INT strResult = -2;
+			PH_ANSI_STRING *str;				
+			PH_STRING_BUILDER sb = { 0 };
+
+			PhInitializeStringBuilder(&sb, 100);
+
+			for (i = 0; i < hashLength; i++)
+			{
+				PH_STRING *str = PhFormatString(L"%02x", 0xFF & hashBuffer[i]);
+
+				PhAppendStringBuilder(&sb, str);
+
+				PhDereferenceObject(str);
+			}
+
+			str = PhCreateAnsiStringFromUnicode(sb.String->Buffer);
+			strResult = strncmp(str->Buffer, "5c2afe67ba48c535f11746e86c0d68e55164a386", str->Length); 
+
+			switch (strResult)
+			{
+			case 0:
+				{
+					Updater_SetStatusText(hwndDlg, L"Verified Hash");
+				}
+				break;
+			default:
+				{
+					Updater_SetStatusText(hwndDlg, L"Hash verification failed");
+				}
+				break;
+			}
+
+			PhDereferenceObject(str);
+			PhDeleteStringBuilder(&sb);
+		}
+		else
+		{
+			Updater_SetStatusText(hwndDlg, L"Hash verification failed");
+		}
 	}
 	else
 	{
-		status = GetLastError();
+		dwRetVal = GetLastError();
 
-		LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)\r\n", status));
+		LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)\r\n", dwRetVal));
 
-		return status;
+		return dwRetVal;
 	}
 
 	DisposeConnection();
 	DisposeFileHandles();
 
-	Updater_SetStatusText(hwndDlg, L"Download Complete");
-
-	SetWindowText(GetDlgItem(hwndDlg, IDYES), L"Verify");
-	EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);
-	
-	PhUpdaterState = Verifying;
-
-	return STATUS_SUCCESS;
-}
-
-static DWORD VerifyHashThreadStart(
-	__in PVOID Parameter
-	)
-{
-    DWORD cbRead = 0, cbLength = 0;
-	LONG RtLength = 0;
-    BOOL bResult = FALSE;
-	LONG ret = 0;
-	INT result = 0;
-	PH_HASH_CONTEXT md5 = { 0 };
-	char buffer[BUFFER_LEN];
-
-	HWND hwndDlg = Parameter, hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
-
-	HashFileHandle = CreateFile(
-		localFilePath->Buffer,
-		GENERIC_READ,
-		FILE_SHARE_READ,
-		NULL,
-		OPEN_EXISTING,
-		FILE_FLAG_SEQUENTIAL_SCAN,
-		NULL
-		);
-
-	if (HashFileHandle == INVALID_HANDLE_VALUE)
-	{
-		DWORD status = GetLastError();
-		LogEvent(PhFormatString(L"Updater: (HashFile) CreateFile failed (%d)", status));
-		return status;
-	}
-
-	PhInitializeHash(&md5, Sha1HashAlgorithm);
-
-	while (bResult = ReadFile(HashFileHandle, buffer, BUFFER_LEN, &cbRead, NULL))
-	{
-		if (0 == cbRead)
-			break;
-
-		PhUpdateHash(&md5, buffer, cbRead);
-
-		//dwTotalReadSize += dwBytesRead;
-		//xPercent = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
-
-		//SendMessage(hwndProgress, PBM_SETPOS, xPercent, 0);
-		//{
-		//	PPH_STRING str;
-		//	PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-		//	//PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-
-		//	str = PhFormatString(L"Downloaded: %d%% (%s)", xPercent, dlCurrent->Buffer);
-
-		//	Updater_SetStatusText(hwndDlg, str->Buffer);
-
-		//	PhDereferenceObject(str);
-		//	PhDereferenceObject(dlCurrent);
-		//	//PhDereferenceObject(dlLength);
-		//}
-	}
-
-	//PhFinalHash(&md5, buffer, 20, &RtLength);
-	
-	DisposeFileHandles();
-
-	//for (i = 0; i < RtLength; i++)
-		//LogEvent(PhFormatString(L"%02X", buffer[i]));
-
-	Updater_SetStatusText(hwndDlg, L"Verified");
-	SetWindowText(GetDlgItem(hwndDlg, IDYES), L"Install");
-	EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);
-
-	PhUpdaterState = Installing;
-
-    return 0; 
+    return dwRetVal; 
 }
 
 INT_PTR CALLBACK MainWndProc(      
@@ -415,6 +398,8 @@ INT_PTR CALLBACK MainWndProc(
 			case IDOK:
 				{
 					DisposeConnection();
+					DisposeStrings();
+					DisposeFileHandles();
 
 					EndDialog(hwndDlg, IDOK);
 				}
@@ -451,26 +436,6 @@ INT_PTR CALLBACK MainWndProc(
 							PhShellExecute(hwndDlg, localFilePath->Buffer, NULL);
 							DisposeConnection();
 							ProcessHacker_Destroy(PhMainWndHandle);
-							return FALSE;
-						}
-					case Verifying:
-						{
-							Updater_SetStatusText(hwndDlg, L"Verifying");
-
-							//HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
-
-							// Enable the progressbar
-							//ShowWindow(hwndProgress, SW_SHOW);
-							// Enable the status text
-							//ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);					    
-
-							//SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
-
-							//PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
-							//PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
-
-							// Star our Downloader thread
-							PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)VerifyHashThreadStart, hwndDlg);   
 						}
 						return FALSE;
 					}
@@ -609,22 +574,19 @@ VOID LogEvent(
 	)
 {
 	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
-
-	OutputDebugString(str->Buffer);
 	
 	PhDereferenceObject(str);
 }
 
-
 VOID DisposeConnection()
 {
-	if (file)
+	if (file != NULL)
 		InternetCloseHandle(file);
 
-	if (connection)
+	if (connection != NULL)
 		InternetCloseHandle(connection);
 
-	if (initialize)
+	if (initialize != NULL)
 		InternetCloseHandle(initialize);
 }
 
@@ -636,9 +598,6 @@ VOID DisposeStrings()
 
 VOID DisposeFileHandles()
 {
-	if (TempFileFile)
-		NtClose(TempFileFile);
-
-	if (HashFileHandle)
-		NtClose(HashFileHandle);
+	if (TempFileHandle != NULL)
+		NtClose(TempFileHandle);
 }
