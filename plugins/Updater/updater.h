@@ -40,14 +40,11 @@ extern PPH_PLUGIN PluginInstance;
 
 #pragma region Statics
 
-typedef DWORD (WINAPI *_SetTcpEntry)(
-    __in DWORD pTcpRow
-    );
-
 static HANDLE TempFileHandle = NULL;
-static HINTERNET initialize = NULL, connection = NULL, file = NULL;
+static HINTERNET NetIitialize = NULL, NetConnection = NULL, NetRequest = NULL;
 
-static PPH_STRING localFilePath = NULL;
+static PH_STRING *LocalFilePathString = NULL;
+static PH_ANSI_STRING *RemoteVersionString = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Default;
 
 static BOOL EnableCache = TRUE;
@@ -55,8 +52,6 @@ static BOOL EnableCache = TRUE;
 static PH_SETTING_CREATE settings[] =
 {
 	{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" }      
-	//{ IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
-	//{ IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"690,540" }
 };	
 
 #pragma endregion
