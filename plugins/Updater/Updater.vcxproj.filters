@@ -24,9 +24,6 @@
     <ClCompile Include="output.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ExtendedServices\options.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\ProcessHacker\mxml\mxml-attr.c">
       <Filter>Mini-XML</Filter>
     </ClCompile>
@@ -53,6 +50,9 @@
     </ClCompile>
     <ClCompile Include="..\..\ProcessHacker\mxml\mxml-string.c">
       <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="options.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
