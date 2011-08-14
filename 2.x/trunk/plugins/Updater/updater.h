@@ -8,10 +8,8 @@ typedef enum _PH_UPDATER_STATE
 {
 	Default,
     Downloading,
-    Verifying,
     Installing
 } PH_UPDATER_STATE;
-
 
 #pragma region Includes
 
@@ -46,7 +44,7 @@ typedef DWORD (WINAPI *_SetTcpEntry)(
     __in DWORD pTcpRow
     );
 
-static HANDLE TempFileFile = NULL, HashFileHandle = NULL;
+static HANDLE TempFileHandle = NULL;
 static HINTERNET initialize = NULL, connection = NULL, file = NULL;
 
 static PPH_STRING localFilePath = NULL;
