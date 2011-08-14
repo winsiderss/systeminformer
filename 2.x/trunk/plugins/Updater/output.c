@@ -26,17 +26,18 @@ static NTSTATUS WorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	INT result = -2, xPercent = 0;
-	NTSTATUS status;
-	DWORD dwBytes = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(BUFFER_LEN);
+	INT xPercent = 0, result = -2;
+	DWORD status = 0, dwBytes = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(BUFFER_LEN);
 	mxml_node_t *xmlNode, *xmlNode2, *xmlNode3, *xmlNode4, *xmlNode5;
 	HWND hwndDlg = (HWND)Parameter;
 
 	DisposeHandles();
 
-	status = InitializeConnection(TRUE, L"processhacker.sourceforge.net", L"/updater.php");
-
-	if (!NT_SUCCESS(status))
+	if (status = InitializeConnection(
+		TRUE, 
+		L"processhacker.sourceforge.net", 
+		L"/updater.php"
+		))
 	{
 		return status;
 	}
@@ -128,13 +129,14 @@ static NTSTATUS WorkerThreadStart(
 				break;
 			case 0:
 				{	
-					PPH_STRING summaryText;
+					PPH_STRING summaryText, versionText;
 					// create a PPH_STRING from our ANSI node.
-					summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-					summaryText = PhFormatString(L"You're running the latest version: %s", summaryText->Buffer);
+					versionText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+					summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
 
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
+					PhDereferenceObject(versionText);
 					PhDereferenceObject(summaryText);
 
 					// Enable the Download/Install button
@@ -143,18 +145,18 @@ static NTSTATUS WorkerThreadStart(
 				break;
 			case -1:
 				{	
-					PPH_STRING local = PhGetPhVersion();
-					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
+					PPH_STRING localText = PhGetPhVersion();
+					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", localText->Buffer);
 
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
-					PhDereferenceObject(local);
+					PhDereferenceObject(localText);
 					PhDereferenceObject(summaryText);
 				}
 				break;
 			default:
 				{			
-					LogEvent(PhFormatString(L"Updater: Update check unknown result: %s", result));
+					LogEvent(PhFormatString(L"Updater: Update check unknown result: %d", result));
 				}
 				break;
 			}
@@ -162,7 +164,7 @@ static NTSTATUS WorkerThreadStart(
 	}
 	else
 	{
-		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
+		status = GetLastError();
 
 		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)\r\n", status));
 
@@ -171,7 +173,7 @@ static NTSTATUS WorkerThreadStart(
 		return status;
 	}
 
-	return STATUS_SUCCESS;
+	return status;
 }
 
 static NTSTATUS DownloadWorkerThreadStart(
@@ -180,39 +182,23 @@ static NTSTATUS DownloadWorkerThreadStart(
 {
 	HANDLE dlFile;
 	INT xPercent = 0;
-	NTSTATUS status;
-	TCHAR lpTempPathBuffer[MAX_PATH];
-	DWORD dwRetVal = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);				
+	DWORD status = 0, dwRetVal = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);				
 	HWND hwndDlg = (HWND)Parameter, hwndProgress = GetDlgItem(hwndDlg,IDC_PROGRESS1);
-
-	char buffer[BUFFER_LEN];
 
 	DisposeHandles();
 
 	Sleep(1000);
 
-	// Get the temp path env string (no guarantee it's a valid path).
-	dwRetVal = GetTempPath(MAX_PATH, lpTempPathBuffer);
-
-	if (dwRetVal > MAX_PATH || dwRetVal == 0)
-	{
-		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
-
-		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", result));
-
-		return result;
-	}	
-
-	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
-
-	status = InitializeConnection(
+	if (status = InitializeConnection(
 		TRUE, 
 		L"sourceforge.net", 
 		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download"
-		);
+		))
+	{
+		return status;
+	}
 
-		
-	if (!NT_SUCCESS(status))
+	if (status = CreateTempPath())
 	{
 		return status;
 	}
@@ -229,11 +215,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	if (dlFile == INVALID_HANDLE_VALUE)
 	{
-		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
+		status = GetLastError();
 
-		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", result));
+		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)\r\n", status));
 
-		return result;
+		return status;
 	}
 
 	SetDlgItemText(hwndDlg, IDC_STATUS, L"Connecting");
@@ -243,6 +229,8 @@ static NTSTATUS DownloadWorkerThreadStart(
 	{
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
+			char buffer[BUFFER_LEN];
+
 			// Reset Progressbar state.
 			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
 
@@ -274,13 +262,13 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
 					break;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
 				{	
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile dwBytesRead != dwBytesWritte (%d)", PhGetLastWin32ErrorAsNtStatus()));
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile dwBytesRead != dwBytesWritte (%d)\r\n", GetLastError()));
 					break;                
 				}
 			}
@@ -292,7 +280,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 			DWORD dwBytesWritten = 0;
 			char buffer[BUFFER_LEN];
 
-			LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+			LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)\r\n", GetLastError()));
 
 			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytesRead))
 			{	
@@ -304,13 +292,13 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
 					break;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
 				{
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
 					break;                
 				}
 			}
@@ -318,11 +306,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 	}
 	else
 	{
-		NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
+		status = GetLastError();
 
-		LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)", result));
+		LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)\r\n", status));
 
-		return result;
+		return status;
 	}
 
 	if (dlFile)
@@ -409,8 +397,14 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 	return FALSE;
 }
 
-NTSTATUS InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
+DWORD InitializeConnection(
+	__in BOOL useCache, 
+	__in PCWSTR host, 
+	__in PCWSTR path
+	)
 {
+	DWORD status = 0;
+
 	// Initialize the wininet library.
 	initialize = InternetOpen(
 		L"PH Updater", // user-agent
@@ -422,7 +416,7 @@ NTSTATUS InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 
 	if (!initialize)
 	{
-		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
+		status = GetLastError();
 
 		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)\r\n", status));
 
@@ -443,7 +437,7 @@ NTSTATUS InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 
 	if (!connection)
 	{
-		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
+		status = GetLastError();
 
 		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)\r\n", status));
 
@@ -464,14 +458,14 @@ NTSTATUS InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 
 	if (!file)
 	{
-		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
+		status = GetLastError();
 
 		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)\r\n", status));
 
 		return status;
 	}
 
-	return STATUS_SUCCESS;
+	return status;
 }
 
 BOOL PhInstalledUsingSetup() 
@@ -495,7 +489,9 @@ BOOL PhInstalledUsingSetup()
 	return TRUE;
 }
 
-VOID LogEvent(PPH_STRING str)
+VOID LogEvent(
+	__in PPH_STRING str
+	)
 {
 	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
 
@@ -522,6 +518,27 @@ VOID DisposeHandles()
 		//PhDereferenceObject(localFilePath);
 }
 
+DWORD CreateTempPath()
+{
+	TCHAR lpTempPathBuffer[MAX_PATH];
+	DWORD length = 0;
+
+	// Get the temp path env string (no guarantee it's a valid path).
+	length = GetTempPath(MAX_PATH, lpTempPathBuffer);
+
+	if (length > MAX_PATH || length == 0)
+	{
+		DWORD status = GetLastError();
+
+		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", status));
+
+		return status;
+	}	
+
+	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
+
+	return 0;
+}
 
 /*
  This function will convert a WCHAR string to a CHAR string.

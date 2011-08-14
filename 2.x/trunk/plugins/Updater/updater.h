@@ -1,9 +1,3 @@
-#ifndef NETTOOLS_H
-#define NETTOOLS_H
-#ifndef UNICODE
-#define UNICODE
-#endif
-
 #pragma comment(lib, "Wininet.lib")
 #pragma comment(lib, "Urlmon.lib")
 #pragma comment(lib, "Advapi32.lib")
@@ -35,11 +29,13 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 VOID DisposeHandles();
 BOOL PhInstalledUsingSetup();
 
-NTSTATUS InitializeConnection(
-	BOOL useCache, 
-	PCWSTR host, 
-	PCWSTR path
+DWORD InitializeConnection(
+	__in BOOL useCache,
+	__in PCWSTR host,
+	__in PCWSTR path
 	);
+
+DWORD CreateTempPath();
 
 VOID wtoc(
 	CHAR* Dest, 
@@ -47,7 +43,7 @@ VOID wtoc(
 	);
 
 VOID LogEvent(
-	PPH_STRING str
+	__in PPH_STRING str
 	);
 
 VOID NTAPI MenuItemCallback(
@@ -78,5 +74,3 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
-
-#endif
