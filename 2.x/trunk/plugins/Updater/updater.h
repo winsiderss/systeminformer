@@ -47,8 +47,7 @@ BOOL PhInstalledUsingSetup();
 
 INT VersionParser(char* version1, char* version2);
 
-VOID LogEvent(__in __format_string PWSTR Format,
-    ...);
+VOID LogEvent(PPH_STRING str);
 
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
