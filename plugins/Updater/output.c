@@ -47,7 +47,7 @@ static NTSTATUS WorkerThreadStart(
 	{
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
-			char *buffer = (char*)PhAllocate(BUFFER_LEN);
+			char buffer[BUFFER_LEN];
 			PPH_STRING summaryText;
 
 			// Read the resulting xml into our buffer.
@@ -150,7 +150,7 @@ static NTSTATUS WorkerThreadStart(
 				
 					PhDereferenceObject(summaryText);
 
-					LogEvent(L"Updater: Update check unknown result: %s", result);
+					LogEvent(PhFormatString(L"Updater: Update check unknown result: %s", result));
 				}
 				break;
 			}
@@ -160,13 +160,7 @@ static NTSTATUS WorkerThreadStart(
 	{
 		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
 
-		LogEvent(L"Updater: HttpSendRequest failed (%d)", status);
-
-		mxmlDelete(xmlNode);
-		mxmlDelete(xmlNode2);
-		mxmlDelete(xmlNode3);
-		mxmlDelete(xmlNode4);
-		mxmlDelete(xmlNode5);
+		LogEvent(PhFormatString(L"Updater: HttpSendRequest failed (%d)", status));
 
 		DisposeHandles();
 
@@ -264,7 +258,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 				{
 					PPH_STRING str;
 					PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-					PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+					//PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
 
 					str = PhFormatString(L"Downloaded: %d%% (%s)", xPercent, dlCurrent->Buffer);
 
@@ -272,7 +266,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 					PhDereferenceObject(str);
 					PhDereferenceObject(dlCurrent);
-					PhDereferenceObject(dlLength);
+					//PhDereferenceObject(dlLength);
 				}
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
@@ -335,8 +329,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 		NtClose(dlFile);  
 
 	DisposeHandles();
-
-	HashFile();
 
 	SetDlgItemText(hwndDlg, IDC_STATUS, L"Download Complete");
 
@@ -547,111 +539,3 @@ VOID DisposeHandles()
 	//if (localFilePath)
 		//PhDereferenceObject(localFilePath);
 }
-
-
-DWORD HashFile()
-{
-    DWORD dwStatus = 0;
-    BOOL bResult = FALSE;
-    HCRYPTPROV hProv = 0;
-    HCRYPTHASH hHash = 0;
-    HANDLE hFile = NULL;
-    BYTE rgbFile[BUFFER_LEN];
-    DWORD cbRead = 0;
-    BYTE rgbHash[MD5LEN];
-    DWORD cbHash = 0;
-    CHAR rgbDigits[] = "0123456789abcdef";
-
-    // Copyright (C) Microsoft.  All rights reserved.
-    // Logic to check usage goes here.
-
-    hFile = CreateFile(localFilePath->Buffer,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_FLAG_SEQUENTIAL_SCAN,
-        NULL);
-
-    if (INVALID_HANDLE_VALUE == hFile)
-    {
-        dwStatus = GetLastError();
-        printf("Error opening file %s\nError: %d\n", L"", 
-            dwStatus); 
-        return dwStatus;
-    }
-
-    // Get handle to the crypto provider
-    if (!CryptAcquireContext(&hProv,
-        NULL,
-        NULL,
-        PROV_RSA_FULL,
-        CRYPT_VERIFYCONTEXT))
-    {
-        dwStatus = GetLastError();
-        printf("CryptAcquireContext failed: %d\n", dwStatus); 
-        CloseHandle(hFile);
-        return dwStatus;
-    }
-
-    if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash))
-    {
-        dwStatus = GetLastError();
-        printf("CryptAcquireContext failed: %d\n", dwStatus); 
-        CloseHandle(hFile);
-        CryptReleaseContext(hProv, 0);
-        return dwStatus;
-    }
-
-    while (bResult = ReadFile(hFile, rgbFile, BUFFER_LEN, &cbRead, NULL))
-    {
-        if (0 == cbRead)
-        {
-            break;
-        }
-
-		        if (!CryptHashData(hHash, rgbFile, cbRead, 0))
-        {
-            dwStatus = GetLastError();
-            printf("CryptHashData failed: %d\n", dwStatus); 
-            CryptReleaseContext(hProv, 0);
-            CryptDestroyHash(hHash);
-            CloseHandle(hFile);
-            return dwStatus;
-        }
-    }
-
-    if (!bResult)
-    {
-        dwStatus = GetLastError();
-        printf("ReadFile failed: %d\n", dwStatus); 
-        CryptReleaseContext(hProv, 0);
-        CryptDestroyHash(hHash);
-        CloseHandle(hFile);
-        return dwStatus;
-    }
-
-    cbHash = MD5LEN;
-    if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0))
-    {
-		DWORD i = 0;
-		LogEvent(PhFormatString(L"Updater: MD5 hash of file is: (%d)", cbHash));
-
-        for (i = 0; i < cbHash; i++)
-        {
-            LogEvent(PhFormatString(L"%d%d", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]));
-        }
-    }
-    else
-    {
-        dwStatus = GetLastError();
-        //printf("CryptGetHashParam failed: %d\n", dwStatus); 
-    }
-
-    CryptDestroyHash(hHash);
-    CryptReleaseContext(hProv, 0);
-    CloseHandle(hFile);
-
-    return dwStatus; 
-}   
-
