@@ -44,14 +44,15 @@ static HANDLE TempFileHandle = NULL;
 static HINTERNET NetIitialize = NULL, NetConnection = NULL, NetRequest = NULL;
 
 static PH_STRING *LocalFilePathString = NULL;
-static PH_ANSI_STRING *RemoteVersionString = NULL;
+static PH_ANSI_STRING *RemoteHashString = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Default;
-
 static BOOL EnableCache = TRUE;
+static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
 static PH_SETTING_CREATE settings[] =
 {
-	{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" }      
+	{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
+	{ IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" } 
 };	
 
 #pragma endregion
@@ -79,7 +80,7 @@ DWORD InitializeConnection(
 	__in PCWSTR path
 	);
 
-DWORD CreateTempPath();
+DWORD InitializeFile();
 
 VOID wtoc(
 	CHAR* Dest, 
