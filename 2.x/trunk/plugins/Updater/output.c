@@ -53,14 +53,14 @@ static NTSTATUS WorkerThreadStart(
 	}
 
 	// Send the HTTP request.
-	if (HttpSendRequest(file, NULL, 0, NULL, 0))
+	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
+		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
 			char buffer[BUFFER_LEN];
 
 			// Read the resulting xml into our buffer.
-			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytes))
+			while (InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
 			{
 				if (dwBytes == 0)
 					break;
@@ -89,7 +89,7 @@ static NTSTATUS WorkerThreadStart(
 			xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
 			// Find the sha1 node.
 			xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
-			
+
 			result = strncmp(xmlNode2->child->value.opaque, "2.10", 4); 
 	
 			switch (result)
@@ -118,7 +118,9 @@ static NTSTATUS WorkerThreadStart(
 
 					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
-					
+
+					RemoteVersionString = PhCreateAnsiString(xmlNode5->child->value.opaque);
+
 					EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);		
 					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
 					ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
@@ -201,7 +203,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	// Open output file
 	TempFileHandle = CreateFile(
-		localFilePath->Buffer,
+		LocalFilePathString->Buffer,
 		GENERIC_WRITE,
 		FILE_SHARE_WRITE,
 		0,                     // handle cannot be inherited
@@ -222,12 +224,12 @@ static NTSTATUS DownloadWorkerThreadStart(
 	EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
 
 	// Send the HTTP request.
-	if (HttpSendRequest(file, NULL, 0, NULL, 0))
+	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
 		char fileBuffer[BUFFER_LEN];
 		char hashBuffer[20];
 
-		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
+		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
 			// Reset Progressbar state.
 			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
@@ -235,7 +237,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 			// Initialize hash algorithm.
 			PhInitializeHash(&hashContext, Sha1HashAlgorithm);
 
-			while (InternetReadFile(file, fileBuffer, BUFFER_LEN, &dwBytesRead))
+			while (InternetReadFile(NetRequest, fileBuffer, BUFFER_LEN, &dwBytesRead))
 			{
 				if (dwBytesRead == 0)
 				{
@@ -281,7 +283,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 			// No content length...impossible to calculate % complete so just read until we are done.
 			LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)\r\n", GetLastError()));
 
-			while (InternetReadFile(file, fileBuffer, BUFFER_LEN, &dwBytesRead))
+			while (InternetReadFile(NetRequest, fileBuffer, BUFFER_LEN, &dwBytesRead))
 			{	
 				if (dwBytesRead == 0)
 				{
@@ -330,15 +332,15 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				PhDereferenceObject(str);
 			}
-
+			
 			str = PhCreateAnsiStringFromUnicode(sb.String->Buffer);
-			strResult = strncmp(str->Buffer, "5c2afe67ba48c535f11746e86c0d68e55164a386", str->Length); 
+			strResult = strncmp(str->Buffer, RemoteVersionString->Buffer, str->Length); 
 
 			switch (strResult)
 			{
 			case 0:
 				{
-					Updater_SetStatusText(hwndDlg, L"Verified Hash");
+					Updater_SetStatusText(hwndDlg, L"Hash verified");
 				}
 				break;
 			default:
@@ -433,7 +435,7 @@ INT_PTR CALLBACK MainWndProc(
 						}
 					case Installing:
 						{
-							PhShellExecute(hwndDlg, localFilePath->Buffer, NULL);
+							PhShellExecute(hwndDlg, LocalFilePathString->Buffer, NULL);
 							DisposeConnection();
 							ProcessHacker_Destroy(PhMainWndHandle);
 						}
@@ -458,7 +460,7 @@ DWORD InitializeConnection(
 	DWORD status = 0;
 
 	// Initialize the wininet library.
-	initialize = InternetOpen(
+	NetIitialize = InternetOpen(
 		L"PH Updater", // user-agent
 		INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration	 
 		NULL, 
@@ -466,7 +468,7 @@ DWORD InitializeConnection(
 		0
 		);
 
-	if (!initialize)
+	if (!NetIitialize)
 	{
 		status = GetLastError();
 
@@ -476,8 +478,8 @@ DWORD InitializeConnection(
 	}
 
 	// Connect to the server.
-	connection = InternetConnect(
-		initialize,
+	NetConnection = InternetConnect(
+		NetIitialize,
 		host, 
 		INTERNET_DEFAULT_HTTP_PORT,
 		NULL, 
@@ -487,7 +489,7 @@ DWORD InitializeConnection(
 		0
 		);
 
-	if (!connection)
+	if (!NetConnection)
 	{
 		status = GetLastError();
 
@@ -497,8 +499,8 @@ DWORD InitializeConnection(
 	}
 	
 	// Open the HTTP request.
-	file = HttpOpenRequest(
-		connection, 
+	NetRequest = HttpOpenRequest(
+		NetConnection, 
 		NULL, 
 		path, 
 		NULL, 
@@ -508,7 +510,7 @@ DWORD InitializeConnection(
 		0
 		);
 
-	if (!file)
+	if (!NetRequest)
 	{
 		status = GetLastError();
 
@@ -537,7 +539,7 @@ DWORD CreateTempPath()
 		return status;
 	}	
 
-	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
+	LocalFilePathString = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
 
 	return 0;
 }
@@ -580,20 +582,23 @@ VOID LogEvent(
 
 VOID DisposeConnection()
 {
-	if (file != NULL)
-		InternetCloseHandle(file);
+	if (!NetIitialize)
+		InternetCloseHandle(NetIitialize);
 
-	if (connection != NULL)
-		InternetCloseHandle(connection);
+	if (!NetConnection)
+		InternetCloseHandle(NetConnection);
 
-	if (initialize != NULL)
-		InternetCloseHandle(initialize);
+	if (!NetRequest)
+		InternetCloseHandle(NetRequest);
 }
 
 VOID DisposeStrings()
 {
-	if (localFilePath != NULL)
-		PhDereferenceObject(localFilePath);
+	if (LocalFilePathString != NULL)
+		PhDereferenceObject(LocalFilePathString);
+
+	if (RemoteVersionString != NULL)
+		PhDereferenceObject(RemoteVersionString);
 }
 
 VOID DisposeFileHandles()
