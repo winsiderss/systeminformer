@@ -309,6 +309,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 		
 		Updater_SetStatusText(hwndDlg, L"Download Complete");
 
+		DisposeConnection();
+		DisposeFileHandles();
+
 		// Enable Install button before hashing (user might not care about file hash reault)
 		SetWindowText(GetDlgItem(hwndDlg, IDYES), L"Install");
 		EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);
@@ -366,9 +369,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 		return dwRetVal;
 	}
-
-	DisposeConnection();
-	DisposeFileHandles();
 
     return dwRetVal; 
 }
