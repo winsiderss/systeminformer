@@ -87,8 +87,22 @@ static NTSTATUS WorkerThreadStart(
 			xmlNode3 = mxmlFindElement(xmlNode, xmlNode, "reldate", NULL, NULL, MXML_DESCEND);
 			// Find the size node.
 			xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
-			// Find the sha1 node.
-			xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
+
+			switch (HashAlgorithm)
+			{
+			case Md5HashAlgorithm:
+				{
+					// Find the sha1 node.
+					xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "md5", NULL, NULL, MXML_DESCEND);
+				}
+				break;
+			default: 
+				{
+					// Find the md5 node.
+					xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
+				}
+				break;
+			}
 
 			result = strncmp(xmlNode2->child->value.opaque, "2.10", 4); 
 	
@@ -119,7 +133,7 @@ static NTSTATUS WorkerThreadStart(
 					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
 
-					RemoteVersionString = PhCreateAnsiString(xmlNode5->child->value.opaque);
+					RemoteHashString = PhCreateAnsiString(xmlNode5->child->value.opaque);
 
 					EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);		
 					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
@@ -171,7 +185,7 @@ static NTSTATUS WorkerThreadStart(
 
 	mxmlRelease(xmlNode);
 	DisposeConnection();
-
+	
 	PhUpdaterState = Downloading;
 		
 	return dwRetVal;
@@ -196,34 +210,12 @@ static NTSTATUS DownloadWorkerThreadStart(
 		return dwRetVal;
 	}
 
-	if (dwRetVal = CreateTempPath())
-	{
+	if (dwRetVal = InitializeFile())
 		return dwRetVal;
-	}
-
-	// Open output file
-	TempFileHandle = CreateFile(
-		LocalFilePathString->Buffer,
-		GENERIC_WRITE,
-		FILE_SHARE_WRITE,
-		0,                     // handle cannot be inherited
-		CREATE_ALWAYS,         // if file exists, delete it
-		FILE_ATTRIBUTE_NORMAL,
-		0);
-
-	if (TempFileHandle == INVALID_HANDLE_VALUE)
-	{
-		dwRetVal = GetLastError();
-
-		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", dwRetVal));
-
-		return dwRetVal;
-	}
 
 	Updater_SetStatusText(hwndDlg, L"Connecting");
 	EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
 
-	// Send the HTTP request.
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
 		char fileBuffer[BUFFER_LEN];
@@ -235,15 +227,12 @@ static NTSTATUS DownloadWorkerThreadStart(
 			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
 			
 			// Initialize hash algorithm.
-			PhInitializeHash(&hashContext, Sha1HashAlgorithm);
+			PhInitializeHash(&hashContext, HashAlgorithm);
 
 			while (InternetReadFile(NetRequest, fileBuffer, BUFFER_LEN, &dwBytesRead))
 			{
 				if (dwBytesRead == 0)
-				{
-					// We're done.
 					break;
-				}
 
 				dwTotalReadSize += dwBytesRead;
 				xPercent = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
@@ -337,7 +326,10 @@ static NTSTATUS DownloadWorkerThreadStart(
 			}
 			
 			str = PhCreateAnsiStringFromUnicode(sb.String->Buffer);
-			strResult = strncmp(str->Buffer, RemoteVersionString->Buffer, str->Length); 
+			strResult = strncmp(str->Buffer, RemoteHashString->Buffer, str->Length); 
+
+			PhDereferenceObject(str);
+			PhDeleteStringBuilder(&sb);
 
 			switch (strResult)
 			{
@@ -352,9 +344,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 				}
 				break;
 			}
-
-			PhDereferenceObject(str);
-			PhDeleteStringBuilder(&sb);
 		}
 		else
 		{
@@ -387,6 +376,7 @@ INT_PTR CALLBACK MainWndProc(
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 			
 			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
+			HashAlgorithm = PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 			PhUpdaterState = Default;
 
 			PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
@@ -522,7 +512,7 @@ DWORD InitializeConnection(
 	return status;
 }
 
-DWORD CreateTempPath()
+DWORD InitializeFile()
 {
 	TCHAR lpTempPathBuffer[MAX_PATH];
 	DWORD length = 0;
@@ -532,14 +522,36 @@ DWORD CreateTempPath()
 
 	if (length > MAX_PATH || length == 0)
 	{
-		DWORD status = GetLastError();
+		DWORD dwRetVal = GetLastError();
 
-		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", status));
+		LogEvent(PhFormatString(L"Updater: (InitializeFile) GetTempPath failed (%d)", dwRetVal));
 
-		return status;
+		return dwRetVal;
 	}	
 
-	LocalFilePathString = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
+	LocalFilePathString = PhConcatStrings2(
+		lpTempPathBuffer,
+		L"processhacker-setup.exe"
+		);
+
+	// Open output file
+	TempFileHandle = CreateFile(
+		LocalFilePathString->Buffer,
+		GENERIC_WRITE,
+		FILE_SHARE_WRITE,
+		0,                     // handle cannot be inherited
+		CREATE_ALWAYS,         // if file exists, delete it
+		FILE_ATTRIBUTE_NORMAL,
+		0);
+
+	if (TempFileHandle == INVALID_HANDLE_VALUE)
+	{
+		DWORD dwRetVal = GetLastError();
+
+		LogEvent(PhFormatString(L"Updater: (InitializeFile) CreateFile failed (%d)", dwRetVal));
+
+		return dwRetVal;
+	}
 
 	return 0;
 }
@@ -571,9 +583,7 @@ BOOL PhInstalledUsingSetup()
 	return TRUE;
 }
 
-VOID LogEvent(
-	__in PPH_STRING str
-	)
+VOID LogEvent(__in PPH_STRING str)
 {
 	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
 	
@@ -582,27 +592,27 @@ VOID LogEvent(
 
 VOID DisposeConnection()
 {
-	if (!NetIitialize)
+	if (NetIitialize)
 		InternetCloseHandle(NetIitialize);
 
-	if (!NetConnection)
+	if (NetConnection)
 		InternetCloseHandle(NetConnection);
 
-	if (!NetRequest)
+	if (NetRequest)
 		InternetCloseHandle(NetRequest);
 }
 
 VOID DisposeStrings()
 {
-	if (LocalFilePathString != NULL)
+	if (LocalFilePathString)
 		PhDereferenceObject(LocalFilePathString);
 
-	if (RemoteVersionString != NULL)
-		PhDereferenceObject(RemoteVersionString);
+	if (RemoteHashString)
+		PhDereferenceObject(RemoteHashString);
 }
 
 VOID DisposeFileHandles()
 {
-	if (TempFileHandle != NULL)
+	if (TempFileHandle)
 		NtClose(TempFileHandle);
 }
