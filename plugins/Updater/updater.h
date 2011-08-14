@@ -10,20 +10,10 @@
 
 #include "phdk.h"
 #include "resource.h"
-#include <stdio.h>
-#include <windows.h>
-#include <wininet.h>
-#include "Urlmon.h"
+#include "wininet.h"
 #include "mxml.h"
-#include <Wincrypt.h>
-#include <stdio.h>
-#include <windows.h>
-#include <Wincrypt.h>
-
-#define MD5LEN  16
 
 #define BUFFER_LEN 512
-#define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
 #define UPDATE_MENUITEM 1
 
 #ifndef MAIN_PRIVATE
@@ -45,9 +35,20 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 VOID DisposeHandles();
 BOOL PhInstalledUsingSetup();
 
-INT VersionParser(char* version1, char* version2);
+NTSTATUS InitializeConnection(
+	BOOL useCache, 
+	PCWSTR host, 
+	PCWSTR path
+	);
 
-VOID LogEvent(PPH_STRING str);
+VOID wtoc(
+	CHAR* Dest, 
+	const WCHAR* Source
+	);
+
+VOID LogEvent(
+	PPH_STRING str
+	);
 
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
@@ -77,7 +78,5 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
-
-VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path);
 
 #endif

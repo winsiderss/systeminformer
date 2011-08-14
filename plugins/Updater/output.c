@@ -26,21 +26,20 @@ static NTSTATUS WorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	int result;
-	DWORD dwBytes;
+	INT result = -2, xPercent = 0;
+	NTSTATUS status;
+	DWORD dwBytes = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(BUFFER_LEN);
 	mxml_node_t *xmlNode, *xmlNode2, *xmlNode3, *xmlNode4, *xmlNode5;
-	PPH_STRING local;
-	DWORD dwContentLen = 0;				
-	int xPercent = 0;	
-	DWORD dwBufLen = sizeof(BUFFER_LEN);
-	DWORD dwBytesRead = 0, dwBytesWritten = 0;
 	HWND hwndDlg = (HWND)Parameter;
-	
+
 	DisposeHandles();
 
-	local = PhGetPhVersion();
+	status = InitializeConnection(TRUE, L"processhacker.sourceforge.net", L"/updater.php");
 
-	InitializeConnection(TRUE, L"processhacker.sourceforge.net", L"/updater.php");
+	if (!NT_SUCCESS(status))
+	{
+		return status;
+	}
 
 	// Send the HTTP request.
 	if (HttpSendRequest(file, NULL, 0, NULL, 0))
@@ -48,7 +47,6 @@ static NTSTATUS WorkerThreadStart(
 		if (HttpQueryInfo(file, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
 			char buffer[BUFFER_LEN];
-			PPH_STRING summaryText;
 
 			// Read the resulting xml into our buffer.
 			while (InternetReadFile(file, buffer, BUFFER_LEN, &dwBytes))
@@ -79,41 +77,52 @@ static NTSTATUS WorkerThreadStart(
 			xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
 			// Find the sha1 node.
 			xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
+			
+			{
+				//char localVersion[5];
+				//PPH_STRING local = PhGetPhVersion();
+				//wtoc(localVersion, local->Buffer);
+				
+				//result = strncmp(xmlNode2->child->value.opaque, localVersion, 4);
+				result = strncmp(xmlNode2->child->value.opaque, "2.10", 4); 
 
-			// create a PPH_STRING from our ANSI node.
-			summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-			result = PhCompareUnicodeStringZNatural(summaryText->Buffer, L"2.10", TRUE);//, local->Buffer, TRUE); 				
-			PhDereferenceObject(summaryText);
+				//PhDereferenceObject(local);
+			}
 
 			switch (result)
 			{
 			case 1:
 				{
+					PPH_STRING summaryText, tempstr;
+
 					// create a PPH_STRING from our ANSI node.
-					summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-					summaryText = PhFormatString(L"Process Hacker %s is available.", summaryText->Buffer);
+					tempstr = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+					summaryText = PhFormatString(L"Process Hacker %s is available.", tempstr->Buffer);
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
+					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
 
 					// create a PPH_STRING from our ANSI node.
-					summaryText = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);	
-					summaryText = PhFormatString(L"Released: %s", summaryText->Buffer);
+					tempstr = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);	
+					summaryText = PhFormatString(L"Released: %s", tempstr->Buffer);
 					SetDlgItemText(hwndDlg, IDC_MESSAGE2, summaryText->Buffer);
 					
+					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
 
 					// create a PPH_STRING from our ANSI node.
-					summaryText = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);	
-					summaryText = PhFormatString(L"Size: %s", summaryText->Buffer);
+					tempstr = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);	
+					summaryText = PhFormatString(L"Size: %s", tempstr->Buffer);
 					SetDlgItemText(hwndDlg, IDC_MESSAGE3, summaryText->Buffer);
 
+					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
 
 					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);			
-					// Enable the IDC_RELDATE text
+					// Enable the RELDATE text
 					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
-					// Enable the IDC_SIZE text
+					// Enable the SIZE text
 					ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
 				}
 				break;
@@ -134,22 +143,17 @@ static NTSTATUS WorkerThreadStart(
 				break;
 			case -1:
 				{	
+					PPH_STRING local = PhGetPhVersion();
 					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", local->Buffer);
 
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
+					PhDereferenceObject(local);
 					PhDereferenceObject(summaryText);
 				}
 				break;
 			default:
 				{			
-					PPH_STRING summaryText;
-					// create a PPH_STRING from our ANSI node.
-					summaryText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-					summaryText = PhFormatString(L"You're running a newer version: %s", summaryText->Buffer);
-				
-					PhDereferenceObject(summaryText);
-
 					LogEvent(PhFormatString(L"Updater: Update check unknown result: %s", result));
 				}
 				break;
@@ -160,14 +164,12 @@ static NTSTATUS WorkerThreadStart(
 	{
 		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
 
-		LogEvent(PhFormatString(L"Updater: HttpSendRequest failed (%d)", status));
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)\r\n", status));
 
 		DisposeHandles();
 
 		return status;
 	}
-
-	PhDereferenceObject(local);
 
 	return STATUS_SUCCESS;
 }
@@ -177,18 +179,13 @@ static NTSTATUS DownloadWorkerThreadStart(
 	)
 {
 	HANDLE dlFile;
-	UINT dwRetVal = 0;
-	DWORD dwTotalReadSize = 0;				
 	INT xPercent = 0;
-	DWORD cbHash = 0;
+	NTSTATUS status;
 	TCHAR lpTempPathBuffer[MAX_PATH];
-	HWND hwndDlg = (HWND)Parameter;
-	HWND hwndProgress = GetDlgItem(hwndDlg,IDC_PROGRESS1);
-	DWORD dwContentLen = 0;
-	DWORD dwBufLen = sizeof(dwContentLen);
-	DWORD dwBytesRead = 0, dwBytesWritten = 0;
-		
-	char *buffer[BUFFER_LEN];
+	DWORD dwRetVal = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);				
+	HWND hwndDlg = (HWND)Parameter, hwndProgress = GetDlgItem(hwndDlg,IDC_PROGRESS1);
+
+	char buffer[BUFFER_LEN];
 
 	DisposeHandles();
 
@@ -208,11 +205,17 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
 
-	InitializeConnection(
+	status = InitializeConnection(
 		TRUE, 
 		L"sourceforge.net", 
 		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download"
 		);
+
+		
+	if (!NT_SUCCESS(status))
+	{
+		return status;
+	}
 
 	// Open output file
 	dlFile = CreateFile(
@@ -271,10 +274,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					PPH_STRING str = PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus());
-					SetDlgItemText(hwndDlg, IDC_STATUS, str->Buffer);
-					LogEvent(str);				
-					PhDereferenceObject(str);
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
 					break;
 				}
 
@@ -290,7 +290,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 			// No content length...impossible to calculate % complete so just read until we are done.
 			DWORD dwBytesRead = 0;
 			DWORD dwBytesWritten = 0;
-			char *buffer[BUFFER_LEN];
+			char buffer[BUFFER_LEN];
 
 			LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
 
@@ -397,9 +397,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 					}
 					else
 					{
-						NTSTATUS result = PhGetLastWin32ErrorAsNtStatus();
-
-						LogEvent(PhFormatString(L"Updater: PhInstalledUsingSetup failed: %d", result));
+						// handle other installation types
 					}
 				}
 				break;
@@ -411,9 +409,9 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 	return FALSE;
 }
 
-VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
+NTSTATUS InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 {
-		// Initialize the wininet library.
+	// Initialize the wininet library.
 	initialize = InternetOpen(
 		L"PH Updater", // user-agent
 		INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration	 
@@ -424,7 +422,11 @@ VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 
 	if (!initialize)
 	{
-		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
+
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)\r\n", status));
+
+		return status;
 	}
 
 	// Connect to the server.
@@ -441,7 +443,11 @@ VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 
 	if (!connection)
 	{
-		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
+		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
+
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)\r\n", status));
+
+		return status;
 	}
 	
 	// Open the HTTP request.
@@ -452,48 +458,20 @@ VOID InitializeConnection(BOOL useCache, PCWSTR host, PCWSTR path)
 		NULL, 
 		NULL, 
 		NULL, 
-		useCache ? INTERNET_FLAG_DONT_CACHE : 0, // Specify this flag here to disable Internet* API caching.
+		useCache ? 0 : INTERNET_FLAG_DONT_CACHE,
 		0
 		);
 
 	if (!file)
 	{
-		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", PhGetLastWin32ErrorAsNtStatus()));
-	}
-}
+		NTSTATUS status = PhGetLastWin32ErrorAsNtStatus();
 
-INT VersionParser(char* version1, char* version2) 
-{
-	INT i = 0, a1 = 0, b1 = 0, ret = 0;
-	size_t a = strlen(version1); 
-	size_t b = strlen(version2);
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)\r\n", status));
 
-	if (b > a) 
-		a = b;
-
-	for (i = 0; i < a; i++) 
-	{
-		a1 += version1[i];
-		b1 += version2[i];
+		return status;
 	}
 
-	if (b1 > a1)
-	{
-		// second version is fresher
-		ret = 1; 
-	}
-	else if (b1 == a1) 
-	{
-		// versions is equal
-		ret = 0;
-	}
-	else 
-	{
-		// first version is fresher
-		ret = -1; 
-	}
-
-	return ret;
+	return STATUS_SUCCESS;
 }
 
 BOOL PhInstalledUsingSetup() 
@@ -508,7 +486,11 @@ BOOL PhInstalledUsingSetup()
 	NtClose(hKey);
 
 	if (result != ERROR_SUCCESS)
+	{
+		LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) RegOpenKeyEx failed (%d)\r\n", result));
+
 		return FALSE;
+	}
 	
 	return TRUE;
 }
@@ -538,4 +520,22 @@ VOID DisposeHandles()
 
 	//if (localFilePath)
 		//PhDereferenceObject(localFilePath);
+}
+
+
+/*
+ This function will convert a WCHAR string to a CHAR string.
+
+ Param 1 :: Pointer to a buffer that will contain the converted string. Ensure this buffer is large enough; if not, buffer overrun errors will occur.
+ Param 2 :: Constant pointer to a source WCHAR string to be converted to CHAR
+*/
+void wtoc(CHAR* dest, const WCHAR* source)
+{
+	int i = 0;
+
+	while(source[i] != '\0')
+	{
+		dest[i] = (CHAR)source[i];
+		++i;
+	}
 }
