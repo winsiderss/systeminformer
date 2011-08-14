@@ -42,10 +42,10 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"Updater";
+            info->DisplayName = L"Update Checker";
             info->Author = L"dmex";
             info->Description = L"Process Hacker Update Checker.";
-			info->Url = L"http://processhacker.sourceforge.net/forums/viewtopic.php?f=18&t=273";
+			info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=273";
             info->HasOptions = TRUE;
 			
             PhRegisterCallback(
@@ -60,7 +60,6 @@ LOGICAL DllMain(
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
-
 			 PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
                 ShowOptionsCallback,
@@ -68,12 +67,7 @@ LOGICAL DllMain(
                 &PluginShowOptionsCallbackRegistration
                 );
 
-			  /*static PH_SETTING_CREATE settings[] =
-                {
-                    { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" }
-                };
-
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));*/
+			 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
         }
         break;
     }
@@ -86,7 +80,7 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Update", NULL);
+    PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
 }
 
 VOID NTAPI MenuItemCallback(
@@ -104,7 +98,7 @@ VOID NTAPI MenuItemCallback(
 				(HINSTANCE)PluginInstance->DllBase,
 				MAKEINTRESOURCE(IDD_OUTPUT),
 				PhMainWndHandle,
-				NetworkOutputDlgProc
+				MainWndProc
 				);
 		}
 		break;
