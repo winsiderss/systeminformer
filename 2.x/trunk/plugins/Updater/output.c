@@ -1,6 +1,6 @@
 /*
 * Process Hacker Update Checker - 
-*   main program
+*   main window
 * 
 * Copyright (C) 2011 dmex
 * 
@@ -30,11 +30,10 @@ static NTSTATUS WorkerThreadStart(
 	DWORD status = 0, dwBytes = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(BUFFER_LEN);
 	mxml_node_t *xmlNode, *xmlNode2, *xmlNode3, *xmlNode4, *xmlNode5;
 	HWND hwndDlg = (HWND)Parameter;
-
-	DisposeHandles();
+	BOOL bResult = FALSE;
 
 	if (status = InitializeConnection(
-		TRUE, 
+		EnableCache, 
 		L"processhacker.sourceforge.net", 
 		L"/updater.php"
 		))
@@ -63,9 +62,13 @@ static NTSTATUS WorkerThreadStart(
 			xmlNode = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
 
 			// Check our XML.
-			if (xmlNode->type != MXML_ELEMENT)
+			if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
 			{
-				mxmlDelete(xmlNode);
+				mxmlRelease(xmlNode);
+				
+				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
+
+				SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
 
 				return STATUS_FILE_CORRUPT_ERROR;
 			}
@@ -79,24 +82,14 @@ static NTSTATUS WorkerThreadStart(
 			// Find the sha1 node.
 			xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
 			
-			{
-				//char localVersion[5];
-				//PPH_STRING local = PhGetPhVersion();
-				//wtoc(localVersion, local->Buffer);
-				
-				//result = strncmp(xmlNode2->child->value.opaque, localVersion, 4);
-				result = strncmp(xmlNode2->child->value.opaque, "2.10", 4); 
-
-				//PhDereferenceObject(local);
-			}
-
+			result = strncmp(xmlNode2->child->value.opaque, "2.10", 4); 
+	
 			switch (result)
 			{
 			case 1:
 				{
 					PPH_STRING summaryText, tempstr;
 
-					// create a PPH_STRING from our ANSI node.
 					tempstr = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
 					summaryText = PhFormatString(L"Process Hacker %s is available.", tempstr->Buffer);
 					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
@@ -104,33 +97,29 @@ static NTSTATUS WorkerThreadStart(
 					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
 
-					// create a PPH_STRING from our ANSI node.
 					tempstr = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);	
 					summaryText = PhFormatString(L"Released: %s", tempstr->Buffer);
-					SetDlgItemText(hwndDlg, IDC_MESSAGE2, summaryText->Buffer);
+					SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
 					
 					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
 
-					// create a PPH_STRING from our ANSI node.
 					tempstr = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);	
 					summaryText = PhFormatString(L"Size: %s", tempstr->Buffer);
-					SetDlgItemText(hwndDlg, IDC_MESSAGE3, summaryText->Buffer);
+					SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
 
 					PhDereferenceObject(tempstr);
 					PhDereferenceObject(summaryText);
 
 					ShowWindow(GetDlgItem(hwndDlg, IDYES), SW_SHOW);			
-					// Enable the RELDATE text
 					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
-					// Enable the SIZE text
 					ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
 				}
 				break;
 			case 0:
 				{	
 					PPH_STRING summaryText, versionText;
-					// create a PPH_STRING from our ANSI node.
+
 					versionText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
 					summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
 
@@ -139,7 +128,6 @@ static NTSTATUS WorkerThreadStart(
 					PhDereferenceObject(versionText);
 					PhDereferenceObject(summaryText);
 
-					// Enable the Download/Install button
 					EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
 				}
 				break;
@@ -160,6 +148,8 @@ static NTSTATUS WorkerThreadStart(
 				}
 				break;
 			}
+
+			mxmlRelease(xmlNode);
 		}
 	}
 	else
@@ -168,10 +158,10 @@ static NTSTATUS WorkerThreadStart(
 
 		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)\r\n", status));
 
-		DisposeHandles();
-
 		return status;
 	}
+
+	PhUpdaterState = Downloading;
 
 	return status;
 }
@@ -180,17 +170,14 @@ static NTSTATUS DownloadWorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	HANDLE dlFile;
 	INT xPercent = 0;
 	DWORD status = 0, dwRetVal = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);				
-	HWND hwndDlg = (HWND)Parameter, hwndProgress = GetDlgItem(hwndDlg,IDC_PROGRESS1);
-
-	DisposeHandles();
+	HWND hwndDlg = Parameter, hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
 
 	Sleep(1000);
 
 	if (status = InitializeConnection(
-		TRUE, 
+		EnableCache, 
 		L"sourceforge.net", 
 		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download"
 		))
@@ -204,7 +191,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 	}
 
 	// Open output file
-	dlFile = CreateFile(
+	TempFileFile = CreateFile(
 		localFilePath->Buffer,
 		GENERIC_WRITE,
 		FILE_SHARE_WRITE,
@@ -213,7 +200,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 		FILE_ATTRIBUTE_NORMAL,
 		0);
 
-	if (dlFile == INVALID_HANDLE_VALUE)
+	if (TempFileFile == INVALID_HANDLE_VALUE)
 	{
 		status = GetLastError();
 
@@ -222,7 +209,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 		return status;
 	}
 
-	SetDlgItemText(hwndDlg, IDC_STATUS, L"Connecting");
+	Updater_SetStatusText(hwndDlg, L"Connecting");
 
 	// Send the HTTP request.
 	if (HttpSendRequest(file, NULL, 0, NULL, 0))
@@ -253,14 +240,14 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 					str = PhFormatString(L"Downloaded: %d%% (%s)", xPercent, dlCurrent->Buffer);
 
-					SetDlgItemText(hwndDlg, IDC_STATUS, str->Buffer);
+					Updater_SetStatusText(hwndDlg, str->Buffer);
 
 					PhDereferenceObject(str);
 					PhDereferenceObject(dlCurrent);
 					//PhDereferenceObject(dlLength);
 				}
 
-				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				if (!WriteFile(TempFileFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
 					break;
@@ -290,7 +277,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 					break;
 				}
 
-				if (!WriteFile(dlFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				if (!WriteFile(TempFileFile, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
 					break;
@@ -313,21 +300,95 @@ static NTSTATUS DownloadWorkerThreadStart(
 		return status;
 	}
 
-	if (dlFile)
-		NtClose(dlFile);  
+	DisposeConnection();
+	DisposeFileHandles();
 
-	DisposeHandles();
+	Updater_SetStatusText(hwndDlg, L"Download Complete");
 
-	SetDlgItemText(hwndDlg, IDC_STATUS, L"Download Complete");
-
-	Install = TRUE;
-	SetWindowText(GetDlgItem(hwndDlg, IDYES), L"Install");
+	SetWindowText(GetDlgItem(hwndDlg, IDYES), L"Verify");
 	EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);
 	
+	PhUpdaterState = Verifying;
+
 	return STATUS_SUCCESS;
 }
 
-INT_PTR CALLBACK NetworkOutputDlgProc(      
+static DWORD VerifyHashThreadStart(
+	__in PVOID Parameter
+	)
+{
+    DWORD cbRead = 0, cbLength = 0;
+	LONG RtLength = 0;
+    BOOL bResult = FALSE;
+	LONG ret = 0;
+	INT result = 0;
+	PH_HASH_CONTEXT md5 = { 0 };
+	char buffer[BUFFER_LEN];
+
+	HWND hwndDlg = Parameter, hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+
+	HashFileHandle = CreateFile(
+		localFilePath->Buffer,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_SEQUENTIAL_SCAN,
+		NULL
+		);
+
+	if (HashFileHandle == INVALID_HANDLE_VALUE)
+	{
+		DWORD status = GetLastError();
+		LogEvent(PhFormatString(L"Updater: (HashFile) CreateFile failed (%d)", status));
+		return status;
+	}
+
+	PhInitializeHash(&md5, Sha1HashAlgorithm);
+
+	while (bResult = ReadFile(HashFileHandle, buffer, BUFFER_LEN, &cbRead, NULL))
+	{
+		if (0 == cbRead)
+			break;
+
+		PhUpdateHash(&md5, buffer, cbRead);
+
+		//dwTotalReadSize += dwBytesRead;
+		//xPercent = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
+
+		//SendMessage(hwndProgress, PBM_SETPOS, xPercent, 0);
+		//{
+		//	PPH_STRING str;
+		//	PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
+		//	//PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+
+		//	str = PhFormatString(L"Downloaded: %d%% (%s)", xPercent, dlCurrent->Buffer);
+
+		//	Updater_SetStatusText(hwndDlg, str->Buffer);
+
+		//	PhDereferenceObject(str);
+		//	PhDereferenceObject(dlCurrent);
+		//	//PhDereferenceObject(dlLength);
+		//}
+	}
+
+	//PhFinalHash(&md5, buffer, 20, &RtLength);
+	
+	DisposeFileHandles();
+
+	//for (i = 0; i < RtLength; i++)
+		//LogEvent(PhFormatString(L"%02X", buffer[i]));
+
+	Updater_SetStatusText(hwndDlg, L"Verified");
+	SetWindowText(GetDlgItem(hwndDlg, IDYES), L"Install");
+	EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);
+
+	PhUpdaterState = Installing;
+
+    return 0; 
+}
+
+INT_PTR CALLBACK MainWndProc(      
 	__in HWND hwndDlg,
 	__in UINT uMsg,
 	__in WPARAM wParam,
@@ -339,8 +400,11 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 	case WM_INITDIALOG:
 		{
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+			
+			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
+			PhUpdaterState = Default;
+
 			PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
-			Install = FALSE;
 		}
 		break;
 	case WM_COMMAND:
@@ -350,42 +414,65 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 			case IDCANCEL:
 			case IDOK:
 				{
-					DisposeHandles();
+					DisposeConnection();
 
 					EndDialog(hwndDlg, IDOK);
 				}
 				break;
 			case IDYES:
 				{
-					if (Install)
+					switch (PhUpdaterState)
 					{
-						PhShellExecute(hwndDlg, localFilePath->Buffer, NULL);
-						DisposeHandles();
-						
-						ProcessHacker_Destroy(PhMainWndHandle);
+					case Downloading:
+						{
+							if (PhInstalledUsingSetup())
+							{	
+								HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+					
+								Updater_SetStatusText(hwndDlg, L"Initializing");
+
+								// Enable the status text
+								ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);					    
+
+								PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
+								PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
+
+								// Star our Downloader thread
+								PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);   
+							}
+							else
+							{
+								// handle other installation types
+							}
+							return FALSE;
+						}
+					case Installing:
+						{
+							PhShellExecute(hwndDlg, localFilePath->Buffer, NULL);
+							DisposeConnection();
+							ProcessHacker_Destroy(PhMainWndHandle);
+							return FALSE;
+						}
+					case Verifying:
+						{
+							Updater_SetStatusText(hwndDlg, L"Verifying");
+
+							//HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+
+							// Enable the progressbar
+							//ShowWindow(hwndProgress, SW_SHOW);
+							// Enable the status text
+							//ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);					    
+
+							//SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
+
+							//PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
+							//PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
+
+							// Star our Downloader thread
+							PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)VerifyHashThreadStart, hwndDlg);   
+						}
 						return FALSE;
-					}
-
-					if (PhInstalledUsingSetup())
-					{	
-						HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
-						
-						// Enable the progressbar
-						ShowWindow(hwndProgress, SW_SHOW);
-			            // Enable the status text
-						ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);					    
-						
-						SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
-
-						PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
-						PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
-
-						// Star our Downloader thread
-						PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);   
-					}
-					else
-					{
-						// handle other installation types
 					}
 				}
 				break;
@@ -468,13 +555,41 @@ DWORD InitializeConnection(
 	return status;
 }
 
+DWORD CreateTempPath()
+{
+	TCHAR lpTempPathBuffer[MAX_PATH];
+	DWORD length = 0;
+
+	// Get the temp path env string (no guarantee it's a valid path).
+	length = GetTempPath(MAX_PATH, lpTempPathBuffer);
+
+	if (length > MAX_PATH || length == 0)
+	{
+		DWORD status = GetLastError();
+
+		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", status));
+
+		return status;
+	}	
+
+	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
+
+	return 0;
+}
+
 BOOL PhInstalledUsingSetup() 
 {
-	LONG result;
-	HKEY hKey;
+	HKEY hKey = NULL;
+	DWORD result = 0;
 
 	// Check uninstall entries for the 'Process_Hacker2_is1' registry key.
-	result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1", 0, KEY_QUERY_VALUE, &hKey);
+	result = RegOpenKeyEx(
+		HKEY_LOCAL_MACHINE, 
+		L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1", 
+		0, 
+		KEY_QUERY_VALUE, 
+		&hKey
+		);
 
 	// Cleanup
 	NtClose(hKey);
@@ -500,7 +615,8 @@ VOID LogEvent(
 	PhDereferenceObject(str);
 }
 
-VOID DisposeHandles()
+
+VOID DisposeConnection()
 {
 	if (file)
 		InternetCloseHandle(file);
@@ -510,49 +626,19 @@ VOID DisposeHandles()
 
 	if (initialize)
 		InternetCloseHandle(initialize);
-
-	//if (remoteVersion)
-		//PhDereferenceObject(remoteVersion);
-
-	//if (localFilePath)
-		//PhDereferenceObject(localFilePath);
 }
 
-DWORD CreateTempPath()
+VOID DisposeStrings()
 {
-	TCHAR lpTempPathBuffer[MAX_PATH];
-	DWORD length = 0;
-
-	// Get the temp path env string (no guarantee it's a valid path).
-	length = GetTempPath(MAX_PATH, lpTempPathBuffer);
-
-	if (length > MAX_PATH || length == 0)
-	{
-		DWORD status = GetLastError();
-
-		LogEvent(PhFormatString(L"Updater: GetTempPath failed (%d)", status));
-
-		return status;
-	}	
-
-	localFilePath = PhConcatStrings2(lpTempPathBuffer, L"processhacker-2.19-setup.exe");
-
-	return 0;
+	if (localFilePath != NULL)
+		PhDereferenceObject(localFilePath);
 }
 
-/*
- This function will convert a WCHAR string to a CHAR string.
-
- Param 1 :: Pointer to a buffer that will contain the converted string. Ensure this buffer is large enough; if not, buffer overrun errors will occur.
- Param 2 :: Constant pointer to a source WCHAR string to be converted to CHAR
-*/
-void wtoc(CHAR* dest, const WCHAR* source)
+VOID DisposeFileHandles()
 {
-	int i = 0;
+	if (TempFileFile)
+		NtClose(TempFileFile);
 
-	while(source[i] != '\0')
-	{
-		dest[i] = (CHAR)source[i];
-		++i;
-	}
+	if (HashFileHandle)
+		NtClose(HashFileHandle);
 }

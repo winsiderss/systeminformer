@@ -179,8 +179,8 @@
     <ClCompile Include="..\..\ProcessHacker\mxml\mxml-search.c" />
     <ClCompile Include="..\..\ProcessHacker\mxml\mxml-set.c" />
     <ClCompile Include="..\..\ProcessHacker\mxml\mxml-string.c" />
-    <ClCompile Include="..\ExtendedServices\options.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="options.c" />
     <ClCompile Include="output.c" />
   </ItemGroup>
   <ItemGroup>
