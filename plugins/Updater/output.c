@@ -42,7 +42,7 @@ static NTSTATUS WorkerThreadStart(
 		dwBytesRead = 0,
 		dwBytesWritten = 0, 
 		dwBufLen = sizeof(BUFFER_LEN);
-	
+
 	if (dwRetVal = InitializeConnection(
 		EnableCache, 
 		L"processhacker.sourceforge.net", 
@@ -55,124 +55,133 @@ static NTSTATUS WorkerThreadStart(
 	// Send the HTTP request.
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
+		char buffer[BUFFER_LEN];
+		char *tmpBuffer = NULL;
+
+		ZeroMemory(buffer, BUFFER_LEN); //set the entire buffer to NULL
+
+		// Read the resulting xml into our buffer.
+		while (InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
 		{
-			char buffer[BUFFER_LEN];
-
-			// Read the resulting xml into our buffer.
-			while (InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
-			{
-				if (dwBytes == 0)
-					break;
-			}
-
-			// Load our XML.
-			xmlNode = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
-
-			// Check our XML.
-			if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
-			{
-				mxmlRelease(xmlNode);
-				
-				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
-
-				SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
-
-				return STATUS_FILE_CORRUPT_ERROR;
-			}
-
-			// Find the ver node.
-			xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
-			// Find the reldate node.
-			xmlNode3 = mxmlFindElement(xmlNode, xmlNode, "reldate", NULL, NULL, MXML_DESCEND);
-			// Find the size node.
-			xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
-
-			switch (HashAlgorithm)
-			{
-			case Md5HashAlgorithm:
-				{
-					// Find the sha1 node.
-					xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "md5", NULL, NULL, MXML_DESCEND);
-				}
+			if (dwBytes == 0)
 				break;
-			default: 
-				{
-					// Find the md5 node.
-					xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
-				}
-				break;
-			}
 
-			result = strncmp(xmlNode2->child->value.opaque, "2.10", 4); 
-	
-			switch (result)
-			{
-			case 1:
-				{
-					PPH_STRING summaryText, tempstr;
+			//guarantee our buffer to be no longer than the amount read, and guarantee to be zerod.
+			tmpBuffer = (char*)PhAllocate(dwBytes);
 
-					tempstr = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-					summaryText = PhFormatString(L"Process Hacker %s is available.", tempstr->Buffer);
-					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-					PhDereferenceObject(tempstr);
-					PhDereferenceObject(summaryText);
-
-					tempstr = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);	
-					summaryText = PhFormatString(L"Released: %s", tempstr->Buffer);
-					SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
-					
-					PhDereferenceObject(tempstr);
-					PhDereferenceObject(summaryText);
-
-					tempstr = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);	
-					summaryText = PhFormatString(L"Size: %s", tempstr->Buffer);
-					SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
-
-					PhDereferenceObject(tempstr);
-					PhDereferenceObject(summaryText);
-
-					RemoteHashString = PhCreateAnsiString(xmlNode5->child->value.opaque);
-
-					EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);		
-					ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
-					ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
-				}
-				break;
-			case 0:
-				{	
-					PPH_STRING summaryText, versionText;
-
-					versionText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-					summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
-
-					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-					PhDereferenceObject(versionText);
-					PhDereferenceObject(summaryText);
-
-					EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
-				}
-				break;
-			case -1:
-				{	
-					PPH_STRING localText = PhGetPhVersion();
-					PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", localText->Buffer);
-
-					SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-					PhDereferenceObject(localText);
-					PhDereferenceObject(summaryText);
-				}
-				break;
-			default:
-				{			
-					LogEvent(PhFormatString(L"Updater: Update check unknown result: %d", result));
-				}
-				break;
-			}
+			RtlZeroMemory(tmpBuffer, dwBytes); //wipes the entire buffer, not absolutely necessary here.
+			RtlCopyMemory(tmpBuffer, buffer, dwBytes); 
 		}
+
+		// Load our XML.
+		xmlNode = mxmlLoadString(NULL, tmpBuffer, MXML_OPAQUE_CALLBACK);
+
+		PhFree(tmpBuffer);
+
+		// Check our XML.
+		if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
+		{
+			mxmlRelease(xmlNode);
+
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
+
+			SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
+
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		// Find the ver node.
+		xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
+		// Find the reldate node.
+		xmlNode3 = mxmlFindElement(xmlNode, xmlNode, "reldate", NULL, NULL, MXML_DESCEND);
+		// Find the size node.
+		xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
+
+		switch (HashAlgorithm)
+		{
+		case Md5HashAlgorithm:
+			{
+				// Find the sha1 node.
+				xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "md5", NULL, NULL, MXML_DESCEND);
+			}
+			break;
+		default: 
+			{
+				// Find the md5 node.
+				xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
+			}
+			break;
+		}
+
+		result = strcmp(xmlNode2->child->value.opaque, "2.10"); 
+
+		switch (result)
+		{
+		case 1:
+			{
+				PPH_STRING summaryText, tempstr;
+
+				tempstr = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+				summaryText = PhFormatString(L"Process Hacker %s is available.", tempstr->Buffer);
+				SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+				PhDereferenceObject(tempstr);
+				PhDereferenceObject(summaryText);
+
+				tempstr = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);	
+				summaryText = PhFormatString(L"Released: %s", tempstr->Buffer);
+				SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
+
+				PhDereferenceObject(tempstr);
+				PhDereferenceObject(summaryText);
+
+				tempstr = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);	
+				summaryText = PhFormatString(L"Size: %s", tempstr->Buffer);
+				SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
+
+				PhDereferenceObject(tempstr);
+				PhDereferenceObject(summaryText);
+
+				RemoteHashString = PhCreateAnsiString(xmlNode5->child->value.opaque);
+
+				EnableWindow(GetDlgItem(hwndDlg, IDYES), TRUE);		
+				ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
+				ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
+			}
+			break;
+		case 0:
+			{	
+				PPH_STRING summaryText, versionText;
+
+				versionText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
+				summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
+
+				SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+				PhDereferenceObject(versionText);
+				PhDereferenceObject(summaryText);
+
+				EnableWindow(GetDlgItem(hwndDlg, IDYES), FALSE);
+			}
+			break;
+		case -1:
+			{	
+				PPH_STRING localText = PhGetPhVersion();
+				PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", localText->Buffer);
+
+				SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+				PhDereferenceObject(localText);
+				PhDereferenceObject(summaryText);
+			}
+			break;
+		default:
+			{			
+				LogEvent(PhFormatString(L"Updater: Update check unknown result: %d", result));
+			}
+			break;
+		}
+
 	}
 	else
 	{
@@ -185,9 +194,9 @@ static NTSTATUS WorkerThreadStart(
 
 	mxmlRelease(xmlNode);
 	DisposeConnection();
-	
+
 	PhUpdaterState = Downloading;
-		
+
 	return dwRetVal;
 }
 
@@ -218,22 +227,30 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-		char fileBuffer[BUFFER_LEN];
-		char hashBuffer[20];
+		char buffer[BUFFER_LEN];
+		char *tmpBuffer = NULL;
 
 		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
+			ZeroMemory(buffer, BUFFER_LEN); //set the entire buffer to NULL
+
 			// Reset Progressbar state.
 			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
-			
 			// Initialize hash algorithm.
 			PhInitializeHash(&hashContext, HashAlgorithm);
 
-			while (InternetReadFile(NetRequest, fileBuffer, BUFFER_LEN, &dwBytesRead))
+			// (BUFFER_LEN - 1) make sure we read less than how much is in the buffer
+			while (InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)) 
 			{
 				if (dwBytesRead == 0)
 					break;
 
+				//guarantee our buffer to be no longer than the amount read, and guarantee to be zerod.
+				tmpBuffer = (char*)malloc(dwBytesRead);
+				
+				RtlZeroMemory(tmpBuffer, dwBytesRead); //wipes the entire buffer, not absolutely necessary here.
+				RtlCopyMemory(tmpBuffer, buffer, dwBytesRead); 
+	
 				dwTotalReadSize += dwBytesRead;
 				xPercent = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
 
@@ -252,50 +269,78 @@ static NTSTATUS DownloadWorkerThreadStart(
 					//PhDereferenceObject(dlLength);
 				}
 
-				PhUpdateHash(&hashContext, fileBuffer, dwBytesRead);
+				PhUpdateHash(&hashContext, tmpBuffer, dwBytesRead);
 
-				if (!WriteFile(TempFileHandle, fileBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				if (!WriteFile(TempFileHandle, tmpBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-					break;
+					dwRetVal = GetLastError();
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", dwRetVal));
+					
+					if (tmpBuffer)
+						free(tmpBuffer);
+					
+					return dwRetVal;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
-				{	
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile dwBytesRead != dwBytesWritte (%d)", GetLastError()));
-					break;                
+				{		
+					dwRetVal = GetLastError();
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", dwRetVal));
+					
+					if (tmpBuffer)
+						free(tmpBuffer);
+					
+					return dwRetVal;                 
 				}
+
+				if (tmpBuffer)
+					free(tmpBuffer);
 			}
 		}
 		else
 		{
 			// No content length...impossible to calculate % complete so just read until we are done.
-			LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)\r\n", GetLastError()));
+			LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", GetLastError()));
 
-			while (InternetReadFile(NetRequest, fileBuffer, BUFFER_LEN, &dwBytesRead))
+			while (InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead))
 			{	
 				if (dwBytesRead == 0)
-				{
-					// We're done.
 					break;
-				}
 
-				PhUpdateHash(&hashContext, fileBuffer, dwBytesRead);
+				//guarantee our buffer to be no longer than the amount read, and guarantee to be zerod.
+				tmpBuffer = (char*)PhAllocate(dwBytesRead);
+				
+				RtlZeroMemory(tmpBuffer, dwBytesRead); //wipes the entire buffer, not absolutely necessary here.
+				RtlCopyMemory(tmpBuffer, buffer, dwBytesRead); 
 
-				if (!WriteFile(TempFileHandle, fileBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				PhUpdateHash(&hashContext, tmpBuffer, dwBytesRead);
+
+				if (!WriteFile(TempFileHandle, tmpBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
-					break;
+					dwRetVal = GetLastError();
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", dwRetVal));
+										
+					if (tmpBuffer)
+						free(tmpBuffer);
+					
+					return dwRetVal;
 				}
 
 				if (dwBytesRead != dwBytesWritten) 
 				{
-					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", GetLastError()));
-					break;                
+					dwRetVal = GetLastError();
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", dwRetVal));
+
+					if (tmpBuffer)
+						free(tmpBuffer);
+
+					return dwRetVal;             
 				}
+
+				free(tmpBuffer);
 			}
 		}
-		
+
 		Updater_SetStatusText(hwndDlg, L"Download Complete");
 
 		DisposeConnection();
@@ -308,46 +353,50 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 		Sleep(1000);
 
-		if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
 		{
-			INT strResult = -2;
-			PH_ANSI_STRING *str;				
-			PH_STRING_BUILDER sb = { 0 };
+			char hashBuffer[20];
 
-			PhInitializeStringBuilder(&sb, 100);
-
-			for (i = 0; i < hashLength; i++)
+			if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
 			{
-				PH_STRING *str = PhFormatString(L"%02x", 0xFF & hashBuffer[i]);
+				INT strResult = -2;
+				PH_ANSI_STRING *str;				
+				PH_STRING_BUILDER sb = { 0 };
 
-				PhAppendStringBuilder(&sb, str);
+				PhInitializeStringBuilder(&sb, 100);
+
+				for (i = 0; i < hashLength; i++)
+				{
+					PH_STRING *str = PhFormatString(L"%02x", 0xFF & hashBuffer[i]);
+
+					PhAppendStringBuilder(&sb, str);
+
+					PhDereferenceObject(str);
+				}
+
+				str = PhCreateAnsiStringFromUnicode(sb.String->Buffer);
+				strResult = strcmp(str->Buffer, RemoteHashString->Buffer); 
 
 				PhDereferenceObject(str);
+				PhDeleteStringBuilder(&sb);
+
+				switch (strResult)
+				{
+				case 0:
+					{
+						Updater_SetStatusText(hwndDlg, L"Hash verified");
+					}
+					break;
+				default:
+					{
+						Updater_SetStatusText(hwndDlg, L"Hash verification failed");
+					}
+					break;
+				}
 			}
-			
-			str = PhCreateAnsiStringFromUnicode(sb.String->Buffer);
-			strResult = strncmp(str->Buffer, RemoteHashString->Buffer, str->Length); 
-
-			PhDereferenceObject(str);
-			PhDeleteStringBuilder(&sb);
-
-			switch (strResult)
+			else
 			{
-			case 0:
-				{
-					Updater_SetStatusText(hwndDlg, L"Hash verified");
-				}
-				break;
-			default:
-				{
-					Updater_SetStatusText(hwndDlg, L"Hash verification failed");
-				}
-				break;
+				Updater_SetStatusText(hwndDlg, L"Hash verification failed");
 			}
-		}
-		else
-		{
-			Updater_SetStatusText(hwndDlg, L"Hash verification failed");
 		}
 	}
 	else
@@ -575,7 +624,7 @@ BOOL PhInstalledUsingSetup()
 
 	if (result != ERROR_SUCCESS)
 	{
-		LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) RegOpenKeyEx failed (%d)\r\n", result));
+		LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) RegOpenKeyEx failed (%d)", result));
 
 		return FALSE;
 	}
