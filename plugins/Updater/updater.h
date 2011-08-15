@@ -28,7 +28,13 @@ typedef enum _PH_UPDATER_STATE
 #define UPDATE_MENUITEM 1
 
 #define Updater_SetStatusText(hwndDlg, lpString) \
-   SetDlgItemText(hwndDlg, IDC_STATUS, lpString);
+   PostMessage(hwndDlg, WM_APP + 1, (LPARAM)lpString, 0);
+
+typedef struct _PH_UPDATER_CONTEXT
+{
+    HWND MainWindowHandle;
+    PVOID Parameter;
+} PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 #pragma endregion
 
@@ -52,7 +58,7 @@ static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 static PH_SETTING_CREATE settings[] =
 {
 	{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
-	{ IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" } 
+	{ IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
 };	
 
 #pragma endregion

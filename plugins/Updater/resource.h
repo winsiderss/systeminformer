@@ -10,13 +10,13 @@
 #define IDC_MESSAGE                     1002
 #define IDC_PROGRESS1                   1003
 #define IDC_STATUS                      1004
+#define IDC_STATUSTEXT                  1004
 #define IDC_RELDATE                     1005
 #define IDC_DLSIZE                      1006
 #define IDC_SYSLINK1                    1007
 #define IDC_EDIT1                       1008
 #define IDC_HASHCOMBOBOX                1009
 #define IDDOWNLOAD                      1010
-#define IDDOWNLOAD2                     1011
 
 // Next default values for new objects
 // 
