@@ -41,7 +41,7 @@ extern PPH_PLUGIN PluginInstance;
 #pragma region Statics
 
 static HANDLE TempFileHandle = NULL;
-static HINTERNET NetIitialize = NULL, NetConnection = NULL, NetRequest = NULL;
+static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
 
 static PH_STRING *LocalFilePathString = NULL;
 static PH_ANSI_STRING *RemoteHashString = NULL;
