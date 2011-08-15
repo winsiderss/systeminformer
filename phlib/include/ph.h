@@ -211,36 +211,28 @@ NTSTATUS PhGetProcessPosixCommandLine(
     __out PPH_STRING *CommandLine
     );
 
-/** Contains information about an environment variable. */
-typedef struct _PH_ENVIRONMENT_VARIABLE
-{
-    /** A string containing the variable name. */
-    PPH_STRING Name;
-    /** A string containing the variable value. */
-    PPH_STRING Value;
-} PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
-
-PHLIBAPI
-NTSTATUS PhGetProcessEnvironmentVariables(
-    __in HANDLE ProcessHandle,
-    __out PPH_ENVIRONMENT_VARIABLE *Variables,
-    __out PULONG NumberOfVariables
-    );
-
 #define PH_GET_PROCESS_ENVIRONMENT_WOW64 0x1 // retrieve the WOW64 environment
 
 PHLIBAPI
-NTSTATUS PhGetProcessEnvironmentVariablesEx(
+NTSTATUS PhGetProcessEnvironment(
     __in HANDLE ProcessHandle,
     __in ULONG Flags,
-    __out PPH_ENVIRONMENT_VARIABLE *Variables,
-    __out PULONG NumberOfVariables
+    __out PVOID *Environment,
+    __out PULONG EnvironmentLength
     );
 
+typedef struct _PH_ENVIRONMENT_VARIABLE
+{
+    PH_STRINGREF Name;
+    PH_STRINGREF Value;
+} PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
+
 PHLIBAPI
-VOID PhFreeProcessEnvironmentVariables(
-    __in PPH_ENVIRONMENT_VARIABLE Variables,
-    __in ULONG NumberOfVariables
+BOOLEAN PhEnumProcessEnvironmentVariables(
+    __in PVOID Environment,
+    __in ULONG EnvironmentLength,
+    __inout PULONG EnumerationKey,
+    __out PPH_ENVIRONMENT_VARIABLE Variable
     );
 
 PHLIBAPI

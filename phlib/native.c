@@ -1066,66 +1066,29 @@ NTSTATUS PhGetProcessPosixCommandLine(
 }
 
 /**
- * Gets a process' environment variables.
+ * Gets a process' environment block.
  *
  * \param ProcessHandle A handle to a process. The handle 
  * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
  * access.
- * \param Variables A variable which will receive a pointer 
- * to an array of \ref PH_ENVIRONMENT_VARIABLE structures, one 
- * for each variable. You must free the array using 
- * PhFreeProcessEnvironmentVariables() when you no longer 
- * need it.
- * \param NumberOfVariables A variable which will receive 
- * the number of environment variables returned in the 
- * array.
+ * \param Environment A variable which will receive a pointer 
+ * to the environment block copied from the process. You must 
+ * free the block using PhFreePage() when you no longer need it.
+ * \param EnvironmentLength A variable which will receive 
+ * the length of the environment block, in bytes.
  */
-NTSTATUS PhGetProcessEnvironmentVariables(
-    __in HANDLE ProcessHandle,
-    __out PPH_ENVIRONMENT_VARIABLE *Variables,
-    __out PULONG NumberOfVariables
-    )
-{
-    return PhGetProcessEnvironmentVariablesEx(
-        ProcessHandle,
-        0,
-        Variables,
-        NumberOfVariables
-        );
-}
-
-/**
- * Gets a process' environment variables.
- *
- * \param ProcessHandle A handle to a process. The handle 
- * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
- * access.
- * \param Flags A combination of the following flags:
- * \li \c PH_GET_PROCESS_ENVIRONMENT_WOW64 Retrieve the WOW64 
- * environment block.
- * \param Variables A variable which will receive a pointer 
- * to an array of \ref PH_ENVIRONMENT_VARIABLE structures, one 
- * for each variable. You must free the array using 
- * PhFreeProcessEnvironmentVariables() when you no longer 
- * need it.
- * \param NumberOfVariables A variable which will receive 
- * the number of environment variables returned in the 
- * array.
- */
-NTSTATUS PhGetProcessEnvironmentVariablesEx(
+NTSTATUS PhGetProcessEnvironment(
     __in HANDLE ProcessHandle,
     __in ULONG Flags,
-    __out PPH_ENVIRONMENT_VARIABLE *Variables,
-    __out PULONG NumberOfVariables
+    __out PVOID *Environment,
+    __out PULONG EnvironmentLength
     )
 {
     NTSTATUS status;
+    PVOID environmentRemote;
+    MEMORY_BASIC_INFORMATION mbi;
     PVOID environment;
     ULONG environmentLength;
-    PWSTR buffer;
-    PPH_LIST pairsList;
-    ULONG i;
-    PPH_ENVIRONMENT_VARIABLE variables;
 
     if (!(Flags & PH_GET_PROCESS_ENVIRONMENT_WOW64))
     {
@@ -1149,7 +1112,7 @@ NTSTATUS PhGetProcessEnvironmentVariablesEx(
         if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
-            &environment,
+            &environmentRemote,
             sizeof(PVOID),
             NULL
             )))
@@ -1159,7 +1122,7 @@ NTSTATUS PhGetProcessEnvironmentVariablesEx(
     {
         PVOID peb32;
         ULONG processParameters32;
-        ULONG environment32;
+        ULONG environmentRemote32;
 
         status = PhGetProcessPeb32(ProcessHandle, &peb32);
 
@@ -1178,125 +1141,122 @@ NTSTATUS PhGetProcessEnvironmentVariablesEx(
         if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters32, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
-            &environment32,
+            &environmentRemote32,
             sizeof(ULONG),
             NULL
             )))
             return status;
 
-        environment = UlongToPtr(environment32);
+        environmentRemote = UlongToPtr(environmentRemote32);
     }
 
-    {
-        MEMORY_BASIC_INFORMATION mbi;
+    if (!NT_SUCCESS(status = NtQueryVirtualMemory(
+        ProcessHandle,
+        environmentRemote,
+        MemoryBasicInformation,
+        &mbi,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
+        return status;
 
-        if (!NT_SUCCESS(status = NtQueryVirtualMemory(
-            ProcessHandle,
-            environment,
-            MemoryBasicInformation,
-            &mbi,
-            sizeof(MEMORY_BASIC_INFORMATION),
-            NULL
-            )))
-            return status;
-
-        environmentLength = (ULONG)(mbi.RegionSize -
-            ((ULONG_PTR)environment - (ULONG_PTR)mbi.BaseAddress));
-    }
+    environmentLength = (ULONG)(mbi.RegionSize -
+        ((ULONG_PTR)environmentRemote - (ULONG_PTR)mbi.BaseAddress));
 
     // Read in the entire region of memory.
 
-    buffer = PhAllocate(environmentLength);
+    environment = PhAllocatePage(environmentLength, NULL);
+
+    if (!environment)
+        return STATUS_NO_MEMORY;
 
     if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
+        environmentRemote,
         environment,
-        buffer,
         environmentLength,
         NULL
         )))
     {
-        PhFree(buffer);
+        PhFreePage(environment);
         return status;
     }
 
-    // Create a list of pairs.
+    *Environment = environment;
 
-    pairsList = PhCreateList(20);
-    i = 0;
-    environmentLength /= 2;
+    if (EnvironmentLength)
+        *EnvironmentLength = environmentLength;
 
-    while (TRUE)
-    {
-        ULONG oldIndex;
-
-        // Go through the buffer and stop when we reach 
-        // the end of the pair string.
-
-        oldIndex = i;
-
-        while (i < environmentLength && buffer[i] != 0)
-            i++;
-
-        // Check if the environment block has ended 
-        // (the last string is zero-length) or if we 
-        // overran the buffer.
-        if (i == oldIndex || i >= environmentLength)
-            break;
-
-        // Save a pointer to the current pair string.
-        PhAddItemList(pairsList, &buffer[oldIndex]);
-        i++; // skip the null terminator
-    }
-
-    // Create the output array.
-
-    variables = PhAllocate(sizeof(PH_ENVIRONMENT_VARIABLE) * pairsList->Count);
-
-    for (i = 0; i < pairsList->Count; i++)
-    {
-        PWSTR pairPointer;
-        PWSTR valuePointer;
-
-        pairPointer = (PWSTR)pairsList->Items[i];
-        valuePointer = wcschr(pairPointer, '=');
-
-        variables[i].Name = PhCreateStringEx(pairPointer, (valuePointer - pairPointer) * 2);
-        variables[i].Value = PhCreateString(valuePointer + 1);
-    }
-
-    *Variables = variables;
-    *NumberOfVariables = pairsList->Count;
-
-    PhDereferenceObject(pairsList);
-    PhFree(buffer);
-
-    return STATUS_SUCCESS;
+    return status;
 }
 
-/**
- * Frees an array of environment variables returned 
- * by PhGetProcessEnvironmentVariables().
- *
- * \param Variables A pointer to an array of 
- * environment variables.
- * \param NumberOfVariables The number of environment 
- * variables in the array.
- */
-VOID PhFreeProcessEnvironmentVariables(
-    __in PPH_ENVIRONMENT_VARIABLE Variables,
-    __in ULONG NumberOfVariables
+BOOLEAN PhEnumProcessEnvironmentVariables(
+    __in PVOID Environment,
+    __in ULONG EnvironmentLength,
+    __inout PULONG EnumerationKey,
+    __out PPH_ENVIRONMENT_VARIABLE Variable
     )
 {
-    ULONG i;
+    ULONG length;
+    ULONG startIndex;
+    PWCHAR name;
+    ULONG nameLength;
+    PWCHAR value;
+    ULONG valueLength;
+    PWCHAR currentChar;
+    ULONG currentIndex;
 
-    for (i = 0; i < NumberOfVariables; i++)
+    length = EnvironmentLength / sizeof(WCHAR);
+
+    currentIndex = *EnumerationKey;
+    currentChar = (PWCHAR)Environment + currentIndex;
+    startIndex = currentIndex;
+    name = currentChar;
+
+    // Find the end of the name.
+    while (TRUE)
     {
-        PhDereferenceObject(Variables[i].Name);
-        PhDereferenceObject(Variables[i].Value);
+        if (currentIndex >= length)
+            return FALSE;
+        if (*currentChar == '=')
+            break;
+        if (*currentChar == 0)
+            return FALSE; // no more variables
+
+        currentIndex++;
+        currentChar++;
     }
 
-    PhFree(Variables);
+    nameLength = currentIndex - startIndex;
+
+    currentIndex++;
+    currentChar++;
+    startIndex = currentIndex;
+    value = currentChar;
+
+    // Find the end of the value.
+    while (TRUE)
+    {
+        if (currentIndex >= length)
+            return FALSE;
+        if (*currentChar == 0)
+            break;
+
+        currentIndex++;
+        currentChar++;
+    }
+
+    valueLength = currentIndex - startIndex;
+
+    currentIndex++;
+    *EnumerationKey = currentIndex;
+
+    Variable->Name.Buffer = name;
+    Variable->Name.Length = (USHORT)(nameLength * sizeof(WCHAR));
+    Variable->Value.Buffer = value;
+    Variable->Value.Length = (USHORT)(valueLength * sizeof(WCHAR));
+
+    return TRUE;
 }
 
 /**
