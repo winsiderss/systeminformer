@@ -46,7 +46,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 						
 			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
-			HashAlgorithm = PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
+			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 
             ComboBox_AddString(comboHandle, L"SHA1");
             ComboBox_AddString(comboHandle, L"MD5");
@@ -75,7 +75,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 						ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX)));
 
 					EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
-					HashAlgorithm = PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
+					HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 
                     EndDialog(hwndDlg, IDOK);
                 }
