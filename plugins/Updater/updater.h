@@ -24,11 +24,11 @@ typedef enum _PH_UPDATER_STATE
 
 #pragma region Defines
 
-#define BUFFER_LEN 256
+#define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
 
 #define Updater_SetStatusText(hwndDlg, lpString) \
-   PostMessage(hwndDlg, WM_APP + 1, (LPARAM)lpString, 0);
+	SetDlgItemText(hwndDlg, IDC_STATUSTEXT, lpString)
 
 typedef struct _PH_UPDATER_CONTEXT
 {
@@ -82,7 +82,6 @@ VOID DisposeFileHandles();
 BOOL PhInstalledUsingSetup();
 
 DWORD InitializeConnection(
-	__in BOOL useCache,
 	__in PCWSTR host,
 	__in PCWSTR path
 	);
