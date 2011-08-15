@@ -27,7 +27,7 @@ static NTSTATUS WorkerThreadStart(
 	)
 {
 	INT xPercent = 0, result = -2;
-	HWND hwndDlg = (HWND)Parameter, hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+	HWND hwndDlg = Parameter;
 
 	mxml_node_t 
 		*xmlNode, 
@@ -229,8 +229,8 @@ static NTSTATUS DownloadWorkerThreadStart(
 	)
 {
 	INT i = 0, dlProgress = 0;
-	DWORD dwStatusResult = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);
-	HWND hwndDlg = (HWND)Parameter;
+	DWORD dwStatusResult = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);	
+	HWND hwndDlg = Parameter;
 	PH_HASH_CONTEXT hashContext;
 
 	HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
@@ -252,9 +252,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-        UCHAR buffer[BUFFER_LEN]; 
-		char *tmpBuffer = NULL;
-
+        UCHAR buffer[BUFFER_LEN];
 		RtlZeroMemory(buffer, BUFFER_LEN);
 
 		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
@@ -264,36 +262,22 @@ static NTSTATUS DownloadWorkerThreadStart(
 			// Initialize hash algorithm.
 			PhInitializeHash(&hashContext, HashAlgorithm);
 
-			// (BUFFER_LEN - 1) make sure we read less than how much is in the buffer
-			while (InternetReadFile(NetRequest, buffer, BUFFER_LEN - 1, &dwBytesRead)) 
+			while (InternetReadFile(NetRequest, &buffer, BUFFER_LEN, &dwBytesRead)) 
 			{
 				if (dwBytesRead == 0)
 					break;
-
-				tmpBuffer = (char*)malloc(dwBytesRead);
-				
-				//wipe the entire buffer, not absolutely necessary here.
-				//RtlZeroMemory(tmpBuffer, dwBytesRead); 
-				RtlCopyMemory(tmpBuffer, buffer, dwBytesRead); 
-	
+								
 				// Update the hash of bytes we just downloaded.
-				PhUpdateHash(&hashContext, tmpBuffer, dwBytesRead);
+				PhUpdateHash(&hashContext, buffer, dwBytesRead);
 
 				// Write the downloaded bytes to disk.
-				if (!WriteFile(TempFileHandle, tmpBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
 					dwStatusResult = GetLastError();
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", dwStatusResult));
-						
-					if (tmpBuffer)
-						free(tmpBuffer);
 
 					return dwStatusResult;   
 				}
-		
-				// Free the temp buffer.
-				if (tmpBuffer)
-					free(tmpBuffer);
 
 				// Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
 				if (dwBytesRead != dwBytesWritten) 
@@ -304,6 +288,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 					return dwStatusResult;                
 				}
 
+				// Reset the buffer.
+				RtlZeroMemory(buffer, dwBytesRead);
+
 				// Update our total bytes downloaded
 				dwTotalReadSize += dwBytesRead;
 				// Calculate the percentage of our total bytes downloaded per the length.
@@ -313,10 +300,10 @@ static NTSTATUS DownloadWorkerThreadStart(
 				{
 					PPH_STRING str;
 					PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-				//	//PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+				    //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
 
 					str = PhFormatString(L"Downloaded: %d%% (%s)", dlProgress, dlCurrent->Buffer);
-
+				
 					Updater_SetStatusText(hwndDlg, str->Buffer);
 
 					PhDereferenceObject(str);
@@ -335,18 +322,12 @@ static NTSTATUS DownloadWorkerThreadStart(
 				if (dwBytesRead == 0)
 					break;
 
-				RtlZeroMemory(tmpBuffer, dwBytesRead); //wipes the entire buffer, not absolutely necessary here.
-				RtlCopyMemory(tmpBuffer, buffer, dwBytesRead); 
+				PhUpdateHash(&hashContext, buffer, dwBytesRead);
 
-				PhUpdateHash(&hashContext, tmpBuffer, dwBytesRead);
-
-				if (!WriteFile(TempFileHandle, tmpBuffer, dwBytesRead, &dwBytesWritten, NULL)) 
+				if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL)) 
 				{
 					dwStatusResult = GetLastError();
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", dwStatusResult));
-
-					if (tmpBuffer)
-						free(tmpBuffer);
 
 					return dwStatusResult;   
 				}
@@ -355,24 +336,15 @@ static NTSTATUS DownloadWorkerThreadStart(
 				{
 					dwStatusResult = GetLastError();
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", dwStatusResult));
-
-					if (tmpBuffer)
-						free(tmpBuffer);
-
 					return dwStatusResult;   
 				}   
-			}
 
-			if (tmpBuffer)
-				free(tmpBuffer);
+				// Reset the buffer.
+				RtlZeroMemory(buffer, dwBytesRead);
+			}
 		}
 
 		Updater_SetStatusText(hwndDlg, L"Download Complete");
-
-		if (!PhElevated)
-		{
-			SendMessage(GetDlgItem(hwndDlg, IDDOWNLOAD), BCM_SETSHIELD, 0, TRUE);
-		}
 
 		DisposeConnection();
 		DisposeFileHandles();
@@ -380,6 +352,10 @@ static NTSTATUS DownloadWorkerThreadStart(
 		// Enable Install button before hashing (user might not care about file hash result)
 		SetWindowText(GetDlgItem(hwndDlg, IDDOWNLOAD), L"Install");
 		EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), TRUE);
+				
+		if (!PhElevated)
+			SendMessage(GetDlgItem(hwndDlg, IDDOWNLOAD), BCM_SETSHIELD, 0, TRUE);
+
 		PhUpdaterState = Installing;
 
 		{
@@ -400,7 +376,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 				PhDereferenceObject(ansihexString);
 				PhDereferenceObject(hexString);
 
-				// Check the comparison result.
+				// Check the comparison result. 
 				if (strResult != 0)
 				{
 					Updater_SetStatusText(hwndDlg, L"Hash Verified");
@@ -443,12 +419,17 @@ INT_PTR CALLBACK MainWndProc(
 {
 	switch (uMsg)
 	{
+	case WM_APP + 1:
+		{
+			 SetDlgItemText(hwndDlg, IDC_STATUSTEXT, (LPCWSTR)wParam);
+		}
+		break;
 	case WM_INITDIALOG:
 		{
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 			
 			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
-			HashAlgorithm = PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
+			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 			PhUpdaterState = Default;
 
 			PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
@@ -463,7 +444,6 @@ INT_PTR CALLBACK MainWndProc(
 				{
 					DisposeConnection();
 					DisposeStrings();
-					DisposeFileHandles();
 
 					EndDialog(hwndDlg, IDOK);
 				}
@@ -492,6 +472,29 @@ INT_PTR CALLBACK MainWndProc(
 							else
 							{
 								// handle other installation types
+								static PH_FILETYPE_FILTER filters[] =
+								{
+									{ L"Compressed files (*.zip)", L"*.zip" },
+								};
+
+								PVOID fileDialog;
+
+								fileDialog = PhCreateSaveFileDialog();
+
+								PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+								PhSetFileDialogFileName(fileDialog, L"processhacker-2.19-setup.zip");
+
+								if (PhShowFileDialog(hwndDlg, fileDialog))
+								{
+									NTSTATUS status;
+									PPH_STRING fileName;
+									PPH_FILE_STREAM fileStream;
+
+									fileName = PhGetFileDialogFileName(fileDialog);
+									PhaDereferenceObject(fileName);
+								}
+
+								PhFreeFileDialog(fileDialog);
 							}
 							return FALSE;
 						}

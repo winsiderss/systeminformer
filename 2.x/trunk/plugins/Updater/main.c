@@ -62,10 +62,10 @@ LOGICAL DllMain(
                 );
 			 PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
+				ShowOptionsCallback,
+				NULL,
+				&PluginShowOptionsCallbackRegistration
+				);
 
 			 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
         }
