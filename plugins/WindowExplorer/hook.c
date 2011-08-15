@@ -20,6 +20,16 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * Window Explorer uses a hook procedure in order to get window procedure 
+ * and other information that can't be retrieved using GetWindowLongPtr. 
+ * Because WindowExplorer.dll needs to be loaded into processes other 
+ * than Process Hacker, both ProcessHacker.exe and comctl32.dll are set as 
+ * delay-loaded DLLs. The other DLLs that we depend on (gdi32.dll, 
+ * kernel32.dll, ntdll.dll, user32.dll) are all guaranteed to be already 
+ * loaded whenever WindowExplorer.dll needs to be loaded.
+ */
+
 #include "wndexp.h"
 
 BOOLEAN WepCreateServerObjects();
