@@ -57,26 +57,26 @@ static NTSTATUS WorkerThreadStart(
 	// Send the HTTP request.
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-		char buffer[BUFFER_LEN];
-		char *tmpBuffer = NULL;
+        CHAR buffer[BUFFER_LEN];
+		BOOL nReadFile;
 
 		// Read the resulting xml into our buffer.
-		while (InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
+		while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
 		{
 			if (dwBytes == 0)
 				break;
 
-			//guarantee our buffer to be no longer than the amount read, and guarantee to be zerod.
-			tmpBuffer = (char*)PhAllocate(dwBytes);
+			if (!nReadFile)
+			{
+				DWORD dwStatusResult = GetLastError();
+				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) InternetReadFile failed (%d)", dwStatusResult));
 
-			RtlZeroMemory(tmpBuffer, dwBytes); //wipes the entire buffer, not absolutely necessary here.
-			RtlCopyMemory(tmpBuffer, buffer, dwBytes); 
+				return dwStatusResult;
+			}
 		}
 
 		// Load our XML.
-		xmlNode = mxmlLoadString(NULL, tmpBuffer, MXML_OPAQUE_CALLBACK);
-
-		PhFree(tmpBuffer);
+		xmlNode = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
 
 		// Check our XML.
 		if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
@@ -90,20 +90,38 @@ static NTSTATUS WorkerThreadStart(
 			return STATUS_FILE_CORRUPT_ERROR;
 		}
 
-		// Find the ver node.
-		xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
+		if (CheckBetaRelease)
 		{
-			mxmlRelease(xmlNode2);
+			// Find the ver node.
+			xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
+			// Check our XML.
+			if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
+			{
+				mxmlRelease(xmlNode2);
 
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
+				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
 
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
+				SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
 
-			return STATUS_FILE_CORRUPT_ERROR;
+				return STATUS_FILE_CORRUPT_ERROR;
+			}
 		}
-			
+		else
+		{
+			// Find the ver node.
+			xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
+			// Check our XML.
+			if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
+			{
+				mxmlRelease(xmlNode2);
+
+				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
+
+				SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
+
+				return STATUS_FILE_CORRUPT_ERROR;
+			}
+		}
 		// Find the reldate node.
 		xmlNode3 = mxmlFindElement(xmlNode, xmlNode, "reldate", NULL, NULL, MXML_DESCEND);
 		// Check our XML.
@@ -257,16 +275,26 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
+			BOOL nReadFile;
+
 			// Reset Progressbar state.
 			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
 			// Initialize hash algorithm.
 			PhInitializeHash(&hashContext, HashAlgorithm);
 
-			while (InternetReadFile(NetRequest, &buffer, BUFFER_LEN, &dwBytesRead)) 
+			while (nReadFile = InternetReadFile(NetRequest, &buffer, BUFFER_LEN, &dwBytesRead)) 
 			{
 				if (dwBytesRead == 0)
 					break;
-								
+
+				if (!nReadFile)
+				{
+					DWORD dwStatusResult = GetLastError();
+					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", dwStatusResult));
+
+					return dwStatusResult;
+				}
+
 				// Update the hash of bytes we just downloaded.
 				PhUpdateHash(&hashContext, buffer, dwBytesRead);
 
@@ -289,7 +317,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 				}
 
 				// Reset the buffer.
-				RtlZeroMemory(buffer, dwBytesRead);
+				RtlZeroMemory(buffer, BUFFER_LEN);
 
 				// Update our total bytes downloaded
 				dwTotalReadSize += dwBytesRead;
@@ -340,7 +368,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 				}   
 
 				// Reset the buffer.
-				RtlZeroMemory(buffer, dwBytesRead);
+				RtlZeroMemory(buffer, BUFFER_LEN);
 			}
 		}
 
@@ -377,7 +405,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 				PhDereferenceObject(hexString);
 
 				// Check the comparison result. 
-				if (strResult != 0)
+				if (strResult == 0)
 				{
 					Updater_SetStatusText(hwndDlg, L"Hash Verified");
 				}

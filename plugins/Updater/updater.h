@@ -24,7 +24,7 @@ typedef enum _PH_UPDATER_STATE
 
 #pragma region Defines
 
-#define BUFFER_LEN 512
+#define BUFFER_LEN 256
 #define UPDATE_MENUITEM 1
 
 #define Updater_SetStatusText(hwndDlg, lpString) \
@@ -53,6 +53,7 @@ static PH_STRING *LocalFilePathString = NULL;
 static PH_ANSI_STRING *RemoteHashString = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
+static BOOL CheckBetaRelease = FALSE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
 static PH_SETTING_CREATE settings[] =
