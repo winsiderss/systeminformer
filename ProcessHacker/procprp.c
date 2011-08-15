@@ -4015,9 +4015,10 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     case WM_INITDIALOG:
         {
             HANDLE processHandle;
-            PPH_ENVIRONMENT_VARIABLE variables;
-            ULONG numberOfVariables;
-            ULONG i;
+            PVOID environment;
+            ULONG environmentLength;
+            ULONG enumerationKey;
+            PH_ENVIRONMENT_VARIABLE variable;
             HWND lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -4043,26 +4044,38 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
 #endif
 
-                if (NT_SUCCESS(PhGetProcessEnvironmentVariablesEx(
+                if (NT_SUCCESS(PhGetProcessEnvironment(
                     processHandle,
                     flags,
-                    &variables,
-                    &numberOfVariables
+                    &environment,
+                    &environmentLength
                     )))
                 {
-                    for (i = 0; i < numberOfVariables; i++)
+                    enumerationKey = 0;
+
+                    while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
                     {
                         INT lvItemIndex;
+                        PPH_STRING nameString;
+                        PPH_STRING valueString;
 
                         // Don't display pairs with no name.
-                        if (variables[i].Name->Length == 0)
+                        if (variable.Name.Length == 0)
                             continue;
 
-                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhGetString(variables[i].Name), NULL);
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(variables[i].Value));
+                        // The strings are not guaranteed to be null-terminated, so we need to create 
+                        // some temporary strings.
+                        nameString = PhCreateStringEx(variable.Name.Buffer, variable.Name.Length);
+                        valueString = PhCreateStringEx(variable.Value.Buffer, variable.Value.Length);
+
+                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, nameString->Buffer, NULL);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, valueString->Buffer);
+
+                        PhDereferenceObject(nameString);
+                        PhDereferenceObject(valueString);
                     }
 
-                    PhFreeProcessEnvironmentVariables(variables, numberOfVariables);
+                    PhFreePage(environment);
                 }
 
                 NtClose(processHandle);
