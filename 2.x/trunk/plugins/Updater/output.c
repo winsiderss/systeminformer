@@ -26,8 +26,8 @@ static NTSTATUS WorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	INT xPercent = 0, result = -2;
-	HWND hwndDlg = Parameter;
+	INT result = -2;
+	HWND hwndDlg = (HWND)Parameter;
 
 	mxml_node_t 
 		*xmlNode, 
@@ -46,7 +46,6 @@ static NTSTATUS WorkerThreadStart(
 		dwBufLen = sizeof(BUFFER_LEN);
 
 	if (dwRetVal = InitializeConnection(
-		EnableCache, 
 		L"processhacker.sourceforge.net", 
 		L"/updater.php"
 		))
@@ -74,7 +73,7 @@ static NTSTATUS WorkerThreadStart(
 				return dwStatusResult;
 			}
 		}
-
+		
 		// Load our XML.
 		xmlNode = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
 
@@ -248,15 +247,14 @@ static NTSTATUS DownloadWorkerThreadStart(
 {
 	INT i = 0, dlProgress = 0;
 	DWORD dwStatusResult = 0, dwTotalReadSize = 0, dwContentLen = 0, dwBytesRead = 0, dwBytesWritten = 0, dwBufLen = sizeof(dwContentLen);	
-	HWND hwndDlg = Parameter;
+	HWND hwndDlg = (HWND)Parameter;
 	PH_HASH_CONTEXT hashContext;
 
 	HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
 
 	if (dwStatusResult = InitializeConnection(
-		EnableCache,
 		L"sourceforge.net",
-		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download?use_mirror=waix"
+		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download" //?use_mirror=waix"
 		))
 	{
 		return dwStatusResult;
@@ -270,8 +268,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-        UCHAR buffer[BUFFER_LEN];
-		RtlZeroMemory(buffer, BUFFER_LEN);
+        CHAR buffer[BUFFER_LEN];
 
 		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
@@ -306,6 +303,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 					return dwStatusResult;   
 				}
+	
+				// Reset the buffer.
+				RtlZeroMemory(buffer, dwBytesRead);
 
 				// Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
 				if (dwBytesRead != dwBytesWritten) 
@@ -315,9 +315,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 					return dwStatusResult;                
 				}
-
-				// Reset the buffer.
-				RtlZeroMemory(buffer, BUFFER_LEN);
 
 				// Update our total bytes downloaded
 				dwTotalReadSize += dwBytesRead;
@@ -360,15 +357,15 @@ static NTSTATUS DownloadWorkerThreadStart(
 					return dwStatusResult;   
 				}
 
+				// Reset the buffer.
+				RtlZeroMemory(buffer, BUFFER_LEN);
+
 				if (dwBytesRead != dwBytesWritten) 
 				{
 					dwStatusResult = GetLastError();
 					LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)\r\n", dwStatusResult));
 					return dwStatusResult;   
 				}   
-
-				// Reset the buffer.
-				RtlZeroMemory(buffer, BUFFER_LEN);
 			}
 		}
 
@@ -377,14 +374,14 @@ static NTSTATUS DownloadWorkerThreadStart(
 		DisposeConnection();
 		DisposeFileHandles();
 
+		PhUpdaterState = Installing;
+
 		// Enable Install button before hashing (user might not care about file hash result)
 		SetWindowText(GetDlgItem(hwndDlg, IDDOWNLOAD), L"Install");
 		EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), TRUE);
 				
 		if (!PhElevated)
 			SendMessage(GetDlgItem(hwndDlg, IDDOWNLOAD), BCM_SETSHIELD, 0, TRUE);
-
-		PhUpdaterState = Installing;
 
 		{
 			UCHAR hashBuffer[20];
@@ -447,11 +444,6 @@ INT_PTR CALLBACK MainWndProc(
 {
 	switch (uMsg)
 	{
-	case WM_APP + 1:
-		{
-			 SetDlgItemText(hwndDlg, IDC_STATUSTEXT, (LPCWSTR)wParam);
-		}
-		break;
 	case WM_INITDIALOG:
 		{
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -460,7 +452,7 @@ INT_PTR CALLBACK MainWndProc(
 			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 			PhUpdaterState = Default;
 
-			PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
+			PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
 		}
 		break;
 	case WM_COMMAND:
@@ -495,7 +487,7 @@ INT_PTR CALLBACK MainWndProc(
 								PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
 
 								// Star our Downloader thread
-								PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);   
+								PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);   
 							}
 							else
 							{
@@ -514,9 +506,9 @@ INT_PTR CALLBACK MainWndProc(
 
 								if (PhShowFileDialog(hwndDlg, fileDialog))
 								{
-									NTSTATUS status;
+									//NTSTATUS status;
 									PPH_STRING fileName;
-									PPH_FILE_STREAM fileStream;
+									//PPH_FILE_STREAM fileStream;
 
 									fileName = PhGetFileDialogFileName(fileDialog);
 									PhaDereferenceObject(fileName);
@@ -545,7 +537,6 @@ INT_PTR CALLBACK MainWndProc(
 }
 
 DWORD InitializeConnection(
-	__in BOOL useCache, 
 	__in PCWSTR host, 
 	__in PCWSTR path
 	)
@@ -566,6 +557,8 @@ DWORD InitializeConnection(
 		status = GetLastError();
 
 		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", status));
+
+		DisposeConnection();
 
 		return status;
 	}
@@ -588,6 +581,8 @@ DWORD InitializeConnection(
 
 		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", status));
 
+		DisposeConnection();
+
 		return status;
 	}
 	
@@ -599,7 +594,7 @@ DWORD InitializeConnection(
 		NULL, 
 		NULL, 
 		NULL, 
-		useCache ? 0 : INTERNET_FLAG_DONT_CACHE,
+		EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE,
 		0
 		);
 
@@ -608,6 +603,8 @@ DWORD InitializeConnection(
 		status = GetLastError();
 
 		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", status));
+
+		DisposeConnection();
 
 		return status;
 	}
