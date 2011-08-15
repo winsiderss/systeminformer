@@ -41,17 +41,21 @@ INT_PTR CALLBACK OptionsDlgProc(
     case WM_INITDIALOG:
         {
 		
-			HWND comboHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
+			HWND hashComboHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
+			HWND betaComboHandle = GetDlgItem(hwndDlg, IDC_BETACOMBOBOX);
 
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 						
 			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
 			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 
-            ComboBox_AddString(comboHandle, L"SHA1");
-            ComboBox_AddString(comboHandle, L"MD5");
+            ComboBox_AddString(hashComboHandle, L"SHA1");
+            ComboBox_AddString(hashComboHandle, L"MD5");
+            ComboBox_SetCurSel(hashComboHandle, HashAlgorithm);
 
-            ComboBox_SetCurSel(comboHandle, HashAlgorithm);
+			ComboBox_AddString(betaComboHandle, L"Stable");
+            ComboBox_AddString(betaComboHandle, L"Beta");
+            ComboBox_SetCurSel(betaComboHandle, HashAlgorithm);
 
 			if (EnableCache)
 			{
