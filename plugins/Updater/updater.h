@@ -82,11 +82,6 @@ DWORD InitializeConnection(
 
 DWORD InitializeFile();
 
-VOID wtoc(
-	CHAR* Dest, 
-	const WCHAR* Source
-	);
-
 VOID LogEvent(
 	__in PPH_STRING str
 	);
