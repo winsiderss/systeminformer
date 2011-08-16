@@ -713,6 +713,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellTooltip->Text = node->TooltipText->sr;
                 getCellTooltip->Unfolding = FALSE;
                 getCellTooltip->Font = NULL; // use default font
+                getCellTooltip->MaximumWidth = 550;
             }
             else
             {

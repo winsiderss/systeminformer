@@ -2180,6 +2180,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             {
                 getCellTooltip->Text = node->TooltipText->sr;
                 getCellTooltip->Unfolding = FALSE;
+                getCellTooltip->MaximumWidth = 550;
             }
             else
             {
