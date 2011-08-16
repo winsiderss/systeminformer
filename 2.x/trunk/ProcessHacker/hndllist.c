@@ -297,6 +297,9 @@ VOID PhRemoveHandleNode(
     __in PPH_HANDLE_NODE HandleNode
     )
 {
+    // Remove from the hashtable here to avoid problems in case the key is re-used.
+    PhRemoveEntryHashtable(Context->NodeHashtable, &HandleNode);
+
     if (Context->EnableStateHighlighting)
     {
         PhChangeShStateTn(
@@ -334,9 +337,7 @@ VOID PhpRemoveHandleNode(
 {
     ULONG index;
 
-    // Remove from hashtable/list and cleanup.
-
-    PhRemoveEntryHashtable(Context->NodeHashtable, &HandleNode);
+    // Remove from list and cleanup.
 
     if ((index = PhFindItemList(Context->NodeList, HandleNode)) != -1)
         PhRemoveItemList(Context->NodeList, index);

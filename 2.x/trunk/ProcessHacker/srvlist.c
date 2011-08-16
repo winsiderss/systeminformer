@@ -238,6 +238,9 @@ VOID PhRemoveServiceNode(
     __in PPH_SERVICE_NODE ServiceNode
     )
 {
+    // Remove from the hashtable here to avoid problems in case the key is re-used.
+    PhRemoveEntryHashtable(ServiceNodeHashtable, &ServiceNode);
+
     if (PhServiceTreeListStateHighlighting)
     {
         PhChangeShStateTn(
@@ -263,9 +266,7 @@ VOID PhpRemoveServiceNode(
 
     PhEmCallObjectOperation(EmServiceNodeType, ServiceNode, EmObjectDelete);
 
-    // Remove from hashtable/list and cleanup.
-
-    PhRemoveEntryHashtable(ServiceNodeHashtable, &ServiceNode);
+    // Remove from list and cleanup.
 
     if ((index = PhFindItemList(ServiceNodeList, ServiceNode)) != -1)
         PhRemoveItemList(ServiceNodeList, index);

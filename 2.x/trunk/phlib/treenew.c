@@ -1777,6 +1777,9 @@ ULONG_PTR PhTnpOnUserMessage(
             PPH_TREENEW_NODE node = (PPH_TREENEW_NODE)LParam;
             RECT rect;
 
+            if (!node->Visible)
+                return FALSE;
+
             if (!PhTnpGetRowRects(Context, node->Index, node->Index, TRUE, &rect))
                 return FALSE;
 
