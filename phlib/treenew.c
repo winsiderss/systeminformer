@@ -5547,7 +5547,10 @@ VOID PhTnpGetTooltipText(
         if (!Context->NewTooltipFont)
             Context->NewTooltipFont = Context->Font;
 
-        Context->NewTooltipMaximumWidth = getCellTooltip.MaximumWidth;
+        if (getCellTooltip.MaximumWidth <= MAXSHORT) // seems to be the maximum value that the tooltip control supports
+            SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, getCellTooltip.MaximumWidth);
+        else
+            SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
     }
 
     if (Context->TooltipText)
@@ -5565,11 +5568,6 @@ BOOLEAN PhTnpPrepareTooltipShow(
         Context->TooltipFont = Context->NewTooltipFont;
         SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->TooltipFont, FALSE);
     }
-
-    if (Context->NewTooltipMaximumWidth <= MAXSHORT) // seems to be the maximum value that the tooltip control supports
-        SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, Context->NewTooltipMaximumWidth);
-    else
-        SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
 
     if (!Context->TooltipUnfolding)
     {
@@ -5723,10 +5721,10 @@ VOID PhTnpGetHeaderTooltipText(
 
     *Text = Context->TooltipText->Buffer;
 
-    // Always use the default font for column header tooltips.
+    // Always use the default parameters for column header tooltips.
     Context->NewTooltipFont = Context->Font;
-    Context->NewTooltipMaximumWidth = TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH;
     Context->TooltipUnfolding = FALSE;
+    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
 }
 
 PWSTR PhTnpMakeContextAtom(
