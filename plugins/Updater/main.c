@@ -20,10 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#define MAIN_PRIVATE
 #include "updater.h"
-#include "resource.h"
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -80,7 +77,11 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
+	// Add our menu item, 4 = Help menu.
     PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
+	
+	// Queue up our initial update check.
+	PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)SilentWorkerThreadStart, Parameter); 
 }
 
 VOID NTAPI MenuItemCallback(
@@ -94,12 +95,16 @@ VOID NTAPI MenuItemCallback(
 	{
 	case UPDATE_MENUITEM:
 		{
-			DialogBox(
-				(HINSTANCE)PluginInstance->DllBase,
-				MAKEINTRESOURCE(IDD_OUTPUT),
-				PhMainWndHandle,
-				MainWndProc
-				);
+			// check if our dialog is already visible (auto-updater may already be visible).
+			if (!WindowVisible)
+			{		
+				DialogBox(
+					(HINSTANCE)PluginInstance->DllBase,
+					MAKEINTRESOURCE(IDD_OUTPUT),
+					PhMainWndHandle,
+					MainWndProc
+					);
+			}
 		}
 		break;
 	}

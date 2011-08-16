@@ -22,19 +22,89 @@
 
 #include "updater.h"
 
+extern NTSTATUS SilentWorkerThreadStart(
+	__in PVOID Parameter
+	)
+{
+	INT result = 0;
+	DWORD dwBytes = 0;
+
+	while (TRUE)
+	{
+		if (InitializeConnection(
+			L"processhacker.sourceforge.net", 
+			L"/updater.php"
+			))
+		{
+			goto Sleep;
+		}
+
+		// Send the HTTP request.
+		if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
+		{
+			CHAR buffer[BUFFER_LEN];
+			BOOL nReadFile = FALSE;
+
+			// Read the resulting xml into our buffer.
+			while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
+			{
+				if (dwBytes == 0)
+					break;
+
+				if (!nReadFile)
+				{
+					LogEvent(PhFormatString(L"Updater: (SilentWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
+
+					goto Sleep;
+				}
+			}
+
+			if (QueryXmlData(buffer))
+			{
+				goto Sleep;
+			}
+
+			result = strcmp(VersionString->Buffer, "2.11"); 
+
+			if (result > 0)
+			{
+				// Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
+				Sleep(3000);
+
+				if (!WindowVisible)
+				{			
+					DialogBox(
+						(HINSTANCE)PluginInstance->DllBase,
+						MAKEINTRESOURCE(IDD_OUTPUT),
+						PhMainWndHandle,
+						MainWndProc
+						);
+				}
+			}
+		}
+		else
+		{
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+
+			goto Sleep;
+		}
+
+Sleep:
+		DisposeConnection();
+
+		// sleep update check for 24 hours?
+		SleepEx(86400000, FALSE); 
+	}
+
+	return FALSE;
+}
+
 static NTSTATUS WorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	INT result = -2;
+	INT result = 0;
 	HWND hwndDlg = (HWND)Parameter;
-
-	mxml_node_t 
-		*xmlNode, 
-		*xmlNode2, 
-		*xmlNode3, 
-		*xmlNode4, 
-		*xmlNode5;
 
 	DWORD
 		dwRetVal = 0, 
@@ -57,7 +127,7 @@ static NTSTATUS WorkerThreadStart(
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
         CHAR buffer[BUFFER_LEN];
-		BOOL nReadFile;
+		BOOL nReadFile = FALSE;
 
 		// Read the resulting xml into our buffer.
 		while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
@@ -73,127 +143,32 @@ static NTSTATUS WorkerThreadStart(
 				return dwStatusResult;
 			}
 		}
-		
-		// Load our XML.
-		xmlNode = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
 
-		// Check our XML.
-		if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
+		if (dwRetVal = QueryXmlData(buffer))
 		{
-			mxmlRelease(xmlNode);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
-
 			SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
-
-			return STATUS_FILE_CORRUPT_ERROR;
+			return dwRetVal;
 		}
 
-		if (CheckBetaRelease)
-		{
-			// Find the ver node.
-			xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
-			// Check our XML.
-			if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
-			{
-				mxmlRelease(xmlNode2);
-
-				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
-
-				SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
-
-				return STATUS_FILE_CORRUPT_ERROR;
-			}
-		}
-		else
-		{
-			// Find the ver node.
-			xmlNode2 = mxmlFindElement(xmlNode, xmlNode, "ver", NULL, NULL, MXML_DESCEND);
-			// Check our XML.
-			if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
-			{
-				mxmlRelease(xmlNode2);
-
-				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
-
-				SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
-
-				return STATUS_FILE_CORRUPT_ERROR;
-			}
-		}
-		// Find the reldate node.
-		xmlNode3 = mxmlFindElement(xmlNode, xmlNode, "reldate", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode3 == NULL || xmlNode3->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode3);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
-
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the update description file.");
-
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-
-		// Find the size node.
-		xmlNode4 = mxmlFindElement(xmlNode, xmlNode, "size", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode4 == NULL || xmlNode4->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode4);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
-
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
-
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-
-
-		switch (HashAlgorithm)
-		{
-		case Md5HashAlgorithm:
-			{
-				// Find the sha1 node.
-				xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "md5", NULL, NULL, MXML_DESCEND);
-			}
-			break;
-		default: 
-			{
-				// Find the md5 node.
-				xmlNode5 = mxmlFindElement(xmlNode, xmlNode, "sha1", NULL, NULL, MXML_DESCEND);
-			}
-			break;
-		}
-
-		result = strcmp(xmlNode2->child->value.opaque, "2.10"); 
+		result = strcmp(VersionString->Buffer, "2.11"); 
 
 		if (result > 0)
 		{
-			PPH_STRING summaryText, tempstr;
+			PPH_STRING summaryText = NULL, versionText = NULL;
 
-			tempstr = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-			summaryText = PhFormatString(L"Process Hacker %s is available.", tempstr->Buffer);
+			versionText = PhCreateStringFromAnsi(VersionString->Buffer);
+			summaryText = PhFormatString(L"Process Hacker %s is available.", versionText->Buffer);
 			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-			PhDereferenceObject(tempstr);
 			PhDereferenceObject(summaryText);
+			PhDereferenceObject(versionText);
 
-			tempstr = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);	
-			summaryText = PhFormatString(L"Released: %s", tempstr->Buffer);
+			summaryText = PhFormatString(L"Released: %s", ReldateString->Buffer);
 			SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
-
-			PhDereferenceObject(tempstr);
 			PhDereferenceObject(summaryText);
 
-			tempstr = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);	
-			summaryText = PhFormatString(L"Size: %s", tempstr->Buffer);
+			summaryText = PhFormatString(L"Size: %s", SizeString->Buffer);
 			SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
-
-			PhDereferenceObject(tempstr);
 			PhDereferenceObject(summaryText);
-
-			RemoteHashString = PhCreateAnsiString(xmlNode5->child->value.opaque);
 
 			EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), TRUE);		
 			ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
@@ -201,17 +176,17 @@ static NTSTATUS WorkerThreadStart(
 		}
 		else if (result == 0)
 		{
-			PPH_STRING summaryText, versionText;
+			PPH_STRING summaryText = NULL, versionText = NULL;
 
-				versionText = PhCreateStringFromAnsi(xmlNode2->child->value.opaque);	
-				summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
+			versionText = PhCreateStringFromAnsi(VersionString->Buffer);	
+			summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
 
-				SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
-				PhDereferenceObject(versionText);
-				PhDereferenceObject(summaryText);
+			PhDereferenceObject(versionText);
+			PhDereferenceObject(summaryText);
 
-				EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), FALSE);
+			EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), FALSE);
 		}
 		else if (result < 0)
 		{
@@ -233,7 +208,6 @@ static NTSTATUS WorkerThreadStart(
 		return dwRetVal;
 	}
 
-	mxmlRelease(xmlNode);
 	DisposeConnection();
 
 	PhUpdaterState = Downloading;
@@ -268,11 +242,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-        CHAR buffer[BUFFER_LEN];
+        UCHAR buffer[BUFFER_LEN];
 
 		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
-			BOOL nReadFile;
+			BOOL nReadFile = FALSE;
 
 			// Reset Progressbar state.
 			PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
@@ -323,17 +297,16 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				SendMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
 				{
-					PPH_STRING str;
 					PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
 				    //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
 
-					str = PhFormatString(L"Downloaded: %d%% (%s)", dlProgress, dlCurrent->Buffer);
+					PPH_STRING str = PhFormatString(L"Downloaded: %d%% (%s)", dlProgress, dlCurrent->Buffer);
 				
 					Updater_SetStatusText(hwndDlg, str->Buffer);
 
 					PhDereferenceObject(str);
-					PhDereferenceObject(dlCurrent);
 					//PhDereferenceObject(dlLength);
+					PhDereferenceObject(dlCurrent);
 				}
 			}
 		}
@@ -445,14 +418,17 @@ INT_PTR CALLBACK MainWndProc(
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
-		{
+		{			
+			WindowVisible = TRUE;
+
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-			
+						
 			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
+			CheckBetaRelease = PhGetIntegerSetting(L"ProcessHacker.Updater.CheckBetaReleases");
 			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 			PhUpdaterState = Default;
 
-			PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
+			PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
 		}
 		break;
 	case WM_COMMAND:
@@ -464,6 +440,8 @@ INT_PTR CALLBACK MainWndProc(
 				{
 					DisposeConnection();
 					DisposeStrings();
+								
+					WindowVisible = FALSE;
 
 					EndDialog(hwndDlg, IDOK);
 				}
@@ -481,13 +459,13 @@ INT_PTR CALLBACK MainWndProc(
 								Updater_SetStatusText(hwndDlg, L"Initializing");
 
 								// Enable the status text
-								ShowWindow(GetDlgItem(hwndDlg, IDC_STATUS), SW_SHOW);					    
+								ShowWindow(GetDlgItem(hwndDlg, IDC_STATUSTEXT), SW_SHOW);					    
 
 								PhSetWindowStyle(hwndProgress, PBS_MARQUEE, PBS_MARQUEE);
 								PostMessage(hwndProgress, PBM_SETMARQUEE, TRUE, 75);
 
 								// Star our Downloader thread
-								PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);   
+								PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);   
 							}
 							else
 							{
@@ -594,7 +572,7 @@ DWORD InitializeConnection(
 		NULL, 
 		NULL, 
 		NULL, 
-		EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE,
+		EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
 		0
 		);
 
@@ -656,6 +634,204 @@ DWORD InitializeFile()
 	return 0;
 }
 
+DWORD QueryXmlData(char* buffer)
+{
+	mxml_node_t *xmlDoc = NULL, *xmlNode2 = NULL, *xmlNode3 = NULL, *xmlNode4 = NULL, *xmlNode5 = NULL;
+
+	// Load our XML.
+	xmlDoc = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
+
+	// Check our XML.
+	if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
+	{
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
+		return STATUS_FILE_CORRUPT_ERROR;
+	}
+
+	if (CheckBetaRelease)
+	{
+		// First find the beta node, make it our default node.
+		xmlDoc = mxmlFindElement(xmlDoc, xmlDoc, "beta", NULL, NULL, MXML_DESCEND);
+		// Check our XML.
+		if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
+		{
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		// Find the ver node.
+		xmlNode2 = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
+		// Check our XML.
+		if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
+		{
+			mxmlRelease(xmlNode2);
+			mxmlRelease(xmlDoc);
+
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		// Find the reldate node.
+		xmlNode3 = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
+		// Check our XML.
+		if (xmlNode3 == NULL || xmlNode3->type != MXML_ELEMENT)
+		{
+			mxmlRelease(xmlNode3);
+			mxmlRelease(xmlNode2);
+			mxmlRelease(xmlDoc);
+
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		// Find the size node.
+		xmlNode4 = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
+		// Check our XML.
+		if (xmlNode4 == NULL || xmlNode4->type != MXML_ELEMENT)
+		{
+			mxmlRelease(xmlNode4);	
+			mxmlRelease(xmlNode3);
+			mxmlRelease(xmlNode2);
+			mxmlRelease(xmlDoc);
+
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		switch (HashAlgorithm)
+		{
+		case Md5HashAlgorithm:
+			{
+				// Find the sha1 node.
+				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
+
+				// Check our XML.
+				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
+				{
+					mxmlRelease(xmlNode4);
+					mxmlRelease(xmlNode3);	
+					mxmlRelease(xmlNode2);
+					mxmlRelease(xmlDoc);
+
+					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
+					return STATUS_FILE_CORRUPT_ERROR;
+				}
+			}
+			break;
+		default: 
+			{
+				// Find the md5 node.
+				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
+
+				// Check our XML.
+				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
+				{
+					mxmlRelease(xmlNode4);
+					mxmlRelease(xmlNode3);	
+					mxmlRelease(xmlNode2);
+					mxmlRelease(xmlDoc);
+
+					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (sha1) failed."));
+					return STATUS_FILE_CORRUPT_ERROR;
+				}
+			}
+			break;
+		}
+	}
+	else
+	{
+		// Find the ver node.
+		xmlNode2 = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
+		// Check our XML.
+		if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
+		{
+			mxmlRelease(xmlDoc);
+
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		// Find the reldate node.
+		xmlNode3 = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
+		// Check our XML.
+		if (xmlNode3 == NULL || xmlNode3->type != MXML_ELEMENT)
+		{
+			mxmlRelease(xmlNode2);
+			mxmlRelease(xmlDoc);
+
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		// Find the size node.
+		xmlNode4 = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
+		// Check our XML.
+		if (xmlNode4 == NULL || xmlNode4->type != MXML_ELEMENT)
+		{
+			mxmlRelease(xmlNode3);	
+			mxmlRelease(xmlNode2);
+			mxmlRelease(xmlDoc);
+
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
+		}
+
+		switch (HashAlgorithm)
+		{
+		case Md5HashAlgorithm:
+			{
+				// Find the sha1 node.
+				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
+
+				// Check our XML.
+				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
+				{
+					mxmlRelease(xmlNode4);
+					mxmlRelease(xmlNode3);	
+					mxmlRelease(xmlNode2);
+					mxmlRelease(xmlDoc);
+
+					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
+					return STATUS_FILE_CORRUPT_ERROR;
+				}
+			}
+			break;
+		default: 
+			{
+				// Find the md5 node.
+				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
+
+				// Check our XML.
+				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
+				{
+					mxmlRelease(xmlNode4);
+					mxmlRelease(xmlNode3);	
+					mxmlRelease(xmlNode2);
+					mxmlRelease(xmlDoc);
+
+					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (sha1) failed."));
+					return STATUS_FILE_CORRUPT_ERROR;
+				}
+			}
+			break;
+		}
+	}
+
+	VersionString = PhCreateAnsiString(xmlNode2->child->value.opaque);
+	RemoteHashString = PhCreateAnsiString(xmlNode5->child->value.opaque);
+	ReldateString = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);
+	SizeString = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);
+	BetaDlString = PhCreateStringFromAnsi(xmlNode5->child->value.opaque);
+
+	mxmlRelease(xmlNode5);
+	mxmlRelease(xmlNode4);
+	mxmlRelease(xmlNode3);	
+	mxmlRelease(xmlNode2);
+	mxmlRelease(xmlDoc);
+
+	return STATUS_SUCCESS;
+}
+
 BOOL PhInstalledUsingSetup() 
 {
 	HKEY hKey = NULL;
@@ -707,8 +883,20 @@ VOID DisposeStrings()
 	if (LocalFilePathString)
 		PhDereferenceObject(LocalFilePathString);
 
+	if (VersionString)
+		PhDereferenceObject(VersionString);
+
+	if (ReldateString)
+		PhDereferenceObject(ReldateString);
+
+	if (SizeString)
+		PhDereferenceObject(SizeString);
+
 	if (RemoteHashString)
 		PhDereferenceObject(RemoteHashString);
+
+	if (BetaDlString)
+		PhDereferenceObject(BetaDlString);
 }
 
 VOID DisposeFileHandles()
