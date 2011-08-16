@@ -158,12 +158,10 @@ typedef struct _PH_HANDLES_CONTEXT
 
     HWND WindowHandle;
 
-    PPH_POINTER_LIST HandleList;
+    PH_HANDLE_LIST_CONTEXT ListContext;
     BOOLEAN NeedsRedraw;
-    BOOLEAN NeedsSort;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
-    BOOLEAN HideUnnamedHandles;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 
 typedef struct _PH_MEMORY_CONTEXT

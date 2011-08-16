@@ -13,6 +13,8 @@ typedef enum _PH_EM_OBJECT_TYPE
     EmModuleNodeType,
     EmThreadItemType,
     EmThreadNodeType,
+    EmHandleItemType,
+    EmHandleNodeType,
     EmMaximumObjectType
 } PH_EM_OBJECT_TYPE;
 

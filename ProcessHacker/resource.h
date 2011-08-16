@@ -179,6 +179,7 @@
 #define IDC_SOURCELUID                  1060
 #define IDC_LIST                        1061
 #define IDC_SIZESINBYTES                1062
+#define IDC_LIST3                       1062
 #define IDC_PROCESSES                   1063
 #define IDC_SCAN                        1064
 #define IDC_SAVE                        1065
