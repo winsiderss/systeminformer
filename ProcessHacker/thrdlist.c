@@ -275,6 +275,9 @@ VOID PhRemoveThreadNode(
     __in PPH_THREAD_NODE ThreadNode
     )
 {
+    // Remove from the hashtable here to avoid problems in case the key is re-used.
+    PhRemoveEntryHashtable(Context->NodeHashtable, &ThreadNode);
+
     if (Context->EnableStateHighlighting)
     {
         PhChangeShStateTn(
@@ -313,9 +316,7 @@ VOID PhpRemoveThreadNode(
 {
     ULONG index;
 
-    // Remove from hashtable/list and cleanup.
-
-    PhRemoveEntryHashtable(Context->NodeHashtable, &ThreadNode);
+    // Remove from list and cleanup.
 
     if ((index = PhFindItemList(Context->NodeList, ThreadNode)) != -1)
         PhRemoveItemList(Context->NodeList, index);

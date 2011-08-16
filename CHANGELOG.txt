@@ -12,6 +12,7 @@ Process Hacker
  * FIXED:
    * Fixed file name resolution bug
    * Save settings on shutdown/logoff
+   * Fixed state highlighting bug
 
 2.19
  * NEW/IMPROVED:

@@ -416,6 +416,9 @@ VOID PhRemoveProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     )
 {
+    // Remove from the hashtable here to avoid problems in case the key is re-used.
+    PhRemoveEntryHashSet(ProcessNodeHashSet, PH_HASH_SET_SIZE(ProcessNodeHashSet), &ProcessNode->HashEntry);
+
     if (PhProcessTreeListStateHighlighting)
     {
         PhChangeShStateTn(
@@ -466,9 +469,7 @@ VOID PhpRemoveProcessNode(
         PhAddItemList(ProcessNodeRootList, node);
     }
 
-    // Remove from hashtable/list and cleanup.
-
-    PhRemoveEntryHashSet(ProcessNodeHashSet, PH_HASH_SET_SIZE(ProcessNodeHashSet), &ProcessNode->HashEntry);
+    // Remove from list and cleanup.
 
     if ((index = PhFindItemList(ProcessNodeList, ProcessNode)) != -1)
         PhRemoveItemList(ProcessNodeList, index);

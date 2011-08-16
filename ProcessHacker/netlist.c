@@ -238,6 +238,9 @@ VOID PhRemoveNetworkNode(
     __in PPH_NETWORK_NODE NetworkNode
     )
 {
+    // Remove from the hashtable here to avoid problems in case the key is re-used.
+    PhRemoveEntryHashtable(NetworkNodeHashtable, &NetworkNode);
+
     if (PhNetworkTreeListStateHighlighting)
     {
         PhChangeShStateTn(
@@ -263,9 +266,7 @@ VOID PhpRemoveNetworkNode(
 
     PhEmCallObjectOperation(EmNetworkNodeType, NetworkNode, EmObjectDelete);
 
-    // Remove from hashtable/list and cleanup.
-
-    PhRemoveEntryHashtable(NetworkNodeHashtable, &NetworkNode);
+    // Remove from list and cleanup.
 
     if ((index = PhFindItemList(NetworkNodeList, NetworkNode)) != -1)
         PhRemoveItemList(NetworkNodeList, index);
