@@ -237,6 +237,11 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnMouseWheel(hwnd, context, (SHORT)HIWORD(wParam), LOWORD(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         break;
+    case WM_MOUSEHWHEEL:
+        {
+            PhTnpOnMouseHWheel(hwnd, context, (SHORT)HIWORD(wParam), LOWORD(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        }
+        break;
     case WM_CONTEXTMENU:
         {
             PhTnpOnContextMenu(hwnd, context, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -1173,6 +1178,44 @@ VOID PhTnpOnMouseWheel(
         oldPosition = scrollInfo.nPos;
 
         scrollInfo.nPos += Context->TextMetrics.tmAveCharWidth * wheelScrollLines * -Distance / WHEEL_DELTA;
+
+        scrollInfo.fMask = SIF_POS;
+        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            Context->HScrollPosition = scrollInfo.nPos;
+            PhTnpLayout(Context); // takes care of the tooltip as well
+            PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
+        }
+    }
+}
+
+VOID PhTnpOnMouseHWheel(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Distance,
+    __in ULONG VirtualKeys,
+    __in LONG CursorX,
+    __in LONG CursorY
+    )
+{
+    LONG wheelScrollLines;
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    if (Context->HScrollVisible)
+    {
+        if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
+            wheelScrollLines = 3;
+
+        scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_ALL;
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
+        scrollInfo.nPos += Context->TextMetrics.tmAveCharWidth * wheelScrollLines * Distance / WHEEL_DELTA;
 
         scrollInfo.fMask = SIF_POS;
         SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);

@@ -273,6 +273,15 @@ VOID PhTnpOnMouseWheel(
     __in LONG CursorY
     );
 
+VOID PhTnpOnMouseHWheel(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Distance,
+    __in ULONG VirtualKeys,
+    __in LONG CursorX,
+    __in LONG CursorY
+    );
+
 VOID PhTnpOnContextMenu(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
