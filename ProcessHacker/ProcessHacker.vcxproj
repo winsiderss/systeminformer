@@ -239,6 +239,7 @@
     <ClCompile Include="gdihndl.c" />
     <ClCompile Include="heapinfo.c" />
     <ClCompile Include="hidnproc.c" />
+    <ClCompile Include="hndllist.c" />
     <ClCompile Include="hndlprp.c" />
     <ClCompile Include="hndlprv.c" />
     <ClCompile Include="hndlstat.c" />

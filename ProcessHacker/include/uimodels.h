@@ -762,4 +762,113 @@ VOID PhDeselectAllModuleNodes(
     __in PPH_MODULE_LIST_CONTEXT Context
     );
 
+// hndllist
+
+// Columns
+
+#define PHHNTLC_TYPE 0
+#define PHHNTLC_NAME 1
+#define PHHNTLC_HANDLE 2
+
+#define PHHNTLC_OBJECTADDRESS 3
+#define PHHNTLC_ATTRIBUTES 4
+#define PHHNTLC_GRANTEDACCESS 5
+#define PHHNTLC_GRANTEDACCESSSYMBOLIC 6
+#define PHHNTLC_ORIGINALNAME 7
+
+#define PHHNTLC_MAXIMUM 8
+
+typedef struct _PH_HANDLE_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    HANDLE Handle;
+    PPH_HANDLE_ITEM HandleItem;
+
+    PH_STRINGREF TextCache[PHHNTLC_MAXIMUM];
+
+    PPH_STRING GrantedAccessSymbolicText;
+} PH_HANDLE_NODE, *PPH_HANDLE_NODE;
+
+typedef struct _PH_HANDLE_LIST_CONTEXT
+{
+    HWND ParentWindowHandle;
+    HWND TreeNewHandle;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_CM_MANAGER Cm;
+    BOOLEAN HideUnnamedHandles;
+
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+
+    BOOLEAN EnableStateHighlighting;
+    PPH_POINTER_LIST NodeStateList;
+} PH_HANDLE_LIST_CONTEXT, *PPH_HANDLE_LIST_CONTEXT;
+
+VOID PhInitializeHandleList(
+    __in HWND ParentWindowHandle,
+    __in HWND TreeNewHandle,
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __out PPH_HANDLE_LIST_CONTEXT Context
+    );
+
+VOID PhDeleteHandleList(
+    __in PPH_HANDLE_LIST_CONTEXT Context
+    );
+
+VOID PhLoadSettingsHandleList(
+    __inout PPH_HANDLE_LIST_CONTEXT Context
+    );
+
+VOID PhSaveSettingsHandleList(
+    __inout PPH_HANDLE_LIST_CONTEXT Context
+    );
+
+VOID PhSetOptionsHandleList(
+    __inout PPH_HANDLE_LIST_CONTEXT Context,
+    __in BOOLEAN HideUnnamedHandles
+    );
+
+PPH_HANDLE_NODE PhAddHandleNode(
+    __inout PPH_HANDLE_LIST_CONTEXT Context,
+    __in PPH_HANDLE_ITEM HandleItem,
+    __in ULONG RunId
+    );
+
+PPH_HANDLE_NODE PhFindHandleNode(
+    __in PPH_HANDLE_LIST_CONTEXT Context,
+    __in HANDLE Handle
+    );
+
+VOID PhRemoveHandleNode(
+    __in PPH_HANDLE_LIST_CONTEXT Context,
+    __in PPH_HANDLE_NODE HandleNode
+    );
+
+VOID PhUpdateHandleNode(
+    __in PPH_HANDLE_LIST_CONTEXT Context,
+    __in PPH_HANDLE_NODE HandleNode
+    );
+
+VOID PhTickHandleNodes(
+    __in PPH_HANDLE_LIST_CONTEXT Context
+    );
+
+PPH_HANDLE_ITEM PhGetSelectedHandleItem(
+    __in PPH_HANDLE_LIST_CONTEXT Context
+    );
+
+VOID PhGetSelectedHandleItems(
+    __in PPH_HANDLE_LIST_CONTEXT Context,
+    __out PPH_HANDLE_ITEM **Handles,
+    __out PULONG NumberOfHandles
+    );
+
+VOID PhDeselectAllHandleNodes(
+    __in PPH_HANDLE_LIST_CONTEXT Context
+    );
+
 #endif
