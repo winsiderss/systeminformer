@@ -48,18 +48,24 @@ extern PPH_PLUGIN PluginInstance;
 
 static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
+static PH_ANSI_STRING *VersionString = NULL, *RemoteHashString = NULL;
+static PH_STRING *LocalFilePathString = NULL, *ReldateString = NULL, *SizeString = NULL, *BetaDlString = NULL;
 
-static PH_STRING *LocalFilePathString = NULL;
-static PH_ANSI_STRING *RemoteHashString = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
 static BOOL CheckBetaRelease = FALSE;
+static BOOL WindowVisible = FALSE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
+
+extern NTSTATUS SilentWorkerThreadStart(
+	__in PVOID Parameter
+	);
 
 static PH_SETTING_CREATE settings[] =
 {
 	{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
 	{ IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
+	{ IntegerSettingType, L"ProcessHacker.Updater.CheckBetaReleases", L"0" },
 };	
 
 #pragma endregion
@@ -80,6 +86,8 @@ VOID DisposeStrings();
 VOID DisposeFileHandles();
 
 BOOL PhInstalledUsingSetup();
+
+DWORD QueryXmlData(char* buffer);
 
 DWORD InitializeConnection(
 	__in PCWSTR host,

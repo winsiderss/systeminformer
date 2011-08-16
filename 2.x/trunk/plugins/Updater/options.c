@@ -40,26 +40,27 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-		
 			HWND hashComboHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
-			HWND betaComboHandle = GetDlgItem(hwndDlg, IDC_BETACOMBOBOX);
+			HWND betaComboHandle = GetDlgItem(hwndDlg, IDC_BETACHECKBOX);
 
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 						
 			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
+			CheckBetaRelease = PhGetIntegerSetting(L"ProcessHacker.Updater.CheckBetaReleases");
 			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 
             ComboBox_AddString(hashComboHandle, L"SHA1");
             ComboBox_AddString(hashComboHandle, L"MD5");
             ComboBox_SetCurSel(hashComboHandle, HashAlgorithm);
 
-			ComboBox_AddString(betaComboHandle, L"Stable");
-            ComboBox_AddString(betaComboHandle, L"Beta");
-            ComboBox_SetCurSel(betaComboHandle, HashAlgorithm);
-
 			if (EnableCache)
 			{
 				Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE), BST_CHECKED);
+			}
+
+			if (CheckBetaRelease)
+			{
+				Button_SetCheck(betaComboHandle, BST_CHECKED);
 			}
         }
         break;
@@ -75,10 +76,14 @@ INT_PTR CALLBACK OptionsDlgProc(
 					PhSetIntegerSetting(L"ProcessHacker.Updater.EnableCache", 
 						Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE)) == BST_CHECKED);
 
+					PhSetIntegerSetting(L"ProcessHacker.Updater.CheckBetaReleases", 
+						Button_GetCheck(GetDlgItem(hwndDlg, IDC_BETACHECKBOX)) == BST_CHECKED);
+
 					PhSetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm",                      
 						ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX)));
 
 					EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
+					CheckBetaRelease = PhGetIntegerSetting(L"ProcessHacker.Updater.CheckBetaReleases");
 					HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 
                     EndDialog(hwndDlg, IDOK);
