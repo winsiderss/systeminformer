@@ -4218,73 +4218,66 @@ VOID PhpInitializeHandleMenu(
     }
 }
 
-static INT NTAPI PhpHandleTypeCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+VOID PhShowHandleContextMenu(
+    __in HWND hwndDlg,
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in PPH_HANDLES_CONTEXT Context,
+    __in POINT Location
     )
 {
-    PPH_HANDLE_ITEM item1 = Item1;
-    PPH_HANDLE_ITEM item2 = Item2;
+    PPH_HANDLE_ITEM *handles;
+    ULONG numberOfHandles;
 
-    return PhCompareString(item1->TypeName, item2->TypeName, TRUE);
-}
+    PhGetSelectedHandleItems(&Context->ListContext, &handles, &numberOfHandles);
 
-static INT NTAPI PhpHandleNameCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
-    )
-{
-    PPH_HANDLE_ITEM item1 = Item1;
-    PPH_HANDLE_ITEM item2 = Item2;
+    if (numberOfHandles != 0)
+    {
+        PPH_EMENU menu;
+        PPH_EMENU_ITEM item;
 
-    return PhCompareStringWithNull(item1->BestObjectName, item2->BestObjectName, TRUE);
-}
+        menu = PhCreateEMenu();
+        PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_HANDLE), 0);
+        PhSetFlagsEMenuItem(menu, ID_HANDLE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-static INT NTAPI PhpHandleHandleCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
-    )
-{
-    PPH_HANDLE_ITEM item1 = Item1;
-    PPH_HANDLE_ITEM item2 = Item2;
+        PhpInitializeHandleMenu(menu, ProcessItem->ProcessId, handles, numberOfHandles, Context);
 
-    return uintptrcmp((ULONG_PTR)item1->Handle, (ULONG_PTR)item2->Handle);
-}
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_MENU_INFORMATION menuInfo;
 
-static COLORREF NTAPI PhpHandleColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
-    )
-{
-    PPH_HANDLE_ITEM item = Param;
+            menuInfo.Menu = menu;
+            menuInfo.OwnerWindow = hwndDlg;
+            menuInfo.u.Handle.ProcessId = ProcessItem->ProcessId;
+            menuInfo.u.Handle.Handles = handles;
+            menuInfo.u.Handle.NumberOfHandles = numberOfHandles;
 
-    if (PhCsUseColorProtectedHandles && (item->Attributes & OBJ_PROTECT_CLOSE))
-        return PhCsColorProtectedHandles;
-    if (PhCsUseColorInheritHandles && (item->Attributes & OBJ_INHERIT))
-        return PhCsColorInheritHandles;
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleMenuInitializing), &menuInfo);
+        }
 
-    return PhSysWindowColor;
-}
+        item = PhShowEMenu(
+            menu,
+            hwndDlg,
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+            Location.x,
+            Location.y
+            );
 
-static VOID PhpAddHandleItem(
-    __in HWND ListViewHandle,
-    __in PPH_HANDLE_ITEM HandleItem
-    )
-{
-    INT lvItemIndex;
+        if (item)
+        {
+            BOOLEAN handled = FALSE;
 
-    lvItemIndex = PhAddListViewItem(
-        ListViewHandle,
-        MAXINT,
-        PhGetString(HandleItem->TypeName),
-        HandleItem
-        );
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhGetString(HandleItem->BestObjectName));
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, HandleItem->HandleString);
+            if (PhPluginsEnabled)
+                handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+
+            if (!handled)
+                SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+        }
+
+        PhDestroyEMenu(menu);
+    }
+
+    PhFree(handles);
 }
 
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
@@ -4298,19 +4291,20 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_HANDLES_CONTEXT handlesContext;
-    HWND lvHandle;
+    HWND tnHandle;
 
     if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
     {
         handlesContext = (PPH_HANDLES_CONTEXT)propPageContext->Context;
+
+        if (handlesContext)
+            tnHandle = handlesContext->ListContext.TreeNewHandle;
     }
     else
     {
         return FALSE;
     }
-
-    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
@@ -4353,37 +4347,19 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->UpdatedEventRegistration
                 );
             handlesContext->WindowHandle = hwndDlg;
-            handlesContext->HandleList = PhCreatePointerList(100);
-            handlesContext->NeedsRedraw = FALSE;
-            handlesContext->NeedsSort = FALSE;
-            handlesContext->HideUnnamedHandles = !!PhGetIntegerSetting(L"HideUnnamedHandles");
-
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES),
-                handlesContext->HideUnnamedHandles ? BST_CHECKED : BST_UNCHECKED);
 
             // Initialize the list.
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Type");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle");
+            handlesContext->ListContext.TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            tnHandle = handlesContext->ListContext.TreeNewHandle;
+            BringWindowToTop(tnHandle);
+            PhInitializeHandleList(hwndDlg, tnHandle, processItem, &handlesContext->ListContext);
+            handlesContext->NeedsRedraw = FALSE;
 
-            PhSetExtendedListViewWithSettings(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"HandleListViewColumns", lvHandle);
-            ExtendedListView_SetSortFast(lvHandle, TRUE);
-            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpHandleTypeCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpHandleNameCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);
-            ExtendedListView_SetItemColorFunction(lvHandle, PhpHandleColorFunction);
-            ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
+            PhLoadSettingsHandleList(&handlesContext->ListContext);
 
-            // Sort by Type, Handle, Name.
-            {
-                ULONG fallbackColumns[] = { 0, 2, 1 };
-
-                ExtendedListView_AddFallbackColumns(lvHandle,
-                    sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
-            }
+            PhSetOptionsHandleList(&handlesContext->ListContext, !!PhGetIntegerSetting(L"HideUnnamedHandles"));
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES),
+                handlesContext->ListContext.HideUnnamedHandles ? BST_CHECKED : BST_UNCHECKED);
 
             PhSetEnabledProvider(&handlesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&handlesContext->ProviderRegistration, NULL);
@@ -4408,14 +4384,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->UpdatedEventRegistration
                 );
             PhUnregisterProvider(&handlesContext->ProviderRegistration);
-
-            PhDereferenceAllHandleItems(handlesContext->Provider);
-
             PhDereferenceObject(handlesContext->Provider);
-            PhDereferenceObject(handlesContext->HandleList);
-            PhFree(handlesContext);
 
-            PhSaveListViewColumnsToSetting(L"HandleListViewColumns", lvHandle);
+            PhSaveSettingsHandleList(&handlesContext->ListContext);
+            PhDeleteHandleList(&handlesContext->ListContext);
+
+            PhFree(handlesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -4443,16 +4417,25 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             switch (id)
             {
+            case ID_SHOWCONTEXTMENU:
+                {
+                    POINT location;
+
+                    location.x = GET_X_LPARAM(lParam); // sign-extend
+                    location.y = GET_Y_LPARAM(lParam);
+                    PhShowHandleContextMenu(hwndDlg, processItem, handlesContext, location);
+                }
+                break;
             case ID_HANDLE_CLOSE:
                 {
                     PPH_HANDLE_ITEM *handles;
                     ULONG numberOfHandles;
 
-                    PhGetSelectedListViewItemParams(lvHandle, &handles, &numberOfHandles);
+                    PhGetSelectedHandleItems(&handlesContext->ListContext, &handles, &numberOfHandles);
                     PhReferenceObjects(handles, numberOfHandles);
 
                     if (PhUiCloseHandles(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam))
-                        PhSetStateAllListViewItems(lvHandle, 0, LVIS_SELECTED);
+                        PhDeselectAllHandleNodes(&handlesContext->ListContext);
 
                     PhDereferenceObjects(handles, numberOfHandles);
                     PhFree(handles);
@@ -4461,7 +4444,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             case ID_HANDLE_PROTECTED:
             case ID_HANDLE_INHERIT:
                 {
-                    PPH_HANDLE_ITEM handleItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_HANDLE_ITEM handleItem = PhGetSelectedHandleItem(&handlesContext->ListContext);
 
                     if (handleItem)
                     {
@@ -4489,12 +4472,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 break;
             case ID_HANDLE_PROPERTIES:
                 {
-                    PPH_HANDLE_ITEM handleItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_HANDLE_ITEM handleItem = PhGetSelectedHandleItem(&handlesContext->ListContext);
 
                     if (handleItem)
                     {
-                        // The object relies on the list view reference, which could 
-                        // disappear if we don't reference the object here.
                         PhReferenceObject(handleItem);
                         PhShowHandleProperties(hwndDlg, processItem->ProcessId, handleItem);
                         PhDereferenceObject(handleItem);
@@ -4503,63 +4484,19 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 break;
             case ID_HANDLE_COPY:
                 {
-                    PhCopyListView(lvHandle);
+                    PPH_FULL_STRING text;
+
+                    text = PhGetTreeNewText(tnHandle, PHHNTLC_MAXIMUM);
+                    PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
+                    PhDereferenceObject(text);
                 }
                 break;
             case IDC_HIDEUNNAMEDHANDLES:
                 {
-                    BOOLEAN hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES)) == BST_CHECKED;
-                    ULONG enumerationKey;
-                    PPH_HANDLE_ITEM handleItem;
+                    BOOLEAN hide;
 
-                    handlesContext->HideUnnamedHandles = hide;
-
-                    SetCursor(LoadCursor(NULL, IDC_WAIT));
-                    ExtendedListView_SetRedraw(lvHandle, FALSE);
-
-                    if (!hide)
-                    {
-                        // Add all hidden handle items from the list.
-
-                        ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
-
-                        enumerationKey = 0;
-
-                        while (PhEnumPointerList(handlesContext->HandleList, &enumerationKey, &handleItem))
-                        {
-                            if (PhIsNullOrEmptyString(handleItem->BestObjectName))
-                            {
-                                PhpAddHandleItem(lvHandle, handleItem);
-                            }
-                        }
-
-                        ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
-                        ExtendedListView_SortItems(lvHandle);
-                    }
-                    else
-                    {
-                        // Find all items without a name and remove them.
-
-                        ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
-
-                        enumerationKey = 0;
-
-                        while (PhEnumPointerList(handlesContext->HandleList, &enumerationKey, &handleItem))
-                        {
-                            if (PhIsNullOrEmptyString(handleItem->BestObjectName))
-                            {
-                                PhRemoveListViewItem(
-                                    lvHandle,
-                                    PhFindListViewItemByParam(lvHandle, -1, handleItem)
-                                    );
-                            }
-                        }
-
-                        ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
-                    }
-
-                    ExtendedListView_SetRedraw(lvHandle, TRUE);
-                    SetCursor(LoadCursor(NULL, IDC_ARROW));
+                    hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES)) == BST_CHECKED;
+                    PhSetOptionsHandleList(&handlesContext->ListContext, hide);
                 }
                 break;
             }
@@ -4577,108 +4514,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             case PSN_KILLACTIVE:
                 PhSetEnabledProvider(&handlesContext->ProviderRegistration, FALSE);
                 break;
-            case NM_DBLCLK:
-                {
-                    if (header->hwndFrom == lvHandle)
-                    {
-                        SendMessage(hwndDlg, WM_COMMAND, ID_HANDLE_PROPERTIES, 0);
-                    }
-                }
-                break;
-            case LVN_KEYDOWN:
-                {
-                    if (header->hwndFrom == lvHandle)
-                    {
-                        LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)header;
-
-                        switch (keyDown->wVKey)
-                        {
-                        case 'C':
-                            if (GetKeyState(VK_CONTROL) < 0)
-                                SendMessage(hwndDlg, WM_COMMAND, ID_HANDLE_COPY, 0);
-                            break;
-                        case VK_DELETE:
-                            // Pass a 1 in lParam to indicate that warnings should be 
-                            // enabled.
-                            SendMessage(hwndDlg, WM_COMMAND, ID_HANDLE_CLOSE, 1);
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-        }
-        break;
-    case WM_CONTEXTMENU:
-        {
-            if ((HWND)wParam == lvHandle)
-            {
-                POINT point;
-                PPH_HANDLE_ITEM *handles;
-                ULONG numberOfHandles;
-
-                point.x = (SHORT)LOWORD(lParam);
-                point.y = (SHORT)HIWORD(lParam);
-
-                if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
-
-                PhGetSelectedListViewItemParams(lvHandle, &handles, &numberOfHandles);
-
-                if (numberOfHandles != 0)
-                {
-                    PPH_EMENU menu;
-                    PPH_EMENU_ITEM item;
-
-                    menu = PhCreateEMenu();
-                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_HANDLE), 0);
-                    PhSetFlagsEMenuItem(menu, ID_HANDLE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
-
-                    PhpInitializeHandleMenu(
-                        menu,
-                        processItem->ProcessId,
-                        handles,
-                        numberOfHandles,
-                        handlesContext
-                        );
-
-                    if (PhPluginsEnabled)
-                    {
-                        PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-                        menuInfo.Menu = menu;
-                        menuInfo.OwnerWindow = hwndDlg;
-                        menuInfo.u.Handle.ProcessId = processItem->ProcessId;
-                        menuInfo.u.Handle.Handles = handles;
-                        menuInfo.u.Handle.NumberOfHandles = numberOfHandles;
-
-                        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleMenuInitializing), &menuInfo);
-                    }
-
-                    item = PhShowEMenu(
-                        menu,
-                        hwndDlg,
-                        PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        point.x,
-                        point.y
-                        );
-
-                    if (item)
-                    {
-                        BOOLEAN handled = FALSE;
-
-                        if (PhPluginsEnabled)
-                            handled = PhPluginTriggerEMenuItem(hwndDlg, item);
-
-                        if (!handled)
-                            SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
-                    }
-
-                    PhDestroyEMenu(menu);
-                }
-
-                PhFree(handles);
             }
         }
         break;
@@ -4687,93 +4522,54 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             ULONG runId = (ULONG)wParam;
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
-            PhAddItemPointerList(handlesContext->HandleList, handleItem);
-
-            // If we're hiding unnamed handles and this handle doesn't 
-            // have a name, don't add it.
-            if (
-                handlesContext->HideUnnamedHandles &&
-                PhIsNullOrEmptyString(handleItem->BestObjectName)
-                )
-            {
-                // No need to dereference; if we re-add the handle when 
-                // the user changes the "hide unnamed handles" setting 
-                // we can just assume we have a reference to the handle 
-                // item. This is important for consistency with the 
-                // PhDereferenceAllHandleItems call in WM_DESTROY.
-                break;
-            }
-
             if (!handlesContext->NeedsRedraw)
             {
-                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                TreeNew_SetRedraw(tnHandle, FALSE);
                 handlesContext->NeedsRedraw = TRUE;
             }
 
-            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
-            PhpAddHandleItem(lvHandle, handleItem);
-            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
-
-            handlesContext->NeedsSort = TRUE;
+            PhAddHandleNode(&handlesContext->ListContext, handleItem, runId);
+            PhDereferenceObject(handleItem);
         }
         break;
     case WM_PH_HANDLE_MODIFIED:
         {
-            INT lvItemIndex;
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
-            lvItemIndex = PhFindListViewItemByParam(lvHandle, -1, handleItem);
-
-            if (lvItemIndex != -1)
+            if (!handlesContext->NeedsRedraw)
             {
-                // Force redraw of the item because its color may have 
-                // changed.
-                ListView_RedrawItems(lvHandle, lvItemIndex, lvItemIndex);
+                TreeNew_SetRedraw(tnHandle, FALSE);
+                handlesContext->NeedsRedraw = TRUE;
             }
+
+            PhUpdateHandleNode(&handlesContext->ListContext, PhFindHandleNode(&handlesContext->ListContext, handleItem->Handle));
         }
         break;
     case WM_PH_HANDLE_REMOVED:
         {
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
-            HANDLE pointerHandle;
 
             if (!handlesContext->NeedsRedraw)
             {
-                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                TreeNew_SetRedraw(tnHandle, FALSE);
                 handlesContext->NeedsRedraw = TRUE;
             }
 
-            PhRemoveListViewItem(
-                lvHandle,
-                PhFindListViewItemByParam(lvHandle, -1, handleItem)
-                );
-
-            if (pointerHandle = PhFindItemPointerList(handlesContext->HandleList, handleItem))
-                PhRemoveItemPointerList(handlesContext->HandleList, pointerHandle);
-
-            PhDereferenceObject(handleItem);
+            PhRemoveHandleNode(&handlesContext->ListContext, PhFindHandleNode(&handlesContext->ListContext, handleItem->Handle));
         }
         break;
     case WM_PH_HANDLES_UPDATED:
         {
-            ExtendedListView_Tick(lvHandle);
-
-            if (handlesContext->NeedsSort)
-            {
-                ExtendedListView_SortItems(lvHandle);
-                handlesContext->NeedsSort = FALSE;
-            }
+            PhTickHandleNodes(&handlesContext->ListContext);
 
             if (handlesContext->NeedsRedraw)
             {
-                ExtendedListView_SetRedraw(lvHandle, TRUE);
+                TreeNew_SetRedraw(tnHandle, TRUE);
                 handlesContext->NeedsRedraw = FALSE;
             }
         }
         break;
     }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }

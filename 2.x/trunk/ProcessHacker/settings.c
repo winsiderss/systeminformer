@@ -89,7 +89,8 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"FindObjWindowSize", L"550,420");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
-    PhpAddStringSetting(L"HandleListViewColumns", L"");
+    PhpAddStringSetting(L"HandleTreeListColumns", L"");
+    PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"HiddenProcessesListViewColumns", L"");
     PhpAddIntegerPairSetting(L"HiddenProcessesWindowPosition", L"400,400");
     PhpAddIntegerPairSetting(L"HiddenProcessesWindowSize", L"520,400");

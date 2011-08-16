@@ -23,6 +23,7 @@
 #define PH_THRDPRV_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
+#include <extmgri.h>
 
 typedef struct _PH_THREAD_QUERY_DATA
 {
@@ -365,7 +366,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
 
     if (!NT_SUCCESS(PhCreateObject(
         &threadItem,
-        sizeof(PH_THREAD_ITEM),
+        PhEmGetObjectSize(EmThreadItemType, sizeof(PH_THREAD_ITEM)),
         0,
         PhThreadItemType
         )))
@@ -374,6 +375,8 @@ PPH_THREAD_ITEM PhCreateThreadItem(
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
     PhPrintUInt32(threadItem->ThreadIdString, (ULONG)ThreadId);
+
+    PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
     return threadItem;
 }
@@ -384,6 +387,8 @@ VOID PhpThreadItemDeleteProcedure(
     )
 {
     PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)Object;
+
+    PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectDelete);
 
     if (threadItem->ThreadHandle) NtClose(threadItem->ThreadHandle);
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);

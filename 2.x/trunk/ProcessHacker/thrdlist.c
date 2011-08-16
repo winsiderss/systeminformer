@@ -2,7 +2,7 @@
  * Process Hacker - 
  *   thread list
  * 
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2011 wj32
  * 
  * This file is part of Process Hacker.
  * 
@@ -356,7 +356,7 @@ VOID PhTickThreadNodes(
     PPH_THREAD_NODE node2 = *(PPH_THREAD_NODE *)_elem2; \
     PPH_THREAD_ITEM threadItem1 = node1->ThreadItem; \
     PPH_THREAD_ITEM threadItem2 = node2->ThreadItem; \
-    PPH_THREAD_LIST_CONTEXT context = (PPH_THREAD_LIST_CONTEXT)_context;
+    PPH_THREAD_LIST_CONTEXT context = (PPH_THREAD_LIST_CONTEXT)_context; \
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \

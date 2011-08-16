@@ -23,6 +23,7 @@
 #define PH_HNDLPRV_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
+#include <extmgri.h>
 
 VOID NTAPI PhpHandleProviderDeleteProcedure(
     __in PVOID Object,
@@ -125,7 +126,7 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
 
     if (!NT_SUCCESS(PhCreateObject(
         &handleItem,
-        sizeof(PH_HANDLE_ITEM),
+        PhEmGetObjectSize(EmHandleItemType, sizeof(PH_HANDLE_ITEM)),
         0,
         PhHandleItemType
         )))
@@ -144,6 +145,8 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
         PhPrintPointer(handleItem->GrantedAccessString, (PVOID)handleItem->GrantedAccess);
     }
 
+    PhEmCallObjectOperation(EmHandleItemType, handleItem, EmObjectCreate);
+
     return handleItem;
 }
 
@@ -153,6 +156,8 @@ VOID PhpHandleItemDeleteProcedure(
     )
 {
     PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)Object;
+
+    PhEmCallObjectOperation(EmHandleItemType, handleItem, EmObjectDelete);
 
     if (handleItem->TypeName) PhDereferenceObject(handleItem->TypeName);
     if (handleItem->ObjectName) PhDereferenceObject(handleItem->ObjectName);

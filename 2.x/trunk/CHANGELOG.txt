@@ -2,6 +2,7 @@ Process Hacker
 
 2.20
  * NEW/IMPROVED:
+   * Added column selection for handle list
    * Implemented Properties button for Thread handles
    * Set descending sort as the default for most numeric columns
    * Extended header context menu
