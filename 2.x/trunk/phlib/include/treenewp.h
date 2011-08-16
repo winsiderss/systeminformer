@@ -125,7 +125,6 @@ typedef struct _PH_TREENEW_CONTEXT
     RECT TooltipRect; // text rectangle of an unfolding tooltip
     HFONT TooltipFont;
     HFONT NewTooltipFont;
-    ULONG NewTooltipMaximumWidth;
     ULONG TooltipColumnId;
     WNDPROC FixedHeaderOldWndProc;
     WNDPROC HeaderOldWndProc;
