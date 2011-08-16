@@ -5470,7 +5470,7 @@ VOID PhTnpInitializeTooltips(
     SetProp(Context->HeaderHandle, PhTnpMakeContextAtom(), (HANDLE)Context);
     SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
 
-    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
+    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
     Context->TooltipFont = Context->Font;
 }
@@ -5510,9 +5510,10 @@ VOID PhTnpGetTooltipText(
         getCellTooltip.Unfolding = FALSE;
         PhInitializeEmptyStringRef(&getCellTooltip.Text);
         getCellTooltip.Font = Context->Font;
-        getCellTooltip.MaximumWidth = TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH;
+        getCellTooltip.MaximumWidth = -1;
 
-        if (PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts) &&
+        if (!(Context->ExtendedFlags & TN_FLAG_NO_UNFOLDING_TOOLTIPS) &&
+            PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts) &&
             (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
         {
             viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
