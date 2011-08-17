@@ -28,73 +28,72 @@ extern NTSTATUS SilentWorkerThreadStart(
 {
 	INT result = 0;
 	DWORD dwBytes = 0;
+	DWORD dwType;
 
-	while (TRUE)
+	if (!InternetGetConnectedState(&dwType, 0))
 	{
-		if (InitializeConnection(
-			L"processhacker.sourceforge.net", 
-			L"/updater.php"
-			))
-		{
-			goto Sleep;
-		}
-
-		// Send the HTTP request.
-		if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
-		{
-			CHAR buffer[BUFFER_LEN];
-			BOOL nReadFile = FALSE;
-
-			// Read the resulting xml into our buffer.
-			while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
-			{
-				if (dwBytes == 0)
-					break;
-
-				if (!nReadFile)
-				{
-					LogEvent(PhFormatString(L"Updater: (SilentWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-
-					goto Sleep;
-				}
-			}
-
-			if (QueryXmlData(buffer))
-			{
-				goto Sleep;
-			}
-
-			result = strcmp(VersionString->Buffer, "2.11"); 
-
-			if (result > 0)
-			{
-				// Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-				Sleep(3000);
-
-				if (!WindowVisible)
-				{			
-					DialogBox(
-						(HINSTANCE)PluginInstance->DllBase,
-						MAKEINTRESOURCE(IDD_OUTPUT),
-						PhMainWndHandle,
-						MainWndProc
-						);
-				}
-			}
-		}
-		else
-		{
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-
-			goto Sleep;
-		}
-
-Sleep:
-		DisposeConnection();
-
-		// sleep update check for 24 hours?
-		SleepEx(86400000, FALSE); 
+		return TRUE;
 	}
+
+	if (!InitializeConnection(
+		L"processhacker.sourceforge.net", 
+		L"/updater.php"
+		))
+	{
+		return TRUE;
+	}
+
+	// Send the HTTP request.
+	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
+	{
+		char buffer[BUFFER_LEN];
+		BOOL nReadFile = FALSE;
+
+		RtlZeroMemory(buffer, BUFFER_LEN);
+
+		// Read the resulting xml into our buffer.
+		while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
+		{
+			if (dwBytes == 0)
+				break;
+
+			if (!nReadFile)
+			{
+				LogEvent(PhFormatString(L"Updater: (SilentWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
+
+				return TRUE;
+			}
+		}
+
+		if (QueryXmlData(buffer))
+		{
+			return TRUE;
+		}
+
+		result = strcmp(VersionString->Buffer, "2.11"); 
+
+		if (result > 0)
+		{
+			// Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
+			Sleep(3000);
+
+			if (!WindowVisible)
+			{			
+				DialogBox(
+					(HINSTANCE)PluginInstance->DllBase,
+					MAKEINTRESOURCE(IDD_OUTPUT),
+					PhMainWndHandle,
+					MainWndProc
+					);
+			}
+		}
+	}
+	else
+	{
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+	}
+
+	DisposeConnection();
 
 	return FALSE;
 }
@@ -114,19 +113,25 @@ static NTSTATUS WorkerThreadStart(
 		dwBytesRead = 0,
 		dwBytesWritten = 0, 
 		dwBufLen = sizeof(BUFFER_LEN);
+	DWORD dwType;
+	
+	if (!InternetGetConnectedState(&dwType, 0))
+	{
+		return TRUE;
+	}
 
-	if (dwRetVal = InitializeConnection(
+	if (!InitializeConnection(
 		L"processhacker.sourceforge.net", 
 		L"/updater.php"
 		))
 	{
-		return dwRetVal;
+		return TRUE;
 	}
 
 	// Send the HTTP request.
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-        CHAR buffer[BUFFER_LEN];
+        char buffer[BUFFER_LEN];
 		BOOL nReadFile = FALSE;
 
 		// Read the resulting xml into our buffer.
@@ -225,24 +230,32 @@ static NTSTATUS DownloadWorkerThreadStart(
 	PH_HASH_CONTEXT hashContext;
 
 	HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+	
+	DWORD dwType;
+	if (!InternetGetConnectedState(&dwType, 0))
+	{
+		return TRUE;
+	}
 
-	if (dwStatusResult = InitializeConnection(
+	if (!InitializeConnection(
 		L"sourceforge.net",
 		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download" //?use_mirror=waix"
 		))
 	{
-		return dwStatusResult;
+		return TRUE;
 	}
 
-	if (dwStatusResult = InitializeFile())
-		return dwStatusResult;
+	if (!InitializeFile())
+		return TRUE;
 
 	Updater_SetStatusText(hwndDlg, L"Connecting");
 	EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), FALSE);
 
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-        UCHAR buffer[BUFFER_LEN];
+        char buffer[BUFFER_LEN];
+
+		RtlZeroMemory(buffer, BUFFER_LEN);
 
 		if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, (LPVOID)&dwContentLen, &dwBufLen, 0))
 		{
@@ -424,7 +437,6 @@ INT_PTR CALLBACK MainWndProc(
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 						
 			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
-			CheckBetaRelease = PhGetIntegerSetting(L"ProcessHacker.Updater.CheckBetaReleases");
 			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 			PhUpdaterState = Default;
 
@@ -514,13 +526,11 @@ INT_PTR CALLBACK MainWndProc(
 	return FALSE;
 }
 
-DWORD InitializeConnection(
+BOOL InitializeConnection(
 	__in PCWSTR host, 
 	__in PCWSTR path
 	)
 {
-	DWORD status = 0;
-
 	// Initialize the wininet library.
 	NetInitialize = InternetOpen(
 		L"PH Updater", // user-agent
@@ -532,13 +542,9 @@ DWORD InitializeConnection(
 
 	if (!NetInitialize)
 	{
-		status = GetLastError();
-
-		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", status));
-
-		DisposeConnection();
-
-		return status;
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
+		
+		return FALSE;
 	}
 
 	// Connect to the server.
@@ -555,13 +561,11 @@ DWORD InitializeConnection(
 
 	if (!NetConnection)
 	{
-		status = GetLastError();
-
-		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", status));
-
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
+		
 		DisposeConnection();
-
-		return status;
+		
+		return TRUE;
 	}
 	
 	// Open the HTTP request.
@@ -578,19 +582,17 @@ DWORD InitializeConnection(
 
 	if (!NetRequest)
 	{
-		status = GetLastError();
-
-		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", status));
-
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
+		
 		DisposeConnection();
-
-		return status;
+		
+		return FALSE;
 	}
 
-	return status;
+	return TRUE;
 }
 
-DWORD InitializeFile()
+BOOL InitializeFile()
 {
 	TCHAR lpTempPathBuffer[MAX_PATH];
 	DWORD length = 0;
@@ -600,11 +602,9 @@ DWORD InitializeFile()
 
 	if (length > MAX_PATH || length == 0)
 	{
-		DWORD dwRetVal = GetLastError();
+		LogEvent(PhFormatString(L"Updater: (InitializeFile) GetTempPath failed (%d)", GetLastError()));
 
-		LogEvent(PhFormatString(L"Updater: (InitializeFile) GetTempPath failed (%d)", dwRetVal));
-
-		return dwRetVal;
+		return FALSE;
 	}	
 
 	LocalFilePathString = PhConcatStrings2(
@@ -624,22 +624,20 @@ DWORD InitializeFile()
 
 	if (TempFileHandle == INVALID_HANDLE_VALUE)
 	{
-		DWORD dwRetVal = GetLastError();
+		LogEvent(PhFormatString(L"Updater: (InitializeFile) CreateFile failed (%d)", GetLastError()));
 
-		LogEvent(PhFormatString(L"Updater: (InitializeFile) CreateFile failed (%d)", dwRetVal));
-
-		return dwRetVal;
+		return FALSE;
 	}
 
-	return 0;
+	return TRUE;
 }
 
-DWORD QueryXmlData(char* buffer)
+NTSTATUS QueryXmlData(VOID* buffer)
 {
 	mxml_node_t *xmlDoc = NULL, *xmlNode2 = NULL, *xmlNode3 = NULL, *xmlNode4 = NULL, *xmlNode5 = NULL;
 
 	// Load our XML.
-	xmlDoc = mxmlLoadString(NULL, buffer, MXML_OPAQUE_CALLBACK);
+	xmlDoc = mxmlLoadString(NULL, (char*)buffer, MXML_OPAQUE_CALLBACK);
 
 	// Check our XML.
 	if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
@@ -648,172 +646,67 @@ DWORD QueryXmlData(char* buffer)
 		return STATUS_FILE_CORRUPT_ERROR;
 	}
 
-	if (CheckBetaRelease)
+	// Find the ver node.
+	xmlNode2 = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
+	if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
 	{
-		// First find the beta node, make it our default node.
-		xmlDoc = mxmlFindElement(xmlDoc, xmlDoc, "beta", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
-		{
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
+		mxmlRelease(xmlDoc);
 
-		// Find the ver node.
-		xmlNode2 = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode2);
-			mxmlRelease(xmlDoc);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-
-		// Find the reldate node.
-		xmlNode3 = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode3 == NULL || xmlNode3->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode3);
-			mxmlRelease(xmlNode2);
-			mxmlRelease(xmlDoc);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-
-		// Find the size node.
-		xmlNode4 = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode4 == NULL || xmlNode4->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode4);	
-			mxmlRelease(xmlNode3);
-			mxmlRelease(xmlNode2);
-			mxmlRelease(xmlDoc);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-
-		switch (HashAlgorithm)
-		{
-		case Md5HashAlgorithm:
-			{
-				// Find the sha1 node.
-				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
-
-				// Check our XML.
-				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
-				{
-					mxmlRelease(xmlNode4);
-					mxmlRelease(xmlNode3);	
-					mxmlRelease(xmlNode2);
-					mxmlRelease(xmlDoc);
-
-					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
-					return STATUS_FILE_CORRUPT_ERROR;
-				}
-			}
-			break;
-		default: 
-			{
-				// Find the md5 node.
-				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
-
-				// Check our XML.
-				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
-				{
-					mxmlRelease(xmlNode4);
-					mxmlRelease(xmlNode3);	
-					mxmlRelease(xmlNode2);
-					mxmlRelease(xmlDoc);
-
-					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (sha1) failed."));
-					return STATUS_FILE_CORRUPT_ERROR;
-				}
-			}
-			break;
-		}
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
+		return STATUS_FILE_CORRUPT_ERROR;
 	}
-	else
+
+	// Find the reldate node.
+	xmlNode3 = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
+	if (xmlNode3 == NULL || xmlNode3->type != MXML_ELEMENT)
 	{
-		// Find the ver node.
-		xmlNode2 = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
+		mxmlRelease(xmlNode2);
+		mxmlRelease(xmlDoc);
+
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
+		return STATUS_FILE_CORRUPT_ERROR;
+	}
+
+	// Find the size node.
+	xmlNode4 = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
+	if (xmlNode4 == NULL || xmlNode4->type != MXML_ELEMENT)
+	{
+		mxmlRelease(xmlNode3);	
+		mxmlRelease(xmlNode2);
+		mxmlRelease(xmlDoc);
+
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
+		return STATUS_FILE_CORRUPT_ERROR;
+	}
+
+	if (HashAlgorithm == Md5HashAlgorithm)
+	{
+		// Find the sha1 node.
+		xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
+		if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
 		{
-			mxmlRelease(xmlDoc);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-
-		// Find the reldate node.
-		xmlNode3 = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode3 == NULL || xmlNode3->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode2);
-			mxmlRelease(xmlDoc);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-
-		// Find the size node.
-		xmlNode4 = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
-		// Check our XML.
-		if (xmlNode4 == NULL || xmlNode4->type != MXML_ELEMENT)
-		{
+			mxmlRelease(xmlNode4);
 			mxmlRelease(xmlNode3);	
 			mxmlRelease(xmlNode2);
 			mxmlRelease(xmlDoc);
 
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
 			return STATUS_FILE_CORRUPT_ERROR;
 		}
-
-		switch (HashAlgorithm)
+	}
+	else
+	{
+		// Find the md5 node.
+		xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
+		if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
 		{
-		case Md5HashAlgorithm:
-			{
-				// Find the sha1 node.
-				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
+			mxmlRelease(xmlNode4);
+			mxmlRelease(xmlNode3);	
+			mxmlRelease(xmlNode2);
+			mxmlRelease(xmlDoc);
 
-				// Check our XML.
-				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
-				{
-					mxmlRelease(xmlNode4);
-					mxmlRelease(xmlNode3);	
-					mxmlRelease(xmlNode2);
-					mxmlRelease(xmlDoc);
-
-					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
-					return STATUS_FILE_CORRUPT_ERROR;
-				}
-			}
-			break;
-		default: 
-			{
-				// Find the md5 node.
-				xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
-
-				// Check our XML.
-				if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
-				{
-					mxmlRelease(xmlNode4);
-					mxmlRelease(xmlNode3);	
-					mxmlRelease(xmlNode2);
-					mxmlRelease(xmlDoc);
-
-					LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (sha1) failed."));
-					return STATUS_FILE_CORRUPT_ERROR;
-				}
-			}
-			break;
+			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (sha1) failed."));
+			return STATUS_FILE_CORRUPT_ERROR;
 		}
 	}
 
@@ -869,38 +762,197 @@ VOID LogEvent(__in PPH_STRING str)
 VOID DisposeConnection()
 {
 	if (NetInitialize)
+	{
 		InternetCloseHandle(NetInitialize);
+		NetInitialize = NULL;
+	}
 
 	if (NetConnection)
+	{
 		InternetCloseHandle(NetConnection);
+		NetConnection = NULL;
+	}
 
 	if (NetRequest)
+	{
 		InternetCloseHandle(NetRequest);
+		NetRequest = NULL;
+	}
 }
 
 VOID DisposeStrings()
 {
 	if (LocalFilePathString)
+	{
 		PhDereferenceObject(LocalFilePathString);
+		LocalFilePathString = NULL;
+	}
 
 	if (VersionString)
+	{
 		PhDereferenceObject(VersionString);
+		VersionString = NULL;
+	}
 
 	if (ReldateString)
+	{
 		PhDereferenceObject(ReldateString);
+		ReldateString = NULL;
+	}
 
 	if (SizeString)
+	{
 		PhDereferenceObject(SizeString);
+		SizeString = NULL;
+	}
 
 	if (RemoteHashString)
+	{
 		PhDereferenceObject(RemoteHashString);
+		RemoteHashString = NULL;
+	}
 
 	if (BetaDlString)
+	{
 		PhDereferenceObject(BetaDlString);
+		BetaDlString = NULL;
+	}
 }
 
 VOID DisposeFileHandles()
 {
 	if (TempFileHandle)
-		CloseHandle(TempFileHandle);
+	{
+		NtClose(TempFileHandle);
+		TempFileHandle = NULL;
+	}
 }
+
+
+#define MO 0x100000 /* Read 1 Mo by 1Mo. */
+
+///*--------------------------------------------------------------------------*/
+//DWORD httpDownloadFile(char * szURL,char * szSaveFilePath)
+//{
+//
+//	HINTERNET hiConnex = NULL;
+//	/* * / * : /*rfc 2616 protocole http.  all files type accepted*/
+//	char szHeader[]="Accept: */*\r\n\r\n"; 
+//	HINTERNET hiDownload;
+//
+//	hiConnex = InternetOpen(L"Scilab_Download",INTERNET_OPEN_TYPE_DIRECT,NULL,NULL,0);
+//	if(hiConnex == NULL) 
+//		return 1;
+//
+//	if(!(hiDownload = InternetOpenUrl(hiConnex, szURL, szHeader, lstrlen(szHeader),INTERNET_FLAG_DONT_CACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_PRAGMA_NOCACHE,0)))
+//	{
+//		InternetCloseHandle(hiConnex);
+//		return 1;
+//	}
+//	else
+//	{
+//		HANDLE haFile;
+//
+//		haFile = CreateFile(szSaveFilePath,GENERIC_WRITE,FILE_SHARE_WRITE,0,CREATE_ALWAYS,0,0);
+//
+//		if(haFile == INVALID_HANDLE_VALUE)
+//		{
+//			InternetCloseHandle(hiConnex);
+//			return 1;
+//		}
+//		else
+//		{
+//			char *szBuff = NULL;
+//
+//			DWORD dwBytesRequired = 0;
+//			DWORD dwSizeOfByReq = 4;
+//			DWORD dwBytesRead = 0;
+//			DWORD dwBytesWritten = 0;
+//
+//			/* Get file size */
+//			if(!HttpQueryInfo(hiDownload,HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,(LPVOID)&dwBytesRequired,&dwSizeOfByReq,0))
+//			{
+//				InternetCloseHandle(hiConnex);
+//				return 1;
+//			}
+//			else
+//			{
+//				if(dwBytesRequired > MO)
+//				{
+//					szBuff = (char*)malloc(MO);
+//
+//					if(szBuff == NULL)
+//					{
+//						CloseHandle(haFile);
+//						InternetCloseHandle(hiConnex);
+//						return FALSE;
+//					}
+//				}
+//				else
+//				{
+//					szBuff = (char*)malloc(dwBytesRequired);
+//
+//					if(szBuff == NULL)
+//					{
+//						CloseHandle(haFile);
+//						InternetCloseHandle(hiConnex);
+//						return FALSE;
+//					}
+//				}
+//
+//				while(dwBytesRequired > 0)
+//				{
+//					/* we read 1Mo from file. */
+//					if(dwBytesRequired >= MO)
+//					{
+//						if(!InternetReadFile(hiDownload,szBuff,MO,&dwBytesRead) || dwBytesRead != MO)
+//						{
+//							CloseHandle(haFile);
+//							InternetCloseHandle(hiConnex);
+//							free(szBuff);
+//							return 1;
+//						}
+//						dwBytesRequired -= MO;
+//
+//
+//						/* we write buffer */
+//						if(!WriteFile(haFile,szBuff,MO,&dwBytesWritten,NULL) || dwBytesWritten != MO)
+//						{
+//							CloseHandle(haFile);
+//							InternetCloseHandle(hiConnex);
+//							free(szBuff);
+//							return 1;
+//						}
+//					}
+//					else
+//					{
+//						if(!InternetReadFile(hiDownload,szBuff,dwBytesRequired,&dwBytesRead) || dwBytesRead != dwBytesRequired)
+//						{
+//							CloseHandle(haFile);
+//							InternetCloseHandle(hiConnex);
+//							free(szBuff);
+//							return 1;
+//						}
+//
+//						/* we write buffer in a backup file*/
+//						if(!WriteFile(haFile,szBuff,dwBytesRequired,&dwBytesWritten,NULL) || dwBytesWritten != dwBytesRequired)
+//						{
+//							CloseHandle(haFile);
+//							InternetCloseHandle(hiConnex);
+//							free(szBuff);
+//							return 1;
+//						}
+//
+//						dwBytesRequired = 0;
+//					}
+//				}
+//
+//				InternetCloseHandle(hiConnex);
+//				CloseHandle(haFile);
+//				free(szBuff);
+//				return HTTP_DOWNLOAD_ERROR_OK;
+//			}
+//		}
+//	}
+//
+//}
