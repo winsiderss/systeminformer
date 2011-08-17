@@ -81,7 +81,7 @@ VOID NTAPI MainWindowShowingCallback(
     PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
 	
 	// Queue up our initial update check.
-	PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)SilentWorkerThreadStart, Parameter); 
+	PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)SilentWorkerThreadStart, Parameter); 
 }
 
 VOID NTAPI MenuItemCallback(

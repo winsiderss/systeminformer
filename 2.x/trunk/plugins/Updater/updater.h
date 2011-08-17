@@ -53,7 +53,6 @@ static PH_STRING *LocalFilePathString = NULL, *ReldateString = NULL, *SizeString
 
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
-static BOOL CheckBetaRelease = FALSE;
 static BOOL WindowVisible = FALSE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
@@ -65,7 +64,6 @@ static PH_SETTING_CREATE settings[] =
 {
 	{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
 	{ IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
-	{ IntegerSettingType, L"ProcessHacker.Updater.CheckBetaReleases", L"0" },
 };	
 
 #pragma endregion
@@ -87,14 +85,14 @@ VOID DisposeFileHandles();
 
 BOOL PhInstalledUsingSetup();
 
-DWORD QueryXmlData(char* buffer);
+NTSTATUS QueryXmlData(void* buffer);
 
-DWORD InitializeConnection(
+BOOL InitializeConnection(
 	__in PCWSTR host,
 	__in PCWSTR path
 	);
 
-DWORD InitializeFile();
+BOOL InitializeFile();
 
 VOID LogEvent(
 	__in PPH_STRING str
