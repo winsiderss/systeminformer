@@ -352,6 +352,10 @@ VOID PhTnpUpdateThemeData(
     __in PPH_TREENEW_CONTEXT Context
     );
 
+VOID PhTnpInitializeThemeData(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
 VOID PhTnpCancelTrack(
     __in PPH_TREENEW_CONTEXT Context
     );
@@ -644,6 +648,11 @@ VOID PhTnpDrawSelectionRectangle(
     __in PPH_TREENEW_CONTEXT Context,
     __in HDC hdc,
     __in PRECT Rect
+    );
+
+VOID PhTnpDrawThemedBorder(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc
     );
 
 // Tooltips
