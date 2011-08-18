@@ -131,6 +131,10 @@ typedef struct _PH_TREENEW_CONTEXT
 
     TEXTMETRIC TextMetrics;
     HTHEME ThemeData;
+    LONG SystemBorderX;
+    LONG SystemBorderY;
+    LONG SystemEdgeX;
+    LONG SystemEdgeY;
 
     HDC BufferedContext;
     HBITMAP BufferedOldBitmap;
@@ -188,6 +192,13 @@ VOID PhTnpOnSetFont(
     __in LOGICAL Redraw
     );
 
+VOID PhTnpOnStyleChanged(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Type,
+    __in STYLESTRUCT *StyleStruct
+    );
+
 VOID PhTnpOnSettingChange(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context
@@ -208,6 +219,12 @@ VOID PhTnpOnPrintClient(
     __in PPH_TREENEW_CONTEXT Context,
     __in HDC hdc,
     __in ULONG Flags
+    );
+
+BOOLEAN PhTnpOnNcPaint(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in_opt HRGN UpdateRegion
     );
 
 BOOLEAN PhTnpOnSetCursor(
@@ -720,6 +737,8 @@ VOID PhTnpGetMessagePos(
     );
 
 // Macros
+
+#define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
 
 #define TNP_CELL_LEFT_MARGIN 6
 #define TNP_CELL_RIGHT_MARGIN 6
