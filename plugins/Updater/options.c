@@ -27,34 +27,24 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
-    );
-
-INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
     )
 {
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-			HWND hashComboHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
-
+			HWND hashCboxHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 						
-			EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
-			HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
+            ComboBox_AddString(hashCboxHandle, L"SHA1");
+            ComboBox_AddString(hashCboxHandle, L"MD5");
+            ComboBox_SetCurSel(hashCboxHandle, PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm"));
 
-            ComboBox_AddString(hashComboHandle, L"SHA1");
-            ComboBox_AddString(hashComboHandle, L"MD5");
-            ComboBox_SetCurSel(hashComboHandle, HashAlgorithm);
-
-			if (EnableCache)
-			{
+			if (PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache"))
 				Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE), BST_CHECKED);
-			}
+
+			if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
+				Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);	
         }
         break;
     case WM_COMMAND:
@@ -69,11 +59,11 @@ INT_PTR CALLBACK OptionsDlgProc(
 					PhSetIntegerSetting(L"ProcessHacker.Updater.EnableCache", 
 						Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE)) == BST_CHECKED);
 
+					PhSetIntegerSetting(L"ProcessHacker.Updater.PromptStart", 
+						Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
+
 					PhSetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm",                      
 						ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX)));
-
-					EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
-					HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 
                     EndDialog(hwndDlg, IDOK);
                 }

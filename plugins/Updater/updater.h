@@ -4,12 +4,16 @@
 
 #pragma endregion
 
+#pragma region enums
+
 typedef enum _PH_UPDATER_STATE
 {
 	Default,
     Downloading,
     Installing
 } PH_UPDATER_STATE;
+
+#pragma endregion
 
 #pragma region Includes
 
@@ -48,8 +52,8 @@ extern PPH_PLUGIN PluginInstance;
 
 static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
-static PH_ANSI_STRING *VersionString = NULL, *RemoteHashString = NULL;
-static PH_STRING *LocalFilePathString = NULL, *ReldateString = NULL, *SizeString = NULL, *BetaDlString = NULL;
+static PPH_ANSI_STRING VersionString = NULL, RemoteHashString = NULL;
+static PPH_STRING LocalFilePathString = NULL, ReldateString = NULL, SizeString = NULL, BetaDlString = NULL;
 
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
@@ -64,6 +68,7 @@ static PH_SETTING_CREATE settings[] =
 {
 	{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
 	{ IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
+	{ IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"0" },
 };	
 
 #pragma endregion
@@ -83,9 +88,9 @@ VOID DisposeConnection();
 VOID DisposeStrings();
 VOID DisposeFileHandles();
 
+BOOL ConnectionAvailable();
 BOOL PhInstalledUsingSetup();
-
-NTSTATUS QueryXmlData(void* buffer);
+BOOL QueryXmlData(void* buffer);
 
 BOOL InitializeConnection(
 	__in PCWSTR host,

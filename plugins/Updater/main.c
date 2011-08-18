@@ -73,15 +73,18 @@ LOGICAL DllMain(
 }
 
 VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
+	__in_opt PVOID Parameter,
+	__in_opt PVOID Context
+	)
 {
 	// Add our menu item, 4 = Help menu.
-    PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
-	
-	// Queue up our initial update check.
-	PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)SilentWorkerThreadStart, Parameter); 
+	PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
+
+	if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
+	{
+		// Queue up our initial update check.
+		PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)SilentWorkerThreadStart, Parameter); 
+	}
 }
 
 VOID NTAPI MenuItemCallback(
@@ -95,7 +98,7 @@ VOID NTAPI MenuItemCallback(
 	{
 	case UPDATE_MENUITEM:
 		{
-			// check if our dialog is already visible (auto-updater may already be visible).
+			// check if our dialog is already visible (auto-check may already be visible).
 			if (!WindowVisible)
 			{		
 				DialogBox(
