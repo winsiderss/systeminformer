@@ -633,6 +633,11 @@ extern PPH_OBJECT_TYPE PhHandleProviderType;
 extern PPH_OBJECT_TYPE PhHandleItemType;
 #endif
 
+#define PH_HANDLE_FILE_SHARED_READ 0x1
+#define PH_HANDLE_FILE_SHARED_WRITE 0x2
+#define PH_HANDLE_FILE_SHARED_DELETE 0x4
+#define PH_HANDLE_FILE_SHARED_MASK 0x7
+
 typedef struct _PH_HANDLE_ITEM
 {
     PH_HASH_ENTRY HashEntry;
@@ -641,6 +646,7 @@ typedef struct _PH_HANDLE_ITEM
     PVOID Object;
     ULONG Attributes;
     ACCESS_MASK GrantedAccess;
+    ULONG FileFlags;
 
     PPH_STRING TypeName;
     PPH_STRING ObjectName;

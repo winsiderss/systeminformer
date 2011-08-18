@@ -775,8 +775,9 @@ VOID PhDeselectAllModuleNodes(
 #define PHHNTLC_GRANTEDACCESS 5
 #define PHHNTLC_GRANTEDACCESSSYMBOLIC 6
 #define PHHNTLC_ORIGINALNAME 7
+#define PHHNTLC_FILESHAREACCESS 8
 
-#define PHHNTLC_MAXIMUM 8
+#define PHHNTLC_MAXIMUM 9
 
 typedef struct _PH_HANDLE_NODE
 {
@@ -790,6 +791,7 @@ typedef struct _PH_HANDLE_NODE
     PH_STRINGREF TextCache[PHHNTLC_MAXIMUM];
 
     PPH_STRING GrantedAccessSymbolicText;
+    WCHAR FileShareAccessText[4];
 } PH_HANDLE_NODE, *PPH_HANDLE_NODE;
 
 typedef struct _PH_HANDLE_LIST_CONTEXT

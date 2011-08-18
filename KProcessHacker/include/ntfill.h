@@ -178,6 +178,14 @@ ObCloseHandle(
 
 // PS
 
+typedef NTSTATUS (NTAPI *_PsAcquireProcessExitSynchronization)(
+    __in PEPROCESS Process
+    );
+
+typedef NTSTATUS (NTAPI *_PsReleaseProcessExitSynchronization)(
+    __in PEPROCESS Process
+    );
+
 typedef NTSTATUS (NTAPI *_PsSuspendProcess)(
     __in PEPROCESS Process
     );
