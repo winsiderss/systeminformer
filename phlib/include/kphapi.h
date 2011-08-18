@@ -48,7 +48,7 @@ typedef struct _KPH_PROCESS_HANDLE_INFORMATION
     KPH_PROCESS_HANDLE Handles[1];
 } KPH_PROCESS_HANDLE_INFORMATION, *PKPH_PROCESS_HANDLE_INFORMATION;
 
-// Handle information
+// Object information
 
 typedef enum _KPH_OBJECT_INFORMATION_CLASS
 {
@@ -59,8 +59,23 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     KphObjectProcessBasicInformation, // q: PROCESS_BASIC_INFORMATION
     KphObjectThreadBasicInformation, // q: THREAD_BASIC_INFORMATION
     KphObjectEtwRegBasicInformation, // q: ETWREG_BASIC_INFORMATION
+    KphObjectFileObjectInformation, // q: KPH_FILE_OBJECT_INFORMATION
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
+
+typedef struct _KPH_FILE_OBJECT_INFORMATION
+{
+    BOOLEAN LockOperation;
+    BOOLEAN DeletePending;
+    BOOLEAN ReadAccess;
+    BOOLEAN WriteAccess;
+    BOOLEAN DeleteAccess;
+    BOOLEAN SharedRead;
+    BOOLEAN SharedWrite;
+    BOOLEAN SharedDelete;
+    LARGE_INTEGER CurrentByteOffset;
+    ULONG Flags;
+} KPH_FILE_OBJECT_INFORMATION, *PKPH_FILE_OBJECT_INFORMATION;
 
 // Driver information
 

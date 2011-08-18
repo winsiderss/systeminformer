@@ -99,6 +99,7 @@ VOID PhInitializeHandleList(
     PhAddTreeNewColumn(hwnd, PHHNTLC_GRANTEDACCESS, FALSE, L"Granted Access", 80, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHHNTLC_GRANTEDACCESSSYMBOLIC, FALSE, L"Granted Access (Symbolic)", 140, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHHNTLC_ORIGINALNAME, FALSE, L"Original Name", 200, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHHNTLC_FILESHAREACCESS, FALSE, L"File Share Access", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -442,6 +443,16 @@ BEGIN_SORT_FUNCTION(OriginalName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(FileShareAccess)
+{
+    sortResult = uintcmp(handleItem1->FileFlags & (PH_HANDLE_FILE_SHARED_MASK), handleItem2->FileFlags & (PH_HANDLE_FILE_SHARED_MASK));
+
+    // Make sure all file handles get grouped together regardless of share access.
+    if (sortResult == 0)
+        sortResult = intcmp(PhEqualString2(handleItem1->TypeName, L"File", TRUE), PhEqualString2(handleItem2->TypeName, L"File", TRUE));
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpHandleTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -472,7 +483,8 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     SORT_FUNCTION(Attributes),
                     SORT_FUNCTION(GrantedAccess),
                     SORT_FUNCTION(GrantedAccess), // Granted Access (Symbolic)
-                    SORT_FUNCTION(OriginalName)
+                    SORT_FUNCTION(OriginalName),
+                    SORT_FUNCTION(FileShareAccess)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -577,6 +589,24 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 break;
             case PHHNTLC_ORIGINALNAME:
                 getCellText->Text = PhGetStringRef(handleItem->ObjectName);
+                break;
+            case PHHNTLC_FILESHAREACCESS:
+                if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_MASK)
+                {
+                    node->FileShareAccessText[0] = '-';
+                    node->FileShareAccessText[1] = '-';
+                    node->FileShareAccessText[2] = '-';
+                    node->FileShareAccessText[3] = 0;
+
+                    if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_READ)
+                        node->FileShareAccessText[0] = 'R';
+                    if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_WRITE)
+                        node->FileShareAccessText[1] = 'W';
+                    if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_DELETE)
+                        node->FileShareAccessText[2] = 'D';
+
+                    PhInitializeStringRef(&getCellText->Text, node->FileShareAccessText);
+                }
                 break;
             default:
                 return FALSE;

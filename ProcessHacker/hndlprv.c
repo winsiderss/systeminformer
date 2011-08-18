@@ -577,6 +577,29 @@ VOID PhHandleProviderUpdate(
                 continue;
             }
 
+            if (PhEqualString2(handleItem->TypeName, L"File", TRUE) && PhKphHandle)
+            {
+                KPH_FILE_OBJECT_INFORMATION objectInfo;
+
+                if (NT_SUCCESS(KphQueryInformationObject(
+                    PhKphHandle,
+                    handleProvider->ProcessHandle,
+                    handleItem->Handle,
+                    KphObjectFileObjectInformation,
+                    &objectInfo,
+                    sizeof(KPH_FILE_OBJECT_INFORMATION),
+                    NULL
+                    )))
+                {
+                    if (objectInfo.SharedRead)
+                        handleItem->FileFlags |= PH_HANDLE_FILE_SHARED_READ;
+                    if (objectInfo.SharedWrite)
+                        handleItem->FileFlags |= PH_HANDLE_FILE_SHARED_WRITE;
+                    if (objectInfo.SharedDelete)
+                        handleItem->FileFlags |= PH_HANDLE_FILE_SHARED_DELETE;
+                }
+            }
+
             // Add the handle item to the hashtable.
             PhAcquireQueuedLockExclusive(&handleProvider->HandleHashSetLock);
             PhpAddHandleItem(handleProvider, handleItem);

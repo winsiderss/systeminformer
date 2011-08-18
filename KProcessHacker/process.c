@@ -946,6 +946,13 @@ BOOLEAN KphAcquireProcessRundownProtection(
     __in PEPROCESS Process
     )
 {
+    // Use the exported function if it is available.
+    // Note that we make sure the corresponding release function is also available.
+    if (PsAcquireProcessExitSynchronization_I && PsReleaseProcessExitSynchronization_I)
+    {
+        return NT_SUCCESS(PsAcquireProcessExitSynchronization_I(Process));
+    }
+
     // Fail if we don't have an offset.
     if (KphDynEpRundownProtect == -1)
         return FALSE;
@@ -962,6 +969,12 @@ VOID KphReleaseProcessRundownProtection(
     __in PEPROCESS Process
     )
 {
+    if (PsReleaseProcessExitSynchronization_I)
+    {
+        PsReleaseProcessExitSynchronization_I(Process);
+        return;
+    }
+
     if (KphDynEpRundownProtect == -1)
         return;
 
