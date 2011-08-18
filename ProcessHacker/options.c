@@ -588,7 +588,7 @@ NTSTATUS PhpElevateAdvancedThreadStart(
         arguments->Buffer,
         SW_SHOW,
         PH_SHELL_EXECUTE_ADMIN,
-        TRUE,
+        PH_SHELL_APP_PROPAGATE_PARAMETERS,
         INFINITE,
         NULL
         );

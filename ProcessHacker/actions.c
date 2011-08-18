@@ -181,7 +181,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
             Command,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
-            TRUE,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS,
             0,
             &processHandle
             ))
@@ -324,7 +324,7 @@ BOOLEAN PhUiConnectToPhSvc(
                     L"-phsvc",
                     SW_HIDE,
                     PH_SHELL_EXECUTE_ADMIN,
-                    TRUE,
+                    PH_SHELL_APP_PROPAGATE_PARAMETERS,
                     0,
                     NULL
                     ))

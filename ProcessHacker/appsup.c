@@ -946,7 +946,7 @@ BOOLEAN PhShellProcessHacker(
     __in_opt PWSTR Parameters,
     __in ULONG ShowWindowType,
     __in ULONG Flags,
-    __in BOOLEAN PropagateParameters,
+    __in ULONG AppFlags,
     __in_opt ULONG Timeout,
     __out_opt PHANDLE ProcessHandle
     )
@@ -956,7 +956,7 @@ BOOLEAN PhShellProcessHacker(
     PWSTR parameters;
     PPH_STRING temp;
 
-    if (PropagateParameters)
+    if (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS)
     {
         PhInitializeStringBuilder(&sb, 128);
 
@@ -993,6 +993,19 @@ BOOLEAN PhShellProcessHacker(
             PhAppendStringBuilder2(&sb, L" -newinstance");
         }
 
+        if (!(AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY))
+        {
+            if (PhStartupParameters.ShowVisible)
+            {
+                PhAppendStringBuilder2(&sb, L" -v");
+            }
+
+            if (PhStartupParameters.ShowHidden)
+            {
+                PhAppendStringBuilder2(&sb, L" -hide");
+            }
+        }
+
         parameters = sb.String->Buffer;
     }
     else
@@ -1010,7 +1023,7 @@ BOOLEAN PhShellProcessHacker(
         ProcessHandle
         );
 
-    if (PropagateParameters)
+    if (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS)
         PhDeleteStringBuilder(&sb);
 
     return result;
