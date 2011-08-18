@@ -2088,7 +2088,6 @@ VOID PhTnpLayout(
             Context->HScrollHeight,
             TRUE
             );
-        UpdateWindow(Context->HScrollHandle);
     }
 
     // Filler box
