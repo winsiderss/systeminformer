@@ -265,12 +265,15 @@ VOID PhWritePhTextHeader(
     __inout PPH_FILE_STREAM FileStream
     );
 
+#define PH_SHELL_APP_PROPAGATE_PARAMETERS 0x1
+#define PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY 0x2
+
 BOOLEAN PhShellProcessHacker(
     __in HWND hWnd,
     __in_opt PWSTR Parameters,
     __in ULONG ShowWindowType,
     __in ULONG Flags,
-    __in BOOLEAN PropagateParameters,
+    __in ULONG AppFlags,
     __in_opt ULONG Timeout,
     __out_opt PHANDLE ProcessHandle
     );

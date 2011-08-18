@@ -13,6 +13,7 @@ Process Hacker
    * Fixed file name resolution bug
    * Save settings on shutdown/logoff
    * Fixed state highlighting bug
+   * Fixed command line propagation for -elevate
 
 2.19
  * NEW/IMPROVED:
