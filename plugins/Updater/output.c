@@ -28,12 +28,9 @@ extern NTSTATUS SilentWorkerThreadStart(
 {
 	INT result = 0;
 	DWORD dwBytes = 0;
-	DWORD dwType;
 
-	if (!InternetGetConnectedState(&dwType, 0))
-	{
+	if (!ConnectionAvailable())
 		return TRUE;
-	}
 
 	if (!InitializeConnection(
 		L"processhacker.sourceforge.net", 
@@ -65,7 +62,7 @@ extern NTSTATUS SilentWorkerThreadStart(
 			}
 		}
 
-		if (QueryXmlData(buffer))
+		if (!QueryXmlData(buffer))
 		{
 			return TRUE;
 		}
@@ -74,8 +71,8 @@ extern NTSTATUS SilentWorkerThreadStart(
 
 		if (result > 0)
 		{
-			// Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-			Sleep(3000);
+			// Don't spam the user the second they open PH, delay dialog creation for 5 seconds.
+			Sleep(5000);
 
 			if (!WindowVisible)
 			{			
@@ -103,7 +100,7 @@ static NTSTATUS WorkerThreadStart(
 	)
 {
 	INT result = 0;
-	HWND hwndDlg = (HWND)Parameter;
+	HWND context = (HWND)Parameter;
 
 	DWORD
 		dwRetVal = 0, 
@@ -113,12 +110,6 @@ static NTSTATUS WorkerThreadStart(
 		dwBytesRead = 0,
 		dwBytesWritten = 0, 
 		dwBufLen = sizeof(BUFFER_LEN);
-	DWORD dwType;
-	
-	if (!InternetGetConnectedState(&dwType, 0))
-	{
-		return TRUE;
-	}
 
 	if (!InitializeConnection(
 		L"processhacker.sourceforge.net", 
@@ -149,10 +140,10 @@ static NTSTATUS WorkerThreadStart(
 			}
 		}
 
-		if (dwRetVal = QueryXmlData(buffer))
+		if (!QueryXmlData(buffer))
 		{
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, L"There was an error downloading the xml.");
-			return dwRetVal;
+			SetDlgItemText(context, IDC_MESSAGE, L"There was an error downloading the xml.");
+			return TRUE;
 		}
 
 		result = strcmp(VersionString->Buffer, "2.11"); 
@@ -163,21 +154,20 @@ static NTSTATUS WorkerThreadStart(
 
 			versionText = PhCreateStringFromAnsi(VersionString->Buffer);
 			summaryText = PhFormatString(L"Process Hacker %s is available.", versionText->Buffer);
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+			SetDlgItemText(context, IDC_MESSAGE, summaryText->Buffer);
+
 			PhDereferenceObject(summaryText);
 			PhDereferenceObject(versionText);
 
 			summaryText = PhFormatString(L"Released: %s", ReldateString->Buffer);
-			SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
+			SetDlgItemText(context, IDC_DLSIZE, summaryText->Buffer);
+			
 			PhDereferenceObject(summaryText);
 
 			summaryText = PhFormatString(L"Size: %s", SizeString->Buffer);
-			SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
+			SetDlgItemText(context, IDC_RELDATE, summaryText->Buffer);
+			
 			PhDereferenceObject(summaryText);
-
-			EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), TRUE);		
-			ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
-			ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
 		}
 		else if (result == 0)
 		{
@@ -186,19 +176,19 @@ static NTSTATUS WorkerThreadStart(
 			versionText = PhCreateStringFromAnsi(VersionString->Buffer);	
 			summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
 
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+			SetDlgItemText(context, IDC_MESSAGE, summaryText->Buffer);
 
 			PhDereferenceObject(versionText);
 			PhDereferenceObject(summaryText);
 
-			EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), FALSE);
+			//EnableWindow(context->DownloadButtonHandle, FALSE);
 		}
 		else if (result < 0)
 		{
 			PPH_STRING localText = PhGetPhVersion();
 			PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", localText->Buffer);
 
-			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+			SetDlgItemText(context, IDC_MESSAGE, summaryText->Buffer);
 
 			PhDereferenceObject(localText);
 			PhDereferenceObject(summaryText);
@@ -229,27 +219,22 @@ static NTSTATUS DownloadWorkerThreadStart(
 	HWND hwndDlg = (HWND)Parameter;
 	PH_HASH_CONTEXT hashContext;
 
-	HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+	HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
 	
-	DWORD dwType;
-	if (!InternetGetConnectedState(&dwType, 0))
-	{
+	if (!ConnectionAvailable())
 		return TRUE;
-	}
 
 	if (!InitializeConnection(
 		L"sourceforge.net",
 		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download" //?use_mirror=waix"
 		))
-	{
 		return TRUE;
-	}
 
 	if (!InitializeFile())
 		return TRUE;
 
 	Updater_SetStatusText(hwndDlg, L"Connecting");
-	EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), FALSE);
+	//EnableWindow(context.MainWindowHandle, FALSE);
 
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
@@ -363,11 +348,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 		PhUpdaterState = Installing;
 
 		// Enable Install button before hashing (user might not care about file hash result)
-		SetWindowText(GetDlgItem(hwndDlg, IDDOWNLOAD), L"Install");
-		EnableWindow(GetDlgItem(hwndDlg, IDDOWNLOAD), TRUE);
+		SetWindowText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
+		EnableWindow(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
 				
 		if (!PhElevated)
-			SendMessage(GetDlgItem(hwndDlg, IDDOWNLOAD), BCM_SETSHIELD, 0, TRUE);
+			SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
 		{
 			UCHAR hashBuffer[20];
@@ -431,7 +416,7 @@ INT_PTR CALLBACK MainWndProc(
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
-		{			
+		{
 			WindowVisible = TRUE;
 
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -458,7 +443,7 @@ INT_PTR CALLBACK MainWndProc(
 					EndDialog(hwndDlg, IDOK);
 				}
 				break;
-			case IDDOWNLOAD:
+			case IDC_DOWNLOAD:
 				{
 					switch (PhUpdaterState)
 					{
@@ -466,7 +451,7 @@ INT_PTR CALLBACK MainWndProc(
 						{
 							if (PhInstalledUsingSetup())
 							{	
-								HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS1);
+								HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
 					
 								Updater_SetStatusText(hwndDlg, L"Initializing");
 
@@ -594,11 +579,11 @@ BOOL InitializeConnection(
 
 BOOL InitializeFile()
 {
-	TCHAR lpTempPathBuffer[MAX_PATH];
+	TCHAR lpPathBuffer[MAX_PATH];
 	DWORD length = 0;
 
 	// Get the temp path env string (no guarantee it's a valid path).
-	length = GetTempPath(MAX_PATH, lpTempPathBuffer);
+	length = GetTempPath(MAX_PATH, lpPathBuffer);
 
 	if (length > MAX_PATH || length == 0)
 	{
@@ -608,7 +593,7 @@ BOOL InitializeFile()
 	}	
 
 	LocalFilePathString = PhConcatStrings2(
-		lpTempPathBuffer,
+		lpPathBuffer,
 		L"processhacker-setup.exe"
 		);
 
@@ -632,18 +617,17 @@ BOOL InitializeFile()
 	return TRUE;
 }
 
-NTSTATUS QueryXmlData(VOID* buffer)
+BOOL QueryXmlData(void* buffer)
 {
 	mxml_node_t *xmlDoc = NULL, *xmlNode2 = NULL, *xmlNode3 = NULL, *xmlNode4 = NULL, *xmlNode5 = NULL;
 
 	// Load our XML.
 	xmlDoc = mxmlLoadString(NULL, (char*)buffer, MXML_OPAQUE_CALLBACK);
-
 	// Check our XML.
 	if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
 	{
 		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
-		return STATUS_FILE_CORRUPT_ERROR;
+		return FALSE;
 	}
 
 	// Find the ver node.
@@ -653,7 +637,7 @@ NTSTATUS QueryXmlData(VOID* buffer)
 		mxmlRelease(xmlDoc);
 
 		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
-		return STATUS_FILE_CORRUPT_ERROR;
+		return FALSE;
 	}
 
 	// Find the reldate node.
@@ -664,7 +648,7 @@ NTSTATUS QueryXmlData(VOID* buffer)
 		mxmlRelease(xmlDoc);
 
 		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
-		return STATUS_FILE_CORRUPT_ERROR;
+		return FALSE;
 	}
 
 	// Find the size node.
@@ -676,38 +660,23 @@ NTSTATUS QueryXmlData(VOID* buffer)
 		mxmlRelease(xmlDoc);
 
 		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
-		return STATUS_FILE_CORRUPT_ERROR;
+		return FALSE;
 	}
 
 	if (HashAlgorithm == Md5HashAlgorithm)
-	{
-		// Find the sha1 node.
 		xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
-		if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode4);
-			mxmlRelease(xmlNode3);	
-			mxmlRelease(xmlNode2);
-			mxmlRelease(xmlDoc);
-
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
-	}
 	else
-	{
-		// Find the md5 node.
 		xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
-		if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
-		{
-			mxmlRelease(xmlNode4);
-			mxmlRelease(xmlNode3);	
-			mxmlRelease(xmlNode2);
-			mxmlRelease(xmlDoc);
 
-			LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (sha1) failed."));
-			return STATUS_FILE_CORRUPT_ERROR;
-		}
+	if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
+	{
+		mxmlRelease(xmlNode4);
+		mxmlRelease(xmlNode3);	
+		mxmlRelease(xmlNode2);
+		mxmlRelease(xmlDoc);
+
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
+		return FALSE;
 	}
 
 	VersionString = PhCreateAnsiString(xmlNode2->child->value.opaque);
@@ -722,7 +691,26 @@ NTSTATUS QueryXmlData(VOID* buffer)
 	mxmlRelease(xmlNode2);
 	mxmlRelease(xmlDoc);
 
-	return STATUS_SUCCESS;
+	return TRUE;
+}
+
+BOOL ConnectionAvailable()
+{
+	DWORD dwType;
+
+	if (!InternetGetConnectedState(&dwType, 0))
+	{
+		LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetGetConnectedState failed to detect an active Internet connection: (%d)", GetLastError()));
+		return FALSE;
+	}
+
+	if (!InternetCheckConnection(NULL, FLAG_ICC_FORCE_CONNECTION, 0))
+	{
+		LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetCheckConnection failed to check Sourceforge.net: (%d)", GetLastError()));
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 BOOL PhInstalledUsingSetup() 
@@ -829,18 +817,17 @@ VOID DisposeFileHandles()
 }
 
 
-#define MO 0x100000 /* Read 1 Mo by 1Mo. */
-
+//#define MO 0x100000 /* Read 1 Mo by 1Mo. */
 ///*--------------------------------------------------------------------------*/
-//DWORD httpDownloadFile(char * szURL,char * szSaveFilePath)
+//DWORD DownloadFile(char * szURL,char * szSaveFilePath)
 //{
 //
 //	HINTERNET hiConnex = NULL;
-//	/* * / * : /*rfc 2616 protocole http.  all files type accepted*/
+//	/* * / * : /* all files type accepted*/
 //	char szHeader[]="Accept: */*\r\n\r\n"; 
 //	HINTERNET hiDownload;
 //
-//	hiConnex = InternetOpen(L"Scilab_Download",INTERNET_OPEN_TYPE_DIRECT,NULL,NULL,0);
+//	hiConnex = InternetOpen(L"PhUpdater",INTERNET_OPEN_TYPE_DIRECT,NULL,NULL,0);
 //	if(hiConnex == NULL) 
 //		return 1;
 //
@@ -902,7 +889,6 @@ VOID DisposeFileHandles()
 //
 //				while(dwBytesRequired > 0)
 //				{
-//					/* we read 1Mo from file. */
 //					if(dwBytesRequired >= MO)
 //					{
 //						if(!InternetReadFile(hiDownload,szBuff,MO,&dwBytesRead) || dwBytesRead != MO)
@@ -914,8 +900,6 @@ VOID DisposeFileHandles()
 //						}
 //						dwBytesRequired -= MO;
 //
-//
-//						/* we write buffer */
 //						if(!WriteFile(haFile,szBuff,MO,&dwBytesWritten,NULL) || dwBytesWritten != MO)
 //						{
 //							CloseHandle(haFile);
@@ -934,7 +918,6 @@ VOID DisposeFileHandles()
 //							return 1;
 //						}
 //
-//						/* we write buffer in a backup file*/
 //						if(!WriteFile(haFile,szBuff,dwBytesRequired,&dwBytesWritten,NULL) || dwBytesWritten != dwBytesRequired)
 //						{
 //							CloseHandle(haFile);

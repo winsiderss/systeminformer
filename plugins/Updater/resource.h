@@ -7,13 +7,13 @@
 #define IDD_OPTIONS                     109
 #define IDC_ENABLECACHE                 1001
 #define IDC_MESSAGE                     1002
-#define IDC_PROGRESS1                   1003
-#define IDC_BETACHECKBOX2               1003
+#define IDC_AUTOCHECKBOX                1003
+#define IDC_PROGRESS                    1003
 #define IDC_STATUSTEXT                  1004
 #define IDC_RELDATE                     1005
 #define IDC_DLSIZE                      1006
 #define IDC_HASHCOMBOBOX                1009
-#define IDDOWNLOAD                      1010
+#define IDC_DOWNLOAD                    1010
 
 // Next default values for new objects
 // 
