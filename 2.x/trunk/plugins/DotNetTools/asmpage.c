@@ -1055,7 +1055,6 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
 
             TreeNew_SetRedraw(tnHandle, FALSE);
 
-            PhSetWindowStyle(tnHandle, WS_BORDER, WS_BORDER);
             TreeNew_SetCallback(tnHandle, DotNetAsmTreeNewCallback, context);
             TreeNew_SetExtendedFlags(tnHandle, TN_FLAG_ITEM_DRAG_SELECT, TN_FLAG_ITEM_DRAG_SELECT);
             PhSetControlTheme(tnHandle, L"explorer");

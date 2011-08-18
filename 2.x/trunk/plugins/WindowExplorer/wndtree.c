@@ -69,7 +69,6 @@ VOID WeInitializeWindowTree(
     Context->TreeNewHandle = TreeNewHandle;
     hwnd = TreeNewHandle;
     PhSetControlTheme(hwnd, L"explorer");
-    PhSetWindowStyle(hwnd, WS_BORDER, WS_BORDER);
 
     TreeNew_SetCallback(hwnd, WepWindowTreeNewCallback, Context);
 
