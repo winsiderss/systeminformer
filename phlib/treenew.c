@@ -653,16 +653,13 @@ BOOLEAN PhTnpOnNcPaint(
     __in_opt HRGN UpdateRegion
     )
 {
+    PhTnpInitializeThemeData(Context);
+
     // Themed border
     if ((Context->ExtendedStyle & WS_EX_CLIENTEDGE) && Context->ThemeData)
     {
         HDC hdc;
         ULONG flags;
-        RECT windowRect;
-        RECT clientRect;
-        LONG sizingBorderWidth;
-        LONG borderX;
-        LONG borderY;
 
         if (UpdateRegion == HRGN_FULL)
             UpdateRegion = NULL;
@@ -676,48 +673,8 @@ BOOLEAN PhTnpOnNcPaint(
 
         if (hdc = GetDCEx(hwnd, UpdateRegion, flags))
         {
-            GetWindowRect(hwnd, &windowRect);
-            windowRect.right -= windowRect.left;
-            windowRect.bottom -= windowRect.top;
-            windowRect.left = 0;
-            windowRect.top = 0;
-
-            clientRect.left = windowRect.left + Context->SystemEdgeX;
-            clientRect.top = windowRect.top + Context->SystemEdgeY;
-            clientRect.right = windowRect.right - Context->SystemEdgeX;
-            clientRect.bottom = windowRect.bottom - Context->SystemEdgeY;
-
-            // Make sure we don't paint in the client area.
-            ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
-
-            // Draw the themed border.
-            DrawThemeBackground_I(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
-
-            // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't 
-            // fully paint the region.
-
-            if (SUCCEEDED(GetThemeInt_I(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
-            {
-                borderX = sizingBorderWidth;
-                borderY = sizingBorderWidth;
-            }
-            else
-            {
-                borderX = Context->SystemBorderX;
-                borderY = Context->SystemBorderY;
-            }
-
-            if (borderX < Context->SystemEdgeX || borderY < Context->SystemEdgeY)
-            {
-                windowRect.left += Context->SystemEdgeX - borderX;
-                windowRect.top += Context->SystemEdgeY - borderY;
-                windowRect.right -= Context->SystemEdgeX - borderX;
-                windowRect.bottom -= Context->SystemEdgeY - borderY;
-                FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
-            }
-
+            PhTnpDrawThemedBorder(Context, hdc);
             ReleaseDC(hwnd, hdc);
-
             return TRUE;
         }
     }
@@ -2138,6 +2095,17 @@ VOID PhTnpUpdateThemeData(
         Context->ThemeHasItemBackground = FALSE;
         Context->ThemeHasGlyph = FALSE;
         Context->ThemeHasHotGlyph = FALSE;
+    }
+}
+
+VOID PhTnpInitializeThemeData(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (!Context->ThemeInitialized)
+    {
+        PhTnpUpdateThemeData(Context);
+        Context->ThemeInitialized = TRUE;
     }
 }
 
@@ -4782,11 +4750,7 @@ VOID PhTnpPaint(
     HBRUSH backBrush;
     HRGN oldClipRegion;
 
-    if (!Context->ThemeInitialized)
-    {
-        PhTnpUpdateThemeData(Context);
-        Context->ThemeInitialized = TRUE;
-    }
+    PhTnpInitializeThemeData(Context);
 
     viewRect = Context->ClientRect;
 
@@ -5514,6 +5478,58 @@ VOID PhTnpDrawSelectionRectangle(
     if (!drewWithAlpha)
     {
         DrawFocusRect(hdc, &rect);
+    }
+}
+
+VOID PhTnpDrawThemedBorder(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc
+    )
+{
+    RECT windowRect;
+    RECT clientRect;
+    LONG sizingBorderWidth;
+    LONG borderX;
+    LONG borderY;
+
+    GetWindowRect(Context->Handle, &windowRect);
+    windowRect.right -= windowRect.left;
+    windowRect.bottom -= windowRect.top;
+    windowRect.left = 0;
+    windowRect.top = 0;
+
+    clientRect.left = windowRect.left + Context->SystemEdgeX;
+    clientRect.top = windowRect.top + Context->SystemEdgeY;
+    clientRect.right = windowRect.right - Context->SystemEdgeX;
+    clientRect.bottom = windowRect.bottom - Context->SystemEdgeY;
+
+    // Make sure we don't paint in the client area.
+    ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+
+    // Draw the themed border.
+    DrawThemeBackground_I(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
+
+    // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't 
+    // fully paint the region.
+
+    if (SUCCEEDED(GetThemeInt_I(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
+    {
+        borderX = sizingBorderWidth;
+        borderY = sizingBorderWidth;
+    }
+    else
+    {
+        borderX = Context->SystemBorderX;
+        borderY = Context->SystemBorderY;
+    }
+
+    if (borderX < Context->SystemEdgeX || borderY < Context->SystemEdgeY)
+    {
+        windowRect.left += Context->SystemEdgeX - borderX;
+        windowRect.top += Context->SystemEdgeY - borderY;
+        windowRect.right -= Context->SystemEdgeX - borderX;
+        windowRect.bottom -= Context->SystemEdgeY - borderY;
+        FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
     }
 }
 
