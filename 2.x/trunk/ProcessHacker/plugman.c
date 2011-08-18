@@ -362,6 +362,17 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                     }
                 }
                 break;
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == PluginsLv)
+                    {
+                        if (SelectedPlugin)
+                        {
+                            PhInvokeCallback(PhGetPluginCallback(SelectedPlugin, PluginCallbackShowOptions), hwndDlg);
+                        }
+                    }
+                }
+                break;
             }
         }
         break;
