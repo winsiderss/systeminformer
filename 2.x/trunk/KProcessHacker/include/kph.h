@@ -57,7 +57,9 @@ NTSTATUS KphDispatchDeviceControl(
 // dynimp
 
 extern _ObGetObjectType ObGetObjectType_I;
+extern _PsAcquireProcessExitSynchronization PsAcquireProcessExitSynchronization_I;
 extern _PsIsProtectedProcess PsIsProtectedProcess_I;
+extern _PsReleaseProcessExitSynchronization PsReleaseProcessExitSynchronization_I;
 extern _PsResumeProcess PsResumeProcess_I;
 extern _PsSuspendProcess PsSuspendProcess_I;
 

@@ -929,54 +929,57 @@ NTSTATUS KpiQueryInformationObject(
                     );
                 KeUnstackDetachProcess(&apcState);
 
-                // Check the type name.
-
-                objectType = KphGetObjectType(etwReg);
-
-                if (objectType)
-                {
-                    objectTypeName = (PUNICODE_STRING)((ULONG_PTR)objectType + KphDynOtName);
-                    RtlInitUnicodeString(&etwRegistrationName, L"EtwRegistration");
-
-                    if (!RtlEqualUnicodeString(objectTypeName, &etwRegistrationName, FALSE))
-                    {
-                        status = STATUS_OBJECT_TYPE_MISMATCH;
-                    }
-                }
-                else
-                {
-                    status = STATUS_NOT_SUPPORTED;
-                }
-
                 if (NT_SUCCESS(status))
                 {
-                    guidEntry = *(PVOID *)((ULONG_PTR)etwReg + KphDynEreGuidEntry);
+                    // Check the type name.
 
-                    if (guidEntry)
-                        basicInfo.Guid = *(GUID *)((ULONG_PTR)guidEntry + KphDynEgeGuid);
-                    else
-                        memset(&basicInfo.Guid, 0, sizeof(GUID));
+                    objectType = KphGetObjectType(etwReg);
 
-                    basicInfo.SessionId = 0; // not implemented
-
-                    if (ObjectInformationLength == sizeof(ETWREG_BASIC_INFORMATION))
+                    if (objectType)
                     {
-                        __try
+                        objectTypeName = (PUNICODE_STRING)((ULONG_PTR)objectType + KphDynOtName);
+                        RtlInitUnicodeString(&etwRegistrationName, L"EtwRegistration");
+
+                        if (!RtlEqualUnicodeString(objectTypeName, &etwRegistrationName, FALSE))
                         {
-                            *(PETWREG_BASIC_INFORMATION)ObjectInformation = basicInfo;
-                        }
-                        __except (EXCEPTION_EXECUTE_HANDLER)
-                        {
-                            status = GetExceptionCode();
+                            status = STATUS_OBJECT_TYPE_MISMATCH;
                         }
                     }
                     else
                     {
-                        status = STATUS_INFO_LENGTH_MISMATCH;
+                        status = STATUS_NOT_SUPPORTED;
                     }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        guidEntry = *(PVOID *)((ULONG_PTR)etwReg + KphDynEreGuidEntry);
+
+                        if (guidEntry)
+                            basicInfo.Guid = *(GUID *)((ULONG_PTR)guidEntry + KphDynEgeGuid);
+                        else
+                            memset(&basicInfo.Guid, 0, sizeof(GUID));
+
+                        basicInfo.SessionId = 0; // not implemented
+
+                        if (ObjectInformationLength == sizeof(ETWREG_BASIC_INFORMATION))
+                        {
+                            __try
+                            {
+                                *(PETWREG_BASIC_INFORMATION)ObjectInformation = basicInfo;
+                            }
+                            __except (EXCEPTION_EXECUTE_HANDLER)
+                            {
+                                status = GetExceptionCode();
+                            }
+                        }
+                        else
+                        {
+                            status = STATUS_INFO_LENGTH_MISMATCH;
+                        }
+                    }
+
+                    ObDereferenceObject(etwReg);
                 }
-
-                ObDereferenceObject(etwReg);
             }
             else
             {
@@ -984,6 +987,57 @@ NTSTATUS KpiQueryInformationObject(
             }
 
             returnLength = sizeof(ETWREG_BASIC_INFORMATION);
+        }
+        break;
+    case KphObjectFileObjectInformation:
+        {
+            PFILE_OBJECT fileObject;
+            KPH_FILE_OBJECT_INFORMATION objectInfo;
+
+            KeStackAttachProcess(process, &apcState);
+            status = ObReferenceObjectByHandle(
+                Handle,
+                0,
+                *IoFileObjectType,
+                referenceMode,
+                &fileObject,
+                NULL
+                );
+            KeUnstackDetachProcess(&apcState);
+
+            if (NT_SUCCESS(status))
+            {
+                objectInfo.LockOperation = fileObject->LockOperation;
+                objectInfo.DeletePending = fileObject->DeletePending;
+                objectInfo.ReadAccess = fileObject->ReadAccess;
+                objectInfo.WriteAccess = fileObject->WriteAccess;
+                objectInfo.DeleteAccess = fileObject->DeleteAccess;
+                objectInfo.SharedRead = fileObject->SharedRead;
+                objectInfo.SharedWrite = fileObject->SharedWrite;
+                objectInfo.SharedDelete = fileObject->SharedDelete;
+                objectInfo.CurrentByteOffset = fileObject->CurrentByteOffset;
+                objectInfo.Flags = fileObject->Flags;
+
+                if (ObjectInformationLength == sizeof(KPH_FILE_OBJECT_INFORMATION))
+                {
+                    __try
+                    {
+                        *(PKPH_FILE_OBJECT_INFORMATION)ObjectInformation = objectInfo;
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
+                }
+                else
+                {
+                    status = STATUS_INFO_LENGTH_MISMATCH;
+                }
+
+                ObDereferenceObject(fileObject);
+            }
+
+            returnLength = sizeof(KPH_FILE_OBJECT_INFORMATION);
         }
         break;
     default:

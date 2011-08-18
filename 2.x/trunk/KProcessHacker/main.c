@@ -160,7 +160,7 @@ NTSTATUS KphDispatchCreate(
 }
 
 /**
- * Reads an integer parameter from the registry.
+ * Reads an integer (REG_DWORD) parameter from the registry.
  *
  * \param KeyHandle A handle to the Parameters key. If NULL, the function 
  * fails immediately and returns \a DefaultValue.
@@ -196,6 +196,9 @@ ULONG KphpReadIntegerParameter(
         sizeof(buffer),
         &resultLength
         );
+
+    if (info->Type != REG_DWORD)
+        status = STATUS_OBJECT_TYPE_MISMATCH;
 
     if (!NT_SUCCESS(status))
     {
