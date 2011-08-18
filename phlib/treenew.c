@@ -34,6 +34,8 @@
  *  * When there are no visible normal columns, the space usually occupied by 
  *    the normal column headers is filled with a solid background color. We 
  *    should catch this and paint the usual themed background there instead.
+ *  * It is not possible to update any TN_STYLE_* flags after the control is 
+ *    created.
  *
  * Possible additions:
  *  * More flexible mouse input callbacks to allow custom controls inside 
@@ -46,7 +48,7 @@
 
 #include <phgui.h>
 #include <windowsx.h>
-#include <vsstyle.h>
+#include <vssym32.h>
 #include <treenew.h>
 #include <treenewp.h>
 
@@ -142,14 +144,22 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnPrintClient(hwnd, context, (HDC)wParam, (ULONG)lParam);
         }
         return 0;
-    case WM_GETFONT:
+    case WM_NCPAINT:
         {
-            return (LRESULT)context->Font;
+            if (PhTnpOnNcPaint(hwnd, context, (HRGN)wParam))
+                return 0;
         }
         break;
+    case WM_GETFONT:
+        return (LRESULT)context->Font;
     case WM_SETFONT:
         {
             PhTnpOnSetFont(hwnd, context, (HFONT)wParam, LOWORD(lParam));
+        }
+        break;
+    case WM_STYLECHANGED:
+        {
+            PhTnpOnStyleChanged(hwnd, context, (LONG)wParam, (STYLESTRUCT *)lParam);
         }
         break;
     case WM_SETTINGCHANGE:
@@ -530,6 +540,17 @@ VOID PhTnpOnSetFont(
     PhTnpLayout(Context);
 }
 
+VOID PhTnpOnStyleChanged(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Type,
+    __in STYLESTRUCT *StyleStruct
+    )
+{
+    if (Type == GWL_EXSTYLE)
+        Context->ExtendedStyle = StyleStruct->styleNew;
+}
+
 VOID PhTnpOnSettingChange(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context
@@ -624,6 +645,84 @@ VOID PhTnpOnPrintClient(
     )
 {
     PhTnpPaint(hwnd, Context, hdc, &Context->ClientRect);
+}
+
+BOOLEAN PhTnpOnNcPaint(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in_opt HRGN UpdateRegion
+    )
+{
+    // Themed border
+    if ((Context->ExtendedStyle & WS_EX_CLIENTEDGE) && Context->ThemeData)
+    {
+        HDC hdc;
+        ULONG flags;
+        RECT windowRect;
+        RECT clientRect;
+        LONG sizingBorderWidth;
+        LONG borderX;
+        LONG borderY;
+
+        if (UpdateRegion == HRGN_FULL)
+            UpdateRegion = NULL;
+
+        // Note the use of undocumented flags below. GetDCEx doesn't work without these.
+
+        flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
+
+        if (UpdateRegion)
+            flags |= DCX_INTERSECTRGN | 0x40000;
+
+        if (hdc = GetDCEx(hwnd, UpdateRegion, flags))
+        {
+            GetWindowRect(hwnd, &windowRect);
+            windowRect.right -= windowRect.left;
+            windowRect.bottom -= windowRect.top;
+            windowRect.left = 0;
+            windowRect.top = 0;
+
+            clientRect.left = windowRect.left + Context->SystemEdgeX;
+            clientRect.top = windowRect.top + Context->SystemEdgeY;
+            clientRect.right = windowRect.right - Context->SystemEdgeX;
+            clientRect.bottom = windowRect.bottom - Context->SystemEdgeY;
+
+            // Make sure we don't paint in the client area.
+            ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+
+            // Draw the themed border.
+            DrawThemeBackground_I(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
+
+            // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't 
+            // fully paint the region.
+
+            if (SUCCEEDED(GetThemeInt_I(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
+            {
+                borderX = sizingBorderWidth;
+                borderY = sizingBorderWidth;
+            }
+            else
+            {
+                borderX = Context->SystemBorderX;
+                borderY = Context->SystemBorderY;
+            }
+
+            if (borderX < Context->SystemEdgeX || borderY < Context->SystemEdgeY)
+            {
+                windowRect.left += Context->SystemEdgeX - borderX;
+                windowRect.top += Context->SystemEdgeY - borderY;
+                windowRect.right -= Context->SystemEdgeX - borderX;
+                windowRect.bottom -= Context->SystemEdgeY - borderY;
+                FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+            }
+
+            ReleaseDC(hwnd, hdc);
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 BOOLEAN PhTnpOnSetCursor(
@@ -1946,6 +2045,10 @@ VOID PhTnpUpdateSystemMetrics(
 {
     Context->VScrollWidth = GetSystemMetrics(SM_CXVSCROLL);
     Context->HScrollHeight = GetSystemMetrics(SM_CYHSCROLL);
+    Context->SystemBorderX = GetSystemMetrics(SM_CXBORDER);
+    Context->SystemBorderY = GetSystemMetrics(SM_CYBORDER);
+    Context->SystemEdgeX = GetSystemMetrics(SM_CXEDGE);
+    Context->SystemEdgeY = GetSystemMetrics(SM_CYEDGE);
     Context->SystemDragX = GetSystemMetrics(SM_CXDRAG);
     Context->SystemDragY = GetSystemMetrics(SM_CYDRAG);
 
@@ -2001,7 +2104,8 @@ VOID PhTnpUpdateThemeData(
         OpenThemeData_I &&
         CloseThemeData_I &&
         IsThemePartDefined_I &&
-        DrawThemeBackground_I
+        DrawThemeBackground_I &&
+        GetThemeInt_I
         )
     {
         Context->ThemeActive = !!IsThemeActive_I();
