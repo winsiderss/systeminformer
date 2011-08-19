@@ -44,10 +44,10 @@ namespace ProcessHacker.Api
 
             if (plugin != null)
             {
-                info->DisplayName = (void*)Marshal.StringToHGlobalUni(displayName);
-                info->Author = (void*)Marshal.StringToHGlobalUni(author);
-                info->Description = (void*)Marshal.StringToHGlobalUni(description);
-                info->Url = (void*)Marshal.StringToHGlobalUni(url);
+                info->DisplayName = (void*)NativeApi.StringToNativeUni(displayName);
+                info->Author = (void*)NativeApi.StringToNativeUni(author);
+                info->Description = (void*)NativeApi.StringToNativeUni(description);
+                info->Url = (void*)NativeApi.StringToNativeUni(url);
                 info->HasOptions = hasOptions;
 
                 return new PluginInstance(plugin);

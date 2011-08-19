@@ -24,6 +24,8 @@
 using System;
 using System.Runtime.InteropServices;
 
+using ProcessHacker.Native;
+
 namespace ProcessHacker.Api
 {
     [StructLayout(LayoutKind.Explicit)]
@@ -148,19 +150,138 @@ namespace ProcessHacker.Api
 
         #endregion
 
+        #region Heaps
+
+        [DllImport("ntdll.dll")]
+        public static extern IntPtr RtlAllocateHeap(
+            [In] IntPtr HeapHandle,
+            [In] HeapFlags Flags,
+            [In] IntPtr Size
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern IntPtr RtlCompactHeap(
+            [In] IntPtr HeapHandle,
+            [In] HeapFlags Flags
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern IntPtr RtlCreateHeap(
+            [In] HeapFlags Flags,
+            [In] [Optional] IntPtr HeapBase,
+            [In] [Optional] IntPtr ReserveSize,
+            [In] [Optional] IntPtr CommitSize,
+            [In] [Optional] IntPtr Lock,
+            [In] [Optional] IntPtr Parameters
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern IntPtr RtlDestroyHeap(
+            [In] IntPtr HeapHandle
+            );
+
+        [DllImport("ntdll.dll")]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool RtlFreeHeap(
+            [In] IntPtr HeapHandle,
+            [In] HeapFlags Flags,
+            [In] IntPtr BaseAddress
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern int RtlGetProcessHeaps(
+            [In] int NumberOfHeaps,
+            IntPtr[] ProcessHeaps
+            );
+
+        [DllImport("ntdll.dll")]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool RtlLockHeap(
+            [In] IntPtr HeapHandle
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlProtectHeap(
+            [In] IntPtr HeapHandle,
+            [In] bool MakeReadOnly
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern IntPtr RtlReAllocateHeap(
+            [In] IntPtr HeapHandle,
+            [In] HeapFlags Flags,
+            [In] IntPtr BaseAddress,
+            [In] IntPtr Size
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern IntPtr RtlSizeHeap(
+            [In] IntPtr HeapHandle,
+            [In] HeapFlags Flags,
+            [In] IntPtr BaseAddress
+            );
+
+        [DllImport("ntdll.dll")]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool RtlUnlockHeap(
+            [In] IntPtr HeapHandle
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern NtStatus RtlZeroHeap(
+            [In] IntPtr HeapHandle,
+            [In] HeapFlags Flags
+            );
+
+        #endregion
+
         #region Memory
 
         [DllImport("ntdll.dll")]
+        public static extern IntPtr RtlCompareMemory(
+            [In] IntPtr Source1,
+            [In] IntPtr Source2,
+            [In] IntPtr Length
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlFillMemory(
+            [In] IntPtr Destination,
+            [In] IntPtr Length,
+            [In] byte Fill
+            );
+
+        [DllImport("ntdll.dll")]
         public static extern void RtlMoveMemory(
-            void* Destination,
-            void* Source,
-            IntPtr Length
+            [In] IntPtr Destination,
+            [In] IntPtr Source,
+            [In] IntPtr Length
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlMoveMemory(
+            [In] IntPtr Destination,
+            [In] void* Source,
+            [In] IntPtr Length
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlMoveMemory(
+            [In] void* Destination,
+            [In] void* Source,
+            [In] IntPtr Length
             );
 
         [DllImport("ntdll.dll")]
         public static extern void RtlZeroMemory(
-            void* Destination,
-            IntPtr Length
+            [In] IntPtr Destination,
+            [In] IntPtr Length
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlZeroMemory(
+            [In] void* Destination,
+            [In] IntPtr Length
             );
 
         #endregion
@@ -204,6 +325,30 @@ namespace ProcessHacker.Api
             UnicodeString* String2,
             byte CaseInSensitive
             );
+
+        // This function is based on Marshal.StringToHGlobalUni with improvements.
+        public static IntPtr StringToNativeUni(String s)
+        {
+            if (string.IsNullOrEmpty(s))
+                return IntPtr.Zero;
+
+            int nb = (s.Length + 1) * 2;
+
+            // Overflow checking 
+            if (nb < s.Length)
+                throw new ArgumentOutOfRangeException("s");
+
+            IntPtr len = new IntPtr(nb);
+            IntPtr hglobal = MemoryAlloc.PrivateHeap.Allocate(nb);
+
+            if (hglobal == IntPtr.Zero)
+                throw new OutOfMemoryException();
+
+            fixed (void* p = s)
+                RtlMoveMemory(hglobal, p, len);
+
+            return hglobal;
+        } 
 
         #endregion
     }

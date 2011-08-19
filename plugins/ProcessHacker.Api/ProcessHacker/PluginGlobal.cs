@@ -24,6 +24,8 @@
 using System;
 using System.Runtime.InteropServices;
 
+using ProcessHacker.Native;
+
 namespace ProcessHacker.Api
 {
     public static unsafe class PluginGlobal
@@ -42,16 +44,16 @@ namespace ProcessHacker.Api
             for (int i = 0; i < settings.Length; i++)
             {
                 create[i].Type = settings[i].Type;
-                create[i].Name = (void*)Marshal.StringToHGlobalUni(settings[i].Name);
-                create[i].DefaultValue = (void*)Marshal.StringToHGlobalUni(settings[i].DefaultValue);
+                create[i].Name = (void*)NativeApi.StringToNativeUni(settings[i].Name);
+                create[i].DefaultValue = (void*)NativeApi.StringToNativeUni(settings[i].DefaultValue);
             }
 
             NativeApi.PhAddSettings(create, settings.Length);
 
             for (int i = 0; i < settings.Length; i++)
             {
-                Marshal.FreeHGlobal((IntPtr)create[i].Name);
-                Marshal.FreeHGlobal((IntPtr)create[i].DefaultValue);
+                MemoryAlloc.PrivateHeap.Free((IntPtr)create[i].Name);
+                MemoryAlloc.PrivateHeap.Free((IntPtr)create[i].DefaultValue);
             }
         }
 
@@ -67,11 +69,9 @@ namespace ProcessHacker.Api
 
         public static string GetStringSetting(string name)
         {
-            PhString* value;
-            string newValue;
+            PhString* value = NativeApi.PhGetStringSetting(name);
+            string newValue = value->Text;
 
-            value = NativeApi.PhGetStringSetting(name);
-            newValue = value->Text;
             NativeApi.PhDereferenceObject(value);
 
             return newValue;
@@ -98,6 +98,8 @@ namespace ProcessHacker.Api
 
                 NativeApi.PhSetStringSetting2(name, &sr);
             }
+
+            // TODO: evaluate if sr needs to be disposed.
         }
     }
 }

@@ -29,6 +29,8 @@ namespace ProcessHacker.Api
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct DlgTemplate
     {
+        public static readonly int SizeOf;
+
         public int style;
         public int dwExtendedStyle;
         public short cdit;
@@ -36,6 +38,11 @@ namespace ProcessHacker.Api
         public short y;
         public short cx;
         public short cy;
+
+        static DlgTemplate()
+        {
+            SizeOf = Marshal.SizeOf(typeof(DlgTemplate));
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -84,6 +91,8 @@ namespace ProcessHacker.Api
     [StructLayout(LayoutKind.Sequential)]
     public struct PropSheetPageW
     {
+        public static readonly int SizeOf;
+
         public int dwSize;
         public PropSheetPageFlags dwFlags;
         public IntPtr hInstance;
@@ -98,6 +107,11 @@ namespace ProcessHacker.Api
         public IntPtr pszHeaderTitle;
         public IntPtr pszHeaderSubTitle;
         public IntPtr hActCtx;
+
+        static PropSheetPageW()
+        {
+            SizeOf = Marshal.SizeOf(typeof(PropSheetPageW));
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

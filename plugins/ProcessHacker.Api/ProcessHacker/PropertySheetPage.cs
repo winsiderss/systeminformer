@@ -27,11 +27,13 @@ using System.ComponentModel;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 
+using ProcessHacker.Native;
+
 namespace ProcessHacker.Api
 {
     public class PropertySheetPage : UserControl
     {
-        private static List<PropertySheetPage> _keepAliveList = new List<PropertySheetPage>();
+        private static readonly List<PropertySheetPage> _keepAliveList = new List<PropertySheetPage>();
 
         public unsafe static IntPtr CreateDialogTemplate(int width, int height, string title, short fontSize, string fontName)
         {
@@ -39,8 +41,8 @@ namespace ProcessHacker.Api
             int templateStructSize;
             int offset;
 
-            templateStructSize = Marshal.SizeOf(typeof(DlgTemplate));
-            template = (DlgTemplate*)NativeApi.PhAllocate((IntPtr)(templateStructSize + 2 + 2 + (title.Length + 1) * 2 + 2 + (fontName.Length + 1) * 2));
+            templateStructSize = DlgTemplate.SizeOf;
+            template = (DlgTemplate*)MemoryAlloc.PrivateHeap.Allocate(templateStructSize + 2 + 2 + (title.Length + 1) * 2 + 2 + (fontName.Length + 1) * 2);
             template->style = 0x40; // DS_SETFONT
             template->dwExtendedStyle = 0;
             template->cdit = 0;
@@ -79,7 +81,7 @@ namespace ProcessHacker.Api
         public event EventHandler PageGotFocus;
         public event EventHandler PageLostFocus;
 
-        private IContainer components;
+        private readonly IContainer components;
         private IntPtr _dialogWindowParentHandle;
 
         public PropertySheetPage()
