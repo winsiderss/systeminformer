@@ -88,6 +88,16 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ProcessesUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
+VOID NTAPI NetworkItemsUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID NTAPI ProcessItemCreateCallback(
     __in PVOID Object,
     __in PH_EM_OBJECT_TYPE ObjectType,
@@ -130,6 +140,8 @@ PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
 static HANDLE ModuleProcessId;
 
@@ -233,6 +245,19 @@ LOGICAL DllMain(
                 NetworkTreeNewInitializingCallback,
                 NULL,
                 &NetworkTreeNewInitializingCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
+            PhRegisterCallback(
+                &PhNetworkItemsUpdatedEvent,
+                NetworkItemsUpdatedCallback,
+                NULL,
+                &NetworkItemsUpdatedCallbackRegistration
                 );
 
             InitializeListHead(&EtProcessBlockListHead);
@@ -503,6 +528,62 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
 
     NetworkTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtEtwNetworkTreeNewInitializing(Parameter);
+}
+
+static VOID NTAPI ProcessesUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PLIST_ENTRY listEntry;
+
+    // Note: no lock is needed because we only ever modify the list on this same thread.
+
+    listEntry = EtProcessBlockListHead.Flink;
+
+    while (listEntry != &EtProcessBlockListHead)
+    {
+        PET_PROCESS_BLOCK block;
+
+        block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+
+        PhUpdateDelta(&block->HardFaultsDelta, block->ProcessItem->HardFaultCount);
+
+        // Invalidate all text.
+
+        PhAcquireQueuedLockExclusive(&block->TextCacheLock);
+        memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
+        PhReleaseQueuedLockExclusive(&block->TextCacheLock);
+
+        listEntry = listEntry->Flink;
+    }
+}
+
+static VOID NTAPI NetworkItemsUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PLIST_ENTRY listEntry;
+
+    // Note: no lock is needed because we only ever modify the list on this same thread.
+
+    listEntry = EtNetworkBlockListHead.Flink;
+
+    while (listEntry != &EtNetworkBlockListHead)
+    {
+        PET_NETWORK_BLOCK block;
+
+        block = CONTAINING_RECORD(listEntry, ET_NETWORK_BLOCK, ListEntry);
+
+        // Invalidate all text.
+
+        PhAcquireQueuedLockExclusive(&block->TextCacheLock);
+        memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
+        PhReleaseQueuedLockExclusive(&block->TextCacheLock);
+
+        listEntry = listEntry->Flink;
+    }
 }
 
 PET_PROCESS_BLOCK EtGetProcessBlock(

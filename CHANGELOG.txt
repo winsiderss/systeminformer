@@ -10,6 +10,8 @@ Process Hacker
    * Extended header context menu
    * Removed tooltip text truncation
    * Updated ExtendedTools plugin:
+     * Added Hard Faults, Hard Faults Delta and Peak Threads 
+       columns to process tree list
      * Added Firewall Status column
    * Improved cycle-based CPU usage calculation
  * FIXED:

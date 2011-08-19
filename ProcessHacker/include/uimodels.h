@@ -259,10 +259,10 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING PeakVirtualSizeText;
     PPH_STRING PageFaultsText;
     WCHAR BasePriorityText[PH_INT32_STR_LEN_1];
-    WCHAR ThreadsText[PH_INT32_STR_LEN_1];
-    WCHAR HandlesText[PH_INT32_STR_LEN_1];
-    WCHAR GdiHandlesText[PH_INT32_STR_LEN_1];
-    WCHAR UserHandlesText[PH_INT32_STR_LEN_1];
+    WCHAR ThreadsText[PH_INT32_STR_LEN_1 + 3];
+    WCHAR HandlesText[PH_INT32_STR_LEN_1 + 3];
+    WCHAR GdiHandlesText[PH_INT32_STR_LEN_1 + 3];
+    WCHAR UserHandlesText[PH_INT32_STR_LEN_1 + 3];
     PPH_STRING IoRoRateText;
     PPH_STRING IoWRateText;
     WCHAR PagePriorityText[PH_INT32_STR_LEN_1];

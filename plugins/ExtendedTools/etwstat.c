@@ -221,7 +221,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
     PhUpdateDelta(&EtNetworkSendDelta, EtpNetworkSendRaw);
 
     // Update per-process statistics.
-    // Note: no lock is needed because we only ever modify the hashtable on this same thread.
+    // Note: no lock is needed because we only ever modify the list on this same thread.
 
     listEntry = EtProcessBlockListHead.Flink;
 
@@ -251,12 +251,6 @@ static VOID NTAPI ProcessesUpdatedCallback(
             maxNetworkValue = block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
             maxNetworkBlock = block;
         }
-
-        // Invalidate all text.
-
-        PhAcquireQueuedLockExclusive(&block->TextCacheLock);
-        memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
-        PhReleaseQueuedLockExclusive(&block->TextCacheLock);
 
         listEntry = listEntry->Flink;
     }
@@ -318,7 +312,7 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
     // blocks to all fall one update interval behind, however.
 
     // Update per-connection statistics.
-    // Note: no lock is needed because we only ever modify the hashtable on this same thread.
+    // Note: no lock is needed because we only ever modify the list on this same thread.
 
     listEntry = EtNetworkBlockListHead.Flink;
 
@@ -342,12 +336,6 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
             PhReferenceObject(block->NetworkItem);
             ProcessHacker_Invoke(PhMainWndHandle, EtpInvalidateNetworkNode, block->NetworkItem);
         }
-
-        // Invalidate all text.
-
-        PhAcquireQueuedLockExclusive(&block->TextCacheLock);
-        memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
-        PhReleaseQueuedLockExclusive(&block->TextCacheLock);
 
         listEntry = listEntry->Flink;
     }
