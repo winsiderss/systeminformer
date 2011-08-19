@@ -20,6 +20,13 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * The thread provider is tied to the process provider, and runs by registering 
+ * a callback for the processes-updated event. This is because calculating CPU 
+ * usage depends on deltas calculated by the process provider. However, this 
+ * does increase the complexity of the thread provider system.
+ */
+
 #define PH_THRDPRV_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
@@ -65,6 +72,16 @@ BOOLEAN NTAPI PhpThreadHashtableCompareFunction(
 
 ULONG NTAPI PhpThreadHashtableHashFunction(
     __in PVOID Entry
+    );
+
+VOID PhpThreadProviderCallbackHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
+VOID PhpThreadProviderUpdate(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in PVOID ProcessInformation
     );
 
 PPH_OBJECT_TYPE PhThreadProviderType;
@@ -149,6 +166,8 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     threadProvider->SymbolsLoading = 0;
     RtlInitializeSListHead(&threadProvider->QueryListHead);
 
+    threadProvider->RunId = 1;
+
     // Begin loading symbols for the process' modules.
     PhReferenceObject(threadProvider);
     PhpQueueThreadWorkQueueItem(PhpThreadProviderLoadSymbols, threadProvider);
@@ -197,6 +216,24 @@ VOID PhpThreadProviderDeleteProcedure(
     // We don't close the process handle because it is owned by 
     // the symbol provider.
     if (threadProvider->SymbolProvider) PhDereferenceObject(threadProvider->SymbolProvider);
+}
+
+VOID PhRegisterThreadProvider(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __out PPH_CALLBACK_REGISTRATION CallbackRegistration
+    )
+{
+    PhReferenceObject(ThreadProvider);
+    PhRegisterCallback(&PhProcessesUpdatedEvent, PhpThreadProviderCallbackHandler, ThreadProvider, CallbackRegistration);
+}
+
+VOID PhUnregisterThreadProvider(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in PPH_CALLBACK_REGISTRATION CallbackRegistration
+    )
+{
+    PhUnregisterCallback(&PhProcessesUpdatedEvent, CallbackRegistration);
+    PhDereferenceObject(ThreadProvider);
 }
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
@@ -645,28 +682,43 @@ PPH_STRING PhGetThreadPriorityWin32String(
     }
 }
 
-VOID PhThreadProviderUpdate(
-    __in PVOID Object
+VOID PhThreadProviderInitialUpdate(
+    __in PPH_THREAD_PROVIDER ThreadProvider
     )
 {
-    static ULONG lastSequenceNumber = -1;
+    PVOID processes;
 
-    PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Object;
+    if (NT_SUCCESS(PhEnumProcesses(&processes)))
+    {
+        PhpThreadProviderUpdate(ThreadProvider, processes);
+        PhFree(processes);
+    }
+}
+
+VOID PhpThreadProviderCallbackHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    if (PhProcessInformation)
+    {
+        PhpThreadProviderUpdate((PPH_THREAD_PROVIDER)Context, PhProcessInformation);
+    }
+}
+
+VOID PhpThreadProviderUpdate(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in PVOID ProcessInformation
+    )
+{
+    PPH_THREAD_PROVIDER threadProvider = ThreadProvider;
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     PSYSTEM_THREAD_INFORMATION threads;
     ULONG numberOfThreads;
     ULONG i;
 
-    if (PhProcessInformationSequenceNumber == lastSequenceNumber)
-        return; // processes have not be updated, probably because the user has unticked Update Automatically
-
-    processes = PhProcessInformation;
-    lastSequenceNumber = PhProcessInformationSequenceNumber;
-
-    if (!processes)
-        return;
-
+    processes = ProcessInformation;
     process = PhFindProcessInformation(processes, threadProvider->ProcessId);
 
     if (!process)
@@ -1062,4 +1114,5 @@ VOID PhThreadProviderUpdate(
     }
 
     PhInvokeCallback(&threadProvider->UpdatedEvent, NULL);
+    threadProvider->RunId++;
 }
