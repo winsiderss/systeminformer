@@ -169,6 +169,8 @@ BOOLEAN PhEnableProcessQueryStage2 = FALSE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 
+PVOID PhProcessInformation; // only can be used if running on same thread as process provider
+ULONG PhProcessInformationSequenceNumber = 0;
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
 SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
@@ -179,6 +181,7 @@ ULONG PhTotalHandles;
 SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
 SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
 
+ULONG64 PhCpuTotalCycleDelta; // real cycle time delta for this period
 PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
 PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
 PH_UINT64_DELTA PhCpuIdleCycleDelta;
@@ -276,17 +279,14 @@ BOOLEAN PhProcessProviderInitialization()
         (ULONG)PhSystemBasicInformation.NumberOfProcessors
         );
 
-    if (WindowsVersion >= WINDOWS_7)
-    {
-        PhCpuIdleCycleTime = PhAllocate(
-            sizeof(LARGE_INTEGER) *
-            (ULONG)PhSystemBasicInformation.NumberOfProcessors
-            );
-        PhCpuSystemCycleTime = PhAllocate(
-            sizeof(LARGE_INTEGER) *
-            (ULONG)PhSystemBasicInformation.NumberOfProcessors
-            );
-    }
+    PhCpuIdleCycleTime = PhAllocate(
+        sizeof(LARGE_INTEGER) *
+        (ULONG)PhSystemBasicInformation.NumberOfProcessors
+        );
+    PhCpuSystemCycleTime = PhAllocate(
+        sizeof(LARGE_INTEGER) *
+        (ULONG)PhSystemBasicInformation.NumberOfProcessors
+        );
 
     usageBuffer = PhAllocate(
         sizeof(FLOAT) *
@@ -1968,6 +1968,8 @@ VOID PhProcessProviderUpdate(
     if (sysTotalCycleTime == 0)
         sysTotalCycleTime = -1;
 
+    PhCpuTotalCycleDelta = sysTotalCycleTime;
+
     // Look for new processes and update existing ones.
     process = PH_FIRST_PROCESS(processes);
 
@@ -2215,7 +2217,11 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhFree(processes);
+    if (PhProcessInformation)
+        PhFree(PhProcessInformation);
+
+    PhProcessInformation = processes;
+    PhProcessInformationSequenceNumber++;
 
     if (PhpTsProcesses)
     {

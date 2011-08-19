@@ -550,12 +550,13 @@ VOID PhWriteNetworkList(
 // Columns
 
 #define PHTHTLC_TID 0
-#define PHTHTLC_CYCLESDELTA 1
-#define PHTHTLC_STARTADDRESS 2
-#define PHTHTLC_PRIORITY 3
-#define PHTHTLC_SERVICE 4
+#define PHTHTLC_CPU 1
+#define PHTHTLC_CYCLESDELTA 2
+#define PHTHTLC_STARTADDRESS 3
+#define PHTHTLC_PRIORITY 4
+#define PHTHTLC_SERVICE 5
 
-#define PHTHTLC_MAXIMUM 5
+#define PHTHTLC_MAXIMUM 6
 
 typedef struct _PH_THREAD_NODE
 {
@@ -570,6 +571,7 @@ typedef struct _PH_THREAD_NODE
 
     ULONG ValidMask;
 
+    WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     PPH_STRING CyclesDeltaText; // used for Context Switches Delta as well
     PPH_STRING PriorityText;
 } PH_THREAD_NODE, *PPH_THREAD_NODE;
