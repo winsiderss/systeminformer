@@ -28,6 +28,13 @@ LOGICAL DllMain(
     __reserved PVOID Reserved
     )
 {
+    static PH_SETTING_CREATE settings[] =
+    {
+	    { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
+	    { IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
+	    { IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"0" },
+    };
+
     switch (Reason)
     {
     case DLL_PROCESS_ATTACH:
@@ -82,8 +89,7 @@ VOID NTAPI MainWindowShowingCallback(
 
 	if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
 	{
-		// Queue up our initial update check.
-		PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)SilentWorkerThreadStart, Parameter); 
+        StartInitialCheck();
 	}
 }
 
@@ -98,16 +104,7 @@ VOID NTAPI MenuItemCallback(
 	{
 	case UPDATE_MENUITEM:
 		{
-			// check if our dialog is already visible (auto-check may already be visible).
-			if (!WindowVisible)
-			{		
-				DialogBox(
-					(HINSTANCE)PluginInstance->DllBase,
-					MAKEINTRESOURCE(IDD_OUTPUT),
-					PhMainWndHandle,
-					MainWndProc
-					);
-			}
+            ShowUpdateDialog();
 		}
 		break;
 	}
