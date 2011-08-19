@@ -52,9 +52,7 @@
  *
  * On Windows 7 and above, CPU usage can be calculated from cycle time. However, 
  * cycle time cannot be split into kernel/user components, and cycle time is not 
- * available for DPCs and Interrupts separately (only a "system" cycle time). 
- * Currently, cycle-based CPU usage is only used for the CpuUsage field of the 
- * process item, not for overall system CPU usage.
+ * available for DPCs and Interrupts separately (only a "system" cycle time).
  */
 
 #define PH_PROCPRV_PRIVATE
@@ -138,12 +136,6 @@ VOID PhpQueueProcessQueryStage2(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
-VOID PhpUpdatePerfInformation();
-
-VOID PhpUpdateCpuInformation(
-    __out PULONG64 TotalTime
-    );
-
 PPH_PROCESS_RECORD PhpCreateProcessRecord(
     __in PPH_PROCESS_ITEM ProcessItem
     );
@@ -186,9 +178,12 @@ ULONG PhTotalHandles;
 
 SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
 SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
+
+PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
 PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
-LARGE_INTEGER PhCpuTotalSystemCycleTime;
+PH_UINT64_DELTA PhCpuIdleCycleDelta;
 PH_UINT64_DELTA PhCpuSystemCycleDelta;
+//PPH_UINT64_DELTA PhCpusIdleCycleDelta;
 
 FLOAT PhCpuKernelUsage;
 FLOAT PhCpuUserUsage;
@@ -197,11 +192,11 @@ PFLOAT PhCpusUserUsage;
 
 PH_UINT64_DELTA PhCpuKernelDelta;
 PH_UINT64_DELTA PhCpuUserDelta;
-PH_UINT64_DELTA PhCpuOtherDelta;
+PH_UINT64_DELTA PhCpuIdleDelta;
 
 PPH_UINT64_DELTA PhCpusKernelDelta;
 PPH_UINT64_DELTA PhCpusUserDelta;
-PPH_UINT64_DELTA PhCpusOtherDelta;
+PPH_UINT64_DELTA PhCpusIdleDelta;
 
 PH_UINT64_DELTA PhIoReadDelta;
 PH_UINT64_DELTA PhIoWriteDelta;
@@ -283,6 +278,10 @@ BOOLEAN PhProcessProviderInitialization()
 
     if (WindowsVersion >= WINDOWS_7)
     {
+        PhCpuIdleCycleTime = PhAllocate(
+            sizeof(LARGE_INTEGER) *
+            (ULONG)PhSystemBasicInformation.NumberOfProcessors
+            );
         PhCpuSystemCycleTime = PhAllocate(
             sizeof(LARGE_INTEGER) *
             (ULONG)PhSystemBasicInformation.NumberOfProcessors
@@ -297,7 +296,7 @@ BOOLEAN PhProcessProviderInitialization()
     deltaBuffer = PhAllocate(
         sizeof(PH_UINT64_DELTA) *
         (ULONG)PhSystemBasicInformation.NumberOfProcessors *
-        3
+        3 // 4 for PhCpusIdleCycleDelta
         );
     historyBuffer = PhAllocate(
         sizeof(PH_CIRCULAR_BUFFER_FLOAT) *
@@ -310,7 +309,8 @@ BOOLEAN PhProcessProviderInitialization()
 
     PhCpusKernelDelta = deltaBuffer;
     PhCpusUserDelta = PhCpusKernelDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-    PhCpusOtherDelta = PhCpusUserDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    PhCpusIdleDelta = PhCpusUserDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    //PhCpusIdleCycleDelta = PhCpusIdleDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
 
     PhCpusKernelHistory = historyBuffer;
     PhCpusUserHistory = PhCpusKernelHistory + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
@@ -1302,6 +1302,7 @@ VOID PhpUpdatePerfInformation()
 }
 
 VOID PhpUpdateCpuInformation(
+    __in BOOLEAN SetCpuUsage,
     __out PULONG64 TotalTime
     )
 {
@@ -1325,6 +1326,7 @@ VOID PhpUpdateCpuInformation(
 
         // KernelTime includes idle time.
         cpuInfo->KernelTime.QuadPart -= cpuInfo->IdleTime.QuadPart;
+        cpuInfo->KernelTime.QuadPart += cpuInfo->DpcTime.QuadPart + cpuInfo->InterruptTime.QuadPart;
 
         PhCpuTotals.DpcTime.QuadPart += cpuInfo->DpcTime.QuadPart;
         PhCpuTotals.IdleTime.QuadPart += cpuInfo->IdleTime.QuadPart;
@@ -1335,13 +1337,153 @@ VOID PhpUpdateCpuInformation(
 
         PhUpdateDelta(&PhCpusKernelDelta[i], cpuInfo->KernelTime.QuadPart);
         PhUpdateDelta(&PhCpusUserDelta[i], cpuInfo->UserTime.QuadPart);
-        PhUpdateDelta(&PhCpusOtherDelta[i],
-            cpuInfo->IdleTime.QuadPart +
-            cpuInfo->DpcTime.QuadPart +
-            cpuInfo->InterruptTime.QuadPart
-            );
+        PhUpdateDelta(&PhCpusIdleDelta[i], cpuInfo->IdleTime.QuadPart);
 
-        totalTime = PhCpusKernelDelta[i].Delta + PhCpusUserDelta[i].Delta + PhCpusOtherDelta[i].Delta;
+        if (SetCpuUsage)
+        {
+            totalTime = PhCpusKernelDelta[i].Delta + PhCpusUserDelta[i].Delta + PhCpusIdleDelta[i].Delta;
+
+            if (totalTime != 0)
+            {
+                PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / totalTime;
+                PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / totalTime;
+            }
+            else
+            {
+                PhCpusKernelUsage[i] = 0;
+                PhCpusUserUsage[i] = 0;
+            }
+        }
+    }
+
+    PhUpdateDelta(&PhCpuKernelDelta, PhCpuTotals.KernelTime.QuadPart);
+    PhUpdateDelta(&PhCpuUserDelta, PhCpuTotals.UserTime.QuadPart);
+    PhUpdateDelta(&PhCpuIdleDelta, PhCpuTotals.IdleTime.QuadPart);
+
+    totalTime = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuIdleDelta.Delta;
+
+    if (SetCpuUsage)
+    {
+        if (totalTime != 0)
+        {
+            PhCpuKernelUsage = (FLOAT)PhCpuKernelDelta.Delta / totalTime;
+            PhCpuUserUsage = (FLOAT)PhCpuUserDelta.Delta / totalTime;
+        }
+        else
+        {
+            PhCpuKernelUsage = 0;
+            PhCpuUserUsage = 0;
+        }
+    }
+
+    *TotalTime = totalTime;
+}
+
+VOID PhpUpdateCpuCycleInformation(
+    __out PULONG64 IdleCycleTime
+    )
+{
+    ULONG i;
+    ULONG64 total;
+
+    // Idle
+    // We need to query this separately because the idle cycle time in SYSTEM_PROCESS_INFORMATION 
+    // doesn't give us data for individual processors.
+
+    NtQuerySystemInformation(
+        SystemProcessorIdleCycleTimeInformation,
+        PhCpuIdleCycleTime,
+        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+        NULL
+        );
+
+    total = 0;
+
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        //PhUpdateDelta(&PhCpusIdleCycleDelta[i], PhCpuIdleCycleTime[i].QuadPart);
+        total += PhCpuIdleCycleTime[i].QuadPart;
+    }
+
+    PhUpdateDelta(&PhCpuIdleCycleDelta, total);
+    *IdleCycleTime = PhCpuIdleCycleDelta.Delta;
+
+    // System
+
+    NtQuerySystemInformation(
+        SystemProcessorCycleTimeInformation,
+        PhCpuSystemCycleTime,
+        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+        NULL
+        );
+
+    total = 0;
+
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        total += PhCpuSystemCycleTime[i].QuadPart;
+    }
+
+    PhUpdateDelta(&PhCpuSystemCycleDelta, total);
+}
+
+VOID PhpUpdateCpuCycleUsageInformation(
+    __in ULONG64 TotalCycleTime,
+    __in ULONG64 IdleCycleTime
+    )
+{
+    ULONG i;
+    FLOAT baseCpuUsage;
+    FLOAT totalTimeDelta;
+    ULONG64 totalTime;
+
+    // Cycle time is not only lacking for kernel/user components, but also for individual 
+    // processors. We can get the total idle cycle time for individual processors but 
+    // without knowing the total cycle time for individual processors, this information 
+    // is useless.
+    //
+    // We'll start by calculating the total CPU usage, then we'll calculate the kernel/user 
+    // components. In the event that the corresponding CPU time deltas are zero, we'll split 
+    // the CPU usage evenly across the kernel/user components. CPU usage for individual 
+    // processors is left untouched, because it's too difficult to provide an estimate.
+    //
+    // Let I_1, I_2, ..., I_n be the idle cycle times and T_1, T_2, ..., T_n be the 
+    // total cycle times. Let I'_1, I'_2, ..., I'_n be the idle CPU times and T'_1, T'_2, ..., 
+    // T'_n be the total CPU times.
+    // We know all I'_n, T'_n and I_n, but we only know sigma(T). The "real" total CPU usage is 
+    // sigma(I)/sigma(T), and the "real" individual CPU usage is I_n/T_n. The problem is that 
+    // we don't know T_n; we only know sigma(T). Hence we need to find values i_1, i_2, ..., i_n 
+    // and t_1, t_2, ..., t_n such that:
+    // sigma(i)/sigma(t) ~= sigma(I)/sigma(T), and 
+    // i_n/t_n ~= I_n/T_n
+    //
+    // Solution 1: Set i_n = I_n and t_n = sigma(T)*T'_n/sigma(T'). Then:
+    // sigma(i)/sigma(t) = sigma(I)/(sigma(T)*sigma(T')/sigma(T')) = sigma(I)/sigma(T), and 
+    // i_n/t_n = I_n/T'_n*sigma(T')/sigma(T) ~= I_n/T_n since I_n/T'_n ~= I_n/T_n and sigma(T')/sigma(T) ~= 1.
+    // However, it is not guaranteed that i_n/t_n <= 1, which may lead to CPU usages over 100% being displayed.
+    //
+    // Solution 2: Set i_n = I'_n and t_n = T'_n. Then:
+    // sigma(i)/sigma(t) = sigma(I')/sigma(T') ~= sigma(I)/sigma(T) since I'_n ~= I_n and T'_n ~= T_n.
+    // i_n/t_n = I'_n/T'_n ~= I_n/T_n as above.
+    // Not scaling at all is currently the best solution, since it's fast, simple and guarantees that i_n/t_n <= 1.
+
+    baseCpuUsage = 1 - (FLOAT)IdleCycleTime / TotalCycleTime;
+    totalTimeDelta = (FLOAT)(PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta);
+
+    if (totalTimeDelta != 0)
+    {
+        PhCpuKernelUsage = baseCpuUsage * ((FLOAT)PhCpuKernelDelta.Delta / totalTimeDelta);
+        PhCpuUserUsage = baseCpuUsage * ((FLOAT)PhCpuUserDelta.Delta / totalTimeDelta);
+    }
+    else
+    {
+        PhCpuKernelUsage = baseCpuUsage / 2;
+        PhCpuUserUsage = baseCpuUsage / 2;
+    }
+
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        totalTime = PhCpusKernelDelta[i].Delta + PhCpusUserDelta[i].Delta + PhCpusIdleDelta[i].Delta;
 
         if (totalTime != 0)
         {
@@ -1354,50 +1496,6 @@ VOID PhpUpdateCpuInformation(
             PhCpusUserUsage[i] = 0;
         }
     }
-
-    PhUpdateDelta(&PhCpuKernelDelta, PhCpuTotals.KernelTime.QuadPart);
-    PhUpdateDelta(&PhCpuUserDelta, PhCpuTotals.UserTime.QuadPart);
-    PhUpdateDelta(&PhCpuOtherDelta,
-        PhCpuTotals.IdleTime.QuadPart +
-        PhCpuTotals.DpcTime.QuadPart +
-        PhCpuTotals.InterruptTime.QuadPart
-        );
-
-    totalTime = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuOtherDelta.Delta;
-
-    if (totalTime != 0)
-    {
-        PhCpuKernelUsage = (FLOAT)PhCpuKernelDelta.Delta / totalTime;
-        PhCpuUserUsage = (FLOAT)PhCpuUserDelta.Delta / totalTime;
-    }
-    else
-    {
-        PhCpuKernelUsage = 0;
-        PhCpuUserUsage = 0;
-    }
-
-    *TotalTime = totalTime;
-}
-
-VOID PhpUpdateSystemCpuCycleInformation()
-{
-    ULONG i;
-
-    NtQuerySystemInformation(
-        SystemProcessorCycleTimeInformation,
-        PhCpuSystemCycleTime,
-        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
-        NULL
-        );
-
-    PhCpuTotalSystemCycleTime.QuadPart = 0;
-
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-    {
-        PhCpuTotalSystemCycleTime.QuadPart += PhCpuSystemCycleTime[i].QuadPart;
-    }
-
-    PhUpdateDelta(&PhCpuSystemCycleDelta, PhCpuTotalSystemCycleTime.QuadPart);
 }
 
 VOID PhpInitializeProcessStatistics()
@@ -1459,7 +1557,6 @@ VOID PhpUpdateSystemHistory()
     PhQuerySystemTime(&systemTime);
     RtlTimeToSecondsSince1980(&systemTime, &secondsSince1980);
     PhAddItemCircularBuffer_ULONG(&PhTimeHistory, secondsSince1980);
-    PhTimeSequenceNumber++;
 }
 
 /**
@@ -1584,6 +1681,7 @@ VOID PhProcessProviderUpdate(
 
     ULONG64 sysTotalTime; // total time for this update period
     ULONG64 sysTotalCycleTime = 0; // total cycle time for this update period
+    ULONG64 sysIdleCycleTime = 0; // total idle cycle time for this update period
     FLOAT maxCpuValue = 0;
     PPH_PROCESS_ITEM maxCpuProcessItem = NULL;
     ULONG64 maxIoValue = 0;
@@ -1638,14 +1736,20 @@ VOID PhProcessProviderUpdate(
     }
 
     PhpUpdatePerfInformation();
-    PhpUpdateCpuInformation(&sysTotalTime);
 
-    // History cannot be updated on the first run because the deltas are invalid.
-    // For example, the I/O "deltas" will be huge because they are currently the 
-    // raw accumulated values.
+    if (isCycleCpuUsageEnabled)
+    {
+        PhpUpdateCpuInformation(FALSE, &sysTotalTime);
+        PhpUpdateCpuCycleInformation(&sysIdleCycleTime);
+    }
+    else
+    {
+        PhpUpdateCpuInformation(TRUE, &sysTotalTime);
+    }
+
     if (runCount != 0)
     {
-        PhpUpdateSystemHistory();
+        PhTimeSequenceNumber++;
     }
 
     // Get the process list.
@@ -1695,6 +1799,7 @@ VOID PhProcessProviderUpdate(
 
         if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID)
         {
+            process->CycleTime = PhCpuIdleCycleDelta.Value;
             process->KernelTime = PhCpuTotals.IdleTime;
         }
 
@@ -1719,9 +1824,8 @@ VOID PhProcessProviderUpdate(
 
     if (isCycleCpuUsageEnabled)
     {
-        PhpUpdateSystemCpuCycleInformation();
         PhInterruptsProcessInformation.KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
-        PhInterruptsProcessInformation.CycleTime = PhCpuTotalSystemCycleTime.QuadPart;
+        PhInterruptsProcessInformation.CycleTime = PhCpuSystemCycleDelta.Value;
         sysTotalCycleTime += PhCpuSystemCycleDelta.Delta;
     }
     else
@@ -1949,9 +2053,9 @@ VOID PhProcessProviderUpdate(
             BOOLEAN modified = FALSE;
             BOOLEAN isSuspended;
             ULONG contextSwitches;
+            FLOAT newCpuUsage;
             FLOAT kernelCpuUsage;
             FLOAT userCpuUsage;
-            FLOAT newCpuUsage;
 
             PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
@@ -1983,24 +2087,51 @@ VOID PhProcessProviderUpdate(
                 modified = TRUE;
             }
 
-            kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
-            userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
-
-            processItem->CpuKernelUsage = kernelCpuUsage;
-            processItem->CpuUserUsage = userCpuUsage;
-            PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
-            PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
-
             if (isCycleCpuUsageEnabled)
             {
+                FLOAT totalDelta;
+
                 newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / sysTotalCycleTime;
-                processItem->CpuUsage = newCpuUsage;
+
+                // Calculate the kernel/user CPU usage based on the kernel/user time. If the kernel and 
+                // user deltas are both zero, we'll just have to use an estimate. Currently, we split 
+                // the CPU usage evenly across the kernel and user components, except when the total 
+                // user time is zero, in which case we assign it all to the kernel component.
+
+                totalDelta = (FLOAT)(processItem->CpuKernelDelta.Delta + processItem->CpuUserDelta.Delta);
+
+                if (totalDelta != 0)
+                {
+                    kernelCpuUsage = newCpuUsage * ((FLOAT)processItem->CpuKernelDelta.Delta / totalDelta);
+                    userCpuUsage = newCpuUsage * ((FLOAT)processItem->CpuUserDelta.Delta / totalDelta);
+                }
+                else
+                {
+                    if (processItem->UserTime.QuadPart != 0)
+                    {
+                        kernelCpuUsage = newCpuUsage / 2;
+                        userCpuUsage = newCpuUsage / 2;
+                    }
+                    else
+                    {
+                        kernelCpuUsage = newCpuUsage;
+                        userCpuUsage = 0;
+                    }
+                }
             }
             else
             {
+                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
+                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
                 newCpuUsage = kernelCpuUsage + userCpuUsage;
-                processItem->CpuUsage = newCpuUsage;
             }
+
+            processItem->CpuUsage = newCpuUsage;
+            processItem->CpuKernelUsage = kernelCpuUsage;
+            processItem->CpuUserUsage = userCpuUsage;
+
+            PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
+            PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
             // Max. values
 
@@ -2092,9 +2223,15 @@ VOID PhProcessProviderUpdate(
         PhpTsProcesses = NULL;
     }
 
+    // History cannot be updated on the first run because the deltas are invalid.
+    // For example, the I/O "deltas" will be huge because they are currently the 
+    // raw accumulated values.
     if (runCount != 0)
     {
-        // Post-update history
+        if (isCycleCpuUsageEnabled)
+            PhpUpdateCpuCycleUsageInformation(sysTotalCycleTime, sysIdleCycleTime);
+
+        PhpUpdateSystemHistory();
 
         // Note that we need to add a reference to the records of these processes, to 
         // make it possible for others to get the name of a max. CPU or I/O process.
