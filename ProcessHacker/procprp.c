@@ -2389,9 +2389,31 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhInitializeThreadList(hwndDlg, tnHandle, processItem, &threadsContext->ListContext);
             threadsContext->NeedsRedraw = FALSE;
 
-            // Use Cycles instead of Context Switches on Vista.
+            // Use Cycles instead of Context Switches on Vista and above, but only when we can 
+            // open the process, since cycle time information requires sufficient access to the 
+            // threads.
             if (WINDOWS_HAS_CYCLE_TIME)
-                threadsContext->ListContext.UseCycleTime = TRUE;
+            {
+                HANDLE processHandle;
+                PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
+
+                if (processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+                {
+                    threadsContext->ListContext.UseCycleTime = TRUE;
+                }
+                else if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, processItem->ProcessId)))
+                {
+                    threadsContext->ListContext.UseCycleTime = TRUE;
+
+                    // We can't use cycle time for protected processes.
+                    if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &extendedBasicInfo)) && extendedBasicInfo.IsProtectedProcess)
+                    {
+                        threadsContext->ListContext.UseCycleTime = FALSE;
+                    }
+
+                    NtClose(processHandle);
+                }
+            }
 
             if (processItem->ServiceList && processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
                 threadsContext->ListContext.HasServices = TRUE;
