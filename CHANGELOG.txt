@@ -16,6 +16,7 @@ Process Hacker
    * Save settings on shutdown/logoff
    * Fixed state highlighting bug
    * Fixed command line propagation for -elevate
+   * Fixed tree list mouse wheel handling
 
 2.19
  * NEW/IMPROVED:
