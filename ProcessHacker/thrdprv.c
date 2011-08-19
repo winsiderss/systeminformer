@@ -712,22 +712,19 @@ VOID PhpThreadProviderUpdate(
     )
 {
     PPH_THREAD_PROVIDER threadProvider = ThreadProvider;
-    PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
+    SYSTEM_PROCESS_INFORMATION localProcess;
     PSYSTEM_THREAD_INFORMATION threads;
     ULONG numberOfThreads;
     ULONG i;
 
-    processes = ProcessInformation;
-    process = PhFindProcessInformation(processes, threadProvider->ProcessId);
+    process = PhFindProcessInformation(ProcessInformation, threadProvider->ProcessId);
 
     if (!process)
     {
         // The process doesn't exist anymore. Pretend it does but 
         // has no threads.
-        PhFree(processes);
-        processes = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION));
-        process = (PSYSTEM_PROCESS_INFORMATION)processes;
+        process = &localProcess;
         process->NumberOfThreads = 0;
     }
 
@@ -1056,7 +1053,7 @@ VOID PhpThreadProviderUpdate(
 
             // Update the CPU usage.
             // If the cycle time isn't available, we'll fall back to using the CPU time.
-            if (WINDOWS_HAS_CYCLE_TIME && PhEnableCycleCpuUsage && threadItem->ThreadHandle)
+            if (WINDOWS_HAS_CYCLE_TIME && PhEnableCycleCpuUsage && (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID || threadItem->ThreadHandle))
             {
                 threadItem->CpuUsage = (FLOAT)threadItem->CyclesDelta.Delta / PhCpuTotalCycleDelta;
             }
