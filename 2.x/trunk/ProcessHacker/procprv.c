@@ -170,7 +170,6 @@ BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 
 PVOID PhProcessInformation; // only can be used if running on same thread as process provider
-ULONG PhProcessInformationSequenceNumber = 0;
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
 SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
@@ -2221,7 +2220,6 @@ VOID PhProcessProviderUpdate(
         PhFree(PhProcessInformation);
 
     PhProcessInformation = processes;
-    PhProcessInformationSequenceNumber++;
 
     if (PhpTsProcesses)
     {

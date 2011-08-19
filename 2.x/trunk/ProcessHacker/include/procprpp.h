@@ -109,7 +109,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 typedef struct _PH_THREADS_CONTEXT
 {
     PPH_THREAD_PROVIDER Provider;
-    PH_PROVIDER_REGISTRATION ProviderRegistration;
+    PH_CALLBACK_REGISTRATION ProviderRegistration;
     PH_CALLBACK_REGISTRATION AddedEventRegistration;
     PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
     PH_CALLBACK_REGISTRATION RemovedEventRegistration;
