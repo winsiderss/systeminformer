@@ -178,8 +178,14 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_IOOTHERDELTA 62
 
 #define PHPRTLC_OSCONTEXT 63
+#define PHPRTLC_PAGEDPOOL 64
+#define PHPRTLC_PEAKPAGEDPOOL 65
+#define PHPRTLC_NONPAGEDPOOL 66
+#define PHPRTLC_PEAKNONPAGEDPOOL 67
+#define PHPRTLC_MINIMUMWORKINGSET 68
+#define PHPRTLC_MAXIMUMWORKINGSET 69
 
-#define PHPRTLC_MAXIMUM 64
+#define PHPRTLC_MAXIMUM 70
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -189,6 +195,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPN_DEPSTATUS 0x10
 #define PHPN_TOKEN 0x20
 #define PHPN_OSCONTEXT 0x40
+#define PHPN_QUOTALIMITS 0x80
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -230,6 +237,9 @@ typedef struct _PH_PROCESS_NODE
     // OS Context
     GUID OsContextGuid;
     ULONG OsContextVersion;
+    // Quota Limits
+    SIZE_T MinimumWorkingSetSize;
+    SIZE_T MaximumWorkingSetSize;
     // Cycles (Vista only)
     PH_UINT64_DELTA CyclesDelta;
 
@@ -268,6 +278,12 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ContextSwitchesDeltaText;
     PPH_STRING PageFaultsDeltaText;
     PPH_STRING IoGroupText[PHPRTLC_IOGROUP_COUNT];
+    PPH_STRING PagedPoolText;
+    PPH_STRING PeakPagedPoolText;
+    PPH_STRING NonPagedPoolText;
+    PPH_STRING PeakNonPagedPoolText;
+    PPH_STRING MinimumWorkingSetText;
+    PPH_STRING MaximumWorkingSetText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
