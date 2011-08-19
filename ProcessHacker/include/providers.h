@@ -179,9 +179,9 @@ typedef struct _PH_PROCESS_ITEM
     ULONG NumberOfHandles;
     ULONG NumberOfThreads;
 
-    FLOAT CpuKernelUsage; // from 0 to 1
-    FLOAT CpuUserUsage; // from 0 to 1
     FLOAT CpuUsage; // Below Windows 7, sum of kernel and user CPU usage; above Windows 7, cycle-based CPU usage.
+    FLOAT CpuKernelUsage;
+    FLOAT CpuUserUsage;
 
     PH_UINT64_DELTA CpuKernelDelta;
     PH_UINT64_DELTA CpuUserDelta;
