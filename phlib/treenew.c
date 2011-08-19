@@ -1179,72 +1179,15 @@ VOID PhTnpOnMouseWheel(
     __in LONG CursorY
     )
 {
-    LONG wheelScrollLines;
-    SCROLLINFO scrollInfo;
-    LONG oldPosition;
-
-    if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
-        wheelScrollLines = 3;
-
-    // The mouse wheel can affect both the vertical scrollbar and the horizontal scrollbar, 
+    // The normal mouse wheel can affect both the vertical scrollbar and the horizontal scrollbar, 
     // but the vertical scrollbar takes precedence.
-
-    scrollInfo.cbSize = sizeof(SCROLLINFO);
-    scrollInfo.fMask = SIF_ALL;
-
     if (Context->VScrollVisible)
     {
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-        oldPosition = scrollInfo.nPos;
-
-        scrollInfo.nPos += wheelScrollLines * -Distance / WHEEL_DELTA;
-
-        scrollInfo.fMask = SIF_POS;
-        SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->VScrollPosition = scrollInfo.nPos;
-            PhTnpProcessScroll(Context, scrollInfo.nPos - oldPosition, 0);
-
-            if (Context->TooltipsHandle)
-            {
-                MSG message;
-                POINT point;
-
-                PhTnpPopTooltip(Context);
-                PhTnpGetMessagePos(hwnd, &point);
-
-                if (point.x >= 0 && point.y >= 0 && point.x < Context->ClientRect.right && point.y < Context->ClientRect.bottom)
-                {
-                    // Send a fake mouse move message for the new node that the mouse may be hovering over.
-                    message.hwnd = hwnd;
-                    message.message = WM_MOUSEMOVE;
-                    message.wParam = 0;
-                    message.lParam = MAKELPARAM(point.x, point.y);
-                    SendMessage(Context->TooltipsHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
-                }
-            }
-        }
+        PhTnpProcessMouseVWheel(Context, -Distance);
     }
     else if (Context->HScrollVisible)
     {
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        oldPosition = scrollInfo.nPos;
-
-        scrollInfo.nPos += Context->TextMetrics.tmAveCharWidth * wheelScrollLines * -Distance / WHEEL_DELTA;
-
-        scrollInfo.fMask = SIF_POS;
-        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->HScrollPosition = scrollInfo.nPos;
-            PhTnpLayout(Context); // takes care of the tooltip as well
-            PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
-        }
+        PhTnpProcessMouseHWheel(Context, -Distance);
     }
 }
 
@@ -1257,33 +1200,7 @@ VOID PhTnpOnMouseHWheel(
     __in LONG CursorY
     )
 {
-    LONG wheelScrollLines;
-    SCROLLINFO scrollInfo;
-    LONG oldPosition;
-
-    if (Context->HScrollVisible)
-    {
-        if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
-            wheelScrollLines = 3;
-
-        scrollInfo.cbSize = sizeof(SCROLLINFO);
-        scrollInfo.fMask = SIF_ALL;
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        oldPosition = scrollInfo.nPos;
-
-        scrollInfo.nPos += Context->TextMetrics.tmAveCharWidth * wheelScrollLines * Distance / WHEEL_DELTA;
-
-        scrollInfo.fMask = SIF_POS;
-        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->HScrollPosition = scrollInfo.nPos;
-            PhTnpLayout(Context); // takes care of the tooltip as well
-            PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
-        }
-    }
+    PhTnpProcessMouseHWheel(Context, Distance);
 }
 
 VOID PhTnpOnContextMenu(
@@ -3926,6 +3843,110 @@ VOID PhTnpProcessMoveMouse(
         {
             PhTnpPopTooltip(Context);
         }
+    }
+}
+
+VOID PhTnpProcessMouseVWheel(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Distance
+    )
+{
+    ULONG wheelScrollLines;
+    FLOAT linesToScroll;
+    LONG wholeLinesToScroll;
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
+        wheelScrollLines = 3;
+
+    // If page scrolling is enabled, use the number of visible rows.
+    if (wheelScrollLines == -1)
+        wheelScrollLines = (Context->ClientRect.bottom - Context->HeaderHeight - (Context->HScrollVisible ? Context->HScrollHeight : 0)) / Context->RowHeight;
+
+    // Zero the remainder if the direction changed.
+    if ((Context->VScrollRemainder > 0) != (Distance > 0))
+        Context->VScrollRemainder = 0;
+
+    linesToScroll = (FLOAT)wheelScrollLines * Distance / WHEEL_DELTA + Context->VScrollRemainder;
+    wholeLinesToScroll = (LONG)linesToScroll;
+    Context->VScrollRemainder = linesToScroll - wholeLinesToScroll;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_ALL;
+    GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+    oldPosition = scrollInfo.nPos;
+
+    scrollInfo.nPos += wholeLinesToScroll;
+
+    scrollInfo.fMask = SIF_POS;
+    SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+    GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+
+    if (scrollInfo.nPos != oldPosition)
+    {
+        Context->VScrollPosition = scrollInfo.nPos;
+        PhTnpProcessScroll(Context, scrollInfo.nPos - oldPosition, 0);
+
+        if (Context->TooltipsHandle)
+        {
+            MSG message;
+            POINT point;
+
+            PhTnpPopTooltip(Context);
+            PhTnpGetMessagePos(Context->Handle, &point);
+
+            if (point.x >= 0 && point.y >= 0 && point.x < Context->ClientRect.right && point.y < Context->ClientRect.bottom)
+            {
+                // Send a fake mouse move message for the new node that the mouse may be hovering over.
+                message.hwnd = Context->Handle;
+                message.message = WM_MOUSEMOVE;
+                message.wParam = 0;
+                message.lParam = MAKELPARAM(point.x, point.y);
+                SendMessage(Context->TooltipsHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
+            }
+        }
+    }
+}
+
+VOID PhTnpProcessMouseHWheel(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Distance
+    )
+{
+    ULONG wheelScrollChars;
+    FLOAT pixelsToScroll;
+    LONG wholePixelsToScroll;
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    if (!SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, 0))
+        wheelScrollChars = 3;
+
+    // Zero the remainder if the direction changed.
+    if ((Context->HScrollRemainder > 0) != (Distance > 0))
+        Context->HScrollRemainder = 0;
+
+    pixelsToScroll = (FLOAT)wheelScrollChars * Context->TextMetrics.tmAveCharWidth * Distance / WHEEL_DELTA + Context->HScrollRemainder;
+    wholePixelsToScroll = (LONG)pixelsToScroll;
+    Context->HScrollRemainder = pixelsToScroll - wholePixelsToScroll;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_ALL;
+    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+    oldPosition = scrollInfo.nPos;
+
+    scrollInfo.nPos += wholePixelsToScroll;
+
+    scrollInfo.fMask = SIF_POS;
+    SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+    if (scrollInfo.nPos != oldPosition)
+    {
+        Context->HScrollPosition = scrollInfo.nPos;
+        PhTnpLayout(Context); // takes care of the tooltip as well
+        PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
     }
 }
 
