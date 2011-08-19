@@ -266,7 +266,7 @@ NTSTATUS KphpReadDriverParameters(
     // Read in the parameters.
 
     RtlInitUnicodeString(&valueName, L"SecurityLevel");
-    KphParameters.SecurityLevel = KphpReadIntegerParameter(parametersKeyHandle, &valueName, KphSecurityNone);
+    KphParameters.SecurityLevel = KphpReadIntegerParameter(parametersKeyHandle, &valueName, KphSecurityPrivilegeCheck);
 
     RtlInitUnicodeString(&valueName, L"DisableDynamicProcedureScan");
     KphParameters.DisableDynamicProcedureScan = KphpReadIntegerParameter(parametersKeyHandle, &valueName, FALSE);
