@@ -1055,7 +1055,8 @@ VOID PhpThreadProviderUpdate(
             PhUpdateDelta(&threadItem->CpuUserDelta, threadItem->UserTime.QuadPart);
 
             // Update the CPU usage.
-            if (WINDOWS_HAS_CYCLE_TIME && PhEnableCycleCpuUsage)
+            // If the cycle time isn't available, we'll fall back to using the CPU time.
+            if (WINDOWS_HAS_CYCLE_TIME && PhEnableCycleCpuUsage && threadItem->ThreadHandle)
             {
                 threadItem->CpuUsage = (FLOAT)threadItem->CyclesDelta.Delta / PhCpuTotalCycleDelta;
             }
