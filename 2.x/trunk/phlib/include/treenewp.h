@@ -114,6 +114,9 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG SortColumn; // ID of the column to sort by
     PH_SORT_ORDER SortOrder;
 
+    FLOAT VScrollRemainder;
+    FLOAT HScrollRemainder;
+
     LONG SearchMessageTime;
     PWSTR SearchString;
     ULONG SearchStringCount;
@@ -558,6 +561,16 @@ VOID PhTnpProcessMoveMouse(
     __in PPH_TREENEW_CONTEXT Context,
     __in LONG CursorX,
     __in LONG CursorY
+    );
+
+VOID PhTnpProcessMouseVWheel(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Distance
+    );
+
+VOID PhTnpProcessMouseHWheel(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Distance
     );
 
 // Keyboard
