@@ -64,12 +64,53 @@ namespace ProcessHacker.Api
         ForceAccessCheck = 0x400
     }
 
+    [Flags]
+    public enum HeapFlags : uint
+    {
+        NoSerialize = 0x00000001,
+        Growable = 0x00000002,
+        GenerateExceptions = 0x00000004,
+        ZeroMemory = 0x00000008,
+        ReallocInPlaceOnly = 0x00000010,
+        TailCheckingEnabled = 0x00000020,
+        FreeCheckingEnabled = 0x00000040,
+        DisableCoalesceOnFree = 0x00000080,
+
+        CreateAlign16 = 0x00010000,
+        CreateEnableTracing = 0x00020000,
+        CreateEnableExecute = 0x00040000,
+
+        SettableUserValue = 0x00000100,
+        SettableUserFlag1 = 0x00000200,
+        SettableUserFlag2 = 0x00000400,
+        SettableUserFlag3 = 0x00000800,
+        SettableUserFlags = 0x00000e00,
+
+        Class0 = 0x00000000, // Process heap
+        Class1 = 0x00001000, // Private heap
+        Class2 = 0x00002000, // Kernel heap
+        Class3 = 0x00003000, // GDI heap
+        Class4 = 0x00004000, // User heap
+        Class5 = 0x00005000, // Console heap
+        Class6 = 0x00006000, // User desktop heap
+        Class7 = 0x00007000, // CSRSS shared heap
+        Class8 = 0x00008000, // CSR port heap
+        ClassMask = 0x0000f000
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct UnicodeString
     {
+        public static readonly int SizeOf;
+
         public ushort Length;
         public ushort MaximumLength;
         public void* Buffer;
+
+        static UnicodeString()
+        {
+            SizeOf = Marshal.SizeOf(typeof(UnicodeString));
+        }
     }
 
     public enum WaitType

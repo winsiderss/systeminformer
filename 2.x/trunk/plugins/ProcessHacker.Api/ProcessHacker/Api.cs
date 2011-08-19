@@ -85,6 +85,8 @@ namespace ProcessHacker.Api
     [StructLayout(LayoutKind.Sequential)]
     public struct PhCallbackRegistration
     {
+        public static readonly int SizeOf;
+
         public ListEntry ListEntry;
         public IntPtr Function;
         public IntPtr Context;
@@ -92,6 +94,11 @@ namespace ProcessHacker.Api
         public byte Unregistering;
         public byte Reserved;
         public ushort Flags;
+
+        static PhCallbackRegistration()
+        {
+            SizeOf = Marshal.SizeOf(typeof(PhCallbackRegistration));
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

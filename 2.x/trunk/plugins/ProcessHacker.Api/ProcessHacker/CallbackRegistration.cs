@@ -22,7 +22,7 @@
  */
 
 using System;
-using System.Runtime.InteropServices;
+using ProcessHacker.Native;
 
 namespace ProcessHacker.Api
 {
@@ -37,8 +37,8 @@ namespace ProcessHacker.Api
             _function = function;
             _callback = callback;
 
-            _registration = (PhCallbackRegistration*)Marshal.AllocHGlobal(Marshal.SizeOf(typeof(PhCallbackRegistration)));
-
+            _registration = (PhCallbackRegistration*)MemoryAlloc.PrivateHeap.Allocate(PhCallbackRegistration.SizeOf);
+            
             NativeApi.PhRegisterCallback(_callback, _function, IntPtr.Zero, _registration);
         }
 
@@ -48,7 +48,7 @@ namespace ProcessHacker.Api
             {
                 NativeApi.PhUnregisterCallback(_callback, _registration);
 
-                Marshal.FreeHGlobal((IntPtr)_registration);
+                MemoryAlloc.PrivateHeap.Free((IntPtr)this._registration);
 
                 _registration = null;
             }
