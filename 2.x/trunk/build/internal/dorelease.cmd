@@ -34,14 +34,14 @@ copy %1\doc\Help.htm %2\bin\
 mkdir %2\bin\x86
 copy %1\bin\Release32\ProcessHacker.exe %2\bin\x86\
 copy %1\KProcessHacker\bin-signed\i386\kprocesshacker.sys %2\bin\x86\
-copy %1\tools\peview\bin\Release32\peview.exe %2\bin\x86\
+copy %1\bin\Release32\peview.exe %2\bin\x86\
 
 mkdir %2\bin\x64
 copy %1\bin\Release64\ProcessHacker.exe %2\bin\x64\
 copy %1\KProcessHacker\bin-signed\amd64\kprocesshacker.sys %2\bin\x64\
-copy %1\tools\peview\bin\Release64\peview.exe %2\bin\x64\
+copy %1\bin\Release64\peview.exe %2\bin\x64\
 
-mkdir %2\bin\plugins\x86
+mkdir %2\bin\x86\plugins
 for %%a in (
     DotNetTools
     ExtendedNotifications
@@ -52,9 +52,9 @@ for %%a in (
     SbieSupport
     ToolStatus
     WindowExplorer
-    ) do copy %1\plugins\%%a\bin\Release32\%%a.dll %2\bin\plugins\x86\%%a.dll
+    ) do copy %1\bin\Release32\plugins\%%a.dll %2\bin\x86\plugins\%%a.dll
 
-mkdir %2\bin\plugins\x64
+mkdir %2\bin\x64\plugins
 for %%a in (
     DotNetTools
     ExtendedNotifications
@@ -65,7 +65,7 @@ for %%a in (
     SbieSupport
     ToolStatus
     WindowExplorer
-    ) do copy %1\plugins\%%a\bin\Release64\%%a.dll %2\bin\plugins\x64\%%a.dll
+    ) do copy %1\bin\Release64\plugins\%%a.dll %2\bin\x64\plugins\%%a.dll
 
 if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-bin.zip %2\bin\*
 if exist %1\build\Installer\processhacker-*-setup.exe copy %1\build\Installer\processhacker-*-setup.exe %2\
