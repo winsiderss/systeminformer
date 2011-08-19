@@ -72,3 +72,14 @@ the aforementioned features will not work.
 Certain features such as modifying process protection are disabled 
 in the released driver binary due to legal reasons. You can enable 
 them by building KProcessHacker with the "dirty" configuration.
+
+Note that by default, KProcessHacker only allows connections from 
+processes with SeDebugPrivilege. To allow Process Hacker to show details 
+for all processes when it is not running as administrator:
+
+1. In Registry Editor, navigate to:
+   HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\KProcessHacker2
+2. Under this key, create a key named Parameters if it does not exist.
+3. Create a DWORD value named SecurityLevel and set it to 0.
+4. Restart the KProcessHacker2 service (sc stop KProcessHacker2, 
+   sc start KProcessHacker2).

@@ -14,6 +14,10 @@ Process Hacker
        columns to process tree list
      * Added Firewall Status column
    * Improved cycle-based CPU usage calculation
+   * Set default KProcessHacker security level to only allow 
+     connections when Process Hacker is running as administrator. 
+     See README.txt for instructions on how to restore the old 
+     behavior.
  * FIXED:
    * Fixed file name resolution bug
    * Save settings on shutdown/logoff
