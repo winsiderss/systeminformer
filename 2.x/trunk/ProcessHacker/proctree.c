@@ -636,6 +636,35 @@ static VOID PhpNeedGraphContext(
     GraphOldBitmap = SelectObject(GraphContext, GraphBitmap);
 }
 
+static BOOLEAN PhpFormatInt32GroupDigits(
+    __in ULONG Value,
+    __out_bcount(BufferLength) PWCHAR Buffer,
+    __in ULONG BufferLength,
+    __out_opt PPH_STRINGREF String
+    )
+{
+    PH_FORMAT format;
+    SIZE_T returnLength;
+
+    PhInitFormatU(&format, Value);
+    format.Type |= FormatGroupDigits;
+
+    if (PhFormatToBuffer(&format, 1, Buffer, BufferLength, &returnLength))
+    {
+        if (String)
+        {
+            String->Buffer = Buffer;
+            String->Length = (USHORT)(returnLength - sizeof(WCHAR));
+        }
+
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
 static FLOAT PhpCalculateInclusiveCpuUsage(
     __in PPH_PROCESS_NODE ProcessNode
     )
@@ -1812,22 +1841,18 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhInitializeStringRef(&getCellText->Text, node->BasePriorityText);
                 break;
             case PHPRTLC_THREADS:
-                PhPrintUInt32(node->ThreadsText, processItem->NumberOfThreads);
-                PhInitializeStringRef(&getCellText->Text, node->ThreadsText);
+                PhpFormatInt32GroupDigits(processItem->NumberOfThreads, node->ThreadsText, sizeof(node->ThreadsText), &getCellText->Text);
                 break;
             case PHPRTLC_HANDLES:
-                PhPrintUInt32(node->HandlesText, processItem->NumberOfHandles);
-                PhInitializeStringRef(&getCellText->Text, node->HandlesText);
+                PhpFormatInt32GroupDigits(processItem->NumberOfHandles, node->HandlesText, sizeof(node->HandlesText), &getCellText->Text);
                 break;
             case PHPRTLC_GDIHANDLES:
                 PhpUpdateProcessNodeGdiUserHandles(node);
-                PhPrintUInt32(node->GdiHandlesText, node->GdiHandles);
-                PhInitializeStringRef(&getCellText->Text, node->GdiHandlesText);
+                PhpFormatInt32GroupDigits(node->GdiHandles, node->GdiHandlesText, sizeof(node->GdiHandlesText), &getCellText->Text);
                 break;
             case PHPRTLC_USERHANDLES:
                 PhpUpdateProcessNodeGdiUserHandles(node);
-                PhPrintUInt32(node->UserHandlesText, node->UserHandles);
-                PhInitializeStringRef(&getCellText->Text, node->UserHandlesText);
+                PhpFormatInt32GroupDigits(node->UserHandles, node->UserHandlesText, sizeof(node->UserHandlesText), &getCellText->Text);
                 break;
             case PHPRTLC_IORORATE:
                 {

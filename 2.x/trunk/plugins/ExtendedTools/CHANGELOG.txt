@@ -1,5 +1,7 @@
 1.5
- * Added Firewall Status column
+ * Added Hard Faults, Hard Faults Delta and Peak Threads columns 
+   to process tree list
+ * Added Firewall Status column to network list
 
 1.4
  * Added ETW columns for processes and network connections
