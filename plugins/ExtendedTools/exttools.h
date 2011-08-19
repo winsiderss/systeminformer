@@ -49,7 +49,10 @@ VOID EtEtwProcessPropertiesInitializing(
 #define ETPRTNC_NETWORKRECEIVEBYTESDELTA 18
 #define ETPRTNC_NETWORKSENDBYTESDELTA 19
 #define ETPRTNC_NETWORKTOTALBYTESDELTA 20
-#define ETPRTNC_MAXIMUM 20
+#define ETPRTNC_HARDFAULTS 21
+#define ETPRTNC_HARDFAULTSDELTA 22
+#define ETPRTNC_PEAKTHREADS 23
+#define ETPRTNC_MAXIMUM 23
 
 VOID EtEtwProcessTreeNewInitializing(
     __in PVOID Parameter
@@ -191,6 +194,8 @@ typedef struct _ET_PROCESS_BLOCK
     PH_UINT32_DELTA NetworkReceiveRawDelta;
     PH_UINT32_DELTA NetworkSendDelta;
     PH_UINT32_DELTA NetworkSendRawDelta;
+
+    PH_UINT32_DELTA HardFaultsDelta;
 
     PH_QUEUED_LOCK TextCacheLock;
     PPH_STRING TextCache[ETPRTNC_MAXIMUM + 1];
