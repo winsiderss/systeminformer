@@ -1502,10 +1502,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             HDC hdc;
 
                             PhSwapReference2(&performanceContext->CpuGraphState.TooltipText,
-                                PhFormatString(L"%.2f%% (K: %.2f%%, U: %.2f%%)",
-                                (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100,
-                                processItem->CpuKernelUsage * 100,
-                                processItem->CpuUserUsage * 100
+                                PhFormatString(L"%.2f%%",
+                                (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
                                 ));
 
                             hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
@@ -1688,10 +1686,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             cpuUser = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
                             PhSwapReference2(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
-                                L"%.2f%% (K: %.2f%%, U: %.2f%%)\n%s",
+                                L"%.2f%%\n%s",
                                 (cpuKernel + cpuUser) * 100,
-                                cpuKernel * 100,
-                                cpuUser * 100,
                                 ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
                                 ));
                         }
