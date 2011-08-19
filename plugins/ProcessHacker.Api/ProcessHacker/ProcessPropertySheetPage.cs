@@ -24,28 +24,27 @@
 using System;
 using System.Runtime.InteropServices;
 
+using ProcessHacker.Native;
+
 namespace ProcessHacker.Api
 {
     public class ProcessPropertySheetPage : PropertySheetPage
     {
         private IntPtr _pageHandle;
         private IntPtr _dialogTemplate;
-        private DialogProc _dialogProc;
-        private PropSheetPageCallback _pagePageProc;
+        private readonly DialogProc _dialogProc;
+        private readonly PropSheetPageCallback _pagePageProc;
         private bool _layoutInitialized;
 
         public ProcessPropertySheetPage()
         {
-            _dialogProc = new DialogProc(this.DialogProc);
-            _pagePageProc = new PropSheetPageCallback(this.PropPageProc);
+            _dialogProc = this.DialogProc;
+            _pagePageProc = this.PropPageProc;
         }
 
         protected override void Dispose(bool disposing)
         {
-            unsafe
-            {
-                NativeApi.PhFree((void*)_dialogTemplate);
-            }
+            MemoryAlloc.PrivateHeap.Free(this._dialogTemplate);
 
             base.Dispose(disposing);
         }
@@ -60,7 +59,7 @@ namespace ProcessHacker.Api
             // *Must* be 260x260. See PhAddPropPageLayoutItem in procprp.c.
             _dialogTemplate = CreateDialogTemplate(260, 260, this.Text, 8, "MS Shell Dlg");
 
-            psp.dwSize = Marshal.SizeOf(typeof(PropSheetPageW));
+            psp.dwSize = PropSheetPageW.SizeOf;
             psp.dwFlags = PropSheetPageFlags.UseCallback | PropSheetPageFlags.DlgIndirect;
 
             psp.pResource = _dialogTemplate;
@@ -92,10 +91,7 @@ namespace ProcessHacker.Api
                 case WindowMessage.ShowWindow:
                     if (!_layoutInitialized)
                     {
-                        void* dialogItem;
-                        void* controlItem;
-
-                        dialogItem = NativeApi.PhAddPropPageLayoutItem(
+                        void* dialogItem = NativeApi.PhAddPropPageLayoutItem(
                             hwndDlg,
                             hwndDlg,
                             (void*)0x1, // PH_PROP_PAGE_TAB_CONTROL_PARENT
@@ -103,7 +99,7 @@ namespace ProcessHacker.Api
                             );
 
                         // Resize our .NET-based control automatically as well.
-                        controlItem = NativeApi.PhAddPropPageLayoutItem(
+                        NativeApi.PhAddPropPageLayoutItem(
                             hwndDlg,
                             this.Handle,
                             dialogItem,
