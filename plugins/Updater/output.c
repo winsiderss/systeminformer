@@ -561,7 +561,7 @@ BOOL InitializeConnection(
 		
 		DisposeConnection();
 		
-		return TRUE;
+		return FALSE;
 	}
 	
 	// Open the HTTP request.
