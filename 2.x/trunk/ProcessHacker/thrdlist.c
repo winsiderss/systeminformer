@@ -90,9 +90,10 @@ VOID PhInitializeThreadList(
 
     // Default columns
     PhAddTreeNewColumn(hwnd, PHTHTLC_TID, TRUE, L"TID", 50, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumnEx(hwnd, PHTHTLC_CYCLESDELTA, TRUE, L"Cycles Delta", 80, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumn(hwnd, PHTHTLC_STARTADDRESS, TRUE, L"Start Address", 180, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeNewColumnEx(hwnd, PHTHTLC_PRIORITY, TRUE, L"Priority", 80, PH_ALIGN_LEFT, 3, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHTHTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHTHTLC_CYCLESDELTA, TRUE, L"Cycles Delta", 80, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(hwnd, PHTHTLC_STARTADDRESS, TRUE, L"Start Address", 180, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumnEx(hwnd, PHTHTLC_PRIORITY, TRUE, L"Priority", 80, PH_ALIGN_LEFT, 4, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHTHTLC_SERVICE, FALSE, L"Service", 100, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
@@ -385,6 +386,20 @@ BEGIN_SORT_FUNCTION(Tid)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Cpu)
+{
+    sortResult = singlecmp(threadItem1->CpuUsage, threadItem2->CpuUsage);
+
+    if (sortResult == 0)
+    {
+        if (context->UseCycleTime)
+            sortResult = uint64cmp(threadItem1->CyclesDelta.Delta, threadItem2->CyclesDelta.Delta);
+        else
+            sortResult = uintcmp(threadItem1->ContextSwitchesDelta.Delta, threadItem2->ContextSwitchesDelta.Delta);
+    }
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(CyclesDelta)
 {
     if (context->UseCycleTime)
@@ -436,6 +451,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 static PVOID sortFunctions[] =
                 {
                     SORT_FUNCTION(Tid),
+                    SORT_FUNCTION(Cpu),
                     SORT_FUNCTION(CyclesDelta),
                     SORT_FUNCTION(StartAddress),
                     SORT_FUNCTION(Priority),
@@ -490,6 +506,31 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             {
             case PHTHTLC_TID:
                 PhInitializeStringRef(&getCellText->Text, threadItem->ThreadIdString);
+                break;
+            case PHTHTLC_CPU:
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = threadItem->CpuUsage * 100;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+                        SIZE_T returnLength;
+
+                        PhInitFormatF(&format, cpuUsage, 2);
+
+                        if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuUsageText;
+                            getCellText->Text.Length = (USHORT)(returnLength - sizeof(WCHAR)); // minus null terminator
+                        }
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"< 0.01");
+                    }
+                }
                 break;
             case PHTHTLC_CYCLESDELTA:
                 if (context->UseCycleTime)

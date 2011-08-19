@@ -598,7 +598,6 @@ PPH_STRING PhpGetThreadBasicStartAddress(
 
 static NTSTATUS PhpGetThreadCycleTime(
     __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in_opt PULARGE_INTEGER IdleThreadCycleTimes,
     __in PPH_THREAD_ITEM ThreadItem,
     __out PULONG64 CycleTime
     )
@@ -609,12 +608,9 @@ static NTSTATUS PhpGetThreadCycleTime(
     }
     else
     {
-        if (
-            IdleThreadCycleTimes && 
-            (ULONG)ThreadItem->ThreadId < (ULONG)PhSystemBasicInformation.NumberOfProcessors
-            )
+        if ((ULONG)ThreadItem->ThreadId < (ULONG)PhSystemBasicInformation.NumberOfProcessors)
         {
-            *CycleTime = IdleThreadCycleTimes[(ULONG)ThreadItem->ThreadId].QuadPart;
+            *CycleTime = PhCpuIdleCycleTime[(ULONG)ThreadItem->ThreadId].QuadPart;
             return STATUS_SUCCESS;
         }
     }
@@ -653,15 +649,22 @@ VOID PhThreadProviderUpdate(
     __in PVOID Object
     )
 {
+    static ULONG lastSequenceNumber = -1;
+
     PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Object;
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     PSYSTEM_THREAD_INFORMATION threads;
     ULONG numberOfThreads;
     ULONG i;
-    PULARGE_INTEGER idleThreadCycleTimes = NULL;
 
-    if (!NT_SUCCESS(PhEnumProcesses(&processes)))
+    if (PhProcessInformationSequenceNumber == lastSequenceNumber)
+        return; // processes have not be updated, probably because the user has unticked Update Automatically
+
+    processes = PhProcessInformation;
+    lastSequenceNumber = PhProcessInformationSequenceNumber;
+
+    if (!processes)
         return;
 
     process = PhFindProcessInformation(processes, threadProvider->ProcessId);
@@ -687,25 +690,6 @@ VOID PhThreadProviderUpdate(
         for (i = 0; i < numberOfThreads; i++)
         {
             threads[i].ClientId.UniqueThread = (HANDLE)i;
-        }
-
-        // Get the cycle times if we're on Vista.
-        if (WINDOWS_HAS_CYCLE_TIME)
-        {
-            idleThreadCycleTimes = PhAllocate(
-                sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
-                );
-
-            if (!NT_SUCCESS(NtQuerySystemInformation(
-                SystemProcessorIdleCycleTimeInformation,
-                idleThreadCycleTimes,
-                sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
-                NULL
-                )))
-            {
-                PhFree(idleThreadCycleTimes);
-                idleThreadCycleTimes = NULL;
-            }
         }
     }
 
@@ -833,7 +817,6 @@ VOID PhThreadProviderUpdate(
 
                 if (NT_SUCCESS(PhpGetThreadCycleTime(
                     threadProvider,
-                    idleThreadCycleTimes,
                     threadItem,
                     &cycles
                     )))
@@ -841,6 +824,10 @@ VOID PhThreadProviderUpdate(
                     PhUpdateDelta(&threadItem->CyclesDelta, cycles);
                 }
             }
+
+            // Initialize the CPU time deltas.
+            PhUpdateDelta(&threadItem->CpuKernelDelta, threadItem->KernelTime.QuadPart);
+            PhUpdateDelta(&threadItem->CpuUserDelta, threadItem->UserTime.QuadPart);
 
             // Try to get the start address.
 
@@ -998,7 +985,6 @@ VOID PhThreadProviderUpdate(
 
                 if (NT_SUCCESS(PhpGetThreadCycleTime(
                     threadProvider,
-                    idleThreadCycleTimes,
                     threadItem,
                     &cycles
                     )))
@@ -1010,6 +996,21 @@ VOID PhThreadProviderUpdate(
                         modified = TRUE;
                     }
                 }
+            }
+
+            // Update the CPU time deltas.
+            PhUpdateDelta(&threadItem->CpuKernelDelta, threadItem->KernelTime.QuadPart);
+            PhUpdateDelta(&threadItem->CpuUserDelta, threadItem->UserTime.QuadPart);
+
+            // Update the CPU usage.
+            if (WINDOWS_HAS_CYCLE_TIME && PhEnableCycleCpuUsage)
+            {
+                threadItem->CpuUsage = (FLOAT)threadItem->CyclesDelta.Delta / PhCpuTotalCycleDelta;
+            }
+            else
+            {
+                threadItem->CpuUsage = (FLOAT)(threadItem->CpuKernelDelta.Delta + threadItem->CpuUserDelta.Delta) /
+                    (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuIdleDelta.Delta);
             }
 
             // Update the Win32 priority.
@@ -1059,9 +1060,6 @@ VOID PhThreadProviderUpdate(
             PhDereferenceObject(threadItem);
         }
     }
-
-    PhFree(processes);
-    if (idleThreadCycleTimes) PhFree(idleThreadCycleTimes);
 
     PhInvokeCallback(&threadProvider->UpdatedEvent, NULL);
 }
