@@ -22,7 +22,20 @@
 
 #include "updater.h"
 
-extern NTSTATUS SilentWorkerThreadStart(
+// Always consider the remote version newer
+#define TEST_MODE
+
+static HANDLE TempFileHandle = NULL;
+static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
+static PPH_STRING RemoteHashString;
+static PPH_STRING LocalFilePathString = NULL;
+
+static PH_UPDATER_STATE PhUpdaterState = Default;
+static BOOL EnableCache = TRUE;
+static BOOL WindowVisible = FALSE;
+static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
+
+static NTSTATUS SilentWorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
@@ -43,47 +56,47 @@ extern NTSTATUS SilentWorkerThreadStart(
 	// Send the HTTP request.
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-		char buffer[BUFFER_LEN];
-		BOOL nReadFile = FALSE;
-
-		RtlZeroMemory(buffer, BUFFER_LEN);
+		PSTR data;
+        UPDATER_XML_DATA xmlData;
+        PPH_STRING localVersion;
+        ULONG localMajorVersion = 0;
+        ULONG localMinorVersion = 0;
 
 		// Read the resulting xml into our buffer.
-		while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
+		if (!ReadRequestString(NetRequest, &data, NULL))
+            return TRUE;
+
+		if (!QueryXmlData(data, &xmlData))
 		{
-			if (dwBytes == 0)
-				break;
-
-			if (!nReadFile)
-			{
-				LogEvent(PhFormatString(L"Updater: (SilentWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-
-				return TRUE;
-			}
-		}
-
-		if (!QueryXmlData(buffer))
-		{
+            PhFree(data);
 			return TRUE;
 		}
 
-		result = strcmp(VersionString->Buffer, "2.11"); 
+        PhFree(data);
 
-		if (result > 0)
+        localVersion = PhGetPhVersion();
+
+#ifndef TEST_MODE
+        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+        {
+            PhDereferenceObject(localVersion);
+            FreeXmlData(&xmlData);
+        }
+#else
+        localMajorVersion = 0;
+        localMinorVersion = 0;
+#endif
+
+		if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
 		{
 			// Don't spam the user the second they open PH, delay dialog creation for 5 seconds.
 			Sleep(5000);
 
-			if (!WindowVisible)
-			{			
-				DialogBox(
-					(HINSTANCE)PluginInstance->DllBase,
-					MAKEINTRESOURCE(IDD_OUTPUT),
-					PhMainWndHandle,
-					MainWndProc
-					);
-			}
+            ShowUpdateDialog();
 		}
+
+        PhDereferenceObject(localVersion);
+        FreeXmlData(&xmlData);
 	}
 	else
 	{
@@ -122,77 +135,78 @@ static NTSTATUS WorkerThreadStart(
 	// Send the HTTP request.
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-        char buffer[BUFFER_LEN];
-		BOOL nReadFile = FALSE;
+		PSTR data;
+        UPDATER_XML_DATA xmlData;
+        PPH_STRING localVersion;
+        ULONG localMajorVersion = 0;
+        ULONG localMinorVersion = 0;
 
 		// Read the resulting xml into our buffer.
-		while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytes))
+		if (!ReadRequestString(NetRequest, &data, NULL))
+            return TRUE;
+
+		if (!QueryXmlData(data, &xmlData))
 		{
-			if (dwBytes == 0)
-				break;
-
-			if (!nReadFile)
-			{
-				DWORD dwStatusResult = GetLastError();
-				LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) InternetReadFile failed (%d)", dwStatusResult));
-
-				return dwStatusResult;
-			}
-		}
-
-		if (!QueryXmlData(buffer))
-		{
-			SetDlgItemText(context, IDC_MESSAGE, L"There was an error downloading the xml.");
+            PhFree(data);
 			return TRUE;
 		}
 
-		result = strcmp(VersionString->Buffer, "2.11"); 
+        PhFree(data);
+
+        localVersion = PhGetPhVersion();
+
+#ifndef TEST_MODE
+        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+        {
+            PhDereferenceObject(localVersion);
+            FreeXmlData(&xmlData);
+        }
+#else
+        localMajorVersion = 0;
+        localMinorVersion = 0;
+#endif
+
+        result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
+
+        PhSwapReference(&RemoteHashString, xmlData.Hash);
 
 		if (result > 0)
 		{
-			PPH_STRING summaryText = NULL, versionText = NULL;
+			PPH_STRING summaryText;
 
-			versionText = PhCreateStringFromAnsi(VersionString->Buffer);
-			summaryText = PhFormatString(L"Process Hacker %s is available.", versionText->Buffer);
+			summaryText = PhFormatString(L"Process Hacker %u.%u is available.", xmlData.MajorVersion, xmlData.MinorVersion);
 			SetDlgItemText(context, IDC_MESSAGE, summaryText->Buffer);
-
 			PhDereferenceObject(summaryText);
-			PhDereferenceObject(versionText);
 
-			summaryText = PhFormatString(L"Released: %s", ReldateString->Buffer);
+            summaryText = PhFormatString(L"Released: %s", xmlData.RelDate->Buffer);
 			SetDlgItemText(context, IDC_DLSIZE, summaryText->Buffer);
-			
 			PhDereferenceObject(summaryText);
 
-			summaryText = PhFormatString(L"Size: %s", SizeString->Buffer);
+            summaryText = PhFormatString(L"Size: %s", xmlData.Size->Buffer);
 			SetDlgItemText(context, IDC_RELDATE, summaryText->Buffer);
-			
-			PhDereferenceObject(summaryText);
+            PhDereferenceObject(summaryText);
 		}
 		else if (result == 0)
 		{
-			PPH_STRING summaryText = NULL, versionText = NULL;
+			PPH_STRING summaryText;
 
-			versionText = PhCreateStringFromAnsi(VersionString->Buffer);	
-			summaryText = PhFormatString(L"You're running the latest version: %s", versionText->Buffer);
-
+			summaryText = PhFormatString(L"You're running the latest version: %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
 			SetDlgItemText(context, IDC_MESSAGE, summaryText->Buffer);
-
-			PhDereferenceObject(versionText);
 			PhDereferenceObject(summaryText);
 
 			//EnableWindow(context->DownloadButtonHandle, FALSE);
 		}
 		else if (result < 0)
 		{
-			PPH_STRING localText = PhGetPhVersion();
-			PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %s", localText->Buffer);
+            PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %u.%u", localMajorVersion, localMinorVersion);
 
 			SetDlgItemText(context, IDC_MESSAGE, summaryText->Buffer);
 
-			PhDereferenceObject(localText);
 			PhDereferenceObject(summaryText);
 		}
+
+        PhDereferenceObject(localVersion);
+        FreeXmlData(&xmlData);
 	}
 	else
 	{
@@ -251,7 +265,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 			// Initialize hash algorithm.
 			PhInitializeHash(&hashContext, HashAlgorithm);
 
-			while (nReadFile = InternetReadFile(NetRequest, &buffer, BUFFER_LEN, &dwBytesRead)) 
+			while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)) 
 			{
 				if (dwBytesRead == 0)
 					break;
@@ -294,6 +308,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 				dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
 
 				SendMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
+
 				{
 					PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
 				    //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
@@ -362,18 +377,8 @@ static NTSTATUS DownloadWorkerThreadStart(
 			{
 				// Allocate our hash string, hex the final hash result in our hashBuffer.
 				PH_STRING *hexString = PhBufferToHexString(hashBuffer, hashLength);				
-				// Allocate our hexString as ANSI for strncmp.
-				PH_ANSI_STRING *ansihexString = PhCreateAnsiStringFromUnicode(hexString->Buffer);
-				
-				// Compare the two strings, ansihexString against RemoteHashString.
-				int strResult = strncmp(ansihexString->Buffer, RemoteHashString->Buffer, hashLength); 
 
-				// Free strings
-				PhDereferenceObject(ansihexString);
-				PhDereferenceObject(hexString);
-
-				// Check the comparison result. 
-				if (strResult == 0)
+				if (PhEqualString(hexString, RemoteHashString, TRUE))
 				{
 					Updater_SetStatusText(hwndDlg, L"Hash Verified");
 				}
@@ -383,7 +388,10 @@ static NTSTATUS DownloadWorkerThreadStart(
 						SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
 
 					Updater_SetStatusText(hwndDlg, L"Hash failed");
-				}
+				} 
+
+				// Free string
+				PhDereferenceObject(hexString);
 			}
 			else
 			{
@@ -428,6 +436,11 @@ INT_PTR CALLBACK MainWndProc(
 			PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
 		}
 		break;
+    case WM_DESTROY:
+        {
+            WindowVisible = FALSE;
+        }
+        break;
 	case WM_COMMAND:
 		{
 			switch (LOWORD(wParam))
@@ -437,8 +450,6 @@ INT_PTR CALLBACK MainWndProc(
 				{
 					DisposeConnection();
 					DisposeStrings();
-								
-					WindowVisible = FALSE;
 
 					EndDialog(hwndDlg, IDOK);
 				}
@@ -597,7 +608,7 @@ BOOL InitializeFile()
 		L"processhacker-setup.exe"
 		);
 
-	// Open output file
+	// Create output file
 	TempFileHandle = CreateFile(
 		LocalFilePathString->Buffer,
 		GENERIC_WRITE,
@@ -617,81 +628,133 @@ BOOL InitializeFile()
 	return TRUE;
 }
 
-BOOL QueryXmlData(void* buffer)
+BOOL ReadRequestString(
+    __in HINTERNET Handle,
+    __out PSTR *Data,
+    __out_opt PULONG DataLength
+    )
 {
-	mxml_node_t *xmlDoc = NULL, *xmlNode2 = NULL, *xmlNode3 = NULL, *xmlNode4 = NULL, *xmlNode5 = NULL;
+    CHAR buffer[512];
+    PSTR data;
+    ULONG allocatedLength;
+    ULONG dataLength;
+    ULONG returnLength;
+
+    allocatedLength = sizeof(buffer);
+    data = PhAllocate(allocatedLength);
+    dataLength = 0;
+
+    while (InternetReadFile(Handle, buffer, 512, &returnLength))
+    {
+        if (returnLength == 0)
+            break;
+
+        if (allocatedLength < dataLength + returnLength)
+        {
+            allocatedLength *= 2;
+            data = PhReAllocate(data, allocatedLength);
+        }
+
+        memcpy(data + dataLength, buffer, returnLength);
+        dataLength += returnLength;
+    }
+
+    if (allocatedLength < dataLength + 1)
+    {
+        allocatedLength++;
+        data = PhReAllocate(data, allocatedLength);
+    }
+
+    // Ensure that the buffer is null-terminated.
+    data[dataLength] = 0;
+
+    *Data = data;
+
+    if (DataLength)
+        *DataLength = dataLength;
+
+    return TRUE;
+}
+
+BOOL QueryXmlData(
+    __in PVOID Buffer,
+    __out PUPDATER_XML_DATA XmlData
+    )
+{
+    BOOL result = FALSE;
+	mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
+    PPH_STRING temp;
 
 	// Load our XML.
-	xmlDoc = mxmlLoadString(NULL, (char*)buffer, MXML_OPAQUE_CALLBACK);
+	xmlDoc = mxmlLoadString(NULL, (char*)Buffer, MXML_OPAQUE_CALLBACK);
 	// Check our XML.
 	if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
 	{
 		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
-		return FALSE;
+		goto CleanupAndExit;
 	}
 
 	// Find the ver node.
-	xmlNode2 = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
-	if (xmlNode2 == NULL || xmlNode2->type != MXML_ELEMENT)
+	xmlNodeVer = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
+	if (xmlNodeVer == NULL || xmlNodeVer->type != MXML_ELEMENT)
 	{
-		mxmlRelease(xmlDoc);
-
-		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode2 failed."));
-		return FALSE;
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeVer failed."));
+		goto CleanupAndExit;
 	}
 
 	// Find the reldate node.
-	xmlNode3 = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
-	if (xmlNode3 == NULL || xmlNode3->type != MXML_ELEMENT)
+	xmlNodeRelDate = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
+	if (xmlNodeRelDate == NULL || xmlNodeRelDate->type != MXML_ELEMENT)
 	{
-		mxmlRelease(xmlNode2);
-		mxmlRelease(xmlDoc);
-
-		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode3 failed."));
-		return FALSE;
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeRelDate failed."));
+		goto CleanupAndExit;
 	}
 
 	// Find the size node.
-	xmlNode4 = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
-	if (xmlNode4 == NULL || xmlNode4->type != MXML_ELEMENT)
+	xmlNodeSize = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
+	if (xmlNodeSize == NULL || xmlNodeSize->type != MXML_ELEMENT)
 	{
-		mxmlRelease(xmlNode3);	
-		mxmlRelease(xmlNode2);
-		mxmlRelease(xmlDoc);
-
-		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode4 failed."));
-		return FALSE;
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeSize failed."));
+		goto CleanupAndExit;
 	}
 
 	if (HashAlgorithm == Md5HashAlgorithm)
-		xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
+		xmlNodeHash = mxmlFindElement(xmlDoc, xmlDoc, "md5", NULL, NULL, MXML_DESCEND);
 	else
-		xmlNode5 = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
+		xmlNodeHash = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
 
-	if (xmlNode5 == NULL || xmlNode5->type != MXML_ELEMENT)
+	if (xmlNodeHash == NULL || xmlNodeHash->type != MXML_ELEMENT)
 	{
-		mxmlRelease(xmlNode4);
-		mxmlRelease(xmlNode3);	
-		mxmlRelease(xmlNode2);
-		mxmlRelease(xmlDoc);
-
-		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNode5 (md5) failed."));
-		return FALSE;
+		LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeHash failed."));
+		goto CleanupAndExit;
 	}
 
-	VersionString = PhCreateAnsiString(xmlNode2->child->value.opaque);
-	RemoteHashString = PhCreateAnsiString(xmlNode5->child->value.opaque);
-	ReldateString = PhCreateStringFromAnsi(xmlNode3->child->value.opaque);
-	SizeString = PhCreateStringFromAnsi(xmlNode4->child->value.opaque);
-	BetaDlString = PhCreateStringFromAnsi(xmlNode5->child->value.opaque);
+    temp = PhCreateStringFromAnsi(xmlNodeVer->child->value.opaque);
+    result = ParseVersionString(temp->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion);
+    PhDereferenceObject(temp);
 
-	mxmlRelease(xmlNode5);
-	mxmlRelease(xmlNode4);
-	mxmlRelease(xmlNode3);	
-	mxmlRelease(xmlNode2);
-	mxmlRelease(xmlDoc);
+    if (!result)
+        goto CleanupAndExit;
 
-	return TRUE;
+    XmlData->RelDate = PhCreateStringFromAnsi(xmlNodeRelDate->child->value.opaque);
+    XmlData->Size = PhCreateStringFromAnsi(xmlNodeSize->child->value.opaque);
+    XmlData->Hash = PhCreateStringFromAnsi(xmlNodeHash->child->value.opaque);
+
+    result = TRUE;
+
+CleanupAndExit:
+	mxmlDelete(xmlDoc);
+
+	return result;
+}
+
+VOID FreeXmlData(
+    __in PUPDATER_XML_DATA XmlData
+    )
+{
+    PhDereferenceObject(XmlData->RelDate);
+    PhDereferenceObject(XmlData->Size);
+    PhDereferenceObject(XmlData->Hash);
 }
 
 BOOL ConnectionAvailable()
@@ -704,40 +767,104 @@ BOOL ConnectionAvailable()
 		return FALSE;
 	}
 
-	if (!InternetCheckConnection(NULL, FLAG_ICC_FORCE_CONNECTION, 0))
-	{
-		LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetCheckConnection failed to check Sourceforge.net: (%d)", GetLastError()));
-		return FALSE;
-	}
+	//if (!InternetCheckConnection(NULL, FLAG_ICC_FORCE_CONNECTION, 0))
+	//{
+	//	LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetCheckConnection failed to check Sourceforge.net: (%d)", GetLastError()));
+	//	return FALSE;
+	//}
 
 	return TRUE;
 }
 
+BOOL ParseVersionString(
+    __in PWSTR String,
+    __out PULONG MajorVersion,
+    __out PULONG MinorVersion
+    )
+{
+    PH_STRINGREF sr;
+    PH_STRINGREF majorPart;
+    PH_STRINGREF minorPart;
+    ULONG64 majorInteger;
+    ULONG64 minorInteger;
+
+    PhInitializeStringRef(&sr, String);
+
+    if (PhSplitStringRefAtChar(&sr, '.', &majorPart, &minorPart))
+    {
+        PhStringToInteger64(&majorPart, 10, &majorInteger);
+        PhStringToInteger64(&minorPart, 10, &minorInteger);
+
+        *MajorVersion = (ULONG)majorInteger;
+        *MinorVersion = (ULONG)minorInteger;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+LONG CompareVersions(
+    __in ULONG MajorVersion1,
+    __in ULONG MinorVersion1,
+    __in ULONG MajorVersion2,
+    __in ULONG MinorVersion2
+    )
+{
+    LONG result;
+
+    result = intcmp(MajorVersion1, MajorVersion2);
+
+    if (result == 0)
+        result = intcmp(MinorVersion1, MinorVersion2);
+
+    return result;
+}
+
+VOID StartInitialCheck()
+{
+	// Queue up our initial update check.
+	PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)SilentWorkerThreadStart, NULL);
+}
+
+VOID ShowUpdateDialog()
+{
+	// check if our dialog is already visible (auto-check may already be visible).
+	if (!WindowVisible)
+	{
+		DialogBox(
+			(HINSTANCE)PluginInstance->DllBase,
+			MAKEINTRESOURCE(IDD_OUTPUT),
+			PhMainWndHandle,
+			MainWndProc
+			);
+	}
+}
+
 BOOL PhInstalledUsingSetup() 
 {
-	HKEY hKey = NULL;
-	DWORD result = 0;
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
+
+    NTSTATUS status;
+	HANDLE keyHandle;
 
 	// Check uninstall entries for the 'Process_Hacker2_is1' registry key.
-	result = RegOpenKeyEx(
-		HKEY_LOCAL_MACHINE, 
-		L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1", 
-		0, 
-		KEY_QUERY_VALUE, 
-		&hKey
-		);
-
-	// Cleanup
-	NtClose(hKey);
-
-	if (result != ERROR_SUCCESS)
-	{
-		LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) RegOpenKeyEx failed (%d)", result));
-
+    if (NT_SUCCESS(status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        NtClose(keyHandle);
+        return TRUE;
+    }
+    else
+    {
+        LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) PhOpenKey failed (0x%x)", status));
 		return FALSE;
 	}
-	
-	return TRUE;
 }
 
 VOID LogEvent(__in PPH_STRING str)
@@ -775,36 +902,6 @@ VOID DisposeStrings()
 		PhDereferenceObject(LocalFilePathString);
 		LocalFilePathString = NULL;
 	}
-
-	if (VersionString)
-	{
-		PhDereferenceObject(VersionString);
-		VersionString = NULL;
-	}
-
-	if (ReldateString)
-	{
-		PhDereferenceObject(ReldateString);
-		ReldateString = NULL;
-	}
-
-	if (SizeString)
-	{
-		PhDereferenceObject(SizeString);
-		SizeString = NULL;
-	}
-
-	if (RemoteHashString)
-	{
-		PhDereferenceObject(RemoteHashString);
-		RemoteHashString = NULL;
-	}
-
-	if (BetaDlString)
-	{
-		PhDereferenceObject(BetaDlString);
-		BetaDlString = NULL;
-	}
 }
 
 VOID DisposeFileHandles()
@@ -815,127 +912,3 @@ VOID DisposeFileHandles()
 		TempFileHandle = NULL;
 	}
 }
-
-
-//#define MO 0x100000 /* Read 1 Mo by 1Mo. */
-///*--------------------------------------------------------------------------*/
-//DWORD DownloadFile(char * szURL,char * szSaveFilePath)
-//{
-//
-//	HINTERNET hiConnex = NULL;
-//	/* * / * : /* all files type accepted*/
-//	char szHeader[]="Accept: */*\r\n\r\n"; 
-//	HINTERNET hiDownload;
-//
-//	hiConnex = InternetOpen(L"PhUpdater",INTERNET_OPEN_TYPE_DIRECT,NULL,NULL,0);
-//	if(hiConnex == NULL) 
-//		return 1;
-//
-//	if(!(hiDownload = InternetOpenUrl(hiConnex, szURL, szHeader, lstrlen(szHeader),INTERNET_FLAG_DONT_CACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_PRAGMA_NOCACHE,0)))
-//	{
-//		InternetCloseHandle(hiConnex);
-//		return 1;
-//	}
-//	else
-//	{
-//		HANDLE haFile;
-//
-//		haFile = CreateFile(szSaveFilePath,GENERIC_WRITE,FILE_SHARE_WRITE,0,CREATE_ALWAYS,0,0);
-//
-//		if(haFile == INVALID_HANDLE_VALUE)
-//		{
-//			InternetCloseHandle(hiConnex);
-//			return 1;
-//		}
-//		else
-//		{
-//			char *szBuff = NULL;
-//
-//			DWORD dwBytesRequired = 0;
-//			DWORD dwSizeOfByReq = 4;
-//			DWORD dwBytesRead = 0;
-//			DWORD dwBytesWritten = 0;
-//
-//			/* Get file size */
-//			if(!HttpQueryInfo(hiDownload,HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,(LPVOID)&dwBytesRequired,&dwSizeOfByReq,0))
-//			{
-//				InternetCloseHandle(hiConnex);
-//				return 1;
-//			}
-//			else
-//			{
-//				if(dwBytesRequired > MO)
-//				{
-//					szBuff = (char*)malloc(MO);
-//
-//					if(szBuff == NULL)
-//					{
-//						CloseHandle(haFile);
-//						InternetCloseHandle(hiConnex);
-//						return FALSE;
-//					}
-//				}
-//				else
-//				{
-//					szBuff = (char*)malloc(dwBytesRequired);
-//
-//					if(szBuff == NULL)
-//					{
-//						CloseHandle(haFile);
-//						InternetCloseHandle(hiConnex);
-//						return FALSE;
-//					}
-//				}
-//
-//				while(dwBytesRequired > 0)
-//				{
-//					if(dwBytesRequired >= MO)
-//					{
-//						if(!InternetReadFile(hiDownload,szBuff,MO,&dwBytesRead) || dwBytesRead != MO)
-//						{
-//							CloseHandle(haFile);
-//							InternetCloseHandle(hiConnex);
-//							free(szBuff);
-//							return 1;
-//						}
-//						dwBytesRequired -= MO;
-//
-//						if(!WriteFile(haFile,szBuff,MO,&dwBytesWritten,NULL) || dwBytesWritten != MO)
-//						{
-//							CloseHandle(haFile);
-//							InternetCloseHandle(hiConnex);
-//							free(szBuff);
-//							return 1;
-//						}
-//					}
-//					else
-//					{
-//						if(!InternetReadFile(hiDownload,szBuff,dwBytesRequired,&dwBytesRead) || dwBytesRead != dwBytesRequired)
-//						{
-//							CloseHandle(haFile);
-//							InternetCloseHandle(hiConnex);
-//							free(szBuff);
-//							return 1;
-//						}
-//
-//						if(!WriteFile(haFile,szBuff,dwBytesRequired,&dwBytesWritten,NULL) || dwBytesWritten != dwBytesRequired)
-//						{
-//							CloseHandle(haFile);
-//							InternetCloseHandle(hiConnex);
-//							free(szBuff);
-//							return 1;
-//						}
-//
-//						dwBytesRequired = 0;
-//					}
-//				}
-//
-//				InternetCloseHandle(hiConnex);
-//				CloseHandle(haFile);
-//				free(szBuff);
-//				return HTTP_DOWNLOAD_ERROR_OK;
-//			}
-//		}
-//	}
-//
-//}
