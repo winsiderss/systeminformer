@@ -608,12 +608,23 @@ typedef struct _PH_THREAD_PROVIDER
     PH_EVENT SymbolsLoadedEvent;
     LONG SymbolsLoading;
     SLIST_HEADER QueryListHead;
+    ULONG RunId;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 
 BOOLEAN PhThreadProviderInitialization();
 
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
     __in HANDLE ProcessId
+    );
+
+VOID PhRegisterThreadProvider(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __out PPH_CALLBACK_REGISTRATION CallbackRegistration
+    );
+
+VOID PhUnregisterThreadProvider(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in PPH_CALLBACK_REGISTRATION CallbackRegistration
     );
 
 PPH_THREAD_ITEM PhCreateThreadItem(
@@ -634,8 +645,8 @@ PPH_STRING PhGetThreadPriorityWin32String(
     __in LONG PriorityWin32
     );
 
-VOID PhThreadProviderUpdate(
-    __in PVOID Object
+VOID PhThreadProviderInitialUpdate(
+    __in PPH_THREAD_PROVIDER ThreadProvider
     );
 
 // hndlprv

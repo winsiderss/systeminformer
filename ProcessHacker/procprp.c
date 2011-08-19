@@ -1854,7 +1854,7 @@ static VOID NTAPI ThreadAddedHandler(
     PostMessage(
         threadsContext->WindowHandle,
         WM_PH_THREAD_ADDED,
-        PhGetRunIdProvider(&threadsContext->ProviderRegistration),
+        threadsContext->Provider->RunId,
         (LPARAM)Parameter
         );
 }
@@ -2346,16 +2346,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             threadsContext = propPageContext->Context =
                 PhAllocate(sizeof(PH_THREADS_CONTEXT));
 
-            // The thread provider must execute on the primary provider thread because 
-            // it depends on data from the process provider.
+            // The thread provider has a special registration mechanism.
             threadsContext->Provider = PhCreateThreadProvider(
                 processItem->ProcessId
-                );
-            PhRegisterProvider(
-                &PhPrimaryProviderThread,
-                PhThreadProviderUpdate,
-                threadsContext->Provider,
-                &threadsContext->ProviderRegistration
                 );
             PhRegisterCallback(
                 &threadsContext->Provider->ThreadAddedEvent,
@@ -2405,8 +2398,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             PhLoadSettingsThreadList(&threadsContext->ListContext);
 
-            PhSetEnabledProvider(&threadsContext->ProviderRegistration, TRUE);
-            PhBoostProvider(&threadsContext->ProviderRegistration, NULL);
+            PhThreadProviderInitialUpdate(threadsContext->Provider);
+            PhRegisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
 
             SET_BUTTON_BITMAP(IDC_OPENSTARTMODULE,
                 PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP));
@@ -2434,7 +2427,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 &threadsContext->Provider->LoadingStateChangedEvent,
                 &threadsContext->LoadingStateChangedEventRegistration
                 );
-            PhUnregisterProvider(&threadsContext->ProviderRegistration);
+            PhUnregisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
             PhDereferenceObject(threadsContext->Provider);
 
             PhSaveSettingsThreadList(&threadsContext->ListContext);
@@ -2817,10 +2810,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                PhSetEnabledProvider(&threadsContext->ProviderRegistration, TRUE);
                 break;
             case PSN_KILLACTIVE:
-                PhSetEnabledProvider(&threadsContext->ProviderRegistration, FALSE);
+                // Can't disable, it screws up the deltas.
                 break;
             }
         }
