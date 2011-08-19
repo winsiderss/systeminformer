@@ -22,12 +22,20 @@ extern BOOLEAN PhEnableProcessQueryStage2;
 extern BOOLEAN PhEnablePurgeProcessRecords;
 extern BOOLEAN PhEnableCycleCpuUsage;
 
+extern PVOID PhProcessInformation; // only can be used if running on same thread as process provider
+extern ULONG PhProcessInformationSequenceNumber;
 extern SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 extern PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
 extern SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
 extern ULONG PhTotalProcesses;
 extern ULONG PhTotalThreads;
 extern ULONG PhTotalHandles;
+
+extern ULONG64 PhCpuTotalCycleDelta;
+extern PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
+extern PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
+extern PH_UINT64_DELTA PhCpuIdleCycleDelta;
+extern PH_UINT64_DELTA PhCpuSystemCycleDelta;
 
 extern FLOAT PhCpuKernelUsage;
 extern FLOAT PhCpuUserUsage;
@@ -36,11 +44,11 @@ extern PFLOAT PhCpusUserUsage;
 
 extern PH_UINT64_DELTA PhCpuKernelDelta;
 extern PH_UINT64_DELTA PhCpuUserDelta;
-extern PH_UINT64_DELTA PhCpuOtherDelta;
+extern PH_UINT64_DELTA PhCpuIdleDelta;
 
 extern PPH_UINT64_DELTA PhCpusKernelDelta;
 extern PPH_UINT64_DELTA PhCpusUserDelta;
-extern PPH_UINT64_DELTA PhCpusOtherDelta;
+extern PPH_UINT64_DELTA PhCpusIdleDelta;
 
 extern PH_UINT64_DELTA PhIoReadDelta;
 extern PH_UINT64_DELTA PhIoWriteDelta;
@@ -555,6 +563,10 @@ typedef struct _PH_THREAD_ITEM
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER KernelTime;
     LARGE_INTEGER UserTime;
+
+    FLOAT CpuUsage;
+    PH_UINT64_DELTA CpuKernelDelta;
+    PH_UINT64_DELTA CpuUserDelta;
 
     PH_UINT32_DELTA ContextSwitchesDelta;
     PH_UINT64_DELTA CyclesDelta;

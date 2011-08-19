@@ -2346,11 +2346,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             threadsContext = propPageContext->Context =
                 PhAllocate(sizeof(PH_THREADS_CONTEXT));
 
+            // The thread provider must execute on the primary provider thread because 
+            // it depends on data from the process provider.
             threadsContext->Provider = PhCreateThreadProvider(
                 processItem->ProcessId
                 );
             PhRegisterProvider(
-                &PhSecondaryProviderThread,
+                &PhPrimaryProviderThread,
                 PhThreadProviderUpdate,
                 threadsContext->Provider,
                 &threadsContext->ProviderRegistration
