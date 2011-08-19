@@ -174,7 +174,14 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOWRITESDELTA, FALSE, L"I/O Writes Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOOTHERDELTA, FALSE, L"I/O Other Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
+    // Customizable columns (3)
     PhAddTreeNewColumn(hwnd, PHPRTLC_OSCONTEXT, FALSE, L"OS Context", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PAGEDPOOL, FALSE, L"Paged Pool", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PEAKPAGEDPOOL, FALSE, L"Peak Paged Pool", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_NONPAGEDPOOL, FALSE, L"Non-Paged Pool", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PEAKNONPAGEDPOOL, FALSE, L"Peak Non-Paged Pool", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_MINIMUMWORKINGSET, FALSE, L"Minimum Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_MAXIMUMWORKINGSET, FALSE, L"Maximum Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -504,6 +511,13 @@ VOID PhpRemoveProcessNode(
 
     for (i = 0; i < PHPRTLC_IOGROUP_COUNT; i++)
         if (ProcessNode->IoGroupText[i]) PhDereferenceObject(ProcessNode->IoGroupText[i]);
+
+    if (ProcessNode->PagedPoolText) PhDereferenceObject(ProcessNode->PagedPoolText);
+    if (ProcessNode->PeakPagedPoolText) PhDereferenceObject(ProcessNode->PeakPagedPoolText);
+    if (ProcessNode->NonPagedPoolText) PhDereferenceObject(ProcessNode->NonPagedPoolText);
+    if (ProcessNode->PeakNonPagedPoolText) PhDereferenceObject(ProcessNode->PeakNonPagedPoolText);
+    if (ProcessNode->MinimumWorkingSetText) PhDereferenceObject(ProcessNode->MinimumWorkingSetText);
+    if (ProcessNode->MaximumWorkingSetText) PhDereferenceObject(ProcessNode->MaximumWorkingSetText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -854,6 +868,35 @@ static VOID PhpUpdateProcessOsContext(
         }
 
         ProcessNode->ValidMask |= PHPN_OSCONTEXT;
+    }
+}
+
+static VOID PhpUpdateProcessNodeQuotaLimits(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_QUOTALIMITS))
+    {
+        QUOTA_LIMITS quotaLimits;
+
+        if (ProcessNode->ProcessItem->QueryHandle && NT_SUCCESS(NtQueryInformationProcess(
+            ProcessNode->ProcessItem->QueryHandle,
+            ProcessQuotaLimits,
+            &quotaLimits,
+            sizeof(QUOTA_LIMITS),
+            NULL
+            )))
+        {
+            ProcessNode->MinimumWorkingSetSize = quotaLimits.MinimumWorkingSetSize;
+            ProcessNode->MaximumWorkingSetSize = quotaLimits.MaximumWorkingSetSize;
+        }
+        else
+        {
+            ProcessNode->MinimumWorkingSetSize = 0;
+            ProcessNode->MaximumWorkingSetSize = 0;
+        }
+
+        ProcessNode->ValidMask |= PHPN_QUOTALIMITS;
     }
 }
 
@@ -1410,6 +1453,46 @@ BEGIN_SORT_FUNCTION(OsContext)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PagedPool)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.QuotaPagedPoolUsage, processItem2->VmCounters.QuotaPagedPoolUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PeakPagedPool)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.QuotaPeakPagedPoolUsage, processItem2->VmCounters.QuotaPeakPagedPoolUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(NonPagedPool)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.QuotaNonPagedPoolUsage, processItem2->VmCounters.QuotaNonPagedPoolUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PeakNonPagedPool)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.QuotaPeakNonPagedPoolUsage, processItem2->VmCounters.QuotaPeakNonPagedPoolUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(MinimumWorkingSet)
+{
+    PhpUpdateProcessNodeQuotaLimits(node1);
+    PhpUpdateProcessNodeQuotaLimits(node2);
+    sortResult = uintptrcmp(node1->MinimumWorkingSetSize, node2->MinimumWorkingSetSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(MaximumWorkingSet)
+{
+    PhpUpdateProcessNodeQuotaLimits(node1);
+    PhpUpdateProcessNodeQuotaLimits(node2);
+    sortResult = uintptrcmp(node1->MaximumWorkingSetSize, node2->MaximumWorkingSetSize);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1513,7 +1596,13 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(IoReadsDelta),
                         SORT_FUNCTION(IoWritesDelta),
                         SORT_FUNCTION(IoOtherDelta),
-                        SORT_FUNCTION(OsContext)
+                        SORT_FUNCTION(OsContext),
+                        SORT_FUNCTION(PagedPool),
+                        SORT_FUNCTION(PeakPagedPool),
+                        SORT_FUNCTION(NonPagedPool),
+                        SORT_FUNCTION(PeakNonPagedPool),
+                        SORT_FUNCTION(MinimumWorkingSet),
+                        SORT_FUNCTION(MaximumWorkingSet)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2064,6 +2153,32 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhInitializeStringRef(&getCellText->Text, L"N/A");
                 }
+                break;
+            case PHPRTLC_PAGEDPOOL:
+                PhSwapReference2(&node->PagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPagedPoolUsage, -1));
+                getCellText->Text = node->PagedPoolText->sr;
+                break;
+            case PHPRTLC_PEAKPAGEDPOOL:
+                PhSwapReference2(&node->PeakPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakPagedPoolUsage, -1));
+                getCellText->Text = node->PeakPagedPoolText->sr;
+                break;
+            case PHPRTLC_NONPAGEDPOOL:
+                PhSwapReference2(&node->NonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaNonPagedPoolUsage, -1));
+                getCellText->Text = node->NonPagedPoolText->sr;
+                break;
+            case PHPRTLC_PEAKNONPAGEDPOOL:
+                PhSwapReference2(&node->PeakNonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakNonPagedPoolUsage, -1));
+                getCellText->Text = node->PeakNonPagedPoolText->sr;
+                break;
+            case PHPRTLC_MINIMUMWORKINGSET:
+                PhpUpdateProcessNodeQuotaLimits(node);
+                PhSwapReference2(&node->MinimumWorkingSetText, PhFormatSize(node->MinimumWorkingSetSize, -1));
+                getCellText->Text = node->MinimumWorkingSetText->sr;
+                break;
+            case PHPRTLC_MAXIMUMWORKINGSET:
+                PhpUpdateProcessNodeQuotaLimits(node);
+                PhSwapReference2(&node->MaximumWorkingSetText, PhFormatSize(node->MaximumWorkingSetSize, -1));
+                getCellText->Text = node->MaximumWorkingSetText->sr;
                 break;
             default:
                 return FALSE;
