@@ -50,7 +50,7 @@ AppVerName=Process Hacker {#simple_app_version}
 AppVersion={#simple_app_version}
 AppPublisher=wj32
 AppPublisherURL=http://processhacker.sourceforge.net/
-AppSupportURL=http://sourceforge.net/tracker/?group_id=242527
+AppSupportURL=http://sourceforge.net/projects/processhacker/support
 AppUpdatesURL=http://processhacker.sourceforge.net/
 UninstallDisplayName=Process Hacker {#simple_app_version}
 DefaultDirName={pf}\Process Hacker 2
