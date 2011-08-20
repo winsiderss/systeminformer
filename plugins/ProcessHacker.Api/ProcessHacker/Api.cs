@@ -377,7 +377,7 @@ namespace ProcessHacker.Api
 
     public unsafe delegate byte PhProcessTreeFilter(
         PhProcessNode* ProcessNode,
-        IntPtr Context
+        [In, Optional] IntPtr Context
         );
 
     [StructLayout(LayoutKind.Sequential)]
@@ -418,7 +418,7 @@ namespace ProcessHacker.Api
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct PhString
+    public unsafe struct PhString : IDisposable
     {
         public ushort Length;
         public ushort MaximumLength;
@@ -438,10 +438,16 @@ namespace ProcessHacker.Api
         {
             return this.Text;
         }
+
+        public void Dispose()
+        {
+            fixed (void* buffer = &this)
+                NativeApi.PhDereferenceObject(buffer);
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct PhStringRef
+    public unsafe struct PhStringRef : IDisposable
     {
         public ushort Length;
         public ushort MaximumLength;
@@ -456,6 +462,12 @@ namespace ProcessHacker.Api
         public override string ToString()
         {
             return this.Text;
+        }
+
+        public void Dispose()
+        {
+            fixed (void* buffer = &this)
+                NativeApi.PhDereferenceObject(buffer);
         }
     }
 

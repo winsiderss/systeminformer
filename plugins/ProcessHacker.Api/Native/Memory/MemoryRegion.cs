@@ -2,7 +2,8 @@
  * Process Hacker - 
  *   memory region
  * 
- * Copyright (C) 2008-2009 wj32
+ * Copyright (C) 2011 wj32
+ * Copyright (C) 2011 dmex
  * 
  * This file is part of Process Hacker.
  * 

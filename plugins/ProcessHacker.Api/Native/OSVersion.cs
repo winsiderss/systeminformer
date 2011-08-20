@@ -22,7 +22,7 @@
 
 namespace System
 {
-    public enum OSArch : int
+    public enum OSArch
     {
         Unknown,
         I386,
