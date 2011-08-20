@@ -32,6 +32,7 @@ PPH_FULL_STRING PhGetTreeNewText(
     __in ULONG MaximumNumberOfColumns
     );
 
+PHLIBAPI
 PPH_LIST PhGetGenericTreeNewLines(
     __in HWND TreeNewHandle,
     __in ULONG Mode

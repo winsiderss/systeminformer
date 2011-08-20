@@ -33,6 +33,8 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     __in_opt PVOID Context
     );
 
+VOID EtpUpdateDiskInformation();
+
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
 

@@ -233,7 +233,7 @@ VOID PhMwpNotifyTabControl(
     );
 
 VOID PhMwpSelectionChangedTabControl(
-    VOID
+    __in ULONG OldIndex
     );
 
 PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(

@@ -45,7 +45,7 @@ INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(
     __in LPARAM lParam
     );
 
-VOID EtEtwProcessPropertiesInitializing(
+VOID EtProcessEtwPropertiesInitializing(
     __in PVOID Parameter
     )
 {

@@ -214,10 +214,9 @@ VOID ProcessesUpdatedHandler(
             do
             {
                 sum += extension->CpuHistory[i];
+                i++;
 
-                if (i != HISTORY_SIZE)
-                    i++;
-                else
+                if (i == HISTORY_SIZE)
                     i = 0;
             } while (--count != 0);
 
@@ -237,10 +236,9 @@ VOID ProcessesUpdatedHandler(
                 do
                 {
                     sum += extension->CpuHistory[i];
+                    i++;
 
-                    if (i != HISTORY_SIZE)
-                        i++;
-                    else
+                    if (i == HISTORY_SIZE)
                         i = 0;
                 } while (--count != 0);
 

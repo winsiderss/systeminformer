@@ -302,6 +302,7 @@ VOID PhpDestroyThreadNode(
     PhEmCallObjectOperation(EmThreadNodeType, ThreadNode, EmObjectDelete);
 
     if (ThreadNode->CyclesDeltaText) PhDereferenceObject(ThreadNode->CyclesDeltaText);
+    if (ThreadNode->StartAddressText) PhDereferenceObject(ThreadNode->StartAddressText);
     if (ThreadNode->PriorityText) PhDereferenceObject(ThreadNode->PriorityText);
 
     PhDereferenceObject(ThreadNode->ThreadItem);
@@ -551,7 +552,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 }
                 break;
             case PHTHTLC_STARTADDRESS:
-                getCellText->Text = PhGetStringRef(threadItem->StartAddressString);
+                PhSwapReference(&node->StartAddressText, threadItem->StartAddressString);
+                getCellText->Text = PhGetStringRef(node->StartAddressText);
                 break;
             case PHTHTLC_PRIORITY:
                 PhSwapReference2(&node->PriorityText, PhGetThreadPriorityWin32String(threadItem->PriorityWin32));

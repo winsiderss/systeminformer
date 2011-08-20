@@ -82,7 +82,7 @@ VOID EtpAddTreeNewColumn(
         );
 }
 
-VOID EtEtwProcessTreeNewInitializing(
+VOID EtProcessTreeNewInitializing(
     __in PVOID Parameter
     )
 {
@@ -123,7 +123,7 @@ VOID EtEtwProcessTreeNewInitializing(
     }
 }
 
-VOID EtEtwProcessTreeNewMessage(
+VOID EtProcessTreeNewMessage(
     __in PVOID Parameter
     )
 {
@@ -350,7 +350,7 @@ LONG EtpProcessTreeNewSortFunction(
     return result;
 }
 
-VOID EtEtwNetworkTreeNewInitializing(
+VOID EtNetworkTreeNewInitializing(
     __in PVOID Parameter
     )
 {
@@ -390,7 +390,7 @@ VOID EtpUpdateFirewallStatus(
     }
 }
 
-VOID EtEtwNetworkTreeNewMessage(
+VOID EtNetworkTreeNewMessage(
     __in PVOID Parameter
     )
 {

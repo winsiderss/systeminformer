@@ -1,4 +1,5 @@
 1.5
+ * Added Disk tab
  * Added Hard Faults, Hard Faults Delta and Peak Threads columns 
    to process tree list
  * Added Firewall Status column to network list

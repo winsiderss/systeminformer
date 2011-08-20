@@ -22,6 +22,8 @@
 #define IDD_OPTIONS                     109
 #define IDD_WSWATCH                     110
 #define IDR_EMPTYMEMLISTS               111
+#define IDR_MENU1                       112
+#define IDR_DISK                        112
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -78,13 +80,17 @@
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
 #define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40004
+#define ID_DISK_GOTOPROCESS             40005
+#define ID_DISK_COPY                    40006
+#define ID_DISK_PROPERTIES              40007
+#define ID_DISK_OPENFILELOCATION        40008
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        112
-#define _APS_NEXT_COMMAND_VALUE         40005
+#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_COMMAND_VALUE         40009
 #define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           109
 #endif

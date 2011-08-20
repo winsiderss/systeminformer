@@ -395,6 +395,38 @@ PhWritePhTextHeader(
     __inout PPH_FILE_STREAM FileStream
     );
 
+typedef struct _PH_TN_COLUMN_MENU_DATA
+{
+    HWND TreeNewHandle;
+    PPH_TREENEW_HEADER_MOUSE_EVENT MouseEvent;
+    ULONG DefaultSortColumn;
+    PH_SORT_ORDER DefaultSortOrder;
+
+    struct _PH_EMENU_ITEM *Menu;
+    struct _PH_EMENU_ITEM *Selection;
+    ULONG ProcessedId;
+} PH_TN_COLUMN_MENU_DATA, *PPH_TN_COLUMN_MENU_DATA;
+
+#define PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ((ULONG)-1)
+#define PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID ((ULONG)-2)
+#define PH_TN_COLUMN_MENU_SIZE_COLUMN_TO_FIT_ID ((ULONG)-3)
+#define PH_TN_COLUMN_MENU_SIZE_ALL_COLUMNS_TO_FIT_ID ((ULONG)-4)
+
+PHAPPAPI
+VOID PhInitializeTreeNewColumnMenu(
+    __inout PPH_TN_COLUMN_MENU_DATA Data
+    );
+
+PHAPPAPI
+BOOLEAN PhHandleTreeNewColumnMenu(
+    __inout PPH_TN_COLUMN_MENU_DATA Data
+    );
+
+PHAPPAPI
+VOID PhDeleteTreeNewColumnMenu(
+    __in PPH_TN_COLUMN_MENU_DATA Data
+    );
+
 // mainwnd
 
 #define PH_MAINWND_CLASS_NAME L"ProcessHacker"
@@ -462,6 +494,13 @@ typedef HWND (NTAPI *PPH_TAB_PAGE_CREATE_FUNCTION)(
     __in PVOID Context
     );
 
+typedef VOID (NTAPI *PPH_TAB_PAGE_CALLBACK_FUNCTION)(
+    __in PVOID Parameter1,
+    __in PVOID Parameter2,
+    __in PVOID Parameter3,
+    __in PVOID Context
+    );
+
 typedef struct _PH_ADDITIONAL_TAB_PAGE
 {
     PWSTR Text;
@@ -469,6 +508,8 @@ typedef struct _PH_ADDITIONAL_TAB_PAGE
     PPH_TAB_PAGE_CREATE_FUNCTION CreateFunction;
     HWND WindowHandle;
     INT Index;
+    PPH_TAB_PAGE_CALLBACK_FUNCTION SelectionChangedCallback;
+    PPH_TAB_PAGE_CALLBACK_FUNCTION SaveContentCallback;
 } PH_ADDITIONAL_TAB_PAGE, *PPH_ADDITIONAL_TAB_PAGE;
 
 #define PH_NOTIFY_MINIMUM 0x1
