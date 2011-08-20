@@ -48,6 +48,7 @@ VOID EtInitializeDiskTab()
     tabPage.Text = L"Disk";
     tabPage.CreateFunction = EtpDiskTabCreateFunction;
     tabPage.Index = MAXINT;
+    tabPage.SelectionChangedCallback = EtpDiskTabSelectionChangedCallback;
     tabPage.SaveContentCallback = EtpDiskTabSaveContentCallback;
     ProcessHacker_AddTabPage(PhMainWndHandle, &tabPage);
 }
@@ -117,6 +118,19 @@ HWND NTAPI EtpDiskTabCreateFunction(
     return hwnd;
 }
 
+VOID NTAPI EtpDiskTabSelectionChangedCallback(
+    __in PVOID Parameter1,
+    __in PVOID Parameter2,
+    __in PVOID Parameter3,
+    __in PVOID Context
+    )
+{
+    if ((BOOLEAN)Parameter1)
+    {
+        SetFocus(DiskTreeNewHandle);
+    }
+}
+
 VOID NTAPI EtpDiskTabSaveContentCallback(
     __in PVOID Parameter1,
     __in PVOID Parameter2,
@@ -166,7 +180,7 @@ VOID EtInitializeDiskTreeList(
 
     // Default columns
     PhAddTreeNewColumn(hwnd, ETDSTNC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, ETDSTNC_FILE, TRUE, L"File", 400, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_FILE, TRUE, L"File", 400, PH_ALIGN_LEFT, 1, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_READRATEAVERAGE, TRUE, L"Read Rate Average", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_WRITERATEAVERAGE, TRUE, L"Write Rate Average", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"Total Rate Average", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
