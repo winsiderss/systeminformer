@@ -43,6 +43,7 @@ typedef struct _ET_DISK_ITEM
 
     PPH_STRING ProcessName;
     PET_PROCESS_ICON ProcessIcon;
+    PPH_PROCESS_RECORD ProcessRecord;
 
     ULONG IoPriority;
     ULONG ResponseTimeCount;

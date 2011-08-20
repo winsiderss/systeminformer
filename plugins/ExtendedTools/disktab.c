@@ -774,11 +774,31 @@ VOID EtHandleDiskCommand(
 
             if (diskItem)
             {
+                PhReferenceObject(diskItem);
+
                 if (processNode = PhFindProcessNode(diskItem->ProcessId))
                 {
-                    ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
-                    PhSelectAndEnsureVisibleProcessNode(processNode);
+                    // Check if this is really the process that we want, or if it's just a case of PID re-use.
+                    if (processNode->ProcessItem->CreateTime.QuadPart == diskItem->ProcessRecord->CreateTime.QuadPart)
+                    {
+                        ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
+                        PhSelectAndEnsureVisibleProcessNode(processNode);
+                    }
+                    else if (diskItem->ProcessRecord)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, diskItem->ProcessRecord);
+                    }
+                    else
+                    {
+                        PhShowError(PhMainWndHandle, L"The process does not exist.");
+                    }
                 }
+                else if (diskItem->ProcessRecord)
+                {
+                    PhShowProcessRecordDialog(PhMainWndHandle, diskItem->ProcessRecord);
+                }
+
+                PhDereferenceObject(diskItem);
             }
         }
         break;
@@ -816,13 +836,33 @@ VOID EtpInitializeDiskMenu(
     __in ULONG NumberOfDiskItems
     )
 {
+    PPH_EMENU_ITEM item;
+
     if (NumberOfDiskItems == 0)
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfDiskItems == 1)
     {
-        NOTHING;
+        PPH_PROCESS_ITEM processItem;
+
+        // If we have a process record and the process has terminated, we can only show 
+        // process properties.
+        if (DiskItems[0]->ProcessRecord)
+        {
+            if (processItem = PhReferenceProcessItemForRecord(DiskItems[0]->ProcessRecord))
+            {
+                PhDereferenceObject(processItem);
+            }
+            else
+            {
+                if (item = PhFindEMenuItem(Menu, 0, NULL, ID_DISK_GOTOPROCESS))
+                {
+                    item->Text = L"Process Properties";
+                    item->Flags &= ~PH_EMENU_TEXT_OWNED;
+                }
+            }
+        }
     }
     else
     {
