@@ -589,6 +589,7 @@ typedef struct _PH_THREAD_NODE
 
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     PPH_STRING CyclesDeltaText; // used for Context Switches Delta as well
+    PPH_STRING StartAddressText;
     PPH_STRING PriorityText;
 } PH_THREAD_NODE, *PPH_THREAD_NODE;
 

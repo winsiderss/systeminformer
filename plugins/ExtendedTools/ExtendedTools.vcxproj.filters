@@ -54,6 +54,12 @@
     <ClCompile Include="treeext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="etwdisk.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disktab.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -63,6 +69,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="etwmon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disktabp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

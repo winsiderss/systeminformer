@@ -60,6 +60,7 @@ static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
 static INT NetworkTabIndex;
 static INT MaxTabIndex;
+static INT OldTabIndex;
 static PPH_LIST AdditionalTabPageList = NULL;
 static HWND ProcessTreeListHandle;
 static HWND ServiceTreeListHandle;
@@ -240,7 +241,7 @@ BOOLEAN PhMainWndInitialization(
     PhLogInitialization();
     PhQueueItemGlobalWorkQueue(PhMwpDelayedLoadFunction, NULL);
 
-    PhMwpSelectionChangedTabControl();
+    PhMwpSelectionChangedTabControl(-1);
 
     // Perform a layout.
     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
@@ -605,6 +606,11 @@ VOID PhMwpOnDestroy(
     ULONG mask;
     ULONG i;
 
+    // Notify plugins that we are shutting down.
+
+    if (PhPluginsEnabled)
+        PhUnloadPlugins();
+
     if (!PhMainWndExiting)
         ProcessHacker_SaveAllSettings(PhMainWndHandle);
 
@@ -618,11 +624,6 @@ VOID PhMwpOnDestroy(
         if (mask & i)
             PhRemoveNotifyIcon(i);
     }
-
-    // Notify plugins that we are shutting down.
-
-    if (PhPluginsEnabled)
-        PhUnloadPlugins();
 
     PostQuitMessage(0);
 }
@@ -763,7 +764,6 @@ VOID PhMwpOnCommand(
                 {
                     ULONG mode;
                     ULONG selectedTab;
-                    PPH_LIST lines = NULL;
 
                     if (PhEndsWithString2(fileName, L".csv", TRUE))
                         mode = PH_EXPORT_MODE_CSV;
@@ -775,27 +775,35 @@ VOID PhMwpOnCommand(
                     selectedTab = TabCtrl_GetCurSel(TabControlHandle);
 
                     if (selectedTab == ProcessesTabIndex)
+                    {
                         PhWriteProcessTree(fileStream, mode);
+                    }
                     else if (selectedTab == ServicesTabIndex)
+                    {
                         PhWriteServiceList(fileStream, mode);
+                    }
                     else if (selectedTab == NetworkTabIndex)
-                        lines = PhGetListViewLines(NetworkTreeListHandle, mode);
-
-                    if (lines)
+                    {
+                        PhWriteNetworkList(fileStream, mode);
+                    }
+                    else if (AdditionalTabPageList)
                     {
                         ULONG i;
 
-                        for (i = 0; i < lines->Count; i++)
+                        for (i = 0; i < AdditionalTabPageList->Count; i++)
                         {
-                            PPH_STRING line;
+                            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
 
-                            line = lines->Items[i];
-                            PhWriteStringAsAnsiFileStream(fileStream, &line->sr);
-                            PhDereferenceObject(line);
-                            PhWriteStringAsAnsiFileStream2(fileStream, L"\r\n");
+                            if (tabPage->Index == selectedTab)
+                            {
+                                if (tabPage->SaveContentCallback)
+                                {
+                                    tabPage->SaveContentCallback(fileStream, UlongToPtr(mode), NULL, tabPage->Context);
+                                }
+
+                                break;
+                            }
                         }
-
-                        PhDereferenceObject(lines);
                     }
 
                     PhDereferenceObject(fileStream);
@@ -2934,14 +2942,18 @@ VOID PhMwpNotifyTabControl(
     __in NMHDR *Header
     )
 {
-    if (Header->code == TCN_SELCHANGE)
+    if (Header->code == TCN_SELCHANGING)
     {
-        PhMwpSelectionChangedTabControl();
+        OldTabIndex = TabCtrl_GetCurSel(TabControlHandle);
+    }
+    else if (Header->code == TCN_SELCHANGE)
+    {
+        PhMwpSelectionChangedTabControl(OldTabIndex);
     }
 }
 
 VOID PhMwpSelectionChangedTabControl(
-    VOID
+    __in ULONG OldIndex
     )
 {
     INT selectedIndex;
@@ -2989,6 +3001,18 @@ VOID PhMwpSelectionChangedTabControl(
         {
             PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
 
+            if (tabPage->SelectionChangedCallback)
+            {
+                if (tabPage->Index == OldIndex)
+                {
+                    tabPage->SelectionChangedCallback((PVOID)FALSE, 0, 0, tabPage->Context);
+                }
+                else if (tabPage->Index == selectedIndex)
+                {
+                    tabPage->SelectionChangedCallback((PVOID)TRUE, 0, 0, tabPage->Context);
+                }
+            }
+
             ShowWindow(tabPage->WindowHandle, selectedIndex == tabPage->Index ? SW_SHOW : SW_HIDE);
         }
     }
@@ -3025,8 +3049,11 @@ VOID PhMwpSelectTabPage(
     __in ULONG Index
     )
 {
+    INT oldIndex;
+
+    oldIndex = TabCtrl_GetCurSel(TabControlHandle);
     TabCtrl_SetCurSel(TabControlHandle, Index);
-    PhMwpSelectionChangedTabControl();
+    PhMwpSelectionChangedTabControl(oldIndex);
 }
 
 static int __cdecl IconProcessesCpuUsageCompare(

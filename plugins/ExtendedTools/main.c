@@ -281,6 +281,8 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
+                    { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
+                    { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                     { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                     { IntegerSettingType, SETTING_NAME_ETWSYS_ALWAYS_ON_TOP, L"0" },
                     { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_POSITION, L"400,400" },
@@ -310,6 +312,7 @@ VOID NTAPI UnloadCallback(
     __in_opt PVOID Context
     )
 {
+    EtSaveSettingsDiskTreeList();
     EtEtwStatisticsUninitialization();
 }
 
@@ -332,7 +335,7 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_VIEW_DISKANDNETWORK:
         {
-            EtEtwShowSystemDialog();
+            EtShowEtwSystemDialog();
         }
         break;
     case ID_VIEW_MEMORYLISTS:
@@ -375,9 +378,9 @@ VOID NTAPI TreeNewMessageCallback(
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
 
     if (message->TreeNewHandle == ProcessTreeNewHandle)
-        EtEtwProcessTreeNewMessage(Parameter);
+        EtProcessTreeNewMessage(Parameter);
     else if (message->TreeNewHandle == NetworkTreeNewHandle)
-        EtEtwNetworkTreeNewMessage(Parameter);
+        EtNetworkTreeNewMessage(Parameter);
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -391,6 +394,8 @@ VOID NTAPI MainWindowShowingCallback(
     {
         // This will get inserted before Memory Lists.
         PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_DISKANDNETWORK, L"Disk and Network", NULL);
+
+        EtInitializeDiskTab();
     }
 }
 
@@ -399,7 +404,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     __in_opt PVOID Context
     )
 {
-    EtEtwProcessPropertiesInitializing(Parameter);
+    EtProcessEtwPropertiesInitializing(Parameter);
 }
 
 VOID NTAPI HandlePropertiesInitializingCallback(
@@ -516,7 +521,7 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
 
     ProcessTreeNewHandle = treeNewInfo->TreeNewHandle;
-    EtEtwProcessTreeNewInitializing(Parameter);
+    EtProcessTreeNewInitializing(Parameter);
 }
 
 VOID NTAPI NetworkTreeNewInitializingCallback(
@@ -527,7 +532,7 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
 
     NetworkTreeNewHandle = treeNewInfo->TreeNewHandle;
-    EtEtwNetworkTreeNewInitializing(Parameter);
+    EtNetworkTreeNewInitializing(Parameter);
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(

@@ -11,21 +11,106 @@ extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
 
 #define SETTING_PREFIX L"ProcessHacker.ExtendedTools."
+#define SETTING_NAME_DISK_TREE_LIST_COLUMNS (SETTING_PREFIX L"DiskTreeListColumns")
+#define SETTING_NAME_DISK_TREE_LIST_SORT (SETTING_PREFIX L"DiskTreeListSort")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (SETTING_PREFIX L"EnableEtwMonitor")
 #define SETTING_NAME_ETWSYS_ALWAYS_ON_TOP (SETTING_PREFIX L"EtwSysAlwaysOnTop")
 #define SETTING_NAME_ETWSYS_WINDOW_POSITION (SETTING_PREFIX L"EtwSysWindowPosition")
 #define SETTING_NAME_ETWSYS_WINDOW_SIZE (SETTING_PREFIX L"EtwSysWindowSize")
 #define SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION (SETTING_PREFIX L"MemoryListsWindowPosition")
 
+#define HISTORY_SIZE 60
+
+typedef struct _ET_DISK_ITEM
+{
+    LIST_ENTRY AgeListEntry;
+    ULONG AddTime;
+    ULONG FreshTime;
+
+    HANDLE ProcessId;
+    PPH_STRING FileName;
+    PPH_STRING FileNameWin32;
+
+    PPH_STRING ProcessName;
+    HICON ProcessIcon;
+    BOOLEAN ProcessIconValid;
+
+    ULONG64 ReadTotal;
+    ULONG64 WriteTotal;
+    ULONG64 ReadDelta;
+    ULONG64 WriteDelta;
+    ULONG64 ReadAverage;
+    ULONG64 WriteAverage;
+
+    ULONG64 ReadHistory[HISTORY_SIZE];
+    ULONG64 WriteHistory[HISTORY_SIZE];
+    ULONG HistoryCount;
+    ULONG HistoryPosition;
+} ET_DISK_ITEM, *PET_DISK_ITEM;
+
 // etwmon
 
 extern BOOLEAN EtEtwEnabled;
 
+// etwdisk
+
+extern BOOLEAN EtDiskEnabled;
+
+extern PPH_OBJECT_TYPE EtDiskItemType;
+extern PH_CALLBACK EtDiskItemAddedEvent;
+extern PH_CALLBACK EtDiskItemModifiedEvent;
+extern PH_CALLBACK EtDiskItemRemovedEvent;
+extern PH_CALLBACK EtDiskItemsUpdatedEvent;
+
+VOID EtInitializeDiskInformation();
+
+PET_DISK_ITEM EtCreateDiskItem();
+
+PET_DISK_ITEM EtReferenceDiskItem(
+    __in HANDLE ProcessId,
+    __in PPH_STRING FileName
+    );
+
+PPH_STRING EtFileObjectToFileName(
+    __in PVOID FileObject
+    );
+
 // etwprprp
 
-VOID EtEtwProcessPropertiesInitializing(
+VOID EtProcessEtwPropertiesInitializing(
     __in PVOID Parameter
     );
+
+// disktab
+
+#define ETDSTNC_NAME 0
+#define ETDSTNC_FILE 1
+#define ETDSTNC_READRATEAVERAGE 2
+#define ETDSTNC_WRITERATEAVERAGE 3
+#define ETDSTNC_TOTALRATEAVERAGE 4
+#define ETDSTNC_MAXIMUM 5
+
+typedef struct _ET_DISK_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PET_DISK_ITEM DiskItem;
+
+    PH_STRINGREF TextCache[ETDSTNC_MAXIMUM];
+
+    PPH_STRING ProcessNameText;
+    PPH_STRING ReadRateAverageText;
+    PPH_STRING WriteRateAverageText;
+    PPH_STRING TotalRateAverageText;
+
+    PPH_STRING TooltipText;
+} ET_DISK_NODE, *PET_DISK_NODE;
+
+VOID EtInitializeDiskTab();
+
+VOID EtLoadSettingsDiskTreeList();
+
+VOID EtSaveSettingsDiskTreeList();
 
 // treeext
 
@@ -54,11 +139,11 @@ VOID EtEtwProcessPropertiesInitializing(
 #define ETPRTNC_PEAKTHREADS 23
 #define ETPRTNC_MAXIMUM 23
 
-VOID EtEtwProcessTreeNewInitializing(
+VOID EtProcessTreeNewInitializing(
     __in PVOID Parameter
     );
 
-VOID EtEtwProcessTreeNewMessage(
+VOID EtProcessTreeNewMessage(
     __in PVOID Parameter
     );
 
@@ -75,11 +160,11 @@ VOID EtEtwProcessTreeNewMessage(
 #define ETNETNC_FIREWALLSTATUS 11
 #define ETNETNC_MAXIMUM 11
 
-VOID EtEtwNetworkTreeNewInitializing(
+VOID EtNetworkTreeNewInitializing(
     __in PVOID Parameter
     );
 
-VOID EtEtwNetworkTreeNewMessage(
+VOID EtNetworkTreeNewMessage(
     __in PVOID Parameter
     );
 
@@ -122,7 +207,7 @@ VOID EtEtwStatisticsUninitialization();
 
 // etwsys
 
-VOID EtEtwShowSystemDialog();
+VOID EtShowEtwSystemDialog();
 
 // memlists
 

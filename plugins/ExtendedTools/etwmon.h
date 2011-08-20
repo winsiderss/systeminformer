@@ -3,45 +3,42 @@
 
 #include <evntcons.h>
 
-typedef ULONG wmi_uint32;
-typedef ULONG wmi_IPAddrV4;
-typedef IN6_ADDR wmi_IPAddrV6;
-typedef USHORT wmi_Port;
-
 typedef struct
 {
-    wmi_uint32 LowPart;
-    wmi_uint32 HighPart;
-} wmi_uint64;
-
-typedef struct
-{
-    wmi_uint32 DiskNumber;
-    wmi_uint32 IrpFlags;
-    wmi_uint32 TransferSize;
-    wmi_uint32 ResponseTime;
-    wmi_uint64 ByteOffset;
-    // Other members not included.
+    ULONG DiskNumber;
+    ULONG IrpFlags;
+    ULONG TransferSize;
+    ULONG ResponseTime;
+    ULONG64 ByteOffset;
+    ULONG_PTR FileObject;
+    ULONG_PTR Irp;
+    ULONG64 HighResResponseTime;
 } DiskIo_TypeGroup1;
 
 typedef struct
 {
-    wmi_uint32 PID;
-    wmi_uint32 size;
-    wmi_IPAddrV4 daddr;
-    wmi_IPAddrV4 saddr;
-    wmi_Port dport;
-    wmi_Port sport;
+    ULONG_PTR FileObject;
+    WCHAR FileName[1];
+} FileIo_Name;
+
+typedef struct
+{
+    ULONG PID;
+    ULONG size;
+    ULONG daddr;
+    ULONG saddr;
+    USHORT dport;
+    USHORT sport;
 } TcpIpOrUdpIp_IPV4_Header;
 
 typedef struct
 {
-    wmi_uint32 PID;
-    wmi_uint32 size;
-    wmi_IPAddrV6 daddr;
-    wmi_IPAddrV6 saddr;
-    wmi_Port dport;
-    wmi_Port sport;
+    ULONG PID;
+    ULONG size;
+    IN6_ADDR daddr;
+    IN6_ADDR saddr;
+    USHORT dport;
+    USHORT sport;
 } TcpIpOrUdpIp_IPV6_Header;
 
 // etwmon
@@ -56,12 +53,18 @@ VOID EtStopEtwSession();
 
 VOID EtFlushEtwSession();
 
+ULONG EtStartEtwRundown();
+
 // etwstat
 
 typedef enum _ET_ETW_EVENT_TYPE
 {
     EtEtwDiskReadType = 1,
     EtEtwDiskWriteType,
+    EtEtwFileNameType,
+    EtEtwFileCreateType,
+    EtEtwFileDeleteType,
+    EtEtwFileRundownType,
     EtEtwNetworkReceiveType,
     EtEtwNetworkSendType
 } ET_ETW_EVENT_TYPE;
@@ -71,7 +74,16 @@ typedef struct _ET_ETW_DISK_EVENT
     ET_ETW_EVENT_TYPE Type;
     CLIENT_ID ClientId;
     ULONG TransferSize;
+    PVOID FileObject;
+    ULONG64 HighResResponseTime;
 } ET_ETW_DISK_EVENT, *PET_ETW_DISK_EVENT;
+
+typedef struct _ET_ETW_FILE_EVENT
+{
+    ET_ETW_EVENT_TYPE Type;
+    PVOID FileObject;
+    PH_STRINGREF FileName;
+} ET_ETW_FILE_EVENT, *PET_ETW_FILE_EVENT;
 
 typedef struct _ET_ETW_NETWORK_EVENT
 {
@@ -83,12 +95,24 @@ typedef struct _ET_ETW_NETWORK_EVENT
     PH_IP_ENDPOINT RemoteEndpoint;
 } ET_ETW_NETWORK_EVENT, *PET_ETW_NETWORK_EVENT;
 
+// etwstat
+
 VOID EtProcessDiskEvent(
     __in PET_ETW_DISK_EVENT Event
     );
 
 VOID EtProcessNetworkEvent(
     __in PET_ETW_NETWORK_EVENT Event
+    );
+
+// etwdisk
+
+VOID EtDiskProcessDiskEvent(
+    __in PET_ETW_DISK_EVENT Event
+    );
+
+VOID EtDiskProcessFileEvent(
+    __in PET_ETW_FILE_EVENT Event
     );
 
 #endif
