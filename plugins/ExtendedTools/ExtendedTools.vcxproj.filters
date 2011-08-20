@@ -60,6 +60,9 @@
     <ClCompile Include="disktab.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="procicon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
