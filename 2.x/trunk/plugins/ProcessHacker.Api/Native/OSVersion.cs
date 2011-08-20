@@ -20,6 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using ProcessHacker.Api;
+
 namespace System
 {
     public enum OSArch
@@ -54,7 +56,7 @@ namespace System
         /// <summary>
         /// An unknown version of Windows.
         /// </summary>
-        Unknown = int.MinValue
+        Unknown = 0
     }
 
     public static class OSVersion
@@ -64,33 +66,33 @@ namespace System
         public static int PlatformSize { get; private set; }
         public static string VersionString { get; private set; }
         public static int Bits { get; private set; }
-        public static bool HasCycleTime { get; private set; }
         public static bool HasExtendedTaskbar { get; private set; }
-        public static bool HasIoPriority { get; private set; }
-        public static bool HasPagePriority { get; private set; }
-        public static bool HasProtectedProcesses { get; private set; }
-        public static bool HasPsSuspendResumeProcess { get; private set; }
-        public static bool HasQueryLimitedInformation { get; private set; }
-        public static bool HasSetAccessToken { get; private set; }
         public static bool HasTaskDialogs { get; private set; }
         public static bool HasThemes { get; private set; }
         public static bool HasUac { get; private set; }
-        public static bool HasWin32ImageFileName { get; private set; }
 
         static OSVersion()
         {
-            Version version = Environment.OSVersion.Version;
+            int version = PluginGlobal.WindowsVersion;
 
-            if (version.Major == 5 && version.Minor == 1)
-                WindowsVersion = WindowsVersion.XP;
-            else if (version.Major == 5 && version.Minor == 2)
-                WindowsVersion = WindowsVersion.Server2003;
-            else if (version.Major == 6 && version.Minor == 0)
-                WindowsVersion = WindowsVersion.Vista;
-            else if (version.Major == 6 && version.Minor == 1)
-                WindowsVersion = WindowsVersion.Seven;
-            else
-                WindowsVersion = WindowsVersion.Unknown;
+            switch (version)
+            {
+                case 51:
+                    WindowsVersion = WindowsVersion.XP;
+                    break;
+                case 52:
+                    WindowsVersion = WindowsVersion.Server2003;
+                    break;
+                case 60:
+                    WindowsVersion = WindowsVersion.Vista;
+                    break;
+                case 61:
+                    WindowsVersion = WindowsVersion.Seven;
+                    break;
+                default:
+                    WindowsVersion = WindowsVersion.Unknown;
+                    break;
+            }
 
             if (WindowsVersion != WindowsVersion.Unknown)
             {
@@ -99,22 +101,10 @@ namespace System
                     HasThemes = true;
                 }
 
-                if (IsBelow(WindowsVersion.Vista))
-                {
-                    HasSetAccessToken = true;
-                }
-
                 if (IsAboveOrEqual(WindowsVersion.Vista))
                 {
-                    HasCycleTime = true;
-                    HasIoPriority = true;
-                    HasPagePriority = true;
-                    HasProtectedProcesses = true;
-                    HasPsSuspendResumeProcess = true;
-                    HasQueryLimitedInformation = true;
                     HasTaskDialogs = true;
                     HasUac = true;
-                    HasWin32ImageFileName = true;
                 }
 
                 if (IsAboveOrEqual(WindowsVersion.Seven))
