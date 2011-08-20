@@ -65,7 +65,7 @@ static PH_GRAPH_STATE NetworkGraphState;
 static RECT EtpNormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT EtpNormalGraphTextPadding = { 3, 3, 3, 3 };
 
-VOID EtEtwShowSystemDialog()
+VOID EtShowEtwSystemDialog()
 {
     if (!EtpEtwSysWindowHandle)
     {

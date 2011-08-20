@@ -84,6 +84,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -107,6 +108,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -128,6 +130,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -155,6 +158,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -168,6 +172,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="disktab.c" />
+    <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmon.c" />
     <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />
@@ -183,6 +189,7 @@
     <ClCompile Include="wswatch.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="disktabp.h" />
     <ClInclude Include="etwmon.h" />
     <ClInclude Include="exttools.h" />
     <ClInclude Include="resource.h" />

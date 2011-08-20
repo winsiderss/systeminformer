@@ -10,6 +10,7 @@ Process Hacker
    * Extended header context menu
    * Removed tooltip text truncation
    * Updated ExtendedTools plugin:
+     * Added Disk tab
      * Added Hard Faults, Hard Faults Delta and Peak Threads 
        columns to process tree list
      * Added Firewall Status column
@@ -24,6 +25,7 @@ Process Hacker
    * Fixed state highlighting bug
    * Fixed command line propagation for -elevate
    * Fixed tree list mouse wheel handling
+   * Fixed saving network list
 
 2.19
  * NEW/IMPROVED:

@@ -40,6 +40,7 @@ typedef struct _PH_EMENU_ITEM
 
 typedef struct _PH_EMENU_ITEM PH_EMENU, *PPH_EMENU;
 
+PHLIBAPI
 PPH_EMENU_ITEM PhCreateEMenuItem(
     __in ULONG Flags,
     __in ULONG Id,
@@ -90,8 +91,10 @@ VOID PhRemoveAllEMenuItems(
     __inout PPH_EMENU_ITEM Parent
     );
 
+PHLIBAPI
 PPH_EMENU PhCreateEMenu();
 
+PHLIBAPI
 VOID PhDestroyEMenu(
     __in PPH_EMENU Menu
     );
@@ -122,6 +125,7 @@ VOID PhPopupMenuToEMenuItem(
     __in HMENU PopupMenu
     );
 
+PHLIBAPI
 VOID PhLoadResourceEMenuItem(
     __inout PPH_EMENU_ITEM MenuItem,
     __in HINSTANCE InstanceHandle,
@@ -132,6 +136,7 @@ VOID PhLoadResourceEMenuItem(
 #define PH_EMENU_SHOW_NONOTIFY 0x1
 #define PH_EMENU_SHOW_LEFTRIGHT 0x2
 
+PHLIBAPI
 PPH_EMENU_ITEM PhShowEMenu(
     __in PPH_EMENU Menu,
     __in HWND WindowHandle,
@@ -143,6 +148,7 @@ PPH_EMENU_ITEM PhShowEMenu(
 
 // Convenience functions
 
+PHLIBAPI
 BOOLEAN PhSetFlagsEMenuItem(
     __in PPH_EMENU_ITEM Item,
     __in ULONG Id,
@@ -159,6 +165,7 @@ FORCEINLINE BOOLEAN PhEnableEMenuItem(
     return PhSetFlagsEMenuItem(Item, Id, PH_EMENU_DISABLED, Enable ? 0 : PH_EMENU_DISABLED);
 }
 
+PHLIBAPI
 VOID PhSetFlagsAllEMenuItems(
     __in PPH_EMENU_ITEM Item,
     __in ULONG Mask,
