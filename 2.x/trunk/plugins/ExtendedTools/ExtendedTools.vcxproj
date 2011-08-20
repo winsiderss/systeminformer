@@ -175,6 +175,7 @@
     <ClCompile Include="disktab.c" />
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmon.c" />
+    <ClCompile Include="procicon.c" />
     <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />
     <ClCompile Include="etwprprp.c" />

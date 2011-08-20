@@ -135,6 +135,7 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
     if (diskItem->FileName) PhDereferenceObject(diskItem->FileName);
     if (diskItem->FileNameWin32) PhDereferenceObject(diskItem->FileNameWin32);
     if (diskItem->ProcessName) PhDereferenceObject(diskItem->ProcessName);
+    if (diskItem->ProcessIcon) EtProcIconDereferenceProcessIcon(diskItem->ProcessIcon);
 }
 
 // Copied from srvprv.c
@@ -349,11 +350,7 @@ VOID EtpProcessDiskPacket(
             diskItem->ProcessName = processItem->ProcessName;
             PhReferenceObject(processItem->ProcessName);
 
-            if (PhTestEvent(&processItem->Stage1Event))
-            {
-                diskItem->ProcessIcon = processItem->SmallIcon;
-                diskItem->ProcessIconValid = TRUE;
-            }
+            diskItem->ProcessIcon = EtProcIconReferenceSmallProcessIcon(EtGetProcessBlock(processItem));
 
             PhDereferenceObject(processItem);
         }
@@ -541,7 +538,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
             BOOLEAN modified = FALSE;
             PPH_PROCESS_ITEM processItem;
 
-            if (!diskItem->ProcessName || !diskItem->ProcessIconValid)
+            if (!diskItem->ProcessName || !diskItem->ProcessIcon)
             {
                 if (processItem = PhReferenceProcessItem(diskItem->ProcessId))
                 {
@@ -552,11 +549,12 @@ static VOID NTAPI ProcessesUpdatedCallback(
                         modified = TRUE;
                     }
 
-                    if (!diskItem->ProcessIconValid && PhTestEvent(&processItem->Stage1Event))
+                    if (!diskItem->ProcessIcon)
                     {
-                        diskItem->ProcessIcon = processItem->SmallIcon;
-                        diskItem->ProcessIconValid = TRUE;
-                        modified = TRUE;
+                        diskItem->ProcessIcon = EtProcIconReferenceSmallProcessIcon(EtGetProcessBlock(processItem));
+
+                        if (diskItem->ProcessIcon)
+                            modified = TRUE;
                     }
 
                     PhDereferenceObject(processItem);
