@@ -9,16 +9,16 @@ Process Hacker
    * Set descending sort as the default for most numeric columns
    * Extended header context menu
    * Removed tooltip text truncation
-   * Updated ExtendedTools plugin:
-     * Added Disk tab
-     * Added Hard Faults, Hard Faults Delta and Peak Threads 
-       columns to process tree list
-     * Added Firewall Status column
    * Improved cycle-based CPU usage calculation
    * Set default KProcessHacker security level to only allow 
      connections when Process Hacker is running as administrator. 
      See README.txt for instructions on how to restore the old 
      behavior.
+   * Updated ExtendedTools plugin:
+     * Added Disk tab
+     * Added Hard Faults, Hard Faults Delta and Peak Threads 
+       columns to process tree list
+     * Added Firewall Status column
  * FIXED:
    * Fixed file name resolution bug
    * Save settings on shutdown/logoff
