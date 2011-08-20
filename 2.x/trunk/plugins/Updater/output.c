@@ -24,9 +24,9 @@
 #include "updater.h"
 
 // Always consider the remote version newer
-//#ifdef DEBUG
+#ifdef _DEBUG
 #define TEST_MODE
-//#endif
+#endif
 
 static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
