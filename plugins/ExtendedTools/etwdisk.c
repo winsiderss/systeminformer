@@ -25,7 +25,7 @@
 
 typedef struct _ETP_DISK_PACKET
 {
-    SINGLE_LIST_ENTRY ListEntry;
+    SLIST_ENTRY ListEntry;
     ET_ETW_DISK_EVENT Event;
     PPH_STRING FileName;
 } ETP_DISK_PACKET, *PETP_DISK_PACKET;
@@ -451,7 +451,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
 {
     static ULONG runCount = 0;
 
-    PSINGLE_LIST_ENTRY listEntry;
+    PSLIST_ENTRY listEntry;
     PLIST_ENTRY ageListEntry;
 
     // Process incoming disk event packets.
