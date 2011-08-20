@@ -776,26 +776,23 @@ VOID EtHandleDiskCommand(
             {
                 PhReferenceObject(diskItem);
 
-                if (processNode = PhFindProcessNode(diskItem->ProcessId))
+                if (diskItem->ProcessRecord)
                 {
                     // Check if this is really the process that we want, or if it's just a case of PID re-use.
-                    if (processNode->ProcessItem->CreateTime.QuadPart == diskItem->ProcessRecord->CreateTime.QuadPart)
+                    if ((processNode = PhFindProcessNode(diskItem->ProcessId)) &&
+                        processNode->ProcessItem->CreateTime.QuadPart == diskItem->ProcessRecord->CreateTime.QuadPart)
                     {
                         ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
                         PhSelectAndEnsureVisibleProcessNode(processNode);
                     }
-                    else if (diskItem->ProcessRecord)
+                    else
                     {
                         PhShowProcessRecordDialog(PhMainWndHandle, diskItem->ProcessRecord);
                     }
-                    else
-                    {
-                        PhShowError(PhMainWndHandle, L"The process does not exist.");
-                    }
                 }
-                else if (diskItem->ProcessRecord)
+                else
                 {
-                    PhShowProcessRecordDialog(PhMainWndHandle, diskItem->ProcessRecord);
+                    PhShowError(PhMainWndHandle, L"The process does not exist.");
                 }
 
                 PhDereferenceObject(diskItem);
