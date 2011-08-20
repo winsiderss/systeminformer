@@ -522,7 +522,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
             diskItem->ResponseTimeAverage = (FLOAT)diskItem->ResponseTimeTotal / diskItem->ResponseTimeCount;
 
             // Reset the total once in a while to avoid the number getting too large (and thus losing precision).
-            if (diskItem->ResponseTimeCount == 1000)
+            if (diskItem->ResponseTimeCount >= 1000)
             {
                 diskItem->ResponseTimeTotal = diskItem->ResponseTimeAverage;
                 diskItem->ResponseTimeCount = 1;
