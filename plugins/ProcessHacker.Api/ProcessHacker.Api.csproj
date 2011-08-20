@@ -57,6 +57,7 @@
     <Compile Include="Native\NtBasic.cs" />
     <Compile Include="Native\ObApi.cs" />
     <Compile Include="Native\RtlApi.cs" />
+    <Compile Include="ProcessHacker\PluginSettings.cs" />
     <Compile Include="ProcessHacker\PropertySheetPage.cs">
       <SubType>UserControl</SubType>
     </Compile>

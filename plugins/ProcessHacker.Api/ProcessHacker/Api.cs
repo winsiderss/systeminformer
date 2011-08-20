@@ -881,6 +881,16 @@ namespace ProcessHacker.Api
 
         #endregion
 
+        #region Loader
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern void* GetProcAddress(
+            [In] IntPtr hModule,
+            [In] String procName
+            );
+
+        #endregion
+
         #region Native
 
         /// <summary>

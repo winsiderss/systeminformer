@@ -1,6 +1,6 @@
 ﻿/*
  * Process Hacker - 
- *   Settings API
+ *   Global Plugin Properties
  * 
  * Copyright (C) 2011 wj32
  * Copyright (C) 2011 dmex
@@ -22,84 +22,107 @@
  */
 
 using System;
-using ProcessHacker.Native;
+using System.Drawing;
 
 namespace ProcessHacker.Api
 {
+    public enum TOKEN_ELEVATION_TYPE
+    {
+        TokenElevationTypeDefault = 1,
+        TokenElevationTypeFull,
+        TokenElevationTypeLimited,
+    }
+
     public static unsafe class PluginGlobal
     {
-        public struct Setting
+        public static Font PhApplicationFont
         {
-            public PhSettingType Type;
-            public string Name;
-            public string DefaultValue;
-        }
-
-        public static void AddSettings(Setting[] settings)
-        {
-            PhSettingCreate* create = stackalloc PhSettingCreate[settings.Length];
-
-            for (int i = 0; i < settings.Length; i++)
+            get
             {
-                create[i].Type = settings[i].Type;
-                create[i].Name = (void*)NativeApi.StringToNativeUni(settings[i].Name);
-                create[i].DefaultValue = (void*)NativeApi.StringToNativeUni(settings[i].DefaultValue);
-            }
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhApplicationFont");
 
-            NativeApi.PhAddSettings(create, settings.Length);
-
-            for (int i = 0; i < settings.Length; i++)
-            {
-                MemoryAlloc.PrivateHeap.Free((IntPtr)create[i].Name);
-                MemoryAlloc.PrivateHeap.Free((IntPtr)create[i].DefaultValue);
+                return Font.FromHfont(((IntPtr*)proc)[0]);
             }
         }
 
-        public static int GetIntegerSetting(string name)
+        public static int PhCurrentSessionId
         {
-            return NativeApi.PhGetIntegerSetting(name);
-        }
-
-        public static PhIntegerPair GetIntegerPairSetting(string name)
-        {
-            return NativeApi.PhGetIntegerPairSetting(name);
-        }
-
-        public static string GetStringSetting(string name)
-        {
-            try
+            get
             {
-                PhString* value = NativeApi.PhGetStringSetting(name);
-                string newValue = value->Text;
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhCurrentSessionId");
 
-                value->Dispose();
-
-                return newValue;
-            }
-            catch (Exception)
-            {
-                return string.Empty;
+                return ((int*)proc)[0];
             }
         }
 
-        public static void SetIntegerSetting(string name, int value)
+        public static bool PhElevated
         {
-            NativeApi.PhSetIntegerSetting(name, value);
+            get
+            {
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhElevated");
+
+                return ((bool*)proc)[0];
+            }
         }
 
-        public static void SetIntegerPairSetting(string name, PhIntegerPair value)
+        public static TOKEN_ELEVATION_TYPE PhElevationType
         {
-            NativeApi.PhSetIntegerPairSetting(name, value);
+            get
+            {
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhElevationType");
+
+                return ((TOKEN_ELEVATION_TYPE*)proc)[0];
+            }
         }
 
-        public static void SetStringSetting(string name, string value)
+        public static IntPtr PhHeapHandle
         {
-            string setting = GetStringSetting(name);
+            get
+            {
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhHeapHandle");
 
-            if (string.IsNullOrEmpty(setting))
-                throw new ApplicationException("Unable to set non-existent setting.");
+                return ((IntPtr*)proc)[0];
+            }
+        }
 
-            NativeApi.PhSetStringSetting(name, value);
+        public static int PhKphFeatures
+        {
+            get
+            {
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhKphFeatures");
+
+                return ((int*)proc)[0];
+            }
+        }
+
+        public static IntPtr PhKphHandle
+        {
+            get
+            {
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhKphHandle");
+
+                return ((IntPtr*)proc)[0];
+            }
+        }
+
+        public static IntPtr PhMainWindowHandle
+        {
+            get
+            {
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhMainWndHandle");
+
+                return ((IntPtr*)proc)[0];
+            }
+        }
+
+        public static int WindowsVersion
+        {
+            get
+            {
+                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "WindowsVersion");
+
+                return ((int*)proc)[0];
+            }
         }
     }
 }
