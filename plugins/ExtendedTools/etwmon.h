@@ -73,6 +73,7 @@ typedef struct _ET_ETW_DISK_EVENT
 {
     ET_ETW_EVENT_TYPE Type;
     CLIENT_ID ClientId;
+    ULONG IrpFlags;
     ULONG TransferSize;
     PVOID FileObject;
     ULONG64 HighResResponseTime;

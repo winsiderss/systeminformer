@@ -65,13 +65,13 @@ SLIST_HEADER EtDiskPacketListHead;
 PPH_HASHTABLE EtFileNameHashtable;
 PH_QUEUED_LOCK EtFileNameHashtableLock = PH_QUEUED_LOCK_INIT;
 
+static LARGE_INTEGER EtpPerformanceFrequency;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 VOID EtInitializeDiskInformation()
 {
     NTSTATUS status;
-
-    EtDiskEnabled = TRUE;
+    LARGE_INTEGER performanceCounter;
 
     if (!NT_SUCCESS(status = PhCreateObjectType(
         &EtDiskItemType,
@@ -92,6 +92,10 @@ VOID EtInitializeDiskInformation()
     PhInitializeFreeList(&EtDiskPacketFreeList, sizeof(ETP_DISK_PACKET), 64);
     RtlInitializeSListHead(&EtDiskPacketListHead);
     EtFileNameHashtable = PhCreateSimpleHashtable(128);
+
+    NtQueryPerformanceCounter(&performanceCounter, &EtpPerformanceFrequency);
+
+    EtDiskEnabled = TRUE;
 
     // Collect all existing file names.
     EtStartEtwRundown();
@@ -369,11 +373,28 @@ VOID EtpProcessDiskPacket(
         added = TRUE;
     }
 
+    // The I/O priority number needs to be decoded.
+
+    diskItem->IoPriority = (diskEvent->IrpFlags >> 17) & 7;
+
+    if (diskItem->IoPriority == 0)
+        diskItem->IoPriority = IoPriorityNormal;
+    else
+        diskItem->IoPriority--;
+
     // Accumulate statistics for this update period.
+
     if (diskEvent->Type == EtEtwDiskReadType)
         diskItem->ReadDelta += diskEvent->TransferSize;
     else
         diskItem->WriteDelta += diskEvent->TransferSize;
+
+    if (EtpPerformanceFrequency.QuadPart != 0)
+    {
+        // Convert the response time to milliseconds.
+        diskItem->ResponseTimeTotal += (FLOAT)diskEvent->HighResResponseTime * 1000 / EtpPerformanceFrequency.QuadPart;
+        diskItem->ResponseTimeCount++;
+    }
 
     if (!added)
     {
@@ -495,6 +516,18 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
         if (diskItem->HistoryCount < HISTORY_SIZE)
             diskItem->HistoryCount++;
+
+        if (diskItem->ResponseTimeCount != 0)
+        {
+            diskItem->ResponseTimeAverage = (FLOAT)diskItem->ResponseTimeTotal / diskItem->ResponseTimeCount;
+
+            // Reset the total once in a while to avoid the number getting too large (and thus losing precision).
+            if (diskItem->ResponseTimeCount == 1000)
+            {
+                diskItem->ResponseTimeTotal = diskItem->ResponseTimeAverage;
+                diskItem->ResponseTimeCount = 1;
+            }
+        }
 
         diskItem->ReadTotal += diskItem->ReadDelta;
         diskItem->WriteTotal += diskItem->WriteDelta;

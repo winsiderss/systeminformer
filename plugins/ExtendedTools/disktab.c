@@ -170,6 +170,8 @@ VOID EtInitializeDiskTreeList(
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_READRATEAVERAGE, TRUE, L"Read Rate Average", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_WRITERATEAVERAGE, TRUE, L"Write Rate Average", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"Total Rate Average", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_IOPRIORITY, TRUE, L"I/O Priority", 70, PH_ALIGN_LEFT, 5, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_RESPONSETIME, TRUE, L"Response Time (ms)", 70, PH_ALIGN_RIGHT, 6, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -276,6 +278,7 @@ VOID EtRemoveDiskNode(
     if (DiskNode->ReadRateAverageText) PhDereferenceObject(DiskNode->ReadRateAverageText);
     if (DiskNode->WriteRateAverageText) PhDereferenceObject(DiskNode->WriteRateAverageText);
     if (DiskNode->TotalRateAverageText) PhDereferenceObject(DiskNode->TotalRateAverageText);
+    if (DiskNode->ResponseTimeText) PhDereferenceObject(DiskNode->ResponseTimeText);
     if (DiskNode->TooltipText) PhDereferenceObject(DiskNode->TooltipText);
 
     PhDereferenceObject(DiskNode->DiskItem);
@@ -290,7 +293,6 @@ VOID EtUpdateDiskNode(
     )
 {
     memset(DiskNode->TextCache, 0, sizeof(PH_STRINGREF) * ETDSTNC_MAXIMUM);
-    PhSwapReference(&DiskNode->TooltipText, NULL);
 
     PhInvalidateTreeNewNode(&DiskNode->Node, TN_CACHE_ICON);
     TreeNew_NodesStructured(DiskTreeNewHandle);
@@ -369,6 +371,18 @@ BEGIN_SORT_FUNCTION(TotalRateAverage)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(IoPriority)
+{
+    sortResult = uintcmp(diskItem1->IoPriority, diskItem2->IoPriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ResponseTime)
+{
+    sortResult = singlecmp(diskItem1->ResponseTimeAverage, diskItem2->ResponseTimeAverage);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -393,7 +407,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     SORT_FUNCTION(File),
                     SORT_FUNCTION(ReadRateAverage),
                     SORT_FUNCTION(WriteRateAverage),
-                    SORT_FUNCTION(TotalRateAverage)
+                    SORT_FUNCTION(TotalRateAverage),
+                    SORT_FUNCTION(IoPriority),
+                    SORT_FUNCTION(ResponseTime)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -444,6 +460,38 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
             case ETDSTNC_TOTALRATEAVERAGE:
                 EtpFormatRate(diskItem->ReadAverage + diskItem->WriteAverage, &node->TotalRateAverageText, &getCellText->Text);
                 break;
+            case ETDSTNC_IOPRIORITY:
+                switch (diskItem->IoPriority)
+                {
+                case IoPriorityVeryLow:
+                    PhInitializeStringRef(&getCellText->Text, L"Very Low");
+                    break;
+                case IoPriorityLow:
+                    PhInitializeStringRef(&getCellText->Text, L"Low");
+                    break;
+                case IoPriorityNormal:
+                    PhInitializeStringRef(&getCellText->Text, L"Normal");
+                    break;
+                case IoPriorityHigh:
+                    PhInitializeStringRef(&getCellText->Text, L"High");
+                    break;
+                case IoPriorityCritical:
+                    PhInitializeStringRef(&getCellText->Text, L"Critical");
+                    break;
+                default:
+                    PhInitializeStringRef(&getCellText->Text, L"Unknown");
+                    break;
+                }
+                break;
+            case ETDSTNC_RESPONSETIME:
+                {
+                    PH_FORMAT format;
+
+                    PhInitFormatF(&format, diskItem->ResponseTimeAverage, 0);
+                    PhSwapReference2(&node->ResponseTimeText, PhFormat(&format, 1, 0));
+                    getCellText->Text = node->ResponseTimeText->sr;
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -474,7 +522,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
-            PPH_PROCESS_ITEM processItem;
+            PPH_PROCESS_NODE processNode;
 
             node = (PET_DISK_NODE)getCellTooltip->Node;
 
@@ -483,10 +531,30 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
             if (!node->TooltipText)
             {
-                if (processItem = PhReferenceProcessItem(node->DiskItem->ProcessId))
+                if (processNode = PhFindProcessNode(node->DiskItem->ProcessId))
                 {
-                    node->TooltipText = PhCreateString(L"TODO"); // TODO
-                    PhDereferenceObject(processItem);
+                    PPH_TREENEW_CALLBACK callback;
+                    PVOID callbackContext;
+                    PPH_TREENEW_COLUMN fixedColumn;
+                    PH_TREENEW_GET_CELL_TOOLTIP fakeGetCellTooltip;
+
+                    // HACK: Get the tooltip text by using the treenew callback of the process tree.
+                    if (TreeNew_GetCallback(ProcessTreeNewHandle, &callback, &callbackContext) &&
+                        (fixedColumn = TreeNew_GetFixedColumn(ProcessTreeNewHandle)))
+                    {
+                        fakeGetCellTooltip.Flags = 0;
+                        fakeGetCellTooltip.Node = &processNode->Node;
+                        fakeGetCellTooltip.Column = fixedColumn;
+                        fakeGetCellTooltip.Unfolding = FALSE;
+                        PhInitializeEmptyStringRef(&fakeGetCellTooltip.Text);
+                        fakeGetCellTooltip.Font = getCellTooltip->Font;
+                        fakeGetCellTooltip.MaximumWidth = getCellTooltip->MaximumWidth;
+
+                        if (callback(ProcessTreeNewHandle, TreeNewGetCellTooltip, &fakeGetCellTooltip, NULL, callbackContext))
+                        {
+                            node->TooltipText = PhCreateStringEx(fakeGetCellTooltip.Text.Buffer, fakeGetCellTooltip.Text.Length);
+                        }
+                    }
                 }
             }
 
@@ -520,7 +588,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     EtHandleDiskCommand(ID_DISK_COPY);
                 break;
             case VK_RETURN:
-                EtHandleDiskCommand(ID_DISK_GOTOPROCESS);
+                EtHandleDiskCommand(ID_DISK_OPENFILELOCATION);
                 break;
             }
         }
@@ -543,7 +611,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         return TRUE;
     case TreeNewLeftDoubleClick:
         {
-            EtHandleDiskCommand(ID_DISK_GOTOPROCESS);
+            EtHandleDiskCommand(ID_DISK_OPENFILELOCATION);
         }
         return TRUE;
     case TreeNewContextMenu:
@@ -689,7 +757,42 @@ VOID EtHandleDiskCommand(
     {
     case ID_DISK_GOTOPROCESS:
         {
+            PET_DISK_ITEM diskItem = EtGetSelectedDiskItem();
+            PPH_PROCESS_NODE processNode;
 
+            if (diskItem)
+            {
+                if (processNode = PhFindProcessNode(diskItem->ProcessId))
+                {
+                    ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
+                    PhSelectAndEnsureVisibleProcessNode(processNode);
+                }
+            }
+        }
+        break;
+    case ID_DISK_OPENFILELOCATION:
+        {
+            PET_DISK_ITEM diskItem = EtGetSelectedDiskItem();
+
+            if (diskItem)
+            {
+                PhShellExploreFile(PhMainWndHandle, diskItem->FileNameWin32->Buffer);
+            }
+        }
+        break;
+    case ID_DISK_COPY:
+        {
+            EtCopyDiskList();
+        }
+        break;
+    case ID_DISK_PROPERTIES:
+        {
+            PET_DISK_ITEM diskItem = EtGetSelectedDiskItem();
+
+            if (diskItem)
+            {
+                PhShellProperties(PhMainWndHandle, diskItem->FileNameWin32->Buffer);
+            }
         }
         break;
     }
@@ -732,7 +835,7 @@ VOID EtShowDiskContextMenu(
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_DISK), 0);
-        PhSetFlagsEMenuItem(menu, ID_DISK_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+        PhSetFlagsEMenuItem(menu, ID_DISK_OPENFILELOCATION, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         EtpInitializeDiskMenu(menu, diskItems, numberOfDiskItems);
 
@@ -852,6 +955,8 @@ static VOID NTAPI EtpOnDiskItemsUpdated(
 
         // The name and file name never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (ETDSTNC_MAXIMUM - 2));
+        // Always get the newest tooltip text from the process tree.
+        PhSwapReference(&node->TooltipText, NULL);
     }
 
     InvalidateRect(DiskTreeNewHandle, NULL, FALSE);

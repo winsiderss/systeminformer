@@ -35,6 +35,11 @@ typedef struct _ET_DISK_ITEM
     HICON ProcessIcon;
     BOOLEAN ProcessIconValid;
 
+    ULONG IoPriority;
+    ULONG ResponseTimeCount;
+    FLOAT ResponseTimeTotal; // in milliseconds
+    FLOAT ResponseTimeAverage;
+
     ULONG64 ReadTotal;
     ULONG64 WriteTotal;
     ULONG64 ReadDelta;
@@ -88,7 +93,9 @@ VOID EtProcessEtwPropertiesInitializing(
 #define ETDSTNC_READRATEAVERAGE 2
 #define ETDSTNC_WRITERATEAVERAGE 3
 #define ETDSTNC_TOTALRATEAVERAGE 4
-#define ETDSTNC_MAXIMUM 5
+#define ETDSTNC_IOPRIORITY 5
+#define ETDSTNC_RESPONSETIME 6
+#define ETDSTNC_MAXIMUM 7
 
 typedef struct _ET_DISK_NODE
 {
@@ -102,6 +109,7 @@ typedef struct _ET_DISK_NODE
     PPH_STRING ReadRateAverageText;
     PPH_STRING WriteRateAverageText;
     PPH_STRING TotalRateAverageText;
+    PPH_STRING ResponseTimeText;
 
     PPH_STRING TooltipText;
 } ET_DISK_NODE, *PET_DISK_NODE;

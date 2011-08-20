@@ -215,6 +215,7 @@ VOID NTAPI EtpEtwEventCallback(
                 diskEvent.ClientId.UniqueThread = UlongToHandle(EventTrace->Header.ThreadId);
             }
 
+            diskEvent.IrpFlags = data->IrpFlags;
             diskEvent.TransferSize = data->TransferSize;
             diskEvent.FileObject = (PVOID)data->FileObject;
             diskEvent.HighResResponseTime = data->HighResResponseTime;
