@@ -19,6 +19,16 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_ETWSYS_WINDOW_SIZE (SETTING_PREFIX L"EtwSysWindowSize")
 #define SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION (SETTING_PREFIX L"MemoryListsWindowPosition")
 
+// Process icon
+
+typedef struct _ET_PROCESS_ICON
+{
+    LONG RefCount;
+    HICON Icon;
+} ET_PROCESS_ICON, *PET_PROCESS_ICON;
+
+// Disk item
+
 #define HISTORY_SIZE 60
 
 typedef struct _ET_DISK_ITEM
@@ -32,8 +42,7 @@ typedef struct _ET_DISK_ITEM
     PPH_STRING FileNameWin32;
 
     PPH_STRING ProcessName;
-    HICON ProcessIcon;
-    BOOLEAN ProcessIconValid;
+    PET_PROCESS_ICON ProcessIcon;
 
     ULONG IoPriority;
     ULONG ResponseTimeCount;
@@ -53,40 +62,7 @@ typedef struct _ET_DISK_ITEM
     ULONG HistoryPosition;
 } ET_DISK_ITEM, *PET_DISK_ITEM;
 
-// etwmon
-
-extern BOOLEAN EtEtwEnabled;
-
-// etwdisk
-
-extern BOOLEAN EtDiskEnabled;
-
-extern PPH_OBJECT_TYPE EtDiskItemType;
-extern PH_CALLBACK EtDiskItemAddedEvent;
-extern PH_CALLBACK EtDiskItemModifiedEvent;
-extern PH_CALLBACK EtDiskItemRemovedEvent;
-extern PH_CALLBACK EtDiskItemsUpdatedEvent;
-
-VOID EtInitializeDiskInformation();
-
-PET_DISK_ITEM EtCreateDiskItem();
-
-PET_DISK_ITEM EtReferenceDiskItem(
-    __in HANDLE ProcessId,
-    __in PPH_STRING FileName
-    );
-
-PPH_STRING EtFileObjectToFileName(
-    __in PVOID FileObject
-    );
-
-// etwprprp
-
-VOID EtProcessEtwPropertiesInitializing(
-    __in PVOID Parameter
-    );
-
-// disktab
+// Disk node
 
 #define ETDSTNC_NAME 0
 #define ETDSTNC_FILE 1
@@ -114,13 +90,7 @@ typedef struct _ET_DISK_NODE
     PPH_STRING TooltipText;
 } ET_DISK_NODE, *PET_DISK_NODE;
 
-VOID EtInitializeDiskTab();
-
-VOID EtLoadSettingsDiskTreeList();
-
-VOID EtSaveSettingsDiskTreeList();
-
-// treeext
+// Process tree columns
 
 #define ETPRTNC_DISKREADS 1
 #define ETPRTNC_DISKWRITES 2
@@ -147,13 +117,7 @@ VOID EtSaveSettingsDiskTreeList();
 #define ETPRTNC_PEAKTHREADS 23
 #define ETPRTNC_MAXIMUM 23
 
-VOID EtProcessTreeNewInitializing(
-    __in PVOID Parameter
-    );
-
-VOID EtProcessTreeNewMessage(
-    __in PVOID Parameter
-    );
+// Network list columns
 
 #define ETNETNC_RECEIVES 1
 #define ETNETNC_SENDS 2
@@ -168,13 +132,7 @@ VOID EtProcessTreeNewMessage(
 #define ETNETNC_FIREWALLSTATUS 11
 #define ETNETNC_MAXIMUM 11
 
-VOID EtNetworkTreeNewInitializing(
-    __in PVOID Parameter
-    );
-
-VOID EtNetworkTreeNewMessage(
-    __in PVOID Parameter
-    );
+// Firewall status
 
 typedef enum _ET_FIREWALL_STATUS
 {
@@ -186,9 +144,84 @@ typedef enum _ET_FIREWALL_STATUS
     FirewallMaximumStatus
 } ET_FIREWALL_STATUS;
 
-ET_FIREWALL_STATUS EtQueryFirewallStatus(
+// Object extensions
+
+typedef struct _ET_PROCESS_BLOCK
+{
+    LIST_ENTRY ListEntry;
+    PPH_PROCESS_ITEM ProcessItem;
+
+    ULONG DiskReadCount;
+    ULONG DiskWriteCount;
+    ULONG NetworkReceiveCount;
+    ULONG NetworkSendCount;
+
+    ULONG DiskReadRaw;
+    ULONG DiskWriteRaw;
+    ULONG NetworkReceiveRaw;
+    ULONG NetworkSendRaw;
+
+    PH_UINT32_DELTA DiskReadDelta;
+    PH_UINT32_DELTA DiskReadRawDelta;
+    PH_UINT32_DELTA DiskWriteDelta;
+    PH_UINT32_DELTA DiskWriteRawDelta;
+    PH_UINT32_DELTA NetworkReceiveDelta;
+    PH_UINT32_DELTA NetworkReceiveRawDelta;
+    PH_UINT32_DELTA NetworkSendDelta;
+    PH_UINT32_DELTA NetworkSendRawDelta;
+
+    PH_UINT32_DELTA HardFaultsDelta;
+
+    PH_QUEUED_LOCK TextCacheLock;
+    PPH_STRING TextCache[ETPRTNC_MAXIMUM + 1];
+    BOOLEAN TextCacheValid[ETPRTNC_MAXIMUM + 1];
+
+    PET_PROCESS_ICON SmallProcessIcon;
+} ET_PROCESS_BLOCK, *PET_PROCESS_BLOCK;
+
+typedef struct _ET_NETWORK_BLOCK
+{
+    LIST_ENTRY ListEntry;
+    PPH_NETWORK_ITEM NetworkItem;
+
+    ULONG ReceiveCount;
+    ULONG SendCount;
+    ULONG ReceiveRaw;
+    ULONG SendRaw;
+
+    union
+    {
+        struct
+        {
+            PH_UINT32_DELTA ReceiveDelta;
+            PH_UINT32_DELTA ReceiveRawDelta;
+            PH_UINT32_DELTA SendDelta;
+            PH_UINT32_DELTA SendRawDelta;
+        };
+        PH_UINT32_DELTA Deltas[4];
+    };
+
+    ET_FIREWALL_STATUS FirewallStatus;
+    BOOLEAN FirewallStatusValid;
+
+    PH_QUEUED_LOCK TextCacheLock;
+    PPH_STRING TextCache[ETNETNC_MAXIMUM + 1];
+    BOOLEAN TextCacheValid[ETNETNC_MAXIMUM + 1];
+} ET_NETWORK_BLOCK, *PET_NETWORK_BLOCK;
+
+// main
+
+PET_PROCESS_BLOCK EtGetProcessBlock(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+PET_NETWORK_BLOCK EtGetNetworkBlock(
     __in PPH_NETWORK_ITEM NetworkItem
     );
+
+// etwmon
+
+extern BOOLEAN EtEtwEnabled;
 
 // etwstat
 
@@ -212,6 +245,87 @@ extern PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory;
 VOID EtEtwStatisticsInitialization();
 
 VOID EtEtwStatisticsUninitialization();
+
+// etwdisk
+
+extern BOOLEAN EtDiskEnabled;
+
+extern PPH_OBJECT_TYPE EtDiskItemType;
+extern PH_CALLBACK EtDiskItemAddedEvent;
+extern PH_CALLBACK EtDiskItemModifiedEvent;
+extern PH_CALLBACK EtDiskItemRemovedEvent;
+extern PH_CALLBACK EtDiskItemsUpdatedEvent;
+
+VOID EtInitializeDiskInformation();
+
+PET_DISK_ITEM EtCreateDiskItem();
+
+PET_DISK_ITEM EtReferenceDiskItem(
+    __in HANDLE ProcessId,
+    __in PPH_STRING FileName
+    );
+
+PPH_STRING EtFileObjectToFileName(
+    __in PVOID FileObject
+    );
+
+// procicon
+
+PET_PROCESS_ICON EtProcIconCreateProcessIcon(
+    __in HICON Icon
+    );
+
+VOID EtProcIconReferenceProcessIcon(
+    __inout PET_PROCESS_ICON ProcessIcon
+    );
+
+VOID EtProcIconDereferenceProcessIcon(
+    __inout PET_PROCESS_ICON ProcessIcon
+    );
+
+PET_PROCESS_ICON EtProcIconReferenceSmallProcessIcon(
+    __inout PET_PROCESS_BLOCK Block
+    );
+
+VOID EtProcIconNotifyProcessDelete(
+    __inout PET_PROCESS_BLOCK Block
+    );
+
+// etwprprp
+
+VOID EtProcessEtwPropertiesInitializing(
+    __in PVOID Parameter
+    );
+
+// disktab
+
+VOID EtInitializeDiskTab();
+
+VOID EtLoadSettingsDiskTreeList();
+
+VOID EtSaveSettingsDiskTreeList();
+
+// treeext
+
+VOID EtProcessTreeNewInitializing(
+    __in PVOID Parameter
+    );
+
+VOID EtProcessTreeNewMessage(
+    __in PVOID Parameter
+    );
+
+VOID EtNetworkTreeNewInitializing(
+    __in PVOID Parameter
+    );
+
+VOID EtNetworkTreeNewMessage(
+    __in PVOID Parameter
+    );
+
+ET_FIREWALL_STATUS EtQueryFirewallStatus(
+    __in PPH_NETWORK_ITEM NetworkItem
+    );
 
 // etwsys
 
@@ -260,77 +374,6 @@ VOID EtShowUnloadedDllsDialog(
 VOID EtShowWsWatchDialog(
     __in HWND ParentWindowHandle,
     __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-// main (extensions)
-
-typedef struct _ET_PROCESS_BLOCK
-{
-    LIST_ENTRY ListEntry;
-    PPH_PROCESS_ITEM ProcessItem;
-
-    ULONG DiskReadCount;
-    ULONG DiskWriteCount;
-    ULONG NetworkReceiveCount;
-    ULONG NetworkSendCount;
-
-    ULONG DiskReadRaw;
-    ULONG DiskWriteRaw;
-    ULONG NetworkReceiveRaw;
-    ULONG NetworkSendRaw;
-
-    PH_UINT32_DELTA DiskReadDelta;
-    PH_UINT32_DELTA DiskReadRawDelta;
-    PH_UINT32_DELTA DiskWriteDelta;
-    PH_UINT32_DELTA DiskWriteRawDelta;
-    PH_UINT32_DELTA NetworkReceiveDelta;
-    PH_UINT32_DELTA NetworkReceiveRawDelta;
-    PH_UINT32_DELTA NetworkSendDelta;
-    PH_UINT32_DELTA NetworkSendRawDelta;
-
-    PH_UINT32_DELTA HardFaultsDelta;
-
-    PH_QUEUED_LOCK TextCacheLock;
-    PPH_STRING TextCache[ETPRTNC_MAXIMUM + 1];
-    BOOLEAN TextCacheValid[ETPRTNC_MAXIMUM + 1];
-} ET_PROCESS_BLOCK, *PET_PROCESS_BLOCK;
-
-typedef struct _ET_NETWORK_BLOCK
-{
-    LIST_ENTRY ListEntry;
-    PPH_NETWORK_ITEM NetworkItem;
-
-    ULONG ReceiveCount;
-    ULONG SendCount;
-    ULONG ReceiveRaw;
-    ULONG SendRaw;
-
-    union
-    {
-        struct
-        {
-            PH_UINT32_DELTA ReceiveDelta;
-            PH_UINT32_DELTA ReceiveRawDelta;
-            PH_UINT32_DELTA SendDelta;
-            PH_UINT32_DELTA SendRawDelta;
-        };
-        PH_UINT32_DELTA Deltas[4];
-    };
-
-    ET_FIREWALL_STATUS FirewallStatus;
-    BOOLEAN FirewallStatusValid;
-
-    PH_QUEUED_LOCK TextCacheLock;
-    PPH_STRING TextCache[ETNETNC_MAXIMUM + 1];
-    BOOLEAN TextCacheValid[ETNETNC_MAXIMUM + 1];
-} ET_NETWORK_BLOCK, *PET_NETWORK_BLOCK;
-
-PET_PROCESS_BLOCK EtGetProcessBlock(
-    __in PPH_PROCESS_ITEM ProcessItem
-    );
-
-PET_NETWORK_BLOCK EtGetNetworkBlock(
-    __in PPH_NETWORK_ITEM NetworkItem
     );
 
 #endif

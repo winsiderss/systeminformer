@@ -622,6 +622,8 @@ VOID EtDeleteProcessBlock(
 {
     ULONG i;
 
+    EtProcIconNotifyProcessDelete(Block);
+
     for (i = 1; i <= ETPRTNC_MAXIMUM; i++)
     {
         PhSwapReference(&Block->TextCache[i], NULL);
