@@ -3,6 +3,7 @@
  *   run-time library heap
  * 
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2011 dmex
  * 
  * This file is part of Process Hacker.
  * 

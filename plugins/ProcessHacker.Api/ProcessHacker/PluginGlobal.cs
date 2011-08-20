@@ -22,8 +22,6 @@
  */
 
 using System;
-using System.Runtime.InteropServices;
-
 using ProcessHacker.Native;
 
 namespace ProcessHacker.Api
@@ -69,12 +67,19 @@ namespace ProcessHacker.Api
 
         public static string GetStringSetting(string name)
         {
-            PhString* value = NativeApi.PhGetStringSetting(name);
-            string newValue = value->Text;
+            try
+            {
+                PhString* value = NativeApi.PhGetStringSetting(name);
+                string newValue = value->Text;
 
-            NativeApi.PhDereferenceObject(value);
+                value->Dispose();
 
-            return newValue;
+                return newValue;
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
         }
 
         public static void SetIntegerSetting(string name, int value)
@@ -89,17 +94,12 @@ namespace ProcessHacker.Api
 
         public static void SetStringSetting(string name, string value)
         {
-            PhStringRef sr;
+            string setting = GetStringSetting(name);
 
-            fixed (char* buffer = value)
-            {
-                sr.Buffer = buffer;
-                sr.Length = (ushort)(value.Length * 2);
+            if (string.IsNullOrEmpty(setting))
+                throw new ApplicationException("Unable to set non-existent setting.");
 
-                NativeApi.PhSetStringSetting2(name, &sr);
-            }
-
-            // TODO: evaluate if sr needs to be disposed.
+            NativeApi.PhSetStringSetting(name, value);
         }
     }
 }
