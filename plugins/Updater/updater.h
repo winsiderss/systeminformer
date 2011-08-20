@@ -31,8 +31,13 @@ typedef enum _PH_UPDATER_STATE
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
 
+#define ENABLE_UI WM_APP + 1
+
 #define Updater_SetStatusText(hwndDlg, lpString) \
 	SetDlgItemText(hwndDlg, IDC_STATUSTEXT, lpString)
+
+#define Updater_EnableUI(hwndDlg) \
+	PostMessage(hwndDlg, ENABLE_UI, NULL, NULL)
 
 typedef struct _PH_UPDATER_CONTEXT
 {
