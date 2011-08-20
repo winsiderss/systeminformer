@@ -5,6 +5,13 @@ HWND NTAPI EtpDiskTabCreateFunction(
     __in PVOID Context
     );
 
+VOID NTAPI EtpDiskTabSelectionChangedCallback(
+    __in PVOID Parameter1,
+    __in PVOID Parameter2,
+    __in PVOID Parameter3,
+    __in PVOID Context
+    );
+
 VOID NTAPI EtpDiskTabSaveContentCallback(
     __in PVOID Parameter1,
     __in PVOID Parameter2,
