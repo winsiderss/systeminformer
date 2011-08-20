@@ -136,6 +136,7 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
     if (diskItem->FileNameWin32) PhDereferenceObject(diskItem->FileNameWin32);
     if (diskItem->ProcessName) PhDereferenceObject(diskItem->ProcessName);
     if (diskItem->ProcessIcon) EtProcIconDereferenceProcessIcon(diskItem->ProcessIcon);
+    if (diskItem->ProcessRecord) PhDereferenceProcessRecord(diskItem->ProcessRecord);
 }
 
 // Copied from srvprv.c
@@ -351,6 +352,8 @@ VOID EtpProcessDiskPacket(
             PhReferenceObject(processItem->ProcessName);
 
             diskItem->ProcessIcon = EtProcIconReferenceSmallProcessIcon(EtGetProcessBlock(processItem));
+            diskItem->ProcessRecord = processItem->Record;
+            PhReferenceProcessRecord(diskItem->ProcessRecord);
 
             PhDereferenceObject(processItem);
         }
@@ -538,7 +541,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
             BOOLEAN modified = FALSE;
             PPH_PROCESS_ITEM processItem;
 
-            if (!diskItem->ProcessName || !diskItem->ProcessIcon)
+            if (!diskItem->ProcessName || !diskItem->ProcessIcon || !diskItem->ProcessRecord)
             {
                 if (processItem = PhReferenceProcessItem(diskItem->ProcessId))
                 {
@@ -555,6 +558,12 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
                         if (diskItem->ProcessIcon)
                             modified = TRUE;
+                    }
+
+                    if (!diskItem->ProcessRecord)
+                    {
+                        diskItem->ProcessRecord = processItem->Record;
+                        PhReferenceProcessRecord(diskItem->ProcessRecord);
                     }
 
                     PhDereferenceObject(processItem);
