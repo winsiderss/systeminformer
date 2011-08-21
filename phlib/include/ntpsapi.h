@@ -188,7 +188,7 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadGroupInformation, // 30, q: GROUP_AFFINITY
     ThreadUmsInformation,
     ThreadCounterProfiling,
-    ThreadIdealProcessorEx,
+    ThreadIdealProcessorEx, // q: PROCESSOR_NUMBER
     MaxThreadInfoClass
 } THREAD_INFORMATION_CLASS;
 #endif

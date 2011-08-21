@@ -2170,10 +2170,12 @@ VOID PhpUpdateThreadDetails(
     WCHAR basePriority[PH_INT32_STR_LEN_1] = L"N/A";
     PWSTR ioPriority = L"N/A";
     WCHAR pagePriority[PH_INT32_STR_LEN_1] = L"N/A";
+    WCHAR idealProcessor[PH_INT32_STR_LEN + 1 + PH_INT32_STR_LEN + 1] = L"N/A";
     HANDLE threadHandle;
     SYSTEMTIME time;
     ULONG ioPriorityInteger;
     ULONG pagePriorityInteger;
+    PROCESSOR_NUMBER idealProcessorNumber;
 
     PhGetSelectedThreadItems(&Context->ListContext, &threads, &numberOfThreads);
 
@@ -2222,9 +2224,24 @@ VOID PhpUpdateThreadDetails(
         {
             if (NT_SUCCESS(PhGetThreadIoPriority(threadHandle, &ioPriorityInteger)) &&
                 ioPriorityInteger < MaxIoPriorityTypes)
+            {
                 ioPriority = PhIoPriorityHintNames[ioPriorityInteger];
+            }
+
             if (NT_SUCCESS(PhGetThreadPagePriority(threadHandle, &pagePriorityInteger)))
+            {
                 PhPrintUInt32(pagePriority, pagePriorityInteger);
+            }
+
+            if (NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadIdealProcessorEx, &idealProcessorNumber, sizeof(PROCESSOR_NUMBER), NULL)))
+            {
+                PH_FORMAT format[3];
+
+                PhInitFormatU(&format[0], idealProcessorNumber.Group);
+                PhInitFormatC(&format[1], ':');
+                PhInitFormatU(&format[2], idealProcessorNumber.Number);
+                PhFormatToBuffer(format, 3, idealProcessor, sizeof(idealProcessor), NULL);
+            }
 
             NtClose(threadHandle);
         }
@@ -2249,6 +2266,7 @@ VOID PhpUpdateThreadDetails(
     SetDlgItemText(hwndDlg, IDC_BASEPRIORITY, basePriority);
     SetDlgItemText(hwndDlg, IDC_IOPRIORITY, ioPriority);
     SetDlgItemText(hwndDlg, IDC_PAGEPRIORITY, pagePriority);
+    SetDlgItemText(hwndDlg, IDC_IDEALPROCESSOR, idealProcessor);
 }
 
 VOID PhShowThreadContextMenu(
@@ -2489,6 +2507,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     for (id = IDC_STATICBL1; id <= IDC_STATICBL11; id++)
                         ADD_BL_ITEM(id);
+
+                    // Not in sequence
+                    ADD_BL_ITEM(IDC_STATICBL12);
                 }
 
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTMODULE),
@@ -2505,6 +2526,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 ADD_BL_ITEM(IDC_BASEPRIORITY);
                 ADD_BL_ITEM(IDC_IOPRIORITY);
                 ADD_BL_ITEM(IDC_PAGEPRIORITY);
+                ADD_BL_ITEM(IDC_IDEALPROCESSOR);
 
                 PhDoPropPageLayout(hwndDlg);
 

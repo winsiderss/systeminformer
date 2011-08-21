@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Added column selection for handle list
    * Added CPU column to threads list
+   * Added Ideal Processor to Threads tab
    * Added pool usage and minimum/maximum working set columns
    * Implemented Properties button for Thread handles
    * Set descending sort as the default for most numeric columns
