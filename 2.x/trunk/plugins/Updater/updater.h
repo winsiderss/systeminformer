@@ -37,7 +37,7 @@ typedef enum _PH_UPDATER_STATE
 	SetDlgItemText(hwndDlg, IDC_STATUSTEXT, lpString)
 
 #define Updater_EnableUI(hwndDlg) \
-	PostMessage(hwndDlg, ENABLE_UI, NULL, NULL)
+	PostMessage(hwndDlg, ENABLE_UI, 0, 0)
 
 typedef struct _PH_UPDATER_CONTEXT
 {
