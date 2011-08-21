@@ -149,16 +149,16 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_RELATIVESTARTTIME, FALSE, L"Relative Start Time", 180, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_BITS, FALSE, L"Bits", 50, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_WINDOWTITLE, FALSE, L"Window Title", 120, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_WINDOWSTATUS, FALSE, L"Window Status", 60, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_WINDOWSTATUS, FALSE, L"Window Status", 60, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CYCLES, FALSE, L"Cycles", 110, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CYCLESDELTA, FALSE, L"Cycles Delta", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUHISTORY, FALSE, L"CPU History", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private Bytes History", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DEPSTATUS, FALSE, L"DEP Status", 100, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_VIRTUALIZED, FALSE, L"Virtualized", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_VIRTUALIZED, FALSE, L"Virtualized", 80, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CONTEXTSWITCHES, FALSE, L"Context Switches", 100, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CONTEXTSWITCHESDELTA, FALSE, L"Context Switches Delta", 80, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PAGEFAULTSDELTA, FALSE, L"Page Faults Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
@@ -1342,7 +1342,36 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Elevation)
 {
-    sortResult = intcmp(processItem1->ElevationType, processItem2->ElevationType);
+    ULONG key1;
+    ULONG key2;
+
+    switch (processItem1->ElevationType)
+    {
+    case TokenElevationTypeFull:
+        key1 = 2;
+        break;
+    case TokenElevationTypeLimited:
+        key1 = 1;
+        break;
+    default:
+        key1 = 0;
+        break;
+    }
+
+    switch (processItem2->ElevationType)
+    {
+    case TokenElevationTypeFull:
+        key2 = 2;
+        break;
+    case TokenElevationTypeLimited:
+        key2 = 1;
+        break;
+    default:
+        key2 = 0;
+        break;
+    }
+
+    sortResult = intcmp(key1, key2);
 }
 END_SORT_FUNCTION
 
@@ -1359,6 +1388,10 @@ BEGIN_SORT_FUNCTION(WindowStatus)
     PhpUpdateProcessNodeWindow(node1);
     PhpUpdateProcessNodeWindow(node2);
     sortResult = intcmp(node1->WindowHung, node2->WindowHung);
+
+    // Make sure all processes with windows get grouped together.
+    if (sortResult == 0)
+        sortResult = intcmp(!!node1->WindowHandle, !!node2->WindowHandle);
 }
 END_SORT_FUNCTION
 
