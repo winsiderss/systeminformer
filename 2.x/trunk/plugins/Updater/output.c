@@ -636,7 +636,6 @@ BOOL InitializeFile()
 	if (length > MAX_PATH || length == 0)
 	{
 		LogEvent(PhFormatString(L"Updater: (InitializeFile) GetTempPath failed (%d)", GetLastError()));
-
 		return FALSE;
 	}	
 
@@ -658,7 +657,6 @@ BOOL InitializeFile()
 	if (TempFileHandle == INVALID_HANDLE_VALUE)
 	{
 		LogEvent(PhFormatString(L"Updater: (InitializeFile) CreateFile failed (%d)", GetLastError()));
-
 		return FALSE;
 	}
 
@@ -791,13 +789,13 @@ BOOL ConnectionAvailable()
 
 	if (!InternetGetConnectedState(&dwType, 0))
 	{
-		LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetGetConnectedState failed to detect an active Internet connection: (%d)", GetLastError()));
+		LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetGetConnectedState failed to detect an active Internet connection (%d)", GetLastError()));
 		return FALSE;
 	}
 
 	//if (!InternetCheckConnection(NULL, FLAG_ICC_FORCE_CONNECTION, 0))
 	//{
-	//	LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetCheckConnection failed to check Sourceforge.net: (%d)", GetLastError()));
+	//	LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetCheckConnection failed connection to Sourceforge.net (%d)", GetLastError()));
 	//	return FALSE;
 	//}
 
