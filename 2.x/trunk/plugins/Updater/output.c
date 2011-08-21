@@ -28,6 +28,8 @@
 #define TEST_MODE
 #endif
 
+#pragma region Static Fields
+
 static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
 static PPH_STRING RemoteHashString = NULL;
@@ -38,6 +40,12 @@ static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
 static BOOL WindowVisible = FALSE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
+
+#pragma endregion
+
+#pragma region Worker Threads
+
+#pragma region AutoCheck Thread
 
 static NTSTATUS SilentWorkerThreadStart(
 	__in PVOID Parameter
@@ -110,6 +118,10 @@ static NTSTATUS SilentWorkerThreadStart(
 
 	return FALSE;
 }
+
+#pragma endregion
+
+#pragma region Xml Downloader Thread
 
 static NTSTATUS WorkerThreadStart(
 	__in PVOID Parameter
@@ -222,6 +234,10 @@ static NTSTATUS WorkerThreadStart(
 
 	return FALSE;
 }
+
+#pragma endregion
+
+#pragma region File Downloader Thread
 
 static NTSTATUS DownloadWorkerThreadStart(
 	__in PVOID Parameter
@@ -414,6 +430,9 @@ static NTSTATUS DownloadWorkerThreadStart(
 
     return FALSE; 
 }
+#pragma endregion
+
+#pragma endregion
 
 INT_PTR CALLBACK MainWndProc(      
 	__in HWND hwndDlg,
@@ -471,7 +490,7 @@ INT_PTR CALLBACK MainWndProc(
 						{
 							EnableWindow(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
 
-							if (PhInstalledUsingSetup())
+							if (!PhInstalledUsingSetup())
 							{	
 								Updater_SetStatusText(hwndDlg, L"Initializing");
 
@@ -486,30 +505,40 @@ INT_PTR CALLBACK MainWndProc(
 							}
 							else
 							{
-								// handle other installation types
-								static PH_FILETYPE_FILTER filters[] =
-								{
-									{ L"Compressed files (*.zip)", L"*.zip" },
-								};
+								// Handle other installation types.
+								// For now just show the homepage and close this dialog.
 
-								PVOID fileDialog;
+								PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
 
-								fileDialog = PhCreateSaveFileDialog();
+								DisposeConnection();
+								DisposeStrings();
+								DisposeFileHandles();
 
-								PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-								PhSetFileDialogFileName(fileDialog, L"processhacker-2.19-bin.zip");
+								EndDialog(hwndDlg, IDOK);
 
-								if (PhShowFileDialog(hwndDlg, fileDialog))
-								{
-									//NTSTATUS status;
-									PPH_STRING fileName;
-									//PPH_FILE_STREAM fileStream;
+								//static PH_FILETYPE_FILTER filters[] =
+								//{
+								//	{ L"Compressed files (*.zip)", L"*.zip" },
+								//};
 
-									fileName = PhGetFileDialogFileName(fileDialog);
-									PhaDereferenceObject(fileName);
-								}
+								//PVOID fileDialog;
 
-								PhFreeFileDialog(fileDialog);
+								//fileDialog = PhCreateSaveFileDialog();
+
+								//PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+								//PhSetFileDialogFileName(fileDialog, L"processhacker-2.19-bin.zip");
+
+								//if (PhShowFileDialog(hwndDlg, fileDialog))
+								//{
+								//	//NTSTATUS status;
+								//	PPH_STRING fileName;
+								//	//PPH_FILE_STREAM fileStream;
+
+								//	fileName = PhGetFileDialogFileName(fileDialog);
+								//	PhaDereferenceObject(fileName);
+								//}
+
+								//PhFreeFileDialog(fileDialog);
 							}
 							return FALSE;
 						}
@@ -756,15 +785,6 @@ CleanupAndExit:
 	return result;
 }
 
-VOID FreeXmlData(
-    __in PUPDATER_XML_DATA XmlData
-    )
-{
-    PhDereferenceObject(XmlData->RelDate);
-    PhDereferenceObject(XmlData->Size);
-    PhDereferenceObject(XmlData->Hash);
-}
-
 BOOL ConnectionAvailable()
 {
 	DWORD dwType;
@@ -875,12 +895,18 @@ BOOL PhInstalledUsingSetup()
 	}
 }
 
+#pragma region Event Logging Functions
+
 VOID LogEvent(__in PPH_STRING str)
 {
 	PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
 	
 	PhDereferenceObject(str);
 }
+
+#pragma endregion
+
+#pragma region Dispose Functions
 
 VOID DisposeConnection()
 {
@@ -926,3 +952,14 @@ VOID DisposeFileHandles()
 		TempFileHandle = NULL;
 	}
 }
+
+VOID FreeXmlData(
+    __in PUPDATER_XML_DATA XmlData
+    )
+{
+    PhDereferenceObject(XmlData->RelDate);
+    PhDereferenceObject(XmlData->Size);
+    PhDereferenceObject(XmlData->Hash);
+}
+
+#pragma endregion
