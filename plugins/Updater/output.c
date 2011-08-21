@@ -490,7 +490,7 @@ INT_PTR CALLBACK MainWndProc(
 						{
 							EnableWindow(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
 
-							if (!PhInstalledUsingSetup())
+							if (PhInstalledUsingSetup())
 							{	
 								Updater_SetStatusText(hwndDlg, L"Initializing");
 
@@ -600,13 +600,13 @@ BOOL InitializeConnection(
 		
 		return FALSE;
 	}
-	
+
 	// Open the HTTP request.
 	NetRequest = HttpOpenRequest(
 		NetConnection, 
-		NULL, 
+		L"GET",
 		path, 
-		NULL, 
+		L"HTTP/1.1", 
 		NULL, 
 		NULL, 
 		EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
