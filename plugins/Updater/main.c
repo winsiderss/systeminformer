@@ -48,7 +48,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Update Checker";
             info->Author = L"dmex";
-            info->Description = L"Process Hacker Update Checker.";
+            info->Description = L"Adds the ability to check for new Process Hacker releases via the Help menu.";
 			info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=273";
             info->HasOptions = TRUE;
 			
