@@ -1037,6 +1037,7 @@ VOID PhInitializeTreeNewColumnMenu(
     PPH_EMENU_ITEM sizeAllColumnsToFitMenuItem;
     PPH_EMENU_ITEM hideColumnMenuItem;
     PPH_EMENU_ITEM chooseColumnsMenuItem;
+    ULONG minimumNumberOfColumns;
 
     Data->Menu = PhCreateEMenu();
     Data->Selection = NULL;
@@ -1058,9 +1059,14 @@ VOID PhInitializeTreeNewColumnMenu(
         sizeColumnToFitMenuItem->Flags |= PH_EMENU_DISABLED;
     }
 
+    if (TreeNew_GetFixedColumn(Data->TreeNewHandle))
+        minimumNumberOfColumns = 2; // don't allow user to remove all normal columns (the fixed column can never be removed)
+    else
+        minimumNumberOfColumns = 1;
+
     if (!Data->MouseEvent || !Data->MouseEvent->Column ||
         Data->MouseEvent->Column->Fixed || // don't allow the fixed column to be hidden
-        TreeNew_GetVisibleColumnCount(Data->TreeNewHandle) < 2 // don't allow the user to remove all columns
+        TreeNew_GetVisibleColumnCount(Data->TreeNewHandle) < minimumNumberOfColumns + 1
         )
     {
         hideColumnMenuItem->Flags |= PH_EMENU_DISABLED;
