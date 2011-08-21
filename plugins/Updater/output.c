@@ -30,8 +30,9 @@
 
 static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
-static PPH_STRING RemoteHashString;
+static PPH_STRING RemoteHashString = NULL;
 static PPH_STRING LocalFilePathString = NULL;
+static PPH_STRING LocalFileNameString = NULL;
 
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
@@ -42,7 +43,6 @@ static NTSTATUS SilentWorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	INT result = 0;
 	DWORD dwBytes = 0;
 
 	if (!ConnectionAvailable())
@@ -186,6 +186,8 @@ static NTSTATUS WorkerThreadStart(
 			SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
             PhDereferenceObject(summaryText);
 
+			LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
+
 			Updater_EnableUI(hwndDlg);
 		}
 		else if (result == 0)
@@ -225,7 +227,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 	__in PVOID Parameter
 	)
 {
-	INT i = 0, dlProgress = 0;
 	BOOL nReadFile = FALSE;
 	DWORD 
 		dwTotalReadSize = 0, 
@@ -233,20 +234,24 @@ static NTSTATUS DownloadWorkerThreadStart(
 		dwBytesRead = 0, 
 		dwBytesWritten = 0, 
 		dwBufLen = sizeof(dwContentLen);
-
-	HWND hwndDlg = (HWND)Parameter;
+		
 	PH_HASH_CONTEXT hashContext;
-
+	HWND hwndDlg = (HWND)Parameter;
 	HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
-	
+
+	PPH_STRING uriPath = PhFormatString(L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */, LocalFileNameString->Buffer);
+
 	if (!ConnectionAvailable())
 		return TRUE;
 
 	if (!InitializeConnection(
 		L"sourceforge.net",
-		L"/projects/processhacker/files/processhacker2/processhacker-2.19-setup.exe/download" //?use_mirror=waix"
+		uriPath->Buffer
 		))
+	{
+		PhDereferenceObject(uriPath);
 		return TRUE;
+	}
 
 	if (!InitializeFile())
 		return TRUE;
@@ -288,7 +293,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 					return TRUE;   
 				}
 	
-				// Reset the buffer.
+				// Zero the buffer.
 				RtlZeroMemory(buffer, dwBytesRead);
 
 				// Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
@@ -300,21 +305,22 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 				// Update our total bytes downloaded
 				dwTotalReadSize += dwBytesRead;
-				// Calculate the percentage of our total bytes downloaded per the length.
-				dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
 
-				SendMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
 				{
+					// Calculate the percentage of our total bytes downloaded per the length.
+					int dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
+					
 					PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-				    //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-
+					//PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
 					PPH_STRING str = PhFormatString(L"Downloaded: %d%% (%s)", dlProgress, dlCurrent->Buffer);
-				
+
 					Updater_SetStatusText(hwndDlg, str->Buffer);
 
 					PhDereferenceObject(str);
 					//PhDereferenceObject(dlLength);
 					PhDereferenceObject(dlCurrent);
+	
+					PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
 				}
 			}
 		}
@@ -355,6 +361,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 		DisposeConnection();
 		DisposeFileHandles();
+		PhDereferenceObject(uriPath);
 
 		PhUpdaterState = Installing;
 		
@@ -387,11 +394,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 					Updater_SetStatusText(hwndDlg, L"Hash failed");
 				} 
 
-				// Free string
 				PhDereferenceObject(hexString);
 			}
 			else
 			{
+				// Show fancy Red progressbar if hash failed on Vista and above. 
 				if (WindowsVersion >= WINDOWS_VISTA)
 					SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
 				
@@ -540,8 +547,7 @@ BOOL InitializeConnection(
 
 	if (!NetInitialize)
 	{
-		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
-		
+		LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));	
 		return FALSE;
 	}
 
@@ -607,7 +613,7 @@ BOOL InitializeFile()
 
 	LocalFilePathString = PhConcatStrings2(
 		lpPathBuffer,
-		L"processhacker-setup.exe"
+		LocalFileNameString->Buffer
 		);
 
 	// Create output file
@@ -903,6 +909,12 @@ VOID DisposeStrings()
 	{
 		PhDereferenceObject(LocalFilePathString);
 		LocalFilePathString = NULL;
+	}
+
+	if (LocalFileNameString)
+	{
+		PhDereferenceObject(LocalFileNameString);
+		LocalFileNameString = NULL;
 	}
 }
 
