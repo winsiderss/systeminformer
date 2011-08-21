@@ -179,7 +179,6 @@
 #define IDC_SOURCELUID                  1060
 #define IDC_LIST                        1061
 #define IDC_SIZESINBYTES                1062
-#define IDC_LIST3                       1062
 #define IDC_PROCESSES                   1063
 #define IDC_SCAN                        1064
 #define IDC_SAVE                        1065
@@ -438,6 +437,8 @@
 #define IDC_ZSHAREDWS_V                 1291
 #define IDC_ENABLEINSTANTTOOLTIPS       1292
 #define IDC_ENABLECYCLECPUUSAGE         1293
+#define IDC_IDEALPROCESSOR              1294
+#define IDC_STATICBL12                  1295
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -668,7 +669,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        196
 #define _APS_NEXT_COMMAND_VALUE         40252
-#define _APS_NEXT_CONTROL_VALUE         1294
+#define _APS_NEXT_CONTROL_VALUE         1296
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif
