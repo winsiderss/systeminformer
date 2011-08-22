@@ -36,6 +36,18 @@ namespace ProcessHacker.Api
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct PhAdditionalTabPage
+    {
+        public IntPtr Text;
+        public IntPtr Context;
+        public IntPtr CreateFunction;
+        public IntPtr WindowHandle;
+        public int Index;
+        public IntPtr SelectionChangedCallback;
+        public IntPtr SaveContentCallback;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe struct PhAvlLinks
     {
         public PhAvlLinks* Parent;
@@ -470,6 +482,17 @@ namespace ProcessHacker.Api
                 NativeApi.PhDereferenceObject(buffer);
         }
     }
+
+    public delegate IntPtr PhTabPageCallbackFunction(
+        IntPtr Parameter1,
+        IntPtr Parameter2,
+        IntPtr Parameter3,
+        IntPtr Context
+        );
+
+    public delegate IntPtr PhTabPageCreateFunction(
+        IntPtr Context
+        );
 
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct PhTreeListNode
