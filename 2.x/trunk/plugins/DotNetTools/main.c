@@ -78,6 +78,11 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ThreadStackControlCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -90,6 +95,7 @@ PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -137,19 +143,19 @@ LOGICAL DllMain(
             //    NULL,
             //    &PluginMenuItemCallbackRegistration
             //    );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
-                TreeNewMessageCallback,
-                NULL,
-                &PluginTreeNewMessageCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
+            //    TreeNewMessageCallback,
+            //    NULL,
+            //    &PluginTreeNewMessageCallbackRegistration
+            //    );
 
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
-                NULL,
-                &MainWindowShowingCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+            //    MainWindowShowingCallback,
+            //    NULL,
+            //    &MainWindowShowingCallbackRegistration
+            //    );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
                 ProcessPropertiesInitializingCallback,
@@ -174,11 +180,17 @@ LOGICAL DllMain(
             //    NULL,
             //    &ModuleMenuInitializingCallbackRegistration
             //    );
+            //PhRegisterCallback(
+            //    PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
+            //    ProcessTreeNewInitializingCallback,
+            //    NULL,
+            //    &ProcessTreeNewInitializingCallbackRegistration
+            //    );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
-                ProcessTreeNewInitializingCallback,
+                PhGetGeneralCallback(GeneralCallbackThreadStackControl),
+                ThreadStackControlCallback,
                 NULL,
-                &ProcessTreeNewInitializingCallbackRegistration
+                &ThreadStackControlCallbackRegistration
                 );
 
             {
@@ -299,4 +311,12 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     )
 {
     NOTHING;
+}
+
+VOID NTAPI ThreadStackControlCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    ProcessThreadStackControl(Parameter);
 }

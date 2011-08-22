@@ -27,6 +27,12 @@
     <ClCompile Include="asmpage.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="clrsup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stackext.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dn.h">
@@ -36,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="clretw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clrsup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

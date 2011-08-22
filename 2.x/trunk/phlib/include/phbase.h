@@ -394,7 +394,7 @@ FORCEINLINE PVOID PhAllocateAligned(
 
     allocationBase = PhAllocate(Size + Align - 1);
     memory = PTR_ALIGN(allocationBase, Align);
-    *(PPVOID)PTR_ADD_OFFSET(memory, AllocationBaseOffset) = allocationBase;
+    *(PVOID *)PTR_ADD_OFFSET(memory, AllocationBaseOffset) = allocationBase;
 
     return memory;
 }
@@ -404,7 +404,7 @@ FORCEINLINE VOID PhFreeAligned(
     __in SIZE_T AllocationBaseOffset
     )
 {
-    PhFree(*(PPVOID)PTR_ADD_OFFSET(Memory, AllocationBaseOffset));
+    PhFree(*(PVOID *)PTR_ADD_OFFSET(Memory, AllocationBaseOffset));
 }
 
 FORCEINLINE PVOID PhAllocateCopy(
@@ -625,7 +625,7 @@ FORCEINLINE BOOLEAN PhAcquireRundownProtection(
     value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // fail fast path when rundown is active
 
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PPVOID)&Protection->Value,
+        (PVOID *)&Protection->Value,
         (PVOID)(value + PH_RUNDOWN_REF_INC),
         (PVOID)value
         ) == value)
@@ -647,7 +647,7 @@ FORCEINLINE VOID PhReleaseRundownProtection(
     value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // fail fast path when rundown is active
 
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PPVOID)&Protection->Value,
+        (PVOID *)&Protection->Value,
         (PVOID)(value - PH_RUNDOWN_REF_INC),
         (PVOID)value
         ) != value)
@@ -663,7 +663,7 @@ FORCEINLINE VOID PhWaitForRundownProtection(
     ULONG_PTR value;
 
     value = (ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PPVOID)&Protection->Value,
+        (PVOID *)&Protection->Value,
         (PVOID)PH_RUNDOWN_ACTIVE,
         (PVOID)0
         );
@@ -2861,7 +2861,7 @@ PhAddItemSimpleHashtable(
     );
 
 PHLIBAPI
-PPVOID
+PVOID *
 NTAPI
 PhFindItemSimpleHashtable(
     __in PPH_HASHTABLE SimpleHashtable,

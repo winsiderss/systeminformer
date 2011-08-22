@@ -169,12 +169,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="asmpage.c" />
+    <ClCompile Include="clrsup.c" />
     <ClCompile Include="counters.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="perfpage.c" />
+    <ClCompile Include="stackext.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clretw.h" />
+    <ClInclude Include="clrsup.h" />
     <ClInclude Include="dn.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
