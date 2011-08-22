@@ -31,7 +31,9 @@ VOID NTAPI LoggedCallback(
 PPH_FILE_STREAM LogFileStream = NULL;
 PH_CALLBACK_REGISTRATION LoggedCallbackRegistration;
 
-VOID FileLogInitialization()
+VOID FileLogInitialization(
+    VOID
+    )
 {
     NTSTATUS status;
     PPH_STRING fileName;

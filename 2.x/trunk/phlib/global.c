@@ -32,8 +32,13 @@ BOOLEAN PhInitializeSystem(
     __in ULONG Flags
     );
 
-VOID PhInitializeSystemInformation();
-VOID PhInitializeWindowsVersion();
+VOID PhInitializeSystemInformation(
+    VOID
+    );
+
+VOID PhInitializeWindowsVersion(
+    VOID
+    );
 
 PHLIBAPI PVOID PhLibImageBase;
 
@@ -43,7 +48,6 @@ PHLIBAPI HANDLE PhCurrentTokenQueryHandle = NULL;
 PHLIBAPI BOOLEAN PhElevated;
 PHLIBAPI TOKEN_ELEVATION_TYPE PhElevationType;
 PHLIBAPI PVOID PhHeapHandle;
-PHLIBAPI HANDLE PhKphHandle = NULL;
 PHLIBAPI ULONG PhKphFeatures;
 PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion;
 PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
@@ -60,7 +64,9 @@ PHLIBAPI ACCESS_MASK ThreadAllAccess;
 PHLIB_STATISTICS_BLOCK PhLibStatisticsBlock;
 #endif
 
-NTSTATUS PhInitializePhLib()
+NTSTATUS PhInitializePhLib(
+    VOID
+    )
 {
     return PhInitializePhLibEx(
         0xffffffff, // all possible features
@@ -175,7 +181,9 @@ static BOOLEAN PhInitializeSystem(
     return TRUE;
 }
 
-static VOID PhInitializeSystemInformation()
+static VOID PhInitializeSystemInformation(
+    VOID
+    )
 {
     if (!NT_SUCCESS(NtQuerySystemInformation(
         SystemBasicInformation,
@@ -193,7 +201,9 @@ static VOID PhInitializeSystemInformation()
     }
 }
 
-static VOID PhInitializeWindowsVersion()
+static VOID PhInitializeWindowsVersion(
+    VOID
+    )
 {
     RTL_OSVERSIONINFOEXW versionInfo;
     ULONG majorVersion;

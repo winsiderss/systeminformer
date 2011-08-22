@@ -174,7 +174,7 @@ NTSTATUS PhMapViewOfEntireFile(
     __in_opt PWSTR FileName,
     __in_opt HANDLE FileHandle,
     __in BOOLEAN ReadOnly,
-    __out PPVOID ViewBase,
+    __out PVOID *ViewBase,
     __out PSIZE_T Size
     )
 {
@@ -370,7 +370,7 @@ FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
     __in PPH_MAPPED_IMAGE MappedImage,
     __in USHORT Magic,
     __in ULONG ProbeLength,
-    __out PPVOID LoadConfig
+    __out PVOID *LoadConfig
     )
 {
     NTSTATUS status;
@@ -735,7 +735,7 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
     __in_opt PSTR Name,
     __in_opt USHORT Ordinal,
     __in PVOID RemoteBase,
-    __out PPVOID Function
+    __out PVOID *Function
     )
 {
     ULONG rva;

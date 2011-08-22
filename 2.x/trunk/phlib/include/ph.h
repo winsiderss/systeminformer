@@ -600,7 +600,9 @@ NTSTATUS PhEnumKernelModulesEx(
     );
 
 PHLIBAPI
-PPH_STRING PhGetKernelFileName();
+PPH_STRING PhGetKernelFileName(
+    VOID
+    );
 
 /**
  * Gets a pointer to the first process information 
@@ -630,18 +632,18 @@ PPH_STRING PhGetKernelFileName();
 
 PHLIBAPI
 NTSTATUS PhEnumProcesses(
-    __out PPVOID Processes
+    __out PVOID *Processes
     );
 
 PHLIBAPI
 NTSTATUS PhEnumProcessesForSession(
-    __out PPVOID Processes,
+    __out PVOID *Processes,
     __in ULONG SessionId
     );
 
 PHLIBAPI
 NTSTATUS PhEnumProcessesEx(
-    __out PPVOID Processes
+    __out PVOID *Processes
     );
 
 PHLIBAPI
@@ -676,7 +678,7 @@ NTSTATUS PhEnumHandlesEx(
 
 PHLIBAPI
 NTSTATUS PhEnumPagefiles(
-    __out PPVOID Pagefiles
+    __out PVOID *Pagefiles
     );
 
 PHLIBAPI
@@ -764,16 +766,22 @@ NTSTATUS PhEnumDirectoryFile(
 PHLIBAPI
 NTSTATUS PhEnumFileStreams(
     __in HANDLE FileHandle,
-    __out PPVOID Streams
+    __out PVOID *Streams
     );
 
-VOID PhInitializeDevicePrefixes();
+VOID PhInitializeDevicePrefixes(
+    VOID
+    );
 
 PHLIBAPI
-VOID PhRefreshMupDevicePrefixes();
+VOID PhUpdateMupDevicePrefixes(
+    VOID
+    );
 
 PHLIBAPI
-VOID PhRefreshDosDevicePrefixes();
+VOID PhUpdateDosDevicePrefixes(
+    VOID
+    );
 
 PHLIBAPI
 PPH_STRING PhResolveDevicePrefix(
@@ -873,7 +881,9 @@ NTSTATUS PhOpenLsaPolicy(
     __in_opt PUNICODE_STRING SystemName
     );
 
-LSA_HANDLE PhGetLookupPolicyHandle();
+LSA_HANDLE PhGetLookupPolicyHandle(
+    VOID
+    );
 
 PHLIBAPI
 BOOLEAN PhLookupPrivilegeName(
@@ -925,7 +935,9 @@ PPH_STRING PhSidToStringSid(
 
 #define MAX_OBJECT_TYPE_NUMBER 257
 
-VOID PhHandleInfoInitialization();
+VOID PhHandleInfoInitialization(
+    VOID
+    );
 
 typedef PPH_STRING (NTAPI *PPH_GET_CLIENT_ID_NAME)(
     __in PCLIENT_ID ClientId
@@ -1029,7 +1041,7 @@ NTSTATUS PhMapViewOfEntireFile(
     __in_opt PWSTR FileName,
     __in_opt HANDLE FileHandle,
     __in BOOLEAN ReadOnly,
-    __out PPVOID ViewBase,
+    __out PVOID *ViewBase,
     __out PSIZE_T Size
     );
 
@@ -1144,7 +1156,7 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
     __in_opt PSTR Name,
     __in_opt USHORT Ordinal,
     __in PVOID RemoteBase,
-    __out PPVOID Function
+    __out PVOID *Function
     );
 
 #define PH_MAPPED_IMAGE_DELAY_IMPORTS 0x1
@@ -1174,7 +1186,7 @@ typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
         PIMAGE_IMPORT_DESCRIPTOR Descriptor;
         PVOID DelayDescriptor;
     };
-    PPVOID LookupTable;
+    PVOID *LookupTable;
 } PH_MAPPED_IMAGE_IMPORT_DLL, *PPH_MAPPED_IMAGE_IMPORT_DLL;
 
 typedef struct _PH_MAPPED_IMAGE_IMPORT_ENTRY
@@ -1313,7 +1325,9 @@ NTSTATUS PhGetMappedArchiveImportEntry(
 extern PPH_OBJECT_TYPE PhFileStreamType;
 #endif
 
-BOOLEAN PhIoSupportInitialization();
+BOOLEAN PhIoSupportInitialization(
+    VOID
+    );
 
 PHLIBAPI
 NTSTATUS PhCreateFileWin32(
@@ -1719,9 +1733,13 @@ typedef struct _PH_SYMBOL_LINE_INFORMATION
     ULONG64 Address;
 } PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_IINFORMATION;
 
-BOOLEAN PhSymbolProviderInitialization();
+BOOLEAN PhSymbolProviderInitialization(
+    VOID
+    );
 
-VOID PhSymbolProviderDynamicImport();
+VOID PhSymbolProviderDynamicImport(
+    VOID
+    );
 
 PHLIBAPI
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
@@ -1876,7 +1894,7 @@ PHLIBAPI
 NTSTATUS PhGetThreadServiceTag(
     __in HANDLE ThreadHandle,
     __in_opt HANDLE ProcessHandle,
-    __out PPVOID ServiceTag
+    __out PVOID *ServiceTag
     );
 
 // support
@@ -2040,13 +2058,13 @@ FORCEINLINE FILETIME PhSubtractFileTime(
 
 PHLIBAPI
 VOID PhReferenceObjects(
-    __in_ecount(NumberOfObjects) PPVOID Objects,
+    __in_ecount(NumberOfObjects) PVOID *Objects,
     __in ULONG NumberOfObjects
     );
 
 PHLIBAPI
 VOID PhDereferenceObjects(
-    __in_ecount(NumberOfObjects) PPVOID Objects,
+    __in_ecount(NumberOfObjects) PVOID *Objects,
     __in ULONG NumberOfObjects
     );
 
@@ -2354,10 +2372,14 @@ PPH_STRING PhGetBaseName(
     );
 
 PHLIBAPI
-PPH_STRING PhGetSystemDirectory();
+PPH_STRING PhGetSystemDirectory(
+    VOID
+    );
 
 PHLIBAPI
-PPH_STRING PhGetSystemRoot();
+PPH_STRING PhGetSystemRoot(
+    VOID
+    );
 
 PHLIBAPI
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
@@ -2373,10 +2395,14 @@ PPH_STRING PhGetDllFileName(
     );
 
 PHLIBAPI
-PPH_STRING PhGetApplicationFileName();
+PPH_STRING PhGetApplicationFileName(
+    VOID
+    );
 
 PHLIBAPI
-PPH_STRING PhGetApplicationDirectory();
+PPH_STRING PhGetApplicationDirectory(
+    VOID
+    );
 
 PHLIBAPI
 PPH_STRING PhGetKnownLocation(
@@ -2562,10 +2588,14 @@ VOID PhMapFlags2(
     );
 
 PHLIBAPI
-PVOID PhCreateOpenFileDialog();
+PVOID PhCreateOpenFileDialog(
+    VOID
+    );
 
 PHLIBAPI
-PVOID PhCreateSaveFileDialog();
+PVOID PhCreateSaveFileDialog(
+    VOID
+    );
 
 PHLIBAPI
 VOID PhFreeFileDialog(

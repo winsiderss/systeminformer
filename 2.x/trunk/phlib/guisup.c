@@ -41,7 +41,9 @@ _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 _SHParseDisplayName SHParseDisplayName_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
-VOID PhGuiSupportInitialization()
+VOID PhGuiSupportInitialization(
+    VOID
+    )
 {
     HMODULE shell32Handle;
     HMODULE shlwapiHandle;
@@ -190,7 +192,7 @@ LOGICAL PhGetListViewItemImageIndex(
 LOGICAL PhGetListViewItemParam(
     __in HWND ListViewHandle,
     __in INT Index,
-    __out PPVOID Param
+    __out PVOID *Param
     )
 {
     LOGICAL result;

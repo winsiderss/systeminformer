@@ -56,7 +56,9 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
 PPH_OBJECT_TYPE PhModuleProviderType;
 PPH_OBJECT_TYPE PhModuleItemType;
 
-BOOLEAN PhModuleProviderInitialization()
+BOOLEAN PhModuleProviderInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhModuleProviderType,
@@ -171,7 +173,9 @@ VOID PhpModuleProviderDeleteProcedure(
     if (moduleProvider->ProcessHandle) NtClose(moduleProvider->ProcessHandle);
 }
 
-PPH_MODULE_ITEM PhCreateModuleItem()
+PPH_MODULE_ITEM PhCreateModuleItem(
+    VOID
+    )
 {
     PPH_MODULE_ITEM moduleItem;
 

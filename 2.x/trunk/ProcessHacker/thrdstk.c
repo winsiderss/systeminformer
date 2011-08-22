@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <kphuser.h>
 #include <settings.h>
 
 typedef struct THREAD_STACK_CONTEXT
@@ -61,7 +62,7 @@ VOID PhShowThreadStackDialog(
 
     // If the user is trying to view a system thread stack 
     // but KProcessHacker is not loaded, show an error message.
-    if (ProcessId == SYSTEM_PROCESS_ID && !PhKphHandle)
+    if (ProcessId == SYSTEM_PROCESS_ID && !KphIsConnected())
     {
         PhShowError(ParentWindowHandle, KPH_ERROR_MESSAGE);
         return;
@@ -77,7 +78,7 @@ VOID PhShowThreadStackDialog(
         ThreadId
         )))
     {
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             status = PhOpenThread(
                 &threadHandle,

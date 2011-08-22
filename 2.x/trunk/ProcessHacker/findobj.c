@@ -74,7 +74,9 @@ static PH_QUEUED_LOCK SearchResultsLock = PH_QUEUED_LOCK_INIT;
 static ULONG64 SearchPointer;
 static BOOLEAN UseSearchPointer;
 
-VOID PhShowFindObjectsDialog()
+VOID PhShowFindObjectsDialog(
+    VOID
+    )
 {
     if (!PhFindObjectsWindowHandle)
     {

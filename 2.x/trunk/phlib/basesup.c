@@ -1432,7 +1432,9 @@ PPH_STRING PhCreateStringFromAnsiEx(
 /**
  * Obtains a reference to a zero-length string.
  */
-PPH_STRING PhReferenceEmptyString()
+PPH_STRING PhReferenceEmptyString(
+    VOID
+    )
 {
     PPH_STRING string;
     PPH_STRING newString;
@@ -2728,7 +2730,7 @@ VOID PhAddItemList(
  */
 VOID PhAddItemsList(
     __inout PPH_LIST List,
-    __in PPVOID Items,
+    __in PVOID *Items,
     __in ULONG Count
     )
 {
@@ -2817,7 +2819,7 @@ VOID PhInsertItemList(
 VOID PhInsertItemsList(
     __inout PPH_LIST List,
     __in ULONG Index,
-    __in PPVOID Items,
+    __in PVOID *Items,
     __in ULONG Count
     )
 {
@@ -3075,7 +3077,7 @@ HANDLE PhAddItemPointerList(
 BOOLEAN PhEnumPointerListEx(
     __in PPH_POINTER_LIST PointerList,
     __inout PULONG EnumerationKey,
-    __out PPVOID Pointer,
+    __out PVOID *Pointer,
     __out PHANDLE PointerHandle
     )
 {
@@ -3215,7 +3217,7 @@ VOID PhEnqueueItemQueue(
     if (Queue->Count == Queue->AllocatedCount)
     {
         ULONG oldAllocatedCount = Queue->AllocatedCount;
-        PPVOID oldItems = Queue->Items;
+        PVOID *oldItems = Queue->Items;
 
         Queue->AllocatedCount *= 2;
         Queue->Items = PhAllocate(Queue->AllocatedCount * sizeof(PVOID));
@@ -3256,7 +3258,7 @@ VOID PhEnqueueItemQueue(
  */
 BOOLEAN PhDequeueItemQueue(
     __inout PPH_QUEUE Queue,
-    __out PPVOID Item
+    __out PVOID *Item
     )
 {
     if (Queue->Count == 0)
@@ -3282,7 +3284,7 @@ BOOLEAN PhDequeueItemQueue(
  */
 BOOLEAN PhPeekItemQueue(
     __in PPH_QUEUE Queue,
-    __out PPVOID Item
+    __out PVOID *Item
     )
 {
     if (Queue->Count == 0)
@@ -3608,7 +3610,7 @@ VOID PhClearHashtable(
  */
 BOOLEAN PhEnumHashtable(
     __in PPH_HASHTABLE Hashtable,
-    __out PPVOID Entry,
+    __out PVOID *Entry,
     __inout PULONG EnumerationKey
     )
 {
@@ -3920,7 +3922,7 @@ PVOID PhAddItemSimpleHashtable(
         return NULL;
 }
 
-PPVOID PhFindItemSimpleHashtable(
+PVOID *PhFindItemSimpleHashtable(
     __in PPH_HASHTABLE SimpleHashtable,
     __in_opt PVOID Key
     )

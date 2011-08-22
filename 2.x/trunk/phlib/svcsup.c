@@ -437,7 +437,7 @@ PPH_STRING PhGetServiceNameFromTag(
 NTSTATUS PhGetThreadServiceTag(
     __in HANDLE ThreadHandle,
     __in_opt HANDLE ProcessHandle,
-    __out PPVOID ServiceTag
+    __out PVOID *ServiceTag
     )
 {
     NTSTATUS status;

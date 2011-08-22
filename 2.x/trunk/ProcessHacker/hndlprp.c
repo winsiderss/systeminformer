@@ -374,7 +374,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
                         processId = NULL;
 
-                        if (PhKphHandle)
+                        if (KphIsConnected())
                         {
                             if (NT_SUCCESS(PhOpenProcess(
                                 &processHandle,
@@ -385,7 +385,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                                 PROCESS_BASIC_INFORMATION basicInfo;
 
                                 if (NT_SUCCESS(KphQueryInformationObject(
-                                    PhKphHandle,
                                     processHandle,
                                     context->HandleItem->Handle,
                                     KphObjectProcessBasicInformation,
@@ -443,7 +442,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                         clientId.UniqueProcess = NULL;
                         clientId.UniqueThread = NULL;
 
-                        if (PhKphHandle)
+                        if (KphIsConnected())
                         {
                             if (NT_SUCCESS(PhOpenProcess(
                                 &processHandle,
@@ -454,7 +453,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                                 THREAD_BASIC_INFORMATION basicInfo;
 
                                 if (NT_SUCCESS(KphQueryInformationObject(
-                                    PhKphHandle,
                                     processHandle,
                                     context->HandleItem->Handle,
                                     KphObjectThreadBasicInformation,

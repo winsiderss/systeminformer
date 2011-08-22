@@ -73,7 +73,9 @@ static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties;
 static BOOLEAN EtpRundownActive;
 static HANDLE EtpRundownEtwMonitorThreadHandle;
 
-VOID EtEtwMonitorInitialization()
+VOID EtEtwMonitorInitialization(
+    VOID
+    )
 {
     if (PhElevated && PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR))
     {
@@ -84,7 +86,9 @@ VOID EtEtwMonitorInitialization()
     }
 }
 
-VOID EtEtwMonitorUninitialization()
+VOID EtEtwMonitorUninitialization(
+    VOID
+    )
 {
     if (EtEtwEnabled)
     {
@@ -99,7 +103,9 @@ VOID EtEtwMonitorUninitialization()
     }
 }
 
-VOID EtStartEtwSession()
+VOID EtStartEtwSession(
+    VOID
+    )
 {
     ULONG result;
     ULONG bufferSize;
@@ -161,13 +167,17 @@ ULONG EtpControlEtwSession(
         );
 }
 
-VOID EtStopEtwSession()
+VOID EtStopEtwSession(
+    VOID
+    )
 {
     if (EtEtwEnabled)
         EtpControlEtwSession(EVENT_TRACE_CONTROL_STOP);
 }
 
-VOID EtFlushEtwSession()
+VOID EtFlushEtwSession(
+    VOID
+    )
 {
     if (EtEtwEnabled)
         EtpControlEtwSession(EVENT_TRACE_CONTROL_FLUSH);
@@ -383,7 +393,9 @@ NTSTATUS EtpEtwMonitorThreadStart(
     return STATUS_SUCCESS;
 }
 
-ULONG EtStartEtwRundown()
+ULONG EtStartEtwRundown(
+    VOID
+    )
 {
     ULONG result;
     ULONG bufferSize;

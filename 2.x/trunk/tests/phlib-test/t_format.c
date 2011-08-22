@@ -1,6 +1,8 @@
 #include "tests.h"
 
-static VOID Test_buffer()
+static VOID Test_buffer(
+    VOID
+    )
 {
 #define OUTPUT_COUNT 10
 
@@ -24,7 +26,9 @@ static VOID Test_buffer()
     assert(!result && returnLength == (OUTPUT_COUNT + 1) * sizeof(WCHAR));
 }
 
-static VOID Test_char()
+static VOID Test_char(
+    VOID
+    )
 {
     BOOLEAN result;
     PH_FORMAT format[2];
@@ -38,7 +42,9 @@ static VOID Test_char()
     assert(result && wcscmp(buffer, L"Hi") == 0);
 }
 
-static VOID Test_string()
+static VOID Test_string(
+    VOID
+    )
 {
     BOOLEAN result;
     PH_FORMAT format[4];
@@ -56,7 +62,9 @@ static VOID Test_string()
     assert(result && wcscmp(buffer, L"This is a string.") == 0);
 }
 
-static BOOLEAN IsThousandSepComma()
+static BOOLEAN IsThousandSepComma(
+    VOID
+    )
 {
     WCHAR thousandSep[4];
 
@@ -68,7 +76,9 @@ static BOOLEAN IsThousandSepComma()
     return TRUE;
 }
 
-static VOID Test_integer()
+static VOID Test_integer(
+    VOID
+    )
 {
     BOOLEAN result;
     PH_FORMAT format[1];
@@ -210,7 +220,9 @@ static VOID Test_integer()
     assert(result && wcscmp(buffer, L"-12,345") == 0);
 }
 
-static VOID Test_float()
+static VOID Test_float(
+    VOID
+    )
 {
     BOOLEAN result;
     PH_FORMAT format[1];
@@ -404,7 +416,9 @@ static VOID Test_float()
     assert(result && wcscmp(buffer, L"-9,876,543.21000") == 0);
 }
 
-static VOID Test_width()
+static VOID Test_width(
+    VOID
+    )
 {
     BOOLEAN result;
     PH_FORMAT format[2];
@@ -484,7 +498,9 @@ static VOID Test_width()
     assert(result && wcscmp(buffer, L"   1234asdf      ") == 0);
 }
 
-static VOID Test_wildcards()
+static VOID Test_wildcards(
+    VOID
+    )
 {
     static WCHAR *testCases[][3] =
     {
@@ -536,7 +552,9 @@ static VOID Test_wildcards()
     }
 }
 
-VOID Test_format()
+VOID Test_format(
+    VOID
+    )
 {
     Test_buffer();
     Test_char();

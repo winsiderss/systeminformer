@@ -111,7 +111,9 @@ NTSTATUS PhSvcApiPortInitialization(
     return status;
 }
 
-PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext()
+PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(
+    VOID
+    )
 {
     return (PPHSVC_THREAD_CONTEXT)TlsGetValue(PhSvcApiThreadContextTlsIndex);
 }

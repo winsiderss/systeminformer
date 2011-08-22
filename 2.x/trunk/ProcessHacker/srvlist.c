@@ -71,7 +71,9 @@ static HICON ServiceCogGoIcon;
 BOOLEAN PhServiceTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ServiceNodeStateList = NULL; // list of nodes which need to be processed
 
-VOID PhServiceTreeListInitialization()
+VOID PhServiceTreeListInitialization(
+    VOID
+    )
 {
     ServiceNodeHashtable = PhCreateHashtable(
         sizeof(PPH_SERVICE_NODE),
@@ -149,7 +151,9 @@ VOID PhInitializeServiceTreeList(
     }
 }
 
-VOID PhLoadSettingsServiceTreeList()
+VOID PhLoadSettingsServiceTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
@@ -161,7 +165,9 @@ VOID PhLoadSettingsServiceTreeList()
     PhDereferenceObject(sortSettings);
 }
 
-VOID PhSaveSettingsServiceTreeList()
+VOID PhSaveSettingsServiceTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
@@ -295,7 +301,9 @@ VOID PhUpdateServiceNode(
     TreeNew_NodesStructured(ServiceTreeListHandle);
 }
 
-VOID PhTickServiceNodes()
+VOID PhTickServiceNodes(
+    VOID
+    )
 {
     if (ServiceTreeListSortOrder != NoSortOrder && ServiceTreeListSortColumn >= PHSVTLC_MAXIMUM)
     {
@@ -642,7 +650,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     return FALSE;
 }
 
-PPH_SERVICE_ITEM PhGetSelectedServiceItem()
+PPH_SERVICE_ITEM PhGetSelectedServiceItem(
+    VOID
+    )
 {
     PPH_SERVICE_ITEM serviceItem = NULL;
     ULONG i;
@@ -687,7 +697,9 @@ VOID PhGetSelectedServiceItems(
     PhDereferenceObject(list);
 }
 
-VOID PhDeselectAllServiceNodes()
+VOID PhDeselectAllServiceNodes(
+    VOID
+    )
 {
     TreeNew_DeselectRange(ServiceTreeListHandle, 0, -1);
 }
@@ -707,7 +719,9 @@ VOID PhSelectAndEnsureVisibleServiceNode(
     TreeNew_EnsureVisible(ServiceTreeListHandle, &ServiceNode->Node);
 }
 
-VOID PhCopyServiceList()
+VOID PhCopyServiceList(
+    VOID
+    )
 {
     PPH_FULL_STRING text;
 

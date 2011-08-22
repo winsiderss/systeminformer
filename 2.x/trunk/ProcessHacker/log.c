@@ -27,7 +27,9 @@
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
 PHAPPAPI PH_CALLBACK_DECLARE(PhLoggedCallback);
 
-VOID PhLogInitialization()
+VOID PhLogInitialization(
+    VOID
+    )
 {
     ULONG entries;
 
@@ -145,7 +147,9 @@ VOID PhpLogEntry(
     PhInvokeCallback(&PhLoggedCallback, Entry);
 }
 
-VOID PhClearLogEntries()
+VOID PhClearLogEntries(
+    VOID
+    )
 {
     ULONG i;
 

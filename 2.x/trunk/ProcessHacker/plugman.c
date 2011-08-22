@@ -180,7 +180,9 @@ VOID PhpFreeDisabledPlugin(
     PhFree(Plugin);
 }
 
-VOID PhpAddDisabledPlugins()
+VOID PhpAddDisabledPlugins(
+    VOID
+    )
 {
     static PH_STRINGREF disabledString = PH_STRINGREF_INIT(L"(Disabled) ");
 

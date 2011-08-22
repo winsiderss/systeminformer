@@ -31,7 +31,7 @@ static HBITMAP PhpCreateBitmap32(
     __in HDC hdc,
     __in ULONG Width,
     __in ULONG Height,
-    __deref_opt_out PPVOID Bits
+    __deref_opt_out PVOID *Bits
     )
 {
     BITMAPINFO bitmapInfo;

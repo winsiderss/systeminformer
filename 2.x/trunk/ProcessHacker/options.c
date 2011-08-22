@@ -69,7 +69,6 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     );
 
 // All
-static BOOLEAN ColorBoxInitialized = FALSE;
 static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
 static POINT StartLocation;
@@ -94,12 +93,6 @@ VOID PhShowOptionsDialog(
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[5];
-
-    if (!ColorBoxInitialized)
-    {
-        PhColorBoxInitialization();
-        ColorBoxInitialized = TRUE;
-    }
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |

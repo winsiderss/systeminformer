@@ -16,7 +16,9 @@ typedef struct _PH_FAST_LOCK
 
 #define PH_FAST_LOCK_INIT { 0, NULL, NULL } 
 
-VOID PhFastLockInitialization();
+VOID PhFastLockInitialization(
+    VOID
+    );
 
 PHLIBAPI
 VOID

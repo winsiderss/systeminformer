@@ -31,7 +31,9 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
 
 PH_MAPPED_ARCHIVE PvMappedArchive;
 
-VOID PvLibProperties()
+VOID PvLibProperties(
+    VOID
+    )
 {
     NTSTATUS status;
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };

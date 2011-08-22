@@ -77,9 +77,11 @@ static PPH_LIST ProcessesList = NULL;
 static ULONG NumberOfHiddenProcesses;
 static ULONG NumberOfTerminatedProcesses;
 
-VOID PhShowHiddenProcessesDialog()
+VOID PhShowHiddenProcessesDialog(
+    VOID
+    )
 {
-    if (!PhKphHandle)
+    if (!KphIsConnected())
     {
         PhShowWarning(
             PhMainWndHandle,
@@ -1018,7 +1020,6 @@ NTSTATUS PhpGetCsrHandleProcessId(
     // process ID.
 
     status = KphQueryInformationObject(
-        PhKphHandle,
         Handle->CsrProcessHandle,
         Handle->Handle,
         KphObjectProcessBasicInformation,
@@ -1037,7 +1038,6 @@ NTSTATUS PhpGetCsrHandleProcessId(
         // is a thread handle, and get the process ID.
 
         status = KphQueryInformationObject(
-            PhKphHandle,
             Handle->CsrProcessHandle,
             Handle->Handle,
             KphObjectThreadBasicInformation,
@@ -1162,7 +1162,6 @@ NTSTATUS PhOpenProcessByCsrHandle(
             return status;
 
         status = KphOpenThreadProcess(
-            PhKphHandle,
             threadHandle,
             DesiredAccess,
             ProcessHandle

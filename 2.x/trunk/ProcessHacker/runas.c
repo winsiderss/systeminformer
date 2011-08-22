@@ -81,7 +81,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     __in LPARAM lParam
     );
 
-VOID PhSetDesktopWinStaAccess();
+VOID PhSetDesktopWinStaAccess(
+    VOID
+    );
 
 VOID PhpSplitUserName(
     __in PWSTR UserName,
@@ -186,7 +188,9 @@ static BOOLEAN IsServiceAccount(
     }
 }
 
-static PPH_STRING GetCurrentWinStaName()
+static PPH_STRING GetCurrentWinStaName(
+    VOID
+    )
 {
     PPH_STRING string;
 
@@ -730,7 +734,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
  * Sets the access control lists of the current window station 
  * and desktop to allow all access.
  */
-VOID PhSetDesktopWinStaAccess()
+VOID PhSetDesktopWinStaAccess(
+    VOID
+    )
 {
     HWINSTA wsHandle;
     HDESK desktopHandle;

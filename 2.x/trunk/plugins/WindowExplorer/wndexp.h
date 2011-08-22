@@ -32,25 +32,37 @@ typedef struct _WE_HOOK_SHARED_DATA
     } c;
 } WE_HOOK_SHARED_DATA, *PWE_HOOK_SHARED_DATA;
 
-VOID WeHookServerInitialization();
+VOID WeHookServerInitialization(
+    VOID
+    );
 
-VOID WeHookServerUninitialization();
+VOID WeHookServerUninitialization(
+    VOID
+    );
 
-BOOLEAN WeIsServerActive();
+BOOLEAN WeIsServerActive(
+    VOID
+    );
 
 BOOLEAN WeLockServerSharedData(
     __out PWE_HOOK_SHARED_DATA *Data
     );
 
-VOID WeUnlockServerSharedData();
+VOID WeUnlockServerSharedData(
+    VOID
+    );
 
 BOOLEAN WeSendServerRequest(
     __in HWND hWnd
     );
 
-VOID WeHookClientInitialization();
+VOID WeHookClientInitialization(
+    VOID
+    );
 
-VOID WeHookClientUninitialization();
+VOID WeHookClientUninitialization(
+    VOID
+    );
 
 // wnddlg
 

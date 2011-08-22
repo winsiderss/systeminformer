@@ -241,7 +241,9 @@ static PH_AVL_TREE PhpVerifyCacheSet = PH_AVL_TREE_INIT(PhpVerifyCacheCompareFun
 static PH_QUEUED_LOCK PhpVerifyCacheLock = PH_QUEUED_LOCK_INIT;
 #endif
 
-BOOLEAN PhProcessProviderInitialization()
+BOOLEAN PhProcessProviderInitialization(
+    VOID
+    )
 {
     PFLOAT usageBuffer;
     PPH_UINT64_DELTA deltaBuffer;
@@ -908,12 +910,11 @@ VOID PhpProcessQueryStage1(
     // Job
     if (processHandleLimited)
     {
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             HANDLE jobHandle = NULL;
 
             status = KphOpenProcessJob(
-                PhKphHandle,
                 processHandleLimited,
                 JOB_OBJECT_QUERY,
                 &jobHandle
@@ -1286,7 +1287,9 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     ProcessItem->IoCounters = *(PIO_COUNTERS)&Process->ReadOperationCount;
 }
 
-VOID PhpUpdatePerfInformation()
+VOID PhpUpdatePerfInformation(
+    VOID
+    )
 {
     NtQuerySystemInformation(
         SystemPerformanceInformation,
@@ -1497,7 +1500,9 @@ VOID PhpUpdateCpuCycleUsageInformation(
     }
 }
 
-VOID PhpInitializeProcessStatistics()
+VOID PhpInitializeProcessStatistics(
+    VOID
+    )
 {
     ULONG i;
 
@@ -1524,7 +1529,9 @@ VOID PhpInitializeProcessStatistics()
     }
 }
 
-VOID PhpUpdateSystemHistory()
+VOID PhpUpdateSystemHistory(
+    VOID
+    )
 {
     ULONG i;
     LARGE_INTEGER systemTime;
@@ -1690,7 +1697,7 @@ VOID PhProcessProviderUpdate(
 
     if (runCount % 8 == 0)
     {
-        PhRefreshDosDevicePrefixes();
+        PhUpdateDosDevicePrefixes();
     }
 
     if (runCount % 16 == 1)
@@ -2607,7 +2614,9 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
 /**
  * Deletes unused process records.
  */
-VOID PhPurgeProcessRecords()
+VOID PhPurgeProcessRecords(
+    VOID
+    )
 {
     PPH_PROCESS_RECORD processRecord;
     PPH_PROCESS_RECORD startProcessRecord;

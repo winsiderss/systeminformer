@@ -30,7 +30,9 @@ VOID PhpMemoryItemDeleteProcedure(
 
 PPH_OBJECT_TYPE PhMemoryItemType;
 
-BOOLEAN PhMemoryProviderInitialization()
+BOOLEAN PhMemoryProviderInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhMemoryItemType,
@@ -78,7 +80,9 @@ VOID PhDeleteMemoryProvider(
         NtClose(Provider->ProcessHandle);
 }
 
-PPH_MEMORY_ITEM PhCreateMemoryItem()
+PPH_MEMORY_ITEM PhCreateMemoryItem(
+    VOID
+    )
 {
     PPH_MEMORY_ITEM memoryItem;
 

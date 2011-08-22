@@ -26,7 +26,9 @@
 
 PPH_OBJECT_TYPE PhFileStreamType;
 
-BOOLEAN PhIoSupportInitialization()
+BOOLEAN PhIoSupportInitialization(
+    VOID
+    )
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
 

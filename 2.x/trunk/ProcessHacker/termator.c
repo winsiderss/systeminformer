@@ -58,7 +58,9 @@ VOID PhShowProcessTerminatorDialog(
         );
 }
 
-static PVOID GetExitProcessFunction()
+static PVOID GetExitProcessFunction(
+    VOID
+    )
 {
     // Vista and above export.
     if (WindowsVersion >= WINDOWS_VISTA)
@@ -132,7 +134,7 @@ static NTSTATUS NTAPI TerminatorTTGeneric(
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG i;
 
-    if ((UseKph || UseKphDangerous) && !PhKphHandle)
+    if ((UseKph || UseKphDangerous) && !KphIsConnected())
         return STATUS_NOT_SUPPORTED;
 
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
@@ -157,9 +159,9 @@ static NTSTATUS NTAPI TerminatorTTGeneric(
             )))
         {
             if (UseKphDangerous)
-                KphTerminateThreadUnsafe(PhKphHandle, threadHandle, STATUS_SUCCESS);
+                KphTerminateThreadUnsafe(threadHandle, STATUS_SUCCESS);
             else if (UseKph)
-                KphTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
+                KphTerminateThread(threadHandle, STATUS_SUCCESS);
             else
                 NtTerminateThread(threadHandle, STATUS_SUCCESS);
 
@@ -543,7 +545,7 @@ static NTSTATUS NTAPI TerminatorTP3(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (!PhKphHandle)
+    if (!KphIsConnected())
         return STATUS_NOT_SUPPORTED;
 
     if (NT_SUCCESS(status = PhOpenProcess(
@@ -552,7 +554,7 @@ static NTSTATUS NTAPI TerminatorTP3(
         ProcessId
         )))
     {
-        status = KphTerminateProcess(PhKphHandle, processHandle, STATUS_SUCCESS);
+        status = KphTerminateProcess(processHandle, STATUS_SUCCESS);
 
         NtClose(processHandle);
     }

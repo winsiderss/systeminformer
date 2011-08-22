@@ -1,6 +1,8 @@
 #include "tests.h"
 
-static VOID Test_rectangle()
+static VOID Test_rectangle(
+    VOID
+    )
 {
     PH_RECTANGLE r1;
     PH_RECTANGLE r2;
@@ -41,7 +43,9 @@ static BOOLEAN AreGuidsEqual(
     return memcmp(Guid1, &guid2, sizeof(GUID)) == 0;
 }
 
-static VOID Test_guid()
+static VOID Test_guid(
+    VOID
+    )
 {
     GUID guid;
     GUID ns;
@@ -69,7 +73,9 @@ static VOID Test_guid()
     assert(AreGuidsEqual(&guid, L"{cc957dd1-a972-5349-98cd-874190002798}"));
 }
 
-static VOID Test_ellipsis()
+static VOID Test_ellipsis(
+    VOID
+    )
 {
     PPH_STRING input;
     PPH_STRING output;
@@ -145,7 +151,9 @@ static VOID Test_ellipsis()
     assert(wcscmp(output->Buffer, L"C:\\abcdef\\1234.abc") == 0);
 }
 
-VOID Test_compareignoremenuprefix()
+VOID Test_compareignoremenuprefix(
+    VOID
+    )
 {
     assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"", L"", FALSE, FALSE) == 0);
     assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asdf", FALSE, FALSE) == 0);
@@ -183,7 +191,9 @@ VOID Test_compareignoremenuprefix()
     assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"AAA&&&&asdf", L"aaa&&&&asdf&&", TRUE, TRUE) == 0);
 }
 
-VOID Test_support()
+VOID Test_support(
+    VOID
+    )
 {
     Test_rectangle();
     Test_guid();

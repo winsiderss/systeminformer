@@ -11,11 +11,15 @@ extern PPH_STRING PvFileName;
 
 // peprp
 
-VOID PvPeProperties();
+VOID PvPeProperties(
+    VOID
+    );
 
 // libprp
 
-VOID PvLibProperties();
+VOID PvLibProperties(
+    VOID
+    );
 
 // misc
 

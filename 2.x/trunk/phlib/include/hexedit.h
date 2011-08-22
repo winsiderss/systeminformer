@@ -8,11 +8,8 @@
 #define EDIT_HIGH 2
 #define EDIT_LOW 3
 
-BOOLEAN PhHexEditInitialization();
-
-HWND PhCreateHexEditControl(
-    __in HWND ParentHandle,
-    __in INT_PTR Id
+BOOLEAN PhHexEditInitialization(
+    VOID
     );
 
 #define HEM_SETBUFFER (WM_APP + 1401)

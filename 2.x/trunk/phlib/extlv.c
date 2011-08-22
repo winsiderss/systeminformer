@@ -121,7 +121,9 @@ VOID PhListTick(
     __in PPH_EXTLV_CONTEXT Context
     );
 
-static PWSTR PhpMakeExtLvContextAtom()
+static PWSTR PhpMakeExtLvContextAtom(
+    VOID
+    )
 {
     PH_DEFINE_MAKE_ATOM(L"PhLib_ExtLvContext");
 }

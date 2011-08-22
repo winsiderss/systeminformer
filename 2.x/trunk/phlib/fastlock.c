@@ -54,7 +54,9 @@
 
 static ULONG PhFastLockSpinCount = 2000;
 
-VOID PhFastLockInitialization()
+VOID PhFastLockInitialization(
+    VOID
+    )
 {
     if ((ULONG)PhSystemBasicInformation.NumberOfProcessors > 1)
         PhFastLockSpinCount = 4000;

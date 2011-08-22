@@ -3,11 +3,8 @@
 
 #define PH_COLORBOX_CLASSNAME L"PhColorBox"
 
-BOOLEAN PhColorBoxInitialization();
-
-HWND PhCreateColorBoxControl(
-    __in HWND ParentHandle,
-    __in INT_PTR Id
+BOOLEAN PhColorBoxInitialization(
+    VOID
     );
 
 #define CBCM_SETCOLOR (WM_APP + 1501)
