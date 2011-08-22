@@ -37,6 +37,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackThreadTreeNewUninitializing = 23, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackHandleTreeNewInitializing = 24, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackHandleTreeNewUninitializing = 25, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
+    GeneralCallbackThreadStackControl = 26, // PPH_PLUGIN_THREAD_STACK_CONTROL Data [properties thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -175,6 +176,42 @@ typedef struct _PH_PLUGIN_TREENEW_INFORMATION
         } Handle;
     } u;
 } PH_PLUGIN_TREENEW_INFORMATION, *PPH_PLUGIN_TREENEW_INFORMATION;
+
+typedef enum _PH_PLUGIN_THREAD_STACK_CONTROL_TYPE
+{
+    PluginThreadStackInitializing,
+    PluginThreadStackUninitializing,
+    PluginThreadStackResolveSymbol,
+    PluginThreadStackGetTooltip,
+    PluginThreadStackMaximum
+} PH_PLUGIN_THREAD_STACK_CONTROL_TYPE;
+
+typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
+{
+    PH_PLUGIN_THREAD_STACK_CONTROL_TYPE Type;
+    PVOID UniqueKey;
+
+    union
+    {
+        struct
+        {
+            HANDLE ProcessId;
+            HANDLE ThreadId;
+            HANDLE ThreadHandle;
+            PPH_SYMBOL_PROVIDER SymbolProvider;
+        } Initializing;
+        struct
+        {
+            PPH_THREAD_STACK_FRAME StackFrame;
+            PPH_STRING Symbol;
+        } ResolveSymbol;
+        struct
+        {
+            PPH_THREAD_STACK_FRAME StackFrame;
+            PPH_STRING_BUILDER StringBuilder;
+        } GetTooltip;
+    } u;
+} PH_PLUGIN_THREAD_STACK_CONTROL, *PPH_PLUGIN_THREAD_STACK_CONTROL;
 
 typedef struct _PH_PLUGIN_TREENEW_MESSAGE
 {
