@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <kphuser.h>
 #include <settings.h>
+#include <phplug.h>
 
 typedef struct THREAD_STACK_CONTEXT
 {
@@ -172,6 +173,19 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhLoadWindowPlacementFromSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+                control.Type = PluginThreadStackInitializing;
+                control.UniqueKey = threadStackContext;
+                control.u.Initializing.ProcessId = threadStackContext->ProcessId;
+                control.u.Initializing.ThreadId = threadStackContext->ThreadId;
+                control.u.Initializing.ThreadHandle = threadStackContext->ThreadHandle;
+                control.u.Initializing.SymbolProvider = threadStackContext->SymbolProvider;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+            }
+
             PhpRefreshThreadStack(threadStackContext);
         }
         break;
@@ -186,6 +200,15 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhFree(layoutManager);
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+                control.Type = PluginThreadStackUninitializing;
+                control.UniqueKey = threadStackContext;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+            }
 
             for (i = 0; i < threadStackContext->List->Count; i++)
                 PhFree(threadStackContext->List->Items[i]);
@@ -290,6 +313,17 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                             if (stringBuilder.String->Length != 0)
                                 PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
+                            if (PhPluginsEnabled)
+                            {
+                                PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+                                control.Type = PluginThreadStackGetTooltip;
+                                control.UniqueKey = threadStackContext;
+                                control.u.GetTooltip.StackFrame = stackFrame;
+                                control.u.GetTooltip.StringBuilder = &stringBuilder;
+                                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+                            }
+
                             PhCopyListViewInfoTip(getInfoTip, &stringBuilder.String->sr);
                             PhDeleteStringBuilder(&stringBuilder);
                         }
@@ -343,6 +377,19 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PhAddItemList(threadStackContext->List, stackFrame);
     lvItemIndex = PhAddListViewItem(threadStackContext->ListViewHandle, MAXINT,
         integerString, stackFrame);
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+        control.Type = PluginThreadStackResolveSymbol;
+        control.UniqueKey = threadStackContext;
+        control.u.ResolveSymbol.StackFrame = stackFrame;
+        control.u.ResolveSymbol.Symbol = symbol;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+        symbol = control.u.ResolveSymbol.Symbol;
+    }
 
     if (symbol)
     {
