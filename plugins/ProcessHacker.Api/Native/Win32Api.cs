@@ -385,5 +385,13 @@ namespace ProcessHacker.Api
             IntPtr hWndChild,
             IntPtr hWndNewParent
             );
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(
+            IntPtr hWnd,
+            int Msg,
+            IntPtr wParam,
+            IntPtr lParam
+            );
     }
 }
