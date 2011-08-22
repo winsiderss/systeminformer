@@ -107,7 +107,9 @@ VOID FASTCALL PhpfWakeQueuedLockEx(
 static HANDLE PhQueuedLockKeyedEventHandle;
 static ULONG PhQueuedLockSpinCount = 2000;
 
-BOOLEAN PhQueuedLockInitialization()
+BOOLEAN PhQueuedLockInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(NtCreateKeyedEvent(
         &PhQueuedLockKeyedEventHandle,

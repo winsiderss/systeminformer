@@ -169,7 +169,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
     case WM_INITDIALOG:
         {
             NTSTATUS status;
-            RECT rect;
 
             {
                 PPH_PROCESS_ITEM processItem;
@@ -245,6 +244,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (MinimumSize.left == -1)
             {
+                RECT rect;
+
                 rect.left = 0;
                 rect.top = 0;
                 rect.right = 290;
@@ -254,16 +255,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 MinimumSize.left = 0;
             }
 
-            GetWindowRect(GetDlgItem(hwndDlg, IDC_MEMORY_LAYOUT), &rect);
-            MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
-
-            context->HexEditHandle = PhCreateHexEditControl(hwndDlg, IDC_MEMORY);
-            BringWindowToTop(context->HexEditHandle);
-            MoveWindow(context->HexEditHandle, rect.left, rect.top,
-                rect.right - rect.left, rect.bottom - rect.top, FALSE);
-            PhAddLayoutItem(&context->LayoutManager, context->HexEditHandle, NULL,
-                PH_ANCHOR_ALL);
-            ShowWindow(context->HexEditHandle, SW_SHOW);
+            context->HexEditHandle = GetDlgItem(hwndDlg, IDC_MEMORY);
+            PhAddLayoutItem(&context->LayoutManager, context->HexEditHandle, NULL, PH_ANCHOR_ALL);
             HexEdit_SetBuffer(context->HexEditHandle, context->Buffer, (ULONG)context->RegionSize);
 
             {

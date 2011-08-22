@@ -36,7 +36,9 @@ VOID PhpRemoveProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
-VOID PhpUpdateNeedCyclesInformation();
+VOID PhpUpdateNeedCyclesInformation(
+    VOID
+    );
 
 VOID PhpUpdateProcessNodeCycles(
     __inout PPH_PROCESS_NODE ProcessNode
@@ -83,7 +85,9 @@ static HBITMAP GraphOldBitmap;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
 
-VOID PhProcessTreeListInitialization()
+VOID PhProcessTreeListInitialization(
+    VOID
+    )
 {
     ProcessNodeList = PhCreateList(40);
     ProcessNodeRootList = PhCreateList(10);
@@ -216,7 +220,9 @@ static VOID PhpEnableColumnCustomDraw(
     TreeNew_SetColumn(hwnd, TN_COLUMN_FLAG_CUSTOMDRAW, &column);
 }
 
-VOID PhLoadSettingsProcessTreeList()
+VOID PhLoadSettingsProcessTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
@@ -235,7 +241,9 @@ VOID PhLoadSettingsProcessTreeList()
     PhpUpdateNeedCyclesInformation();
 }
 
-VOID PhSaveSettingsProcessTreeList()
+VOID PhSaveSettingsProcessTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
@@ -247,7 +255,9 @@ VOID PhSaveSettingsProcessTreeList()
     PhDereferenceObject(sortSettings);
 }
 
-VOID PhReloadSettingsProcessTreeList()
+VOID PhReloadSettingsProcessTreeList(
+    VOID
+    )
 {
     SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL,
         PhGetIntegerSetting(L"EnableInstantTooltips") ? 0 : -1);
@@ -546,7 +556,9 @@ VOID PhUpdateProcessNode(
     TreeNew_InvalidateNode(ProcessTreeListHandle, &ProcessNode->Node);
 }
 
-VOID PhTickProcessNodes()
+VOID PhTickProcessNodes(
+    VOID
+    )
 {
     ULONG i;
     PH_TREENEW_VIEW_PARTS viewParts;
@@ -929,7 +941,9 @@ static VOID PhpUpdateProcessNodeQuotaLimits(
     }
 }
 
-static VOID PhpUpdateNeedCyclesInformation()
+static VOID PhpUpdateNeedCyclesInformation(
+    VOID
+    )
 {
     PH_TREENEW_COLUMN column;
 
@@ -2653,7 +2667,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
     return FALSE;
 }
 
-PPH_PROCESS_ITEM PhGetSelectedProcessItem()
+PPH_PROCESS_ITEM PhGetSelectedProcessItem(
+    VOID
+    )
 {
     PPH_PROCESS_ITEM processItem = NULL;
     ULONG i;
@@ -2698,12 +2714,16 @@ VOID PhGetSelectedProcessItems(
     PhDereferenceObject(list);
 }
 
-VOID PhDeselectAllProcessNodes()
+VOID PhDeselectAllProcessNodes(
+    VOID
+    )
 {
     TreeNew_DeselectRange(ProcessTreeListHandle, 0, -1);
 }
 
-VOID PhInvalidateAllProcessNodes()
+VOID PhInvalidateAllProcessNodes(
+    VOID
+    )
 {
     ULONG i;
 
@@ -2825,7 +2845,9 @@ BOOLEAN PhpApplyProcessTreeFiltersToNode(
     return show;
 }
 
-VOID PhApplyProcessTreeFilters()
+VOID PhApplyProcessTreeFilters(
+    VOID
+    )
 {
     ULONG i;
 
@@ -2964,7 +2986,9 @@ PPH_LIST PhGetProcessTreeListLines(
     return lines;
 }
 
-VOID PhCopyProcessTree()
+VOID PhCopyProcessTree(
+    VOID
+    )
 {
     PPH_FULL_STRING text;
 

@@ -76,7 +76,9 @@ VOID PhpAnalyzeWaitFallbacks(
     __in PANALYZE_WAIT_CONTEXT Context
     );
 
-VOID PhpInitializeServiceNumbers();
+VOID PhpInitializeServiceNumbers(
+    VOID
+    );
 
 PPH_STRING PhapGetHandleString(
     __in HANDLE ProcessHandle,
@@ -740,7 +742,9 @@ static NTSTATUS PhpWfmoThreadStart(
     return STATUS_SUCCESS;
 }
 
-static VOID PhpInitializeServiceNumbers()
+static VOID PhpInitializeServiceNumbers(
+    VOID
+    )
 {
     if (PhBeginInitOnce(&ServiceNumbersInitOnce))
     {

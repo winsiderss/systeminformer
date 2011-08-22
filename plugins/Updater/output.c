@@ -625,7 +625,7 @@ BOOL InitializeConnection(
 	return TRUE;
 }
 
-BOOL InitializeFile()
+BOOL InitializeFile(VOID)
 {
 	TCHAR lpPathBuffer[MAX_PATH];
 	DWORD length = 0;
@@ -783,7 +783,7 @@ CleanupAndExit:
 	return result;
 }
 
-BOOL ConnectionAvailable()
+BOOL ConnectionAvailable(VOID)
 {
 	DWORD dwType;
 
@@ -847,13 +847,13 @@ LONG CompareVersions(
 	return result;
 }
 
-VOID StartInitialCheck()
+VOID StartInitialCheck(VOID)
 {
 	// Queue up our initial update check.
 	PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)SilentWorkerThreadStart, NULL);
 }
 
-VOID ShowUpdateDialog()
+VOID ShowUpdateDialog(VOID)
 {
 	// check if our dialog is already visible (auto-check may already be visible).
 	if (!WindowVisible)
@@ -867,7 +867,7 @@ VOID ShowUpdateDialog()
 	}
 }
 
-BOOL PhInstalledUsingSetup() 
+BOOL PhInstalledUsingSetup(VOID) 
 {
 	static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
 
@@ -906,7 +906,7 @@ VOID LogEvent(__in PPH_STRING str)
 
 #pragma region Dispose Functions
 
-VOID DisposeConnection()
+VOID DisposeConnection(VOID)
 {
 	if (NetInitialize)
 	{
@@ -927,7 +927,7 @@ VOID DisposeConnection()
 	}
 }
 
-VOID DisposeStrings()
+VOID DisposeStrings(VOID)
 {
 	if (LocalFilePathString)
 	{
@@ -942,7 +942,7 @@ VOID DisposeStrings()
 	}
 }
 
-VOID DisposeFileHandles()
+VOID DisposeFileHandles(VOID)
 {
 	if (TempFileHandle)
 	{

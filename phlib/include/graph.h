@@ -48,7 +48,9 @@ typedef struct _PH_GRAPH_DRAW_INFO
 
 #define PH_GRAPH_CLASSNAME L"PhGraph"
 
-BOOLEAN PhGraphControlInitialization();
+BOOLEAN PhGraphControlInitialization(
+    VOID
+    );
 
 PHLIBAPI
 VOID PhDrawGraph(
@@ -71,11 +73,6 @@ VOID PhSetGraphText(
     __in PRECT Margin,
     __in PRECT Padding,
     __in ULONG Align
-    );
-
-HWND PhCreateGraphControl(
-    __in HWND ParentHandle,
-    __in INT_PTR Id
     );
 
 // Messages

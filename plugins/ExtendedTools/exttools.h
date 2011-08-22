@@ -243,9 +243,13 @@ extern PH_CIRCULAR_BUFFER_ULONG EtNetworkSendHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxDiskHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory;
 
-VOID EtEtwStatisticsInitialization();
+VOID EtEtwStatisticsInitialization(
+    VOID
+    );
 
-VOID EtEtwStatisticsUninitialization();
+VOID EtEtwStatisticsUninitialization(
+    VOID
+    );
 
 // etwdisk
 
@@ -257,9 +261,13 @@ extern PH_CALLBACK EtDiskItemModifiedEvent;
 extern PH_CALLBACK EtDiskItemRemovedEvent;
 extern PH_CALLBACK EtDiskItemsUpdatedEvent;
 
-VOID EtInitializeDiskInformation();
+VOID EtInitializeDiskInformation(
+    VOID
+    );
 
-PET_DISK_ITEM EtCreateDiskItem();
+PET_DISK_ITEM EtCreateDiskItem(
+    VOID
+    );
 
 PET_DISK_ITEM EtReferenceDiskItem(
     __in HANDLE ProcessId,
@@ -300,11 +308,17 @@ VOID EtProcessEtwPropertiesInitializing(
 
 // disktab
 
-VOID EtInitializeDiskTab();
+VOID EtInitializeDiskTab(
+    VOID
+    );
 
-VOID EtLoadSettingsDiskTreeList();
+VOID EtLoadSettingsDiskTreeList(
+    VOID
+    );
 
-VOID EtSaveSettingsDiskTreeList();
+VOID EtSaveSettingsDiskTreeList(
+    VOID
+    );
 
 // treeext
 
@@ -330,11 +344,15 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
 // etwsys
 
-VOID EtShowEtwSystemDialog();
+VOID EtShowEtwSystemDialog(
+    VOID
+    );
 
 // memlists
 
-VOID EtShowMemoryListsDialog();
+VOID EtShowMemoryListsDialog(
+    VOID
+    );
 
 // modsrv
 

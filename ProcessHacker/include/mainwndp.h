@@ -366,7 +366,9 @@ VOID PhMwpOnNetworkItemRemoved(
     __in PPH_NETWORK_ITEM NetworkItem
     );
 
-VOID PhMwpOnNetworkItemsUpdated();
+VOID PhMwpOnNetworkItemsUpdated(
+    VOID
+    );
 
 // Users
 

@@ -119,7 +119,9 @@ NTSTATUS PhSvcConnectToServer(
     return status;
 }
 
-VOID PhSvcDisconnectFromServer()
+VOID PhSvcDisconnectFromServer(
+    VOID
+    )
 {
     if (PhSvcClPortHeap)
     {

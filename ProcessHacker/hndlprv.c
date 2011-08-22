@@ -38,7 +38,9 @@ VOID NTAPI PhpHandleItemDeleteProcedure(
 PPH_OBJECT_TYPE PhHandleProviderType;
 PPH_OBJECT_TYPE PhHandleItemType;
 
-BOOLEAN PhHandleProviderInitialization()
+BOOLEAN PhHandleProviderInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhHandleProviderType,
@@ -310,7 +312,7 @@ NTSTATUS PhEnumHandlesGeneric(
     // * Otherwise, NtQuerySystemInformation with SystemHandleInformation 
     //   can be used.
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         PKPH_PROCESS_HANDLE_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
@@ -577,12 +579,11 @@ VOID PhHandleProviderUpdate(
                 continue;
             }
 
-            if (PhEqualString2(handleItem->TypeName, L"File", TRUE) && PhKphHandle)
+            if (PhEqualString2(handleItem->TypeName, L"File", TRUE) && KphIsConnected())
             {
                 KPH_FILE_OBJECT_INFORMATION objectInfo;
 
                 if (NT_SUCCESS(KphQueryInformationObject(
-                    PhKphHandle,
                     handleProvider->ProcessHandle,
                     handleItem->Handle,
                     KphObjectFileObjectInformation,

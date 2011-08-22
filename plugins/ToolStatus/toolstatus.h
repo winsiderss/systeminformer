@@ -30,7 +30,9 @@ LRESULT CALLBACK MainWndSubclassProc(
     __in DWORD_PTR dwRefData
     );
 
-VOID UpdateStatusBar();
+VOID UpdateStatusBar(
+    VOID
+    );
 
 VOID ShowStatusMenu(
     __in PPOINT Point

@@ -4,7 +4,9 @@
 static HICON BlackIcon = NULL;
 static HBITMAP BlackIconMask = NULL;
 
-HICON PhpGetBlackIcon()
+HICON PhpGetBlackIcon(
+    VOID
+    )
 {
     if (!BlackIcon)
     {
@@ -158,7 +160,9 @@ static VOID PhpBeginBitmap(
     *OldBitmap = SelectObject(hdc, bitmap);
 }
 
-VOID PhUpdateIconCpuHistory()
+VOID PhUpdateIconCpuHistory(
+    VOID
+    )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
@@ -242,7 +246,9 @@ VOID PhUpdateIconCpuHistory()
     PhDereferenceObject(text);
 }
 
-VOID PhUpdateIconIoHistory()
+VOID PhUpdateIconIoHistory(
+    VOID
+    )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
@@ -342,7 +348,9 @@ VOID PhUpdateIconIoHistory()
     PhDereferenceObject(text);
 }
 
-VOID PhUpdateIconCommitHistory()
+VOID PhUpdateIconCommitHistory(
+    VOID
+    )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
@@ -412,7 +420,9 @@ VOID PhUpdateIconCommitHistory()
     PhDereferenceObject(text);
 }
 
-VOID PhUpdateIconPhysicalHistory()
+VOID PhUpdateIconPhysicalHistory(
+    VOID
+    )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
@@ -484,7 +494,9 @@ VOID PhUpdateIconPhysicalHistory()
     PhDereferenceObject(text);
 }
 
-VOID PhUpdateIconCpuUsage()
+VOID PhUpdateIconCpuUsage(
+    VOID
+    )
 {
     HBITMAP bitmap;
     HDC hdc;

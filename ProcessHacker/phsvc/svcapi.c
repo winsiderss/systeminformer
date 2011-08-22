@@ -51,7 +51,9 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
-NTSTATUS PhSvcApiInitialization()
+NTSTATUS PhSvcApiInitialization(
+    VOID
+    )
 {
     return STATUS_SUCCESS;
 }

@@ -45,7 +45,9 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in LPARAM lParam
     );
 
-VOID ApplyToolbarSettings();
+VOID ApplyToolbarSettings(
+    VOID
+    );
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -281,7 +283,9 @@ VOID NTAPI MainWindowShowingCallback(
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 }
 
-VOID ApplyToolbarSettings()
+VOID ApplyToolbarSettings(
+    VOID
+    )
 {
     static BOOLEAN buttonHasText[NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS] = { TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE };
     ULONG i;
@@ -702,7 +706,9 @@ DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-VOID UpdateStatusBar()
+VOID UpdateStatusBar(
+    VOID
+    )
 {
     static ULONG lastTickCount = 0;
 

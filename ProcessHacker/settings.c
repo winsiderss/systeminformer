@@ -58,7 +58,9 @@ PPH_LIST PhIgnoredSettings;
 #define PhpAddIntegerSetting(A, B) ADD_SETTING_WRAPPER(IntegerSettingType, A, B)
 #define PhpAddIntegerPairSetting(A, B) ADD_SETTING_WRAPPER(IntegerPairSettingType, A, B)
 
-VOID PhSettingsInitialization()
+VOID PhSettingsInitialization(
+    VOID
+    )
 {
     PhSettingsHashtable = PhCreateHashtable(
         sizeof(PH_SETTING),
@@ -202,7 +204,9 @@ VOID PhSettingsInitialization()
     PhUpdateCachedSettings();
 }
 
-VOID PhUpdateCachedSettings()
+VOID PhUpdateCachedSettings(
+    VOID
+    )
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
@@ -633,7 +637,9 @@ VOID PhpFreeIgnoredSetting(
     PhFree(Setting);
 }
 
-VOID PhpClearIgnoredSettings()
+VOID PhpClearIgnoredSettings(
+    VOID
+    )
 {
     ULONG i;
 
@@ -649,12 +655,16 @@ VOID PhpClearIgnoredSettings()
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-VOID PhClearIgnoredSettings()
+VOID PhClearIgnoredSettings(
+    VOID
+    )
 {
     PhpClearIgnoredSettings();
 }
 
-VOID PhConvertIgnoredSettings()
+VOID PhConvertIgnoredSettings(
+    VOID
+    )
 {
     ULONG i;
 

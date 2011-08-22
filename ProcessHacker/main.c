@@ -27,6 +27,7 @@
 #include <settings.h>
 #include <extmgri.h>
 #include <hexedit.h>
+#include <colorbox.h>
 #include <shlobj.h>
 
 LONG PhMainMessageLoop(
@@ -221,6 +222,7 @@ INT WINAPI WinMain(
     PhTreeNewInitialization();
     PhGraphControlInitialization();
     PhHexEditInitialization();
+    PhColorBoxInitialization();
 
     PhSmallIconSize.X = GetSystemMetrics(SM_CXSMICON);
     PhSmallIconSize.Y = GetSystemMetrics(SM_CYSMICON);
@@ -453,12 +455,12 @@ VOID PhInitializeKph(
     // Append kprocesshacker.sys to the application directory.
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
 
-    KphConnect2(&PhKphHandle, L"KProcessHacker2", kprocesshackerFileName->Buffer);
+    KphConnect2(L"KProcessHacker2", kprocesshackerFileName->Buffer);
     PhDereferenceObject(kprocesshackerFileName);
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
-        KphGetFeatures(PhKphHandle, &PhKphFeatures);
+        KphGetFeatures(&PhKphFeatures);
     }
 }
 

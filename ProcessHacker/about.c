@@ -137,7 +137,9 @@ FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
     return info.NumberOfObjects;
 }
 
-PPH_STRING PhGetDiagnosticsString()
+PPH_STRING PhGetDiagnosticsString(
+    VOID
+    )
 {
     PH_STRING_BUILDER stringBuilder;
 

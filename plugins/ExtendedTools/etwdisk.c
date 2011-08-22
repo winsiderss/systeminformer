@@ -68,7 +68,9 @@ PH_QUEUED_LOCK EtFileNameHashtableLock = PH_QUEUED_LOCK_INIT;
 static LARGE_INTEGER EtpPerformanceFrequency;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
-VOID EtInitializeDiskInformation()
+VOID EtInitializeDiskInformation(
+    VOID
+    )
 {
     NTSTATUS status;
     LARGE_INTEGER performanceCounter;
@@ -108,7 +110,9 @@ VOID EtInitializeDiskInformation()
         );
 }
 
-PET_DISK_ITEM EtCreateDiskItem()
+PET_DISK_ITEM EtCreateDiskItem(
+    VOID
+    )
 {
     PET_DISK_ITEM diskItem;
 

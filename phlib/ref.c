@@ -50,7 +50,9 @@ PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 /**
  * Initializes the object manager module.
  */
-NTSTATUS PhInitializeRef()
+NTSTATUS PhInitializeRef(
+    VOID
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PH_OBJECT_TYPE dummyObjectType;
@@ -699,7 +701,9 @@ NTSTATUS PhCreateAlloc(
  * Gets the current auto-dereference pool for the 
  * current thread.
  */
-FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool()
+FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool(
+    VOID
+    )
 {
     return (PPH_AUTO_POOL)TlsGetValue(PhpAutoPoolTlsIndex);
 }

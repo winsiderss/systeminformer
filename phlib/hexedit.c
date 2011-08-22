@@ -26,7 +26,9 @@
 
 // Code originally from http://www.codeguru.com/Cpp/controls/editctrl/article.php/c539
 
-BOOLEAN PhHexEditInitialization()
+BOOLEAN PhHexEditInitialization(
+    VOID
+    )
 {
     WNDCLASSEX c = { sizeof(c) };
 
@@ -46,26 +48,6 @@ BOOLEAN PhHexEditInitialization()
         return FALSE;
 
     return TRUE;
-}
-
-HWND PhCreateHexEditControl(
-    __in HWND ParentHandle,
-    __in INT_PTR Id
-    )
-{
-    return CreateWindow(
-        PH_HEXEDIT_CLASSNAME,
-        NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VSCROLL,
-        0,
-        0,
-        3,
-        3,
-        ParentHandle,
-        (HMENU)Id,
-        PhLibImageBase,
-        NULL
-        );
 }
 
 VOID PhpCreateHexEditContext(
@@ -915,7 +897,9 @@ FORCEINLINE VOID PhpPrintAscii(
     }
 }
 
-FORCEINLINE COLORREF GetLighterHighlightColor()
+FORCEINLINE COLORREF GetLighterHighlightColor(
+    VOID
+    )
 {
     COLORREF color;
     UCHAR r;

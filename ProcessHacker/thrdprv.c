@@ -90,7 +90,9 @@ PPH_OBJECT_TYPE PhThreadItemType;
 PH_WORK_QUEUE PhThreadProviderWorkQueue;
 PH_INITONCE PhThreadProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 
-BOOLEAN PhThreadProviderInitialization()
+BOOLEAN PhThreadProviderInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhThreadProviderType,
@@ -923,12 +925,11 @@ VOID PhpThreadProviderUpdate(
 
             // Is it a GUI thread?
 
-            if (threadItem->ThreadHandle && PhKphHandle)
+            if (threadItem->ThreadHandle && KphIsConnected())
             {
                 PVOID win32Thread;
 
                 if (NT_SUCCESS(KphQueryInformationThread(
-                    PhKphHandle,
                     threadItem->ThreadHandle,
                     KphThreadWin32Thread,
                     &win32Thread,
@@ -1077,12 +1078,11 @@ VOID PhpThreadProviderUpdate(
 
             // Update the GUI thread status.
 
-            if (threadItem->ThreadHandle && PhKphHandle)
+            if (threadItem->ThreadHandle && KphIsConnected())
             {
                 PVOID win32Thread;
 
                 if (NT_SUCCESS(KphQueryInformationThread(
-                    PhKphHandle,
                     threadItem->ThreadHandle,
                     KphThreadWin32Thread,
                     &win32Thread,

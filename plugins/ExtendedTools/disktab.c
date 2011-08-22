@@ -40,7 +40,9 @@ static PH_CALLBACK_REGISTRATION DiskItemRemovedRegistration;
 static PH_CALLBACK_REGISTRATION DiskItemsUpdatedRegistration;
 static BOOLEAN DiskNeedsRedraw = FALSE;
 
-VOID EtInitializeDiskTab()
+VOID EtInitializeDiskTab(
+    VOID
+    )
 {
     PH_ADDITIONAL_TAB_PAGE tabPage;
 
@@ -194,7 +196,9 @@ VOID EtInitializeDiskTreeList(
     EtLoadSettingsDiskTreeList();
 }
 
-VOID EtLoadSettingsDiskTreeList()
+VOID EtLoadSettingsDiskTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PH_INTEGER_PAIR sortSettings;
@@ -207,7 +211,9 @@ VOID EtLoadSettingsDiskTreeList()
     TreeNew_SetSort(DiskTreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
 }
 
-VOID EtSaveSettingsDiskTreeList()
+VOID EtSaveSettingsDiskTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PH_INTEGER_PAIR sortSettings;
@@ -664,7 +670,9 @@ PPH_STRING EtpGetDiskItemProcessName(
     return PhFormat(format, 4, 96);
 }
 
-PET_DISK_ITEM EtGetSelectedDiskItem()
+PET_DISK_ITEM EtGetSelectedDiskItem(
+    VOID
+    )
 {
     PET_DISK_ITEM diskItem = NULL;
     ULONG i;
@@ -709,7 +717,9 @@ VOID EtGetSelectedDiskItems(
     PhDereferenceObject(list);
 }
 
-VOID EtDeselectAllDiskNodes()
+VOID EtDeselectAllDiskNodes(
+    VOID
+    )
 {
     TreeNew_DeselectRange(DiskTreeNewHandle, 0, -1);
 }
@@ -729,7 +739,9 @@ VOID EtSelectAndEnsureVisibleDiskNode(
     TreeNew_EnsureVisible(DiskTreeNewHandle, &DiskNode->Node);
 }
 
-VOID EtCopyDiskList()
+VOID EtCopyDiskList(
+    VOID
+    )
 {
     PPH_FULL_STRING text;
 

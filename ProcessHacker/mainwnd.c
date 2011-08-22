@@ -22,6 +22,7 @@
 
 #define PH_MAINWND_PRIVATE
 #include <phapp.h>
+#include <kphuser.h>
 #include <settings.h>
 #include <emenu.h>
 #include <phplug.h>
@@ -192,7 +193,7 @@ BOOLEAN PhMainWndInitialization(
             PhAppendStringBuilder2(&stringBuilder, L" [");
             PhAppendStringBuilder(&stringBuilder, PhCurrentUserName);
             PhAppendCharStringBuilder(&stringBuilder, ']');
-            if (PhKphHandle) PhAppendCharStringBuilder(&stringBuilder, '+');
+            if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
         }
 
         if (WINDOWS_HAS_UAC && PhElevationType == TokenElevationTypeFull)
@@ -4547,7 +4548,9 @@ VOID PhMwpOnNetworkItemRemoved(
     PhRemoveNetworkNode(PhFindNetworkNode(NetworkItem));
 }
 
-VOID PhMwpOnNetworkItemsUpdated()
+VOID PhMwpOnNetworkItemsUpdated(
+    VOID
+    )
 {
     PhTickNetworkNodes();
 

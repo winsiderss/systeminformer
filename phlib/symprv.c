@@ -87,7 +87,9 @@ _MiniDumpWriteDump MiniDumpWriteDump_I;
 _SymbolServerGetOptions SymbolServerGetOptions;
 _SymbolServerSetOptions SymbolServerSetOptions;
 
-BOOLEAN PhSymbolProviderInitialization()
+BOOLEAN PhSymbolProviderInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhSymbolProviderType,
@@ -100,7 +102,9 @@ BOOLEAN PhSymbolProviderInitialization()
     return TRUE;
 }
 
-VOID PhSymbolProviderDynamicImport()
+VOID PhSymbolProviderDynamicImport(
+    VOID
+    )
 {
     // The user should have loaded dbghelp.dll and symsrv.dll 
     // already. If not, it's not our problem.

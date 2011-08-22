@@ -54,7 +54,9 @@ LRESULT CALLBACK PhpGraphWndProc(
 RECT PhNormalGraphTextMargin = { 5, 5, 5, 5 };
 RECT PhNormalGraphTextPadding = { 3, 3, 3, 3 };
 
-BOOLEAN PhGraphControlInitialization()
+BOOLEAN PhGraphControlInitialization(
+    VOID
+    )
 {
     WNDCLASSEX c = { sizeof(c) };
 
@@ -730,26 +732,6 @@ VOID PhSetGraphText(
     DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
 }
 
-HWND PhCreateGraphControl(
-    __in HWND ParentHandle,
-    __in INT_PTR Id
-    )
-{
-    return CreateWindow(
-        PH_GRAPH_CLASSNAME,
-        NULL,
-        WS_CHILD | WS_CLIPSIBLINGS,
-        0,
-        0,
-        3,
-        3,
-        ParentHandle,
-        (HMENU)Id,
-        PhLibImageBase,
-        NULL
-        );
-}
-
 VOID PhpCreateGraphContext(
     __out PPHP_GRAPH_CONTEXT *Context
     )
@@ -797,7 +779,9 @@ VOID PhpFreeGraphContext(
     PhFree(Context);
 }
 
-static PWSTR PhpMakeGraphTooltipContextAtom()
+static PWSTR PhpMakeGraphTooltipContextAtom(
+    VOID
+    )
 {
     PH_DEFINE_MAKE_ATOM(L"PhLib_GraphTooltipContext");
 }

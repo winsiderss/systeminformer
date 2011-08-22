@@ -151,7 +151,9 @@ static _WSAGetLastError WSAGetLastError_I;
 static _GetNameInfoW GetNameInfoW_I;
 static _gethostbyaddr gethostbyaddr_I;
 
-BOOLEAN PhNetworkProviderInitialization()
+BOOLEAN PhNetworkProviderInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhNetworkItemType,
@@ -180,7 +182,9 @@ BOOLEAN PhNetworkProviderInitialization()
     return TRUE;
 }
 
-PPH_NETWORK_ITEM PhCreateNetworkItem()
+PPH_NETWORK_ITEM PhCreateNetworkItem(
+    VOID
+    )
 {
     PPH_NETWORK_ITEM networkItem;
 

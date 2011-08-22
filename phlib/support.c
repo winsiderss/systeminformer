@@ -180,7 +180,7 @@ VOID PhCenterWindow(
  * \param NumberOfObjects The number of elements in \a Objects.
  */
 VOID PhReferenceObjects(
-    __in_ecount(NumberOfObjects) PPVOID Objects,
+    __in_ecount(NumberOfObjects) PVOID *Objects,
     __in ULONG NumberOfObjects
     )
 {
@@ -197,7 +197,7 @@ VOID PhReferenceObjects(
  * \param NumberOfObjects The number of elements in \a Objects.
  */
 VOID PhDereferenceObjects(
-    __in_ecount(NumberOfObjects) PPVOID Objects,
+    __in_ecount(NumberOfObjects) PVOID *Objects,
     __in ULONG NumberOfObjects
     )
 {
@@ -2058,7 +2058,9 @@ PPH_STRING PhGetBaseName(
 /**
  * Retrieves the system directory path.
  */
-PPH_STRING PhGetSystemDirectory()
+PPH_STRING PhGetSystemDirectory(
+    VOID
+    )
 {
     static PPH_STRING cachedSystemDirectory = NULL;
 
@@ -2115,7 +2117,9 @@ PPH_STRING PhGetSystemDirectory()
 /**
  * Retrieves the Windows directory path.
  */
-PPH_STRING PhGetSystemRoot()
+PPH_STRING PhGetSystemRoot(
+    VOID
+    )
 {
     return PhCreateString(USER_SHARED_DATA->NtSystemRoot);
 }
@@ -2224,7 +2228,9 @@ PPH_STRING PhGetDllFileName(
 /**
  * Retrieves the file name of the current process image.
  */
-PPH_STRING PhGetApplicationFileName()
+PPH_STRING PhGetApplicationFileName(
+    VOID
+    )
 {
     return PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, NULL);
 }
@@ -2232,7 +2238,9 @@ PPH_STRING PhGetApplicationFileName()
 /**
  * Retrieves the directory of the current process image.
  */
-PPH_STRING PhGetApplicationDirectory()
+PPH_STRING PhGetApplicationDirectory(
+    VOID
+    )
 {
     PPH_STRING fileName;
     ULONG indexOfFileName;
@@ -3759,7 +3767,9 @@ VOID PhpFreeOpenFileName(
  * dialog. You must free the file dialog using 
  * PhFreeFileDialog() when you no longer need it.
  */
-PVOID PhCreateOpenFileDialog()
+PVOID PhCreateOpenFileDialog(
+    VOID
+    )
 {
     if (PHP_USE_IFILEDIALOG)
     {
@@ -3800,7 +3810,9 @@ PVOID PhCreateOpenFileDialog()
  * dialog. You must free the file dialog using 
  * PhFreeFileDialog() when you no longer need it.
  */
-PVOID PhCreateSaveFileDialog()
+PVOID PhCreateSaveFileDialog(
+    VOID
+    )
 {
     if (PHP_USE_IFILEDIALOG)
     {

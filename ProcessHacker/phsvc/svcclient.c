@@ -32,7 +32,9 @@ PPH_OBJECT_TYPE PhSvcClientType;
 LIST_ENTRY PhSvcClientListHead;
 PH_QUEUED_LOCK PhSvcClientListLock = PH_QUEUED_LOCK_INIT;
 
-NTSTATUS PhSvcClientInitialization()
+NTSTATUS PhSvcClientInitialization(
+    VOID
+    )
 {
     NTSTATUS status;
 
@@ -154,7 +156,9 @@ PPHSVC_CLIENT PhSvcReferenceClientByClientId(
     return client;
 }
 
-PPHSVC_CLIENT PhSvcGetCurrentClient()
+PPHSVC_CLIENT PhSvcGetCurrentClient(
+    VOID
+    )
 {
     return PhSvcGetCurrentThreadContext()->CurrentClient;
 }

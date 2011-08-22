@@ -73,7 +73,9 @@ static BOOLEAN MmAddressesInitialized = FALSE;
 static PSIZE_T MmSizeOfPagedPoolInBytes = NULL;
 static PSIZE_T MmMaximumNonPagedPoolInBytes = NULL;
 
-VOID PhShowSystemInformationDialog()
+VOID PhShowSystemInformationDialog(
+    VOID
+    )
 {
     if (!PhSysInfoWindowHandle)
     {
@@ -155,7 +157,7 @@ static NTSTATUS PhpSysInfoThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    if (!MmAddressesInitialized && PhKphHandle)
+    if (!MmAddressesInitialized && KphIsConnected())
     {
         PhQueueItemGlobalWorkQueue(PhpLoadMmAddresses, NULL);
         MmAddressesInitialized = TRUE;
@@ -195,13 +197,17 @@ static NTSTATUS PhpSysInfoThreadStart(
     return STATUS_SUCCESS;
 }
 
-static VOID PhpSetAlwaysOnTop()
+static VOID PhpSetAlwaysOnTop(
+    VOID
+    )
 {
     SetWindowPos(PhSysInfoWindowHandle, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
 
-static VOID PhpSetOneGraphPerCpu()
+static VOID PhpSetOneGraphPerCpu(
+    VOID
+    )
 {
     ULONG i;
 
@@ -408,25 +414,71 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PhInitializeGraphState(&IoGraphState);
             PhInitializeGraphState(&PhysicalGraphState);
 
-            CpuGraphHandle = PhCreateGraphControl(hwndDlg, IDC_CPU);
+            CpuGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+                0,
+                0,
+                3,
+                3,
+                hwndDlg,
+                (HMENU)IDC_CPU,
+                PhInstanceHandle,
+                NULL
+                );
             Graph_SetTooltip(CpuGraphHandle, TRUE);
             BringWindowToTop(CpuGraphHandle);
 
-            IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
+            IoGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+                0,
+                0,
+                3,
+                3,
+                hwndDlg,
+                (HMENU)IDC_IO,
+                PhInstanceHandle,
+                NULL
+                );
             Graph_SetTooltip(IoGraphHandle, TRUE);
-            ShowWindow(IoGraphHandle, SW_SHOW);
             BringWindowToTop(IoGraphHandle);
 
-            PhysicalGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PHYSICAL);
+            PhysicalGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+                0,
+                0,
+                3,
+                3,
+                hwndDlg,
+                (HMENU)IDC_PHYSICAL,
+                PhInstanceHandle,
+                NULL
+                );
             Graph_SetTooltip(PhysicalGraphHandle, TRUE);
-            ShowWindow(PhysicalGraphHandle, SW_SHOW);
             BringWindowToTop(PhysicalGraphHandle);
 
             for (i = 0; i < processors; i++)
             {
                 PhInitializeGraphState(&CpusGraphState[i]);
 
-                CpusGraphHandle[i] = PhCreateGraphControl(hwndDlg, IDC_PHYSICAL);
+                CpusGraphHandle[i] = CreateWindow(
+                    PH_GRAPH_CLASSNAME,
+                    NULL,
+                    WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+                    0,
+                    0,
+                    3,
+                    3,
+                    hwndDlg,
+                    (HMENU)(IDC_CPU0 + i),
+                    PhInstanceHandle,
+                    NULL
+                    );
                 Graph_SetTooltip(CpusGraphHandle[i], TRUE);
                 BringWindowToTop(CpusGraphHandle[i]);
             }
@@ -1122,7 +1174,6 @@ static VOID PhpGetPoolLimits(
     if (MmSizeOfPagedPoolInBytes)
     {
         KphReadVirtualMemoryUnsafe(
-            PhKphHandle,
             NtCurrentProcess(),
             MmSizeOfPagedPoolInBytes,
             &paged,
@@ -1134,7 +1185,6 @@ static VOID PhpGetPoolLimits(
     if (MmMaximumNonPagedPoolInBytes)
     {
         KphReadVirtualMemoryUnsafe(
-            PhKphHandle,
             NtCurrentProcess(),
             MmMaximumNonPagedPoolInBytes,
             &nonPaged,
@@ -1252,7 +1302,7 @@ INT_PTR CALLBACK PhpSysInfoPanelDlgProc(
             }
             else
             {
-                if (!PhKphHandle)
+                if (!KphIsConnected())
                 {
                     pagedLimit = nonPagedLimit = L"no driver";
                 }

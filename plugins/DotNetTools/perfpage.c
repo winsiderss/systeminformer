@@ -158,7 +158,9 @@ HRESULT GetCorPublishProcess(
     return result;
 }
 
-VOID InitializeDotNetObjectTypeInfo()
+VOID InitializeDotNetObjectTypeInfo(
+    VOID
+    )
 {
     if (PhBeginInitOnce(&DotNetObjectTypeInfoInitOnce))
     {

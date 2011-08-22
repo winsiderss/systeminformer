@@ -37,7 +37,9 @@ PPH_OBJECT_TYPE PhpProcessPropPageContextType;
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
-BOOLEAN PhProcessPropInitialization()
+BOOLEAN PhProcessPropInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhpProcessPropContextType,
@@ -870,12 +872,11 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (WINDOWS_HAS_LIMITED_ACCESS && processHandle)
             {
-                if (PhKphHandle)
+                if (KphIsConnected())
                 {
                     KPH_PROCESS_PROTECTION_INFORMATION protectionInfo;
 
                     if (NT_SUCCESS(KphQueryInformationProcess(
-                        PhKphHandle,
                         processHandle,
                         KphProcessProtectionInformation,
                         &protectionInfo,
@@ -1025,7 +1026,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             )))
                         {
                             if (NT_SUCCESS(KphQueryInformationProcess(
-                                PhKphHandle,
                                 processHandle,
                                 KphProcessProtectionInformation,
                                 &protectionInfo,
@@ -1438,19 +1438,16 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             PhInitializeGraphState(&performanceContext->PrivateGraphState);
             PhInitializeGraphState(&performanceContext->IoGraphState);
 
-            performanceContext->CpuGraphHandle = PhCreateGraphControl(hwndDlg, IDC_CPU);
+            performanceContext->CpuGraphHandle = GetDlgItem(hwndDlg, IDC_CPU);
             Graph_SetTooltip(performanceContext->CpuGraphHandle, TRUE);
-            ShowWindow(performanceContext->CpuGraphHandle, SW_SHOW);
             BringWindowToTop(performanceContext->CpuGraphHandle);
 
-            performanceContext->PrivateGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PRIVATEBYTES);
+            performanceContext->PrivateGraphHandle = GetDlgItem(hwndDlg, IDC_PRIVATEBYTES);
             Graph_SetTooltip(performanceContext->PrivateGraphHandle, TRUE);
-            ShowWindow(performanceContext->PrivateGraphHandle, SW_SHOW);
             BringWindowToTop(performanceContext->PrivateGraphHandle);
 
-            performanceContext->IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
+            performanceContext->IoGraphHandle = GetDlgItem(hwndDlg, IDC_IO);
             Graph_SetTooltip(performanceContext->IoGraphHandle, TRUE);
-            ShowWindow(performanceContext->IoGraphHandle, SW_SHOW);
             BringWindowToTop(performanceContext->IoGraphHandle);
         }
         break;
@@ -1957,7 +1954,7 @@ VOID PhpInitializeThreadMenu(
     }
 
 #ifndef _M_X64
-    if (!PhKphHandle)
+    if (!KphIsConnected())
     {
 #endif
         // Remove Force Terminate (this is always done on x64).
@@ -2576,7 +2573,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (
                         processItem->ProcessId != SYSTEM_PROCESS_ID ||
-                        !PhKphHandle
+                        !KphIsConnected()
                         )
                     {
                         if (PhUiTerminateThreads(hwndDlg, threads, numberOfThreads))
@@ -4233,7 +4230,7 @@ VOID PhpInitializeHandleMenu(
 
     // Remove irrelevant menu items.
 
-    if (!PhKphHandle)
+    if (!KphIsConnected())
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_PROTECTED))
             PhDestroyEMenuItem(item);
@@ -4242,7 +4239,7 @@ VOID PhpInitializeHandleMenu(
     }
 
     // Protected, Inherit
-    if (NumberOfHandles == 1 && PhKphHandle)
+    if (NumberOfHandles == 1 && KphIsConnected())
     {
         HandlesContext->SelectedHandleProtected = FALSE;
         HandlesContext->SelectedHandleInherit = FALSE;
@@ -4634,7 +4631,7 @@ static NTSTATUS NTAPI PhpOpenProcessJob(
         )))
         return status;
 
-    status = KphOpenProcessJob(PhKphHandle, processHandle, DesiredAccess, &jobHandle);
+    status = KphOpenProcessJob(processHandle, DesiredAccess, &jobHandle);
     NtClose(processHandle);
 
     if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB && jobHandle)
@@ -4906,7 +4903,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PropContext->ProcessItem->IsInJob &&
         // There's no way the job page can function without KPH since it needs 
         // to open a handle to the job.
-        PhKphHandle
+        KphIsConnected()
         )
     {
         PhAddProcessPropPage2(

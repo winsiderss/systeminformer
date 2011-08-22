@@ -3,10 +3,16 @@
 
 #include <ph.h>
 
-VOID Test_basesup();
+VOID Test_basesup(
+    VOID
+    );
 
-VOID Test_format();
+VOID Test_format(
+    VOID
+    );
 
-VOID Test_support();
+VOID Test_support(
+    VOID
+    );
 
 #endif

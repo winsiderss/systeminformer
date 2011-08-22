@@ -65,7 +65,6 @@ PHLIBAPI extern HANDLE PhCurrentTokenQueryHandle;
 PHLIBAPI extern BOOLEAN PhElevated;
 PHLIBAPI extern TOKEN_ELEVATION_TYPE PhElevationType;
 PHLIBAPI extern PVOID PhHeapHandle;
-PHLIBAPI extern __userSet HANDLE PhKphHandle;
 PHLIBAPI extern __userSet ULONG PhKphFeatures;
 PHLIBAPI extern RTL_OSVERSIONINFOEXW PhOsVersion;
 PHLIBAPI extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
@@ -179,7 +178,9 @@ extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
 /** Retrieves token information (e.g. elevation status). */
 #define PHLIB_INIT_TOKEN_INFO 0x100000
 
-NTSTATUS PhInitializePhLib();
+NTSTATUS PhInitializePhLib(
+    VOID
+    );
 
 NTSTATUS PhInitializePhLibEx(
     __in ULONG Flags,
@@ -1188,7 +1189,9 @@ PhCreateStringFromAnsiEx(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhReferenceEmptyString();
+PhReferenceEmptyString(
+    VOID
+    );
 
 PHLIBAPI
 PPH_STRING
@@ -2101,7 +2104,7 @@ typedef struct _PH_LIST
     /** The number of items for which storage is allocated. */
     ULONG AllocatedCount;
     /** The array of list items. */
-    PPVOID Items;
+    PVOID *Items;
 } PH_LIST, *PPH_LIST;
 
 PHLIBAPI
@@ -2132,7 +2135,7 @@ VOID
 NTAPI
 PhAddItemsList(
     __inout PPH_LIST List,
-    __in PPVOID Items,
+    __in PVOID *Items,
     __in ULONG Count
     );
 
@@ -2167,7 +2170,7 @@ NTAPI
 PhInsertItemsList(
     __inout PPH_LIST List,
     __in ULONG Index,
-    __in PPVOID Items,
+    __in PVOID *Items,
     __in ULONG Count
     );
 
@@ -2238,7 +2241,7 @@ typedef struct _PH_POINTER_LIST
     /** Index of next usable index into pointer array. */
     ULONG NextEntry;
     /** The array of pointers. */
-    PPVOID Items;
+    PVOID *Items;
 } PH_POINTER_LIST, *PPH_POINTER_LIST;
 
 #define PH_IS_LIST_POINTER_VALID(Pointer) (!((ULONG_PTR)(Pointer) & 0x1))
@@ -2264,7 +2267,7 @@ NTAPI
 PhEnumPointerListEx(
     __in PPH_POINTER_LIST PointerList,
     __inout PULONG EnumerationKey,
-    __out PPVOID Pointer,
+    __out PVOID *Pointer,
     __out PHANDLE PointerHandle
     );
 
@@ -2287,7 +2290,7 @@ PhRemoveItemPointerList(
 FORCEINLINE BOOLEAN PhEnumPointerList(
     __in PPH_POINTER_LIST PointerList,
     __inout PULONG EnumerationKey,
-    __out PPVOID Pointer
+    __out PVOID *Pointer
     )
 {
     while (*EnumerationKey < PointerList->NextEntry)
@@ -2324,7 +2327,7 @@ typedef struct _PH_QUEUE
     /** The number of items for which storage is allocated. */
     ULONG AllocatedCount;
     /** The array of queue items. */
-    PPVOID Items;
+    PVOID *Items;
     /** The index of the first slot in the queue. */
     ULONG Head;
     /** The index of the last available slot in the queue. */
@@ -2351,7 +2354,7 @@ BOOLEAN
 NTAPI
 PhDequeueItemQueue(
     __inout PPH_QUEUE Queue,
-    __out PPVOID Item
+    __out PVOID *Item
     );
 
 PHLIBAPI
@@ -2359,7 +2362,7 @@ BOOLEAN
 NTAPI
 PhPeekItemQueue(
     __in PPH_QUEUE Queue,
-    __out PPVOID Item
+    __out PVOID *Item
     );
 
 // hash
@@ -2722,7 +2725,7 @@ BOOLEAN
 NTAPI
 PhEnumHashtable(
     __in PPH_HASHTABLE Hashtable,
-    __out PPVOID Entry,
+    __out PVOID *Entry,
     __inout PULONG EnumerationKey
     );
 
@@ -3566,12 +3569,16 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
 #define PH_HANDLE_TABLE_STRICT_FIFO 0x1
 #define PH_HANDLE_TABLE_VALID_FLAGS 0x1
 
-VOID PhHandleTableInitialization();
+VOID PhHandleTableInitialization(
+    VOID
+    );
 
 PHLIBAPI
 PPH_HANDLE_TABLE
 NTAPI
-PhCreateHandleTable();
+PhCreateHandleTable(
+    VOID
+    );
 
 PHLIBAPI
 VOID
@@ -3721,7 +3728,9 @@ typedef struct _PH_WORK_QUEUE_ITEM
     PVOID Context;
 } PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
 
-VOID PhWorkQueueInitialization();
+VOID PhWorkQueueInitialization(
+    VOID
+    );
 
 PHLIBAPI
 VOID

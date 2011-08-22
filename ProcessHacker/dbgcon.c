@@ -64,7 +64,9 @@ static BOOLEAN InLeakDetection = FALSE;
 static ULONG NumberOfLeaks;
 static ULONG NumberOfLeaksShown;
 
-VOID PhShowDebugConsole()
+VOID PhShowDebugConsole(
+    VOID
+    )
 {
     if (AllocConsole())
     {
@@ -100,7 +102,9 @@ VOID PhShowDebugConsole()
     }
 }
 
-VOID PhCloseDebugConsole()
+VOID PhCloseDebugConsole(
+    VOID
+    )
 {
     fclose(stdout);
     fclose(stderr);
@@ -350,7 +354,9 @@ static VOID PhpDebugCreateObjectHook(
 #endif
 
 #ifdef DEBUG
-static VOID PhpDeleteNewObjectList()
+static VOID PhpDeleteNewObjectList(
+    VOID
+    )
 {
     if (NewObjectList)
     {

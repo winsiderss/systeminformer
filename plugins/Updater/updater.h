@@ -73,11 +73,11 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 #pragma region Functions
 
-VOID DisposeConnection();
-VOID DisposeStrings();
-VOID DisposeFileHandles();
+VOID DisposeConnection(VOID);
+VOID DisposeStrings(VOID);
+VOID DisposeFileHandles(VOID);
 
-BOOL ConnectionAvailable();
+BOOL ConnectionAvailable(VOID);
 
 BOOL ParseVersionString(
 	__in PWSTR String,
@@ -92,11 +92,11 @@ LONG CompareVersions(
 	__in ULONG MinorVersion2
 	);
 
-VOID StartInitialCheck();
+VOID StartInitialCheck(VOID);
 
-VOID ShowUpdateDialog();
+VOID ShowUpdateDialog(VOID);
 
-BOOL PhInstalledUsingSetup();
+BOOL PhInstalledUsingSetup(VOID);
 
 BOOL ReadRequestString(
 	__in HINTERNET Handle,
@@ -118,7 +118,7 @@ BOOL InitializeConnection(
 	__in PCWSTR path
 	);
 
-BOOL InitializeFile();
+BOOL InitializeFile(VOID);
 
 VOID LogEvent(
 	__in PPH_STRING str

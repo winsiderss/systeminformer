@@ -36,7 +36,9 @@ LRESULT CALLBACK PhpColorBoxWndProc(
     __in LPARAM lParam
     );
 
-BOOLEAN PhColorBoxInitialization()
+BOOLEAN PhColorBoxInitialization(
+    VOID
+    )
 {
     WNDCLASSEX c = { sizeof(c) };
 
@@ -56,26 +58,6 @@ BOOLEAN PhColorBoxInitialization()
         return FALSE;
 
     return TRUE;
-}
-
-HWND PhCreateColorBoxControl(
-    __in HWND ParentHandle,
-    __in INT_PTR Id
-    )
-{
-    return CreateWindow(
-        PH_COLORBOX_CLASSNAME,
-        NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_BORDER,
-        0,
-        0,
-        3,
-        3,
-        ParentHandle,
-        (HMENU)Id,
-        PhLibImageBase,
-        NULL
-        );
 }
 
 VOID PhpCreateColorBoxContext(
@@ -159,7 +141,7 @@ LRESULT CALLBACK PhpColorBoxWndProc(
                 EndPaint(hwnd, &paintStruct);
             }
         }
-        break;
+        return 0;
     case WM_ERASEBKGND:
         return 1;
     case WM_MOUSEMOVE:

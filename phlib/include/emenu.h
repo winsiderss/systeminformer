@@ -92,7 +92,9 @@ VOID PhRemoveAllEMenuItems(
     );
 
 PHLIBAPI
-PPH_EMENU PhCreateEMenu();
+PPH_EMENU PhCreateEMenu(
+    VOID
+    );
 
 PHLIBAPI
 VOID PhDestroyEMenu(

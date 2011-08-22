@@ -38,7 +38,9 @@ typedef struct _PHSVC_CLIENT
     PPH_HANDLE_TABLE HandleTable;
 } PHSVC_CLIENT, *PPHSVC_CLIENT;
 
-NTSTATUS PhSvcClientInitialization();
+NTSTATUS PhSvcClientInitialization(
+    VOID
+    );
 
 PPHSVC_CLIENT PhSvcCreateClient(
     __in_opt PCLIENT_ID ClientId
@@ -48,7 +50,9 @@ PPHSVC_CLIENT PhSvcReferenceClientByClientId(
     __in PCLIENT_ID ClientId
     );
 
-PPHSVC_CLIENT PhSvcGetCurrentClient();
+PPHSVC_CLIENT PhSvcGetCurrentClient(
+    VOID
+    );
 
 BOOLEAN PhSvcAttachClient(
     __in PPHSVC_CLIENT Client
@@ -87,7 +91,9 @@ NTSTATUS PhSvcApiPortInitialization(
     __in PPH_STRINGREF PortName
     );
 
-PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext();
+PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(
+    VOID
+    );
 
 VOID PhSvcHandleConnectionRequest(
     __in PPHSVC_API_MSG Message
@@ -95,7 +101,9 @@ VOID PhSvcHandleConnectionRequest(
 
 // svcapi
 
-NTSTATUS PhSvcApiInitialization();
+NTSTATUS PhSvcApiInitialization(
+    VOID
+    );
 
 typedef NTSTATUS (NTAPI *PPHSVC_API_PROCEDURE)(
     __in PPHSVC_CLIENT Client,

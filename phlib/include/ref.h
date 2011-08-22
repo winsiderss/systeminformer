@@ -101,7 +101,9 @@ typedef struct _PH_OBJECT_TYPE_INFORMATION
     ULONG NumberOfObjects;
 } PH_OBJECT_TYPE_INFORMATION, *PPH_OBJECT_TYPE_INFORMATION;
 
-NTSTATUS PhInitializeRef();
+NTSTATUS PhInitializeRef(
+    VOID
+    );
 
 __mayRaise
 PHLIBAPI
@@ -198,7 +200,7 @@ PhGetObjectTypeInformation(
     );
 
 FORCEINLINE VOID PhSwapReference(
-    __inout PPVOID ObjectReference,
+    __inout PVOID *ObjectReference,
     __in_opt PVOID NewObject
     )
 {
@@ -212,7 +214,7 @@ FORCEINLINE VOID PhSwapReference(
 }
 
 FORCEINLINE VOID PhSwapReference2(
-    __inout PPVOID ObjectReference,
+    __inout PVOID *ObjectReference,
     __in_opt __assumeRefs(1) PVOID NewObject
     )
 {
@@ -254,7 +256,7 @@ typedef struct _PH_AUTO_POOL
 
     ULONG DynamicCount;
     ULONG DynamicAllocated;
-    PPVOID DynamicObjects;
+    PVOID *DynamicObjects;
 
     struct _PH_AUTO_POOL *NextPool;
 } PH_AUTO_POOL, *PPH_AUTO_POOL;
