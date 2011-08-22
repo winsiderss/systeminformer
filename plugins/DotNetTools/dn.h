@@ -60,4 +60,10 @@ VOID AddPerfPageToPropContext(
     __in PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
     );
 
+// stackext
+
+VOID ProcessThreadStackControl(
+    __in PPH_PLUGIN_THREAD_STACK_CONTROL Control
+    );
+
 #endif
