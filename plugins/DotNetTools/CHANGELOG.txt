@@ -1,2 +1,5 @@
+1.1
+ * Added managed symbol resolution for thread stacks
+
 1.0
  * Initial release
