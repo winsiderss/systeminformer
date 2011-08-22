@@ -23,39 +23,39 @@
 #include "updater.h"
 
 INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    )
+	__in HWND hwndDlg,
+	__in UINT uMsg,
+	__in WPARAM wParam,
+	__in LPARAM lParam
+	)
 {
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
+	switch (uMsg)
+	{
+	case WM_INITDIALOG:
+		{
 			HWND hashCboxHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
 			PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 						
-            ComboBox_AddString(hashCboxHandle, L"SHA1");
-            ComboBox_AddString(hashCboxHandle, L"MD5");
-            ComboBox_SetCurSel(hashCboxHandle, PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm"));
+			ComboBox_AddString(hashCboxHandle, L"SHA1");
+			ComboBox_AddString(hashCboxHandle, L"MD5");
+			ComboBox_SetCurSel(hashCboxHandle, PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm"));
 
 			if (PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache"))
 				Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE), BST_CHECKED);
 
 			if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
 				Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);	
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                {
+		}
+		break;
+	case WM_COMMAND:
+		{
+			switch (LOWORD(wParam))
+			{
+			case IDCANCEL:
+				EndDialog(hwndDlg, IDCANCEL);
+				break;
+			case IDOK:
+				{
 					PhSetIntegerSetting(L"ProcessHacker.Updater.EnableCache", 
 						Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE)) == BST_CHECKED);
 
@@ -65,13 +65,13 @@ INT_PTR CALLBACK OptionsDlgProc(
 					PhSetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm",                      
 						ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX)));
 
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
-            }
-        }
-        break;
-    }
+					EndDialog(hwndDlg, IDOK);
+				}
+				break;
+			}
+		}
+		break;
+	}
 
-    return FALSE;
+	return FALSE;
 }

@@ -68,34 +68,34 @@ static NTSTATUS SilentWorkerThreadStart(
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
 		PSTR data;
-        UPDATER_XML_DATA xmlData;
-        PPH_STRING localVersion;
-        ULONG localMajorVersion = 0;
-        ULONG localMinorVersion = 0;
+		UPDATER_XML_DATA xmlData;
+		PPH_STRING localVersion;
+		ULONG localMajorVersion = 0;
+		ULONG localMinorVersion = 0;
 
 		// Read the resulting xml into our buffer.
 		if (!ReadRequestString(NetRequest, &data, NULL))
-            return TRUE;
+			return TRUE;
 
 		if (!QueryXmlData(data, &xmlData))
 		{
-            PhFree(data);
+			PhFree(data);
 			return TRUE;
 		}
 
-        PhFree(data);
+		PhFree(data);
 
-        localVersion = PhGetPhVersion();
+		localVersion = PhGetPhVersion();
 
 #ifndef TEST_MODE
-        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
-        {
-            PhDereferenceObject(localVersion);
-            FreeXmlData(&xmlData);
-        }
+		if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+		{
+			PhDereferenceObject(localVersion);
+			FreeXmlData(&xmlData);
+		}
 #else
-        localMajorVersion = 0;
-        localMinorVersion = 0;
+		localMajorVersion = 0;
+		localMinorVersion = 0;
 #endif
 
 		if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
@@ -103,11 +103,11 @@ static NTSTATUS SilentWorkerThreadStart(
 			// Don't spam the user the second they open PH, delay dialog creation for 5 seconds.
 			Sleep(5000);
 
-            ShowUpdateDialog();
+			ShowUpdateDialog();
 		}
 
-        PhDereferenceObject(localVersion);
-        FreeXmlData(&xmlData);
+		PhDereferenceObject(localVersion);
+		FreeXmlData(&xmlData);
 	}
 	else
 	{
@@ -148,39 +148,39 @@ static NTSTATUS WorkerThreadStart(
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
 		PSTR data;
-        UPDATER_XML_DATA xmlData;
-        PPH_STRING localVersion;
-        ULONG localMajorVersion = 0;
-        ULONG localMinorVersion = 0;
+		UPDATER_XML_DATA xmlData;
+		PPH_STRING localVersion;
+		ULONG localMajorVersion = 0;
+		ULONG localMinorVersion = 0;
 
 		// Read the resulting xml into our buffer.
 		if (!ReadRequestString(NetRequest, &data, NULL))
-            return TRUE;
+			return TRUE;
 
 		if (!QueryXmlData(data, &xmlData))
 		{
-            PhFree(data);
+			PhFree(data);
 			return TRUE;
 		}
 
-        PhFree(data);
+		PhFree(data);
 
-        localVersion = PhGetPhVersion();
+		localVersion = PhGetPhVersion();
 
 #ifndef TEST_MODE
-        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
-        {
-            PhDereferenceObject(localVersion);
-            FreeXmlData(&xmlData);
-        }
+		if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+		{
+			PhDereferenceObject(localVersion);
+			FreeXmlData(&xmlData);
+		}
 #else
-        localMajorVersion = 0;
-        localMinorVersion = 0;
+		localMajorVersion = 0;
+		localMinorVersion = 0;
 #endif
 
-        result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
+		result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
 
-        PhSwapReference(&RemoteHashString, xmlData.Hash);
+		PhSwapReference(&RemoteHashString, xmlData.Hash);
 
 		if (result > 0)
 		{
@@ -190,13 +190,13 @@ static NTSTATUS WorkerThreadStart(
 			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 			PhDereferenceObject(summaryText);
 
-            summaryText = PhFormatString(L"Released: %s", xmlData.RelDate->Buffer);
+			summaryText = PhFormatString(L"Released: %s", xmlData.RelDate->Buffer);
 			SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
 			PhDereferenceObject(summaryText);
 
-            summaryText = PhFormatString(L"Size: %s", xmlData.Size->Buffer);
+			summaryText = PhFormatString(L"Size: %s", xmlData.Size->Buffer);
 			SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
-            PhDereferenceObject(summaryText);
+			PhDereferenceObject(summaryText);
 
 			LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
 
@@ -212,15 +212,15 @@ static NTSTATUS WorkerThreadStart(
 		}
 		else if (result < 0)
 		{
-            PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %u.%u", localMajorVersion, localMinorVersion);
+			PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %u.%u", localMajorVersion, localMinorVersion);
 
 			SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
 
 			PhDereferenceObject(summaryText);
 		}
 
-        PhDereferenceObject(localVersion);
-        FreeXmlData(&xmlData);
+		PhDereferenceObject(localVersion);
+		FreeXmlData(&xmlData);
 	}
 	else
 	{
@@ -276,7 +276,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 
 	if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
 	{
-        CHAR buffer[BUFFER_LEN];
+		CHAR buffer[BUFFER_LEN];
 
 		// Zero the buffer.
 		RtlZeroMemory(buffer, BUFFER_LEN);
@@ -428,7 +428,7 @@ static NTSTATUS DownloadWorkerThreadStart(
 		return TRUE;
 	}
 
-    return FALSE; 
+	return FALSE; 
 }
 #pragma endregion
 
@@ -463,11 +463,11 @@ INT_PTR CALLBACK MainWndProc(
 			PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);  
 		}
 		break;
-    case WM_DESTROY:
-        {
-            WindowVisible = FALSE;
-        }
-        break;
+	case WM_DESTROY:
+		{
+			WindowVisible = FALSE;
+		}
+		break;
 	case WM_COMMAND:
 		{
 			switch (LOWORD(wParam))
@@ -664,61 +664,61 @@ BOOL InitializeFile()
 }
 
 BOOL ReadRequestString(
-    __in HINTERNET Handle,
-    __out PSTR *Data,
-    __out_opt PULONG DataLength
-    )
+	__in HINTERNET Handle,
+	__out PSTR *Data,
+	__out_opt PULONG DataLength
+	)
 {
-    CHAR buffer[BUFFER_LEN];
-    PSTR data;
-    ULONG allocatedLength;
-    ULONG dataLength;
-    ULONG returnLength;
+	CHAR buffer[BUFFER_LEN];
+	PSTR data;
+	ULONG allocatedLength;
+	ULONG dataLength;
+	ULONG returnLength;
 
-    allocatedLength = sizeof(buffer);
-    data = PhAllocate(allocatedLength);
-    dataLength = 0;
+	allocatedLength = sizeof(buffer);
+	data = PhAllocate(allocatedLength);
+	dataLength = 0;
 
-    while (InternetReadFile(Handle, buffer, BUFFER_LEN, &returnLength))
-    {
-        if (returnLength == 0)
-            break;
+	while (InternetReadFile(Handle, buffer, BUFFER_LEN, &returnLength))
+	{
+		if (returnLength == 0)
+			break;
 
-        if (allocatedLength < dataLength + returnLength)
-        {
-            allocatedLength *= 2;
-            data = PhReAllocate(data, allocatedLength);
-        }
+		if (allocatedLength < dataLength + returnLength)
+		{
+			allocatedLength *= 2;
+			data = PhReAllocate(data, allocatedLength);
+		}
 
-        memcpy(data + dataLength, buffer, returnLength);
-        dataLength += returnLength;
-    }
+		memcpy(data + dataLength, buffer, returnLength);
+		dataLength += returnLength;
+	}
 
-    if (allocatedLength < dataLength + 1)
-    {
-        allocatedLength++;
-        data = PhReAllocate(data, allocatedLength);
-    }
+	if (allocatedLength < dataLength + 1)
+	{
+		allocatedLength++;
+		data = PhReAllocate(data, allocatedLength);
+	}
 
-    // Ensure that the buffer is null-terminated.
-    data[dataLength] = 0;
+	// Ensure that the buffer is null-terminated.
+	data[dataLength] = 0;
 
-    *Data = data;
+	*Data = data;
 
-    if (DataLength)
-        *DataLength = dataLength;
+	if (DataLength)
+		*DataLength = dataLength;
 
-    return TRUE;
+	return TRUE;
 }
 
 BOOL QueryXmlData(
-    __in PVOID Buffer,
-    __out PUPDATER_XML_DATA XmlData
-    )
+	__in PVOID Buffer,
+	__out PUPDATER_XML_DATA XmlData
+	)
 {
-    BOOL result = FALSE;
+	BOOL result = FALSE;
 	mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
-    PPH_STRING temp;
+	PPH_STRING temp;
 
 	// Load our XML.
 	xmlDoc = mxmlLoadString(NULL, (char*)Buffer, MXML_OPAQUE_CALLBACK);
@@ -764,18 +764,18 @@ BOOL QueryXmlData(
 		goto CleanupAndExit;
 	}
 
-    temp = PhCreateStringFromAnsi(xmlNodeVer->child->value.opaque);
-    result = ParseVersionString(temp->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion);
-    PhDereferenceObject(temp);
+	temp = PhCreateStringFromAnsi(xmlNodeVer->child->value.opaque);
+	result = ParseVersionString(temp->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion);
+	PhDereferenceObject(temp);
 
-    if (!result)
-        goto CleanupAndExit;
+	if (!result)
+		goto CleanupAndExit;
 
-    XmlData->RelDate = PhCreateStringFromAnsi(xmlNodeRelDate->child->value.opaque);
-    XmlData->Size = PhCreateStringFromAnsi(xmlNodeSize->child->value.opaque);
-    XmlData->Hash = PhCreateStringFromAnsi(xmlNodeHash->child->value.opaque);
+	XmlData->RelDate = PhCreateStringFromAnsi(xmlNodeRelDate->child->value.opaque);
+	XmlData->Size = PhCreateStringFromAnsi(xmlNodeSize->child->value.opaque);
+	XmlData->Hash = PhCreateStringFromAnsi(xmlNodeHash->child->value.opaque);
 
-    result = TRUE;
+	result = TRUE;
 
 CleanupAndExit:
 	mxmlDelete(xmlDoc);
@@ -803,48 +803,48 @@ BOOL ConnectionAvailable()
 }
 
 BOOL ParseVersionString(
-    __in PWSTR String,
-    __out PULONG MajorVersion,
-    __out PULONG MinorVersion
-    )
+	__in PWSTR String,
+	__out PULONG MajorVersion,
+	__out PULONG MinorVersion
+	)
 {
-    PH_STRINGREF sr;
-    PH_STRINGREF majorPart;
-    PH_STRINGREF minorPart;
-    ULONG64 majorInteger;
-    ULONG64 minorInteger;
+	PH_STRINGREF sr;
+	PH_STRINGREF majorPart;
+	PH_STRINGREF minorPart;
+	ULONG64 majorInteger;
+	ULONG64 minorInteger;
 
-    PhInitializeStringRef(&sr, String);
+	PhInitializeStringRef(&sr, String);
 
-    if (PhSplitStringRefAtChar(&sr, '.', &majorPart, &minorPart))
-    {
-        PhStringToInteger64(&majorPart, 10, &majorInteger);
-        PhStringToInteger64(&minorPart, 10, &minorInteger);
+	if (PhSplitStringRefAtChar(&sr, '.', &majorPart, &minorPart))
+	{
+		PhStringToInteger64(&majorPart, 10, &majorInteger);
+		PhStringToInteger64(&minorPart, 10, &minorInteger);
 
-        *MajorVersion = (ULONG)majorInteger;
-        *MinorVersion = (ULONG)minorInteger;
+		*MajorVersion = (ULONG)majorInteger;
+		*MinorVersion = (ULONG)minorInteger;
 
-        return TRUE;
-    }
+		return TRUE;
+	}
 
-    return FALSE;
+	return FALSE;
 }
 
 LONG CompareVersions(
-    __in ULONG MajorVersion1,
-    __in ULONG MinorVersion1,
-    __in ULONG MajorVersion2,
-    __in ULONG MinorVersion2
-    )
+	__in ULONG MajorVersion1,
+	__in ULONG MinorVersion1,
+	__in ULONG MajorVersion2,
+	__in ULONG MinorVersion2
+	)
 {
-    LONG result;
+	LONG result;
 
-    result = intcmp(MajorVersion1, MajorVersion2);
+	result = intcmp(MajorVersion1, MajorVersion2);
 
-    if (result == 0)
-        result = intcmp(MinorVersion1, MinorVersion2);
+	if (result == 0)
+		result = intcmp(MinorVersion1, MinorVersion2);
 
-    return result;
+	return result;
 }
 
 VOID StartInitialCheck()
@@ -869,26 +869,26 @@ VOID ShowUpdateDialog()
 
 BOOL PhInstalledUsingSetup() 
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
+	static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
 
-    NTSTATUS status;
+	NTSTATUS status;
 	HANDLE keyHandle;
 
 	// Check uninstall entries for the 'Process_Hacker2_is1' registry key.
-    if (NT_SUCCESS(status = PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName,
-        0
-        )))
-    {
-        NtClose(keyHandle);
-        return TRUE;
-    }
-    else
-    {
-        LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) PhOpenKey failed (0x%x)", status));
+	if (NT_SUCCESS(status = PhOpenKey(
+		&keyHandle,
+		KEY_READ,
+		PH_KEY_LOCAL_MACHINE,
+		&keyName,
+		0
+		)))
+	{
+		NtClose(keyHandle);
+		return TRUE;
+	}
+	else
+	{
+		LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) PhOpenKey failed (0x%x)", status));
 		return FALSE;
 	}
 }
@@ -952,12 +952,12 @@ VOID DisposeFileHandles()
 }
 
 VOID FreeXmlData(
-    __in PUPDATER_XML_DATA XmlData
-    )
+	__in PUPDATER_XML_DATA XmlData
+	)
 {
-    PhDereferenceObject(XmlData->RelDate);
-    PhDereferenceObject(XmlData->Size);
-    PhDereferenceObject(XmlData->Hash);
+	PhDereferenceObject(XmlData->RelDate);
+	PhDereferenceObject(XmlData->Size);
+	PhDereferenceObject(XmlData->Hash);
 }
 
 #pragma endregion
