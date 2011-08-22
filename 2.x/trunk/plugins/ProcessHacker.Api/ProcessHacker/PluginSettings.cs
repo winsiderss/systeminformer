@@ -48,12 +48,6 @@ namespace ProcessHacker.Api
             }
 
             NativeApi.PhAddSettings(create, settings.Length);
-
-            for (int i = 0; i < settings.Length; i++)
-            {
-                MemoryAlloc.PrivateHeap.Free((IntPtr)create[i].Name);
-                MemoryAlloc.PrivateHeap.Free((IntPtr)create[i].DefaultValue);
-            }
         }
 
         public static int GetIntegerSetting(string name)
