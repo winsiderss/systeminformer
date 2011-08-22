@@ -23,60 +23,60 @@
 #include "updater.h"
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
-    )
+	__in HINSTANCE Instance,
+	__in ULONG Reason,
+	__reserved PVOID Reserved
+	)
 {
-    static PH_SETTING_CREATE settings[] =
-    {
-	    { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
-	    { IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
-	    { IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"0" },
-    };
+	static PH_SETTING_CREATE settings[] =
+	{
+		{ IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
+		{ IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
+		{ IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"0" },
+	};
 
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
+	switch (Reason)
+	{
+	case DLL_PROCESS_ATTACH:
+		{
+			PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.UpdateChecker", Instance, &info);
+			PluginInstance = PhRegisterPlugin(L"ProcessHacker.UpdateChecker", Instance, &info);
 
-            if (!PluginInstance)
-                return FALSE;
+			if (!PluginInstance)
+				return FALSE;
 
-            info->DisplayName = L"Update Checker";
-            info->Author = L"dmex";
-            info->Description = L"Adds the ability to check for new Process Hacker releases via the Help menu.";
+			info->DisplayName = L"Update Checker";
+			info->Author = L"dmex";
+			info->Description = L"Adds the ability to check for new Process Hacker releases via the Help menu.";
 			info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=273";
-            info->HasOptions = TRUE;
+			info->HasOptions = TRUE;
 			
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
-                NULL,
-                &MainWindowShowingCallbackRegistration
-                );
+			PhRegisterCallback(
+				PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+				MainWindowShowingCallback,
+				NULL,
+				&MainWindowShowingCallbackRegistration
+				);
 			 PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
+				PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+				MenuItemCallback,
+				NULL,
+				&PluginMenuItemCallbackRegistration
+				);
 			 PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+				PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
 				ShowOptionsCallback,
 				NULL,
 				&PluginShowOptionsCallbackRegistration
 				);
 
 			 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-        }
-        break;
-    }
+		}
+		break;
+	}
 
-    return TRUE;
+	return TRUE;
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -89,7 +89,7 @@ VOID NTAPI MainWindowShowingCallback(
 
 	if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
 	{
-        StartInitialCheck();
+		StartInitialCheck();
 	}
 }
 
@@ -104,7 +104,7 @@ VOID NTAPI MenuItemCallback(
 	{
 	case UPDATE_MENUITEM:
 		{
-            ShowUpdateDialog();
+			ShowUpdateDialog();
 		}
 		break;
 	}
