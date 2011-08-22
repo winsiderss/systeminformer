@@ -63,7 +63,9 @@ SERVICE_INFO UploadServiceInfo[] =
     { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", L"/cgi-bin/submit", "file" }
 };
 
-PUPLOAD_CONTEXT CreateUploadContext()
+PUPLOAD_CONTEXT CreateUploadContext(
+    VOID
+    )
 {
     PUPLOAD_CONTEXT context;
 

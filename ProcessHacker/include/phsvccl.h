@@ -8,7 +8,9 @@ NTSTATUS PhSvcConnectToServer(
     __in_opt SIZE_T PortSectionSize
     );
 
-VOID PhSvcDisconnectFromServer();
+VOID PhSvcDisconnectFromServer(
+    VOID
+    );
 
 NTSTATUS PhSvcCallClose(
     __in HANDLE Handle

@@ -63,7 +63,9 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header;
 
-VOID PvPeProperties()
+VOID PvPeProperties(
+    VOID
+    )
 {
     NTSTATUS status;
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };

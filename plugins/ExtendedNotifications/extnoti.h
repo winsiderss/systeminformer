@@ -22,6 +22,8 @@ typedef struct _FILTER_ENTRY
 
 // filelog
 
-VOID FileLogInitialization();
+VOID FileLogInitialization(
+    VOID
+    );
 
 #endif

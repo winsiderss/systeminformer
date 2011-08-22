@@ -35,7 +35,9 @@ INT_PTR CALLBACK EtpMemoryListsDlgProc(
 HWND EtpMemoryListsWindowHandle = NULL;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
-VOID EtShowMemoryListsDialog()
+VOID EtShowMemoryListsDialog(
+    VOID
+    )
 {
     if (!EtpMemoryListsWindowHandle)
     {

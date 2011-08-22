@@ -26,7 +26,9 @@
 static PH_FREE_LIST PhHandleTableLevel0FreeList;
 static PH_FREE_LIST PhHandleTableLevel1FreeList;
 
-VOID PhHandleTableInitialization()
+VOID PhHandleTableInitialization(
+    VOID
+    )
 {
     PhInitializeFreeList(
         &PhHandleTableLevel0FreeList,
@@ -40,7 +42,9 @@ VOID PhHandleTableInitialization()
         );
 }
 
-PPH_HANDLE_TABLE PhCreateHandleTable()
+PPH_HANDLE_TABLE PhCreateHandleTable(
+    VOID
+    )
 {
     PPH_HANDLE_TABLE handleTable;
     ULONG i;

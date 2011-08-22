@@ -22,9 +22,13 @@ typedef struct _PH_SETTING
     } u;
 } PH_SETTING, *PPH_SETTING;
 
-VOID PhSettingsInitialization();
+VOID PhSettingsInitialization(
+    VOID
+    );
 
-VOID PhUpdateCachedSettings();
+VOID PhUpdateCachedSettings(
+    VOID
+    );
 
 PHAPPAPI
 __mayRaise ULONG PhGetIntegerSetting(
@@ -65,9 +69,13 @@ __mayRaise VOID PhSetStringSetting2(
     __in PPH_STRINGREF Value
     );
 
-VOID PhClearIgnoredSettings();
+VOID PhClearIgnoredSettings(
+    VOID
+    );
 
-VOID PhConvertIgnoredSettings();
+VOID PhConvertIgnoredSettings(
+    VOID
+    );
 
 NTSTATUS PhLoadSettings(
     __in PWSTR FileName

@@ -55,7 +55,9 @@ NTSTATUS PhOpenLsaPolicy(
  *
  * \remarks Do not close the handle; it is cached.
  */
-LSA_HANDLE PhGetLookupPolicyHandle()
+LSA_HANDLE PhGetLookupPolicyHandle(
+    VOID
+    )
 {
     LSA_HANDLE lookupPolicyHandle;
     LSA_HANDLE newLookupPolicyHandle;

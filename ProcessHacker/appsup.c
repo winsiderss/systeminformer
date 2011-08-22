@@ -661,7 +661,9 @@ VOID PhSetExtendedListViewWithSettings(
     ExtendedListView_SetHighlightingDuration(hWnd, PhCsHighlightingDuration);
 }
 
-PWSTR PhMakeContextAtom()
+PWSTR PhMakeContextAtom(
+    VOID
+    )
 {
     PH_DEFINE_MAKE_ATOM(L"PH2_Context");
 }
@@ -891,7 +893,9 @@ VOID PhSaveListViewColumnsToSetting(
     PhDereferenceObject(string);
 }
 
-PPH_STRING PhGetPhVersion()
+PPH_STRING PhGetPhVersion(
+    VOID
+    )
 {
     PH_FORMAT format[3];
 

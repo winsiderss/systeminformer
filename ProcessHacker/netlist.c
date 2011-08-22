@@ -74,7 +74,9 @@ static PPH_LIST NetworkNodeList; // list of all nodes
 BOOLEAN PhNetworkTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST NetworkNodeStateList = NULL; // list of nodes which need to be processed
 
-VOID PhNetworkTreeListInitialization()
+VOID PhNetworkTreeListInitialization(
+    VOID
+    )
 {
     NetworkNodeHashtable = PhCreateHashtable(
         sizeof(PPH_NETWORK_NODE),
@@ -146,7 +148,9 @@ VOID PhInitializeNetworkTreeList(
     }
 }
 
-VOID PhLoadSettingsNetworkTreeList()
+VOID PhLoadSettingsNetworkTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
@@ -158,7 +162,9 @@ VOID PhLoadSettingsNetworkTreeList()
     PhDereferenceObject(sortSettings);
 }
 
-VOID PhSaveSettingsNetworkTreeList()
+VOID PhSaveSettingsNetworkTreeList(
+    VOID
+    )
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
@@ -294,7 +300,9 @@ VOID PhUpdateNetworkNode(
     TreeNew_NodesStructured(NetworkTreeListHandle);
 }
 
-VOID PhTickNetworkNodes()
+VOID PhTickNetworkNodes(
+    VOID
+    )
 {
     if (NetworkTreeListSortOrder != NoSortOrder && NetworkTreeListSortColumn >= PHNETLC_MAXIMUM)
     {
@@ -662,7 +670,9 @@ VOID PhpUpdateNetworkNodeAddressStrings(
         PhInitializeStringRef(&NetworkNode->RemoteAddressText, NetworkNode->NetworkItem->RemoteAddressString);
 }
 
-PPH_NETWORK_ITEM PhGetSelectedNetworkItem()
+PPH_NETWORK_ITEM PhGetSelectedNetworkItem(
+    VOID
+    )
 {
     PPH_NETWORK_ITEM networkItem = NULL;
     ULONG i;
@@ -707,7 +717,9 @@ VOID PhGetSelectedNetworkItems(
     PhDereferenceObject(list);
 }
 
-VOID PhDeselectAllNetworkNodes()
+VOID PhDeselectAllNetworkNodes(
+    VOID
+    )
 {
     TreeNew_DeselectRange(NetworkTreeListHandle, 0, -1);
 }
@@ -727,7 +739,9 @@ VOID PhSelectAndEnsureVisibleNetworkNode(
     TreeNew_EnsureVisible(NetworkTreeListHandle, &NetworkNode->Node);
 }
 
-VOID PhCopyNetworkList()
+VOID PhCopyNetworkList(
+    VOID
+    )
 {
     PPH_FULL_STRING text;
 

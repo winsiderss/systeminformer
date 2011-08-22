@@ -65,7 +65,9 @@ static PH_GRAPH_STATE NetworkGraphState;
 static RECT EtpNormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT EtpNormalGraphTextPadding = { 3, 3, 3, 3 };
 
-VOID EtShowEtwSystemDialog()
+VOID EtShowEtwSystemDialog(
+    VOID
+    )
 {
     if (!EtpEtwSysWindowHandle)
     {
@@ -125,7 +127,9 @@ static NTSTATUS EtpEtwSysThreadStart(
     return STATUS_SUCCESS;
 }
 
-static VOID EtpSetAlwaysOnTop()
+static VOID EtpSetAlwaysOnTop(
+    VOID
+    )
 {
     SetWindowPos(EtpEtwSysWindowHandle, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);

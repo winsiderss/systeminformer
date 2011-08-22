@@ -60,20 +60,26 @@ PPH_STRING EtpGetDiskItemProcessName(
     __in PET_DISK_ITEM DiskItem
     );
 
-PET_DISK_ITEM EtGetSelectedDiskItem();
+PET_DISK_ITEM EtGetSelectedDiskItem(
+    VOID
+    );
 
 VOID EtGetSelectedDiskItems(
     __out PET_DISK_ITEM **DiskItems,
     __out PULONG NumberOfDiskItems
     );
 
-VOID EtDeselectAllDiskNodes();
+VOID EtDeselectAllDiskNodes(
+    VOID
+    );
 
 VOID EtSelectAndEnsureVisibleDiskNode(
     __in PET_DISK_NODE DiskNode
     );
 
-VOID EtCopyDiskList();
+VOID EtCopyDiskList(
+    VOID
+    );
 
 VOID EtWriteDiskList(
     __inout PPH_FILE_STREAM FileStream,

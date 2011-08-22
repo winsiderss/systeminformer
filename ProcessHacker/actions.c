@@ -372,7 +372,9 @@ BOOLEAN PhUiConnectToPhSvc(
 /**
  * Disconnects from phsvc.
  */
-VOID PhUiDisconnectFromPhSvc()
+VOID PhUiDisconnectFromPhSvc(
+    VOID
+    )
 {
     PhAcquireQueuedLockExclusive(&PhSvcStartLock);
 
@@ -1813,7 +1815,7 @@ BOOLEAN PhUiSetDepStatusProcess(
         L"DEP status:",
         choices,
         sizeof(choices) / sizeof(PWSTR),
-        PhKphHandle ? L"Permanent" : NULL, // if no KPH, SetProcessDEPPolicy determines permanency
+        KphIsConnected() ? L"Permanent" : NULL, // if no KPH, SetProcessDEPPolicy determines permanency
         0,
         &selectedChoice,
         &selectedOption,
@@ -1838,11 +1840,11 @@ BOOLEAN PhUiSetDepStatusProcess(
 
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
-            PhKphHandle ? ProcessQueryAccess : (PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE),
+            KphIsConnected() ? ProcessQueryAccess : (PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE),
             Process->ProcessId
             )))
         {
-            if (PhKphHandle)
+            if (KphIsConnected())
             {
                 status = PhSetProcessDepStatus(processHandle, depStatus);
             }
@@ -1895,7 +1897,7 @@ BOOLEAN PhUiSetProtectionProcess(
     if (!WINDOWS_HAS_LIMITED_ACCESS)
         return FALSE;
 
-    if (!PhKphHandle)
+    if (!KphIsConnected())
     {
         PhShowError(hWnd, KPH_ERROR_MESSAGE);
         return FALSE;
@@ -1914,7 +1916,6 @@ BOOLEAN PhUiSetProtectionProcess(
     result = FALSE;
 
     if (NT_SUCCESS(KphQueryInformationProcess(
-        PhKphHandle,
         processHandle,
         KphProcessProtectionInformation,
         &protectionInfo,
@@ -1929,7 +1930,6 @@ BOOLEAN PhUiSetProtectionProcess(
         {
             protectionInfo.IsProtectedProcess = PhEqualString2(selectedChoice, L"Protected", FALSE);
             status = KphSetInformationProcess(
-                PhKphHandle,
                 processHandle,
                 KphProcessProtectionInformation,
                 &protectionInfo,
@@ -2474,7 +2474,7 @@ BOOLEAN PhUiForceTerminateThreads(
     BOOLEAN success = TRUE;
     ULONG i;
 
-    if (!PhKphHandle)
+    if (!KphIsConnected())
     {
         PhShowError(hWnd, KPH_ERROR_MESSAGE);
         return FALSE;
@@ -2516,7 +2516,7 @@ BOOLEAN PhUiForceTerminateThreads(
             Threads[i]->ThreadId
             )))
         {
-            status = KphTerminateThreadUnsafe(PhKphHandle, threadHandle, STATUS_SUCCESS);
+            status = KphTerminateThreadUnsafe(threadHandle, STATUS_SUCCESS);
             NtClose(threadHandle);
         }
 
@@ -3179,7 +3179,7 @@ BOOLEAN PhUiSetAttributesHandle(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (!PhKphHandle)
+    if (!KphIsConnected())
     {
         PhShowError(hWnd, KPH_ERROR_MESSAGE);
         return FALSE;
@@ -3197,7 +3197,6 @@ BOOLEAN PhUiSetAttributesHandle(
         handleFlagInfo.ProtectFromClose = !!(Attributes & OBJ_PROTECT_CLOSE);
 
         status = KphSetInformationObject(
-            PhKphHandle,
             processHandle,
             Handle->Handle,
             KphObjectHandleFlagInformation,

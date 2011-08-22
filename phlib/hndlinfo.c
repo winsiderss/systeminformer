@@ -58,7 +58,9 @@ static PH_QUERY_OBJECT_CONTEXT PhQueryObjectContext;
 static PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
 static PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = NULL;
 
-VOID PhHandleInfoInitialization()
+VOID PhHandleInfoInitialization(
+    VOID
+    )
 {
     PhHandleGetClientIdName = PhStdGetClientIdName;
 }
@@ -81,10 +83,9 @@ NTSTATUS PhpGetObjectBasicInformation(
 {
     NTSTATUS status;
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         status = KphQueryInformationObject(
-            PhKphHandle,
             ProcessHandle,
             Handle,
             KphObjectBasicInformation,
@@ -151,10 +152,9 @@ NTSTATUS PhpGetObjectTypeName(
         PPH_STRING oldTypeName;
 
         // Get the needed buffer size.
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             status = KphQueryInformationObject(
-                PhKphHandle,
                 ProcessHandle,
                 Handle,
                 KphObjectTypeInformation,
@@ -179,10 +179,9 @@ NTSTATUS PhpGetObjectTypeName(
 
         buffer = PhAllocate(returnLength);
 
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             status = KphQueryInformationObject(
-                PhKphHandle,
                 ProcessHandle,
                 Handle,
                 KphObjectTypeInformation,
@@ -254,10 +253,9 @@ NTSTATUS PhpGetObjectName(
     // A loop is needed because the I/O subsystem likes to give us the wrong return lengths...
     do
     {
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             status = KphQueryInformationObject(
-                PhKphHandle,
                 ProcessHandle,
                 Handle,
                 KphObjectNameInformation,
@@ -505,12 +503,11 @@ NTSTATUS PhpGetBestObjectName(
 
     if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             ETWREG_BASIC_INFORMATION basicInfo;
 
             status = KphQueryInformationObject(
-                PhKphHandle,
                 ProcessHandle,
                 Handle,
                 KphObjectEtwRegBasicInformation,
@@ -588,12 +585,11 @@ NTSTATUS PhpGetBestObjectName(
 
         clientId.UniqueThread = NULL;
 
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             PROCESS_BASIC_INFORMATION basicInfo;
 
             status = KphQueryInformationObject(
-                PhKphHandle,
                 ProcessHandle,
                 Handle,
                 KphObjectProcessBasicInformation,
@@ -643,12 +639,11 @@ NTSTATUS PhpGetBestObjectName(
     {
         CLIENT_ID clientId;
 
-        if (PhKphHandle)
+        if (KphIsConnected())
         {
             THREAD_BASIC_INFORMATION basicInfo;
 
             status = KphQueryInformationObject(
-                PhKphHandle,
                 ProcessHandle,
                 Handle,
                 KphObjectThreadBasicInformation,
@@ -1030,7 +1025,7 @@ NTSTATUS PhGetHandleInformationEx(
         return STATUS_INVALID_PARAMETER_3;
 
     // Duplicate the handle if we're not using KPH.
-    if (!PhKphHandle)
+    if (!KphIsConnected())
     {
         // However, we obviously don't need to duplicate it 
         // if the handle is in the current process.
@@ -1060,7 +1055,7 @@ NTSTATUS PhGetHandleInformationEx(
     {
         status = PhpGetObjectBasicInformation(
             ProcessHandle,
-            PhKphHandle ? Handle : dupHandle,
+            KphIsConnected() ? Handle : dupHandle,
             BasicInformation
             );
 
@@ -1075,7 +1070,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Get the type name.
     status = PhpGetObjectTypeName(
         ProcessHandle,
-        PhKphHandle ? Handle : dupHandle,
+        KphIsConnected() ? Handle : dupHandle,
         ObjectTypeNumber,
         &typeName
         );
@@ -1090,7 +1085,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Get the object name.
     // If we're dealing with a file handle we must take 
     // special precautions so we don't hang.
-    if (PhEqualString2(typeName, L"File", TRUE) && !PhKphHandle)
+    if (PhEqualString2(typeName, L"File", TRUE) && !KphIsConnected())
     {
         // 0: Query normally.
         // 1: Hack.
@@ -1106,7 +1101,7 @@ NTSTATUS PhGetHandleInformationEx(
         {
             status = PhpGetObjectName(
                 ProcessHandle,
-                PhKphHandle ? Handle : dupHandle,
+                KphIsConnected() ? Handle : dupHandle,
                 &objectName
                 );
         }
@@ -1140,7 +1135,7 @@ NTSTATUS PhGetHandleInformationEx(
         // Query the object normally.
         status = PhpGetObjectName(
             ProcessHandle,
-            PhKphHandle ? Handle : dupHandle,
+            KphIsConnected() ? Handle : dupHandle,
             &objectName
             );
     }
@@ -1211,7 +1206,9 @@ CleanupExit:
     return status;
 }
 
-BOOLEAN PhpHeadQueryObjectHack()
+BOOLEAN PhpHeadQueryObjectHack(
+    VOID
+    )
 {
     PhAcquireQueuedLockExclusive(&PhQueryObjectMutex);
 

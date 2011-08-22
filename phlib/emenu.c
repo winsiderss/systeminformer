@@ -38,7 +38,9 @@ static const PH_FLAG_MAPPING EMenuStateMappings[] =
     { PH_EMENU_HIGHLIGHT, MFS_HILITE }
 };
 
-PPH_EMENU_ITEM PhAllocateEMenuItem()
+PPH_EMENU_ITEM PhAllocateEMenuItem(
+    VOID
+    )
 {
     PPH_EMENU_ITEM item;
 
@@ -352,7 +354,9 @@ VOID PhRemoveAllEMenuItems(
 /**
  * Creates a root menu.
  */
-PPH_EMENU PhCreateEMenu()
+PPH_EMENU PhCreateEMenu(
+    VOID
+    )
 {
     PPH_EMENU menu;
 

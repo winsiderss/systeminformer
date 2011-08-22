@@ -47,7 +47,7 @@ VOID MD5Update(
 
     t = Context->i[0];
     if ((Context->i[0] = t + ((ULONG) Length << 3)) < t)
-	Context->i[1]++;		/* Carry from low to high */
+    Context->i[1]++;		/* Carry from low to high */
     Context->i[1] += Length >> 29;
 
     t = (t >> 3) & 0x3f;	/* Bytes already in shsInfo->data */
@@ -55,25 +55,25 @@ VOID MD5Update(
     /* Handle any leading odd-sized chunks */
 
     if (t) {
-	unsigned char *p = (unsigned char *) Context->in + t;
+    unsigned char *p = (unsigned char *) Context->in + t;
 
-	t = 64 - t;
-	if (Length < t) {
-	    memcpy(p, Input, Length);
-	    return;
-	}
-	memcpy(p, Input, t);
-	MD5Transform(Context->buf, (ULONG *) Context->in);
-	Input += t;
-	Length -= t;
+    t = 64 - t;
+    if (Length < t) {
+        memcpy(p, Input, Length);
+        return;
+    }
+    memcpy(p, Input, t);
+    MD5Transform(Context->buf, (ULONG *) Context->in);
+    Input += t;
+    Length -= t;
     }
     /* Process data in 64-byte chunks */
 
     while (Length >= 64) {
-	memcpy(Context->in, Input, 64);
-	MD5Transform(Context->buf, (ULONG *) Context->in);
-	Input += 64;
-	Length -= 64;
+    memcpy(Context->in, Input, 64);
+    MD5Transform(Context->buf, (ULONG *) Context->in);
+    Input += 64;
+    Length -= 64;
     }
 
     /* Handle any remaining bytes of data. */
@@ -105,15 +105,15 @@ VOID MD5Final(
 
     /* Pad out to 56 mod 64 */
     if (count < 8) {
-	/* Two lots of padding:  Pad the first block to 64 bytes */
-	memset(p, 0, count);
-	MD5Transform(Context->buf, (ULONG *) Context->in);
+    /* Two lots of padding:  Pad the first block to 64 bytes */
+    memset(p, 0, count);
+    MD5Transform(Context->buf, (ULONG *) Context->in);
 
-	/* Now fill the next block with 56 bytes */
-	memset(Context->in, 0, 56);
+    /* Now fill the next block with 56 bytes */
+    memset(Context->in, 0, 56);
     } else {
-	/* Pad block to 56 bytes */
-	memset(p, 0, count - 8);
+    /* Pad block to 56 bytes */
+    memset(p, 0, count - 8);
     }
 
     /* Append length in bits and transform */
@@ -134,7 +134,7 @@ VOID MD5Final(
 
 /* This is the central step in the MD5 algorithm. */
 #define MD5STEP(f, w, x, y, z, data, s) \
-	( w += f(x, y, z) + data,  w = _rotl(w, s),  w += x )
+    ( w += f(x, y, z) + data,  w = _rotl(w, s),  w += x )
 
 /*
  * The core of the MD5 algorithm, this alters an existing MD5 hash to

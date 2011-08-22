@@ -48,7 +48,9 @@ BOOLEAN NTAPI PhpCommandModeOptionCallback(
     return TRUE;
 }
 
-NTSTATUS PhCommandModeStart()
+NTSTATUS PhCommandModeStart(
+    VOID
+    )
 {
     static PH_COMMAND_LINE_OPTION options[] =
     {

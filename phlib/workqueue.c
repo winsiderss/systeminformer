@@ -36,7 +36,9 @@ LIST_ENTRY PhDbgWorkQueueListHead;
 PH_QUEUED_LOCK PhDbgWorkQueueListLock = PH_QUEUED_LOCK_INIT;
 #endif
 
-VOID PhWorkQueueInitialization()
+VOID PhWorkQueueInitialization(
+    VOID
+    )
 {
     PhInitializeFreeList(&PhWorkQueueItemFreeList, sizeof(PH_WORK_QUEUE_ITEM), 32);
 

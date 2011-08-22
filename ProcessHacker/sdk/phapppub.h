@@ -114,7 +114,9 @@ PhUpdateProcessNode(
 PHAPPAPI
 PPH_PROCESS_ITEM
 NTAPI
-PhGetSelectedProcessItem();
+PhGetSelectedProcessItem(
+    VOID
+    );
 
 PHAPPAPI
 VOID
@@ -127,12 +129,16 @@ PhGetSelectedProcessItems(
 PHAPPAPI
 VOID
 NTAPI
-PhDeselectAllProcessNodes();
+PhDeselectAllProcessNodes(
+    VOID
+    );
 
 PHAPPAPI
 VOID
 NTAPI
-PhInvalidateAllProcessNodes();
+PhInvalidateAllProcessNodes(
+    VOID
+    );
 
 PHAPPAPI
 VOID
@@ -166,7 +172,9 @@ PhRemoveProcessTreeFilter(
 PHAPPAPI
 VOID
 NTAPI
-PhApplyProcessTreeFilters();
+PhApplyProcessTreeFilters(
+    VOID
+    );
 
 // srvlist
 
@@ -187,7 +195,9 @@ PhUpdateServiceNode(
 PHAPPAPI
 PPH_SERVICE_ITEM
 NTAPI
-PhGetSelectedServiceItem();
+PhGetSelectedServiceItem(
+    VOID
+    );
 
 PHAPPAPI
 VOID
@@ -200,7 +210,9 @@ PhGetSelectedServiceItems(
 PHAPPAPI
 VOID
 NTAPI
-PhDeselectAllServiceNodes();
+PhDeselectAllServiceNodes(
+    VOID
+    );
 
 PHAPPAPI
 VOID
@@ -386,7 +398,9 @@ PhSaveListViewColumnsToSetting(
 PHAPPAPI
 PPH_STRING
 NTAPI
-PhGetPhVersion();
+PhGetPhVersion(
+    VOID
+    );
 
 PHAPPAPI
 VOID

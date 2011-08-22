@@ -35,7 +35,9 @@ _WinVerifyTrust WinVerifyTrust_I;
 _CertNameToStr CertNameToStr_I;
 static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
 
-static VOID PhpVerifyInitialization()
+static VOID PhpVerifyInitialization(
+    VOID
+    )
 {
     HMODULE wintrust;
     HMODULE crypt32;

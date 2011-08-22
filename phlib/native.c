@@ -81,10 +81,9 @@ NTSTATUS PhOpenProcess(
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         return KphOpenProcess(
-            PhKphHandle,
             ProcessHandle,
             DesiredAccess,
             &clientId
@@ -121,10 +120,9 @@ NTSTATUS PhOpenThread(
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         return KphOpenThread(
-            PhKphHandle,
             ThreadHandle,
             DesiredAccess,
             &clientId
@@ -147,10 +145,9 @@ NTSTATUS PhOpenThreadProcess(
     __in HANDLE ThreadHandle
     )
 {
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         return KphOpenThreadProcess(
-            PhKphHandle,
             ThreadHandle,
             DesiredAccess,
             ProcessHandle
@@ -188,10 +185,9 @@ NTSTATUS PhOpenProcessToken(
     __in HANDLE ProcessHandle
     )
 {
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         return KphOpenProcessToken(
-            PhKphHandle,
             ProcessHandle,
             DesiredAccess,
             TokenHandle
@@ -305,10 +301,9 @@ NTSTATUS PhTerminateProcess(
 {
     NTSTATUS status;
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         status = KphTerminateProcess(
-            PhKphHandle,
             ProcessHandle,
             ExitStatus
             );
@@ -333,9 +328,9 @@ NTSTATUS PhSuspendProcess(
     __in HANDLE ProcessHandle
     )
 {
-    if (PhKphHandle && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
+    if (KphIsConnected() && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
     {
-        return KphSuspendProcess(PhKphHandle, ProcessHandle);
+        return KphSuspendProcess(ProcessHandle);
     }
     else
     {
@@ -353,9 +348,9 @@ NTSTATUS PhResumeProcess(
     __in HANDLE ProcessHandle
     )
 {
-    if (PhKphHandle && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
+    if (KphIsConnected() && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
     {
-        return KphResumeProcess(PhKphHandle, ProcessHandle);
+        return KphResumeProcess(ProcessHandle);
     }
     else
     {
@@ -378,10 +373,9 @@ NTSTATUS PhTerminateThread(
 {
     NTSTATUS status;
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         status = KphTerminateThread(
-            PhKphHandle,
             ThreadHandle,
             ExitStatus
             );
@@ -441,9 +435,9 @@ NTSTATUS PhGetThreadContext(
     __inout PCONTEXT Context
     )
 {
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
-        return KphGetContextThread(PhKphHandle, ThreadHandle, Context);
+        return KphGetContextThread(ThreadHandle, Context);
     }
     else
     {
@@ -463,9 +457,9 @@ NTSTATUS PhSetThreadContext(
     __in PCONTEXT Context
     )
 {
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
-        return KphSetContextThread(PhKphHandle, ThreadHandle, Context);
+        return KphSetContextThread(ThreadHandle, Context);
     }
     else
     {
@@ -506,10 +500,9 @@ NTSTATUS PhReadVirtualMemory(
         NumberOfBytesRead
         );
 
-    if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
+    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
     {
         status = KphReadVirtualMemory(
-            PhKphHandle,
             ProcessHandle,
             BaseAddress,
             Buffer,
@@ -550,10 +543,9 @@ NTSTATUS PhWriteVirtualMemory(
         NumberOfBytesWritten
         );
 
-    if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
+    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
     {
         status = KphWriteVirtualMemory(
-            PhKphHandle,
             ProcessHandle,
             BaseAddress,
             Buffer,
@@ -579,7 +571,7 @@ NTSTATUS PhWriteVirtualMemory(
 NTSTATUS PhpQueryProcessVariableSize(
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __out PPVOID Buffer
+    __out PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -874,10 +866,9 @@ NTSTATUS PhGetProcessExecuteFlags(
     __out PULONG ExecuteFlags
     )
 {
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         return KphQueryInformationProcess(
-            PhKphHandle,
             ProcessHandle,
             KphProcessExecuteFlags,
             ExecuteFlags,
@@ -1449,7 +1440,6 @@ NTSTATUS PhEnumProcessHandles(
     while (TRUE)
     {
         status = KphEnumerateProcessHandles(
-            PhKphHandle,
             ProcessHandle,
             buffer,
             bufferSize,
@@ -1510,10 +1500,9 @@ NTSTATUS PhSetProcessIoPriority(
     __in ULONG IoPriority
     )
 {
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         return KphSetInformationProcess(
-            PhKphHandle,
             ProcessHandle,
             KphProcessIoPriority,
             &IoPriority,
@@ -1546,7 +1535,6 @@ NTSTATUS PhSetProcessExecuteFlags(
     )
 {
     return KphSetInformationProcess(
-        PhKphHandle,
         ProcessHandle,
         KphProcessExecuteFlags,
         &ExecuteFlags,
@@ -1968,10 +1956,9 @@ NTSTATUS PhSetThreadIoPriority(
     __in ULONG IoPriority
     )
 {
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         return KphSetInformationThread(
-            PhKphHandle,
             ThreadHandle,
             KphThreadIoPriority,
             &IoPriority,
@@ -2058,7 +2045,7 @@ NTSTATUS PhWalkThreadStack(
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
     {
-        if (PhKphHandle || !ClientId)
+        if (KphIsConnected() || !ClientId)
         {
             if (!NT_SUCCESS(status = PhOpenThreadProcess(
                 &ProcessHandle,
@@ -2114,14 +2101,13 @@ NTSTATUS PhWalkThreadStack(
     }
 
     // Kernel stack walk.
-    if ((Flags & PH_WALK_KERNEL_STACK) && PhKphHandle)
+    if ((Flags & PH_WALK_KERNEL_STACK) && KphIsConnected())
     {
         PVOID stack[62 - 1]; // 62 limit for XP and Server 2003.
         ULONG capturedFrames;
         ULONG i;
 
         if (NT_SUCCESS(KphCaptureStackBackTraceThread(
-            PhKphHandle,
             ThreadHandle,
             1,
             sizeof(stack) / sizeof(PVOID),
@@ -2337,7 +2323,7 @@ NTSTATUS PhGetJobProcessIdList(
 NTSTATUS PhpQueryTokenVariableSize(
     __in HANDLE TokenHandle,
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,
-    __out PPVOID Buffer
+    __out PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -2672,7 +2658,7 @@ NTSTATUS PhGetTokenIntegrityLevel(
 NTSTATUS PhpQueryFileVariableSize(
     __in HANDLE FileHandle,
     __in FILE_INFORMATION_CLASS FileInformationClass,
-    __out PPVOID Buffer
+    __out PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -2767,7 +2753,7 @@ NTSTATUS PhSetFileSize(
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     __in HANDLE TransactionManagerHandle,
     __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
-    __out PPVOID Buffer
+    __out PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -2867,7 +2853,7 @@ NTSTATUS PhGetTransactionManagerLogFileName(
 NTSTATUS PhpQueryTransactionVariableSize(
     __in HANDLE TransactionHandle,
     __in TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
-    __out PPVOID Buffer
+    __out PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -2983,7 +2969,7 @@ NTSTATUS PhGetTransactionPropertiesInformation(
 NTSTATUS PhpQueryResourceManagerVariableSize(
     __in HANDLE ResourceManagerHandle,
     __in RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
-    __out PPVOID Buffer
+    __out PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -3121,14 +3107,13 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
         NULL
         );
 
-    status = KphOpenDriver(PhKphHandle, &driverHandle, &objectAttributes);
+    status = KphOpenDriver(&driverHandle, &objectAttributes);
     PhDereferenceObject(driverName);
 
     if (!NT_SUCCESS(status))
         return TRUE;
 
     status = KphQueryInformationDriver(
-        PhKphHandle,
         driverHandle,
         DriverBasicInformation,
         &basicInfo,
@@ -3234,7 +3219,7 @@ NTSTATUS PhOpenDriverByBaseAddress(
 NTSTATUS PhpQueryDriverVariableSize(
     __in HANDLE DriverHandle,
     __in DRIVER_INFORMATION_CLASS DriverInformationClass,
-    __out PPVOID Buffer
+    __out PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -3242,7 +3227,6 @@ NTSTATUS PhpQueryDriverVariableSize(
     ULONG returnLength = 0;
 
     KphQueryInformationDriver(
-        PhKphHandle,
         DriverHandle,
         DriverInformationClass,
         NULL,
@@ -3251,7 +3235,6 @@ NTSTATUS PhpQueryDriverVariableSize(
         );
     buffer = PhAllocate(returnLength);
     status = KphQueryInformationDriver(
-        PhKphHandle,
         DriverHandle,
         DriverInformationClass,
         buffer,
@@ -3394,13 +3377,13 @@ NTSTATUS PhUnloadDriver(
 
     if (!BaseAddress && !Name)
         return STATUS_INVALID_PARAMETER_MIX;
-    if (!Name && !PhKphHandle)
+    if (!Name && !KphIsConnected())
         return STATUS_INVALID_PARAMETER_MIX;
 
     // Try to get the service key name by scanning the 
     // Driver directory.
 
-    if (PhKphHandle && BaseAddress)
+    if (KphIsConnected() && BaseAddress)
     {
         if (NT_SUCCESS(PhOpenDriverByBaseAddress(
             &driverHandle,
@@ -3477,10 +3460,9 @@ NTSTATUS PhDuplicateObject(
 {
     NTSTATUS status;
 
-    if (PhKphHandle)
+    if (KphIsConnected())
     {
         status = KphDuplicateObject(
-            PhKphHandle,
             SourceProcessHandle,
             SourceHandle,
             TargetProcessHandle,
@@ -4247,7 +4229,9 @@ NTSTATUS PhEnumKernelModulesEx(
  * using PhDereferenceObject() when you no longer 
  * need it.
  */
-PPH_STRING PhGetKernelFileName()
+PPH_STRING PhGetKernelFileName(
+    VOID
+    )
 {
     PRTL_PROCESS_MODULES modules;
     PPH_STRING fileName = NULL;
@@ -4278,7 +4262,7 @@ PPH_STRING PhGetKernelFileName()
  * information contained in the buffer.
  */
 NTSTATUS PhEnumProcesses(
-    __out PPVOID Processes
+    __out PVOID *Processes
     )
 {
     static ULONG initialBufferSize = 0x4000;
@@ -4335,7 +4319,7 @@ NTSTATUS PhEnumProcesses(
  * information contained in the buffer.
  */
 NTSTATUS PhEnumProcessesForSession(
-    __out PPVOID Processes,
+    __out PVOID *Processes,
     __in ULONG SessionId
     )
 {
@@ -4398,7 +4382,7 @@ NTSTATUS PhEnumProcessesForSession(
  * information contained in the buffer.
  */
 NTSTATUS PhEnumProcessesEx(
-    __out PPVOID Processes
+    __out PVOID *Processes
     )
 {
     static ULONG initialBufferSize = 0x4000;
@@ -4595,7 +4579,7 @@ NTSTATUS PhEnumHandlesEx(
  * large.
  */
 NTSTATUS PhEnumPagefiles(
-    __out PPVOID Pagefiles
+    __out PVOID *Pagefiles
     )
 {
     NTSTATUS status;
@@ -5187,7 +5171,7 @@ NTSTATUS PhEnumDirectoryFile(
 
 NTSTATUS PhEnumFileStreams(
     __in HANDLE FileHandle,
-    __out PPVOID Streams
+    __out PVOID *Streams
     )
 {
     return PhpQueryFileVariableSize(
@@ -5200,7 +5184,9 @@ NTSTATUS PhEnumFileStreams(
 /**
  * Initializes the device prefixes module.
  */
-VOID PhInitializeDevicePrefixes()
+VOID PhInitializeDevicePrefixes(
+    VOID
+    )
 {
     ULONG i;
     PUCHAR buffer;
@@ -5217,7 +5203,9 @@ VOID PhInitializeDevicePrefixes()
     }
 }
 
-VOID PhRefreshMupDevicePrefixes()
+VOID PhUpdateMupDevicePrefixes(
+    VOID
+    )
 {
     static PH_STRINGREF orderKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order");
     static PH_STRINGREF servicesStringPart = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
@@ -5314,9 +5302,11 @@ VOID PhRefreshMupDevicePrefixes()
 }
 
 /**
- * Refreshes the DOS device names array.
+ * Updates the DOS device names array.
  */
-VOID PhRefreshDosDevicePrefixes()
+VOID PhUpdateDosDevicePrefixes(
+    VOID
+    )
 {
     WCHAR deviceNameBuffer[7] = L"\\??\\ :";
     ULONG i;
@@ -5386,8 +5376,8 @@ PPH_STRING PhResolveDevicePrefix(
     if (PhBeginInitOnce(&PhDevicePrefixesInitOnce))
     {
         PhInitializeDevicePrefixes();
-        PhRefreshDosDevicePrefixes();
-        PhRefreshMupDevicePrefixes();
+        PhUpdateDosDevicePrefixes();
+        PhUpdateMupDevicePrefixes();
 
         PhEndInitOnce(&PhDevicePrefixesInitOnce);
     }
@@ -5959,7 +5949,9 @@ CleanupExit:
 /**
  * Initializes usage of predefined keys.
  */
-VOID PhpInitializePredefineKeys()
+VOID PhpInitializePredefineKeys(
+    VOID
+    )
 {
     static PH_STRINGREF currentUserPrefix = PH_STRINGREF_INIT(L"\\Registry\\User\\");
 

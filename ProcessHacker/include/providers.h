@@ -242,7 +242,9 @@ typedef struct _PH_PROCESS_RECORD
     /*PPH_STRING UserName;*/
 } PH_PROCESS_RECORD, *PPH_PROCESS_RECORD;
 
-BOOLEAN PhProcessProviderInitialization();
+BOOLEAN PhProcessProviderInitialization(
+    VOID
+    );
 
 PHAPPAPI
 PPH_STRING PhGetClientIdName(
@@ -324,7 +326,9 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
     __in PLARGE_INTEGER Time
     );
 
-VOID PhPurgeProcessRecords();
+VOID PhPurgeProcessRecords(
+    VOID
+    );
 
 PHAPPAPI
 PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
@@ -388,7 +392,9 @@ typedef enum _PH_SERVICE_CHANGE
     ServiceStopped
 } PH_SERVICE_CHANGE, *PPH_SERVICE_CHANGE;
 
-BOOLEAN PhServiceProviderInitialization();
+BOOLEAN PhServiceProviderInitialization(
+    VOID
+    );
 
 PPH_SERVICE_ITEM PhCreateServiceItem(
     __in_opt LPENUM_SERVICE_STATUS_PROCESS Information
@@ -456,9 +462,13 @@ typedef struct _PH_NETWORK_ITEM
     ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
 } PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
 
-BOOLEAN PhNetworkProviderInitialization();
+BOOLEAN PhNetworkProviderInitialization(
+    VOID
+    );
 
-PPH_NETWORK_ITEM PhCreateNetworkItem();
+PPH_NETWORK_ITEM PhCreateNetworkItem(
+    VOID
+    );
 
 PHAPPAPI
 PPH_NETWORK_ITEM PhReferenceNetworkItem(
@@ -528,13 +538,17 @@ typedef struct _PH_MODULE_PROVIDER
     SLIST_HEADER QueryListHead;
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 
-BOOLEAN PhModuleProviderInitialization();
+BOOLEAN PhModuleProviderInitialization(
+    VOID
+    );
 
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
     __in HANDLE ProcessId
     );
 
-PPH_MODULE_ITEM PhCreateModuleItem();
+PPH_MODULE_ITEM PhCreateModuleItem(
+    VOID
+    );
 
 PPH_MODULE_ITEM PhReferenceModuleItem(
     __in PPH_MODULE_PROVIDER ModuleProvider,
@@ -611,7 +625,9 @@ typedef struct _PH_THREAD_PROVIDER
     ULONG RunId;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 
-BOOLEAN PhThreadProviderInitialization();
+BOOLEAN PhThreadProviderInitialization(
+    VOID
+    );
 
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
     __in HANDLE ProcessId
@@ -698,7 +714,9 @@ typedef struct _PH_HANDLE_PROVIDER
     PPH_HASHTABLE TempListHashtable;
 } PH_HANDLE_PROVIDER, *PPH_HANDLE_PROVIDER;
 
-BOOLEAN PhHandleProviderInitialization();
+BOOLEAN PhHandleProviderInitialization(
+    VOID
+    );
 
 PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     __in HANDLE ProcessId
@@ -763,7 +781,9 @@ typedef struct _PH_MEMORY_PROVIDER
     BOOLEAN IgnoreFreeRegions;
 } PH_MEMORY_PROVIDER, *PPH_MEMORY_PROVIDER;
 
-BOOLEAN PhMemoryProviderInitialization();
+BOOLEAN PhMemoryProviderInitialization(
+    VOID
+    );
 
 VOID PhInitializeMemoryProvider(
     __out PPH_MEMORY_PROVIDER Provider,
@@ -776,7 +796,9 @@ VOID PhDeleteMemoryProvider(
     __inout PPH_MEMORY_PROVIDER Provider
     );
 
-PPH_MEMORY_ITEM PhCreateMemoryItem();
+PPH_MEMORY_ITEM PhCreateMemoryItem(
+    VOID
+    );
 
 PHAPPAPI
 VOID PhGetMemoryProtectionString(

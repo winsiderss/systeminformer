@@ -32,11 +32,17 @@
 
 #include "wndexp.h"
 
-BOOLEAN WepCreateServerObjects();
+BOOLEAN WepCreateServerObjects(
+    VOID
+    );
 
-BOOLEAN WepOpenServerObjects();
+BOOLEAN WepOpenServerObjects(
+    VOID
+    );
 
-VOID WepCloseServerObjects();
+VOID WepCloseServerObjects(
+    VOID
+    );
 
 VOID WepWriteClientData(
     __in HWND hwnd
@@ -61,7 +67,9 @@ ULONG WeCurrentMessageId = 0;
 
 // Server
 
-VOID WeHookServerInitialization()
+VOID WeHookServerInitialization(
+    VOID
+    )
 {
     if (WeHookHandle)
         return;
@@ -74,7 +82,9 @@ VOID WeHookServerInitialization()
     WeHookHandle = SetWindowsHookEx(WH_CALLWNDPROC, WepCallWndProc, PluginInstance->DllBase, 0);
 }
 
-VOID WeHookServerUninitialization()
+VOID WeHookServerUninitialization(
+    VOID
+    )
 {
     if (WeHookHandle)
     {
@@ -83,7 +93,9 @@ VOID WeHookServerUninitialization()
     }
 }
 
-BOOLEAN WepCreateServerObjects()
+BOOLEAN WepCreateServerObjects(
+    VOID
+    )
 {
     OBJECT_ATTRIBUTES objectAttributes;
     WCHAR buffer[256];
@@ -177,7 +189,9 @@ BOOLEAN WepCreateServerObjects()
     return TRUE;
 }
 
-BOOLEAN WepOpenServerObjects()
+BOOLEAN WepOpenServerObjects(
+    VOID
+    )
 {
     OBJECT_ATTRIBUTES objectAttributes;
     WCHAR buffer[256];
@@ -261,7 +275,9 @@ BOOLEAN WepOpenServerObjects()
     return TRUE;
 }
 
-VOID WepCloseServerObjects()
+VOID WepCloseServerObjects(
+    VOID
+    )
 {
     if (WeServerSharedSection)
     {
@@ -288,7 +304,9 @@ VOID WepCloseServerObjects()
     }
 }
 
-BOOLEAN WeIsServerActive()
+BOOLEAN WeIsServerActive(
+    VOID
+    )
 {
     if (WepOpenServerObjects())
     {
@@ -321,7 +339,9 @@ BOOLEAN WeLockServerSharedData(
     return TRUE;
 }
 
-VOID WeUnlockServerSharedData()
+VOID WeUnlockServerSharedData(
+    VOID
+    )
 {
     NtReleaseMutant(WeServerSharedSectionLock, NULL);
 }
@@ -365,12 +385,16 @@ BOOLEAN WeSendServerRequest(
 
 // Client
 
-VOID WeHookClientInitialization()
+VOID WeHookClientInitialization(
+    VOID
+    )
 {
     WeServerMessage = RegisterWindowMessage(WE_SERVER_MESSAGE_NAME);
 }
 
-VOID WeHookClientUninitialization()
+VOID WeHookClientUninitialization(
+    VOID
+    )
 {
     NOTHING;
 }

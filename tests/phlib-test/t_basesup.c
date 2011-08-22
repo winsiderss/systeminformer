@@ -1,6 +1,8 @@
 #include "tests.h"
 
-static VOID Test_time()
+static VOID Test_time(
+    VOID
+    )
 {
     LARGE_INTEGER time;
     FILETIME fileTime;
@@ -26,7 +28,9 @@ static VOID Test_time()
     assert(systemTime.HighPart == systemFileTime.dwHighDateTime);
 }
 
-static VOID Test_stringz()
+static VOID Test_stringz(
+    VOID
+    )
 {
     BOOLEAN result;
     CHAR inputA[16] = "test";
@@ -77,7 +81,9 @@ static VOID Test_stringz()
     assert(PhCompareUnicodeStringZNatural(L"file-12", L"file-90", FALSE) < 0);
 }
 
-VOID Test_stringref()
+VOID Test_stringref(
+    VOID
+    )
 {
 #define DO_STRSTR_TEST(func, s1, s2, expected, ...) \
     do { \
@@ -106,7 +112,9 @@ VOID Test_stringref()
     DO_STRSTR_TEST(PhFindStringInStringRef, L"0sdfasdf1sdfasdf2sdfasdf3sdfasdg4sdfg", L"asdg4Gdfg", -1, FALSE);
 }
 
-VOID Test_fullstring()
+VOID Test_fullstring(
+    VOID
+    )
 {
     PPH_FULL_STRING fullString;
 
@@ -128,7 +136,9 @@ VOID Test_fullstring()
     assert(wcscmp(fullString->Buffer, L"1234!???") == 0);
 }
 
-VOID Test_hexstring()
+VOID Test_hexstring(
+    VOID
+    )
 {
     BOOLEAN result;
     PH_STRINGREF sr;
@@ -151,7 +161,9 @@ VOID Test_hexstring()
     assert(wcscmp(string->Buffer, L"0099ff") == 0);
 }
 
-VOID Test_strint()
+VOID Test_strint(
+    VOID
+    )
 {
     PH_STRINGREF sr;
     LONG64 integer;
@@ -196,7 +208,9 @@ VOID Test_strint()
     assert(wcscmp(string->Buffer, L"18446744073709551493") == 0);
 }
 
-VOID Test_basesup()
+VOID Test_basesup(
+    VOID
+    )
 {
     Test_time();
     Test_stringz();

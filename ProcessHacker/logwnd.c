@@ -39,7 +39,9 @@ static HWND ListViewHandle;
 static ULONG ListViewCount;
 static PH_CALLBACK_REGISTRATION LoggedRegistration;
 
-VOID PhShowLogDialog()
+VOID PhShowLogDialog(
+    VOID
+    )
 {
     if (!PhLogWindowHandle)
     {
@@ -67,7 +69,9 @@ static VOID NTAPI LoggedCallback(
     PostMessage(PhLogWindowHandle, WM_PH_LOG_UPDATED, 0, 0); 
 }
 
-static VOID PhpUpdateLogList()
+static VOID PhpUpdateLogList(
+    VOID
+    )
 {
     ListViewCount = PhLogBuffer.Count;
     ListView_SetItemCount(ListViewHandle, ListViewCount);

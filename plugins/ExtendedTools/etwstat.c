@@ -33,7 +33,9 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     __in_opt PVOID Context
     );
 
-VOID EtpUpdateDiskInformation();
+VOID EtpUpdateDiskInformation(
+    VOID
+    );
 
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
@@ -60,7 +62,9 @@ PH_CIRCULAR_BUFFER_ULONG EtNetworkSendHistory;
 PH_CIRCULAR_BUFFER_ULONG EtMaxDiskHistory; // ID of max. disk usage process
 PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory; // ID of max. network usage process
 
-VOID EtEtwStatisticsInitialization()
+VOID EtEtwStatisticsInitialization(
+    VOID
+    )
 {
     EtEtwMonitorInitialization();
 
@@ -91,7 +95,9 @@ VOID EtEtwStatisticsInitialization()
     }
 }
 
-VOID EtEtwStatisticsUninitialization()
+VOID EtEtwStatisticsUninitialization(
+    VOID
+    )
 {
     EtEtwMonitorUninitialization();
 }

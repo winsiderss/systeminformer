@@ -43,17 +43,29 @@ typedef struct
 
 // etwmon
 
-VOID EtEtwMonitorInitialization();
+VOID EtEtwMonitorInitialization(
+    VOID
+    );
 
-VOID EtEtwMonitorUninitialization();
+VOID EtEtwMonitorUninitialization(
+    VOID
+    );
 
-VOID EtStartEtwSession();
+VOID EtStartEtwSession(
+    VOID
+    );
 
-VOID EtStopEtwSession();
+VOID EtStopEtwSession(
+    VOID
+    );
 
-VOID EtFlushEtwSession();
+VOID EtFlushEtwSession(
+    VOID
+    );
 
-ULONG EtStartEtwRundown();
+ULONG EtStartEtwRundown(
+    VOID
+    );
 
 // etwstat
 

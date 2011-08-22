@@ -81,7 +81,9 @@ static CLSID CLSID_CLRMetaHost_I = { 0x9280188d, 0xe8e, 0x4867, { 0xb3, 0xc, 0x7
 static IID IID_ICLRMetaHost_I = { 0xd332db9e, 0xb9b3, 0x4125, { 0x82, 0x07, 0xa1, 0x48, 0x84, 0xf5, 0x32, 0x16 } };
 static IID IID_ICLRRuntimeInfo_I = { 0xbd39d1d2, 0xba2f, 0x486a, { 0x89, 0xb0, 0xb4, 0xb0, 0xcb, 0x46, 0x68, 0x91 } };
 
-VOID PhPluginsInitialization()
+VOID PhPluginsInitialization(
+    VOID
+    )
 {
     ULONG i;
 
@@ -252,7 +254,9 @@ static BOOLEAN EnumPluginsDirectoryCallback(
 /**
  * Loads plugins from the default plugins directory.
  */
-VOID PhLoadPlugins()
+VOID PhLoadPlugins(
+    VOID
+    )
 {
     HANDLE pluginsDirectoryHandle;
     PPH_STRING pluginsDirectory;
@@ -300,7 +304,9 @@ VOID PhLoadPlugins()
 /**
  * Notifies all plugins that the program is shutting down.
  */
-VOID PhUnloadPlugins()
+VOID PhUnloadPlugins(
+    VOID
+    )
 {
     PhpExecuteCallbackForAllPlugins(PluginCallbackUnload);
 }

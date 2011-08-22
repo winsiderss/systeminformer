@@ -206,7 +206,9 @@ VOID PhSetExtendedListViewWithSettings(
     __in HWND hWnd
     );
 
-PWSTR PhMakeContextAtom();
+PWSTR PhMakeContextAtom(
+    VOID
+    );
 
 PHAPPAPI
 VOID PhCopyListViewInfoTip(
@@ -258,7 +260,9 @@ VOID PhSaveListViewColumnsToSetting(
     );
 
 PHAPPAPI
-PPH_STRING PhGetPhVersion();
+PPH_STRING PhGetPhVersion(
+    VOID
+    );
 
 PHAPPAPI
 VOID PhWritePhTextHeader(
@@ -521,7 +525,9 @@ VOID PhShowNetworkContextMenu(
 extern PH_AVL_TREE PhPluginsByName;
 #endif
 
-VOID PhPluginsInitialization();
+VOID PhPluginsInitialization(
+    VOID
+    );
 
 BOOLEAN PhIsPluginDisabled(
     __in PPH_STRINGREF BaseName
@@ -532,9 +538,13 @@ VOID PhSetPluginDisabled(
     __in BOOLEAN Disable
     );
 
-VOID PhLoadPlugins();
+VOID PhLoadPlugins(
+    VOID
+    );
 
-VOID PhUnloadPlugins();
+VOID PhUnloadPlugins(
+    VOID
+    );
 
 // procprp
 
@@ -577,7 +587,9 @@ typedef struct _PH_PROCESS_PROPPAGECONTEXT
     BOOLEAN LayoutInitialized;
 } PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
 
-BOOLEAN PhProcessPropInitialization();
+BOOLEAN PhProcessPropInitialization(
+    VOID
+    );
 
 PHAPPAPI
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
@@ -719,15 +731,25 @@ HICON PhBitmapToIcon(
     __in HBITMAP Bitmap
     );
 
-VOID PhUpdateIconCpuHistory();
+VOID PhUpdateIconCpuHistory(
+    VOID
+    );
 
-VOID PhUpdateIconIoHistory();
+VOID PhUpdateIconIoHistory(
+    VOID
+    );
 
-VOID PhUpdateIconCommitHistory();
+VOID PhUpdateIconCommitHistory(
+    VOID
+    );
 
-VOID PhUpdateIconPhysicalHistory();
+VOID PhUpdateIconPhysicalHistory(
+    VOID
+    );
 
-VOID PhUpdateIconCpuUsage();
+VOID PhUpdateIconCpuUsage(
+    VOID
+    );
 
 // log
 
@@ -777,9 +799,13 @@ PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
 PH_CALLBACK PhLoggedCallback;
 #endif
 
-VOID PhLogInitialization();
+VOID PhLogInitialization(
+    VOID
+    );
 
-VOID PhClearLogEntries();
+VOID PhClearLogEntries(
+    VOID
+    );
 
 VOID PhLogProcessEntry(
     __in UCHAR Type,
@@ -808,7 +834,9 @@ PPH_STRING PhFormatLogEntry(
 
 // dbgcon
 
-VOID PhShowDebugConsole();
+VOID PhShowDebugConsole(
+    VOID
+    );
 
 // actions
 
@@ -824,7 +852,9 @@ BOOLEAN PhUiConnectToPhSvc(
     __in BOOLEAN ConnectOnly
     );
 
-VOID PhUiDisconnectFromPhSvc();
+VOID PhUiDisconnectFromPhSvc(
+    VOID
+    );
 
 PHAPPAPI
 BOOLEAN PhUiLockComputer(
@@ -1115,7 +1145,9 @@ PPH_STRING PhGetServiceTooltipText(
 
 // cmdmode
 
-NTSTATUS PhCommandModeStart();
+NTSTATUS PhCommandModeStart(
+    VOID
+    );
 
 // anawait
 
@@ -1139,7 +1171,9 @@ VOID PhShowAboutDialog(
     __in HWND ParentWindowHandle
     );
 
-PPH_STRING PhGetDiagnosticsString();
+PPH_STRING PhGetDiagnosticsString(
+    VOID
+    );
 
 // affinity
 
@@ -1200,7 +1234,9 @@ BOOLEAN PhShowChooseProcessDialog(
 
 // findobj
 
-VOID PhShowFindObjectsDialog();
+VOID PhShowFindObjectsDialog(
+    VOID
+    );
 
 // gdihndl
 
@@ -1223,7 +1259,9 @@ NTSTATUS PhGetProcessDefaultHeap(
 
 // hidnproc
 
-VOID PhShowHiddenProcessesDialog();
+VOID PhShowHiddenProcessesDialog(
+    VOID
+    );
 
 // hndlprp
 
@@ -1264,7 +1302,9 @@ HPROPSHEETPAGE PhCreateJobPage(
 
 // logwnd
 
-VOID PhShowLogDialog();
+VOID PhShowLogDialog(
+    VOID
+    );
 
 // memedit
 
@@ -1463,7 +1503,9 @@ VOID PhShowProcessTerminatorDialog(
 
 // sysinfo
 
-VOID PhShowSystemInformationDialog();
+VOID PhShowSystemInformationDialog(
+    VOID
+    );
 
 // thrdstk
 

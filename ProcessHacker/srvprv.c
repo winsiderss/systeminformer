@@ -77,7 +77,9 @@ VOID PhpRemoveProcessItemService(
     __in PPH_SERVICE_ITEM ServiceItem
     );
 
-VOID PhpInitializeServiceNonPoll();
+VOID PhpInitializeServiceNonPoll(
+    VOID
+    );
 
 PPH_OBJECT_TYPE PhServiceItemType;
 
@@ -98,7 +100,9 @@ static _NotifyServiceStatusChangeW NotifyServiceStatusChangeW_I;
 static _EvtClose EvtClose_I;
 static _EvtSubscribe EvtSubscribe_I;
 
-BOOLEAN PhServiceProviderInitialization()
+BOOLEAN PhServiceProviderInitialization(
+    VOID
+    )
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhServiceItemType,
@@ -889,7 +893,9 @@ NTSTATUS PhpServiceNonPollThreadStart(
     return STATUS_SUCCESS;
 }
 
-VOID PhpInitializeServiceNonPoll()
+VOID PhpInitializeServiceNonPoll(
+    VOID
+    )
 {
     HMODULE wevtapiHandle;
 

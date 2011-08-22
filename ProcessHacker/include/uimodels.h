@@ -291,17 +291,25 @@ typedef struct _PH_PROCESS_NODE
     PH_GRAPH_BUFFERS IoGraphBuffers;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
-VOID PhProcessTreeListInitialization();
+VOID PhProcessTreeListInitialization(
+    VOID
+    );
 
 VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     );
 
-VOID PhLoadSettingsProcessTreeList();
+VOID PhLoadSettingsProcessTreeList(
+    VOID
+    );
 
-VOID PhSaveSettingsProcessTreeList();
+VOID PhSaveSettingsProcessTreeList(
+    VOID
+    );
 
-VOID PhReloadSettingsProcessTreeList();
+VOID PhReloadSettingsProcessTreeList(
+    VOID
+    );
 
 PPH_PROCESS_NODE PhAddProcessNode(
     __in PPH_PROCESS_ITEM ProcessItem,
@@ -322,10 +330,14 @@ VOID PhUpdateProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
-VOID PhTickProcessNodes();
+VOID PhTickProcessNodes(
+    VOID
+    );
 
 PHAPPAPI
-PPH_PROCESS_ITEM PhGetSelectedProcessItem();
+PPH_PROCESS_ITEM PhGetSelectedProcessItem(
+    VOID
+    );
 
 PHAPPAPI
 VOID PhGetSelectedProcessItems(
@@ -334,10 +346,14 @@ VOID PhGetSelectedProcessItems(
     );
 
 PHAPPAPI
-VOID PhDeselectAllProcessNodes();
+VOID PhDeselectAllProcessNodes(
+    VOID
+    );
 
 PHAPPAPI
-VOID PhInvalidateAllProcessNodes();
+VOID PhInvalidateAllProcessNodes(
+    VOID
+    );
 
 PHAPPAPI
 VOID PhSelectAndEnsureVisibleProcessNode(
@@ -367,7 +383,9 @@ VOID PhRemoveProcessTreeFilter(
     );
 
 PHAPPAPI
-VOID PhApplyProcessTreeFilters();
+VOID PhApplyProcessTreeFilters(
+    VOID
+    );
 
 PPH_LIST PhGetProcessTreeListLines(
     __in HWND TreeListHandle,
@@ -376,7 +394,9 @@ PPH_LIST PhGetProcessTreeListLines(
     __in ULONG Mode
     );
 
-VOID PhCopyProcessTree();
+VOID PhCopyProcessTree(
+    VOID
+    );
 
 VOID PhWriteProcessTree(
     __inout PPH_FILE_STREAM FileStream,
@@ -421,15 +441,21 @@ typedef struct _PH_SERVICE_NODE
     PPH_STRING TooltipText;
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 
-VOID PhServiceTreeListInitialization();
+VOID PhServiceTreeListInitialization(
+    VOID
+    );
 
 VOID PhInitializeServiceTreeList(
     __in HWND hwnd
     );
 
-VOID PhLoadSettingsServiceTreeList();
+VOID PhLoadSettingsServiceTreeList(
+    VOID
+    );
 
-VOID PhSaveSettingsServiceTreeList();
+VOID PhSaveSettingsServiceTreeList(
+    VOID
+    );
 
 PPH_SERVICE_NODE PhAddServiceNode(
     __in PPH_SERVICE_ITEM ServiceItem,
@@ -450,10 +476,14 @@ VOID PhUpdateServiceNode(
     __in PPH_SERVICE_NODE ServiceNode
     );
 
-VOID PhTickServiceNodes();
+VOID PhTickServiceNodes(
+    VOID
+    );
 
 PHAPPAPI
-PPH_SERVICE_ITEM PhGetSelectedServiceItem();
+PPH_SERVICE_ITEM PhGetSelectedServiceItem(
+    VOID
+    );
 
 PHAPPAPI
 VOID PhGetSelectedServiceItems(
@@ -462,14 +492,18 @@ VOID PhGetSelectedServiceItems(
     );
 
 PHAPPAPI
-VOID PhDeselectAllServiceNodes();
+VOID PhDeselectAllServiceNodes(
+    VOID
+    );
 
 PHAPPAPI
 VOID PhSelectAndEnsureVisibleServiceNode(
     __in PPH_SERVICE_NODE ServiceNode
     );
 
-VOID PhCopyServiceList();
+VOID PhCopyServiceList(
+    VOID
+    );
 
 VOID PhWriteServiceList(
     __inout PPH_FILE_STREAM FileStream,
@@ -509,15 +543,21 @@ typedef struct _PH_NETWORK_NODE
     PPH_STRING TooltipText;
 } PH_NETWORK_NODE, *PPH_NETWORK_NODE;
 
-VOID PhNetworkTreeListInitialization();
+VOID PhNetworkTreeListInitialization(
+    VOID
+    );
 
 VOID PhInitializeNetworkTreeList(
     __in HWND hwnd
     );
 
-VOID PhLoadSettingsNetworkTreeList();
+VOID PhLoadSettingsNetworkTreeList(
+    VOID
+    );
 
-VOID PhSaveSettingsNetworkTreeList();
+VOID PhSaveSettingsNetworkTreeList(
+    VOID
+    );
 
 PPH_NETWORK_NODE PhAddNetworkNode(
     __in PPH_NETWORK_ITEM NetworkItem,
@@ -539,22 +579,30 @@ VOID PhUpdateNetworkNode(
     __in PPH_NETWORK_NODE NetworkNode
     );
 
-VOID PhTickNetworkNodes();
+VOID PhTickNetworkNodes(
+    VOID
+    );
 
-PPH_NETWORK_ITEM PhGetSelectedNetworkItem();
+PPH_NETWORK_ITEM PhGetSelectedNetworkItem(
+    VOID
+    );
 
 VOID PhGetSelectedNetworkItems(
     __out PPH_NETWORK_ITEM **NetworkItems,
     __out PULONG NumberOfNetworkItems
     );
 
-VOID PhDeselectAllNetworkNodes();
+VOID PhDeselectAllNetworkNodes(
+    VOID
+    );
 
 VOID PhSelectAndEnsureVisibleNetworkNode(
     __in PPH_NETWORK_NODE NetworkNode
     );
 
-VOID PhCopyNetworkList();
+VOID PhCopyNetworkList(
+    VOID
+    );
 
 VOID PhWriteNetworkList(
     __inout PPH_FILE_STREAM FileStream,

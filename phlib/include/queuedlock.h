@@ -56,7 +56,9 @@ typedef struct DECLSPEC_ALIGN(16) _PH_QUEUED_WAIT_BLOCK
     ULONG Flags;
 } PH_QUEUED_WAIT_BLOCK, *PPH_QUEUED_WAIT_BLOCK;
 
-BOOLEAN PhQueuedLockInitialization();
+BOOLEAN PhQueuedLockInitialization(
+    VOID
+    );
 
 FORCEINLINE VOID PhInitializeQueuedLock(
     __out PPH_QUEUED_LOCK QueuedLock

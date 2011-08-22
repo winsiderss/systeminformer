@@ -52,7 +52,9 @@ typedef BOOL (WINAPI *_RunFileDlg)(
     __in ULONG uFlags
     );
 
-typedef BOOL (WINAPI *_IsThemeActive)(); 
+typedef BOOL (WINAPI *_IsThemeActive)(
+    VOID
+    ); 
 
 typedef HTHEME (WINAPI *_OpenThemeData)(
     __in HWND hwnd,
@@ -124,7 +126,9 @@ extern _SHAutoComplete SHAutoComplete_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
 
-VOID PhGuiSupportInitialization();
+VOID PhGuiSupportInitialization(
+    VOID
+    );
 
 PHLIBAPI
 VOID PhSetControlTheme(
@@ -288,7 +292,7 @@ PHLIBAPI
 LOGICAL PhGetListViewItemParam(
     __in HWND ListViewHandle,
     __in INT Index,
-    __out PPVOID Param
+    __out PVOID *Param
     );
 
 PHLIBAPI

@@ -155,7 +155,7 @@ FORCEINLINE NTSTATUS PhGetProcessIsWow64(
  */
 FORCEINLINE NTSTATUS PhGetProcessPeb32(
     __in HANDLE ProcessHandle,
-    __out PPVOID Peb32
+    __out PVOID *Peb32
     )
 {
     NTSTATUS status;

@@ -41,7 +41,9 @@ static PH_INITONCE SecurityEditorInitOnce = PH_INITONCE_INIT;
 static _CreateSecurityPage CreateSecurityPage_I;
 static _EditSecurity EditSecurity_I;
 
-FORCEINLINE VOID PhpSecurityEditorInitialization()
+FORCEINLINE VOID PhpSecurityEditorInitialization(
+    VOID
+    )
 {
     if (PhBeginInitOnce(&SecurityEditorInitOnce))
     {

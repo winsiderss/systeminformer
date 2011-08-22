@@ -99,7 +99,9 @@ static BOOLEAN NTAPI FiCommandLineCallback(
     return TRUE;
 }
 
-VOID FiPrintHelp()
+VOID FiPrintHelp(
+    VOID
+    )
 {
     wprintf(
         L"FiIn, by wj32.\n"
