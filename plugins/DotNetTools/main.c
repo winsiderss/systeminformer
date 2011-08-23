@@ -116,7 +116,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L".NET Tools";
             info->Author = L"wj32";
-            info->Description = L"Adds .NET performance counters and other information.";
+            info->Description = L"Adds .NET performance counters, assembly information, thread stack support, and more.";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(
