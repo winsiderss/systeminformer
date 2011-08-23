@@ -408,7 +408,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
     NTSTATUS status;
     SIZE_T numberOfBytesRead;
 
-    if (NT_SUCCESS(status = NtReadVirtualMemory(
+    if (NT_SUCCESS(status = PhReadVirtualMemory(
         this->ProcessHandle,
         (PVOID)address,
         buffer,

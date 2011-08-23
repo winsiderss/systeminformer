@@ -150,6 +150,23 @@ typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     __in ULONG64 data
     );
 
+#ifdef _M_X64
+PVOID PhAccessOutOfProcessFunctionTable(
+    __in HANDLE ProcessHandle,
+    __in ULONG64 ControlPc
+    );
+#endif
+
+ULONG64 __stdcall PhGetModuleBase64(
+    __in HANDLE hProcess,
+    __in DWORD64 dwAddr
+    );
+
+PVOID __stdcall PhFunctionTableAccess64(
+    __in HANDLE hProcess,
+    __in DWORD64 AddrBase
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI

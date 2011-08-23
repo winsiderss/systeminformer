@@ -2369,6 +2369,45 @@ RtlWow64SetThreadContext(
     );
 #endif
 
+// Runtime exception handling
+
+#ifdef _M_X64
+
+// private
+typedef enum _FUNCTION_TABLE_TYPE
+{
+    RF_SORTED,
+    RF_UNSORTED,
+    RF_CALLBACK,
+    RF_KERNEL_DYNAMIC
+} FUNCTION_TABLE_TYPE;
+
+// private
+typedef struct _DYNAMIC_FUNCTION_TABLE
+{
+    LIST_ENTRY ListEntry;
+    PRUNTIME_FUNCTION FunctionTable;
+    LARGE_INTEGER TimeStamp;
+    ULONG64 MinimumAddress;
+    ULONG64 MaximumAddress;
+    ULONG64 BaseAddress;
+    PGET_RUNTIME_FUNCTION_CALLBACK Callback;
+    PVOID Context;
+    PWSTR OutOfProcessCallbackDll;
+    FUNCTION_TABLE_TYPE Type;
+    ULONG EntryCount;
+} DYNAMIC_FUNCTION_TABLE, *PDYNAMIC_FUNCTION_TABLE;
+
+// rev
+NTSYSAPI
+PLIST_ENTRY
+NTAPI
+RtlGetFunctionTableListHead(
+    VOID
+    );
+
+#endif
+
 // Images
 
 NTSYSAPI

@@ -2,6 +2,7 @@ Process Hacker
 
 2.20
  * NEW/IMPROVED:
+   * Added support for managed thread stacks on x64
    * Added column selection for handle list
    * Added CPU column to threads list
    * Added Ideal Processor to Threads tab
