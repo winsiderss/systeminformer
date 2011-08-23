@@ -17,6 +17,7 @@ Process Hacker
      connections when Process Hacker is running as administrator. 
      See README.txt for instructions on how to restore the old 
      behavior.
+   * Added Updater plugin
    * Updated DotNetTools plugin:
      * Added managed symbol resolution for thread stacks
    * Updated ExtendedTools plugin:
