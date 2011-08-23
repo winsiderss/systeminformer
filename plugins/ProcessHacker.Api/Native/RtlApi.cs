@@ -295,7 +295,8 @@ namespace ProcessHacker.Api
             );
 
         [DllImport("ntdll.dll")]
-        public static extern byte RtlCreateUnicodeString(
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool RtlCreateUnicodeString(
             UnicodeString* DestinationString,
             void* SourceString
             );
@@ -309,21 +310,26 @@ namespace ProcessHacker.Api
         public static extern int RtlCompareUnicodeString(
             UnicodeString* String1,
             UnicodeString* String2,
-            byte CaseInSensitive
+            [MarshalAs(UnmanagedType.I1)]
+            bool CaseInSensitive
             );
 
         [DllImport("ntdll.dll")]
-        public static extern byte RtlEqualUnicodeString(
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool RtlEqualUnicodeString(
             UnicodeString* String1,
             UnicodeString* String2,
-            byte CaseInSensitive
+            [MarshalAs(UnmanagedType.I1)]
+            bool CaseInSensitive
             );
 
         [DllImport("ntdll.dll")]
-        public static extern byte RtlPrefixUnicodeString(
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool RtlPrefixUnicodeString(
             UnicodeString* String1,
             UnicodeString* String2,
-            byte CaseInSensitive
+            [MarshalAs(UnmanagedType.I1)] 
+            bool CaseInSensitive
             );
 
         // This function is based on Marshal.StringToHGlobalUni with improvements.
