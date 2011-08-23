@@ -818,7 +818,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
             PhEnumGenericModules(
                 process->UniqueProcessId,
                 NULL,
-                PH_ENUM_GENERIC_MAPPED_FILES,
+                PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES,
                 EnumModulesCallback,
                 (PVOID)process->UniqueProcessId
                 );
