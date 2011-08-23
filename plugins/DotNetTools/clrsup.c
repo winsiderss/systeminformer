@@ -349,7 +349,16 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
     __out ULONG32 *pointerSize
     )
 {
-    *pointerSize = sizeof(PVOID);
+    DnCLRDataTarget *this = (DnCLRDataTarget *)This;
+
+#ifdef _M_X64
+    if (!this->IsWow64)
+#endif
+        *pointerSize = sizeof(PVOID);
+#ifdef _M_X64
+    else
+        *pointerSize = sizeof(ULONG);
+#endif
 
     return S_OK;
 }
@@ -383,6 +392,11 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     PhInitializeStringRef(&context.ImagePath, (PWSTR)imagePath);
     context.BaseAddress = NULL;
     PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
+
+#ifdef _M_X64
+    if (this->IsWow64)
+        PhEnumProcessModules32(this->ProcessHandle, PhpGetImageBaseCallback, &context);
+#endif
 
     if (context.BaseAddress)
     {
