@@ -5720,9 +5720,9 @@ VOID PhpRtlModulesExToGenericModules(
 }
 
 BOOLEAN PhpCallbackMappedFileOrImage(
-    __in PVOID BaseAddress,
+    __in PVOID AllocationBase,
+    __in SIZE_T AllocationSize,
     __in ULONG Type,
-    __in PMEMORY_BASIC_INFORMATION BasicInfo,
     __in PPH_STRING FileName,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     __in_opt PVOID Context,
@@ -5733,8 +5733,8 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     BOOLEAN cont;
 
     moduleInfo.Type = Type;
-    moduleInfo.BaseAddress = BaseAddress;
-    moduleInfo.Size = (ULONG)BasicInfo->RegionSize;
+    moduleInfo.BaseAddress = AllocationBase;
+    moduleInfo.Size = (ULONG)AllocationSize;
     moduleInfo.EntryPoint = NULL;
     moduleInfo.Flags = 0;
     moduleInfo.FileName = PhGetFileName(FileName);
@@ -5758,16 +5758,13 @@ VOID PhpEnumGenericMappedFilesAndImages(
     __in PPH_HASHTABLE BaseAddressHashtable
     )
 {
+    BOOLEAN querySucceeded;
     PVOID baseAddress;
     MEMORY_BASIC_INFORMATION basicInfo;
-    PVOID lastAllocationBase;
-    ULONG lastType;
 
     baseAddress = (PVOID)0;
-    lastAllocationBase = NULL;
-    lastType = 0;
 
-    while (NT_SUCCESS(NtQueryVirtualMemory(
+    if (!NT_SUCCESS(NtQueryVirtualMemory(
         ProcessHandle,
         baseAddress,
         MemoryBasicInformation,
@@ -5776,52 +5773,78 @@ VOID PhpEnumGenericMappedFilesAndImages(
         NULL
         )))
     {
+        return;
+    }
+
+    querySucceeded = TRUE;
+
+    while (querySucceeded)
+    {
+        PVOID allocationBase;
+        SIZE_T allocationSize;
+        ULONG type;
         PPH_STRING fileName;
         BOOLEAN cont;
 
         if (basicInfo.Type == MEM_MAPPED || basicInfo.Type == MEM_IMAGE)
         {
-            // Check if we have a duplicate base address.
-
-            // Check against the last known allocation base as an optimization.
-            // 0 isn't supposed to be mapped to anything, but check anyway.
-            if (lastAllocationBase != NULL && basicInfo.AllocationBase == lastAllocationBase)
-            {
-                goto ContinueLoop;
-            }
-
-            if (PhFindEntryHashtable(BaseAddressHashtable, &basicInfo.AllocationBase))
-            {
-                goto ContinueLoop;
-            }
+            if (basicInfo.Type == MEM_MAPPED)
+                type = PH_MODULE_TYPE_MAPPED_FILE;
             else
-            {
-                // Add the entry even if the region doesn't have a mapped file name 
-                // and we end up not using it, to avoid querying the mapped file name 
-                // unnecessarily.
-                PhAddEntryHashtable(BaseAddressHashtable, &basicInfo.AllocationBase);
-                lastAllocationBase = basicInfo.AllocationBase;
-                lastType = basicInfo.Type == MEM_MAPPED ? PH_MODULE_TYPE_MAPPED_FILE : PH_MODULE_TYPE_MAPPED_IMAGE;
+                type = PH_MODULE_TYPE_MAPPED_IMAGE;
 
-                if ((lastType == PH_MODULE_TYPE_MAPPED_FILE && !(Flags & PH_ENUM_GENERIC_MAPPED_FILES)) ||
-                    (lastType == PH_MODULE_TYPE_MAPPED_IMAGE && !(Flags & PH_ENUM_GENERIC_MAPPED_IMAGES)))
+            // Find the total allocation size.
+
+            allocationBase = basicInfo.AllocationBase;
+            allocationSize = 0;
+
+            do
+            {
+                baseAddress = (PVOID)((ULONG_PTR)baseAddress + basicInfo.RegionSize);
+                allocationSize += basicInfo.RegionSize;
+
+                if (!NT_SUCCESS(NtQueryVirtualMemory(
+                    ProcessHandle,
+                    baseAddress,
+                    MemoryBasicInformation,
+                    &basicInfo,
+                    sizeof(MEMORY_BASIC_INFORMATION),
+                    NULL
+                    )))
                 {
-                    // The user doesn't want this type of entry.
-                    goto ContinueLoop;
+                    querySucceeded = FALSE;
+                    break;
                 }
+            } while (basicInfo.AllocationBase == allocationBase);
+
+            if ((type == PH_MODULE_TYPE_MAPPED_FILE && !(Flags & PH_ENUM_GENERIC_MAPPED_FILES)) ||
+                (type == PH_MODULE_TYPE_MAPPED_IMAGE && !(Flags & PH_ENUM_GENERIC_MAPPED_IMAGES)))
+            {
+                // The user doesn't want this type of entry.
+                continue;
+            }
+
+            // Check if we have a duplicate base address.
+            if (PhFindEntryHashtable(BaseAddressHashtable, &allocationBase))
+            {
+                continue;
             }
 
             if (!NT_SUCCESS(PhGetProcessMappedFileName(
                 ProcessHandle,
-                basicInfo.AllocationBase,
+                allocationBase,
                 &fileName
                 )))
-                goto ContinueLoop;
+            {
+                continue;
+            }
+
+            PhAddEntryHashtable(BaseAddressHashtable, &allocationBase);
 
             cont = PhpCallbackMappedFileOrImage(
-                basicInfo.AllocationBase,
-                lastType,
-                &basicInfo,
+                allocationBase,
+                allocationSize,
+                type,
                 fileName,
                 Callback,
                 Context,
@@ -5833,9 +5856,22 @@ VOID PhpEnumGenericMappedFilesAndImages(
             if (!cont)
                 break;
         }
+        else
+        {
+            baseAddress = (PVOID)((ULONG_PTR)baseAddress + basicInfo.RegionSize);
 
-ContinueLoop:
-        baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
+            if (!NT_SUCCESS(NtQueryVirtualMemory(
+                ProcessHandle,
+                baseAddress,
+                MemoryBasicInformation,
+                &basicInfo,
+                sizeof(MEMORY_BASIC_INFORMATION),
+                NULL
+                )))
+            {
+                querySucceeded = FALSE;
+            }
+        }
     }
 }
 
