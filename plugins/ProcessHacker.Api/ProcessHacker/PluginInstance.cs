@@ -77,14 +77,14 @@ namespace ProcessHacker.Api
 
                     args.Parameter = (IntPtr)pargs->Parameter;
                     args.BackColor = ColorTranslator.FromWin32(pargs->BackColor);
-                    args.Handled = pargs->Handled != 0;
-                    args.Cache = pargs->Cache != 0;
+                    args.Handled = pargs->Handled;
+                    args.Cache = pargs->Cache;
 
                     handler(this, ref args);
 
                     pargs->BackColor = ColorTranslator.ToWin32(args.BackColor);
-                    pargs->Handled = (byte)(args.Handled ? 1 : 0);
-                    pargs->Cache = (byte)(args.Cache ? 1 : 0);
+                    pargs->Handled = args.Handled;
+                    pargs->Cache = args.Cache;
                 }
                 );
 

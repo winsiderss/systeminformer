@@ -23,34 +23,39 @@
 
 using System;
 using ProcessHacker.Native;
+using System.Runtime.InteropServices;
 
 namespace ProcessHacker.Api
 {
     public unsafe class CallbackRegistration : IDisposable
     {
-        private readonly PhCallbackFunction _function;
-        private readonly PhCallback* _callback;
-        private PhCallbackRegistration* _registration;
+        private readonly PhCallbackFunction CallbackFunction;
+        private readonly PhCallback* Callback;
+        private IntPtr CallbackAlloc;
+        private PhCallbackRegistration* RegistrationCallback;
 
         public CallbackRegistration(PhCallback* callback, PhCallbackFunction function)
         {
-            _function = function;
-            _callback = callback;
+            this.Callback = callback;
+            this.CallbackFunction = function;
+            this.CallbackAlloc = MemoryAlloc.PrivateHeap.Allocate(PhCallbackRegistration.SizeOf);
 
-            _registration = (PhCallbackRegistration*)MemoryAlloc.PrivateHeap.Allocate(PhCallbackRegistration.SizeOf);
-            
-            NativeApi.PhRegisterCallback(_callback, _function, IntPtr.Zero, _registration);
+            NativeApi.PhRegisterCallback(this.Callback, this.CallbackFunction, IntPtr.Zero, this.CallbackAlloc);
+
+            this.RegistrationCallback = (PhCallbackRegistration*)this.CallbackAlloc;
         }
 
         public void Dispose()
         {
-            if (_registration != null)
+            if (this.CallbackAlloc != null && this.RegistrationCallback != null)
             {
-                NativeApi.PhUnregisterCallback(_callback, _registration);
+                // Unregister the callback.
+                NativeApi.PhUnregisterCallback(this.Callback, this.RegistrationCallback);
+                
+                // Free the callback.
+                MemoryAlloc.PrivateHeap.Free(this.CallbackAlloc);
 
-                MemoryAlloc.PrivateHeap.Free((IntPtr)this._registration);
-
-                _registration = null;
+                this.RegistrationCallback = null;
             }
         }
     }
