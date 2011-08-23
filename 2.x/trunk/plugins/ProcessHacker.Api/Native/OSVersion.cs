@@ -73,44 +73,22 @@ namespace System
 
         static OSVersion()
         {
-            int version = PluginGlobal.WindowsVersion;
+            WindowsVersion = (WindowsVersion)PluginGlobal.PhWindowsVersion;
 
-            switch (version)
+            if (IsAboveOrEqual(WindowsVersion.XP))
             {
-                case 51:
-                    WindowsVersion = WindowsVersion.XP;
-                    break;
-                case 52:
-                    WindowsVersion = WindowsVersion.Server2003;
-                    break;
-                case 60:
-                    WindowsVersion = WindowsVersion.Vista;
-                    break;
-                case 61:
-                    WindowsVersion = WindowsVersion.Seven;
-                    break;
-                default:
-                    WindowsVersion = WindowsVersion.Unknown;
-                    break;
+                HasThemes = true;
             }
 
-            if (WindowsVersion != WindowsVersion.Unknown)
+            if (IsAboveOrEqual(WindowsVersion.Vista))
             {
-                if (IsAboveOrEqual(WindowsVersion.XP))
-                {
-                    HasThemes = true;
-                }
+                HasTaskDialogs = true;
+                HasUac = true;
+            }
 
-                if (IsAboveOrEqual(WindowsVersion.Vista))
-                {
-                    HasTaskDialogs = true;
-                    HasUac = true;
-                }
-
-                if (IsAboveOrEqual(WindowsVersion.Seven))
-                {
-                    HasExtendedTaskbar = true;
-                }
+            if (IsAboveOrEqual(WindowsVersion.Seven))
+            {
+                HasExtendedTaskbar = true;
             }
 
             VersionString = Environment.OSVersion.VersionString;
