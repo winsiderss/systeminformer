@@ -51,6 +51,7 @@ for %%a in (
     OnlineChecks
     SbieSupport
     ToolStatus
+    Updater
     WindowExplorer
     ) do copy %1\bin\Release32\plugins\%%a.dll %2\bin\x86\plugins\%%a.dll
 
@@ -64,6 +65,7 @@ for %%a in (
     OnlineChecks
     SbieSupport
     ToolStatus
+    Updater
     WindowExplorer
     ) do copy %1\bin\Release64\plugins\%%a.dll %2\bin\x64\plugins\%%a.dll
 
