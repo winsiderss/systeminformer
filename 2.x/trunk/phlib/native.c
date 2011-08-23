@@ -5551,7 +5551,7 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
     PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
     PVOID Context;
     ULONG Type;
-    PPH_LIST BaseAddressList;
+    PPH_HASHTABLE BaseAddressHashtable;
 
     ULONG LoadOrderIndex;
 } ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
@@ -5569,13 +5569,13 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
 
     // Check if we have a duplicate base address.
-    if (PhFindItemList(context->BaseAddressList, Module->DllBase) != -1)
+    if (PhFindEntryHashtable(context->BaseAddressHashtable, &Module->DllBase))
     {
         return TRUE;
     }
     else
     {
-        PhAddItemList(context->BaseAddressList, Module->DllBase);
+        PhAddEntryHashtable(context->BaseAddressHashtable, &Module->DllBase);
     }
 
     fileName = PhCreateStringEx(
@@ -5610,7 +5610,7 @@ VOID PhpRtlModulesToGenericModules(
     __in PRTL_PROCESS_MODULES Modules,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     __in_opt PVOID Context,
-    __in PPH_LIST BaseAddressList
+    __in PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PRTL_PROCESS_MODULE_INFORMATION module;
@@ -5625,13 +5625,13 @@ VOID PhpRtlModulesToGenericModules(
         module = &Modules->Modules[i];
 
         // Check if we have a duplicate base address.
-        if (PhFindItemList(BaseAddressList, module->ImageBase) != -1)
+        if (PhFindEntryHashtable(BaseAddressHashtable, &module->ImageBase))
         {
             continue;
         }
         else
         {
-            PhAddItemList(BaseAddressList, module->ImageBase);
+            PhAddEntryHashtable(BaseAddressHashtable, &module->ImageBase);
         }
 
         fileName = PhCreateStringFromAnsi(module->FullPathName);
@@ -5666,7 +5666,7 @@ VOID PhpRtlModulesExToGenericModules(
     __in PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     __in_opt PVOID Context,
-    __in PPH_LIST BaseAddressList
+    __in PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PRTL_PROCESS_MODULE_INFORMATION_EX module;
@@ -5680,13 +5680,13 @@ VOID PhpRtlModulesExToGenericModules(
         PPH_STRING fileName;
 
         // Check if we have a duplicate base address.
-        if (PhFindItemList(BaseAddressList, module->BaseInfo.ImageBase) != -1)
+        if (PhFindEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase))
         {
             continue;
         }
         else
         {
-            PhAddItemList(BaseAddressList, module->BaseInfo.ImageBase);
+            PhAddEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase);
         }
 
         fileName = PhCreateStringFromAnsi(module->BaseInfo.FullPathName);
@@ -5719,17 +5719,53 @@ VOID PhpRtlModulesExToGenericModules(
     }
 }
 
-VOID PhpEnumGenericMappedFiles(
-    __in HANDLE ProcessHandle,
+BOOLEAN PhpCallbackMappedFileOrImage(
+    __in PVOID BaseAddress,
+    __in ULONG Type,
+    __in PMEMORY_BASIC_INFORMATION BasicInfo,
+    __in PPH_STRING FileName,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     __in_opt PVOID Context,
-    __in PPH_LIST BaseAddressList
+    __in PPH_HASHTABLE BaseAddressHashtable
+    )
+{
+    PH_MODULE_INFO moduleInfo;
+    BOOLEAN cont;
+
+    moduleInfo.Type = Type;
+    moduleInfo.BaseAddress = BaseAddress;
+    moduleInfo.Size = (ULONG)BasicInfo->RegionSize;
+    moduleInfo.EntryPoint = NULL;
+    moduleInfo.Flags = 0;
+    moduleInfo.FileName = PhGetFileName(FileName);
+    moduleInfo.Name = PhGetBaseName(moduleInfo.FileName);
+    moduleInfo.LoadOrderIndex = -1;
+    moduleInfo.LoadCount = -1;
+
+    cont = Callback(&moduleInfo, Context);
+
+    PhDereferenceObject(moduleInfo.FileName);
+    PhDereferenceObject(moduleInfo.Name);
+
+    return cont;
+}
+
+VOID PhpEnumGenericMappedFilesAndImages(
+    __in HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    __in_opt PVOID Context,
+    __in PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PVOID baseAddress;
     MEMORY_BASIC_INFORMATION basicInfo;
+    PVOID lastAllocationBase;
+    ULONG lastType;
 
     baseAddress = (PVOID)0;
+    lastAllocationBase = NULL;
+    lastType = 0;
 
     while (NT_SUCCESS(NtQueryVirtualMemory(
         ProcessHandle,
@@ -5740,49 +5776,59 @@ VOID PhpEnumGenericMappedFiles(
         NULL
         )))
     {
-        if (basicInfo.Type == MEM_MAPPED)
-        {
-            PPH_STRING fileName;
-            PPH_STRING newFileName;
-            PH_MODULE_INFO moduleInfo;
-            BOOLEAN cont;
+        PPH_STRING fileName;
+        BOOLEAN cont;
 
+        if (basicInfo.Type == MEM_MAPPED || basicInfo.Type == MEM_IMAGE)
+        {
             // Check if we have a duplicate base address.
-            if (PhFindItemList(BaseAddressList, baseAddress) != -1)
+
+            // Check against the last known allocation base as an optimization.
+            // 0 isn't supposed to be mapped to anything, but check anyway.
+            if (lastAllocationBase != NULL && basicInfo.AllocationBase == lastAllocationBase)
+            {
+                goto ContinueLoop;
+            }
+
+            if (PhFindEntryHashtable(BaseAddressHashtable, &basicInfo.AllocationBase))
             {
                 goto ContinueLoop;
             }
             else
             {
-                PhAddItemList(BaseAddressList, baseAddress);
+                // Add the entry even if the region doesn't have a mapped file name 
+                // and we end up not using it, to avoid querying the mapped file name 
+                // unnecessarily.
+                PhAddEntryHashtable(BaseAddressHashtable, &basicInfo.AllocationBase);
+                lastAllocationBase = basicInfo.AllocationBase;
+                lastType = basicInfo.Type == MEM_MAPPED ? PH_MODULE_TYPE_MAPPED_FILE : PH_MODULE_TYPE_MAPPED_IMAGE;
+
+                if ((lastType == PH_MODULE_TYPE_MAPPED_FILE && !(Flags & PH_ENUM_GENERIC_MAPPED_FILES)) ||
+                    (lastType == PH_MODULE_TYPE_MAPPED_IMAGE && !(Flags & PH_ENUM_GENERIC_MAPPED_IMAGES)))
+                {
+                    // The user doesn't want this type of entry.
+                    goto ContinueLoop;
+                }
             }
 
             if (!NT_SUCCESS(PhGetProcessMappedFileName(
                 ProcessHandle,
-                baseAddress,
+                basicInfo.AllocationBase,
                 &fileName
                 )))
                 goto ContinueLoop;
 
-            // Get the DOS file name and then get the base name.
+            cont = PhpCallbackMappedFileOrImage(
+                basicInfo.AllocationBase,
+                lastType,
+                &basicInfo,
+                fileName,
+                Callback,
+                Context,
+                BaseAddressHashtable
+                );
 
-            newFileName = PhGetFileName(fileName);
             PhDereferenceObject(fileName);
-
-            moduleInfo.Type = PH_MODULE_TYPE_MAPPED_FILE;
-            moduleInfo.BaseAddress = baseAddress;
-            moduleInfo.Size = (ULONG)basicInfo.RegionSize;
-            moduleInfo.EntryPoint = NULL;
-            moduleInfo.Flags = 0;
-            moduleInfo.FileName = newFileName;
-            moduleInfo.Name = PhGetBaseName(newFileName);
-            moduleInfo.LoadOrderIndex = -1;
-            moduleInfo.LoadCount = -1;
-
-            cont = Callback(&moduleInfo, Context);
-
-            PhDereferenceObject(moduleInfo.FileName);
-            PhDereferenceObject(moduleInfo.Name);
 
             if (!cont)
                 break;
@@ -5791,6 +5837,25 @@ VOID PhpEnumGenericMappedFiles(
 ContinueLoop:
         baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
     }
+}
+
+BOOLEAN NTAPI PhpBaseAddressHashtableCompareFunction(
+    __in PVOID Entry1,
+    __in PVOID Entry2
+    )
+{
+    return *(PVOID *)Entry1 == *(PVOID *)Entry2;
+}
+
+ULONG NTAPI PhpBaseAddressHashtableHashFunction(
+    __in PVOID Entry
+    )
+{
+#ifdef _M_IX86
+    return PhHashInt32((ULONG)*(PVOID *)Entry);
+#else
+    return PhHashInt64((ULONG64)*(PVOID *)Entry);
+#endif
 }
 
 /**
@@ -5804,6 +5869,8 @@ ContinueLoop:
  * to retrieve.
  * \li \c PH_ENUM_GENERIC_MAPPED_FILES Enumerate mapped 
  * files.
+ * \li \c PH_ENUM_GENERIC_MAPPED_IMAGES Enumerate mapped 
+ * images (those which are not mapped by the loader).
  * \param Callback A callback function which is executed 
  * for each module.
  * \param Context A user-defined value to pass 
@@ -5818,9 +5885,14 @@ NTSTATUS PhEnumGenericModules(
     )
 {
     NTSTATUS status;
-    PPH_LIST baseAddressList;
+    PPH_HASHTABLE baseAddressHashtable;
 
-    baseAddressList = PhCreateList(20);
+    baseAddressHashtable = PhCreateHashtable(
+        sizeof(PVOID),
+        PhpBaseAddressHashtableCompareFunction,
+        PhpBaseAddressHashtableHashFunction,
+        32
+        );
 
     if (ProcessId == SYSTEM_PROCESS_ID)
     {
@@ -5828,34 +5900,13 @@ NTSTATUS PhEnumGenericModules(
 
         PVOID modules;
 
-        //if (WindowsVersion >= WINDOWS_VISTA && NT_SUCCESS(status = PhEnumKernelModulesEx((PRTL_PROCESS_MODULE_INFORMATION_EX *)&modules)))
-        //{
-        //    PhpRtlModulesExToGenericModules(
-        //        modules,
-        //        Callback,
-        //        Context,
-        //        baseAddressList
-        //        );
-        //    PhFree(modules);
-        //}
-        //else if (NT_SUCCESS(status = PhEnumKernelModules((PRTL_PROCESS_MODULES *)&modules)))
-        //{
-        //    PhpRtlModulesToGenericModules(
-        //        modules,
-        //        Callback,
-        //        Context,
-        //        baseAddressList
-        //        );
-        //    PhFree(modules);
-        //}
-
         if (NT_SUCCESS(status = PhEnumKernelModules((PRTL_PROCESS_MODULES *)&modules)))
         {
             PhpRtlModulesToGenericModules(
                 modules,
                 Callback,
                 Context,
-                baseAddressList
+                baseAddressHashtable
                 );
             PhFree(modules);
         }
@@ -5894,7 +5945,7 @@ NTSTATUS PhEnumGenericModules(
         context.Callback = Callback;
         context.Context = Context;
         context.Type = PH_MODULE_TYPE_MODULE;
-        context.BaseAddressList = baseAddressList;
+        context.BaseAddressHashtable = baseAddressHashtable;
         context.LoadOrderIndex = 0;
 
         status = PhEnumProcessModules(
@@ -5912,7 +5963,7 @@ NTSTATUS PhEnumGenericModules(
             context.Callback = Callback;
             context.Context = Context;
             context.Type = PH_MODULE_TYPE_WOW64_MODULE;
-            context.BaseAddressList = baseAddressList;
+            context.BaseAddressHashtable = baseAddressHashtable;
             context.LoadOrderIndex = 0;
 
             status = PhEnumProcessModules32(
@@ -5923,16 +5974,17 @@ NTSTATUS PhEnumGenericModules(
         }
 #endif
 
-        // Mapped files
+        // Mapped files and mapped images
         // This is done last because it provides the least amount of information.
 
-        if (Flags & PH_ENUM_GENERIC_MAPPED_FILES)
+        if (Flags & (PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES))
         {
-            PhpEnumGenericMappedFiles(
+            PhpEnumGenericMappedFilesAndImages(
                 ProcessHandle,
+                Flags,
                 Callback,
                 Context,
-                baseAddressList
+                baseAddressHashtable
                 );
         }
 
@@ -5941,7 +5993,7 @@ NTSTATUS PhEnumGenericModules(
     }
 
 CleanupExit:
-    PhDereferenceObject(baseAddressList);
+    PhDereferenceObject(baseAddressHashtable);
 
     return status;
 }
