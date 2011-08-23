@@ -133,6 +133,49 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     if (Displacement)
         *Displacement = displacement;
 
+    buffer->Length = (USHORT)((returnLength - 1) * 2);
+
+    return buffer;
+}
+
+PPH_STRING GetNameXClrDataAppDomain(
+    __in PVOID AppDomain
+    )
+{
+    IXCLRDataAppDomain *appDomain;
+    PPH_STRING buffer;
+    ULONG bufferLength;
+    ULONG returnLength;
+
+    appDomain = AppDomain;
+
+    bufferLength = 33;
+    buffer = PhCreateStringEx(NULL, (bufferLength - 1) * 2);
+
+    returnLength = 0;
+
+    if (!SUCCEEDED(IXCLRDataAppDomain_GetName(appDomain, bufferLength, &returnLength, buffer->Buffer)))
+    {
+        PhDereferenceObject(buffer);
+        return NULL;
+    }
+
+    // Try again if our buffer was too small.
+    if (returnLength > bufferLength)
+    {
+        PhDereferenceObject(buffer);
+        bufferLength = returnLength;
+        buffer = PhCreateStringEx(NULL, (bufferLength - 1) * 2);
+
+        if (!SUCCEEDED(IXCLRDataAppDomain_GetName(appDomain, bufferLength, &returnLength, buffer->Buffer)))
+        {
+            PhDereferenceObject(buffer);
+            return NULL;
+        }
+    }
+
+    buffer->Length = (USHORT)((returnLength - 1) * 2);
+
     return buffer;
 }
 

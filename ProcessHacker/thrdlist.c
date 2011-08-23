@@ -101,16 +101,6 @@ VOID PhInitializeThreadList(
     TreeNew_SetSort(hwnd, PHTHTLC_CYCLESDELTA, DescendingSortOrder);
 
     PhCmInitializeManager(&Context->Cm, hwnd, PHTHTLC_MAXIMUM, PhpThreadTreeNewPostSortFunction);
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
-        treeNewInfo.TreeNewHandle = hwnd;
-        treeNewInfo.CmData = &Context->Cm;
-        treeNewInfo.u.Thread.ProcessItem = ProcessItem;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadTreeNewInitializing), &treeNewInfo);
-    }
 }
 
 VOID PhDeleteThreadList(
@@ -118,15 +108,6 @@ VOID PhDeleteThreadList(
     )
 {
     ULONG i;
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
-        treeNewInfo.TreeNewHandle = Context->TreeNewHandle;
-        treeNewInfo.CmData = &Context->Cm;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadTreeNewUninitializing), &treeNewInfo);
-    }
 
     PhCmDeleteManager(&Context->Cm);
 
@@ -440,6 +421,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     PPH_THREAD_NODE node;
 
     context = Context;
+
+    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
+        return TRUE;
 
     switch (Message)
     {

@@ -90,12 +90,13 @@ PPH_CM_COLUMN PhCmCreateColumn(
     memset(&tnColumn, 0, sizeof(PH_TREENEW_COLUMN));
     tnColumn.Id = column->Id;
     tnColumn.Context = column;
-    tnColumn.Visible = FALSE;
+    tnColumn.Visible = Column->Visible;
     tnColumn.CustomDraw = Column->CustomDraw;
     tnColumn.SortDescending = Column->SortDescending;
     tnColumn.Text = Column->Text;
     tnColumn.Width = Column->Width;
     tnColumn.Alignment = Column->Alignment;
+    tnColumn.DisplayIndex = Column->Visible ? Column->DisplayIndex : -1;
     tnColumn.TextFlags = Column->TextFlags;
     TreeNew_AddColumn(Manager->Handle, &tnColumn);
 

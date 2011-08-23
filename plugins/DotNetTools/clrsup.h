@@ -28,6 +28,10 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     __out_opt PULONG64 Displacement
     );
 
+PPH_STRING GetNameXClrDataAppDomain(
+    __in PVOID AppDomain
+    );
+
 PVOID LoadMscordacwks(
     __in BOOLEAN IsClrV4
     );
@@ -38,9 +42,13 @@ HRESULT CreateXCLRDataProcess(
     __out struct IXCLRDataProcess **DataProcess
     );
 
-// IXCLRDataProcess
+// xclrdata
+
+typedef ULONG64 CLRDATA_ENUM;
 
 typedef struct IXCLRDataProcess IXCLRDataProcess;
+typedef struct IXCLRDataAppDomain IXCLRDataAppDomain;
+typedef struct IXCLRDataTask IXCLRDataTask;
 
 typedef struct IXCLRDataProcessVtbl
 {
@@ -58,12 +66,32 @@ typedef struct IXCLRDataProcessVtbl
         __in IXCLRDataProcess *This
         );
 
-    // Members we don't need
-    PVOID Flush;
-    PVOID StartEnumTasks;
-    PVOID EnumTask;
-    PVOID EndEnumTasks;
-    PVOID GetTaskByOSThreadID;
+    HRESULT (STDMETHODCALLTYPE *Flush)(
+        __in IXCLRDataProcess *This
+        );
+
+    HRESULT (STDMETHODCALLTYPE *StartEnumTasks)(
+        __in IXCLRDataProcess *This,
+        __out CLRDATA_ENUM *handle
+        );
+
+    HRESULT (STDMETHODCALLTYPE *EnumTask)(
+        __in IXCLRDataProcess *This,
+        __inout CLRDATA_ENUM *handle,
+        __out IXCLRDataTask **task
+        );
+
+    HRESULT (STDMETHODCALLTYPE *EndEnumTasks)(
+        __in IXCLRDataProcess *This,
+        __in CLRDATA_ENUM handle
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetTaskByOSThreadID)(
+        __in IXCLRDataProcess *This,
+        __in ULONG32 osThreadID,
+        __out IXCLRDataTask **task
+        );
+
     PVOID GetTaskByUniqueID;
     PVOID GetFlags;
     PVOID IsSameObject;
@@ -81,6 +109,8 @@ typedef struct IXCLRDataProcessVtbl
         __out WCHAR *nameBuf,
         __out CLRDATA_ADDRESS *displacement
         );
+
+    // ...
 } IXCLRDataProcessVtbl;
 
 typedef struct IXCLRDataProcess
@@ -99,6 +129,174 @@ typedef struct IXCLRDataProcess
 
 #define IXCLRDataProcess_GetRuntimeNameByAddress(This, address, flags, bufLen, nameLen, nameBuf, displacement) \
     ((This)->lpVtbl->GetRuntimeNameByAddress(This, address, flags, bufLen, nameLen, nameBuf, displacement))
+
+#define IXCLRDataProcess_Flush(This) \
+    ((This)->lpVtbl->Flush(This))
+
+#define IXCLRDataProcess_StartEnumTasks(This, handle) \
+    ((This)->lpVtbl->StartEnumTasks(This, handle))
+
+#define IXCLRDataProcess_EnumTask(This, handle, task) \
+    ((This)->lpVtbl->EnumTask(This, handle, task))
+
+#define IXCLRDataProcess_EndEnumTasks(This, handle) \
+    ((This)->lpVtbl->EndEnumTasks(This, handle))
+
+#define IXCLRDataProcess_GetTaskByOSThreadID(This, osThreadID, task) \
+    ((This)->lpVtbl->GetTaskByOSThreadID(This, osThreadID, task))
+
+typedef struct IXCLRDataAppDomainVtbl
+{
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+        __in IXCLRDataAppDomain *This,
+        __in REFIID riid,
+        __deref_out void **ppvObject
+        );
+
+    ULONG (STDMETHODCALLTYPE *AddRef)( 
+        __in IXCLRDataAppDomain *This
+        );
+
+    ULONG (STDMETHODCALLTYPE *Release)( 
+        __in IXCLRDataAppDomain *This
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetProcess)( 
+        __in IXCLRDataAppDomain *This,
+        __out IXCLRDataProcess **process
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetName)(
+        __in IXCLRDataAppDomain *This,
+        __in ULONG32 bufLen,
+        __out ULONG32 *nameLen,
+        __out WCHAR *name
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetUniqueID)(
+        __in IXCLRDataAppDomain *This,
+        __out ULONG64 *id
+        );
+
+    // ...
+} IXCLRDataAppDomainVtbl;
+
+typedef struct IXCLRDataAppDomain
+{
+    struct IXCLRDataAppDomainVtbl *lpVtbl;
+} IXCLRDataAppDomain;
+
+#define IXCLRDataAppDomain_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+
+#define IXCLRDataAppDomain_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+
+#define IXCLRDataAppDomain_Release(This) \
+    ((This)->lpVtbl->Release(This))
+
+#define IXCLRDataAppDomain_GetProcess(This, process) \
+    ((This)->lpVtbl->GetProcess(This, process))
+
+#define IXCLRDataAppDomain_GetName(This, bufLen, nameLen, name) \
+    ((This)->lpVtbl->GetName(This, bufLen, nameLen, name))
+
+#define IXCLRDataAppDomain_GetUniqueID(This, id) \
+    ((This)->lpVtbl->GetUniqueID(This, id))
+
+typedef struct IXCLRDataTaskVtbl
+{
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+        __in IXCLRDataTask *This,
+        __in REFIID riid,
+        __deref_out void **ppvObject
+        );
+
+    ULONG (STDMETHODCALLTYPE *AddRef)( 
+        __in IXCLRDataTask *This
+        );
+
+    ULONG (STDMETHODCALLTYPE *Release)( 
+        __in IXCLRDataTask *This
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetProcess)(
+        __in IXCLRDataTask *This,
+        __out IXCLRDataProcess **process
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetCurrentAppDomain)(
+        __in IXCLRDataTask *This,
+        __out IXCLRDataAppDomain **appDomain
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetUniqueID)(
+        __in IXCLRDataTask *This,
+        __out ULONG64 *id
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetFlags)(
+        __in IXCLRDataTask *This,
+        __out ULONG32 *flags
+        );
+
+    PVOID IsSameObject;
+    PVOID GetManagedObject;
+    PVOID GetDesiredExecutionState;
+    PVOID SetDesiredExecutionState;
+    PVOID CreateStackWalk;
+
+    HRESULT (STDMETHODCALLTYPE *GetOSThreadID)(
+        __in IXCLRDataTask *This,
+        __out ULONG32 *id
+        );
+
+    PVOID GetContext;
+    PVOID SetContext;
+    PVOID GetCurrentExceptionState;
+    PVOID Request;
+
+    HRESULT (STDMETHODCALLTYPE *GetName)(
+        __in IXCLRDataTask *This,
+        __in ULONG32 bufLen,
+        __out ULONG32 *nameLen,
+        __out WCHAR *name
+        );
+
+    PVOID GetLastExceptionState;
+} IXCLRDataTaskVtbl;
+
+typedef struct IXCLRDataTask
+{
+    struct IXCLRDataTaskVtbl *lpVtbl;
+} IXCLRDataTask;
+
+#define IXCLRDataTask_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+
+#define IXCLRDataTask_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+
+#define IXCLRDataTask_Release(This) \
+    ((This)->lpVtbl->Release(This))
+
+#define IXCLRDataTask_GetProcess(This, process) \
+    ((This)->lpVtbl->GetProcess(This, process))
+
+#define IXCLRDataTask_GetCurrentAppDomain(This, appDomain) \
+    ((This)->lpVtbl->GetCurrentAppDomain(This, appDomain))
+
+#define IXCLRDataTask_GetUniqueID(This, id) \
+    ((This)->lpVtbl->GetUniqueID(This, id))
+
+#define IXCLRDataTask_GetFlags(This, flags) \
+    ((This)->lpVtbl->GetFlags(This, flags))
+
+#define IXCLRDataTask_GetOSThreadID(This, id) \
+    ((This)->lpVtbl->GetOSThreadID(This, id))
+
+#define IXCLRDataTask_GetName(This, bufLen, nameLen, name) \
+    ((This)->lpVtbl->GetName(This, bufLen, nameLen, name))
 
 // DnCLRDataTarget
 

@@ -66,13 +66,18 @@ VOID ProcessThreadStackControl(
             PVOID *item;
 
             PhAcquireQueuedLockExclusive(&ContextHashtableLock);
+
             item = PhFindItemSimpleHashtable(ContextHashtable, Control->UniqueKey);
+
+            if (item)
+                context = *item;
+            else
+                context = NULL;
+
             PhReleaseQueuedLockExclusive(&ContextHashtableLock);
 
-            if (!item)
+            if (!context)
                 return;
-
-            context = *item;
 
             if (context->Support)
                 FreeClrProcessSupport(context->Support);
@@ -92,13 +97,18 @@ VOID ProcessThreadStackControl(
             ULONG64 displacement;
 
             PhAcquireQueuedLockExclusive(&ContextHashtableLock);
+
             item = PhFindItemSimpleHashtable(ContextHashtable, Control->UniqueKey);
+
+            if (item)
+                context = *item;
+            else
+                context = NULL;
+
             PhReleaseQueuedLockExclusive(&ContextHashtableLock);
 
-            if (!item)
+            if (!context)
                 return;
-
-            context = *item;
 
             if (context->Support)
             {

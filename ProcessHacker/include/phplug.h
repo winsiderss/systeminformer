@@ -158,23 +158,7 @@ typedef struct _PH_PLUGIN_TREENEW_INFORMATION
 {
     HWND TreeNewHandle;
     PVOID CmData;
-
-    // Only filled in for *Initializing callbacks, not *Uninitializing callbacks.
-    union
-    {
-        struct
-        {
-            PPH_PROCESS_ITEM ProcessItem;
-        } Thread;
-        struct
-        {
-            PPH_PROCESS_ITEM ProcessItem;
-        } Module;
-        struct
-        {
-            PPH_PROCESS_ITEM ProcessItem;
-        } Handle;
-    } u;
+    PVOID SystemContext;
 } PH_PLUGIN_TREENEW_INFORMATION, *PPH_PLUGIN_TREENEW_INFORMATION;
 
 typedef enum _PH_PLUGIN_THREAD_STACK_CONTROL_TYPE

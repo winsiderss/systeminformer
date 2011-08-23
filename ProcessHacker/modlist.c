@@ -109,16 +109,6 @@ VOID PhInitializeModuleList(
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
     PhCmInitializeManager(&Context->Cm, hwnd, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
-        treeNewInfo.TreeNewHandle = hwnd;
-        treeNewInfo.CmData = &Context->Cm;
-        treeNewInfo.u.Module.ProcessItem = ProcessItem;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewInitializing), &treeNewInfo);
-    }
 }
 
 VOID PhDeleteModuleList(
@@ -129,15 +119,6 @@ VOID PhDeleteModuleList(
 
     if (Context->BoldFont)
         DeleteObject(Context->BoldFont);
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
-        treeNewInfo.TreeNewHandle = Context->TreeNewHandle;
-        treeNewInfo.CmData = &Context->Cm;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewUninitializing), &treeNewInfo);
-    }
 
     PhCmDeleteManager(&Context->Cm);
 
@@ -471,6 +452,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     PPH_MODULE_NODE node;
 
     context = Context;
+
+    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
+        return TRUE;
 
     switch (Message)
     {
