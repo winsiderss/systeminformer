@@ -5,6 +5,7 @@ Process Hacker
    * Added support for managed thread stacks on x64
    * Added column selection for handle list
    * Added CPU column to threads list
+   * Improved module detection
    * Added Ideal Processor to Threads tab
    * Added pool usage and minimum/maximum working set columns
    * Implemented Properties button for Thread handles

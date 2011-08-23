@@ -2,7 +2,7 @@
  * Process Hacker - 
  *   module provider
  * 
- * Copyright (C) 2009-2010 wj32
+ * Copyright (C) 2009-2011 wj32
  * 
  * This file is part of Process Hacker.
  * 
@@ -365,7 +365,7 @@ VOID PhModuleProviderUpdate(
     PhEnumGenericModules(
         moduleProvider->ProcessId,
         moduleProvider->ProcessHandle,
-        PH_ENUM_GENERIC_MAPPED_FILES,
+        PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES,
         EnumModulesCallback,
         modules
         );
@@ -474,7 +474,10 @@ VOID PhModuleProviderUpdate(
 
             moduleItem->IsFirst = i == 0;
 
-            if (WindowsVersion >= WINDOWS_7 && (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE))
+            if (WindowsVersion >= WINDOWS_7 && (
+                moduleItem->Type == PH_MODULE_TYPE_MODULE ||
+                moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
+                moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE))
             {
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
 
@@ -503,7 +506,7 @@ VOID PhModuleProviderUpdate(
             }
 
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
-                moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE || moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
             {
                 // See if the file has already been verified; if not, queue for verification.
 
