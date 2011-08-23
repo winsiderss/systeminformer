@@ -1585,7 +1585,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         }
         else if (WSTR_IEQUAL(command, L"leakdetect"))
         {
-            VOID (NTAPI *rtlDetectHeapLeaks)();
+            VOID (NTAPI *rtlDetectHeapLeaks)(VOID);
             PWSTR options = wcstok_s(NULL, delims, &context);
 
             rtlDetectHeapLeaks = PhGetProcAddress(L"ntdll.dll", "RtlDetectHeapLeaks");
