@@ -27,6 +27,18 @@ using System.Drawing;
 
 namespace ProcessHacker.Api
 {
+    public delegate void PhTabPageCallbackFunction(
+        IntPtr Parameter1,
+        IntPtr Parameter2,
+        IntPtr Parameter3,
+        IntPtr Context
+        );
+
+    public delegate IntPtr PhTabPageCreateFunction(
+        IntPtr Context
+        );
+
+
     public struct GeneralGetHighlightingColorArgs
     {
         public IntPtr Parameter;
@@ -36,15 +48,15 @@ namespace ProcessHacker.Api
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct PhAdditionalTabPage
+    public struct PhAdditionalTabPage
     {
         public IntPtr Text;
         public IntPtr Context;
         public IntPtr CreateFunction;
         public IntPtr WindowHandle;
         public int Index;
-        public IntPtr SelectionChangedCallback;
-        public IntPtr SaveContentCallback;
+        public IntPtr SelectionChangedCallback; // PhTabPageCallbackFunction
+        public IntPtr SaveContentCallback; // PhTabPageCallbackFunction
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -94,17 +106,49 @@ namespace ProcessHacker.Api
         [In, Optional] IntPtr Context
         );
 
+    /// <summary>
+    /// A callback registration structure.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PhCallbackRegistration
     {
         public static readonly int SizeOf;
 
+        /// <summary>
+        /// The list entry in the callbacks list.
+        /// </summary>
         public ListEntry ListEntry;
+
+        /// <summary>
+        /// The callback function.
+        /// </summary>
         public IntPtr Function;
+
+        /// <summary>
+        /// A user-defined value to be passed to the callback function.
+        /// </summary>
         public IntPtr Context;
+
+        /// <summary>
+        /// A value indicating whether the registration structure is being used.
+        /// </summary>
         public int Busy;
-        public byte Unregistering;
-        public byte Reserved;
+
+        /// <summary>
+        /// Whether the registration structure is being removed.
+        /// </summary>
+        [MarshalAs(UnmanagedType.I1)]
+        public bool Unregistering;
+
+        /// <summary>
+        /// Reserved.
+        /// </summary>
+        [MarshalAs(UnmanagedType.I1)]
+        public bool Reserved;
+
+        /// <summary>
+        /// Flags controlling the callback.
+        /// </summary>
         public ushort Flags;
 
         static PhCallbackRegistration()
@@ -113,6 +157,13 @@ namespace ProcessHacker.Api
         }
     }
 
+    /// <summary>
+    /// A fast event object.
+    /// </summary>
+    /// <remarks>
+    /// This event object does not use a kernel event object until necessary, 
+    /// and frees the object automatically when it is no longer needed.
+    /// </remarks>
     [StructLayout(LayoutKind.Sequential)]
     public struct PhEvent
     {
@@ -250,8 +301,10 @@ namespace ProcessHacker.Api
     {
         public void* Parameter;
         public int BackColor;
-        public byte Handled;
-        public byte Cache;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool Handled;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool Cache;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -260,7 +313,7 @@ namespace ProcessHacker.Api
         public void* DisplayName;
         public void* Author;
         public void* Description;
-        public void* Url;     
+        public void* Url;
         [MarshalAs(UnmanagedType.I1)]
         public bool HasOptions;
         [MarshalAs(UnmanagedType.I1)]
@@ -322,7 +375,9 @@ namespace ProcessHacker.Api
 
         public int Flags;
 
-        public byte JustProcessed;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool JustProcessed;
+
         public PhEvent Stage1Event;
 
         public PhPointerList* ServiceList;
@@ -387,7 +442,8 @@ namespace ProcessHacker.Api
         public PhString* CommandLine;
     }
 
-    public unsafe delegate byte PhProcessTreeFilter(
+    [return: MarshalAs(UnmanagedType.I1)]
+    public unsafe delegate bool PhProcessTreeFilter(
         PhProcessNode* ProcessNode,
         [In, Optional] IntPtr Context
         );
@@ -482,17 +538,6 @@ namespace ProcessHacker.Api
                 NativeApi.PhDereferenceObject(buffer);
         }
     }
-
-    public delegate IntPtr PhTabPageCallbackFunction(
-        IntPtr Parameter1,
-        IntPtr Parameter2,
-        IntPtr Parameter3,
-        IntPtr Context
-        );
-
-    public delegate IntPtr PhTabPageCreateFunction(
-        IntPtr Context
-        );
 
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct PhTreeListNode
@@ -656,21 +701,21 @@ namespace ProcessHacker.Api
         [DllImport("ProcessHacker.exe")]
         [return: MarshalAs(UnmanagedType.I1)]
         public static extern bool PhAddProcessPropPage2(
-            void* PropContext,
-            IntPtr PropSheetPageHandle
+            [In, Out] void* PropContext,
+            [In] IntPtr PropSheetPageHandle
             );
 
         [DllImport("ProcessHacker.exe")]
         public static extern void* PhAddPropPageLayoutItem(
-            IntPtr hwnd,
-            IntPtr Handle,
-            void* ParentItem,
-            int Anchor
+            [In] IntPtr hwnd,
+            [In] IntPtr Handle,
+            [In, Out] void* ParentItem,
+            [In] int Anchor
             );
 
         [DllImport("ProcessHacker.exe")]
         public static extern void PhDoPropPageLayout(
-            IntPtr hwnd
+            [In] IntPtr hwnd
             );
 
         #endregion
@@ -739,7 +784,7 @@ namespace ProcessHacker.Api
             [In, Out] PhCallback* Callback,
             [In, MarshalAs(UnmanagedType.FunctionPtr)] PhCallbackFunction Function,
             [In, Optional] IntPtr Context,
-            [Out] PhCallbackRegistration* Registration
+            [In, Out] IntPtr Registration
             );
 
         /// <summary>
@@ -791,7 +836,7 @@ namespace ProcessHacker.Api
         #region Event
 
         //NOTE: FastCall is not supported by the CLR.
- 
+
         [DllImport("ProcessHacker.exe", CallingConvention = CallingConvention.FastCall)]
         public static extern void PhfInitializeEvent(
             PhEvent* Event
@@ -807,7 +852,8 @@ namespace ProcessHacker.Api
         //NOTE: FastCall is not supported by the CLR.
 
         [DllImport("ProcessHacker.exe", CallingConvention = CallingConvention.FastCall)]
-        public static extern byte PhfWaitForEvent(
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool PhfWaitForEvent(
             PhEvent* Event,
             long* Timeout
             );
@@ -1095,7 +1141,8 @@ namespace ProcessHacker.Api
         /// that is being destroyed.
         /// </remarks>
         [DllImport("ProcessHacker.exe")]
-        public static extern byte PhReferenceObjectSafe(
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool PhReferenceObjectSafe(
             void* Object
             );
 
@@ -1248,7 +1295,8 @@ namespace ProcessHacker.Api
         /// was specified and a Index is too far into the past for that process item.
         /// </returns>
         [DllImport("ProcessHacker.exe")]
-        public static extern byte PhGetStatisticsTime(
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool PhGetStatisticsTime(
             [In, Optional] PhProcessItem* ProcessItem,
             [In] int Index,
             [Out] out long* Time
@@ -1266,7 +1314,8 @@ namespace ProcessHacker.Api
             );
 
         [DllImport("ProcessHacker.exe")]
-        public static extern byte PhReferenceProcessRecordSafe(
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool PhReferenceProcessRecordSafe(
             [In] PhProcessRecord* ProcessRecord
             );
 
@@ -1362,6 +1411,50 @@ namespace ProcessHacker.Api
         /// <returns>A PhString structure containing a zero-length string.</returns>
         [DllImport("ProcessHacker.exe")]
         public static extern PhString* PhReferenceEmptyString();
+
+        #endregion
+
+        #region Tab Pages
+
+        //[DllImport("user32.dll", CharSet = CharSet.Auto)]
+        //private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, void* lParam);
+
+        //private static int WM_APP = 0x8000;
+        //private static int WM_PH_ADD_TAB_PAGE = WM_APP + 140;
+
+        /// <summary>
+        /// Adds a new TabPage to the Process Hacker window.
+        /// </summary>
+        /// <param name="tabTitle">String to use as the Tab title.</param>
+        /// <param name="windowHandle">Handle to the Form to use as the TabPage.</param>
+        //public static void AddTabPage(string tabTitle, IntPtr windowHandle)
+        //{
+        //    PhAdditionalTabPage tabPage;
+        //    tabPage.Context = windowHandle;
+        //    tabPage.Text = NativeApi.StringToNativeUni(tabTitle);
+
+        //    var createFunc = new PhTabPageCreateFunction((context) =>
+        //    {
+        //        NativeApi.SetParent(context, PluginGlobal.PhMainWindowHandle);
+        //        return windowHandle;
+        //    });
+
+        //    var selectionChanged = new PhTabPageCallbackFunction((param1, param2, param3, context) =>
+        //    {
+        //        if (((bool*)param1)[0])
+        //        {
+        //            SetFocus(context);
+        //        }
+        //    });
+
+        //    tabPage.CreateFunction = Marshal.GetFunctionPointerForDelegate(createFunc);
+        //    tabPage.SelectionChangedCallback = Marshal.GetFunctionPointerForDelegate(selectionChanged);
+
+        //    SendMessage(PluginGlobal.PhMainWindowHandle, WM_PH_ADD_TAB_PAGE, IntPtr.Zero, &tabPage);
+        //}
+
+        //[DllImport("user32.dll")]
+        //static extern IntPtr SetFocus(IntPtr hWnd);
 
         #endregion
 
