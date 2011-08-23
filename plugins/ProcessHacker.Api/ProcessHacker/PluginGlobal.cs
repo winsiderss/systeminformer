@@ -35,13 +35,26 @@ namespace ProcessHacker.Api
 
     public static unsafe class PluginGlobal
     {
+        private static Font _phApplicationFont;
+        private static TOKEN_ELEVATION_TYPE? _phElevationType;
+        private static IntPtr? _phHeapHandle;
+        private static IntPtr? _phMainWindowHandle;
+        private static int? _phWindowsVersion;
+        private static int? _phCurrentSessionId;
+        private static bool? _phElevated;
+
         public static Font PhApplicationFont
         {
             get
             {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhApplicationFont");
+                if (_phApplicationFont == null)
+                {
+                    void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhApplicationFont");
 
-                return Font.FromHfont(((IntPtr*)proc)[0]);
+                    _phApplicationFont = Font.FromHfont(((IntPtr*)proc)[0]);
+                }
+
+                return _phApplicationFont;
             }
         }
 
@@ -49,9 +62,14 @@ namespace ProcessHacker.Api
         {
             get
             {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhCurrentSessionId");
+                if (!_phCurrentSessionId.HasValue)
+                {
+                    void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhCurrentSessionId");
 
-                return ((int*)proc)[0];
+                    _phCurrentSessionId =((int*)proc)[0];
+                }
+
+                return _phCurrentSessionId.Value;
             }
         }
 
@@ -59,9 +77,14 @@ namespace ProcessHacker.Api
         {
             get
             {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhElevated");
+                if (!_phElevated.HasValue)
+                {
+                    void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhElevated");
 
-                return ((bool*)proc)[0];
+                    _phElevated = ((bool*)proc)[0];
+                }
+
+                return _phElevated.Value;
             }
         }
 
@@ -69,9 +92,14 @@ namespace ProcessHacker.Api
         {
             get
             {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhElevationType");
+                if (!_phElevationType.HasValue)
+                {
+                    void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhElevationType");
 
-                return ((TOKEN_ELEVATION_TYPE*)proc)[0];
+                    _phElevationType = ((TOKEN_ELEVATION_TYPE*)proc)[0];
+                }
+
+                return _phElevationType.Value;
             }
         }
 
@@ -79,29 +107,14 @@ namespace ProcessHacker.Api
         {
             get
             {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhHeapHandle");
+                if (!_phHeapHandle.HasValue)
+                {
+                    void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhHeapHandle");
 
-                return ((IntPtr*)proc)[0];
-            }
-        }
+                    _phHeapHandle = ((IntPtr*)proc)[0];
+                }
 
-        public static int PhKphFeatures
-        {
-            get
-            {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhKphFeatures");
-
-                return ((int*)proc)[0];
-            }
-        }
-
-        public static IntPtr PhKphHandle
-        {
-            get
-            {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhKphHandle");
-
-                return ((IntPtr*)proc)[0];
+                return _phHeapHandle.Value;
             }
         }
 
@@ -109,19 +122,29 @@ namespace ProcessHacker.Api
         {
             get
             {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhMainWndHandle");
+                if (!_phMainWindowHandle.HasValue)
+                {
+                    void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "PhMainWndHandle");
 
-                return ((IntPtr*)proc)[0];
+                    _phMainWindowHandle = ((IntPtr*)proc)[0];
+                }
+
+                return _phMainWindowHandle.Value;
             }
         }
 
-        public static int WindowsVersion
+        public static int PhWindowsVersion
         {
             get
             {
-                void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "WindowsVersion");
+                if (!_phWindowsVersion.HasValue)
+                {
+                    void* proc = NativeApi.GetProcAddress(IntPtr.Zero, "WindowsVersion");
 
-                return ((int*)proc)[0];
+                    _phWindowsVersion = ((int*)proc)[0];
+                }
+
+                return _phWindowsVersion.Value;
             }
         }
     }
