@@ -47,7 +47,7 @@ typedef struct _PH_PROCESS_NODE
     HANDLE ProcessId;
     PPH_PROCESS_ITEM ProcessItem;
 
-    // Other members are not exposed.
+    // ...
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 typedef struct _PH_SERVICE_NODE
@@ -58,7 +58,7 @@ typedef struct _PH_SERVICE_NODE
 
     PPH_SERVICE_ITEM ServiceItem;
 
-    // Other members are not exposed.
+    // ...
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 
 typedef struct _PH_NETWORK_NODE
@@ -69,7 +69,7 @@ typedef struct _PH_NETWORK_NODE
 
     PPH_NETWORK_ITEM NetworkItem;
 
-    // Other members are not exposed.
+    // ...
 } PH_NETWORK_NODE, *PPH_NETWORK_NODE;
 
 typedef struct _PH_THREAD_NODE
@@ -81,7 +81,7 @@ typedef struct _PH_THREAD_NODE
     HANDLE ThreadId;
     PPH_THREAD_ITEM ThreadItem;
 
-    // Other members are not exposed.
+    // ...
 } PH_THREAD_NODE, *PPH_THREAD_NODE;
 
 typedef struct _PH_MODULE_NODE
@@ -92,8 +92,74 @@ typedef struct _PH_MODULE_NODE
 
     PPH_MODULE_ITEM ModuleItem;
 
-    // Other members are not exposed.
+    // ...
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
+
+typedef struct _PH_HANDLE_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    HANDLE Handle;
+    PPH_HANDLE_ITEM HandleItem;
+
+    // ...
+} PH_HANDLE_NODE, *PPH_HANDLE_NODE;
+
+// procprpp
+
+typedef struct _PH_THREADS_CONTEXT
+{
+    PPH_THREAD_PROVIDER Provider;
+    PH_CALLBACK_REGISTRATION Private1;
+    PH_CALLBACK_REGISTRATION Private2;
+    PH_CALLBACK_REGISTRATION Private3;
+    PH_CALLBACK_REGISTRATION Private4;
+    PH_CALLBACK_REGISTRATION Private5;
+    PH_CALLBACK_REGISTRATION Private6;
+
+    HWND WindowHandle;
+
+    HWND Private7;
+    HWND TreeNewHandle;
+
+    // ...
+} PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
+
+typedef struct _PH_MODULES_CONTEXT
+{
+    PPH_MODULE_PROVIDER Provider;
+    PH_PROVIDER_REGISTRATION Private1;
+    PH_CALLBACK_REGISTRATION Private2;
+    PH_CALLBACK_REGISTRATION Private3;
+    PH_CALLBACK_REGISTRATION Private4;
+    PH_CALLBACK_REGISTRATION Private5;
+
+    HWND WindowHandle;
+
+    HWND Private6;
+    HWND TreeNewHandle;
+
+    // ...
+} PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
+
+typedef struct _PH_HANDLES_CONTEXT
+{
+    PPH_HANDLE_PROVIDER Provider;
+    PH_PROVIDER_REGISTRATION Private1;
+    PH_CALLBACK_REGISTRATION Private2;
+    PH_CALLBACK_REGISTRATION Private3;
+    PH_CALLBACK_REGISTRATION Private4;
+    PH_CALLBACK_REGISTRATION Private5;
+
+    HWND WindowHandle;
+
+    HWND Private6;
+    HWND TreeNewHandle;
+
+    // ...
+} PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 
 // proctree
 

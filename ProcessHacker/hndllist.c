@@ -105,16 +105,6 @@ VOID PhInitializeHandleList(
     TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
 
     PhCmInitializeManager(&Context->Cm, hwnd, PHHNTLC_MAXIMUM, PhpHandleTreeNewPostSortFunction);
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
-        treeNewInfo.TreeNewHandle = hwnd;
-        treeNewInfo.CmData = &Context->Cm;
-        treeNewInfo.u.Handle.ProcessItem = ProcessItem;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleTreeNewInitializing), &treeNewInfo);
-    }
 }
 
 VOID PhDeleteHandleList(
@@ -122,15 +112,6 @@ VOID PhDeleteHandleList(
     )
 {
     ULONG i;
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
-        treeNewInfo.TreeNewHandle = Context->TreeNewHandle;
-        treeNewInfo.CmData = &Context->Cm;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleTreeNewUninitializing), &treeNewInfo);
-    }
 
     PhCmDeleteManager(&Context->Cm);
 
@@ -464,6 +445,9 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
     PPH_HANDLE_NODE node;
 
     context = Context;
+
+    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
+        return TRUE;
 
     switch (Message)
     {

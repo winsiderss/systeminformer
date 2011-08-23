@@ -27,6 +27,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <phplug.h>
+#include <extmgri.h>
 #include <windowsx.h>
 
 #define SET_BUTTON_BITMAP(Id, Bitmap) \
@@ -2359,7 +2360,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     case WM_INITDIALOG:
         {
             threadsContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_THREADS_CONTEXT));
+                PhAllocate(PhEmGetObjectSize(EmThreadsContextType, sizeof(PH_THREADS_CONTEXT)));
 
             // The thread provider has a special registration mechanism.
             threadsContext->Provider = PhCreateThreadProvider(
@@ -2442,6 +2443,18 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             if (processItem->ServiceList && processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
                 threadsContext->ListContext.HasServices = TRUE;
 
+            PhEmCallObjectOperation(EmThreadsContextType, threadsContext, EmObjectCreate);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &threadsContext->ListContext.Cm;
+                treeNewInfo.SystemContext = threadsContext;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadTreeNewInitializing), &treeNewInfo);
+            }
+
             PhLoadSettingsThreadList(&threadsContext->ListContext);
 
             PhThreadProviderInitialUpdate(threadsContext->Provider);
@@ -2453,6 +2466,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhEmCallObjectOperation(EmThreadsContextType, threadsContext, EmObjectDelete);
+
             PhUnregisterCallback(
                 &threadsContext->Provider->ThreadAddedEvent,
                 &threadsContext->AddedEventRegistration
@@ -2475,6 +2490,15 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 );
             PhUnregisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
             PhDereferenceObject(threadsContext->Provider);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &threadsContext->ListContext.Cm;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadTreeNewUninitializing), &treeNewInfo);
+            }
 
             PhSaveSettingsThreadList(&threadsContext->ListContext);
             PhDeleteThreadList(&threadsContext->ListContext);
@@ -3196,7 +3220,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             // Lots of boilerplate code...
 
             modulesContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_MODULES_CONTEXT));
+                PhAllocate(PhEmGetObjectSize(EmModulesContextType, sizeof(PH_MODULES_CONTEXT)));
 
             modulesContext->Provider = PhCreateModuleProvider(
                 processItem->ProcessId
@@ -3240,6 +3264,18 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhInitializeModuleList(hwndDlg, tnHandle, processItem, &modulesContext->ListContext);
             modulesContext->NeedsRedraw = FALSE;
 
+            PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectCreate);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &modulesContext->ListContext.Cm;
+                treeNewInfo.SystemContext = modulesContext;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewInitializing), &treeNewInfo);
+            }
+
             PhLoadSettingsModuleList(&modulesContext->ListContext);
 
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
@@ -3248,6 +3284,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectDelete);
+
             PhUnregisterCallback(
                 &modulesContext->Provider->ModuleAddedEvent,
                 &modulesContext->AddedEventRegistration
@@ -3266,6 +3304,15 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 );
             PhUnregisterProvider(&modulesContext->ProviderRegistration);
             PhDereferenceObject(modulesContext->Provider);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &modulesContext->ListContext.Cm;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewUninitializing), &treeNewInfo);
+            }
 
             PhSaveSettingsModuleList(&modulesContext->ListContext);
             PhDeleteModuleList(&modulesContext->ListContext);
@@ -4351,7 +4398,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     case WM_INITDIALOG:
         {
             handlesContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_HANDLES_CONTEXT));
+                PhAllocate(PhEmGetObjectSize(EmHandlesContextType, sizeof(PH_HANDLES_CONTEXT)));
 
             handlesContext->Provider = PhCreateHandleProvider(
                 processItem->ProcessId
@@ -4395,6 +4442,18 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhInitializeHandleList(hwndDlg, tnHandle, processItem, &handlesContext->ListContext);
             handlesContext->NeedsRedraw = FALSE;
 
+            PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectCreate);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &handlesContext->ListContext.Cm;
+                treeNewInfo.SystemContext = handlesContext;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleTreeNewInitializing), &treeNewInfo);
+            }
+
             PhLoadSettingsHandleList(&handlesContext->ListContext);
 
             PhSetOptionsHandleList(&handlesContext->ListContext, !!PhGetIntegerSetting(L"HideUnnamedHandles"));
@@ -4407,6 +4466,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectDelete);
+
             PhUnregisterCallback(
                 &handlesContext->Provider->HandleAddedEvent,
                 &handlesContext->AddedEventRegistration
@@ -4425,6 +4486,15 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
             PhUnregisterProvider(&handlesContext->ProviderRegistration);
             PhDereferenceObject(handlesContext->Provider);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &handlesContext->ListContext.Cm;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleTreeNewUninitializing), &treeNewInfo);
+            }
 
             PhSaveSettingsHandleList(&handlesContext->ListContext);
             PhDeleteHandleList(&handlesContext->ListContext);
