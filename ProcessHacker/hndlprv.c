@@ -305,7 +305,7 @@ NTSTATUS PhEnumHandlesGeneric(
     NTSTATUS status;
 
     // There are three ways of enumerating handles:
-    // * When KProcessHacker is available, using KphQueryProcessHandles 
+    // * When KProcessHacker is available, using KphEnumerateProcessHandles 
     //   is the most efficient method.
     // * On Windows XP and later, NtQuerySystemInformation with 
     //   SystemExtendedHandleInformation can be used.
