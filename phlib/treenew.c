@@ -2941,7 +2941,6 @@ VOID PhTnpAutoSizeColumnHeader(
         {
             width = parts.TextRect.right - parts.TextRect.left; // text width
             width += parts.ContentRect.left - parts.CellRect.left; // left padding
-            width += parts.CellRect.right - parts.ContentRect.right; // right padding
 
             if (maximumWidth < width)
                 maximumWidth = width;
