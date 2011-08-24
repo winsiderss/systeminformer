@@ -26,19 +26,15 @@
 
 #define installer_build_number "09"
 
-#define VerMajor
-#define VerMinor
-#define VerRevision
-#define VerBuild
 
 #if VER < 0x05040200
   #error Update your Inno Setup version
 #endif
 
-#expr ParseVersion("..\..\bin\Release32\ProcessHacker.exe", VerMajor, VerMinor, VerRevision, VerBuild)
-#define app_version str(VerMajor) + "." + str(VerMinor) + "." + str(VerRevision) + "." + str(VerBuild)
-#define simple_app_version str(VerMajor) + "." + str(VerMinor)
-#define installer_build_date GetDateTimeString('mmm, d yyyy', '', '')
+#include "..\..\ProcessHacker\include\phappres.h"
+#define app_version           str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + ".0.0"
+#define simple_app_version    str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
+#define installer_build_date  GetDateTimeString('mmm, d yyyy', '', '')
 
 
 [Setup]
