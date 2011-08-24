@@ -29,8 +29,6 @@
  *  * Adding, removing or changing columns does not cause invalidation.
  *  * It is not possible to change a column to make it fixed. The current 
  *    fixed column must be removed and the new fixed column must then be added.
- *  * Unfolding tooltips do not work properly with text that is centered or 
- *    right-aligned. (The problem lies in PhTnpGetCellParts.)
  *  * When there are no visible normal columns, the space usually occupied by 
  *    the normal column headers is filled with a solid background color. We 
  *    should catch this and paint the usual themed background there instead.
@@ -926,20 +924,10 @@ VOID PhTnpOnXxxButtonXxx(
                     if ((parts.Flags & TN_PART_ICON) && CursorX >= parts.IconRect.left && CursorX < parts.IconRect.right)
                         realHitItem = TRUE;
 
-                    if (parts.Flags & TN_PART_TEXT)
+                    if ((parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
                     {
-                        if (!(hitTest.Column->TextFlags & (DT_CENTER | DT_RIGHT)))
-                        {
-                            if (CursorX >= parts.TextRect.left && CursorX < parts.TextRect.right)
-                                realHitItem = TRUE;
-                        }
-                        else if (parts.Flags & TN_PART_CONTENT)
-                        {
-                            // PhTnpGetCellParts doesn't take into account text alignment. If there's text and 
-                            // the cursor is in the content part, it's a hit.
-                            if (parts.Text.Length != 0 && CursorX >= parts.ContentRect.left && CursorX < parts.ContentRect.right)
-                                realHitItem = TRUE;
-                        }
+                        if (CursorX >= parts.TextRect.left && CursorX < parts.TextRect.right)
+                            realHitItem = TRUE;
                     }
                 }
             }
@@ -2951,7 +2939,9 @@ VOID PhTnpAutoSizeColumnHeader(
         if (PhTnpGetCellParts(Context, i, Column, TN_MEASURE_TEXT, &parts) &&
             (parts.Flags & TN_PART_CELL) && (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
         {
-            width = parts.TextRect.right - parts.CellRect.left;
+            width = parts.TextRect.right - parts.TextRect.left; // text width
+            width += parts.ContentRect.left - parts.CellRect.left; // left padding
+            width += parts.CellRect.right - parts.ContentRect.right; // right padding
 
             if (maximumWidth < width)
                 maximumWidth = width;
@@ -3322,6 +3312,17 @@ BOOLEAN PhTnpGetCellParts(
                     Parts->TextRect.right = currentX + textSize.cx;
                     Parts->TextRect.top = Parts->RowRect.top + (Context->RowHeight - textSize.cy) / 2;
                     Parts->TextRect.bottom = Parts->RowRect.bottom - (Context->RowHeight - textSize.cy) / 2;
+
+                    if (Column->TextFlags & DT_CENTER)
+                    {
+                        Parts->TextRect.left = Parts->ContentRect.left / 2 + (Parts->ContentRect.right - textSize.cx) / 2;
+                        Parts->TextRect.right = Parts->ContentRect.left + textSize.cx;
+                    }
+                    else if (Column->TextFlags & DT_RIGHT)
+                    {
+                        Parts->TextRect.right = Parts->ContentRect.right;
+                        Parts->TextRect.left = Parts->TextRect.right - textSize.cx;
+                    }
 
                     Parts->Text = text;
                     Parts->Font = font;
@@ -4903,7 +4904,7 @@ VOID PhTnpPaint(
 
             if (stateId != -1)
             {
-                if (!Context->FixedColumn)
+                if (!Context->FixedColumnVisible)
                 {
                     rowRect.left = Context->NormalLeft - hScrollPosition;
                 }
@@ -5625,6 +5626,8 @@ VOID PhTnpGetTooltipText(
     )
 {
     PH_TREENEW_HIT_TEST hitTest;
+    BOOLEAN unfoldingTooltip;
+    BOOLEAN unfoldingTooltipFromViewCancelled;
     PH_TREENEW_CELL_PARTS parts;
     LONG viewRight;
     PH_TREENEW_GET_CELL_TOOLTIP getCellTooltip;
@@ -5655,6 +5658,9 @@ VOID PhTnpGetTooltipText(
         getCellTooltip.Font = Context->Font;
         getCellTooltip.MaximumWidth = -1;
 
+        unfoldingTooltip = FALSE;
+        unfoldingTooltipFromViewCancelled = FALSE;
+
         if (!(Context->ExtendedFlags & TN_FLAG_NO_UNFOLDING_TOOLTIPS) &&
             PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts) &&
             (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
@@ -5662,8 +5668,22 @@ VOID PhTnpGetTooltipText(
             viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
 
             // Use an unfolding tooltip if the text was truncated within the column, or the text 
-            // extends beyond the view area.
-            if (parts.TextRect.right > parts.ContentRect.right || parts.TextRect.right > viewRight)
+            // extends beyond the view area in either direction.
+
+            if (parts.TextRect.left < parts.ContentRect.left || parts.TextRect.right > parts.ContentRect.right)
+            {
+                unfoldingTooltip = TRUE;
+            }
+            else if ((!hitTest.Column->Fixed && parts.TextRect.left < Context->NormalLeft) || parts.TextRect.right > viewRight)
+            {
+                // Only show view-based unfolding tooltips if the mouse is over the text itself.
+                if (Point->x >= parts.TextRect.left && Point->x < parts.TextRect.right)
+                    unfoldingTooltip = TRUE;
+                else
+                    unfoldingTooltipFromViewCancelled = TRUE;
+            }
+
+            if (unfoldingTooltip)
             {
                 getCellTooltip.Unfolding = TRUE;
                 getCellTooltip.Text = parts.Text;
@@ -5678,9 +5698,21 @@ VOID PhTnpGetTooltipText(
         Context->TooltipUnfolding = getCellTooltip.Unfolding;
 
         if (getCellTooltip.Text.Buffer && getCellTooltip.Text.Length != 0)
+        {
             PhSwapReference(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
+        }
         else
+        {
             PhSwapReference(&Context->TooltipText, NULL);
+
+            if (unfoldingTooltipFromViewCancelled)
+            {
+                // We may need to show the view-based unfolding tooltip if the mouse moves over the text in the future. 
+                // Reset the index and ID to make sure we keep checking.
+                Context->TooltipIndex = -1;
+                Context->TooltipId = -1;
+            }
+        }
 
         Context->NewTooltipFont = getCellTooltip.Font;
 
@@ -5772,7 +5804,7 @@ PPH_TREENEW_COLUMN PhTnpHitTestHeader(
 
     if (Fixed)
     {
-        if (!Context->FixedColumn)
+        if (!Context->FixedColumnVisible)
             return NULL;
 
         column = Context->FixedColumn;
