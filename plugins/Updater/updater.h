@@ -1,3 +1,5 @@
+#pragma once
+
 #pragma region libs
 
 #pragma comment(lib, "Wininet.lib")
