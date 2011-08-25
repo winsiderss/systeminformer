@@ -452,6 +452,10 @@ INT_PTR CALLBACK MainWndProc(
         break;
     case WM_DESTROY:
         {
+            DisposeConnection();
+            DisposeStrings();
+            DisposeFileHandles();
+
             WindowVisible = FALSE;
         }
         break;
