@@ -764,6 +764,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
                 return TRUE;
 			}
 		}
+		break;
     }
 
     return FALSE;

@@ -439,6 +439,7 @@
 #define IDC_ENABLECYCLECPUUSAGE         1293
 #define IDC_IDEALPROCESSOR              1294
 #define IDC_STATICBL12                  1295
+#define IDC_BASICINFORMATION            1296
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -669,7 +670,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        196
 #define _APS_NEXT_COMMAND_VALUE         40252
-#define _APS_NEXT_CONTROL_VALUE         1296
+#define _APS_NEXT_CONTROL_VALUE         1297
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif
