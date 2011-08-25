@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   provider system
- * 
+ *
  * Copyright (C) 2009-2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,25 +21,25 @@
  */
 
 /*
- * Provider objects allow a function to be executed periodically. 
- * This is managed by a synchronization timer object which is 
- * signaled periodically. The use of a timer object as opposed to 
- * a simple sleep call means that the length of time a provider 
- * function takes to execute has no effect on the interval between 
+ * Provider objects allow a function to be executed periodically.
+ * This is managed by a synchronization timer object which is
+ * signaled periodically. The use of a timer object as opposed to
+ * a simple sleep call means that the length of time a provider
+ * function takes to execute has no effect on the interval between
  * runs.
  *
- * In contrast to callback objects, the context passed to provider 
- * functions must be reference-counted objects. This means that 
- * it is not guaranteed that the function will not be in execution 
- * after the unregister operation is complete. However, the 
- * since the context object is reference-counted, there are no 
+ * In contrast to callback objects, the context passed to provider
+ * functions must be reference-counted objects. This means that
+ * it is not guaranteed that the function will not be in execution
+ * after the unregister operation is complete. However, the
+ * since the context object is reference-counted, there are no
  * safety issues.
  *
- * Providers can be boosted, which causes them to be run immediately 
- * ignoring the interval. This is separate to the periodic runs, 
- * and does not cause the next periodic run to be missed. Providers, even 
- * when boosted, always run on the same provider thread. The other option 
- * would be to have the boosting thread run the provider function 
+ * Providers can be boosted, which causes them to be run immediately
+ * ignoring the interval. This is separate to the periodic runs,
+ * and does not cause the next periodic run to be missed. Providers, even
+ * when boosted, always run on the same provider thread. The other option
+ * would be to have the boosting thread run the provider function
  * directly, which would involve unnecessary blocking and synchronization.
  */
 
@@ -110,15 +110,15 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
     while (providerThread->State != ProviderThreadStopping)
     {
-        // Keep removing and executing providers from the list 
-        // until there are no more. Each removed provider will 
+        // Keep removing and executing providers from the list
+        // until there are no more. Each removed provider will
         // be placed on the temporary list.
-        // After this is done, all providers on the temporary 
+        // After this is done, all providers on the temporary
         // list will be re-added to the list again.
         //
-        // The key to this working safely with the other functions 
-        // (boost, register, unregister) is that at all times 
-        // when the mutex is not acquired every single provider 
+        // The key to this working safely with the other functions
+        // (boost, register, unregister) is that at all times
+        // when the mutex is not acquired every single provider
         // must be in a list (main list or the temp list).
 
         InitializeListHead(&tempListHead);
@@ -127,10 +127,10 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         // Main loop.
 
-        // We check the status variable for STATUS_ALERTED, which 
-        // means that someone is requesting that a provider be 
-        // boosted. Note that if they alert this thread while we 
-        // are not waiting on the timer, when we do perform the 
+        // We check the status variable for STATUS_ALERTED, which
+        // means that someone is requesting that a provider be
+        // boosted. Note that if they alert this thread while we
+        // are not waiting on the timer, when we do perform the
         // wait it will return immediately with STATUS_ALERTED.
 
         while (TRUE)
@@ -138,9 +138,9 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             if (status == STATUS_ALERTED)
             {
                 // Check if we have any more providers to boost.
-                // Note that this always works because boosted 
-                // providers are always in front of normal providers. 
-                // Therefore we will never mistakenly boost normal 
+                // Note that this always works because boosted
+                // providers are always in front of normal providers.
+                // Therefore we will never mistakenly boost normal
                 // providers.
 
                 if (providerThread->BoostCount == 0)
@@ -164,9 +164,9 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             }
             else
             {
-                // If we're boosting providers, we don't care if they 
-                // are enabled or not. However, we have to make sure 
-                // any providers which are being unregistered get a 
+                // If we're boosting providers, we don't care if they
+                // are enabled or not. However, we have to make sure
+                // any providers which are being unregistered get a
                 // chance to fix the boost count.
 
                 if (registration->Unregistering)
@@ -207,9 +207,9 @@ NTSTATUS NTAPI PhpProviderThreadStart(
         {
             registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
 
-            // We must insert boosted providers at the front of the list in order to maintain 
-            // the condition that boosted providers are always in front of normal providers. 
-            // This occurs when the timer is signaled just before a boosting provider alerts 
+            // We must insert boosted providers at the front of the list in order to maintain
+            // the condition that boosted providers are always in front of normal providers.
+            // This occurs when the timer is signaled just before a boosting provider alerts
             // our thread.
             if (!registration->Boosting)
                 InsertTailList(&providerThread->ListHead, listEntry);
@@ -219,7 +219,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
 
-        // Perform an alertable wait so we can be woken up by 
+        // Perform an alertable wait so we can be woken up by
         // someone telling us to boost providers, or to terminate.
         status = NtWaitForSingleObject(
             providerThread->TimerHandle,
@@ -269,7 +269,7 @@ VOID PhStopProviderThread(
     if (ProviderThread->State != ProviderThreadRunning)
         return;
 
-    // Signal to the thread that we are shutting down, and 
+    // Signal to the thread that we are shutting down, and
     // wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
     NtAlertThread(ProviderThread->ThreadHandle); // wake it up
@@ -302,7 +302,7 @@ VOID PhSetIntervalProviderThread(
         LARGE_INTEGER interval;
 
         interval.QuadPart = -(LONGLONG)Interval * PH_TIMEOUT_MS;
-        NtSetTimer(ProviderThread->TimerHandle, &interval, NULL, NULL, FALSE, Interval, NULL); 
+        NtSetTimer(ProviderThread->TimerHandle, &interval, NULL, NULL, FALSE, Interval, NULL);
     }
 }
 
@@ -311,13 +311,13 @@ VOID PhSetIntervalProviderThread(
  *
  * \param ProviderThread A pointer to a provider thread object.
  * \param Function The provider function.
- * \param Object A pointer to an object to pass to the provider 
- * function. The object must be managed by the reference-counting 
+ * \param Object A pointer to an object to pass to the provider
+ * function. The object must be managed by the reference-counting
  * system.
- * \param Registration A variable which receives registration 
+ * \param Registration A variable which receives registration
  * information for the provider.
  *
- * \remarks The provider is initially disabled. Call 
+ * \remarks The provider is initially disabled. Call
  * PhSetEnabledProvider() to enable it.
  */
 VOID PhRegisterProvider(
@@ -346,10 +346,10 @@ VOID PhRegisterProvider(
 /**
  * Unregisters a provider.
  *
- * \param Registration A pointer to the registration object for 
+ * \param Registration A pointer to the registration object for
  * a provider.
  *
- * \remarks The provider function may still be in execution 
+ * \remarks The provider function may still be in execution
  * once this function returns.
  */
 VOID PhUnregisterProvider(
@@ -363,11 +363,11 @@ VOID PhUnregisterProvider(
     Registration->Unregistering = TRUE;
 
     // There are two possibilities for removal:
-    // 1. The provider is removed while the thread is 
+    // 1. The provider is removed while the thread is
     //    not in the main loop. This is the normal case.
-    // 2. The provider is removed while the thread is 
-    //    in the main loop. In that case the provider 
-    //    will be removed from the temp list and so 
+    // 2. The provider is removed while the thread is
+    //    in the main loop. In that case the provider
+    //    will be removed from the temp list and so
     //    it won't be re-added to the main list.
 
     PhAcquireQueuedLockExclusive(&providerThread->Lock);
@@ -378,7 +378,7 @@ VOID PhUnregisterProvider(
     if (Registration->Boosting)
         providerThread->BoostCount--;
 
-    // The user-supplied object must be dereferenced 
+    // The user-supplied object must be dereferenced
     // while the mutex is held.
     if (Registration->Object)
         PhDereferenceObject(Registration->Object);
@@ -389,17 +389,17 @@ VOID PhUnregisterProvider(
 /**
  * Causes a provider to be queued for immediate execution.
  *
- * \param Registration A pointer to the registration object for 
+ * \param Registration A pointer to the registration object for
  * a provider.
- * \param FutureRunId A variable which receives the run ID of the 
+ * \param FutureRunId A variable which receives the run ID of the
  * future run.
  *
- * \return TRUE if the operation was successful; FALSE if 
- * the provider is being unregistered, the provider is already 
+ * \return TRUE if the operation was successful; FALSE if
+ * the provider is being unregistered, the provider is already
  * being boosted, or the provider thread is not running.
  *
- * \remarks Boosted providers will be run immediately, ignoring 
- * the run interval. Boosting will not however affect the normal 
+ * \remarks Boosted providers will be run immediately, ignoring
+ * the run interval. Boosting will not however affect the normal
  * runs.
  */
 BOOLEAN PhBoostProvider(
@@ -415,12 +415,12 @@ BOOLEAN PhBoostProvider(
 
     providerThread = Registration->ProviderThread;
 
-    // Simply move to the provider to the front of the list. 
+    // Simply move to the provider to the front of the list.
     // This works even if the provider is currently in the temp list.
 
     PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
-    // Abort if the provider is already being boosted or the 
+    // Abort if the provider is already being boosted or the
     // provider thread is stopping/stopped.
     if (Registration->Boosting || providerThread->State != ProviderThreadRunning)
     {
@@ -450,7 +450,7 @@ BOOLEAN PhBoostProvider(
 /**
  * Gets the current run ID of a provider.
  *
- * \param Registration A pointer to the registration object for 
+ * \param Registration A pointer to the registration object for
  * a provider.
  */
 ULONG PhGetRunIdProvider(
@@ -463,7 +463,7 @@ ULONG PhGetRunIdProvider(
 /**
  * Gets whether a provider is enabled.
  *
- * \param Registration A pointer to the registration object for 
+ * \param Registration A pointer to the registration object for
  * a provider.
  */
 BOOLEAN PhGetEnabledProvider(
@@ -476,9 +476,9 @@ BOOLEAN PhGetEnabledProvider(
 /**
  * Sets whether a provider is enabled.
  *
- * \param Registration A pointer to the registration object for 
+ * \param Registration A pointer to the registration object for
  * a provider.
- * \param Enabled TRUE if the provider is enabled, otherwise 
+ * \param Enabled TRUE if the provider is enabled, otherwise
  * FALSE.
  */
 VOID PhSetEnabledProvider(

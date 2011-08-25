@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   tree new column manager
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -383,7 +383,7 @@ BOOLEAN PhCmLoadSettingsEx(
                     setColumn.Width = (*columnPtr)->Width;
                     TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
 
-                    // For compatibility reasons, normal columns have their display indicies stored 
+                    // For compatibility reasons, normal columns have their display indicies stored
                     // one higher than usual (so they start from 1, not 0). Fix that here.
                     if (hasFixedColumn && !setColumn.Fixed && (*columnPtr)->DisplayIndex != 0)
                         (*columnPtr)->DisplayIndex--;
@@ -400,7 +400,7 @@ BOOLEAN PhCmLoadSettingsEx(
             i++;
         }
 
-        // Do a second pass to create the order array. This is because the ViewIndex of each column 
+        // Do a second pass to create the order array. This is because the ViewIndex of each column
         // were unstable in the previous pass since we were both adding and removing columns.
 
         PhBeginEnumHashtable(columnHashtable, &enumContext);

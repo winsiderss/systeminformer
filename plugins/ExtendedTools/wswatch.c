@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   working set watch
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -383,8 +383,8 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
 {
     PWS_WATCH_CONTEXT context = Context;
 
-    // If we're loading kernel module symbols for a process other than 
-    // System, ignore modules which are in user space. This may happen 
+    // If we're loading kernel module symbols for a process other than
+    // System, ignore modules which are in user space. This may happen
     // in Windows 7.
     if (
         context->LoadingSymbolsForProcessId == SYSTEM_PROCESS_ID &&

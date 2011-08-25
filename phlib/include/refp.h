@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   internal object manager
- * 
+ *
  * Copyright (C) 2009 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -61,8 +61,8 @@ typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 #define PHOBJ_FROM_TYPE_FREE_LIST 0x4
 
 /**
- * The object header contains object manager information 
- * including the reference count of an object and its 
+ * The object header contains object manager information
+ * including the reference count of an object and its
  * type.
  */
 typedef struct _PH_OBJECT_HEADER
@@ -89,7 +89,7 @@ typedef struct _PH_OBJECT_HEADER
     LIST_ENTRY ObjectListEntry;
 #endif
 
-    /** The body of the object. For use by the \ref PhObjectToObjectHeader 
+    /** The body of the object. For use by the \ref PhObjectToObjectHeader
      * and \ref PhObjectHeaderToObject macros. */
     QUAD_PTR Body;
 } PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
@@ -111,7 +111,7 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x20);
 #endif
 
 /**
- * An object type specifies a kind of object and 
+ * An object type specifies a kind of object and
  * its delete procedure.
  */
 typedef struct _PH_OBJECT_TYPE
@@ -133,7 +133,7 @@ typedef struct _PH_OBJECT_TYPE
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
 
 /**
- * Increments a reference count, but will never increment 
+ * Increments a reference count, but will never increment
  * from 0 to 1.
  *
  * \param RefCount A pointer to a reference count.
@@ -142,7 +142,7 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
     __inout PLONG RefCount
     )
 {
-    /* Here we will attempt to increment the reference count, 
+    /* Here we will attempt to increment the reference count,
      * making sure that it is not 0.
      */
     return _InterlockedIncrementNoZero(RefCount);

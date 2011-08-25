@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   service list control
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -50,12 +50,12 @@ INT_PTR CALLBACK PhpServicesPageProc(
  * Creates a service list property page.
  *
  * \param ParentWindowHandle The parent of the service list.
- * \param Services An array of service items. Each 
- * service item must have a reference that is transferred 
- * to this function. The array must be allocated using 
- * PhAllocate() and must not be freed by the caller; it 
+ * \param Services An array of service items. Each
+ * service item must have a reference that is transferred
+ * to this function. The array must be allocated using
+ * PhAllocate() and must not be freed by the caller; it
  * will be freed automatically when no longer needed.
- * \param NumberOfServices The number of service items 
+ * \param NumberOfServices The number of service items
  * in \a Services.
  */
 HWND PhCreateServiceListControl(

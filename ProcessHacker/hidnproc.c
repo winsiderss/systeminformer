@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   hidden processes detection
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -23,19 +23,19 @@
 /*
  * There are two methods of hidden process detection implemented in this module.
  *
- * Brute Force. This attempts to open all possible PIDs within a certain range 
- * in order to find processes which have been unlinked from the active process 
- * list (EPROCESS.ActiveProcessLinks). This method is not effective when 
- * either NtOpenProcess is hooked or PsLookupProcessByProcessId is hooked 
+ * Brute Force. This attempts to open all possible PIDs within a certain range
+ * in order to find processes which have been unlinked from the active process
+ * list (EPROCESS.ActiveProcessLinks). This method is not effective when
+ * either NtOpenProcess is hooked or PsLookupProcessByProcessId is hooked
  * (KProcessHacker cannot bypass this).
  *
- * CSR Handles. This enumerates handles in all running CSR processes, and works 
- * even when a process has been unlinked from the active process list and 
- * has been removed from the client ID table (PspCidTable). However, the method 
- * does not detect native executables since CSR is not notified about them. 
- * Some rootkits hook NtQuerySystemInformation in order to modify the returned 
- * handle information; Process Hacker bypasses this by using KProcessHacker, 
- * which calls ExEnumHandleTable directly. Note that both process and thread 
+ * CSR Handles. This enumerates handles in all running CSR processes, and works
+ * even when a process has been unlinked from the active process list and
+ * has been removed from the client ID table (PspCidTable). However, the method
+ * does not detect native executables since CSR is not notified about them.
+ * Some rootkits hook NtQuerySystemInformation in order to modify the returned
+ * handle information; Process Hacker bypasses this by using KProcessHacker,
+ * which calls ExEnumHandleTable directly. Note that both process and thread
  * handles are examined.
  */
 
@@ -45,7 +45,7 @@
 #include <hidnproc.h>
 #include <windowsx.h>
 
-INT_PTR CALLBACK PhpHiddenProcessesDlgProc(      
+INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -106,7 +106,7 @@ VOID PhShowHiddenProcessesDialog(
         SetForegroundWindow(PhHiddenProcessesWindowHandle);
 }
 
-static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(      
+static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -298,7 +298,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             {
                                 LARGE_INTEGER interval;
 
-                                // Sleep for a bit before continuing. It seems to help avoid 
+                                // Sleep for a bit before continuing. It seems to help avoid
                                 // BSODs.
                                 interval.QuadPart = -250 * PH_TIMEOUT_MS;
                                 NtDelayExecution(FALSE, &interval);
@@ -701,8 +701,8 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
             if (NT_SUCCESS(status))
             {
-                // Some command lines (e.g. from taskeng.exe) have nulls in them. 
-                // Since Windows can't display them, we'll replace them with 
+                // Some command lines (e.g. from taskeng.exe) have nulls in them.
+                // Since Windows can't display them, we'll replace them with
                 // spaces.
                 for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
                 {
@@ -1016,7 +1016,7 @@ NTSTATUS PhpGetCsrHandleProcessId(
     Handle->IsThreadHandle = FALSE;
     Handle->ProcessId = NULL;
 
-    // Assume the handle is a process handle, and get the 
+    // Assume the handle is a process handle, and get the
     // process ID.
 
     status = KphQueryInformationObject(
@@ -1034,7 +1034,7 @@ NTSTATUS PhpGetCsrHandleProcessId(
     }
     else
     {
-        // We failed to get the process ID. Assume the handle 
+        // We failed to get the process ID. Assume the handle
         // is a thread handle, and get the process ID.
 
         status = KphQueryInformationObject(
@@ -1093,8 +1093,8 @@ NTSTATUS PhEnumCsrProcessHandles(
                 handle.CsrProcessHandle = csrProcessHandles[i];
                 handle.Handle = handles->Handles[j].Handle;
 
-                // Get the process ID associated with the handle. 
-                // This call will fail if the handle is not a 
+                // Get the process ID associated with the handle.
+                // This call will fail if the handle is not a
                 // process or thread handle.
                 if (!NT_SUCCESS(PhpGetCsrHandleProcessId(&handle)))
                     continue;

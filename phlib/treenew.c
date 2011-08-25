@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   tree new (tree list control)
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,25 +21,25 @@
  */
 
 /*
- * The tree new is a tree view with columns. Unlike the old tree list control, 
- * which was a wrapper around the list view control, this control was written 
+ * The tree new is a tree view with columns. Unlike the old tree list control,
+ * which was a wrapper around the list view control, this control was written
  * from scratch.
  *
  * Current issues not included in any comments:
  *  * Adding, removing or changing columns does not cause invalidation.
- *  * It is not possible to change a column to make it fixed. The current 
+ *  * It is not possible to change a column to make it fixed. The current
  *    fixed column must be removed and the new fixed column must then be added.
- *  * When there are no visible normal columns, the space usually occupied by 
- *    the normal column headers is filled with a solid background color. We 
+ *  * When there are no visible normal columns, the space usually occupied by
+ *    the normal column headers is filled with a solid background color. We
  *    should catch this and paint the usual themed background there instead.
- *  * It is not possible to update any TN_STYLE_* flags after the control is 
+ *  * It is not possible to update any TN_STYLE_* flags after the control is
  *    created.
  *
  * Possible additions:
- *  * More flexible mouse input callbacks to allow custom controls inside 
+ *  * More flexible mouse input callbacks to allow custom controls inside
  *    columns.
- *  * Allow custom drawn columns to customize their behaviour when 
- *    TN_FLAG_ITEM_DRAG_SELECT is set (e.g. disable drag selection over certain 
+ *  * Allow custom drawn columns to customize their behaviour when
+ *    TN_FLAG_ITEM_DRAG_SELECT is set (e.g. disable drag selection over certain
  *    areas).
  *  * Virtual mode
  */
@@ -107,7 +107,7 @@ LRESULT CALLBACK PhTnpWndProc(
         PhTnpCancelTrack(context);
     }
 
-    // Note: if we have suspended restructuring, we *cannot* access any nodes, because 
+    // Note: if we have suspended restructuring, we *cannot* access any nodes, because
     // all node pointers are now invalid. Below, we disable all input.
 
     switch (uMsg)
@@ -910,7 +910,7 @@ VOID PhTnpOnXxxButtonXxx(
         if (realHitItem && (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT))
         {
             // To allow drag selection to begin even if the cursor is on an item,
-            // we check if the cursor is on the item icon or text. If it isn't, then 
+            // we check if the cursor is on the item icon or text. If it isn't, then
             // don't count that as a hit. Exceptions are:
             // * When the item is already selected
             // * When user is beginning to drag the divider
@@ -956,8 +956,8 @@ VOID PhTnpOnXxxButtonXxx(
                 ULONG saveId;
                 ULONG cancelledByMessage;
 
-                // Check for drag selection. PhTnpDetectDrag has its own message loop, so we need to 
-                // clear our pointers before we continue or we will have some access violations when 
+                // Check for drag selection. PhTnpDetectDrag has its own message loop, so we need to
+                // clear our pointers before we continue or we will have some access violations when
                 // items get deleted.
 
                 if (hitTest.Node)
@@ -990,7 +990,7 @@ VOID PhTnpOnXxxButtonXxx(
 
                     if ((hitTest.Flags & TN_HIT_ITEM) && (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT))
                     {
-                        // Include the current node before starting the drag selection, otherwise the user 
+                        // Include the current node before starting the drag selection, otherwise the user
                         // will never be able to select the current node.
                         indexToSelect = hitTest.Node->Index;
                     }
@@ -1061,8 +1061,8 @@ VOID PhTnpOnXxxButtonXxx(
     }
 
     // Click, double-click
-    // Note: If TN_FLAG_ITEM_DRAG_SELECT is enabled, the code below that processes WM_xBUTTONDOWN 
-    // and WM_xBUTTONUP messages only takes effect when the user clicks directly on an item's icon 
+    // Note: If TN_FLAG_ITEM_DRAG_SELECT is enabled, the code below that processes WM_xBUTTONDOWN
+    // and WM_xBUTTONUP messages only takes effect when the user clicks directly on an item's icon
     // or text.
 
     clickMessage = -1;
@@ -1167,7 +1167,7 @@ VOID PhTnpOnMouseWheel(
     __in LONG CursorY
     )
 {
-    // The normal mouse wheel can affect both the vertical scrollbar and the horizontal scrollbar, 
+    // The normal mouse wheel can affect both the vertical scrollbar and the horizontal scrollbar,
     // but the vertical scrollbar takes precedence.
     if (Context->VScrollVisible)
     {
@@ -1212,7 +1212,7 @@ VOID PhTnpOnContextMenu(
 
         keyboardInvoked = TRUE;
 
-        // Context menu was invoked via keyboard. Display the context menu at 
+        // Context menu was invoked via keyboard. Display the context menu at
         // the selected item.
 
         found = FALSE;
@@ -1625,7 +1625,7 @@ ULONG_PTR PhTnpOnUserMessage(
         break;
     case TNM_GETCOLUMNORDERARRAY:
         {
-            // TODO: To avoid exposing ViewIndex to users, the user should really be passing in 
+            // TODO: To avoid exposing ViewIndex to users, the user should really be passing in
             // an array of IDs and these should then be mapped to their header control indicies.
             return Header_GetOrderArray(Context->HeaderHandle, (ULONG)WParam, (PLONG)LParam);
         }
@@ -1931,7 +1931,7 @@ VOID PhTnpUpdateTextMetrics(
         SelectObject(hdc, Context->Font);
         GetTextMetrics(hdc, &Context->TextMetrics);
 
-        // Below we try to match the row height as calculated by 
+        // Below we try to match the row height as calculated by
         // the list view, even if it involves magic numbers.
         // On Vista and above there seems to be extra padding.
 
@@ -2761,8 +2761,8 @@ VOID PhTnpProcessResizeColumn(
 
     // Scroll the content to the right of the column.
     // Clip the scroll area to the new width, or the old width if that is further to the left.
-    // We may have the WS_CLIPCHILDREN style set, so we need to remove the horizontal scrollbar 
-    // from the rectangle, otherwise ScrollWindowEx will want to invalidate the entire region! (The 
+    // We may have the WS_CLIPCHILDREN style set, so we need to remove the horizontal scrollbar
+    // from the rectangle, otherwise ScrollWindowEx will want to invalidate the entire region! (The
     // horizontal scrollbar is an overlapping child control.)
     rect.left = columnLeft + Column->Width;
     rect.top = Context->HeaderHeight;
@@ -3064,7 +3064,7 @@ VOID PhTnpRestructureNodes(
         return;
 
     // We try to preserve the hot node, the focused node and the selection mark node.
-    // At this point all node pointers must be regarded as invalid, so we must not 
+    // At this point all node pointers must be regarded as invalid, so we must not
     // follow any pointers.
 
     Context->FocusNodeFound = FALSE;
@@ -3157,7 +3157,7 @@ VOID PhTnpSetExpandedNode(
                 BOOLEAN changed;
 
                 // Make sure no children are selected - we don't want invisible selected nodes.
-                // Note that this does not cause any UI changes by itself, since we are hiding 
+                // Note that this does not cause any UI changes by itself, since we are hiding
                 // the nodes.
 
                 changed = FALSE;
@@ -3184,7 +3184,7 @@ VOID PhTnpSetExpandedNode(
 
             Node->Expanded = Expanded;
             PhTnpRestructureNodes(Context);
-            // We need to update the window before the scrollbars get updated in order for the scroll processing 
+            // We need to update the window before the scrollbars get updated in order for the scroll processing
             // to work properly.
             InvalidateRect(Context->Handle, NULL, FALSE);
             UpdateWindow(Context->Handle);
@@ -3666,7 +3666,7 @@ VOID PhTnpProcessSelectNode(
     if (RightButton)
     {
         // Right button:
-        // If the current node is selected, then do nothing. This is to allow context 
+        // If the current node is selected, then do nothing. This is to allow context
         // menus to operate on multiple items.
         // If the current node is not selected, select only that node.
 
@@ -3835,9 +3835,9 @@ VOID PhTnpProcessMoveMouse(
             id = -1;
         }
 
-        // This pops unnecessarily - when the cell has no tooltip text, and the user is 
-        // moving the mouse over it. However these unnecessary calls seem to fix a 
-        // certain tooltip bug (move the mouse around very quickly over the last column and 
+        // This pops unnecessarily - when the cell has no tooltip text, and the user is
+        // moving the mouse over it. However these unnecessary calls seem to fix a
+        // certain tooltip bug (move the mouse around very quickly over the last column and
         // the blank space to the right, and no more tooltips will appear).
         if (Context->TooltipIndex != index || Context->TooltipId != id)
         {
@@ -4195,7 +4195,7 @@ BOOLEAN PhTnpProcessNodeKey(
             ULONG targetLevel;
             PPH_TREENEW_NODE newNode;
 
-            // If the node is expanded, collapse it. Otherwise, select the node's 
+            // If the node is expanded, collapse it. Otherwise, select the node's
             // parent.
             if (!Context->FocusNode->s.IsLeaf && Context->FocusNode->Expanded)
             {
@@ -4238,7 +4238,7 @@ BOOLEAN PhTnpProcessNodeKey(
 
             if (!Context->FocusNode->s.IsLeaf)
             {
-                // If the node is collapsed, expand it. Otherwise, select the node's 
+                // If the node is collapsed, expand it. Otherwise, select the node's
                 // first child.
                 if (!Context->FocusNode->Expanded)
                 {
@@ -4335,7 +4335,7 @@ VOID PhTnpProcessSearchKey(
 
     if (Context->SearchString[Context->SearchStringCount - 1] != Context->SearchString[0])
     {
-        // The user has stopped typing the same character (or never started). Turn single-character search 
+        // The user has stopped typing the same character (or never started). Turn single-character search
         // off.
         Context->SearchSingleCharMode = FALSE;
     }
@@ -4380,7 +4380,7 @@ VOID PhTnpProcessSearchKey(
     if (searchEvent.FoundIndex == -1 && !Context->SearchFailed)
     {
         // No search result. Beep to indicate an error, and set the flag so we don't beep again.
-        // But don't beep if the first character was a space, because that's used for other purposes 
+        // But don't beep if the first character was a space, because that's used for other purposes
         // elsewhere (see PhTnpProcessNodeKey).
         if (searchEvent.String.Buffer[0] != ' ')
         {
@@ -4442,10 +4442,10 @@ BOOLEAN PhTnpDefaultIncrementalSearch(
                 break;
         }
 
-        // We use the firstTime variable instead of a simpler check because 
-        // we want to include the current item in the search. E.g. the 
-        // current item is the only item beginning with "Z". If the user 
-        // searches for "Z", we want to return the current item as being 
+        // We use the firstTime variable instead of a simpler check because
+        // we want to include the current item in the search. E.g. the
+        // current item is the only item beginning with "Z". If the user
+        // searches for "Z", we want to return the current item as being
         // found.
         if (!firstTime && currentIndex == startIndex)
             break;
@@ -4680,7 +4680,7 @@ VOID PhTnpProcessScroll(
     {
         deltaY = DeltaRows * Context->RowHeight;
 
-        // If we're scrolling vertically as well, we need to scroll the fixed part and the normal part 
+        // If we're scrolling vertically as well, we need to scroll the fixed part and the normal part
         // separately.
 
         if (DeltaRows != 0)
@@ -5313,7 +5313,7 @@ VOID PhTnpDrawDivider(
             BLENDFUNCTION blendFunction;
 
             // We need to draw and alpha blend the divider.
-            // We can use the extra column allocated in the buffered context 
+            // We can use the extra column allocated in the buffered context
             // to initially draw the divider.
 
             points[0].x = Context->ClientRect.right;
@@ -5328,7 +5328,7 @@ VOID PhTnpDrawDivider(
             blendFunction.BlendFlags = 0;
             blendFunction.AlphaFormat = 0;
 
-            // If the horizontal scroll bar is visible, we need to display a line even if 
+            // If the horizontal scroll bar is visible, we need to display a line even if
             // the divider is not hot. In this case we increase the base alpha value.
             if (!Context->HScrollVisible)
                 blendFunction.SourceConstantAlpha = (UCHAR)(Context->DividerHot * 255 / 100);
@@ -5530,7 +5530,7 @@ VOID PhTnpDrawThemedBorder(
     // Draw the themed border.
     DrawThemeBackground_I(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
 
-    // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't 
+    // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't
     // fully paint the region.
 
     if (SUCCEEDED(GetThemeInt_I(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
@@ -5604,7 +5604,7 @@ VOID PhTnpInitializeTooltips(
     toolInfo.lParam = TNP_TOOLTIPS_HEADER;
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
-    // Hook the header control window procedures so we can forward mouse messages 
+    // Hook the header control window procedures so we can forward mouse messages
     // to the tooltip control.
     Context->FixedHeaderOldWndProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
     SetProp(Context->FixedHeaderHandle, PhTnpMakeContextAtom(), (HANDLE)Context);
@@ -5666,7 +5666,7 @@ VOID PhTnpGetTooltipText(
         {
             viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
 
-            // Use an unfolding tooltip if the text was truncated within the column, or the text 
+            // Use an unfolding tooltip if the text was truncated within the column, or the text
             // extends beyond the view area in either direction.
 
             if (parts.TextRect.left < parts.ContentRect.left || parts.TextRect.right > parts.ContentRect.right)
@@ -5706,7 +5706,7 @@ VOID PhTnpGetTooltipText(
 
             if (unfoldingTooltipFromViewCancelled)
             {
-                // We may need to show the view-based unfolding tooltip if the mouse moves over the text in the future. 
+                // We may need to show the view-based unfolding tooltip if the mouse moves over the text in the future.
                 // Reset the index and ID to make sure we keep checking.
                 Context->TooltipIndex = -1;
                 Context->TooltipId = -1;
@@ -6044,7 +6044,7 @@ BOOLEAN PhTnpDetectDrag(
 
     do
     {
-        // It seems that GetMessage dispatches nonqueued messages directly from kernel-mode, so 
+        // It seems that GetMessage dispatches nonqueued messages directly from kernel-mode, so
         // we have to use PeekMessage and WaitMessage in order to process WM_CAPTURECHANGED messages.
         if (!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
@@ -6134,7 +6134,7 @@ VOID PhTnpDragSelect(
             BOOLEAN leftOrRight;
             BOOLEAN aboveOrBelow;
 
-            // If the cursor is outside of the window, generate some messages 
+            // If the cursor is outside of the window, generate some messages
             // so the window keeps scrolling.
 
             leftOrRight = cursorPoint.x < windowRect.left || cursorPoint.x >= windowRect.right;
@@ -6456,7 +6456,7 @@ VOID PhTnpDestroyBufferedContext(
     __in PPH_TREENEW_CONTEXT Context
     )
 {
-    // The original bitmap must be selected back into the context, otherwise 
+    // The original bitmap must be selected back into the context, otherwise
     // the bitmap can't be deleted.
     SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
     DeleteObject(Context->BufferedBitmap);

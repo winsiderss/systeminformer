@@ -1,11 +1,11 @@
 /*
- * Process Hacker Sandboxie Support - 
+ * Process Hacker Sandboxie Support -
  *   main program
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -128,7 +128,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.SbieSupport", Instance, &info);
-            
+
             if (!PluginInstance)
                 return FALSE;
 

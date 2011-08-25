@@ -66,7 +66,7 @@ typedef enum _KWAIT_REASON
     MaximumWaitReason
 } KWAIT_REASON, *PKWAIT_REASON;
 
-typedef enum _KPROFILE_SOURCE 
+typedef enum _KPROFILE_SOURCE
 {
     ProfileTime,
     ProfileAlignmentFixup,

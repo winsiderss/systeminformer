@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   extended menus
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -57,11 +57,11 @@ PPH_EMENU_ITEM PhAllocateEMenuItem(
  * \li \c PH_EMENU_DISABLED The menu item is greyed and cannot be selected.
  * \li \c PH_EMENU_CHECKED A check mark is displayed.
  * \li \c PH_EMENU_HIGHLIGHT The menu item is highlighted.
- * \li \c PH_EMENU_MENUBARBREAK Places the menu item in a new column, separated 
+ * \li \c PH_EMENU_MENUBARBREAK Places the menu item in a new column, separated
  * by a vertical line.
- * \li \c PH_EMENU_MENUBREAK Places the menu item in a new column, with no 
+ * \li \c PH_EMENU_MENUBREAK Places the menu item in a new column, with no
  * vertical line.
- * \li \c PH_EMENU_DEFAULT The menu item is displayed as the default item. This 
+ * \li \c PH_EMENU_DEFAULT The menu item is displayed as the default item. This
  * causes the text to be bolded.
  * \li \c PH_EMENU_RADIOCHECK Uses a radio-button mark instead of a check mark.
  * \param Id A unique identifier for the menu item.
@@ -100,7 +100,7 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
  *
  * \param Item The menu item.
  *
- * \remarks The menu item is NOT automatically removed from its parent. 
+ * \remarks The menu item is NOT automatically removed from its parent.
  * It is safe to call this function while enumerating menu items.
  */
 VOID PhpDestroyEMenuItem(
@@ -153,18 +153,18 @@ VOID PhDestroyEMenuItem(
  *
  * \param Item The parent menu item.
  * \param Flags A combination of the following:
- * \li \c PH_EMENU_FIND_DESCEND Searches recursively within child 
+ * \li \c PH_EMENU_FIND_DESCEND Searches recursively within child
  * menu items.
- * \li \c PH_EMENU_FIND_STARTSWITH Performs a partial text search 
+ * \li \c PH_EMENU_FIND_STARTSWITH Performs a partial text search
  * instead of an exact search.
- * \li \c PH_EMENU_FIND_LITERAL Performs a literal search instead of 
+ * \li \c PH_EMENU_FIND_LITERAL Performs a literal search instead of
  * ignoring prefix characters (ampersands).
- * \param Text The text of the menu item to find. If NULL, the text 
+ * \param Text The text of the menu item to find. If NULL, the text
  * is ignored.
- * \param Id The identifier of the menu item to find. If 0, the 
+ * \param Id The identifier of the menu item to find. If 0, the
  * identifier is ignored.
  *
- * \return The found menu item, or NULL if the menu item could not 
+ * \return The found menu item, or NULL if the menu item could not
  * be found.
  */
 PPH_EMENU_ITEM PhFindEMenuItem(
@@ -239,7 +239,7 @@ PPH_EMENU_ITEM PhFindEMenuItem(
  * \param Parent The parent menu item.
  * \param Item The child menu item.
  *
- * \return The index of the menu item, or -1 if the menu item 
+ * \return The index of the menu item, or -1 if the menu item
  * was not found in the parent menu item.
  */
 ULONG PhIndexOfEMenuItem(
@@ -258,8 +258,8 @@ ULONG PhIndexOfEMenuItem(
  *
  * \param Parent The parent menu item.
  * \param Item The menu item to insert.
- * \param Index The index at which to insert the menu item. 
- * If the index is too large, the menu item is inserted 
+ * \param Index The index at which to insert the menu item.
+ * If the index is too large, the menu item is inserted
  * at the last position.
  */
 VOID PhInsertEMenuItem(
@@ -289,11 +289,11 @@ VOID PhInsertEMenuItem(
 /**
  * Removes a menu item from its parent.
  *
- * \param Parent The parent menu item. If \a Item is NULL, 
+ * \param Parent The parent menu item. If \a Item is NULL,
  * this parameter must be specified.
- * \param Item The child menu item. This may be NULL if 
+ * \param Item The child menu item. This may be NULL if
  * \a Index is specified.
- * \param Index The index of the menu item to remove. If 
+ * \param Index The index of the menu item to remove. If
  * \a Item is specified, this parameter is ignored.
  */
 BOOLEAN PhRemoveEMenuItem(
@@ -388,7 +388,7 @@ VOID PhDestroyEMenu(
 }
 
 /**
- * Initializes a data structure containing additional information 
+ * Initializes a data structure containing additional information
  * resulting from a call to PhEMenuToPopupMenu().
  */
 VOID PhInitializeEMenuData(
@@ -399,7 +399,7 @@ VOID PhInitializeEMenuData(
 }
 
 /**
- * Frees resources used by a data structure initialized by 
+ * Frees resources used by a data structure initialized by
  * PhInitializeEMenuData().
  */
 VOID PhDeleteEMenuData(
@@ -414,14 +414,14 @@ VOID PhDeleteEMenuData(
  *
  * \param Menu The menu item to convert.
  * \param Flags A combination of the following:
- * \li \c PH_EMENU_CONVERT_ID Automatically assigns a unique 
- * identifier to each converted menu item. The resulting 
+ * \li \c PH_EMENU_CONVERT_ID Automatically assigns a unique
+ * identifier to each converted menu item. The resulting
  * mappings are placed in \a Data.
- * \param Data Additional data resulting from the conversion. 
- * The data structure must be initialized by PhInitializeEMenuData() 
+ * \param Data Additional data resulting from the conversion.
+ * The data structure must be initialized by PhInitializeEMenuData()
  * prior to calling this function.
  *
- * \return A menu handle. The menu object must be destroyed using 
+ * \return A menu handle. The menu object must be destroyed using
  * DestroyMenu() when it is no longer needed.
  */
 HMENU PhEMenuToPopupMenu(
@@ -529,7 +529,7 @@ HMENU PhEMenuToPopupMenu(
 /**
  * Converts a Windows menu object to an EMENU.
  *
- * \param MenuItem The menu item in which the converted menu items 
+ * \param MenuItem The menu item in which the converted menu items
  * will be placed.
  * \param PopupMenu A menu handle.
  */
@@ -594,11 +594,11 @@ VOID PhPopupMenuToEMenuItem(
 /**
  * Loads a menu resource and converts it to an EMENU.
  *
- * \param MenuItem The menu item in which the converted menu items 
+ * \param MenuItem The menu item in which the converted menu items
  * will be placed.
  * \param InstanceHandle The module containing the menu resource.
  * \param Resource The resource identifier.
- * \param SubMenuIndex The index of the sub menu to use, or -1 
+ * \param SubMenuIndex The index of the sub menu to use, or -1
  * to use the root menu.
  */
 VOID PhLoadResourceEMenuItem(
@@ -629,9 +629,9 @@ VOID PhLoadResourceEMenuItem(
  * \param Menu A menu.
  * \param WindowHandle The window that owns the popup menu.
  * \param Flags A combination of the following:
- * \li \c PH_EMENU_SHOW_NONOTIFY Notifications are not sent to the window 
+ * \li \c PH_EMENU_SHOW_NONOTIFY Notifications are not sent to the window
  * when the user clicks on a menu item.
- * \li \c PH_EMENU_SHOW_LEFTRIGHT The user can select menu items with both 
+ * \li \c PH_EMENU_SHOW_LEFTRIGHT The user can select menu items with both
  * the left and right mouse buttons.
  * \param Align The alignment of the menu.
  * \param X The horizontal location of the menu.

@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   ETW monitoring
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -458,7 +458,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
     __in PEVENT_RECORD EventRecord
     )
 {
-    // TODO: Find a way to call CloseTrace when the enumeration finishes so we can 
+    // TODO: Find a way to call CloseTrace when the enumeration finishes so we can
     // stop the trace cleanly.
 
     if (memcmp(&EventRecord->EventHeader.ProviderId, &FileIoGuid_I, sizeof(GUID)) == 0)

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   information dialog
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -25,7 +25,7 @@
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
-static INT_PTR CALLBACK PhpInformationDlgProc(      
+static INT_PTR CALLBACK PhpInformationDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

@@ -3,8 +3,8 @@
 
 // Boot condition flags (NtInitializeRegistry)
 
-#define REG_INIT_BOOT_SM 0x0000 
-#define REG_INIT_BOOT_SETUP 0x0001 
+#define REG_INIT_BOOT_SM 0x0000
+#define REG_INIT_BOOT_SETUP 0x0001
 #define REG_INIT_BOOT_ACCEPTED_BASE 0x0002
 #define REG_INIT_BOOT_ACCEPTED_MAX REG_INIT_BOOT_ACCEPTED_BASE + 999
 
@@ -429,7 +429,7 @@ NtLoadKeyEx(
     __in POBJECT_ATTRIBUTES TargetKey,
     __in POBJECT_ATTRIBUTES SourceFile,
     __in ULONG Flags,
-    __in_opt HANDLE TrustClassKey 
+    __in_opt HANDLE TrustClassKey
     );
 
 NTSYSCALLAPI

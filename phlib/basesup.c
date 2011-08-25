@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   base support functions
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -23,46 +23,46 @@
 /*
  * This file contains basic low-level code as well as general algorithmic code.
  *
- * Memory allocation. PhAllocate is a wrapper around RtlAllocateHeap, and always allocates 
- * from the phlib heap. PhAllocatePage is a wrapper around NtAllocateVirtualMemory and allocates 
+ * Memory allocation. PhAllocate is a wrapper around RtlAllocateHeap, and always allocates
+ * from the phlib heap. PhAllocatePage is a wrapper around NtAllocateVirtualMemory and allocates
  * pages.
  *
- * Null-terminated strings. The Ph*StringZ functions manipulate null-terminated strings. The 
- * copying functions provide a simple way to copy strings which may not be null-terminated, but 
+ * Null-terminated strings. The Ph*StringZ functions manipulate null-terminated strings. The
+ * copying functions provide a simple way to copy strings which may not be null-terminated, but
  * have a specified limit.
  *
- * String. The design of the string object was chosen for maximum compatibility. As such each 
- * string buffer must be null-terminated, and each object contains an embedded UNICODE_STRING 
- * structure. Note that efficient sub-string creation (no copying, only references the parent 
- * string object) could not be implemented due to the mandatory null-termination. String objects 
- * must be regarded as immutable (for thread-safety reasons) unless the object has just been 
+ * String. The design of the string object was chosen for maximum compatibility. As such each
+ * string buffer must be null-terminated, and each object contains an embedded UNICODE_STRING
+ * structure. Note that efficient sub-string creation (no copying, only references the parent
+ * string object) could not be implemented due to the mandatory null-termination. String objects
+ * must be regarded as immutable (for thread-safety reasons) unless the object has just been
  * created and no references have been shared.
  *
- * Full string. These strings use full SIZE_T length fields, bypassing the 32k size limit 
- * imposed on normal string objects which use USHORT length fields. Since full string objects 
+ * Full string. These strings use full SIZE_T length fields, bypassing the 32k size limit
+ * imposed on normal string objects which use USHORT length fields. Since full string objects
  * are rare, they are mutable and have functions similar to those of string builders.
  *
- * String builder. This is a set of functions which allow for efficient modification of strings. 
- * For performance reasons, these functions modify string objects directly, even though they are 
+ * String builder. This is a set of functions which allow for efficient modification of strings.
+ * For performance reasons, these functions modify string objects directly, even though they are
  * normally immutable.
  *
  * List. A simple PVOID list that resizes itself when needed.
  *
- * Pointer list. Similar to the normal list object, but uses a free list in order to support 
- * constant time insertion and deletion. In order for the free list to work, normal entries 
- * have their lowest bit clear while free entries have their lowest bit set, with the index of 
+ * Pointer list. Similar to the normal list object, but uses a free list in order to support
+ * constant time insertion and deletion. In order for the free list to work, normal entries
+ * have their lowest bit clear while free entries have their lowest bit set, with the index of
  * the next free entry in the upper bits.
  *
- * Hashtable. A hashtable with power-of-two bucket sizes and with all entries stored in a 
- * single array. This improves locality but may be inefficient when resizing the hashtable. It 
+ * Hashtable. A hashtable with power-of-two bucket sizes and with all entries stored in a
+ * single array. This improves locality but may be inefficient when resizing the hashtable. It
  * is a good idea to store pointers to objects as entries, as opposed to the objects themselves.
  *
  * Simple hashtable. A wrapper around the normal hashtable, with PVOID keys and PVOID values.
  *
- * Free list. A thread-safe memory allocation method where freed blocks are stored in a S-list, 
+ * Free list. A thread-safe memory allocation method where freed blocks are stored in a S-list,
  * and allocations are made from this list whenever possible.
  *
- * Callback. A thread-safe notification mechanism where clients can register callback functions 
+ * Callback. A thread-safe notification mechanism where clients can register callback functions
  * which are then invoked by other code.
  */
 
@@ -132,7 +132,7 @@ static ULONG PhpPrimeNumbers[] =
     0x3, 0x7, 0xb, 0x11, 0x17, 0x1d, 0x25, 0x2f, 0x3b, 0x47, 0x59, 0x6b, 0x83,
     0xa3, 0xc5, 0xef, 0x125, 0x161, 0x1af, 0x209, 0x277, 0x2f9, 0x397, 0x44f,
     0x52f, 0x63d, 0x78b, 0x91d, 0xaf1, 0xd2b, 0xfd1, 0x12fd, 0x16cf, 0x1b65,
-    0x20e3, 0x2777, 0x2f6f, 0x38ff, 0x446f, 0x521f, 0x628d, 0x7655, 0x8e01, 
+    0x20e3, 0x2777, 0x2f6f, 0x38ff, 0x446f, 0x521f, 0x628d, 0x7655, 0x8e01,
     0xaa6b, 0xcc89, 0xf583, 0x126a7, 0x1619b, 0x1a857, 0x1fd3b, 0x26315, 0x2dd67,
     0x3701b, 0x42023, 0x4f361, 0x5f0ed, 0x72125, 0x88e31, 0xa443b, 0xc51eb,
     0xec8c1, 0x11bdbf, 0x154a3f, 0x198c4f, 0x1ea867, 0x24ca19, 0x2c25c1, 0x34fa1b,
@@ -325,7 +325,7 @@ HANDLE PhCreateThread(
 /**
  * Gets the current system time (UTC).
  *
- * \remarks Use this function instead of NtQuerySystemTime() 
+ * \remarks Use this function instead of NtQuerySystemTime()
  * because no system calls are involved.
  */
 VOID PhQuerySystemTime(
@@ -357,10 +357,10 @@ VOID PhQueryTimeZoneBias(
  * Converts system time to local time.
  *
  * \param SystemTime A UTC time value.
- * \param LocalTime A variable which receives the local time value. 
+ * \param LocalTime A variable which receives the local time value.
  * This may be the same variable as \a SystemTime.
  *
- * \remarks Use this function instead of RtlSystemTimeToLocalTime() 
+ * \remarks Use this function instead of RtlSystemTimeToLocalTime()
  * because no system calls are involved.
  */
 VOID PhSystemTimeToLocalTime(
@@ -378,10 +378,10 @@ VOID PhSystemTimeToLocalTime(
  * Converts local time to system time.
  *
  * \param LocalTime A local time value.
- * \param SystemTime A variable which receives the UTC time value. 
+ * \param SystemTime A variable which receives the UTC time value.
  * This may be the same variable as \a LocalTime.
  *
- * \remarks Use this function instead of RtlLocalTimeToSystemTime() 
+ * \remarks Use this function instead of RtlLocalTimeToSystemTime()
  * because no system calls are involved.
  */
 VOID PhLocalTimeToSystemTime(
@@ -400,12 +400,12 @@ VOID PhLocalTimeToSystemTime(
  *
  * \param Size The number of bytes to allocate.
  *
- * \return A pointer to the allocated block of 
+ * \return A pointer to the allocated block of
  * memory.
  *
- * \remarks If the function fails to allocate 
- * the block of memory, it raises an exception. 
- * The block is guaranteed to be aligned at 
+ * \remarks If the function fails to allocate
+ * the block of memory, it raises an exception.
+ * The block is guaranteed to be aligned at
  * MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
 __mayRaise
@@ -424,7 +424,7 @@ PVOID PhAllocate(
  *
  * \param Size The number of bytes to allocate.
  *
- * \return A pointer to the allocated block of 
+ * \return A pointer to the allocated block of
  * memory, or NULL if the block could not be allocated.
  */
 PVOID PhAllocateSafe(
@@ -440,7 +440,7 @@ PVOID PhAllocateSafe(
  * \param Size The number of bytes to allocate.
  * \param Flags Flags controlling the allocation.
  *
- * \return A pointer to the allocated block of 
+ * \return A pointer to the allocated block of
  * memory, or NULL if the block could not be allocated.
  */
 PVOID PhAllocateExSafe(
@@ -452,7 +452,7 @@ PVOID PhAllocateExSafe(
 }
 
 /**
- * Frees a block of memory allocated with 
+ * Frees a block of memory allocated with
  * PhAllocate().
  *
  * \param Memory A pointer to a block of memory.
@@ -465,18 +465,18 @@ VOID PhFree(
 }
 
 /**
- * Re-allocates a block of memory originally 
+ * Re-allocates a block of memory originally
  * allocated with PhAllocate().
  *
  * \param Memory A pointer to a block of memory.
- * \param Size The new size of the memory block, 
+ * \param Size The new size of the memory block,
  * in bytes.
  *
- * \return A pointer to the new block of memory. 
- * The existing contents of the memory block are 
+ * \return A pointer to the new block of memory.
+ * The existing contents of the memory block are
  * copied to the new block.
  *
- * \remarks If the function fails to allocate 
+ * \remarks If the function fails to allocate
  * the block of memory, it raises an exception.
  */
 __mayRaise PVOID PhReAllocate(
@@ -488,16 +488,16 @@ __mayRaise PVOID PhReAllocate(
 }
 
 /**
- * Re-allocates a block of memory originally 
+ * Re-allocates a block of memory originally
  * allocated with PhAllocate().
  *
  * \param Memory A pointer to a block of memory.
- * \param Size The new size of the memory block, 
+ * \param Size The new size of the memory block,
  * in bytes.
  *
- * \return A pointer to the new block of memory, 
+ * \return A pointer to the new block of memory,
  * or NULL if the block could not be allocated.
- * The existing contents of the memory block are 
+ * The existing contents of the memory block are
  * copied to the new block.
  */
 PVOID PhReAllocateSafe(
@@ -511,12 +511,12 @@ PVOID PhReAllocateSafe(
 /**
  * Allocates pages of memory.
  *
- * \param Size The number of bytes to allocate. The number of 
+ * \param Size The number of bytes to allocate. The number of
  * pages allocated will be large enough to contain \a Size bytes.
- * \param NewSize The number of bytes actually allocated. This 
+ * \param NewSize The number of bytes actually allocated. This
  * is \a Size rounded up to the next multiple of PAGE_SIZE.
  *
- * \return A pointer to the allocated block of memory, or NULL 
+ * \return A pointer to the allocated block of memory, or NULL
  * if the block could not be allocated.
  */
 __checkReturn
@@ -598,7 +598,7 @@ PSTR PhDuplicateAnsiStringZ(
  *
  * \param String The string to duplicate.
  *
- * \return The new string, which can be freed using PhFree(), or 
+ * \return The new string, which can be freed using PhFree(), or
  * NULL if storage could not be allocated.
  */
 PSTR PhDuplicateAnsiStringZSafe(
@@ -643,29 +643,29 @@ PWSTR PhDuplicateUnicodeStringZ(
 }
 
 /**
- * Copies a string with optional null termination and 
+ * Copies a string with optional null termination and
  * a maximum number of characters.
  *
  * \param InputBuffer A pointer to the input string.
- * \param InputCount The maximum number of characters 
- * to copy, not including the null terminator. Specify 
+ * \param InputCount The maximum number of characters
+ * to copy, not including the null terminator. Specify
  * -1 for no limit.
  * \param OutputBuffer A pointer to the output buffer.
- * \param OutputCount The number of characters in the 
+ * \param OutputCount The number of characters in the
  * output buffer, including the null terminator.
- * \param ReturnCount A variable which receives the 
- * number of characters required to contain the input 
- * string, including the null terminator. If the 
- * function returns TRUE, this variable contains the 
+ * \param ReturnCount A variable which receives the
+ * number of characters required to contain the input
+ * string, including the null terminator. If the
+ * function returns TRUE, this variable contains the
  * number of characters written to the output buffer.
  *
- * \return TRUE if the input string was copied to 
+ * \return TRUE if the input string was copied to
  * the output string, otherwise FALSE.
  *
- * \remarks The function stops copying when it 
- * encounters the first null character in the input 
- * string. It will also stop copying when it reaches 
- * the character count specified in \a InputCount, if 
+ * \remarks The function stops copying when it
+ * encounters the first null character in the input
+ * string. It will also stop copying when it reaches
+ * the character count specified in \a InputCount, if
  * \a InputCount is not -1.
  */
 BOOLEAN PhCopyAnsiStringZ(
@@ -713,29 +713,29 @@ BOOLEAN PhCopyAnsiStringZ(
 }
 
 /**
- * Copies a string with optional null termination and 
+ * Copies a string with optional null termination and
  * a maximum number of characters.
  *
  * \param InputBuffer A pointer to the input string.
- * \param InputCount The maximum number of characters 
- * to copy, not including the null terminator. Specify 
+ * \param InputCount The maximum number of characters
+ * to copy, not including the null terminator. Specify
  * -1 for no limit.
  * \param OutputBuffer A pointer to the output buffer.
- * \param OutputCount The number of characters in the 
+ * \param OutputCount The number of characters in the
  * output buffer, including the null terminator.
- * \param ReturnCount A variable which receives the 
- * number of characters required to contain the input 
- * string, including the null terminator. If the 
- * function returns TRUE, this variable contains the 
+ * \param ReturnCount A variable which receives the
+ * number of characters required to contain the input
+ * string, including the null terminator. If the
+ * function returns TRUE, this variable contains the
  * number of characters written to the output buffer.
  *
- * \return TRUE if the input string was copied to 
+ * \return TRUE if the input string was copied to
  * the output string, otherwise FALSE.
  *
- * \remarks The function stops copying when it 
- * encounters the first null character in the input 
- * string. It will also stop copying when it reaches 
- * the character count specified in \a InputCount, if 
+ * \remarks The function stops copying when it
+ * encounters the first null character in the input
+ * string. It will also stop copying when it reaches
+ * the character count specified in \a InputCount, if
  * \a InputCount is not -1.
  */
 BOOLEAN PhCopyUnicodeStringZ(
@@ -783,29 +783,29 @@ BOOLEAN PhCopyUnicodeStringZ(
 }
 
 /**
- * Copies a string with optional null termination and 
+ * Copies a string with optional null termination and
  * a maximum number of characters.
  *
  * \param InputBuffer A pointer to the input string.
- * \param InputCount The maximum number of characters 
- * to copy, not including the null terminator. Specify 
+ * \param InputCount The maximum number of characters
+ * to copy, not including the null terminator. Specify
  * -1 for no limit.
  * \param OutputBuffer A pointer to the output buffer.
- * \param OutputCount The number of characters in the 
+ * \param OutputCount The number of characters in the
  * output buffer, including the null terminator.
- * \param ReturnCount A variable which receives the 
- * number of characters required to contain the input 
- * string, including the null terminator. If the 
- * function returns TRUE, this variable contains the 
+ * \param ReturnCount A variable which receives the
+ * number of characters required to contain the input
+ * string, including the null terminator. If the
+ * function returns TRUE, this variable contains the
  * number of characters written to the output buffer.
  *
- * \return TRUE if the input string was copied to 
+ * \return TRUE if the input string was copied to
  * the output string, otherwise FALSE.
  *
- * \remarks The function stops copying when it 
- * encounters the first null character in the input 
- * string. It will also stop copying when it reaches 
- * the character count specified in \a InputCount, if 
+ * \remarks The function stops copying when it
+ * encounters the first null character in the input
+ * string. It will also stop copying when it reaches
+ * the character count specified in \a InputCount, if
  * \a InputCount is not -1.
  */
 BOOLEAN PhCopyUnicodeStringZFromAnsi(
@@ -1069,11 +1069,11 @@ LONG PhCompareUnicodeStringZNatural(
  *
  * \param String1 The string to search.
  * \param String2 The string to search for.
- * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise 
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
  * FALSE.
  *
- * \return The index, in characters, of the first occurrence of 
- * \a String2 in \a String1 after \a StartIndex. If \a String2 was not 
+ * \return The index, in characters, of the first occurrence of
+ * \a String2 in \a String1 after \a StartIndex. If \a String2 was not
  * found, -1 is returned.
  */
 ULONG PhFindStringInStringRef(
@@ -1168,13 +1168,13 @@ FoundUString:
  *
  * \param Input The input string.
  * \param Separator The character to split at.
- * \param FirstPart A variable which receives the part of \a Input 
- * before the separator. This may be the same variable as \a Input. If 
- * the separator is not found in \a Input, this variable is set to 
+ * \param FirstPart A variable which receives the part of \a Input
+ * before the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input 
- * after the separator. This may be the same variable as \a Input. If 
- * the separator is not found in \a Input, this variable is set to 
+ * \param SecondPart A variable which recieves the part of \a Input
+ * after the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
@@ -1221,13 +1221,13 @@ BOOLEAN PhSplitStringRefAtChar(
  * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_START_AT_END
  * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_COMPLEMENT_CHAR_SET
  * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_CASE_INSENSITIVE
- * \param FirstPart A variable which receives the part of \a Input 
- * before the separator. This may be the same variable as \a Input. If 
- * the separator is not found in \a Input, this variable is set to 
+ * \param FirstPart A variable which receives the part of \a Input
+ * before the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input 
- * after the separator. This may be the same variable as \a Input. If 
- * the separator is not found in \a Input, this variable is set to 
+ * \param SecondPart A variable which recieves the part of \a Input
+ * after the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
@@ -1276,15 +1276,15 @@ BOOLEAN PhSplitStringRefAtCharEx(
  *
  * \param Input The input string.
  * \param Separator The string to split at.
- * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise 
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
  * FALSE.
- * \param FirstPart A variable which receives the part of \a Input 
- * before the separator. This may be the same variable as \a Input. If 
- * the separator is not found in \a Input, this variable is set to 
+ * \param FirstPart A variable which receives the part of \a Input
+ * before the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input 
- * after the separator. This may be the same variable as \a Input. If 
- * the separator is not found in \a Input, this variable is set to 
+ * \param SecondPart A variable which recieves the part of \a Input
+ * after the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
@@ -1324,7 +1324,7 @@ BOOLEAN PhSplitStringRefAtString(
 }
 
 /**
- * Creates a string object from an existing 
+ * Creates a string object from an existing
  * null-terminated string.
  *
  * \param Buffer A null-terminated Unicode string.
@@ -1677,7 +1677,7 @@ PPH_STRING PhFormatString_V(
 }
 
 /**
- * Creates an ANSI string object from an existing 
+ * Creates an ANSI string object from an existing
  * null-terminated string.
  *
  * \param Buffer A null-terminated ANSI string.
@@ -1783,7 +1783,7 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
 }
 
 /**
- * Creates a string object from an existing 
+ * Creates a string object from an existing
  * null-terminated string.
  *
  * \param Buffer A null-terminated Unicode string.
@@ -1802,8 +1802,8 @@ PPH_FULL_STRING PhCreateFullString(
 /**
  * Creates a string object.
  *
- * \param InitialCapacity The number of bytes to allocate 
- * for the string. This should not include space for a null 
+ * \param InitialCapacity The number of bytes to allocate
+ * for the string. This should not include space for a null
  * terminator.
  */
 PPH_FULL_STRING PhCreateFullString2(
@@ -1818,9 +1818,9 @@ PPH_FULL_STRING PhCreateFullString2(
  *
  * \param Buffer A null-terminated Unicode string.
  * \param Length The length, in bytes, of the string.
- * \param InitialCapacity The number of bytes to allocate 
- * for the string. This should not include space for a null 
- * terminator. If the specified value is less than \a Length, 
+ * \param InitialCapacity The number of bytes to allocate
+ * for the string. This should not include space for a null
+ * terminator. If the specified value is less than \a Length,
  * \a Length bytes are still allocated.
  */
 PPH_FULL_STRING PhCreateFullStringEx(
@@ -1876,11 +1876,11 @@ FORCEINLINE VOID PhpWriteNullTerminatorFullString(
  * Resizes a string object.
  *
  * \param String A string object.
- * \param NewLength The new required length of the string object. 
- * This should not include space for a null terminator. If 
- * \a Growing is TRUE, \a NewLength must not be smaller than the 
+ * \param NewLength The new required length of the string object.
+ * This should not include space for a null terminator. If
+ * \a Growing is TRUE, \a NewLength must not be smaller than the
  * current allocated length.
- * \param Growing TRUE to use sizing logic for growing strings, 
+ * \param Growing TRUE to use sizing logic for growing strings,
  * otherwise FALSE to resize to the exact specified length.
  */
 VOID PhResizeFullString(
@@ -1893,7 +1893,7 @@ VOID PhResizeFullString(
     {
         assert(NewLength >= String->AllocatedLength);
 
-        // Double the string size. If that still isn't 
+        // Double the string size. If that still isn't
         // enough room, just use the new length.
         String->AllocatedLength *= 2;
 
@@ -1955,7 +1955,7 @@ VOID PhAppendFullString2(
  * Appends a string to the end of a string.
  *
  * \param String A string object.
- * \param Buffer The string to append. Specify NULL 
+ * \param Buffer The string to append. Specify NULL
  * to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */
@@ -2085,7 +2085,7 @@ VOID PhAppendFormatFullString_V(
  * Inserts a string into a string.
  *
  * \param String A string object.
- * \param Index The index, in characters, at which to 
+ * \param Index The index, in characters, at which to
  * insert the string.
  * \param ShortString The string to insert.
  */
@@ -2107,7 +2107,7 @@ VOID PhInsertFullString(
  * Inserts a string into a string.
  *
  * \param String A string object.
- * \param Index The index, in characters, at which to 
+ * \param Index The index, in characters, at which to
  * insert the string.
  * \param StringZ The string to insert.
  */
@@ -2129,9 +2129,9 @@ VOID PhInsertFullString2(
  * Inserts a string into a string.
  *
  * \param String A string object.
- * \param Index The index, in characters, at which to 
+ * \param Index The index, in characters, at which to
  * insert the string.
- * \param Buffer The string to insert. Specify NULL to 
+ * \param Buffer The string to insert. Specify NULL to
  * simply reserve \a Length bytes at \a Index.
  * \param Length The number of bytes to insert.
  */
@@ -2177,7 +2177,7 @@ VOID PhInsertFullStringEx(
  * Removes characters from a string.
  *
  * \param String A string object.
- * \param StartIndex The index, in characters, at 
+ * \param StartIndex The index, in characters, at
  * which to begin removing characters.
  * \param Count The number of characters to remove.
  */
@@ -2202,7 +2202,7 @@ VOID PhRemoveFullString(
  * Initializes a string builder object.
  *
  * \param StringBuilder A string builder object.
- * \param InitialCapacity The number of bytes to allocate 
+ * \param InitialCapacity The number of bytes to allocate
  * initially.
  */
 VOID PhInitializeStringBuilder(
@@ -2212,8 +2212,8 @@ VOID PhInitializeStringBuilder(
 {
     StringBuilder->AllocatedLength = InitialCapacity;
 
-    // Allocate a PH_STRING for the string builder. 
-    // We will dereference it and allocate a new one 
+    // Allocate a PH_STRING for the string builder.
+    // We will dereference it and allocate a new one
     // when we need to resize the string.
 
     StringBuilder->String = PhCreateStringEx(
@@ -2221,10 +2221,10 @@ VOID PhInitializeStringBuilder(
         StringBuilder->AllocatedLength
         );
 
-    // We will keep modifying the Length field of the 
+    // We will keep modifying the Length field of the
     // string so:
-    // 1. We know how much of the string is used, and 
-    // 2. The user can simply get a reference to the 
+    // 1. We know how much of the string is used, and
+    // 2. The user can simply get a reference to the
     //    string and use it as-is.
 
     StringBuilder->String->Length = 0;
@@ -2254,7 +2254,7 @@ VOID PhpResizeStringBuilder(
 {
     PPH_STRING newString;
 
-    // Double the string size. If that still isn't 
+    // Double the string size. If that still isn't
     // enough room, just use the new length.
 
     StringBuilder->AllocatedLength *= 2;
@@ -2275,7 +2275,7 @@ VOID PhpResizeStringBuilder(
     // Copy the old string length.
     newString->Length = StringBuilder->String->Length;
 
-    // Dereference the old string and replace it with 
+    // Dereference the old string and replace it with
     // the new string.
     PhDereferenceObject(StringBuilder->String);
     StringBuilder->String = newString;
@@ -2291,17 +2291,17 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
 }
 
 /**
- * Obtains a reference to the string constructed 
+ * Obtains a reference to the string constructed
  * by a string builder object.
  *
  * \param StringBuilder A string builder object.
  *
- * \return A pointer to a string. You must free 
- * the string using PhDereferenceObject() when 
+ * \return A pointer to a string. You must free
+ * the string using PhDereferenceObject() when
  * you no longer need it.
  *
- * \remarks Do not modify the string builder 
- * object after you have referenced the string. 
+ * \remarks Do not modify the string builder
+ * object after you have referenced the string.
  * Otherwise, the string may change unexpectedly.
  */
 PPH_STRING PhReferenceStringBuilderString(
@@ -2317,18 +2317,18 @@ PPH_STRING PhReferenceStringBuilderString(
 }
 
 /**
- * Obtains a reference to the string constructed 
- * by a string builder object and frees resources 
+ * Obtains a reference to the string constructed
+ * by a string builder object and frees resources
  * used by the object.
  *
  * \param StringBuilder A string builder object.
  *
- * \return A pointer to a string. You must free 
- * the string using PhDereferenceObject() when 
+ * \return A pointer to a string. You must free
+ * the string using PhDereferenceObject() when
  * you no longer need it.
  *
- * \remarks This function is equivalent to calling 
- * PhReferenceStringBuilderString() followed by 
+ * \remarks This function is equivalent to calling
+ * PhReferenceStringBuilderString() followed by
  * PhDeleteStringBuilder().
  */
 PPH_STRING PhFinalStringBuilderString(
@@ -2339,7 +2339,7 @@ PPH_STRING PhFinalStringBuilderString(
 }
 
 /**
- * Appends a string to the end of a string builder 
+ * Appends a string to the end of a string builder
  * string.
  *
  * \param StringBuilder A string builder object.
@@ -2358,7 +2358,7 @@ VOID PhAppendStringBuilder(
 }
 
 /**
- * Appends a string to the end of a string builder 
+ * Appends a string to the end of a string builder
  * string.
  *
  * \param StringBuilder A string builder object.
@@ -2377,11 +2377,11 @@ VOID PhAppendStringBuilder2(
 }
 
 /**
- * Appends a string to the end of a string builder 
+ * Appends a string to the end of a string builder
  * string.
  *
  * \param StringBuilder A string builder object.
- * \param String The string to append. Specify NULL to 
+ * \param String The string to append. Specify NULL to
  * simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */
@@ -2416,7 +2416,7 @@ VOID PhAppendStringBuilderEx(
 }
 
 /**
- * Appends a character to the end of a string builder 
+ * Appends a character to the end of a string builder
  * string.
  *
  * \param StringBuilder A string builder object.
@@ -2438,7 +2438,7 @@ VOID PhAppendCharStringBuilder(
 }
 
 /**
- * Appends a number of characters to the end of a string 
+ * Appends a number of characters to the end of a string
  * builder string.
  *
  * \param StringBuilder A string builder object.
@@ -2471,7 +2471,7 @@ VOID PhAppendCharStringBuilder2(
 }
 
 /**
- * Appends a formatted string to the end of a string builder 
+ * Appends a formatted string to the end of a string builder
  * string.
  *
  * \param StringBuilder A string builder object.
@@ -2523,7 +2523,7 @@ VOID PhAppendFormatStringBuilder_V(
  * Inserts a string into a string builder string.
  *
  * \param StringBuilder A string builder object.
- * \param Index The index, in characters, at which to 
+ * \param Index The index, in characters, at which to
  * insert the string.
  * \param String The string to insert.
  */
@@ -2545,7 +2545,7 @@ VOID PhInsertStringBuilder(
  * Inserts a string into a string builder string.
  *
  * \param StringBuilder A string builder object.
- * \param Index The index, in characters, at which to 
+ * \param Index The index, in characters, at which to
  * insert the string.
  * \param String The string to insert.
  */
@@ -2567,9 +2567,9 @@ VOID PhInsertStringBuilder2(
  * Inserts a string into a string builder string.
  *
  * \param StringBuilder A string builder object.
- * \param Index The index, in characters, at which to 
+ * \param Index The index, in characters, at which to
  * insert the string.
- * \param String The string to insert. Specify NULL to 
+ * \param String The string to insert. Specify NULL to
  * simply reserve \a Length bytes at \a Index.
  * \param Length The number of bytes to insert.
  */
@@ -2617,7 +2617,7 @@ VOID PhInsertStringBuilderEx(
  * Removes characters from a string builder string.
  *
  * \param StringBuilder A string builder object.
- * \param StartIndex The index, in characters, at 
+ * \param StartIndex The index, in characters, at
  * which to begin removing characters.
  * \param Count The number of characters to remove.
  */
@@ -2627,7 +2627,7 @@ VOID PhRemoveStringBuilder(
     __in ULONG Count
     )
 {
-    // Overwrite the removed part with the part 
+    // Overwrite the removed part with the part
     // behind it.
 
     memmove(
@@ -2642,7 +2642,7 @@ VOID PhRemoveStringBuilder(
 /**
  * Creates a list object.
  *
- * \param InitialCapacity The number of elements to 
+ * \param InitialCapacity The number of elements to
  * allocate storage for initially.
  */
 PPH_LIST PhCreateList(
@@ -2684,8 +2684,8 @@ VOID PhpListDeleteProcedure(
  * Resizes a list.
  *
  * \param List A list object.
- * \param NewCapacity The new required number of elements for 
- * which storage has been reserved. This must not be smaller 
+ * \param NewCapacity The new required number of elements for
+ * which storage has been reserved. This must not be smaller
  * than the current number of items in the list.
  */
 VOID PhResizeList(
@@ -2773,7 +2773,7 @@ __success(return != -1)
  * \param List A list object.
  * \param Item The item to search for.
  *
- * \return The index of the item. If the 
+ * \return The index of the item. If the
  * item was not found, -1 is returned.
  */
 ULONG PhFindItemList(
@@ -2872,7 +2872,7 @@ VOID PhRemoveItemList(
  * Removes items from a list.
  *
  * \param List A list object.
- * \param StartIndex The index at which to begin 
+ * \param StartIndex The index at which to begin
  * removing items.
  * \param Count The number of items to remove.
  */
@@ -2917,9 +2917,9 @@ static int __cdecl PhpListQSortCompare(
  * Sorts a list.
  *
  * \param List A list object.
- * \param CompareFunction A comparison function to 
+ * \param CompareFunction A comparison function to
  * compare two list items.
- * \param Context A user-defined value to pass to the 
+ * \param Context A user-defined value to pass to the
  * comparison function.
  *
  * \remarks Do not use this function; use qsort instead.
@@ -2947,7 +2947,7 @@ VOID PhSortList(
 /**
  * Creates a pointer list object.
  *
- * \param InitialCapacity The number of elements to 
+ * \param InitialCapacity The number of elements to
  * allocate storage for initially.
  */
 PPH_POINTER_LIST PhCreatePointerList(
@@ -2994,8 +2994,8 @@ FORCEINLINE ULONG PhpDecodePointerListIndex(
     __in PVOID Index
     )
 {
-    // At least with Microsoft's compiler, shift right on 
-    // a signed value preserves the sign. This is important 
+    // At least with Microsoft's compiler, shift right on
+    // a signed value preserves the sign. This is important
     // because we want
     // decode(encode(-1)) = ((-1 << 1) | 1) >> 1 = -1.
     return (ULONG)((LONG_PTR)Index >> 1);
@@ -3015,7 +3015,7 @@ FORCEINLINE HANDLE PhpPointerListIndexToHandle(
     __in ULONG Index
     )
 {
-    // Add one to allow NULL handles to indicate 
+    // Add one to allow NULL handles to indicate
     // failure/an invalid index.
     return (HANDLE)(Index + 1);
 }
@@ -3031,10 +3031,10 @@ FORCEINLINE ULONG PhpPointerListHandleToIndex(
  * Adds a pointer to a pointer list.
  *
  * \param PointerList A pointer list object.
- * \param Pointer The pointer to add. The pointer 
+ * \param Pointer The pointer to add. The pointer
  * must be at least 2 byte aligned.
  *
- * \return A handle to the pointer, valid until 
+ * \return A handle to the pointer, valid until
  * the pointer is removed from the pointer list.
  */
 HANDLE PhAddItemPointerList(
@@ -3105,12 +3105,12 @@ BOOLEAN PhEnumPointerListEx(
  * Locates a pointer in a pointer list.
  *
  * \param PointerList A pointer list object.
- * \param Pointer The pointer to find. The pointer 
+ * \param Pointer The pointer to find. The pointer
  * must be at least 2 byte aligned.
  *
- * \return A handle to the pointer, valid until 
- * the pointer is removed from the pointer list. 
- * If the pointer is not contained in the pointer 
+ * \return A handle to the pointer, valid until
+ * the pointer is removed from the pointer list.
+ * If the pointer is not contained in the pointer
  * list, NULL is returned.
  */
 HANDLE PhFindItemPointerList(
@@ -3135,11 +3135,11 @@ HANDLE PhFindItemPointerList(
  * Removes a pointer from a pointer list.
  *
  * \param PointerList A pointer list object.
- * \param PointerHandle A handle to the pointer 
+ * \param PointerHandle A handle to the pointer
  * to remove.
  *
- * \remarks No checking is performed on the 
- * pointer handle. Make sure the handle is valid 
+ * \remarks No checking is performed on the
+ * pointer handle. Make sure the handle is valid
  * before calling the function.
  */
 VOID PhRemoveItemPointerList(
@@ -3162,7 +3162,7 @@ VOID PhRemoveItemPointerList(
 /**
  * Creates a queue object.
  *
- * \param InitialCapacity The number of elements to 
+ * \param InitialCapacity The number of elements to
  * allocate storage for initially.
  */
 PPH_QUEUE PhCreateQueue(
@@ -3250,7 +3250,7 @@ VOID PhEnqueueItemQueue(
  * Dequeues an item from a queue.
  *
  * \param Queue A queue object.
- * \param Item A variable which receives the 
+ * \param Item A variable which receives the
  * dequeued item.
  *
  * \return TRUE if an item was dequeued,
@@ -3276,7 +3276,7 @@ BOOLEAN PhDequeueItemQueue(
  * without removing it.
  *
  * \param Queue A queue object.
- * \param Item A variable which receives the 
+ * \param Item A variable which receives the
  * item.
  *
  * \return TRUE if an item was retrieved,
@@ -3299,7 +3299,7 @@ FORCEINLINE ULONG PhpValidateHash(
     __in ULONG Hash
     )
 {
-    // No point in using a full hash when we're going to 
+    // No point in using a full hash when we're going to
     // AND with size minus one anyway.
 #if defined(PH_HASHTABLE_FULL_HASH) && !defined(PH_HASHTABLE_POWER_OF_TWO_SIZE)
     if (Hash != -1)
@@ -3337,13 +3337,13 @@ FORCEINLINE ULONG PhpGetNumberOfBuckets(
 /**
  * Creates a hashtable object.
  *
- * \param EntrySize The size of each hashtable entry, 
+ * \param EntrySize The size of each hashtable entry,
  * in bytes.
- * \param CompareFunction A comparison function that 
+ * \param CompareFunction A comparison function that
  * is executed to compare two hashtable entries.
- * \param HashFunction A hash function that is executed 
+ * \param HashFunction A hash function that is executed
  * to generate a hash code for a hashtable entry.
- * \param InitialCapacity The number of entries to 
+ * \param InitialCapacity The number of entries to
  * allocate storage for initially.
  */
 PPH_HASHTABLE PhCreateHashtable(
@@ -3407,7 +3407,7 @@ VOID PhpResizeHashtable(
     PPH_HASHTABLE_ENTRY entry;
     ULONG i;
 
-    // Re-allocate the buckets. Note that we don't need to keep the 
+    // Re-allocate the buckets. Note that we don't need to keep the
     // contents.
     Hashtable->AllocatedBuckets = PhpGetNumberOfBuckets(NewCapacity);
     PhFree(Hashtable->Buckets);
@@ -3450,7 +3450,7 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
 {
     ULONG hashCode; // hash code of the new entry
     ULONG index; // bucket index of the new entry
-    ULONG freeEntry; // index of new entry in entry array 
+    ULONG freeEntry; // index of new entry in entry array
     PPH_HASHTABLE_ENTRY entry; // pointer to new entry in entry array
 
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
@@ -3518,11 +3518,11 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
  * \param Entry The entry to add.
  *
  * \return A pointer to the entry as stored in
- * the hashtable. This pointer is valid until 
- * the hashtable is modified. If the hashtable 
+ * the hashtable. This pointer is valid until
+ * the hashtable is modified. If the hashtable
  * already contained an equal entry, NULL is returned.
  *
- * \remarks Entries are only guaranteed to be 8 byte 
+ * \remarks Entries are only guaranteed to be 8 byte
  * aligned, even on 64-bit systems.
  */
 PVOID PhAddEntryHashtable(
@@ -3546,18 +3546,18 @@ PVOID PhAddEntryHashtable(
  *
  * \param Hashtable A hashtable object.
  * \param Entry The entry to add.
- * \param Added A variable which receives TRUE if a new 
- * entry was created, and FALSE if an existing entry was 
+ * \param Added A variable which receives TRUE if a new
+ * entry was created, and FALSE if an existing entry was
  * returned.
  *
  * \return A pointer to the entry as stored in
- * the hashtable. This pointer is valid until 
- * the hashtable is modified. If the hashtable 
- * already contained an equal entry, the existing entry 
- * is returned. Check the value of \a Added to determine 
+ * the hashtable. This pointer is valid until
+ * the hashtable is modified. If the hashtable
+ * already contained an equal entry, the existing entry
+ * is returned. Check the value of \a Added to determine
  * whether the returned entry is new or existing.
  *
- * \remarks Entries are only guaranteed to be 8 byte 
+ * \remarks Entries are only guaranteed to be 8 byte
  * aligned, even on 64-bit systems.
  */
 PVOID PhAddEntryHashtableEx(
@@ -3591,21 +3591,21 @@ VOID PhClearHashtable(
  * Enumerates the entries in a hashtable.
  *
  * \param Hashtable A hashtable object.
- * \param Entry A variable which receives a pointer 
- * to the hashtable entry. The pointer is valid 
+ * \param Entry A variable which receives a pointer
+ * to the hashtable entry. The pointer is valid
  * until the hashtable is modified.
- * \param EnumerationKey A variable which is 
- * initialized to 0 before first calling this 
+ * \param EnumerationKey A variable which is
+ * initialized to 0 before first calling this
  * function.
  *
- * \return TRUE if an entry pointer was stored 
+ * \return TRUE if an entry pointer was stored
  * in \a Entry, FALSE if there are no more entries.
  *
- * \remarks Do not modify the hashtable while 
- * the hashtable is being enumerated (between calls 
- * to this function). Otherwise, the function may 
- * behave unexpectedly. You may reset the 
- * \a EnumerationKey variable to 0 if you wish to 
+ * \remarks Do not modify the hashtable while
+ * the hashtable is being enumerated (between calls
+ * to this function). Otherwise, the function may
+ * behave unexpectedly. You may reset the
+ * \a EnumerationKey variable to 0 if you wish to
  * restart the enumeration.
  */
 BOOLEAN PhEnumHashtable(
@@ -3634,17 +3634,17 @@ BOOLEAN PhEnumHashtable(
  * Locates an entry in a hashtable.
  *
  * \param Hashtable A hashtable object.
- * \param Entry An entry representing the 
+ * \param Entry An entry representing the
  * entry to find.
  *
  * \return A pointer to the entry as stored in
- * the hashtable. This pointer is valid until 
- * the hashtable is modified. If the entry 
+ * the hashtable. This pointer is valid until
+ * the hashtable is modified. If the entry
  * could not be found, NULL is returned.
  *
- * \remarks The entry specified in \a Entry 
+ * \remarks The entry specified in \a Entry
  * can be a partial entry that is filled in enough
- * so that the comparison and hash functions can 
+ * so that the comparison and hash functions can
  * work with them.
  */
 PVOID PhFindEntryHashtable(
@@ -3679,12 +3679,12 @@ PVOID PhFindEntryHashtable(
  * \param Hashtable A hashtable object.
  * \param Entry The entry to remove.
  *
- * \return TRUE if the entry was removed, 
+ * \return TRUE if the entry was removed,
  * FALSE if the entry could not be found.
  *
- * \remarks The entry specified in \a Entry 
- * can be an actual entry pointer returned 
- * by PhFindEntryHashtable, or a partial 
+ * \remarks The entry specified in \a Entry
+ * can be an actual entry pointer returned
+ * by PhFindEntryHashtable, or a partial
  * entry.
  */
 BOOLEAN PhRemoveEntryHashtable(
@@ -3956,7 +3956,7 @@ BOOLEAN PhRemoveItemSimpleHashtable(
  *
  * \param FreeList A pointer to the free list object.
  * \param Size The number of bytes in each allocation.
- * \param MaximumCount The number of unused allocations 
+ * \param MaximumCount The number of unused allocations
  * to store.
  */
 VOID PhInitializeFreeList(
@@ -3998,9 +3998,9 @@ VOID PhDeleteFreeList(
  *
  * \param FreeList A pointer to a free list object.
  *
- * \return A pointer to the allocated block of 
- * memory. The memory must be freed using 
- * PhFreeToFreeList(). The block is guaranteed to be 
+ * \return A pointer to the allocated block of
+ * memory. The memory must be freed using
+ * PhFreeToFreeList(). The block is guaranteed to be
  * aligned at MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
 PVOID PhAllocateFromFreeList(
@@ -4084,12 +4084,12 @@ VOID PhDeleteCallback(
  *
  * \param Callback A pointer to a callback object.
  * \param Function The callback function.
- * \param Context A user-defined value to pass to the 
+ * \param Context A user-defined value to pass to the
  * callback function.
- * \param Registration A variable which receives 
- * registration information for the callback. Do not 
+ * \param Registration A variable which receives
+ * registration information for the callback. Do not
  * modify the contents of this structure and do not
- * free the storage for this structure until you have 
+ * free the storage for this structure until you have
  * unregistered the callback.
  */
 VOID PhRegisterCallback(
@@ -4113,14 +4113,14 @@ VOID PhRegisterCallback(
  *
  * \param Callback A pointer to a callback object.
  * \param Function The callback function.
- * \param Context A user-defined value to pass to the 
+ * \param Context A user-defined value to pass to the
  * callback function.
- * \param Flags A combination of flags controlling the 
+ * \param Flags A combination of flags controlling the
  * callback. Set this parameter to 0.
- * \param Registration A variable which receives 
- * registration information for the callback. Do not 
+ * \param Registration A variable which receives
+ * registration information for the callback. Do not
  * modify the contents of this structure and do not
- * free the storage for this structure until you have 
+ * free the storage for this structure until you have
  * unregistered the callback.
  */
 VOID PhRegisterCallbackEx(
@@ -4146,12 +4146,12 @@ VOID PhRegisterCallbackEx(
  * Unregisters a callback function.
  *
  * \param Callback A pointer to a callback object.
- * \param Registration The structure returned by 
+ * \param Registration The structure returned by
  * PhRegisterCallback().
  *
- * \remarks It is guaranteed that the callback 
- * function will not be in execution once this function 
- * returns. Attempting to unregister a callback function 
+ * \remarks It is guaranteed that the callback
+ * function will not be in execution once this function
+ * returns. Attempting to unregister a callback function
  * from within the same function will result in a deadlock.
  */
 VOID PhUnregisterCallback(
@@ -4176,7 +4176,7 @@ VOID PhUnregisterCallback(
  * Notifies all registered callback functions.
  *
  * \param Callback A pointer to a callback object.
- * \param Parameter A value to pass to all callback 
+ * \param Parameter A value to pass to all callback
  * functions.
  */
 VOID PhInvokeCallback(
@@ -4197,7 +4197,7 @@ VOID PhInvokeCallback(
 
         registration = CONTAINING_RECORD(listEntry, PH_CALLBACK_REGISTRATION, ListEntry);
 
-        // Don't bother executing the callback function if 
+        // Don't bother executing the callback function if
         // it is being unregistered.
         if (registration->Unregistering)
             continue;
@@ -4217,7 +4217,7 @@ VOID PhInvokeCallback(
 
         if (registration->Unregistering && busy == 0)
         {
-            // Someone started unregistering while the callback 
+            // Someone started unregistering while the callback
             // function was executing, and we must wake them.
             PhPulseAllCondition(&Callback->BusyCondition);
         }
@@ -4229,7 +4229,7 @@ VOID PhInvokeCallback(
 }
 
 /**
- * Retrieves a prime number bigger than or equal to the 
+ * Retrieves a prime number bigger than or equal to the
  * specified number.
  */
 ULONG PhGetPrimeNumber(
@@ -4329,7 +4329,7 @@ ULONG64 PhExponentiate64(
 /*
  * Calculates the binary logarithm of a number.
  *
- * \return The floor of the binary logarithm of the number. 
+ * \return The floor of the binary logarithm of the number.
  * This is the same as the position of the highest set bit.
  */
 ULONG PhLog2(
@@ -4351,7 +4351,7 @@ ULONG PhLog2(
  * Converts a sequence of hexadecimal digits into a byte array.
  *
  * \param String A string containing hexadecimal digits to convert.
- * The string must have an even number of digits, because each pair 
+ * The string must have an even number of digits, because each pair
  * of hexadecimal digits represents one byte. Example: "129a2eff5c0b".
  * \param Buffer The output buffer.
  *
@@ -4412,8 +4412,8 @@ PPH_STRING PhBufferToHexString(
  * Converts a string to an integer.
  *
  * \param String The string to process.
- * \param Base The base which the string uses to 
- * represent the integer. The maximum value is 
+ * \param Base The base which the string uses to
+ * represent the integer. The maximum value is
  * 69.
  * \param Integer The resulting integer.
  */
@@ -4432,7 +4432,7 @@ BOOLEAN PhpStringToInteger64(
 
     for (i = 0; i < length; i++)
     {
-        WCHAR c; 
+        WCHAR c;
 
         c = String->Buffer[length - i - 1];
         result += PhCharToInteger[(UCHAR)c] * PhExponentiate64(Base, i);
@@ -4447,13 +4447,13 @@ BOOLEAN PhpStringToInteger64(
  * Converts a string to an integer.
  *
  * \param String The string to process.
- * \param Base The base which the string uses to 
- * represent the integer. The maximum value is 
- * 69. If the parameter is 0, the base is inferred 
+ * \param Base The base which the string uses to
+ * represent the integer. The maximum value is
+ * 69. If the parameter is 0, the base is inferred
  * from the string.
  * \param Integer The resulting integer.
  *
- * \remarks If \a Base is 0, the following prefixes 
+ * \remarks If \a Base is 0, the following prefixes
  * may be used to indicate bases:
  *
  * \li \c 0x Base 16.
@@ -4464,7 +4464,7 @@ BOOLEAN PhpStringToInteger64(
  * \li \c 0w Base 12.
  * \li \c 0r Base 32.
  *
- * If there is no recognized prefix, base 10 is 
+ * If there is no recognized prefix, base 10 is
  * used.
  */
 BOOLEAN PhStringToInteger64(
@@ -4492,7 +4492,7 @@ BOOLEAN PhStringToInteger64(
         string.Length -= sizeof(WCHAR);
     }
 
-    // If the caller specified a base, don't perform any 
+    // If the caller specified a base, don't perform any
     // additional processing.
 
     if (Base)
@@ -4557,11 +4557,11 @@ BOOLEAN PhStringToInteger64(
  * Converts an integer to a string.
  *
  * \param Integer The integer to process.
- * \param Base The base which the integer is 
- * represented with. The maximum value is 
+ * \param Base The base which the integer is
+ * represented with. The maximum value is
  * 69. The base cannot be 1.
- * \param Prefix A character to add to the 
- * beginning of the string, except when \a Integer 
+ * \param Prefix A character to add to the
+ * beginning of the string, except when \a Integer
  * is 0.
  *
  * \return The resulting string.
@@ -4665,14 +4665,14 @@ PPH_STRING PhpIntegerToString64(
  * Converts an integer to a string.
  *
  * \param Integer The integer to process.
- * \param Base The base which the integer is 
- * represented with. The maximum value is 
+ * \param Base The base which the integer is
+ * represented with. The maximum value is
  * 69. The base cannot be 1. If the parameter is 0,
  * the base used is 10.
- * \param Signed TRUE if \a Integer is a signed value, 
+ * \param Signed TRUE if \a Integer is a signed value,
  * otherwise FALSE.
  *
- * \return The resulting string, or NULL if an error 
+ * \return The resulting string, or NULL if an error
  * occurred.
  */
 PPH_STRING PhIntegerToString64(

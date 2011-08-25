@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   service provider
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -141,7 +141,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
     if (Information)
     {
         serviceItem->Name = PhCreateString(Information->lpServiceName);
-        serviceItem->Key = serviceItem->Name->sr; 
+        serviceItem->Key = serviceItem->Name->sr;
         serviceItem->DisplayName = PhCreateString(Information->lpDisplayName);
         serviceItem->Type = Information->ServiceStatusProcess.dwServiceType;
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
@@ -332,8 +332,8 @@ VOID PhUpdateProcessItemServices(
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_SERVICE_ITEM *serviceItem;
 
-    // We don't need to lock as long as the service provider 
-    // never runs concurrently with the process provider. This 
+    // We don't need to lock as long as the service provider
+    // never runs concurrently with the process provider. This
     // is currently true.
 
     PhBeginEnumHashtable(PhServiceHashtable, &enumContext);
@@ -492,8 +492,8 @@ VOID PhServiceProviderUpdate(
 
     // Build a hash set containing the service names.
 
-    // This has caused a massive decrease in background CPU usage, and 
-    // is certainly much better than the quadratic-time string comparisons 
+    // This has caused a massive decrease in background CPU usage, and
+    // is certainly much better than the quadratic-time string comparisons
     // we were doing before (in the "Look for dead services" section).
 
     nameEntriesCount = 0;
@@ -637,8 +637,8 @@ VOID PhServiceProviderUpdate(
                     }
                     else
                     {
-                        // The process doesn't exist yet (to us). Set the pending 
-                        // flag and when the process is added this will be 
+                        // The process doesn't exist yet (to us). Set the pending
+                        // flag and when the process is added this will be
                         // fixed.
                         serviceItem->PendingProcess = TRUE;
                     }
@@ -655,7 +655,7 @@ VOID PhServiceProviderUpdate(
             else
             {
                 if (
-                    serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType || 
+                    serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType ||
                     serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
                     serviceItem->ControlsAccepted != serviceEntry->ServiceStatusProcess.dwControlsAccepted ||
                     serviceItem->ProcessId != (HANDLE)serviceEntry->ServiceStatusProcess.dwProcessId ||
@@ -726,7 +726,7 @@ VOID PhServiceProviderUpdate(
                     {
                         PPH_PROCESS_ITEM processItem;
 
-                        // The service stopped and started, and the only change we have detected 
+                        // The service stopped and started, and the only change we have detected
                         // is in the process ID.
 
                         if (processItem = PhReferenceProcessItem(serviceModifiedData.OldService.ProcessId))
@@ -778,7 +778,7 @@ DWORD WINAPI PhpServiceNonPollSubscribeCallback(
 }
 
 VOID CALLBACK PhpServiceNonPollScNotifyCallback(
-    __in PVOID pParameter 
+    __in PVOID pParameter
     )
 {
     PSERVICE_NOTIFYW notifyBuffer = pParameter;
@@ -811,7 +811,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
     // * EvtSubscribe provides us with service state change events (but not pending states).
     // Currently there are two major problems with non-polling:
     // * Pending state changes are not visible.
-    // * Driver events (start, stop, delete) are not visible. This is because the SCM must 
+    // * Driver events (start, stop, delete) are not visible. This is because the SCM must
     //   explicitly check if drivers are loaded - it doesn't get notifications for them either.
 
     subscriptionHandle = EvtSubscribe_I(

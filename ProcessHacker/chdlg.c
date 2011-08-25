@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   choice dialog
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -49,7 +49,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 /**
  * Prompts the user for input.
  *
- * \remarks If \c PH_CHOICE_DIALOG_PASSWORD is specified, the string 
+ * \remarks If \c PH_CHOICE_DIALOG_PASSWORD is specified, the string
  * returned in \a SelectedChoice is NOT auto-dereferenced.
  */
 BOOLEAN PhaChoiceDialog(
@@ -114,8 +114,8 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
             type = context->Flags & PH_CHOICE_DIALOG_TYPE_MASK;
 
-            // Select the control to show, depending on the type. This is 
-            // because it is impossible to change the style of the combo box 
+            // Select the control to show, depending on the type. This is
+            // because it is impossible to change the style of the combo box
             // after it is created.
             switch (type)
             {
@@ -201,7 +201,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             }
             else if (type == PH_CHOICE_DIALOG_USER_CHOICE || type == PH_CHOICE_DIALOG_CHOICE)
             {
-                // If we failed to choose a default choice based on what was specified, 
+                // If we failed to choose a default choice based on what was specified,
                 // select the first one if possible, or set the text directly.
                 if (!(*context->SelectedChoice) || ComboBox_SelectString(
                     comboBoxHandle, -1, (*context->SelectedChoice)->Buffer) == CB_ERR)
@@ -324,7 +324,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                             if (!choice)
                                 break;
 
-                            // Don't save the choice if it's the same as the one 
+                            // Don't save the choice if it's the same as the one
                             // entered by the user (since we already saved it above).
                             if (PhEqualString(choice, selectedChoice, FALSE))
                             {

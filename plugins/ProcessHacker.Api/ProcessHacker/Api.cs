@@ -1,12 +1,12 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   API definitions
- * 
+ *
  * Copyright (C) 2011 wj32
  * Copyright (C) 2011 dmex
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -70,7 +70,7 @@ namespace ProcessHacker.Api
 
     /// <summary>
     /// A callback structure.
-    /// The callback object allows multiple callback functions 
+    /// The callback object allows multiple callback functions
     /// to be registered and notified in a thread-safe way.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
@@ -161,7 +161,7 @@ namespace ProcessHacker.Api
     /// A fast event object.
     /// </summary>
     /// <remarks>
-    /// This event object does not use a kernel event object until necessary, 
+    /// This event object does not use a kernel event object until necessary,
     /// and frees the object automatically when it is no longer needed.
     /// </remarks>
     [StructLayout(LayoutKind.Sequential)]
@@ -775,8 +775,8 @@ namespace ProcessHacker.Api
         /// A user-defined value to pass to the callback function.
         /// </param>
         /// <param name="Registration">
-        /// A variable which receives registration information for the callback. 
-        /// Do not modify the contents of this structure and do not free the storage 
+        /// A variable which receives registration information for the callback.
+        /// Do not modify the contents of this structure and do not free the storage
         /// for this structure until you have unregistered the callback.
         /// </param>
         [DllImport("ProcessHacker.exe")]
@@ -803,8 +803,8 @@ namespace ProcessHacker.Api
         /// A combination of flags controlling the callback. Set this parameter to 0.
         /// </param>
         /// <param name="Registration">
-        /// A variable which receives registration information for the callback. 
-        /// Do not modify the contents of this structure and do not free the 
+        /// A variable which receives registration information for the callback.
+        /// Do not modify the contents of this structure and do not free the
         /// storage for this structure until you have unregistered the callback.
         /// </param>
         [DllImport("ProcessHacker.exe")]
@@ -877,7 +877,7 @@ namespace ProcessHacker.Api
         /// </param>
         /// <returns>A pointer to the allocated block of memory.</returns>
         /// <remarks>
-        /// If the function fails to allocate the block of memory, it raises an exception. 
+        /// If the function fails to allocate the block of memory, it raises an exception.
         /// The block is guaranteed to be aligned at MEMORY_ALLOCATION_ALIGNMENT bytes.
         /// </remarks>
         [DllImport("ProcessHacker.exe")]
@@ -906,7 +906,7 @@ namespace ProcessHacker.Api
         /// The new size of the memory block, in bytes.
         /// </param>
         /// <returns>
-        /// A pointer to the new block of memory. 
+        /// A pointer to the new block of memory.
         /// The existing contents of the memory block are copied to the new block.
         /// </returns>
         /// <remarks>
@@ -922,11 +922,11 @@ namespace ProcessHacker.Api
         /// Allocates pages of memory.
         /// </summary>
         /// <param name="Size">
-        /// The number of bytes to allocate. 
+        /// The number of bytes to allocate.
         /// The number of pages allocated will be large enough to contain a Size bytes.
         /// </param>
         /// <param name="NewSize">
-        /// The number of bytes actually allocated. 
+        /// The number of bytes actually allocated.
         /// This is a Size rounded up to the next multiple of PAGE_SIZE.
         /// </param>
         /// <returns>
@@ -1039,7 +1039,7 @@ namespace ProcessHacker.Api
         /// </param>
         /// <returns>
         /// A NtStatus indicating the result.
-        /// STATUS_INVALID_HANDLE The handle specified in ProcessHandle or Handle is invalid. 
+        /// STATUS_INVALID_HANDLE The handle specified in ProcessHandle or Handle is invalid.
         /// STATUS_INVALID_PARAMETER_3 The value specified in ObjectTypeNumber is invalid.
         /// </returns>
         [DllImport("ProcessHacker.exe")]
@@ -1130,14 +1130,14 @@ namespace ProcessHacker.Api
         /// </summary>
         /// <param name="Object">The object to reference if it is not being deleted.</param>
         /// <returns>
-        /// TRUE if the object was referenced, FALSE if 
+        /// TRUE if the object was referenced, FALSE if
         /// it was being deleted and was not referenced.
         /// </returns>
         /// <remarks>
-        /// This function is useful if a reference to an object is held, 
-        /// protected by a mutex, and the delete procedure of the object's 
-        /// type attempts to acquire the mutex. If this function is called 
-        /// while the mutex is owned, you can avoid referencing an object 
+        /// This function is useful if a reference to an object is held,
+        /// protected by a mutex, and the delete procedure of the object's
+        /// type attempts to acquire the mutex. If this function is called
+        /// while the mutex is owned, you can avoid referencing an object
         /// that is being destroyed.
         /// </remarks>
         [DllImport("ProcessHacker.exe")]
@@ -1178,7 +1178,7 @@ namespace ProcessHacker.Api
         /// Registers a plugin with the host.
         /// </summary>
         /// <param name="Name">
-        /// A unique identifier for the plugin. 
+        /// A unique identifier for the plugin.
         /// The function fails if another plugin has already been registered with the same name.
         /// </param>
         /// <param name="DllBase">
@@ -1186,7 +1186,7 @@ namespace ProcessHacker.Api
         /// This is passed to the DllMain function.
         /// </param>
         /// <param name="Information">
-        /// A variable which receives a pointer to the plugin's additional information block. 
+        /// A variable which receives a pointer to the plugin's additional information block.
         /// This should be filled in after the function returns.
         /// </param>
         /// <returns>A pointer to the plugin instance structure, or NULL if the function failed.</returns>
@@ -1207,11 +1207,11 @@ namespace ProcessHacker.Api
         /// PH_MENU_ITEM_LOCATION_TOOLS The "Tools" menu.
         /// </param>
         /// <param name="InsertAfter">
-        /// The text of the menu item to insert the new menu item after. 
+        /// The text of the menu item to insert the new menu item after.
         /// The search is a case-insensitive prefix search that ignores prefix characters (ampersands).
         /// </param>
         /// <param name="Id">
-        /// An identifier for the menu item. This should be unique within the plugin. 
+        /// An identifier for the menu item. This should be unique within the plugin.
         /// You may also specify the following flags:
         /// PH_MENU_ITEM_SUB_MENU The menu item has a submenu.
         /// </param>
@@ -1222,8 +1222,8 @@ namespace ProcessHacker.Api
         /// If PH_MENU_ITEM_SUB_MENU is specified in \a Flags, the return value is a handle to the submenu.
         /// </returns>
         /// <remarks>
-        /// The \ref PluginCallbackMenuItem callback is invoked when the menu item is chosen, 
-        /// and the \ref PH_PLUGIN_MENU_ITEM structure will contain the \a Id and \a Context values passed to this function. 
+        /// The \ref PluginCallbackMenuItem callback is invoked when the menu item is chosen,
+        /// and the \ref PH_PLUGIN_MENU_ITEM structure will contain the \a Id and \a Context values passed to this function.
         /// </remarks>
         [DllImport("ProcessHacker.exe", CharSet = CharSet.Unicode)]
         public static extern IntPtr PhPluginAddMenuItem(
@@ -1291,7 +1291,7 @@ namespace ProcessHacker.Api
         /// <param name="Index">The history index.</param>
         /// <param name="Time">A variable which receives the time at a Index.</param>
         /// <returns>
-        /// TRUE if the function succeeded, otherwise FALSE if a ProcessItem 
+        /// TRUE if the function succeeded, otherwise FALSE if a ProcessItem
         /// was specified and a Index is too far into the past for that process item.
         /// </returns>
         [DllImport("ProcessHacker.exe")]
@@ -1465,9 +1465,9 @@ namespace ProcessHacker.Api
         /// </summary>
         /// <param name="FileName">A file name.</param>
         /// <param name="SignerName">
-        /// A variable which receives a pointer to a string 
-        /// containing the signer name. You must free the string 
-        /// using PhDereferenceObject() when you nolonger need it. 
+        /// A variable which receives a pointer to a string
+        /// containing the signer name. You must free the string
+        /// using PhDereferenceObject() when you nolonger need it.
         /// Note that the signer name may be NULL if it is not valid.
         /// </param>
         /// <returns>A VerifyResult value.</returns>

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   token properties
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -119,7 +119,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     propSheetPage.pfnCallback = PhpTokenPropPageProc;
 
     propSheetPageHandle = CreatePropertySheetPage(&propSheetPage);
-    // CreatePropertySheetPage would have sent PSPCB_ADDREF (below), 
+    // CreatePropertySheetPage would have sent PSPCB_ADDREF (below),
     // which would have added a reference.
     PhDereferenceObject(tokenPageContext);
 
@@ -532,7 +532,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 break;
                             }
 
-                            // Privileges which are enabled by default cannot be 
+                            // Privileges which are enabled by default cannot be
                             // modified except to remove them.
 
                             if (
@@ -569,7 +569,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                                 if (LOWORD(wParam) != ID_PRIVILEGE_REMOVE)
                                 {
-                                    // Refresh the status text (and background 
+                                    // Refresh the status text (and background
                                     // color).
                                     privileges[i]->Attributes = newAttributes;
                                     PhSetListViewSubItem(

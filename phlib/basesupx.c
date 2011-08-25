@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   base support functions (processor-specific)
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -119,8 +119,8 @@ __declspec(naked) unsigned short __cdecl ph_chksum(unsigned long sum, unsigned s
         mov     eax, [esp+0x8+0x0] // sum
         mov     esi, [esp+0x8+0x4] // buf
 
-        // The checksum involves summing the words in the buffer, adding the carry back 
-        // onto the low word of the checksum. We can do this more efficiently by 
+        // The checksum involves summing the words in the buffer, adding the carry back
+        // onto the low word of the checksum. We can do this more efficiently by
         // working with dwords.
 
         // Make sure the buffer has 4 byte alignment.
@@ -133,9 +133,9 @@ __declspec(naked) unsigned short __cdecl ph_chksum(unsigned long sum, unsigned s
         add     esi, 2
         sub     ecx, 1
 
-        // Since the buffer is aligned, we start clearing bits of the 
-        // count starting with 2 words. Once we reach 16 words at a time, 
-        // the higher bits are cleared by a loop. The remaining 1 word is 
+        // Since the buffer is aligned, we start clearing bits of the
+        // count starting with 2 words. Once we reach 16 words at a time,
+        // the higher bits are cleared by a loop. The remaining 1 word is
         // then cleared.
 
 do_2:
@@ -285,9 +285,9 @@ VOID FASTCALL PhxpfAddInt32Fallback(
 /**
  * Adds one array of integers to another.
  *
- * \param A The destination array to which the source 
+ * \param A The destination array to which the source
  * array is added. The array must be 16 byte aligned.
- * \param B The source array. The array must be 16 
+ * \param B The source array. The array must be 16
  * byte aligned.
  * \param Count The number of elements.
  */
@@ -335,7 +335,7 @@ VOID FASTCALL PhxfAddInt32(
 /**
  * Adds one array of integers to another.
  *
- * \param A The destination array to which the source 
+ * \param A The destination array to which the source
  * array is added.
  * \param B The source array.
  * \param Count The number of elements.
@@ -422,7 +422,7 @@ VOID FASTCALL PhxpfDivideSingleFallback(
 /**
  * Divides one array of numbers by another.
  *
- * \param A The destination array, divided by 
+ * \param A The destination array, divided by
  * the source array.
  * \param B The source array.
  * \param Count The number of elements.
@@ -509,7 +509,7 @@ VOID FASTCALL PhxpfDivideSingle2Fallback(
 /**
  * Divides an array of numbers by a number.
  *
- * \param A The destination array, divided by 
+ * \param A The destination array, divided by
  * \a B.
  * \param B The number.
  * \param Count The number of elements.

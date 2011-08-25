@@ -47,10 +47,10 @@ VOID MD5Update(
 
     t = Context->i[0];
     if ((Context->i[0] = t + ((ULONG) Length << 3)) < t)
-    Context->i[1]++;		/* Carry from low to high */
+    Context->i[1]++;        /* Carry from low to high */
     Context->i[1] += Length >> 29;
 
-    t = (t >> 3) & 0x3f;	/* Bytes already in shsInfo->data */
+    t = (t >> 3) & 0x3f;    /* Bytes already in shsInfo->data */
 
     /* Handle any leading odd-sized chunks */
 

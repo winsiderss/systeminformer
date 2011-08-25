@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   process provider
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,37 +21,37 @@
  */
 
 /*
- * This provider module handles the collection of process information and 
- * system-wide statistics. A list of all running processes is kept and 
+ * This provider module handles the collection of process information and
+ * system-wide statistics. A list of all running processes is kept and
  * periodically scanned to detect new and terminated processes.
  *
- * The retrieval of certain information is delayed in order to improve 
- * performance. This includes things such as file icons, version information, 
- * digital signature verification, and packed executable detection. These 
- * requests are handed to worker threads which then post back information 
+ * The retrieval of certain information is delayed in order to improve
+ * performance. This includes things such as file icons, version information,
+ * digital signature verification, and packed executable detection. These
+ * requests are handed to worker threads which then post back information
  * to a S-list.
  *
- * Also contained in this module is the storage of process records, which 
- * contain static information about processes. Unlike process items which are 
- * removed as soon as their corresponding process exits, process records 
- * remain as long as they are needed by the statistics system, and more 
- * specifically the max. CPU and I/O history buffers. In PH 1.x, a new 
- * formatted string was created at each update containing information about 
- * the maximum-usage process within that interval. Here we use a much more 
- * storage-efficient method, where the raw maximum-usage PIDs are stored for 
- * each interval, and the process record list is searched when the name of a 
+ * Also contained in this module is the storage of process records, which
+ * contain static information about processes. Unlike process items which are
+ * removed as soon as their corresponding process exits, process records
+ * remain as long as they are needed by the statistics system, and more
+ * specifically the max. CPU and I/O history buffers. In PH 1.x, a new
+ * formatted string was created at each update containing information about
+ * the maximum-usage process within that interval. Here we use a much more
+ * storage-efficient method, where the raw maximum-usage PIDs are stored for
+ * each interval, and the process record list is searched when the name of a
  * process is needed.
  *
- * The process record list is stored as a list of records sorted by process 
- * creation time. If two or more processes have the same creation time, they 
- * are added to a doubly-linked list. This structure allows for fast searching 
- * in the typical scenario where we know the PID of a process and a specific 
- * time in which the process was running. In this case a binary search is used 
- * and then the list is traversed backwards until the process is found. Binary 
+ * The process record list is stored as a list of records sorted by process
+ * creation time. If two or more processes have the same creation time, they
+ * are added to a doubly-linked list. This structure allows for fast searching
+ * in the typical scenario where we know the PID of a process and a specific
+ * time in which the process was running. In this case a binary search is used
+ * and then the list is traversed backwards until the process is found. Binary
  * search is similarly used for insertion and removal.
  *
- * On Windows 7 and above, CPU usage can be calculated from cycle time. However, 
- * cycle time cannot be split into kernel/user components, and cycle time is not 
+ * On Windows 7 and above, CPU usage can be calculated from cycle time. However,
+ * cycle time cannot be split into kernel/user components, and cycle time is not
  * available for DPCs and Interrupts separately (only a "system" cycle time).
  */
 
@@ -525,8 +525,8 @@ FORCEINLINE ULONG PhHashProcessItem(
  *
  * \param ProcessId The process ID of the process item.
  *
- * \remarks The hash set must be locked before calling this 
- * function. The reference count of the found process item is 
+ * \remarks The hash set must be locked before calling this
+ * function. The reference count of the found process item is
  * not incremented.
  */
 __assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
@@ -583,10 +583,10 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
 /**
  * Enumerates the process items.
  *
- * \param ProcessItems A variable which receives an array of 
- * pointers to process items. You must free the buffer with 
+ * \param ProcessItems A variable which receives an array of
+ * pointers to process items. You must free the buffer with
  * PhFree() when you no longer need it.
- * \param NumberOfProcessItems A variable which receives the 
+ * \param NumberOfProcessItems A variable which receives the
  * number of process items returned in \a ProcessItems.
  */
 VOID PhEnumProcessItems(
@@ -662,16 +662,16 @@ INT NTAPI PhpVerifyCacheCompareFunction(
 }
 
 /**
- * Verifies a file's digital signature, using a cached 
+ * Verifies a file's digital signature, using a cached
  * result if possible.
  *
  * \param FileName A file name.
- * \param SignerName A variable which receives a pointer 
- * to a string containing the signer name. You must free 
- * the string using PhDereferenceObject() when you no 
- * longer need it. Note that the signer name may be NULL 
+ * \param SignerName A variable which receives a pointer
+ * to a string containing the signer name. You must free
+ * the string using PhDereferenceObject() when you no
+ * longer need it. Note that the signer name may be NULL
  * if it is not valid.
- * \param CachedOnly Specify TRUE to fail the function when 
+ * \param CachedOnly Specify TRUE to fail the function when
  * no cached result exists.
  *
  * \return A VERIFY_RESULT value.
@@ -845,8 +845,8 @@ VOID PhpProcessQueryStage1(
 
                 if (NT_SUCCESS(status))
                 {
-                    // Some command lines (e.g. from taskeng.exe) have nulls in them. 
-                    // Since Windows can't display them, we'll replace them with 
+                    // Some command lines (e.g. from taskeng.exe) have nulls in them.
+                    // Since Windows can't display them, we'll replace them with
                     // spaces.
                     for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
                     {
@@ -936,7 +936,7 @@ VOID PhpProcessQueryStage1(
                     &Data->JobName
                     );
 
-                // Process Explorer only recognizes processes as being in jobs if they 
+                // Process Explorer only recognizes processes as being in jobs if they
                 // don't have the silent-breakaway-OK limit as their only limit.
                 // Emulate this behaviour.
                 if (NT_SUCCESS(PhGetJobBasicLimits(jobHandle, &basicLimits)))
@@ -950,7 +950,7 @@ VOID PhpProcessQueryStage1(
         }
         else
         {
-            // KProcessHacker not available. We can determine if the process is 
+            // KProcessHacker not available. We can determine if the process is
             // in a job, but we can't get a handle to the job.
 
             status = NtIsProcessInJob(processHandleLimited, NULL);
@@ -1051,7 +1051,7 @@ VOID PhpQueueProcessQueryStage1(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    // Ref: dereferenced when the provider update function removes the item from 
+    // Ref: dereferenced when the provider update function removes the item from
     // the queue.
     PhReferenceObject(ProcessItem);
     PhQueueItemGlobalWorkQueue(PhpProcessQueryStage1Worker, ProcessItem);
@@ -1133,7 +1133,7 @@ VOID PhpFillProcessItem(
 
     // Process information
     {
-        // If we're dealing with System (PID 4), we need to get the 
+        // If we're dealing with System (PID 4), we need to get the
         // kernel file name. Otherwise, get the image file name.
 
         if (ProcessItem->ProcessId != SYSTEM_PROCESS_ID)
@@ -1389,7 +1389,7 @@ VOID PhpUpdateCpuCycleInformation(
     ULONG64 total;
 
     // Idle
-    // We need to query this separately because the idle cycle time in SYSTEM_PROCESS_INFORMATION 
+    // We need to query this separately because the idle cycle time in SYSTEM_PROCESS_INFORMATION
     // doesn't give us data for individual processors.
 
     NtQuerySystemInformation(
@@ -1439,28 +1439,28 @@ VOID PhpUpdateCpuCycleUsageInformation(
     FLOAT totalTimeDelta;
     ULONG64 totalTime;
 
-    // Cycle time is not only lacking for kernel/user components, but also for individual 
-    // processors. We can get the total idle cycle time for individual processors but 
-    // without knowing the total cycle time for individual processors, this information 
+    // Cycle time is not only lacking for kernel/user components, but also for individual
+    // processors. We can get the total idle cycle time for individual processors but
+    // without knowing the total cycle time for individual processors, this information
     // is useless.
     //
-    // We'll start by calculating the total CPU usage, then we'll calculate the kernel/user 
-    // components. In the event that the corresponding CPU time deltas are zero, we'll split 
-    // the CPU usage evenly across the kernel/user components. CPU usage for individual 
+    // We'll start by calculating the total CPU usage, then we'll calculate the kernel/user
+    // components. In the event that the corresponding CPU time deltas are zero, we'll split
+    // the CPU usage evenly across the kernel/user components. CPU usage for individual
     // processors is left untouched, because it's too difficult to provide an estimate.
     //
-    // Let I_1, I_2, ..., I_n be the idle cycle times and T_1, T_2, ..., T_n be the 
-    // total cycle times. Let I'_1, I'_2, ..., I'_n be the idle CPU times and T'_1, T'_2, ..., 
+    // Let I_1, I_2, ..., I_n be the idle cycle times and T_1, T_2, ..., T_n be the
+    // total cycle times. Let I'_1, I'_2, ..., I'_n be the idle CPU times and T'_1, T'_2, ...,
     // T'_n be the total CPU times.
-    // We know all I'_n, T'_n and I_n, but we only know sigma(T). The "real" total CPU usage is 
-    // sigma(I)/sigma(T), and the "real" individual CPU usage is I_n/T_n. The problem is that 
-    // we don't know T_n; we only know sigma(T). Hence we need to find values i_1, i_2, ..., i_n 
+    // We know all I'_n, T'_n and I_n, but we only know sigma(T). The "real" total CPU usage is
+    // sigma(I)/sigma(T), and the "real" individual CPU usage is I_n/T_n. The problem is that
+    // we don't know T_n; we only know sigma(T). Hence we need to find values i_1, i_2, ..., i_n
     // and t_1, t_2, ..., t_n such that:
-    // sigma(i)/sigma(t) ~= sigma(I)/sigma(T), and 
+    // sigma(i)/sigma(t) ~= sigma(I)/sigma(T), and
     // i_n/t_n ~= I_n/T_n
     //
     // Solution 1: Set i_n = I_n and t_n = sigma(T)*T'_n/sigma(T'). Then:
-    // sigma(i)/sigma(t) = sigma(I)/(sigma(T)*sigma(T')/sigma(T')) = sigma(I)/sigma(T), and 
+    // sigma(i)/sigma(t) = sigma(I)/(sigma(T)*sigma(T')/sigma(T')) = sigma(I)/sigma(T), and
     // i_n/t_n = I_n/T'_n*sigma(T')/sigma(T) ~= I_n/T_n since I_n/T'_n ~= I_n/T_n and sigma(T')/sigma(T) ~= 1.
     // However, it is not guaranteed that i_n/t_n <= 1, which may lead to CPU usages over 100% being displayed.
     //
@@ -1568,13 +1568,13 @@ VOID PhpUpdateSystemHistory(
 /**
  * Retrieves a time value recorded by the statistics system.
  *
- * \param ProcessItem A process item to synchronize with, or NULL if 
+ * \param ProcessItem A process item to synchronize with, or NULL if
  * no synchronization is necessary.
  * \param Index The history index.
  * \param Time A variable which receives the time at \a Index.
  *
- * \return TRUE if the function succeeded, otherwise FALSE if 
- * \a ProcessItem was specified and \a Index is too far into the 
+ * \return TRUE if the function succeeded, otherwise FALSE if
+ * \a ProcessItem was specified and \a Index is too far into the
  * past for that process item.
  */
 BOOLEAN PhGetStatisticsTime(
@@ -1589,7 +1589,7 @@ BOOLEAN PhGetStatisticsTime(
 
     if (ProcessItem)
     {
-        // The sequence number is used to synchronize statistics when a process exits, since 
+        // The sequence number is used to synchronize statistics when a process exits, since
         // that process' history is not updated anymore.
         index = PhTimeSequenceNumber - ProcessItem->SequenceNumber + Index;
 
@@ -1673,9 +1673,9 @@ VOID PhProcessProviderUpdate(
     static PSYSTEM_PROCESS_INFORMATION pidBuckets[PROCESS_ID_BUCKETS];
 
     // Note about locking:
-    // Since this is the only function that is allowed to 
-    // modify the process hashtable, locking is not needed 
-    // for shared accesses. However, exclusive accesses 
+    // Since this is the only function that is allowed to
+    // modify the process hashtable, locking is not needed
+    // for shared accesses. However, exclusive accesses
     // need locking.
 
     PVOID processes;
@@ -1769,28 +1769,28 @@ VOID PhProcessProviderUpdate(
 
     // Notes on cycle-based CPU usage:
     //
-    // Cycle-based CPU usage is a bit tricky to calculate because we cannot get 
-    // the total number of cycles consumed by all processes since system startup - we 
-    // can only get total number of cycles per process. This means there are two ways 
+    // Cycle-based CPU usage is a bit tricky to calculate because we cannot get
+    // the total number of cycles consumed by all processes since system startup - we
+    // can only get total number of cycles per process. This means there are two ways
     // to calculate the system-wide cycle time delta:
     //
-    // 1. Each update, sum the cycle times of all processes, and calculate the system-wide 
+    // 1. Each update, sum the cycle times of all processes, and calculate the system-wide
     //    delta from this. Process Explorer seems to do this.
-    // 2. Each update, calculate the cycle time delta for each individual process, and 
+    // 2. Each update, calculate the cycle time delta for each individual process, and
     //    sum these deltas to create the system-wide delta. We use this here.
     //
-    // The first method is simpler but has a problem when a process exits and its cycle time 
-    // is no longer counted in the system-wide total. This may cause the delta to be 
-    // negative and all other calculations to become invalid. Process Explorer simply ignores 
-    // this fact and treats the system-wide delta as unsigned (and therefore huge when negative), 
+    // The first method is simpler but has a problem when a process exits and its cycle time
+    // is no longer counted in the system-wide total. This may cause the delta to be
+    // negative and all other calculations to become invalid. Process Explorer simply ignores
+    // this fact and treats the system-wide delta as unsigned (and therefore huge when negative),
     // leading to all CPU usages being displayed as "< 0.01".
     //
-    // The second method is used here, but the adjustments must be done before the main new/modified 
+    // The second method is used here, but the adjustments must be done before the main new/modified
     // pass. We need take into account new, existing and terminated processes.
 
-    // Create the PID hash set. This contains the process information structures returned by 
+    // Create the PID hash set. This contains the process information structures returned by
     // PhEnumProcesses, distinct from the process item hash set.
-    // Note that we use the UniqueProcessKey field as the next node pointer to avoid having to 
+    // Note that we use the UniqueProcessKey field as the next node pointer to avoid having to
     // allocate extra memory.
 
     memset(pidBuckets, 0, sizeof(pidBuckets));
@@ -1825,7 +1825,7 @@ VOID PhProcessProviderUpdate(
     } while (process = PH_NEXT_PROCESS(process));
 
     // Add the fake processes to the PID list.
-    // On Windows 7 the two fake processes are merged into "Interrupts" since we can only get 
+    // On Windows 7 the two fake processes are merged into "Interrupts" since we can only get
     // cycle time information both DPCs and Interrupts combined.
 
     if (isCycleCpuUsageEnabled)
@@ -1854,7 +1854,7 @@ VOID PhProcessProviderUpdate(
             {
                 processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
 
-                // Check if the process still exists. Note that we take into account PID re-use by 
+                // Check if the process still exists. Note that we take into account PID re-use by
                 // checking CreateTime as well.
 
                 if (processItem->ProcessId == DPCS_PROCESS_ID)
@@ -1894,12 +1894,12 @@ VOID PhProcessProviderUpdate(
                         {
                             if (NT_SUCCESS(PhGetProcessCycleTime(processItem->QueryHandle, &finalCycleTime)))
                             {
-                                // Adjust deltas for the terminated process because this doesn't get 
+                                // Adjust deltas for the terminated process because this doesn't get
                                 // picked up anywhere else.
                                 //
-                                // Note that if we don't have sufficient access to the process, the worst 
-                                // that will happen is that the CPU usages of other processes will get 
-                                // inflated. (See above; if we were using the first technique, we could 
+                                // Note that if we don't have sufficient access to the process, the worst
+                                // that will happen is that the CPU usages of other processes will get
+                                // inflated. (See above; if we were using the first technique, we could
                                 // get negative deltas, which is much worse.)
                                 sysTotalCycleTime += finalCycleTime - processItem->CycleTimeDelta.Value;
                             }
@@ -2021,8 +2021,8 @@ VOID PhProcessProviderUpdate(
 
             processItem->IsSuspended = isSuspended;
 
-            // If this is the first run of the provider, queue the 
-            // process query tasks. Otherwise, perform stage 1 
+            // If this is the first run of the provider, queue the
+            // process query tasks. Otherwise, perform stage 1
             // processing now and queue stage 2 processing.
             if (runCount > 0)
             {
@@ -2052,7 +2052,7 @@ VOID PhProcessProviderUpdate(
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
 
             // (Ref: for the process item being in the hashtable.)
-            // Instead of referencing then dereferencing we simply don't 
+            // Instead of referencing then dereferencing we simply don't
             // do anything.
             // Dereferenced in PhpRemoveProcessItem.
         }
@@ -2101,9 +2101,9 @@ VOID PhProcessProviderUpdate(
 
                 newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / sysTotalCycleTime;
 
-                // Calculate the kernel/user CPU usage based on the kernel/user time. If the kernel and 
-                // user deltas are both zero, we'll just have to use an estimate. Currently, we split 
-                // the CPU usage evenly across the kernel and user components, except when the total 
+                // Calculate the kernel/user CPU usage based on the kernel/user time. If the kernel and
+                // user deltas are both zero, we'll just have to use an estimate. Currently, we split
+                // the CPU usage evenly across the kernel and user components, except when the total
                 // user time is zero, in which case we assign it all to the kernel component.
 
                 totalDelta = (FLOAT)(processItem->CpuKernelDelta.Delta + processItem->CpuUserDelta.Delta);
@@ -2199,7 +2199,7 @@ VOID PhProcessProviderUpdate(
             // No reference added by PhpLookupProcessItem.
         }
 
-        // Trick ourselves into thinking that the fake processes 
+        // Trick ourselves into thinking that the fake processes
         // are on the list.
         if (process == &PhInterruptsProcessInformation)
         {
@@ -2235,7 +2235,7 @@ VOID PhProcessProviderUpdate(
     }
 
     // History cannot be updated on the first run because the deltas are invalid.
-    // For example, the I/O "deltas" will be huge because they are currently the 
+    // For example, the I/O "deltas" will be huge because they are currently the
     // raw accumulated values.
     if (runCount != 0)
     {
@@ -2244,7 +2244,7 @@ VOID PhProcessProviderUpdate(
 
         PhpUpdateSystemHistory();
 
-        // Note that we need to add a reference to the records of these processes, to 
+        // Note that we need to add a reference to the records of these processes, to
         // make it possible for others to get the name of a max. CPU or I/O process.
 
         if (maxCpuProcessItem)
@@ -2522,9 +2522,9 @@ PPH_PROCESS_RECORD PhpFindProcessRecord(
  * \param ProcessId The ID of the process.
  * \param Time A time in which the process was active.
  *
- * \return The newest record older than \a Time, or NULL 
- * if the record could not be found. You must call 
- * PhDereferenceProcessRecord() when you no longer need 
+ * \return The newest record older than \a Time, or NULL
+ * if the record could not be found. You must call
+ * PhDereferenceProcessRecord() when you no longer need
  * the record.
  */
 PPH_PROCESS_RECORD PhFindProcessRecord(
@@ -2545,7 +2545,7 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
 
     if (!processRecord)
     {
-        // This is expected. Now we search backwards to find the newest matching element 
+        // This is expected. Now we search backwards to find the newest matching element
         // older than the given time.
 
         found = FALSE;
@@ -2597,7 +2597,7 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
 
     if (found)
     {
-        // The record might have had its last reference just cleared but it hasn't 
+        // The record might have had its last reference just cleared but it hasn't
         // been removed from the list yet.
         if (!PhReferenceProcessRecordSafe(processRecord))
             found = FALSE;
@@ -2645,12 +2645,12 @@ VOID PhPurgeProcessRecords(
 
             if ((processRecord->Flags & requiredFlags) == requiredFlags)
             {
-                // Check if the process exit time is before the oldest statistics time. 
+                // Check if the process exit time is before the oldest statistics time.
                 // If so we can dereference the process record.
                 if (processRecord->ExitTime.QuadPart < threshold.QuadPart)
                 {
-                    // Clear the stat ref bit; this is to make sure we don't try to 
-                    // dereference the record twice (e.g. if someone else currently holds 
+                    // Clear the stat ref bit; this is to make sure we don't try to
+                    // dereference the record twice (e.g. if someone else currently holds
                     // a reference to the record and it doesn't get removed immediately).
                     processRecord->Flags &= ~PH_PROCESS_RECORD_STAT_REF;
 
@@ -2693,8 +2693,8 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
 
     processItem = PhpLookupProcessItem(ParentProcessId);
 
-    // We make sure that the process item we found is actually the parent 
-    // process - its start time must not be larger than the supplied 
+    // We make sure that the process item we found is actually the parent
+    // process - its start time must not be larger than the supplied
     // time.
     if (processItem && processItem->CreateTime.QuadPart <= CreateTime->QuadPart)
         PhReferenceObject(processItem);

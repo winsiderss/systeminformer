@@ -1,11 +1,11 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   memory allocation wrapper
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -109,7 +109,7 @@ namespace ProcessHacker.Native
 
             if (this.Size > 0)
                 GC.RemoveMemoryPressure(this.Size);
-            
+
             this.Size = newSize;
 
 #if ENABLE_STATISTICS
@@ -120,7 +120,7 @@ namespace ProcessHacker.Native
         }
 
         /// <summary>
-        /// Resizes the memory allocation without retaining the contents 
+        /// Resizes the memory allocation without retaining the contents
         /// of the allocated memory.
         /// </summary>
         /// <param name="newSize">The new size of the allocation.</param>

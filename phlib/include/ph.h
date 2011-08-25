@@ -173,11 +173,11 @@ NTSTATUS PhGetProcessPebString(
 /**
  * Gets a process' command line.
  *
- * \param ProcessHandle A handle to a process. The handle must 
- * have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ 
+ * \param ProcessHandle A handle to a process. The handle must
+ * have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ
  * access.
- * \param String A variable which receives a pointer to a 
- * string containing the command line. You must free the string 
+ * \param String A variable which receives a pointer to a
+ * string containing the command line. You must free the string
  * using PhDereferenceObject() when you no longer need it.
  */
 #define PhGetProcessCommandLine(ProcessHandle, String) \
@@ -343,15 +343,15 @@ typedef struct _PH_THREAD_STACK_FRAME
 #define PH_WALK_KERNEL_STACK 0x10
 
 /**
- * A callback function passed to PhWalkThreadStack() 
+ * A callback function passed to PhWalkThreadStack()
  * and called for each stack frame.
  *
- * \param StackFrame A structure providing information about 
+ * \param StackFrame A structure providing information about
  * the stack frame.
- * \param Context A user-defined value passed to 
+ * \param Context A user-defined value passed to
  * PhWalkThreadStack().
  *
- * \return TRUE to continue the stack walk, FALSE to 
+ * \return TRUE to continue the stack walk, FALSE to
  * stop.
  */
 typedef BOOLEAN (NTAPI *PPH_WALK_THREAD_STACK_CALLBACK)(
@@ -449,7 +449,7 @@ typedef enum _PH_INTEGRITY
 PHLIBAPI
 NTSTATUS PhGetTokenIntegrityLevel(
     __in HANDLE TokenHandle,
-    __out_opt PPH_INTEGRITY IntegrityLevel, 
+    __out_opt PPH_INTEGRITY IntegrityLevel,
     __out_opt PWSTR *IntegrityString
     );
 
@@ -536,15 +536,15 @@ NTSTATUS PhDuplicateObject(
 #define PH_ENUM_PROCESS_MODULES_ITERS 0x800
 
 /**
- * A callback function passed to PhEnumProcessModules() 
+ * A callback function passed to PhEnumProcessModules()
  * and called for each process module.
  *
- * \param Module A structure providing information about 
+ * \param Module A structure providing information about
  * the module.
- * \param Context A user-defined value passed to 
+ * \param Context A user-defined value passed to
  * PhEnumProcessModules().
  *
- * \return TRUE to continue the enumeration, FALSE to 
+ * \return TRUE to continue the enumeration, FALSE to
  * stop.
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
@@ -605,22 +605,22 @@ PPH_STRING PhGetKernelFileName(
     );
 
 /**
- * Gets a pointer to the first process information 
+ * Gets a pointer to the first process information
  * structure in a buffer returned by PhEnumProcesses().
  *
- * \param Processes A pointer to a buffer returned 
+ * \param Processes A pointer to a buffer returned
  * by PhEnumProcesses().
  */
 #define PH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
 
 /**
- * Gets a pointer to the process information structure 
+ * Gets a pointer to the process information structure
  * after a given structure.
  *
- * \param Process A pointer to a process information 
+ * \param Process A pointer to a process information
  * structure.
  *
- * \return A pointer to the next process information 
+ * \return A pointer to the next process information
  * structure, or NULL if there are no more.
  */
 #define PH_NEXT_PROCESS(Process) ( \
@@ -663,7 +663,7 @@ NTSTATUS PhEnumHandlesEx(
     );
 
 #define PH_FIRST_PAGEFILE(Pagefiles) ( \
-    /* The size of a pagefile can never be 0. A TotalSize of 0 
+    /* The size of a pagefile can never be 0. A TotalSize of 0
      * is used to indicate that there are no pagefiles.
      */ ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefiles))->TotalSize ? \
     (PSYSTEM_PAGEFILE_INFORMATION)(Pagefiles) : \
@@ -718,15 +718,15 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
     );
 
 /**
- * A callback function passed to PhEnumDirectoryObjects() 
+ * A callback function passed to PhEnumDirectoryObjects()
  * and called for each directory object.
  *
  * \param Name The name of the object.
  * \param TypeName The name of the object's type.
- * \param Context A user-defined value passed to 
+ * \param Context A user-defined value passed to
  * PhEnumDirectoryObjects().
  *
- * \return TRUE to continue the enumeration, FALSE to 
+ * \return TRUE to continue the enumeration, FALSE to
  * stop.
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_OBJECTS)(
@@ -814,15 +814,15 @@ typedef struct _PH_MODULE_INFO
 } PH_MODULE_INFO, *PPH_MODULE_INFO;
 
 /**
- * A callback function passed to PhEnumGenericModules() 
+ * A callback function passed to PhEnumGenericModules()
  * and called for each process module.
  *
- * \param Module A structure providing information about 
+ * \param Module A structure providing information about
  * the module.
- * \param Context A user-defined value passed to 
+ * \param Context A user-defined value passed to
  * PhEnumGenericModules().
  *
- * \return TRUE to continue the enumeration, FALSE to 
+ * \return TRUE to continue the enumeration, FALSE to
  * stop.
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_GENERIC_MODULES_CALLBACK)(
@@ -1409,17 +1409,17 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
     );
 
 // Core flags (PhCreateFileStream2)
-/** Indicates that the file stream object should not close the file handle 
+/** Indicates that the file stream object should not close the file handle
  * upon deletion. */
 #define PH_FILE_STREAM_HANDLE_UNOWNED 0x1
 /** Indicates that the file stream object should not buffer I/O operations.
  * Note that this does not prevent the operating system from buffering I/O. */
 #define PH_FILE_STREAM_UNBUFFERED 0x2
-/** Indicates that the file handle supports asynchronous operations. 
- * The file handle must not have been opened with FILE_SYNCHRONOUS_IO_ALERT 
+/** Indicates that the file handle supports asynchronous operations.
+ * The file handle must not have been opened with FILE_SYNCHRONOUS_IO_ALERT
  * or FILE_SYNCHRONOUS_IO_NONALERT. */
 #define PH_FILE_STREAM_ASYNCHRONOUS 0x4
-/** Indicates that the file stream object should maintain the file position 
+/** Indicates that the file stream object should maintain the file position
  * and not use the file object's own file position. */
 #define PH_FILE_STREAM_OWN_POSITION 0x8
 

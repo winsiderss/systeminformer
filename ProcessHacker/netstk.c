@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   network stack viewer
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -30,7 +30,7 @@ typedef struct NETWORK_STACK_CONTEXT
     HANDLE LoadingProcessId;
 } NETWORK_STACK_CONTEXT, *PNETWORK_STACK_CONTEXT;
 
-INT_PTR CALLBACK PhpNetworkStackDlgProc(      
+INT_PTR CALLBACK PhpNetworkStackDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -47,8 +47,8 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     PNETWORK_STACK_CONTEXT context = Context;
     PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
 
-    // If we're loading kernel module symbols for a process other than 
-    // System, ignore modules which are in user space. This may happen 
+    // If we're loading kernel module symbols for a process other than
+    // System, ignore modules which are in user space. This may happen
     // in Windows 7.
     if (
         context->LoadingProcessId == SYSTEM_PROCESS_ID &&
@@ -114,9 +114,9 @@ VOID PhShowNetworkStackDialog(
         );
 
     PhDereferenceObject(networkStackContext.SymbolProvider);
-} 
+}
 
-static INT_PTR CALLBACK PhpNetworkStackDlgProc(      
+static INT_PTR CALLBACK PhpNetworkStackDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

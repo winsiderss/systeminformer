@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   object security editor
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -61,9 +61,9 @@ FORCEINLINE VOID PhpSecurityEditorInitialization(
  * Creates a security editor page.
  *
  * \param ObjectName The name of the object.
- * \param GetObjectSecurity A callback function executed to retrieve 
+ * \param GetObjectSecurity A callback function executed to retrieve
  * the security descriptor of the object.
- * \param SetObjectSecurity A callback function executed to modify 
+ * \param SetObjectSecurity A callback function executed to modify
  * the security descriptor of the object.
  * \param Context A user-defined value to pass to the callback functions.
  * \param AccessEntries An array of access mask descriptors.
@@ -107,9 +107,9 @@ HPROPSHEETPAGE PhCreateSecurityPage(
  *
  * \param hWnd The parent window of the dialog.
  * \param ObjectName The name of the object.
- * \param GetObjectSecurity A callback function executed to retrieve 
+ * \param GetObjectSecurity A callback function executed to retrieve
  * the security descriptor of the object.
- * \param SetObjectSecurity A callback function executed to modify 
+ * \param SetObjectSecurity A callback function executed to modify
  * the security descriptor of the object.
  * \param Context A user-defined value to pass to the callback functions.
  * \param AccessEntries An array of access mask descriptors.
@@ -360,14 +360,14 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
 /**
  * Retrieves the security descriptor of an object.
  *
- * \param SecurityDescriptor A variable which receives a pointer to 
- * the security descriptor of the object. The security descriptor 
+ * \param SecurityDescriptor A variable which receives a pointer to
+ * the security descriptor of the object. The security descriptor
  * must be freed using PhFree() when no longer needed.
  * \param SecurityInformation The security information to retrieve.
- * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure 
+ * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure
  * describing the object.
  *
- * \remarks This function may be used for the \a GetObjectSecurity 
+ * \remarks This function may be used for the \a GetObjectSecurity
  * callback in PhCreateSecurityPage() or PhEditSecurity().
  */
 __callback NTSTATUS PhStdGetObjectSecurity(
@@ -408,13 +408,13 @@ __callback NTSTATUS PhStdGetObjectSecurity(
 /**
  * Modifies the security descriptor of an object.
  *
- * \param SecurityDescriptor A security descriptor containing 
+ * \param SecurityDescriptor A security descriptor containing
  * security information to set.
  * \param SecurityInformation The security information to retrieve.
- * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure 
+ * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure
  * describing the object.
  *
- * \remarks This function may be used for the \a SetObjectSecurity 
+ * \remarks This function may be used for the \a SetObjectSecurity
  * callback in PhCreateSecurityPage() or PhEditSecurity().
  */
 __callback NTSTATUS PhStdSetObjectSecurity(

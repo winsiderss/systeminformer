@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   hex editor control
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -1426,7 +1426,7 @@ VOID PhpHexEditMove(
         SendMessage(hwnd, WM_VSCROLL, SB_LINEDOWN, 0);
 
     Context->NoAddressChange = FALSE;
-    PhpHexEditRepositionCaret(hwnd, Context, Context->CurrentAddress); 
+    PhpHexEditRepositionCaret(hwnd, Context, Context->CurrentAddress);
 }
 
 VOID PhpHexEditSetSel(

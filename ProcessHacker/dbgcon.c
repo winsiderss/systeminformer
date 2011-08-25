@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   debug console
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,8 +21,8 @@
  */
 
 /*
- * This is a simple debugging console which is able to explore phlib's 
- * systems easily. Commands are provided to debug reference counting 
+ * This is a simple debugging console which is able to explore phlib's
+ * systems easily. Commands are provided to debug reference counting
  * problems and memory usage, as well as to do general performance testing.
  */
 
@@ -72,7 +72,7 @@ VOID PhShowDebugConsole(
     {
         HMENU menu;
 
-        // Disable the close button because it's impossible to handle 
+        // Disable the close button because it's impossible to handle
         // those events.
         menu = GetSystemMenu(GetConsoleWindow(), FALSE);
         EnableMenuItem(menu, SC_CLOSE, MF_GRAYED | MF_DISABLED);
@@ -620,7 +620,7 @@ static VOID PhpTestRwLock(
 
     for (i = 0; i < RW_PROCESSORS; i++)
     {
-        threadHandles[i] = PhCreateThread(0, PhpRwLockTestThreadStart, Context); 
+        threadHandles[i] = PhCreateThread(0, PhpRwLockTestThreadStart, Context);
     }
 
     PhWaitForBarrier(&RwStartBarrier, FALSE);
@@ -659,7 +659,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
     )
 {
-    PH_AUTO_POOL autoPool; 
+    PH_AUTO_POOL autoPool;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -1126,7 +1126,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             PhpDeleteNewObjectList();
             PhReleaseQueuedLockExclusive(&NewObjectListLock);
 
-            // Creation needs to be done outside of the lock, 
+            // Creation needs to be done outside of the lock,
             // otherwise a deadlock will occur.
             NewObjectList = PhCreateList(100);
 #else
@@ -1420,8 +1420,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 PhInitializeStringRef(&filterRef, filterString);
 
-                // Never interpret the filter string as a process ID if it isn't 
-                // base 10, to reduce FPs (since PhStringToInteger64 never actually fails 
+                // Never interpret the filter string as a process ID if it isn't
+                // base 10, to reduce FPs (since PhStringToInteger64 never actually fails
                 // regardless of what characters are in the input).
 
                 length = filterRef.Length / 2;
@@ -1438,7 +1438,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                         processIdFilter = (LONG_PTR)filter64;
                 }
 
-                // Always try to interpret the filter string as an address or image name, 
+                // Always try to interpret the filter string as an address or image name,
                 // because these have very few false positives.
                 if (PhStringToInteger64(&filterRef, 16, &filter64))
                     processAddressFilter = (ULONG_PTR)filter64;

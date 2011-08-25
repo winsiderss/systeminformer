@@ -1451,7 +1451,7 @@ typedef NTSTATUS (NTAPI *PSAM_DELTA_NOTIFICATION_ROUTINE)(
     __in ULONG ObjectRid,
     __in_opt PUNICODE_STRING ObjectName,
     __in PLARGE_INTEGER ModifiedCount,
-    __in_opt PSAM_DELTA_DATA DeltaData 
+    __in_opt PSAM_DELTA_DATA DeltaData
     );
 
 #define SAM_DELTA_NOTIFY_ROUTINE "DeltaNotify"

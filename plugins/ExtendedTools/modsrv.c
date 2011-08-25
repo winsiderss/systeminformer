@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   services referencing module
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -30,7 +30,7 @@ typedef struct _MODULE_SERVICES_CONTEXT
     PWSTR ModuleName;
 } MODULE_SERVICES_CONTEXT, *PMODULE_SERVICES_CONTEXT;
 
-INT_PTR CALLBACK EtpModuleServicesDlgProc(      
+INT_PTR CALLBACK EtpModuleServicesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -57,7 +57,7 @@ VOID EtShowModuleServicesDialog(
         );
 }
 
-INT_PTR CALLBACK EtpModuleServicesDlgProc(      
+INT_PTR CALLBACK EtpModuleServicesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

@@ -1,11 +1,11 @@
 /*
- * Process Hacker .NET Tools - 
+ * Process Hacker .NET Tools -
  *   .NET Performance property page
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -458,7 +458,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             context->ProcessItem = processItem;
             context->Enabled = TRUE;
 
-            // The .NET counters remove the file name extension in the instance names, even if the 
+            // The .NET counters remove the file name extension in the instance names, even if the
             // extension is something other than ".exe".
 
             indexOfLastDot = PhFindLastCharInString(context->ProcessItem->ProcessName, 0, '.');

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   plugin support
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -291,9 +291,9 @@ VOID PhLoadPlugins(
         NtClose(pluginsDirectoryHandle);
     }
 
-    // When we loaded settings before, we didn't know about plugin settings, so they 
-    // went into the ignored settings list. Now that they've had a chance to add 
-    // settings, we should scan the ignored settings list and move the settings to 
+    // When we loaded settings before, we didn't know about plugin settings, so they
+    // went into the ignored settings list. Now that they've had a chance to add
+    // settings, we should scan the ignored settings list and move the settings to
     // the right places.
     if (PhSettingsFileName)
         PhConvertIgnoredSettings();
@@ -594,17 +594,17 @@ BOOLEAN PhpValidatePluginName(
 /**
  * Registers a plugin with the host.
  *
- * \param Name A unique identifier for the plugin. The function fails 
- * if another plugin has already been registered with the same name. The 
- * name must only contain alphanumeric characters, spaces, dots and 
+ * \param Name A unique identifier for the plugin. The function fails
+ * if another plugin has already been registered with the same name. The
+ * name must only contain alphanumeric characters, spaces, dots and
  * underscores.
- * \param DllBase The base address of the plugin DLL. This is passed 
+ * \param DllBase The base address of the plugin DLL. This is passed
  * to the DllMain function.
- * \param Information A variable which receives a pointer to the 
- * plugin's additional information block. This should be filled in after 
+ * \param Information A variable which receives a pointer to the
+ * plugin's additional information block. This should be filled in after
  * the function returns.
  *
- * \return A pointer to the plugin instance structure, or NULL if the 
+ * \return A pointer to the plugin instance structure, or NULL if the
  * function failed.
  */
 PPH_PLUGIN PhRegisterPlugin(
@@ -678,7 +678,7 @@ PPH_PLUGIN PhRegisterPlugin(
  *
  * \param Name The name of the plugin.
  *
- * \return A plugin instance structure, or NULL if the plugin 
+ * \return A plugin instance structure, or NULL if the plugin
  * was not found.
  */
 PPH_PLUGIN PhFindPlugin(
@@ -703,7 +703,7 @@ PPH_PLUGIN PhFindPlugin(
  * \param Plugin A plugin instance structure.
  * \param Callback The type of callback.
  *
- * \remarks The program invokes plugin callbacks for notifications 
+ * \remarks The program invokes plugin callbacks for notifications
  * specific to a plugin.
  */
 PPH_CALLBACK PhGetPluginCallback(
@@ -722,7 +722,7 @@ PPH_CALLBACK PhGetPluginCallback(
  *
  * \param Callback The type of callback.
  *
- * \remarks The program invokes general callbacks for system-wide 
+ * \remarks The program invokes general callbacks for system-wide
  * notifications.
  */
 PPH_CALLBACK PhGetGeneralCallback(
@@ -742,7 +742,7 @@ PPH_CALLBACK PhGetGeneralCallback(
  *
  * \return The start of the reserved range.
  *
- * \remarks The identifiers reserved by this function are 
+ * \remarks The identifiers reserved by this function are
  * guaranteed to be unique throughout the program.
  */
 ULONG PhPluginReserveIds(
@@ -764,21 +764,21 @@ ULONG PhPluginReserveIds(
  * \param Location A handle to the parent menu, or one of the following:
  * \li \c PH_MENU_ITEM_LOCATION_VIEW The "View" menu.
  * \li \c PH_MENU_ITEM_LOCATION_TOOLS The "Tools" menu.
- * \param InsertAfter The text of the menu item to insert the 
- * new menu item after. The search is a case-insensitive prefix search 
+ * \param InsertAfter The text of the menu item to insert the
+ * new menu item after. The search is a case-insensitive prefix search
  * that ignores prefix characters (ampersands).
- * \param Id An identifier for the menu item. This should be unique 
+ * \param Id An identifier for the menu item. This should be unique
  * within the plugin. You may also specify the following flags:
  * \li \c PH_MENU_ITEM_SUB_MENU The menu item has a submenu.
  * \param Text The text of the menu item.
  * \param Context A user-defined value for the menu item.
  *
- * \return TRUE if the function succeeded, otherwise FALSE. If 
- * \c PH_MENU_ITEM_SUB_MENU is specified in \a Flags, the return value 
+ * \return TRUE if the function succeeded, otherwise FALSE. If
+ * \c PH_MENU_ITEM_SUB_MENU is specified in \a Flags, the return value
  * is a handle to the submenu.
  *
- * \remarks The \ref PluginCallbackMenuItem callback is invoked when 
- * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure 
+ * \remarks The \ref PluginCallbackMenuItem callback is invoked when
+ * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure
  * will contain the \a Id and \a Context values passed to this function.
  */
 ULONG_PTR PhPluginAddMenuItem(
@@ -859,16 +859,16 @@ static VOID NTAPI PhpPluginEMenuItemDeleteFunction(
  *
  * \param Plugin A plugin instance structure.
  * \param Flags A combination of flags.
- * \param Id An identifier for the menu item. This should be unique 
+ * \param Id An identifier for the menu item. This should be unique
  * within the plugin.
  * \param Text The text of the menu item.
  * \param Context A user-defined value for the menu item.
  *
- * \return A menu item object. This can then be inserted into another 
+ * \return A menu item object. This can then be inserted into another
  * menu using PhInsertEMenuItem().
  *
- * \remarks The \ref PluginCallbackMenuItem callback is invoked when 
- * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure 
+ * \remarks The \ref PluginCallbackMenuItem callback is invoked when
+ * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure
  * will contain the \a Id and \a Context values passed to this function.
  */
 PPH_EMENU_ITEM PhPluginCreateEMenuItem(
@@ -928,10 +928,10 @@ BOOLEAN PhPluginTriggerEMenuItem(
  * Adds a column to a tree new control.
  *
  * \param Plugin A plugin instance structure.
- * \param CmData The CmData value from the \ref PH_PLUGIN_TREENEW_INFORMATION 
+ * \param CmData The CmData value from the \ref PH_PLUGIN_TREENEW_INFORMATION
  * structure.
  * \param Column The column properties.
- * \param SubId An identifier for the column. This should be unique within the 
+ * \param SubId An identifier for the column. This should be unique within the
  * plugin.
  * \param Context A user-defined value.
  * \param SortFunction The sort function for the column.

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   service creation dialog
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -24,7 +24,7 @@
 #include <phsvccl.h>
 #include <windowsx.h>
 
-INT_PTR CALLBACK PhpCreateServiceDlgProc(      
+INT_PTR CALLBACK PhpCreateServiceDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -43,7 +43,7 @@ VOID PhShowCreateServiceDialog(
         );
 }
 
-INT_PTR CALLBACK PhpCreateServiceDlgProc(      
+INT_PTR CALLBACK PhpCreateServiceDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

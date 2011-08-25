@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   thread pool
- * 
+ *
  * Copyright (C) 2009-2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -51,10 +51,10 @@ VOID PhWorkQueueInitialization(
  * Initializes a work queue.
  *
  * \param WorkQueue A work queue object.
- * \param MinimumThreads The suggested minimum number of threads to keep alive, even 
+ * \param MinimumThreads The suggested minimum number of threads to keep alive, even
  * when there is no work to be performed.
  * \param MaximumThreads The suggested maximum number of threads to create.
- * \param NoWorkTimeout The number of milliseconds after which threads without work 
+ * \param NoWorkTimeout The number of milliseconds after which threads without work
  * will terminate.
  */
 VOID PhInitializeWorkQueue(
@@ -298,7 +298,7 @@ VOID PhQueueItemWorkQueue(
 
     PHLIB_INC_STATISTIC(WqWorkItemsQueued);
 
-    // Check if all worker threads are currently busy, 
+    // Check if all worker threads are currently busy,
     // and if we can create more threads.
     if (
         WorkQueue->BusyThreads == WorkQueue->CurrentThreads &&

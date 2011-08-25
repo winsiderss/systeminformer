@@ -1,11 +1,11 @@
 /*
- * Process Hacker Window Explorer - 
+ * Process Hacker Window Explorer -
  *   main program
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -95,9 +95,9 @@ LOGICAL DllMain(
             }
             else
             {
-                // WindowExplorer appears to be loading within Process Hacker. However, if there is 
-                // already a server instance, the the hook will be active, and our DllMain routine 
-                // will most likely be called before the plugin system is even initialized. Attempting 
+                // WindowExplorer appears to be loading within Process Hacker. However, if there is
+                // already a server instance, the the hook will be active, and our DllMain routine
+                // will most likely be called before the plugin system is even initialized. Attempting
                 // to register a plugin would result in an access violation, so load as a client for now.
                 if (WeIsServerActive())
                     isClient = TRUE;

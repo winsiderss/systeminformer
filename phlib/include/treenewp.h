@@ -3,15 +3,15 @@
 
 // Important notes about pointers:
 //
-// All memory allocation for nodes and strings is handled by the user. 
-// This usually means there is a very limited time during which they 
+// All memory allocation for nodes and strings is handled by the user.
+// This usually means there is a very limited time during which they
 // can be safely accessed.
 //
-// Node pointers are valid through the duration of message processing, 
+// Node pointers are valid through the duration of message processing,
 // and also up to the next restructure operation, either user- or control-
-// initiated. This means that state such as the focused node, hot node and 
-// mark node must be carefully preserved through restructuring. If 
-// restructuring is suspended by a set-redraw call, all nodes must be 
+// initiated. This means that state such as the focused node, hot node and
+// mark node must be carefully preserved through restructuring. If
+// restructuring is suspended by a set-redraw call, all nodes must be
 // considered invalid and no user input can be handled.
 //
 // Strings are valid only through the duration of message processing.

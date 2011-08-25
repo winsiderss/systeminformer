@@ -85,7 +85,7 @@ NtSetInformationTransactionManager(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
-NTSTATUS 
+NTSTATUS
 NTAPI
 NtEnumerateTransactionObject(
     __in_opt HANDLE RootObjectHandle,
@@ -279,7 +279,7 @@ NtRollbackEnlistment(
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 NtPrePrepareComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -289,7 +289,7 @@ NtPrePrepareComplete(
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 NtPrepareComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -299,7 +299,7 @@ NtPrepareComplete(
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 NtCommitComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -309,7 +309,7 @@ NtCommitComplete(
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 NtReadOnlyEnlistment(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -319,7 +319,7 @@ NtReadOnlyEnlistment(
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 NtRollbackComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -329,7 +329,7 @@ NtRollbackComplete(
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 NtSinglePhaseReject(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
