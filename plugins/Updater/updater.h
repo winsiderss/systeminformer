@@ -30,6 +30,12 @@ typedef enum _PH_UPDATER_STATE
 
 #pragma region Defines
 
+#define UPDATE_URL L"processhacker.sourceforge.net"
+#define UPDATE_FILE L"/update.php"
+
+#define DOWNLOAD_SERVER L"sourceforge.net"
+#define DOWNLOAD_PATH L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
+
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
 
@@ -55,12 +61,6 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING Size;
     PPH_STRING Hash;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
-
-#pragma endregion
-
-#pragma region Globals
-
-extern PPH_PLUGIN PluginInstance;
 
 #pragma endregion
 
