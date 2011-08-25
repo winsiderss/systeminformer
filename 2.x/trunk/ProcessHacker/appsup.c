@@ -161,11 +161,7 @@ NTSTATUS PhGetProcessKnownType(
         return STATUS_SUCCESS;
     }
 
-    PhInitializeStringRef(&systemRootPrefix, USER_SHARED_DATA->NtSystemRoot);
-
-    // Make sure the system root string doesn't have a trailing backslash.
-    if (systemRootPrefix.Buffer[systemRootPrefix.Length / 2 - 1] == '\\')
-        systemRootPrefix.Length -= 2;
+    PhGetSystemRoot(&systemRootPrefix);
 
     if (!NT_SUCCESS(status = PhGetProcessImageFileName(
         ProcessHandle,

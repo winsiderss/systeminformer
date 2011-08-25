@@ -2378,8 +2378,8 @@ PPH_STRING PhGetSystemDirectory(
     );
 
 PHLIBAPI
-PPH_STRING PhGetSystemRoot(
-    VOID
+VOID PhGetSystemRoot(
+    __out PPH_STRINGREF SystemRoot
     );
 
 PHLIBAPI

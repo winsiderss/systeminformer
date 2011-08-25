@@ -2117,11 +2117,25 @@ PPH_STRING PhGetSystemDirectory(
 /**
  * Retrieves the Windows directory path.
  */
-PPH_STRING PhGetSystemRoot(
-    VOID
+VOID PhGetSystemRoot(
+    __out PPH_STRINGREF SystemRoot
     )
 {
-    return PhCreateString(USER_SHARED_DATA->NtSystemRoot);
+    static PH_STRINGREF systemRoot;
+    static PH_INITONCE initOnce;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeStringRef(&systemRoot, USER_SHARED_DATA->NtSystemRoot);
+
+        // Make sure the system root string doesn't have a trailing backslash.
+        if (systemRoot.Buffer[systemRoot.Length / 2 - 1] == '\\')
+            systemRoot.Length -= 2;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    *SystemRoot = systemRoot;
 }
 
 /**
