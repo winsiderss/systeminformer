@@ -3015,6 +3015,8 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
             if (!GetProp(hwndDlg, L"LayoutInitialized"))
             {
                 PPH_LAYOUT_ITEM dialogItem;
+                HWND groupsLv;
+                HWND privilegesLv;
 
                 // This is a big violation of abstraction...
 
@@ -3034,6 +3036,22 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
                 PhDoPropPageLayout(hwndDlg);
+
+                groupsLv = GetDlgItem(hwndDlg, IDC_GROUPS);
+                privilegesLv = GetDlgItem(hwndDlg, IDC_PRIVILEGES);
+
+                if (ListView_GetItemCount(groupsLv) != 0)
+                {
+                    ListView_SetColumnWidth(groupsLv, 0, LVSCW_AUTOSIZE);
+                    ExtendedListView_SetColumnWidth(groupsLv, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                }
+
+                if (ListView_GetItemCount(privilegesLv) != 0)
+                {
+                    ListView_SetColumnWidth(privilegesLv, 0, LVSCW_AUTOSIZE);
+                    ListView_SetColumnWidth(privilegesLv, 1, LVSCW_AUTOSIZE);
+                    ExtendedListView_SetColumnWidth(privilegesLv, 2, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                }
 
                 SetProp(hwndDlg, L"LayoutInitialized", (HANDLE)TRUE);
             }
@@ -3145,7 +3163,7 @@ VOID PhShowModuleContextMenu(
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE), 0);
-		PhSetFlagsEMenuItem(menu, ID_MODULE_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+        PhSetFlagsEMenuItem(menu, ID_MODULE_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhpInitializeModuleMenu(menu, ProcessItem->ProcessId, modules, numberOfModules);
 

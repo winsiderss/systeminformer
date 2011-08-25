@@ -701,12 +701,13 @@ PhSetHeaderSortIcon(
     __in PH_SORT_ORDER Order
     );
 
-// next 1121
+// next 1122
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
 #define ELVM_ENABLESTATE (WM_APP + 1120)
 #define ELVM_INIT (WM_APP + 1102)
+#define ELVM_SETCOLUMNWIDTH (WM_APP + 1121)
 #define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
 #define ELVM_SETCONTEXT (WM_APP + 1103)
 #define ELVM_SETCURSOR (WM_APP + 1114)
@@ -732,6 +733,8 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_ENABLESTATE, (WPARAM)(Enable), 0)
 #define ExtendedListView_Init(hWnd) \
     SendMessage((hWnd), ELVM_INIT, 0, 0)
+#define ExtendedListView_SetColumnWidth(hWnd, Column, Width) \
+    SendMessage((hWnd), ELVM_SETCOLUMNWIDTH, (WPARAM)(Column), (LPARAM)(Width))
 #define ExtendedListView_SetCompareFunction(hWnd, Column, CompareFunction) \
     SendMessage((hWnd), ELVM_SETCOMPAREFUNCTION, (WPARAM)(Column), (LPARAM)(CompareFunction))
 #define ExtendedListView_SetContext(hWnd, Context) \
@@ -764,6 +767,10 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SORTITEMS, 0, 0)
 #define ExtendedListView_Tick(hWnd) \
     SendMessage((hWnd), ELVM_TICK, 0, 0)
+
+#define ELVSCW_AUTOSIZE (-1)
+#define ELVSCW_AUTOSIZE_USEHEADER (-2)
+#define ELVSCW_AUTOSIZE_REMAININGSPACE (-3)
 
 /**
  * Gets the brightness of a color.

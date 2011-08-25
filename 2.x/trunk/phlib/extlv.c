@@ -578,6 +578,47 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             SendMessage(hwnd, WM_CHANGEUISTATE, MAKELONG(UIS_SET, UISF_HIDEFOCUS), 0);
         }
         return TRUE;
+    case ELVM_SETCOLUMNWIDTH:
+        {
+            ULONG column = (ULONG)wParam;
+            LONG width = (LONG)lParam;
+
+            if (width == ELVSCW_AUTOSIZE_REMAININGSPACE)
+            {
+                RECT clientRect;
+                LONG availableWidth;
+                ULONG i;
+                LVCOLUMN lvColumn;
+
+                GetClientRect(hwnd, &clientRect);
+                availableWidth = clientRect.right;
+                i = 0;
+                lvColumn.mask = LVCF_WIDTH;
+
+                while (TRUE)
+                {
+                    if (i != column)
+                    {
+                        if (CallWindowProc(oldWndProc, hwnd, LVM_GETCOLUMN, i, (LPARAM)&lvColumn))
+                        {
+                            availableWidth -= lvColumn.cx;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    i++;
+                }
+
+                if (availableWidth >= 40)
+                    return CallWindowProc(oldWndProc, hwnd, LVM_SETCOLUMNWIDTH, column, availableWidth);
+            }
+
+            return CallWindowProc(oldWndProc, hwnd, LVM_SETCOLUMNWIDTH, column, width);
+        }
+        break;
     case ELVM_SETCOMPAREFUNCTION:
         {
             ULONG column = (ULONG)wParam;
