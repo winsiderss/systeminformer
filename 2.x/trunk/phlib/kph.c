@@ -153,7 +153,7 @@ NTSTATUS KphConnect2Ex(
         CloseServiceHandle(scmHandle);
     }
 
-    if (!started)
+    if (!started && RtlDoesFileExists_U(FileName))
     {
         // Try to create the service.
 
@@ -196,15 +196,19 @@ NTSTATUS KphConnect2Ex(
                     }
                 }
 
-                StartService(serviceHandle, 0, NULL);
+                if (StartService(serviceHandle, 0, NULL))
+                    started = TRUE;
             }
 
             CloseServiceHandle(scmHandle);
         }
     }
 
-    // Try to open the device again.
-    status = KphConnect(fullDeviceName);
+    if (started)
+    {
+        // Try to open the device again.
+        status = KphConnect(fullDeviceName);
+    }
 
 CreateAndConnectEnd:
     if (created)
