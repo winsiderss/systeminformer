@@ -866,7 +866,7 @@ BOOLEAN PhCopyUnicodeStringZFromAnsi(
         if (NT_SUCCESS(status))
         {
             // RtlMultiByteToUnicodeN doesn't null terminate the string.
-            OutputBuffer[unicodeBytes / sizeof(WCHAR)] = 0;
+            *(PWCHAR)((PCHAR)OutputBuffer + unicodeBytes) = 0;
             copied = TRUE;
         }
         else
@@ -1357,9 +1357,10 @@ PPH_STRING PhCreateStringEx(
         )))
         return NULL;
 
+    assert(!(Length & 1));
     string->us.MaximumLength = string->us.Length = (USHORT)Length;
     string->us.Buffer = string->Buffer;
-    string->Buffer[Length / sizeof(WCHAR)] = 0;
+    *(PWCHAR)((PCHAR)string->Buffer + Length) = 0;
 
     if (Buffer)
     {
@@ -1845,7 +1846,7 @@ PPH_FULL_STRING PhCreateFullStringEx(
     string->Length = Length;
     string->AllocatedLength = InitialCapacity;
     string->Buffer = PhAllocate(string->AllocatedLength + sizeof(WCHAR));
-    string->Buffer[Length / sizeof(WCHAR)] = 0;
+    *(PWCHAR)((PCHAR)string->Buffer + Length) = 0;
 
     if (Buffer)
     {
@@ -1869,7 +1870,8 @@ FORCEINLINE VOID PhpWriteNullTerminatorFullString(
     __in PPH_FULL_STRING String
     )
 {
-    String->Buffer[String->Length / sizeof(WCHAR)] = 0;
+    assert(!(String->Length & 1));
+    *(PWCHAR)((PCHAR)String->Buffer + String->Length) = 0;
 }
 
 /**
@@ -1975,7 +1977,7 @@ VOID PhAppendFullStringEx(
     if (Buffer)
     {
         memcpy(
-            &String->Buffer[String->Length / sizeof(WCHAR)],
+            (PCHAR)String->Buffer + String->Length,
             Buffer,
             Length
             );
@@ -1999,7 +2001,7 @@ VOID PhAppendCharFullString(
     if (String->AllocatedLength < String->Length + sizeof(WCHAR))
         PhResizeFullString(String, String->Length + sizeof(WCHAR), TRUE);
 
-    String->Buffer[String->Length / sizeof(WCHAR)] = Character;
+    *(PWCHAR)((PCHAR)String->Buffer + String->Length) = Character;
     String->Length += sizeof(WCHAR);
     PhpWriteNullTerminatorFullString(String);
 }
@@ -2024,7 +2026,7 @@ VOID PhAppendCharFullString2(
         PhResizeFullString(String, String->Length + Count * sizeof(WCHAR), TRUE);
 
     wmemset(
-        &String->Buffer[String->Length / sizeof(WCHAR)],
+        (PWCHAR)((PCHAR)String->Buffer + String->Length),
         Character,
         Count
         );
@@ -2071,7 +2073,7 @@ VOID PhAppendFormatFullString_V(
         PhResizeFullString(String, String->Length + lengthInBytes, TRUE);
 
     _vsnwprintf(
-        &String->Buffer[String->Length / sizeof(WCHAR)],
+        (PWCHAR)((PCHAR)String->Buffer + String->Length),
         length,
         Format,
         ArgPtr
@@ -2287,7 +2289,8 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
     __in PPH_STRING_BUILDER StringBuilder
     )
 {
-    StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)] = 0;
+    assert(!(StringBuilder->String->Length & 1));
+    *(PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length) = 0;
 }
 
 /**
@@ -2405,7 +2408,7 @@ VOID PhAppendStringBuilderEx(
     if (String)
     {
         memcpy(
-            &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
+            (PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length,
             String,
             Length
             );
@@ -2432,7 +2435,7 @@ VOID PhAppendCharStringBuilder(
         PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + sizeof(WCHAR));
     }
 
-    StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)] = Character;
+    *(PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length) = Character;
     StringBuilder->String->Length += sizeof(WCHAR);
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
@@ -2461,7 +2464,7 @@ VOID PhAppendCharStringBuilder2(
     }
 
     wmemset(
-        &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
+        (PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length),
         Character,
         Count
         );
@@ -2509,7 +2512,7 @@ VOID PhAppendFormatStringBuilder_V(
         PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + lengthInBytes);
 
     _vsnwprintf(
-        &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
+        (PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length),
         length,
         Format,
         ArgPtr

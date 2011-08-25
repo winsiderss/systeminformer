@@ -1089,11 +1089,7 @@ PVOID PhAccessOutOfProcessFunctionTable(
         return NULL;
     }
 
-    PhInitializeStringRef(&windowsString, USER_SHARED_DATA->NtSystemRoot);
-
-    // Make sure the system root string doesn't have a trailing backslash.
-    if (windowsString.Buffer[windowsString.Length / 2 - 1] == '\\')
-        windowsString.Length -= 2;
+    PhGetSystemRoot(&windowsString);
 
     // Don't load DLLs from arbitrary locations. Make sure the DLL at least resides in the Windows directory.
     if (!(outOfProcessCallbackDllString.Length >= windowsString.Length + sizeof(WCHAR) &&

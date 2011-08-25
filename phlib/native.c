@@ -5493,7 +5493,7 @@ PPH_STRING PhGetFileName(
 
     newFileName = FileName;
 
-    // "\??\" refers to \GLOBAL??. Just remove it.
+    // "\??\" refers to \GLOBAL??\. Just remove it.
     if (PhStartsWithString2(FileName, L"\\??\\", FALSE))
     {
         newFileName = PhCreateStringEx(NULL, FileName->Length - 8);
@@ -5502,12 +5502,12 @@ PPH_STRING PhGetFileName(
     // "\SystemRoot" means "C:\Windows".
     else if (PhStartsWithString2(FileName, L"\\SystemRoot", TRUE))
     {
-        ULONG systemRootLength;
+        PH_STRINGREF systemRoot;
 
-        systemRootLength = (ULONG)wcslen(USER_SHARED_DATA->NtSystemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRootLength * 2 + FileName->Length - 22);
-        memcpy(newFileName->Buffer, USER_SHARED_DATA->NtSystemRoot, systemRootLength * 2);
-        memcpy(&newFileName->Buffer[systemRootLength], &FileName->Buffer[11], FileName->Length - 22);
+        PhGetSystemRoot(&systemRoot);
+        newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 22);
+        memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
+        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length, &FileName->Buffer[11], FileName->Length - 22);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
     {
