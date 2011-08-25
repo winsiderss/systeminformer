@@ -172,7 +172,7 @@ VOID PhSaveSettingsServiceTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, &sortSettings);
+    settings = PhCmSaveSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, 0, &sortSettings);
     PhSetStringSetting2(L"ServiceTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ServiceTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);

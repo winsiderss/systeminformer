@@ -169,7 +169,7 @@ VOID PhSaveSettingsNetworkTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, &sortSettings);
+    settings = PhCmSaveSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, 0, &sortSettings);
     PhSetStringSetting2(L"NetworkTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"NetworkTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);

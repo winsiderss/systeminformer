@@ -248,7 +248,7 @@ VOID PhSaveSettingsProcessTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, &sortSettings);
+    settings = PhCmSaveSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &sortSettings);
     PhSetStringSetting2(L"ProcessTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ProcessTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);

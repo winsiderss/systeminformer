@@ -260,7 +260,7 @@ BOOLEAN PhCmLoadSettings(
 BOOLEAN PhCmLoadSettingsEx(
     __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
-    __reserved ULONG Flags,
+    __in ULONG Flags,
     __in PPH_STRINGREF Settings,
     __in_opt PPH_STRINGREF SortSettings
     )
@@ -339,10 +339,20 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
 
-                if (valuePart.Length == 0 || !PhStringToInteger64(&valuePart, 10, &integer))
-                    goto CleanupExit;
+                if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
+                {
+                    if (valuePart.Length == 0 || !PhStringToInteger64(&valuePart, 10, &integer))
+                        goto CleanupExit;
 
-                displayIndex = (ULONG)integer;
+                    displayIndex = (ULONG)integer;
+                }
+                else
+                {
+                    if (valuePart.Length != 0)
+                        goto CleanupExit;
+
+                    displayIndex = -1;
+                }
 
                 // Width
 
@@ -377,21 +387,32 @@ BOOLEAN PhCmLoadSettingsEx(
             {
                 columnPtr = (PPH_TREENEW_COLUMN *)PhFindItemSimpleHashtable(columnHashtable, (PVOID)i);
 
-                if (columnPtr)
+                if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
                 {
-                    setColumn.Visible = TRUE;
-                    setColumn.Width = (*columnPtr)->Width;
-                    TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
+                    if (columnPtr)
+                    {
+                        setColumn.Visible = TRUE;
+                        setColumn.Width = (*columnPtr)->Width;
+                        TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
 
-                    // For compatibility reasons, normal columns have their display indicies stored
-                    // one higher than usual (so they start from 1, not 0). Fix that here.
-                    if (hasFixedColumn && !setColumn.Fixed && (*columnPtr)->DisplayIndex != 0)
-                        (*columnPtr)->DisplayIndex--;
+                        // For compatibility reasons, normal columns have their display indicies stored
+                        // one higher than usual (so they start from 1, not 0). Fix that here.
+                        if (hasFixedColumn && !setColumn.Fixed && (*columnPtr)->DisplayIndex != 0)
+                            (*columnPtr)->DisplayIndex--;
+                    }
+                    else if (!setColumn.Fixed) // never hide the fixed column
+                    {
+                        setColumn.Visible = FALSE;
+                        TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &setColumn);
+                    }
                 }
-                else if (!setColumn.Fixed) // never hide the fixed column
+                else
                 {
-                    setColumn.Visible = FALSE;
-                    TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &setColumn);
+                    if (columnPtr)
+                    {
+                        setColumn.Width = (*columnPtr)->Width;
+                        TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_WIDTH, &setColumn);
+                    }
                 }
 
                 count++;
@@ -400,37 +421,40 @@ BOOLEAN PhCmLoadSettingsEx(
             i++;
         }
 
-        // Do a second pass to create the order array. This is because the ViewIndex of each column
-        // were unstable in the previous pass since we were both adding and removing columns.
-
-        PhBeginEnumHashtable(columnHashtable, &enumContext);
-        maxOrder = 0;
-
-        while (pair = PhNextEnumHashtable(&enumContext))
+        if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
         {
-            PPH_TREENEW_COLUMN column;
-            PH_TREENEW_COLUMN tempColumn;
+            // Do a second pass to create the order array. This is because the ViewIndex of each column
+            // were unstable in the previous pass since we were both adding and removing columns.
 
-            column = pair->Value;
+            PhBeginEnumHashtable(columnHashtable, &enumContext);
+            maxOrder = 0;
 
-            if (!TreeNew_GetColumn(TreeNewHandle, column->Id, &tempColumn))
-                continue;
-
-            if (tempColumn.Fixed)
-                continue; // fixed column cannot be re-ordered
-
-            if (column->DisplayIndex < PH_CM_ORDER_LIMIT)
+            while (pair = PhNextEnumHashtable(&enumContext))
             {
-                orderArray[column->DisplayIndex] = tempColumn.s.ViewIndex;
+                PPH_TREENEW_COLUMN column;
+                PH_TREENEW_COLUMN tempColumn;
 
-                if ((ULONG)maxOrder < column->DisplayIndex + 1)
-                    maxOrder = column->DisplayIndex + 1;
+                column = pair->Value;
+
+                if (!TreeNew_GetColumn(TreeNewHandle, column->Id, &tempColumn))
+                    continue;
+
+                if (tempColumn.Fixed)
+                    continue; // fixed column cannot be re-ordered
+
+                if (column->DisplayIndex < PH_CM_ORDER_LIMIT)
+                {
+                    orderArray[column->DisplayIndex] = tempColumn.s.ViewIndex;
+
+                    if ((ULONG)maxOrder < column->DisplayIndex + 1)
+                        maxOrder = column->DisplayIndex + 1;
+                }
             }
+
+            // Set the order array.
+
+            TreeNew_SetColumnOrderArray(TreeNewHandle, maxOrder, orderArray);
         }
-
-        // Set the order array.
-
-        TreeNew_SetColumnOrderArray(TreeNewHandle, maxOrder, orderArray);
 
         TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
@@ -496,12 +520,13 @@ PPH_STRING PhCmSaveSettings(
     __in HWND TreeNewHandle
     )
 {
-    return PhCmSaveSettingsEx(TreeNewHandle, NULL, NULL);
+    return PhCmSaveSettingsEx(TreeNewHandle, NULL, 0, NULL);
 }
 
 PPH_STRING PhCmSaveSettingsEx(
     __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
+    __in ULONG Flags,
     __out_opt PPH_STRING *SortSettings
     )
 {
@@ -525,15 +550,44 @@ PPH_STRING PhCmSaveSettingsEx(
     {
         if (TreeNew_GetColumn(TreeNewHandle, i, &column))
         {
-            if (column.Visible)
+            if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
+            {
+                if (column.Visible)
+                {
+                    if (!Manager || i < Manager->MinId)
+                    {
+                        PhAppendFormatStringBuilder(
+                            &stringBuilder,
+                            L"%u,%u,%u|",
+                            i,
+                            column.Fixed ? 0 : column.DisplayIndex + increment,
+                            column.Width
+                            );
+                    }
+                    else
+                    {
+                        PPH_CM_COLUMN cmColumn;
+
+                        cmColumn = column.Context;
+                        PhAppendFormatStringBuilder(
+                            &stringBuilder,
+                            L"+%s+%u,%u,%u|",
+                            cmColumn->Plugin->Name,
+                            cmColumn->SubId,
+                            column.DisplayIndex + increment,
+                            column.Width
+                            );
+                    }
+                }
+            }
+            else
             {
                 if (!Manager || i < Manager->MinId)
                 {
                     PhAppendFormatStringBuilder(
                         &stringBuilder,
-                        L"%u,%u,%u|",
+                        L"%u,,%u|",
                         i,
-                        column.Fixed ? 0 : column.DisplayIndex + increment,
                         column.Width
                         );
                 }
@@ -544,10 +598,9 @@ PPH_STRING PhCmSaveSettingsEx(
                     cmColumn = column.Context;
                     PhAppendFormatStringBuilder(
                         &stringBuilder,
-                        L"+%s+%u,%u,%u|",
+                        L"+%s+%u,,%u|",
                         cmColumn->Plugin->Name,
                         cmColumn->SubId,
-                        column.DisplayIndex + increment,
                         column.Width
                         );
                 }
