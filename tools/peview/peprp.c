@@ -751,6 +751,19 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                {
+					SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_RUNTIMEVERSION));
+                }
+                return TRUE;
+			}
+		}
     }
 
     return FALSE;
