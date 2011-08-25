@@ -759,12 +759,12 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             {
             case PSN_QUERYINITIALFOCUS:
                 {
-					SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_RUNTIMEVERSION));
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_RUNTIMEVERSION));
                 }
                 return TRUE;
-			}
-		}
-		break;
+            }
+        }
+        break;
     }
 
     return FALSE;
