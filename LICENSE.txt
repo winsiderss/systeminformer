@@ -1,4 +1,4 @@
-﻿Process Hacker is distributed under the GNU GPL version 3, with the 
+Process Hacker is distributed under the GNU GPL version 3, with the 
 following exception:
 
     Permission is granted to dynamically (but not statically) link this 
