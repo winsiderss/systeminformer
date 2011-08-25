@@ -801,7 +801,7 @@ VOID PhTnpOnMouseLeave(
 
     if (Context->AnimateDivider && Context->FixedDividerVisible)
     {
-        if (Context->DividerHot != 0 && !Context->AnimateDividerFadingOut)
+        if ((Context->DividerHot != 0 || Context->AnimateDividerFadingIn) && !Context->AnimateDividerFadingOut)
         {
             // Fade out the divider.
             Context->AnimateDividerFadingOut = TRUE;
@@ -3800,7 +3800,7 @@ VOID PhTnpProcessMoveMouse(
     {
         if (hitTest.Flags & TN_HIT_DIVIDER)
         {
-            if (Context->DividerHot < 100 && !Context->AnimateDividerFadingIn)
+            if ((Context->DividerHot < 100 || Context->AnimateDividerFadingOut) && !Context->AnimateDividerFadingIn)
             {
                 // Begin fading in the divider.
                 Context->AnimateDividerFadingIn = TRUE;
@@ -3810,7 +3810,7 @@ VOID PhTnpProcessMoveMouse(
         }
         else
         {
-            if (Context->DividerHot != 0 && !Context->AnimateDividerFadingOut)
+            if ((Context->DividerHot != 0 || Context->AnimateDividerFadingIn) && !Context->AnimateDividerFadingOut)
             {
                 Context->AnimateDividerFadingOut = TRUE;
                 Context->AnimateDividerFadingIn = FALSE;

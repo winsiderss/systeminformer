@@ -643,6 +643,18 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_NOTIFY:
         {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                {
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_SESSIONID));
+                    return TRUE;
+                }
+                break;
+            }
+
             PhHandleListViewNotifyForCopy(lParam, tokenPageContext->GroupsListViewHandle);
             PhHandleListViewNotifyForCopy(lParam, tokenPageContext->PrivilegesListViewHandle);
         }
