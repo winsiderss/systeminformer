@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2010-2011 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -71,6 +71,8 @@ VOID PvPeProperties(
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[5];
+    PH_MAPPED_IMAGE_IMPORTS imports;
+    PH_MAPPED_IMAGE_EXPORTS exports;
     PIMAGE_DATA_DIRECTORY entry;
 
     status = PhLoadMappedImage(PvFileName->Buffer, NULL, TRUE, &PvMappedImage);
@@ -99,18 +101,25 @@ VOID PvPeProperties(
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Imports page
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEIMPORTS);
-    propSheetPage.pfnDlgProc = PvpPeImportsDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
+        (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEIMPORTS);
+        propSheetPage.pfnDlgProc = PvpPeImportsDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 
     // Exports page
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEEXPORTS);
-    propSheetPage.pfnDlgProc = PvpPeExportsDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEEXPORTS);
+        propSheetPage.pfnDlgProc = PvpPeExportsDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 
     // Load Config page
     if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
