@@ -48,33 +48,41 @@ extern COLORREF PhSysWindowColor;
 
 typedef struct _PH_STARTUP_PARAMETERS
 {
-    BOOLEAN NoKph;
-    BOOLEAN NoSettings;
+    union
+    {
+        struct
+        {
+            ULONG NoKph : 1;
+            ULONG NoSettings : 1;
+            ULONG NoPlugins : 1;
+            ULONG ShowHidden : 1;
+            ULONG ShowVisible : 1;
+            ULONG ShowOptions : 1;
+            ULONG NewInstance : 1;
+            ULONG Elevate : 1;
+            ULONG Silent : 1;
+            ULONG CommandMode : 1;
+            ULONG PhSvc : 1;
+            ULONG InstallKph : 1;
+            ULONG UninstallKph : 1;
+            ULONG Debug : 1;
+            ULONG Help : 1;
+            ULONG Spare : 17;
+        };
+        ULONG Flags;
+    };
+
     PPH_STRING SettingsFileName;
-    BOOLEAN NoPlugins;
-    BOOLEAN ShowHidden;
-    BOOLEAN ShowVisible;
-    BOOLEAN ShowOptions;
-    BOOLEAN NewInstance;
-    BOOLEAN Elevate;
-    BOOLEAN Silent;
 
     HWND WindowHandle;
     POINT Point;
 
-    BOOLEAN CommandMode;
     PPH_STRING CommandType;
     PPH_STRING CommandObject;
     PPH_STRING CommandAction;
     PPH_STRING CommandValue;
 
     PPH_STRING RunAsServiceMode;
-    BOOLEAN PhSvc;
-
-    BOOLEAN InstallKph;
-    BOOLEAN UninstallKph;
-
-    BOOLEAN Debug;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 PHAPPAPI

@@ -612,6 +612,7 @@ VOID PhpInitializeSettings(
 #define PH_ARG_NEWINSTANCE 20
 #define PH_ARG_ELEVATE 21
 #define PH_ARG_SILENT 22
+#define PH_ARG_HELP 23
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -707,6 +708,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_SILENT:
             PhStartupParameters.Silent = TRUE;
             break;
+        case PH_ARG_HELP:
+            PhStartupParameters.Help = TRUE;
+            break;
         }
     }
     else
@@ -756,7 +760,8 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_NOPLUGINS, L"noplugins", NoArgumentType },
         { PH_ARG_NEWINSTANCE, L"newinstance", NoArgumentType },
         { PH_ARG_ELEVATE, L"elevate", NoArgumentType },
-        { PH_ARG_SILENT, L"s", NoArgumentType }
+        { PH_ARG_SILENT, L"s", NoArgumentType },
+        { PH_ARG_HELP, L"help", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -771,7 +776,7 @@ VOID PhpProcessStartupParameters(
         PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
         PhpCommandLineOptionCallback,
         NULL
-        ))
+        ) || PhStartupParameters.Help)
     {
         PhShowInformation(
             NULL,
@@ -783,19 +788,21 @@ VOID PhpProcessStartupParameters(
             L"-cvalue command-value\n"
             L"-debug\n"
             L"-elevate\n"
+            L"-help\n"
             L"-hide\n"
             L"-installkph\n"
             L"-newinstance\n"
             L"-nokph\n"
             L"-noplugins\n"
             L"-nosettings\n"
-            L"-phsvc\n"
-            L"-ras servicename\n"
             L"-s\n"
             L"-settings filename\n"
             L"-uninstallkph\n"
             L"-v\n"
             );
+
+        if (PhStartupParameters.Help)
+            RtlExitUserProcess(STATUS_SUCCESS);
     }
 
     if (PhStartupParameters.InstallKph)
