@@ -674,7 +674,7 @@ NTSTATUS KpiQueryInformationObject(
             ULONG allocateSize;
             POBJECT_NAME_INFORMATION nameInfo;
 
-            returnLength = sizeof(OBJECT_TYPE_INFORMATION);
+            returnLength = sizeof(OBJECT_NAME_INFORMATION);
 
             // Attach to the process a get a pointer to the object.
             KeStackAttachProcess(process, &apcState);
