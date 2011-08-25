@@ -660,8 +660,15 @@ VOID PhMwpOnCommand(
     {
     case ID_ESC_EXIT:
         {
-            if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
-                ShowWindow(PhMainWndHandle, SW_HIDE);
+            if (PhGetIntegerSetting(L"HideOnClose"))
+            {
+                if (NotifyIconMask != 0)
+                    ShowWindow(PhMainWndHandle, SW_HIDE);
+            }
+            else if (PhGetIntegerSetting(L"CloseOnEscape"))
+            {
+                ProcessHacker_Destroy(PhMainWndHandle);
+            }
         }
         break;
     case ID_HACKER_RUN:
