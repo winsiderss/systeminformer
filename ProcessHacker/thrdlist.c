@@ -140,7 +140,7 @@ VOID PhLoadSettingsThreadList(
     __inout PPH_THREAD_LIST_CONTEXT Context
     )
 {
-    PH_STRINGREF settings;
+    PPH_STRING settings;
     PPH_STRING sortSettings;
     PH_TREENEW_COLUMN column;
     ULONG sortColumn;
@@ -160,9 +160,10 @@ VOID PhLoadSettingsThreadList(
         TreeNew_SetColumn(Context->TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &column);
     }
 
-    PhInitializeEmptyStringRef(&settings);
+    settings = PhGetStringSetting(L"ThreadTreeListColumns");
     sortSettings = PhGetStringSetting(L"ThreadTreeListSort");
-    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings, &sortSettings->sr);
+    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, PH_CM_COLUMN_WIDTHS_ONLY, &settings->sr, &sortSettings->sr);
+    PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 
     TreeNew_GetSort(Context->TreeNewHandle, &sortColumn, &sortOrder);
@@ -181,7 +182,8 @@ VOID PhSaveSettingsThreadList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, &sortSettings);
+    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, PH_CM_COLUMN_WIDTHS_ONLY, &sortSettings);
+    PhSetStringSetting2(L"ThreadTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ThreadTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
