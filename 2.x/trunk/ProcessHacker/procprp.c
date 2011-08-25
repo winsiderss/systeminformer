@@ -3145,6 +3145,7 @@ VOID PhShowModuleContextMenu(
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE), 0);
+		PhSetFlagsEMenuItem(menu, ID_MODULE_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhpInitializeModuleMenu(menu, ProcessItem->ProcessId, modules, numberOfModules);
 
