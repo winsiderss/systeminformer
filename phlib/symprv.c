@@ -1057,6 +1057,7 @@ PVOID PhAccessOutOfProcessFunctionTable(
     )
 {
     static HMODULE lastDllBase = NULL;
+    static RUNTIME_FUNCTION lastFunction;
 
     PDYNAMIC_FUNCTION_TABLE functionTableAddress;
     DYNAMIC_FUNCTION_TABLE functionTable;
@@ -1067,6 +1068,7 @@ PVOID PhAccessOutOfProcessFunctionTable(
     POUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK outOfProcessFunctionTableCallback;
     PRUNTIME_FUNCTION functions;
     ULONG numberOfFunctions;
+    PRUNTIME_FUNCTION function;
 
     if (!NT_SUCCESS(PhpFindDynamicFunctionTable(
         ProcessHandle,
@@ -1126,7 +1128,17 @@ PVOID PhAccessOutOfProcessFunctionTable(
         )))
         return NULL;
 
-    return PhpFindRuntimeFunction(functions, numberOfFunctions, ControlPc - functionTable.BaseAddress);
+    function = PhpFindRuntimeFunction(functions, numberOfFunctions, ControlPc - functionTable.BaseAddress);
+
+    if (function)
+        lastFunction = *function;
+
+    RtlFreeHeap(RtlProcessHeap(), 0, functions);
+
+    if (function)
+        return &lastFunction;
+    else
+        return NULL;
 }
 
 #endif
