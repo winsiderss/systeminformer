@@ -79,10 +79,12 @@ PhCmLoadSettings(
     __in PPH_STRINGREF Settings
     );
 
+#define PH_CM_COLUMN_WIDTHS_ONLY 0x1
+
 BOOLEAN PhCmLoadSettingsEx(
     __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
-    __reserved ULONG Flags,
+    __in ULONG Flags,
     __in PPH_STRINGREF Settings,
     __in_opt PPH_STRINGREF SortSettings
     );
@@ -97,6 +99,7 @@ PhCmSaveSettings(
 PPH_STRING PhCmSaveSettingsEx(
     __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
+    __in ULONG Flags,
     __out_opt PPH_STRING *SortSettings
     );
 

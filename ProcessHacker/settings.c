@@ -66,7 +66,7 @@ VOID PhSettingsInitialization(
         sizeof(PH_SETTING),
         PhpSettingsHashtableCompareFunction,
         PhpSettingsHashtableHashFunction,
-        128
+        256
         );
     PhIgnoredSettings = PhCreateList(4);
 
@@ -153,6 +153,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
     PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
     PhpAddIntegerPairSetting(L"SysInfoWindowSize", L"620,590");
+    PhpAddStringSetting(L"ThreadTreeListColumns", L"");
     PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder
     PhpAddStringSetting(L"ThreadStackListViewColumns", L"");
     PhpAddIntegerPairSetting(L"ThreadStackWindowSize", L"420,380");

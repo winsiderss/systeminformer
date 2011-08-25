@@ -172,7 +172,7 @@ VOID PhSaveSettingsModuleList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, &sortSettings);
+    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
     PhSetStringSetting2(L"ModuleTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ModuleTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
