@@ -56,13 +56,8 @@ static NTSTATUS SilentWorkerThreadStart(
     if (!ConnectionAvailable())
         return TRUE;
 
-    if (!InitializeConnection(
-        L"processhacker.sourceforge.net",
-        L"/updater.php"
-        ))
-    {
+    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return TRUE;
-    }
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -136,13 +131,8 @@ static NTSTATUS WorkerThreadStart(
         dwBytesRead = 0,
         dwBytesWritten = 0;
 
-    if (!InitializeConnection(
-        L"processhacker.sourceforge.net",
-        L"/updater.php"
-        ))
-    {
+    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return TRUE;
-    }
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -255,15 +245,12 @@ static NTSTATUS DownloadWorkerThreadStart(
     HWND hwndDlg = (HWND)Parameter;
     HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
 
-    PPH_STRING uriPath = PhFormatString(L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */, LocalFileNameString->Buffer);
+    PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
 
     if (!ConnectionAvailable())
         return TRUE;
 
-    if (!InitializeConnection(
-        L"sourceforge.net",
-        uriPath->Buffer
-        ))
+    if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
         return TRUE;
