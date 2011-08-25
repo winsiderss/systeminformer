@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   service properties
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -34,7 +34,7 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
     BOOLEAN OldDelayedStart;
 } SERVICE_PROPERTIES_CONTEXT, *PSERVICE_PROPERTIES_CONTEXT;
 
-INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
+INT_PTR CALLBACK PhpServiceGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -150,7 +150,7 @@ static VOID PhpRefreshControls(
     }
 }
 
-INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
+INT_PTR CALLBACK PhpServiceGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -280,7 +280,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_COMMAND:
         {
-            PSERVICE_PROPERTIES_CONTEXT context = 
+            PSERVICE_PROPERTIES_CONTEXT context =
                 (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
             switch (LOWORD(wParam))
@@ -367,7 +367,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             case PSN_APPLY:
                 {
                     NTSTATUS status;
-                    PSERVICE_PROPERTIES_CONTEXT context = 
+                    PSERVICE_PROPERTIES_CONTEXT context =
                         (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
                     SC_HANDLE serviceHandle;

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   thread stack viewer
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -37,7 +37,7 @@ typedef struct THREAD_STACK_CONTEXT
     PPH_LIST List;
 } THREAD_STACK_CONTEXT, *PTHREAD_STACK_CONTEXT;
 
-INT_PTR CALLBACK PhpThreadStackDlgProc(      
+INT_PTR CALLBACK PhpThreadStackDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -61,7 +61,7 @@ VOID PhShowThreadStackDialog(
     THREAD_STACK_CONTEXT threadStackContext;
     HANDLE threadHandle = NULL;
 
-    // If the user is trying to view a system thread stack 
+    // If the user is trying to view a system thread stack
     // but KProcessHacker is not loaded, show an error message.
     if (ProcessId == SYSTEM_PROCESS_ID && !KphIsConnected())
     {
@@ -110,9 +110,9 @@ VOID PhShowThreadStackDialog(
 
     if (threadStackContext.ThreadHandle)
         NtClose(threadStackContext.ThreadHandle);
-} 
+}
 
-static INT_PTR CALLBACK PhpThreadStackDlgProc(      
+static INT_PTR CALLBACK PhpThreadStackDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

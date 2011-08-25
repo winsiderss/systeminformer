@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   queued lock
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,66 +21,66 @@
  */
 
 /*
- * Queued lock, a.k.a. push lock (kernel-mode) or slim reader-writer lock 
+ * Queued lock, a.k.a. push lock (kernel-mode) or slim reader-writer lock
  * (user-mode).
  *
  * The queued lock is:
  * * Around 10% faster than the fast lock.
  * * Only the size of a pointer.
- * * Low on resource usage (no additional kernel objects are 
+ * * Low on resource usage (no additional kernel objects are
  *   created for blocking).
  *
- * The usual flags are used for contention-free 
- * acquire/release. When there is contention, stack-based 
- * wait blocks are chained. The first wait block contains 
- * the shared owners count which is decremented by 
+ * The usual flags are used for contention-free
+ * acquire/release. When there is contention, stack-based
+ * wait blocks are chained. The first wait block contains
+ * the shared owners count which is decremented by
  * shared releasers.
  *
- * Naturally these wait blocks would be chained 
+ * Naturally these wait blocks would be chained
  * in FILO order, but list optimization is done for two purposes:
- * * Finding the last wait block (where the shared owners 
+ * * Finding the last wait block (where the shared owners
  *   count is stored). This is implemented by the Last pointer.
- * * Unblocking the wait blocks in FIFO order. This is 
+ * * Unblocking the wait blocks in FIFO order. This is
  *   implemented by the Previous pointer.
  *
- * The optimization is incremental - each optimization run 
- * will stop at the first optimized wait block. Any needed 
+ * The optimization is incremental - each optimization run
+ * will stop at the first optimized wait block. Any needed
  * optimization is completed just before waking waiters.
  *
  * The waiters list/chain has the following restrictions:
  * * At any time wait blocks may be pushed onto the list.
- * * While waking waiters, the list may not be traversed 
+ * * While waking waiters, the list may not be traversed
  *   nor optimized.
- * * When there are multiple shared owners, shared releasers 
- *   may traverse the list (to find the last wait block). 
- *   This is not an issue because waiters wouldn't be woken 
+ * * When there are multiple shared owners, shared releasers
+ *   may traverse the list (to find the last wait block).
+ *   This is not an issue because waiters wouldn't be woken
  *   until there are no more shared owners.
- * * List optimization may be done at any time except for 
- *   when someone else is waking waiters. This is controlled 
+ * * List optimization may be done at any time except for
+ *   when someone else is waking waiters. This is controlled
  *   by the traversing bit.
  *
  * The traversing bit has the following rules:
- * * The list may be optimized only after the traversing bit 
- *   is set, checking that it wasn't set already. 
- *   If it was set, it would indicate that someone else is 
+ * * The list may be optimized only after the traversing bit
+ *   is set, checking that it wasn't set already.
+ *   If it was set, it would indicate that someone else is
  *   optimizing the list or waking waiters.
- * * Before waking waiters the traversing bit must be set. 
+ * * Before waking waiters the traversing bit must be set.
  *   If it was set already, just clear the owned bit.
- * * If during list optimization the owned bit is detected 
- *   to be cleared, the function begins waking waiters. This 
- *   is because the owned bit is cleared when a releaser 
+ * * If during list optimization the owned bit is detected
+ *   to be cleared, the function begins waking waiters. This
+ *   is because the owned bit is cleared when a releaser
  *   fails to set the traversing bit.
  *
- * Blocking is implemented through a process-wide keyed event. 
- * A spin count is also used before blocking on the keyed 
+ * Blocking is implemented through a process-wide keyed event.
+ * A spin count is also used before blocking on the keyed
  * event.
  *
- * Queued locks can act as condition variables, with 
- * wait, pulse and pulse all support. Waiters are released 
+ * Queued locks can act as condition variables, with
+ * wait, pulse and pulse all support. Waiters are released
  * in FIFO order.
  *
- * Queued locks can act as wake events. These are designed 
- * for tiny one-bit locks which share a single event to block 
+ * Queued locks can act as wake events. These are designed
+ * for tiny one-bit locks which share a single event to block
  * on. Spurious wake-ups are a part of normal operation.
  */
 
@@ -132,29 +132,29 @@ BOOLEAN PhQueuedLockInitialization(
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
- * \param Exclusive Whether the wait block is in exclusive 
+ * \param Exclusive Whether the wait block is in exclusive
  * mode.
- * \param WaitBlock A variable which receives the resulting 
+ * \param WaitBlock A variable which receives the resulting
  * wait block structure.
- * \param Optimize A variable which receives a boolean 
+ * \param Optimize A variable which receives a boolean
  * indicating whether to optimize the waiters list.
- * \param NewValue The old value of the queued lock. This 
+ * \param NewValue The old value of the queued lock. This
  * value is useful only if the function returns FALSE.
- * \param CurrentValue The new value of the queued lock. This 
+ * \param CurrentValue The new value of the queued lock. This
  * value is useful only if the function returns TRUE.
  *
- * \return TRUE if the wait block was pushed onto the waiters 
+ * \return TRUE if the wait block was pushed onto the waiters
  * list, otherwise FALSE.
  *
  * \remarks
- * \li The function assumes the following flags are set: 
+ * \li The function assumes the following flags are set:
  * \ref PH_QUEUED_LOCK_OWNED.
- * \li Do not move the wait block location after this 
+ * \li Do not move the wait block location after this
  * function is called.
- * \li The \a Optimize boolean is a hint to call 
- * PhpfOptimizeQueuedLockList() if the function succeeds. It is 
+ * \li The \a Optimize boolean is a hint to call
+ * PhpfOptimizeQueuedLockList() if the function succeeds. It is
  * recommended, but not essential that this occurs.
- * \li Call PhpBlockOnQueuedWaitBlock() to wait for the wait 
+ * \li Call PhpBlockOnQueuedWaitBlock() to wait for the wait
  * block to be unblocked.
  */
 FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
@@ -218,8 +218,8 @@ FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
         }
         else
         {
-            // We're waiting in shared mode, which means there can't 
-            // be any shared owners (otherwise we would've acquired 
+            // We're waiting in shared mode, which means there can't
+            // be any shared owners (otherwise we would've acquired
             // the lock already).
 
             WaitBlock->SharedOwners = 0;
@@ -250,9 +250,9 @@ FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
  *
  * \return A pointer to the last wait block.
  *
- * \remarks The function assumes the following flags are set: 
- * \ref PH_QUEUED_LOCK_WAITERS, 
- * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED or 
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS,
+ * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED or
  * \ref PH_QUEUED_LOCK_TRAVERSING.
  */
 FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
@@ -265,7 +265,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
     waitBlock = PhGetQueuedLockWaitBlock(Value);
 
     // Traverse the list until we find the last wait block.
-    // The Last pointer should be set by list optimization, 
+    // The Last pointer should be set by list optimization,
     // allowing us to skip all, if not most of the wait blocks.
 
     while (TRUE)
@@ -274,8 +274,8 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
 
         if (lastWaitBlock)
         {
-            // Follow the Last pointer. This can mean two 
-            // things: the pointer was set by list optimization, 
+            // Follow the Last pointer. This can mean two
+            // things: the pointer was set by list optimization,
             // or this wait block is actually the last wait block
             // (set when it was pushed onto the list).
             waitBlock = lastWaitBlock;
@@ -328,7 +328,7 @@ __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
             Timeout
             );
 
-        // If an error occurred (timeout is not an error), raise an exception 
+        // If an error occurred (timeout is not an error), raise an exception
         // as it is nearly impossible to recover from this situation.
         if (!NT_SUCCESS(status))
             PhRaiseStatus(status);
@@ -346,8 +346,8 @@ __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
  *
  * \param WaitBlock A wait block.
  *
- * \remarks The wait block is in an undefined state after it is 
- * unblocked. Do not attempt to read any values from it. All relevant 
+ * \remarks The wait block is in an undefined state after it is
+ * unblocked. Do not attempt to read any values from it. All relevant
  * information should be saved before unblocking the wait block.
  */
 __mayRaise FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
@@ -373,7 +373,7 @@ __mayRaise FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
- * \param IgnoreOwned TRUE to ignore lock state, FALSE 
+ * \param IgnoreOwned TRUE to ignore lock state, FALSE
  * to conduct normal checks.
  *
  * \remarks The function assumes the following flags are set:
@@ -416,11 +416,11 @@ FORCEINLINE VOID PhpOptimizeQueuedLockListEx(
 
             if (lastWaitBlock)
             {
-                // Save a pointer to the last wait block in 
+                // Save a pointer to the last wait block in
                 // the first wait block and stop optimizing.
                 //
-                // We don't need to continue setting Previous 
-                // pointers because the last optimization run 
+                // We don't need to continue setting Previous
+                // pointers because the last optimization run
                 // would have set them already.
 
                 firstWaitBlock->Last = lastWaitBlock;
@@ -443,8 +443,8 @@ FORCEINLINE VOID PhpOptimizeQueuedLockListEx(
             )) == value)
             break;
 
-        // Either someone pushed a wait block onto the list 
-        // or someone released ownership. In either case we 
+        // Either someone pushed a wait block onto the list
+        // or someone released ownership. In either case we
         // need to go back.
 
         value = newValue;
@@ -469,14 +469,14 @@ VOID FASTCALL PhpfOptimizeQueuedLockList(
 }
 
 /**
- * Dequeues the appropriate number of wait blocks in 
+ * Dequeues the appropriate number of wait blocks in
  * a queued lock.
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
- * \param IgnoreOwned TRUE to ignore lock state, FALSE 
+ * \param IgnoreOwned TRUE to ignore lock state, FALSE
  * to conduct normal checks.
- * \param WakeAll TRUE to remove all wait blocks, FALSE 
+ * \param WakeAll TRUE to remove all wait blocks, FALSE
  * to decide based on the wait block type.
  */
 FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
@@ -497,16 +497,16 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
 
     while (TRUE)
     {
-        // If there are multiple shared owners, no one is going 
-        // to wake waiters since the lock would still be owned. 
-        // Also if there are multiple shared owners they may be 
-        // traversing the list. While that is safe when 
-        // done concurrently with list optimization, we may be 
+        // If there are multiple shared owners, no one is going
+        // to wake waiters since the lock would still be owned.
+        // Also if there are multiple shared owners they may be
+        // traversing the list. While that is safe when
+        // done concurrently with list optimization, we may be
         // removing and waking waiters.
         assert(!(value & PH_QUEUED_LOCK_MULTIPLE_SHARED));
         assert(IgnoreOwned || (value & PH_QUEUED_LOCK_TRAVERSING));
 
-        // There's no point in waking a waiter if the lock 
+        // There's no point in waking a waiter if the lock
         // is owned. Clear the traversing bit.
         while (!IgnoreOwned && (value & PH_QUEUED_LOCK_OWNED))
         {
@@ -522,8 +522,8 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
             value = newValue;
         }
 
-        // Finish up any needed optimization (setting the 
-        // Previous pointers) while finding the last wait 
+        // Finish up any needed optimization (setting the
+        // Previous pointers) while finding the last wait
         // block.
 
         waitBlock = PhGetQueuedLockWaitBlock(value);
@@ -544,7 +544,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
             waitBlock->Previous = previousWaitBlock;
         }
 
-        // Unlink the relevant wait blocks and clear the 
+        // Unlink the relevant wait blocks and clear the
         // traversing bit before we wake waiters.
 
         if (
@@ -553,16 +553,16 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
             (previousWaitBlock = waitBlock->Previous)
             )
         {
-            // We have an exclusive waiter and there are 
+            // We have an exclusive waiter and there are
             // multiple waiters.
             // We'll only be waking this waiter.
 
-            // Unlink the wait block from the list. 
-            // Although other wait blocks may have their 
-            // Last pointers set to this wait block, 
-            // the algorithm to find the last wait block 
-            // will stop here. Likewise the Next pointers 
-            // are never followed beyond this point, so 
+            // Unlink the wait block from the list.
+            // Although other wait blocks may have their
+            // Last pointers set to this wait block,
+            // the algorithm to find the last wait block
+            // will stop here. Likewise the Next pointers
+            // are never followed beyond this point, so
             // we don't need to clear those.
             firstWaitBlock->Last = previousWaitBlock;
 
@@ -579,8 +579,8 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
         }
         else
         {
-            // We're waking an exclusive waiter and there 
-            // is only one waiter, or we are waking 
+            // We're waking an exclusive waiter and there
+            // is only one waiter, or we are waking
             // a shared waiter and possibly others.
 
             newValue = 0;
@@ -592,7 +592,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
                 )) == value)
                 break;
 
-            // Someone changed the lock (acquired it or 
+            // Someone changed the lock (acquired it or
             // pushed a wait block).
 
             value = newValue;
@@ -638,9 +638,9 @@ VOID FASTCALL PhpfWakeQueuedLock(
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
- * \param IgnoreOwned TRUE to ignore lock state, FALSE 
+ * \param IgnoreOwned TRUE to ignore lock state, FALSE
  * to conduct normal checks.
- * \param WakeAll TRUE to wake all waiters, FALSE to 
+ * \param WakeAll TRUE to wake all waiters, FALSE to
  * decide based on the wait block type.
  *
  * \remarks The function assumes the following flags are set:
@@ -744,7 +744,7 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
         // We can't acquire if there are waiters for two reasons:
         //
         // We want to prioritize exclusive acquires over shared acquires.
-        // There's currently no fast, safe way of finding the last wait 
+        // There's currently no fast, safe way of finding the last wait
         // block and incrementing the shared owners count here.
         if (
             !(value & PH_QUEUED_LOCK_WAITERS) &&
@@ -809,7 +809,7 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
             // There are no waiters or someone is traversing the list.
             //
             // If there are no waiters, we're simply releasing ownership.
-            // If someone is traversing the list, clearing the owned bit 
+            // If someone is traversing the list, clearing the owned bit
             // is a signal for them to wake waiters.
 
             newValue = value - PH_QUEUED_LOCK_OWNED;
@@ -882,7 +882,7 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
 
     if (value & PH_QUEUED_LOCK_MULTIPLE_SHARED)
     {
-        // Unfortunately we have to find the last wait block and 
+        // Unfortunately we have to find the last wait block and
         // decrement the shared owners count.
         waitBlock = PhpFindLastQueuedWaitBlock(value);
 
@@ -925,7 +925,7 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
 }
 
 /**
- * Wakes waiters in a queued lock, making no assumptions 
+ * Wakes waiters in a queued lock, making no assumptions
  * about the state of the lock.
  *
  * \param QueuedLock A queued lock.
@@ -995,7 +995,7 @@ VOID FASTCALL PhfWakeForReleaseQueuedLock(
  *
  * \param Condition A condition variable.
  *
- * \remarks The associated lock must be acquired before calling 
+ * \remarks The associated lock must be acquired before calling
  * the function.
  */
 VOID FASTCALL PhfPulseCondition(
@@ -1011,7 +1011,7 @@ VOID FASTCALL PhfPulseCondition(
  *
  * \param Condition A condition variable.
  *
- * \remarks The associated lock must be acquired before calling 
+ * \remarks The associated lock must be acquired before calling
  * the function.
  */
 VOID FASTCALL PhfPulseAllCondition(
@@ -1029,7 +1029,7 @@ VOID FASTCALL PhfPulseAllCondition(
  * \param Lock A queued lock to release/acquire in exclusive mode.
  * \param Timeout Not implemented.
  *
- * \remarks The associated lock must be acquired before calling 
+ * \remarks The associated lock must be acquired before calling
  * the function.
  */
 VOID FASTCALL PhfWaitForCondition(
@@ -1066,7 +1066,7 @@ VOID FASTCALL PhfWaitForCondition(
 
             PhpBlockOnQueuedWaitBlock(&waitBlock, FALSE, NULL);
 
-            // Don't use the inline variant; it is extremely likely 
+            // Don't use the inline variant; it is extremely likely
             // that the lock is still owned.
             PhfAcquireQueuedLockExclusive(Lock);
 
@@ -1172,8 +1172,8 @@ VOID FASTCALL PhfWaitForConditionEx(
  * \param WakeEvent A wake event.
  * \param WaitBlock A wait block.
  *
- * \remarks If you later determine that the wait should 
- * not occur, you must call PhfSetWakeEvent() to dequeue 
+ * \remarks If you later determine that the wait should
+ * not occur, you must call PhfSetWakeEvent() to dequeue
  * the wait block.
  */
 VOID FASTCALL PhfQueueWakeEvent(
@@ -1207,7 +1207,7 @@ VOID FASTCALL PhfQueueWakeEvent(
  * Sets a wake event, unblocking all queued wait blocks.
  *
  * \param WakeEvent A wake event.
- * \param WaitBlock A wait block for a cancelled wait, otherwise 
+ * \param WaitBlock A wait block for a cancelled wait, otherwise
  * NULL.
  */
 VOID FASTCALL PhfSetWakeEvent(
@@ -1231,25 +1231,25 @@ VOID FASTCALL PhfSetWakeEvent(
 
     if (WaitBlock)
     {
-        // We're cancelling a wait; the thread called this function instead 
-        // of PhfWaitForWakeEvent. This will remove all waiters from 
-        // the list. However, we may not have popped and unblocked the 
-        // cancelled wait block ourselves. Another thread may have popped all 
+        // We're cancelling a wait; the thread called this function instead
+        // of PhfWaitForWakeEvent. This will remove all waiters from
+        // the list. However, we may not have popped and unblocked the
+        // cancelled wait block ourselves. Another thread may have popped all
         // waiters but not unblocked them yet at this point:
         //
         // 1. This thread: calls PhfQueueWakeEvent.
         // 2. This thread: code determines that the wait should be cancelled.
-        // 3. Other thread: calls PhfSetWakeEvent and pops our wait block off. 
+        // 3. Other thread: calls PhfSetWakeEvent and pops our wait block off.
         //    It hasn't unblocked any wait blocks yet.
-        // 4. This thread: calls PhfSetWakeEvent. Since all wait blocks have 
-        //    been popped, we don't do anything. The caller function exits, 
+        // 4. This thread: calls PhfSetWakeEvent. Since all wait blocks have
+        //    been popped, we don't do anything. The caller function exits,
         //    making our wait block invalid.
-        // 5. Other thread: tries to unblock our wait block. Anything could 
+        // 5. Other thread: tries to unblock our wait block. Anything could
         //    happen, since our caller already returned.
         //
-        // The solution is to (always) wait for an unblock. Note that the check below 
-        // for the spinning flag is not required, but it is a small optimization. 
-        // If the wait block has been unblocked (i.e. the spinning flag is cleared), 
+        // The solution is to (always) wait for an unblock. Note that the check below
+        // for the spinning flag is not required, but it is a small optimization.
+        // If the wait block has been unblocked (i.e. the spinning flag is cleared),
         // then there's no danger.
 
         if (WaitBlock->Flags & PH_QUEUED_WAITER_SPINNING)
@@ -1261,14 +1261,14 @@ VOID FASTCALL PhfSetWakeEvent(
  * Waits for a wake event to be set.
  *
  * \param WakeEvent A wake event.
- * \param WaitBlock A wait block previously queued to 
+ * \param WaitBlock A wait block previously queued to
  * the wake event using PhfQueueWakeEvent().
- * \param Spin TRUE to spin on the wake event before blocking, 
+ * \param Spin TRUE to spin on the wake event before blocking,
  * FALSE to block immediately.
  * \param Timeout A timeout value.
  *
- * \remarks Wake events are subject to spurious wakeups. You 
- * should call this function in a loop which checks a 
+ * \remarks Wake events are subject to spurious wakeups. You
+ * should call this function in a loop which checks a
  * predicate.
  */
 NTSTATUS FASTCALL PhfWaitForWakeEvent(
@@ -1284,7 +1284,7 @@ NTSTATUS FASTCALL PhfWaitForWakeEvent(
 
     if (status != STATUS_SUCCESS)
     {
-        // Probably a timeout. There's no way of unlinking 
+        // Probably a timeout. There's no way of unlinking
         // the wait block safely, so just wake everyone.
         PhSetWakeEvent(WakeEvent, WaitBlock);
     }

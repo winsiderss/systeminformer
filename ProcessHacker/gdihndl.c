@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   GDI handles dialog
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -38,7 +38,7 @@ typedef struct _PH_GDI_HANDLE_ITEM
     PPH_STRING Information;
 } PH_GDI_HANDLE_ITEM, *PPH_GDI_HANDLE_ITEM;
 
-INT_PTR CALLBACK PhpGdiHandlesDlgProc(      
+INT_PTR CALLBACK PhpGdiHandlesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -311,7 +311,7 @@ INT NTAPI PhpGdiHandleObjectCompareFunction(
     return uintptrcmp((ULONG_PTR)item1->Object, (ULONG_PTR)item2->Object);
 }
 
-INT_PTR CALLBACK PhpGdiHandlesDlgProc(      
+INT_PTR CALLBACK PhpGdiHandlesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

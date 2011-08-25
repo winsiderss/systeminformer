@@ -1,11 +1,11 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   disposable object base functionality
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -23,7 +23,7 @@
 /* If enabled, the object system will keep statistics. */
 //#define ENABLE_STATISTICS
 
-/* If enabled, the finalizers on objects can be enabled and disabled. 
+/* If enabled, the finalizers on objects can be enabled and disabled.
  * If disabled, the finalizers on objects can only be disabled.
  */
 //#define EXTENDED_FINALIZER
@@ -41,22 +41,22 @@ namespace ProcessHacker.Common.Objects
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Each disposable object starts with a reference count of one 
-    /// when it is created. The object is not owned by the creator; 
-    /// rather, it is owned by the GC (garbage collector). If the user 
-    /// does not dispose the object, the finalizer will be called by 
-    /// the GC, the reference count will be decremented and the object 
-    /// will be freed. If the user chooses to call Dispose, the reference 
-    /// count will be decremented and the object will be freed. The 
-    /// object is no longer owned by the GC and the finalizer will be 
+    /// Each disposable object starts with a reference count of one
+    /// when it is created. The object is not owned by the creator;
+    /// rather, it is owned by the GC (garbage collector). If the user
+    /// does not dispose the object, the finalizer will be called by
+    /// the GC, the reference count will be decremented and the object
+    /// will be freed. If the user chooses to call Dispose, the reference
+    /// count will be decremented and the object will be freed. The
+    /// object is no longer owned by the GC and the finalizer will be
     /// suppressed. Any further calls to Dispose will have no effect.
     /// </para>
     /// <para>
-    /// If the user chooses to use reference counting, the object 
-    /// functions normally with the GC. If the object's reference count 
-    /// is incremented after it is created and becomes 2, it will be 
-    /// decremented when it is finalized or disposed. Only after the 
-    /// object is dereferenced will the reference count become 0 and 
+    /// If the user chooses to use reference counting, the object
+    /// functions normally with the GC. If the object's reference count
+    /// is incremented after it is created and becomes 2, it will be
+    /// decremented when it is finalized or disposed. Only after the
+    /// object is dereferenced will the reference count become 0 and
     /// the object will be freed.
     /// </para>
     /// </remarks>
@@ -184,7 +184,7 @@ namespace ProcessHacker.Common.Objects
 
 #if ENABLE_STATISTICS
             Interlocked.Increment(ref _finalizedCount);
-            // Dispose just incremented this value, but it 
+            // Dispose just incremented this value, but it
             // shouldn't have been incremented.
             Interlocked.Decrement(ref _disposedCount);
 #endif
@@ -203,13 +203,13 @@ namespace ProcessHacker.Common.Objects
         /// </summary>
         /// <param name="managed">Whether to dispose managed resources.</param>
         public void Dispose(bool managed)
-        {          
+        {
             int value;
 
             if ((_value & ObjectOwned) == 0)
                 return;
 
-            // Only proceed if the object is owned by the GC, and 
+            // Only proceed if the object is owned by the GC, and
             // clear the owned by GC flag (all atomically).
             do
             {
@@ -241,15 +241,15 @@ namespace ProcessHacker.Common.Objects
             // Stats.
             Interlocked.Increment(ref _disposedCount);
 
-            // The dereferenced count should count the number of times 
-            // the user has called Dereference, so decrement it 
+            // The dereferenced count should count the number of times
+            // the user has called Dereference, so decrement it
             // because we just called it.
             Interlocked.Decrement(ref _dereferencedCount);
 #endif
         }
 
         /// <summary>
-        /// Disposes the resources of the object. This method must not be 
+        /// Disposes the resources of the object. This method must not be
         /// called directly; instead, override this method in a derived class.
         /// </summary>
         /// <param name="disposing">Whether or not to dispose managed objects.</param>
@@ -283,7 +283,7 @@ namespace ProcessHacker.Common.Objects
         /// Gets the current reference count of the object.
         /// </summary>
         /// <remarks>
-        /// This information is for debugging purposes ONLY. DO NOT 
+        /// This information is for debugging purposes ONLY. DO NOT
         /// base memory management logic upon this value.
         /// </remarks>
         public int ReferenceCount
@@ -333,7 +333,7 @@ namespace ProcessHacker.Common.Objects
                 ) != value);
 
 #if ENABLE_STATISTICS
-            // If the object didn't get disposed, pretend the object 
+            // If the object didn't get disposed, pretend the object
             // never got created.
             if (!dispose)
                 Interlocked.Decrement(ref _createdCount);
@@ -346,11 +346,11 @@ namespace ProcessHacker.Common.Objects
         /// <returns>The old reference count.</returns>
         /// <remarks>
         /// <para>
-        /// DO NOT call Dereference if you have not called Reference. 
+        /// DO NOT call Dereference if you have not called Reference.
         /// Call Dispose instead.
         /// </para>
         /// <para>
-        /// If you are calling Dereference from a finalizer, call 
+        /// If you are calling Dereference from a finalizer, call
         /// Dereference(false).
         /// </para>
         /// </remarks>
@@ -365,7 +365,7 @@ namespace ProcessHacker.Common.Objects
         /// <param name="managed">Whether to dispose managed resources.</param>
         /// <returns>The new reference count.</returns>
         /// <remarks>
-        /// <para>If you are calling this method from a finalizer, set 
+        /// <para>If you are calling this method from a finalizer, set
         /// <paramref name="managed" /> to false.</para>
         /// </remarks>
         public int Dereference(bool managed)
@@ -418,7 +418,7 @@ namespace ProcessHacker.Common.Objects
             // Dispose the object if the reference count is 0.
             if (newRefCount == 0)
             {
-                // If the dispose object method throws an exception, nothing bad 
+                // If the dispose object method throws an exception, nothing bad
                 // should happen if it does not invalidate any state.
                 this.DisposeObject(managed);
 
@@ -463,7 +463,7 @@ namespace ProcessHacker.Common.Objects
         /// <returns>The new reference count.</returns>
         /// <remarks>
         /// <para>
-        /// You must call Dereference once (when you are finished with the 
+        /// You must call Dereference once (when you are finished with the
         /// object) to match each call to Reference. Do not call Dispose.
         /// </para>
         /// </remarks>

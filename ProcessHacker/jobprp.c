@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   job properties
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -107,7 +107,7 @@ HPROPSHEETPAGE PhCreateJobPage(
     propSheetPage.pfnCallback = PhpJobPropPageProc;
 
     propSheetPageHandle = CreatePropertySheetPage(&propSheetPage);
-    // CreatePropertySheetPage would have sent PSPCB_ADDREF (below), 
+    // CreatePropertySheetPage would have sent PSPCB_ADDREF (below),
     // which would have added a reference.
     PhDereferenceObject(jobPageContext);
 
@@ -348,7 +348,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                     if (flags & JOB_OBJECT_LIMIT_WORKINGSET)
                     {
                         PPH_STRING value;
-                        
+
                         value = PhFormatSize(extendedLimits.BasicLimitInformation.MinimumWorkingSetSize, -1);
                         PhpAddLimit(limitsLv, L"Working Set Minimum", value->Buffer);
                         PhDereferenceObject(value);

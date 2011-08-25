@@ -1,10 +1,10 @@
 /*
  * KProcessHacker
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -162,10 +162,10 @@ NTSTATUS KphDispatchCreate(
 /**
  * Reads an integer (REG_DWORD) parameter from the registry.
  *
- * \param KeyHandle A handle to the Parameters key. If NULL, the function 
+ * \param KeyHandle A handle to the Parameters key. If NULL, the function
  * fails immediately and returns \a DefaultValue.
  * \param ValueName The name of the parameter.
- * \param DefaultValue The value that is returned if the function fails 
+ * \param DefaultValue The value that is returned if the function fails
  * to retrieve the parameter from the registry.
  *
  * \return The parameter value, or \a DefaultValue if the function failed.
@@ -307,9 +307,9 @@ NTSTATUS KpiGetFeatures(
 /**
  * Enumerates the modules loaded by the kernel.
  *
- * \param Modules A variable which receives a pointer 
- * to a structure containing information about 
- * the kernel modules. The structure must be freed with 
+ * \param Modules A variable which receives a pointer
+ * to a structure containing information about
+ * the kernel modules. The structure must be freed with
  * the tag 'ThpK'.
  */
 NTSTATUS KphEnumerateSystemModules(

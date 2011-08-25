@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   object manager
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -108,11 +108,11 @@ NTSTATUS PhInitializeRef(
 
 /**
  * Allocates a object.
- * 
+ *
  * \param Object A variable which receives a pointer to the newly allocated object.
  * \param ObjectSize The size of the object.
  * \param Flags A combination of flags specifying how the object is to be allocated.
- * \li \c PHOBJ_RAISE_ON_FAIL An exception will be raised if the object cannot be 
+ * \li \c PHOBJ_RAISE_ON_FAIL An exception will be raised if the object cannot be
  * allocated.
  * \param ObjectType The type of the object.
  */
@@ -140,7 +140,7 @@ __mayRaise NTSTATUS PhCreateObject(
     if (NT_SUCCESS(status))
     {
 #endif
-        /* Allocate storage for the object. Note that this includes 
+        /* Allocate storage for the object. Note that this includes
          * the object header followed by the object body. */
         objectHeader = PhpAllocateObject(ObjectType, ObjectSize, Flags);
 
@@ -260,19 +260,19 @@ __mayRaise LONG PhReferenceObjectEx(
 }
 
 /**
- * Attempts to reference an object and fails if it is being 
+ * Attempts to reference an object and fails if it is being
  * destroyed.
  *
  * \param Object The object to reference if it is not being deleted.
  *
- * \return TRUE if the object was referenced, FALSE if 
+ * \return TRUE if the object was referenced, FALSE if
  * it was being deleted and was not referenced.
  *
  * \remarks
- * This function is useful if a reference to an object is 
- * held, protected by a mutex, and the delete procedure of 
- * the object's type attempts to acquire the mutex. If this 
- * function is called while the mutex is owned, you can 
+ * This function is useful if a reference to an object is
+ * held, protected by a mutex, and the delete procedure of
+ * the object's type attempts to acquire the mutex. If this
+ * function is called while the mutex is owned, you can
  * avoid referencing an object that is being destroyed.
  */
 BOOLEAN PhReferenceObjectSafe(
@@ -318,7 +318,7 @@ VOID PhDereferenceObject(
 
 /**
  * Dereferences the specified object.
- * The object will be freed in a worker thread if its reference count 
+ * The object will be freed in a worker thread if its reference count
  * reaches 0.
  *
  * \param Object A pointer to the object to dereference.
@@ -404,16 +404,16 @@ PPH_OBJECT_TYPE PhGetObjectType(
 /**
  * Creates an object type.
  *
- * \param ObjectType A variable which receives a pointer to the newly 
+ * \param ObjectType A variable which receives a pointer to the newly
  * created object type.
  * \param Name The name of the type.
- * \param Flags A combination of flags affecting the behaviour of the 
+ * \param Flags A combination of flags affecting the behaviour of the
  * object type.
- * \param DeleteProcedure A callback function that is executed when 
- * an object of this type is about to be freed (i.e. when its 
+ * \param DeleteProcedure A callback function that is executed when
+ * an object of this type is about to be freed (i.e. when its
  * reference count is 0).
  *
- * \remarks Do not reference or dereference the object type once it 
+ * \remarks Do not reference or dereference the object type once it
  * is created.
  */
 NTSTATUS PhCreateObjectType(
@@ -435,18 +435,18 @@ NTSTATUS PhCreateObjectType(
 /**
  * Creates an object type.
  *
- * \param ObjectType A variable which receives a pointer to the newly 
+ * \param ObjectType A variable which receives a pointer to the newly
  * created object type.
  * \param Name The name of the type.
- * \param Flags A combination of flags affecting the behaviour of the 
+ * \param Flags A combination of flags affecting the behaviour of the
  * object type.
- * \param DeleteProcedure A callback function that is executed when 
- * an object of this type is about to be freed (i.e. when its 
+ * \param DeleteProcedure A callback function that is executed when
+ * an object of this type is about to be freed (i.e. when its
  * reference count is 0).
- * \param Parameters A structure containing additional parameters 
+ * \param Parameters A structure containing additional parameters
  * for the object type.
  *
- * \remarks Do not reference or dereference the object type once it 
+ * \remarks Do not reference or dereference the object type once it
  * is created.
  */
 NTSTATUS PhCreateObjectTypeEx(
@@ -504,7 +504,7 @@ NTSTATUS PhCreateObjectTypeEx(
  * Gets information about an object type.
  *
  * \param ObjectType A pointer to an object type.
- * \param Information A variable which receives 
+ * \param Information A variable which receives
  * information about the object type.
  */
 VOID PhGetObjectTypeInformation(
@@ -561,7 +561,7 @@ PPH_OBJECT_HEADER PhpAllocateObject(
 }
 
 /**
- * Calls the delete procedure for an object and frees its 
+ * Calls the delete procedure for an object and frees its
  * allocated storage.
  *
  * \param ObjectHeader A pointer to the object header of an allocated object.
@@ -610,7 +610,7 @@ VOID PhpFreeObject(
 /**
  * Queues an object for deletion.
  *
- * \param ObjectHeader A pointer to the object header of the object 
+ * \param ObjectHeader A pointer to the object header of the object
  * to delete.
  */
 VOID PhpDeferDeleteObject(
@@ -638,14 +638,14 @@ VOID PhpDeferDeleteObject(
             break;
         }
 
-        /* Someone else changed the next-to-free variable. 
+        /* Someone else changed the next-to-free variable.
          * Go back and try again.
          */
     }
 
     REF_STAT_UP(RefObjectsDeleteDeferred);
 
-    /* Was the to-free list empty before? If so, we need to queue 
+    /* Was the to-free list empty before? If so, we need to queue
      * a work item.
      */
     if (!nextToFree)
@@ -680,7 +680,7 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
 /**
  * Creates a reference-counted memory block.
  *
- * \param Alloc A variable which receives a pointer to the 
+ * \param Alloc A variable which receives a pointer to the
  * memory block.
  * \param Size The number of bytes to allocate.
  */
@@ -698,7 +698,7 @@ NTSTATUS PhCreateAlloc(
 }
 
 /**
- * Gets the current auto-dereference pool for the 
+ * Gets the current auto-dereference pool for the
  * current thread.
  */
 FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool(
@@ -709,7 +709,7 @@ FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool(
 }
 
 /**
- * Sets the current auto-dereference pool for the 
+ * Sets the current auto-dereference pool for the
  * current thread.
  */
 __mayRaise FORCEINLINE VOID PhpSetCurrentAutoPool(
@@ -734,13 +734,13 @@ __mayRaise FORCEINLINE VOID PhpSetCurrentAutoPool(
 }
 
 /**
- * Initializes an auto-dereference pool and sets it 
- * as the current pool for the current thread. You 
- * must call PhDeleteAutoPool() before storage for 
+ * Initializes an auto-dereference pool and sets it
+ * as the current pool for the current thread. You
+ * must call PhDeleteAutoPool() before storage for
  * the auto-dereference pool is freed.
  *
- * \remarks Always store auto-dereference pools in local 
- * variables, and do not share the pool with any other 
+ * \remarks Always store auto-dereference pools in local
+ * variables, and do not share the pool with any other
  * functions.
  */
 VOID PhInitializeAutoPool(
@@ -761,9 +761,9 @@ VOID PhInitializeAutoPool(
 
 /**
  * Deletes an auto-dereference pool.
- * The function will dereference any objects 
- * currently in the pool. If a pool other than 
- * the current pool is passed to the function, 
+ * The function will dereference any objects
+ * currently in the pool. If a pool other than
+ * the current pool is passed to the function,
  * an exception is raised.
  *
  * \param AutoPool The auto-dereference pool to delete.
@@ -788,13 +788,13 @@ __mayRaise VOID PhDeleteAutoPool(
 }
 
 /**
- * Adds an object to the current auto-dereference 
+ * Adds an object to the current auto-dereference
  * pool for the current thread.
- * If the current thread does not have an auto-dereference 
+ * If the current thread does not have an auto-dereference
  * pool, the function raises an exception.
  *
- * \param Object A pointer to an object. The object 
- * will be dereferenced when the current auto-dereference 
+ * \param Object A pointer to an object. The object
+ * will be dereferenced when the current auto-dereference
  * pool is drained or freed.
  */
 __mayRaise VOID PhaDereferenceObject(
@@ -804,8 +804,8 @@ __mayRaise VOID PhaDereferenceObject(
     PPH_AUTO_POOL autoPool = PhpGetCurrentAutoPool();
 
 #ifdef DEBUG
-    // If we don't have an auto-dereference pool, 
-    // we don't want to leak the object (unlike what 
+    // If we don't have an auto-dereference pool,
+    // we don't want to leak the object (unlike what
     // Apple does with NSAutoreleasePool).
     if (!autoPool)
         PhRaiseStatus(STATUS_UNSUCCESSFUL);

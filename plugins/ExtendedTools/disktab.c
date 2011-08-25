@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   ETW disk monitoring
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -855,7 +855,7 @@ VOID EtpInitializeDiskMenu(
     {
         PPH_PROCESS_ITEM processItem;
 
-        // If we have a process record and the process has terminated, we can only show 
+        // If we have a process record and the process has terminated, we can only show
         // process properties.
         if (DiskItems[0]->ProcessRecord)
         {

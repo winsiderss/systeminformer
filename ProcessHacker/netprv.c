@@ -1,12 +1,12 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   network provider
- * 
+ *
  * Copyright (C) 2010 wj32
  * Copyright (C) 2010 evilpie
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -162,7 +162,7 @@ BOOLEAN PhNetworkProviderInitialization(
         PhpNetworkItemDeleteProcedure
         )))
         return FALSE;
-    
+
     PhNetworkHashtable = PhCreateHashtable(
         sizeof(PPH_NETWORK_ITEM),
         PhpNetworkHashtableCompareFunction,
@@ -893,8 +893,8 @@ BOOLEAN PhGetNetworkConnections(
     tableSize = 0;
     GetExtendedTcpTable_I(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
 
-    // Note: On Windows XP, GetExtendedTcpTable had a bug where it calculated the required buffer size 
-    // for IPv6 TCP_TABLE_OWNER_MODULE_ALL requests incorrectly, causing it to return the wrong size 
+    // Note: On Windows XP, GetExtendedTcpTable had a bug where it calculated the required buffer size
+    // for IPv6 TCP_TABLE_OWNER_MODULE_ALL requests incorrectly, causing it to return the wrong size
     // and overrun the provided buffer instead of returning an error. The size should be:
     // = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) + sizeof(MIB_TCP6ROW_OWNER_MODULE) * (number of entries)
     // However, the function calculated it as:

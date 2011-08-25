@@ -160,7 +160,7 @@ VOID PhGetDrawInfoGraphBuffers(
 
 // Graph control state
 
-// The basic buffer management structure was moved out of this section because 
+// The basic buffer management structure was moved out of this section because
 // the text management is not needed for most cases.
 
 typedef struct _PH_GRAPH_STATE

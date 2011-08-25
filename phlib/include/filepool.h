@@ -4,16 +4,16 @@
 // On-disk structures
 
 // Each file has at least one segment.
-// Each segment has a number of blocks, which are allocated 
-// from a bitmap. The segment header is always in the first block 
-// of each segment, except for the first segment. In the first segment, 
+// Each segment has a number of blocks, which are allocated
+// from a bitmap. The segment header is always in the first block
+// of each segment, except for the first segment. In the first segment,
 // the file header is in the first few blocks, followed by the segment header.
 //
-// The segments are placed in a particular free list depending on how many 
-// blocks they have free; this allows allocators to simply skip the segments 
-// which don't have enough segments free, and allocate new segments if necessary. 
-// The free list does not however guarantee that a particular segment has 
-// a particular number of contiguous blocks free; low performance can still 
+// The segments are placed in a particular free list depending on how many
+// blocks they have free; this allows allocators to simply skip the segments
+// which don't have enough segments free, and allocate new segments if necessary.
+// The free list does not however guarantee that a particular segment has
+// a particular number of contiguous blocks free; low performance can still
 // occur when there is fragmentation.
 
 /** The number of 32-bit integers used for each allocation bitmap. */
@@ -34,7 +34,7 @@
 typedef struct _PH_FP_BLOCK_HEADER
 {
     ULONG Flags; // PH_FP_BLOCK_*
-    /** The number of blocks in the entire logical block, or the number 
+    /** The number of blocks in the entire logical block, or the number
      * of segments in a large allocation. */
     ULONG Span;
     ULONGLONG Body;
@@ -66,7 +66,7 @@ typedef struct _PH_FILE_POOL_PARAMETERS
 {
     // File options
 
-    /** The base-2 logarithm of the size of each segment. This value 
+    /** The base-2 logarithm of the size of each segment. This value
      * must be between 16 and 28, inclusive. */
     ULONG SegmentShift;
 

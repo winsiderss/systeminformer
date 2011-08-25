@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   session properties
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -183,7 +183,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                     PUSHORT in;
                     PUSHORT out;
 
-                    // IPv6 is special - the client address data is a reversed version of 
+                    // IPv6 is special - the client address data is a reversed version of
                     // the real address.
 
                     in = (PUSHORT)clientInfo.ClientAddress;

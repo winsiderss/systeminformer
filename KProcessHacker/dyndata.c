@@ -1,10 +1,10 @@
 /*
  * KProcessHacker
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -85,8 +85,8 @@ static UCHAR PsTerminateProcess61Bytes[] =
     0x56, 0x64, 0x8b, 0x35, 0x24, 0x01, 0x00, 0x00,
     0x66, 0xff, 0x8e, 0x84, 0x00, 0x00, 0x00, 0x57,
     0xc7, 0x45, 0xfc
-}; // a lot of functions seem to share the first 
-   // 16 bytes of the Windows 7 PsTerminateProcess, 
+}; // a lot of functions seem to share the first
+   // 16 bytes of the Windows 7 PsTerminateProcess,
    // and a few even share the first 24 bytes.
 
 // PspTerminateThreadByPointer

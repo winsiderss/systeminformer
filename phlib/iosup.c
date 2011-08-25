@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   I/O support functions
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -53,13 +53,13 @@ BOOLEAN PhIoSupportInitialization(
  * \param FileHandle A variable that receives the file handle.
  * \param FileName The Win32 file name.
  * \param DesiredAccess The desired access to the file.
- * \param FileAttributes File attributes applied if the file is 
+ * \param FileAttributes File attributes applied if the file is
  * created or overwritten.
  * \param ShareAccess The file access granted to other threads.
  * \li \c FILE_SHARE_READ Allows other threads to read from the file.
  * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
  * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
- * \param CreateDisposition The action to perform if the file does 
+ * \param CreateDisposition The action to perform if the file does
  * or does not exist.
  * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
  * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
@@ -97,13 +97,13 @@ NTSTATUS PhCreateFileWin32(
  * \param FileHandle A variable that receives the file handle.
  * \param FileName The Win32 file name.
  * \param DesiredAccess The desired access to the file.
- * \param FileAttributes File attributes applied if the file is 
+ * \param FileAttributes File attributes applied if the file is
  * created or overwritten.
  * \param ShareAccess The file access granted to other threads.
  * \li \c FILE_SHARE_READ Allows other threads to read from the file.
  * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
  * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
- * \param CreateDisposition The action to perform if the file does 
+ * \param CreateDisposition The action to perform if the file does
  * or does not exist.
  * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
  * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
@@ -113,17 +113,17 @@ NTSTATUS PhCreateFileWin32(
  * \li \c FILE_OVERWRITE_IF If the file exists, open and overwrite it. Otherwise, create the file.
  * \param CreateOptions The options to apply when the file is opened or created.
  * \param CreateStatus A variable that receives creation information.
- * \li \c FILE_SUPERSEDED The file was replaced because \c FILE_SUPERSEDE was specified in 
+ * \li \c FILE_SUPERSEDED The file was replaced because \c FILE_SUPERSEDE was specified in
  * \a CreateDisposition.
- * \li \c FILE_OPENED The file was opened because \c FILE_OPEN or \c FILE_OPEN_IF was specified in 
+ * \li \c FILE_OPENED The file was opened because \c FILE_OPEN or \c FILE_OPEN_IF was specified in
  * \a CreateDisposition.
- * \li \c FILE_CREATED The file was created because \c FILE_CREATE or \c FILE_OPEN_IF was specified 
+ * \li \c FILE_CREATED The file was created because \c FILE_CREATE or \c FILE_OPEN_IF was specified
  * in \a CreateDisposition.
- * \li \c FILE_OVERWRITTEN The file was overwritten because \c FILE_OVERWRITE or \c FILE_OVERWRITE_IF 
+ * \li \c FILE_OVERWRITTEN The file was overwritten because \c FILE_OVERWRITE or \c FILE_OVERWRITE_IF
  * was specified in \a CreateDisposition.
- * \li \c FILE_EXISTS The file was not opened because it already existed and \c FILE_CREATE was 
+ * \li \c FILE_EXISTS The file was not opened because it already existed and \c FILE_CREATE was
  * specified in \a CreateDisposition.
- * \li \c FILE_DOES_NOT_EXIST The file was not opened because it did not exist and \c FILE_OPEN or 
+ * \li \c FILE_DOES_NOT_EXIST The file was not opened because it did not exist and \c FILE_OPEN or
  * \c FILE_OVERWRITE was specified in \a CreateDisposition.
  */
 NTSTATUS PhCreateFileWin32Ex(
@@ -595,7 +595,7 @@ VOID NTAPI PhpFileStreamDeleteProcedure(
 }
 
 /**
- * Verifies that a file stream's position matches 
+ * Verifies that a file stream's position matches
  * the position held by the file object.
  */
 VOID PhVerifyFileStream(
@@ -604,7 +604,7 @@ VOID PhVerifyFileStream(
 {
     NTSTATUS status;
 
-    // If the file object is asynchronous, the file object doesn't maintain 
+    // If the file object is asynchronous, the file object doesn't maintain
     // its position.
     if (!(FileStream->Flags & (
         PH_FILE_STREAM_OWN_POSITION |
@@ -670,7 +670,7 @@ NTSTATUS PhpReadFileStream(
 
     if (status == STATUS_PENDING)
     {
-        // Wait for the operation to finish. This probably means we got 
+        // Wait for the operation to finish. This probably means we got
         // called on an asynchronous file object.
         status = NtWaitForSingleObject(FileStream->FileHandle, FALSE, NULL);
 
@@ -783,7 +783,7 @@ NTSTATUS PhReadFileStream(
     // If we didn't completely satisfy the request, read some more.
     if (
         readLength < Length &&
-        // Don't try to read more if the buffer wasn't even filled up 
+        // Don't try to read more if the buffer wasn't even filled up
         // last time. (No more to read.)
         FileStream->ReadLength == FileStream->BufferLength
         )
@@ -842,7 +842,7 @@ NTSTATUS PhpWriteFileStream(
 
     if (status == STATUS_PENDING)
     {
-        // Wait for the operation to finish. This probably means we got 
+        // Wait for the operation to finish. This probably means we got
         // called on an asynchronous file object.
         status = NtWaitForSingleObject(FileStream->FileHandle, FALSE, NULL);
 
@@ -914,7 +914,7 @@ NTSTATUS PhWriteFileStream(
             Length -= writtenLength;
         }
 
-        // If we didn't completely satisfy the request, it's because the 
+        // If we didn't completely satisfy the request, it's because the
         // buffer is full. Flush it.
         if (!NT_SUCCESS(status = PhpWriteFileStream(
             FileStream,
@@ -966,8 +966,8 @@ NTSTATUS PhpFlushReadFileStream(
     {
         LARGE_INTEGER offset;
 
-        // We have some buffered read data, so our position is 
-        // too far ahead. We need to move it back to the first 
+        // We have some buffered read data, so our position is
+        // too far ahead. We need to move it back to the first
         // unused byte.
         offset.QuadPart = -(LONG)(FileStream->ReadLength - FileStream->ReadPosition);
 
@@ -1007,8 +1007,8 @@ NTSTATUS PhpFlushWriteFileStream(
  * Flushes the file stream.
  *
  * \param FileStream A file stream object.
- * \param Full TRUE to flush the file object through the 
- * operating system, otherwise FALSE to only ensure the buffer 
+ * \param Full TRUE to flush the file object through the
+ * operating system, otherwise FALSE to only ensure the buffer
  * is flushed to the operating system.
  */
 NTSTATUS PhFlushFileStream(
@@ -1128,8 +1128,8 @@ NTSTATUS PhSeekFileStream(
     {
         if (Origin == SeekCurrent)
         {
-            // We have buffered read data, which means our position is too 
-            // far ahead. Subtract this difference from the offset (which 
+            // We have buffered read data, which means our position is too
+            // far ahead. Subtract this difference from the offset (which
             // will affect the position accordingly).
             offset.QuadPart -= FileStream->ReadLength - FileStream->ReadPosition;
         }
@@ -1175,7 +1175,7 @@ NTSTATUS PhLockFileStream(
 
     if (status == STATUS_PENDING)
     {
-        // Wait for the operation to finish. This probably means we got 
+        // Wait for the operation to finish. This probably means we got
         // called on an asynchronous file object.
         NtWaitForSingleObject(FileStream->FileHandle, FALSE, NULL);
         status = isb.Status;

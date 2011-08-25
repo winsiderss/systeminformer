@@ -1,10 +1,10 @@
 /*
  * KProcessHacker
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -74,7 +74,7 @@ ULONG KphpGetCopyExceptionInfo(
  * \param ToAddress The target address.
  * \param BufferLength The number of bytes to copy.
  * \param AccessMode The mode in which to perform access checks.
- * \param ReturnLength A variable which receives the number of 
+ * \param ReturnLength A variable which receives the number of
  * bytes copied.
  */
 NTSTATUS KphCopyVirtualMemory(
@@ -111,7 +111,7 @@ NTSTATUS KphCopyVirtualMemory(
     sourceAddress = FromAddress;
     targetAddress = ToAddress;
 
-    // We don't check if buffer == NULL when freeing. If buffer doesn't need 
+    // We don't check if buffer == NULL when freeing. If buffer doesn't need
     // to be freed, set to stackBuffer, not NULL.
     buffer = stackBuffer;
 
@@ -148,8 +148,8 @@ NTSTATUS KphCopyVirtualMemory(
             }
             else
             {
-                // Don't allocate the buffer if we've done so already. 
-                // Note that the block size never increases, so this allocation 
+                // Don't allocate the buffer if we've done so already.
+                // Note that the block size never increases, so this allocation
                 // will always be OK.
                 if (buffer == stackBuffer)
                 {
@@ -304,12 +304,12 @@ NTSTATUS KphCopyVirtualMemory(
 /**
  * Copies memory from another process into the current process.
  *
- * \param ProcessHandle A handle to a process. The handle must 
+ * \param ProcessHandle A handle to a process. The handle must
  * have PROCESS_VM_READ access.
  * \param BaseAddress The address from which memory is to be copied.
  * \param Buffer A buffer which receives the copied memory.
  * \param BufferSize The number of bytes to copy.
- * \param NumberOfBytesRead A variable which receives the number 
+ * \param NumberOfBytesRead A variable which receives the number
  * of bytes copied to the buffer.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -410,12 +410,12 @@ NTSTATUS KpiReadVirtualMemory(
 /**
  * Copies memory from the current process into another process.
  *
- * \param ProcessHandle A handle to a process. The handle must 
+ * \param ProcessHandle A handle to a process. The handle must
  * have PROCESS_VM_WRITE access.
  * \param BaseAddress The address to which memory is to be copied.
  * \param Buffer A buffer which contains the memory to copy.
  * \param BufferSize The number of bytes to copy.
- * \param NumberOfBytesWritten A variable which receives the number 
+ * \param NumberOfBytesWritten A variable which receives the number
  * of bytes copied from the buffer.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -516,13 +516,13 @@ NTSTATUS KpiWriteVirtualMemory(
 /**
  * Copies process or kernel memory into the current process.
  *
- * \param ProcessHandle A handle to a process. The handle must 
- * have PROCESS_VM_READ access. This parameter may be NULL if 
+ * \param ProcessHandle A handle to a process. The handle must
+ * have PROCESS_VM_READ access. This parameter may be NULL if
  * \a BaseAddress lies above the user-mode range.
  * \param BaseAddress The address from which memory is to be copied.
  * \param Buffer A buffer which receives the copied memory.
  * \param BufferSize The number of bytes to copy.
- * \param NumberOfBytesRead A variable which receives the number 
+ * \param NumberOfBytesRead A variable which receives the number
  * of bytes copied to the buffer.
  * \param AccessMode The mode in which to perform access checks.
  */

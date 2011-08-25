@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   command line action mode
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -115,7 +115,7 @@ NTSTATUS PhCommandModeStart(
             if (!PhStartupParameters.CommandValue)
                 return STATUS_INVALID_PARAMETER;
 
-            if (PhEqualString2(PhStartupParameters.CommandValue, L"idle", TRUE)) 
+            if (PhEqualString2(PhStartupParameters.CommandValue, L"idle", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_IDLE;
             else if (PhEqualString2(PhStartupParameters.CommandValue, L"normal", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_NORMAL;
@@ -146,7 +146,7 @@ NTSTATUS PhCommandModeStart(
             if (!PhStartupParameters.CommandValue)
                 return STATUS_INVALID_PARAMETER;
 
-            if (PhEqualString2(PhStartupParameters.CommandValue, L"verylow", TRUE)) 
+            if (PhEqualString2(PhStartupParameters.CommandValue, L"verylow", TRUE))
                 ioPriority = 0;
             else if (PhEqualString2(PhStartupParameters.CommandValue, L"low", TRUE))
                 ioPriority = 1;

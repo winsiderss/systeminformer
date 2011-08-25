@@ -14,7 +14,7 @@ typedef struct _PH_FAST_LOCK
     HANDLE SharedWakeEvent;
 } PH_FAST_LOCK, *PPH_FAST_LOCK;
 
-#define PH_FAST_LOCK_INIT { 0, NULL, NULL } 
+#define PH_FAST_LOCK_INIT { 0, NULL, NULL }
 
 VOID PhFastLockInitialization(
     VOID

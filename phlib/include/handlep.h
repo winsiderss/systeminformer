@@ -5,19 +5,19 @@
 #define PH_HANDLE_TABLE_ENTRY_IN_USE 0x0
 #define PH_HANDLE_TABLE_ENTRY_FREE 0x1
 
-// Locked actually means Not Locked. This means 
-// that an in use, locked handle table entry can 
+// Locked actually means Not Locked. This means
+// that an in use, locked handle table entry can
 // be used as-is.
 #define PH_HANDLE_TABLE_ENTRY_LOCKED 0x2
 #define PH_HANDLE_TABLE_ENTRY_LOCKED_SHIFT 1
 
-// There is initially one handle table level, with 
-// 256 entries. When the handle table is expanded, 
-// the table is replaced with a level 1 table, which 
-// contains 256 pointers to level 0 tables (the first 
+// There is initially one handle table level, with
+// 256 entries. When the handle table is expanded,
+// the table is replaced with a level 1 table, which
+// contains 256 pointers to level 0 tables (the first
 // entry already points to the initial level 0 table).
-// Similarly, when the handle table is expanded a 
-// second time, the table is replaced with a level 2 
+// Similarly, when the handle table is expanded a
+// second time, the table is replaced with a level 2
 // table, which contains 256 pointers to level 1 tables.
 //
 // This provides a maximum of 16,777,216 handles.
@@ -60,7 +60,7 @@ FORCEINLINE VOID PhpUnlockHandleTableShared(
     PhReleaseQueuedLockShared(&HandleTable->Locks[Index]);
 }
 
-// Handle values work by specifying indicies into each 
+// Handle values work by specifying indicies into each
 // level.
 //
 // Bits 0-7: level 0

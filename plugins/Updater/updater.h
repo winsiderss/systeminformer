@@ -10,9 +10,9 @@
 
 typedef enum _PH_UPDATER_STATE
 {
-	Default,
-	Downloading,
-	Installing
+    Default,
+    Downloading,
+    Installing
 } PH_UPDATER_STATE;
 
 #pragma endregion
@@ -36,24 +36,24 @@ typedef enum _PH_UPDATER_STATE
 #define ENABLE_UI WM_APP + 1
 
 #define Updater_SetStatusText(hwndDlg, lpString) \
-	SetDlgItemText(hwndDlg, IDC_STATUSTEXT, lpString)
+    SetDlgItemText(hwndDlg, IDC_STATUSTEXT, lpString)
 
 #define Updater_EnableUI(hwndDlg) \
-	PostMessage(hwndDlg, ENABLE_UI, 0, 0)
+    PostMessage(hwndDlg, ENABLE_UI, 0, 0)
 
 typedef struct _PH_UPDATER_CONTEXT
 {
-	HWND MainWindowHandle;
-	PVOID Parameter;
+    HWND MainWindowHandle;
+    PVOID Parameter;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 typedef struct _UPDATER_XML_DATA
 {
-	ULONG MinorVersion;
-	ULONG MajorVersion;
-	PPH_STRING RelDate;
-	PPH_STRING Size;
-	PPH_STRING Hash;
+    ULONG MinorVersion;
+    ULONG MajorVersion;
+    PPH_STRING RelDate;
+    PPH_STRING Size;
+    PPH_STRING Hash;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 #pragma endregion
@@ -82,17 +82,17 @@ VOID DisposeFileHandles(VOID);
 BOOL ConnectionAvailable(VOID);
 
 BOOL ParseVersionString(
-	__in PWSTR String,
-	__out PULONG MajorVersion,
-	__out PULONG MinorVersion
-	);
+    __in PWSTR String,
+    __out PULONG MajorVersion,
+    __out PULONG MinorVersion
+    );
 
 LONG CompareVersions(
-	__in ULONG MajorVersion1,
-	__in ULONG MinorVersion1,
-	__in ULONG MajorVersion2,
-	__in ULONG MinorVersion2
-	);
+    __in ULONG MajorVersion1,
+    __in ULONG MinorVersion1,
+    __in ULONG MajorVersion2,
+    __in ULONG MinorVersion2
+    );
 
 VOID StartInitialCheck(VOID);
 
@@ -101,58 +101,58 @@ VOID ShowUpdateDialog(VOID);
 BOOL PhInstalledUsingSetup(VOID);
 
 BOOL ReadRequestString(
-	__in HINTERNET Handle,
-	__out PSTR *Data,
-	__out_opt PULONG DataLength
-	);
+    __in HINTERNET Handle,
+    __out PSTR *Data,
+    __out_opt PULONG DataLength
+    );
 
 BOOL QueryXmlData(
-	__in PVOID Buffer,
-	__out PUPDATER_XML_DATA XmlData
-	);
+    __in PVOID Buffer,
+    __out PUPDATER_XML_DATA XmlData
+    );
 
 VOID FreeXmlData(
-	__in PUPDATER_XML_DATA XmlData
-	);
+    __in PUPDATER_XML_DATA XmlData
+    );
 
 BOOL InitializeConnection(
-	__in PCWSTR host,
-	__in PCWSTR path
-	);
+    __in PCWSTR host,
+    __in PCWSTR path
+    );
 
 BOOL InitializeFile(VOID);
 
 VOID LogEvent(
-	__in PPH_STRING str
-	);
+    __in PPH_STRING str
+    );
 
 VOID NTAPI MenuItemCallback(
-	__in_opt PVOID Parameter,
-	__in_opt PVOID Context
-	);
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
 
 VOID NTAPI MainWindowShowingCallback(
-	__in_opt PVOID Parameter,
-	__in_opt PVOID Context
-	);
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
 
 VOID NTAPI ShowOptionsCallback(
-	__in_opt PVOID Parameter,
-	__in_opt PVOID Context
-	);
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
 
-INT_PTR CALLBACK MainWndProc(      
-	__in HWND hwndDlg,
-	__in UINT uMsg,
-	__in WPARAM wParam,
-	__in LPARAM lParam
-	);
+INT_PTR CALLBACK MainWndProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
 
 INT_PTR CALLBACK OptionsDlgProc(
-	__in HWND hwndDlg,
-	__in UINT uMsg,
-	__in WPARAM wParam,
-	__in LPARAM lParam
-	);
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
 
 #pragma endregion

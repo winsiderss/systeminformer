@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   FiIn
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -412,7 +412,7 @@ int __cdecl main(int argc, char *argv[])
                     NULL
                     )))
                 {
-                    wprintf(L"%c: %.*s\n", 'A' + i, targetName.Length / 2, targetName.Buffer); 
+                    wprintf(L"%c: %.*s\n", 'A' + i, targetName.Length / 2, targetName.Buffer);
                 }
 
                 NtClose(linkHandle);

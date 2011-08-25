@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   thread list
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -601,8 +601,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
         return TRUE;
     case TreeNewHeaderRightClick:
         {
-            // Customizable columns are disabled until we can figure out how to make it 
-            // co-operate with the column adjustments (e.g. Cycles Delta vs Context Switches Delta, 
+            // Customizable columns are disabled until we can figure out how to make it
+            // co-operate with the column adjustments (e.g. Cycles Delta vs Context Switches Delta,
             // Service column).
         }
         return TRUE;

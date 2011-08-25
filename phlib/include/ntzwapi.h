@@ -558,7 +558,7 @@ ZwCloseObjectAuditAlarm(
 
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 ZwCommitComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -1234,7 +1234,7 @@ ZwEnumerateKey(
     );
 
 NTSYSCALLAPI
-NTSTATUS 
+NTSTATUS
 NTAPI
 ZwEnumerateTransactionObject(
     __in_opt HANDLE RootObjectHandle,
@@ -1594,7 +1594,7 @@ ZwLoadKeyEx(
     __in POBJECT_ATTRIBUTES TargetKey,
     __in POBJECT_ATTRIBUTES SourceFile,
     __in ULONG Flags,
-    __in_opt HANDLE TrustClassKey 
+    __in_opt HANDLE TrustClassKey
     );
 
 NTSYSCALLAPI
@@ -2055,7 +2055,7 @@ ZwPowerInformation(
 
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 ZwPrePrepareComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -2071,7 +2071,7 @@ ZwPrePrepareEnlistment(
 
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 ZwPrepareComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -2725,7 +2725,7 @@ ZwReadFileScatter(
 
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 ZwReadOnlyEnlistment(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -3004,7 +3004,7 @@ ZwResumeThread(
 
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 ZwRollbackComplete(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -3499,7 +3499,7 @@ ZwSignalAndWaitForSingleObject(
 
 NTSYSCALLAPI
 NTSTATUS
-NTAPI 
+NTAPI
 ZwSinglePhaseReject(
     __in HANDLE EnlistmentHandle,
     __in_opt PLARGE_INTEGER TmVirtualClock
@@ -3657,7 +3657,7 @@ ZwUnlockFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-ZwUnlockVirtualMemory( 
+ZwUnlockVirtualMemory(
     __in HANDLE ProcessHandle,
     __inout PVOID *BaseAddress,
     __inout PSIZE_T RegionSize,
@@ -3738,7 +3738,7 @@ ZwWaitHighEventPair(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-ZwWaitLowEventPair( 
+ZwWaitLowEventPair(
     __in HANDLE EventPairHandle
     );
 

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   memory searchers
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -313,7 +313,7 @@ VOID PhSearchMemoryString(
                 // 5. [oth] [char] [char] ...
                 //      (we reached the end of a wide sequence, or we need to start a non-wide sequence)
                 //      -> (excluding byte1) if the current string is big enough, create result (wide).
-                //         otherwise, reset to new string with byte1 as first character and byte as 
+                //         otherwise, reset to new string with byte1 as first character and byte as
                 //         second character.
                 // 6. [oth] [char] [oth] ...
                 //      (we're in a wide sequence)

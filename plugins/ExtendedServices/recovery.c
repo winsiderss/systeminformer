@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Services - 
+ * Process Hacker Extended Services -
  *   recovery information
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -48,7 +48,7 @@ static PH_KEY_VALUE_PAIR ServiceActionPairs[] =
     SIP(L"Restart the computer", SC_ACTION_REBOOT)
 };
 
-INT_PTR CALLBACK RestartComputerDlgProc(      
+INT_PTR CALLBACK RestartComputerDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -186,8 +186,8 @@ NTSTATUS EspLoadRecoveryInfo(
     if (failureActions->cActions != 0 && failureActions->cActions != 3)
         status = STATUS_SOME_NOT_MAPPED;
 
-    // If failure actions are not defined for a particular fail count, the 
-    // last failure action is used. Here we duplicate this behaviour when there 
+    // If failure actions are not defined for a particular fail count, the
+    // last failure action is used. Here we duplicate this behaviour when there
     // are fewer than 3 failure actions.
     lastType = SC_ACTION_NONE;
 
@@ -635,7 +635,7 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
                         }
                     }
 
-                    // This message is exactly the same as the one in the Services console, 
+                    // This message is exactly the same as the one in the Services console,
                     // except the double spaces are replaced by single spaces.
                     message = PhFormatString(
                         L"Your computer is connected to the computer named %s. "

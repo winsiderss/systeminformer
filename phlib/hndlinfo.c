@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   handle information
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -96,7 +96,7 @@ NTSTATUS PhpGetObjectBasicInformation(
 
         if (NT_SUCCESS(status))
         {
-            // The object was referenced in KProcessHacker, so 
+            // The object was referenced in KProcessHacker, so
             // we need to subtract 1 from the pointer count.
             BasicInformation->PointerCount -= 1;
         }
@@ -113,9 +113,9 @@ NTSTATUS PhpGetObjectBasicInformation(
 
         if (NT_SUCCESS(status))
         {
-            // The object was referenced in NtQueryObject and 
-            // a handle was opened to the object. We need to 
-            // subtract 1 from the pointer count, then subtract 
+            // The object was referenced in NtQueryObject and
+            // a handle was opened to the object. We need to
+            // subtract 1 from the pointer count, then subtract
             // 1 from both counts.
             BasicInformation->HandleCount -= 1;
             BasicInformation->PointerCount -= 2;
@@ -135,7 +135,7 @@ NTSTATUS PhpGetObjectTypeName(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_STRING typeName = NULL;
 
-    // If the cache contains the object type name, use it. Otherwise, 
+    // If the cache contains the object type name, use it. Otherwise,
     // query the type name.
 
     if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
@@ -219,7 +219,7 @@ NTSTATUS PhpGetObjectTypeName(
                 NULL
                 );
 
-            // Add a reference if we stored the type name 
+            // Add a reference if we stored the type name
             // successfully.
             if (!oldTypeName)
                 PhReferenceObject(typeName);
@@ -228,7 +228,7 @@ NTSTATUS PhpGetObjectTypeName(
         PhFree(buffer);
     }
 
-    // At this point typeName should contain a type name 
+    // At this point typeName should contain a type name
     // with one additional reference.
 
     *TypeName = typeName;
@@ -407,7 +407,7 @@ __callback PPH_STRING PhStdGetClientIdName(
     ULONG tickCount;
     PSYSTEM_PROCESS_INFORMATION processInfo;
 
-    // Get a new process list only if 2 seconds have passed 
+    // Get a new process list only if 2 seconds have passed
     // since the last update.
 
     tickCount = GetTickCount();
@@ -913,22 +913,22 @@ CleanupExit:
 /**
  * Gets information for a handle.
  *
- * \param ProcessHandle A handle to the process in which the 
+ * \param ProcessHandle A handle to the process in which the
  * handle resides.
  * \param Handle The handle value.
- * \param ObjectTypeNumber The object type number of the handle. 
- * You can specify -1 for this parameter if the object type number 
+ * \param ObjectTypeNumber The object type number of the handle.
+ * You can specify -1 for this parameter if the object type number
  * is not known.
- * \param BasicInformation A variable which receives basic 
+ * \param BasicInformation A variable which receives basic
  * information about the object.
  * \param TypeName A variable which receives the object type name.
  * \param ObjectName A variable which receives the object name.
- * \param BestObjectName A variable which receives the formatted 
+ * \param BestObjectName A variable which receives the formatted
  * object name.
  *
  * \retval STATUS_INVALID_HANDLE The handle specified in
  * \c ProcessHandle or \c Handle is invalid.
- * \retval STATUS_INVALID_PARAMETER_3 The value specified in 
+ * \retval STATUS_INVALID_PARAMETER_3 The value specified in
  * \c ObjectTypeNumber is invalid.
  */
 NTSTATUS PhGetHandleInformation(
@@ -970,33 +970,33 @@ NTSTATUS PhGetHandleInformation(
 /**
  * Gets information for a handle.
  *
- * \param ProcessHandle A handle to the process in which the 
+ * \param ProcessHandle A handle to the process in which the
  * handle resides.
  * \param Handle The handle value.
- * \param ObjectTypeNumber The object type number of the handle. 
- * You can specify -1 for this parameter if the object type number 
+ * \param ObjectTypeNumber The object type number of the handle.
+ * You can specify -1 for this parameter if the object type number
  * is not known.
  * \param Flags Reserved.
- * \param SubStatus A variable which receives the NTSTATUS value of 
- * the last component that fails. If all operations succeed, the 
- * value will be STATUS_SUCCESS. If the function returns an error 
+ * \param SubStatus A variable which receives the NTSTATUS value of
+ * the last component that fails. If all operations succeed, the
+ * value will be STATUS_SUCCESS. If the function returns an error
  * status, this variable is not set.
- * \param BasicInformation A variable which receives basic 
+ * \param BasicInformation A variable which receives basic
  * information about the object.
  * \param TypeName A variable which receives the object type name.
  * \param ObjectName A variable which receives the object name.
- * \param BestObjectName A variable which receives the formatted 
+ * \param BestObjectName A variable which receives the formatted
  * object name.
  * \param ExtraInformation Reserved.
  *
  * \retval STATUS_INVALID_HANDLE The handle specified in
  * \c ProcessHandle or \c Handle is invalid.
- * \retval STATUS_INVALID_PARAMETER_3 The value specified in 
+ * \retval STATUS_INVALID_PARAMETER_3 The value specified in
  * \c ObjectTypeNumber is invalid.
  *
- * \remarks If \a BasicInformation or \a TypeName are specified, 
- * the function will fail if either cannot be queried. \a ObjectName, 
- * \a BestObjectName and \a ExtraInformation will return NULL if they 
+ * \remarks If \a BasicInformation or \a TypeName are specified,
+ * the function will fail if either cannot be queried. \a ObjectName,
+ * \a BestObjectName and \a ExtraInformation will return NULL if they
  * cannot be queried.
  */
 NTSTATUS PhGetHandleInformationEx(
@@ -1027,7 +1027,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Duplicate the handle if we're not using KPH.
     if (!KphIsConnected())
     {
-        // However, we obviously don't need to duplicate it 
+        // However, we obviously don't need to duplicate it
         // if the handle is in the current process.
         if (ProcessHandle != NtCurrentProcess())
         {
@@ -1083,7 +1083,7 @@ NTSTATUS PhGetHandleInformationEx(
         goto CleanupExit;
 
     // Get the object name.
-    // If we're dealing with a file handle we must take 
+    // If we're dealing with a file handle we must take
     // special precautions so we don't hang.
     if (PhEqualString2(typeName, L"File", TRUE) && !KphIsConnected())
     {
@@ -1092,7 +1092,7 @@ NTSTATUS PhGetHandleInformationEx(
         // 2: Fail.
         ULONG hackLevel = 1;
 
-        // We can't use the hack on XP because hanging threads 
+        // We can't use the hack on XP because hanging threads
         // can't even be terminated!
         if (WindowsVersion <= WINDOWS_XP)
             hackLevel = 2;

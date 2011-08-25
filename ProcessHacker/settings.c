@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   program settings
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,16 +21,16 @@
  */
 
 /*
- * This file contains a program-specific settings system. All possible 
- * settings are defined at program startup and added to a hashtable. 
- * The values of these settings can then be read in from a XML file or 
- * saved to a XML file at any time. Settings which are not recognized 
- * are added to a list of "ignored settings"; this is necessary to 
- * support plugin settings, as we don't want their settings to get 
+ * This file contains a program-specific settings system. All possible
+ * settings are defined at program startup and added to a hashtable.
+ * The values of these settings can then be read in from a XML file or
+ * saved to a XML file at any time. Settings which are not recognized
+ * are added to a list of "ignored settings"; this is necessary to
+ * support plugin settings, as we don't want their settings to get
  * deleted whenever the plugins are disabled.
  *
- * The get/set functions are very strict. If the wrong function is used 
- * (the get-integer-setting function is used on a string setting) or 
+ * The get/set functions are very strict. If the wrong function is used
+ * (the get-integer-setting function is used on a string setting) or
  * the setting does not exist, an exception will be raised.
  */
 
@@ -44,7 +44,7 @@ PH_QUEUED_LOCK PhSettingsLock = PH_QUEUED_LOCK_INIT;
 
 PPH_LIST PhIgnoredSettings;
 
-// These macros make sure the C strings can be seamlessly converted into 
+// These macros make sure the C strings can be seamlessly converted into
 // PH_STRINGREFs at compile time, for a small speed boost.
 
 #define ADD_SETTING_WRAPPER(Type, Name, DefaultValue) \
@@ -208,7 +208,7 @@ VOID PhUpdateCachedSettings(
     VOID
     )
 {
-#define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
+#define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name))
 
     UPDATE_INTEGER_CS(CollapseServicesOnStart);
     UPDATE_INTEGER_CS(HighlightingDuration);
@@ -504,7 +504,7 @@ __mayRaise PPH_STRING PhGetStringSetting(
         }
         else
         {
-            // Set to NULL, create an empty string 
+            // Set to NULL, create an empty string
             // outside of the lock.
             value = NULL;
         }

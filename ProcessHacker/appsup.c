@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   application support functions
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -36,7 +36,7 @@ GUID WIN7_CONTEXT_GUID = { 0x35138b9a, 0x5d96, 0x4fbd, { 0x8e, 0x2d, 0xa2, 0x44,
 /**
  * Determines whether a process is suspended.
  *
- * \param Process The SYSTEM_PROCESS_INFORMATION structure 
+ * \param Process The SYSTEM_PROCESS_INFORMATION structure
  * of the process.
  */
 BOOLEAN PhGetProcessIsSuspended(
@@ -61,7 +61,7 @@ BOOLEAN PhGetProcessIsSuspended(
  * Determines the OS compatibility context of a process.
  *
  * \param ProcessHandle A handle to a process.
- * \param Guid A variable which receives a GUID identifying an 
+ * \param Guid A variable which receives a GUID identifying an
  * operating system version.
  */
 NTSTATUS PhGetProcessSwitchContext(
@@ -130,7 +130,7 @@ NTSTATUS PhGetProcessSwitchContext(
  * Determines the type of a process based on its image file name.
  *
  * \param ProcessHandle A handle to a process.
- * \param KnownProcessType A variable which receives the process 
+ * \param KnownProcessType A variable which receives the process
  * type.
  */
 NTSTATUS PhGetProcessKnownType(
@@ -580,7 +580,7 @@ VOID PhShellExecuteUserString(
     executeString = PhGetStringSetting(Setting);
 
     // Make sure the user executable string is absolute.
-    // We can't use RtlDetermineDosPathNameType_U here because the string 
+    // We can't use RtlDetermineDosPathNameType_U here because the string
     // may be a URL.
     if (PhFindCharInString(executeString, 0, ':') == -1)
     {
@@ -749,7 +749,7 @@ BOOLEAN PhGetListViewContextMenuPoint(
     RECT bounds;
     RECT clientRect;
 
-    // The user pressed a key to display the context menu. 
+    // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
 
     if ((selectedIndex = ListView_GetNextItem(ListViewHandle, -1, LVNI_SELECTED)) != -1)

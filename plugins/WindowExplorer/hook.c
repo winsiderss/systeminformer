@@ -1,11 +1,11 @@
 /*
- * Process Hacker Window Explorer - 
+ * Process Hacker Window Explorer -
  *   hook procedure
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,12 +21,12 @@
  */
 
 /*
- * Window Explorer uses a hook procedure in order to get window procedure 
- * and other information that can't be retrieved using GetWindowLongPtr. 
- * Because WindowExplorer.dll needs to be loaded into processes other 
- * than Process Hacker, both ProcessHacker.exe and comctl32.dll are set as 
- * delay-loaded DLLs. The other DLLs that we depend on (gdi32.dll, 
- * kernel32.dll, ntdll.dll, user32.dll) are all guaranteed to be already 
+ * Window Explorer uses a hook procedure in order to get window procedure
+ * and other information that can't be retrieved using GetWindowLongPtr.
+ * Because WindowExplorer.dll needs to be loaded into processes other
+ * than Process Hacker, both ProcessHacker.exe and comctl32.dll are set as
+ * delay-loaded DLLs. The other DLLs that we depend on (gdi32.dll,
+ * kernel32.dll, ntdll.dll, user32.dll) are all guaranteed to be already
  * loaded whenever WindowExplorer.dll needs to be loaded.
  */
 

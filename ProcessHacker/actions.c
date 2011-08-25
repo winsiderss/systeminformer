@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   UI actions
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,9 +21,9 @@
  */
 
 /*
- * These are a set of consistent functions which will perform actions 
- * on objects such as processes, threads and services, while displaying 
- * any necessary prompts and error messages. Automatic elevation can also 
+ * These are a set of consistent functions which will perform actions
+ * on objects such as processes, threads and services, while displaying
+ * any necessary prompts and error messages. Automatic elevation can also
  * easily be added if necessary.
  */
 
@@ -78,8 +78,8 @@ BOOLEAN PhpShowElevatePrompt(
     TASKDIALOG_BUTTON buttons[1];
     INT button;
 
-    // Currently the error dialog box is similar to the one displayed 
-    // when you try to label a drive in Windows Explorer. It's much better 
+    // Currently the error dialog box is similar to the one displayed
+    // when you try to label a drive in Windows Explorer. It's much better
     // than the clunky dialog in PH 1.x.
 
     config.hwndParent = hWnd;
@@ -129,12 +129,12 @@ BOOLEAN PhpShowElevatePrompt(
  * \param hWnd The window to display user interface components on.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value.
- * \param Command The arguments to pass to the new instance of 
+ * \param Command The arguments to pass to the new instance of
  * the application, if required.
- * \param Success A variable which receives TRUE if the elevated 
+ * \param Success A variable which receives TRUE if the elevated
  * action succeeded or FALSE if the action failed.
  *
- * \return TRUE if the user was prompted for elevation, otherwise 
+ * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
  */
 BOOLEAN PhpShowErrorAndElevateAction(
@@ -194,7 +194,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
                 NT_SUCCESS(status = PhGetProcessBasicInformation(processHandle, &basicInfo))
                 )
             {
-                status = basicInfo.ExitStatus; 
+                status = basicInfo.ExitStatus;
             }
 
             NtClose(processHandle);
@@ -220,13 +220,13 @@ BOOLEAN PhpShowErrorAndElevateAction(
  * \param hWnd The window to display user interface components on.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value.
- * \param Connected A variable which receives TRUE if the user 
- * elevated the action and phsvc was started, or FALSE if the user 
- * cancelled elevation. If the value is TRUE, you need to 
- * perform any necessary phsvc calls and use PhUiDisconnectFromPhSvc() 
+ * \param Connected A variable which receives TRUE if the user
+ * elevated the action and phsvc was started, or FALSE if the user
+ * cancelled elevation. If the value is TRUE, you need to
+ * perform any necessary phsvc calls and use PhUiDisconnectFromPhSvc()
  * to disconnect from phsvc.
  *
- * \return TRUE if the user was prompted for elevation, otherwise 
+ * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
  */
 BOOLEAN PhpShowErrorAndConnectToPhSvc(
@@ -281,8 +281,8 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
  * Connects to phsvc.
  *
  * \param hWnd The window to display user interface components on.
- * \param ConnectOnly TRUE to only try to connect to phsvc, otherwise 
- * FALSE to try to elevate and start phsvc if the initial connection 
+ * \param ConnectOnly TRUE to only try to connect to phsvc, otherwise
+ * FALSE to try to elevate and start phsvc if the initial connection
  * attempt failed.
  */
 BOOLEAN PhUiConnectToPhSvc(
@@ -337,7 +337,7 @@ BOOLEAN PhUiConnectToPhSvc(
                     ULONG attempts = 10;
                     LARGE_INTEGER interval;
 
-                    // Try to connect several times because the server may take 
+                    // Try to connect several times because the server may take
                     // a while to initialize.
                     do
                     {
@@ -350,7 +350,7 @@ BOOLEAN PhUiConnectToPhSvc(
                         NtDelayExecution(FALSE, &interval);
                     } while (--attempts != 0);
 
-                    // Increment the reference count even if we failed. 
+                    // Increment the reference count even if we failed.
                     // We don't want to prompt the user again.
 
                     _InterlockedIncrement(&PhSvcReferenceCount);
@@ -662,15 +662,15 @@ static BOOLEAN PhpIsDangerousProcess(
  *
  * \param hWnd A handle to the parent window.
  * \param Verb A verb describing the action.
- * \param Message A message containing additional information 
+ * \param Message A message containing additional information
  * about the action.
- * \param WarnOnlyIfDangerous TRUE to skip the confirmation 
- * dialog if none of the processes are system processes, 
+ * \param WarnOnlyIfDangerous TRUE to skip the confirmation
+ * dialog if none of the processes are system processes,
  * FALSE to always show the confirmation dialog.
  * \param Processes An array of pointers to process items.
  * \param NumberOfProcesses The number of process items.
  *
- * \return TRUE if the user wants to proceed with the operation, 
+ * \return TRUE if the user wants to proceed with the operation,
  * otherwise FALSE.
  */
 static BOOLEAN PhpShowContinueMessageProcesses(
@@ -807,21 +807,21 @@ static BOOLEAN PhpShowContinueMessageProcesses(
 }
 
 /**
- * Shows an error message to the user and checks 
+ * Shows an error message to the user and checks
  * if the user wants to continue.
  *
  * \param hWnd A handle to the parent window.
- * \param Verb A verb describing the action which 
+ * \param Verb A verb describing the action which
  * resulted in an error.
- * \param Process The process item which the action 
+ * \param Process The process item which the action
  * was performed on.
- * \param Status A NT status value representing the 
+ * \param Status A NT status value representing the
  * error.
- * \param Win32Result A Win32 error code representing 
+ * \param Win32Result A Win32 error code representing
  * the error.
  *
- * \return TRUE if the user wants to continue, otherwise 
- * FALSE. The result is typically only useful when 
+ * \return TRUE if the user wants to continue, otherwise
+ * FALSE. The result is typically only useful when
  * executing an action on multiple processes.
  */
 static BOOLEAN PhpShowErrorProcess(
@@ -947,7 +947,7 @@ BOOLEAN PhpUiTerminateTreeProcess(
 
     // Note:
     // FALSE should be written to Success if any part of the operation failed.
-    // The return value of this function indicates whether to continue with 
+    // The return value of this function indicates whether to continue with
     // the operation (FALSE if user cancelled).
 
     // Terminate the process.
@@ -1195,8 +1195,8 @@ BOOLEAN PhUiRestartProcess(
             hWnd,
             L"restart",
             Process->ProcessName->Buffer,
-            L"The process will be restarted with the same command line and " 
-            L"working directory, but if it is running under a different user it " 
+            L"The process will be restarted with the same command line and "
+            L"working directory, but if it is running under a different user it "
             L"will be restarted under the current user.",
             TRUE
             );
@@ -1462,7 +1462,7 @@ BOOLEAN PhUiSetVirtualizationProcess(
             hWnd,
             L"set",
             L"virtualization for the process",
-            L"Enabling or disabling virtualization for a process may " 
+            L"Enabling or disabling virtualization for a process may "
             L"alter its functionality and produce undesirable effects.",
             FALSE
             );

@@ -1,21 +1,21 @@
 /*
- * This file contains the actual formatting code used by various public interface 
+ * This file contains the actual formatting code used by various public interface
  * functions.
  *
- * There are three macros defined by the parent function which control how this code 
+ * There are three macros defined by the parent function which control how this code
  * writes the formatted string:
- * * ENSURE_BUFFER - This macro is passed the number of bytes required whenever 
- *   characters need to be written to the buffer. The macro can resize the buffer 
+ * * ENSURE_BUFFER - This macro is passed the number of bytes required whenever
+ *   characters need to be written to the buffer. The macro can resize the buffer
  *   if needed.
- * * OK_BUFFER - This macro returns TRUE if it is OK to write to the buffer, otherwise 
- *   FALSE when the buffer is too large, is not specified, or some other error has 
+ * * OK_BUFFER - This macro returns TRUE if it is OK to write to the buffer, otherwise
+ *   FALSE when the buffer is too large, is not specified, or some other error has
  *   occurred.
- * * ADVANCE_BUFFER - This macro is passed the number of bytes written to the buffer 
+ * * ADVANCE_BUFFER - This macro is passed the number of bytes written to the buffer
  *   and should increment the "buffer" pointer and "usedLength" counter.
- * In addition to these macros, the "buffer" and "usedLength" variables are assumed to 
+ * In addition to these macros, the "buffer" and "usedLength" variables are assumed to
  * be present.
  *
- * The below code defines many macros; this is so that composite formatting types can 
+ * The below code defines many macros; this is so that composite formatting types can
  * be constructed (e.g. the "size" type).
  */
 
@@ -57,7 +57,7 @@
 
         format = Format++;
 
-        // Save the currently used length so we can compute the 
+        // Save the currently used length so we can compute the
         // part length later.
         partLength = usedLength;
 
@@ -549,7 +549,7 @@ ContinueLoop:
 
                     if (format->Type & FormatLeftAlign)
                     {
-                        // Left alignment is easy; we just fill the remaining space 
+                        // Left alignment is easy; we just fill the remaining space
                         // with the pad character.
                         wmemset(buffer, pad, addLength / sizeof(WCHAR));
                     }
@@ -557,7 +557,7 @@ ContinueLoop:
                     {
                         PWSTR start;
 
-                        // Right alignment is much slower and involves moving the 
+                        // Right alignment is much slower and involves moving the
                         // text forward, then filling in the space before it.
                         start = buffer - partLength / sizeof(WCHAR);
                         memmove(start + addLength / sizeof(WCHAR), start, partLength);

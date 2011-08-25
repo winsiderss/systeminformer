@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   graph control
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -84,7 +84,7 @@ BOOLEAN PhGraphControlInitialization(
  * \param hdc The DC to draw to.
  * \param DrawInfo A structure which contains graphing information.
  *
- * \remarks This function is extremely slow. Use PhDrawGraphDirect() 
+ * \remarks This function is extremely slow. Use PhDrawGraphDirect()
  * whenever possible.
  */
 VOID PhDrawGraph(
@@ -398,7 +398,7 @@ FORCEINLINE VOID PhpGetGraphPoint(
  * \li The graph is fixed to the origin (0, 0).
  * \li The total size of the bitmap is assumed to be \a Width and \a Height in \a DrawInfo.
  * \li \a Step is fixed at 2.
- * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \ref PH_GRAPH_OVERLAY_LINE_2 
+ * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \ref PH_GRAPH_OVERLAY_LINE_2
  * is never used.
  * \li \a BackColor is fixed at RGB(0, 0, 0).
  */
@@ -503,9 +503,9 @@ VOID PhDrawGraphDirect(
         }
 
         // The graph is drawn right-to-left. There is one iteration of the loop per horizontal pixel.
-        // There is a fixed step value of 2, so every other iteration is a mid-point (intermediate) 
-        // iteration with a height value of (left + right) / 2. In order to rasterize the outline, 
-        // effectively in each iteration half of the line is drawn at the current column and the other 
+        // There is a fixed step value of 2, so every other iteration is a mid-point (intermediate)
+        // iteration with a height value of (left + right) / 2. In order to rasterize the outline,
+        // effectively in each iteration half of the line is drawn at the current column and the other
         // half is drawn in the column to the left.
 
         // Rasterize the data outline.
@@ -516,7 +516,7 @@ VOID PhDrawGraphDirect(
         // For example:
         //
         // X represents a data point. M represents the mid-point between two data points ("intermediate").
-        // X, M and x are all part of the outline. # represents the background filled in during 
+        // X, M and x are all part of the outline. # represents the background filled in during
         // the current loop iteration.
         //
         // slope > 0:                                     slope < 0:
@@ -537,7 +537,7 @@ VOID PhDrawGraphDirect(
         //    |                                              |
         //    | left of current pixel                        | left of current pixel
         //
-        // In both examples above, the line low2-high2 will be merged with the line low1-high1 of the next 
+        // In both examples above, the line low2-high2 will be merged with the line low1-high1 of the next
         // iteration.
 
         mid = ((h1_left + h1) / 2) * width;
@@ -677,10 +677,10 @@ VOID PhDrawGraphDirect(
  * Sets the text in a graphing information structure.
  *
  * \param hdc The DC to perform calculations from.
- * \param DrawInfo A structure which contains graphing information. 
+ * \param DrawInfo A structure which contains graphing information.
  * The structure is modified to contain the new text information.
  * \param Text The text.
- * \param Margin The margins of the text box from the edges of the 
+ * \param Margin The margins of the text box from the edges of the
  * graph.
  * \param Padding The padding within the text box.
  * \param Align The alignment of the text box.
@@ -792,7 +792,7 @@ static VOID PhpDeleteBufferedContext(
 {
     if (Context->BufferedContext)
     {
-        // The original bitmap must be selected back into the context, otherwise 
+        // The original bitmap must be selected back into the context, otherwise
         // the bitmap can't be deleted.
         SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
         DeleteObject(Context->BufferedBitmap);
@@ -1248,12 +1248,12 @@ VOID PhDeleteGraphBuffers(
 }
 
 /**
- * Sets up a graphing information structure with information 
+ * Sets up a graphing information structure with information
  * from a graph buffer management structure.
  *
  * \param Buffers The buffer management structure.
  * \param DrawInfo The graphing information structure.
- * \param DataCount The number of data points currently required. 
+ * \param DataCount The number of data points currently required.
  * The buffers are resized if needed.
  */
 VOID PhGetDrawInfoGraphBuffers(

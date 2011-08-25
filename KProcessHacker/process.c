@@ -1,10 +1,10 @@
 /*
  * KProcessHacker
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -39,8 +39,8 @@
  *
  * \param ProcessHandle A variable which receives the process handle.
  * \param DesiredAccess The desired access to the process.
- * \param ClientId The identifier of a process or thread. If \a UniqueThread 
- * is present, the process of the identified thread will be opened. If 
+ * \param ClientId The identifier of a process or thread. If \a UniqueThread
+ * is present, the process of the identified thread will be opened. If
  * \a UniqueProcess is present, the identified process will be opened.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -380,7 +380,7 @@ NTSTATUS KpiResumeProcess(
  * Terminates a process using PsTerminateProcess.
  *
  * \param Process A process object.
- * \param ExitStatus A status value which indicates why the process 
+ * \param ExitStatus A status value which indicates why the process
  * is being terminated.
  */
 NTSTATUS KphTerminateProcessInternal(
@@ -407,7 +407,7 @@ NTSTATUS KphTerminateProcessInternal(
 #ifdef _X86_
 
     if (
-        KphDynNtVersion == PHNT_WINXP || 
+        KphDynNtVersion == PHNT_WINXP ||
         KphDynNtVersion == PHNT_WS03
         )
     {
@@ -415,11 +415,11 @@ NTSTATUS KphTerminateProcessInternal(
         status = PsTerminateProcess_I(Process, ExitStatus);
     }
     else if (
-        KphDynNtVersion == PHNT_VISTA || 
+        KphDynNtVersion == PHNT_VISTA ||
         KphDynNtVersion == PHNT_WIN7
         )
     {
-        // PsTerminateProcess on Vista and above has its first argument 
+        // PsTerminateProcess on Vista and above has its first argument
         // in ecx.
         __asm
         {
@@ -447,7 +447,7 @@ NTSTATUS KphTerminateProcessInternal(
  * Terminates a process using PsTerminateProcess.
  *
  * \param ProcessHandle A handle to a process.
- * \param ExitStatus A status value which indicates why the process 
+ * \param ExitStatus A status value which indicates why the process
  * is being terminated.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -514,9 +514,9 @@ NTSTATUS KpiTerminateProcess(
  * \param ProcessHandle A handle to a process.
  * \param ProcessInformationClass The type of information to query.
  * \param ProcessInformation The buffer in which the information will be stored.
- * \param ProcessInformationLength The number of bytes available in 
+ * \param ProcessInformationLength The number of bytes available in
  * \a ProcessInformation.
- * \param ReturnLength A variable which receives the number of bytes 
+ * \param ReturnLength A variable which receives the number of bytes
  * required to be available in \a ProcessInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -736,7 +736,7 @@ NTSTATUS KpiQueryInformationProcess(
  * \param ProcessHandle A handle to a process.
  * \param ProcessInformationClass The type of information to set.
  * \param ProcessInformation A buffer which contains the information to set.
- * \param ProcessInformationLength The number of bytes present in 
+ * \param ProcessInformationLength The number of bytes present in
  * \a ProcessInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -856,7 +856,7 @@ NTSTATUS KpiSetInformationProcess(
 
             if (NT_SUCCESS(status))
             {
-                // Make sure the process isn't terminating, otherwise the call 
+                // Make sure the process isn't terminating, otherwise the call
                 // may hang due to a recursive acquire of the working set mutex.
                 if (KphAcquireProcessRundownProtection(process))
                 {
@@ -939,7 +939,7 @@ NTSTATUS KpiSetInformationProcess(
  *
  * \param Process A process object.
  *
- * \return TRUE if the function succeeded, FALSE if the process is 
+ * \return TRUE if the function succeeded, FALSE if the process is
  * currently terminating or the request is not supported.
  */
 BOOLEAN KphAcquireProcessRundownProtection(

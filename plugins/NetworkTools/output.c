@@ -1,11 +1,11 @@
 /*
- * Process Hacker Network Tools - 
+ * Process Hacker Network Tools -
  *   output dialog
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -41,7 +41,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PPH_FULL_STRING ReceivedString;
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
-INT_PTR CALLBACK NetworkOutputDlgProc(      
+INT_PTR CALLBACK NetworkOutputDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -128,7 +128,7 @@ ExitCleanup:
     return STATUS_SUCCESS;
 }
 
-INT_PTR CALLBACK NetworkOutputDlgProc(      
+INT_PTR CALLBACK NetworkOutputDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -183,7 +183,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                         PhaFormatString(L"Tracing route to %s...", addressString)->Buffer);
                 }
 
-                // Doing this properly would be too complex, so we'll just 
+                // Doing this properly would be too complex, so we'll just
                 // execute ping.exe/traceroute.exe and display its output.
 
                 if (CreatePipe(&context->PipeReadHandle, &pipeWriteHandle, NULL, 0))
@@ -240,7 +240,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                         NULL
                         );
 
-                    // Essential; when the process exits, the last instance of the pipe 
+                    // Essential; when the process exits, the last instance of the pipe
                     // will be disconnected and our thread will exit.
                     NtClose(pipeWriteHandle);
 

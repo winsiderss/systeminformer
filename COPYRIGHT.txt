@@ -1,5 +1,5 @@
 == Process Hacker ==
-Process Hacker is licensed under the GNU GPL v3, with exceptions. A full 
+Process Hacker is licensed under the GNU GPL v3, with exceptions. A full
 copy of the license is provided in LICENSE.txt.
 
     Copyright (C) 2009-2011 wj32 and various authors
@@ -41,7 +41,7 @@ Process Hacker uses Mini-XML licensed under the following terms:
            LGPL.
 
 == PCRE ==
-Process Hacker uses Perl-Compatible Regular Expressions licensed under the 
+Process Hacker uses Perl-Compatible Regular Expressions licensed under the
 following terms:
 
     PCRE is a library of functions to support regular expressions whose syntax

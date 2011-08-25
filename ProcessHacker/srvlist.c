@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   service list
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -307,7 +307,7 @@ VOID PhTickServiceNodes(
 {
     if (ServiceTreeListSortOrder != NoSortOrder && ServiceTreeListSortColumn >= PHSVTLC_MAXIMUM)
     {
-        // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our 
+        // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our
         // columns, the restructure would have been handled in PhUpdateServiceNode.)
         TreeNew_NodesStructured(ServiceTreeListHandle);
     }

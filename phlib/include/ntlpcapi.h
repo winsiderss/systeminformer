@@ -292,7 +292,7 @@ NtQueryInformationPort(
 
 // Asynchronous Local Inter-process Communication
 
-// ALPC handles aren't NT object manager handles, and 
+// ALPC handles aren't NT object manager handles, and
 // it seems traditional to use a typedef in these cases.
 // rev
 typedef PVOID ALPC_HANDLE, *PALPC_HANDLE;

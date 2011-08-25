@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   error codes
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -25,7 +25,7 @@
 /**
  * Converts a NTSTATUS value to a Win32 error code.
  *
- * \remarks This function handles FACILITY_NTWIN32 status values 
+ * \remarks This function handles FACILITY_NTWIN32 status values
  * properly, unlike RtlNtStatusToDosError.
  */
 ULONG PhNtStatusToDosError(
@@ -41,7 +41,7 @@ ULONG PhNtStatusToDosError(
 /**
  * Converts a Win32 error code to a NTSTATUS value.
  *
- * \remarks Only a small number of cases are currently supported. 
+ * \remarks Only a small number of cases are currently supported.
  * Other status values are wrapped using FACILITY_NTWIN32.
  */
 NTSTATUS PhDosErrorToNtStatus(
@@ -67,7 +67,7 @@ NTSTATUS PhDosErrorToNtStatus(
 }
 
 /**
- * Determines whether a NTSTATUS value indicates that a file 
+ * Determines whether a NTSTATUS value indicates that a file
  * cannot be not found.
  */
 BOOLEAN PhNtStatusFileNotFound(

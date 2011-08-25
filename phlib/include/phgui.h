@@ -29,7 +29,7 @@ typedef struct _NMRUNFILEDLGW
 {
     NMHDR hdr;
     LPCWSTR lpszFile;
-    LPCWSTR lpszDirectory; 
+    LPCWSTR lpszDirectory;
     UINT nShow;
 } NMRUNFILEDLGW, *LPNMRUNFILEDLGW, *PNMRUNFILEDLGW;
 
@@ -54,7 +54,7 @@ typedef BOOL (WINAPI *_RunFileDlg)(
 
 typedef BOOL (WINAPI *_IsThemeActive)(
     VOID
-    ); 
+    );
 
 typedef HTHEME (WINAPI *_OpenThemeData)(
     __in HWND hwnd,
@@ -105,7 +105,7 @@ typedef HRESULT (WINAPI *_SHAutoComplete)(
     __in DWORD dwFlags
     );
 
-typedef HRESULT (WINAPI *_TaskDialogIndirect)(      
+typedef HRESULT (WINAPI *_TaskDialogIndirect)(
     __in const TASKDIALOGCONFIG *pTaskConfig,
     __in int *pnButton,
     __in int *pnRadioButton,
@@ -660,15 +660,15 @@ FORCEINLINE ULONG PhFromListViewColumnAlign(
 
 typedef enum _PH_ITEM_STATE
 {
-    // The item is normal. Use the ItemColorFunction 
+    // The item is normal. Use the ItemColorFunction
     // to determine the color of the item.
     NormalItemState = 0,
-    // The item is new. On the next tick, 
-    // change the state to NormalItemState. When an 
+    // The item is new. On the next tick,
+    // change the state to NormalItemState. When an
     // item is in this state, highlight it in NewColor.
     NewItemState,
     // The item is being removed. On the next tick,
-    // delete the item. When an item is in this state, 
+    // delete the item. When an item is in this state,
     // highlight it in RemovingColor.
     RemovingItemState
 } PH_ITEM_STATE;
@@ -770,7 +770,7 @@ PhSetHeaderSortIcon(
  *
  * \param Color The color.
  *
- * \return A value ranging from 0 to 255, 
+ * \return A value ranging from 0 to 255,
  * indicating the brightness of the color.
  */
 FORCEINLINE ULONG PhGetColorBrightness(

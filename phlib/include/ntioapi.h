@@ -201,9 +201,9 @@ typedef enum _FILE_INFORMATION_CLASS
     FileNetworkOpenInformation,
     FileAttributeTagInformation,
     FileTrackingInformation,
-    FileIdBothDirectoryInformation, 
-    FileIdFullDirectoryInformation, 
-    FileValidDataLengthInformation, 
+    FileIdBothDirectoryInformation,
+    FileIdFullDirectoryInformation,
+    FileValidDataLengthInformation,
     FileShortNameInformation,
     FileIoCompletionNotificationInformation,
     FileIoStatusBlockRangeInformation,
@@ -296,7 +296,7 @@ typedef struct _FILE_NETWORK_OPEN_INFORMATION
 {
     LARGE_INTEGER CreationTime;
     LARGE_INTEGER LastAccessTime;
-    LARGE_INTEGER LastWriteTime; 
+    LARGE_INTEGER LastWriteTime;
     LARGE_INTEGER ChangeTime;
     LARGE_INTEGER AllocationSize;
     LARGE_INTEGER EndOfFile;
@@ -730,7 +730,7 @@ typedef enum _FSINFOCLASS
     FileFsLabelInformation,
     FileFsSizeInformation,
     FileFsDeviceInformation,
-    FileFsAttributeInformation, 
+    FileFsAttributeInformation,
     FileFsControlInformation,
     FileFsFullSizeInformation,
     FileFsObjectIdInformation,

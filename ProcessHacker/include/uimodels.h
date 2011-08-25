@@ -213,7 +213,7 @@ typedef struct _PH_PROCESS_NODE
 
     PH_STRINGREF TextCache[PHPRTLC_MAXIMUM];
 
-    // If the user has selected certain columns we need extra information 
+    // If the user has selected certain columns we need extra information
     // that isn't retrieved by the process provider.
     ULONG ValidMask;
 

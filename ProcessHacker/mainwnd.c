@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   main window
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -216,7 +216,7 @@ BOOLEAN PhMainWndInitialization(
         HICON shieldIcon;
         MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
 
-        // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong 
+        // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
         // resolution and look very bad when scaled down to the small icon size.
 
         loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
@@ -276,7 +276,7 @@ BOOLEAN PhMainWndInitialization(
     if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
 
-    // TS notification registration is done in the delayed load function. It's therefore 
+    // TS notification registration is done in the delayed load function. It's therefore
     // possible that we miss a notification, but it's a trade-off.
     PhMwpUpdateUsersMenu();
 
@@ -682,7 +682,7 @@ VOID PhMwpOnCommand(
                     PhMainWndHandle,
                     NULL,
                     NULL,
-                    NULL, 
+                    NULL,
                     L"Type the name of a program that will be opened under alternate credentials.",
                     0
                     );
@@ -698,7 +698,7 @@ VOID PhMwpOnCommand(
                     PhMainWndHandle,
                     NULL,
                     NULL,
-                    NULL, 
+                    NULL,
                     L"Type the name of a program that will be opened under standard user privileges.",
                     0
                     );
@@ -1291,7 +1291,7 @@ VOID PhMwpOnCommand(
 
             if (processItem)
             {
-                // The object relies on the list view reference, which could 
+                // The object relies on the list view reference, which could
                 // disappear if we don't reference the object here.
                 PhReferenceObject(processItem);
                 PhShowProcessTerminatorDialog(PhMainWndHandle, processItem);
@@ -1637,7 +1637,7 @@ VOID PhMwpOnCommand(
 
             if (serviceItem)
             {
-                // The object relies on the list view reference, which could 
+                // The object relies on the list view reference, which could
                 // disappear if we don't reference the object here.
                 PhReferenceObject(serviceItem);
                 PhShowServiceProperties(PhMainWndHandle, serviceItem);
@@ -1758,7 +1758,7 @@ BOOLEAN PhMwpOnSysCommand(
         break;
     case SC_MINIMIZE:
         {
-            // Save the current window state because we 
+            // Save the current window state because we
             // may not have a chance to later.
             PhMwpSaveWindowSettings();
 
@@ -1861,7 +1861,7 @@ BOOLEAN PhMwpOnNotify(
 
             if (NT_SUCCESS(status = NtOpenProcessToken(
                 NtCurrentProcess(),
-                TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS | 
+                TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS |
                 TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
                 &tokenHandle
                 )))
@@ -2257,7 +2257,7 @@ VOID NTAPI PhMwpProcessAddedHandler(
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
 
-    // Reference the process item so it doesn't get deleted before 
+    // Reference the process item so it doesn't get deleted before
     // we handle the event in the main thread.
     PhReferenceObject(processItem);
     PostMessage(
@@ -2285,7 +2285,7 @@ VOID NTAPI PhMwpProcessRemovedHandler(
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
 
-    // We already have a reference to the process item, so we don't need to 
+    // We already have a reference to the process item, so we don't need to
     // reference it here.
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
 }
@@ -2303,7 +2303,7 @@ VOID NTAPI PhMwpProcessesUpdatedForIconsHandler(
     __in_opt PVOID Context
     )
 {
-    // We do icon updating on the provider thread so we don't block the main GUI when 
+    // We do icon updating on the provider thread so we don't block the main GUI when
     // explorer is not responding.
 
     if (NotifyIconMask & PH_ICON_CPU_HISTORY)
@@ -2893,7 +2893,7 @@ VOID PhMwpLayoutTabControl(
 
     if (selectedIndex == ProcessesTabIndex)
     {
-        *DeferHandle = DeferWindowPos(*DeferHandle, ProcessTreeListHandle, NULL, 
+        *DeferHandle = DeferWindowPos(*DeferHandle, ProcessTreeListHandle, NULL,
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
@@ -3733,7 +3733,7 @@ VOID PhMwpInitializeProcessMenu(
     {
         // All menu items are enabled by default.
 
-        // If the user selected a fake process, disable all but 
+        // If the user selected a fake process, disable all but
         // a few menu items.
         if (PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId))
         {
@@ -3763,7 +3763,7 @@ VOID PhMwpInitializeProcessMenu(
             PhSetFlagsAllEMenuItems(item, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         }
 
-        // These menu items are capable of manipulating 
+        // These menu items are capable of manipulating
         // multiple processes.
         for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
         {
@@ -4361,7 +4361,7 @@ VOID PhMwpOnServiceRemoved(
         {
             HANDLE pointerHandle;
 
-            // Remove the service from the pending list so we don't try to add it 
+            // Remove the service from the pending list so we don't try to add it
             // later.
 
             if (pointerHandle = PhFindItemPointerList(ServicesPendingList, ServiceItem))

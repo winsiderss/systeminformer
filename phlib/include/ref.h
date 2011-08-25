@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   internal object manager
- * 
+ *
  * Copyright (C) 2009 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -46,9 +46,9 @@ extern "C" {
 /* Object type callbacks */
 
 /**
- * The delete procedure for an object type, called when 
+ * The delete procedure for an object type, called when
  * an object of the type is being freed.
- * 
+ *
  * \param Object A pointer to the object being freed.
  * \param Flags Reserved.
  */
@@ -236,17 +236,17 @@ PhCreateAlloc(
 
 /** The size of the static array in an auto-release pool. */
 #define PH_AUTO_POOL_STATIC_SIZE 64
-/** The maximum size of the dynamic array for it to be 
+/** The maximum size of the dynamic array for it to be
  * kept after the auto-release pool is drained. */
 #define PH_AUTO_POOL_DYNAMIC_BIG_SIZE 256
 
 /**
- * An auto-dereference pool can be used for 
- * semi-automatic reference counting. Batches of 
+ * An auto-dereference pool can be used for
+ * semi-automatic reference counting. Batches of
  * objects are dereferenced at a certain time.
  *
- * This object is not thread-safe and cannot 
- * be used across thread boundaries. Always 
+ * This object is not thread-safe and cannot
+ * be used across thread boundaries. Always
  * store them as local variables.
  */
 typedef struct _PH_AUTO_POOL
@@ -294,7 +294,7 @@ PhDrainAutoPool(
 /**
  * Calls PhaDereferenceObject() and returns the given object.
  *
- * \param Object A pointer to an object. The value can be 
+ * \param Object A pointer to an object. The value can be
  * null; in that case no action is performed.
  *
  * \return The value of \a Object.

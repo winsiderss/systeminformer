@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   process tree list
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -336,7 +336,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
         PPH_PROCESS_NODE node = ProcessNodeRootList->Items[i];
 
         if (
-            node != processNode && // for cases where the parent PID = PID (e.g. System Idle Process) 
+            node != processNode && // for cases where the parent PID = PID (e.g. System Idle Process)
             node->ProcessItem->ParentProcessId == ProcessItem->ProcessId &&
             ProcessItem->CreateTime.QuadPart <= node->ProcessItem->CreateTime.QuadPart
             )
@@ -599,8 +599,8 @@ VOID PhTickProcessNodes(
 
     if (!fullyInvalidated)
     {
-        // The first column doesn't need to be invalidated because the process name never changes, and 
-        // icon changes are handled by the modified event. This small optimization can save more than 
+        // The first column doesn't need to be invalidated because the process name never changes, and
+        // icon changes are handled by the modified event. This small optimization can save more than
         // 10 million cycles per update (on my machine).
         TreeNew_GetViewParts(ProcessTreeListHandle, &viewParts);
         rect.left = viewParts.NormalLeft;
@@ -625,7 +625,7 @@ static VOID PhpNeedGraphContext(
 
     if (GraphContext)
     {
-        // The original bitmap must be selected back into the context, otherwise 
+        // The original bitmap must be selected back into the context, otherwise
         // the bitmap can't be deleted.
         SelectObject(GraphContext, GraphBitmap);
         DeleteObject(GraphBitmap);

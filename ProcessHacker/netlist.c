@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   network list
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -306,7 +306,7 @@ VOID PhTickNetworkNodes(
 {
     if (NetworkTreeListSortOrder != NoSortOrder && NetworkTreeListSortColumn >= PHNETLC_MAXIMUM)
     {
-        // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our 
+        // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our
         // columns, the restructure would have been handled in PhUpdateNetworkNode.)
         TreeNew_NodesStructured(NetworkTreeListHandle);
     }
@@ -535,7 +535,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             if (node->NetworkItem->ProcessIconValid)
             {
-                // TODO: Check if the icon handle is actually valid, since the process item 
+                // TODO: Check if the icon handle is actually valid, since the process item
                 // might get destroyed while the network node is still valid.
                 getNodeIcon->Icon = node->NetworkItem->ProcessIcon;
             }

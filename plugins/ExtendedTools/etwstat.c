@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   ETW statistics collection
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -159,7 +159,7 @@ VOID EtProcessNetworkEvent(
         EtNetworkSendCount++;
     }
 
-    // Note: there is always the possibility of us receiving the event too early, 
+    // Note: there is always the possibility of us receiving the event too early,
     // before the process item or network item is created. So events may be lost.
 
     if (processItem = PhReferenceProcessItem(Event->ClientId.UniqueProcess))
@@ -217,7 +217,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
     ULONG maxNetworkValue = 0;
     PET_PROCESS_BLOCK maxNetworkBlock = NULL;
 
-    // ETW is extremely lazy when it comes to flushing buffers, so we must do it 
+    // ETW is extremely lazy when it comes to flushing buffers, so we must do it
     // manually.
     EtFlushEtwSession();
 
@@ -316,7 +316,7 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
 {
     PLIST_ENTRY listEntry;
 
-    // ETW is flushed in the processes-updated callback above. This may cause us the network 
+    // ETW is flushed in the processes-updated callback above. This may cause us the network
     // blocks to all fall one update interval behind, however.
 
     // Update per-connection statistics.

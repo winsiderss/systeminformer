@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   server API
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -746,7 +746,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
             {
                 if (_InterlockedExchangePointer(&setTcpEntry, localSetTcpEntry) != NULL)
                 {
-                    // Another thread got the address of SetTcpEntry already. 
+                    // Another thread got the address of SetTcpEntry already.
                     // Decrement the reference count of iphlpapi.dll.
                     FreeLibrary(iphlpapiModule);
                 }

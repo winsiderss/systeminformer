@@ -1,11 +1,11 @@
 /*
- * Process Hacker Window Explorer - 
+ * Process Hacker Window Explorer -
  *   window tree dialog
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -146,7 +146,7 @@ BOOL CALLBACK WepEnumChildWindowsProc(
     PADD_CHILD_WINDOWS_CONTEXT context = (PADD_CHILD_WINDOWS_CONTEXT)lParam;
     PWE_WINDOW_NODE childNode;
 
-    // EnumChildWindows gives you all the child windows, even if they are 
+    // EnumChildWindows gives you all the child windows, even if they are
     // indirect descendants. We only want the direct descendants.
     if (!context->TopLevelWindows && context->Node && GetParent(hwnd) != context->Node->WindowHandle)
         return TRUE;

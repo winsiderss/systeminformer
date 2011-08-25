@@ -102,7 +102,7 @@ LOGICAL DllMain(
                 &GetProcessTooltipTextCallbackRegistration
                 );
 
-            // Add some settings. Note that we cannot access these settings 
+            // Add some settings. Note that we cannot access these settings
             // in DllMain. Settings must be added in DllMain.
             {
                 static PH_SETTING_CREATE settings[] =
@@ -132,7 +132,7 @@ VOID LoadCallback(
     myInteger = PhGetIntegerSetting(L"ProcessHacker.SamplePlugin.SomeInteger");
     // Do stuff to the integer. Possibly modify the setting.
     PhSetIntegerSetting(L"ProcessHacker.SamplePlugin.SomeInteger", myInteger + 100);
-    
+
     myString = PhGetStringSetting(L"ProcessHacker.SamplePlugin.SomeString");
     // Do stuff to the string.
     // Dereference the string when you're done, or memory will be leaked.
@@ -186,11 +186,11 @@ VOID MenuItemCallback(
             HANDLE directoryHandle;
             OBJECT_ATTRIBUTES oa;
             UNICODE_STRING name;
-            
+
             // Use the Native API seamlessly alongside Win32.
             RtlInitUnicodeString(&name, L"\\");
             InitializeObjectAttributes(&oa, &name, 0, NULL, NULL);
-            
+
             if (NT_SUCCESS(status = NtOpenDirectoryObject(&directoryHandle, DIRECTORY_QUERY, &oa)))
             {
                 PhEnumDirectoryObjects(directoryHandle, EnumDirectoryObjectsCallback, NULL);
@@ -220,13 +220,13 @@ VOID GetProcessHighlightingColorCallback(
 {
     PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
     PPH_PROCESS_ITEM processItem;
-    
+
     processItem = getHighlightingColor->Parameter;
-    
+
     // Optional: if another plugin handled the highlighting, don't override it.
     if (getHighlightingColor->Handled)
         return;
-    
+
     // Set the background color of svchost.exe processes to black.
     if (PhEqualString2(processItem->ProcessName, L"svchost.exe", TRUE))
     {
@@ -245,7 +245,7 @@ VOID GetProcessTooltipTextCallback(
     PPH_PROCESS_ITEM processItem;
 
     processItem = getTooltipText->Parameter;
-    
+
     // Put some text into the tooltip. This will go in just before the Notes section.
     PhAppendFormatStringBuilder(
         getTooltipText->StringBuilder,

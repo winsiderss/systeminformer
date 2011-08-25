@@ -58,22 +58,22 @@
 // Annotations
 
 /**
- * Indicates that a function assumes the relevant 
+ * Indicates that a function assumes the relevant
  * locks have been acquired.
  */
 #define __assumeLocked
 
 /**
- * Indicates that a function assumes the specified 
+ * Indicates that a function assumes the specified
  * number of references are available for the object.
  *
- * \remarks Usually functions reference objects if they 
- * store them for later usage; this annotation specifies 
- * that the caller must supply these extra references 
- * itself. In effect these references are "transferred" 
- * to the function and must not be used. E.g. if you 
- * create an object and immediately call a function 
- * with __assumeRefs(1), you may no longer use the object 
+ * \remarks Usually functions reference objects if they
+ * store them for later usage; this annotation specifies
+ * that the caller must supply these extra references
+ * itself. In effect these references are "transferred"
+ * to the function and must not be used. E.g. if you
+ * create an object and immediately call a function
+ * with __assumeRefs(1), you may no longer use the object
  * since that one reference you held is no longer yours.
  */
 #define __assumeRefs(count)
@@ -82,14 +82,14 @@
  * Indicates that a function may raise a software
  * exception.
  *
- * \remarks Do not use this annotation for 
- * temporary usages of exceptions, e.g. unimplemented 
+ * \remarks Do not use this annotation for
+ * temporary usages of exceptions, e.g. unimplemented
  * functions.
  */
 #define __mayRaise
 
 /**
- * Indicates that a function requires the specified 
+ * Indicates that a function requires the specified
  * value to be aligned at the specified number of bytes.
  */
 #define __needsAlign(align)
@@ -461,12 +461,12 @@ FORCEINLINE ULONG PhRoundNumber(
 
     // This new value has the multiplier truncated.
     // E.g. 1099 / 100 * 100 = 1000.
-    // If the difference is less than half the multiplier, 
+    // If the difference is less than half the multiplier,
     // use the new value.
     // E.g.
-    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use 
+    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use
     // the new value plus the multiplier.
-    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use 
+    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use
     // the new value.
 
     if (Value - newValue < Multiplier / 2)
