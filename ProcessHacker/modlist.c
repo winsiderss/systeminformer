@@ -741,11 +741,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
-    //case TreeNewLeftDoubleClick:
-    //    {
-    //        SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_PROPERTIES, 0);
-    //    }
-    //    return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+			SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_INSPECT, 0);
+        }
+        return TRUE;
     case TreeNewContextMenu:
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
