@@ -1,6 +1,6 @@
 @echo off
 
-rem The first parameter specifies the ProcessHacker2 
+rem The first parameter specifies the ProcessHacker2
 rem base directory.
 rem The second parameter specifies the output directory.
 rem Variables:
@@ -9,7 +9,7 @@ rem     e.g. C:\Program Files\Inno Setup 5
 rem SVNBIN - Specify the path to the SVN client.
 rem SEVENZIPBIN - Specify the path to 7-Zip.
 rem     e.g. C:\Program Files\7-Zip
-rem MINORVERSION - Specify the minor version of 
+rem MINORVERSION - Specify the minor version of
 rem     the Process Hacker release being built.
 rem     e.g. 8
 

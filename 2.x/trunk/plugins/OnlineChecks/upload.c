@@ -1,11 +1,11 @@
 /*
- * Process Hacker Online Checks - 
+ * Process Hacker Online Checks -
  *   uploader
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -49,7 +49,7 @@ typedef struct _SERVICE_INFO
     PSTR FileNameFieldName;
 } SERVICE_INFO, *PSERVICE_INFO;
 
-INT_PTR CALLBACK UploadDlgProc(      
+INT_PTR CALLBACK UploadDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -590,7 +590,7 @@ ExitCleanup:
     return STATUS_SUCCESS;
 }
 
-INT_PTR CALLBACK UploadDlgProc(      
+INT_PTR CALLBACK UploadDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

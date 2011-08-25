@@ -7,7 +7,7 @@
 #define EXT extern
 #endif
 
-// Only functions appearing in Windows XP and below may be 
+// Only functions appearing in Windows XP and below may be
 // imported normally. The other functions are imported here.
 
 #if !(PHNT_VERSION >= PHNT_WS03)

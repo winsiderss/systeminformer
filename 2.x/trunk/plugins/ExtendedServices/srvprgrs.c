@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Services - 
+ * Process Hacker Extended Services -
  *   progress dialog
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -32,7 +32,7 @@ typedef struct _RESTART_SERVICE_CONTEXT
     BOOLEAN Starting;
 } RESTART_SERVICE_CONTEXT, *PRESTART_SERVICE_CONTEXT;
 
-INT_PTR CALLBACK EspRestartServiceDlgProc(      
+INT_PTR CALLBACK EspRestartServiceDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -60,7 +60,7 @@ VOID EsRestartServiceWithProgress(
         );
 }
 
-INT_PTR CALLBACK EspRestartServiceDlgProc(      
+INT_PTR CALLBACK EspRestartServiceDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

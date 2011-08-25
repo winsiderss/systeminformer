@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   process affinity editor
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,9 +21,9 @@
  */
 
 /*
- * The affinity dialog was originally created to support the modification 
- * of process affinity masks, but now supports modifying thread affinity 
- * and generic masks. It still only supports a maximum of 32 processors 
+ * The affinity dialog was originally created to support the modification
+ * of process affinity masks, but now supports modifying thread affinity
+ * and generic masks. It still only supports a maximum of 32 processors
  * though.
  */
 
@@ -158,7 +158,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     {
                         affinityMask = basicInfo.AffinityMask;
 
-                        // A thread's affinity mask is restricted by the process affinity mask, 
+                        // A thread's affinity mask is restricted by the process affinity mask,
                         // so use that as the system affinity mask.
 
                         if (NT_SUCCESS(PhOpenProcess(
@@ -203,7 +203,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                 break;
             }
 
-            // Disable the CPU checkboxes which aren't part of the system affinity mask, 
+            // Disable the CPU checkboxes which aren't part of the system affinity mask,
             // and check the CPU checkboxes which are part of the affinity mask.
 
             for (i = 0; i < 32; i++)

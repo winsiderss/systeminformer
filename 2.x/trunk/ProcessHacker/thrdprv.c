@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   thread provider
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,9 +21,9 @@
  */
 
 /*
- * The thread provider is tied to the process provider, and runs by registering 
- * a callback for the processes-updated event. This is because calculating CPU 
- * usage depends on deltas calculated by the process provider. However, this 
+ * The thread provider is tied to the process provider, and runs by registering
+ * a callback for the processes-updated event. This is because calculating CPU
+ * usage depends on deltas calculated by the process provider. However, this
  * does increase the complexity of the thread provider system.
  */
 
@@ -184,7 +184,7 @@ VOID PhpThreadProviderDeleteProcedure(
 {
     PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Object;
 
-    // Dereference all thread items (we referenced them 
+    // Dereference all thread items (we referenced them
     // when we added them to the hashtable).
     PhDereferenceAllThreadItems(threadProvider);
 
@@ -215,7 +215,7 @@ VOID PhpThreadProviderDeleteProcedure(
         }
     }
 
-    // We don't close the process handle because it is owned by 
+    // We don't close the process handle because it is owned by
     // the symbol provider.
     if (threadProvider->SymbolProvider) PhDereferenceObject(threadProvider->SymbolProvider);
 }
@@ -246,8 +246,8 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
     PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
 
-    // If we're loading kernel module symbols for a process other than 
-    // System, ignore modules which are in user space. This may happen 
+    // If we're loading kernel module symbols for a process other than
+    // System, ignore modules which are in user space. This may happen
     // in Windows 7.
     if (
         context->ProcessId == SYSTEM_PROCESS_ID &&
@@ -320,7 +320,7 @@ NTSTATUS PhpThreadProviderLoadSymbols(
         }
         else
         {
-            // We can't enumerate the process modules. Load 
+            // We can't enumerate the process modules. Load
             // symbols for ntdll.dll and kernel32.dll.
             loadContext.ProcessId = NtCurrentProcessId();
             PhEnumGenericModules(
@@ -348,7 +348,7 @@ NTSTATUS PhpThreadProviderLoadSymbols(
     else
     {
         // System Idle Process has one thread for each CPU,
-        // each having a start address at KiIdleLoop. We 
+        // each having a start address at KiIdleLoop. We
         // need to load symbols for the kernel.
 
         PRTL_PROCESS_MODULES kernelModules;
@@ -377,7 +377,7 @@ NTSTATUS PhpThreadProviderLoadSymbols(
         }
     }
 
-    // Check if the process has services - we'll need to know before getting service tag/name 
+    // Check if the process has services - we'll need to know before getting service tag/name
     // information.
     if (WINDOWS_HAS_SERVICE_TAGS)
     {
@@ -524,7 +524,7 @@ NTSTATUS PhpThreadQueryWorker(
     if (newSymbolsLoading == 1)
         PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, (PVOID)TRUE);
 
-    // We can't resolve the start address until symbols have 
+    // We can't resolve the start address until symbols have
     // been loaded.
     PhWaitForEvent(&data->ThreadProvider->SymbolsLoadedEvent, NULL);
 
@@ -724,7 +724,7 @@ VOID PhpThreadProviderUpdate(
 
     if (!process)
     {
-        // The process doesn't exist anymore. Pretend it does but 
+        // The process doesn't exist anymore. Pretend it does but
         // has no threads.
         process = &localProcess;
         process->NumberOfThreads = 0;
@@ -733,8 +733,8 @@ VOID PhpThreadProviderUpdate(
     threads = process->Threads;
     numberOfThreads = process->NumberOfThreads;
 
-    // System Idle Process has one thread per CPU. 
-    // They all have a TID of 0, but we can't have 
+    // System Idle Process has one thread per CPU.
+    // They all have a TID of 0, but we can't have
     // multiple TIDs, so we'll assign unique TIDs.
     if (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
@@ -970,8 +970,8 @@ VOID PhpThreadProviderUpdate(
                 modified = TRUE;
             }
 
-            // If the resolve level is only at address, it probably 
-            // means symbols weren't loaded the last time we 
+            // If the resolve level is only at address, it probably
+            // means symbols weren't loaded the last time we
             // tried to get the start address. Try again.
             if (threadItem->StartAddressResolveLevel == PhsrlAddress)
             {
@@ -994,11 +994,11 @@ VOID PhpThreadProviderUpdate(
                 }
             }
 
-            // If we couldn't resolve the start address to a 
-            // module+offset, use the StartAddress instead 
+            // If we couldn't resolve the start address to a
+            // module+offset, use the StartAddress instead
             // of the Win32StartAddress and try again.
-            // Note that we check the resolve level again 
-            // because we may have changed it in the previous 
+            // Note that we check the resolve level again
+            // because we may have changed it in the previous
             // block.
             if (
                 threadItem->JustResolved &&

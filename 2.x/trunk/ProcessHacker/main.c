@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   main program
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -507,7 +507,7 @@ VOID PhpInitializeSettings(
 
         // There are three possible locations for the settings file:
         // 1. The file name given in the command line.
-        // 2. A file named ProcessHacker.exe.settings.xml in the program directory. (This changes 
+        // 2. A file named ProcessHacker.exe.settings.xml in the program directory. (This changes
         //    based on the executable file name.)
         // 3. The default location.
 
@@ -543,8 +543,8 @@ VOID PhpInitializeSettings(
         {
             status = PhLoadSettings(PhSettingsFileName->Buffer);
 
-            // If we didn't find the file, it will be created. Otherwise, 
-            // there was probably a parsing error and we don't want to 
+            // If we didn't find the file, it will be created. Otherwise,
+            // there was probably a parsing error and we don't want to
             // change anything.
             if (status == STATUS_FILE_CORRUPT_ERROR)
             {
@@ -559,7 +559,7 @@ VOID PhpInitializeSettings(
                     IO_STATUS_BLOCK isb;
                     CHAR data[] = "<settings></settings>";
 
-                    // This used to delete the file. But it's better to keep the file there 
+                    // This used to delete the file. But it's better to keep the file there
                     // and overwrite it with some valid XML, especially with case (2) above.
                     if (NT_SUCCESS(PhCreateFileWin32(
                         &fileHandle,
@@ -577,7 +577,7 @@ VOID PhpInitializeSettings(
                 }
                 else
                 {
-                    // Pretend we don't have a settings store so bad things 
+                    // Pretend we don't have a settings store so bad things
                     // don't happen.
                     PhDereferenceObject(PhSettingsFileName);
                     PhSettingsFileName = NULL;
@@ -718,7 +718,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
 
         if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != -1)
         {
-            // User probably has Process Hacker replacing Task Manager. Force 
+            // User probably has Process Hacker replacing Task Manager. Force
             // the main window to start visible.
             PhStartupParameters.ShowVisible = TRUE;
         }

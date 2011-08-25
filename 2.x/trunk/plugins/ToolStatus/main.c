@@ -1,12 +1,12 @@
 /*
- * Process Hacker ToolStatus - 
+ * Process Hacker ToolStatus -
  *   main program
- * 
+ *
  * Copyright (C) 2010-2011 wj32
  * Copyright (C) 2011 dmex
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -414,7 +414,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 goto DefaultWndProc;
             }
 
-            // If we're targeting and the user presses the Esc key, cancel the targeting. 
+            // If we're targeting and the user presses the Esc key, cancel the targeting.
             // We also make sure the window doesn't get closed by filtering out the message.
             if (LOWORD(wParam) == PHAPP_ID_ESC_EXIT && TargetingWindow)
             {
@@ -562,7 +562,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                     if (PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows"))
                     {
-                        // This is an undocumented function exported by user32.dll that 
+                        // This is an undocumented function exported by user32.dll that
                         // retrieves the hung window represented by a ghost window.
                         static HWND (WINAPI *HungWindowFromGhostWindow_I)(
                             __in HWND hWnd
@@ -575,7 +575,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                         {
                             HWND hungWindow = HungWindowFromGhostWindow_I(TargetingCurrentWindow);
 
-                            // The call will have failed if the window wasn't actually a ghost 
+                            // The call will have failed if the window wasn't actually a ghost
                             // window.
                             if (hungWindow)
                                 TargetingCurrentWindow = hungWindow;
@@ -1018,7 +1018,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 switch (uMsg)
     {
     case WM_INITDIALOG:
-        {    
+        {
             HWND comboHandle = GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO);
 
             ComboBox_AddString(comboHandle, L"Images only");
@@ -1040,7 +1040,7 @@ switch (uMsg)
                 break;
             case IDOK:
                 {
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", 
+                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle",
                         (DisplayStyle = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar",
                         (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR)) == BST_CHECKED));

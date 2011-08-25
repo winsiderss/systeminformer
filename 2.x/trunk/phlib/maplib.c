@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   mapped library
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,8 +21,8 @@
  */
 
 /*
- * This file contains functions to load and retrieve information for 
- * library/archive files (lib). The file format for archive files is explained 
+ * This file contains functions to load and retrieve information for
+ * library/archive files (lib). The file format for archive files is explained
  * in the PE/COFF specification located at:
  *
  * http://www.microsoft.com/whdc/system/platform/firmware/PECOFF.mspx
@@ -105,7 +105,7 @@ NTSTATUS PhInitializeMappedArchive(
 
     // Longnames member
     // This member doesn't seem to be mandatory, contrary to the specification.
-    // So we'll check if it's actually a longnames member, and if not, ignore 
+    // So we'll check if it's actually a longnames member, and if not, ignore
     // it.
 
     status = PhGetNextMappedArchiveMember(
@@ -186,8 +186,8 @@ VOID PhpMappedArchiveProbe(
  * Gets the next archive member.
  *
  * \param Member An archive member structure.
- * \param NextMember A variable which receives a structure 
- * describing the next archive member. This pointer may be 
+ * \param NextMember A variable which receives a structure
+ * describing the next archive member. This pointer may be
  * the same as the pointer specified in \a Member.
  */
 NTSTATUS PhGetNextMappedArchiveMember(
@@ -282,9 +282,9 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
     // Special names:
     // * If the slash is the first character, then this is a linker member.
-    // * If there is a slash after the slash which is a first character, then 
+    // * If there is a slash after the slash which is a first character, then
     //   this is the longnames member.
-    // * If there are digits after the slash, then the real name is stored 
+    // * If there are digits after the slash, then the real name is stored
     //   in the longnames member.
 
     if (slash == Member->NameBuffer)
@@ -328,7 +328,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
             *digita = 0;
 
-            // Parse the offset and make sure it lies within the 
+            // Parse the offset and make sure it lies within the
             // longnames member.
 
             if (!PhCopyUnicodeStringZFromAnsi(slash + 1, -1, integerString, 11, NULL))
@@ -360,7 +360,7 @@ BOOLEAN PhIsMappedArchiveMemberShortFormat(
     )
 {
     PIMAGE_FILE_HEADER header;
-    
+
     header = (PIMAGE_FILE_HEADER)Member->Data;
 
     return header->Machine != IMAGE_FILE_MACHINE_UNKNOWN;
@@ -391,7 +391,7 @@ NTSTATUS PhGetMappedArchiveImportEntry(
     Entry->Name = (PSTR)PTR_ADD_OFFSET(importHeader, sizeof(IMPORT_OBJECT_HEADER));
     Entry->DllName = (PSTR)PTR_ADD_OFFSET(Entry->Name, strlen(Entry->Name) + 1);
 
-    // Ordinal/NameHint are union'ed, so these statements are exactly the same. 
+    // Ordinal/NameHint are union'ed, so these statements are exactly the same.
     // It's there in case this changes in the future.
     if (Entry->NameType == IMPORT_OBJECT_ORDINAL)
     {

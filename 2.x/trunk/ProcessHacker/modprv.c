@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   module provider
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -141,7 +141,7 @@ VOID PhpModuleProviderDeleteProcedure(
 {
     PPH_MODULE_PROVIDER moduleProvider = (PPH_MODULE_PROVIDER)Object;
 
-    // Dereference all module items (we referenced them 
+    // Dereference all module items (we referenced them
     // when we added them to the hashtable).
     PhDereferenceAllModuleItems(moduleProvider);
 
@@ -354,8 +354,8 @@ VOID PhModuleProviderUpdate(
     PPH_LIST modules;
     ULONG i;
 
-    // If we didn't get a handle when we created the provider, 
-    // abort (unless this is the System process - in that case 
+    // If we didn't get a handle when we created the provider,
+    // abort (unless this is the System process - in that case
     // we don't need a handle).
     if (!moduleProvider->ProcessHandle && moduleProvider->ProcessId != SYSTEM_PROCESS_ID)
         return;
@@ -481,8 +481,8 @@ VOID PhModuleProviderUpdate(
             {
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
 
-                // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used 
-                // anymore. Instead we'll check ImageBase in the image headers. We read this in 
+                // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used
+                // anymore. Instead we'll check ImageBase in the image headers. We read this in
                 // from the process' memory because:
                 //
                 // 1. It (should be) faster than opening the file and mapping it in, and

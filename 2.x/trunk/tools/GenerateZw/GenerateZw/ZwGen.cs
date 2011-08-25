@@ -39,7 +39,7 @@ namespace GenerateZw
 
         private string UnEscape(string text)
         {
-            return text.Replace("\\r", "\r").Replace("\\n", "\n").Replace("\\\\", "\\"); 
+            return text.Replace("\\r", "\r").Replace("\\n", "\n").Replace("\\\\", "\\");
         }
 
         public void LoadConfig(string fileName)

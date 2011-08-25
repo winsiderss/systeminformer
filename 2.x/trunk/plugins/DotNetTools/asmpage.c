@@ -1,11 +1,11 @@
 /*
- * Process Hacker .NET Tools - 
+ * Process Hacker .NET Tools -
  *   .NET Assemblies property page
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -894,9 +894,9 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
 {
     HANDLE threadHandle;
 
-    // ProcessDotNetTrace is not guaranteed to complete within any period of time, because 
+    // ProcessDotNetTrace is not guaranteed to complete within any period of time, because
     // the target process might terminate before it writes the DCStartComplete_V1 event.
-    // If the timeout is reached, the trace handle is closed, forcing ProcessTrace to stop 
+    // If the timeout is reached, the trace handle is closed, forcing ProcessTrace to stop
     // processing.
 
     Context->TraceClrV2 = ClrV2;
@@ -909,7 +909,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     if (NtWaitForSingleObject(threadHandle, FALSE, Timeout) != STATUS_WAIT_0)
     {
         // Timeout has expired. Stop the trace processing if it's still active.
-        // BUG: This assumes that the thread is in ProcessTrace. It might still be 
+        // BUG: This assumes that the thread is in ProcessTrace. It might still be
         // setting up though!
         if (_InterlockedExchange(&Context->TraceHandleActive, 0) == 1)
         {

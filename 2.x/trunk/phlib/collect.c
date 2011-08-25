@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   additional collection types
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -486,7 +486,7 @@ ULONG PhpRebalanceAvlLinks(
  * \param Tree The tree.
  * \param Element The element to add.
  *
- * \return NULL if the element was added, or an existing 
+ * \return NULL if the element was added, or an existing
  * element.
  */
 PPH_AVL_LINKS PhAddElementAvlTree(
@@ -531,14 +531,14 @@ PPH_AVL_LINKS PhAddElementAvlTree(
 
         if (P->Balance == 0)
         {
-            // The balance becomes -1 or 1. Rotations are not needed 
+            // The balance becomes -1 or 1. Rotations are not needed
             // yet, but we should keep tracing upwards.
 
             P->Balance = balance;
         }
         else if (P->Balance != balance)
         {
-            // The balance is opposite the new balance, so it now 
+            // The balance is opposite the new balance, so it now
             // becomes 0.
 
             P->Balance = 0;
@@ -549,7 +549,7 @@ PPH_AVL_LINKS PhAddElementAvlTree(
         {
             PPH_AVL_LINKS *ref;
 
-            // The balance is the same as the new balance, meaning 
+            // The balance is the same as the new balance, meaning
             // it now becomes -2 or 2. Rotations are needed.
 
             if (P->Parent->Left == P)
@@ -635,7 +635,7 @@ VOID PhRemoveElementAvlTree(
     {
         if (P->Balance == balance)
         {
-            // The balance is cancelled by the remove operation and becomes 0. 
+            // The balance is cancelled by the remove operation and becomes 0.
             // Rotations are not needed yet, but we should keep tracing upwards.
 
             P->Balance = 0;
@@ -652,7 +652,7 @@ VOID PhRemoveElementAvlTree(
         {
             PPH_AVL_LINKS *ref;
 
-            // The balance is the same as the new balance, meaning 
+            // The balance is the same as the new balance, meaning
             // it now becomes -2 or 2. Rotations are needed.
 
             if (P->Parent->Left == P)
@@ -800,7 +800,7 @@ PPH_AVL_LINKS PhMaximumElementAvlTree(
  *
  * \param Element The element.
  *
- * \return The next element, or NULL if there are no 
+ * \return The next element, or NULL if there are no
  * more elements.
  */
 PPH_AVL_LINKS PhSuccessorElementAvlTree(
@@ -820,9 +820,9 @@ PPH_AVL_LINKS PhSuccessorElementAvlTree(
     }
     else
     {
-        // Trace back to the next vertical level. Note 
-        // that this code does in fact return NULL when there 
-        // are no more elements because of the way the root 
+        // Trace back to the next vertical level. Note
+        // that this code does in fact return NULL when there
+        // are no more elements because of the way the root
         // element is constructed.
 
         links = Element->Parent;
@@ -842,7 +842,7 @@ PPH_AVL_LINKS PhSuccessorElementAvlTree(
  *
  * \param Element The element.
  *
- * \return The previous element, or NULL if there are no 
+ * \return The previous element, or NULL if there are no
  * more elements.
  */
 PPH_AVL_LINKS PhPredecessorElementAvlTree(
@@ -872,7 +872,7 @@ PPH_AVL_LINKS PhPredecessorElementAvlTree(
 
         if (links)
         {
-            // We need an additional check because the tree root is 
+            // We need an additional check because the tree root is
             // stored in Root.Right, not Left.
             if (!links->Parent)
                 return NULL; // reached Root, so no more elements
@@ -888,7 +888,7 @@ PPH_AVL_LINKS PhPredecessorElementAvlTree(
  * \param Tree The tree.
  * \param Order The enumeration order.
  * \param Callback The callback function.
- * \param Context A user-defined value to pass to the callback 
+ * \param Context A user-defined value to pass to the callback
  * function.
  */
 VOID PhEnumAvlTree(
@@ -899,7 +899,7 @@ VOID PhEnumAvlTree(
     )
 {
     // The maximum height of an AVL tree is around 1.44 * log2(n).
-    // The maximum number of elements in this implementation is 
+    // The maximum number of elements in this implementation is
     // 2^32, so the maximum height is around 46.08.
     PPH_AVL_LINKS stackBase[47];
     PPH_AVL_LINKS *stack;

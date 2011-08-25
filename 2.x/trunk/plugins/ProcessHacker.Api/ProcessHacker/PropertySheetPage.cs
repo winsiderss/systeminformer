@@ -1,12 +1,12 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   Property Sheet Control
- * 
+ *
  * Copyright (C) 2010 wj32
  * Copyright (C) 2010 dmex
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -90,7 +90,7 @@ namespace ProcessHacker.Api
             this.AutoScaleMode = AutoScaleMode.Font;
         }
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>

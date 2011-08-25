@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   ETW system information dialog
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -33,14 +33,14 @@ NTSTATUS EtpEtwSysThreadStart(
     __in PVOID Parameter
     );
 
-INT_PTR CALLBACK EtpEtwSysDlgProc(      
+INT_PTR CALLBACK EtpEtwSysDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
 
-INT_PTR CALLBACK EtpEtwSysPanelDlgProc(      
+INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -219,7 +219,7 @@ static PPH_STRING EtpGetMaxNetworkString(
     return maxUsageString;
 }
 
-INT_PTR CALLBACK EtpEtwSysDlgProc(      
+INT_PTR CALLBACK EtpEtwSysDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -331,7 +331,7 @@ INT_PTR CALLBACK EtpEtwSysDlgProc(
         }
         break;
     case WM_SIZE:
-        {                      
+        {
             HDWP deferHandle;
             HWND diskGroupBox = GetDlgItem(hwndDlg, IDC_GROUPDISK);
             HWND networkGroupBox = GetDlgItem(hwndDlg, IDC_GROUPNETWORK);
@@ -692,7 +692,7 @@ INT_PTR CALLBACK EtpEtwSysDlgProc(
     return FALSE;
 }
 
-INT_PTR CALLBACK EtpEtwSysPanelDlgProc(      
+INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   column chooser
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -242,7 +242,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             TreeNew_SetColumn(context->ControlHandle, TN_COLUMN_FLAG_VISIBLE, column);
                         }
 
-                        // Do a second pass to create the order array. This is because the ViewIndex of each column 
+                        // Do a second pass to create the order array. This is because the ViewIndex of each column
                         // were unstable in the previous pass since we were both adding and removing columns.
                         for (i = 0; i < context->Columns->Count; i++)
                         {

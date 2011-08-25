@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   thread wait analysis
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,15 +21,15 @@
  */
 
 /*
- * There are two ways of seeing what a thread is waiting on. The first method 
- * is to walk the stack of a thread and read the arguments to whatever system 
- * call it is blocking on; this only works on x86 because on x64 the arguments 
- * are passed in registers (at least the first four are). The second method 
- * involves using the ThreadLastSystemCall info class for NtQueryInformationThread 
- * to retrieve the first argument to the system call the thread is blocking on. 
+ * There are two ways of seeing what a thread is waiting on. The first method
+ * is to walk the stack of a thread and read the arguments to whatever system
+ * call it is blocking on; this only works on x86 because on x64 the arguments
+ * are passed in registers (at least the first four are). The second method
+ * involves using the ThreadLastSystemCall info class for NtQueryInformationThread
+ * to retrieve the first argument to the system call the thread is blocking on.
  * This is obviously only useful for NtWaitForSingleObject.
  *
- * There are other methods for specific scenarios, like USER messages and ALPC 
+ * There are other methods for specific scenarios, like USER messages and ALPC
  * calls.
  */
 
@@ -611,7 +611,7 @@ static VOID PhpAnalyzeWaitFallbacks(
 {
     PPH_STRING info;
 
-    // We didn't detect NtUserMessageCall, but this may still apply due to another 
+    // We didn't detect NtUserMessageCall, but this may still apply due to another
     // win32k system call (e.g. from EnableWindow).
     if (!Context->Found && (info = PhapGetSendMessageReceiver(Context->ThreadId)))
     {
@@ -752,9 +752,9 @@ static VOID PhpInitializeServiceNumbers(
         HANDLE eventHandle;
         HANDLE threadHandle;
 
-        // The ThreadLastSystemCall info class only works when the thread is in the Waiting 
-        // state. We'll create a thread which blocks on an event object we create, then wait 
-        // until it is in the Waiting state. Only then can we query the thread using 
+        // The ThreadLastSystemCall info class only works when the thread is in the Waiting
+        // state. We'll create a thread which blocks on an event object we create, then wait
+        // until it is in the Waiting state. Only then can we query the thread using
         // ThreadLastSystemCall.
 
         // NtWaitForSingleObject
@@ -941,8 +941,8 @@ static PPH_STRING PhapGetSendMessageReceiver(
     WCHAR windowClass[64];
     PPH_STRING windowText;
 
-    // GetSendMessageReceiver is an undocumented function exported by 
-    // user32.dll. It retrieves the handle of the window which a thread 
+    // GetSendMessageReceiver is an undocumented function exported by
+    // user32.dll. It retrieves the handle of the window which a thread
     // is sending a message to.
 
     if (!GetSendMessageReceiver_I)

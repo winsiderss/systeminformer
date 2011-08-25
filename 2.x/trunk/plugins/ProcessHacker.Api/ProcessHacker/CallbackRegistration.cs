@@ -1,12 +1,12 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   Callback API
- * 
+ *
  * Copyright (C) 2011 wj32
  * Copyright (C) 2011 dmex
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -51,7 +51,7 @@ namespace ProcessHacker.Api
             {
                 // Unregister the callback.
                 NativeApi.PhUnregisterCallback(this.Callback, this.RegistrationCallback);
-                
+
                 // Free the callback.
                 MemoryAlloc.PrivateHeap.Free(this.CallbackAlloc);
 

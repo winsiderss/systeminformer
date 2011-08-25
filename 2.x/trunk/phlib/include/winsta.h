@@ -269,8 +269,8 @@ typedef struct _PROTOCOLSTATUS
     PROTOCOLCOUNTERS Output;
     PROTOCOLCOUNTERS Input;
     CACHE_STATISTICS Cache;
-    ULONG AsyncSignal;     
-    ULONG AsyncSignalMask; 
+    ULONG AsyncSignal;
+    ULONG AsyncSignalMask;
 } PROTOCOLSTATUS, *PPROTOCOLSTATUS;
 
 // WinStationInformation

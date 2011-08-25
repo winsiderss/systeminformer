@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   memory editor window
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -56,7 +56,7 @@ INT NTAPI PhpMemoryEditorCompareFunction(
     __in PPH_AVL_LINKS Links2
     );
 
-INT_PTR CALLBACK PhpMemoryEditorDlgProc(      
+INT_PTR CALLBACK PhpMemoryEditorDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -142,7 +142,7 @@ INT NTAPI PhpMemoryEditorCompareFunction(
     return memcmp(context1->Key, context2->Key, sizeof(context1->Key));
 }
 
-INT_PTR CALLBACK PhpMemoryEditorDlgProc(      
+INT_PTR CALLBACK PhpMemoryEditorDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

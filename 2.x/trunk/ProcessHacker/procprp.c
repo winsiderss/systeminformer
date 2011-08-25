@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   process properties
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -261,8 +261,8 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             switch (LOWORD(wParam))
             {
             case IDOK:
-                // Prevent the OK button from working (even though 
-                // it's already hidden). This prevents the Enter 
+                // Prevent the OK button from working (even though
+                // it's already hidden). This prevents the Enter
                 // key from closing the dialog box.
                 return 0;
             }
@@ -356,7 +356,7 @@ BOOLEAN PhAddProcessPropPage(
     propSheetPageHandle = CreatePropertySheetPage(
         &PropPageContext->PropSheetPage
         );
-    // CreatePropertySheetPage would have sent PSPCB_ADDREF, 
+    // CreatePropertySheetPage would have sent PSPCB_ADDREF,
     // which would have added a reference.
     PhDereferenceObject(PropPageContext);
 
@@ -537,9 +537,9 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
 
     // Use the HACK if the control is a direct child of the dialog.
     if (ParentItem && ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT &&
-        // We detect if ParentItem is the layout item for the dialog 
+        // We detect if ParentItem is the layout item for the dialog
         // by looking at its parent.
-        (ParentItem->ParentItem == &layoutManager->RootItem || 
+        (ParentItem->ParentItem == &layoutManager->RootItem ||
         (ParentItem->ParentItem->Anchor & PH_LAYOUT_TAB_CONTROL)))
     {
         RECT dialogRect;
@@ -762,7 +762,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 pebOffset = PhpoCurrentDirectory;
 
 #ifdef _M_X64
-                // Tell the function to get the WOW64 current directory, because that's 
+                // Tell the function to get the WOW64 current directory, because that's
                 // the one that actually gets updated.
                 if (processItem->IsWow64)
                     pebOffset |= PhpoWow64;
@@ -1113,35 +1113,35 @@ VOID PhpUpdateProcessStatistics(
         ProcessItem->KernelTime.QuadPart + ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM); // total time
     SetDlgItemText(hwndDlg, IDC_ZTOTALTIME_V, timeSpan);
 
-    SetDlgItemText(hwndDlg, IDC_ZPRIVATEBYTES_V, 
+    SetDlgItemText(hwndDlg, IDC_ZPRIVATEBYTES_V,
         PhaFormatSize(ProcessItem->VmCounters.PagefileUsage, -1)->Buffer); // private bytes (same as PrivateUsage)
-    SetDlgItemText(hwndDlg, IDC_ZPEAKPRIVATEBYTES_V, 
+    SetDlgItemText(hwndDlg, IDC_ZPEAKPRIVATEBYTES_V,
         PhaFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)->Buffer); // peak private bytes
-    SetDlgItemText(hwndDlg, IDC_ZVIRTUALSIZE_V, 
+    SetDlgItemText(hwndDlg, IDC_ZVIRTUALSIZE_V,
         PhaFormatSize(ProcessItem->VmCounters.VirtualSize, -1)->Buffer); // virtual size
-    SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V, 
+    SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V,
         PhaFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)->Buffer); // peak virtual size
-    SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, 
+    SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V,
         PhaFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)->Buffer); // page faults
-    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V, 
+    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V,
         PhaFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)->Buffer); // working set
-    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V, 
+    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V,
         PhaFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)->Buffer); // peak working set
 
-    SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, 
+    SetDlgItemText(hwndDlg, IDC_ZIOREADS_V,
         PhaFormatUInt64(ProcessItem->IoCounters.ReadOperationCount, TRUE)->Buffer); // reads
-    SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, 
+    SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V,
         PhaFormatSize(ProcessItem->IoCounters.ReadTransferCount, -1)->Buffer); // read bytes
-    SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, 
+    SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V,
         PhaFormatUInt64(ProcessItem->IoCounters.WriteOperationCount, TRUE)->Buffer); // writes
-    SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, 
+    SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V,
         PhaFormatSize(ProcessItem->IoCounters.WriteTransferCount, -1)->Buffer); // write bytes
-    SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, 
+    SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V,
         PhaFormatUInt64(ProcessItem->IoCounters.OtherOperationCount, TRUE)->Buffer); // other
-    SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, 
+    SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V,
         PhaFormatSize(ProcessItem->IoCounters.OtherTransferCount, -1)->Buffer); // read bytes
 
-    SetDlgItemText(hwndDlg, IDC_ZHANDLES_V, 
+    SetDlgItemText(hwndDlg, IDC_ZHANDLES_V,
         PhaFormatUInt64(ProcessItem->NumberOfHandles, TRUE)->Buffer); // handles
 
     // Optional information
@@ -1192,7 +1192,7 @@ VOID PhpUpdateProcessStatistics(
             if (WindowsVersion >= WINDOWS_VISTA)
             {
                 PhGetProcessPagePriority(ProcessItem->QueryHandle, &pagePriority);
-                PhGetProcessIoPriority(ProcessItem->QueryHandle, &ioPriority); 
+                PhGetProcessIoPriority(ProcessItem->QueryHandle, &ioPriority);
             }
         }
 
@@ -1296,7 +1296,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             statisticsContext->Enabled = TRUE;
             statisticsContext->ProcessHandle = NULL;
 
-            // Try to open a process handle with PROCESS_QUERY_INFORMATION access for 
+            // Try to open a process handle with PROCESS_QUERY_INFORMATION access for
             // WS information.
             PhOpenProcess(
                 &statisticsContext->ProcessHandle,
@@ -1429,9 +1429,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 &performanceContext->ProcessesUpdatedRegistration
                 );
 
-            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix 
-            // the drawing issue that arises when using WS_CLIPCHILDREN. However 
-            // in removing the flicker from the graphs the group boxes will now flicker. 
+            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
+            // the drawing issue that arises when using WS_CLIPCHILDREN. However
+            // in removing the flicker from the graphs the group boxes will now flicker.
             // It's a good tradeoff since no one stares at the group boxes.
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
@@ -1934,7 +1934,7 @@ VOID PhpInitializeThreadMenu(
 
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
 
-        // These menu items are capable of manipulating 
+        // These menu items are capable of manipulating
         // multiple threads.
         for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
         {
@@ -1967,7 +1967,7 @@ VOID PhpInitializeThreadMenu(
     {
         if (ProcessId == SYSTEM_PROCESS_ID)
         {
-            // Remove Force Terminate because Terminate does 
+            // Remove Force Terminate because Terminate does
             // the same job.
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
                 PhDestroyEMenuItem(item);
@@ -2405,16 +2405,16 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhInitializeThreadList(hwndDlg, tnHandle, processItem, &threadsContext->ListContext);
             threadsContext->NeedsRedraw = FALSE;
 
-            // Use Cycles instead of Context Switches on Vista and above, but only when we can 
-            // open the process, since cycle time information requires sufficient access to the 
+            // Use Cycles instead of Context Switches on Vista and above, but only when we can
+            // open the process, since cycle time information requires sufficient access to the
             // threads.
             if (WINDOWS_HAS_CYCLE_TIME)
             {
                 HANDLE processHandle;
                 PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
 
-                // We make a distinction between PROCESS_QUERY_INFORMATION and PROCESS_QUERY_LIMITED_INFORMATION since 
-                // the latter can be used when opening audiodg.exe even though we can't access its threads using 
+                // We make a distinction between PROCESS_QUERY_INFORMATION and PROCESS_QUERY_LIMITED_INFORMATION since
+                // the latter can be used when opening audiodg.exe even though we can't access its threads using
                 // THREAD_QUERY_LIMITED_INFORMATION.
 
                 if (processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
@@ -3828,7 +3828,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             {
                                 buffer = PhAllocatePage(PAGE_SIZE, NULL);
 
-                                // Go through each selected memory item and append the region contents 
+                                // Go through each selected memory item and append the region contents
                                 // to the file.
                                 for (i = 0; i < numberOfMemoryItems; i++)
                                 {
@@ -4024,7 +4024,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                 PhGetSelectedListViewItemParams(lvHandle, &memoryItems, &numberOfMemoryItems);
 
-                // Allow menu to show when there are no items selected so 
+                // Allow menu to show when there are no items selected so
                 // the user can use Read/Write Address.
                 //if (numberOfMemoryItems != 0)
                 {
@@ -4150,7 +4150,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                         if (variable.Name.Length == 0)
                             continue;
 
-                        // The strings are not guaranteed to be null-terminated, so we need to create 
+                        // The strings are not guaranteed to be null-terminated, so we need to create
                         // some temporary strings.
                         nameString = PhCreateStringEx(variable.Name.Buffer, variable.Name.Length);
                         valueString = PhCreateStringEx(variable.Value.Buffer, variable.Value.Length);
@@ -4892,7 +4892,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 
     // Wait for stage 1 to be processed.
     PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, NULL);
-    // Refresh the icon which may have been updated due to 
+    // Refresh the icon which may have been updated due to
     // stage 1.
     PhRefreshProcessPropContext(PropContext);
 
@@ -4971,7 +4971,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // Job
     if (
         PropContext->ProcessItem->IsInJob &&
-        // There's no way the job page can function without KPH since it needs 
+        // There's no way the job page can function without KPH since it needs
         // to open a handle to the job.
         KphIsConnected()
         )

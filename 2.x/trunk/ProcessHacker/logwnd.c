@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   log window
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -25,7 +25,7 @@
 
 #define WM_PH_LOG_UPDATED (WM_APP + 300)
 
-INT_PTR CALLBACK PhpLogDlgProc(      
+INT_PTR CALLBACK PhpLogDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -66,7 +66,7 @@ static VOID NTAPI LoggedCallback(
     __in_opt PVOID Context
     )
 {
-    PostMessage(PhLogWindowHandle, WM_PH_LOG_UPDATED, 0, 0); 
+    PostMessage(PhLogWindowHandle, WM_PH_LOG_UPDATED, 0, 0);
 }
 
 static VOID PhpUpdateLogList(
@@ -78,7 +78,7 @@ static VOID PhpUpdateLogList(
 
     if (ListViewCount >= 2 && Button_GetCheck(GetDlgItem(PhLogWindowHandle, IDC_AUTOSCROLL)) == BST_CHECKED)
     {
-        // This is a real WTF. EnsureVisible doesn't work if IsItemVisible is used and there is 
+        // This is a real WTF. EnsureVisible doesn't work if IsItemVisible is used and there is
         // an item selected.
         //if (ListView_IsItemVisible(ListViewHandle, ListViewCount - 2))
         ListView_EnsureVisible(ListViewHandle, ListViewCount - 1, FALSE);
@@ -141,7 +141,7 @@ ContinueLoop:
     return string;
 }
 
-INT_PTR CALLBACK PhpLogDlgProc(      
+INT_PTR CALLBACK PhpLogDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

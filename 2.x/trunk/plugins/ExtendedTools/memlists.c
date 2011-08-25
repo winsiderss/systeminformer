@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   memory list information
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -25,7 +25,7 @@
 
 #define MSG_UPDATE (WM_APP + 1)
 
-INT_PTR CALLBACK EtpMemoryListsDlgProc(      
+INT_PTR CALLBACK EtpMemoryListsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -143,7 +143,7 @@ static VOID EtpUpdateMemoryListInfo(
     }
 }
 
-INT_PTR CALLBACK EtpMemoryListsDlgProc(      
+INT_PTR CALLBACK EtpMemoryListsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

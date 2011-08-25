@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   symbol provider
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -107,10 +107,10 @@ VOID PhSymbolProviderDynamicImport(
     VOID
     )
 {
-    // The user should have loaded dbghelp.dll and symsrv.dll 
+    // The user should have loaded dbghelp.dll and symsrv.dll
     // already. If not, it's not our problem.
 
-    // The Unicode versions aren't available in dbghelp.dll 5.1, so 
+    // The Unicode versions aren't available in dbghelp.dll 5.1, so
     // we fallback on the ANSI versions.
 
     HMODULE dbghelpHandle;
@@ -180,8 +180,8 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
 
         symbolProvider->IsRealHandle = FALSE;
 
-        // Try to open the process with many different accesses. 
-        // This handle will be re-used when walking stacks, and doing 
+        // Try to open the process with many different accesses.
+        // This handle will be re-used when walking stacks, and doing
         // various other things.
         for (i = 0; i < sizeof(accesses) / sizeof(ACCESS_MASK); i++)
         {
@@ -204,8 +204,8 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         // Just generate a fake handle.
         fakeHandle = (HANDLE)_InterlockedExchangeAddPointer((PLONG_PTR)&PhNextFakeHandle, 4);
 
-        // Add one to make sure it isn't divisible 
-        // by 4 (so it can't be mistaken for a real 
+        // Add one to make sure it isn't divisible
+        // by 4 (so it can't be mistaken for a real
         // handle).
         fakeHandle = (HANDLE)((ULONG_PTR)fakeHandle + 1);
 
@@ -401,7 +401,7 @@ ULONG64 PhGetModuleFromAddress(
     foundFileName = NULL;
     foundBaseAddress = 0;
 
-    // Do an approximate search on the modules set to locate the module with the largest 
+    // Do an approximate search on the modules set to locate the module with the largest
     // base address that is still smaller than the given address.
     lookupModule.BaseAddress = Address;
 
@@ -417,15 +417,15 @@ ULONG64 PhGetModuleFromAddress(
         }
         else if (result < 0)
         {
-            // The base of the closest module is larger than our address. Assume the 
-            // preceding element (which is going to be smaller than our address) is the 
+            // The base of the closest module is larger than our address. Assume the
+            // preceding element (which is going to be smaller than our address) is the
             // one we're looking for.
 
             links = PhPredecessorElementAvlTree(links);
         }
         else
         {
-            // The base of the closest module is smaller than our address. Assume this 
+            // The base of the closest module is smaller than our address. Assume this
             // is the element we're looking for.
         }
 
@@ -544,10 +544,10 @@ PPH_STRING PhGetSymbolFromAddress(
 
     PH_LOCK_SYMBOLS();
 
-    // Note that we don't care whether this call 
-    // succeeds or not, based on the assumption that 
-    // it will not write to the symbolInfo structure 
-    // if it fails. We've already zeroed the structure, 
+    // Note that we don't care whether this call
+    // succeeds or not, based on the assumption that
+    // it will not write to the symbolInfo structure
+    // if it fails. We've already zeroed the structure,
     // so we can deal with it.
 
     if (SymFromAddrW_I)
@@ -625,7 +625,7 @@ PPH_STRING PhGetSymbolFromAddress(
 
     modBaseName = PhGetBaseName(modFileName);
 
-    // If we have a module name but not a symbol name, 
+    // If we have a module name but not a symbol name,
     // return the module plus an offset: module+offset.
 
     if (symbolInfo->NameLen == 0)
@@ -642,7 +642,7 @@ PPH_STRING PhGetSymbolFromAddress(
         goto CleanupExit;
     }
 
-    // If we have everything, return the full symbol 
+    // If we have everything, return the full symbol
     // name: module!symbol+offset.
 
     symbolName = PhCreateStringEx(
@@ -816,7 +816,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
     PH_UNLOCK_SYMBOLS();
     PhDereferenceObject(fileName);
 
-    // Add the module to the list, even if we couldn't load 
+    // Add the module to the list, even if we couldn't load
     // symbols for the module.
     {
         PPH_SYMBOL_MODULE symbolModule = NULL;
@@ -974,7 +974,7 @@ NTSTATUS PhpFindDynamicFunctionTable(
             {
                 if (functionTable.OutOfProcessCallbackDll)
                 {
-                    // Read the out-of-process callback DLL path. We don't have a length, so we'll 
+                    // Read the out-of-process callback DLL path. We don't have a length, so we'll
                     // just have to read as much as possible.
 
                     memset(OutOfProcessCallbackDllBuffer, 0xff, OutOfProcessCallbackDllBufferSize);
@@ -1007,7 +1007,7 @@ NTSTATUS PhpFindDynamicFunctionTable(
                         }
                     }
 
-                    // If there was no null terminator, then we didn't read the whole string in. 
+                    // If there was no null terminator, then we didn't read the whole string in.
                     // Fail the operation.
                     if (!foundNull)
                         return STATUS_BUFFER_OVERFLOW;

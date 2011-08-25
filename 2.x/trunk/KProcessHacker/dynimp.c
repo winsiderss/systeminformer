@@ -1,10 +1,10 @@
 /*
  * KProcessHacker
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -62,7 +62,7 @@ VOID KphDynamicImport(
  *
  * \param SystemRoutineName The name of the function.
  *
- * \return The address of the function, or NULL if the function could 
+ * \return The address of the function, or NULL if the function could
  * not be found.
  */
 PVOID KphGetSystemRoutineAddress(

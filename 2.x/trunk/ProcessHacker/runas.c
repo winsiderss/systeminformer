@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   run as dialog
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -22,17 +22,17 @@
 
 /*
  * The run-as mechanism has three stages:
- * 1. The user enters the information into the dialog box. Here it is decided 
- *    whether the run-as service is needed. If it is not, PhCreateProcessAsUser 
- *    is called directly. Otherwise, PhExecuteRunAsCommand2 is called for 
+ * 1. The user enters the information into the dialog box. Here it is decided
+ *    whether the run-as service is needed. If it is not, PhCreateProcessAsUser
+ *    is called directly. Otherwise, PhExecuteRunAsCommand2 is called for
  *    stage 2.
- * 2. PhExecuteRunAsCommand2 creates a random service name and tries to create 
- *    the service and execute it (using PhExecuteRunAsCommand). If the process 
- *    has insufficient permissions, an elevated instance of phsvc is started 
+ * 2. PhExecuteRunAsCommand2 creates a random service name and tries to create
+ *    the service and execute it (using PhExecuteRunAsCommand). If the process
+ *    has insufficient permissions, an elevated instance of phsvc is started
  *    and PhSvcCallExecuteRunAsCommand is called.
- * 3. The service is started, and sets up an instance of phsvc with the same 
- *    random service name as its port name. Either the original or elevated 
- *    Process Hacker instance then calls PhSvcCallInvokeRunAsService to complete 
+ * 3. The service is started, and sets up an instance of phsvc with the same
+ *    random service name as its port name. Either the original or elevated
+ *    Process Hacker instance then calls PhSvcCallInvokeRunAsService to complete
  *    the operation.
  *
  * ProcessHacker.exe (user, limited privileges)
@@ -175,7 +175,7 @@ static BOOLEAN IsServiceAccount(
     )
 {
     if (
-        PhEqualString2(UserName, L"NT AUTHORITY\\LOCAL SERVICE", TRUE) || 
+        PhEqualString2(UserName, L"NT AUTHORITY\\LOCAL SERVICE", TRUE) ||
         PhEqualString2(UserName, L"NT AUTHORITY\\NETWORK SERVICE", TRUE) ||
         PhEqualString2(UserName, L"NT AUTHORITY\\SYSTEM", TRUE)
         )
@@ -266,7 +266,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             if (SHAutoComplete_I)
             {
                 SHAutoComplete_I(
-                    GetDlgItem(hwndDlg, IDC_PROGRAM), 
+                    GetDlgItem(hwndDlg, IDC_PROGRAM),
                     SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_FILESYS_ONLY
                     );
             }
@@ -430,7 +430,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             )
                         {
                             // We are eligible to load the user profile.
-                            // This must be done here, not in the service, because 
+                            // This must be done here, not in the service, because
                             // we need to be in the target session.
 
                             PH_CREATE_PROCESS_AS_USER_INFO createInfo;
@@ -683,7 +683,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     context->CurrentWinStaName = GetCurrentWinStaName();
 
-                    EnumDesktops(GetProcessWindowStation(), EnumDesktopsCallback, (LPARAM)context); 
+                    EnumDesktops(GetProcessWindowStation(), EnumDesktopsCallback, (LPARAM)context);
 
                     for (i = 0; i < context->DesktopList->Count; i++)
                     {
@@ -731,7 +731,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 }
 
 /**
- * Sets the access control lists of the current window station 
+ * Sets the access control lists of the current window station
  * and desktop to allow all access.
  */
 VOID PhSetDesktopWinStaAccess(
@@ -744,7 +744,7 @@ VOID PhSetDesktopWinStaAccess(
 
     // TODO: Set security on the correct window station and desktop.
 
-    // Create a security descriptor with a NULL DACL, 
+    // Create a security descriptor with a NULL DACL,
     // thereby allowing everyone to access the object.
     RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
 
@@ -829,7 +829,7 @@ NTSTATUS PhExecuteRunAsCommand(
     portName = PhConcatStrings2(L"\\BaseNamedObjects\\", Parameters->ServiceName);
     attempts = 10;
 
-    // Try to connect several times because the server may take 
+    // Try to connect several times because the server may take
     // a while to initialize.
     do
     {
@@ -861,27 +861,27 @@ NTSTATUS PhExecuteRunAsCommand(
  *
  * \param hWnd A handle to the parent window.
  * \param Program The command line of the program to start.
- * \param UserName The user to start the program as. The user 
- * name should be specified as: domain\\name. This parameter 
+ * \param UserName The user to start the program as. The user
+ * name should be specified as: domain\\name. This parameter
  * can be NULL if \a ProcessIdWithToken is specified.
- * \param Password The password for the specified user. If there 
- * is no password, specify an empty string. This parameter 
+ * \param Password The password for the specified user. If there
+ * is no password, specify an empty string. This parameter
  * can be NULL if \a ProcessIdWithToken is specified.
- * \param LogonType The logon type for the specified user. This 
+ * \param LogonType The logon type for the specified user. This
  * parameter can be 0 if \a ProcessIdWithToken is specified.
- * \param ProcessIdWithToken The ID of a process from which 
+ * \param ProcessIdWithToken The ID of a process from which
  * to duplicate the token.
- * \param SessionId The ID of the session to run the program 
+ * \param SessionId The ID of the session to run the program
  * under.
- * \param DesktopName The window station and desktop to run the 
+ * \param DesktopName The window station and desktop to run the
  * program under.
  * \param UseLinkedToken Uses the linked token if possible.
  *
  * \retval STATUS_CANCELLED The user cancelled the operation.
  *
- * \remarks This function will cause another instance of 
- * Process Hacker to be executed if the current security context 
- * does not have sufficient system access. This is done 
+ * \remarks This function will cause another instance of
+ * Process Hacker to be executed if the current security context
+ * does not have sufficient system access. This is done
  * through a UAC elevation prompt.
  */
 NTSTATUS PhExecuteRunAsCommand2(

@@ -58,11 +58,11 @@ typedef struct IXCLRDataProcessVtbl
         __deref_out void **ppvObject
         );
 
-    ULONG (STDMETHODCALLTYPE *AddRef)( 
+    ULONG (STDMETHODCALLTYPE *AddRef)(
         __in IXCLRDataProcess *This
         );
 
-    ULONG (STDMETHODCALLTYPE *Release)( 
+    ULONG (STDMETHODCALLTYPE *Release)(
         __in IXCLRDataProcess *This
         );
 
@@ -153,15 +153,15 @@ typedef struct IXCLRDataAppDomainVtbl
         __deref_out void **ppvObject
         );
 
-    ULONG (STDMETHODCALLTYPE *AddRef)( 
+    ULONG (STDMETHODCALLTYPE *AddRef)(
         __in IXCLRDataAppDomain *This
         );
 
-    ULONG (STDMETHODCALLTYPE *Release)( 
+    ULONG (STDMETHODCALLTYPE *Release)(
         __in IXCLRDataAppDomain *This
         );
 
-    HRESULT (STDMETHODCALLTYPE *GetProcess)( 
+    HRESULT (STDMETHODCALLTYPE *GetProcess)(
         __in IXCLRDataAppDomain *This,
         __out IXCLRDataProcess **process
         );
@@ -212,11 +212,11 @@ typedef struct IXCLRDataTaskVtbl
         __deref_out void **ppvObject
         );
 
-    ULONG (STDMETHODCALLTYPE *AddRef)( 
+    ULONG (STDMETHODCALLTYPE *AddRef)(
         __in IXCLRDataTask *This
         );
 
-    ULONG (STDMETHODCALLTYPE *Release)( 
+    ULONG (STDMETHODCALLTYPE *Release)(
         __in IXCLRDataTask *This
         );
 

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   extended list view
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,8 +21,8 @@
  */
 
 /*
- * The extended list view adds some functionality to the default list view control, such 
- * as sorting, (state) highlighting, better redraw disabling, and the ability to change 
+ * The extended list view adds some functionality to the default list view control, such
+ * as sorting, (state) highlighting, better redraw disabling, and the ability to change
  * the cursor. This is currently implemented by hooking the window procedure.
  */
 
@@ -32,8 +32,8 @@
 #define PH_DURATION_MULT 100
 #define PH_MAX_COMPARE_FUNCTIONS 16
 
-// We have nowhere else to store state highlighting 
-// information except for the state image index 
+// We have nowhere else to store state highlighting
+// information except for the state image index
 // value. This is conveniently 4 bits wide.
 
 #define PH_GET_ITEM_STATE(State) (((State) & LVIS_STATEIMAGEMASK) >> 12)
@@ -450,14 +450,14 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 item.state = INDEXTOSTATEIMAGEMASK(RemovingItemState);
 
                 // IMPORTANT:
-                // We need to null the param. This is important because the user 
-                // will most likely be storing pointers to heap allocations in 
-                // here, and free the allocation after it has deleted the 
-                // item. The user may allocate sometime in the future and receive 
-                // the same pointer as is stored here. The user may call 
-                // LVM_FINDITEM or LVM_GETNEXTITEM and find this item, which 
-                // is supposed to be deleted. It may then attempt to delete 
-                // this item *twice*, which leads to bad things happening, 
+                // We need to null the param. This is important because the user
+                // will most likely be storing pointers to heap allocations in
+                // here, and free the allocation after it has deleted the
+                // item. The user may allocate sometime in the future and receive
+                // the same pointer as is stored here. The user may call
+                // LVM_FINDITEM or LVM_GETNEXTITEM and find this item, which
+                // is supposed to be deleted. It may then attempt to delete
+                // this item *twice*, which leads to bad things happening,
                 // including *not* deleting the item that the user wanted to delete.
                 item.lParam = (LPARAM)NULL;
 
@@ -518,7 +518,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             if (!CallWindowProc(oldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item))
                 return FALSE;
 
-            // Check if the item is being deleted. If so, pretend it doesn't 
+            // Check if the item is being deleted. If so, pretend it doesn't
             // exist.
 
             itemState = PH_GET_ITEM_STATE(item.state);
@@ -677,9 +677,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         {
             if (context->SortFast)
             {
-                // This sort method is faster than the normal sort because our comparison function 
-                // doesn't have to call the list view window procedure to get the item lParam values. 
-                // The disadvantage of this method is that default sorting is not available - if a 
+                // This sort method is faster than the normal sort because our comparison function
+                // doesn't have to call the list view window procedure to get the item lParam values.
+                // The disadvantage of this method is that default sorting is not available - if a
                 // column doesn't have a comparison function, it doesn't get sorted at all.
 
                 ListView_SortItems(
@@ -790,8 +790,8 @@ static INT PhpExtendedListViewCompareFunc(
     yItem.iItem = y;
     yItem.iSubItem = 0;
 
-    // Don't use SendMessage/ListView_* because it will call our new window procedure, 
-    // which will use GetProp. This calls NtUserGetProp, and obviously having a system call 
+    // Don't use SendMessage/ListView_* because it will call our new window procedure,
+    // which will use GetProp. This calls NtUserGetProp, and obviously having a system call
     // in a comparison function is very, very bad for performance.
 
     if (!CallWindowProc(context->OldWndProc, context->Handle, LVM_GETITEM, 0, (LPARAM)&xItem))

@@ -1,9 +1,9 @@
 == Building ==
-Process Hacker must be built using a Microsoft C compiler. 
-Do not attempt to use any other compiler or be prepared to 
-spend a long time trying to fix things. The only tested 
-IDE is Visual Studio 2010. Note that 
-"Text Editor > C/C++ > Advanced > Disable Error Reporting" should be 
+Process Hacker must be built using a Microsoft C compiler.
+Do not attempt to use any other compiler or be prepared to
+spend a long time trying to fix things. The only tested
+IDE is Visual Studio 2010. Note that
+"Text Editor > C/C++ > Advanced > Disable Error Reporting" should be
 set to workaround the fact that IntelliSense thinks all C code is C++.
 
 The Windows SDK v7.1 must be installed.
@@ -21,13 +21,13 @@ All names must have an appropriate prefix (with some exceptions):
   * Some variants such as "Pha".
   * Fastcall functions have "f" appended to the prefix. E.g.
     "Ph" -> "Phf", "Php" -> "Phpf".
-  * Private prefixes are created by appending "p" to the prefix. E.g. 
+  * Private prefixes are created by appending "p" to the prefix. E.g.
     "Ph" -> "Php", "Pha" -> "Phap".
-  * Functions and global variables without a prefix must be declared 
+  * Functions and global variables without a prefix must be declared
     "static".
     * "static" names must not have a public prefix.
     * Names with a private prefix do not have to be "static".
-  * Structures without a prefix must be declared in a ".c" file. 
+  * Structures without a prefix must be declared in a ".c" file.
     Structures declared in a ".c" file may or may not have a prefix.
 
 ==== Types ====
@@ -54,26 +54,26 @@ Always use:
 to test a boolean value.
 
 ==== Annotations, qualifiers ====
- * All parameters must use annotations, such as __in, __inout, __out, etc. 
- * Do not use "const", unless obvious optimizations can be made by the 
+ * All parameters must use annotations, such as __in, __inout, __out, etc.
+ * Do not use "const", unless obvious optimizations can be made by the
    compiler (e.g. inlining).
- * Do not use "volatile" in definitions. Instead, cast to a volatile 
+ * Do not use "volatile" in definitions. Instead, cast to a volatile
    pointer when necessary.
 
 ==== Function success indicators ====
 There are three main types of indicators used:
 
- * A NTSTATUS value is returned. The NT_SUCCESS macro checks 
+ * A NTSTATUS value is returned. The NT_SUCCESS macro checks
    if a status value indicates success.
  * A BOOLEAN value is returned. TRUE indicates success.
- * The result of the function is returned (e.g. a pointer). 
+ * The result of the function is returned (e.g. a pointer).
    A special value (e.g. NULL) indicates failure.
 
-Unless indicated, a function which fails is guaranteed not to 
+Unless indicated, a function which fails is guaranteed not to
 modify any of its output parameters (__out, __out_opt, etc.).
 
-For functions which are passed a callback function, it is not 
-guaranteed that a failed function has not executed the callback 
+For functions which are passed a callback function, it is not
+guaranteed that a failed function has not executed the callback
 function.
 
 ==== Threads ====
@@ -106,26 +106,26 @@ PH_HASH_ENTRY       Hashtable               Intrusive
 PH_CIRCULAR_BUFFER  Circular buffer         Non-intrusive
 
 ==== Synchronization ====
-The queued lock should be used for all synchronization, due to its 
-small size and good performance. Although the queued lock 
-is a reader-writer lock, it can be used as a mutex simply by using 
+The queued lock should be used for all synchronization, due to its
+small size and good performance. Although the queued lock
+is a reader-writer lock, it can be used as a mutex simply by using
 the exclusive acquire/release functions.
 
-Events can be used through PH_EVENT. This object does not create a 
-kernel event object until needed, and testing its state is very 
+Events can be used through PH_EVENT. This object does not create a
+kernel event object until needed, and testing its state is very
 fast.
 
 Rundown protection is available through PH_RUNDOWN_PROTECT.
 
-Condition variables are available using the queued lock. Simply 
-declare and initialize a queued lock variable, and use the 
+Condition variables are available using the queued lock. Simply
+declare and initialize a queued lock variable, and use the
 PhPulse(All)Condition and PhWaitForCondition functions.
 
-Custom locking with low overhead can be built using the wake event, 
-built on the queued lock. Test one or more conditions in a loop and 
-use PhQueueWakeEvent/PhWaitForWakeEvent to block. When a condition is 
-modified use PhSetWakeEvent to wake waiters. If after calling 
-PhQueueWakeEvent it is determined that no blocking should occur, use 
+Custom locking with low overhead can be built using the wake event,
+built on the queued lock. Test one or more conditions in a loop and
+use PhQueueWakeEvent/PhWaitForWakeEvent to block. When a condition is
+modified use PhSetWakeEvent to wake waiters. If after calling
+PhQueueWakeEvent it is determined that no blocking should occur, use
 PhSetWakeEvent.
 
 ==== (Lazy) Singletons ====
@@ -133,7 +133,7 @@ PhSetWakeEvent.
 ====== Not thread-safe ======
     BOOLEAN initialized = FALSE;
     OBJECT object = NULL;
-    
+
     DoSomething()
     {
         if (!initialized)
@@ -141,7 +141,7 @@ PhSetWakeEvent.
             object = Create();
             initialized = TRUE;
         }
-        
+
         Use(object);
     }
 
@@ -152,23 +152,23 @@ Disadvantages:
     BOOLEAN initialized = FALSE;
     OBJECT object = NULL;
     PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
-    
+
     DoSomething()
     {
         if (!initialized)
         {
             PhAcquireQueuedLockExclusiveFast(&lock);
-            
+
             if (!initialized)
             {
                 object = Create();
                 MemoryBarrier();
                 initialized = TRUE;
             }
-            
+
             PhReleaseQueuedLockExclusiveFast(&lock);
         }
-        
+
         Use(object);
     }
 
@@ -181,7 +181,7 @@ Disadvantages:
 ====== Thread-safe (PH_INITONCE) ======
     PH_INITONCE initOnce = PH_INITONCE_INIT;
     OBJECT object = NULL;
-    
+
     DoSomething()
     {
         if (PhBeginInitOnce(&initOnce))
@@ -189,7 +189,7 @@ Disadvantages:
             object = Create();
             PhEndInitOnce(&initOnce);
         }
-        
+
         Use(object);
     }
 
@@ -199,25 +199,25 @@ Advantages:
 
 ====== Thread-safe (custom) ======
     OBJECT object = NULL;
-    
+
     DoSomething()
     {
         OBJECT localObject;
         OBJECT newObject;
-        
+
         localObject = object;
-        
+
         if (!localObject)
         {
             newObject = Create();
-            
+
             // Try to store the created object.
             localObject = InterlockedCompareExchangePointer(
                 &object,
                 newObject,
                 NULL
                 );
-            
+
             if (!localObject)
             {
                 // Success.
@@ -229,7 +229,7 @@ Advantages:
                 Destroy(newObject);
             }
         }
-        
+
         return localObject;
     }
 
@@ -240,64 +240,64 @@ Disadvantages:
   * Created object may need to be destroyed
 
 ==== Exceptions (SEH) ====
-The only method of error handling used in Process Hacker is 
-the return value (NTSTATUS, BOOLEAN, etc.). Exceptions are used for 
-exceptional situations which cannot easily be recovered from (e.g. 
-a lock acquire function fails to block, or an object has a negative 
+The only method of error handling used in Process Hacker is
+the return value (NTSTATUS, BOOLEAN, etc.). Exceptions are used for
+exceptional situations which cannot easily be recovered from (e.g.
+a lock acquire function fails to block, or an object has a negative
 reference count.
 
 Exceptions to this rule include:
- * PhAllocate, which raises an exception if it fails to allocate. 
-   Checking the return value of each allocation to increase reliability 
-   is not worth the extra effort involved, as failed allocations are 
+ * PhAllocate, which raises an exception if it fails to allocate.
+   Checking the return value of each allocation to increase reliability
+   is not worth the extra effort involved, as failed allocations are
    very rare.
- * PhProbeAddress, which raises an exception if an address lies 
-   outside of a specified range. Raising an exception makes it 
+ * PhProbeAddress, which raises an exception if an address lies
+   outside of a specified range. Raising an exception makes it
    possible to conduct multiple checks in one SEH block.
- * STATUS_NOT_IMPLEMENTED exceptions triggered by code paths which 
-   should not be reached, purely due to programmer error. assert(FALSE) 
+ * STATUS_NOT_IMPLEMENTED exceptions triggered by code paths which
+   should not be reached, purely due to programmer error. assert(FALSE)
    could also be used in this case.
 
 ==== Memory management ====
-Use PhAllocate/PhFree to allocate/free memory. For complex objects, 
+Use PhAllocate/PhFree to allocate/free memory. For complex objects,
 use the reference counting system.
 
-There is semi-automatic reference counting available in the form 
-of auto-dereference pools (similar to Apple's NSAutoreleasePools). 
-Use the PhaDereferenceObject to add an object to the thread's pool, 
-and the object will be dereferenced at an unspecified time in the 
-future. However, the object is guaranteed to not be dereferenced 
+There is semi-automatic reference counting available in the form
+of auto-dereference pools (similar to Apple's NSAutoreleasePools).
+Use the PhaDereferenceObject to add an object to the thread's pool,
+and the object will be dereferenced at an unspecified time in the
+future. However, the object is guaranteed to not be dereferenced
 while the current function is executing.
 
-The inline function PHA_DEREFERENCE takes a pointer to an object, 
+The inline function PHA_DEREFERENCE takes a pointer to an object,
 auto-dereferences it, and returns the pointer.
 
-Referencing an object is necessary whenever a pointer to the object 
-is stored in a globally visible location or passed to another thread. 
+Referencing an object is necessary whenever a pointer to the object
+is stored in a globally visible location or passed to another thread.
 In most other cases, referencing is not necessary.
 
-All objects passed to functions must have a guaranteed reference 
-for the duration of that call. One mistake is to keep a reference 
-which could be destroyed in a window procedure, and to use that reference 
-implicitly inside the window procedure. Messages can still be pumped 
-(e.g. dialog boxes) while the window procedure is executing, so the 
+All objects passed to functions must have a guaranteed reference
+for the duration of that call. One mistake is to keep a reference
+which could be destroyed in a window procedure, and to use that reference
+implicitly inside the window procedure. Messages can still be pumped
+(e.g. dialog boxes) while the window procedure is executing, so the
 window procedure must reference the object as soon as possible.
 
 ==== Names (2) ====
 
 ====== Object creation/deletion ======
 * Allocate means allocate memory without initialization.
-* Create means allocate memory for an object and initialize the 
+* Create means allocate memory for an object and initialize the
   object.
-* Free can be used for objects created with Allocate or Create 
+* Free can be used for objects created with Allocate or Create
   functions.
-* Destroy can also be used for objects created with Create 
+* Destroy can also be used for objects created with Create
   functions.
-* Initialize means initialize an object with caller-supplied 
+* Initialize means initialize an object with caller-supplied
   storage.
-* Delete is paired with Initialize and does not free the object 
+* Delete is paired with Initialize and does not free the object
   as it was allocated by the caller.
-* Create is used when objects are being created through the 
+* Create is used when objects are being created through the
   reference counting system.
 
 Examples:
@@ -307,19 +307,19 @@ Examples:
 * PhCreateString/PhDereferenceObject
 
 ====== Element counts ======
-* Length specifies the length in bytes. E.g. PhCreateString 
+* Length specifies the length in bytes. E.g. PhCreateString
   requires the length to be specified in bytes.
-* Count specifies the length in elements. E.g. PhSubstring 
+* Count specifies the length in elements. E.g. PhSubstring
   requires the length to be specified in characters.
-* Index specifies the index in elements. E.g. PhSubstring 
+* Index specifies the index in elements. E.g. PhSubstring
   requires the index to be specified in characters.
 
-When null terminated strings are being written to output, 
-the return count, if any, must be specified as the 
+When null terminated strings are being written to output,
+the return count, if any, must be specified as the
 number of characters written including the null terminator.
 
 ==== Strings ====
-Strings use the PH_STRING type, managed by reference counting. 
+Strings use the PH_STRING type, managed by reference counting.
 To create a string object from a null-terminated string:
 
     PPH_STRING myString = PhCreateString(L"My string");
@@ -330,20 +330,20 @@ To create a string object from a null-terminated string:
         myString->Length
         );
 
-All string objects have an embedded length (always in bytes), 
-and the string is additionally null-terminated for compatibility 
+All string objects have an embedded length (always in bytes),
+and the string is additionally null-terminated for compatibility
 reasons.
 
-String objects must be treated as immutable unless a string 
-object is created and modified before the pointer is shared with 
-any other functions or stored in any global variables. This 
-exception applies only when creating a string using 
+String objects must be treated as immutable unless a string
+object is created and modified before the pointer is shared with
+any other functions or stored in any global variables. This
+exception applies only when creating a string using
 PhCreateString or PhCreateStringEx.
 
 Strings can be concatenated with PhConcatStrings:
 
     PPH_STRING newString;
-    
+
     newString = PhConcatStrings(
         4,
         L"My first string, ",
@@ -355,7 +355,7 @@ Strings can be concatenated with PhConcatStrings:
 Another version concatenates two strings:
 
     PPH_STRING newString;
-    
+
     newString = PhConcatStrings2(
         L"My first string, ",
         L"My second string."
@@ -364,7 +364,7 @@ Another version concatenates two strings:
 Strings can be formatted:
 
     PPH_STRING newString;
-    
+
     newString = PhFormatString(
         L"%d: %s, %#x",
         100,

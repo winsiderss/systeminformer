@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   process termination tool
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -479,7 +479,7 @@ static NTSTATUS NTAPI TerminatorTJ1(
     {
         HANDLE jobHandle;
 
-        status = NtCreateJobObject(&jobHandle, JOB_OBJECT_ALL_ACCESS, NULL); 
+        status = NtCreateJobObject(&jobHandle, JOB_OBJECT_ALL_ACCESS, NULL);
 
         if (NT_SUCCESS(status))
         {
@@ -623,7 +623,7 @@ static NTSTATUS NTAPI TerminatorM1(
         {
             ULONG i;
 
-            // Make sure we don't write to views of mapped files. That 
+            // Make sure we don't write to views of mapped files. That
             // could possibly corrupt files!
             if (basicInfo.Type == MEM_PRIVATE)
             {
@@ -669,7 +669,7 @@ static NTSTATUS NTAPI TerminatorM2(
         PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION,
         ProcessId
         )))
-    {              
+    {
         PVOID baseAddress;
         MEMORY_BASIC_INFORMATION basicInfo;
         ULONG oldProtect;
@@ -795,7 +795,7 @@ static BOOLEAN PhpRunTerminatorTest(
     return success;
 }
 
-static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(      
+static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

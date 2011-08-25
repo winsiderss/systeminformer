@@ -1,10 +1,10 @@
 /*
  * KProcessHacker
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -53,7 +53,7 @@ NTSTATUS KphDispatchDeviceControl(
     ioControlCode = stackLocation->Parameters.DeviceIoControl.IoControlCode;
     accessMode = Irp->RequestorMode;
 
-    // Make sure we actually have input if the input length 
+    // Make sure we actually have input if the input length
     // is non-zero.
     if (inputLength != 0 && !originalInput)
     {
@@ -62,8 +62,8 @@ NTSTATUS KphDispatchDeviceControl(
     }
 
     // Make sure the caller isn't giving us a huge buffer.
-    // If they are, it can't be correct because we have a 
-    // compile-time check that makes sure our buffer can 
+    // If they are, it can't be correct because we have a
+    // compile-time check that makes sure our buffer can
     // store the arguments for all the calls.
     if (inputLength > sizeof(capturedInput))
     {

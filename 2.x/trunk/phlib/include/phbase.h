@@ -447,8 +447,8 @@ ph_chksum(unsigned long sum, unsigned short *buf, unsigned long count);
  * A fast event object.
  *
  * \remarks
- * This event object does not use a kernel event object 
- * until necessary, and frees the object automatically 
+ * This event object does not use a kernel event object
+ * until necessary, and frees the object automatically
  * when it is no longer needed.
  */
 typedef struct _PH_EVENT
@@ -504,7 +504,7 @@ FORCEINLINE VOID PhInitializeEvent(
  *
  * \param Event A pointer to an event object.
  *
- * \return TRUE if the event object is set, 
+ * \return TRUE if the event object is set,
  * otherwise FALSE.
  */
 FORCEINLINE BOOLEAN PhTestEvent(
@@ -800,7 +800,7 @@ FORCEINLINE BOOLEAN PhAreCharactersDifferent(
 
     d = Char1 ^ Char2;
 
-    // We ignore bits beyond bit 5 because bit 6 is the case bit, and also we 
+    // We ignore bits beyond bit 5 because bit 6 is the case bit, and also we
     // don't support localization here.
     if (d & 0x1f)
         return TRUE;
@@ -1130,8 +1130,8 @@ extern PPH_OBJECT_TYPE PhStringType;
 /**
  * A Unicode string object.
  *
- * \remarks The \a Length never includes the null terminator. Every 
- * string must have a null terminator at the end, for compatibility 
+ * \remarks The \a Length never includes the null terminator. Every
+ * string must have a null terminator at the end, for compatibility
  * reasons. Thus the invariant is:
  * \code Buffer[Length / sizeof(WCHAR)] = 0 \endcode
  */
@@ -1252,13 +1252,13 @@ PhFormatString_V(
     );
 
 /**
- * Retrieves a pointer to a string object's buffer 
+ * Retrieves a pointer to a string object's buffer
  * or returns NULL.
  *
  * \param String A pointer to a string object.
  *
- * \return A pointer to the string object's buffer 
- * if the supplied pointer is non-NULL, otherwise 
+ * \return A pointer to the string object's buffer
+ * if the supplied pointer is non-NULL, otherwise
  * NULL.
  */
 FORCEINLINE PWSTR PhGetString(
@@ -1290,13 +1290,13 @@ FORCEINLINE PH_STRINGREF PhGetStringRef(
 }
 
 /**
- * Retrieves a pointer to a string object's buffer 
+ * Retrieves a pointer to a string object's buffer
  * or returns an empty string.
  *
  * \param String A pointer to a string object.
  *
- * \return A pointer to the string object's buffer 
- * if the supplied pointer is non-NULL, otherwise 
+ * \return A pointer to the string object's buffer
+ * if the supplied pointer is non-NULL, otherwise
  * an empty string.
  */
 FORCEINLINE PWSTR PhGetStringOrEmpty(
@@ -1329,14 +1329,14 @@ FORCEINLINE PH_STRINGREF PhGetStringRefOrEmpty(
 }
 
 /**
- * Retrieves a pointer to a string object's buffer 
+ * Retrieves a pointer to a string object's buffer
  * or returns the specified alternative string.
  *
  * \param String A pointer to a string object.
  * \param DefaultString The alternative string.
  *
- * \return A pointer to the string object's buffer 
- * if the supplied pointer is non-NULL, otherwise 
+ * \return A pointer to the string object's buffer
+ * if the supplied pointer is non-NULL, otherwise
  * the specified alternative string.
  */
 FORCEINLINE PWSTR PhGetStringOrDefault(
@@ -1497,7 +1497,7 @@ FORCEINLINE BOOLEAN PhEqualString2(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 starts with \a String2, 
+ * \return TRUE if \a String1 starts with \a String2,
  * otherwise FALSE.
  */
 FORCEINLINE BOOLEAN PhStartsWithString(
@@ -1516,7 +1516,7 @@ FORCEINLINE BOOLEAN PhStartsWithString(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 starts with \a String2, 
+ * \return TRUE if \a String1 starts with \a String2,
  * otherwise FALSE.
  */
 FORCEINLINE BOOLEAN PhStartsWithString2(
@@ -1539,7 +1539,7 @@ FORCEINLINE BOOLEAN PhStartsWithString2(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 ends with \a String2, 
+ * \return TRUE if \a String1 ends with \a String2,
  * otherwise FALSE.
  */
 FORCEINLINE BOOLEAN PhEndsWithString(
@@ -1558,7 +1558,7 @@ FORCEINLINE BOOLEAN PhEndsWithString(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 ends with \a String2, 
+ * \return TRUE if \a String1 ends with \a String2,
  * otherwise FALSE.
  */
 FORCEINLINE BOOLEAN PhEndsWithString2(
@@ -1581,8 +1581,8 @@ FORCEINLINE BOOLEAN PhEndsWithString2(
  * \param StartIndex The index, in characters, to start searching at.
  * \param Char The character to search for.
  *
- * \return The index, in characters, of the first occurrence of 
- * \a Char in \a String after \a StartIndex. If \a Char was not 
+ * \return The index, in characters, of the first occurrence of
+ * \a Char in \a String after \a StartIndex. If \a Char was not
  * found, -1 is returned.
  */
 FORCEINLINE ULONG PhFindCharInString(
@@ -1608,8 +1608,8 @@ FORCEINLINE ULONG PhFindCharInString(
  * \param StartIndex The index, in characters, to start searching at.
  * \param Char The character to search for.
  *
- * \return The index, in characters, of the last occurrence of 
- * \a Char in \a String after \a StartIndex. If \a Char was not 
+ * \return The index, in characters, of the last occurrence of
+ * \a Char in \a String after \a StartIndex. If \a Char was not
  * found, -1 is returned.
  */
 FORCEINLINE ULONG PhFindLastCharInString(
@@ -1635,8 +1635,8 @@ FORCEINLINE ULONG PhFindLastCharInString(
  * \param StartIndex The index, in characters, to start searching at.
  * \param String2 The string to search for.
  *
- * \return The index, in characters, of the first occurrence of 
- * \a String2 in \a String1 after \a StartIndex. If \a String2 was not 
+ * \return The index, in characters, of the first occurrence of
+ * \a String2 in \a String1 after \a StartIndex. If \a String2 was not
  * found, -1 is returned.
  */
 FORCEINLINE ULONG PhFindStringInString(
@@ -1713,13 +1713,13 @@ FORCEINLINE PPH_STRING PhSubstring(
 }
 
 /**
- * Updates a string object's length with 
- * its true length as determined by an 
+ * Updates a string object's length with
+ * its true length as determined by an
  * embedded null terminator.
  *
  * \param String The string to modify.
  *
- * \remarks Use this function after modifying a string 
+ * \remarks Use this function after modifying a string
  * object's buffer manually.
  */
 FORCEINLINE VOID PhTrimToNullTerminatorString(
@@ -1798,8 +1798,8 @@ extern PPH_OBJECT_TYPE PhFullStringType;
 /**
  * A full Unicode string object.
  *
- * \remarks This string object is similar to PH_STRING except 
- * that the length is not restricted to 16 bits. Unlike 
+ * \remarks This string object is similar to PH_STRING except
+ * that the length is not restricted to 16 bits. Unlike
  * PH_STRING and PH_ANSI_STRING, this object is mutable.
  */
 typedef struct _PH_FULL_STRING
@@ -1945,7 +1945,7 @@ PhRemoveFullString(
 /**
  * A string builder structure.
  * The string builder object allows you to easily
- * construct complex strings without allocating 
+ * construct complex strings without allocating
  * a great number of strings in the process.
  */
 typedef struct _PH_STRING_BUILDER
@@ -1954,8 +1954,8 @@ typedef struct _PH_STRING_BUILDER
     ULONG AllocatedLength;
     /**
      * The constructed string.
-     * \a String will be allocated for \a AllocatedLength, 
-     * but we will modify the \a Length field to be the 
+     * \a String will be allocated for \a AllocatedLength,
+     * but we will modify the \a Length field to be the
      * correct length.
      */
     PPH_STRING String;
@@ -2094,7 +2094,7 @@ extern PPH_OBJECT_TYPE PhListType;
 
 /**
  * A list structure.
- * Storage is automatically allocated for new 
+ * Storage is automatically allocated for new
  * elements.
  */
 typedef struct _PH_LIST
@@ -2226,8 +2226,8 @@ extern PPH_OBJECT_TYPE PhPointerListType;
 
 /**
  * A pointer list structure.
- * The pointer list is similar to the normal list 
- * structure, but both insertions and deletions 
+ * The pointer list is similar to the normal list
+ * structure, but both insertions and deletions
  * occur in constant time. The list is not ordered.
  */
 typedef struct _PH_POINTER_LIST
@@ -2317,7 +2317,7 @@ extern PPH_OBJECT_TYPE PhQueueType;
 
 /**
  * A queue structure.
- * Storage is automatically allocated for new 
+ * Storage is automatically allocated for new
  * elements.
  */
 typedef struct _PH_QUEUE
@@ -2395,7 +2395,7 @@ FORCEINLINE VOID PhInitializeHashSet(
  *
  * \param NumberOfBuckets The number of buckets.
  *
- * \return The allocated hash set. You must free it with 
+ * \return The allocated hash set. You must free it with
  * PhFree() when you no longer need it.
  */
 FORCEINLINE PPH_HASH_ENTRY *PhCreateHashSet(
@@ -2512,7 +2512,7 @@ FORCEINLINE VOID PhAddEntryHashSet(
  *
  * \return The first entry in the chain.
  *
- * \remarks If the function returns NULL, the entry 
+ * \remarks If the function returns NULL, the entry
  * does not exist in the hash set.
  */
 FORCEINLINE PPH_HASH_ENTRY PhFindEntryHashSet(
@@ -2569,9 +2569,9 @@ FORCEINLINE VOID PhRemoveEntryHashSet(
 /**
  * Resizes a hash set.
  *
- * \param Buckets A pointer to the bucket array. On return the new bucket 
+ * \param Buckets A pointer to the bucket array. On return the new bucket
  * array is stored in this variable.
- * \param NumberOfBuckets A pointer to the number of buckets. On return the 
+ * \param NumberOfBuckets A pointer to the number of buckets. On return the
  * new number of buckets is stored in this variable.
  * \param NewNumberOfBuckets The new number of buckets.
  */
@@ -2601,7 +2601,7 @@ typedef struct _PH_HASHTABLE_ENTRY
 {
     /** Hash code of the entry. -1 if entry is unused. */
     ULONG HashCode;
-    /** Either the index of the next entry in the bucket, 
+    /** Either the index of the next entry in the bucket,
      * the index of the next free entry, or -1 for invalid.
      */
     ULONG Next;
@@ -2615,7 +2615,7 @@ typedef struct _PH_HASHTABLE_ENTRY
  * \param Entry1 The first entry.
  * \param Entry2 The second entry.
  *
- * \return TRUE if the entries are equal, otherwise 
+ * \return TRUE if the entries are equal, otherwise
  * FALSE.
  */
 typedef BOOLEAN (NTAPI *PPH_HASHTABLE_COMPARE_FUNCTION)(
@@ -2631,10 +2631,10 @@ typedef BOOLEAN (NTAPI *PPH_HASHTABLE_COMPARE_FUNCTION)(
  * \return A hash code for the entry.
  *
  * \remarks
- * \li Two entries which are considered to be equal 
- * by the comparison function must be given the same 
+ * \li Two entries which are considered to be equal
+ * by the comparison function must be given the same
  * hash code.
- * \li Two different entries do not have to be given 
+ * \li Two different entries do not have to be given
  * different hash codes.
  */
 typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
@@ -2672,7 +2672,7 @@ typedef struct _PH_HASHTABLE
     ULONG Count;
     /** Index into entry array for free list. */
     ULONG FreeEntry;
-    /** Index of next usable index into entry array, a.k.a. the 
+    /** Index of next usable index into entry array, a.k.a. the
      * count of entries that were ever allocated.
      */
     ULONG NextEntry;
@@ -2937,9 +2937,9 @@ PhFreeToFreeList(
 /**
  * A callback function.
  *
- * \param Parameter A value given to all callback 
+ * \param Parameter A value given to all callback
  * functions being notified.
- * \param Context A user-defined value passed 
+ * \param Context A user-defined value passed
  * to PhRegisterCallback().
  */
 typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
@@ -2956,13 +2956,13 @@ typedef struct _PH_CALLBACK_REGISTRATION
     LIST_ENTRY ListEntry;
     /** The callback function. */
     PPH_CALLBACK_FUNCTION Function;
-    /** A user-defined value to be passed to the 
+    /** A user-defined value to be passed to the
      * callback function. */
     PVOID Context;
-    /** A value indicating whether the registration 
+    /** A value indicating whether the registration
      * structure is being used. */
     LONG Busy;
-    /** Whether the registration structure is being 
+    /** Whether the registration structure is being
      * removed. */
     BOOLEAN Unregistering;
     BOOLEAN Reserved;
@@ -2972,8 +2972,8 @@ typedef struct _PH_CALLBACK_REGISTRATION
 
 /**
  * A callback structure.
- * The callback object allows multiple callback 
- * functions to be registered and notified in a 
+ * The callback object allows multiple callback
+ * functions to be registered and notified in a
  * thread-safe way.
  */
 typedef struct _PH_CALLBACK
@@ -2982,7 +2982,7 @@ typedef struct _PH_CALLBACK
     LIST_ENTRY ListHead;
     /** A lock protecting the callbacks list. */
     PH_QUEUED_LOCK ListLock;
-    /** A condition variable pulsed when 
+    /** A condition variable pulsed when
      * the callback becomes free. */
     PH_QUEUED_LOCK BusyCondition;
 } PH_CALLBACK, *PPH_CALLBACK;
@@ -3179,8 +3179,8 @@ typedef enum _PH_FORMAT_TYPE
     FormatGroupDigits = 0x10000,
     /** Always insert a prefix, '+' for positive and '-' for negative */
     FormatPrefixSign = 0x20000,
-    /** Pad left with zeros, taking into consideration the sign. Width must be specified. 
-     * Format*Align cannot be used in conjunction with this flag. If FormatGroupDigits is specified, 
+    /** Pad left with zeros, taking into consideration the sign. Width must be specified.
+     * Format*Align cannot be used in conjunction with this flag. If FormatGroupDigits is specified,
      * this flag is ignored. */
     FormatPadZeros = 0x40000,
 
@@ -3200,18 +3200,18 @@ typedef struct _PH_FORMAT
 {
     /** Specifies the type of the element and optional flags. */
     PH_FORMAT_TYPE Type;
-    /** The precision of the element. The meaning of this field depends on 
-     * the element type. For \a Double and \a Size, this field specifies 
+    /** The precision of the element. The meaning of this field depends on
+     * the element type. For \a Double and \a Size, this field specifies
      * the number of decimal points to include. */
     USHORT Precision;
-    /** The width of the element. This field specifies the minimum 
-     * number of characters to output. The remaining space is 
+    /** The width of the element. This field specifies the minimum
+     * number of characters to output. The remaining space is
      * padded with either spaces, zeros, or a custom character. */
     USHORT Width;
     /** The pad character. */
     WCHAR Pad;
-    /** The meaning of this field depends on the element type. For integer 
-     * types, this field specifies the base to convert the number into. 
+    /** The meaning of this field depends on the element type. For integer
+     * types, this field specifies the base to convert the number into.
      * For \a Size, this field specifies the maximum size unit. */
     UCHAR Radix;
     UCHAR Reserved;
@@ -3544,12 +3544,12 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
         ULONG_PTR Value;
         struct
         {
-            /** The type of the entry; 1 if the entry is free, 
+            /** The type of the entry; 1 if the entry is free,
              * otherwise 0 if the entry is in use.
              */
             ULONG_PTR Type : 1;
-            /** Whether the entry is not locked; 1 if the entry 
-             * is not locked, otherwise 0 if the entry is locked. 
+            /** Whether the entry is not locked; 1 if the entry
+             * is not locked, otherwise 0 if the entry is locked.
              */
             ULONG_PTR Locked : 1;
             ULONG_PTR Value : sizeof(ULONG_PTR) * 8 - 2;

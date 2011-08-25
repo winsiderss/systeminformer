@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   PE viewer
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -338,7 +338,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
 
                     PhPrintPointer(pointer, (PVOID)PvMappedImage.Sections[i].SizeOfRawData);
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer); 
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
                 }
             }
         }
@@ -513,7 +513,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                 {
                     if (
                         NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)) &&
-                        NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)) 
+                        NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction))
                         )
                     {
                         INT lvItemIndex;

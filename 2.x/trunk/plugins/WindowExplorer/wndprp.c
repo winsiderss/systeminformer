@@ -1,11 +1,11 @@
 /*
- * Process Hacker Window Explorer - 
+ * Process Hacker Window Explorer -
  *   window properties
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Since the main message loop doesn't support property sheets, 
+// Since the main message loop doesn't support property sheets,
 // we need a separate thread to run property sheets on.
 
 #include "wndexp.h"
@@ -399,9 +399,9 @@ LRESULT CALLBACK WepPropSheetWndProc(
         {
             if (!GetProp(hwnd, L"Moved"))
             {
-                // Move the Refresh button to where the OK button is, and move the OK button to 
+                // Move the Refresh button to where the OK button is, and move the OK button to
                 // where the Cancel button is.
-                // This must be done here because in the prop sheet callback the buttons are not 
+                // This must be done here because in the prop sheet callback the buttons are not
                 // in the right places.
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDOK), GetDlgItem(hwnd, IDC_REFRESH));
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDCANCEL), GetDlgItem(hwnd, IDOK));

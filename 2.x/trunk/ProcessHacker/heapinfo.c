@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   process heaps dialog
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -221,7 +221,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 committedString = PhFormatSize(heapInfo->BytesCommitted, -1);
                 numberOfEntriesString = PhFormatUInt64(heapInfo->NumberOfEntries, TRUE);
 
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, usedString->Buffer); 
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, usedString->Buffer);
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 2, committedString->Buffer);
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 3, numberOfEntriesString->Buffer);
 
@@ -264,7 +264,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                             usedString = PhFormatSize(heapInfo->BytesAllocated, sizesInBytes ? 0 : -1);
                             committedString = PhFormatSize(heapInfo->BytesCommitted, sizesInBytes ? 0 : -1);
 
-                            PhSetListViewSubItem(context->ListViewHandle, index, 1, usedString->Buffer); 
+                            PhSetListViewSubItem(context->ListViewHandle, index, 1, usedString->Buffer);
                             PhSetListViewSubItem(context->ListViewHandle, index, 2, committedString->Buffer);
 
                             PhDereferenceObject(usedString);

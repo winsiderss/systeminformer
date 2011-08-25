@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   mapped image
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,8 +21,8 @@
  */
 
 /*
- * This file contains functions to load and retrieve information for 
- * image files (exe, dll). The file format for image files is explained 
+ * This file contains functions to load and retrieve information for
+ * image files (exe, dll). The file format for image files is explained
  * in the PE/COFF specification located at:
  *
  * http://www.microsoft.com/whdc/system/platform/firmware/PECOFF.mspx
@@ -625,8 +625,8 @@ NTSTATUS PhGetMappedImageExports(
     }
 
     // The ordinal and name tables are parallel.
-    // Getting an index into the name table (e.g. by doing a binary 
-    // search) and indexing into the ordinal table will produce the 
+    // Getting an index into the name table (e.g. by doing a binary
+    // search) and indexing into the ordinal table will produce the
     // ordinal for that name, *unbiased* (unlike in the specification).
     // The unbiased ordinal is an index into the address table.
 

@@ -160,7 +160,7 @@ NtSetHighEventPair(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtWaitLowEventPair( 
+NtWaitLowEventPair(
     __in HANDLE EventPairHandle
     );
 
@@ -193,7 +193,7 @@ typedef enum _MUTANT_INFORMATION_CLASS
     MutantOwnerInformation
 } MUTANT_INFORMATION_CLASS;
 
-typedef struct _MUTANT_BASIC_INFORMATION 
+typedef struct _MUTANT_BASIC_INFORMATION
 {
     LONG CurrentCount;
     BOOLEAN OwnedByCaller;
@@ -1467,7 +1467,7 @@ typedef struct _SYSTEM_THREAD_CID_PRIORITY_INFORMATION
     KPRIORITY Priority;
 } SYSTEM_THREAD_CID_PRIORITY_INFORMATION, *PSYSTEM_THREAD_CID_PRIORITY_INFORMATION;
 
-// private 
+// private
 typedef struct _SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION
 {
     ULONGLONG CycleTime;

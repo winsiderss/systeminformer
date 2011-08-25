@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   system information
- * 
+ *
  * Copyright (C) 2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -33,14 +33,14 @@ NTSTATUS PhpSysInfoThreadStart(
     __in PVOID Parameter
     );
 
-INT_PTR CALLBACK PhpSysInfoDlgProc(      
+INT_PTR CALLBACK PhpSysInfoDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
 
-INT_PTR CALLBACK PhpSysInfoPanelDlgProc(      
+INT_PTR CALLBACK PhpSysInfoPanelDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -241,17 +241,17 @@ static PPH_PROCESS_RECORD PhpReferenceMaxCpuRecord(
     if (!maxProcessId)
         return NULL;
 
-    // Note that the time we get has its components beyond seconds cleared. 
+    // Note that the time we get has its components beyond seconds cleared.
     // For example:
     // * At 2.5 seconds a process is started.
-    // * At 2.75 seconds our process provider is fired, and the process is determined 
+    // * At 2.75 seconds our process provider is fired, and the process is determined
     //   to have 75% CPU usage, which happens to be the maximum CPU usage.
-    // * However the 2.75 seconds is recorded as 2 seconds due to 
+    // * However the 2.75 seconds is recorded as 2 seconds due to
     //   RtlTimeToSecondsSince1980.
-    // * If we call PhFindProcessRecord, it cannot find the process because it was 
+    // * If we call PhFindProcessRecord, it cannot find the process because it was
     //   started at 2.5 seconds, not 2 seconds or older.
     //
-    // This mean we must add one second minus one tick (100ns) to the time, giving us 
+    // This mean we must add one second minus one tick (100ns) to the time, giving us
     // 2.9999999 seconds. This will then make sure we find the process.
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
@@ -385,16 +385,16 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             ULONG processors;
             ULONG i;
 
-            // Perform the allocations early or else in other message handlers we may 
+            // Perform the allocations early or else in other message handlers we may
             // be doing null dereferences.
             processors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
             CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * processors);
             CpusGraphHandle = PhAllocate(sizeof(HWND) * processors);
             memset(CpusGraphHandle, 0, sizeof(HWND) * processors);
 
-            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix 
-            // the drawing issue that arises when using WS_CLIPCHILDREN. However 
-            // in removing the flicker from the graphs the group boxes will now flicker. 
+            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
+            // the drawing issue that arises when using WS_CLIPCHILDREN. However
+            // in removing the flicker from the graphs the group boxes will now flicker.
             // It's a good tradeoff since no one stares at the group boxes.
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
@@ -571,7 +571,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
         }
         break;
     case WM_SIZE:
-        {                      
+        {
             HDWP deferHandle;
             HWND cpuGroupBox = GetDlgItem(hwndDlg, IDC_GROUPCPU);
             HWND ioGroupBox = GetDlgItem(hwndDlg, IDC_GROUPIO);
@@ -584,7 +584,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             LONG width;
             LONG height;
 
-            // PhLoadWindowPlacementFromSetting in WM_INITDIALOG causes WM_SIZE to be sent, but this seems 
+            // PhLoadWindowPlacementFromSetting in WM_INITDIALOG causes WM_SIZE to be sent, but this seems
             // to cause major lag. Ignore the message if it's from WM_INITDIALOG.
             if (InInitDialog)
                 break;
@@ -636,7 +636,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
                 for (i = 0; i < processors; i++)
                 {
-                    // Give the last graph the remaining space; the width we calculated might be off by a few 
+                    // Give the last graph the remaining space; the width we calculated might be off by a few
                     // pixels due to integer division.
                     if (i == processors - 1)
                     {
@@ -653,7 +653,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         height - innerMargin.top - innerMargin.bottom,
                         SWP_NOACTIVATE | SWP_NOZORDER
                         );
-                    x += graphWidth + graphBetween; 
+                    x += graphWidth + graphBetween;
                 }
             }
 
@@ -1197,7 +1197,7 @@ static VOID PhpGetPoolLimits(
     *NonPaged = nonPaged;
 }
 
-INT_PTR CALLBACK PhpSysInfoPanelDlgProc(      
+INT_PTR CALLBACK PhpSysInfoPanelDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

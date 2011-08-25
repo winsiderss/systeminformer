@@ -1,10 +1,10 @@
 /*
  * KProcessHacker
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -69,7 +69,7 @@ ULONG ObpAccessProtectCloseBit = 0x2000000;
  *
  * \param Object A pointer to an object.
  *
- * \return A pointer to the object's type object, or NULL if an error 
+ * \return A pointer to the object's type object, or NULL if an error
  * occurred.
  */
 POBJECT_TYPE KphGetObjectType(
@@ -78,18 +78,18 @@ POBJECT_TYPE KphGetObjectType(
 {
     PAGED_CODE();
 
-    // XP to Vista: A pointer to the object type is 
+    // XP to Vista: A pointer to the object type is
     // stored in the object header.
     if (
-        KphDynNtVersion >= PHNT_WINXP && 
+        KphDynNtVersion >= PHNT_WINXP &&
         KphDynNtVersion <= PHNT_VISTA
         )
     {
         return OBJECT_TO_OBJECT_HEADER(Object)->Type;
     }
-    // Seven and above: An index to an internal object type 
-    // table is stored in the object header. Luckily we have 
-    // a new exported function, ObGetObjectType, to get 
+    // Seven and above: An index to an internal object type
+    // table is stored in the object header. Luckily we have
+    // a new exported function, ObGetObjectType, to get
     // the object type.
     else if (KphDynNtVersion >= PHNT_WIN7)
     {
@@ -109,9 +109,9 @@ POBJECT_TYPE KphGetObjectType(
  *
  * \param Process A process object.
  *
- * \return A pointer to the handle table, or NULL if the process is 
- * terminating or the request is not supported. You must call 
- * KphDereferenceProcessHandleTable() when the handle table is no longer 
+ * \return A pointer to the handle table, or NULL if the process is
+ * terminating or the request is not supported. You must call
+ * KphDereferenceProcessHandleTable() when the handle table is no longer
  * needed.
  */
 PHANDLE_TABLE KphReferenceProcessHandleTable(
@@ -193,7 +193,7 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
     context->Count++;
 
     // Only write if we have not exceeded the buffer length.
-    // Also check for a potential overflow (if the process has an extremely large number of 
+    // Also check for a potential overflow (if the process has an extremely large number of
     // handles, the buffer pointer may wrap).
     if (
         (ULONG_PTR)entryInBuffer >= (ULONG_PTR)context->Buffer &&
@@ -225,10 +225,10 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
  * Enumerates the handles of a process.
  *
  * \param ProcessHandle A handle to a process.
- * \param Buffer The buffer in which the handle information will 
+ * \param Buffer The buffer in which the handle information will
  * be stored.
  * \param BufferLength The number of bytes available in \a Buffer.
- * \param ReturnLength A variable which receives the number of bytes 
+ * \param ReturnLength A variable which receives the number of bytes
  * required to be available in \a Buffer.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -327,7 +327,7 @@ NTSTATUS KpiEnumerateProcessHandles(
     {
         ULONG returnLength;
 
-        // Note: if the CurrentEntry pointer wrapped, this will give the wrong 
+        // Note: if the CurrentEntry pointer wrapped, this will give the wrong
         // return length.
         returnLength = (ULONG)((ULONG_PTR)context.CurrentEntry - (ULONG_PTR)Buffer);
 
@@ -357,7 +357,7 @@ NTSTATUS KpiEnumerateProcessHandles(
  * \param Object A pointer to an object.
  * \param Buffer The buffer in which the object name will be stored.
  * \param BufferLength The number of bytes available in \a Buffer.
- * \param ReturnLength A variable which receives the number of bytes 
+ * \param ReturnLength A variable which receives the number of bytes
  * required to be available in \a Buffer.
  */
 NTSTATUS KphQueryNameObject(
@@ -376,7 +376,7 @@ NTSTATUS KphQueryNameObject(
 
     // Check if we are going to hang when querying the object, and use
     // the special file object query function if needed.
-    if (objectType == *IoFileObjectType && 
+    if (objectType == *IoFileObjectType &&
         (((PFILE_OBJECT)Object)->Busy || ((PFILE_OBJECT)Object)->Waiters))
     {
         status = KphQueryNameFileObject(Object, Buffer, BufferLength, ReturnLength);
@@ -408,7 +408,7 @@ NTSTATUS KphQueryNameObject(
  * \param FileObject A pointer to a file object.
  * \param Buffer The buffer in which the object name will be stored.
  * \param BufferLength The number of bytes available in \a Buffer.
- * \param ReturnLength A variable which receives the number of bytes 
+ * \param ReturnLength A variable which receives the number of bytes
  * required to be available in \a Buffer.
  */
 NTSTATUS KphQueryNameFileObject(
@@ -554,13 +554,13 @@ NTSTATUS KphQueryNameFileObject(
  * Queries object information.
  *
  * \param ProcessHandle A handle to a process.
- * \param Handle A handle which is present in the process referenced 
+ * \param Handle A handle which is present in the process referenced
  * by \a ProcessHandle.
  * \param ObjectInformationClass The type of information to retrieve.
  * \param ObjectInformation The buffer in which the information will be stored.
- * \param ObjectInformationLength The number of bytes available in \a 
+ * \param ObjectInformationLength The number of bytes available in \a
  * ObjectInformation.
- * \param ReturnLength A variable which receives the number of bytes 
+ * \param ReturnLength A variable which receives the number of bytes
  * required to be available in \a ObjectInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -618,8 +618,8 @@ NTSTATUS KpiQueryInformationObject(
     }
     else
     {
-        // Make sure the handle isn't a kernel handle if we're not attached to the 
-        // System process. This means we can avoid referencing then opening the objects 
+        // Make sure the handle isn't a kernel handle if we're not attached to the
+        // System process. This means we can avoid referencing then opening the objects
         // later when calling ZwQueryObject, etc.
         if (IsKernelHandle(Handle))
         {
@@ -1074,11 +1074,11 @@ NTSTATUS KpiQueryInformationObject(
  * Sets object information.
  *
  * \param ProcessHandle A handle to a process.
- * \param Handle A handle which is present in the process referenced 
+ * \param Handle A handle which is present in the process referenced
  * by \a ProcessHandle.
  * \param ObjectInformationClass The type of information to set.
  * \param ObjectInformation A buffer which contains the information to set.
- * \param ObjectInformationLength The number of bytes present in 
+ * \param ObjectInformationLength The number of bytes present in
  * \a ObjectInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -1189,21 +1189,21 @@ NTSTATUS KpiSetInformationObject(
 /**
  * Re-opens an object.
  *
- * \param SourceProcess The source process from which the object 
+ * \param SourceProcess The source process from which the object
  * will be referenced.
- * \param TargetProcess The target process to which the object 
+ * \param TargetProcess The target process to which the object
  * handle will be duplicated.
  * \param SourceHandle The source handle, present in \a SourceProcess.
  * \param TargetHandle A variable which receives the new handle.
  * \param DesiredAccess The desired access to the object for the new handle.
  * \param HandleAttributes The attributes of the new handle.
  * \param Options A combination of the following:
- * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source 
- * process instead of being duplicated to the target process. The \a TargetProcess 
+ * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source
+ * process instead of being duplicated to the target process. The \a TargetProcess
  * and \a TargetHandle parameters are ignored.
- * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted 
+ * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted
  * access as the existing handle.
- * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes 
+ * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes
  * as the existing handle.
  * \param AccessMode The mode in which access checks will be performed.
  */
@@ -1333,21 +1333,21 @@ NTSTATUS KphDuplicateObject(
 /**
  * Re-opens an object.
  *
- * \param SourceProcessHandle A handle to the source process from which the 
+ * \param SourceProcessHandle A handle to the source process from which the
  * object will be referenced.
  * \param SourceHandle The source handle, present in \a SourceProcess.
- * \param TargetProcessHandle A handle to the target process to which the object 
+ * \param TargetProcessHandle A handle to the target process to which the object
  * handle will be duplicated.
  * \param TargetHandle A variable which receives the new handle.
  * \param DesiredAccess The desired access to the object for the new handle.
  * \param HandleAttributes The attributes of the new handle.
  * \param Options A combination of the following:
- * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source 
- * process instead of being duplicated to the target process. The \a TargetProcess 
+ * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source
+ * process instead of being duplicated to the target process. The \a TargetProcess
  * and \a TargetHandle parameters are ignored.
- * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted 
+ * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted
  * access as the existing handle.
- * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes 
+ * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes
  * as the existing handle.
  * \param AccessMode The mode in which access checks will be performed.
  */
@@ -1506,7 +1506,7 @@ NTSTATUS KphOpenNamedObject(
     // Set the new string in the object attributes.
     objectAttributes.ObjectName = &capturedObjectName;
     // Make sure the SecurityDescriptor and SecurityQualityOfService fields are NULL
-    // since we haven't probed them. They don't apply anyway because we're opening an 
+    // since we haven't probed them. They don't apply anyway because we're opening an
     // object here.
     objectAttributes.SecurityDescriptor = NULL;
     objectAttributes.SecurityQualityOfService = NULL;

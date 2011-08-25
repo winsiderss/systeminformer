@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   minidump writer
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -171,7 +171,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
         return TRUE;
 
     // MiniDumpWriteDump seems to get bored of calling the callback
-    // after it begins dumping the process handles. The code is 
+    // after it begins dumping the process handles. The code is
     // still here in case they fix this problem in the future.
 
     switch (CallbackInput->CallbackType)
@@ -232,7 +232,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
     else
     {
-        // We may have an old version of dbghelp - in that case, try 
+        // We may have an old version of dbghelp - in that case, try
         // using minimal dump flags.
         if (GetLastError() == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER) && PhWriteMiniDumpProcess(
             context->ProcessHandle,

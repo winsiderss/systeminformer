@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   KProcessHacker API
- * 
+ *
  * Copyright (C) 2009-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -181,9 +181,9 @@ NTSTATUS KphConnect2Ex(
             {
                 created = TRUE;
 
-                // Set parameters if the caller supplied them. 
-                // Note that we fail the entire function if this fails, 
-                // because failing to set parameters like SecurityLevel may 
+                // Set parameters if the caller supplied them.
+                // Note that we fail the entire function if this fails,
+                // because failing to set parameters like SecurityLevel may
                 // result in security vulnerabilities.
                 if (Parameters)
                 {
@@ -209,10 +209,10 @@ NTSTATUS KphConnect2Ex(
 CreateAndConnectEnd:
     if (created)
     {
-        // "Delete" the service. Since we (may) have a handle to 
-        // the device, the SCM will delete the service automatically 
-        // when it is stopped (upon reboot). If we don't have a 
-        // handle to the device, the service will get deleted immediately, 
+        // "Delete" the service. Since we (may) have a handle to
+        // the device, the SCM will delete the service automatically
+        // when it is stopped (upon reboot). If we don't have a
+        // handle to the device, the service will get deleted immediately,
         // which is a good thing anyway.
         DeleteService(serviceHandle);
         CloseServiceHandle(serviceHandle);
@@ -570,7 +570,7 @@ NTSTATUS KphTerminateProcess(
         sizeof(input)
         );
 
-    // Check if we're trying to terminate the current process, 
+    // Check if we're trying to terminate the current process,
     // because kernel-mode can't do it.
     if (status == STATUS_CANT_TERMINATE_SELF)
     {
@@ -1027,7 +1027,7 @@ NTSTATUS KphQueryInformationDriver(
     )
 {
     struct
-    {     
+    {
         HANDLE DriverHandle;
         DRIVER_INFORMATION_CLASS DriverInformationClass;
         PVOID DriverInformation;

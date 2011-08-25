@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Services - 
+ * Process Hacker Extended Services -
  *   trigger editor
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -712,7 +712,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
     if (!Context->Dirty)
         return TRUE;
 
-    // Do not try to change trigger information if we didn't have any triggers before and we don't 
+    // Do not try to change trigger information if we didn't have any triggers before and we don't
     // have any now. ChangeServiceConfig2 returns an error in this situation.
     if (Context->InitialNumberOfTriggers == 0 && Context->InfoList->Count == 0)
         return TRUE;

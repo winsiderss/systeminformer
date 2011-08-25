@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   copy/save code for listviews and treelists
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -109,7 +109,7 @@ VOID PhaCreateTextTable(
  * \param Columns The number of columns in the table.
  * \param Mode The export formatting mode.
  *
- * \return A list of strings for each line in the output. The list object and 
+ * \return A list of strings for each line in the output. The list object and
  * string objects are not auto-dereferenced.
  */
 PPH_LIST PhaFormatTextTable(
@@ -120,7 +120,7 @@ PPH_LIST PhaFormatTextTable(
     )
 {
     PPH_LIST lines;
-    // The tab count array contains the number of tabs need to fill the biggest 
+    // The tab count array contains the number of tabs need to fill the biggest
     // row cell in each column.
     PULONG tabCount;
     ULONG i;
@@ -152,8 +152,8 @@ PPH_LIST PhaFormatTextTable(
         }
     }
 
-    // Create the final list of lines by going through each cell and appending 
-    // the proper tab count (if we are using tabs). This will make sure each column 
+    // Create the final list of lines by going through each cell and appending
+    // the proper tab count (if we are using tabs). This will make sure each column
     // is properly aligned.
 
     lines = PhCreateList(Rows);

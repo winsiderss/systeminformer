@@ -1,12 +1,12 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   IntPtr extension functions
  *
  * Copyright (C) 2011 wj32
  * Copyright (C) 2009 Flavio Erlich
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -37,7 +37,7 @@ namespace ProcessHacker.Native
         {
             if (OSVersion.Architecture == OSArch.I386)
                 return new IntPtr(ptr.ToInt32() & value);
-          
+
             return new IntPtr(ptr.ToInt64() & value);
         }
 
@@ -45,7 +45,7 @@ namespace ProcessHacker.Native
         {
             if (OSVersion.Architecture == OSArch.I386)
                 return new IntPtr(ptr.ToInt32() & value.ToInt32());
-         
+
             return new IntPtr(ptr.ToInt64() & value.ToInt64());
         }
 
@@ -80,7 +80,7 @@ namespace ProcessHacker.Native
         {
             if (OSVersion.Architecture == OSArch.I386)
                 return new IntPtr(ptr.ToInt32() - ptr2.ToInt32());
-           
+
             return new IntPtr(ptr.ToInt64() - ptr2.ToInt64());
         }
 
@@ -143,7 +143,7 @@ namespace ProcessHacker.Native
             {
                 if (OSVersion.Architecture == OSArch.I386)
                     return new IntPtr((int)(ptr.ToInt32() + value));
-            
+
                 return new IntPtr(ptr.ToInt64() + value);
             }
         }
@@ -154,7 +154,7 @@ namespace ProcessHacker.Native
             {
                 if (OSVersion.Architecture == OSArch.I386)
                     return new IntPtr(ptr.ToInt32() + ptr2.ToInt32());
-             
+
                 return new IntPtr(ptr.ToInt64() + ptr2.ToInt64());
             }
         }
@@ -186,7 +186,7 @@ namespace ProcessHacker.Native
         {
             if (OSVersion.Architecture == OSArch.I386)
                 return new IntPtr(ptr.ToInt32() | value.ToInt32());
-        
+
             return new IntPtr(ptr.ToInt64() | value.ToInt64());
         }
 
@@ -242,7 +242,7 @@ namespace ProcessHacker.Native
         {
             if (OSVersion.Architecture == OSArch.I386)
                 return new IntPtr(ptr.ToInt32() ^ value.ToInt32());
-          
+
             return new IntPtr(ptr.ToInt64() ^ value.ToInt64());
         }
     }

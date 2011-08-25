@@ -26,7 +26,7 @@
 #define LDRP_MM_LOADED 0x40000000
 #define LDRP_COMPAT_DATABASE_PROCESSED 0x80000000
 
-// Use the size of the structure as it was in 
+// Use the size of the structure as it was in
 // Windows XP.
 #define LDR_DATA_TABLE_ENTRY_SIZE_WINXP FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ForwarderLinks)
 

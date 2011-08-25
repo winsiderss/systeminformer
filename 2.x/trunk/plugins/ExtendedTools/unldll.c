@@ -1,11 +1,11 @@
 /*
- * Process Hacker Extended Tools - 
+ * Process Hacker Extended Tools -
  *   unloaded DLLs display
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -86,8 +86,8 @@ BOOLEAN EtpRefreshUnloadedDlls(
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_VM_READ, Context->ProcessItem->ProcessId)))
         goto CleanupExit;
 
-    // We have the pointers for the unload event trace information. 
-    // Since ntdll is loaded at the same base address across all processes, 
+    // We have the pointers for the unload event trace information.
+    // Since ntdll is loaded at the same base address across all processes,
     // we can read the information in.
 
     if (!NT_SUCCESS(status = PhReadVirtualMemory(

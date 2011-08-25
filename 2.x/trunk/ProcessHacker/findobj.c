@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   object search
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -48,7 +48,7 @@ typedef struct _PHP_OBJECT_SEARCH_RESULT
     SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Info;
 } PHP_OBJECT_SEARCH_RESULT, *PPHP_OBJECT_SEARCH_RESULT;
 
-INT_PTR CALLBACK PhpFindObjectsDlgProc(      
+INT_PTR CALLBACK PhpFindObjectsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -179,7 +179,7 @@ INT NTAPI PhpObjectHandleCompareFunction(
     return uintptrcmp((ULONG_PTR)item1->Handle, (ULONG_PTR)item2->Handle);
 }
 
-static INT_PTR CALLBACK PhpFindObjectsDlgProc(      
+static INT_PTR CALLBACK PhpFindObjectsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -245,8 +245,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             ShowWindow(hwndDlg, SW_HIDE);
             // IMPORTANT
-            // Set the result to 0 so the default dialog message 
-            // handler doesn't invoke IDCANCEL, which will send 
+            // Set the result to 0 so the default dialog message
+            // handler doesn't invoke IDCANCEL, which will send
             // WM_CLOSE, creating an infinite loop.
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, 0);
         }

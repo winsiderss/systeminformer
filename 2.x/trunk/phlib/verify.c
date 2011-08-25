@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   image verification
- * 
+ *
  * Copyright (C) 2009-2010 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -87,7 +87,7 @@ PPH_STRING PhpGetCertNameString(
     PPH_STRING string;
     ULONG bufferSize;
 
-    // CertNameToStr doesn't give us the correct buffer size unless we 
+    // CertNameToStr doesn't give us the correct buffer size unless we
     // don't provide a buffer at all.
     bufferSize = CertNameToStr_I(
         X509_ASN_ENCODING,
@@ -157,7 +157,7 @@ PPH_STRING PhpGetX500Value(
     {
         endIndex = PhFindCharInString(String, startIndex, ',');
 
-        // If we didn't find a comma, it means the key/value pair is 
+        // If we didn't find a comma, it means the key/value pair is
         // the last one in the string.
         if (endIndex == -1)
             endIndex = String->Length / sizeof(WCHAR);
@@ -409,10 +409,10 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
  * Verifies a file's digital signature.
  *
  * \param FileName A file name.
- * \param SignerName A variable which receives a pointer 
- * to a string containing the signer name. You must free 
- * the string using PhDereferenceObject() when you no 
- * longer need it. Note that the signer name may be NULL 
+ * \param SignerName A variable which receives a pointer
+ * to a string containing the signer name. You must free
+ * the string using PhDereferenceObject() when you no
+ * longer need it. Note that the signer name may be NULL
  * if it is not valid.
  *
  * \return A VERIFY_RESULT value.
@@ -430,7 +430,7 @@ VERIFY_RESULT PhVerifyFile(
         PhEndInitOnce(&PhpVerifyInitOnce);
     }
 
-    // Make sure we have successfully imported 
+    // Make sure we have successfully imported
     // the required functions.
     if (
         !CryptCATAdminCalcHashFromFileHandle ||

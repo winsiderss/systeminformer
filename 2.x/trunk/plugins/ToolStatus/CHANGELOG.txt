@@ -1,5 +1,5 @@
 1.7
- * Added option to configure Toolbar display style. 
+ * Added option to configure Toolbar display style.
 
 1.6
  * Fixed Always on Top being reset when using Find Window
@@ -9,7 +9,7 @@
  * Added Find Window and Kill
 
 1.4
- * Added option to resolve ghost windows to the hung windows 
+ * Added option to resolve ghost windows to the hung windows
    they represent
 
 1.3

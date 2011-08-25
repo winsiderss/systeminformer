@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   handle provider
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -106,7 +106,7 @@ VOID PhpHandleProviderDeleteProcedure(
 {
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
 
-    // Dereference all handle items (we referenced them 
+    // Dereference all handle items (we referenced them
     // when we added them to the hashtable).
     PhDereferenceAllHandleItems(handleProvider);
 
@@ -290,9 +290,9 @@ __assumeLocked VOID PhpRemoveHandleItem(
  *
  * \param ProcessId The ID of the process.
  * \param ProcessHandle A handle to the process.
- * \param Handles A variable which receives a pointer to a buffer containing 
+ * \param Handles A variable which receives a pointer to a buffer containing
  * information about the handles.
- * \param FilterNeeded A variable which receives a boolean indicating 
+ * \param FilterNeeded A variable which receives a boolean indicating
  * whether the handle information needs to be filtered by process ID.
  */
 NTSTATUS PhEnumHandlesGeneric(
@@ -305,11 +305,11 @@ NTSTATUS PhEnumHandlesGeneric(
     NTSTATUS status;
 
     // There are three ways of enumerating handles:
-    // * When KProcessHacker is available, using KphEnumerateProcessHandles 
+    // * When KProcessHacker is available, using KphEnumerateProcessHandles
     //   is the most efficient method.
-    // * On Windows XP and later, NtQuerySystemInformation with 
+    // * On Windows XP and later, NtQuerySystemInformation with
     //   SystemExtendedHandleInformation can be used.
-    // * Otherwise, NtQuerySystemInformation with SystemHandleInformation 
+    // * Otherwise, NtQuerySystemInformation with SystemHandleInformation
     //   can be used.
 
     if (KphIsConnected())
@@ -318,7 +318,7 @@ NTSTATUS PhEnumHandlesGeneric(
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
         ULONG i;
 
-        // Enumerate handles using KProcessHacker. Unlike with NtQuerySystemInformation, 
+        // Enumerate handles using KProcessHacker. Unlike with NtQuerySystemInformation,
         // this only enumerates handles for a single process and saves a lot of processing.
 
         if (NT_SUCCESS(status = PhEnumProcessHandles(ProcessHandle, &handles)))
@@ -354,7 +354,7 @@ NTSTATUS PhEnumHandlesGeneric(
     {
         PSYSTEM_HANDLE_INFORMATION_EX handles;
 
-        // Enumerate handles using the new method; no conversion 
+        // Enumerate handles using the new method; no conversion
         // necessary.
 
         if (!NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
@@ -371,7 +371,7 @@ NTSTATUS PhEnumHandlesGeneric(
         ULONG allocatedCount;
         ULONG i;
 
-        // Enumerate handles using the old info class and convert 
+        // Enumerate handles using the old info class and convert
         // the relevant entries to the new format.
 
         if (!NT_SUCCESS(status = PhEnumHandles(&handles)))
@@ -504,9 +504,9 @@ VOID PhHandleProviderUpdate(
 
                 if (tempHashtableValue)
                 {
-                    // Also compare the object pointers to make sure a 
-                    // different object wasn't re-opened with the same 
-                    // handle value. This isn't 100% accurate as pool 
+                    // Also compare the object pointers to make sure a
+                    // different object wasn't re-opened with the same
+                    // handle value. This isn't 100% accurate as pool
                     // addresses may be re-used, but it works well.
                     if (handleItem->Object == (*tempHashtableValue)->Object)
                     {

@@ -51,94 +51,94 @@ h4 {
   <body>
     <h1 style="font-size: 30pt; border: none;">The Definitive Native API Guide</h1>
     <p>Written by wj32.</p>
-    
+
     <h1>NT Concepts</h1>
-    
+
     <h3>Alertable</h3>
-    <p>A thread contains fields for two alertable states, one for kernel-mode and one for user-mode. 
-    When a caller from one of these modes alerts a thread (e.g. using <code>NtAlertThread</code>), 
+    <p>A thread contains fields for two alertable states, one for kernel-mode and one for user-mode.
+    When a caller from one of these modes alerts a thread (e.g. using <code>NtAlertThread</code>),
     the thread is put into an alerted state for the mode, and one of several things happen:</p>
     <ul>
-      <li>If the thread is performing a kernel-mode alertable wait and it has just been alerted from 
+      <li>If the thread is performing a kernel-mode alertable wait and it has just been alerted from
       user-mode, nothing will happen.</li>
-      <li>If the thread is performing a kernel-mode alertable wait and it has just been alerted from 
-      kernel-mode, the wait will be interrupted and the wait function will return 
+      <li>If the thread is performing a kernel-mode alertable wait and it has just been alerted from
+      kernel-mode, the wait will be interrupted and the wait function will return
       <code>STATUS_ALERTED</code>.</li>
-      <li>If the thread is performing a user-mode alertable wait and it has just been alerted from 
+      <li>If the thread is performing a user-mode alertable wait and it has just been alerted from
       user-mode, the wait will be interrupted as above.</li>
-      <li>If the thread is performing a user-mode alertable wait and it has just been alerted from 
+      <li>If the thread is performing a user-mode alertable wait and it has just been alerted from
       kernel-mode, the wait will be interrupted as above.</li>
     </ul>
-    <p>Note that if the thread is alerted and then performs an alertable wait, it will be interrupted 
+    <p>Note that if the thread is alerted and then performs an alertable wait, it will be interrupted
     immediately without performing the wait.</p>
-    <p>The thread can also call <code>NtTestAlert</code> to check if it is alerted. In all of these 
+    <p>The thread can also call <code>NtTestAlert</code> to check if it is alerted. In all of these
     cases, the thread will be reset to a non-alerted state if it is alerted.</p>
-    
+
     <h3>ALPC Port</h3>
-    <p>Local Inter-process Communication (LPC) ports are an interprocess communication (IPC) method. 
-    A server process creates a port object and waits for a client to connect to the port. Once 
-    the connection is established, both the client and server receive a handle to a communication 
-    port, a special instance of a port object which can be used to send and receive messages. From 
-    Windows Vista onward, LPC ports have been replaced with ALPC ports (<code>NtAlpc*</code> 
+    <p>Local Inter-process Communication (LPC) ports are an interprocess communication (IPC) method.
+    A server process creates a port object and waits for a client to connect to the port. Once
+    the connection is established, both the client and server receive a handle to a communication
+    port, a special instance of a port object which can be used to send and receive messages. From
+    Windows Vista onward, LPC ports have been replaced with ALPC ports (<code>NtAlpc*</code>
     system calls). Existing port-related system calls now redirect to the new ALPC port functions.</p>
     <p>Related functions:
-    <code>NtCreatePort</code> (server), 
-    <code>NtCreateWaitablePort</code> (server), 
-    <code>NtConnectPort</code> (client), 
-    <code>NtListenPort</code> (server), 
-    <code>NtAcceptConnectPort</code> (server), 
-    <code>NtRequestWaitReplyPort</code> (client), 
-    <code>NtReplyWaitReceivePort</code> (server), 
-    <code>NtReplyWaitReplyPort</code>, 
+    <code>NtCreatePort</code> (server),
+    <code>NtCreateWaitablePort</code> (server),
+    <code>NtConnectPort</code> (client),
+    <code>NtListenPort</code> (server),
+    <code>NtAcceptConnectPort</code> (server),
+    <code>NtRequestWaitReplyPort</code> (client),
+    <code>NtReplyWaitReceivePort</code> (server),
+    <code>NtReplyWaitReplyPort</code>,
     <code>NtReplyPort</code>.
     </p>
     <p>Related types:
-    <code>PORT_MESSAGE</code>, 
-    <code>PORT_VIEW</code>, 
-    <code>REMOTE_PORT_VIEW</code>, 
+    <code>PORT_MESSAGE</code>,
+    <code>PORT_VIEW</code>,
+    <code>REMOTE_PORT_VIEW</code>,
     <code>LPCP_PORT_OBJECT</code>.
     </p>
-    
+
     <h3>Asynchronous Procedure Calls (APCs)</h3>
-    <p>Asynchronous procedure calls are functions which execute in the context of a specific thread. 
-    There are two types of APCs, user-mode and kernel-mode. Each thread has two APC queues, one for 
+    <p>Asynchronous procedure calls are functions which execute in the context of a specific thread.
+    There are two types of APCs, user-mode and kernel-mode. Each thread has two APC queues, one for
     each type.</p>
-    <p>User-mode APCs are queued using <code>NtQueueApcThread</code>. They will not be called 
-    unless an <em>alertable</em> wait is being performed or <code>NtTestAlert</code> is called in the 
-    target thread. In those cases, a flag will be set in the target thread's APC state indicating that 
-    one or more user-mode APCs are pending and the wait operation, if any, will be interrupted. When the 
+    <p>User-mode APCs are queued using <code>NtQueueApcThread</code>. They will not be called
+    unless an <em>alertable</em> wait is being performed or <code>NtTestAlert</code> is called in the
+    target thread. In those cases, a flag will be set in the target thread's APC state indicating that
+    one or more user-mode APCs are pending and the wait operation, if any, will be interrupted. When the
     system call returns to user-mode, any pending user-mode APCs will be called.</p>
-    <p>A special use of user-mode APCs is thread termination, where a thread termination APC 
-    (<code>PspExitNormalApc</code>) is inserted into the target thread. <code>KiInsertQueueApc</code> 
-    contains a special case for thread termination and inserts the APC at the beginning of the 
-    user-mode APC queue so that any wait operations in the target thread are interrupted and 
+    <p>A special use of user-mode APCs is thread termination, where a thread termination APC
+    (<code>PspExitNormalApc</code>) is inserted into the target thread. <code>KiInsertQueueApc</code>
+    contains a special case for thread termination and inserts the APC at the beginning of the
+    user-mode APC queue so that any wait operations in the target thread are interrupted and
     the thread is terminated upon exiting the currently executing system service.</p>
-    <p>Kernel-mode APCs always preempt user-mode code, including user-mode APCs. There are two types of 
-    kernel-mode APCs, normal and special. Normal APCs can be temporarily disabled by using 
-    <code>KeEnterCriticalRegion</code> and both types of APCs can be temporarily disabled by using 
+    <p>Kernel-mode APCs always preempt user-mode code, including user-mode APCs. There are two types of
+    kernel-mode APCs, normal and special. Normal APCs can be temporarily disabled by using
+    <code>KeEnterCriticalRegion</code> and both types of APCs can be temporarily disabled by using
     <code>KeEnterGuardedRegion</code> or raising the IRQL to <code>APC_LEVEL</code> or higher.</p>
     <ul>
-      <li>Normal kernel-mode APCs run at IRQL = <code>PASSIVE_LEVEL</code> and are inserted at the end 
+      <li>Normal kernel-mode APCs run at IRQL = <code>PASSIVE_LEVEL</code> and are inserted at the end
       of the kernel-mode APC queue.</li>
-      <li>Special kernel-mode APCs run at IRQL = <code>APC_LEVEL</code> and are inserted after all existing 
+      <li>Special kernel-mode APCs run at IRQL = <code>APC_LEVEL</code> and are inserted after all existing
       special APCs in the kernel-mode APC queue.</li>
     </ul>
     <p>When a kernel-mode APC is inserted:</p>
     <ul>
-      <li>If the target thread is running, a software interrupt is issued to call any queued kernel-mode 
+      <li>If the target thread is running, a software interrupt is issued to call any queued kernel-mode
       APCs in the thread.</li>
-      <li>If the target thread is waiting at IRQL = <code>PASSIVE_LEVEL</code> and special kernel-mode APCs 
-      are not disabled, the wait will be interrupted with <code>STATUS_KERNEL_APC</code>. Note that normal 
-      kernel-mode APCs cannot interrupt currently executing kernel-mode APCs which are waiting. Kernel-mode 
-      APCs do not cause wait operations to return; rather, the wait function will be interrupted, 
+      <li>If the target thread is waiting at IRQL = <code>PASSIVE_LEVEL</code> and special kernel-mode APCs
+      are not disabled, the wait will be interrupted with <code>STATUS_KERNEL_APC</code>. Note that normal
+      kernel-mode APCs cannot interrupt currently executing kernel-mode APCs which are waiting. Kernel-mode
+      APCs do not cause wait operations to return; rather, the wait function will be interrupted,
       execute any queued kernel-mode APCs, and continue waiting.</li>
     </ul>
     <p>Normal kernel-mode APCs are used to implement thread suspension.</p>
-    
+
     <h3>Dispatcher Object</h3>
-    <p>A dispatcher object is one which has two states: <em>signaled</em> and <em>non-signaled</em>. 
-    These objects can be used with standard wait functions such as <code>NtWaitForSingleObject</code> or 
-    <code>NtWaitForMultipleObjects</code>. These functions wait until one or more objects are set to 
+    <p>A dispatcher object is one which has two states: <em>signaled</em> and <em>non-signaled</em>.
+    These objects can be used with standard wait functions such as <code>NtWaitForSingleObject</code> or
+    <code>NtWaitForMultipleObjects</code>. These functions wait until one or more objects are set to
     a signaled state. The dispatcher objects are:</p>
     <ul>
       <li>Events</li>
@@ -151,32 +151,32 @@ h4 {
       <li>Timers</li>
     </ul>
     <p>Events and gates are the most basic dispatcher objects, consisting of only a dispatcher header.</p>
-    <p>Note that the dispatcher header of a dispatcher object uses a signed integer field to represent 
-    its signal state. Signal state values greater than 0 are considered to be signaled, while 0 is 
-    considered to be non-signaled. This is useful for objects such as mutants and semaphores which can be 
+    <p>Note that the dispatcher header of a dispatcher object uses a signed integer field to represent
+    its signal state. Signal state values greater than 0 are considered to be signaled, while 0 is
+    considered to be non-signaled. This is useful for objects such as mutants and semaphores which can be
     acquired and released multiple times.</p>
     <p>Related types:
     <code>DISPATCHER_HEADER</code>.
     </p>
-    
+
     <h3>Event</h3>
-    <p>An event is a synchronization object that can be explicitly set to the signaled state. There are two 
+    <p>An event is a synchronization object that can be explicitly set to the signaled state. There are two
     types of events:</p>
     <ul>
-      <li><strong>Notification event.</strong> When a notification event is set, all waiting threads are 
+      <li><strong>Notification event.</strong> When a notification event is set, all waiting threads are
       released. The event remains signaled until it is explicitly reset.</li>
-      <li><strong>Synchronization event.</strong> When a synchronization event is set, a single waiting 
-      thread is released and the event is reset to a non-signaled state. When multiple threads wait 
+      <li><strong>Synchronization event.</strong> When a synchronization event is set, a single waiting
+      thread is released and the event is reset to a non-signaled state. When multiple threads wait
       on a synchronization event, there is no guarantee of first-in first-out (FIFO) ordering.</li>
     </ul>
     <p>Related functions:
-    <code>NtCreateEvent</code>, 
-    <code>NtOpenEvent</code>, 
-    <code>NtClearEvent</code>, 
-    <code>NtPulseEvent</code>, 
-    <code>NtQueryEvent</code>, 
-    <code>NtResetEvent</code>, 
-    <code>NtSetEvent</code>, 
+    <code>NtCreateEvent</code>,
+    <code>NtOpenEvent</code>,
+    <code>NtClearEvent</code>,
+    <code>NtPulseEvent</code>,
+    <code>NtQueryEvent</code>,
+    <code>NtResetEvent</code>,
+    <code>NtSetEvent</code>,
     <code>NtSetEventBoostPriority</code>.
     </p>
     <p>Related types:
@@ -184,166 +184,166 @@ h4 {
     <code>EVENT_BASIC_INFORMATION</code>,
     <code>KEVENT</code>.
     </p>
-    
+
     <h3>Event Pair</h3>
-    <p>An event pair is a synchronization object containing two events, <em>high</em> and <em>low</em>. The 
-    system provides set, wait, and atomic signal-and-wait functions for event pairs. Note that an event pair 
+    <p>An event pair is a synchronization object containing two events, <em>high</em> and <em>low</em>. The
+    system provides set, wait, and atomic signal-and-wait functions for event pairs. Note that an event pair
     object is not a dispatcher object and cannot be used with the standard wait functions.</p>
     <p>Related functions:
-    <code>NtCreateEventPair</code>, 
-    <code>NtOpenEventPair</code>, 
-    <code>NtSetHighEventPair</code>, 
-    <code>NtSetHighWaitLowEventPair</code>, 
-    <code>NtSetLowEventPair</code>, 
-    <code>NtSetLowWaitHighEventPair</code>, 
-    <code>NtWaitHighEvenPair</code>, 
+    <code>NtCreateEventPair</code>,
+    <code>NtOpenEventPair</code>,
+    <code>NtSetHighEventPair</code>,
+    <code>NtSetHighWaitLowEventPair</code>,
+    <code>NtSetLowEventPair</code>,
+    <code>NtSetLowWaitHighEventPair</code>,
+    <code>NtWaitHighEvenPair</code>,
     <code>NtWaitLowEventPair</code>.
     </p>
     <p>Related types:
     <code>EEVENT_PAIR</code>.
     </p>
-    
+
     <h3>Keyed Event</h3>
-    <p>A keyed event is a dictionary of events. Each key must be even (the lowest bit must be clear). Internally, 
-    the keyed event object is implemented using a linked list of pointers to threads. Every thread object has 
-    two fields, <code>KeyedWaitValue</code> and <code>KeyedWaitSemaphore</code>. The <code>KeyedWaitValue</code> 
-    contains the key being waited for by the thread. When a thread attempts to release a key which is not being 
-    waited for, its <code>KeyedWaitValue</code> will be set to the key OR'ed with 1, to indicate that the thread 
+    <p>A keyed event is a dictionary of events. Each key must be even (the lowest bit must be clear). Internally,
+    the keyed event object is implemented using a linked list of pointers to threads. Every thread object has
+    two fields, <code>KeyedWaitValue</code> and <code>KeyedWaitSemaphore</code>. The <code>KeyedWaitValue</code>
+    contains the key being waited for by the thread. When a thread attempts to release a key which is not being
+    waited for, its <code>KeyedWaitValue</code> will be set to the key OR'ed with 1, to indicate that the thread
     is attempting to release the key, and the thread will wait until another thread waits for the key.</p>
     <p>Related functions:
-    <code>NtCreateKeyedEvent</code>, 
-    <code>NtOpenKeyedEvent</code>, 
-    <code>NtReleaseKeyedEvent</code>, 
+    <code>NtCreateKeyedEvent</code>,
+    <code>NtOpenKeyedEvent</code>,
+    <code>NtReleaseKeyedEvent</code>,
     <code>NtWaitForKeyedEvent</code>.
     </p>
     <p>Related types:
     <code>KEYED_EVENT_OBJECT</code>.
     </p>
-    
+
     <h3>Mutant</h3>
-    <p>A "mutant" is a standard mutex. When a thread successfully waits for a mutant, it will acquire the mutant 
-    and become the owner of the mutant; the mutant will be set to a non-signaled state. When the owning thread 
-    releases the mutant the same number of times it has acquired it, the mutant will be set to a signaled state 
-    and the mutant will no longer be owned, allowing other threads to acquire the mutant. Note that the mutant 
-    can be acquired recursively, i.e. the owning thread can acquire the mutant more than once without causing a 
+    <p>A "mutant" is a standard mutex. When a thread successfully waits for a mutant, it will acquire the mutant
+    and become the owner of the mutant; the mutant will be set to a non-signaled state. When the owning thread
+    releases the mutant the same number of times it has acquired it, the mutant will be set to a signaled state
+    and the mutant will no longer be owned, allowing other threads to acquire the mutant. Note that the mutant
+    can be acquired recursively, i.e. the owning thread can acquire the mutant more than once without causing a
     deadlock.</p>
     <p>Related functions:
-    <code>NtCreateMutant</code>, 
-    <code>NtOpenMutant</code>, 
-    <code>NtQueryMutant</code>, 
+    <code>NtCreateMutant</code>,
+    <code>NtOpenMutant</code>,
+    <code>NtQueryMutant</code>,
     <code>NtReleaseMutant</code>
     </p>
     <p>Related types:
-    <code>MUTANT_INFORMATION_CLASS</code>, 
-    <code>MUTANT_BASIC_INFORMATION</code>, 
+    <code>MUTANT_INFORMATION_CLASS</code>,
+    <code>MUTANT_BASIC_INFORMATION</code>,
     <code>KMUTANT</code>.
     </p>
-    
+
     <h3>Port</h3>
     <p>See <strong>ALPC Port</strong>.</p>
-    
+
     <h3>Profile</h3>
-    <p>A profile object can be used for performance monitoring. When certain profiling events are triggered, 
+    <p>A profile object can be used for performance monitoring. When certain profiling events are triggered,
     a corresponding counter in a user-allocated buffer is incremented.</p>
     <p>Related functions:
-    <code>NtCreateProfile</code>, 
-    <code>NtQueryIntervalProfile</code>, 
-    <code>NtSetIntervalProfile</code>, 
-    <code>NtStartProfile</code>, 
+    <code>NtCreateProfile</code>,
+    <code>NtQueryIntervalProfile</code>,
+    <code>NtSetIntervalProfile</code>,
+    <code>NtStartProfile</code>,
     <code>NtStopProfile</code>.
     </p>
-    
+
     <h3>Section</h3>
-    <p>Sections are objects describing a region of memory "backed" by a file. There are two types of section 
+    <p>Sections are objects describing a region of memory "backed" by a file. There are two types of section
     objects:</p>
     <ul>
-      <li><strong>File-backed section.</strong> File-backed sections are memory-mapped files, where mapped 
-      view contents are the same as in the file. Writing to mapped views will also change the contents of the 
-      the file, unless the section is mapped copy-on-write, where any changes are discarded after the last 
+      <li><strong>File-backed section.</strong> File-backed sections are memory-mapped files, where mapped
+      view contents are the same as in the file. Writing to mapped views will also change the contents of the
+      the file, unless the section is mapped copy-on-write, where any changes are discarded after the last
       view is unmapped and the last reference to the section is closed.</li>
-      <li><strong>Pagefile-backed section.</strong> Page-file-backed sections are a form of shared memory; 
-      any changes will be discarded after the section is freed. The section is not backed by any 
+      <li><strong>Pagefile-backed section.</strong> Page-file-backed sections are a form of shared memory;
+      any changes will be discarded after the section is freed. The section is not backed by any
       user-specified file.</li>
     </ul>
     <p>Multiple views of the section can be mapped, and changes will be reflected across processes.</p>
     <p>Related functions:
-    <code>NtCreateSection</code>, 
-    <code>NtOpenSection</code>, 
-    <code>NtAreMappedFilesTheSame</code>, 
-    <code>NtExtendSection</code>, 
-    <code>NtMapViewOfSection</code>, 
-    <code>NtQuerySection</code>, 
+    <code>NtCreateSection</code>,
+    <code>NtOpenSection</code>,
+    <code>NtAreMappedFilesTheSame</code>,
+    <code>NtExtendSection</code>,
+    <code>NtMapViewOfSection</code>,
+    <code>NtQuerySection</code>,
     <code>NtUnmapViewOfSection</code>.
     </p>
-    
+
     <h3>Semaphore</h3>
-    <p>A semaphore is a synchronization object with a signal state that represents how many times it has been 
-    acquired. Each time a semaphore is acquired, its signal state is decremented. Each time a semaphore is 
-    released, its signal state is incremented (but cannot be greater than the limit). If a semaphore's 
-    signal state is 0 (non-signaled), threads must wait until another thread releases the semaphore before they 
+    <p>A semaphore is a synchronization object with a signal state that represents how many times it has been
+    acquired. Each time a semaphore is acquired, its signal state is decremented. Each time a semaphore is
+    released, its signal state is incremented (but cannot be greater than the limit). If a semaphore's
+    signal state is 0 (non-signaled), threads must wait until another thread releases the semaphore before they
     can acquire the semaphore.</p>
     <p>Related functions:
-    <code>NtCreateSemaphore</code>, 
-    <code>NtOpenSemaphore</code>, 
-    <code>NtQuerySemaphore</code>, 
+    <code>NtCreateSemaphore</code>,
+    <code>NtOpenSemaphore</code>,
+    <code>NtQuerySemaphore</code>,
     <code>NtReleaseSemaphore</code>.
     </p>
     <p>Related types:
-    <code>SEMAPHORE_INFORMATION_CLASS</code>, 
-    <code>SEMAPHORE_BASIC_INFORMATION</code>, 
+    <code>SEMAPHORE_INFORMATION_CLASS</code>,
+    <code>SEMAPHORE_BASIC_INFORMATION</code>,
     <code>KSEMAPHORE</code>.
     </p>
-    
+
     <h3>Timer</h3>
     <p>A timer is executive object and a wrapper around the kernel timer object. There are two types of timers:</p>
     <ul>
-      <li><strong>Notification timer.</strong> When a notification timer is signaled, all waiting threads are 
+      <li><strong>Notification timer.</strong> When a notification timer is signaled, all waiting threads are
       released. The timer remains signaled until explicitly reset.</li>
-      <li><strong>Synchronization timer.</strong> When a synchronization timer is signaled, one waiting thread is 
+      <li><strong>Synchronization timer.</strong> When a synchronization timer is signaled, one waiting thread is
       released and the timer is set to a non-signaled state.</li>
     </ul>
-    <p>A timer can be configured to be signaled periodically or to insert an APC into the thread that set the 
+    <p>A timer can be configured to be signaled periodically or to insert an APC into the thread that set the
     timer when the timer is signaled.</p>
     <p>Related functions:
-    <code>NtCreateTimer</code>, 
-    <code>NtOpenTimer</code>, 
-    <code>NtCancelTimer</code>, 
-    <code>NtQueryTimer</code>, 
+    <code>NtCreateTimer</code>,
+    <code>NtOpenTimer</code>,
+    <code>NtCancelTimer</code>,
+    <code>NtQueryTimer</code>,
     <code>NtSetTimer</code>.
     </p>
     <p>Related types:
-    <code>TIMER_INFORMATION_CLASS</code>, 
-    <code>TIMER_BASIC_INFORMATION</code>, 
-    <code>ETIMER</code>, 
-    <code>KTIMER</code>, 
+    <code>TIMER_INFORMATION_CLASS</code>,
+    <code>TIMER_BASIC_INFORMATION</code>,
+    <code>ETIMER</code>,
+    <code>KTIMER</code>,
     <code>PTIMER_APC_ROUTINE</code>.
     </p>
-    
+
     <h3>Wait</h3>
-    <p>A thread can wait for one or more objects; the standard system calls are <code>NtWaitForSingleObject</code>, 
-    <code>NtWaitForMultipleObjects</code>, <code>NtSignalAndWaitForSingleObject</code>, and a few type-specific 
-    wait functions. The pointer-based kernel-mode functions are <code>KeWaitForSingleObject</code> and 
-    <code>KeWaitForMultipleObjects</code>. These functions will block until a certain condition is met. For 
-    example, <code>*WaitForSingleObject</code> will return when the specified object is signaled. 
+    <p>A thread can wait for one or more objects; the standard system calls are <code>NtWaitForSingleObject</code>,
+    <code>NtWaitForMultipleObjects</code>, <code>NtSignalAndWaitForSingleObject</code>, and a few type-specific
+    wait functions. The pointer-based kernel-mode functions are <code>KeWaitForSingleObject</code> and
+    <code>KeWaitForMultipleObjects</code>. These functions will block until a certain condition is met. For
+    example, <code>*WaitForSingleObject</code> will return when the specified object is signaled.
     <code>*WaitForMultipleObjects</code> will return when all/any specified objects are signaled.</p>
-    <p>When a wait function is called, it initializes a wait block for each object to be waited for. The storage 
-    for the wait blocks is supplied in the thread object by default, but the caller can allocate storage if 
-    they wish. The wait function then checks if the wait can be satisfied immediately. If it could not, the 
-    wait function inserts the wait block(s) into the dispatch header(s) of the object(s), sets the thread's state 
+    <p>When a wait function is called, it initializes a wait block for each object to be waited for. The storage
+    for the wait blocks is supplied in the thread object by default, but the caller can allocate storage if
+    they wish. The wait function then checks if the wait can be satisfied immediately. If it could not, the
+    wait function inserts the wait block(s) into the dispatch header(s) of the object(s), sets the thread's state
     to Waiting and will no longer be considered for execution. It then switches to another ready thread.</p>
-    <p>When an object is set to a signaled state (such as when an event is set or a mutant is released), 
-    the function performs a <em>wait test</em> (<code>KiWaitTest</code>) which enumerates the wait blocks in the 
+    <p>When an object is set to a signaled state (such as when an event is set or a mutant is released),
+    the function performs a <em>wait test</em> (<code>KiWaitTest</code>) which enumerates the wait blocks in the
     object's dispatcher header and unwaits each waiting thread. Each waiting thread will now be ready to run.</p>
-    <p>A waiting thread regains control due to either a wait test or a kernel-mode APC. It proceeds to 
-    call any queued kernel-mode APCs and check if the wait operation has been satisfied (for multiple-object 
-    waits, this is when any/all objects have been signaled). If it has not, the wait function continues to repeat 
+    <p>A waiting thread regains control due to either a wait test or a kernel-mode APC. It proceeds to
+    call any queued kernel-mode APCs and check if the wait operation has been satisfied (for multiple-object
+    waits, this is when any/all objects have been signaled). If it has not, the wait function continues to repeat
     the wait process until the wait operation has been satisfied.</p>
-    <p>For some object types, object state must be modified when a thread is finished waiting for the object. 
-    For example, a semaphore's signal state must be decremented. These operations are called <em>side-effects</em>, 
+    <p>For some object types, object state must be modified when a thread is finished waiting for the object.
+    For example, a semaphore's signal state must be decremented. These operations are called <em>side-effects</em>,
     and are performed when a wait is satisfied.</p>
-    
+
     <h1>NT Enumerations</h1>
-    
+
     <h2>Debug Object Access</h2>
     <pre>
 #define DEBUG_READ_EVENT 0x0001
@@ -352,7 +352,7 @@ h4 {
 #define DEBUG_QUERY_INFORMATION 0x0008
 #define DEBUG_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | DEBUG_READ_EVENT | \
     DEBUG_PROCESS_ASSIGN | DEBUG_SET_INFORMATION | DEBUG_QUERY_INFORMATION)</pre>
-    
+
     <h2>Directory Object Access</h2>
     <pre>
 #define DIRECTORY_QUERY 0x0001
@@ -361,29 +361,29 @@ h4 {
 #define DIRECTORY_CREATE_SUBDIRECTORY 0x0008
 
 #define DIRECTORY_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0xf)</pre>
-    
+
     <h2>Event Access</h2>
     <pre>
 #define EVENT_QUERY_STATE 0x0001
 #define EVENT_MODIFY_STATE 0x0002
 #define EVENT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3)</pre>
-    
+
     <h2>Event Pair Access</h2>
     <pre>
 #define EVENT_PAIR_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE)</pre>
-    
+
     <h2>Keyed Event Access</h2>
     <pre>
 #define KEYEDEVENT_WAIT 0x0001
 #define KEYEDEVENT_WAKE 0x0002
 #define KEYEDEVENT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | KEYEDEVENT_WAIT | KEYEDEVENT_WAKE)</pre>
-    
+
     <h2>Mutant Access</h2>
     <pre>
 #define MUTANT_QUERY_STATE 0x0001
 
 #define MUTANT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE| MUTANT_QUERY_STATE)</pre>
-    
+
     <h2>Object Flags</h2>
     <pre>
 #define OBJ_INHERIT 0x00000002L
@@ -399,32 +399,32 @@ h4 {
     <h4>OBJ_INHERIT</h4>
     <p>Specifies that the handle (in the appropriate context) should be inherited by child processes.</p>
     <h4>OBJ_PERMANENT</h4>
-    <p>Specifies that the object is permanent and should not be freed when all references to it have been 
-    closed. If this flag is not specified, the object is temporary and will be freed when all references 
-    have been closed. User-mode callers must have <code>SeCreatePermanentPrivilege</code> in order to 
+    <p>Specifies that the object is permanent and should not be freed when all references to it have been
+    closed. If this flag is not specified, the object is temporary and will be freed when all references
+    have been closed. User-mode callers must have <code>SeCreatePermanentPrivilege</code> in order to
     create permanent objects.</p>
     <h4>OBJ_EXCLUSIVE</h4>
-    <p>Specifies that the object should be opened for exclusive access; the object cannot be opened 
+    <p>Specifies that the object should be opened for exclusive access; the object cannot be opened
     again until the handle is closed.</p>
     <h4>OBJ_CASE_INSENSITIVE</h4>
     <p>Specifies that name comparisons should be made case insensitively.</p>
     <h4>OBJ_OPENIF</h4>
-    <p>Specifies that if an object with the specified name already exists, the creation routine should 
-    open the existing object. If this flag is not specified and the name already exists, the creation 
+    <p>Specifies that if an object with the specified name already exists, the creation routine should
+    open the existing object. If this flag is not specified and the name already exists, the creation
     routine will return <code>STATUS_OBJECT_NAME_COLLISION</code>.</p>
     <h4>OBJ_OPENLINK</h4>
     <p>Not used.</p>
     <h4>OBJ_KERNEL_HANDLE</h4>
-    <p>Specifies that the handle should be opened in the context of the System process, i.e. a kernel 
+    <p>Specifies that the handle should be opened in the context of the System process, i.e. a kernel
     handle.</p>
     <h4>OBJ_FORCE_ACCESS_CHECK</h4>
     <p>Specifies that an access check should be performed, even if the caller is from kernel-mode.</p>
-    
+
     <h2>Profile Access</h2>
     <pre>
 #define PROFILE_CONTROL 0x0001
 #define PROFILE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | PROFILE_CONTROL)</pre>
-    
+
     <h2>Section Access</h2>
     <pre>
 #define SECTION_QUERY 0x0001
@@ -437,14 +437,14 @@ h4 {
 #define SECTION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SECTION_QUERY | \
     SECTION_MAP_WRITE | SECTION_MAP_READ | SECTION_MAP_EXECUTE | \
     SECTION_EXTEND_SIZE)</pre>
-    
+
     <h2>Semaphore Access</h2>
     <pre>
 #define SEMAPHORE_QUERY_STATE 0x0001
 #define SEMAPHORE_MODIFY_STATE 0x0002
 
 #define SEMAPHORE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3)</pre>
-    
+
     <h2>Timer Access</h2>
     <pre>
 #define TIMER_QUERY_STATE 0x0001
@@ -452,9 +452,9 @@ h4 {
 
 #define TIMER_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | \
     TIMER_QUERY_STATE | TIMER_MODIFY_STATE)</pre>
-    
+
     <h1>NT Structures</h1>
-    
+
     <h2>CLIENT_ID</h2>
     <p>A structure identifying a process or thread.</p>
     <pre>
@@ -468,7 +468,7 @@ typedef struct _CLIENT_ID
     <p>A handle to the process, usually a process ID (PID).</p>
     <h4>UniqueThread</h4>
     <p>A handle to the thread, usually a thread ID (TID).</p>
-    
+
     <h2>CURDIR</h2>
     <p>A structure describing the current directory of a process.</p>
     <pre>
@@ -479,11 +479,11 @@ typedef struct _CURDIR
 } CURDIR, *PCURDIR;</pre>
     <h3>Fields</h3>
     <h4>DosPath</h4>
-    <p>A string containing the current directory name. This path is usually in DOS path format 
+    <p>A string containing the current directory name. This path is usually in DOS path format
     (e.g. <code>C:\Path\...</code>).</p>
     <h4>Handle</h4>
     <p>A handle to the current directory of the process.</p>
-    
+
     <h2>INITIAL_TEB</h2>
     <p>A structure describing the initial contents of a TIB.</p>
     <pre>
@@ -506,15 +506,15 @@ typedef struct _INITIAL_TEB
     <h4>StackBase</h4>
     <p>The top of the stack, considering that the stack grows downward.</p>
     <h4>StackLimit</h4>
-    <p>The bottom limit of the committed stack. This value is always greater than or equal to 
+    <p>The bottom limit of the committed stack. This value is always greater than or equal to
     <code>StackAllocationBase</code>.</p>
     <h4>StackAllocationBase</h4>
     <p>The bottom of the stack, including the reserved/free space below <code>StackLimit</code>.</p>
     <h3>Notes</h3>
-    <p>The definition of INITIAL_TEB at NTinternals is incorrect. See 
-    <a href="http://www.reactos.org/serendipity/index.php?/archives/15-They-lied-to-you-about-INITIAL_TEB!.html">this blog post</a> 
+    <p>The definition of INITIAL_TEB at NTinternals is incorrect. See
+    <a href="http://www.reactos.org/serendipity/index.php?/archives/15-They-lied-to-you-about-INITIAL_TEB!.html">this blog post</a>
     for more details.</p>
-    
+
     <h2>OBJECT_ATTRIBUTES</h2>
     <p>A structure describing object properties such as its name, location and security attributes.</p>
     <pre>
@@ -531,7 +531,7 @@ typedef struct _OBJECT_ATTRIBUTES
     <h4>Length</h4>
     <p>The length of the <code>OBJECT_ATTRIBUTES</code> structure; 24 on 32-bit systems and 40 on 64-bit systems.</p>
     <h4>RootDirectory</h4>
-    <p>A handle to a directory object from which to begin searching for the object. If this value is <code>NULL</code>, 
+    <p>A handle to a directory object from which to begin searching for the object. If this value is <code>NULL</code>,
     the object manager will use the default root directory.</p>
     <h4>ObjectName</h4>
     <p>The name of the object, optional when creating most types of objects.</p>
@@ -541,7 +541,7 @@ typedef struct _OBJECT_ATTRIBUTES
     <p>A pointer to a <code>SECURITY_DESCRIPTOR</code> structure for the object.</p>
     <h4>SecurityQualityOfService</h4>
     <p>A pointer to a <code>SECURITY_QUALITY_OF_SERVICE</code> structure for the object.</p>
-    
+
     <h2>RTL_DRIVE_LETTER_CURDIR</h2>
     <p>Unknown.</p>
     <pre>
@@ -564,7 +564,7 @@ typedef struct _RTL_DRIVE_LETTER_CURDIR
     <p>Unknown.</p>
     <h4>DosPath</h4>
     <p>Unknown.</p>
-    
+
     <h2>RTL_USER_PROCESS_PARAMETERS</h2>
     <p>A structure describing startup parameters for a process.</p>
     <pre>
@@ -607,7 +607,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     UNICODE_STRING RuntimeData;
     RTL_DRIVE_LETTER_CURDIR CurrentDirectores[RTL_MAX_DRIVE_LETTERS];
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;</pre>
-    
+
     <h2>STRING, ANSI_STRING</h2>
     <p>A structure describing a counted ANSI string.</p>
     <pre>
@@ -624,7 +624,7 @@ typedef struct _STRING
     <p>The number of bytes allocated for the string in <code>Buffer</code>.</p>
     <h4>Buffer</h4>
     <p>A buffer containing the string.</p>
-    
+
     <h2>UNICODE_STRING</h2>
     <p>A structure describing a counted Unicode string.</p>
     <pre>
@@ -641,13 +641,13 @@ typedef struct _UNICODE_STRING
     <p>The number of bytes allocated for the string in <code>Buffer</code>.</p>
     <h4>Buffer</h4>
     <p>A buffer containing the string.</p>
-    
+
     <h1>NT Functions</h1>
-    
+
     <h2>NtAlertThread</h2>
-    <p>Alerts the specified thread, causing it to resume execution if it is in an alertable Wait state. 
+    <p>Alerts the specified thread, causing it to resume execution if it is in an alertable Wait state.
     Otherwise, the thread is set to an alerted state.</p>
-    <p>If the specified thread is in a Wait state, it will be unwaited with a status of <code>STATUS_ALERTED</code>. 
+    <p>If the specified thread is in a Wait state, it will be unwaited with a status of <code>STATUS_ALERTED</code>.
     If the function is being called from user-mode, it cannot unwait a kernel-mode wait operation.</p>
     <pre>
 NTSYSCALLAPI
@@ -662,9 +662,9 @@ NtAlertThread(
     <h3>Exported by</h3>
     <p>ntdll; <code>KeAlertThread</code> and <code>ZwAlertThread</code> are exported by ntoskrnl</p>
     <h3>Notes</h3>
-    <p>If this function is called from user-mode, it will set the specified thread's <em>user-mode alert state</em> to 
+    <p>If this function is called from user-mode, it will set the specified thread's <em>user-mode alert state</em> to
     alerted. This will not affect kernel-mode code. The same is true when the function is called from kernel-mode.</p>
-    
+
     <h2>NtAlertResumeThread</h2>
     <p>Alerts the specified thread (see <code>NtAlertThread</code>) and resumes it.</p>
     <pre>
@@ -682,7 +682,7 @@ NtAlertResumeThread(
     <p>ntdll</p>
     <h3>Notes</h3>
     <p>See notes in <code>NtAlertThread</code>.</p>
-    
+
     <h2>NtClose</h2>
     <p>Closes a handle.</p>
     <pre>
@@ -697,7 +697,7 @@ NtClose(
     <p>The handle to close. If the object referenced by the handle is temporary and has no references, it will be freed.</p>
     <h3>Exported by</h3>
     <p>ntdll, ntoskrnl</p>
-    
+
     <h2>NtCreateDebugObject</h2>
     <p>Creates a debug object.</p>
     <pre>
@@ -723,7 +723,7 @@ NtCreateDebugObject(
 #define DEBUG_KILL_ON_CLOSE 0x1</pre>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2>NtCreateDirectoryObject</h2>
     <p>Creates a directory object.</p>
     <pre>
@@ -744,7 +744,7 @@ NtCreateDirectoryObject(
     <p>See <code>OBJECT_ATTRIBUTES</code>.</p>
     <h3>Exported by</h3>
     <p>ntdll; <code>ZwCreateDirectoryObject</code> is exported by ntoskrnl</p>
-    
+
     <h2>NtCreateProcess</h2>
     <p>Creates a process (with no threads).</p>
     <pre>
@@ -769,28 +769,28 @@ NtCreateProcess(
     <h4>ObjectAttributes</h4>
     <p>See <code>OBJECT_ATTRIBUTES</code>.</p>
     <h4>ParentProcess</h4>
-    <p>A handle to a parent process. If no section (in <code>SectionHandle</code>) was specified, the new process 
-    will inherit the address space, handles and other characteristics of the parent process. If a section was 
-    specified, the new process will receive a new address space created from the section but will still inherit 
-    handles (if specified in <code>InheritObjectTable</code>) and other characteristics. The parent process 
+    <p>A handle to a parent process. If no section (in <code>SectionHandle</code>) was specified, the new process
+    will inherit the address space, handles and other characteristics of the parent process. If a section was
+    specified, the new process will receive a new address space created from the section but will still inherit
+    handles (if specified in <code>InheritObjectTable</code>) and other characteristics. The parent process
     must be specified unless the new process is the first process to be created on the system (the System process).</p>
     <h4>InheritObjectTable</h4>
-    <p>Whether <code>ObInitProcess</code> will duplicate handles with the <code>OBJ_INHERIT</code> attribute from 
+    <p>Whether <code>ObInitProcess</code> will duplicate handles with the <code>OBJ_INHERIT</code> attribute from
     the parent process into the new process.</p>
     <h4>SectionHandle</h4>
-    <p>A handle to a section which will be used to create the new process' address space. The handle must have 
+    <p>A handle to a section which will be used to create the new process' address space. The handle must have
     <code>SECTION_MAP_EXECUTE</code> access.</p>
     <h4>DebugPort</h4>
-    <p>A handle to a debug object which the process will be assigned to. The handle must have <code>DEBUG_PROCESS_ASSIGN</code> 
+    <p>A handle to a debug object which the process will be assigned to. The handle must have <code>DEBUG_PROCESS_ASSIGN</code>
     access.</p>
     <h4>ExceptionPort</h4>
     <p>A handle to a LPC port which will be notified when an exception occurs in the process.</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
     <h3>Notes</h3>
-    <p>The new process does not have any threads. You can create one using <code>NtCreateThread</code> or 
+    <p>The new process does not have any threads. You can create one using <code>NtCreateThread</code> or
     <code>RtlCreateUserThread</code>.</p>
-    
+
     <h2>NtCreateProcessEx</h2>
     <p>Creates a process (with no threads).</p>
     <pre>
@@ -822,7 +822,7 @@ NtCreateProcessEx(
     <p>The member level within a job set.</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2>NtCreateThread</h2>
     <p>Creates a thread.</p>
     <pre>
@@ -847,7 +847,7 @@ NtCreateThread(
     <h4>ObjectAttributes</h4>
     <p>See <code>OBJECT_ATTRIBUTES</code>.</p>
     <h4>ProcessHandle</h4>
-    <p>A handle to the process in which the thread is to be created. The handle must have 
+    <p>A handle to the process in which the thread is to be created. The handle must have
     <code>PROCESS_CREATE_THREAD</code> access.</p>
     <h4>ClientId</h4>
     <p>A variable which receives the client ID of the new thread.</p>
@@ -860,12 +860,12 @@ NtCreateThread(
     <h3>Exported by</h3>
     <p>ntdll</p>
     <h3>Notes</h3>
-    <p>In the arguments, <code>InitialTeb</code> actually specifies the initial Thread Information Block (TIB) for the thread. 
-    The TIB is stored in the Thread Environment Block (TEB) of the thread, and can be referenced by the <code>fs</code> 
-    segment register. The name TIB is pre-NT; see 
-    <a href="http://www.microsoft.com/msj/archive/s2ce.aspx">Under The Hood -- MSJ, May 1996</a>. See <code>NT_TIB</code> for 
+    <p>In the arguments, <code>InitialTeb</code> actually specifies the initial Thread Information Block (TIB) for the thread.
+    The TIB is stored in the Thread Environment Block (TEB) of the thread, and can be referenced by the <code>fs</code>
+    segment register. The name TIB is pre-NT; see
+    <a href="http://www.microsoft.com/msj/archive/s2ce.aspx">Under The Hood -- MSJ, May 1996</a>. See <code>NT_TIB</code> for
     more information on the TIB.</p>
-    
+
     <h2 class="unsure">NtCreateThreadEx</h2>
     <p>Creates a thread.</p>
     <pre>
@@ -893,7 +893,7 @@ NtCreateThreadEx(
     <h4>ObjectAttributes</h4>
     <p>See <code>OBJECT_ATTRIBUTES</code>.</p>
     <h4>ProcessHandle</h4>
-    <p>A handle to the process in which the thread is to be created. The handle must have 
+    <p>A handle to the process in which the thread is to be created. The handle must have
     <code>PROCESS_CREATE_THREAD</code> access.</p>
     <h4>StartRoutine</h4>
     <p>The function to call in the new thread.</p>
@@ -918,7 +918,7 @@ NtCreateThreadEx(
     <p>See <code>PROCESS_ATTRIBUTE_LIST</code>.</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2 class="unsure">NtCreateUserProcess</h2>
     <p>Creates a process and an initial thread.</p>
     <pre>
@@ -968,7 +968,7 @@ NtCreateUserProcess(
     <p>See <code>PROCESS_ATTRIBUTE_LIST</code>.</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2>NtOpenProcess</h2>
     <p>Opens a process.</p>
     <pre>
@@ -989,15 +989,15 @@ NtOpenProcess(
     <h4>ObjectAttributes</h4>
     <p>See <code>OBJECT_ATTRIBUTES</code>. The <code>ObjectName</code> field must be NULL.</p>
     <h4>ClientId</h4>
-    <p>A <code>CLIENT_ID</code> specifying the process to open. If the <code>UniqueThread</code> field 
-    is not 0, the function will open the process belonging to the thread specified by the thread ID in 
-    <code>UniqueThread</code>. Otherwise, the function will open the process specified by the process ID 
+    <p>A <code>CLIENT_ID</code> specifying the process to open. If the <code>UniqueThread</code> field
+    is not 0, the function will open the process belonging to the thread specified by the thread ID in
+    <code>UniqueThread</code>. Otherwise, the function will open the process specified by the process ID
     in the <code>UniqueProcess</code> field.</p>
     <h3>Exported by</h3>
     <p>ntdll, ntoskrnl</p>
-    
+
     <h2>NtQueueApcThread</h2>
-    <p>Queues a user-mode APC to the specified thread. The APC will execute when the thread performs an alertable wait or 
+    <p>Queues a user-mode APC to the specified thread. The APC will execute when the thread performs an alertable wait or
     calls <code>NtTestAlert</code>. Any wait operations will return with <code>STATUS_USER_APC</code>.</p>
     <pre>
 NTSYSCALLAPI
@@ -1027,7 +1027,7 @@ VOID
     <p>The arguments to pass to the APC routine.</p>
     <h3>Exported by</h3>
     <p>ntdll; <code>KeInsertQueueApc</code> is exported by ntoskrnl</p>
-    
+
     <h2>NtRegisterThreadTerminatePort</h2>
     <p>Registers a port which will be notified when the current thread terminates.</p>
     <pre>
@@ -1039,11 +1039,11 @@ NtRegisterThreadTerminatePort(
     );</pre>
     <h3>Arguments</h3>
     <h4>PortHandle</h4>
-    <p>A handle to the LPC port to be notified when the current thread terminates. The port will be added to a singly linked list 
+    <p>A handle to the LPC port to be notified when the current thread terminates. The port will be added to a singly linked list
     of ports which will all be notified when the thread terminates.</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2>NtResumeProcess</h2>
     <p>Resumes each thread in a process.</p>
     <pre>
@@ -1058,9 +1058,9 @@ NtResumeProcess(
     <p>A handle to the process to resume. The handle must have <code>PROCESS_SUSPEND_RESUME</code> access.</p>
     <h3>Exported by</h3>
     <p>ntdll; <code>PsResumeProcess</code> is exported by ntoskrnl</p>
-    
+
     <h2>NtResumeThread</h2>
-    <p>Resumes the specified thread. The thread is not actually resumed until the suspend count reaches 0 
+    <p>Resumes the specified thread. The thread is not actually resumed until the suspend count reaches 0
     (i.e. the thread has been resumed the same number of times it has been suspended).</p>
     <pre>
 NTSYSCALLAPI
@@ -1074,11 +1074,11 @@ NtResumeThread(
     <h4>ThreadHandle</h4>
     <p>A handle to the thread to resume. The handle must have <code>THREAD_SUSPEND_RESUME</code> access.</p>
     <h4>PreviousSuspendCount</h4>
-    <p>A variable that receives the previous suspend count (the number of times the thread has been suspended 
+    <p>A variable that receives the previous suspend count (the number of times the thread has been suspended
     minus the number of times the thread has been resumed).</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2>NtSuspendProcess</h2>
     <p>Suspends each thread in a process.</p>
     <pre>
@@ -1093,7 +1093,7 @@ NtSuspendProcess(
     <p>A handle to the process to suspend. The handle must have <code>PROCESS_SUSPEND_RESUME</code> access.</p>
     <h3>Exported by</h3>
     <p>ntdll; <code>PsSuspendProcess</code> is exported by ntoskrnl</p>
-    
+
     <h2>NtSuspendThread</h2>
     <p>Suspends the specified thread.</p>
     <pre>
@@ -1108,11 +1108,11 @@ NtSuspendThread(
     <h4>ThreadHandle</h4>
     <p>A handle to the thread to suspend. The handle must have <code>THREAD_SUSPEND_RESUME</code> access.</p>
     <h4>PreviousSuspendCount</h4>
-    <p>A variable that receives the previous suspend count (the number of times the thread has been suspended 
+    <p>A variable that receives the previous suspend count (the number of times the thread has been suspended
     minus the number of times the thread has been resumed).</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2>NtTerminateProcess</h2>
     <p>Terminates the specified process.</p>
     <pre>
@@ -1125,13 +1125,13 @@ NtTerminateProcess(
     );</pre>
     <h3>Arguments</h3>
     <h4>ProcessHandle</h4>
-    <p>A handle to the process to terminate. The handle must have <code>PROCESS_TERMINATE</code> access. If this argument 
+    <p>A handle to the process to terminate. The handle must have <code>PROCESS_TERMINATE</code> access. If this argument
     is NULL, the current process will be terminated.</p>
     <h4>ExitStatus</h4>
     <p>A NT status value that will be saved.</p>
     <h3>Exported by</h3>
     <p>ntdll; <code>ZwTerminateProcess</code> is exported by ntoskrnl</p>
-    
+
     <h2>NtTerminateThread</h2>
     <p>Terminates the specified thread.</p>
     <pre>
@@ -1144,17 +1144,17 @@ NtTerminateThread(
     );</pre>
     <h3>Arguments</h3>
     <h4>ThreadHandle</h4>
-    <p>A handle to the thread to terminate. The handle must have <code>THREAD_TERMINATE</code> access. If this argument 
-    is NULL, the current thread will be terminated. If the thread is the last in the process, the function will return 
-    <code>STATUS_CANT_TERMINATE_SELF</code>. The reason for this is that user-mode libraries (such as ntdll) are required to 
+    <p>A handle to the thread to terminate. The handle must have <code>THREAD_TERMINATE</code> access. If this argument
+    is NULL, the current thread will be terminated. If the thread is the last in the process, the function will return
+    <code>STATUS_CANT_TERMINATE_SELF</code>. The reason for this is that user-mode libraries (such as ntdll) are required to
     call <code>NtTerminateProcess</code> if this function fails with <code>STATUS_CANT_TERMINATE_SELF</code>.</p>
     <h4>ExitStatus</h4>
     <p>A NT status value that will be saved.</p>
     <h3>Exported by</h3>
     <p>ntdll</p>
-    
+
     <h2>NtTestAlert</h2>
-    <p>Checks whether the current thread is alerted. If it is, the thread's alerted state will be cleared and 
+    <p>Checks whether the current thread is alerted. If it is, the thread's alerted state will be cleared and
     <code>STATUS_ALERTED</code> will be returned. Otherwise, <code>STATUS_SUCCESS</code> will be returned.</p>
     <p>If the function is being called from user-mode, any user-mode APCs will be called when the system service exits.</p>
     <pre>
@@ -1168,7 +1168,7 @@ NtTestAlert(
     <p>ntdll; <code>KeTestAlertThread</code> is exported by ntoskrnl</p>
     <h3>Notes</h3>
     <p>See notes in <code>NtAlertThread</code>.</p>
-    
+
     <h2>RtlCreateUserProcess</h2>
     <p>Creates a process and an initial thread.</p>
     <pre>
@@ -1189,7 +1189,7 @@ RtlCreateUserProcess(
     );</pre>
     <h3>Arguments</h3>
     <h4>NtImagePathName</h4>
-    <p>A <code>UNICODE_STRING</code> which specifies the image file (EXE) from which to create the process. The file name 
+    <p>A <code>UNICODE_STRING</code> which specifies the image file (EXE) from which to create the process. The file name
     must be in native format, e.g. <code>\SystemRoot\notepad.exe</code>.</p>
     <h4>Attributes</h4>
     <p>The object attributes to use when opening the image file, e.g. <code>OBJ_INHERIT</code>.</p>
@@ -1200,12 +1200,12 @@ RtlCreateUserProcess(
     <h4>ThreadSecurityDescriptor</h4>
     <p>A security descriptor for the initial thread in the new process.</p>
     <h4>ParentProcess</h4>
-    <p>A process from which to inherit handles and other characteristics. <code>RtlCreateUserProcess</code> will also 
+    <p>A process from which to inherit handles and other characteristics. <code>RtlCreateUserProcess</code> will also
     duplicate standard handles (input, output and error) from the parent process to the new process.</p>
     <h4>InheritHandles</h4>
     <p>Whether <code>NtCreateProcess</code> should duplicate handles with the <code>OBJ_INHERIT</code> attribute.</p>
     <h4>DebugPort</h4>
-    <p>A handle to a debug object which the process will be assigned to. The handle must have <code>DEBUG_PROCESS_ASSIGN</code> 
+    <p>A handle to a debug object which the process will be assigned to. The handle must have <code>DEBUG_PROCESS_ASSIGN</code>
     access.</p>
     <h4>ExceptionPort</h4>
     <p>A handle to a LPC port which will be notified when an exception occurs in the process.</p>
@@ -1223,9 +1223,9 @@ typedef struct _RTL_USER_PROCESS_INFORMATION
     <h3>Exported by</h3>
     <p>ntdll</p>
     <h3>Notes</h3>
-    <p>This <code>RtlCreateUserProcess</code> does not notify CSR of the new process, so the process' use of the 
+    <p>This <code>RtlCreateUserProcess</code> does not notify CSR of the new process, so the process' use of the
     Win32 API is limited.</p>
-    
+
     <h2>RtlCreateUserThread</h2>
     <p>Creates a thread.</p>
     <pre>
@@ -1246,7 +1246,7 @@ RtlCreateUserThread(
     );</pre>
     <h3>Arguments</h3>
     <h4>Process</h4>
-    <p>A handle to the process in which the thread will be created. The handle must have <code>PROCESS_CREATE_THREAD</code> and 
+    <p>A handle to the process in which the thread will be created. The handle must have <code>PROCESS_CREATE_THREAD</code> and
     <code>PROCESS_VM_OPERATION</code> access.</p>
     <h4>ThreadSecurityDescriptor</h4>
     <p>A security descriptor for the new thread.</p>
@@ -1275,11 +1275,11 @@ NTSTATUS
     <h3>Exported by</h3>
     <p>ntdll</p>
     <h3>Notes</h3>
-    <p>This function is not limited to creating threads in processes within the current session, a limitation present in 
-    the <code>CreateRemoteThread</code> Windows API function. This is due to the fact that <code>RtlCreateUserThread</code> 
-    does not attempt to notify CSR of the new thread, removing the session limitation but also limiting your use of the 
+    <p>This function is not limited to creating threads in processes within the current session, a limitation present in
+    the <code>CreateRemoteThread</code> Windows API function. This is due to the fact that <code>RtlCreateUserThread</code>
+    does not attempt to notify CSR of the new thread, removing the session limitation but also limiting your use of the
     Win32 API.</p>
-    
+
     <p id="footer">Copyright (c) 2009 wj32. Licensed under the GFDL 1.3.</p>
   </body>
 </html>

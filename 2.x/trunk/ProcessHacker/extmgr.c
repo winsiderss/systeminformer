@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   extension manager
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,8 +21,8 @@
  */
 
 /*
- * The extension manager provides support for generic extensions. It sits directly 
- * underneath the plugin manager, and has no knowledge of plugin details (how they are 
+ * The extension manager provides support for generic extensions. It sits directly
+ * underneath the plugin manager, and has no knowledge of plugin details (how they are
  * loaded, plugin information, etc.).
  */
 

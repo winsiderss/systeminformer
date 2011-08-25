@@ -1,12 +1,12 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   Runtime Library functions
- * 
+ *
  * Copyright (C) 2011 wj32
  * Copyright (C) 2011 dmex
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -328,7 +328,7 @@ namespace ProcessHacker.Api
         public static extern bool RtlPrefixUnicodeString(
             UnicodeString* String1,
             UnicodeString* String2,
-            [MarshalAs(UnmanagedType.I1)] 
+            [MarshalAs(UnmanagedType.I1)]
             bool CaseInSensitive
             );
 
@@ -340,7 +340,7 @@ namespace ProcessHacker.Api
 
             int nb = (s.Length + 1) * 2;
 
-            // Overflow checking 
+            // Overflow checking
             if (nb < s.Length)
                 throw new ArgumentOutOfRangeException("s");
 
@@ -354,7 +354,7 @@ namespace ProcessHacker.Api
                 RtlMoveMemory(hglobal, p, len);
 
             return hglobal;
-        } 
+        }
 
         #endregion
     }

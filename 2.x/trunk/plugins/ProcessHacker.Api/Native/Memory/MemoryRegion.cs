@@ -1,12 +1,12 @@
 ﻿/*
- * Process Hacker - 
+ * Process Hacker -
  *   memory region
- * 
+ *
  * Copyright (C) 2011 wj32
  * Copyright (C) 2011 dmex
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -61,7 +61,7 @@ namespace ProcessHacker.Native
         }
 
         /// <summary>
-        /// Creates a new, invalid memory allocation. 
+        /// Creates a new, invalid memory allocation.
         /// You must set the pointer using the Memory property.
         /// </summary>
         protected MemoryRegion()
@@ -84,7 +84,7 @@ namespace ProcessHacker.Native
         { }
 
         protected MemoryRegion(MemoryRegion parent, IntPtr memory, int size, bool owned) : base(owned)
-        {       
+        {
             if (parent != null)
                 parent.Reference();
 
@@ -276,7 +276,7 @@ namespace ProcessHacker.Native
         /// Creates a struct from the memory allocation.
         /// </summary>
         /// <typeparam name="T">The type of the struct.</typeparam>
-        /// <param name="index">The index at which to begin reading to the struct. This is multiplied by  
+        /// <param name="index">The index at which to begin reading to the struct. This is multiplied by
         /// the size of the struct.</param>
         /// <returns>The new struct.</returns>
         public T ReadStruct<T>(int index) where T : struct
@@ -289,7 +289,7 @@ namespace ProcessHacker.Native
         /// </summary>
         /// <typeparam name="T">The type of the struct.</typeparam>
         /// <param name="offset">The offset to add before reading.</param>
-        /// <param name="index">The index at which to begin reading to the struct. This is multiplied by  
+        /// <param name="index">The index at which to begin reading to the struct. This is multiplied by
         /// the size of the struct.</param>
         /// <returns>The new struct.</returns>
         public T ReadStruct<T>(int offset, int index) where T : struct

@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   options window
- * 
+ *
  * Copyright (C) 2010-2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -332,7 +332,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                     if (!GetCurrentFont(&font))
                     {
-                        // Can't get LOGFONT from the existing setting, probably 
+                        // Can't get LOGFONT from the existing setting, probably
                         // because the user hasn't ever chosen a font before.
                         // Set the font to something familiar.
                         GetObject((HFONT)SendMessage(PhMainWndHandle, WM_PH_GET_FONT, 0, 0), sizeof(LOGFONT), &font);
@@ -535,7 +535,7 @@ VOID PhpAdvancedPageSave(
 
         if (OldReplaceTaskMgr != replaceTaskMgr)
         {
-            // We should have created the key back in PhpAdvancedPageLoad, which is why 
+            // We should have created the key back in PhpAdvancedPageLoad, which is why
             // we're opening the key here.
             if (NT_SUCCESS(PhOpenKey(
                 &taskmgrKeyHandle,
@@ -642,7 +642,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                     HANDLE threadHandle;
                     RECT windowRect;
 
-                    // Save the options so they don't get "overwritten" when 
+                    // Save the options so they don't get "overwritten" when
                     // WM_PH_CHILD_EXIT gets sent.
                     PhpAdvancedPageSave(hwndDlg);
 
@@ -936,7 +936,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                         PH_STRINGREF tip;
 
                         PhInitializeStringRef(&tip, ColorItems[getInfoTip->iItem].Description);
-                        PhCopyListViewInfoTip(getInfoTip, &tip); 
+                        PhCopyListViewInfoTip(getInfoTip, &tip);
                     }
                 }
                 break;
