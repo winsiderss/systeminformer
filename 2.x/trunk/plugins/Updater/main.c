@@ -30,7 +30,7 @@ LOGICAL DllMain(
 {
     static PH_SETTING_CREATE settings[] =
     {
-        { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
+        { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"0" },
         { IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
         { IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"0" },
     };
