@@ -72,7 +72,7 @@ INT WINAPI WinMain(
     {
         static PH_FILETYPE_FILTER filters[] =
         {
-            { L"Supported files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.lib)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.lib" },
+            { L"Supported files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib" },
             { L"All files (*.*)", L"*.*" }
         };
         PVOID fileDialog;
