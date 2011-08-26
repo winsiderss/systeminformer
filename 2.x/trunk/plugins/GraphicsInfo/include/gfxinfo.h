@@ -65,7 +65,7 @@ VOID LogEvent(__in PWSTR str, __in INT status);
 
 
 VOID NvInit(VOID);
-VOID EnumNvidiaGpuHandles();
+NvPhysicalGpuHandle EnumNvidiaGpuHandles();
 VOID GetNvidiaGpuUsages();
 
 // macro by dmex
@@ -77,6 +77,12 @@ VOID GetNvidiaGpuUsages();
 
 typedef void* (__cdecl *P_NvAPI_QueryInterface)(UINT offset);
 P_NvAPI_QueryInterface NvAPI_QueryInterface;
+
+typedef void* (__cdecl *P_NvApi_CallStart)(UINT, UINT*); // weak
+P_NvApi_CallStart NvAPI_CallStart;
+
+typedef int (__cdecl *P_NvApi_CallReturn)(DWORD, DWORD, DWORD, DWORD); // weak
+P_NvApi_CallReturn NvAPI_CallReturn;
 
 typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle nvGPUHandle, unsigned int *usages);
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;

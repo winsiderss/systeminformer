@@ -85,8 +85,12 @@ VOID NTAPI LoadCallback(
             // 50/50 these ID's and API defs are correct.
 
             // Library initialization functions
-            NvAPI_Initialize = (P_NvAPI_Initialize)NvAPI_QueryInterface(0x0150E828);
+            NvAPI_Initialize = (P_NvAPI_Initialize)NvAPI_QueryInterface(0x150E828u);
             NvAPI_Unload = (P_NvAPI_Unload)NvAPI_QueryInterface(0xD22BDD7E);
+
+            // Locking Functions
+            NvAPI_CallStart = (P_NvApi_CallStart)NvAPI_QueryInterface(0x33C7358Cu);
+            //NvAPI_CallReturn = (P_NvApi_CallReturn)NvAPI_QueryInterface(0x593E8644u);
 
             // Error Functions
             NvAPI_GetErrorMessage = (P_NvAPI_GetErrorMessage)NvAPI_QueryInterface(0x6C2D048Cu);
