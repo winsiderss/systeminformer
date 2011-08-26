@@ -1,12 +1,12 @@
-Process Hacker is distributed under the GNU GPL version 3, with the 
+Process Hacker is distributed under the GNU GPL version 3, with the
 following exception:
 
-    Permission is granted to dynamically (but not statically) link this 
-    program with independent modules, regardless of the license terms of 
-    these independent modules, provided that this program is not modified 
-    in any way. An independent module is a module which is not derived 
-    from or based on this program. If you modify this program, this 
-    additional permission no longer applies unless authorized by the 
+    Permission is granted to dynamically (but not statically) link this
+    program with independent modules, regardless of the license terms of
+    these independent modules, provided that this program is not modified
+    in any way. An independent module is a module which is not derived
+    from or based on this program. If you modify this program, this
+    additional permission no longer applies unless authorized by the
     copyright holders.
 
                     GNU GENERAL PUBLIC LICENSE
