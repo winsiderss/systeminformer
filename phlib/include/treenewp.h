@@ -212,6 +212,13 @@ VOID PhTnpOnThemeChanged(
     __in PPH_TREENEW_CONTEXT Context
     );
 
+ULONG PhTnpOnGetDlgCode(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKey,
+    __in_opt PMSG Message
+    );
+
 VOID PhTnpOnPaint(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context

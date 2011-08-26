@@ -205,6 +205,7 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewColumnReordered,
 
     TreeNewDestroying,
+    TreeNewGetDialogCode, // ULONG Parameter1, PULONG Parameter2
 
     MaxTreeNewMessage
 } PH_TREENEW_MESSAGE;
