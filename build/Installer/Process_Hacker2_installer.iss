@@ -194,10 +194,12 @@ Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2;  
 Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Check: NOT IsTaskSelected('desktopicon\user')   AND IsUpdate()
 Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Check: NOT IsTaskSelected('desktopicon\common') AND IsUpdate()
 Type: files;      Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2.lnk; Check: NOT IsTaskSelected('quicklaunchicon') AND IsUpdate()
+Type: files;      Name: {group}\Help and Support\Process Hacker Help.lnk; Check: IsUpdate()
 
 Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: reset_settings
 
+Type: files;      Name: {app}\Help.htm;                              Check: IsUpdate()
 Type: files;      Name: {app}\peview.exe;                            Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
 Type: files;      Name: {group}\PE Viewer.lnk;                       Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
 Type: files;      Name: {app}\plugins\DotNetTools.dll;               Check: NOT IsComponentSelected('plugins\dotnettools')           AND IsUpdate()
