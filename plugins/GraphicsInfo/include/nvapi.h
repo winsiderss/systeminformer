@@ -952,7 +952,6 @@ typedef struct
 
 #endif //#ifndef NvGUID_Defined
 
-
 #define NVAPI_MAX_PHYSICAL_GPUS             64
 #define NVAPI_PHYSICAL_GPUS                 32
 #define NVAPI_MAX_LOGICAL_GPUS              64

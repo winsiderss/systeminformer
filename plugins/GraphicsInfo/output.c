@@ -96,11 +96,11 @@ INT_PTR CALLBACK MainWndProc(
             BringWindowToTop(MemGraphHandle);
       
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
-                EtwSysUpdateHandler,
-                NULL,
-                &ProcessesUpdatedRegistration
-                );
+				PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+				EtwSysUpdateHandler,
+				NULL,
+				&ProcessesUpdatedRegistration
+				);
         }
         break;
     case WM_DESTROY:
@@ -213,6 +213,7 @@ INT_PTR CALLBACK MainWndProc(
             EndDeferWindowPos(deferHandle);
         }
         break;
+
     case WM_SIZING:
         {
             PhResizingMinimumSize((PRECT)lParam, wParam, 500, 400);
@@ -340,7 +341,7 @@ VOID NvInit(VOID)
     }
 }
 
-VOID EnumNvidiaGpuHandles()
+NvPhysicalGpuHandle EnumNvidiaGpuHandles()
 {
     NvPhysicalGpuHandle szGPUHandle[NVAPI_MAX_PHYSICAL_GPUS] = { 0 };     
     NvU32 gpuCount = 0;
@@ -376,20 +377,18 @@ VOID EnumNvidiaGpuHandles()
     {
         LogEvent(L"gfxinfo: (EnumNvidiaGpuHandles) NvAPI_EnumPhysicalGPUs failed (%s)", status);
     }
+
+    return szGPUHandle[0];
 }
 
 VOID GetNvidiaGpuUsages()
 {
     unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
-
     int gpuCount = 0;
-    NvPhysicalGpuHandle gpuHandles[NVAPI_MAX_PHYSICAL_GPUS] = { NULL };
     // gpuUsages[0] must be this value, otherwise NvAPI_GPU_GetUsages won't work
     gpuUsages[0] = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
     
-    NvAPI_EnumPhysicalGPUs(gpuHandles, &gpuCount);
-
-    NvAPI_GetUsages(gpuHandles[0], gpuUsages);
+    NvAPI_GetUsages(EnumNvidiaGpuHandles(), gpuUsages);
     {
         int coreLoad = gpuUsages[2];
         int usage = gpuUsages[3];
