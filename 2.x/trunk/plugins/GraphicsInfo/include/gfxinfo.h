@@ -75,8 +75,8 @@ VOID GetNvidiaGpuUsages();
 #define NVAPI_MAX_PHYSICAL_GPUS   64
 #define NVAPI_MAX_USAGES_PER_GPU  34
 
-typedef void* (__cdecl *P_NvAPI_QueryInterface)(unsigned __int32 offset);
+typedef void* (__cdecl *P_NvAPI_QueryInterface)(UINT offset);
 P_NvAPI_QueryInterface NvAPI_QueryInterface;
 
-typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(int *handle, unsigned int *usages);
+typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle nvGPUHandle, unsigned int *usages);
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;
