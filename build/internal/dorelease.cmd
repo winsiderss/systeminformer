@@ -29,8 +29,6 @@ for %%a in (
     README.txt
     ) do copy %1\%%a %2\bin\%%a
 
-copy %1\doc\Help.htm %2\bin\
-
 mkdir %2\bin\x86
 copy %1\bin\Release32\ProcessHacker.exe %2\bin\x86\
 copy %1\KProcessHacker\bin-signed\i386\kprocesshacker.sys %2\bin\x86\
