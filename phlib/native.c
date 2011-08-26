@@ -1062,6 +1062,9 @@ NTSTATUS PhGetProcessPosixCommandLine(
  * \param ProcessHandle A handle to a process. The handle
  * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ
  * access.
+ * \param Flags A combination of flags.
+ * \li \c PH_GET_PROCESS_ENVIRONMENT_WOW64 Retrieve the 
+ * environment block from the WOW64 PEB.
  * \param Environment A variable which will receive a pointer
  * to the environment block copied from the process. You must
  * free the block using PhFreePage() when you no longer need it.
