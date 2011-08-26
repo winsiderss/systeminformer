@@ -912,7 +912,7 @@ VOID PhSetSearchPathSymbolProvider(
 
 #ifdef _M_X64
 
-NTSTATUS PhpFindDynamicFunctionTable(
+NTSTATUS PhpLookupDynamicFunctionTable(
     __in HANDLE ProcessHandle,
     __in ULONG64 Address,
     __out_opt PDYNAMIC_FUNCTION_TABLE *FunctionTableAddress,
@@ -1015,6 +1015,12 @@ NTSTATUS PhpFindDynamicFunctionTable(
                 else
                 {
                     OutOfProcessCallbackDllBuffer[0] = 0;
+
+                    if (OutOfProcessCallbackDllString)
+                    {
+                        OutOfProcessCallbackDllString->Buffer = NULL;
+                        OutOfProcessCallbackDllString->Length = 0;
+                    }
                 }
             }
 
@@ -1034,43 +1040,161 @@ NTSTATUS PhpFindDynamicFunctionTable(
     return STATUS_NOT_FOUND;
 }
 
-PRUNTIME_FUNCTION PhpFindRuntimeFunction(
+PRUNTIME_FUNCTION PhpLookupFunctionEntry(
     __in PRUNTIME_FUNCTION Functions,
     __in ULONG NumberOfFunctions,
-    __in ULONG64 ControlPc
+    __in BOOLEAN Sorted,
+    __in ULONG64 RelativeControlPc
     )
 {
+    LONG low;
+    LONG high;
     ULONG i;
 
-    for (i = 0; i < NumberOfFunctions; i++)
+    if (Sorted)
     {
-        if (ControlPc >= Functions[i].BeginAddress && ControlPc < Functions[i].EndAddress)
-            return &Functions[i];
+        if (NumberOfFunctions == 0)
+            return NULL;
+
+        low = 0;
+        high = NumberOfFunctions - 1;
+
+        do
+        {
+            i = (low + high) / 2;
+
+            if (RelativeControlPc < Functions[i].BeginAddress)
+                high = i - 1;
+            else if (RelativeControlPc >= Functions[i].EndAddress)
+                low = i + 1;
+            else
+                return &Functions[i];
+        } while (low <= high);
+    }
+    else
+    {
+        for (i = 0; i < NumberOfFunctions; i++)
+        {
+            if (RelativeControlPc >= Functions[i].BeginAddress && RelativeControlPc < Functions[i].EndAddress)
+                return &Functions[i];
+        }
     }
 
     return NULL;
 }
 
-PVOID PhAccessOutOfProcessFunctionTable(
+NTSTATUS PhpAccessCallbackFunctionTable(
     __in HANDLE ProcessHandle,
-    __in ULONG64 ControlPc
+    __in PVOID FunctionTableAddress,
+    __in PPH_STRINGREF OutOfProcessCallbackDllString,
+    __out PRUNTIME_FUNCTION *Functions,
+    __out PULONG NumberOfFunctions
     )
 {
-    static HMODULE lastDllBase = NULL;
-    static RUNTIME_FUNCTION lastFunction;
+    static PH_STRINGREF knownFunctionTableDllsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\KnownFunctionTableDlls");
 
+    NTSTATUS status;
+    HANDLE keyHandle;
+    ULONG returnLength;
+    PVOID dllHandle;
+    ANSI_STRING outOfProcessFunctionTableCallbackName;
+    POUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK outOfProcessFunctionTableCallback;
+
+    if (!OutOfProcessCallbackDllString->Buffer)
+        return STATUS_INVALID_PARAMETER;
+
+    // Don't load DLLs from arbitrary locations. Check if this is a known function table DLL.
+
+    if (!NT_SUCCESS(status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &knownFunctionTableDllsKeyName,
+        0
+        )))
+        return status;
+
+    status = NtQueryValueKey(keyHandle, &OutOfProcessCallbackDllString->us, KeyValuePartialInformation, NULL, 0, &returnLength);
+    NtClose(keyHandle);
+
+    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+        return STATUS_ACCESS_DISABLED_BY_POLICY_DEFAULT;
+
+    status = LdrLoadDll(NULL, NULL, &OutOfProcessCallbackDllString->us, &dllHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    RtlInitAnsiString(&outOfProcessFunctionTableCallbackName, OUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK_EXPORT_NAME);
+    status = LdrGetProcedureAddress(dllHandle, &outOfProcessFunctionTableCallbackName, 0, (PVOID *)&outOfProcessFunctionTableCallback);
+
+    if (NT_SUCCESS(status))
+    {
+        status = outOfProcessFunctionTableCallback(
+            ProcessHandle,
+            FunctionTableAddress,
+            NumberOfFunctions,
+            Functions
+            );
+    }
+
+    LdrUnloadDll(dllHandle);
+
+    return status;
+}
+
+NTSTATUS PhpAccessNormalFunctionTable(
+    __in HANDLE ProcessHandle,
+    __in PDYNAMIC_FUNCTION_TABLE FunctionTable,
+    __out PRUNTIME_FUNCTION *Functions,
+    __out PULONG NumberOfFunctions
+    )
+{
+    NTSTATUS status;
+    SIZE_T bufferSize;
+    PRUNTIME_FUNCTION functions;
+
+    // Put a reasonable limit on the number of entries we read.
+    if (FunctionTable->EntryCount > 0x100000)
+        return STATUS_BUFFER_OVERFLOW;
+
+    bufferSize = FunctionTable->EntryCount * sizeof(RUNTIME_FUNCTION);
+    functions = PhAllocatePage(bufferSize, NULL);
+
+    if (!functions)
+        return STATUS_NO_MEMORY;
+
+    status = PhReadVirtualMemory(ProcessHandle, FunctionTable->FunctionTable, functions, bufferSize, NULL);
+
+    if (NT_SUCCESS(status))
+    {
+        *Functions = functions;
+        *NumberOfFunctions = FunctionTable->EntryCount;
+    }
+    else
+    {
+        PhFreePage(functions);
+    }
+
+    return status;
+}
+
+NTSTATUS PhAccessOutOfProcessFunctionEntry(
+    __in HANDLE ProcessHandle,
+    __in ULONG64 ControlPc,
+    __out PRUNTIME_FUNCTION Function
+    )
+{
+    NTSTATUS status;
     PDYNAMIC_FUNCTION_TABLE functionTableAddress;
     DYNAMIC_FUNCTION_TABLE functionTable;
     WCHAR outOfProcessCallbackDll[512];
     PH_STRINGREF outOfProcessCallbackDllString;
-    PH_STRINGREF windowsString;
-    HMODULE dllBase;
-    POUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK outOfProcessFunctionTableCallback;
     PRUNTIME_FUNCTION functions;
     ULONG numberOfFunctions;
     PRUNTIME_FUNCTION function;
 
-    if (!NT_SUCCESS(PhpFindDynamicFunctionTable(
+    if (!NT_SUCCESS(status = PhpLookupDynamicFunctionTable(
         ProcessHandle,
         ControlPc,
         &functionTableAddress,
@@ -1080,61 +1204,54 @@ PVOID PhAccessOutOfProcessFunctionTable(
         &outOfProcessCallbackDllString
         )))
     {
-        return NULL;
+        return status;
     }
 
-    // We can't continue without a callback DLL.
-    if (outOfProcessCallbackDllString.Length == 0)
+    if (functionTable.Type == RF_CALLBACK)
     {
-        return NULL;
+        if (!NT_SUCCESS(status = PhpAccessCallbackFunctionTable(
+            ProcessHandle,
+            functionTableAddress,
+            &outOfProcessCallbackDllString,
+            &functions,
+            &numberOfFunctions
+            )))
+        {
+            return status;
+        }
+
+        function = PhpLookupFunctionEntry(functions, numberOfFunctions, FALSE, ControlPc - functionTable.BaseAddress);
+
+        if (function)
+            *Function = *function;
+        else
+            status = STATUS_NOT_FOUND;
+
+        RtlFreeHeap(RtlProcessHeap(), 0, functions);
     }
-
-    PhGetSystemRoot(&windowsString);
-
-    // Don't load DLLs from arbitrary locations. Make sure the DLL at least resides in the Windows directory.
-    if (!(outOfProcessCallbackDllString.Length >= windowsString.Length + sizeof(WCHAR) &&
-        memcmp(outOfProcessCallbackDllString.Buffer, windowsString.Buffer, windowsString.Length) == 0 &&
-        outOfProcessCallbackDllString.Buffer[windowsString.Length / sizeof(WCHAR)] == '\\'))
-    {
-        return NULL;
-    }
-
-    if (lastDllBase)
-    {
-        FreeLibrary(lastDllBase);
-        lastDllBase = NULL;
-    }
-
-    dllBase = LoadLibrary(outOfProcessCallbackDll);
-
-    if (!dllBase)
-        return NULL;
-
-    lastDllBase = dllBase;
-    outOfProcessFunctionTableCallback = (PVOID)GetProcAddress(dllBase, OUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK_EXPORT_NAME);
-
-    if (!outOfProcessFunctionTableCallback)
-        return NULL;
-
-    if (!NT_SUCCESS(outOfProcessFunctionTableCallback(
-        ProcessHandle,
-        functionTableAddress,
-        &numberOfFunctions,
-        &functions
-        )))
-        return NULL;
-
-    function = PhpFindRuntimeFunction(functions, numberOfFunctions, ControlPc - functionTable.BaseAddress);
-
-    if (function)
-        lastFunction = *function;
-
-    RtlFreeHeap(RtlProcessHeap(), 0, functions);
-
-    if (function)
-        return &lastFunction;
     else
-        return NULL;
+    {
+        if (!NT_SUCCESS(status = PhpAccessNormalFunctionTable(
+            ProcessHandle,
+            &functionTable,
+            &functions,
+            &numberOfFunctions
+            )))
+        {
+            return status;
+        }
+
+        function = PhpLookupFunctionEntry(functions, numberOfFunctions, functionTable.Type == RF_SORTED, ControlPc - functionTable.BaseAddress);
+
+        if (function)
+            *Function = *function;
+        else
+            status = STATUS_NOT_FOUND;
+
+        PhFreePage(functions);
+    }
+
+    return status;
 }
 
 #endif
@@ -1150,7 +1267,7 @@ ULONG64 __stdcall PhGetModuleBase64(
 #endif
 
 #ifdef _M_X64
-    if (NT_SUCCESS(PhpFindDynamicFunctionTable(
+    if (NT_SUCCESS(PhpLookupDynamicFunctionTable(
         hProcess,
         dwAddr,
         NULL,
@@ -1181,10 +1298,17 @@ PVOID __stdcall PhFunctionTableAccess64(
     __in DWORD64 AddrBase
     )
 {
+#ifdef _M_X64
+    static RUNTIME_FUNCTION lastRuntimeFunction;
+#endif
+
     PVOID entry;
 
 #ifdef _M_X64
-    entry = PhAccessOutOfProcessFunctionTable(hProcess, AddrBase);
+    if (NT_SUCCESS(PhAccessOutOfProcessFunctionEntry(hProcess, AddrBase, &lastRuntimeFunction)))
+        entry = &lastRuntimeFunction;
+    else
+        entry = NULL;
 #else
     entry = NULL;
 #endif
