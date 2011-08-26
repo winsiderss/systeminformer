@@ -1,0 +1,181 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (Australia) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "dmex"
+            VALUE "FileDescription", "Graphics Information plugin for Process Hacker"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "ExtendedTools"
+            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
+            VALUE "OriginalFilename", "GraphicsInfo.dll"
+            VALUE "ProductName", "Graphics Information plugin for Process Hacker"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_SYSGFX DIALOGEX 0, 0, 361, 221
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Graphics Information"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,304,200,50,14
+    GROUPBOX        "GPU Utilization",IDC_GROUPGPU,7,7,347,53,0,WS_EX_TRANSPARENT
+    GROUPBOX        "Memory Utilization",IDC_GROUPMEM,7,62,347,53,0,WS_EX_TRANSPARENT
+    CONTROL         "Always on Top",IDC_ALWAYSONTOP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,238,202,63,10
+END
+
+IDD_SYSGFX_PANEL DIALOGEX 0, 0, 246, 58
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Disk I/O",IDC_STATIC,0,0,118,58
+    LTEXT           "Reads",IDC_STATIC,8,11,21,8
+    LTEXT           "Read Bytes",IDC_STATIC,8,22,38,8
+    LTEXT           "Writes",IDC_STATIC,8,33,22,8
+    LTEXT           "Write Bytes",IDC_STATIC,8,44,38,8
+    RTEXT           "Static",IDC_ZREADS_V,55,11,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZREADBYTES_V,71,22,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITES_V,55,33,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITEBYTES_V,71,44,38,8,SS_ENDELLIPSIS
+    GROUPBOX        "Network I/O",IDC_STATIC,122,0,124,58
+    LTEXT           "Receives",IDC_STATIC,130,11,30,8
+    LTEXT           "Receive Bytes",IDC_STATIC,130,23,46,8
+    LTEXT           "Sends",IDC_STATIC,130,34,20,8
+    LTEXT           "Send Bytes",IDC_STATIC,130,44,37,8
+    RTEXT           "Static",IDC_ZRECEIVES_V,182,11,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZRECEIVEBYTES_V,198,23,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDS_V,182,34,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDBYTES_V,198,44,38,8,SS_ENDELLIPSIS
+END
+
+IDD_OPTIONS DIALOGEX 0, 0, 215, 70
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,104,49,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,158,49,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_SYSGFX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 354
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 214
+    END
+
+    IDD_SYSGFX_PANEL, DIALOG
+    BEGIN
+    END
+
+    IDD_OPTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 208
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 63
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (Australia) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
