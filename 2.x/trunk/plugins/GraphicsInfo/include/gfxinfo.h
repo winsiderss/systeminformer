@@ -64,7 +64,7 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
 VOID LogEvent(__in PWSTR str, __in INT status);
 
 
-VOID NvInit();
+VOID NvInit(VOID);
 VOID EnumNvidiaGpuHandles();
 VOID GetNvidiaGpuUsages();
 

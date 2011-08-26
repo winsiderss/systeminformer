@@ -95,8 +95,6 @@ INT_PTR CALLBACK MainWndProc(
             Graph_SetTooltip(MemGraphHandle, TRUE);
             BringWindowToTop(MemGraphHandle);
       
-            NvInit();
-
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 EtwSysUpdateHandler,
@@ -327,7 +325,7 @@ VOID LogEvent(__in PWSTR str, __in INT status)
     }
 }
 
-VOID NvInit()
+VOID NvInit(VOID)
 {
     NvAPI_Status status = NvAPI_Initialize();
 
