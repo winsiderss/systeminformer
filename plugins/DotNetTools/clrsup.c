@@ -190,7 +190,7 @@ PVOID LoadMscordacwks(
 
     LoadLibrary(L"mscoree.dll");
 
-    PhInitializeStringRef(&systemRootString, USER_SHARED_DATA->NtSystemRoot);
+    PhGetSystemRoot(&systemRootString);
 
     if (IsClrV4)
     {
@@ -208,10 +208,6 @@ PVOID LoadMscordacwks(
         PhInitializeStringRef(&mscordacwksPathString, L"\\Microsoft.NET\\Framework\\v2.0.50727\\mscordacwks.dll");
 #endif
     }
-
-    // Make sure the system root string doesn't end with a backslash.
-    if (systemRootString.Buffer[systemRootString.Length / 2 - 1] == '\\')
-        systemRootString.Length -= 2;
 
     mscordacwksFileName = PhConcatStringRef2(&systemRootString, &mscordacwksPathString);
     dllBase = LoadLibrary(mscordacwksFileName->Buffer);

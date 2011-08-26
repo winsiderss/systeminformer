@@ -99,16 +99,12 @@ HRESULT CreateCorpubPublish(
 
             LoadLibrary(L"mscoree.dll");
 
-            PhInitializeStringRef(&systemRootString, USER_SHARED_DATA->NtSystemRoot);
+            PhGetSystemRoot(&systemRootString);
 #ifdef _M_X64
             PhInitializeStringRef(&mscordbiPathString, L"\\Microsoft.NET\\Framework64\\v4.0.30319\\mscordbi.dll");
 #else
             PhInitializeStringRef(&mscordbiPathString, L"\\Microsoft.NET\\Framework\\v4.0.30319\\mscordbi.dll");
 #endif
-
-            // Make sure the system root string doesn't end with a backslash.
-            if (systemRootString.Buffer[systemRootString.Length / 2 - 1] == '\\')
-                systemRootString.Length -= 2;
 
             mscordbiFileName = PhConcatStringRef2(&systemRootString, &mscordbiPathString);
             mscordbiDllBase = LoadLibrary(mscordbiFileName->Buffer);
