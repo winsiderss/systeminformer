@@ -832,7 +832,12 @@ for (;;)
 
       /*-----------------------------------------------------------------*/
       case OP_EOD:
-      if (ptr >= end_subject) { ADD_ACTIVE(state_offset + 1, 0); }
+      if (ptr >= end_subject)
+        {
+        if ((md->moptions & PCRE_PARTIAL_HARD) != 0)
+          could_continue = TRUE;
+        else { ADD_ACTIVE(state_offset + 1, 0); }
+        }
       break;
 
       /*-----------------------------------------------------------------*/
@@ -872,7 +877,9 @@ for (;;)
 
       /*-----------------------------------------------------------------*/
       case OP_EODN:
-      if (clen == 0 || (IS_NEWLINE(ptr) && ptr == end_subject - md->nllen))
+      if (clen == 0 && (md->moptions & PCRE_PARTIAL_HARD) != 0)
+        could_continue = TRUE;
+      else if (clen == 0 || (IS_NEWLINE(ptr) && ptr == end_subject - md->nllen))
         { ADD_ACTIVE(state_offset + 1, 0); }
       break;
 
@@ -880,7 +887,9 @@ for (;;)
       case OP_DOLL:
       if ((md->moptions & PCRE_NOTEOL) == 0)
         {
-        if (clen == 0 ||
+        if (clen == 0 && (md->moptions & PCRE_PARTIAL_HARD) != 0)
+          could_continue = TRUE;
+        else if (clen == 0 ||
             ((md->poptions & PCRE_DOLLAR_ENDONLY) == 0 && IS_NEWLINE(ptr) &&
                ((ims & PCRE_MULTILINE) != 0 || ptr == end_subject - md->nllen)
             ))
@@ -2745,8 +2754,8 @@ for (;;)
         ((md->moptions & PCRE_PARTIAL_SOFT) != 0 &&  /* Soft partial and */
          match_count < 0)                            /* no matches */
         ) &&                                         /* And... */
-        ptr >= end_subject &&                     /* Reached end of subject */
-        ptr > current_subject)                    /* Matched non-empty string */
+        ptr >= end_subject &&                  /* Reached end of subject */
+        ptr > md->start_used_ptr)              /* Inspected non-empty string */
       {
       if (offsetcount >= 2)
         {
@@ -2836,6 +2845,7 @@ if (re == NULL || subject == NULL || workspace == NULL ||
    (offsets == NULL && offsetcount > 0)) return PCRE_ERROR_NULL;
 if (offsetcount < 0) return PCRE_ERROR_BADCOUNT;
 if (wscount < 20) return PCRE_ERROR_DFA_WSSIZE;
+if (start_offset < 0 || start_offset > length) return PCRE_ERROR_BADOFFSET;
 
 /* We need to find the pointer to any study data before we test for byte
 flipping, so we scan the extra_data block first. This may set two fields in the
@@ -2954,16 +2964,14 @@ back the character offset. */
 #ifdef SUPPORT_UTF8
 if (utf8 && (options & PCRE_NO_UTF8_CHECK) == 0)
   {
-  if (_pcre_valid_utf8((uschar *)subject, length) >= 0)
-    return PCRE_ERROR_BADUTF8;
+  int tb;
+  if ((tb = _pcre_valid_utf8((uschar *)subject, length)) >= 0)
+    return (tb == length && (options & PCRE_PARTIAL_HARD) != 0)?
+      PCRE_ERROR_SHORTUTF8 : PCRE_ERROR_BADUTF8;
   if (start_offset > 0 && start_offset < length)
     {
-    int tb = ((uschar *)subject)[start_offset];
-    if (tb > 127)
-      {
-      tb &= 0xc0;
-      if (tb != 0 && tb != 0xc0) return PCRE_ERROR_BADUTF8_OFFSET;
-      }
+    tb = ((USPTR)subject)[start_offset] & 0xc0;
+    if (tb == 0x80) return PCRE_ERROR_BADUTF8_OFFSET;
     }
   }
 #endif
@@ -3050,9 +3058,11 @@ for (;;)
 
     /* There are some optimizations that avoid running the match if a known
     starting point is not found. However, there is an option that disables
-    these, for testing and for ensuring that all callouts do actually occur. */
+    these, for testing and for ensuring that all callouts do actually occur.
+    The option can be set in the regex by (*NO_START_OPT) or passed in
+    match-time options. */
 
-    if ((options & PCRE_NO_START_OPTIMIZE) == 0)
+    if (((options | re->options) & PCRE_NO_START_OPTIMIZE) == 0)
       {
       /* Advance to a known first byte. */
 
