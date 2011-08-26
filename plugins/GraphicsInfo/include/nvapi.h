@@ -1134,8 +1134,9 @@ typedef enum _NvAPI_Status
 //! \sa nvapistatus
 //! \ingroup nvapifunctions
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_Initialize();
-
+//NVAPI_INTERFACE NvAPI_Initialize();
+typedef NvAPI_Status (__cdecl *P_NvAPI_Initialize)();
+P_NvAPI_Initialize NvAPI_Initialize;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1165,10 +1166,9 @@ NVAPI_INTERFACE NvAPI_Initialize();
 //!
 //! \ingroup nvapifunctions
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_Unload();
-
-
-
+//NVAPI_INTERFACE NvAPI_Unload();
+typedef NvAPI_Status (__cdecl *P_NvAPI_Unload)();
+P_NvAPI_Unload NvAPI_Unload;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1188,7 +1188,9 @@ NVAPI_INTERFACE NvAPI_Unload();
 //! \return NULL terminated string (always, never NULL)
 //! \ingroup nvapifunctions
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GetErrorMessage(NvAPI_Status nr,NvAPI_ShortString szDesc);
+//NVAPI_INTERFACE NvAPI_GetErrorMessage(NvAPI_Status nr,NvAPI_ShortString szDesc);
+typedef NvAPI_Status (__cdecl *P_NvAPI_GetErrorMessage)(NvAPI_Status nr,NvAPI_ShortString szDesc);
+P_NvAPI_GetErrorMessage NvAPI_GetErrorMessage;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1356,7 +1358,9 @@ NVAPI_INTERFACE NvAPI_EnumNvidiaUnAttachedDisplayHandle(NvU32 thisEnum, NvUnAtta
 //! \retval NVAPI_NVIDIA_DEVICE_NOT_FOUND  No NVIDIA GPU driving a display was found
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+//NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+typedef NvAPI_Status (__cdecl *P_NvAPI_EnumPhysicalGPUs)(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+P_NvAPI_EnumPhysicalGPUs NvAPI_EnumPhysicalGPUs;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -3068,7 +3072,9 @@ typedef enum _NV_GPU_CONNECTOR_TYPE
 //! \return  NVAPI_ERROR or NVAPI_OK
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName);
+//NVAPI_INTERFACE NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName);
+typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetFullName)(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName);
+P_NvAPI_GPU_GetFullName NvAPI_GetFullName;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
