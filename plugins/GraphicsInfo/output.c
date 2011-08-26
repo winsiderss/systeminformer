@@ -383,6 +383,8 @@ NvPhysicalGpuHandle EnumNvidiaGpuHandles()
 
 VOID GetNvidiaGpuUsages()
 {
+    // TODO: GetNvidiaTemp - http://forums.developer.nvidia.com/index.php?showtopic=2229
+
     unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
     int gpuCount = 0;
     // gpuUsages[0] must be this value, otherwise NvAPI_GPU_GetUsages won't work
