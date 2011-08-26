@@ -1383,7 +1383,6 @@ VOID PhTnpOnHScroll(
     if (scrollInfo.nPos != oldPosition)
     {
         Context->HScrollPosition = scrollInfo.nPos;
-        PhTnpLayout(Context);
         PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
     }
 }
@@ -2044,9 +2043,6 @@ VOID PhTnpLayout(
     )
 {
     RECT clientRect;
-    RECT rect;
-    HDLAYOUT hdl;
-    WINDOWPOS windowPos;
 
     if (Context->EnableRedraw <= 0)
     {
@@ -2097,6 +2093,17 @@ VOID PhTnpLayout(
             );
     }
 
+    PhTnpLayoutHeader(Context);
+}
+
+VOID PhTnpLayoutHeader(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    RECT rect;
+    HDLAYOUT hdl;
+    WINDOWPOS windowPos;
+
     hdl.prc = &rect;
     hdl.pwpos = &windowPos;
 
@@ -2104,7 +2111,7 @@ VOID PhTnpLayout(
     rect.left = 0;
     rect.top = 0;
     rect.right = Context->NormalLeft;
-    rect.bottom = clientRect.bottom;
+    rect.bottom = Context->ClientRect.bottom;
     Header_Layout(Context->FixedHeaderHandle, &hdl);
     SetWindowPos(Context->FixedHeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
     Context->HeaderHeight = windowPos.cy;
@@ -2112,8 +2119,8 @@ VOID PhTnpLayout(
     // Normal portion header control
     rect.left = Context->NormalLeft - Context->HScrollPosition;
     rect.top = 0;
-    rect.right = clientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-    rect.bottom = clientRect.bottom;
+    rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    rect.bottom = Context->ClientRect.bottom;
     Header_Layout(Context->HeaderHandle, &hdl);
     SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
 
@@ -3962,7 +3969,6 @@ VOID PhTnpProcessMouseHWheel(
     if (scrollInfo.nPos != oldPosition)
     {
         Context->HScrollPosition = scrollInfo.nPos;
-        PhTnpLayout(Context); // takes care of the tooltip as well
         PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
     }
 }
@@ -4728,6 +4734,8 @@ VOID PhTnpProcessScroll(
             NULL,
             SW_INVALIDATE
             );
+
+        PhTnpLayoutHeader(Context);
     }
 }
 
