@@ -384,11 +384,11 @@ VOID GetNvidiaGpuUsages()
     unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
 
     int gpuCount = 0;
-    int *gpuHandles[NVAPI_MAX_PHYSICAL_GPUS] = { NULL };
+    NvPhysicalGpuHandle gpuHandles[NVAPI_MAX_PHYSICAL_GPUS] = { NULL };
     // gpuUsages[0] must be this value, otherwise NvAPI_GPU_GetUsages won't work
     gpuUsages[0] = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
     
-    //(*NvAPI_EnumPhysicalGPUs)(gpuHandles, &gpuCount);
+    NvAPI_EnumPhysicalGPUs(gpuHandles, &gpuCount);
 
     NvAPI_GetUsages(gpuHandles[0], gpuUsages);
     {
