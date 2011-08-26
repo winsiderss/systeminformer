@@ -24,6 +24,7 @@
 #include <settings.h>
 #include <extmgri.h>
 #include <phplug.h>
+#include <emenu.h>
 #include <procprpp.h>
 
 BOOLEAN PhpThreadNodeHashtableCompareFunction(
@@ -606,9 +607,22 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
         return TRUE;
     case TreeNewHeaderRightClick:
         {
+            PH_TN_COLUMN_MENU_DATA data;
+
             // Customizable columns are disabled until we can figure out how to make it
             // co-operate with the column adjustments (e.g. Cycles Delta vs Context Switches Delta,
             // Service column).
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = PHTHTLC_CYCLESDELTA;
+            data.DefaultSortOrder = DescendingSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_NO_VISIBILITY);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
     case TreeNewLeftDoubleClick:

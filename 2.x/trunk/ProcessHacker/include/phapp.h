@@ -312,6 +312,13 @@ VOID PhInitializeTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data
     );
 
+#define PH_TN_COLUMN_MENU_NO_VISIBILITY 0x1
+
+VOID PhInitializeTreeNewColumnMenuEx(
+    __inout PPH_TN_COLUMN_MENU_DATA Data,
+    __in ULONG Flags
+    );
+
 PHAPPAPI
 BOOLEAN PhHandleTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data

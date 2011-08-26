@@ -1033,6 +1033,14 @@ VOID PhInitializeTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data
     )
 {
+    PhInitializeTreeNewColumnMenuEx(Data, 0);
+}
+
+VOID PhInitializeTreeNewColumnMenuEx(
+    __inout PPH_TN_COLUMN_MENU_DATA Data,
+    __in ULONG Flags
+    )
+{
     PPH_EMENU_ITEM sizeColumnToFitMenuItem;
     PPH_EMENU_ITEM sizeAllColumnsToFitMenuItem;
     PPH_EMENU_ITEM hideColumnMenuItem;
@@ -1045,31 +1053,39 @@ VOID PhInitializeTreeNewColumnMenu(
 
     sizeColumnToFitMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_SIZE_COLUMN_TO_FIT_ID, L"Size Column to Fit", NULL, NULL);
     sizeAllColumnsToFitMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_SIZE_ALL_COLUMNS_TO_FIT_ID, L"Size All Columns to Fit", NULL, NULL);
-    hideColumnMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_HIDE_COLUMN_ID, L"Hide Column", NULL, NULL);
-    chooseColumnsMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID, L"Choose Columns...", NULL, NULL);
+
+    if (!(Flags & PH_TN_COLUMN_MENU_NO_VISIBILITY))
+    {
+        hideColumnMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_HIDE_COLUMN_ID, L"Hide Column", NULL, NULL);
+        chooseColumnsMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID, L"Choose Columns...", NULL, NULL);
+    }
 
     PhInsertEMenuItem(Data->Menu, sizeColumnToFitMenuItem, -1);
     PhInsertEMenuItem(Data->Menu, sizeAllColumnsToFitMenuItem, -1);
-    PhInsertEMenuItem(Data->Menu, hideColumnMenuItem, -1);
-    PhInsertEMenuItem(Data->Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
-    PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, -1);
+
+    if (!(Flags & PH_TN_COLUMN_MENU_NO_VISIBILITY))
+    {
+        PhInsertEMenuItem(Data->Menu, hideColumnMenuItem, -1);
+        PhInsertEMenuItem(Data->Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
+        PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, -1);
+
+        if (TreeNew_GetFixedColumn(Data->TreeNewHandle))
+            minimumNumberOfColumns = 2; // don't allow user to remove all normal columns (the fixed column can never be removed)
+        else
+            minimumNumberOfColumns = 1;
+
+        if (!Data->MouseEvent || !Data->MouseEvent->Column ||
+            Data->MouseEvent->Column->Fixed || // don't allow the fixed column to be hidden
+            TreeNew_GetVisibleColumnCount(Data->TreeNewHandle) < minimumNumberOfColumns + 1
+            )
+        {
+            hideColumnMenuItem->Flags |= PH_EMENU_DISABLED;
+        }
+    }
 
     if (!Data->MouseEvent || !Data->MouseEvent->Column)
     {
         sizeColumnToFitMenuItem->Flags |= PH_EMENU_DISABLED;
-    }
-
-    if (TreeNew_GetFixedColumn(Data->TreeNewHandle))
-        minimumNumberOfColumns = 2; // don't allow user to remove all normal columns (the fixed column can never be removed)
-    else
-        minimumNumberOfColumns = 1;
-
-    if (!Data->MouseEvent || !Data->MouseEvent->Column ||
-        Data->MouseEvent->Column->Fixed || // don't allow the fixed column to be hidden
-        TreeNew_GetVisibleColumnCount(Data->TreeNewHandle) < minimumNumberOfColumns + 1
-        )
-    {
-        hideColumnMenuItem->Flags |= PH_EMENU_DISABLED;
     }
 }
 
