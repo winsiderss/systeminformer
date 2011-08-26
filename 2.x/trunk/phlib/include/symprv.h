@@ -151,9 +151,10 @@ typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     );
 
 #ifdef _M_X64
-PVOID PhAccessOutOfProcessFunctionTable(
+NTSTATUS PhAccessOutOfProcessFunctionEntry(
     __in HANDLE ProcessHandle,
-    __in ULONG64 ControlPc
+    __in ULONG64 ControlPc,
+    __out PRUNTIME_FUNCTION Function
     );
 #endif
 
