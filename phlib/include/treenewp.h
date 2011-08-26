@@ -374,6 +374,10 @@ VOID PhTnpLayout(
     __in PPH_TREENEW_CONTEXT Context
     );
 
+VOID PhTnpLayoutHeader(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
 VOID PhTnpSetFixedWidth(
     __in PPH_TREENEW_CONTEXT Context,
     __in ULONG FixedWidth
