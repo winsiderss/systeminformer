@@ -60,7 +60,6 @@ VersionInfoProductVersion={#simple_app_version}
 VersionInfoTextVersion={#simple_app_version}
 VersionInfoVersion={#simple_app_version}
 MinVersion=0,5.01.2600sp2
-AppReadmeFile={app}\Help.htm
 LicenseFile=..\..\LICENSE.txt
 InfoAfterFile=..\..\CHANGELOG.txt
 SetupIconFile=..\..\ProcessHacker\ProcessHacker.ico
@@ -145,7 +144,6 @@ Source: ..\..\CHANGELOG.txt;                                      DestDir: {app}
 Source: ..\..\COPYRIGHT.txt;                                      DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\LICENSE.txt;                                        DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\README.txt;                                         DestDir: {app};                                                    Flags: ignoreversion
-Source: ..\..\doc\Help.htm;                                       DestDir: {app};                                                    Flags: ignoreversion
 
 Source: ..\..\bin\Release32\ProcessHacker.exe;                    DestDir: {app};                                                    Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\bin\Release64\ProcessHacker.exe;                    DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
@@ -184,7 +182,6 @@ Source: Icons\uninstall.ico;                                      DestDir: {app}
 Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt;    WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
-Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile};  Filename: {app}\Help.htm;         WorkingDir: {app}; Comment: {cm:sm_HelpFile}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
 Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};     Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
