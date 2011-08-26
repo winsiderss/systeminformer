@@ -171,7 +171,7 @@ LRESULT CALLBACK PhTnpWndProc(
         }
         break;
     case WM_GETDLGCODE:
-        return DLGC_WANTARROWS | DLGC_WANTCHARS;
+        return PhTnpOnGetDlgCode(hwnd, context, (ULONG)wParam, (PMSG)lParam);
     case WM_SETFOCUS:
         {
             context->HasFocus = TRUE;
@@ -565,6 +565,23 @@ VOID PhTnpOnThemeChanged(
     )
 {
     PhTnpUpdateThemeData(Context);
+}
+
+ULONG PhTnpOnGetDlgCode(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKey,
+    __in_opt PMSG Message
+    )
+{
+    ULONG code;
+
+    if (Context->Callback(hwnd, TreeNewGetDialogCode, UlongToPtr(VirtualKey), &code, Context->CallbackContext))
+    {
+        return code;
+    }
+
+    return DLGC_WANTARROWS | DLGC_WANTCHARS;
 }
 
 VOID PhTnpOnPaint(

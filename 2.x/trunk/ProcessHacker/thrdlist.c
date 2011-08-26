@@ -598,6 +598,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             case VK_DELETE:
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_THREAD_TERMINATE, 0);
                 break;
+            case VK_RETURN:
+                SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_THREAD_INSPECT, 0);
+                break;
             }
         }
         return TRUE;
@@ -620,6 +623,17 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
         }
         return TRUE;
+    case TreeNewGetDialogCode:
+        {
+            PULONG code = Parameter2;
+
+            if (PtrToUlong(Parameter1) == VK_RETURN)
+            {
+                *code = DLGC_WANTMESSAGE;
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
 
     return FALSE;

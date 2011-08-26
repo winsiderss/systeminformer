@@ -722,6 +722,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_COPY, 0);
                 break;
+            case VK_RETURN:
+                SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_INSPECT, 0);
+                break;
             }
         }
         return TRUE;
@@ -753,6 +756,17 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
         }
         return TRUE;
+    case TreeNewGetDialogCode:
+        {
+            PULONG code = Parameter2;
+
+            if (PtrToUlong(Parameter1) == VK_RETURN)
+            {
+                *code = DLGC_WANTMESSAGE;
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
 
     return FALSE;

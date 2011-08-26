@@ -637,6 +637,9 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 // Pass a 1 in lParam to indicate that warnings should be enabled.
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_HANDLE_CLOSE, 1);
                 break;
+            case VK_RETURN:
+                SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_HANDLE_PROPERTIES, 0);
+                break;
             }
         }
         return TRUE;
@@ -668,6 +671,17 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
         }
         return TRUE;
+    case TreeNewGetDialogCode:
+        {
+            PULONG code = Parameter2;
+
+            if (PtrToUlong(Parameter1) == VK_RETURN)
+            {
+                *code = DLGC_WANTMESSAGE;
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
 
     return FALSE;
