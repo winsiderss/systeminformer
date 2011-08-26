@@ -702,6 +702,13 @@ BOOL ReadRequestString(
     return TRUE;
 }
 
+mxml_type_t QueryXmlDataCallback(
+    __in mxml_node_t *node
+    )
+{
+    return MXML_OPAQUE;
+}
+
 BOOL QueryXmlData(
     __in PVOID Buffer,
     __out PUPDATER_XML_DATA XmlData
@@ -712,7 +719,7 @@ BOOL QueryXmlData(
     PPH_STRING temp;
 
     // Load our XML.
-    xmlDoc = mxmlLoadString(NULL, (char*)Buffer, MXML_OPAQUE_CALLBACK);
+    xmlDoc = mxmlLoadString(NULL, (char*)Buffer, QueryXmlDataCallback);
     // Check our XML.
     if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
     {
