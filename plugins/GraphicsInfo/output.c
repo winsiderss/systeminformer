@@ -378,7 +378,6 @@ VOID EnumNvidiaGpuHandles()
     }
 }
 
-
 VOID GetNvidiaGpuUsages()
 {
     unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
