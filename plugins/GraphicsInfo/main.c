@@ -96,9 +96,13 @@ VOID NTAPI LoadCallback(
 
             // Query Functions
             NvAPI_GetUsages = (P_NvAPI_GPU_GetUsages)NvAPI_QueryInterface(0x189A1FDF);
-       
+
+            // Driver Info Functions
+            NvAPI_GetFullName = (P_NvAPI_GPU_GetFullName)NvAPI_QueryInterface(0xCEEE8E9F);
         }
     }
+          
+    NvInit();
 }
 
 VOID NTAPI UnloadCallback(
