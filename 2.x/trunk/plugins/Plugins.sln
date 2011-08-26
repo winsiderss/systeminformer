@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DotNetTools", "DotNetTools\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Updater", "Updater\Updater.vcxproj", "{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsInfo", "GraphicsInfo\GraphicsInfo.vcxproj", "{B509BF8F-6007-4173-B05E-5037B958C12F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -109,6 +111,14 @@ Global
 		{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}.Release|Win32.Build.0 = Release|Win32
 		{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}.Release|x64.ActiveCfg = Release|x64
 		{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}.Release|x64.Build.0 = Release|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|Win32.Build.0 = Debug|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|x64.ActiveCfg = Debug|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|x64.Build.0 = Debug|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|Win32.ActiveCfg = Release|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|Win32.Build.0 = Release|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|x64.ActiveCfg = Release|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
