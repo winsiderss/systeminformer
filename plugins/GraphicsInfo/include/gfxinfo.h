@@ -69,7 +69,7 @@ VOID EnumNvidiaGpuHandles();
 VOID GetNvidiaGpuUsages();
 
 // macro by dmex
-#define NV_SUCCESS(Status) (((NvAPI_Status)(Status)) == 0)
+#define NV_SUCCESS(Status) (((NvAPI_Status)(Status)) == NVAPI_OK)
 
 // dmex - magic numbers, do not change them
 #define NVAPI_MAX_PHYSICAL_GPUS   64
