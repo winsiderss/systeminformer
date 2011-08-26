@@ -1001,6 +1001,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
                             {
                                 OutOfProcessCallbackDllString->Buffer = OutOfProcessCallbackDllBuffer;
                                 OutOfProcessCallbackDllString->Length = (USHORT)(i * sizeof(WCHAR));
+                                OutOfProcessCallbackDllString->us.MaximumLength = OutOfProcessCallbackDllString->Length;
                             }
 
                             break;
@@ -1020,6 +1021,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
                     {
                         OutOfProcessCallbackDllString->Buffer = NULL;
                         OutOfProcessCallbackDllString->Length = 0;
+                        OutOfProcessCallbackDllString->us.MaximumLength = 0;
                     }
                 }
             }
