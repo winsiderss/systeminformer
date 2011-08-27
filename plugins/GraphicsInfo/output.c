@@ -171,9 +171,10 @@ INT_PTR CALLBACK MainWndProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&GpuGraphState.TooltipText,
+                            PhSwapReference2(
+                                &GpuGraphState.TooltipText,
                                 PhFormatString(
-                                L"Core: %.2f%%",
+                                L"%.0f%%",
                                 CurrentGpuUsage * 100
                                 ));
 
@@ -287,7 +288,7 @@ INT_PTR CALLBACK MainWndProc(
                             usage = PhGetItemCircularBuffer_FLOAT(&GpuHistory, getTooltipText->Index);
 
                             PhSwapReference2(&GpuGraphState.TooltipText, PhFormatString(
-                                L"Core: %.2f%%",
+                                L"%.0f%%",
                                 usage * 100
                                 ));
                         }
@@ -417,8 +418,7 @@ INT_PTR CALLBACK MainWndProc(
                 SWP_NOACTIVATE | SWP_NOZORDER
                 );
 
-            deferHandle = DeferWindowPos(deferHandle, cpuGroupBox, NULL, margin.left, margin.top + (height + between) * 2,
-                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(deferHandle, cpuGroupBox, NULL, margin.left, margin.top + (height + between) * 2, width, height, SWP_NOACTIVATE | SWP_NOZORDER);
             deferHandle = DeferWindowPos(
                 deferHandle,
                 CoreGraphHandle,
@@ -528,7 +528,7 @@ VOID LogEvent(__in PWSTR str, __in INT status)
         PPH_STRING statusString = NULL;
         NvAPI_ShortString nvString = { 0 };
 
-        NvAPI_GetErrorMessage((NvAPI_Status)status, nvString);
+        NvAPI_GetErrorMessage((NvStatus)status, nvString);
 
         nvPhString = PhCreateStringFromAnsi(nvString);
         statusString = PhFormatString(str, nvPhString->Buffer);
@@ -550,7 +550,7 @@ VOID LogEvent(__in PWSTR str, __in INT status)
 
 VOID NvInit(VOID)
 {
-    NvAPI_Status status = NvAPI_Initialize();
+    NvStatus status = NvAPI_Initialize();
 
     if (NV_SUCCESS(status))
     {
@@ -568,7 +568,7 @@ NvPhysicalGpuHandle EnumNvidiaGpuHandles()
     NvU32 gpuCount = 0;
     ULONG i = 0;
 
-    NvAPI_Status status = NvAPI_EnumPhysicalGPUs(szGPUHandle, &gpuCount);
+    NvStatus status = NvAPI_EnumPhysicalGPUs(szGPUHandle, &gpuCount);
 
     if (NV_SUCCESS(status))
     {
@@ -606,13 +606,13 @@ NvPhysicalGpuHandle EnumNvidiaGpuHandles()
     return szGPUHandle[0];
 }
 
-NvDisplayHandle EnumNvidiaDisplayHandles()
+NvDisplayHandle EnumNvidiaDisplayHandles(VOID)
 {
     NvPhysicalGpuHandle szGPUHandle[NVAPI_MAX_PHYSICAL_GPUS] = { 0 };     
     NvU32 gpuCount = 0;
     ULONG i = 0;
 
-    NvAPI_Status status = NvAPI_EnumPhysicalGPUs(szGPUHandle, &gpuCount);
+    NvStatus status = NvAPI_EnumPhysicalGPUs(szGPUHandle, &gpuCount);
 
     if (NV_SUCCESS(status))
     {
@@ -634,10 +634,10 @@ NvDisplayHandle EnumNvidiaDisplayHandles()
     return NULL;
 }
 
-VOID GetNvidiaGpuUsages()
+VOID GetNvidiaGpuUsages(VOID)
 {
     // TODO: GetNvidiaTemp - http://forums.developer.nvidia.com/index.php?showtopic=2229
-    NvAPI_Status status;
+    NvStatus status;
     NvPhysicalGpuHandle physHandle;
     NvDisplayHandle dispHandle;
 
@@ -676,8 +676,6 @@ VOID GetNvidiaGpuUsages()
         ULONG usedMemory = max(totalMemory - freeMemory, 0);
         
         CurrentMemUsage = (FLOAT)usedMemory;// (FLOAT)usedMemory / totalMemory;
-
-
         MaxMemUsage = totalMemory;
 
         PhAddItemCircularBuffer_ULONG(&MemHistory, usedMemory);
