@@ -94,7 +94,7 @@ typedef struct _NV_USAGES_INFO
 } NV_USAGES_INFO_V1, *PNV_USAGES_INFO_V1;
 
 // rev
-typedef void* (__cdecl *P_NvAPI_QueryInterface)(UINT);
+typedef PVOID (__cdecl *P_NvAPI_QueryInterface)(UINT);
 P_NvAPI_QueryInterface NvAPI_QueryInterface;
 
 // rev
