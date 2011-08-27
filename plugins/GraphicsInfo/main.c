@@ -101,6 +101,7 @@ VOID NTAPI LoadCallback(
            
             // Query Functions
             NvAPI_GetUsages = (P_NvAPI_GPU_GetUsages)NvAPI_QueryInterface(0x189A1FDF);
+            NvAPI_GetMemoryInfo = (P_NvAPI_GetMemoryInfo)NvAPI_QueryInterface(0x774AA982);
             NvAPI_GetPhysicalGPUsFromDisplay = (P_NvAPI_GetPhysicalGPUsFromDisplay)NvAPI_QueryInterface(0x34EF9506);
 
             // Driver Info Functions

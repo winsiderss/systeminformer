@@ -68,31 +68,43 @@ VOID NvInit(VOID);
 NvPhysicalGpuHandle EnumNvidiaGpuHandles();
 VOID GetNvidiaGpuUsages();
 
+#pragma pack(push,8) // Make sure we have consistent structure packings
+
 // macro by dmex
 #define NV_SUCCESS(Status) (((NvAPI_Status)(Status)) == NVAPI_OK)
 
 // dmex - magic numbers, do not change them
 #define NVAPI_MAX_PHYSICAL_GPUS   64
-#define NVAPI_MAX_USAGES_PER_GPU  34
+#define NVAPI_MAX_USAGES_PER_GPU  33 //34
+#define MAX_MEMORY_VALUES_PER_GPU 5
+
 
 typedef void* (__cdecl *P_NvAPI_QueryInterface)(UINT offset);
 P_NvAPI_QueryInterface NvAPI_QueryInterface;
 
-typedef void* (__cdecl *P_NvApi_CallStart)(UINT, UINT*); // weak
-P_NvApi_CallStart NvAPI_CallStart;
+// rev
+typedef struct _NV_MEMORY_INFO
+{
+    NvU32 version;
+    NvU32 usages[MAX_MEMORY_VALUES_PER_GPU];
+} NV_MEMORY_INFO_V1, *PNV_MEMORY_INFO_V1;
 
-typedef int (__cdecl *P_NvApi_CallReturn)(DWORD, DWORD, DWORD, DWORD); // weak
-P_NvApi_CallReturn NvAPI_CallReturn;
+#define NV_MEMORY_INFO_VER MAKE_NVAPI_VERSION(NV_MEMORY_INFO_V1, 1)
+
+// rev
+typedef NvAPI_Status (__cdecl *P_NvAPI_GetMemoryInfo)(NvDisplayHandle nvGPUHandle, PNV_MEMORY_INFO_V1 pMemoryInfo);
+P_NvAPI_GetMemoryInfo NvAPI_GetMemoryInfo;
 
 
 // rev
 typedef struct _NV_USAGES_INFO
 {
     NvU32 version;
-    NvU32 usages[NVAPI_MAX_USAGES_PER_GPU * 4];
+    NvU32 usages[NVAPI_MAX_USAGES_PER_GPU]; //* 4
 } NV_USAGES_INFO_V1, *PNV_USAGES_INFO_V1;
 
-//#define NV_USAGES_INFO_VER MAKE_NVAPI_VERSION(NV_USAGES_INFO_V1, 1)
+#define NV_USAGES_INFO_VER MAKE_NVAPI_VERSION(NV_USAGES_INFO_V1, 1)
 
-typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle nvGPUHandle, PNV_USAGES_INFO_V1 usages); //UINT *usages
+// rev
+typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle nvGPUHandle, PNV_USAGES_INFO_V1 pUsages); //UINT *usages
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;
