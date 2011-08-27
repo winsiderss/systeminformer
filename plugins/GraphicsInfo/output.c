@@ -33,9 +33,9 @@ static HWND GpuGraphHandle;
 static HWND CoreGraphHandle;
 static HWND MemGraphHandle;
 
-HANDLE WindowThreadHandle = NULL;
-HWND EtpEtwSysWindowHandle = NULL;
-HWND EtpEtwSysPanelWindowHandle = NULL;
+HANDLE GfxThreadHandle = NULL;
+HWND GfxWindowHandle = NULL;
+HWND GfxPanelWindowHandle = NULL;
 
 static PH_GRAPH_STATE GpuGraphState;
 static PH_GRAPH_STATE MemGraphState;
@@ -55,6 +55,11 @@ FLOAT CurrentMemUsage;
 FLOAT CurrentCoreUsage;
 ULONG MaxMemUsage;
 
+ULONG EtDiskReadCount;
+ULONG EtDiskWriteCount;
+ULONG EtNetworkReceiveCount;
+ULONG EtNetworkSendCount;
+
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
@@ -69,9 +74,8 @@ INT_PTR CALLBACK MainWndProc(
     {
     case WM_INITDIALOG:
         {
-            EtpEtwSysWindowHandle = hwndDlg;
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
-          
+         
             PhCenterWindow(hwndDlg, PhMainWndHandle);
             
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
@@ -79,9 +83,7 @@ INT_PTR CALLBACK MainWndProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            
             PhLoadWindowPlacementFromSetting(SETTING_NAME_GFX_WINDOW_POSITION, SETTING_NAME_GFX_WINDOW_SIZE, hwndDlg);
-
 
             PhInitializeGraphState(&GpuGraphState);
             PhInitializeGraphState(&CoreGraphState);
@@ -418,16 +420,21 @@ INT_PTR CALLBACK MainWndProc(
         {
             RECT margin;
 
-            EtpEtwSysPanelWindowHandle = CreateDialog(
+            GfxPanelWindowHandle = CreateDialog(
                 PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_SYSGFX_PANEL),
                 hwndDlg,
                 EtpEtwSysPanelDlgProc
                 );
 
-            SetWindowPos(EtpEtwSysPanelWindowHandle, NULL, 10, 0, 0, 0,
-                SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
-            ShowWindow(EtpEtwSysPanelWindowHandle, SW_SHOW);
+            SetWindowPos(
+                GfxPanelWindowHandle, 
+                NULL, 
+                10, 0, 0, 0,
+                SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER
+                );
+
+            ShowWindow(GfxPanelWindowHandle, SW_SHOW);
 
             //AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(SETTING_NAME_ETWSYS_ALWAYS_ON_TOP);
             //Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
@@ -439,16 +446,22 @@ INT_PTR CALLBACK MainWndProc(
             margin.bottom = 25;
             MapDialogRect(hwndDlg, &margin);
 
-            PhAddLayoutItemEx(&WindowLayoutManager, EtpEtwSysPanelWindowHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT, margin);
+            PhAddLayoutItemEx(
+                &WindowLayoutManager, 
+                GfxPanelWindowHandle, 
+                NULL, 
+                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT, 
+                margin
+                );
 
             SendMessage(hwndDlg, WM_SIZE, 0, 0);
-            SendMessage(hwndDlg, WM_ET_ETWSYS_UPDATE, 0, 0);
+            SendMessage(hwndDlg, WM_GFX_UPDATE, 0, 0);
         }
         break;
     case WM_SIZE:
         {                      
             HDWP deferHandle;
-            HWND cpuGroupBox = GetDlgItem(hwndDlg, IDC_GROUPMEM2);
+            HWND cpuGroupBox = GetDlgItem(hwndDlg, IDC_GROUPCONTROLLER);
             HWND diskGroupBox = GetDlgItem(hwndDlg, IDC_GROUPGPU);
             HWND networkGroupBox = GetDlgItem(hwndDlg, IDC_GROUPMEM);
             RECT clientRect;
@@ -466,7 +479,7 @@ INT_PTR CALLBACK MainWndProc(
 
             GetClientRect(hwndDlg, &clientRect);
             // Limit the rectangle bottom to the top of the panel.
-            GetWindowRect(EtpEtwSysPanelWindowHandle, &panelRect);
+            GetWindowRect(GfxPanelWindowHandle, &panelRect);
             MapWindowPoints(NULL, hwndDlg, (POINT *)&panelRect, 2);
             clientRect.bottom = panelRect.top;
 
@@ -547,7 +560,7 @@ INT_PTR CALLBACK MainWndProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case WM_ET_ETWSYS_UPDATE:
+    case WM_GFX_UPDATE:
         {
             GetNvidiaGpuUsages();
 
@@ -558,7 +571,6 @@ INT_PTR CALLBACK MainWndProc(
             Graph_UpdateTooltip(GpuGraphHandle);
             InvalidateRect(GpuGraphHandle, NULL, FALSE);
 
-            
             CoreGraphState.Valid = FALSE;
             CoreGraphState.TooltipIndex = -1;
             Graph_MoveGrid(CoreGraphHandle, 1);
@@ -573,7 +585,7 @@ INT_PTR CALLBACK MainWndProc(
             Graph_UpdateTooltip(MemGraphHandle);
             InvalidateRect(MemGraphHandle, NULL, FALSE);
 
-            SendMessage(EtpEtwSysPanelWindowHandle, WM_ET_ETWSYS_PANEL_UPDATE, 0, 0);
+            SendMessage(GfxPanelWindowHandle, WM_GFX_PANEL_UPDATE, 0, 0);
         }
         break;
     }
@@ -590,7 +602,7 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
 {
     switch (uMsg)
     {
-    case WM_ET_ETWSYS_PANEL_UPDATE:
+    case WM_GFX_PANEL_UPDATE:
         {
             //SetDlgItemText(hwndDlg, IDC_ZREADS_V, PhaFormatUInt64(EtDiskReadCount, TRUE)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhaFormatSize(EtDiskReadDelta.Value, -1)->Buffer);
@@ -613,24 +625,24 @@ static VOID NTAPI EtwSysUpdateHandler(
     __in_opt PVOID Context
     )
 {
-    PostMessage(EtpEtwSysWindowHandle, WM_ET_ETWSYS_UPDATE, 0, 0);
+    PostMessage(GfxWindowHandle, WM_GFX_UPDATE, 0, 0);
 }
 
 
 VOID ShowDialog(VOID)
 {
-    if (!EtpEtwSysWindowHandle)
+    if (!GfxWindowHandle)
     {
-        if (!(WindowThreadHandle = PhCreateThread(0, WindowThreadStart, NULL)))
+        if (!(GfxThreadHandle = PhCreateThread(0, WindowThreadStart, NULL)))
         {
-            PhShowStatus(PhMainWndHandle, L"Unable to create the ETW information window", 0, GetLastError());
+            PhShowStatus(PhMainWndHandle, L"Unable to create the Graphics information window.", 0, GetLastError());
             return;
         }
 
         PhWaitForEvent(&InitializedEvent, NULL);
     }
 
-    SendMessage(EtpEtwSysWindowHandle, WM_GFX_ACTIVATE, 0, 0);
+    SendMessage(GfxWindowHandle, WM_GFX_ACTIVATE, 0, 0);
 }
 
 static NTSTATUS WindowThreadStart(
@@ -643,7 +655,7 @@ static NTSTATUS WindowThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtpEtwSysWindowHandle = CreateDialog(
+    GfxWindowHandle = CreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_SYSGFX),
         NULL,
@@ -657,7 +669,7 @@ static NTSTATUS WindowThreadStart(
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(EtpEtwSysWindowHandle, &message))
+        if (!IsDialogMessage(GfxWindowHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -668,17 +680,14 @@ static NTSTATUS WindowThreadStart(
 
     PhDeleteAutoPool(&autoPool);
     PhResetEvent(&InitializedEvent);
-    NtClose(WindowThreadHandle);
+    NtClose(GfxThreadHandle);
 
-    EtpEtwSysWindowHandle = NULL;
-    EtpEtwSysPanelWindowHandle = NULL;
-    WindowThreadHandle = NULL;
+    GfxWindowHandle = NULL;
+    GfxPanelWindowHandle = NULL;
+    GfxThreadHandle = NULL;
 
     return STATUS_SUCCESS;
 }
-
-
-
 
 VOID LogEvent(__in PWSTR str, __in NvStatus status)
 {
@@ -795,9 +804,9 @@ NvDisplayHandle EnumNvidiaDisplayHandles(VOID)
 VOID GetNvidiaGpuUsages(VOID)
 {
     // TODO: GetNvidiaTemp - http://forums.developer.nvidia.com/index.php?showtopic=2229
-    NvStatus status;
-    NvPhysicalGpuHandle physHandle;
-    NvDisplayHandle dispHandle;
+    NvStatus status = NVAPI_ERROR;
+    NvPhysicalGpuHandle physHandle = NULL;
+    NvDisplayHandle dispHandle = NULL;
 
     NV_USAGES_INFO_V1 gpuInfo = { 0 };
     NV_MEMORY_INFO_V2 memInfo = { 0 };
@@ -836,13 +845,64 @@ VOID GetNvidiaGpuUsages(VOID)
         
         ULONG usedMemory = max(totalMemory - freeMemory, 0);
         
-        CurrentMemUsage = (FLOAT)usedMemory;// (FLOAT)usedMemory / totalMemory;
         MaxMemUsage = totalMemory;
-
+        CurrentMemUsage = (FLOAT)usedMemory;
+        
         PhAddItemCircularBuffer_ULONG(&MemHistory, usedMemory);
     }
     else
     {
         LogEvent(L"gfxinfo: (GetNvidiaGpuUsages) NvAPI_GetMemoryInfo failed (%s)", status);
+    }
+}
+
+
+VOID GetDriverName(VOID)
+{
+    NvStatus status = NVAPI_ERROR;
+    NvPhysicalGpuHandle physHandle = NULL;
+
+    NvAPI_ShortString str = { 0 };
+    physHandle = EnumNvidiaGpuHandles();
+    status = NvAPI_GetFullName(physHandle, str);
+
+    if (NV_SUCCESS(status))
+    {
+        PPH_STRING name = PhCreateStringFromAnsi(str);
+
+        PhDereferenceObject(name);
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (GetFullName) NvAPI_GetFullName failed (%s)", status);
+    }
+}
+
+VOID GetDriverVersion(VOID)
+{
+    NvStatus status = NVAPI_ERROR;
+    NvDisplayHandle dispHandle = NULL;
+
+    NV_DISPLAY_DRIVER_VERSION versionInfo = { 0 };
+    versionInfo.Version = NV_DISPLAY_DRIVER_VERSION_VER;
+
+    dispHandle = EnumNvidiaDisplayHandles();
+    status = NvAPI_GetDisplayDriverVersion(dispHandle, &versionInfo);
+
+    if (NV_SUCCESS(status))
+    {
+        PH_STRING_BUILDER strb = { 0 };
+
+        PhInitializeStringBuilder(&strb, 30);
+
+        PhAppendFormatStringBuilder(&strb, L"Driver Version: %d", versionInfo.drvVersion / 100);
+        PhAppendFormatStringBuilder(&strb, L".%d", versionInfo.drvVersion % 100);
+        //PhAppendFormatStringBuilder(&strb, L" Driver Branch: %ls", versionInfo.szBuildBranchString);
+
+        PhDeleteStringBuilder(&strb);
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (GetDriverVersion) NvAPI_GetDisplayDriverVersion failed (%s)", status);
     }
 }
