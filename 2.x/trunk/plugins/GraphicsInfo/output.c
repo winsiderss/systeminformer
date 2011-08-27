@@ -585,9 +585,6 @@ VOID GetNvidiaGpuUsages()
 
     NV_USAGES_INFO_V1 gpuInfo = { 0 };
     NV_MEMORY_INFO_V2 memInfo = { 0 };
-
-    UINT size = NV_MEMORY_INFO_VER;
-
     gpuInfo.Version = NV_USAGES_INFO_VER;
     memInfo.Version = NV_MEMORY_INFO_VER;
 
