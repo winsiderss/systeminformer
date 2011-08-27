@@ -85,22 +85,22 @@ P_NvAPI_QueryInterface NvAPI_QueryInterface;
 // rev
 typedef struct _NV_MEMORY_INFO
 {
-    NvU32 version;
-    NvU32 usages[MAX_MEMORY_VALUES_PER_GPU];
-} NV_MEMORY_INFO_V1, *PNV_MEMORY_INFO_V1;
+    NvU32 Version;
+    NvU32 Values[MAX_MEMORY_VALUES_PER_GPU];
+} NV_MEMORY_INFO_V2, *PNV_MEMORY_INFO_V2;
 
-#define NV_MEMORY_INFO_VER MAKE_NVAPI_VERSION(NV_MEMORY_INFO_V1, 1)
+#define NV_MEMORY_INFO_VER MAKE_NVAPI_VERSION(NV_MEMORY_INFO_V2, 2)
 
 // rev
-typedef NvAPI_Status (__cdecl *P_NvAPI_GetMemoryInfo)(NvDisplayHandle nvGPUHandle, PNV_MEMORY_INFO_V1 pMemoryInfo);
+typedef NvAPI_Status (__cdecl *P_NvAPI_GetMemoryInfo)(NvDisplayHandle nvGPUHandle, PNV_MEMORY_INFO_V2 pMemoryInfo);
 P_NvAPI_GetMemoryInfo NvAPI_GetMemoryInfo;
 
 
 // rev
 typedef struct _NV_USAGES_INFO
 {
-    NvU32 version;
-    NvU32 usages[NVAPI_MAX_USAGES_PER_GPU]; //* 4
+    NvU32 Version;
+    NvU32 Values[NVAPI_MAX_USAGES_PER_GPU];
 } NV_USAGES_INFO_V1, *PNV_USAGES_INFO_V1;
 
 #define NV_USAGES_INFO_VER MAKE_NVAPI_VERSION(NV_USAGES_INFO_V1, 1)
