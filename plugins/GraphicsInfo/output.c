@@ -37,8 +37,12 @@ static VOID NTAPI EtwSysUpdateHandler(
     __in_opt PVOID Context
     );
 
-PH_CIRCULAR_BUFFER_ULONG GpuHistory;
-PH_CIRCULAR_BUFFER_ULONG MemHistory;
+PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
+PH_CIRCULAR_BUFFER_FLOAT MemHistory;
+FLOAT CurrentGpuUsage;
+
+static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
+static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
 INT_PTR CALLBACK MainWndProc(
     __in HWND hwndDlg,
@@ -51,6 +55,7 @@ INT_PTR CALLBACK MainWndProc(
     {
     case WM_INITDIALOG:
         {
+            EtpEtwSysWindowHandle = hwndDlg;
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
           
             PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -62,6 +67,7 @@ INT_PTR CALLBACK MainWndProc(
 
             PhInitializeGraphState(&GpuGraphState);
             PhInitializeGraphState(&MemGraphState);
+            PhInitializeCircularBuffer_FLOAT(&GpuHistory, PhGetIntegerSetting(L"SampleCount"));
 
             GpuGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
@@ -109,6 +115,7 @@ INT_PTR CALLBACK MainWndProc(
 
              PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedRegistration);
 
+             PhDeleteCircularBuffer_FLOAT(&GpuHistory);
              PhDeleteGraphState(&GpuGraphState);
              PhDeleteGraphState(&MemGraphState);
         }
@@ -121,6 +128,100 @@ INT_PTR CALLBACK MainWndProc(
             case IDOK:
                 {
                     EndDialog(hwndDlg, IDOK);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case GCN_GETDRAWINFO:
+                {
+                    PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
+                    PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+                    if (header->hwndFrom == GpuGraphHandle)
+                    {
+                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        {
+                            HDC hdc;
+
+                            PhSwapReference2(&GpuGraphState.TooltipText,
+                                PhFormatString(
+                                L"Core: %.2f%%",
+                                CurrentGpuUsage * 100
+                                ));
+
+                            hdc = Graph_GetBufferedContext(GpuGraphHandle);
+                            SelectObject(hdc, PhApplicationFont);
+                            PhSetGraphText(hdc, drawInfo, &GpuGraphState.TooltipText->sr,
+                                &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
+
+                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+                        //drawInfo->LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(drawInfo->LineColor1);
+                        //drawInfo->LineBackColor2 = PhHalveColorBrightness(drawInfo->LineColor2);
+
+                        PhGraphStateGetDrawInfo(
+                            &GpuGraphState,
+                            getDrawInfo,
+                            GpuHistory.Count
+                            );
+
+                        if (!GpuGraphState.Valid)
+                        {
+                            PhCopyCircularBuffer_FLOAT(&GpuHistory, getDrawInfo->DrawInfo->LineData1, getDrawInfo->DrawInfo->LineDataCount);
+                            GpuGraphState.Valid = TRUE;
+                        }
+                    }
+                }
+                break;
+            case GCN_GETTOOLTIPTEXT:
+                {
+                    PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
+
+                    if (
+                        header->hwndFrom == GpuGraphHandle &&
+                        getTooltipText->Index < getTooltipText->TotalCount
+                        )
+                    {
+                        if (GpuGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            FLOAT usage;
+
+                            usage = PhGetItemCircularBuffer_FLOAT(&GpuHistory, getTooltipText->Index);
+
+                            PhSwapReference2(&GpuGraphState.TooltipText, PhFormatString(
+                                L"Core: %.2f%%",
+                                usage * 100
+                                ));
+                        }
+
+                        getTooltipText->Text = GpuGraphState.TooltipText->sr;
+                    }
+                }
+                break;
+            case GCN_MOUSEEVENT:
+                {
+                    PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)lParam;
+
+                    if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+                    {
+                        if (header->hwndFrom == GpuGraphHandle)
+                        {
+                            PhShowInformation(hwndDlg, L"Double clicked!");
+                        }
+                    }
                 }
                 break;
             }
@@ -231,8 +332,10 @@ INT_PTR CALLBACK MainWndProc(
         break;
     case WM_ET_ETWSYS_UPDATE:
         {
-            //DiskGraphState.Valid = FALSE;
-            //DiskGraphState.TooltipIndex = -1;
+            GetNvidiaGpuUsages();
+
+            GpuGraphState.Valid = FALSE;
+            GpuGraphState.TooltipIndex = -1;
             Graph_MoveGrid(GpuGraphHandle, 1);
             Graph_Draw(GpuGraphHandle);
             Graph_UpdateTooltip(GpuGraphHandle);
@@ -333,7 +436,6 @@ VOID NvInit(VOID)
     if (NV_SUCCESS(status))
     {
         EnumNvidiaGpuHandles();
-        GetNvidiaGpuUsages();
     }
     else
     {
@@ -396,5 +498,8 @@ VOID GetNvidiaGpuUsages()
         int usage = gpuUsages[3];
         int memLoad = gpuUsages[6]; 
         int engineLoad = gpuUsages[10];
+
+        CurrentGpuUsage = (FLOAT)coreLoad / 100;
+        PhAddItemCircularBuffer_FLOAT(&GpuHistory, CurrentGpuUsage);
     }
 }
