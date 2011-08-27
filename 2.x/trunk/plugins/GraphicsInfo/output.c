@@ -40,6 +40,7 @@ static VOID NTAPI EtwSysUpdateHandler(
 PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
 PH_CIRCULAR_BUFFER_FLOAT MemHistory;
 FLOAT CurrentGpuUsage;
+FLOAT CurrentMemUsage;
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
@@ -68,6 +69,7 @@ INT_PTR CALLBACK MainWndProc(
             PhInitializeGraphState(&GpuGraphState);
             PhInitializeGraphState(&MemGraphState);
             PhInitializeCircularBuffer_FLOAT(&GpuHistory, PhGetIntegerSetting(L"SampleCount"));
+            PhInitializeCircularBuffer_FLOAT(&MemHistory, PhGetIntegerSetting(L"SampleCount"));
 
             GpuGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
@@ -116,6 +118,7 @@ INT_PTR CALLBACK MainWndProc(
              PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedRegistration);
 
              PhDeleteCircularBuffer_FLOAT(&GpuHistory);
+             PhDeleteCircularBuffer_FLOAT(&MemHistory);
              PhDeleteGraphState(&GpuGraphState);
              PhDeleteGraphState(&MemGraphState);
         }
@@ -182,6 +185,59 @@ INT_PTR CALLBACK MainWndProc(
                         {
                             PhCopyCircularBuffer_FLOAT(&GpuHistory, getDrawInfo->DrawInfo->LineData1, getDrawInfo->DrawInfo->LineDataCount);
                             GpuGraphState.Valid = TRUE;
+                        }
+                    }
+                    else if (header->hwndFrom == MemGraphHandle)
+                    {
+                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        {
+                            HDC hdc;
+
+                            PhSwapReference2(&MemGraphState.TooltipText,
+                                PhFormatString(
+                                L"Memory: %.2f%%",
+                                CurrentMemUsage * 100
+                                ));
+
+                            hdc = Graph_GetBufferedContext(MemGraphHandle);
+                            
+                            SelectObject(hdc, PhApplicationFont);
+                           
+                            PhSetGraphText(
+                                hdc, 
+                                drawInfo, 
+                                &MemGraphState.TooltipText->sr,  
+                                &NormalGraphTextMargin, 
+                                &NormalGraphTextPadding, 
+                                PH_ALIGN_TOP | PH_ALIGN_LEFT
+                                );
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
+
+                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+                        //drawInfo->LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(drawInfo->LineColor1);
+                        //drawInfo->LineBackColor2 = PhHalveColorBrightness(drawInfo->LineColor2);
+
+                        PhGraphStateGetDrawInfo(
+                            &MemGraphState,
+                            getDrawInfo,
+                            MemHistory.Count
+                            );
+
+                        if (!MemGraphState.Valid)
+                        {
+                            PhCopyCircularBuffer_FLOAT(
+                                &MemHistory, 
+                                getDrawInfo->DrawInfo->LineData1, 
+                                getDrawInfo->DrawInfo->LineDataCount
+                                );
+
+                            MemGraphState.Valid = TRUE;
                         }
                     }
                 }
@@ -435,7 +491,7 @@ VOID NvInit(VOID)
 
     if (NV_SUCCESS(status))
     {
-        EnumNvidiaGpuHandles();
+        //EnumNvidiaGpuHandles();
     }
     else
     {
@@ -487,27 +543,57 @@ NvPhysicalGpuHandle EnumNvidiaGpuHandles()
     return szGPUHandle[0];
 }
 
+NvDisplayHandle EnumNvidiaDisplayHandles()
+{
+    NvPhysicalGpuHandle szGPUHandle[NVAPI_MAX_PHYSICAL_GPUS] = { 0 };     
+    NvU32 gpuCount = 0;
+    ULONG i = 0;
 
+    NvAPI_Status status = NvAPI_EnumPhysicalGPUs(szGPUHandle, &gpuCount);
 
+    if (NV_SUCCESS(status))
+    {
+        for (i = 0; i < gpuCount; i++)
+        {
+            NvDisplayHandle zero = 0;
+
+            if (NV_SUCCESS(NvAPI_EnumNvidiaDisplayHandle(i, &zero)))
+            {
+                return zero;
+            }
+        }
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (EnumNvidiaDisplayHandles) NvAPI_EnumPhysicalGPUs failed (%s)", status);
+    }
+
+    return NULL;
+}
 
 VOID GetNvidiaGpuUsages()
 {
     // TODO: GetNvidiaTemp - http://forums.developer.nvidia.com/index.php?showtopic=2229
     NvAPI_Status status;
-    NV_USAGES_INFO_V1 info = { 0 };
+    NvPhysicalGpuHandle physHandle;
+    NvDisplayHandle dispHandle;
 
-    // TODO Fix NV_USAGES_INFO_V1 size.
-    //gpuUsages[0] must be this value, otherwise NvAPI_GPU_GetUsages won't work
-    info.version = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
+    NV_USAGES_INFO_V1 gpuInfo = { 0 };
+    NV_MEMORY_INFO_V1 memInfo = { 0 };
+    gpuInfo.version = NV_USAGES_INFO_VER;
+    memInfo.version = 131096;//NV_MEMORY_INFO_VER;
 
-    status = NvAPI_GetUsages(EnumNvidiaGpuHandles(), &info);
+    physHandle = EnumNvidiaGpuHandles();
+    dispHandle = EnumNvidiaDisplayHandles();
+    
+    status = NvAPI_GetUsages(physHandle, &gpuInfo);
 
     if (NV_SUCCESS(status))
     {
-        int coreLoad = info.usages[2];
-        int usage = info.usages[3];
-        int memLoad = info.usages[6]; 
-        int engineLoad = info.usages[10];
+        UINT coreLoad = gpuInfo.usages[2];
+        //int usage = gpuInfo.usages[3];
+        //int memLoad = gpuInfo.usages[6]; 
+        //int engineLoad = gpuInfo.usages[10];
 
         CurrentGpuUsage = (FLOAT)coreLoad / 100;
         PhAddItemCircularBuffer_FLOAT(&GpuHistory, CurrentGpuUsage);
@@ -515,5 +601,22 @@ VOID GetNvidiaGpuUsages()
     else
     {
         LogEvent(L"gfxinfo: (GetNvidiaGpuUsages) NvAPI_GetUsages failed (%s)", status);
+    }
+
+    status = NvAPI_GetMemoryInfo(dispHandle, &memInfo);
+     
+    if (NV_SUCCESS(status))
+    {
+        UINT totalMemory = memInfo.usages[0];
+        UINT freeMemory = memInfo.usages[4];
+        
+        UINT usedMemory = max(totalMemory - freeMemory, 0);; 
+        
+        CurrentMemUsage = (FLOAT)usedMemory;
+        PhAddItemCircularBuffer_FLOAT(&MemHistory, CurrentMemUsage);
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (GetNvidiaGpuUsages) NvAPI_GetMemoryInfo failed (%s)", status);
     }
 }
