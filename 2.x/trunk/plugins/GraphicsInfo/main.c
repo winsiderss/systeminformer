@@ -6,6 +6,13 @@ LOGICAL DllMain(
     __reserved PVOID Reserved
     )
 {
+    static PH_SETTING_CREATE settings[] =
+    {
+        { IntegerSettingType, SETTING_NAME_GFX_ALWAYS_ON_TOP, L"0" },
+        { IntegerPairSettingType, SETTING_NAME_GFX_WINDOW_POSITION, L"400,400" },
+        { IntegerPairSettingType, SETTING_NAME_GFX_WINDOW_SIZE, L"500,400" },
+    };
+
     switch (Reason)
     {
     case DLL_PROCESS_ATTACH:
@@ -36,22 +43,24 @@ LOGICAL DllMain(
                 );
             PhRegisterCallback(
 				PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-				MainWindowShowingCallback,
-				NULL,
-				&MainWindowShowingCallbackRegistration
-				);
-			 PhRegisterCallback(
-				PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-				MenuItemCallback,
-				NULL,
-				&PluginMenuItemCallbackRegistration
-				);
-			 PhRegisterCallback(
-				PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-				ShowOptionsCallback,
-				NULL,
-				&PluginShowOptionsCallbackRegistration
-				);
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+
+            PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
         }
         break;
     }
