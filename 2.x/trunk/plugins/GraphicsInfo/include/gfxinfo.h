@@ -11,6 +11,11 @@
 #define WM_ET_ETWSYS_PANEL_UPDATE (WM_APP + 160)
 
 VOID ShowDialog(VOID);
+VOID NvInit(VOID);
+NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
+VOID GetNvidiaGpuUsages(VOID);
+VOID LogEvent(__in PWSTR str, __in INT status);
+
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -61,26 +66,18 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
     __in LPARAM lParam
     );
 
-VOID LogEvent(__in PWSTR str, __in INT status);
-
-
-VOID NvInit(VOID);
-NvPhysicalGpuHandle EnumNvidiaGpuHandles();
-VOID GetNvidiaGpuUsages();
-
 #pragma pack(push,8) // Make sure we have consistent structure packings
 
 // macro by dmex
-#define NV_SUCCESS(Status) (((NvAPI_Status)(Status)) == NVAPI_OK)
+#define NV_SUCCESS(Status) (((NvStatus)(Status)) == NVAPI_OK)
 
 // dmex - magic numbers, do not change them
 #define NVAPI_MAX_PHYSICAL_GPUS   64
 #define NVAPI_MAX_USAGES_PER_GPU  33 //34
 #define MAX_MEMORY_VALUES_PER_GPU 5
 
-
-typedef void* (__cdecl *P_NvAPI_QueryInterface)(UINT offset);
-P_NvAPI_QueryInterface NvAPI_QueryInterface;
+#define NV_MEMORY_INFO_VER MAKE_NVAPI_VERSION(NV_MEMORY_INFO_V2, 2)
+#define NV_USAGES_INFO_VER MAKE_NVAPI_VERSION(NV_USAGES_INFO_V1, 1)
 
 // rev
 typedef struct _NV_MEMORY_INFO
@@ -89,13 +86,6 @@ typedef struct _NV_MEMORY_INFO
     NvU32 Values[MAX_MEMORY_VALUES_PER_GPU];
 } NV_MEMORY_INFO_V2, *PNV_MEMORY_INFO_V2;
 
-#define NV_MEMORY_INFO_VER MAKE_NVAPI_VERSION(NV_MEMORY_INFO_V2, 2)
-
-// rev
-typedef NvAPI_Status (__cdecl *P_NvAPI_GetMemoryInfo)(NvDisplayHandle nvGPUHandle, PNV_MEMORY_INFO_V2 pMemoryInfo);
-P_NvAPI_GetMemoryInfo NvAPI_GetMemoryInfo;
-
-
 // rev
 typedef struct _NV_USAGES_INFO
 {
@@ -103,8 +93,14 @@ typedef struct _NV_USAGES_INFO
     NvU32 Values[NVAPI_MAX_USAGES_PER_GPU];
 } NV_USAGES_INFO_V1, *PNV_USAGES_INFO_V1;
 
-#define NV_USAGES_INFO_VER MAKE_NVAPI_VERSION(NV_USAGES_INFO_V1, 1)
+// rev
+typedef void* (__cdecl *P_NvAPI_QueryInterface)(UINT);
+P_NvAPI_QueryInterface NvAPI_QueryInterface;
 
 // rev
-typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle nvGPUHandle, PNV_USAGES_INFO_V1 pUsages); //UINT *usages
+typedef NvStatus (__cdecl *P_NvAPI_GetMemoryInfo)(NvDisplayHandle, PNV_MEMORY_INFO_V2);
+P_NvAPI_GetMemoryInfo NvAPI_GetMemoryInfo;
+
+// rev
+typedef NvStatus (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle, PNV_USAGES_INFO_V1); //UINT *usages
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;

@@ -18,6 +18,7 @@
 #define IDC_ZSENDBYTES_V                1033
 #define IDC_GROUPGPU                    1035
 #define IDC_GROUPMEM                    1036
+#define IDC_GROUPMEM3                   1036
 #define IDC_ALWAYSONTOP                 1037
 #define IDC_GROUPMEM2                   1039
 
