@@ -89,7 +89,7 @@ VOID NTAPI LoadCallback(
             NvAPI_Unload = (P_NvAPI_Unload)NvAPI_QueryInterface(0xD22BDD7E);
 
             // Locking Functions
-            NvAPI_CallStart = (P_NvApi_CallStart)NvAPI_QueryInterface(0x33C7358Cu);
+            //NvAPI_CallStart = (P_NvApi_CallStart)NvAPI_QueryInterface(0x33C7358Cu);
             //NvAPI_CallReturn = (P_NvApi_CallReturn)NvAPI_QueryInterface(0x593E8644u);
 
             // Error Functions
@@ -97,9 +97,11 @@ VOID NTAPI LoadCallback(
 
             // Handle Functions
             NvAPI_EnumPhysicalGPUs = (P_NvAPI_EnumPhysicalGPUs)NvAPI_QueryInterface(0xE5AC921F);
-
+            NvAPI_EnumNvidiaDisplayHandle = (P_NvAPI_EnumNvidiaDisplayHandle)NvAPI_QueryInterface(0x9ABDD40D);
+           
             // Query Functions
             NvAPI_GetUsages = (P_NvAPI_GPU_GetUsages)NvAPI_QueryInterface(0x189A1FDF);
+            NvAPI_GetPhysicalGPUsFromDisplay = (P_NvAPI_GetPhysicalGPUsFromDisplay)NvAPI_QueryInterface(0x34EF9506);
 
             // Driver Info Functions
             NvAPI_GetFullName = (P_NvAPI_GPU_GetFullName)NvAPI_QueryInterface(0xCEEE8E9F);

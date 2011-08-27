@@ -403,12 +403,12 @@ VOID ShowDialog(VOID)
 
 VOID LogEvent(__in PWSTR str, __in INT status)
 {
-    PPH_STRING nvPhString = NULL;
-    PPH_STRING statusString = NULL;
-    NvAPI_ShortString nvString = { 0 };
-
     if (NvAPI_GetErrorMessage != NULL)
     {
+        PPH_STRING nvPhString = NULL;
+        PPH_STRING statusString = NULL;
+        NvAPI_ShortString nvString = { 0 };
+
         NvAPI_GetErrorMessage((NvAPI_Status)status, nvString);
 
         nvPhString = PhCreateStringFromAnsi(nvString);
@@ -447,33 +447,37 @@ NvPhysicalGpuHandle EnumNvidiaGpuHandles()
 {
     NvPhysicalGpuHandle szGPUHandle[NVAPI_MAX_PHYSICAL_GPUS] = { 0 };     
     NvU32 gpuCount = 0;
-    INT i = 0;
+    ULONG i = 0;
 
     NvAPI_Status status = NvAPI_EnumPhysicalGPUs(szGPUHandle, &gpuCount);
 
     if (NV_SUCCESS(status))
     {
-        //for (i = 0; i < gpuCount; i++)
-        //{
-            //INT zero = 0;
+        for (i = 0; i < gpuCount; i++)
+        {
+            NvDisplayHandle zero = 0;
 
-            /*if (NV_SUCCESS(NvAPI_EnumNvidiaDisplayHandle(i, &zero)))
+            if (NV_SUCCESS(NvAPI_EnumNvidiaDisplayHandle(i, &zero)))
             {
-                uint num3;
+                NvU32 num3;
 
-                IntPtr[] gpuHandles2 = new IntPtr[0x40];
-                if (NvAPI_GetPhysicalGPUsFromDisplay(zero, gpuHandles2, out num3).IsSuccess())
+                NvPhysicalGpuHandle gpuHandles2[0x40];
+
+                if (NV_SUCCESS(NvAPI_GetPhysicalGPUsFromDisplay(zero, gpuHandles2, &num3)))
                 {
-                    for (int gpuCount2 = 0; gpuCount2 < num3; gpuCount2++)
+                    ULONG gpuCount2;
+
+                    for (gpuCount2 = 0; gpuCount2 < num3; gpuCount2++)
                     {
-                        if (!NVidiaGPUs.ContainsKey(gpuCount2))
-                        {
-                            NVidiaGPUs.Add(gpuCount2, new NvidiaGPU(i, gpuHandles2[gpuCount2], zero));
-                        }
+                        //if (!NVidiaGPUs.ContainsKey(gpuCount2))
+                        //{
+                           // NVidiaGPUs.Add(gpuCount2, new NvidiaGPU(i, gpuHandles2[gpuCount2], zero));
+                        return gpuHandles2[gpuCount2];
+                        //}
                     }
                 }
-            }*/
-       // }
+            }
+        }
     }
     else
     {
@@ -483,23 +487,33 @@ NvPhysicalGpuHandle EnumNvidiaGpuHandles()
     return szGPUHandle[0];
 }
 
+
+
+
 VOID GetNvidiaGpuUsages()
 {
     // TODO: GetNvidiaTemp - http://forums.developer.nvidia.com/index.php?showtopic=2229
+    NvAPI_Status status;
+    NV_USAGES_INFO_V1 info = { 0 };
 
-    unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
-    int gpuCount = 0;
-    // gpuUsages[0] must be this value, otherwise NvAPI_GPU_GetUsages won't work
-    gpuUsages[0] = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
-    
-    NvAPI_GetUsages(EnumNvidiaGpuHandles(), gpuUsages);
+    // TODO Fix NV_USAGES_INFO_V1 size.
+    //gpuUsages[0] must be this value, otherwise NvAPI_GPU_GetUsages won't work
+    info.version = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
+
+    status = NvAPI_GetUsages(EnumNvidiaGpuHandles(), &info);
+
+    if (NV_SUCCESS(status))
     {
-        int coreLoad = gpuUsages[2];
-        int usage = gpuUsages[3];
-        int memLoad = gpuUsages[6]; 
-        int engineLoad = gpuUsages[10];
+        int coreLoad = info.usages[2];
+        int usage = info.usages[3];
+        int memLoad = info.usages[6]; 
+        int engineLoad = info.usages[10];
 
         CurrentGpuUsage = (FLOAT)coreLoad / 100;
         PhAddItemCircularBuffer_FLOAT(&GpuHistory, CurrentGpuUsage);
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (GetNvidiaGpuUsages) NvAPI_GetUsages failed (%s)", status);
     }
 }
