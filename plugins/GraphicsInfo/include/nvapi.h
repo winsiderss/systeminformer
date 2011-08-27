@@ -1299,7 +1299,6 @@ NVAPI_INTERFACE NvAPI_SYS_GetDriverAndBranchVersion(NvU32* pDriverVersion, NvAPI
 //! \ingroup disphandle
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_EnumNvidiaDisplayHandle(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
-
 typedef NvStatus (__cdecl *P_NvAPI_EnumNvidiaDisplayHandle)(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
 P_NvAPI_EnumNvidiaDisplayHandle NvAPI_EnumNvidiaDisplayHandle;
 

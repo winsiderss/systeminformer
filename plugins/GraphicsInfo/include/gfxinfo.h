@@ -111,3 +111,5 @@ P_NvAPI_GetMemoryInfo NvAPI_GetMemoryInfo;
 // rev
 typedef NvStatus (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle, PNV_USAGES_INFO_V1);
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;
+
+#pragma pack(pop)
