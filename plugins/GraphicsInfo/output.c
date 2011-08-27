@@ -24,6 +24,7 @@
 #include "gfxinfo.h"
 
 static HWND GpuGraphHandle;
+static HWND CoreGraphHandle;
 static HWND MemGraphHandle;
 
 HWND EtpEtwSysWindowHandle = NULL;
@@ -38,9 +39,10 @@ static VOID NTAPI EtwSysUpdateHandler(
     );
 
 PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
-PH_CIRCULAR_BUFFER_FLOAT MemHistory;
+PH_CIRCULAR_BUFFER_ULONG MemHistory;
 FLOAT CurrentGpuUsage;
 FLOAT CurrentMemUsage;
+ULONG MaxMemUsage;
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
@@ -69,7 +71,7 @@ INT_PTR CALLBACK MainWndProc(
             PhInitializeGraphState(&GpuGraphState);
             PhInitializeGraphState(&MemGraphState);
             PhInitializeCircularBuffer_FLOAT(&GpuHistory, PhGetIntegerSetting(L"SampleCount"));
-            PhInitializeCircularBuffer_FLOAT(&MemHistory, PhGetIntegerSetting(L"SampleCount"));
+            PhInitializeCircularBuffer_ULONG(&MemHistory, PhGetIntegerSetting(L"SampleCount"));
 
             GpuGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
@@ -86,6 +88,22 @@ INT_PTR CALLBACK MainWndProc(
                 );
             Graph_SetTooltip(GpuGraphHandle, TRUE);
             BringWindowToTop(GpuGraphHandle);
+     
+            CoreGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
+                0,
+                0,
+                3,
+                3,
+                hwndDlg,
+                (HMENU)IDC_CONTGRAPH,
+                PluginInstance->DllBase,
+                NULL
+                );
+            Graph_SetTooltip(CoreGraphHandle, TRUE);
+            BringWindowToTop(CoreGraphHandle);
 
             MemGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
@@ -118,7 +136,7 @@ INT_PTR CALLBACK MainWndProc(
              PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedRegistration);
 
              PhDeleteCircularBuffer_FLOAT(&GpuHistory);
-             PhDeleteCircularBuffer_FLOAT(&MemHistory);
+             PhDeleteCircularBuffer_ULONG(&MemHistory);
              PhDeleteGraphState(&GpuGraphState);
              PhDeleteGraphState(&MemGraphState);
         }
@@ -200,14 +218,14 @@ INT_PTR CALLBACK MainWndProc(
 
                             PhSwapReference2(&MemGraphState.TooltipText,
                                 PhFormatString(
-                                L"Memory: %.2f%%",
-                                CurrentMemUsage * 100
+                                L"%s / %s (%.2f%%)",
+                                PhaFormatSize(UInt32x32To64(CurrentMemUsage, 1024), -1)->Buffer,
+                                PhaFormatSize(UInt32x32To64(MaxMemUsage, 1024), -1)->Buffer,
+                                (FLOAT)CurrentMemUsage / MaxMemUsage * 100
                                 ));
 
                             hdc = Graph_GetBufferedContext(MemGraphHandle);
-                            
                             SelectObject(hdc, PhApplicationFont);
-                           
                             PhSetGraphText(
                                 hdc, 
                                 drawInfo, 
@@ -236,10 +254,19 @@ INT_PTR CALLBACK MainWndProc(
 
                         if (!MemGraphState.Valid)
                         {
-                             PhCopyCircularBuffer_FLOAT(
-                                &MemHistory, 
-                                getDrawInfo->DrawInfo->LineData1, 
-                                getDrawInfo->DrawInfo->LineDataCount
+                            ULONG i = 0;
+
+                            for (i = 0; i < drawInfo->LineDataCount; i++)
+                            {
+                                MemGraphState.Data1[i] =
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG(&MemHistory, i);
+                            }
+
+                            // Scale the data.
+                            PhxfDivideSingle2U(
+                                MemGraphState.Data1,
+                                (FLOAT)MaxMemUsage,
+                                drawInfo->LineDataCount
                                 );
 
                             MemGraphState.Valid = TRUE;
@@ -251,10 +278,7 @@ INT_PTR CALLBACK MainWndProc(
                 {
                     PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
 
-                    if (
-                        header->hwndFrom == GpuGraphHandle &&
-                        getTooltipText->Index < getTooltipText->TotalCount
-                        )
+                    if (header->hwndFrom == GpuGraphHandle && getTooltipText->Index < getTooltipText->TotalCount)
                     {
                         if (GpuGraphState.TooltipIndex != getTooltipText->Index)
                         {
@@ -269,6 +293,26 @@ INT_PTR CALLBACK MainWndProc(
                         }
 
                         getTooltipText->Text = GpuGraphState.TooltipText->sr;
+                    }
+
+                    if (header->hwndFrom == MemGraphHandle && getTooltipText->Index < getTooltipText->TotalCount)
+                    {
+                        if (MemGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            ULONG usage;
+
+                            usage = PhGetItemCircularBuffer_ULONG(&MemHistory, getTooltipText->Index);
+
+                            PhSwapReference2(&MemGraphState.TooltipText,
+                                PhFormatString(
+                                L"%s / %s (%.2f%%)",
+                                PhaFormatSize(UInt32x32To64(usage, 1024), -1)->Buffer,
+                                PhaFormatSize(UInt32x32To64(MaxMemUsage, 1024), -1)->Buffer,
+                                (FLOAT)usage / MaxMemUsage * 100
+                                ));
+                        }
+
+                        getTooltipText->Text = MemGraphState.TooltipText->sr;
                     }
                 }
                 break;
@@ -322,6 +366,7 @@ INT_PTR CALLBACK MainWndProc(
     case WM_SIZE:
         {                      
             HDWP deferHandle;
+            HWND cpuGroupBox = GetDlgItem(hwndDlg, IDC_GROUPMEM2);
             HWND diskGroupBox = GetDlgItem(hwndDlg, IDC_GROUPGPU);
             HWND networkGroupBox = GetDlgItem(hwndDlg, IDC_GROUPMEM);
             RECT clientRect;
@@ -334,8 +379,8 @@ INT_PTR CALLBACK MainWndProc(
 
             PhLayoutManagerLayout(&WindowLayoutManager);
 
-            //DiskGraphState.Valid = FALSE;
-            //NetworkGraphState.Valid = FALSE;
+            GpuGraphState.Valid = FALSE;
+            MemGraphState.Valid = FALSE;
 
             GetClientRect(hwndDlg, &clientRect);
             // Limit the rectangle bottom to the top of the panel.
@@ -344,9 +389,9 @@ INT_PTR CALLBACK MainWndProc(
             clientRect.bottom = panelRect.top;
 
             width = clientRect.right - margin.left - margin.right;
-            height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 2;
+            height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
 
-            deferHandle = BeginDeferWindowPos(4);
+            deferHandle = BeginDeferWindowPos(6);
 
             deferHandle = DeferWindowPos(deferHandle, diskGroupBox, NULL, margin.left, margin.top,  width, height, SWP_NOACTIVATE | SWP_NOZORDER);
             deferHandle = DeferWindowPos(
@@ -367,6 +412,19 @@ INT_PTR CALLBACK MainWndProc(
                 NULL,
                 margin.left + innerMargin.left,
                 margin.top + height + between + innerMargin.top,
+                width - innerMargin.left - innerMargin.right,
+                height - innerMargin.top - innerMargin.bottom,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
+
+            deferHandle = DeferWindowPos(deferHandle, cpuGroupBox, NULL, margin.left, margin.top + (height + between) * 2,
+                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(
+                deferHandle,
+                CoreGraphHandle,
+                NULL,
+                margin.left + innerMargin.left,
+                margin.top + (height + between) * 2 + innerMargin.top,
                 width - innerMargin.left - innerMargin.right,
                 height - innerMargin.top - innerMargin.bottom,
                 SWP_NOACTIVATE | SWP_NOZORDER
@@ -615,10 +673,14 @@ VOID GetNvidiaGpuUsages()
         UINT totalMemory = memInfo.Values[0];
         UINT freeMemory = memInfo.Values[4];
         
-        ULONG usedMemory = max(totalMemory - freeMemory, 0);; 
+        ULONG usedMemory = max(totalMemory - freeMemory, 0);
         
-        CurrentMemUsage = (FLOAT)usedMemory / totalMemory;
-        PhAddItemCircularBuffer_FLOAT(&MemHistory, CurrentMemUsage);
+        CurrentMemUsage = (FLOAT)usedMemory;// (FLOAT)usedMemory / totalMemory;
+
+
+        MaxMemUsage = totalMemory;
+
+        PhAddItemCircularBuffer_ULONG(&MemHistory, usedMemory);
     }
     else
     {
