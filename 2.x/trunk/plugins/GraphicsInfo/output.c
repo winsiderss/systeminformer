@@ -32,6 +32,7 @@ HWND EtpEtwSysPanelWindowHandle = NULL;
 
 static PH_GRAPH_STATE GpuGraphState;
 static PH_GRAPH_STATE MemGraphState;
+static PH_GRAPH_STATE CoreGraphState;
 
 static VOID NTAPI EtwSysUpdateHandler(
     __in_opt PVOID Parameter,
@@ -40,8 +41,11 @@ static VOID NTAPI EtwSysUpdateHandler(
 
 PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
 PH_CIRCULAR_BUFFER_ULONG MemHistory;
+PH_CIRCULAR_BUFFER_FLOAT CoreHistory;
+
 FLOAT CurrentGpuUsage;
 FLOAT CurrentMemUsage;
+FLOAT CurrentCoreUsage;
 ULONG MaxMemUsage;
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
@@ -69,8 +73,10 @@ INT_PTR CALLBACK MainWndProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             PhInitializeGraphState(&GpuGraphState);
+            PhInitializeGraphState(&CoreGraphState);
             PhInitializeGraphState(&MemGraphState);
             PhInitializeCircularBuffer_FLOAT(&GpuHistory, PhGetIntegerSetting(L"SampleCount"));
+            PhInitializeCircularBuffer_FLOAT(&CoreHistory, PhGetIntegerSetting(L"SampleCount"));
             PhInitializeCircularBuffer_ULONG(&MemHistory, PhGetIntegerSetting(L"SampleCount"));
 
             GpuGraphHandle = CreateWindow(
@@ -273,47 +279,112 @@ INT_PTR CALLBACK MainWndProc(
                             MemGraphState.Valid = TRUE;
                         }
                     }
+                    else if (header->hwndFrom == CoreGraphHandle)
+                    {
+                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        {
+                            HDC hdc;
+
+                            PhSwapReference2(
+                                &CoreGraphState.TooltipText,
+                                PhFormatString(
+                                L"%.0f%%",
+                                CurrentCoreUsage * 100
+                                ));
+
+                            hdc = Graph_GetBufferedContext(CoreGraphHandle);
+                            SelectObject(hdc, PhApplicationFont);
+                            PhSetGraphText(hdc, drawInfo, &CoreGraphState.TooltipText->sr,
+                                &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
+
+                        drawInfo->Flags = PH_GRAPH_USE_GRID;
+                        drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+                        //drawInfo->LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(drawInfo->LineColor1);
+                        //drawInfo->LineBackColor2 = PhHalveColorBrightness(drawInfo->LineColor2);
+
+                        PhGraphStateGetDrawInfo(
+                            &CoreGraphState,
+                            getDrawInfo,
+                            CoreHistory.Count
+                            );
+
+                        if (!CoreGraphState.Valid)
+                        {
+                            PhCopyCircularBuffer_FLOAT(
+                                &CoreHistory, 
+                                getDrawInfo->DrawInfo->LineData1, 
+                                getDrawInfo->DrawInfo->LineDataCount
+                                );
+
+                            CoreGraphState.Valid = TRUE;
+                        }
+                    }
                 }
                 break;
             case GCN_GETTOOLTIPTEXT:
                 {
                     PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
 
-                    if (header->hwndFrom == GpuGraphHandle && getTooltipText->Index < getTooltipText->TotalCount)
+                    if (getTooltipText->Index < getTooltipText->TotalCount)
                     {
-                        if (GpuGraphState.TooltipIndex != getTooltipText->Index)
+                        if (header->hwndFrom == GpuGraphHandle)
                         {
-                            FLOAT usage;
+                            if (GpuGraphState.TooltipIndex != getTooltipText->Index)
+                            {
+                                FLOAT usage;
 
-                            usage = PhGetItemCircularBuffer_FLOAT(&GpuHistory, getTooltipText->Index);
+                                usage = PhGetItemCircularBuffer_FLOAT(&GpuHistory, getTooltipText->Index);
 
-                            PhSwapReference2(&GpuGraphState.TooltipText, PhFormatString(
-                                L"%.0f%%",
-                                usage * 100
-                                ));
+                                PhSwapReference2(&GpuGraphState.TooltipText, PhFormatString(
+                                    L"%.0f%%",
+                                    usage * 100
+                                    ));
+                            }
+
+                            getTooltipText->Text = GpuGraphState.TooltipText->sr;
                         }
-
-                        getTooltipText->Text = GpuGraphState.TooltipText->sr;
-                    }
-
-                    if (header->hwndFrom == MemGraphHandle && getTooltipText->Index < getTooltipText->TotalCount)
-                    {
-                        if (MemGraphState.TooltipIndex != getTooltipText->Index)
+                        else if (header->hwndFrom == MemGraphHandle)
                         {
-                            ULONG usage;
+                            if (MemGraphState.TooltipIndex != getTooltipText->Index)
+                            {
+                                ULONG usage;
 
-                            usage = PhGetItemCircularBuffer_ULONG(&MemHistory, getTooltipText->Index);
+                                usage = PhGetItemCircularBuffer_ULONG(&MemHistory, getTooltipText->Index);
 
-                            PhSwapReference2(&MemGraphState.TooltipText,
-                                PhFormatString(
-                                L"%s / %s (%.2f%%)",
-                                PhaFormatSize(UInt32x32To64(usage, 1024), -1)->Buffer,
-                                PhaFormatSize(UInt32x32To64(MaxMemUsage, 1024), -1)->Buffer,
-                                (FLOAT)usage / MaxMemUsage * 100
-                                ));
+                                PhSwapReference2(&MemGraphState.TooltipText,
+                                    PhFormatString(
+                                    L"%s / %s (%.2f%%)",
+                                    PhaFormatSize(UInt32x32To64(usage, 1024), -1)->Buffer,
+                                    PhaFormatSize(UInt32x32To64(MaxMemUsage, 1024), -1)->Buffer,
+                                    (FLOAT)usage / MaxMemUsage * 100
+                                    ));
+                            }
+
+                            getTooltipText->Text = MemGraphState.TooltipText->sr;
                         }
+                        else if (header->hwndFrom == CoreGraphHandle)
+                        {
+                            if (CoreGraphState.TooltipIndex != getTooltipText->Index)
+                            {
+                                FLOAT usage;
 
-                        getTooltipText->Text = MemGraphState.TooltipText->sr;
+                                usage = PhGetItemCircularBuffer_FLOAT(&CoreHistory, getTooltipText->Index);
+
+                                PhSwapReference2(&CoreGraphState.TooltipText, 
+                                    PhFormatString(
+                                    L"%.0f%%",
+                                    usage * 100
+                                    ));
+                            }
+
+                            getTooltipText->Text = CoreGraphState.TooltipText->sr;
+                        }
                     }
                 }
                 break;
@@ -460,6 +531,14 @@ INT_PTR CALLBACK MainWndProc(
             Graph_UpdateTooltip(GpuGraphHandle);
             InvalidateRect(GpuGraphHandle, NULL, FALSE);
 
+            
+            CoreGraphState.Valid = FALSE;
+            CoreGraphState.TooltipIndex = -1;
+            Graph_MoveGrid(CoreGraphHandle, 1);
+            Graph_Draw(CoreGraphHandle);
+            Graph_UpdateTooltip(CoreGraphHandle);
+            InvalidateRect(CoreGraphHandle, NULL, FALSE);
+
             MemGraphState.Valid = FALSE;
             MemGraphState.TooltipIndex = -1;
             Graph_MoveGrid(MemGraphHandle, 1);
@@ -520,7 +599,7 @@ VOID ShowDialog(VOID)
         );
 }
 
-VOID LogEvent(__in PWSTR str, __in INT status)
+VOID LogEvent(__in PWSTR str, __in NvStatus status)
 {
     if (NvAPI_GetErrorMessage != NULL)
     {
@@ -528,7 +607,7 @@ VOID LogEvent(__in PWSTR str, __in INT status)
         PPH_STRING statusString = NULL;
         NvAPI_ShortString nvString = { 0 };
 
-        NvAPI_GetErrorMessage((NvStatus)status, nvString);
+        NvAPI_GetErrorMessage(status, nvString);
 
         nvPhString = PhCreateStringFromAnsi(nvString);
         statusString = PhFormatString(str, nvPhString->Buffer);
@@ -589,10 +668,8 @@ NvPhysicalGpuHandle EnumNvidiaGpuHandles()
                     for (gpuCount2 = 0; gpuCount2 < num3; gpuCount2++)
                     {
                         //if (!NVidiaGPUs.ContainsKey(gpuCount2))
-                        //{
                            // NVidiaGPUs.Add(gpuCount2, new NvidiaGPU(i, gpuHandles2[gpuCount2], zero));
                         return gpuHandles2[gpuCount2];
-                        //}
                     }
                 }
             }
@@ -654,12 +731,15 @@ VOID GetNvidiaGpuUsages(VOID)
     if (NV_SUCCESS(status))
     {
         UINT coreLoad = gpuInfo.Values[2];
-        //int usage = gpuInfo.usages[3];
-        //int memLoad = gpuInfo.usages[6]; 
-        //int engineLoad = gpuInfo.usages[10];
+        UINT usage = gpuInfo.Values[3];
+        UINT memLoad = gpuInfo.Values[6]; 
+        UINT engineLoad = gpuInfo.Values[10];
 
         CurrentGpuUsage = (FLOAT)coreLoad / 100;
+        CurrentCoreUsage = (FLOAT)memLoad / 100;
+
         PhAddItemCircularBuffer_FLOAT(&GpuHistory, CurrentGpuUsage);
+        PhAddItemCircularBuffer_FLOAT(&CoreHistory, CurrentCoreUsage);
     }
     else
     {
