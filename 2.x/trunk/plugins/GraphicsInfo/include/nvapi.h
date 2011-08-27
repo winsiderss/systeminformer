@@ -1235,7 +1235,7 @@ NVAPI_INTERFACE NvAPI_GetInterfaceVersionString(NvAPI_ShortString szDesc);
 //! Used in NvAPI_GetDisplayDriverVersion()
 typedef struct 
 {
-    NvU32              version;             // Structure version
+    NvU32              Version;             // Structure version
     NvU32              drvVersion;           
     NvU32              bldChangeListNum;     
     NvAPI_ShortString  szBuildBranchString; 
@@ -1243,12 +1243,12 @@ typedef struct
 } NV_DISPLAY_DRIVER_VERSION;
 
 //! \ingroup driverapi
-#define NV_DISPLAY_DRIVER_VERSION_VER  MAKE_NVAPI_VERSION(NV_DISPLAY_DRIVER_VERSION,1)
-
+#define NV_DISPLAY_DRIVER_VERSION_VER  MAKE_NVAPI_VERSION(NV_DISPLAY_DRIVER_VERSION, 1)
 
 //! \ingroup driverapi
-NVAPI_INTERFACE NvAPI_GetDisplayDriverVersion(NvDisplayHandle hNvDisplay, NV_DISPLAY_DRIVER_VERSION *pVersion);
-
+//NVAPI_INTERFACE NvAPI_GetDisplayDriverVersion(NvDisplayHandle hNvDisplay, NV_DISPLAY_DRIVER_VERSION *pVersion);
+typedef NvStatus (__cdecl *P_NvAPI_GetDisplayDriverVersion)(NvDisplayHandle hNvDisplay, NV_DISPLAY_DRIVER_VERSION *pVersion);
+P_NvAPI_GetDisplayDriverVersion NvAPI_GetDisplayDriverVersion;
 
 
 ///////////////////////////////////////////////////////////////////////////////

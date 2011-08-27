@@ -7,20 +7,13 @@
 #define GFXINFO_MENUITEM 1
 
 #define WM_GFX_ACTIVATE (WM_APP + 150)
-#define WM_ET_ETWSYS_UPDATE (WM_APP + 151)
-#define WM_ET_ETWSYS_PANEL_UPDATE (WM_APP + 160)
+#define WM_GFX_UPDATE (WM_APP + 151)
+#define WM_GFX_PANEL_UPDATE (WM_APP + 160)
 
 #define SETTING_PREFIX L"ProcessHacker.GfxPlugin."
 #define SETTING_NAME_GFX_ALWAYS_ON_TOP (SETTING_PREFIX L"GfxAlwaysOnTop")
 #define SETTING_NAME_GFX_WINDOW_POSITION (SETTING_PREFIX L"GfxWindowPosition")
 #define SETTING_NAME_GFX_WINDOW_SIZE (SETTING_PREFIX L"GfxWindowSize")
-
-VOID ShowDialog(VOID);
-VOID NvInit(VOID);
-NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
-VOID GetNvidiaGpuUsages(VOID);
-VOID LogEvent(__in PWSTR str, __in INT status);
-
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -31,6 +24,16 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
+VOID ShowDialog(VOID);
+VOID NvInit(VOID);
+
+VOID GetDriverName(VOID);
+VOID GetDriverVersion(VOID);
+
+NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
+VOID GetNvidiaGpuUsages(VOID);
+VOID LogEvent(__in PWSTR str, __in NvStatus status);
 
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
@@ -73,7 +76,6 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
 
 #pragma pack(push,8) // Make sure we have consistent structure packings
 
-// macro by dmex
 #define NV_SUCCESS(Status) (((NvStatus)(Status)) == NVAPI_OK)
 
 // dmex - magic numbers, do not change them
@@ -107,5 +109,5 @@ typedef NvStatus (__cdecl *P_NvAPI_GetMemoryInfo)(NvDisplayHandle, PNV_MEMORY_IN
 P_NvAPI_GetMemoryInfo NvAPI_GetMemoryInfo;
 
 // rev
-typedef NvStatus (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle, PNV_USAGES_INFO_V1); //UINT *usages
+typedef NvStatus (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle, PNV_USAGES_INFO_V1);
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;
