@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by ExtendedTools.rc
+// Used by GraphicsInfo.rc
 //
 #define IDD_SYSGFX                      107
 #define IDD_SYSGFX_PANEL                108
@@ -18,14 +18,15 @@
 #define IDC_GROUPGPU                    1035
 #define IDC_GROUPMEM                    1036
 #define IDC_ALWAYSONTOP                 1037
+#define IDC_EDIT1                       1053
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_RESOURCE_VALUE        114
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_CONTROL_VALUE         1056
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif

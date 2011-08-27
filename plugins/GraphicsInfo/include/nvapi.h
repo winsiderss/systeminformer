@@ -1298,8 +1298,10 @@ NVAPI_INTERFACE NvAPI_SYS_GetDriverAndBranchVersion(NvU32* pDriverVersion, NvAPI
 //! \retval NVAPI_END_ENUMERATION         No more display device to enumerate
 //! \ingroup disphandle
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_EnumNvidiaDisplayHandle(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
+//NVAPI_INTERFACE NvAPI_EnumNvidiaDisplayHandle(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
 
+typedef NvAPI_Status (__cdecl *P_NvAPI_EnumNvidiaDisplayHandle)(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
+P_NvAPI_EnumNvidiaDisplayHandle NvAPI_EnumNvidiaDisplayHandle;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1416,8 +1418,9 @@ NVAPI_INTERFACE NvAPI_EnumLogicalGPUs(NvLogicalGpuHandle nvGPUHandle[NVAPI_MAX_L
 //! \retval NVAPI_NVIDIA_DEVICE_NOT_FOUND  no NVIDIA GPU driving a display was found
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GetPhysicalGPUsFromDisplay(NvDisplayHandle hNvDisp, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
- 
+//NVAPI_INTERFACE NvAPI_GetPhysicalGPUsFromDisplay(NvDisplayHandle hNvDisp, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+typedef NvAPI_Status (__cdecl *P_NvAPI_GetPhysicalGPUsFromDisplay)(NvDisplayHandle hNvDisp, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+P_NvAPI_GetPhysicalGPUsFromDisplay NvAPI_GetPhysicalGPUsFromDisplay;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1592,39 +1595,6 @@ NVAPI_INTERFACE NvAPI_GetAssociatedNvidiaDisplayName(NvDisplayHandle NvDispHandl
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_GetUnAttachedAssociatedDisplayName(NvUnAttachedDisplayHandle hNvUnAttachedDisp, NvAPI_ShortString szDisplayName);
 
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_EnableHWCursor
-//
-//!  This function enables hardware cursor support
-//!
-//  SUPPORTED OS: Windows XP
-//!  
-//!
-//! \since Version: 82.61
-//!
-//! \return NVAPI_ERROR or NVAPI_OK
-//! \ingroup dispcontrol
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_EnableHWCursor(NvDisplayHandle hNvDisplay);
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DisableHWCursor
-//
-//! This function disables hardware cursor support
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \since   Version: 82.61
-//!
-//! \return  NVAPI_ERROR or NVAPI_OK
-//! \ingroup dispcontrol
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DisableHWCursor(NvDisplayHandle hNvDisplay);
-
 ///////////////////////////////////////////////////////////////////////////////
 //
 // FUNCTION NAME: NvAPI_GetVBlankCounter
@@ -1690,8 +1660,6 @@ NVAPI_INTERFACE NvAPI_SetRefreshRateOverride(NvDisplayHandle hNvDisplay, NvU32 o
 //! \ingroup dispcontrol
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_GetAssociatedDisplayOutputId(NvDisplayHandle hNvDisplay, NvU32 *pOutputId);
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTION NAME:   NvAPI_GetDisplayPortInfo
@@ -1806,8 +1774,6 @@ typedef struct
 
 //! Macro for constructing the version field of NV_DISPLAY_PORT_INFO.
 #define NV_DISPLAY_PORT_INFO_VER  MAKE_NVAPI_VERSION(NV_DISPLAY_PORT_INFO,1)
-
-
 
 //! \ingroup        dispcontrol
 NVAPI_INTERFACE NvAPI_GetDisplayPortInfo(NvDisplayHandle hNvDisplay, NvU32 outputId, NV_DISPLAY_PORT_INFO *pInfo);
