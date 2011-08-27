@@ -169,7 +169,7 @@ INT_PTR CALLBACK MainWndProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID;
                         drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
                         //drawInfo->LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
                         drawInfo->LineBackColor1 = PhHalveColorBrightness(drawInfo->LineColor1);
@@ -183,7 +183,12 @@ INT_PTR CALLBACK MainWndProc(
 
                         if (!GpuGraphState.Valid)
                         {
-                            PhCopyCircularBuffer_FLOAT(&GpuHistory, getDrawInfo->DrawInfo->LineData1, getDrawInfo->DrawInfo->LineDataCount);
+                            PhCopyCircularBuffer_FLOAT(
+                                &GpuHistory, 
+                                getDrawInfo->DrawInfo->LineData1, 
+                                getDrawInfo->DrawInfo->LineDataCount
+                                );
+
                             GpuGraphState.Valid = TRUE;
                         }
                     }
@@ -217,7 +222,7 @@ INT_PTR CALLBACK MainWndProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID;
                         drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
                         //drawInfo->LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
                         drawInfo->LineBackColor1 = PhHalveColorBrightness(drawInfo->LineColor1);
@@ -231,7 +236,7 @@ INT_PTR CALLBACK MainWndProc(
 
                         if (!MemGraphState.Valid)
                         {
-                            PhCopyCircularBuffer_FLOAT(
+                             PhCopyCircularBuffer_FLOAT(
                                 &MemHistory, 
                                 getDrawInfo->DrawInfo->LineData1, 
                                 getDrawInfo->DrawInfo->LineDataCount
@@ -397,8 +402,8 @@ INT_PTR CALLBACK MainWndProc(
             Graph_UpdateTooltip(GpuGraphHandle);
             InvalidateRect(GpuGraphHandle, NULL, FALSE);
 
-            //NetworkGraphState.Valid = FALSE;
-            //NetworkGraphState.TooltipIndex = -1;
+            MemGraphState.Valid = FALSE;
+            MemGraphState.TooltipIndex = -1;
             Graph_MoveGrid(MemGraphHandle, 1);
             Graph_Draw(MemGraphHandle);
             Graph_UpdateTooltip(MemGraphHandle);
@@ -610,9 +615,9 @@ VOID GetNvidiaGpuUsages()
         UINT totalMemory = memInfo.usages[0];
         UINT freeMemory = memInfo.usages[4];
         
-        UINT usedMemory = max(totalMemory - freeMemory, 0);; 
+        ULONG usedMemory = max(totalMemory - freeMemory, 0);; 
         
-        CurrentMemUsage = (FLOAT)usedMemory;
+        CurrentMemUsage = (FLOAT)usedMemory / totalMemory;
         PhAddItemCircularBuffer_FLOAT(&MemHistory, CurrentMemUsage);
     }
     else
