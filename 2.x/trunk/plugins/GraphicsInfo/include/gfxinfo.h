@@ -84,5 +84,15 @@ P_NvApi_CallStart NvAPI_CallStart;
 typedef int (__cdecl *P_NvApi_CallReturn)(DWORD, DWORD, DWORD, DWORD); // weak
 P_NvApi_CallReturn NvAPI_CallReturn;
 
-typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle nvGPUHandle, unsigned int *usages);
+
+// rev
+typedef struct _NV_USAGES_INFO
+{
+    NvU32 version;
+    NvU32 usages[NVAPI_MAX_USAGES_PER_GPU * 4];
+} NV_USAGES_INFO_V1, *PNV_USAGES_INFO_V1;
+
+//#define NV_USAGES_INFO_VER MAKE_NVAPI_VERSION(NV_USAGES_INFO_V1, 1)
+
+typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle nvGPUHandle, PNV_USAGES_INFO_V1 usages); //UINT *usages
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;
