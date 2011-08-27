@@ -584,9 +584,12 @@ VOID GetNvidiaGpuUsages()
     NvDisplayHandle dispHandle;
 
     NV_USAGES_INFO_V1 gpuInfo = { 0 };
-    NV_MEMORY_INFO_V1 memInfo = { 0 };
-    gpuInfo.version = NV_USAGES_INFO_VER;
-    memInfo.version = 131096;//NV_MEMORY_INFO_VER;
+    NV_MEMORY_INFO_V2 memInfo = { 0 };
+
+    UINT size = NV_MEMORY_INFO_VER;
+
+    gpuInfo.Version = NV_USAGES_INFO_VER;
+    memInfo.Version = NV_MEMORY_INFO_VER;
 
     physHandle = EnumNvidiaGpuHandles();
     dispHandle = EnumNvidiaDisplayHandles();
@@ -595,7 +598,7 @@ VOID GetNvidiaGpuUsages()
 
     if (NV_SUCCESS(status))
     {
-        UINT coreLoad = gpuInfo.usages[2];
+        UINT coreLoad = gpuInfo.Values[2];
         //int usage = gpuInfo.usages[3];
         //int memLoad = gpuInfo.usages[6]; 
         //int engineLoad = gpuInfo.usages[10];
@@ -612,8 +615,8 @@ VOID GetNvidiaGpuUsages()
      
     if (NV_SUCCESS(status))
     {
-        UINT totalMemory = memInfo.usages[0];
-        UINT freeMemory = memInfo.usages[4];
+        UINT totalMemory = memInfo.Values[0];
+        UINT freeMemory = memInfo.Values[4];
         
         ULONG usedMemory = max(totalMemory - freeMemory, 0);; 
         
