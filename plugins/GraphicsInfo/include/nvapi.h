@@ -833,7 +833,7 @@ extern "C" {
 #endif
 
 
-#define NVAPI_INTERFACE extern NvAPI_Status __cdecl
+#define NVAPI_INTERFACE extern NvStatus __cdecl
 
 #if defined(WIN32) || defined(_WIN32)
 #define __nvapi_deprecated_function(NewFunction, FirstRelease) __declspec(deprecated("Do not use this function - it is deprecated in release " #FirstRelease ". Instead, use " #NewFunction "."))
@@ -1005,7 +1005,7 @@ typedef char NvAPI_ShortString[NVAPI_SHORT_STRING_MAX];
 //!   \ingroup nvapistatus 
 // ====================================================
 
-typedef enum _NvAPI_Status
+typedef enum _NvStatus
 {
     NVAPI_OK                                    =  0,      //!< Success. Request is completed.
     NVAPI_ERROR                                 = -1,      //!< Generic error
@@ -1107,7 +1107,7 @@ typedef enum _NvAPI_Status
     NVAPI_INVALID_CONFIGURATION                 = -180,    //!< The requested action cannot be performed in the current state.
     NVAPI_STEREO_HANDSHAKE_NOT_DONE             = -181,    //!< Call failed as stereo handshake not completed.
     NVAPI_EXECUTABLE_PATH_IS_AMBIGUOUS          = -182,    //!< The path provided was too short to determine the correct NVDRS_APPLICATION
-} NvAPI_Status;
+} NvStatus;
 
 //!   \ingroup nvapistatus 
 #define NVAPI_API_NOT_INTIALIZED        NVAPI_API_NOT_INITIALIZED       //!< Fix typo in error code
@@ -1134,7 +1134,7 @@ typedef enum _NvAPI_Status
 //! \ingroup nvapifunctions
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_Initialize();
-typedef NvAPI_Status (__cdecl *P_NvAPI_Initialize)();
+typedef NvStatus (__cdecl *P_NvAPI_Initialize)();
 P_NvAPI_Initialize NvAPI_Initialize;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1166,7 +1166,7 @@ P_NvAPI_Initialize NvAPI_Initialize;
 //! \ingroup nvapifunctions
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_Unload();
-typedef NvAPI_Status (__cdecl *P_NvAPI_Unload)();
+typedef NvStatus (__cdecl *P_NvAPI_Unload)();
 P_NvAPI_Unload NvAPI_Unload;
 
 
@@ -1187,8 +1187,8 @@ P_NvAPI_Unload NvAPI_Unload;
 //! \return NULL terminated string (always, never NULL)
 //! \ingroup nvapifunctions
 ///////////////////////////////////////////////////////////////////////////////
-//NVAPI_INTERFACE NvAPI_GetErrorMessage(NvAPI_Status nr,NvAPI_ShortString szDesc);
-typedef NvAPI_Status (__cdecl *P_NvAPI_GetErrorMessage)(NvAPI_Status nr,NvAPI_ShortString szDesc);
+//NVAPI_INTERFACE NvAPI_GetErrorMessage(NvStatus nr,NvAPI_ShortString szDesc);
+typedef NvStatus (__cdecl *P_NvAPI_GetErrorMessage)(NvStatus nr,NvAPI_ShortString szDesc);
 P_NvAPI_GetErrorMessage NvAPI_GetErrorMessage;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1300,7 +1300,7 @@ NVAPI_INTERFACE NvAPI_SYS_GetDriverAndBranchVersion(NvU32* pDriverVersion, NvAPI
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_EnumNvidiaDisplayHandle(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
 
-typedef NvAPI_Status (__cdecl *P_NvAPI_EnumNvidiaDisplayHandle)(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
+typedef NvStatus (__cdecl *P_NvAPI_EnumNvidiaDisplayHandle)(NvU32 thisEnum, NvDisplayHandle *pNvDispHandle);
 P_NvAPI_EnumNvidiaDisplayHandle NvAPI_EnumNvidiaDisplayHandle;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1360,7 +1360,7 @@ NVAPI_INTERFACE NvAPI_EnumNvidiaUnAttachedDisplayHandle(NvU32 thisEnum, NvUnAtta
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
-typedef NvAPI_Status (__cdecl *P_NvAPI_EnumPhysicalGPUs)(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+typedef NvStatus (__cdecl *P_NvAPI_EnumPhysicalGPUs)(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 P_NvAPI_EnumPhysicalGPUs NvAPI_EnumPhysicalGPUs;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1419,7 +1419,7 @@ NVAPI_INTERFACE NvAPI_EnumLogicalGPUs(NvLogicalGpuHandle nvGPUHandle[NVAPI_MAX_L
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_GetPhysicalGPUsFromDisplay(NvDisplayHandle hNvDisp, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
-typedef NvAPI_Status (__cdecl *P_NvAPI_GetPhysicalGPUsFromDisplay)(NvDisplayHandle hNvDisp, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+typedef NvStatus (__cdecl *P_NvAPI_GetPhysicalGPUsFromDisplay)(NvDisplayHandle hNvDisp, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 P_NvAPI_GetPhysicalGPUsFromDisplay NvAPI_GetPhysicalGPUsFromDisplay;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3038,7 +3038,7 @@ typedef enum _NV_GPU_CONNECTOR_TYPE
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName);
-typedef NvAPI_Status (__cdecl *P_NvAPI_GPU_GetFullName)(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName);
+typedef NvStatus (__cdecl *P_NvAPI_GPU_GetFullName)(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName);
 P_NvAPI_GPU_GetFullName NvAPI_GetFullName;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -8348,7 +8348,7 @@ NVAPI_INTERFACE NvAPI_DRS_DeleteApplication(NvDRSSessionHandle hSession, NvDRSPr
 //! \param [in]   appName        Input application name.
 //! \param [out]  *pApplication  Returns NVDRS_APPLICATION struct with all the attributes.
 //!                
-//! \return  This API can return any of the error codes enumerated in #NvAPI_Status. 
+//! \return  This API can return any of the error codes enumerated in #NvStatus. 
 //!          If there are return error codes with specific meaning for this API, 
 //!          they are listed below.
 //! \retval ::NVAPI_EXECUTABLE_PATH_IS_AMBIGUOUS   The application name could not 
@@ -8399,7 +8399,7 @@ NVAPI_INTERFACE NvAPI_DRS_EnumApplications(NvDRSSessionHandle hSession, NvDRSPro
 //! \param [out]  *phProfile     Returns profile handle.
 //! \param [out]  *pApplication  Returns NVDRS_APPLICATION struct pointer.
 //!                
-//! \return  This API can return any of the error codes enumerated in #NvAPI_Status. 
+//! \return  This API can return any of the error codes enumerated in #NvStatus. 
 //!                  If there are return error codes with specific meaning for this API, 
 //!                  they are listed below:
 //! \retval ::NVAPI_APPLICATION_NOT_FOUND          If App not found
@@ -8673,7 +8673,7 @@ typedef enum _NVAPI_GPU_PERF_DECREASE
 //! \param [in]	  hPhysicalGPU	(IN)	- GPU for which performance decrease is to be evaluated.
 //! \param [out]  pPerfDecrInfo	(OUT)	- Pointer to a NvU32 variable containing performance decrease info
 //!
-//! \return      This API can return any of the error codes enumerated in #NvAPI_Status. 
+//! \return      This API can return any of the error codes enumerated in #NvStatus. 
 //!
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
