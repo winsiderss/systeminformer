@@ -23,10 +23,17 @@
 
 #include "gfxinfo.h"
 
+static NTSTATUS WindowThreadStart(
+    __in PVOID Parameter
+    );
+
+static PH_EVENT InitializedEvent = PH_EVENT_INIT;
+
 static HWND GpuGraphHandle;
 static HWND CoreGraphHandle;
 static HWND MemGraphHandle;
 
+HANDLE WindowThreadHandle = NULL;
 HWND EtpEtwSysWindowHandle = NULL;
 HWND EtpEtwSysPanelWindowHandle = NULL;
 
@@ -71,6 +78,10 @@ INT_PTR CALLBACK MainWndProc(
   
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_GFX_WINDOW_POSITION, SETTING_NAME_GFX_WINDOW_SIZE, hwndDlg);
+
 
             PhInitializeGraphState(&GpuGraphState);
             PhInitializeGraphState(&CoreGraphState);
@@ -136,28 +147,27 @@ INT_PTR CALLBACK MainWndProc(
         }
         break;
     case WM_DESTROY:
-        {
-             PhDeleteLayoutManager(&WindowLayoutManager);
+        {     
+            // Unregister our callbacks.
+            PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedRegistration);
 
-             PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedRegistration);
+            // Save our settings.
+            //PhSetIntegerSetting(SETTING_NAME_GFX_ALWAYS_ON_TOP, AlwaysOnTop);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_GFX_WINDOW_POSITION, SETTING_NAME_GFX_WINDOW_SIZE, hwndDlg);
 
-             PhDeleteCircularBuffer_FLOAT(&GpuHistory);
-             PhDeleteCircularBuffer_ULONG(&MemHistory);
-             PhDeleteGraphState(&GpuGraphState);
-             PhDeleteGraphState(&MemGraphState);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDCANCEL:
-            case IDOK:
-                {
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
-            }
+            // Reset our Window Management.
+            PhDeleteLayoutManager(&WindowLayoutManager);
+
+            // Clear our buffers.
+            PhDeleteCircularBuffer_FLOAT(&GpuHistory);
+            PhDeleteCircularBuffer_ULONG(&MemHistory);
+
+            // Clear our state.
+            PhDeleteGraphState(&GpuGraphState);
+            PhDeleteGraphState(&MemGraphState);
+
+            // Quit.
+            PostQuitMessage(0);
         }
         break;
     case WM_NOTIFY:
@@ -509,8 +519,25 @@ INT_PTR CALLBACK MainWndProc(
         {
             PhResizingMinimumSize((PRECT)lParam, wParam, 500, 400);
         }
-        break;  
-    case WM_ET_ETWSYS_ACTIVATE:
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDCANCEL:
+            case IDOK:
+                DestroyWindow(hwndDlg);
+                break;
+            case IDC_ALWAYSONTOP:
+                {
+                    //AlwaysOnTop = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP)) == BST_CHECKED;
+                    //EtpSetAlwaysOnTop();
+                }
+                break;
+            }
+        }
+        break;
+    case WM_GFX_ACTIVATE:
         {
             if (IsIconic(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -589,15 +616,69 @@ static VOID NTAPI EtwSysUpdateHandler(
     PostMessage(EtpEtwSysWindowHandle, WM_ET_ETWSYS_UPDATE, 0, 0);
 }
 
+
 VOID ShowDialog(VOID)
 {
-    DialogBox(
-        (HINSTANCE)PluginInstance->DllBase,
+    if (!EtpEtwSysWindowHandle)
+    {
+        if (!(WindowThreadHandle = PhCreateThread(0, WindowThreadStart, NULL)))
+        {
+            PhShowStatus(PhMainWndHandle, L"Unable to create the ETW information window", 0, GetLastError());
+            return;
+        }
+
+        PhWaitForEvent(&InitializedEvent, NULL);
+    }
+
+    SendMessage(EtpEtwSysWindowHandle, WM_GFX_ACTIVATE, 0, 0);
+}
+
+static NTSTATUS WindowThreadStart(
+    __in PVOID Parameter
+    )
+{
+    PH_AUTO_POOL autoPool;
+    BOOL result;
+    MSG message;
+
+    PhInitializeAutoPool(&autoPool);
+
+    EtpEtwSysWindowHandle = CreateDialog(
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_SYSGFX),
         NULL,
         MainWndProc
         );
+
+    PhSetEvent(&InitializedEvent);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(EtpEtwSysWindowHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    PhResetEvent(&InitializedEvent);
+    NtClose(WindowThreadHandle);
+
+    EtpEtwSysWindowHandle = NULL;
+    EtpEtwSysPanelWindowHandle = NULL;
+    WindowThreadHandle = NULL;
+
+    return STATUS_SUCCESS;
 }
+
+
+
 
 VOID LogEvent(__in PWSTR str, __in NvStatus status)
 {
