@@ -62,6 +62,10 @@ ULONG MaxMemUsage;
 ULONG GfxCoreTempCount;
 ULONG GfxBoardTempCount;
 
+FLOAT GfxCoreClockCount;
+FLOAT GfxMemoryClockCount;
+FLOAT GfxShaderClockCount;
+
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
@@ -76,6 +80,15 @@ INT_PTR CALLBACK MainWndProc(
     {
     case WM_INITDIALOG:
         {
+            // Add the Graphics card name to the Window Title.
+            PPH_STRING gpuname = GetDriverName();
+            PPH_STRING title = PhFormatString(L"Graphics Information (%s)", gpuname->Buffer);
+
+            SetWindowText(hwndDlg, title->Buffer);  
+
+            PhDereferenceObject(gpuname);
+            PhDereferenceObject(title);
+
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
             // the drawing issue that arises when using WS_CLIPCHILDREN. However
             // in removing the flicker from the graphs the group boxes will now flicker.
@@ -94,9 +107,14 @@ INT_PTR CALLBACK MainWndProc(
             PhInitializeGraphState(&GpuGraphState);
             PhInitializeGraphState(&CoreGraphState);
             PhInitializeGraphState(&MemGraphState);
-            PhInitializeCircularBuffer_FLOAT(&GpuHistory, PhGetIntegerSetting(L"SampleCount"));
-            PhInitializeCircularBuffer_FLOAT(&CoreHistory, PhGetIntegerSetting(L"SampleCount"));
-            PhInitializeCircularBuffer_ULONG(&MemHistory, PhGetIntegerSetting(L"SampleCount"));
+
+            // TEMP
+            if (GpuHistory.Count == 0)
+            {
+                PhInitializeCircularBuffer_FLOAT(&GpuHistory, PhGetIntegerSetting(L"SampleCount"));
+                PhInitializeCircularBuffer_FLOAT(&CoreHistory, PhGetIntegerSetting(L"SampleCount"));
+                PhInitializeCircularBuffer_ULONG(&MemHistory, PhGetIntegerSetting(L"SampleCount"));
+            }
 
             GpuGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
@@ -166,9 +184,10 @@ INT_PTR CALLBACK MainWndProc(
             // Reset our Window Management.
             PhDeleteLayoutManager(&WindowLayoutManager);
 
+            // TEMP commented out.
             // Clear our buffers.
-            PhDeleteCircularBuffer_FLOAT(&GpuHistory);
-            PhDeleteCircularBuffer_ULONG(&MemHistory);
+            //PhDeleteCircularBuffer_FLOAT(&GpuHistory);
+            //PhDeleteCircularBuffer_ULONG(&MemHistory);
 
             // Clear our state.
             PhDeleteGraphState(&GpuGraphState);
@@ -570,6 +589,7 @@ INT_PTR CALLBACK MainWndProc(
         {
             GetGfxUsages();
             GetGfxTemp();
+            GetGfxClockSpeeds();
 
             GpuGraphState.Valid = FALSE;
             GpuGraphState.TooltipIndex = -1;
@@ -615,9 +635,10 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
             SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhFormatString(L"%s\u00b0", PhaFormatUInt64(GfxBoardTempCount, TRUE)->Buffer)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZWRITES_V, PhaFormatUInt64(EtDiskWriteCount, TRUE)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, PhaFormatSize(EtDiskWriteDelta.Value, -1)->Buffer);
-
-            //SetDlgItemText(hwndDlg, IDC_ZRECEIVES_V, PhaFormatUInt64(EtNetworkReceiveCount, TRUE)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTES_V, PhaFormatSize(EtNetworkReceiveDelta.Value, -1)->Buffer);
+            
+            SetDlgItemText(hwndDlg, IDC_ZRECEIVES_V, PhFormatString(L"%.2f MHz", GfxCoreClockCount)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTES_V, PhFormatString(L"%.2f MHz", GfxMemoryClockCount)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZSENDS_V, PhFormatString(L"%.2f MHz", GfxShaderClockCount)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZSENDS_V, PhaFormatUInt64(EtNetworkSendCount, TRUE)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZSENDBYTES_V, PhaFormatSize(EtNetworkSendDelta.Value, -1)->Buffer);
         }
@@ -871,7 +892,7 @@ VOID GetGfxUsages(VOID)
     }
 }
 
-VOID GetDriverName(VOID)
+PPH_STRING GetDriverName(VOID)
 {
     NvStatus status = NVAPI_ERROR;
     NvPhysicalGpuHandle physHandle = NULL;
@@ -882,14 +903,14 @@ VOID GetDriverName(VOID)
 
     if (NV_SUCCESS(status))
     {
-        PPH_STRING name = PhCreateStringFromAnsi(str);
-
-        PhDereferenceObject(name);
+        return PhCreateStringFromAnsi(str);
     }
     else
     {
         LogEvent(L"gfxinfo: (GetFullName) NvAPI_GetFullName failed (%s)", status);
     }
+
+    return NULL;
 }
 
 VOID GetDriverVersion(VOID)
@@ -993,6 +1014,10 @@ VOID GetGfxClockSpeeds(VOID)
         //    clocks[0] = 0.0005f * clockInfo.Values[30];
         //    clocks[2] = 0.001f * clockInfo.Values[30];
         //}
+
+        GfxCoreClockCount = 0.001f * clockInfo.Values[0];
+        GfxMemoryClockCount = 0.001f * clockInfo.Values[8];
+        GfxShaderClockCount = 0.001f * clockInfo.Values[14];
     }
     else
     {
