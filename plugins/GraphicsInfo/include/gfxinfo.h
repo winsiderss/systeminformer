@@ -39,6 +39,7 @@ VOID GetGfxClockSpeeds(VOID);
 PPH_STRING GetDriverName(VOID);
 
 NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
+NvDisplayHandle EnumNvidiaDisplayHandles(VOID);
 
 VOID LogEvent(__in PWSTR str, __in NvStatus status);
 

@@ -41,6 +41,9 @@ HANDLE GfxThreadHandle = NULL;
 HWND GfxWindowHandle = NULL;
 HWND GfxPanelWindowHandle = NULL;
 
+NvPhysicalGpuHandle physHandle = NULL;
+NvDisplayHandle dispHandle = NULL;
+
 static PH_GRAPH_STATE GpuGraphState;
 static PH_GRAPH_STATE MemGraphState;
 static PH_GRAPH_STATE CoreGraphState;
@@ -753,21 +756,8 @@ VOID LogEvent(__in PWSTR str, __in NvStatus status)
     }
 }
 
-VOID NvInit(VOID)
-{
-    NvStatus status = NvAPI_Initialize();
 
-    if (NV_SUCCESS(status))
-    {
-        //EnumNvidiaGpuHandles();
-    }
-    else
-    {
-        LogEvent(L"gfxinfo: (NvInit) NvAPI_Initialize failed (%s)", status);
-    }
-}
-
-NvPhysicalGpuHandle EnumNvidiaGpuHandles()
+NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID)
 {
     NvPhysicalGpuHandle szGPUHandle[NVAPI_MAX_PHYSICAL_GPUS] = { 0 };     
     NvU32 gpuCount = 0;
@@ -838,20 +828,31 @@ NvDisplayHandle EnumNvidiaDisplayHandles(VOID)
 }
 
 
+VOID NvInit(VOID)
+{
+    NvStatus status = NvAPI_Initialize();
+
+    if (NV_SUCCESS(status))
+    {
+        physHandle = EnumNvidiaGpuHandles();
+        dispHandle = EnumNvidiaDisplayHandles();
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (NvInit) NvAPI_Initialize failed (%s)", status);
+    }
+}
+
+
 VOID GetGfxUsages(VOID)
 {
     NvStatus status = NVAPI_ERROR;
-    NvPhysicalGpuHandle physHandle = NULL;
-    NvDisplayHandle dispHandle = NULL;
 
     NV_USAGES_INFO_V1 gpuInfo = { 0 };
     NV_MEMORY_INFO_V2 memInfo = { 0 };
     gpuInfo.Version = NV_USAGES_INFO_VER;
     memInfo.Version = NV_MEMORY_INFO_VER;
 
-    physHandle = EnumNvidiaGpuHandles();
-    dispHandle = EnumNvidiaDisplayHandles();
-    
     status = NvAPI_GetUsages(physHandle, &gpuInfo);
 
     if (NV_SUCCESS(status))
@@ -895,10 +896,7 @@ VOID GetGfxUsages(VOID)
 PPH_STRING GetDriverName(VOID)
 {
     NvStatus status = NVAPI_ERROR;
-    NvPhysicalGpuHandle physHandle = NULL;
-
     NvAPI_ShortString str = { 0 };
-    physHandle = EnumNvidiaGpuHandles();
     status = NvAPI_GetFullName(physHandle, str);
 
     if (NV_SUCCESS(status))
@@ -916,12 +914,10 @@ PPH_STRING GetDriverName(VOID)
 VOID GetDriverVersion(VOID)
 {
     NvStatus status = NVAPI_ERROR;
-    NvDisplayHandle dispHandle = NULL;
 
     NV_DISPLAY_DRIVER_VERSION versionInfo = { 0 };
     versionInfo.Version = NV_DISPLAY_DRIVER_VERSION_VER;
 
-    dispHandle = EnumNvidiaDisplayHandles();
     status = NvAPI_GetDisplayDriverVersion(dispHandle, &versionInfo);
 
     if (NV_SUCCESS(status))
@@ -945,14 +941,11 @@ VOID GetDriverVersion(VOID)
 VOID GetGfxTemp(VOID)
 {
     NvStatus status = NVAPI_ERROR;
-    NvPhysicalGpuHandle dispHandle = NULL;
 
     NV_GPU_THERMAL_SETTINGS_V2 thermalInfo = { 0 };
     thermalInfo.Version = NV_GPU_THERMAL_SETTINGS_VER;
 
-    dispHandle = EnumNvidiaGpuHandles();
-
-    status = NvAPI_GetThermalSettings(dispHandle, NVAPI_THERMAL_TARGET_ALL, &thermalInfo);
+    status = NvAPI_GetThermalSettings(physHandle, NVAPI_THERMAL_TARGET_ALL, &thermalInfo);
 
     if (NV_SUCCESS(status))
     {
@@ -968,14 +961,11 @@ VOID GetGfxTemp(VOID)
 VOID GetGfxFanSpeed(VOID)
 {
     NvStatus status = NVAPI_ERROR;
-    NvPhysicalGpuHandle dispHandle = NULL;
 
     NV_COOLER_INFO_V2 coolInfo = { 0 };
     coolInfo.Version = NV_COOLER_INFO_VER;
 
-    dispHandle = EnumNvidiaGpuHandles();
-
-    status = NvAPI_GetCoolerSettings(dispHandle, 0, &coolInfo);
+    status = NvAPI_GetCoolerSettings(physHandle, 0, &coolInfo);
 
     if (NV_SUCCESS(status))
     {
@@ -990,14 +980,11 @@ VOID GetGfxFanSpeed(VOID)
 VOID GetGfxClockSpeeds(VOID)
 {
     NvStatus status = NVAPI_ERROR;
-    NvPhysicalGpuHandle dispHandle = NULL;
-
+    
     NV_CLOCKS_INFO_V2 clockInfo = { 0 };
     clockInfo.Version = NV_CLOCKS_INFO_VER;
 
-    dispHandle = EnumNvidiaGpuHandles();
-
-    status = NvAPI_GetAllClocks(dispHandle, &clockInfo);
+    status = NvAPI_GetAllClocks(physHandle, &clockInfo);
 
     if (NV_SUCCESS(status))
     {
