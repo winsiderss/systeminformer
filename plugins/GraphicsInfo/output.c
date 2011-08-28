@@ -26,7 +26,11 @@
 static NTSTATUS WindowThreadStart(
     __in PVOID Parameter
     );
+static VOID GfxSetAlwaysOnTop(
+    VOID
+    );
 
+static BOOLEAN AlwaysOnTop;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
 static HWND GpuGraphHandle;
@@ -41,7 +45,7 @@ static PH_GRAPH_STATE GpuGraphState;
 static PH_GRAPH_STATE MemGraphState;
 static PH_GRAPH_STATE CoreGraphState;
 
-static VOID NTAPI EtwSysUpdateHandler(
+static VOID NTAPI GfxUpdateHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
@@ -74,6 +78,10 @@ INT_PTR CALLBACK MainWndProc(
     {
     case WM_INITDIALOG:
         {
+            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
+            // the drawing issue that arises when using WS_CLIPCHILDREN. However
+            // in removing the flicker from the graphs the group boxes will now flicker.
+            // It's a good tradeoff since no one stares at the group boxes.
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
          
             PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -142,7 +150,7 @@ INT_PTR CALLBACK MainWndProc(
       
             PhRegisterCallback(
 				PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
-				EtwSysUpdateHandler,
+				GfxUpdateHandler,
 				NULL,
 				&ProcessesUpdatedRegistration
 				);
@@ -154,7 +162,7 @@ INT_PTR CALLBACK MainWndProc(
             PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedRegistration);
 
             // Save our settings.
-            //PhSetIntegerSetting(SETTING_NAME_GFX_ALWAYS_ON_TOP, AlwaysOnTop);
+            PhSetIntegerSetting(SETTING_NAME_GFX_ALWAYS_ON_TOP, AlwaysOnTop);
             PhSaveWindowPlacementToSetting(SETTING_NAME_GFX_WINDOW_POSITION, SETTING_NAME_GFX_WINDOW_SIZE, hwndDlg);
 
             // Reset our Window Management.
@@ -436,9 +444,9 @@ INT_PTR CALLBACK MainWndProc(
 
             ShowWindow(GfxPanelWindowHandle, SW_SHOW);
 
-            //AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(SETTING_NAME_ETWSYS_ALWAYS_ON_TOP);
-            //Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
-            //EtpSetAlwaysOnTop();
+            AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(SETTING_NAME_GFX_ALWAYS_ON_TOP);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
+            GfxSetAlwaysOnTop();
 
             margin.left = 0;
             margin.top = 0;
@@ -543,8 +551,8 @@ INT_PTR CALLBACK MainWndProc(
                 break;
             case IDC_ALWAYSONTOP:
                 {
-                    //AlwaysOnTop = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP)) == BST_CHECKED;
-                    //EtpSetAlwaysOnTop();
+                    AlwaysOnTop = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP)) == BST_CHECKED;
+                    GfxSetAlwaysOnTop();
                 }
                 break;
             }
@@ -620,7 +628,7 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
     return FALSE;
 }
 
-static VOID NTAPI EtwSysUpdateHandler(
+static VOID NTAPI GfxUpdateHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
@@ -628,6 +636,14 @@ static VOID NTAPI EtwSysUpdateHandler(
     PostMessage(GfxWindowHandle, WM_GFX_UPDATE, 0, 0);
 }
 
+
+static VOID GfxSetAlwaysOnTop(
+    VOID
+    )
+{
+    SetWindowPos(GfxWindowHandle, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+}
 
 VOID ShowDialog(VOID)
 {
