@@ -30,11 +30,15 @@ static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 VOID ShowDialog(VOID);
 VOID NvInit(VOID);
 
+VOID GetGfxUsages(VOID);
 VOID GetDriverName(VOID);
 VOID GetDriverVersion(VOID);
+VOID GetGfxTemp(VOID);
+VOID GetGfxFanSpeed(VOID);
+VOID GetGfxClockSpeeds(VOID);
 
 NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
-VOID GetNvidiaGpuUsages(VOID);
+
 VOID LogEvent(__in PWSTR str, __in NvStatus status);
 
 VOID NTAPI LoadCallback(
@@ -76,7 +80,7 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
     __in LPARAM lParam
     );
 
-#pragma pack(push,8) // Make sure we have consistent structure packings
+#pragma pack(push, 8) // Make sure we have consistent structure packings
 
 #define NV_SUCCESS(Status) (((NvStatus)(Status)) == NVAPI_OK)
 
@@ -84,23 +88,58 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
 #define NVAPI_MAX_PHYSICAL_GPUS   64
 #define NVAPI_MAX_USAGES_PER_GPU  33 //34
 #define MAX_MEMORY_VALUES_PER_GPU 5
+#define MAX_COOLER_PER_GPU 20
+#define MAX_CLOCKS_PER_GPU 0x120
 
 #define NV_MEMORY_INFO_VER MAKE_NVAPI_VERSION(NV_MEMORY_INFO_V2, 2)
 #define NV_USAGES_INFO_VER MAKE_NVAPI_VERSION(NV_USAGES_INFO_V1, 1)
+#define NV_COOLER_INFO_VER MAKE_NVAPI_VERSION(NV_COOLER_INFO_V2, 2)
+#define NV_CLOCKS_INFO_VER MAKE_NVAPI_VERSION(NV_CLOCKS_INFO_V2, 2)
 
 // rev
 typedef struct _NV_MEMORY_INFO
 {
-    NvU32 Version;
+    NvU32 Version; // structure version
     NvU32 Values[MAX_MEMORY_VALUES_PER_GPU];
 } NV_MEMORY_INFO_V2, *PNV_MEMORY_INFO_V2;
 
 // rev
 typedef struct _NV_USAGES_INFO
 {
-    NvU32 Version;
+    NvU32 Version; // structure version
     NvU32 Values[NVAPI_MAX_USAGES_PER_GPU];
 } NV_USAGES_INFO_V1, *PNV_USAGES_INFO_V1;
+
+typedef struct _NV_COOLER_VALUES_V2
+{
+    NvU32 Type;
+    NvU32 Controller;
+    NvU32 DefaultMin;
+    NvU32 DefaultMax;
+    NvU32 CurrentMin;
+    NvU32 CurrentMax;
+    NvU32 CurrentLevel;
+    NvU32 DefaultPolicy;
+    NvU32 CurrentPolicy;
+    NvU32 Target;
+    NvU32 ControlType;
+    NvU32 Active;
+} NV_COOLER_VALUES_V2, *PNV_COOLER_VALUES_V2;
+
+// rev
+typedef struct _NV_COOLER_INFO
+{
+    NvU32 Version; // structure version
+    NvU32 Count; // number of associated thermal sensors
+    NV_COOLER_VALUES_V2 Values[MAX_COOLER_PER_GPU];
+} NV_COOLER_INFO_V2, *PNV_COOLER_INFO_V2;
+
+// rev
+typedef struct _NV_CLOCKS_INFO
+{
+    NvU32 Version; // structure version
+    NvU32 Values[MAX_CLOCKS_PER_GPU];
+} NV_CLOCKS_INFO_V2, *PNV_CLOCKS_INFO_V2;
 
 // rev
 typedef PVOID (__cdecl *P_NvAPI_QueryInterface)(UINT);
@@ -113,5 +152,13 @@ P_NvAPI_GetMemoryInfo NvAPI_GetMemoryInfo;
 // rev
 typedef NvStatus (__cdecl *P_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle, PNV_USAGES_INFO_V1);
 P_NvAPI_GPU_GetUsages NvAPI_GetUsages;
+
+// rev
+typedef NvStatus (__cdecl *P_NvAPI_GPU_GetCoolerSettings)(NvPhysicalGpuHandle, NvU32 sensorIndex, PNV_COOLER_INFO_V2);
+P_NvAPI_GPU_GetCoolerSettings NvAPI_GetCoolerSettings;
+
+// rev
+typedef NvStatus (__cdecl *P_NvAPI_GPU_GetAllClocks)(NvPhysicalGpuHandle, PNV_CLOCKS_INFO_V2);
+P_NvAPI_GPU_GetAllClocks NvAPI_GetAllClocks;
 
 #pragma pack(pop)

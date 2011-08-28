@@ -3477,7 +3477,7 @@ typedef enum
 typedef struct
 {
     NvU32   version;                //!< structure version 
-    NvU32   count;                  //!< number of associated thermal sensors
+    NvU32   Count;                  //!< number of associated thermal sensors
     struct 
     {
         NV_THERMAL_CONTROLLER       controller;        //!< internal, ADM1032, MAX6649...
@@ -3492,37 +3492,30 @@ typedef struct
 //! \ingroup gputhermal
 typedef struct
 {
-    NvU32   version;                //!< structure version
-    NvU32   count;                  //!< number of associated thermal sensors
+    NvU32   Version;                //!< structure version
+    NvU32   Count;                  //!< number of associated thermal sensors
     struct
     {
-        NV_THERMAL_CONTROLLER       controller;         //!< internal, ADM1032, MAX6649...
-        NvS32                       defaultMinTemp;     //!< Minimum default temperature value of the thermal sensor in degrees C
-        NvS32                       defaultMaxTemp;     //!< Maximum default temperature value of the thermal sensor in degrees C
-        NvS32                       currentTemp;        //!< Current temperature value of the thermal sensor in degrees C
-        NV_THERMAL_TARGET           target;             //!< Thermal sensor targeted - GPU, memory, chipset, powersupply, Visual Computing Device, etc
-    } sensor[NVAPI_MAX_THERMAL_SENSORS_PER_GPU];
+        NV_THERMAL_CONTROLLER       Controller;         //!< internal, ADM1032, MAX6649...
+        NvS32                       DefaultMinTemp;     //!< Minimum default temperature value of the thermal sensor in degrees C
+        NvS32                       DefaultMaxTemp;     //!< Maximum default temperature value of the thermal sensor in degrees C
+        NvS32                       CurrentTemp;        //!< Current temperature value of the thermal sensor in degrees C
+        NV_THERMAL_TARGET           Target;             //!< Thermal sensor targeted - GPU, memory, chipset, powersupply, Visual Computing Device, etc
+    } Sensor[NVAPI_MAX_THERMAL_SENSORS_PER_GPU];
 
 } NV_GPU_THERMAL_SETTINGS_V2;
 
 //! \ingroup gputhermal
 typedef NV_GPU_THERMAL_SETTINGS_V2  NV_GPU_THERMAL_SETTINGS;
 
-//! \ingroup gputhermal
-//! @{
-
 //! Macro for constructing the version field of NV_GPU_THERMAL_SETTINGS_V1
-#define NV_GPU_THERMAL_SETTINGS_VER_1   MAKE_NVAPI_VERSION(NV_GPU_THERMAL_SETTINGS_V1,1)
+#define NV_GPU_THERMAL_SETTINGS_VER_1   MAKE_NVAPI_VERSION(NV_GPU_THERMAL_SETTINGS_V1, 1)
 
 //! Macro for constructing the version field of NV_GPU_THERMAL_SETTINGS_V2
-#define NV_GPU_THERMAL_SETTINGS_VER_2   MAKE_NVAPI_VERSION(NV_GPU_THERMAL_SETTINGS_V2,2)
+#define NV_GPU_THERMAL_SETTINGS_VER_2   MAKE_NVAPI_VERSION(NV_GPU_THERMAL_SETTINGS_V2, 2)
 
 //! Macro for constructing the version field of NV_GPU_THERMAL_SETTINGS
 #define NV_GPU_THERMAL_SETTINGS_VER     NV_GPU_THERMAL_SETTINGS_VER_2
-//! @}
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -3550,7 +3543,9 @@ typedef NV_GPU_THERMAL_SETTINGS_V2  NV_GPU_THERMAL_SETTINGS;
 //! \retval   NVAPI_INCOMPATIBLE_STRUCT_VERSION  The version of the INFO struct is not supported.
 //! \ingroup gputhermal
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetThermalSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
+//NVAPI_INTERFACE NvAPI_GPU_GetThermalSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
+typedef NvStatus (__cdecl *P_NvAPI_GPU_GetThermalSettings)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
+P_NvAPI_GPU_GetThermalSettings NvAPI_GetThermalSettings;
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -111,7 +111,11 @@ VOID NTAPI LoadCallback(
 
             // Driver Info Functions
             NvAPI_GetFullName = (P_NvAPI_GPU_GetFullName)NvAPI_QueryInterface(0xCEEE8E9F);
+            NvAPI_GetAllClocks = (P_NvAPI_GPU_GetAllClocks)NvAPI_QueryInterface(0x1BD69F49); 
+            NvAPI_GetThermalSettings = (P_NvAPI_GPU_GetThermalSettings)NvAPI_QueryInterface(0xE3640A56);
+            NvAPI_GetCoolerSettings = (P_NvAPI_GPU_GetCoolerSettings)NvAPI_QueryInterface(0xDA141340);
             NvAPI_GetDisplayDriverVersion = (P_NvAPI_GetDisplayDriverVersion)NvAPI_QueryInterface(0xF951A4D1);
+
         }
     }
           
