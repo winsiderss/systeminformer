@@ -4,6 +4,8 @@
 #include <phdk.h>
 #include <graph.h>
 
+#include <windowsx.h>
+
 #define GFXINFO_MENUITEM 1
 
 #define WM_GFX_ACTIVATE (WM_APP + 150)
