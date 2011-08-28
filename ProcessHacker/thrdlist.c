@@ -501,22 +501,29 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage != 0)
                     {
-                        PH_FORMAT format;
+                        PH_FORMAT format[2];
+                        ULONG count;
                         SIZE_T returnLength;
 
-                        PhInitFormatF(&format, cpuUsage, 2);
+                        if (cpuUsage >= 0.01)
+                        {
+                            PhInitFormatF(&format[0], cpuUsage, 2);
+                            count = 1;
+                        }
+                        else if (PhCsShowCpuBelow001)
+                        {
+                            PhInitFormatS(&format[0], L"< ");
+                            PhInitFormatF(&format[1], 0.01, 2);
+                            count = 2;
+                        }
 
-                        if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
+                        if (PhFormatToBuffer(format, count, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->CpuUsageText;
                             getCellText->Text.Length = (USHORT)(returnLength - sizeof(WCHAR)); // minus null terminator
                         }
-                    }
-                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
-                    {
-                        PhInitializeStringRef(&getCellText->Text, L"< 0.01");
                     }
                 }
                 break;
