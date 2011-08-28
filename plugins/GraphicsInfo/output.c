@@ -59,10 +59,8 @@ FLOAT CurrentMemUsage;
 FLOAT CurrentCoreUsage;
 ULONG MaxMemUsage;
 
-ULONG EtDiskReadCount;
-ULONG EtDiskWriteCount;
-ULONG EtNetworkReceiveCount;
-ULONG EtNetworkSendCount;
+ULONG GfxCoreTempCount;
+ULONG GfxBoardTempCount;
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
@@ -570,7 +568,8 @@ INT_PTR CALLBACK MainWndProc(
         break;
     case WM_GFX_UPDATE:
         {
-            GetNvidiaGpuUsages();
+            GetGfxUsages();
+            GetGfxTemp();
 
             GpuGraphState.Valid = FALSE;
             GpuGraphState.TooltipIndex = -1;
@@ -612,8 +611,8 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
     {
     case WM_GFX_PANEL_UPDATE:
         {
-            //SetDlgItemText(hwndDlg, IDC_ZREADS_V, PhaFormatUInt64(EtDiskReadCount, TRUE)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhaFormatSize(EtDiskReadDelta.Value, -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZREADS_V, PhFormatString(L"%s\u00b0", PhaFormatUInt64(GfxCoreTempCount, TRUE)->Buffer)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhFormatString(L"%s\u00b0", PhaFormatUInt64(GfxBoardTempCount, TRUE)->Buffer)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZWRITES_V, PhaFormatUInt64(EtDiskWriteCount, TRUE)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, PhaFormatSize(EtDiskWriteDelta.Value, -1)->Buffer);
 
@@ -817,9 +816,9 @@ NvDisplayHandle EnumNvidiaDisplayHandles(VOID)
     return NULL;
 }
 
-VOID GetNvidiaGpuUsages(VOID)
+
+VOID GetGfxUsages(VOID)
 {
-    // TODO: GetNvidiaTemp - http://forums.developer.nvidia.com/index.php?showtopic=2229
     NvStatus status = NVAPI_ERROR;
     NvPhysicalGpuHandle physHandle = NULL;
     NvDisplayHandle dispHandle = NULL;
@@ -836,13 +835,13 @@ VOID GetNvidiaGpuUsages(VOID)
 
     if (NV_SUCCESS(status))
     {
-        UINT coreLoad = gpuInfo.Values[2];
-        UINT usage = gpuInfo.Values[3];
-        UINT memLoad = gpuInfo.Values[6]; 
-        UINT engineLoad = gpuInfo.Values[10];
+        UINT gfxCoreLoad = gpuInfo.Values[2];
+        //UINT gfxCoreUsage = gpuInfo.Values[3];
+        UINT gfxMemControllerLoad = gpuInfo.Values[6]; 
+        //UINT gfxVideoEngineLoad = gpuInfo.Values[10];
 
-        CurrentGpuUsage = (FLOAT)coreLoad / 100;
-        CurrentCoreUsage = (FLOAT)memLoad / 100;
+        CurrentGpuUsage = (FLOAT)gfxCoreLoad / 100;
+        CurrentCoreUsage = (FLOAT)gfxMemControllerLoad / 100;
 
         PhAddItemCircularBuffer_FLOAT(&GpuHistory, CurrentGpuUsage);
         PhAddItemCircularBuffer_FLOAT(&CoreHistory, CurrentCoreUsage);
@@ -871,7 +870,6 @@ VOID GetNvidiaGpuUsages(VOID)
         LogEvent(L"gfxinfo: (GetNvidiaGpuUsages) NvAPI_GetMemoryInfo failed (%s)", status);
     }
 }
-
 
 VOID GetDriverName(VOID)
 {
@@ -920,5 +918,84 @@ VOID GetDriverVersion(VOID)
     else
     {
         LogEvent(L"gfxinfo: (GetDriverVersion) NvAPI_GetDisplayDriverVersion failed (%s)", status);
+    }
+}
+
+VOID GetGfxTemp(VOID)
+{
+    NvStatus status = NVAPI_ERROR;
+    NvPhysicalGpuHandle dispHandle = NULL;
+
+    NV_GPU_THERMAL_SETTINGS_V2 thermalInfo = { 0 };
+    thermalInfo.Version = NV_GPU_THERMAL_SETTINGS_VER;
+
+    dispHandle = EnumNvidiaGpuHandles();
+
+    status = NvAPI_GetThermalSettings(dispHandle, NVAPI_THERMAL_TARGET_ALL, &thermalInfo);
+
+    if (NV_SUCCESS(status))
+    {
+        GfxCoreTempCount = thermalInfo.Sensor[0].CurrentTemp;
+        GfxBoardTempCount = thermalInfo.Sensor[1].CurrentTemp;
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (GetGfxTemp) NvAPI_GetThermalSettings failed (%s)", status);
+    }
+}
+
+VOID GetGfxFanSpeed(VOID)
+{
+    NvStatus status = NVAPI_ERROR;
+    NvPhysicalGpuHandle dispHandle = NULL;
+
+    NV_COOLER_INFO_V2 coolInfo = { 0 };
+    coolInfo.Version = NV_COOLER_INFO_VER;
+
+    dispHandle = EnumNvidiaGpuHandles();
+
+    status = NvAPI_GetCoolerSettings(dispHandle, 0, &coolInfo);
+
+    if (NV_SUCCESS(status))
+    {
+
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (GetGfxFanSpeed) NvAPI_GetCoolerSettings failed (%s)", status);
+    }
+}
+
+VOID GetGfxClockSpeeds(VOID)
+{
+    NvStatus status = NVAPI_ERROR;
+    NvPhysicalGpuHandle dispHandle = NULL;
+
+    NV_CLOCKS_INFO_V2 clockInfo = { 0 };
+    clockInfo.Version = NV_CLOCKS_INFO_VER;
+
+    dispHandle = EnumNvidiaGpuHandles();
+
+    status = NvAPI_GetAllClocks(dispHandle, &clockInfo);
+
+    if (NV_SUCCESS(status))
+    {
+        //clocks[0] = "GPU Core"
+        //clocks[1] = "GPU Memory"
+        //clocks[2] = "GPU Shader"
+
+        //clocks[0] = 0.001f * clockInfo.Values[0];
+        //clocks[1] = 0.001f * clockInfo.Values[8];
+        //clocks[2] = 0.001f * clockInfo.Values[14];
+
+        //if (clocks[30] != 0) 
+        //{
+        //    clocks[0] = 0.0005f * clockInfo.Values[30];
+        //    clocks[2] = 0.001f * clockInfo.Values[30];
+        //}
+    }
+    else
+    {
+        LogEvent(L"gfxinfo: (GetGfxClockSpeeds) NvAPI_GetAllClocks failed (%s)", status);
     }
 }
