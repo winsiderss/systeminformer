@@ -31,11 +31,12 @@ VOID ShowDialog(VOID);
 VOID NvInit(VOID);
 
 VOID GetGfxUsages(VOID);
-VOID GetDriverName(VOID);
 VOID GetDriverVersion(VOID);
 VOID GetGfxTemp(VOID);
 VOID GetGfxFanSpeed(VOID);
 VOID GetGfxClockSpeeds(VOID);
+
+PPH_STRING GetDriverName(VOID);
 
 NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
 
