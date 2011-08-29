@@ -53,6 +53,8 @@ static VOID NTAPI GfxUpdateHandler(
     __in_opt PVOID Context
     );
 
+PH_GFX_TYPE GraphicsType = Default;
+
 PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
 PH_CIRCULAR_BUFFER_ULONG MemHistory;
 PH_CIRCULAR_BUFFER_FLOAT CoreHistory;
@@ -84,13 +86,13 @@ INT_PTR CALLBACK MainWndProc(
     case WM_INITDIALOG:
         {
             // Add the Graphics card name to the Window Title.
-            PPH_STRING gpuname = GetDriverName();
-            PPH_STRING title = PhFormatString(L"Graphics Information (%s)", gpuname->Buffer);
+            //PPH_STRING gpuname = GetDriverName();
+            //PPH_STRING title = PhFormatString(L"Graphics Information (%s)", gpuname->Buffer);
 
-            SetWindowText(hwndDlg, title->Buffer);  
+            //SetWindowText(hwndDlg, title->Buffer);  
 
-            PhDereferenceObject(gpuname);
-            PhDereferenceObject(title);
+            //PhDereferenceObject(gpuname);
+            //PhDereferenceObject(title);
 
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
             // the drawing issue that arises when using WS_CLIPCHILDREN. However
@@ -730,32 +732,47 @@ static NTSTATUS WindowThreadStart(
 
 VOID LogEvent(__in PWSTR str, __in NvStatus status)
 {
-    if (NvAPI_GetErrorMessage != NULL)
+    switch (GraphicsType)
     {
-        PPH_STRING nvPhString = NULL;
-        PPH_STRING statusString = NULL;
-        NvAPI_ShortString nvString = { 0 };
+    case NvidiaGraphics:
+        {
+            if (NvAPI_GetErrorMessage != NULL)
+            {
+                PPH_STRING nvPhString = NULL;
+                PPH_STRING statusString = NULL;
+                NvAPI_ShortString nvString = { 0 };
 
-        NvAPI_GetErrorMessage(status, nvString);
+                NvAPI_GetErrorMessage(status, nvString);
 
-        nvPhString = PhCreateStringFromAnsi(nvString);
-        statusString = PhFormatString(str, nvPhString->Buffer);
+                nvPhString = PhCreateStringFromAnsi(nvString);
+                statusString = PhFormatString(str, nvPhString->Buffer);
 
-        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, statusString);
+                PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, statusString);
 
-        PhDereferenceObject(statusString);
-        PhDereferenceObject(nvPhString);
-    }
-    else
-    {
-        PPH_STRING string = PhCreateString(L"gfxinfo: (LogEvent) NvAPI_GetErrorMessage was not initialized.");
+                PhDereferenceObject(statusString);
+                PhDereferenceObject(nvPhString);
+            }
+            else
+            {
+                PPH_STRING string = PhCreateString(L"gfxinfo: (LogEvent) NvAPI_GetErrorMessage was not initialized.");
 
-        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, string);
+                PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, string);
 
-        PhDereferenceObject(string);
+                PhDereferenceObject(string);
+            }
+        }
+        break;
+    case AtiGraphics:
+        {
+            PPH_STRING string = PhFormatString(str, status);
+
+            PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, string);
+
+            PhDereferenceObject(string);
+        }
+        break;
     }
 }
-
 
 NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID)
 {
@@ -843,57 +860,80 @@ VOID NvInit(VOID)
     }
 }
 
-
 VOID GetGfxUsages(VOID)
 {
-    NvStatus status = NVAPI_ERROR;
-
-    NV_USAGES_INFO_V1 gpuInfo = { 0 };
-    NV_MEMORY_INFO_V2 memInfo = { 0 };
-    gpuInfo.Version = NV_USAGES_INFO_VER;
-    memInfo.Version = NV_MEMORY_INFO_VER;
-
-    status = NvAPI_GetUsages(physHandle, &gpuInfo);
-
-    if (NV_SUCCESS(status))
+    switch (GraphicsType)
     {
-        UINT gfxCoreLoad = gpuInfo.Values[2];
-        //UINT gfxCoreUsage = gpuInfo.Values[3];
-        UINT gfxMemControllerLoad = gpuInfo.Values[6]; 
-        //UINT gfxVideoEngineLoad = gpuInfo.Values[10];
+    case NvidiaGraphics:
+        {
+            NvStatus status = NVAPI_ERROR;
 
-        CurrentGpuUsage = (FLOAT)gfxCoreLoad / 100;
-        CurrentCoreUsage = (FLOAT)gfxMemControllerLoad / 100;
+            NV_USAGES_INFO_V1 gpuInfo = { 0 };
+            NV_MEMORY_INFO_V2 memInfo = { 0 };
+            gpuInfo.Version = NV_USAGES_INFO_VER;
+            memInfo.Version = NV_MEMORY_INFO_VER;
 
-        PhAddItemCircularBuffer_FLOAT(&GpuHistory, CurrentGpuUsage);
-        PhAddItemCircularBuffer_FLOAT(&CoreHistory, CurrentCoreUsage);
-    }
-    else
-    {
-        LogEvent(L"gfxinfo: (GetNvidiaGpuUsages) NvAPI_GetUsages failed (%s)", status);
-    }
+            status = NvAPI_GetUsages(physHandle, &gpuInfo);
 
-    status = NvAPI_GetMemoryInfo(dispHandle, &memInfo);
-     
-    if (NV_SUCCESS(status))
-    {
-        UINT totalMemory = memInfo.Values[0];
-        UINT freeMemory = memInfo.Values[4];
-        
-        ULONG usedMemory = max(totalMemory - freeMemory, 0);
-        
-        MaxMemUsage = totalMemory;
-        CurrentMemUsage = (FLOAT)usedMemory;
-        
-        PhAddItemCircularBuffer_ULONG(&MemHistory, usedMemory);
-    }
-    else
-    {
-        LogEvent(L"gfxinfo: (GetNvidiaGpuUsages) NvAPI_GetMemoryInfo failed (%s)", status);
+            if (NV_SUCCESS(status))
+            {
+                UINT gfxCoreLoad = gpuInfo.Values[2];
+                //UINT gfxCoreUsage = gpuInfo.Values[3];
+                UINT gfxMemControllerLoad = gpuInfo.Values[6]; 
+                //UINT gfxVideoEngineLoad = gpuInfo.Values[10];
+
+                CurrentGpuUsage = (FLOAT)gfxCoreLoad / 100;
+                CurrentCoreUsage = (FLOAT)gfxMemControllerLoad / 100;
+
+                PhAddItemCircularBuffer_FLOAT(&GpuHistory, CurrentGpuUsage);
+                PhAddItemCircularBuffer_FLOAT(&CoreHistory, CurrentCoreUsage);
+            }
+            else
+            {
+                LogEvent(L"gfxinfo: (GetGfxUsages) NvAPI_GetUsages failed (%s)", status);
+            }
+
+            status = NvAPI_GetMemoryInfo(dispHandle, &memInfo);
+
+            if (NV_SUCCESS(status))
+            {
+                UINT totalMemory = memInfo.Values[0];
+                UINT freeMemory = memInfo.Values[4];
+
+                ULONG usedMemory = max(totalMemory - freeMemory, 0);
+
+                MaxMemUsage = totalMemory;
+                CurrentMemUsage = (FLOAT)usedMemory;
+
+                PhAddItemCircularBuffer_ULONG(&MemHistory, usedMemory);
+            }
+            else
+            {
+                LogEvent(L"gfxinfo: (GetGfxUsages) NvAPI_GetMemoryInfo failed (%s)", status);
+            }
+        }
+        break;
+    case AtiGraphics:
+        {
+            int status = 0;
+            ADLPMActivity activity = { 0 };
+
+            status = Adl_GetCurrentActivity(0, &activity);
+
+            if (status == ADL_OK)
+            {
+
+            }
+            else
+            {
+                LogEvent(L"gfxinfo: (GetGfxUsages) Adl_GetCurrentActivity failed (%s)", status);
+            }
+        }
+        break;
     }
 }
 
-PPH_STRING GetDriverName(VOID)
+PPH_STRING GetGfxName(VOID)
 {
     NvStatus status = NVAPI_ERROR;
     NvAPI_ShortString str = { 0 };
@@ -940,21 +980,28 @@ VOID GetDriverVersion(VOID)
 
 VOID GetGfxTemp(VOID)
 {
-    NvStatus status = NVAPI_ERROR;
-
-    NV_GPU_THERMAL_SETTINGS_V2 thermalInfo = { 0 };
-    thermalInfo.Version = NV_GPU_THERMAL_SETTINGS_VER;
-
-    status = NvAPI_GetThermalSettings(physHandle, NVAPI_THERMAL_TARGET_ALL, &thermalInfo);
-
-    if (NV_SUCCESS(status))
+    switch (GraphicsType)
     {
-        GfxCoreTempCount = thermalInfo.Sensor[0].CurrentTemp;
-        GfxBoardTempCount = thermalInfo.Sensor[1].CurrentTemp;
-    }
-    else
-    {
-        LogEvent(L"gfxinfo: (GetGfxTemp) NvAPI_GetThermalSettings failed (%s)", status);
+    case NvidiaGraphics:
+        {
+            NvStatus status = NVAPI_ERROR;
+
+            NV_GPU_THERMAL_SETTINGS_V2 thermalInfo = { 0 };
+            thermalInfo.Version = NV_GPU_THERMAL_SETTINGS_VER;
+
+            status = NvAPI_GetThermalSettings(physHandle, NVAPI_THERMAL_TARGET_ALL, &thermalInfo);
+
+            if (NV_SUCCESS(status))
+            {
+                GfxCoreTempCount = thermalInfo.Sensor[0].CurrentTemp;
+                GfxBoardTempCount = thermalInfo.Sensor[1].CurrentTemp;
+            }
+            else
+            {
+                LogEvent(L"gfxinfo: (GetGfxTemp) NvAPI_GetThermalSettings failed (%s)", status);
+            }
+        }
+        break;
     }
 }
 
@@ -979,35 +1026,137 @@ VOID GetGfxFanSpeed(VOID)
 
 VOID GetGfxClockSpeeds(VOID)
 {
-    NvStatus status = NVAPI_ERROR;
-    
-    NV_CLOCKS_INFO_V2 clockInfo = { 0 };
-    clockInfo.Version = NV_CLOCKS_INFO_VER;
-
-    status = NvAPI_GetAllClocks(physHandle, &clockInfo);
-
-    if (NV_SUCCESS(status))
+    switch (GraphicsType)
     {
-        //clocks[0] = "GPU Core"
-        //clocks[1] = "GPU Memory"
-        //clocks[2] = "GPU Shader"
+    case NvidiaGraphics:
+        {
+            NvStatus status = NVAPI_ERROR;
 
-        //clocks[0] = 0.001f * clockInfo.Values[0];
-        //clocks[1] = 0.001f * clockInfo.Values[8];
-        //clocks[2] = 0.001f * clockInfo.Values[14];
+            NV_CLOCKS_INFO_V2 clockInfo = { 0 };
+            clockInfo.Version = NV_CLOCKS_INFO_VER;
 
-        //if (clocks[30] != 0) 
-        //{
-        //    clocks[0] = 0.0005f * clockInfo.Values[30];
-        //    clocks[2] = 0.001f * clockInfo.Values[30];
-        //}
+            status = NvAPI_GetAllClocks(physHandle, &clockInfo);
 
-        GfxCoreClockCount = 0.001f * clockInfo.Values[0];
-        GfxMemoryClockCount = 0.001f * clockInfo.Values[8];
-        GfxShaderClockCount = 0.001f * clockInfo.Values[14];
+            if (NV_SUCCESS(status))
+            {
+                //clocks[0] = "GPU Core"
+                //clocks[1] = "GPU Memory"
+                //clocks[2] = "GPU Shader"
+
+                //clocks[0] = 0.001f * clockInfo.Values[0];
+                //clocks[1] = 0.001f * clockInfo.Values[8];
+                //clocks[2] = 0.001f * clockInfo.Values[14];
+
+                //if (clocks[30] != 0) 
+                //{
+                //    clocks[0] = 0.0005f * clockInfo.Values[30];
+                //    clocks[2] = 0.001f * clockInfo.Values[30];
+                //}
+
+                GfxCoreClockCount = 0.001f * clockInfo.Values[0];
+                GfxMemoryClockCount = 0.001f * clockInfo.Values[8];
+                GfxShaderClockCount = 0.001f * clockInfo.Values[14];
+            }
+            else
+            {
+                LogEvent(L"gfxinfo: (GetGfxClockSpeeds) NvAPI_GetAllClocks failed (%s)", status);
+            }
+        }
+        break;
+    }
+}
+
+VOID InitGfx(VOID)
+{
+    HMODULE module;
+
+    // Specify the nVidia Library to load.
+#ifdef _M_IX86
+    module = LoadLibrary(L"nvapi.dll");
+#else
+    module = LoadLibrary(L"nvapi64.dll");
+#endif
+
+    if (module != NULL)
+    {
+        GraphicsType = NvidiaGraphics;
     }
     else
     {
-        LogEvent(L"gfxinfo: (GetGfxClockSpeeds) NvAPI_GetAllClocks failed (%s)", status);
+        // Specify the Ati Library to load.
+#ifdef _M_IX86
+        module = LoadLibrary(L"atiadlxy.dll");
+#else
+        module = LoadLibrary(L"atiadlxx.dll");
+#endif
+
+        if (module != NULL)
+        {
+            GraphicsType = AtiGraphics;
+        }
+    }
+
+    switch (GraphicsType)
+    {
+    case NvidiaGraphics:
+        {
+            // Find our QueryInterface API
+            NvAPI_QueryInterface = (P_NvAPI_QueryInterface)GetProcAddress(module, "nvapi_QueryInterface");
+
+            // Check if QueryInterface was found.
+            if (NvAPI_QueryInterface != NULL)
+            {
+                // 50/50 these ID's and API defs are correct.
+
+                // Library initialization functions
+                NvAPI_Initialize = (P_NvAPI_Initialize)NvAPI_QueryInterface(0x150E828u);
+                NvAPI_Unload = (P_NvAPI_Unload)NvAPI_QueryInterface(0xD22BDD7E);
+
+                // Error Functions
+                NvAPI_GetErrorMessage = (P_NvAPI_GetErrorMessage)NvAPI_QueryInterface(0x6C2D048Cu);
+
+                // Handle Functions
+                NvAPI_EnumPhysicalGPUs = (P_NvAPI_EnumPhysicalGPUs)NvAPI_QueryInterface(0xE5AC921F);
+                NvAPI_EnumNvidiaDisplayHandle = (P_NvAPI_EnumNvidiaDisplayHandle)NvAPI_QueryInterface(0x9ABDD40D);
+
+                // Query Functions
+                NvAPI_GetUsages = (P_NvAPI_GPU_GetUsages)NvAPI_QueryInterface(0x189A1FDF);
+                NvAPI_GetMemoryInfo = (P_NvAPI_GetMemoryInfo)NvAPI_QueryInterface(0x774AA982);
+                NvAPI_GetPhysicalGPUsFromDisplay = (P_NvAPI_GetPhysicalGPUsFromDisplay)NvAPI_QueryInterface(0x34EF9506);
+
+                // Driver Info Functions
+                NvAPI_GetFullName = (P_NvAPI_GPU_GetFullName)NvAPI_QueryInterface(0xCEEE8E9F);
+                NvAPI_GetAllClocks = (P_NvAPI_GPU_GetAllClocks)NvAPI_QueryInterface(0x1BD69F49); 
+                NvAPI_GetThermalSettings = (P_NvAPI_GPU_GetThermalSettings)NvAPI_QueryInterface(0xE3640A56);
+                NvAPI_GetCoolerSettings = (P_NvAPI_GPU_GetCoolerSettings)NvAPI_QueryInterface(0xDA141340);
+                NvAPI_GetDisplayDriverVersion = (P_NvAPI_GetDisplayDriverVersion)NvAPI_QueryInterface(0xF951A4D1);
+
+                NvInit();
+            }
+        }
+        break;
+    case AtiGraphics:
+        {
+            //ADL_MAIN_CONTROL_DESTROY         ADL_Main_Control_Destroy = NULL;
+            //ADL_ADAPTER_NUMBEROFADAPTERS_GET ADL_Adapter_NumberOfAdapters_Get = NULL;
+            //ADL_ADAPTER_ADAPTERINFO_GET      ADL_Adapter_AdapterInfo_Get = NULL;
+
+            ADL_Main_Control_Create = (ADL_MAIN_CONTROL_CREATE)GetProcAddress(module, "ADL_Main_Control_Create");
+            //ADL_Main_Control_Destroy = (ADL_MAIN_CONTROL_DESTROY)GetProcAddress(module, "ADL_Main_Control_Destroy");
+            //ADL_Adapter_NumberOfAdapters_Get = (ADL_ADAPTER_NUMBEROFADAPTERS_GET)GetProcAddress(module, "ADL_Adapter_NumberOfAdapters_Get");
+            //ADL_Adapter_AdapterInfo_Get = (ADL_ADAPTER_ADAPTERINFO_GET)GetProcAddress(module, "ADL_Adapter_AdapterInfo_Get");
+            //ADL_Display_DisplayInfo_Get = (ADL_DISPLAY_DISPLAYINFO_GET)GetProcAddress(module, "ADL_Display_DisplayInfo_Get");
+            //ADL_Display_ColorCaps_Get = (ADL_DISPLAY_COLORCAPS_GET)GetProcAddress(module, "ADL_Display_ColorCaps_Get");
+            //ADL_Display_Color_Get = (ADL_DISPLAY_COLOR_GET)GetProcAddress(module, "ADL_Display_Color_Get");
+            //ADL_Display_Color_Set = (ADL_DISPLAY_COLOR_SET)GetProcAddress(module, "ADL_Display_Color_Set");
+            
+            Adl_GetCurrentActivity = (P_Adl_OVERDRIVE_CURRENTACTIVITY_Get)GetProcAddress(module, "ADL_Overdrive5_CurrentActivity_Get"); 
+        }
+        break;
+    default:
+        {
+
+        }
+        break;
     }
 }

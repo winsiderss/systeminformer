@@ -21,6 +21,15 @@
     <ClInclude Include="include\nvapi.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\adl_defines.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\adl_sdk.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\adl_structures.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
