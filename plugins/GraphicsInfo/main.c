@@ -73,53 +73,7 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     )
 {
-    HMODULE module;
-
-    // Specify the nVidia Library to load.
-#ifdef _M_IX86
-    module = LoadLibrary(L"nvapi.dll");
-#else
-    module = LoadLibrary(L"nvapi64.dll");
-#endif
-
-    // Check if we loaded our module.
-    if (module != NULL)
-    {
-        // Find our QueryInterface API
-        NvAPI_QueryInterface = (P_NvAPI_QueryInterface)GetProcAddress(module, "nvapi_QueryInterface");
-
-        // Check if QueryInterface was found.
-        if (NvAPI_QueryInterface != NULL)
-        {
-            // 50/50 these ID's and API defs are correct.
-
-            // Library initialization functions
-            NvAPI_Initialize = (P_NvAPI_Initialize)NvAPI_QueryInterface(0x150E828u);
-            NvAPI_Unload = (P_NvAPI_Unload)NvAPI_QueryInterface(0xD22BDD7E);
-
-            // Error Functions
-            NvAPI_GetErrorMessage = (P_NvAPI_GetErrorMessage)NvAPI_QueryInterface(0x6C2D048Cu);
-
-            // Handle Functions
-            NvAPI_EnumPhysicalGPUs = (P_NvAPI_EnumPhysicalGPUs)NvAPI_QueryInterface(0xE5AC921F);
-            NvAPI_EnumNvidiaDisplayHandle = (P_NvAPI_EnumNvidiaDisplayHandle)NvAPI_QueryInterface(0x9ABDD40D);
-           
-            // Query Functions
-            NvAPI_GetUsages = (P_NvAPI_GPU_GetUsages)NvAPI_QueryInterface(0x189A1FDF);
-            NvAPI_GetMemoryInfo = (P_NvAPI_GetMemoryInfo)NvAPI_QueryInterface(0x774AA982);
-            NvAPI_GetPhysicalGPUsFromDisplay = (P_NvAPI_GetPhysicalGPUsFromDisplay)NvAPI_QueryInterface(0x34EF9506);
-
-            // Driver Info Functions
-            NvAPI_GetFullName = (P_NvAPI_GPU_GetFullName)NvAPI_QueryInterface(0xCEEE8E9F);
-            NvAPI_GetAllClocks = (P_NvAPI_GPU_GetAllClocks)NvAPI_QueryInterface(0x1BD69F49); 
-            NvAPI_GetThermalSettings = (P_NvAPI_GPU_GetThermalSettings)NvAPI_QueryInterface(0xE3640A56);
-            NvAPI_GetCoolerSettings = (P_NvAPI_GPU_GetCoolerSettings)NvAPI_QueryInterface(0xDA141340);
-            NvAPI_GetDisplayDriverVersion = (P_NvAPI_GetDisplayDriverVersion)NvAPI_QueryInterface(0xF951A4D1);
-
-        }
-    }
-          
-    NvInit();
+    InitGfx();
 }
 
 VOID NTAPI UnloadCallback(

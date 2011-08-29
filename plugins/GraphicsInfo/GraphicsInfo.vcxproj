@@ -193,6 +193,9 @@
     <ClCompile Include="output.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\adl_defines.h" />
+    <ClInclude Include="include\adl_sdk.h" />
+    <ClInclude Include="include\adl_structures.h" />
     <ClInclude Include="include\gfxinfo.h" />
     <ClInclude Include="include\nvapi.h" />
     <ClInclude Include="resources\resource.h" />

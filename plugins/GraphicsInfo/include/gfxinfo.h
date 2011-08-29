@@ -6,6 +6,17 @@
 
 #include <windowsx.h>
 
+#include "adl_defines.h"
+#include "adl_sdk.h"
+#include "adl_structures.h"
+
+typedef enum _GFX_TYPE
+{
+    Default,
+    NvidiaGraphics,
+    AtiGraphics
+} PH_GFX_TYPE;
+
 #define GFXINFO_MENUITEM 1
 
 #define WM_GFX_ACTIVATE (WM_APP + 150)
@@ -27,6 +38,8 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
+VOID InitGfx(VOID);
+
 VOID ShowDialog(VOID);
 VOID NvInit(VOID);
 
@@ -36,7 +49,7 @@ VOID GetGfxTemp(VOID);
 VOID GetGfxFanSpeed(VOID);
 VOID GetGfxClockSpeeds(VOID);
 
-PPH_STRING GetDriverName(VOID);
+PPH_STRING GetGfxName(VOID);
 
 NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
 NvDisplayHandle EnumNvidiaDisplayHandles(VOID);
@@ -164,3 +177,15 @@ typedef NvStatus (__cdecl *P_NvAPI_GPU_GetAllClocks)(NvPhysicalGpuHandle, PNV_CL
 P_NvAPI_GPU_GetAllClocks NvAPI_GetAllClocks;
 
 #pragma pack(pop)
+
+
+typedef int (*ADL_MAIN_CONTROL_CREATE )(ADL_MAIN_MALLOC_CALLBACK, int);
+ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;
+
+typedef int (*P_Adl_OVERDRIVE_CURRENTACTIVITY_Get)(int iAdapterIndex,  ADLPMActivity*);
+P_Adl_OVERDRIVE_CURRENTACTIVITY_Get Adl_GetCurrentActivity;
+
+//typedef int (*ADL_MAIN_CONTROL_DESTROY )();
+//typedef int (*ADL_ADAPTER_NUMBEROFADAPTERS_GET)(int*);
+//typedef int (*ADL_ADAPTER_ADAPTERINFO_GET)(LPAdapterInfo, int );
+//typedef int (*ADL_DISPLAY_DISPLAYINFO_GET)(int, int*, ADLDisplayInfo**, int);
