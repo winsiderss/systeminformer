@@ -361,6 +361,9 @@ VOID PhTnpDestroyTreeNewContext(
 
     PhDereferenceObject(Context->FlatList);
 
+    if (Context->FontOwned)
+        DeleteObject(Context->Font);
+
     if (Context->ThemeData)
         CloseThemeData_I(Context->ThemeData);
 
