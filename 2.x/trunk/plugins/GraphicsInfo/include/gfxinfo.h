@@ -38,11 +38,9 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
-VOID InitGfx(VOID);
-
 VOID ShowDialog(VOID);
-VOID NvInit(VOID);
 
+VOID InitGfx(VOID);
 VOID GetGfxUsages(VOID);
 VOID GetDriverVersion(VOID);
 VOID GetGfxTemp(VOID);
@@ -54,7 +52,10 @@ PPH_STRING GetGfxName(VOID);
 NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
 NvDisplayHandle EnumNvidiaDisplayHandles(VOID);
 
-VOID LogEvent(__in PWSTR str, __in NvStatus status);
+VOID LogEvent(
+    __in PWSTR str, 
+    __in NvStatus status
+    );
 
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
@@ -101,7 +102,7 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
 
 // dmex - magic numbers, do not change them
 #define NVAPI_MAX_PHYSICAL_GPUS   64
-#define NVAPI_MAX_USAGES_PER_GPU  33 //34
+#define NVAPI_MAX_USAGES_PER_GPU  33
 #define MAX_MEMORY_VALUES_PER_GPU 5
 #define MAX_COOLER_PER_GPU 20
 #define MAX_CLOCKS_PER_GPU 0x120
@@ -178,12 +179,11 @@ P_NvAPI_GPU_GetAllClocks NvAPI_GetAllClocks;
 
 #pragma pack(pop)
 
+//typedef int (*ADL_MAIN_CONTROL_CREATE )(ADL_MAIN_MALLOC_CALLBACK, int);
+//ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;
 
-typedef int (*ADL_MAIN_CONTROL_CREATE )(ADL_MAIN_MALLOC_CALLBACK, int);
-ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;
-
-typedef int (*P_Adl_OVERDRIVE_CURRENTACTIVITY_Get)(int iAdapterIndex,  ADLPMActivity*);
-P_Adl_OVERDRIVE_CURRENTACTIVITY_Get Adl_GetCurrentActivity;
+//typedef int (*P_Adl_OVERDRIVE_CURRENTACTIVITY_Get)(int iAdapterIndex,  ADLPMActivity*);
+//P_Adl_OVERDRIVE_CURRENTACTIVITY_Get Adl_GetCurrentActivity;
 
 //typedef int (*ADL_MAIN_CONTROL_DESTROY )();
 //typedef int (*ADL_ADAPTER_NUMBEROFADAPTERS_GET)(int*);
