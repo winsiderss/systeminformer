@@ -26,7 +26,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"GPU Information";
             info->Author = L"dmex";
-            info->Description = L"Extended functionality.";
+            info->Description = L"Extended functionality for nVidia and ATI graphics cards.";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(

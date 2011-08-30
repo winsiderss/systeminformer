@@ -730,7 +730,7 @@ static NTSTATUS WindowThreadStart(
     return STATUS_SUCCESS;
 }
 
-VOID LogEvent(__in PWSTR str, __in NvStatus status)
+VOID LogEvent(__in PWSTR str, __in int status)
 {
     switch (GraphicsType)
     {
@@ -742,7 +742,7 @@ VOID LogEvent(__in PWSTR str, __in NvStatus status)
                 PPH_STRING statusString = NULL;
                 NvAPI_ShortString nvString = { 0 };
 
-                NvAPI_GetErrorMessage(status, nvString);
+                NvAPI_GetErrorMessage((NvStatus)status, nvString);
 
                 nvPhString = PhCreateStringFromAnsi(nvString);
                 statusString = PhFormatString(str, nvPhString->Buffer);
@@ -764,11 +764,11 @@ VOID LogEvent(__in PWSTR str, __in NvStatus status)
         break;
     case AtiGraphics:
         {
-            PPH_STRING string = PhFormatString(str, status);
+            //PPH_STRING string = PhFormatString(str, status);
 
-            PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, string);
+            //PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, string);
 
-            PhDereferenceObject(string);
+            //PhDereferenceObject(string);
         }
         break;
     }
@@ -844,22 +844,6 @@ NvDisplayHandle EnumNvidiaDisplayHandles(VOID)
     return NULL;
 }
 
-
-VOID NvInit(VOID)
-{
-    NvStatus status = NvAPI_Initialize();
-
-    if (NV_SUCCESS(status))
-    {
-        physHandle = EnumNvidiaGpuHandles();
-        dispHandle = EnumNvidiaDisplayHandles();
-    }
-    else
-    {
-        LogEvent(L"gfxinfo: (NvInit) NvAPI_Initialize failed (%s)", status);
-    }
-}
-
 VOID GetGfxUsages(VOID)
 {
     switch (GraphicsType)
@@ -916,9 +900,9 @@ VOID GetGfxUsages(VOID)
     case AtiGraphics:
         {
             int status = 0;
-            ADLPMActivity activity = { 0 };
+            //ADLPMActivity activity = { 0 };
 
-            status = Adl_GetCurrentActivity(0, &activity);
+            //status = Adl_GetCurrentActivity(0, &activity);
 
             if (status == ADL_OK)
             {
@@ -926,7 +910,7 @@ VOID GetGfxUsages(VOID)
             }
             else
             {
-                LogEvent(L"gfxinfo: (GetGfxUsages) Adl_GetCurrentActivity failed (%s)", status);
+                //LogEvent(L"gfxinfo: (GetGfxUsages) Adl_GetCurrentActivity failed (%d)", status);
             }
         }
         break;
@@ -1077,11 +1061,7 @@ VOID InitGfx(VOID)
     module = LoadLibrary(L"nvapi64.dll");
 #endif
 
-    if (module != NULL)
-    {
-        GraphicsType = NvidiaGraphics;
-    }
-    else
+    if (module == NULL)
     {
         // Specify the Ati Library to load.
 #ifdef _M_IX86
@@ -1094,6 +1074,10 @@ VOID InitGfx(VOID)
         {
             GraphicsType = AtiGraphics;
         }
+    }
+    else
+    {
+        GraphicsType = NvidiaGraphics;
     }
 
     switch (GraphicsType)
@@ -1109,7 +1093,7 @@ VOID InitGfx(VOID)
                 // 50/50 these ID's and API defs are correct.
 
                 // Library initialization functions
-                NvAPI_Initialize = (P_NvAPI_Initialize)NvAPI_QueryInterface(0x150E828u);
+                NvAPI_Initialize = (P_NvAPI_Initialize)NvAPI_QueryInterface(0x150E828);
                 NvAPI_Unload = (P_NvAPI_Unload)NvAPI_QueryInterface(0xD22BDD7E);
 
                 // Error Functions
@@ -1131,7 +1115,19 @@ VOID InitGfx(VOID)
                 NvAPI_GetCoolerSettings = (P_NvAPI_GPU_GetCoolerSettings)NvAPI_QueryInterface(0xDA141340);
                 NvAPI_GetDisplayDriverVersion = (P_NvAPI_GetDisplayDriverVersion)NvAPI_QueryInterface(0xF951A4D1);
 
-                NvInit();
+                { 
+                    NvStatus status = NvAPI_Initialize();
+
+                    if (NV_SUCCESS(status))
+                    {
+                        physHandle = EnumNvidiaGpuHandles();
+                        dispHandle = EnumNvidiaDisplayHandles();
+                    }
+                    else
+                    {
+                        LogEvent(L"gfxinfo: (InitGfx) NvAPI_Initialize failed (%s)", status);
+                    }
+                }
             }
         }
         break;
@@ -1141,7 +1137,7 @@ VOID InitGfx(VOID)
             //ADL_ADAPTER_NUMBEROFADAPTERS_GET ADL_Adapter_NumberOfAdapters_Get = NULL;
             //ADL_ADAPTER_ADAPTERINFO_GET      ADL_Adapter_AdapterInfo_Get = NULL;
 
-            ADL_Main_Control_Create = (ADL_MAIN_CONTROL_CREATE)GetProcAddress(module, "ADL_Main_Control_Create");
+            //ADL_Main_Control_Create = (ADL_MAIN_CONTROL_CREATE)GetProcAddress(module, "ADL_Main_Control_Create");
             //ADL_Main_Control_Destroy = (ADL_MAIN_CONTROL_DESTROY)GetProcAddress(module, "ADL_Main_Control_Destroy");
             //ADL_Adapter_NumberOfAdapters_Get = (ADL_ADAPTER_NUMBEROFADAPTERS_GET)GetProcAddress(module, "ADL_Adapter_NumberOfAdapters_Get");
             //ADL_Adapter_AdapterInfo_Get = (ADL_ADAPTER_ADAPTERINFO_GET)GetProcAddress(module, "ADL_Adapter_AdapterInfo_Get");
@@ -1150,7 +1146,7 @@ VOID InitGfx(VOID)
             //ADL_Display_Color_Get = (ADL_DISPLAY_COLOR_GET)GetProcAddress(module, "ADL_Display_Color_Get");
             //ADL_Display_Color_Set = (ADL_DISPLAY_COLOR_SET)GetProcAddress(module, "ADL_Display_Color_Set");
             
-            Adl_GetCurrentActivity = (P_Adl_OVERDRIVE_CURRENTACTIVITY_Get)GetProcAddress(module, "ADL_Overdrive5_CurrentActivity_Get"); 
+            //Adl_GetCurrentActivity = (P_Adl_OVERDRIVE_CURRENTACTIVITY_Get)GetProcAddress(module, "ADL_Overdrive5_CurrentActivity_Get"); 
         }
         break;
     default:
