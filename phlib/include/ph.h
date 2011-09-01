@@ -2629,6 +2629,11 @@ VOID PhSetFileDialogOptions(
     __in ULONG Options
     );
 
+PHLIBAPI
+ULONG PhGetFileDialogFilterIndex(
+    __in PVOID FileDialog
+    );
+
 typedef struct _PH_FILETYPE_FILTER
 {
     PWSTR Name;

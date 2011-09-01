@@ -4054,6 +4054,40 @@ VOID PhSetFileDialogOptions(
 }
 
 /**
+ * Gets the index of the currently selected file type filter for a 
+ * file dialog.
+ *
+ * \param FileDialog The file dialog.
+ *
+ * \return The one-based index of the selected file type, or 0 if an 
+ * error occurred.
+ */
+ULONG PhGetFileDialogFilterIndex(
+    __in PVOID FileDialog
+    )
+{
+    if (PHP_USE_IFILEDIALOG)
+    {
+        ULONG index;
+
+        if (SUCCEEDED(IFileDialog_GetFileTypeIndex((IFileDialog *)FileDialog, &index)))
+        {
+            return index;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+
+        return ofn->nFilterIndex;
+    }
+}
+
+/**
  * Sets the file type filter for a file dialog.
  *
  * \param FileDialog The file dialog.

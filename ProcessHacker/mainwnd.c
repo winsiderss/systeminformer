@@ -756,10 +756,12 @@ VOID PhMwpOnCommand(
             {
                 NTSTATUS status;
                 PPH_STRING fileName;
+                ULONG filterIndex;
                 PPH_FILE_STREAM fileStream;
 
                 fileName = PhGetFileDialogFileName(fileDialog);
                 PhaDereferenceObject(fileName);
+                filterIndex = PhGetFileDialogFilterIndex(fileDialog);
 
                 if (NT_SUCCESS(status = PhCreateFileStream(
                     &fileStream,
@@ -773,7 +775,7 @@ VOID PhMwpOnCommand(
                     ULONG mode;
                     ULONG selectedTab;
 
-                    if (PhEndsWithString2(fileName, L".csv", TRUE))
+                    if (filterIndex == 2)
                         mode = PH_EXPORT_MODE_CSV;
                     else
                         mode = PH_EXPORT_MODE_TABS;
@@ -1694,7 +1696,7 @@ VOID PhMwpOnCommand(
             PhReferenceObjects(networkItems, numberOfNetworkItems);
 
             if (PhUiCloseConnections(PhMainWndHandle, networkItems, numberOfNetworkItems))
-                PhSetStateAllListViewItems(NetworkTreeListHandle, 0, LVIS_SELECTED);
+                PhDeselectAllNetworkNodes();
 
             PhDereferenceObjects(networkItems, numberOfNetworkItems);
             PhFree(networkItems);
@@ -1702,7 +1704,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_NETWORK_COPY:
         {
-            PhCopyListView(NetworkTreeListHandle);
+            PhCopyNetworkList();
         }
         break;
     case ID_TAB_NEXT:
