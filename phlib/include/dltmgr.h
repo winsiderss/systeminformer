@@ -19,6 +19,12 @@ typedef struct _PH_UINT64_DELTA
     ULONG64 Delta;
 } PH_UINT64_DELTA, *PPH_UINT64_DELTA;
 
+typedef struct _PH_UINTPTR_DELTA
+{
+    ULONG_PTR Value;
+    ULONG_PTR Delta;
+} PH_UINTPTR_DELTA, *PPH_UINTPTR_DELTA;
+
 #define PhInitializeDelta(DltMgr) \
     ((DltMgr)->Value = 0, (DltMgr)->Delta = 0)
 
