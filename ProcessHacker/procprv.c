@@ -2018,6 +2018,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
+            PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
             processItem->IsSuspended = isSuspended;
 
@@ -2080,6 +2081,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
+            PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
             processItem->SequenceNumber++;
             PhAddItemCircularBuffer_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
