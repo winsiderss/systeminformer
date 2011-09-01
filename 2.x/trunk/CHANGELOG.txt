@@ -2,8 +2,10 @@ Process Hacker
 
 2.21
  * NEW/IMPROVED:
+   * Added Private Bytes Delta column
  * FIXED:
    * Fixed Show CPU Below 0.01 not respecting locale
+   * Fixed copying from network list
 
 2.20
  * NEW/IMPROVED:

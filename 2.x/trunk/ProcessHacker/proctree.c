@@ -186,6 +186,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PEAKNONPAGEDPOOL, FALSE, L"Peak Non-Paged Pool", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_MINIMUMWORKINGSET, FALSE, L"Minimum Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_MAXIMUMWORKINGSET, FALSE, L"Maximum Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVATEBYTESDELTA, FALSE, L"Private Bytes Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -528,6 +529,7 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->PeakNonPagedPoolText) PhDereferenceObject(ProcessNode->PeakNonPagedPoolText);
     if (ProcessNode->MinimumWorkingSetText) PhDereferenceObject(ProcessNode->MinimumWorkingSetText);
     if (ProcessNode->MaximumWorkingSetText) PhDereferenceObject(ProcessNode->MaximumWorkingSetText);
+    if (ProcessNode->PrivateBytesDeltaText) PhDereferenceObject(ProcessNode->PrivateBytesDeltaText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1569,6 +1571,12 @@ BEGIN_SORT_FUNCTION(MaximumWorkingSet)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PrivateBytesDelta)
+{
+    sortResult = intptrcmp(processItem1->PrivateBytesDelta.Delta, processItem2->PrivateBytesDelta.Delta);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1678,7 +1686,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(NonPagedPool),
                         SORT_FUNCTION(PeakNonPagedPool),
                         SORT_FUNCTION(MinimumWorkingSet),
-                        SORT_FUNCTION(MaximumWorkingSet)
+                        SORT_FUNCTION(MaximumWorkingSet),
+                        SORT_FUNCTION(PrivateBytesDelta)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2261,6 +2270,35 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhpUpdateProcessNodeQuotaLimits(node);
                 PhSwapReference2(&node->MaximumWorkingSetText, PhFormatSize(node->MaximumWorkingSetSize, -1));
                 getCellText->Text = node->MaximumWorkingSetText->sr;
+                break;
+            case PHPRTLC_PRIVATEBYTESDELTA:
+                {
+                    LONG_PTR delta;
+
+                    delta = processItem->PrivateBytesDelta.Delta;
+
+                    if (delta != 0)
+                    {
+                        PH_FORMAT format[2];
+
+                        if (delta > 0)
+                        {
+                            PhInitFormatC(&format[0], '+');
+                        }
+                        else
+                        {
+                            PhInitFormatC(&format[0], '-');
+                            delta = -delta;
+                        }
+
+                        format[1].Type = SizeFormatType | FormatUseRadix;
+                        format[1].Radix = (UCHAR)PhMaxSizeUnit;
+                        format[1].u.Size = delta;
+
+                        PhSwapReference2(&node->PrivateBytesDeltaText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->PrivateBytesDeltaText->sr;
+                    }
+                }
                 break;
             default:
                 return FALSE;

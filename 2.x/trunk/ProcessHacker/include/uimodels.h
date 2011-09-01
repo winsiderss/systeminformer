@@ -184,8 +184,9 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_PEAKNONPAGEDPOOL 67
 #define PHPRTLC_MINIMUMWORKINGSET 68
 #define PHPRTLC_MAXIMUMWORKINGSET 69
+#define PHPRTLC_PRIVATEBYTESDELTA 70
 
-#define PHPRTLC_MAXIMUM 70
+#define PHPRTLC_MAXIMUM 71
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -284,6 +285,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING PeakNonPagedPoolText;
     PPH_STRING MinimumWorkingSetText;
     PPH_STRING MaximumWorkingSetText;
+    PPH_STRING PrivateBytesDeltaText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
