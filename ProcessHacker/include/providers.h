@@ -524,6 +524,10 @@ typedef struct _PH_MODULE_ITEM
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
+
+    ULONG ImageTimeDateStamp;
+    USHORT ImageCharacteristics;
+    USHORT ImageDllCharacteristics;
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER
