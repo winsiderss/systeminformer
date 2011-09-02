@@ -49,6 +49,50 @@ VOID PhShowProcessTerminatorDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE debugObjectHandle;
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_SUSPEND_RESUME,
+        ProcessItem->ProcessId
+        )))
+    {
+        if (NT_SUCCESS(PhGetProcessDebugObject(
+            processHandle,
+            &debugObjectHandle
+            )))
+        {
+            if (PhShowMessage(
+                ParentWindowHandle,
+                MB_ICONWARNING | MB_YESNO,
+                L"The selected process is currently being debugged, which can prevent it from being terminated. "
+                L"Do you want to detach the process from its debugger?"
+                ) == IDYES)
+            {
+                ULONG flags;
+
+                // Disable kill-on-close.
+                flags = 0;
+                NtSetInformationDebugObject(
+                    debugObjectHandle,
+                    DebugObjectFlags,
+                    &flags,
+                    sizeof(ULONG),
+                    NULL
+                    );
+
+                if (!NT_SUCCESS(status = NtRemoveProcessDebug(processHandle, debugObjectHandle)))
+                    PhShowStatus(ParentWindowHandle, L"Unable to deatch the process", status, 0);
+            }
+
+            NtClose(debugObjectHandle);
+        }
+
+        NtClose(processHandle);
+    }
+
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_TERMINATOR),
