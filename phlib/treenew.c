@@ -5443,14 +5443,9 @@ VOID PhTnpDrawSelectionRectangle(
     )
 {
     RECT rect;
-    LONG viewRight;
     BOOLEAN drewWithAlpha;
 
-    viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-    rect.left = max(Rect->left, 0);
-    rect.top = max(Rect->top, Context->HeaderHeight);
-    rect.right = min(Rect->right, viewRight);
-    rect.bottom = min(Rect->bottom, Context->ClientRect.bottom);
+    rect = *Rect;
 
     // MSDN says FrameRect/DrawFocusRect doesn't draw anything if bottom <= top or right <= left.
     // That's complete rubbish. (And thanks for making me waste a whole hour on this redraw problem.)
@@ -6206,8 +6201,11 @@ VOID PhTnpDragSelect(
                 LONG oldHScrollPosition;
                 LONG newDeltaX;
                 LONG newDeltaY;
+                LONG viewLeft;
                 LONG viewTop;
                 LONG viewRight;
+                LONG viewBottom;
+                LONG temp;
                 RECT totalRect;
 
                 newCursorX = GET_X_LPARAM(msg.lParam);
@@ -6256,19 +6254,26 @@ VOID PhTnpDragSelect(
                     oldDragRect.right += newDeltaX;
                 oldDragRect.bottom += newDeltaY;
 
-                // Ensure that the new cursor position is within the view area.
+                // Ensure that the new cursor position is within the content area.
 
-                viewTop = Context->HeaderHeight;
-                viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+                viewLeft = Context->FixedColumnVisible ? 0 : -Context->HScrollPosition;
+                viewTop = Context->HeaderHeight - Context->VScrollPosition;
+                viewRight = Context->NormalLeft + Context->TotalViewX - Context->HScrollPosition;
+                viewBottom = Context->HeaderHeight + ((LONG)Context->FlatList->Count - Context->VScrollPosition) * Context->RowHeight;
 
-                if (newCursorX < 0)
-                    newCursorX = 0;
+                temp = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+                viewRight = max(viewRight, temp);
+                temp = Context->ClientRect.bottom - ((!Context->FixedColumnVisible && Context->HScrollVisible) ? Context->HScrollHeight : 0);
+                viewBottom = max(viewBottom, temp);
+
+                if (newCursorX < viewLeft)
+                    newCursorX = viewLeft;
                 if (newCursorX > viewRight)
                     newCursorX = viewRight;
                 if (newCursorY < viewTop)
                     newCursorY = viewTop;
-                if (newCursorY > Context->ClientRect.bottom)
-                    newCursorY = Context->ClientRect.bottom;
+                if (newCursorY > viewBottom)
+                    newCursorY = viewBottom;
 
                 // Create the new drag rectangle.
 
