@@ -102,6 +102,8 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_ASLR, FALSE, L"ASLR", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -276,6 +278,7 @@ VOID PhpDestroyModuleNode(
     if (ModuleNode->TooltipText) PhDereferenceObject(ModuleNode->TooltipText);
 
     if (ModuleNode->SizeText) PhDereferenceObject(ModuleNode->SizeText);
+    if (ModuleNode->TimeStampText) PhDereferenceObject(ModuleNode->TimeStampText);
 
     PhDereferenceObject(ModuleNode->ModuleItem);
 
@@ -440,6 +443,21 @@ BEGIN_SORT_FUNCTION(VerifiedSigner)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Aslr)
+{
+    sortResult = intcmp(
+        moduleItem1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE,
+        moduleItem2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(TimeStamp)
+{
+    sortResult = uintcmp(moduleItem1->ImageTimeDateStamp, moduleItem2->ImageTimeDateStamp);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -476,7 +494,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(LoadCount),
                     SORT_FUNCTION(VerificationStatus),
-                    SORT_FUNCTION(VerifiedSigner)
+                    SORT_FUNCTION(VerifiedSigner),
+                    SORT_FUNCTION(Aslr),
+                    SORT_FUNCTION(TimeStamp)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -590,8 +610,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->LoadCount != (USHORT)-1)
                     {
-                        PhPrintInt32(node->LoadCountString, moduleItem->LoadCount);
-                        PhInitializeStringRef(&getCellText->Text, node->LoadCountString);
+                        PhPrintInt32(node->LoadCountText, moduleItem->LoadCount);
+                        PhInitializeStringRef(&getCellText->Text, node->LoadCountText);
                     }
                     else
                     {
@@ -617,6 +637,35 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRefOrEmpty(moduleItem->VerifySignerName);
+                break;
+            case PHMOTLC_ASLR:
+                if (WindowsVersion >= WINDOWS_VISTA)
+                {
+                    if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+                        PhInitializeStringRef(&getCellText->Text, L"ASLR");
+                }
+                else
+                {
+                    PhInitializeStringRef(&getCellText->Text, L"N/A");
+                }
+                break;
+            case PHMOTLC_TIMESTAMP:
+                {
+                    LARGE_INTEGER time;
+                    SYSTEMTIME systemTime;
+
+                    if (moduleItem->ImageTimeDateStamp != 0)
+                    {
+                        RtlSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
+                        PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+                        PhSwapReference2(&node->TimeStampText, PhFormatDateTime(&systemTime));
+                        getCellText->Text = node->TimeStampText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             default:
                 return FALSE;

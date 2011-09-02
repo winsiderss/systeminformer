@@ -278,7 +278,7 @@ VOID PhpRemoveNetworkNode(
         PhRemoveItemList(NetworkNodeList, index);
 
     if (NetworkNode->ProcessNameText) PhDereferenceObject(NetworkNode->ProcessNameText);
-    if (NetworkNode->TimestampText) PhDereferenceObject(NetworkNode->TimestampText);
+    if (NetworkNode->TimeStampText) PhDereferenceObject(NetworkNode->TimeStampText);
     if (NetworkNode->TooltipText) PhDereferenceObject(NetworkNode->TooltipText);
 
     PhDereferenceObject(NetworkNode->NetworkItem);
@@ -511,8 +511,8 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     if (networkItem->CreateTime.QuadPart != 0)
                     {
                         PhLargeIntegerToLocalSystemTime(&systemTime, &networkItem->CreateTime);
-                        PhSwapReference2(&node->TimestampText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->TimestampText->sr;
+                        PhSwapReference2(&node->TimeStampText, PhFormatDateTime(&systemTime));
+                        getCellText->Text = node->TimeStampText->sr;
                     }
                     else
                     {

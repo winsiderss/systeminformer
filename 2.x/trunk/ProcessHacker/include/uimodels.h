@@ -150,7 +150,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_USERCPUTIME 35
 #define PHPRTLC_VERIFICATIONSTATUS 36
 #define PHPRTLC_VERIFIEDSIGNER 37
-#define PHPRTLC_RESERVED1 38
+#define PHPRTLC_ASLR 38
 #define PHPRTLC_RELATIVESTARTTIME 39
 #define PHPRTLC_BITS 40
 #define PHPRTLC_ELEVATION 41
@@ -185,8 +185,9 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_MINIMUMWORKINGSET 68
 #define PHPRTLC_MAXIMUMWORKINGSET 69
 #define PHPRTLC_PRIVATEBYTESDELTA 70
+#define PHPRTLC_SUBSYSTEM 71
 
-#define PHPRTLC_MAXIMUM 71
+#define PHPRTLC_MAXIMUM 72
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -197,6 +198,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPN_TOKEN 0x20
 #define PHPN_OSCONTEXT 0x40
 #define PHPN_QUOTALIMITS 0x80
+#define PHPN_IMAGE 0x100
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -241,6 +243,11 @@ typedef struct _PH_PROCESS_NODE
     // Quota Limits
     SIZE_T MinimumWorkingSetSize;
     SIZE_T MaximumWorkingSetSize;
+    // Image
+    USHORT ImageCharacteristics;
+    USHORT ImageReserved;
+    USHORT ImageSubsystem;
+    USHORT ImageDllCharacteristics;
     // Cycles (Vista only)
     PH_UINT64_DELTA CyclesDelta;
 
@@ -540,7 +547,7 @@ typedef struct _PH_NETWORK_NODE
     PPH_STRING ProcessNameText;
     PH_STRINGREF LocalAddressText;
     PH_STRINGREF RemoteAddressText;
-    PPH_STRING TimestampText;
+    PPH_STRING TimeStampText;
 
     PPH_STRING TooltipText;
 } PH_NETWORK_NODE, *PPH_NETWORK_NODE;
@@ -735,8 +742,10 @@ VOID PhDeselectAllThreadNodes(
 #define PHMOTLC_LOADCOUNT 8
 #define PHMOTLC_VERIFICATIONSTATUS 9
 #define PHMOTLC_VERIFIEDSIGNER 10
+#define PHMOTLC_ASLR 11
+#define PHMOTLC_TIMESTAMP 12
 
-#define PHMOTLC_MAXIMUM 11
+#define PHMOTLC_MAXIMUM 13
 
 typedef struct _PH_MODULE_NODE
 {
@@ -753,7 +762,8 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING TooltipText;
 
     PPH_STRING SizeText;
-    WCHAR LoadCountString[PH_INT32_STR_LEN_1];
+    WCHAR LoadCountText[PH_INT32_STR_LEN_1];
+    PPH_STRING TimeStampText;
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 
 typedef struct _PH_MODULE_LIST_CONTEXT
