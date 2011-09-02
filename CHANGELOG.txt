@@ -2,7 +2,8 @@ Process Hacker
 
 2.21
  * NEW/IMPROVED:
-   * Added Private Bytes Delta column
+   * Added Private Bytes Delta, ASLR and Subsystem columns
+   * Added ASLR and Time Stamp columns to modules list
    * Added check for debugger in Terminator
  * FIXED:
    * Fixed Show CPU Below 0.01 not respecting locale
