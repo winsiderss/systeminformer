@@ -151,6 +151,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_USERCPUTIME, FALSE, L"User CPU Time", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_ASLR, FALSE, L"ASLR", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_RELATIVESTARTTIME, FALSE, L"Relative Start Time", 180, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_BITS, FALSE, L"Bits", 50, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0, TRUE);
@@ -187,6 +188,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_MINIMUMWORKINGSET, FALSE, L"Minimum Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_MAXIMUMWORKINGSET, FALSE, L"Maximum Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVATEBYTESDELTA, FALSE, L"Private Bytes Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_SUBSYSTEM, FALSE, L"Subsystem", 110, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -575,7 +577,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT; // OS Context always remains valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE; // OS Context always remains valid
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
@@ -940,6 +942,56 @@ static VOID PhpUpdateProcessNodeQuotaLimits(
         }
 
         ProcessNode->ValidMask |= PHPN_QUOTALIMITS;
+    }
+}
+
+static VOID PhpUpdateProcessNodeImage(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_IMAGE))
+    {
+        HANDLE processHandle;
+        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID imageBaseAddress;
+        PH_REMOTE_MAPPED_IMAGE mappedImage;
+
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+        {
+            if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
+            {
+                if (NT_SUCCESS(PhReadVirtualMemory(
+                    processHandle,
+                    PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageBaseAddress)),
+                    &imageBaseAddress,
+                    sizeof(PVOID),
+                    NULL
+                    )))
+                {
+                    if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
+                    {
+                        ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
+
+                        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                        {
+                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                        }
+                        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                        {
+                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                        }
+
+                        PhUnloadRemoteMappedImage(&mappedImage);
+                    }
+                }
+            }
+
+            NtClose(processHandle);
+        }
+
+        ProcessNode->ValidMask |= PHPN_IMAGE;
     }
 }
 
@@ -1338,9 +1390,14 @@ BEGIN_SORT_FUNCTION(VerifiedSigner)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(Reserved1)
+BEGIN_SORT_FUNCTION(Aslr)
 {
-    sortResult = 0;
+    PhpUpdateProcessNodeImage(node1);
+    PhpUpdateProcessNodeImage(node2);
+    sortResult = intcmp(
+        node1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE,
+        node2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE
+        );
 }
 END_SORT_FUNCTION
 
@@ -1577,6 +1634,14 @@ BEGIN_SORT_FUNCTION(PrivateBytesDelta)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Subsystem)
+{
+    PhpUpdateProcessNodeImage(node1);
+    PhpUpdateProcessNodeImage(node2);
+    sortResult = intcmp(node1->ImageSubsystem, node2->ImageSubsystem);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1655,7 +1720,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(UserCpuTime),
                         SORT_FUNCTION(VerificationStatus),
                         SORT_FUNCTION(VerifiedSigner),
-                        SORT_FUNCTION(Reserved1),
+                        SORT_FUNCTION(Aslr),
                         SORT_FUNCTION(RelativeStartTime),
                         SORT_FUNCTION(Bits),
                         SORT_FUNCTION(Elevation),
@@ -1687,7 +1752,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(PeakNonPagedPool),
                         SORT_FUNCTION(MinimumWorkingSet),
                         SORT_FUNCTION(MaximumWorkingSet),
-                        SORT_FUNCTION(PrivateBytesDelta)
+                        SORT_FUNCTION(PrivateBytesDelta),
+                        SORT_FUNCTION(Subsystem)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2029,6 +2095,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRefOrEmpty(processItem->VerifySignerName);
                 break;
+            case PHPRTLC_ASLR:
+                PhpUpdateProcessNodeImage(node);
+
+                if (WindowsVersion >= WINDOWS_VISTA)
+                {
+                    if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+                        PhInitializeStringRef(&getCellText->Text, L"ASLR");
+                }
+                else
+                {
+                    PhInitializeStringRef(&getCellText->Text, L"N/A");
+                }
+                break;
             case PHPRTLC_RELATIVESTARTTIME:
                 {
                     if (processItem->CreateTime.QuadPart != 0)
@@ -2298,6 +2377,33 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhSwapReference2(&node->PrivateBytesDeltaText, PhFormat(format, 2, 0));
                         getCellText->Text = node->PrivateBytesDeltaText->sr;
                     }
+                }
+                break;
+            case PHPRTLC_SUBSYSTEM:
+                PhpUpdateProcessNodeImage(node);
+
+                switch (node->ImageSubsystem)
+                {
+                case 0:
+                    break;
+                case IMAGE_SUBSYSTEM_NATIVE:
+                    PhInitializeStringRef(&getCellText->Text, L"Native");
+                    break;
+                case IMAGE_SUBSYSTEM_WINDOWS_GUI:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows");
+                    break;
+                case IMAGE_SUBSYSTEM_WINDOWS_CUI:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows Console");
+                    break;
+                case IMAGE_SUBSYSTEM_OS2_CUI:
+                    PhInitializeStringRef(&getCellText->Text, L"OS/2");
+                    break;
+                case IMAGE_SUBSYSTEM_POSIX_CUI:
+                    PhInitializeStringRef(&getCellText->Text, L"POSIX");
+                    break;
+                default:
+                    PhInitializeStringRef(&getCellText->Text, L"Unknown");
+                    break;
                 }
                 break;
             default:
