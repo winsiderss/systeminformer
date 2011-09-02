@@ -1,12 +1,13 @@
 #ifndef PROCPRPP_H
 #define PROCPRPP_H
 
-LRESULT CALLBACK PhpPropSheetWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
+typedef struct _PH_PROCESS_PROPSHEETCONTEXT
+{
+    WNDPROC OldWndProc;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPH_LAYOUT_ITEM TabPageItem;
+    BOOLEAN LayoutInitialized;
+} PH_PROCESS_PROPSHEETCONTEXT, *PPH_PROCESS_PROPSHEETCONTEXT;
 
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
     __in PVOID Object,
@@ -16,6 +17,17 @@ VOID NTAPI PhpProcessPropContextDeleteProcedure(
 INT CALLBACK PhpPropSheetProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
+    __in LPARAM lParam
+    );
+
+PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
+    __in HWND hwnd
+    );
+
+LRESULT CALLBACK PhpPropSheetWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
     __in LPARAM lParam
     );
 
