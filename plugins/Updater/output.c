@@ -494,9 +494,7 @@ INT_PTR CALLBACK MainWndProc(
                             }
                             else
                             {
-                                // Handle other installation types.
-                                // For now just show the homepage and close this dialog.
-
+                                // Let the user handle non-setup installation, show the homepage and close this dialog.
                                 PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
 
                                 DisposeConnection();
@@ -504,30 +502,6 @@ INT_PTR CALLBACK MainWndProc(
                                 DisposeFileHandles();
 
                                 EndDialog(hwndDlg, IDOK);
-
-                                //static PH_FILETYPE_FILTER filters[] =
-                                //{
-                                //  { L"Compressed files (*.zip)", L"*.zip" },
-                                //};
-
-                                //PVOID fileDialog;
-
-                                //fileDialog = PhCreateSaveFileDialog();
-
-                                //PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-                                //PhSetFileDialogFileName(fileDialog, L"processhacker-2.19-bin.zip");
-
-                                //if (PhShowFileDialog(hwndDlg, fileDialog))
-                                //{
-                                //  //NTSTATUS status;
-                                //  PPH_STRING fileName;
-                                //  //PPH_FILE_STREAM fileStream;
-
-                                //  fileName = PhGetFileDialogFileName(fileDialog);
-                                //  PhaDereferenceObject(fileName);
-                                //}
-
-                                //PhFreeFileDialog(fileDialog);
                             }
                             return FALSE;
                         }
