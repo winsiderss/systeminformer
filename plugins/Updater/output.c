@@ -296,7 +296,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 }
 
                 // Zero the buffer.
-                RtlZeroMemory(buffer, dwBytesRead);
+                RtlZeroMemory(buffer, BUFFER_LEN);
 
                 // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
                 if (dwBytesRead != dwBytesWritten)
