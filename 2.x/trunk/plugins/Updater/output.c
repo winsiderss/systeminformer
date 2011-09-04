@@ -22,6 +22,7 @@
 */
 
 #include "updater.h"
+#include <process.h>
 
 // Always consider the remote version newer
 #ifdef _DEBUG
@@ -47,17 +48,17 @@ static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
 #pragma region AutoCheck Thread
 
-static NTSTATUS SilentWorkerThreadStart(
+static void __cdecl SilentWorkerThreadStart(
     __in PVOID Parameter
     )
 {
     DWORD dwBytes = 0;
 
     if (!ConnectionAvailable())
-        return TRUE;
+        return;
 
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return TRUE;
+        return;
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -70,12 +71,12 @@ static NTSTATUS SilentWorkerThreadStart(
 
         // Read the resulting xml into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
-            return TRUE;
+            return;
 
         if (!QueryXmlData(data, &xmlData))
         {
             PhFree(data);
-            return TRUE;
+            return;
         }
 
         PhFree(data);
@@ -110,15 +111,13 @@ static NTSTATUS SilentWorkerThreadStart(
     }
 
     DisposeConnection();
-
-    return FALSE;
 }
 
 #pragma endregion
 
 #pragma region Xml Downloader Thread
 
-static NTSTATUS WorkerThreadStart(
+static void __cdecl WorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -132,7 +131,7 @@ static NTSTATUS WorkerThreadStart(
         dwBytesWritten = 0;
 
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return TRUE;
+        return;
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -145,12 +144,12 @@ static NTSTATUS WorkerThreadStart(
 
         // Read the resulting xml into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
-            return TRUE;
+            return;
 
         if (!QueryXmlData(data, &xmlData))
         {
             PhFree(data);
-            return TRUE;
+            return;
         }
 
         PhFree(data);
@@ -215,21 +214,21 @@ static NTSTATUS WorkerThreadStart(
     else
     {
         LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-        return TRUE;
+        return;
     }
 
     DisposeConnection();
 
     PhUpdaterState = Downloading;
 
-    return FALSE;
+    return;
 }
 
 #pragma endregion
 
 #pragma region File Downloader Thread
 
-static NTSTATUS DownloadWorkerThreadStart(
+static void __cdecl DownloadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -248,16 +247,16 @@ static NTSTATUS DownloadWorkerThreadStart(
     PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
 
     if (!ConnectionAvailable())
-        return TRUE;
+        return;
 
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
-        return TRUE;
+        return;
     }
 
     if (!InitializeFile())
-        return TRUE;
+        return;
 
     Updater_SetStatusText(hwndDlg, L"Connecting");
 
@@ -283,7 +282,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return TRUE;
+                    return;
                 }
 
                 // Update the hash of bytes we just downloaded.
@@ -293,7 +292,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return TRUE;
+                    return;
                 }
 
                 // Zero the buffer.
@@ -303,7 +302,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return TRUE;
+                    return;
                 }
 
                 // Update our total bytes downloaded
@@ -340,7 +339,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return TRUE;
+                    return;
                 }
 
                 PhUpdateHash(&hashContext, buffer, dwBytesRead);
@@ -348,7 +347,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return TRUE;
+                    return;
                 }
 
                 // Reset the buffer.
@@ -357,7 +356,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return TRUE;
+                    return;
                 }
             }
         }
@@ -412,11 +411,10 @@ static NTSTATUS DownloadWorkerThreadStart(
     else
     {
         LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-        return TRUE;
+        return;
     }
-
-    return FALSE;
 }
+
 #pragma endregion
 
 #pragma endregion
@@ -447,7 +445,7 @@ INT_PTR CALLBACK MainWndProc(
             HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
             PhUpdaterState = Default;
 
-            PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WorkerThreadStart, hwndDlg);
+            _beginthread(WorkerThreadStart, 0, hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -492,7 +490,7 @@ INT_PTR CALLBACK MainWndProc(
                                 PostMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
                                 // Star our Downloader thread
-                                PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DownloadWorkerThreadStart, hwndDlg);
+                                _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
                             }
                             else
                             {
@@ -537,6 +535,7 @@ INT_PTR CALLBACK MainWndProc(
                         {
                             PhShellExecute(hwndDlg, LocalFilePathString->Buffer, NULL);
                             DisposeConnection();
+                            
                             ProcessHacker_Destroy(PhMainWndHandle);
                         }
                         return FALSE;
@@ -848,7 +847,7 @@ LONG CompareVersions(
 VOID StartInitialCheck(VOID)
 {
     // Queue up our initial update check.
-    PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)SilentWorkerThreadStart, NULL);
+    _beginthread(SilentWorkerThreadStart, 0, NULL);
 }
 
 VOID ShowUpdateDialog(VOID)
