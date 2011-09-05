@@ -329,6 +329,24 @@ static void __cdecl DownloadWorkerThreadStart(
                     PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
                 }
 
+                //{
+                //    StartTime = GetTickCount() - StartTime;
+
+                //    if (StartTime != 0)
+                //    {
+                //        //double d1 = dwBytesRead / 1024.0;
+                //        double speed = 1000.0 / 1024 * dwTotalReadSize / StartTime;
+
+                //        PPH_STRING dlCurrent = PhFormatSize(speed, -1);
+                //        //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+                //        PPH_STRING str = PhFormatString(L"Speed: %d",  speed);
+
+                //        SetDlgItemText(hwndDlg, IDC_STATUSTEXT2, str->Buffer);
+      
+                //        PhDereferenceObject(dlCurrent);
+                //    }
+                //}
+
                 {
                     DWORD dwNowTicks = GetTickCount();
                     DWORD dwTimeTaken = dwNowTicks - dwCurrentTicks;
@@ -347,6 +365,12 @@ static void __cdecl DownloadWorkerThreadStart(
                         {
                             DWORD dwSecondsLeft = (DWORD) (((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
                             //SetTimeLeft(dwSecondsLeft, dwTotalBytesRead + m_dwStartPos, dwFileSize + m_dwStartPos);
+
+                            PPH_STRING str = PhFormatString(L"Remaning: %d", dwSecondsLeft);
+                        
+                            SetDlgItemText(hwndDlg, IDC_STATUSTEXT3, str->Buffer);
+
+                            PhDereferenceObject(str);
                         }
 
                         {
