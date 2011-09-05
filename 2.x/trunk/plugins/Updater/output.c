@@ -239,7 +239,6 @@ static void __cdecl DownloadWorkerThreadStart(
           dwBufLen = sizeof(dwContentLen);
 
     BOOL nReadFile = FALSE;
-    INT StartTime = 0;
 
     PH_HASH_CONTEXT hashContext;
     HWND hwndDlg = (HWND)Parameter;
@@ -249,8 +248,6 @@ static void __cdecl DownloadWorkerThreadStart(
 
     if (!ConnectionAvailable())
         return;
-
-    StartTime = GetTickCount();
 
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
@@ -266,6 +263,10 @@ static void __cdecl DownloadWorkerThreadStart(
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         CHAR buffer[BUFFER_LEN];
+        //Now do the actual read of the file
+        DWORD dwStartTicks = GetTickCount();
+        DWORD dwCurrentTicks = dwStartTicks;
+        DWORD dwLastTotalBytes = 0;
 
         // Zero the buffer.
         RtlZeroMemory(buffer, BUFFER_LEN);
@@ -328,22 +329,47 @@ static void __cdecl DownloadWorkerThreadStart(
                     PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
                 }
 
-                StartTime = GetTickCount() - StartTime;
-
-                if (StartTime != 0)
                 {
-                    //double d1 = dwBytesRead / 1024.0;
-                    double speed = 1000.0 / 1024 * dwTotalReadSize / StartTime;
+                    DWORD dwNowTicks = GetTickCount();
+                    DWORD dwTimeTaken = dwNowTicks - dwCurrentTicks;
 
-                    PPH_STRING dlCurrent = PhFormatSize(speed, -1);
-                    //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-                    PPH_STRING str = PhFormatString(L"Speed: %s",  dlCurrent->Buffer);
+                    //Update the transfer rate and estimated time left every 200ms.
+                    if (dwTimeTaken > 200)
+                    {
+                        double KbPerSecond = ((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken));
+      
+                        //Setup for the next time around the loop
+                        dwCurrentTicks = dwNowTicks;
+                        dwLastTotalBytes = dwTotalReadSize;
 
-                    SetDlgItemText(hwndDlg, IDC_STATUSTEXT2, str->Buffer);
+                        //Update the estimated time left
+                        if (dwTotalReadSize)
+                        {
+                            DWORD dwSecondsLeft = (DWORD) (((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
+                            //SetTimeLeft(dwSecondsLeft, dwTotalBytesRead + m_dwStartPos, dwFileSize + m_dwStartPos);
+                        }
 
-                    PhDereferenceObject(dlCurrent);
+                        {
+                            PPH_STRING str;
 
-                    //" Kb/s)");
+                            if (KbPerSecond < 1)
+                            {
+                                str = PhFormatString(L"Speed: %0.0f Bps", KbPerSecond * 1024);
+                            }
+                            else if (KbPerSecond < 10)
+                            {
+                                str = PhFormatString(L"Speed: %0.2f KB/s", KbPerSecond);
+                            }
+                            else
+                            {
+                                str = PhFormatString(L"Speed: %0.0f KB/s", KbPerSecond);
+                            }
+
+                            SetDlgItemText(hwndDlg, IDC_STATUSTEXT2, str->Buffer);
+
+                            PhDereferenceObject(str);
+                        }
+                    }
                 }
             }
         }
