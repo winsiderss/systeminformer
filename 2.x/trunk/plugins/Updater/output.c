@@ -232,13 +232,14 @@ static void __cdecl DownloadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
+    DWORD dwTotalReadSize = 0,
+          dwContentLen = 0,
+          dwBytesRead = 0,
+          dwBytesWritten = 0,
+          dwBufLen = sizeof(dwContentLen);
+
     BOOL nReadFile = FALSE;
-    DWORD
-        dwTotalReadSize = 0,
-        dwContentLen = 0,
-        dwBytesRead = 0,
-        dwBytesWritten = 0,
-        dwBufLen = sizeof(dwContentLen);
+    INT StartTime = 0;
 
     PH_HASH_CONTEXT hashContext;
     HWND hwndDlg = (HWND)Parameter;
@@ -248,6 +249,8 @@ static void __cdecl DownloadWorkerThreadStart(
 
     if (!ConnectionAvailable())
         return;
+
+    StartTime = GetTickCount();
 
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
@@ -323,6 +326,24 @@ static void __cdecl DownloadWorkerThreadStart(
                     PhDereferenceObject(dlCurrent);
 
                     PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
+                }
+
+                StartTime = GetTickCount() - StartTime;
+
+                if (StartTime != 0)
+                {
+                    //double d1 = dwBytesRead / 1024.0;
+                    double speed = 1000.0 / 1024 * dwTotalReadSize / StartTime;
+
+                    PPH_STRING dlCurrent = PhFormatSize(speed, -1);
+                    //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+                    PPH_STRING str = PhFormatString(L"Speed: %s",  dlCurrent->Buffer);
+
+                    SetDlgItemText(hwndDlg, IDC_STATUSTEXT2, str->Buffer);
+
+                    PhDereferenceObject(dlCurrent);
+
+                    //" Kb/s)");
                 }
             }
         }
