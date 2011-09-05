@@ -115,7 +115,7 @@ static void __cdecl SilentWorkerThreadStart(
 
 #pragma endregion
 
-static void ChangelogThreadStart(
+void DownloadChangelogText(
     __in PVOID Parameter
     )
 {
@@ -172,7 +172,7 @@ static void WorkerThreadStart(
         dwContentLen = 0,
         dwBytesRead = 0,
         dwBytesWritten = 0;
-
+  
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return;
 
@@ -262,6 +262,8 @@ static void WorkerThreadStart(
 
     DisposeConnection();
 
+    DownloadChangelogText(hwndDlg);
+
     PhUpdaterState = Downloading;
 
     return;
@@ -271,7 +273,7 @@ static void WorkerThreadStart(
 
 #pragma region File Downloader Thread
 
-static NTSTATUS DownloadWorkerThreadStart(
+static void DownloadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -290,16 +292,16 @@ static NTSTATUS DownloadWorkerThreadStart(
     PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
 
     if (!ConnectionAvailable())
-        return STATUS_SUCCESS;
+        return;
 
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
-        return STATUS_SUCCESS;
+        return;
     }
 
     if (!InitializeFile())
-        return STATUS_SUCCESS;
+        return;
 
     Updater_SetStatusText(hwndDlg, L"Connecting");
 
@@ -329,7 +331,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Update the hash of bytes we just downloaded.
@@ -339,7 +341,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Zero the buffer.
@@ -349,7 +351,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Update our total bytes downloaded
@@ -435,7 +437,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 PhUpdateHash(&hashContext, buffer, dwBytesRead);
@@ -443,7 +445,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Reset the buffer.
@@ -452,7 +454,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
             }
         }
@@ -507,9 +509,7 @@ static NTSTATUS DownloadWorkerThreadStart(
     else
     {
         LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-        return STATUS_SUCCESS;
     }
-    return STATUS_SUCCESS;
 }
 
 #pragma endregion
@@ -530,8 +530,6 @@ INT_PTR CALLBACK MainWndProc(
             EnableWindow(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
             EnableWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
             EnableWindow(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-
-            _beginthread(ChangelogThreadStart, 0, hwndDlg);
         }
         break;
     case WM_INITDIALOG:
@@ -591,7 +589,7 @@ INT_PTR CALLBACK MainWndProc(
                                 PostMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
                                 // Star our Downloader thread
-                                PhCreateThread(0, DownloadWorkerThreadStart, hwndDlg);
+                                _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
                             }
                             else
                             {
@@ -1033,81 +1031,3 @@ VOID FreeXmlData(
 }
 
 #pragma endregion
-
-
-PPH_STRING UpdaterFormatTimeRemaining(
-    __in ULONG64 TimeSpan
-    )
-{
-    DOUBLE milliseconds = 0, 
-           seconds = 0, 
-           minutes = 0, 
-           hours = 0, 
-           days = 0;
-
-    ULONG secondsPartial;
-    ULONG minutesPartial;
-    ULONG hoursPartial;
-
-    PPH_STRING string;
-
-    milliseconds = (DOUBLE)TimeSpan / PH_TICKS_PER_MS;
-    seconds = (DOUBLE)TimeSpan / PH_TICKS_PER_SEC;
-    minutes = (DOUBLE)TimeSpan / PH_TICKS_PER_MIN;
-    hours = (DOUBLE)TimeSpan / PH_TICKS_PER_HOUR;
-
-    if (days >= 1)
-    {
-        string = PhaFormatString(L"%u %s", (ULONG)days, (ULONG)days == 1 ? L"day" : L"days");
-        hoursPartial = (ULONG)PH_TICKS_PARTIAL_HOURS(TimeSpan);
-
-        if (hoursPartial >= 1)
-        {
-            string = PhaFormatString(L"%s and %u %s", string->Buffer, hoursPartial, hoursPartial == 1 ? L"hour" : L"hours");
-        }
-    }
-    else if (hours >= 1)
-    {
-        string = PhaFormatString(L"%u %s", (ULONG)hours, (ULONG)hours == 1 ? L"hour" : L"hours");
-        minutesPartial = (ULONG)PH_TICKS_PARTIAL_MIN(TimeSpan);
-
-        if (minutesPartial >= 1)
-        {
-            string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)minutesPartial, (ULONG)minutesPartial == 1 ? L"minute" : L"minutes");
-        }
-    }
-    else if (minutes >= 1)
-    {
-        string = PhaFormatString(L"%u %s", (ULONG)minutes, (ULONG)minutes == 1 ? L"minute" : L"minutes");
-        secondsPartial = (ULONG)PH_TICKS_PARTIAL_SEC(TimeSpan);
-
-        if (secondsPartial >= 1)
-        {
-            string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)secondsPartial, (ULONG)secondsPartial == 1 ? L"second" : L"seconds");
-        }
-    }
-    else if (seconds >= 1)
-    {
-        string = PhaFormatString(L"%u %s", (ULONG)seconds, (ULONG)seconds == 1 ? L"second" : L"seconds");
-    }
-    else if (milliseconds >= 1)
-    {
-        string = PhaFormatString(L"%u %s", (ULONG)milliseconds, (ULONG)milliseconds == 1 ? L"millisecond" : L"milliseconds");
-    }
-    else
-    {
-        string = PhaCreateString(L"a very short time");
-    }
-
-    // Turn 1 into "a", e.g. 1 minute -> a minute
-    if (PhStartsWithString2(string, L"1 ", FALSE))
-    {
-        // Special vowel case: a hour -> an hour
-        if (string->Buffer[2] != 'h')
-            string = PhaConcatStrings2(L"a ", &string->Buffer[2]);
-        else
-            string = PhaConcatStrings2(L"an ", &string->Buffer[2]);
-    }
-
-    string = PhConcatStrings2(string->Buffer, L" ago");
-}
