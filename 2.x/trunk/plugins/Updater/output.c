@@ -115,9 +115,52 @@ static void __cdecl SilentWorkerThreadStart(
 
 #pragma endregion
 
+static void ChangelogThreadStart(
+    __in PVOID Parameter
+    )
+{
+    INT result = 0;
+    HWND hwndDlg = (HWND)Parameter;
+
+    DWORD
+        dwTotalReadSize = 0,
+        dwContentLen = 0,
+        dwBytesRead = 0,
+        dwBytesWritten = 0;
+
+    if (!InitializeConnection(L"processhacker.svn.sourceforge.net", L"/viewvc/processhacker/2.x/trunk/CHANGELOG.txt"))//?revision=4612"))
+        return;
+
+    // Send the HTTP request.
+    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
+    {
+        PSTR data;
+        UPDATER_XML_DATA xmlData;
+        PPH_STRING localVersion;
+        ULONG localMajorVersion = 0;
+        ULONG localMinorVersion = 0;
+        WCHAR pWideString[512]; 
+
+        // Read the resulting xml into our buffer.
+        if (!ReadRequestString(NetRequest, &data, NULL))
+            return;
+
+        {
+            PPH_STRING str = PhCreateStringFromAnsi(data);
+
+            SetDlgItemText(hwndDlg, IDC_EDIT1, str->Buffer);
+
+            PhDereferenceObject(str);
+
+            PhFree(data);
+        }
+    }
+}
+
+
 #pragma region Xml Downloader Thread
 
-static void __cdecl WorkerThreadStart(
+static void WorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -228,7 +271,7 @@ static void __cdecl WorkerThreadStart(
 
 #pragma region File Downloader Thread
 
-static void __cdecl DownloadWorkerThreadStart(
+static NTSTATUS DownloadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -247,16 +290,16 @@ static void __cdecl DownloadWorkerThreadStart(
     PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
 
     if (!ConnectionAvailable())
-        return;
+        return STATUS_SUCCESS;
 
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
-        return;
+        return STATUS_SUCCESS;
     }
 
     if (!InitializeFile())
-        return;
+        return STATUS_SUCCESS;
 
     Updater_SetStatusText(hwndDlg, L"Connecting");
 
@@ -286,7 +329,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Update the hash of bytes we just downloaded.
@@ -296,7 +339,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Zero the buffer.
@@ -306,7 +349,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Update our total bytes downloaded
@@ -328,31 +371,13 @@ static void __cdecl DownloadWorkerThreadStart(
 
                     PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
                 }
-
-                //{
-                //    StartTime = GetTickCount() - StartTime;
-
-                //    if (StartTime != 0)
-                //    {
-                //        //double d1 = dwBytesRead / 1024.0;
-                //        double speed = 1000.0 / 1024 * dwTotalReadSize / StartTime;
-
-                //        PPH_STRING dlCurrent = PhFormatSize(speed, -1);
-                //        //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-                //        PPH_STRING str = PhFormatString(L"Speed: %d",  speed);
-
-                //        SetDlgItemText(hwndDlg, IDC_STATUSTEXT2, str->Buffer);
-      
-                //        PhDereferenceObject(dlCurrent);
-                //    }
-                //}
-
                 {
+                    // Calculate the transfer rate and download speed. 
                     DWORD dwNowTicks = GetTickCount();
                     DWORD dwTimeTaken = dwNowTicks - dwCurrentTicks;
 
-                    //Update the transfer rate and estimated time left every 200ms.
-                    if (dwTimeTaken > 200)
+                    //Update the transfer rate and estimated time left every second.
+                    if (dwTimeTaken > 1000)
                     {
                         double KbPerSecond = ((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken));
       
@@ -366,9 +391,9 @@ static void __cdecl DownloadWorkerThreadStart(
                             DWORD dwSecondsLeft = (DWORD) (((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
                             //SetTimeLeft(dwSecondsLeft, dwTotalBytesRead + m_dwStartPos, dwFileSize + m_dwStartPos);
 
-                            PPH_STRING str = PhFormatString(L"Remaning: %d", dwSecondsLeft);
+                            PPH_STRING str = PhFormatString(L"Remaning: %ds", dwSecondsLeft);
                         
-                            SetDlgItemText(hwndDlg, IDC_STATUSTEXT3, str->Buffer);
+                            SetDlgItemText(hwndDlg, IDC_RTIMETEXT, str->Buffer);
 
                             PhDereferenceObject(str);
                         }
@@ -389,7 +414,7 @@ static void __cdecl DownloadWorkerThreadStart(
                                 str = PhFormatString(L"Speed: %0.0f KB/s", KbPerSecond);
                             }
 
-                            SetDlgItemText(hwndDlg, IDC_STATUSTEXT2, str->Buffer);
+                            SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, str->Buffer);
 
                             PhDereferenceObject(str);
                         }
@@ -410,7 +435,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 PhUpdateHash(&hashContext, buffer, dwBytesRead);
@@ -418,7 +443,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Reset the buffer.
@@ -427,7 +452,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
             }
         }
@@ -482,8 +507,9 @@ static void __cdecl DownloadWorkerThreadStart(
     else
     {
         LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-        return;
+        return STATUS_SUCCESS;
     }
+    return STATUS_SUCCESS;
 }
 
 #pragma endregion
@@ -501,9 +527,11 @@ INT_PTR CALLBACK MainWndProc(
     {
     case ENABLE_UI:
         {
-            ShowWindow(GetDlgItem(hwndDlg, IDC_RELDATE), SW_SHOW);
-            ShowWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), SW_SHOW);
+            EnableWindow(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+            EnableWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
             EnableWindow(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+
+            _beginthread(ChangelogThreadStart, 0, hwndDlg);
         }
         break;
     case WM_INITDIALOG:
@@ -515,7 +543,7 @@ INT_PTR CALLBACK MainWndProc(
             EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
             HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
             PhUpdaterState = Default;
-
+            
             _beginthread(WorkerThreadStart, 0, hwndDlg);
         }
         break;
@@ -556,12 +584,14 @@ INT_PTR CALLBACK MainWndProc(
 
                                 // Show the status text
                                 ShowWindow(GetDlgItem(hwndDlg, IDC_STATUSTEXT), SW_SHOW);
+                                ShowWindow(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), SW_SHOW);
+                                ShowWindow(GetDlgItem(hwndDlg, IDC_RTIMETEXT), SW_SHOW);
 
                                 PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
                                 PostMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
                                 // Star our Downloader thread
-                                _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
+                                PhCreateThread(0, DownloadWorkerThreadStart, hwndDlg);
                             }
                             else
                             {
@@ -1003,3 +1033,81 @@ VOID FreeXmlData(
 }
 
 #pragma endregion
+
+
+PPH_STRING UpdaterFormatTimeRemaining(
+    __in ULONG64 TimeSpan
+    )
+{
+    DOUBLE milliseconds = 0, 
+           seconds = 0, 
+           minutes = 0, 
+           hours = 0, 
+           days = 0;
+
+    ULONG secondsPartial;
+    ULONG minutesPartial;
+    ULONG hoursPartial;
+
+    PPH_STRING string;
+
+    milliseconds = (DOUBLE)TimeSpan / PH_TICKS_PER_MS;
+    seconds = (DOUBLE)TimeSpan / PH_TICKS_PER_SEC;
+    minutes = (DOUBLE)TimeSpan / PH_TICKS_PER_MIN;
+    hours = (DOUBLE)TimeSpan / PH_TICKS_PER_HOUR;
+
+    if (days >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)days, (ULONG)days == 1 ? L"day" : L"days");
+        hoursPartial = (ULONG)PH_TICKS_PARTIAL_HOURS(TimeSpan);
+
+        if (hoursPartial >= 1)
+        {
+            string = PhaFormatString(L"%s and %u %s", string->Buffer, hoursPartial, hoursPartial == 1 ? L"hour" : L"hours");
+        }
+    }
+    else if (hours >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)hours, (ULONG)hours == 1 ? L"hour" : L"hours");
+        minutesPartial = (ULONG)PH_TICKS_PARTIAL_MIN(TimeSpan);
+
+        if (minutesPartial >= 1)
+        {
+            string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)minutesPartial, (ULONG)minutesPartial == 1 ? L"minute" : L"minutes");
+        }
+    }
+    else if (minutes >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)minutes, (ULONG)minutes == 1 ? L"minute" : L"minutes");
+        secondsPartial = (ULONG)PH_TICKS_PARTIAL_SEC(TimeSpan);
+
+        if (secondsPartial >= 1)
+        {
+            string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)secondsPartial, (ULONG)secondsPartial == 1 ? L"second" : L"seconds");
+        }
+    }
+    else if (seconds >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)seconds, (ULONG)seconds == 1 ? L"second" : L"seconds");
+    }
+    else if (milliseconds >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)milliseconds, (ULONG)milliseconds == 1 ? L"millisecond" : L"milliseconds");
+    }
+    else
+    {
+        string = PhaCreateString(L"a very short time");
+    }
+
+    // Turn 1 into "a", e.g. 1 minute -> a minute
+    if (PhStartsWithString2(string, L"1 ", FALSE))
+    {
+        // Special vowel case: a hour -> an hour
+        if (string->Buffer[2] != 'h')
+            string = PhaConcatStrings2(L"a ", &string->Buffer[2]);
+        else
+            string = PhaConcatStrings2(L"an ", &string->Buffer[2]);
+    }
+
+    string = PhConcatStrings2(string->Buffer, L" ago");
+}
