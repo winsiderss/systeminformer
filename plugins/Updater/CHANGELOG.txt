@@ -1,6 +1,8 @@
 1.1
- * Added Download speed
- * Added Remaining time
+ * Added download speed
+ * Added remaining time
+ * Fixed buffer zeroing
+ * Fixed threading memory leak
 
 1.0
  * Initial release
