@@ -14,6 +14,7 @@
 #define IDC_DLSIZE                      1006
 #define IDC_STATUSTEXT2                 1008
 #define IDC_HASHCOMBOBOX                1009
+#define IDC_STATUSTEXT3                 1009
 #define IDC_DOWNLOAD                    1010
 #define IDC_SYSLINK1                    1014
 #define IDC_SYSLINK2                    1015
