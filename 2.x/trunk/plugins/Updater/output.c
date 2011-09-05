@@ -180,11 +180,11 @@ static void __cdecl WorkerThreadStart(
             PhDereferenceObject(summaryText);
 
             summaryText = PhFormatString(L"Released: %s", xmlData.RelDate->Buffer);
-            SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
+            SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
             PhDereferenceObject(summaryText);
 
             summaryText = PhFormatString(L"Size: %s", xmlData.Size->Buffer);
-            SetDlgItemText(hwndDlg, IDC_RELDATE, summaryText->Buffer);
+            SetDlgItemText(hwndDlg, IDC_DLSIZE, summaryText->Buffer);
             PhDereferenceObject(summaryText);
 
             LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
