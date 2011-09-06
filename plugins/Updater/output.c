@@ -48,7 +48,7 @@ static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
 #pragma region AutoCheck Thread
 
-static void SilentWorkerThreadStart(
+static void __cdecl SilentWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -113,7 +113,7 @@ static void SilentWorkerThreadStart(
 
 #pragma endregion
 
-static void DownloadChangelogText(
+static void __cdecl DownloadChangelogText(
     __in PVOID Parameter
     )
 {
@@ -148,7 +148,7 @@ static void DownloadChangelogText(
 
 #pragma region Xml Downloader Thread
 
-static void WorkerThreadStart(
+static void __cdecl WorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -276,7 +276,7 @@ static void WorkerThreadStart(
 
 #pragma region File Downloader Thread
 
-static void DownloadWorkerThreadStart(
+static void __cdecl DownloadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -324,7 +324,7 @@ static void DownloadWorkerThreadStart(
             // Reset Progressbar state.
             PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
 
-            while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead))
+            while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
                 if (dwBytesRead == 0)
                     break;
@@ -362,10 +362,28 @@ static void DownloadWorkerThreadStart(
                 dwNowTicks = GetTickCount();
                 dwTimeTaken = dwNowTicks - dwCurrentTicks;
 
-                //Update the transfer rate and estimated time every second.
+                // Update the progress every 500ms.
+                if (dwTimeTaken > 100)
+                {
+                    // Calculate the percentage of our total bytes downloaded per the length.
+                    INT dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
+
+                    PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
+                    PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+                    PPH_STRING str = PhFormatString(L"Downloaded: %s of %s (%d%%)", dlCurrent->Buffer, dlLength->Buffer, dlProgress);
+
+                    Updater_SetStatusText(hwndDlg, str->Buffer);
+                    PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
+
+                    PhDereferenceObject(str);
+                    PhDereferenceObject(dlLength);
+                    PhDereferenceObject(dlCurrent);
+                }
+
+                // Update the transfer rate and estimated time every second.
                 if (dwTimeTaken > 1000)
                 {
-                    double KbPerSecond = ((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken));
+                    INT kbPerSecond = (int)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
 
                     //Setup for the next time around the loop
                     dwCurrentTicks = dwNowTicks;
@@ -380,7 +398,7 @@ static void DownloadWorkerThreadStart(
 
                         dwSecondsLeft =  (DWORD)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
                         str = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
-                        rstr = PhFormatString(L"Remaning: %s %ds", str->Buffer, dwSecondsLeft);
+                        rstr = PhFormatString(L"Remaning: %s (%ds)", str->Buffer, dwSecondsLeft);
 
                         SetDlgItemText(hwndDlg, IDC_RTIMETEXT, rstr->Buffer);
 
@@ -388,38 +406,13 @@ static void DownloadWorkerThreadStart(
                         PhDereferenceObject(str);
                     }
                     {
-                        PPH_STRING str;
+                        PPH_STRING str = PhFormatSize(kbPerSecond, -1);
+                        PPH_STRING str2 = PhFormatString(L"Speed: %s/s", str->Buffer);;
 
-                        if (KbPerSecond < 1)
-                        {
-                            str = PhFormatString(L"Speed: %0.0f Bps", KbPerSecond * 1024);
-                        }
-                        else if (KbPerSecond < 10)
-                        {
-                            str = PhFormatString(L"Speed: %0.2f KB/s", KbPerSecond);
-                        }
-                        else
-                        {
-                            str = PhFormatString(L"Speed: %0.0f KB/s", KbPerSecond);
-                        }
-
-                        SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, str->Buffer);
+                        SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, str2->Buffer);
+                        
+                        PhDereferenceObject(str2);
                         PhDereferenceObject(str);
-                    }
-                    {
-                        // Calculate the percentage of our total bytes downloaded per the length.
-                        INT dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
-
-                        PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-                        PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-                        PPH_STRING str = PhFormatString(L"Downloaded: %s of %s (%d%%)", dlCurrent->Buffer, dlLength->Buffer, dlProgress);
-
-                        Updater_SetStatusText(hwndDlg, str->Buffer);
-                        PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
-                   
-                        PhDereferenceObject(str);
-                        PhDereferenceObject(dlLength);
-                        PhDereferenceObject(dlCurrent);
                     }
                 }
             }
@@ -429,7 +422,7 @@ static void DownloadWorkerThreadStart(
             // No content length...impossible to calculate % complete so just read until we are done.
             LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", GetLastError()));
 
-            while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead))
+            while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
                 if (dwBytesRead == 0)
                     break;
@@ -587,16 +580,9 @@ INT_PTR CALLBACK MainWndProc(
 
                                 PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
                                 PostMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
-
-
-                                {
-                         
-
-                                        // Star our Downloader thread
-                                        _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
-
-                               
-                                }
+   
+                                // Star our Downloader thread   
+                                _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
                             }
                             else
                             {
