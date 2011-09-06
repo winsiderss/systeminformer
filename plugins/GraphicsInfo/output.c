@@ -23,13 +23,6 @@
 
 #include "gfxinfo.h"
 
-static NTSTATUS WindowThreadStart(
-    __in PVOID Parameter
-    );
-static VOID GfxSetAlwaysOnTop(
-    VOID
-    );
-
 static BOOLEAN AlwaysOnTop;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
@@ -37,23 +30,31 @@ static HWND GpuGraphHandle;
 static HWND CoreGraphHandle;
 static HWND MemGraphHandle;
 
-HANDLE GfxThreadHandle = NULL;
-HWND GfxWindowHandle = NULL;
-HWND GfxPanelWindowHandle = NULL;
-
-NvPhysicalGpuHandle physHandle = NULL;
-NvDisplayHandle dispHandle = NULL;
-
 static PH_GRAPH_STATE GpuGraphState;
 static PH_GRAPH_STATE MemGraphState;
 static PH_GRAPH_STATE CoreGraphState;
+
+static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
+static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
 static VOID NTAPI GfxUpdateHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
-PH_GFX_TYPE GraphicsType = Default;
+static NTSTATUS WindowThreadStart(
+    __in PVOID Parameter
+    );
+static VOID GfxSetAlwaysOnTop(
+    VOID
+    );
+
+HANDLE GfxThreadHandle = NULL;
+HWND GfxWindowHandle = NULL;
+HWND GfxPanelWindowHandle = NULL;
+
+NvPhysicalGpuHandle physHandle = NULL;
+NvDisplayHandle dispHandle = NULL;
 
 PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
 PH_CIRCULAR_BUFFER_ULONG MemHistory;
@@ -71,8 +72,8 @@ FLOAT GfxCoreClockCount;
 FLOAT GfxMemoryClockCount;
 FLOAT GfxShaderClockCount;
 
-static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
-static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
+PH_GFX_TYPE GraphicsType = Default;
+NVAPI_GPU_PERF_DECREASE perfStatus = NV_GPU_PERF_DECREASE_NONE;
 
 INT_PTR CALLBACK MainWndProc(
     __in HWND hwndDlg,
@@ -454,7 +455,7 @@ INT_PTR CALLBACK MainWndProc(
                 PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_SYSGFX_PANEL),
                 hwndDlg,
-                EtpEtwSysPanelDlgProc
+                MainPanelDlgProc
                 );
 
             SetWindowPos(
@@ -625,7 +626,7 @@ INT_PTR CALLBACK MainWndProc(
     return FALSE;
 }
 
-INT_PTR CALLBACK EtpEtwSysPanelDlgProc(      
+INT_PTR CALLBACK MainPanelDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -639,8 +640,47 @@ INT_PTR CALLBACK EtpEtwSysPanelDlgProc(
             SetDlgItemText(hwndDlg, IDC_ZREADS_V, PhFormatString(L"%s\u00b0", PhaFormatUInt64(GfxCoreTempCount, TRUE)->Buffer)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhFormatString(L"%s\u00b0", PhaFormatUInt64(GfxBoardTempCount, TRUE)->Buffer)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZWRITES_V, PhaFormatUInt64(EtDiskWriteCount, TRUE)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, PhaFormatSize(EtDiskWriteDelta.Value, -1)->Buffer);
-            
+
+            switch (perfStatus)
+            {
+            case NV_GPU_PERF_DECREASE_NONE:
+                {
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"No Slowdown detected.");
+                }
+                break;
+            case NV_GPU_PERF_DECREASE_REASON_THERMAL_PROTECTION:
+                {
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"Thermal slowdown/shutdown/POR thermal protection.");
+                }
+                break;
+            case NV_GPU_PERF_DECREASE_REASON_POWER_CONTROL:
+                {
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"Power capping / pstate cap ");
+                }
+                break;
+            case NV_GPU_PERF_DECREASE_REASON_AC_BATT:
+                {
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"AC->BATT event");
+                }
+                break;
+            case NV_GPU_PERF_DECREASE_REASON_API_TRIGGERED:
+                {
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"API triggered slowdown");
+                }
+                break;
+            case NV_GPU_PERF_DECREASE_REASON_INSUFFICIENT_POWER:
+                {
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"Power connector missing");
+                }
+                break;
+            default:
+            case NV_GPU_PERF_DECREASE_REASON_UNKNOWN:
+                {
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"Unknown reason");
+                }
+                break;
+            }
+
             SetDlgItemText(hwndDlg, IDC_ZRECEIVES_V, PhFormatString(L"%.2f MHz", GfxCoreClockCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTES_V, PhFormatString(L"%.2f MHz", GfxMemoryClockCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ZSENDS_V, PhFormatString(L"%.2f MHz", GfxShaderClockCount)->Buffer);
@@ -877,11 +917,10 @@ VOID GetGfxUsages(VOID)
                 LogEvent(L"gfxinfo: (GetGfxUsages) NvAPI_GetUsages failed (%s)", status);
             }
 
-            status = NvAPI_GetMemoryInfo(dispHandle, &memInfo);
-
-            if (NV_SUCCESS(status))
+            if (NV_SUCCESS((status = NvAPI_GetMemoryInfo(dispHandle, &memInfo))))
             {
                 UINT totalMemory = memInfo.Values[0];
+                //UINT sharedMemory = memInfo.Values[3];
                 UINT freeMemory = memInfo.Values[4];
 
                 ULONG usedMemory = max(totalMemory - freeMemory, 0);
@@ -892,6 +931,11 @@ VOID GetGfxUsages(VOID)
                 PhAddItemCircularBuffer_ULONG(&MemHistory, usedMemory);
             }
             else
+            {
+                LogEvent(L"gfxinfo: (GetGfxUsages) NvAPI_GetMemoryInfo failed (%s)", status);
+            }
+
+            if (!NV_SUCCESS((status = NvAPI_GetPerfDecreaseInfo(physHandle, &perfStatus))))
             {
                 LogEvent(L"gfxinfo: (GetGfxUsages) NvAPI_GetMemoryInfo failed (%s)", status);
             }
@@ -1069,7 +1113,6 @@ VOID InitGfx(VOID)
 #else
         module = LoadLibrary(L"atiadlxx.dll");
 #endif
-
         if (module != NULL)
         {
             GraphicsType = AtiGraphics;
@@ -1108,12 +1151,16 @@ VOID InitGfx(VOID)
                 NvAPI_GetMemoryInfo = (P_NvAPI_GetMemoryInfo)NvAPI_QueryInterface(0x774AA982);
                 NvAPI_GetPhysicalGPUsFromDisplay = (P_NvAPI_GetPhysicalGPUsFromDisplay)NvAPI_QueryInterface(0x34EF9506);
 
-                // Driver Info Functions
+                // Driver Functions
                 NvAPI_GetFullName = (P_NvAPI_GPU_GetFullName)NvAPI_QueryInterface(0xCEEE8E9F);
                 NvAPI_GetAllClocks = (P_NvAPI_GPU_GetAllClocks)NvAPI_QueryInterface(0x1BD69F49); 
                 NvAPI_GetThermalSettings = (P_NvAPI_GPU_GetThermalSettings)NvAPI_QueryInterface(0xE3640A56);
                 NvAPI_GetCoolerSettings = (P_NvAPI_GPU_GetCoolerSettings)NvAPI_QueryInterface(0xDA141340);
                 NvAPI_GetDisplayDriverVersion = (P_NvAPI_GetDisplayDriverVersion)NvAPI_QueryInterface(0xF951A4D1);
+                NvAPI_GetPerfDecreaseInfo = (P_NvAPI_GPU_GetPerfDecreaseInfo)NvAPI_QueryInterface(0x7F7F4600);
+
+                // Broken?
+                NvAPI_SetFPSIndicatorState = (P_NvAPI_D3D_SetFPSIndicatorState)NvAPI_QueryInterface(0xA776E8DB);
 
                 { 
                     NvStatus status = NvAPI_Initialize();
