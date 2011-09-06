@@ -5721,7 +5721,7 @@ VOID PhTnpGetTooltipText(
 
         if (getCellTooltip.Text.Buffer && getCellTooltip.Text.Length != 0)
         {
-            PhSwapReference(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
+            PhSwapReference2(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
         }
         else
         {
