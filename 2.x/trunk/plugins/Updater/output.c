@@ -48,12 +48,10 @@ static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
 #pragma region AutoCheck Thread
 
-static void __cdecl SilentWorkerThreadStart(
+static void SilentWorkerThreadStart(
     __in PVOID Parameter
     )
 {
-    DWORD dwBytes = 0;
-
     if (!ConnectionAvailable())
         return;
 
@@ -115,18 +113,11 @@ static void __cdecl SilentWorkerThreadStart(
 
 #pragma endregion
 
-void DownloadChangelogText(
+static void DownloadChangelogText(
     __in PVOID Parameter
     )
 {
-    INT result = 0;
     HWND hwndDlg = (HWND)Parameter;
-
-    DWORD
-        dwTotalReadSize = 0,
-        dwContentLen = 0,
-        dwBytesRead = 0,
-        dwBytesWritten = 0;
 
     if (!InitializeConnection(L"processhacker.svn.sourceforge.net", L"/viewvc/processhacker/2.x/trunk/CHANGELOG.txt"))//?revision=4612"))
         return;
@@ -135,26 +126,23 @@ void DownloadChangelogText(
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         PSTR data;
-        UPDATER_XML_DATA xmlData;
-        PPH_STRING localVersion;
-        ULONG localMajorVersion = 0;
-        ULONG localMinorVersion = 0;
-        WCHAR pWideString[512]; 
-
-        // Read the resulting xml into our buffer.
+                              
+        // Read the page into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
             return;
-
+        else
         {
             PPH_STRING str = PhCreateStringFromAnsi(data);
 
-            SetDlgItemText(hwndDlg, IDC_EDIT1, str->Buffer);
+            SetDlgItemText(hwndDlg, IDC_EDIT1, PhGetString(str));
 
             PhDereferenceObject(str);
-
-            PhFree(data);
         }
+
+        PhFree(data);
     }
+
+    PhUpdaterState = Downloading;
 }
 
 
@@ -166,12 +154,6 @@ static void WorkerThreadStart(
 {
     INT result = 0;
     HWND hwndDlg = (HWND)Parameter;
-
-    DWORD
-        dwTotalReadSize = 0,
-        dwContentLen = 0,
-        dwBytesRead = 0,
-        dwBytesWritten = 0;
   
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return;
@@ -213,12 +195,13 @@ static void WorkerThreadStart(
         result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
 
         PhSwapReference(&RemoteHashString, xmlData.Hash);
+        PhDereferenceObject(localVersion);
 
         if (result > 0)
         {
             PPH_STRING summaryText;
 
-            summaryText = PhFormatString(L"Process Hacker %u.%u is available.", xmlData.MajorVersion, xmlData.MinorVersion);
+            summaryText = PhFormatString(L"Process Hacker %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
             SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
             PhDereferenceObject(summaryText);
 
@@ -251,8 +234,32 @@ static void WorkerThreadStart(
             PhDereferenceObject(summaryText);
         }
 
-        PhDereferenceObject(localVersion);
         FreeXmlData(&xmlData);
+
+        {
+            PPH_STRING sText = PhFormatString(L"\\\\%s", LocalFileNameString->Buffer);
+            PPH_STRING autoDbghelpPath = PhGetKnownLocation(CSIDL_DESKTOP, sText->Buffer);
+
+            PhDereferenceObject(sText);
+            if (LocalFilePathString)
+                PhDereferenceObject(LocalFilePathString);
+             DisposeFileHandles();
+
+            LocalFilePathString = autoDbghelpPath;
+
+            // Create output file
+            if ((TempFileHandle = CreateFile(
+                LocalFilePathString->Buffer,
+                GENERIC_WRITE,
+                FILE_SHARE_WRITE,
+                0,                     // handle cannot be inherited
+                CREATE_ALWAYS,         // if file exists, delete it
+                FILE_ATTRIBUTE_NORMAL,
+                0)) == INVALID_HANDLE_VALUE)
+            {
+                LogEvent(PhFormatString(L"Updater: (InitializeFile) CreateFile failed (%d)", GetLastError()));
+            }
+        }
     }
     else
     {
@@ -261,12 +268,8 @@ static void WorkerThreadStart(
     }
 
     DisposeConnection();
-
-    DownloadChangelogText(hwndDlg);
-
+      
     PhUpdaterState = Downloading;
-
-    return;
 }
 
 #pragma endregion
@@ -284,12 +287,11 @@ static void DownloadWorkerThreadStart(
           dwBufLen = sizeof(dwContentLen);
 
     BOOL nReadFile = FALSE;
-
-    PH_HASH_CONTEXT hashContext;
-    HWND hwndDlg = (HWND)Parameter;
-    HWND hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
+    HWND hwndDlg = (HWND)Parameter, 
+         hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
 
     PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
+    PH_HASH_CONTEXT hashContext;
 
     if (!ConnectionAvailable())
         return;
@@ -300,28 +302,27 @@ static void DownloadWorkerThreadStart(
         return;
     }
 
-    if (!InitializeFile())
-        return;
-
     Updater_SetStatusText(hwndDlg, L"Connecting");
 
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         CHAR buffer[BUFFER_LEN];
-        //Now do the actual read of the file
         DWORD dwStartTicks = GetTickCount();
         DWORD dwCurrentTicks = dwStartTicks;
-        DWORD dwLastTotalBytes = 0;
+        DWORD dwLastTotalBytes = 0, 
+              dwNowTicks = 0,
+              dwTimeTaken = 0;
 
         // Zero the buffer.
         RtlZeroMemory(buffer, BUFFER_LEN);
+     
+        // Initialize hash algorithm.
+        PhInitializeHash(&hashContext, HashAlgorithm);
 
         if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
         {
             // Reset Progressbar state.
             PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
-            // Initialize hash algorithm.
-            PhInitializeHash(&hashContext, HashAlgorithm);
 
             while (nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead))
             {
@@ -345,7 +346,7 @@ static void DownloadWorkerThreadStart(
                 }
 
                 // Zero the buffer.
-                RtlZeroMemory(buffer, BUFFER_LEN);
+                RtlZeroMemory(buffer, dwBytesRead);
 
                 // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
                 if (dwBytesRead != dwBytesWritten)
@@ -357,69 +358,68 @@ static void DownloadWorkerThreadStart(
                 // Update our total bytes downloaded
                 dwTotalReadSize += dwBytesRead;
 
+                // Calculate the transfer rate and download speed. 
+                dwNowTicks = GetTickCount();
+                dwTimeTaken = dwNowTicks - dwCurrentTicks;
+
+                //Update the transfer rate and estimated time every second.
+                if (dwTimeTaken > 1000)
                 {
-                    // Calculate the percentage of our total bytes downloaded per the length.
-                    int dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
+                    double KbPerSecond = ((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken));
 
-                    PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-                    //PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-                    PPH_STRING str = PhFormatString(L"Downloaded: %d%% (%s)", dlProgress, dlCurrent->Buffer);
+                    //Setup for the next time around the loop
+                    dwCurrentTicks = dwNowTicks;
+                    dwLastTotalBytes = dwTotalReadSize;
 
-                    Updater_SetStatusText(hwndDlg, str->Buffer);
-
-                    PhDereferenceObject(str);
-                    //PhDereferenceObject(dlLength);
-                    PhDereferenceObject(dlCurrent);
-
-                    PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
-                }
-                {
-                    // Calculate the transfer rate and download speed. 
-                    DWORD dwNowTicks = GetTickCount();
-                    DWORD dwTimeTaken = dwNowTicks - dwCurrentTicks;
-
-                    //Update the transfer rate and estimated time left every second.
-                    if (dwTimeTaken > 1000)
+                    //Update the estimated time left
+                    if (dwTotalReadSize)
                     {
-                        double KbPerSecond = ((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken));
-      
-                        //Setup for the next time around the loop
-                        dwCurrentTicks = dwNowTicks;
-                        dwLastTotalBytes = dwTotalReadSize;
+                        DWORD dwSecondsLeft;
+                        PPH_STRING rstr;
+                        PPH_STRING str;
 
-                        //Update the estimated time left
-                        if (dwTotalReadSize)
+                        dwSecondsLeft =  (DWORD)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
+                        str = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
+                        rstr = PhFormatString(L"Remaning: %s %ds", str->Buffer, dwSecondsLeft);
+
+                        SetDlgItemText(hwndDlg, IDC_RTIMETEXT, rstr->Buffer);
+
+                        PhDereferenceObject(rstr);
+                        PhDereferenceObject(str);
+                    }
+                    {
+                        PPH_STRING str;
+
+                        if (KbPerSecond < 1)
                         {
-                            DWORD dwSecondsLeft = (DWORD) (((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
-                            //SetTimeLeft(dwSecondsLeft, dwTotalBytesRead + m_dwStartPos, dwFileSize + m_dwStartPos);
-
-                            PPH_STRING str = PhFormatString(L"Remaning: %ds", dwSecondsLeft);
-                        
-                            SetDlgItemText(hwndDlg, IDC_RTIMETEXT, str->Buffer);
-
-                            PhDereferenceObject(str);
+                            str = PhFormatString(L"Speed: %0.0f Bps", KbPerSecond * 1024);
+                        }
+                        else if (KbPerSecond < 10)
+                        {
+                            str = PhFormatString(L"Speed: %0.2f KB/s", KbPerSecond);
+                        }
+                        else
+                        {
+                            str = PhFormatString(L"Speed: %0.0f KB/s", KbPerSecond);
                         }
 
-                        {
-                            PPH_STRING str;
+                        SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, str->Buffer);
+                        PhDereferenceObject(str);
+                    }
+                    {
+                        // Calculate the percentage of our total bytes downloaded per the length.
+                        INT dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
 
-                            if (KbPerSecond < 1)
-                            {
-                                str = PhFormatString(L"Speed: %0.0f Bps", KbPerSecond * 1024);
-                            }
-                            else if (KbPerSecond < 10)
-                            {
-                                str = PhFormatString(L"Speed: %0.2f KB/s", KbPerSecond);
-                            }
-                            else
-                            {
-                                str = PhFormatString(L"Speed: %0.0f KB/s", KbPerSecond);
-                            }
+                        PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
+                        PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+                        PPH_STRING str = PhFormatString(L"Downloaded: %s of %s (%d%%)", dlCurrent->Buffer, dlLength->Buffer, dlProgress);
 
-                            SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, str->Buffer);
-
-                            PhDereferenceObject(str);
-                        }
+                        Updater_SetStatusText(hwndDlg, str->Buffer);
+                        PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
+                   
+                        PhDereferenceObject(str);
+                        PhDereferenceObject(dlLength);
+                        PhDereferenceObject(dlCurrent);
                     }
                 }
             }
@@ -588,8 +588,15 @@ INT_PTR CALLBACK MainWndProc(
                                 PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
                                 PostMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
-                                // Star our Downloader thread
-                                _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
+
+                                {
+                         
+
+                                        // Star our Downloader thread
+                                        _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
+
+                               
+                                }
                             }
                             else
                             {
@@ -682,44 +689,6 @@ BOOL InitializeConnection(
 
         DisposeConnection();
 
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-BOOL InitializeFile(VOID)
-{
-    TCHAR lpPathBuffer[MAX_PATH];
-    DWORD length = 0;
-
-    // Get the temp path env string (no guarantee it's a valid path).
-    length = GetTempPath(MAX_PATH, lpPathBuffer);
-
-    if (length > MAX_PATH || length == 0)
-    {
-        LogEvent(PhFormatString(L"Updater: (InitializeFile) GetTempPath failed (%d)", GetLastError()));
-        return FALSE;
-    }
-
-    LocalFilePathString = PhConcatStrings2(
-        lpPathBuffer,
-        LocalFileNameString->Buffer
-        );
-
-    // Create output file
-    TempFileHandle = CreateFile(
-        LocalFilePathString->Buffer,
-        GENERIC_WRITE,
-        FILE_SHARE_WRITE,
-        0,                     // handle cannot be inherited
-        CREATE_ALWAYS,         // if file exists, delete it
-        FILE_ATTRIBUTE_NORMAL,
-        0);
-
-    if (TempFileHandle == INVALID_HANDLE_VALUE)
-    {
-        LogEvent(PhFormatString(L"Updater: (InitializeFile) CreateFile failed (%d)", GetLastError()));
         return FALSE;
     }
 
