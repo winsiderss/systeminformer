@@ -835,14 +835,6 @@ extern "C" {
 
 #define NVAPI_INTERFACE extern NvStatus __cdecl
 
-#if defined(WIN32) || defined(_WIN32)
-#define __nvapi_deprecated_function(NewFunction, FirstRelease) __declspec(deprecated("Do not use this function - it is deprecated in release " #FirstRelease ". Instead, use " #NewFunction "."))
-#define __nvapi_deprecated_datatype(FirstRelease) __declspec(deprecated("Do not use this data type - it is deprecated in release " #FirstRelease "."))
-#else
-#define __nvapi_deprecated_function(NewFunction, FirstRelease)
-#define __nvapi_deprecated_datatype(FirstRelease)
-#endif
-
 
 /* 64-bit types for compilers that support them, plus some obsolete variants */
 #if defined(__GNUC__) || defined(__arm) || defined(__IAR_SYSTEMS_ICC__) || defined(__ghs__) || defined(_WIN64)
@@ -2491,127 +2483,6 @@ typedef struct
 NVAPI_INTERFACE NvAPI_D3D_GetCurrentSLIState(IUnknown *pDevice, NV_GET_CURRENT_SLI_STATE *pSliState);
 
 #endif //if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d11_h__)
-
-#if defined(_D3D9_H_)
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME:   NvAPI_D3D9_RegisterResource
-//
-//! DESCRIPTION:    This API binds a resource (surface/texture) so that it can be retrieved
-//!                 internally by NVAPI.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//! \param [in]     pResource      surface/texture
-//!
-//! \return ::NVAPI_OK, ::NVAPI_ERROR 
-//!
-//! \ingroup dx
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_D3D9_RegisterResource(IDirect3DResource9* pResource);
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME:   NvAPI_D3D9_UnregisterResource
-//
-//! DESCRIPTION:     This API unbinds a resource (surface/texture) after use.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//! 
-//! \param [in]     pResource    surface/texture
-//!
-//! \return ::NVAPI_OK, ::NVAPI_ERROR 
-//!
-//! \ingroup dx
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_D3D9_UnregisterResource(IDirect3DResource9* pResource);
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_D3D9_AliasSurfaceAsTexture
-//
-//! \fn NvAPI_D3D9_AliasSurfaceAsTexture(IDirect3DDevice9* pDev,
-//!                                              IDirect3DSurface9* pSurface,
-//!                                              IDirect3DTexture9 **ppTexture,
-//!                                              DWORD dwFlag);
-//!   DESCRIPTION: Create a texture that is an alias of a surface registered with NvAPI.  The
-//!                new texture can be bound with IDirect3DDevice9::SetTexture().  Note that the texture must
-//!                be unbound before drawing to the surface again.
-//!                Unless the USE_SUPER flag is passed, MSAA surfaces will be resolved before
-//!                being used as a texture.  MSAA depth buffers are resolved with a point filter,
-//!                and non-depth MSAA surfaces are resolved with a linear filter.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]    pDev         The D3D device that owns the objects
-//! \param [in]    pSurface     Pointer to a surface that has been registered with NvAPI 
-//!                             to which a texture alias is to be provided
-//! \param [out]   ppTexture    Fill with the texture created
-//! \param [in]    dwFlag       NVAPI_ALIAS_SURFACE_FLAG to describe how to handle the texture
-//!
-//! \retval ::NVAPI_OK                  completed request
-//! \retval ::NVAPI_INVALID_POINTER     A null pointer was passed as an argument
-//! \retval ::NVAPI_INVALID_ARGUMENT    One of the arguments was invalid, probably dwFlag.
-//! \retval ::NVAPI_UNREGISTERED_RESOURCE pSurface has not been registered with NvAPI
-//! \retval ::NVAPI_ERROR               error occurred
-//
-///////////////////////////////////////////////////////////////////////////////
-
-
-//! \ingroup dx
-//! See NvAPI_D3D9_AliasSurfaceAsTexture().
-typedef enum {
-    NVAPI_ALIAS_SURFACE_FLAG_NONE                     = 0x00000000,
-    NVAPI_ALIAS_SURFACE_FLAG_USE_SUPER                = 0x00000001,  //!< Use the surface's msaa buffer directly as a texture, rather than resolving. (This is much slower, but potentially has higher quality.)
-    NVAPI_ALIAS_SURFACE_FLAG_MASK                     = 0x00000001
-} NVAPI_ALIAS_SURFACE_FLAG;
-
-
-//! \ingroup dx
-NVAPI_INTERFACE NvAPI_D3D9_AliasSurfaceAsTexture(IDirect3DDevice9* pDev,
-                                                 IDirect3DSurface9* pSurface,
-                                                 IDirect3DTexture9 **ppTexture,
-                                                 DWORD dwFlag);
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME:   NvAPI_D3D9_StretchRectEx
-//
-//! DESCRIPTION:     This API copies the contents of the source resource to the destination
-//!                  resource.  This function can convert
-//!                  between a wider range of surfaces than
-//!                  IDirect3DDevice9::StretchRect.  For example, it can copy
-//!                  from a depth/stencil surface to a texture.
-//!
-//!                  The source and destination resources *must* be registered
-//!                  with NvAPI before being used with NvAPI_D3D9_StretchRectEx().
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]     pDevice             The D3D device that owns the objects.
-//! \param [in]     pSourceResource     Pointer to the source resource.
-//! \param [in]     pSrcRect            Defines the rectangle on the source to copy from.  If NULL, copy from the entire resource.
-//! \param [in]     pDestResource       Pointer to the destination resource.
-//! \param [in]     pDstRect            Defines the rectangle on the destination to copy to.  If NULL, copy to the entire resource.
-//! \param [in]     Filter              Choose a filtering method: D3DTEXF_NONE, D3DTEXF_POINT, D3DTEXF_LINEAR.
-//!
-//! \retval ::NVAPI_OK                       completed request
-//! \retval ::NVAPI_INVALID_POINTER          An invalid pointer was passed as an argument (probably NULL)
-//! \retval ::NVAPI_INVALID_ARGUMENT         One of the arguments was invalid
-//! \retval ::NVAPI_UNREGISTERED_RESOURCE    a resource was passed in without being registered
-//! \retval ::NVAPI_ERROR                    error occurred
-//!
-//! \ingroup dx
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_D3D9_StretchRectEx(IDirect3DDevice9 * pDevice,
-                                         IDirect3DResource9 * pSourceResource,
-                                         CONST RECT * pSourceRect,
-                                         IDirect3DResource9 * pDestResource,
-                                         CONST RECT * pDestRect,
-                                         D3DTEXTUREFILTERTYPE Filter);
-
-
-#endif //if defined(_D3D9_H_)
 
 
 
@@ -7462,14 +7333,6 @@ NVAPI_INTERFACE NvAPI_VIO_EnumDataFormats(NvVioHandle            hVioHandle,
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_GPU_GetTachReading(NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
 
-
-
-
-
-
-
-
-
 //
 // NV_GET_SCALING_CAPS
 //
@@ -7503,7 +7366,6 @@ NVAPI_INTERFACE NvAPI_GPU_GetTachReading(NvPhysicalGpuHandle hPhysicalGPU, NvU32
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_SYS_GetDisplayIdFromGpuAndOutputId(NvPhysicalGpuHandle hPhysicalGpu, NvU32 outputId, NvU32* displayId);
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTION NAME:   NvAPI_SYS_GetGpuAndOutputIdFromDisplayId
 //
@@ -7529,7 +7391,6 @@ NVAPI_INTERFACE NvAPI_SYS_GetDisplayIdFromGpuAndOutputId(NvPhysicalGpuHandle hPh
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_SYS_GetGpuAndOutputIdFromDisplayId(NvU32 displayId, NvPhysicalGpuHandle *hPhysicalGpu, NvU32 *outputId);
 
-
 //  SUPPORTED OS: Windows XP and higher
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -7554,8 +7415,6 @@ NVAPI_INTERFACE NvAPI_SYS_GetGpuAndOutputIdFromDisplayId(NvU32 displayId, NvPhys
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_DISP_GetDisplayIdByDisplayName(const char *displayName, NvU32* displayId);
 
-
-
 //  SUPPORTED OS: Windows XP and higher
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -7575,10 +7434,6 @@ NVAPI_INTERFACE NvAPI_DISP_GetDisplayIdByDisplayName(const char *displayName, Nv
 //! \ingroup dispcontrol
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_DISP_GetGDIPrimaryDisplayId(NvU32* displayId);
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -7666,11 +7521,13 @@ NVAPI_INTERFACE NvAPI_GPU_GetECCStatusInfo(NvPhysicalGpuHandle hPhysicalGpu,
 typedef struct
 {
     NvU32   version;             //!< Structure version
-    struct {
+    struct 
+    {
         NvU64  singleBitErrors;  //!< Number of single-bit ECC errors detected since last boot
         NvU64  doubleBitErrors;  //!< Number of double-bit ECC errors detected since last boot
     } current;
-    struct {
+    struct 
+    {
         NvU64  singleBitErrors;  //!< Number of single-bit ECC errors detected since last counter reset
         NvU64  doubleBitErrors;  //!< Number of double-bit ECC errors detected since last counter reset
     } aggregate;
@@ -7782,12 +7639,13 @@ NVAPI_INTERFACE NvAPI_GPU_GetECCConfigurationInfo(NvPhysicalGpuHandle hPhysicalG
 //!
 //! \ingroup gpuecc
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_SetECCConfiguration(NvPhysicalGpuHandle hPhysicalGpu, NvU8 bEnable,
-                                              NvU8 bEnableImmediately);
+NVAPI_INTERFACE NvAPI_GPU_SetECCConfiguration(
+    NvPhysicalGpuHandle hPhysicalGpu, 
+    NvU8 bEnable,                        
+    NvU8 bEnableImmediately
+    );
 
-
-
-#if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d10_1_h__) || defined(__d3d11_h__)
+//#if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d10_1_h__) || defined(__d3d11_h__)
 ///////////////////////////////////////////////////////////////////////////////
 //
 // FUNCTION NAME: NvAPI_D3D_SetFPSIndicatorState
@@ -7804,10 +7662,9 @@ NVAPI_INTERFACE NvAPI_GPU_SetECCConfiguration(NvPhysicalGpuHandle hPhysicalGpu, 
 //!
 //! \ingroup dx 
 /////////////////////////////////////////////////////////////////////////////// 
-NVAPI_INTERFACE NvAPI_D3D_SetFPSIndicatorState(IUnknown *pDev, NvU8 doEnable);
-
-#endif //if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d10_1_h__) || defined(__d3d11_h__)
-
+//NVAPI_INTERFACE NvAPI_D3D_SetFPSIndicatorState(IUnknown *pDev, NvU8 doEnable);
+typedef NvStatus (__cdecl *P_NvAPI_D3D_SetFPSIndicatorState)(NvU8 doEnable);
+P_NvAPI_D3D_SetFPSIndicatorState NvAPI_SetFPSIndicatorState;
 
 
 
@@ -8264,148 +8121,6 @@ NVAPI_INTERFACE NvAPI_DRS_GetNumProfiles(NvDRSSessionHandle hSession, NvU32 *num
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-// FUNCTION NAME: NvAPI_DRS_CreateApplication
-//
-//!   DESCRIPTION: This API adds an executable name to a profile.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]  hSession       Input to the session handle.
-//! \param [in]  hProfile       Input profile handle.
-//! \param [in]  *pApplication  Input NVDRS_APPLICATION struct with the executable name to be added.
-//!                
-//! \retval ::NVAPI_OK     SUCCESS
-//! \retval ::NVAPI_ERROR  For miscellaneous errors.
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_CreateApplication(NvDRSSessionHandle hSession, NvDRSProfileHandle  hProfile, NVDRS_APPLICATION *pApplication);
- 
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_DeleteApplicationEx
-//
-//!   DESCRIPTION: This API removes an executable from a profile.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]   hSession  - Input to the session handle.
-//! \param [in]   hProfile  - Input profile handle.
-//! \param [in]   *pApp     - Input all the information about the application to be removed.
-//!
-//! \retval ::NVAPI_OK  SUCCESS
-//! \retval ::NVAPI_ERROR For miscellaneous errors.
-//! \retval ::NVAPI_EXECUTABLE_PATH_IS_AMBIGUOUS If the path provided could refer to two different executables,
-//!                                              this error will be returned.
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_DeleteApplicationEx(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_APPLICATION *pApp);
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_DeleteApplication
-//
-//!   DESCRIPTION: This API removes an executable name from a profile.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]  hSessionPARAMETERS   Input to the session handle.
-//! \param [in]  hProfile             Input profile handle.
-//! \param [in]  appName              Input the executable name to be removed.
-//!                
-//! \retval ::NVAPI_OK     SUCCESS
-//! \retval ::NVAPI_ERROR  For miscellaneous errors.
-//! \retval ::NVAPI_EXECUTABLE_PATH_IS_AMBIGUOUS If the path provided could refer to two different executables,
-//!                                              this error will be returned
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_DeleteApplication(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvAPI_UnicodeString appName);
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_GetApplicationInfo
-//
-//!   DESCRIPTION: This API gets information about the given application.  The input application name
-//!                must match exactly what the Profile has stored for the application. 
-//!                This function is better used to retrieve application information from a previous
-//!                enumeration.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]   hSession       Input to the session handle.
-//! \param [in]   hProfile       Input profile handle.
-//! \param [in]   appName        Input application name.
-//! \param [out]  *pApplication  Returns NVDRS_APPLICATION struct with all the attributes.
-//!                
-//! \return  This API can return any of the error codes enumerated in #NvStatus. 
-//!          If there are return error codes with specific meaning for this API, 
-//!          they are listed below.
-//! \retval ::NVAPI_EXECUTABLE_PATH_IS_AMBIGUOUS   The application name could not 
-//                                                single out only one executable.
-//! \retval ::NVAPI_EXECUTABLE_NOT_FOUND           No application with that name is found on the profile.
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_GetApplicationInfo(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvAPI_UnicodeString appName, NVDRS_APPLICATION *pApplication);
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_EnumApplications
-//
-//!   DESCRIPTION: This API enumerates all the applications in a given profile from the starting index to the maximum length.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]      hSession         Input to the session handle.
-//! \param [in]      hProfile         Input profile handle.
-//! \param [in]      startIndex       Indicates starting index for enumeration.
-//! \param [in,out]  *appCount        Input maximum length of the passed in arrays. Returns the actual length.
-//! \param [out]     *pApplication    Returns NVDRS_APPLICATION struct with all the attributes.
-//!                
-//! \retval ::NVAPI_OK               SUCCESS
-//! \retval ::NVAPI_ERROR            For miscellaneous errors.
-//! \retval ::NVAPI_END_ENUMERATION  startIndex exceeds the total appCount.
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_EnumApplications(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 startIndex, NvU32 *appCount, NVDRS_APPLICATION *pApplication);
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_FindApplicationByName
-//
-//!   DESCRIPTION: This API searches the application and the associated profile for the given application name.
-//!                If a fully qualified path is provided, this function will always return the profile
-//!                the driver will apply upon running the application (on the path provided).
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]   hSession       Input to the hSession handle
-//! \param [in]   appName        Input appName. For best results, provide a fully qualified path of the type
-//!                                         c:\\Folder1\\Folder2\\App.exe
-//! \param [out]  *phProfile     Returns profile handle.
-//! \param [out]  *pApplication  Returns NVDRS_APPLICATION struct pointer.
-//!                
-//! \return  This API can return any of the error codes enumerated in #NvStatus. 
-//!                  If there are return error codes with specific meaning for this API, 
-//!                  they are listed below:
-//! \retval ::NVAPI_APPLICATION_NOT_FOUND          If App not found
-//! \retval ::NVAPI_EXECUTABLE_PATH_IS_AMBIGUOUS   If the input appName was not fully qualified, this error might return in the case of multiple matches
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_FindApplicationByName(NvDRSSessionHandle hSession, NvAPI_UnicodeString appName, NvDRSProfileHandle *phProfile, NVDRS_APPLICATION *pApplication);
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
 // FUNCTION NAME: NvAPI_DRS_SetSetting
 //
 //!   DESCRIPTION: This API adds/modifies a setting to a profile.
@@ -8442,8 +8157,6 @@ NVAPI_INTERFACE NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHa
 //! \ingroup drsapi
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId, NVDRS_SETTING *pSetting);
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -8525,7 +8238,6 @@ NVAPI_INTERFACE NvAPI_DRS_EnumAvailableSettingValues(NvU32 settingId, NvU32 *pMa
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_DRS_GetSettingIdFromName(NvAPI_UnicodeString settingName, NvU32 *pSettingId);
 
-
 ///////////////////////////////////////////////////////////////////////////////
 //
 // FUNCTION NAME: NvAPI_DRS_GetSettingNameFromId
@@ -8564,65 +8276,6 @@ NVAPI_INTERFACE NvAPI_DRS_GetSettingNameFromId(NvU32 settingId, NvAPI_UnicodeStr
 //! \ingroup drsapi
 /////////////////////////////////////////////////////////////////////////////// 
 NVAPI_INTERFACE NvAPI_DRS_DeleteProfileSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId);
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_RestoreAllDefaults
-//
-//!   DESCRIPTION: This API restores the whole system to predefined(default) values.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]  hSession  Input to the session handle.
-//!                
-//! \retval ::NVAPI_OK     SUCCESS if the profile is found
-//! \retval ::NVAPI_ERROR  For miscellaneous errors.
-//!
-//! \ingroup drsapi
-/////////////////////////////////////////////////////////////////////////////// 
-NVAPI_INTERFACE NvAPI_DRS_RestoreAllDefaults(NvDRSSessionHandle hSession);
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_RestoreProfileDefaults
-//
-//!   DESCRIPTION: This API restores the given profile to predefined(default) values.
-//!                Any and all user specified modifications will be removed. 
-//!                If the whole profile was set by the user, the profile will be removed.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]  hSession  Input to the session handle.
-//! \param [in]  hProfile  Input profile handle.
-//!                
-//! \retval ::NVAPI_OK              SUCCESS if the profile is found
-//! \retval ::NVAPI_ERROR           For miscellaneous errors.
-//! \retval ::NVAPI_PROFILE_REMOVED SUCCESS, and the hProfile is no longer valid.
-//! \retval ::NVAPI_ERROR           For miscellaneous errors.
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_RestoreProfileDefault(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile);
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// FUNCTION NAME: NvAPI_DRS_RestoreProfileDefaultSetting
-//
-//!   DESCRIPTION: This API restores the given profile setting to predefined(default) values.
-//!
-//  SUPPORTED OS: Windows XP and higher
-//!
-//! \param [in]  hSession  Input to the session handle.
-//! \param [in]  hProfile  Input profile handle.
-//! \param [in]  settingId Input settingId.
-//!                
-//! \retval ::NVAPI_OK     SUCCESS if the profile is found
-//! \retval ::NVAPI_ERROR  For miscellaneous errors.
-//!
-//! \ingroup drsapi
-///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DRS_RestoreProfileDefaultSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId);
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -8671,7 +8324,10 @@ typedef enum _NVAPI_GPU_PERF_DECREASE
 //!
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetPerfDecreaseInfo(__in NvPhysicalGpuHandle hPhysicalGpu, __inout NvU32 *pPerfDecrInfo);
+//NVAPI_INTERFACE NvAPI_GPU_GetPerfDecreaseInfo(__in NvPhysicalGpuHandle hPhysicalGpu, __inout NvU32 *pPerfDecrInfo);
+typedef NvStatus (__cdecl *P_NvAPI_GPU_GetPerfDecreaseInfo)(__in NvPhysicalGpuHandle hPhysicalGpu, __inout NVAPI_GPU_PERF_DECREASE *pPerfDecrInfo);
+P_NvAPI_GPU_GetPerfDecreaseInfo NvAPI_GetPerfDecreaseInfo;
+
 
 
 #ifndef __NVAPI_EMPTY_SAL

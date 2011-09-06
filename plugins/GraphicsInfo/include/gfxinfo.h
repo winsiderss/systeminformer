@@ -5,6 +5,7 @@
 #include <graph.h>
 
 #include <windowsx.h>
+#include <process.h>
 
 #include "adl_defines.h"
 #include "adl_sdk.h"
@@ -89,7 +90,7 @@ INT_PTR CALLBACK MainWndProc(
 	__in LPARAM lParam
 	);
 
-INT_PTR CALLBACK EtpEtwSysPanelDlgProc(      
+INT_PTR CALLBACK MainPanelDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
