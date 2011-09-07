@@ -51,7 +51,13 @@ LOGICAL DllMain(
             info->Description = L"Adds the ability to check for new Process Hacker releases via the Help menu.";
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=273";
             info->HasOptions = TRUE;
-
+    
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
                 MainWindowShowingCallback,
@@ -79,6 +85,14 @@ LOGICAL DllMain(
     return TRUE;
 }
 
+VOID NTAPI LoadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    
+}
+
 VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -104,7 +118,14 @@ VOID NTAPI MenuItemCallback(
     {
     case UPDATE_MENUITEM:
         {
-            ShowUpdateDialog();
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                Test();
+            }
+            else
+            {
+                ShowUpdateDialog();
+            }
         }
         break;
     }

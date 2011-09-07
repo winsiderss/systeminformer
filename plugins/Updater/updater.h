@@ -27,16 +27,19 @@ typedef enum _PH_UPDATER_STATE
 #include "windowsx.h"
 
 #include <ShlObj.h>
+#include <stdint.h>
 
 #pragma endregion
 
 #pragma region Defines
 
+#define TDIF_SIZE_TO_CONTENT 0x1000000
+
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
 
-#define DOWNLOAD_SERVER L"sourceforge.net"
-#define DOWNLOAD_PATH L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
+#define DOWNLOAD_SERVER L"download.fedoraproject.org"// L"sourceforge.net"
+#define DOWNLOAD_PATH L"/pub/alt/spins/linux/releases/15/Spins/i686/Fedora-15-i686-Live-LXDE.iso"// L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
@@ -69,6 +72,7 @@ typedef struct _UPDATER_XML_DATA
 #pragma region Instances
 
 PPH_PLUGIN PluginInstance;
+PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -76,6 +80,7 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 #pragma endregion
 
 #pragma region Functions
+VOID Test();
 
 VOID DisposeConnection(VOID);
 VOID DisposeStrings(VOID);
@@ -126,6 +131,11 @@ VOID LogEvent(
     __in PPH_STRING str
     );
 
+VOID NTAPI LoadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -139,6 +149,14 @@ VOID NTAPI MainWindowShowingCallback(
 VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
+    );
+
+HRESULT CALLBACK TaskDlgWndProc(
+    __in HWND hwnd, 
+    __in UINT uMsg, 
+    __in WPARAM wParam, 
+    __in LPARAM lParam, 
+    __in LONG_PTR lpRefData
     );
 
 INT_PTR CALLBACK MainWndProc(
