@@ -35,6 +35,19 @@ typedef enum _PH_UPDATER_STATE
 
 #define TDIF_SIZE_TO_CONTENT 0x1000000
 
+
+#define SecurityStop UINT16_MAX - 1
+#define SecurityInformation UINT16_MAX - 2
+#define SecurityShield  UINT16_MAX - 3
+#define SecurityShieldBlue UINT16_MAX - 4
+#define SecurityWarning UINT16_MAX - 5
+#define SecurityError UINT16_MAX - 6
+#define SecuritySuccess UINT16_MAX - 7
+#define SecurityShieldGray UINT16_MAX - 8
+#define ASecurityWarning UINT16_MAX
+
+
+
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
 
@@ -81,7 +94,10 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 #pragma region Functions
 VOID Test();
-
+BOOL VistaInitializeConnection(
+    __in PCWSTR host,
+    __in PCWSTR path
+    );
 VOID DisposeConnection(VOID);
 VOID DisposeStrings(VOID);
 VOID DisposeFileHandles(VOID);
