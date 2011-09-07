@@ -22,37 +22,37 @@
 */
 
 #include "updater.h"
+
 #include "process.h"
 // Always consider the remote version newer
 #ifdef _DEBUG
 #define TEST_MODE
 #endif
 
-static HANDLE TempFileHandle = NULL;
-static HINTERNET VistaNetInitialize, VistaNetConnection, VistaNetRequest;
-static PPH_STRING RemoteHashString = NULL;
-static PPH_STRING LocalFilePathString = NULL;
-static PPH_STRING LocalFileNameString = NULL;
+static PPH_STRING RemoteHashString = NULL, LocalFilePathString = NULL, LocalFileNameString = NULL;
 
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
 static BOOL WindowVisible = FALSE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
+TASKDIALOGCONFIG CheckingPage = { 0 };
 TASKDIALOGCONFIG UpdateAvailablePage = { 0 };
+TASKDIALOGCONFIG UpdateDownloadPage = { 0 };
+TASKDIALOGCONFIG UpdateInstallPage = { 0 };
 
-static void __cdecl VistaWorkerThreadStart(
+static void __cdecl VistaSilentWorkerThreadStart(
     __in PVOID Parameter
     )
 {
-    INT result = 0;
-    HWND hwndDlg = (HWND)Parameter;
-  
-    if (!VistaInitializeConnection(UPDATE_URL, UPDATE_FILE))
+    if (!ConnectionAvailable())
+        return;
+
+    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return;
 
     // Send the HTTP request.
-    if (HttpSendRequest(VistaNetRequest, NULL, 0, NULL, 0))
+    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         PSTR data;
         UPDATER_XML_DATA xmlData;
@@ -61,7 +61,72 @@ static void __cdecl VistaWorkerThreadStart(
         ULONG localMinorVersion = 0;
 
         // Read the resulting xml into our buffer.
-        if (!ReadRequestString(VistaNetRequest, &data, NULL))
+        if (!ReadRequestString(NetRequest, &data, NULL))
+            return;
+
+        if (!QueryXmlData(data, &xmlData))
+        {
+            PhFree(data);
+            return;
+        }
+
+        PhFree(data);
+
+        localVersion = PhGetPhVersion();
+
+#ifndef TEST_MODE
+        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+        {
+            PhDereferenceObject(localVersion);
+            FreeXmlData(&xmlData);
+        }
+#else
+        localMajorVersion = 0;
+        localMinorVersion = 0;
+#endif
+
+        if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
+        {
+            // Don't spam the user the second they open PH, delay dialog creation for 5 seconds.
+            Sleep(5000);
+
+            DisposeConnection();
+
+            ShowUpdateTaskDialog();
+        }
+
+        PhDereferenceObject(localVersion);
+        FreeXmlData(&xmlData);
+    }
+    else
+    {
+        LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+    }
+
+    DisposeConnection();
+}
+
+static void __cdecl VistaWorkerThreadStart(
+    __in PVOID Parameter
+    )
+{
+    INT result = 0;
+    HWND hwndDlg = (HWND)Parameter;
+  
+    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
+        return;
+
+    // Send the HTTP request.
+    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
+    {
+        PSTR data;
+        UPDATER_XML_DATA xmlData;
+        PPH_STRING localVersion;
+        ULONG localMajorVersion = 0;
+        ULONG localMinorVersion = 0;
+
+        // Read the resulting xml into our buffer.
+        if (!ReadRequestString(NetRequest, &data, NULL))
             return;
 
         if (!QueryXmlData(data, &xmlData))
@@ -252,7 +317,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 
     Updater_SetStatusText(hwndDlg, L"Connecting");
 
-    if (HttpSendRequest(VistaNetRequest, NULL, 0, NULL, 0))
+    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         CHAR buffer[BUFFER_LEN];
         DWORD dwStartTicks = GetTickCount();
@@ -267,12 +332,12 @@ static void __cdecl VistaDownloadWorkerThreadStart(
         // Initialize hash algorithm.
         PhInitializeHash(&hashContext, HashAlgorithm);
 
-        if (HttpQueryInfo(VistaNetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
+        if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
         {
             // Reset Progressbar state.
             PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
 
-            while ((nReadFile = InternetReadFile(VistaNetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
+            while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
                 if (dwBytesRead == 0)
                     break;
@@ -368,7 +433,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
             // No content length...impossible to calculate % complete so just read until we are done.
             LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", GetLastError()));
 
-            while ((nReadFile = InternetReadFile(VistaNetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
+            while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
                 if (dwBytesRead == 0)
                     break;
@@ -452,7 +517,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 }
 
 
-void Test()
+VOID ShowUpdateTaskDialog(VOID)
 {
     HRESULT hr;
     
@@ -483,14 +548,7 @@ void Test()
 
     hr = TaskDialogIndirect(&UpdateAvailablePage, &nButton, &nRadioButton, &fVerificationFlagChecked);
     
-    if (SUCCEEDED(hr))
-    {
-        if (fVerificationFlagChecked)
-        {
-            // the user checked the verification flag...
-        }
-    }
-    else
+    if (!SUCCEEDED(hr))
     {
         // some error occurred...check hr to see what it is
     }
@@ -509,6 +567,7 @@ HRESULT CALLBACK TaskDlgWndProc(
     case TDN_CREATED:
         {
             SendMessage(hwnd, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 0);
+            
             _beginthread(VistaWorkerThreadStart, 0, hwnd);
         }
         break;
@@ -521,7 +580,6 @@ HRESULT CALLBACK TaskDlgWndProc(
         {
             switch(wParam)
             {
-                //default:
             case 1000:
                 {
                     
@@ -532,7 +590,7 @@ HRESULT CALLBACK TaskDlgWndProc(
         break;
     case TDN_NAVIGATED:
         {
-            return S_FALSE;
+            //return S_FALSE;
         }
         break;
     case TDN_TIMER:
@@ -551,83 +609,13 @@ HRESULT CALLBACK TaskDlgWndProc(
     return S_OK;
 }
 
-#pragma region Worker Threads
-
-#pragma region AutoCheck Thread
-
-static void __cdecl VistaSilentWorkerThreadStart(
-    __in PVOID Parameter
-    )
-{
-    if (!ConnectionAvailable())
-        return;
-
-    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return;
-
-    // Send the HTTP request.
-    if (HttpSendRequest(VistaNetRequest, NULL, 0, NULL, 0))
-    {
-        PSTR data;
-        UPDATER_XML_DATA xmlData;
-        PPH_STRING localVersion;
-        ULONG localMajorVersion = 0;
-        ULONG localMinorVersion = 0;
-
-        // Read the resulting xml into our buffer.
-        if (!ReadRequestString(VistaNetRequest, &data, NULL))
-            return;
-
-        if (!QueryXmlData(data, &xmlData))
-        {
-            PhFree(data);
-            return;
-        }
-
-        PhFree(data);
-
-        localVersion = PhGetPhVersion();
-
-#ifndef TEST_MODE
-        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
-        {
-            PhDereferenceObject(localVersion);
-            FreeXmlData(&xmlData);
-        }
-#else
-        localMajorVersion = 0;
-        localMinorVersion = 0;
-#endif
-
-        if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
-        {
-            // Don't spam the user the second they open PH, delay dialog creation for 5 seconds.
-            Sleep(5000);
-
-            ShowUpdateDialog();
-        }
-
-        PhDereferenceObject(localVersion);
-        FreeXmlData(&xmlData);
-    }
-    else
-    {
-        LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-    }
-
-    DisposeConnection();
-}
-
-#pragma endregion
-
-
-BOOL VistaInitializeConnection(
+static BOOL InitializeConnection(
     __in PCWSTR host,
     __in PCWSTR path
     )
 {
     // Initialize the wininet library.
-    VistaNetInitialize = InternetOpen(
+    NetInitialize = InternetOpen(
         L"PH Updater", // user-agent
         INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration
         NULL,
@@ -635,15 +623,15 @@ BOOL VistaInitializeConnection(
         0
         );
 
-    if (!VistaNetInitialize)
+    if (!NetInitialize)
     {
         LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
         return FALSE;
     }
 
     // Connect to the server.
-    VistaNetConnection = InternetConnect(
-        VistaNetInitialize,
+    NetConnection = InternetConnect(
+        NetInitialize,
         host,
         INTERNET_DEFAULT_HTTP_PORT,
         NULL,
@@ -653,7 +641,7 @@ BOOL VistaInitializeConnection(
         0
         );
 
-    if (!VistaNetConnection)
+    if (!NetConnection)
     {
         LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
 
@@ -663,8 +651,8 @@ BOOL VistaInitializeConnection(
     }
 
     // Open the HTTP request.
-    VistaNetRequest = HttpOpenRequest(
-        VistaNetConnection,
+    NetRequest = HttpOpenRequest(
+        NetConnection,
         L"GET",
         path,
         L"HTTP/1.1",
@@ -674,7 +662,7 @@ BOOL VistaInitializeConnection(
         0
         );
 
-    if (!VistaNetRequest)
+    if (!NetRequest)
     {
         LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
 
@@ -684,4 +672,11 @@ BOOL VistaInitializeConnection(
     }
 
     return TRUE;
+}
+
+
+VOID VistaStartInitialCheck(VOID)
+{
+    // Queue up our initial update check.
+    _beginthread(VistaSilentWorkerThreadStart, 0, NULL);
 }

@@ -35,7 +35,6 @@ typedef enum _PH_UPDATER_STATE
 
 #define TDIF_SIZE_TO_CONTENT 0x1000000
 
-
 #define SecurityStop UINT16_MAX - 1
 #define SecurityInformation UINT16_MAX - 2
 #define SecurityShield  UINT16_MAX - 3
@@ -45,8 +44,6 @@ typedef enum _PH_UPDATER_STATE
 #define SecuritySuccess UINT16_MAX - 7
 #define SecurityShieldGray UINT16_MAX - 8
 #define ASecurityWarning UINT16_MAX
-
-
 
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
@@ -82,6 +79,11 @@ typedef struct _UPDATER_XML_DATA
 
 #pragma endregion
 
+static HANDLE TempFileHandle = NULL;
+static HINTERNET NetInitialize = NULL;
+static HINTERNET NetConnection = NULL;
+static HINTERNET NetRequest = NULL;
+
 #pragma region Instances
 
 PPH_PLUGIN PluginInstance;
@@ -93,11 +95,13 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 #pragma endregion
 
 #pragma region Functions
-VOID Test();
-BOOL VistaInitializeConnection(
-    __in PCWSTR host,
-    __in PCWSTR path
-    );
+
+VOID VistaStartInitialCheck(VOID);
+VOID StartInitialCheck(VOID);
+
+VOID ShowUpdateDialog(VOID);
+VOID ShowUpdateTaskDialog(VOID);
+
 VOID DisposeConnection(VOID);
 VOID DisposeStrings(VOID);
 VOID DisposeFileHandles(VOID);
@@ -116,10 +120,6 @@ LONG CompareVersions(
     __in ULONG MajorVersion2,
     __in ULONG MinorVersion2
     );
-
-VOID StartInitialCheck(VOID);
-
-VOID ShowUpdateDialog(VOID);
 
 BOOL PhInstalledUsingSetup(VOID);
 
