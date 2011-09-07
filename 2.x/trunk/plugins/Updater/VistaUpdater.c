@@ -88,7 +88,6 @@ static void __cdecl VistaWorkerThreadStart(
         result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
 
         PhSwapReference(&RemoteHashString, xmlData.Hash);
-        PhDereferenceObject(localVersion);
         
         Sleep(2000);
 
@@ -139,19 +138,60 @@ static void __cdecl VistaWorkerThreadStart(
         }
         else if (result == 0)
         {
-            //PPH_STRING summaryText = PhFormatString(L"You're running the latest version: %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
-            //SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, (WPARAM)TDE_MAIN_INSTRUCTION, (LPARAM)summaryText->Buffer);
-            //PhDereferenceObject(summaryText);
+            TASKDIALOGCONFIG tc = { 0 };
+    
+            PPH_STRING sText = PhFormatString(L"You're running the latest version: %u.%u", localMajorVersion, localMinorVersion);
+            
+            tc.cbSize = sizeof(tc);
+            tc.hwndParent = PhMainWndHandle;
+            tc.hInstance = PhLibImageBase;
+            tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_CALLBACK_TIMER;
+            tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+            tc.pszWindowTitle = L"Process Hacker Updater";
+            tc.pszMainInstruction = sText->Buffer;
+            tc.pszMainIcon = MAKEINTRESOURCEW(SecuritySuccess);
+
+            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
+
+            
+            PhDereferenceObject(sText);
         }
         else if (result < 0)
         {
-            //PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %u.%u", localMajorVersion, localMinorVersion);
-            //SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, (WPARAM)TDE_MAIN_INSTRUCTION, (LPARAM)summaryText->Buffer);
-            //PhDereferenceObject(summaryText);
+            TASKDIALOGCONFIG tc = { 0 };
+    
+            PPH_STRING summaryText = PhFormatString(L"You're running a newer version");
+            PPH_STRING verText = PhFormatString(L"Current version: %s \r\nRemote version: %u.%u", localVersion->Buffer, xmlData.MajorVersion, xmlData.MinorVersion);
+
+            tc.cbSize = sizeof(tc);
+            tc.hwndParent = PhMainWndHandle;
+            tc.hInstance = PhLibImageBase;
+            tc.dwFlags = 
+                 TDF_ALLOW_DIALOG_CANCELLATION
+                | TDF_USE_COMMAND_LINKS
+                | TDF_POSITION_RELATIVE_TO_WINDOW 
+                | TDF_CALLBACK_TIMER;
+
+            tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+               
+            // TaskDialog icons
+            tc.pszMainIcon = MAKEINTRESOURCEW(SecuritySuccess);
+
+            // TaskDialog strings
+            tc.pszWindowTitle = L"Process Hacker Updater";
+            tc.pszMainInstruction = summaryText->Buffer;
+            tc.pszContent = verText->Buffer;
+
+            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
+
+            PhDereferenceObject(verText);
+            PhDereferenceObject(summaryText);
         }
 
         FreeXmlData(&xmlData);
+        PhDereferenceObject(localVersion);
 
+        if (LocalFileNameString)
         {
             PPH_STRING sText = PhFormatString(L"\\\\%s", LocalFileNameString->Buffer);
            
@@ -477,10 +517,6 @@ HRESULT CALLBACK TaskDlgWndProc(
 
         }
         break; 
-    case WM_APP + 100:
-        {
-            
-        }
     case TDN_BUTTON_CLICKED:
         {
             switch(wParam)
