@@ -31,8 +31,6 @@
 
 #pragma region Static Fields
 
-static HANDLE TempFileHandle = NULL;
-static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
 static PPH_STRING RemoteHashString = NULL;
 static PPH_STRING LocalFilePathString = NULL;
 static PPH_STRING LocalFileNameString = NULL;
@@ -614,7 +612,7 @@ INT_PTR CALLBACK MainWndProc(
     return FALSE;
 }
 
-BOOL InitializeConnection(
+static BOOL InitializeConnection(
     __in PCWSTR host,
     __in PCWSTR path
     )
