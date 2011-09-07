@@ -238,15 +238,11 @@ static void __cdecl WorkerThreadStart(
 
         {
             PPH_STRING sText = PhFormatString(L"\\\\%s", LocalFileNameString->Buffer);
-            PPH_STRING autoDbghelpPath = PhGetKnownLocation(CSIDL_DESKTOP, sText->Buffer);
+           
+            LocalFilePathString = PhGetKnownLocation(CSIDL_DESKTOP, sText->Buffer);
 
             PhDereferenceObject(sText);
-            if (LocalFilePathString)
-                PhDereferenceObject(LocalFilePathString);
-             DisposeFileHandles();
-
-            LocalFilePathString = autoDbghelpPath;
-
+            
             // Create output file
             if ((TempFileHandle = CreateFile(
                 LocalFilePathString->Buffer,
@@ -308,7 +304,7 @@ static void __cdecl DownloadWorkerThreadStart(
     {
         CHAR buffer[BUFFER_LEN];
         DWORD dwStartTicks = GetTickCount();
-        DWORD dwCurrentTicks = dwStartTicks;
+        DWORD dwLastTicks = dwStartTicks;
         DWORD dwLastTotalBytes = 0, 
               dwNowTicks = 0,
               dwTimeTaken = 0;
@@ -360,7 +356,7 @@ static void __cdecl DownloadWorkerThreadStart(
 
                 // Calculate the transfer rate and download speed. 
                 dwNowTicks = GetTickCount();
-                dwTimeTaken = dwNowTicks - dwCurrentTicks;
+                dwTimeTaken = dwNowTicks - dwLastTicks;
 
                 // Update the progress every 500ms.
                 if (dwTimeTaken > 100)
@@ -383,36 +379,34 @@ static void __cdecl DownloadWorkerThreadStart(
                 // Update the transfer rate and estimated time every second.
                 if (dwTimeTaken > 1000)
                 {
-                    INT kbPerSecond = (int)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
+                    ULONG64 kbPerSecond = (ULONG64)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
 
-                    //Setup for the next time around the loop
-                    dwCurrentTicks = dwNowTicks;
+                    // Set last counters for the next loop.
+                    dwLastTicks = dwNowTicks;
                     dwLastTotalBytes = dwTotalReadSize;
 
-                    //Update the estimated time left
-                    if (dwTotalReadSize)
+                    // Update the estimated time left.
                     {
-                        DWORD dwSecondsLeft;
-                        PPH_STRING rstr;
-                        PPH_STRING str;
-
-                        dwSecondsLeft =  (DWORD)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
-                        str = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
-                        rstr = PhFormatString(L"Remaning: %s (%ds)", str->Buffer, dwSecondsLeft);
-
-                        SetDlgItemText(hwndDlg, IDC_RTIMETEXT, rstr->Buffer);
-
-                        PhDereferenceObject(rstr);
-                        PhDereferenceObject(str);
-                    }
-                    {
-                        PPH_STRING str = PhFormatSize(kbPerSecond, -1);
-                        PPH_STRING str2 = PhFormatString(L"Speed: %s/s", str->Buffer);;
-
-                        SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, str2->Buffer);
+                        ULONG64 dwSecondsLeft =  (ULONG64)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
                         
-                        PhDereferenceObject(str2);
-                        PhDereferenceObject(str);
+                        PPH_STRING sRemaningBytes = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
+                        PPH_STRING sText = PhFormatString(L"Remaning: %s (%ds)", sRemaningBytes->Buffer, dwSecondsLeft);
+
+                        SetDlgItemText(hwndDlg, IDC_RTIMETEXT, sText->Buffer);
+
+                        PhDereferenceObject(sText);
+                        PhDereferenceObject(sRemaningBytes);
+                    }
+
+                    // Update the download transfer rate.
+                    {
+                        PPH_STRING sDlSpeed = PhFormatSize(kbPerSecond, -1);
+                        PPH_STRING sText = PhFormatString(L"Speed: %s/s", sDlSpeed->Buffer);;
+
+                        SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, sText->Buffer);
+                        
+                        PhDereferenceObject(sText);
+                        PhDereferenceObject(sDlSpeed);
                     }
                 }
             }
@@ -527,6 +521,10 @@ INT_PTR CALLBACK MainWndProc(
         break;
     case WM_INITDIALOG:
         {
+            DisposeConnection();
+            DisposeStrings();
+            DisposeFileHandles();
+
             WindowVisible = TRUE;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -562,7 +560,7 @@ INT_PTR CALLBACK MainWndProc(
                 }
                 break;
             case IDC_DOWNLOAD:
-                {
+                {                    
                     switch (PhUpdaterState)
                     {
                     case Downloading:

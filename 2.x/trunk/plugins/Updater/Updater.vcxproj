@@ -172,7 +172,8 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
-    <ClCompile Include="output.c" />
+    <ClCompile Include="VistaUpdater.c" />
+    <ClCompile Include="XpUpdater.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="updater.h" />

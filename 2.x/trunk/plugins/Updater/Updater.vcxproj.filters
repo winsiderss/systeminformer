@@ -18,10 +18,13 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="output.c">
+    <ClCompile Include="options.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="options.c">
+    <ClCompile Include="XpUpdater.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VistaUpdater.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
