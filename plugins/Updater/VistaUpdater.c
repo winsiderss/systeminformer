@@ -22,8 +22,8 @@
 */
 
 #include "updater.h"
-
 #include "process.h"
+
 // Always consider the remote version newer
 #ifdef _DEBUG
 #define TEST_MODE
@@ -31,9 +31,7 @@
 
 static PPH_STRING RemoteHashString = NULL, LocalFilePathString = NULL, LocalFileNameString = NULL;
 
-static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
-static BOOL WindowVisible = FALSE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
 TASKDIALOGCONFIG CheckingPage = { 0 };
@@ -168,34 +166,35 @@ static void __cdecl VistaWorkerThreadStart(
             };
     
             PPH_STRING summaryText = PhFormatString(L"Version: %u.%u \r\nReleased: %s \r\nSize: %s", xmlData.MajorVersion, xmlData.MinorVersion, xmlData.RelDate->Buffer, xmlData.Size->Buffer);
+            LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
 
             tc.cbSize = sizeof(tc);
             tc.hwndParent = PhMainWndHandle;
             tc.hInstance = PhLibImageBase;
             tc.dwFlags = 
-                 TDF_ALLOW_DIALOG_CANCELLATION
-                | TDF_USE_COMMAND_LINKS
-                | TDF_POSITION_RELATIVE_TO_WINDOW 
-                | TDF_CALLBACK_TIMER;
+                TDF_ALLOW_DIALOG_CANCELLATION |
+                TDF_USE_COMMAND_LINKS |  
+                TDF_POSITION_RELATIVE_TO_WINDOW | 
+                TDF_EXPAND_FOOTER_AREA | 
+                TDF_ENABLE_HYPERLINKS;
 
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                
             // TaskDialog icons
             tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
-
-            LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
-
             // TaskDialog strings
             tc.pszWindowTitle = L"Process Hacker Updater";
             tc.pszMainInstruction = PhFormatString(L"Process Hacker %u.%u available", xmlData.MajorVersion, xmlData.MinorVersion)->Buffer;
             tc.pszContent = summaryText->Buffer;
+
+            tc.pszExpandedInformation = L"<A HREF=\"http://processhacker.sourceforge.net/changelog.php\">View Changelog</A>";
             //TaskDialog buttons
             tc.cButtons = ARRAYSIZE(cb);
             tc.pButtons = cb;
     
             tc.pfCallback = TaskDlgWndProc;
 
-            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
+            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
 
             PhDereferenceObject(summaryText);
 
@@ -210,7 +209,7 @@ static void __cdecl VistaWorkerThreadStart(
             tc.cbSize = sizeof(tc);
             tc.hwndParent = PhMainWndHandle;
             tc.hInstance = PhLibImageBase;
-            tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_CALLBACK_TIMER;
+            tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
             tc.pszWindowTitle = L"Process Hacker Updater";
             tc.pszMainInstruction = sText->Buffer;
@@ -218,7 +217,6 @@ static void __cdecl VistaWorkerThreadStart(
 
             SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
 
-            
             PhDereferenceObject(sText);
         }
         else if (result < 0)
@@ -247,7 +245,7 @@ static void __cdecl VistaWorkerThreadStart(
             tc.pszMainInstruction = summaryText->Buffer;
             tc.pszContent = verText->Buffer;
 
-            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
+            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
 
             PhDereferenceObject(verText);
             PhDereferenceObject(summaryText);
@@ -285,8 +283,6 @@ static void __cdecl VistaWorkerThreadStart(
     }
 
     DisposeConnection();
-      
-    PhUpdaterState = Downloading;
 }
 
 static void __cdecl VistaDownloadWorkerThreadStart(
@@ -401,8 +397,8 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                             sDlSpeed->Buffer, dlCurrent->Buffer, dlLength->Buffer, dlProgress, sRemaningBytes->Buffer, dwSecondsLeft
                             );
 
-                        PostMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, dlProgress, NULL);
-                        PostMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, sText->Buffer);
+                        SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, dlProgress, 0);
+                        SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)sText->Buffer);
  
                         PhDereferenceObject(sText);
                         PhDereferenceObject(sDlSpeed);
@@ -450,9 +446,8 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 
         DisposeConnection();
         DisposeFileHandles();
-        PhDereferenceObject(uriPath);
 
-        PhUpdaterState = Installing;
+        PhDereferenceObject(uriPath);
 
         //Updater_SetStatusText(hwndDlg, L"Download Complete");
         // Enable Install button before computing the hash result (user might not care about file hash result)
@@ -460,7 +455,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
         //Updater_EnableUI(hwndDlg);
 
         //if (!PhElevated)
-            //SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
+            //SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE , 0, TRUE);
 
         {
             UCHAR hashBuffer[20];
@@ -491,7 +486,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 //if (WindowsVersion >= WINDOWS_VISTA)
                     //SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
 
-                Updater_SetStatusText(hwndDlg, L"Hash failed");
+                //Updater_SetStatusText(hwndDlg, L"Hash failed");
             }
         }
     }
@@ -500,7 +495,6 @@ static void __cdecl VistaDownloadWorkerThreadStart(
         LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
     }
 }
-
 
 VOID ShowUpdateTaskDialog(VOID)
 {
@@ -519,16 +513,12 @@ VOID ShowUpdateTaskDialog(VOID)
         TDF_ENABLE_HYPERLINKS |
         TDF_POSITION_RELATIVE_TO_WINDOW | 
         TDF_SHOW_MARQUEE_PROGRESS_BAR;
-
     UpdateAvailablePage.dwCommonButtons = TDCBF_CLOSE_BUTTON;
 
-    // TaskDialog icons
-    UpdateAvailablePage.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
-
-    // TaskDialog strings
     UpdateAvailablePage.pszWindowTitle = L"Process Hacker Updater";
     UpdateAvailablePage.pszMainInstruction = L"Checking for Updates...";
-    //UpdateAvailablePage.pszContent = L"Checking...";
+
+    UpdateAvailablePage.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
     UpdateAvailablePage.pfCallback = TaskDlgWndProc;
 
     hr = TaskDialogIndirect(&UpdateAvailablePage, &nButton, &nRadioButton, &fVerificationFlagChecked);
@@ -562,7 +552,9 @@ HRESULT CALLBACK TaskDlgWndProc(
         break;
     case TDN_DESTROYED:
         {
-
+            DisposeConnection();
+            DisposeStrings();
+            DisposeFileHandles();
         }
         break; 
     case TDN_BUTTON_CLICKED:
@@ -590,15 +582,17 @@ HRESULT CALLBACK TaskDlgWndProc(
 
                     // TaskDialog strings
                     tc.pszWindowTitle = L"Process Hacker Updater";
-                    tc.pszMainInstruction = L"Downloading...";
+                    tc.pszMainInstruction = L"Downloading Update...";
                     tc.pszContent = L"\r\n\r\nInitializing...";
                     tc.pfCallback = TaskDlgWndProc;
                     
                     _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
 
-                    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
+                    // Natigate to new page.
+                    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
 
-                    SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, 0, NULL);
+                    // Reset progressbar state.
+                    SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, 0, 0);
                     return S_FALSE;
                 }
                 break;
@@ -608,12 +602,6 @@ HRESULT CALLBACK TaskDlgWndProc(
     case TDN_NAVIGATED:
         {
             //return S_FALSE;
-        }
-        break;
-    case TDN_TIMER:
-        {
-            
-            return S_FALSE;
         }
         break;
     case TDN_HYPERLINK_CLICKED:        
