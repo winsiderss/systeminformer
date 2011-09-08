@@ -48,8 +48,8 @@ typedef enum _PH_UPDATER_STATE
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
 
-#define DOWNLOAD_SERVER L"download.fedoraproject.org"// L"sourceforge.net"
-#define DOWNLOAD_PATH L"/pub/alt/spins/linux/releases/15/Spins/i686/Fedora-15-i686-Live-LXDE.iso"// L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
+#define DOWNLOAD_SERVER  L"sourceforge.net"
+#define DOWNLOAD_PATH L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1

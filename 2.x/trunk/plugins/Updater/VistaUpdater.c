@@ -45,6 +45,7 @@ TASKDIALOGCONFIG UpdateDownloadPage = { 0 };
 TASKDIALOGCONFIG UpdateInstallPage = { 0 };
 
 VOID SetProgressBarMarquee(HWND handle, BOOLEAN startMarquee, INT speed);
+VOID UpdateContent(HWND handle, LPCWSTR content);
 
 static void __cdecl VistaSilentWorkerThreadStart(
     __in PVOID Parameter
@@ -186,26 +187,18 @@ static void __cdecl VistaWorkerThreadStart(
                 TDF_ENABLE_HYPERLINKS;
 
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-               
-            // TaskDialog icons
-            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityInformation);
-            // TaskDialog strings
+            tc.hMainIcon = MAKEINTRESOURCEW(101);
             tc.pszWindowTitle = L"Process Hacker Updater";
             tc.pszMainInstruction = PhFormatString(L"Process Hacker %u.%u available", xmlData.MajorVersion, xmlData.MinorVersion)->Buffer;
             tc.pszContent = summaryText->Buffer;
 
             tc.pszExpandedInformation = L"<A HREF=\"http://processhacker.sourceforge.net/changelog.php\">View Changelog</A>";
-            //TaskDialog buttons
             tc.cButtons = ARRAYSIZE(cb);
             tc.pButtons = cb;
     
             tc.pfCallback = TaskDlgWndProc;
 
             SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
-
-            PhDereferenceObject(summaryText);
-
-            //return S_FALSE;
         }
         else if (result == 0)
         {
@@ -220,7 +213,7 @@ static void __cdecl VistaWorkerThreadStart(
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
             tc.pszWindowTitle = L"Process Hacker Updater";
             tc.pszMainInstruction = sText->Buffer;
-            tc.pszMainIcon = MAKEINTRESOURCEW(SecuritySuccess);
+            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityInformation);
 
             SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
 
@@ -245,7 +238,7 @@ static void __cdecl VistaWorkerThreadStart(
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                
             // TaskDialog icons
-            tc.pszMainIcon = MAKEINTRESOURCEW(SecuritySuccess);
+            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityInformation);
 
             // TaskDialog strings
             tc.pszWindowTitle = L"Process Hacker Updater";
@@ -286,7 +279,6 @@ static void __cdecl VistaWorkerThreadStart(
     else
     {
         LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-        return;
     }
 
     DisposeConnection();
@@ -318,7 +310,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
         return;
     }
 
-    Updater_SetStatusText(hwndDlg, L"Connecting");
+    //Updater_SetStatusText(hwndDlg, L"Connecting");
 
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
@@ -379,7 +371,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 dwTimeTaken = dwNowTicks - dwLastTicks;
 
                 // Update the transfer rate and estimated time every second.
-                if (dwTimeTaken > 200)
+                if (dwTimeTaken > 400)
                 {
                     ULONG64 kbPerSecond = (ULONG64)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
         
@@ -408,8 +400,6 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                         SetProgressBarPosition(hwndDlg, dlProgress);
 
                         SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)sText->Buffer);
- 
-                        
 
                         PhDereferenceObject(sText);
                         PhDereferenceObject(sDlSpeed);
@@ -528,8 +518,6 @@ VOID ShowUpdateTaskDialog(VOID)
 
     UpdateAvailablePage.pszWindowTitle = L"Process Hacker Updater";
     UpdateAvailablePage.pszMainInstruction = L"Checking for Updates...";
-
-    UpdateAvailablePage.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
     UpdateAvailablePage.pfCallback = TaskDlgWndProc;
 
     hr = TaskDialogIndirect(&UpdateAvailablePage, &nButton, &nRadioButton, &fVerificationFlagChecked);
@@ -580,30 +568,18 @@ HRESULT CALLBACK TaskDlgWndProc(
                     tc.cbSize = sizeof(tc);
                     tc.hwndParent = PhMainWndHandle;
                     tc.hInstance = PhLibImageBase;
-                    tc.dwFlags = 
-                        TDF_ALLOW_DIALOG_CANCELLATION | 
-                        TDF_USE_COMMAND_LINKS | 
-                        TDF_POSITION_RELATIVE_TO_WINDOW |  
-                        TDF_SHOW_PROGRESS_BAR;
-
-                    tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-
-                    // TaskDialog icons
-                    //tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
-
-                    // TaskDialog strings
+                    tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR;
                     tc.pszWindowTitle = L"Process Hacker Updater";
                     tc.pszMainInstruction = L"Downloading Update...";
-                    tc.pszContent = L"\r\n\r\nInitializing...";
+                    tc.pszContent = L"Initializing...\r\n\r\n";
+                    tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                     tc.pfCallback = TaskDlgWndProc;
-                    
-                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
 
+                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
+                                
                     // Natigate to new page.
                     SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
 
-                    // Reset progressbar state.
-                    SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, 0, 0);
                     return S_FALSE;
                 }
                 break;
@@ -660,9 +636,7 @@ static BOOL InitializeConnection(
     if (!NetConnection)
     {
         LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
-
         DisposeConnection();
-
         return FALSE;
     }
 
@@ -681,9 +655,7 @@ static BOOL InitializeConnection(
     if (!NetRequest)
     {
         LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
-
         DisposeConnection();
-
         return FALSE;
     }
 
@@ -751,7 +723,6 @@ static VOID FreeXmlData(
     PhDereferenceObject(XmlData->Size);
     PhDereferenceObject(XmlData->Hash);
 }
-
 
 /// <summary>
 /// Simulate the action of a button click in the TaskDialog. This can be a DialogResult value 
@@ -824,7 +795,7 @@ BOOL SetProgressBarRange(HWND handle, INT minRange, INT maxRange)
 /// <returns>Returns the previous value if successful, or zero otherwise.</returns>
 INT SetProgressBarPosition(HWND handle, INT newPosition)
 {
-    // TDM_SET_PROGRESS_BAR_POS            = WM_USER+106, // wParam = new position
+    // TDM_SET_PROGRESS_BAR_POS = WM_USER+106, // wParam = new position
     return SendMessage(handle, TDM_SET_PROGRESS_BAR_POS, newPosition, NULL);
 }
 
@@ -962,10 +933,10 @@ void ClickVerification(HWND handle, BOOL checkedState, BOOL setKeyboardFocusToCh
 /// Updates the content text.
 /// </summary>
 /// <param name="content">The new value.</param>
-void UpdateContent(HWND handle, PCWSTR content)
+VOID UpdateContent(HWND handle, LPARAM content)
 {
     // TDE_CONTENT, TDM_UPDATE_ELEMENT_TEXT = WM_USER+114, // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
-    SendMessage(handle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, content);
+    SendMessage(handle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, L"FAIl");
 }
 
 /// <summary>
