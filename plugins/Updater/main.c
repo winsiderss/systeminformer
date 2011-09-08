@@ -90,7 +90,7 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     )
 {
-    
+     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
 
 VOID NTAPI MainWindowShowingCallback(
