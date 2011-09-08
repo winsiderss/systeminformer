@@ -34,10 +34,17 @@ static PPH_STRING RemoteHashString = NULL, LocalFilePathString = NULL, LocalFile
 static BOOL EnableCache = TRUE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
+static HANDLE TempFileHandle = NULL;
+static HINTERNET NetInitialize = NULL;
+static HINTERNET NetConnection = NULL;
+static HINTERNET NetRequest = NULL;
+
 TASKDIALOGCONFIG CheckingPage = { 0 };
 TASKDIALOGCONFIG UpdateAvailablePage = { 0 };
 TASKDIALOGCONFIG UpdateDownloadPage = { 0 };
 TASKDIALOGCONFIG UpdateInstallPage = { 0 };
+
+VOID SetProgressBarMarquee(HWND handle, BOOLEAN startMarquee, INT speed);
 
 static void __cdecl VistaSilentWorkerThreadStart(
     __in PVOID Parameter
@@ -157,7 +164,7 @@ static void __cdecl VistaWorkerThreadStart(
         if (result > 0)
         {
             TASKDIALOGCONFIG tc = { 0 };
-            int nButton;
+            INT nButton;
 
             const TASKDIALOG_BUTTON cb[] =
             { 
@@ -181,7 +188,7 @@ static void __cdecl VistaWorkerThreadStart(
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                
             // TaskDialog icons
-            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
+            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityInformation);
             // TaskDialog strings
             tc.pszWindowTitle = L"Process Hacker Updater";
             tc.pszMainInstruction = PhFormatString(L"Process Hacker %u.%u available", xmlData.MajorVersion, xmlData.MinorVersion)->Buffer;
@@ -385,7 +392,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                         ULONG64 dwSecondsLeft =  (ULONG64)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
 
                         // Calculate the percentage of our total bytes downloaded per the length.
-                        INT dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
+                        INT dlProgress = (INT)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
 
                         PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
                         PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
@@ -397,9 +404,13 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                             sDlSpeed->Buffer, dlCurrent->Buffer, dlLength->Buffer, dlProgress, sRemaningBytes->Buffer, dwSecondsLeft
                             );
 
-                        SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, dlProgress, 0);
+                        //SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, dlProgress, 0);
+                        SetProgressBarPosition(hwndDlg, dlProgress);
+
                         SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)sText->Buffer);
  
+                        
+
                         PhDereferenceObject(sText);
                         PhDereferenceObject(sDlSpeed);
                         PhDereferenceObject(sRemaningBytes);
@@ -463,7 +474,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 
             if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
             {
-                // Allocate our hash string, hex the final hash result in our hashBuffer.
+                // Allocate our hash PCWSTR, hex the final hash result in our hashBuffer.
                 PPH_STRING hexString = PhBufferToHexString(hashBuffer, hashLength);
 
                 if (PhEqualString(hexString, RemoteHashString, TRUE))
@@ -500,8 +511,8 @@ VOID ShowUpdateTaskDialog(VOID)
 {
     HRESULT hr;
     
-    int nButton;
-    int nRadioButton;
+    INT nButton;
+    INT nRadioButton;
     BOOL fVerificationFlagChecked;
 
     UpdateAvailablePage.cbSize = sizeof(UpdateAvailablePage);
@@ -545,8 +556,8 @@ HRESULT CALLBACK TaskDlgWndProc(
     {
     case TDN_CREATED:
         {
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 0);
-            
+            SetProgressBarMarquee(hwndDlg, TRUE, 100);
+
             _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
         }
         break;
@@ -564,7 +575,7 @@ HRESULT CALLBACK TaskDlgWndProc(
             case 1005:
                 {
                     TASKDIALOGCONFIG tc = { 0 };
-                    int nButton;
+                    INT nButton;
 
                     tc.cbSize = sizeof(tc);
                     tc.hwndParent = PhMainWndHandle;
@@ -578,7 +589,7 @@ HRESULT CALLBACK TaskDlgWndProc(
                     tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
 
                     // TaskDialog icons
-                    tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
+                    //tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
 
                     // TaskDialog strings
                     tc.pszWindowTitle = L"Process Hacker Updater";
@@ -684,4 +695,358 @@ VOID VistaStartInitialCheck(VOID)
 {
     // Queue up our initial update check.
     _beginthread(VistaSilentWorkerThreadStart, 0, NULL);
+}
+
+
+static VOID DisposeConnection(VOID)
+{
+    if (NetInitialize)
+    {
+        InternetCloseHandle(NetInitialize);
+        NetInitialize = NULL;
+    }
+
+    if (NetConnection)
+    {
+        InternetCloseHandle(NetConnection);
+        NetConnection = NULL;
+    }
+
+    if (NetRequest)
+    {
+        InternetCloseHandle(NetRequest);
+        NetRequest = NULL;
+    }
+}
+
+static VOID DisposeStrings(VOID)
+{
+    if (LocalFilePathString)
+    {
+        PhDereferenceObject(LocalFilePathString);
+        LocalFilePathString = NULL;
+    }
+
+    if (LocalFileNameString)
+    {
+        PhDereferenceObject(LocalFileNameString);
+        LocalFileNameString = NULL;
+    }
+}
+
+static VOID DisposeFileHandles(VOID)
+{
+    if (TempFileHandle)
+    {
+        NtClose(TempFileHandle);
+        TempFileHandle = NULL;
+    }
+}
+
+static VOID FreeXmlData(
+    __in PUPDATER_XML_DATA XmlData
+    )
+{
+    PhDereferenceObject(XmlData->RelDate);
+    PhDereferenceObject(XmlData->Size);
+    PhDereferenceObject(XmlData->Hash);
+}
+
+
+/// <summary>
+/// Simulate the action of a button click in the TaskDialog. This can be a DialogResult value 
+/// or the ButtonID set on a TasDialogButton set on TaskDialog.Buttons.
+/// </summary>
+/// <param name="buttonId">Indicates the button ID to be selected.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL ClickButton(HWND handle, INT buttonId)
+{
+    // TDM_CLICK_BUTTON = WM_USER+102, // wParam = Button ID
+    return SendMessage(handle, TDM_CLICK_BUTTON, buttonId, NULL) != NULL;
+}
+
+/// <summary>
+/// Used to indicate whether the hosted progress bar should be displayed in marquee mode or not.
+/// </summary>
+/// <param name="marquee">Specifies whether the progress bar sbould be shown in Marquee mode.
+/// A value of true turns on Marquee mode.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL SetMarqueeProgressBar(HWND handle, BOOL marquee)
+{
+    // TDM_SET_MARQUEE_PROGRESS_BAR        = WM_USER+103, // wParam = 0 (nonMarque) wParam != 0 (Marquee)
+    return SendMessage(handle, TDM_SET_MARQUEE_PROGRESS_BAR, (marquee ? 1 : NULL), NULL) != NULL;
+
+    // Future: get more detailed error from and throw.
+}
+
+/// <summary>
+/// Sets the state of the progress bar.
+/// </summary>
+/// <param name="newState">The state to set the progress bar.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL SetProgressBarState(HWND handle, BOOL newState)
+{
+    // TDM_SET_PROGRESS_BAR_STATE          = WM_USER+104, // wParam = new progress state
+    return SendMessage(
+        handle,
+        TDM_SET_PROGRESS_BAR_STATE,
+        PBST_ERROR, //PBST_NORMAL, PBST_PAUSE, 
+        NULL) != NULL;
+
+    // Future: get more detailed error from and throw.
+}
+
+/// <summary>
+/// Set the minimum and maximum values for the hosted progress bar.
+/// </summary>
+/// <param name="minRange">Minimum range value. By default, the minimum value is zero.</param>
+/// <param name="maxRange">Maximum range value.  By default, the maximum value is 100.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL SetProgressBarRange(HWND handle, INT minRange, INT maxRange)
+{
+    // TDM_SET_PROGRESS_BAR_RANGE          = WM_USER+105, // lParam = MAKELPARAM(nMinRange, nMaxRange)
+    // #define MAKELPARAM(l, h)      ((LPARAM)(DWORD)MAKELONG(l, h))
+    // #define MAKELONG(a, b)      ((LONG)(((WORD)(((DWORD_PTR)(a)) & 0xffff)) | ((DWORD)((WORD)(((DWORD_PTR)(b)) & 0xffff))) << 16))
+    
+    return SendMessage(
+        handle,
+        TDM_SET_PROGRESS_BAR_RANGE,
+        NULL,
+        ((((INT)minRange) & 0xffff) | ((((INT)maxRange) & 0xffff) << 16))) != NULL;
+
+    // Return value is actually prior range.
+}
+
+/// <summary>
+/// Set the current position for a progress bar.
+/// </summary>
+/// <param name="newPosition">The new position.</param>
+/// <returns>Returns the previous value if successful, or zero otherwise.</returns>
+INT SetProgressBarPosition(HWND handle, INT newPosition)
+{
+    // TDM_SET_PROGRESS_BAR_POS            = WM_USER+106, // wParam = new position
+    return SendMessage(handle, TDM_SET_PROGRESS_BAR_POS, newPosition, NULL);
+}
+
+/// <summary>
+/// Sets the animation state of the Marquee Progress Bar.
+/// </summary>
+/// <param name="startMarquee">true starts the marquee animation and false stops it.</param>
+/// <param name="speed">The time in milliseconds between refreshes.</param>
+VOID SetProgressBarMarquee(HWND handle, BOOLEAN startMarquee, INT speed)
+{
+    // TDM_SET_PROGRESS_BAR_MARQUEE  = WM_USER+107, // wParam = 0 (stop marquee), wParam != 0 (start marquee), lparam = speed (milliseconds between repaints)
+    SendMessage(handle, TDM_SET_PROGRESS_BAR_MARQUEE, startMarquee, speed);
+}
+
+/// <summary>
+/// Updates the content text.
+/// </summary>
+/// <param name="content">The new value.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL SetContent(HWND handle, PCWSTR content)
+{
+    // TDE_CONTENT,
+    // TDM_SET_ELEMENT_TEXT                = WM_USER+108  // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    return SendMessage(
+        handle,
+        TDM_SET_ELEMENT_TEXT,
+        TDE_CONTENT,
+        content) != NULL;
+}
+
+/// <summary>
+/// Updates the Expanded Information text.
+/// </summary>
+/// <param name="expandedInformation">The new value.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL SetExpandedInformation(HWND handle, PCWSTR expandedInformation)
+{
+    // TDE_EXPANDED_INFORMATION,
+    // TDM_SET_ELEMENT_TEXT                = WM_USER+108  // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    return SendMessage(
+        handle,
+        TDM_SET_ELEMENT_TEXT,
+        TDE_EXPANDED_INFORMATION,
+        expandedInformation) != NULL;
+}
+
+/// <summary>
+/// Updates the Footer text.
+/// </summary>
+/// <param name="footer">The new value.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL SetFooter(HWND handle, PCWSTR footer)
+{
+    // TDE_FOOTER,
+    // TDM_SET_ELEMENT_TEXT                = WM_USER+108  // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    return SendMessage( handle, TDM_SET_ELEMENT_TEXT, TDE_FOOTER, footer) != NULL;
+}
+
+/// <summary>
+/// Updates the Main Instruction.
+/// </summary>
+/// <param name="mainInstruction">The new value.</param>
+/// <returns>If the function succeeds the return value is true.</returns>
+BOOL SetMainInstruction(HWND handle, PCWSTR mainInstruction)
+{
+    // TDE_MAIN_INSTRUCTION
+    // TDM_SET_ELEMENT_TEXT                = WM_USER+108  // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    return SendMessage(
+        handle,
+        TDM_SET_ELEMENT_TEXT,
+        TDE_MAIN_INSTRUCTION,
+        mainInstruction) != NULL;
+}
+
+/// <summary>
+/// Simulate the action of a radio button click in the TaskDialog. 
+/// The passed buttonID is the ButtonID set on a TaskDialogButton set on TaskDialog.RadioButtons.
+/// </summary>
+/// <param name="buttonId">Indicates the button ID to be selected.</param>
+void ClickRadioButton(HWND handle, INT buttonId)
+{
+    // TDM_CLICK_RADIO_BUTTON = WM_USER+110, // wParam = Radio Button ID
+    SendMessage(
+        handle,
+        TDM_CLICK_RADIO_BUTTON,
+        buttonId,
+        NULL);
+}
+
+/// <summary>
+/// Enable or disable a button in the TaskDialog. 
+/// The passed buttonID is the ButtonID set on a TaskDialogButton set on TaskDialog.Buttons
+/// or a common button ID.
+/// </summary>
+/// <param name="buttonId">Indicates the button ID to be enabled or diabled.</param>
+/// <param name="enable">Enambe the button if true. Disable the button if false.</param>
+void EnableButton(HWND handle, INT buttonId, BOOL enable)
+{
+    // TDM_ENABLE_BUTTON = WM_USER+111, // lParam = 0 (disable), lParam != 0 (enable), wParam = Button ID
+    SendMessage(
+        handle,
+        TDM_ENABLE_BUTTON,
+        buttonId,
+        (enable ? 1 : 0));
+}
+
+/// <summary>
+/// Enable or disable a radio button in the TaskDialog. 
+/// The passed buttonID is the ButtonID set on a TaskDialogButton set on TaskDialog.RadioButtons.
+/// </summary>
+/// <param name="buttonId">Indicates the button ID to be enabled or diabled.</param>
+/// <param name="enable">Enambe the button if true. Disable the button if false.</param>
+void EnableRadioButton(HWND handle, INT buttonId, BOOL enable)
+{
+    // TDM_ENABLE_RADIO_BUTTON = WM_USER+112, // lParam = 0 (disable), lParam != 0 (enable), wParam = Radio Button ID
+    SendMessage(
+        handle,
+        TDM_ENABLE_RADIO_BUTTON,
+        buttonId,
+        (enable ? 1 : 0));
+}
+
+/// <summary>
+/// Check or uncheck the verification checkbox in the TaskDialog. 
+/// </summary>
+/// <param name="checkedState">The checked state to set the verification checkbox.</param>
+/// <param name="setKeyboardFocusToCheckBox">True to set the keyboard focus to the checkbox, and fasle otherwise.</param>
+void ClickVerification(HWND handle, BOOL checkedState, BOOL setKeyboardFocusToCheckBox)
+{
+    // TDM_CLICK_VERIFICATION = WM_USER+113, // wParam = 0 (unchecked), 1 (checked), lParam = 1 (set key focus)
+    SendMessage(handle, TDM_CLICK_VERIFICATION, (checkedState ? 1 : NULL), (setKeyboardFocusToCheckBox ? 1 : NULL));
+}
+
+/// <summary>
+/// Updates the content text.
+/// </summary>
+/// <param name="content">The new value.</param>
+void UpdateContent(HWND handle, PCWSTR content)
+{
+    // TDE_CONTENT, TDM_UPDATE_ELEMENT_TEXT = WM_USER+114, // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    SendMessage(handle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, content);
+}
+
+/// <summary>
+/// Updates the Expanded Information text. No effect if it was previously set to null.
+/// </summary>
+/// <param name="expandedInformation">The new value.</param>
+void UpdateExpandedInformation(HWND handle, PCWSTR expandedInformation)
+{
+    // TDE_EXPANDED_INFORMATION,
+    // TDM_UPDATE_ELEMENT_TEXT             = WM_USER+114, // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    SendMessageW(
+        handle,
+        TDM_UPDATE_ELEMENT_TEXT,
+        TDE_EXPANDED_INFORMATION,
+        expandedInformation);
+}
+
+/// <summary>
+/// Updates the Footer text. No Effect if it was perviously set to null.
+/// </summary>
+/// <param name="footer">The new value.</param>
+void UpdateFooter(HWND handle, PCWSTR footer)
+{
+    // TDE_FOOTER,
+    // TDM_UPDATE_ELEMENT_TEXT             = WM_USER+114, // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    SendMessageW(handle, TDM_UPDATE_ELEMENT_TEXT, TDE_FOOTER, footer);
+}
+
+/// <summary>
+/// Updates the Main Instruction.
+/// </summary>
+/// <param name="mainInstruction">The new value.</param>
+void UpdateMainInstruction(HWND handle, PCWSTR mainInstruction)
+{
+    // TDE_MAIN_INSTRUCTION
+    // TDM_UPDATE_ELEMENT_TEXT             = WM_USER+114, // wParam = element (TASKDIALOG_ELEMENTS), lParam = new element text (LPCWSTR)
+    SendMessage(
+        handle,
+        TDM_UPDATE_ELEMENT_TEXT,
+        TDE_MAIN_INSTRUCTION,
+        mainInstruction);
+}
+
+/// <summary>
+/// Designate whether a given Task Dialog button or command link should have a User Account Control (UAC) shield icon.
+/// </summary>
+/// <param name="buttonId">ID of the push button or command link to be updated.</param>
+/// <param name="elevationRequired">False to designate that the action invoked by the button does not require elevation;
+/// true to designate that the action does require elevation.</param>
+void SetButtonElevationRequiredState(HWND handle, INT buttonId, BOOL elevationRequired)
+{
+    // TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE = WM_USER+115, // wParam = Button ID, lParam = 0 (elevation not required), lParam != 0 (elevation required)
+    SendMessage(
+        handle,
+        TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE,
+        buttonId,
+        (elevationRequired ? 1 : NULL));
+}
+
+/// <summary>
+/// Updates the main instruction icon. Note the type (standard via enum or
+/// custom via  HICON type) must be used when upating the icon.
+/// </summary>
+/// <param name="icon">Task Dialog standard icon.</param>
+void UpdateMainIcon(HWND handle, HICON icon)
+{
+    // TDM_UPDATE_ICON = WM_USER+116  // wParam = icon element (TASKDIALOG_ICON_ELEMENTS), lParam = new icon (hIcon if TDF_USE_HICON_* was set, PCWSTR otherwise)
+    SendMessage(handle, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (icon == NULL ? NULL : icon));
+}
+
+/// <summary>
+/// Updates the footer icon. Note the type (standard via enum or
+/// custom via  HICON type) must be used when upating the icon.
+/// </summary>
+/// <param name="icon">Task Dialog standard icon.</param>
+void UpdateFooterIcon(HWND handle, HICON icon)
+{
+    // TDM_UPDATE_ICON = WM_USER+116  // wParam = icon element (TASKDIALOG_ICON_ELEMENTS), lParam = new icon (hIcon if TDF_USE_HICON_* was set, PCWSTR otherwise)
+    SendMessage(
+        handle,
+        TDM_UPDATE_ICON,
+        TDIE_ICON_FOOTER,
+        (icon == NULL ? NULL : icon));
 }
