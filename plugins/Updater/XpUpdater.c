@@ -40,6 +40,11 @@ static BOOL EnableCache = TRUE;
 static BOOL WindowVisible = FALSE;
 static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
 
+static HANDLE TempFileHandle = NULL;
+static HINTERNET NetInitialize = NULL;
+static HINTERNET NetConnection = NULL;
+static HINTERNET NetRequest = NULL;
+
 #pragma endregion
 
 #pragma region Worker Threads
@@ -927,7 +932,7 @@ VOID LogEvent(__in PPH_STRING str)
 
 #pragma region Dispose Functions
 
-VOID DisposeConnection(VOID)
+static VOID DisposeConnection(VOID)
 {
     if (NetInitialize)
     {
@@ -948,7 +953,7 @@ VOID DisposeConnection(VOID)
     }
 }
 
-VOID DisposeStrings(VOID)
+static VOID DisposeStrings(VOID)
 {
     if (LocalFilePathString)
     {
@@ -963,7 +968,7 @@ VOID DisposeStrings(VOID)
     }
 }
 
-VOID DisposeFileHandles(VOID)
+static VOID DisposeFileHandles(VOID)
 {
     if (TempFileHandle)
     {
@@ -972,7 +977,7 @@ VOID DisposeFileHandles(VOID)
     }
 }
 
-VOID FreeXmlData(
+static VOID FreeXmlData(
     __in PUPDATER_XML_DATA XmlData
     )
 {
