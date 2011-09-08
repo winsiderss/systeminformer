@@ -38,7 +38,7 @@ static PPH_STRING LocalFileNameString = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static BOOL EnableCache = TRUE;
 static BOOL WindowVisible = FALSE;
-static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
+static PH_HASH_ALGORITHM HashAlgorithm = Sha1HashAlgorithm;
 
 static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL;

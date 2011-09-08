@@ -178,6 +178,7 @@
   <ItemGroup>
     <ClInclude Include="updater.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="vistaheader.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Updater.rc" />
