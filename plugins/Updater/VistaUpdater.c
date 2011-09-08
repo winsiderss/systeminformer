@@ -520,9 +520,7 @@ VOID ShowUpdateTaskDialog(VOID)
     UpdateAvailablePage.pszMainInstruction = L"Checking for Updates...";
     UpdateAvailablePage.pfCallback = TaskDlgWndProc;
 
-    hr = TaskDialogIndirect(&UpdateAvailablePage, &nButton, &nRadioButton, &fVerificationFlagChecked);
-    
-    if (!SUCCEEDED(hr))
+    if (!SUCCEEDED(TaskDialogIndirect_I(&UpdateAvailablePage, &nButton, &nRadioButton, &fVerificationFlagChecked)))
     {
         // some error occurred...check hr to see what it is
     }
@@ -532,7 +530,7 @@ VOID ShowUpdateTaskDialog(VOID)
     DisposeFileHandles();
 }
 
-HRESULT CALLBACK TaskDlgWndProc(
+HRESULT CALLBACK TaskDlgUpdateAvailableWndProc(
     __in HWND hwndDlg, 
     __in UINT uMsg, 
     __in WPARAM wParam, 
@@ -600,6 +598,153 @@ HRESULT CALLBACK TaskDlgWndProc(
 
     return S_OK;
 }
+
+HRESULT CALLBACK TaskDlgWndProc(
+    __in HWND hwndDlg, 
+    __in UINT uMsg, 
+    __in WPARAM wParam, 
+    __in LPARAM lParam, 
+    __in LONG_PTR lpRefData
+    )
+{
+    switch (uMsg)
+    {
+    case TDN_CREATED:
+        {
+            SetProgressBarMarquee(hwndDlg, TRUE, 100);
+            _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
+        }
+        break;
+    case TDN_DESTROYED:
+        {
+            DisposeConnection();
+            DisposeStrings();
+            DisposeFileHandles();
+        }
+        break; 
+    case TDN_BUTTON_CLICKED:
+        {
+            switch(wParam)
+            {
+            case 1005:
+                {
+                    TASKDIALOGCONFIG tc = { 0 };
+                    tc.cbSize = sizeof(tc);
+                    tc.hMainIcon = MAKEINTRESOURCEW(101);
+                    tc.hwndParent = PhMainWndHandle;
+                    tc.hInstance = PhLibImageBase;
+                    tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR;
+                    tc.pszWindowTitle = L"Process Hacker Updater";
+                    tc.pszMainInstruction = L"Downloading Update...";
+                    tc.pszContent = L"Initializing...\r\n\r\n";
+                    tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+                    tc.pfCallback = TaskDlgWndProc;
+
+                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
+                                
+                    // Natigate to new page.
+                    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
+
+                    return S_FALSE;
+                }
+                break;
+            }
+        }
+        break;
+    case TDN_NAVIGATED:
+        {
+            //return S_FALSE;
+        }
+        break;
+    case TDN_HYPERLINK_CLICKED:        
+        {
+
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+HRESULT CALLBACK TaskDlgCheckingPageWndProc(
+    __in HWND hwndDlg, 
+    __in UINT uMsg, 
+    __in WPARAM wParam, 
+    __in LPARAM lParam, 
+    __in LONG_PTR lpRefData
+    )
+{
+    switch (uMsg)
+    {
+    case TDN_CREATED:
+        {
+            SetProgressBarMarquee(hwndDlg, TRUE, 100);
+
+            _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
+        }
+        break;
+    case TDN_DESTROYED:
+        {
+            DisposeConnection();
+            DisposeStrings();
+            DisposeFileHandles();
+        }
+        break; 
+    case TDN_BUTTON_CLICKED:
+        {
+            switch(wParam)
+            {
+            case 1005:
+                {
+                    TASKDIALOGCONFIG tc = { 0 };
+                    INT nButton;
+
+                    tc.cbSize = sizeof(tc);
+                    tc.hwndParent = PhMainWndHandle;
+                    tc.hInstance = PhLibImageBase;
+                    tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR;
+                    tc.pszWindowTitle = L"Process Hacker Updater";
+                    tc.pszMainInstruction = L"Downloading Update...";
+                    tc.pszContent = L"Initializing...\r\n\r\n";
+                    tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+                    tc.pfCallback = TaskDlgWndProc;
+
+                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
+                                
+                    // Natigate to new page.
+                    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
+
+                    return S_FALSE;
+                }
+                break;
+            }
+        }
+        break;
+    case TDN_NAVIGATED:
+        {
+            //return S_FALSE;
+        }
+        break;
+    case TDN_HYPERLINK_CLICKED:        
+        {
+
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 static BOOL InitializeConnection(
     __in PCWSTR host,

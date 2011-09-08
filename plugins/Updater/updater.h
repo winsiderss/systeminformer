@@ -48,8 +48,8 @@ typedef enum _PH_UPDATER_STATE
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
 
-#define DOWNLOAD_SERVER  L"sourceforge.net"
-#define DOWNLOAD_PATH L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
+#define DOWNLOAD_SERVER L"mirror.eftel.com" //"sourceforge.net"
+#define DOWNLOAD_PATH L"/ubuntu-dvd/oneiric/beta-1/ubuntu-11.10-beta1-dvd-i386.iso"// L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
@@ -183,5 +183,15 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+
+typedef HRESULT (WINAPI *_TaskDialogIndirect)(
+    __in const TASKDIALOGCONFIG *pTaskConfig,
+    __in int *pnButton,
+    __in int *pnRadioButton,
+    __in BOOL *pfVerificationFlagChecked
+    );
+
+_TaskDialogIndirect TaskDialogIndirect_I;
 
 #pragma endregion
