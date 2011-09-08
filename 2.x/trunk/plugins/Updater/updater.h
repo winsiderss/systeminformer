@@ -79,11 +79,6 @@ typedef struct _UPDATER_XML_DATA
 
 #pragma endregion
 
-static HANDLE TempFileHandle = NULL;
-static HINTERNET NetInitialize = NULL;
-static HINTERNET NetConnection = NULL;
-static HINTERNET NetRequest = NULL;
-
 #pragma region Instances
 
 PPH_PLUGIN PluginInstance;
