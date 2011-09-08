@@ -34,7 +34,6 @@ INT_PTR CALLBACK OptionsDlgProc(
     case WM_INITDIALOG:
         {
             HWND hashCboxHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             ComboBox_AddString(hashCboxHandle, L"SHA1");
             ComboBox_AddString(hashCboxHandle, L"MD5");

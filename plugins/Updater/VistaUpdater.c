@@ -28,24 +28,16 @@
 #ifdef _DEBUG
 #define TEST_MODE
 #endif
-
+static PH_UPDATER_STATE PhUpdaterState = Default;
 static PPH_STRING RemoteHashString = NULL, LocalFilePathString = NULL, LocalFileNameString = NULL;
-
-static BOOL EnableCache = TRUE;
-static PH_HASH_ALGORITHM HashAlgorithm = Md5HashAlgorithm;
-
 static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL;
 static HINTERNET NetConnection = NULL;
 static HINTERNET NetRequest = NULL;
 
-TASKDIALOGCONFIG CheckingPage = { 0 };
-TASKDIALOGCONFIG UpdateAvailablePage = { 0 };
-TASKDIALOGCONFIG UpdateDownloadPage = { 0 };
-TASKDIALOGCONFIG UpdateInstallPage = { 0 };
-
 VOID SetProgressBarMarquee(HWND handle, BOOLEAN startMarquee, INT speed);
 VOID UpdateContent(HWND handle, LPCWSTR content);
+void EnableButton(HWND handle, INT buttonId, BOOLEAN enable);
 
 static void __cdecl VistaSilentWorkerThreadStart(
     __in PVOID Parameter
@@ -119,6 +111,8 @@ static void __cdecl VistaWorkerThreadStart(
     INT result = 0;
     HWND hwndDlg = (HWND)Parameter;
   
+    Sleep(4000);
+
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return;
 
@@ -160,8 +154,6 @@ static void __cdecl VistaWorkerThreadStart(
 
         PhSwapReference(&RemoteHashString, xmlData.Hash);
         
-        Sleep(2000);
-
         if (result > 0)
         {
             TASKDIALOGCONFIG tc = { 0 };
@@ -204,7 +196,8 @@ static void __cdecl VistaWorkerThreadStart(
         {
             TASKDIALOGCONFIG tc = { 0 };
     
-            PPH_STRING sText = PhFormatString(L"You're running the latest version: %u.%u", localMajorVersion, localMinorVersion);
+            PPH_STRING sText = PhFormatString(L"You're running the latest version:");
+            PPH_STRING sText2 = PhFormatString(L"Version: %u.%u \r\nReleased: %s", localMajorVersion, localMinorVersion, xmlData.RelDate->Buffer);
             
             tc.cbSize = sizeof(tc);
             tc.hwndParent = PhMainWndHandle;
@@ -213,10 +206,12 @@ static void __cdecl VistaWorkerThreadStart(
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
             tc.pszWindowTitle = L"Process Hacker Updater";
             tc.pszMainInstruction = sText->Buffer;
-            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityInformation);
+            tc.pszContent = sText2->Buffer;
+            tc.pszMainIcon = MAKEINTRESOURCEW(SecuritySuccess);
 
             SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
 
+            PhDereferenceObject(sText2);
             PhDereferenceObject(sText);
         }
         else if (result < 0)
@@ -236,11 +231,7 @@ static void __cdecl VistaWorkerThreadStart(
                 | TDF_CALLBACK_TIMER;
 
             tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-               
-            // TaskDialog icons
-            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityInformation);
-
-            // TaskDialog strings
+            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
             tc.pszWindowTitle = L"Process Hacker Updater";
             tc.pszMainInstruction = summaryText->Buffer;
             tc.pszContent = verText->Buffer;
@@ -300,9 +291,15 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 
     PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
     PH_HASH_CONTEXT hashContext;
+     
+    EnableButton(hwndDlg, 1011, FALSE);
+   
+    SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"\r\n\r\nConnectionAvailable...");
 
     if (!ConnectionAvailable())
         return;
+  
+    SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"\r\n\r\nInitializeConnection...");
 
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
@@ -310,7 +307,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
         return;
     }
 
-    //Updater_SetStatusText(hwndDlg, L"Connecting");
+    SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"\r\n\r\nHttpSendRequest...");
 
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
@@ -325,12 +322,13 @@ static void __cdecl VistaDownloadWorkerThreadStart(
         RtlZeroMemory(buffer, BUFFER_LEN);
      
         // Initialize hash algorithm.
-        PhInitializeHash(&hashContext, HashAlgorithm);
+        PhInitializeHash(&hashContext, Md5HashAlgorithm);
+
+        SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"\r\n\r\nHttpQueryInfo...");
 
         if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
         {
-            // Reset Progressbar state.
-            PhSetWindowStyle(hwndProgress, PBS_MARQUEE, 0);
+            SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"\r\n\r\nInternetReadFile...");
 
             while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
@@ -354,7 +352,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 }
 
                 // Zero the buffer.
-                RtlZeroMemory(buffer, dwBytesRead);
+                RtlZeroMemory(buffer, BUFFER_LEN);
 
                 // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
                 if (dwBytesRead != dwBytesWritten)
@@ -371,7 +369,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 dwTimeTaken = dwNowTicks - dwLastTicks;
 
                 // Update the transfer rate and estimated time every second.
-                if (dwTimeTaken > 400)
+                if (dwTimeTaken > 0)
                 {
                     ULONG64 kbPerSecond = (ULONG64)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
         
@@ -396,7 +394,6 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                             sDlSpeed->Buffer, dlCurrent->Buffer, dlLength->Buffer, dlProgress, sRemaningBytes->Buffer, dwSecondsLeft
                             );
 
-                        //SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, dlProgress, 0);
                         SetProgressBarPosition(hwndDlg, dlProgress);
 
                         SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)sText->Buffer);
@@ -450,13 +447,11 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 
         PhDereferenceObject(uriPath);
 
-        //Updater_SetStatusText(hwndDlg, L"Download Complete");
-        // Enable Install button before computing the hash result (user might not care about file hash result)
-        //SetDlgItemText(hwndDlg, IDC_DOWNLOAD, L"Install");
-        //Updater_EnableUI(hwndDlg);
-
+        EnableButton(hwndDlg, 1011, TRUE);
+        EnableButton(hwndDlg, 1008, FALSE);
+        SetProgressBarPosition(hwndDlg, 100);
         //if (!PhElevated)
-            //SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE , 0, TRUE);
+        //SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE , 0, TRUE);
 
         {
             UCHAR hashBuffer[20];
@@ -465,29 +460,24 @@ static void __cdecl VistaDownloadWorkerThreadStart(
             if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
             {
                 // Allocate our hash PCWSTR, hex the final hash result in our hashBuffer.
-                PPH_STRING hexString = PhBufferToHexString(hashBuffer, hashLength);
+                PH_STRING *hexString = PhBufferToHexString(hashBuffer, hashLength);
 
                 if (PhEqualString(hexString, RemoteHashString, TRUE))
                 {
-                    //Updater_SetStatusText(hwndDlg, L"Hash Verified");
+                    SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Download Complete.\r\n\r\nHash Verified");
                 }
                 else
                 {
-                    //if (WindowsVersion >= WINDOWS_VISTA)
-                        //SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
-
-                    //Updater_SetStatusText(hwndDlg, L"Hash failed");
+                    SetProgressBarState(hwndDlg, TRUE);
+                    SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Download Complete.\r\n\r\nHash failed");
                 }
 
                 PhDereferenceObject(hexString);
             }
             else
             {
-                // Show fancy Red progressbar if hash failed on Vista and above.
-                //if (WindowsVersion >= WINDOWS_VISTA)
-                    //SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
-
-                //Updater_SetStatusText(hwndDlg, L"Hash failed");
+                SetProgressBarState(hwndDlg, TRUE);
+                SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Download Complete.\r\n\r\nHash failed");
             }
         }
     }
@@ -499,12 +489,11 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 
 VOID ShowUpdateTaskDialog(VOID)
 {
-    HRESULT hr;
-    
+    TASKDIALOGCONFIG UpdateAvailablePage = { 0 };
     INT nButton;
     INT nRadioButton;
     BOOL fVerificationFlagChecked;
-
+    
     UpdateAvailablePage.cbSize = sizeof(UpdateAvailablePage);
     UpdateAvailablePage.hwndParent = PhMainWndHandle;
     UpdateAvailablePage.hInstance = PhLibImageBase;
@@ -515,7 +504,7 @@ VOID ShowUpdateTaskDialog(VOID)
         TDF_POSITION_RELATIVE_TO_WINDOW | 
         TDF_SHOW_MARQUEE_PROGRESS_BAR;
     UpdateAvailablePage.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-
+    UpdateAvailablePage.pszMainIcon = MAKEINTRESOURCEW(101);
     UpdateAvailablePage.pszWindowTitle = L"Process Hacker Updater";
     UpdateAvailablePage.pszMainInstruction = L"Checking for Updates...";
     UpdateAvailablePage.pfCallback = TaskDlgWndProc;
@@ -530,74 +519,6 @@ VOID ShowUpdateTaskDialog(VOID)
     DisposeFileHandles();
 }
 
-HRESULT CALLBACK TaskDlgUpdateAvailableWndProc(
-    __in HWND hwndDlg, 
-    __in UINT uMsg, 
-    __in WPARAM wParam, 
-    __in LPARAM lParam, 
-    __in LONG_PTR lpRefData
-    )
-{
-    switch (uMsg)
-    {
-    case TDN_CREATED:
-        {
-            SetProgressBarMarquee(hwndDlg, TRUE, 100);
-
-            _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
-        }
-        break;
-    case TDN_DESTROYED:
-        {
-            DisposeConnection();
-            DisposeStrings();
-            DisposeFileHandles();
-        }
-        break; 
-    case TDN_BUTTON_CLICKED:
-        {
-            switch(wParam)
-            {
-            case 1005:
-                {
-                    TASKDIALOGCONFIG tc = { 0 };
-                    INT nButton;
-
-                    tc.cbSize = sizeof(tc);
-                    tc.hwndParent = PhMainWndHandle;
-                    tc.hInstance = PhLibImageBase;
-                    tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR;
-                    tc.pszWindowTitle = L"Process Hacker Updater";
-                    tc.pszMainInstruction = L"Downloading Update...";
-                    tc.pszContent = L"Initializing...\r\n\r\n";
-                    tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-                    tc.pfCallback = TaskDlgWndProc;
-
-                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
-                                
-                    // Natigate to new page.
-                    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
-
-                    return S_FALSE;
-                }
-                break;
-            }
-        }
-        break;
-    case TDN_NAVIGATED:
-        {
-            //return S_FALSE;
-        }
-        break;
-    case TDN_HYPERLINK_CLICKED:        
-        {
-
-        }
-        break;
-    }
-
-    return S_OK;
-}
 
 HRESULT CALLBACK TaskDlgWndProc(
     __in HWND hwndDlg, 
@@ -611,6 +532,8 @@ HRESULT CALLBACK TaskDlgWndProc(
     {
     case TDN_CREATED:
         {
+            PhUpdaterState = Default;
+
             SetProgressBarMarquee(hwndDlg, TRUE, 100);
             _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
         }
@@ -626,125 +549,66 @@ HRESULT CALLBACK TaskDlgWndProc(
         {
             switch(wParam)
             {
+            case 1008:
+                {
+                    return S_FALSE;
+                }
             case 1005:
                 {
                     TASKDIALOGCONFIG tc = { 0 };
+
+                    const TASKDIALOG_BUTTON cb[] =
+                    { 
+                        { 1011, L"&Install" },
+                        //{ 1008, L"&Pause" },
+                    };
+
                     tc.cbSize = sizeof(tc);
                     tc.hMainIcon = MAKEINTRESOURCEW(101);
                     tc.hwndParent = PhMainWndHandle;
                     tc.hInstance = PhLibImageBase;
-                    tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR;
+                    tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION| TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR;
                     tc.pszWindowTitle = L"Process Hacker Updater";
                     tc.pszMainInstruction = L"Downloading Update...";
                     tc.pszContent = L"Initializing...\r\n\r\n";
                     tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-                    tc.pfCallback = TaskDlgWndProc;
+                    tc.nDefaultButton = IDCLOSE; 
 
-                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
-                                
+                    tc.pfCallback = TaskDlgWndProc;
+                    tc.cButtons = ARRAYSIZE(cb);
+                    tc.pButtons = cb;
+                                        
                     // Natigate to new page.
                     SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
+                    
+                    PhUpdaterState = Downloading;
 
                     return S_FALSE;
                 }
-                break;
             }
         }
         break;
     case TDN_NAVIGATED:
-        {
-            //return S_FALSE;
-        }
-        break;
-    case TDN_HYPERLINK_CLICKED:        
-        {
-
-        }
-        break;
-    }
-
-    return S_OK;
-}
-
-HRESULT CALLBACK TaskDlgCheckingPageWndProc(
-    __in HWND hwndDlg, 
-    __in UINT uMsg, 
-    __in WPARAM wParam, 
-    __in LPARAM lParam, 
-    __in LONG_PTR lpRefData
-    )
-{
-    switch (uMsg)
-    {
-    case TDN_CREATED:
-        {
-            SetProgressBarMarquee(hwndDlg, TRUE, 100);
-
-            _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
-        }
-        break;
-    case TDN_DESTROYED:
-        {
-            DisposeConnection();
-            DisposeStrings();
-            DisposeFileHandles();
-        }
-        break; 
-    case TDN_BUTTON_CLICKED:
-        {
-            switch(wParam)
+        { 
+            if (PhUpdaterState == Downloading)
             {
-            case 1005:
-                {
-                    TASKDIALOGCONFIG tc = { 0 };
-                    INT nButton;
-
-                    tc.cbSize = sizeof(tc);
-                    tc.hwndParent = PhMainWndHandle;
-                    tc.hInstance = PhLibImageBase;
-                    tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR;
-                    tc.pszWindowTitle = L"Process Hacker Updater";
-                    tc.pszMainInstruction = L"Downloading Update...";
-                    tc.pszContent = L"Initializing...\r\n\r\n";
-                    tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-                    tc.pfCallback = TaskDlgWndProc;
-
-                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
-                                
-                    // Natigate to new page.
-                    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
-
-                    return S_FALSE;
-                }
-                break;
+                _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
             }
-        }
-        break;
-    case TDN_NAVIGATED:
-        {
-            //return S_FALSE;
         }
         break;
     case TDN_HYPERLINK_CLICKED:        
         {
+            PPH_STRING sUri = PhCreateString(lParam);
+            
+            PhShellExecute(hwndDlg, sUri->Buffer, NULL);
 
+            PhDereferenceObject(sUri);
         }
         break;
     }
 
     return S_OK;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 static BOOL InitializeConnection(
     __in PCWSTR host,
@@ -793,7 +657,7 @@ static BOOL InitializeConnection(
         L"HTTP/1.1",
         NULL,
         NULL,
-        EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
+        INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
         0
         );
 
@@ -806,7 +670,6 @@ static BOOL InitializeConnection(
 
     return TRUE;
 }
-
 
 VOID VistaStartInitialCheck(VOID)
 {
@@ -858,6 +721,54 @@ static VOID DisposeFileHandles(VOID)
         NtClose(TempFileHandle);
         TempFileHandle = NULL;
     }
+}
+
+static BOOL ReadRequestString(
+    __in HINTERNET Handle,
+    __out PSTR *Data,
+    __out_opt PULONG DataLength
+    )
+{
+    CHAR buffer[BUFFER_LEN];
+    PSTR data;
+    ULONG allocatedLength;
+    ULONG dataLength;
+    ULONG returnLength;
+
+    allocatedLength = sizeof(buffer);
+    data = PhAllocate(allocatedLength);
+    dataLength = 0;
+
+    while (InternetReadFile(Handle, buffer, BUFFER_LEN, &returnLength))
+    {
+        if (returnLength == 0)
+            break;
+
+        if (allocatedLength < dataLength + returnLength)
+        {
+            allocatedLength *= 2;
+            data = PhReAllocate(data, allocatedLength);
+        }
+
+        memcpy(data + dataLength, buffer, returnLength);
+        dataLength += returnLength;
+    }
+
+    if (allocatedLength < dataLength + 1)
+    {
+        allocatedLength++;
+        data = PhReAllocate(data, allocatedLength);
+    }
+
+    // Ensure that the buffer is null-terminated.
+    data[dataLength] = 0;
+
+    *Data = data;
+
+    if (DataLength)
+        *DataLength = dataLength;
+
+    return TRUE;
 }
 
 static VOID FreeXmlData(
@@ -1037,7 +948,7 @@ void ClickRadioButton(HWND handle, INT buttonId)
 /// </summary>
 /// <param name="buttonId">Indicates the button ID to be enabled or diabled.</param>
 /// <param name="enable">Enambe the button if true. Disable the button if false.</param>
-void EnableButton(HWND handle, INT buttonId, BOOL enable)
+void EnableButton(HWND handle, INT buttonId, BOOLEAN enable)
 {
     // TDM_ENABLE_BUTTON = WM_USER+111, // lParam = 0 (disable), lParam != 0 (enable), wParam = Button ID
     SendMessage(
