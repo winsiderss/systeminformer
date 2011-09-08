@@ -163,8 +163,8 @@ static void __cdecl VistaWorkerThreadStart(
 
             const TASKDIALOG_BUTTON cb[] =
             { 
-                { 1000, L"&Download the update now" },
-                { 1001, L"Do &not download the update" },
+                { 1005, L"&Download the update now" },
+                { 1006, L"Do &not download the update" },
             };
     
             PPH_STRING summaryText = PhFormatString(L"Version: %u.%u \r\nReleased: %s \r\nSize: %s", xmlData.MajorVersion, xmlData.MinorVersion, xmlData.RelDate->Buffer, xmlData.Size->Buffer);
@@ -309,7 +309,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
     if (!ConnectionAvailable())
         return;
 
-    if (!VistaInitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
+    if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
         return;
@@ -375,55 +375,40 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 dwNowTicks = GetTickCount();
                 dwTimeTaken = dwNowTicks - dwLastTicks;
 
-                // Update the progress every 500ms.
-                if (dwTimeTaken > 100)
-                {
-                    // Calculate the percentage of our total bytes downloaded per the length.
-                    INT dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
-
-                    PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-                    PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-                    PPH_STRING str = PhFormatString(L"Downloaded: %s of %s (%d%%)", dlCurrent->Buffer, dlLength->Buffer, dlProgress);
-
-                    Updater_SetStatusText(hwndDlg, str->Buffer);
-                    PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
-
-                    PhDereferenceObject(str);
-                    PhDereferenceObject(dlLength);
-                    PhDereferenceObject(dlCurrent);
-                }
-
                 // Update the transfer rate and estimated time every second.
-                if (dwTimeTaken > 1000)
+                if (dwTimeTaken > 200)
                 {
                     ULONG64 kbPerSecond = (ULONG64)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
-
+        
                     // Set last counters for the next loop.
                     dwLastTicks = dwNowTicks;
                     dwLastTotalBytes = dwTotalReadSize;
 
-                    // Update the estimated time left.
+                    // Update the estimated time left, progress and download speed.
                     {
                         ULONG64 dwSecondsLeft =  (ULONG64)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
-                        
+
+                        // Calculate the percentage of our total bytes downloaded per the length.
+                        INT dlProgress = (int)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
+
+                        PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
+                        PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
                         PPH_STRING sRemaningBytes = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
-                        PPH_STRING sText = PhFormatString(L"Remaning: %s (%ds)", sRemaningBytes->Buffer, dwSecondsLeft);
-
-                        SetDlgItemText(hwndDlg, IDC_RTIMETEXT, sText->Buffer);
-
-                        PhDereferenceObject(sText);
-                        PhDereferenceObject(sRemaningBytes);
-                    }
-
-                    // Update the download transfer rate.
-                    {
                         PPH_STRING sDlSpeed = PhFormatSize(kbPerSecond, -1);
-                        PPH_STRING sText = PhFormatString(L"Speed: %s/s", sDlSpeed->Buffer);;
+ 
+                        PPH_STRING sText = PhFormatString(
+                            L"Speed: %s/s \r\nDownloaded: %s of %s (%d%%)\r\nRemaning: %s (%ds)", 
+                            sDlSpeed->Buffer, dlCurrent->Buffer, dlLength->Buffer, dlProgress, sRemaningBytes->Buffer, dwSecondsLeft
+                            );
 
-                        SetDlgItemText(hwndDlg, IDC_SPEEDTEXT, sText->Buffer);
-                        
+                        PostMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, dlProgress, NULL);
+                        PostMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, sText->Buffer);
+ 
                         PhDereferenceObject(sText);
                         PhDereferenceObject(sDlSpeed);
+                        PhDereferenceObject(sRemaningBytes);
+                        PhDereferenceObject(dlLength);
+                        PhDereferenceObject(dlCurrent);
                     }
                 }
             }
@@ -469,13 +454,13 @@ static void __cdecl VistaDownloadWorkerThreadStart(
 
         PhUpdaterState = Installing;
 
-        Updater_SetStatusText(hwndDlg, L"Download Complete");
+        //Updater_SetStatusText(hwndDlg, L"Download Complete");
         // Enable Install button before computing the hash result (user might not care about file hash result)
-        SetDlgItemText(hwndDlg, IDC_DOWNLOAD, L"Install");
-        Updater_EnableUI(hwndDlg);
+        //SetDlgItemText(hwndDlg, IDC_DOWNLOAD, L"Install");
+        //Updater_EnableUI(hwndDlg);
 
-        if (!PhElevated)
-            SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
+        //if (!PhElevated)
+            //SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
         {
             UCHAR hashBuffer[20];
@@ -484,18 +469,18 @@ static void __cdecl VistaDownloadWorkerThreadStart(
             if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
             {
                 // Allocate our hash string, hex the final hash result in our hashBuffer.
-                PH_STRING *hexString = PhBufferToHexString(hashBuffer, hashLength);
+                PPH_STRING hexString = PhBufferToHexString(hashBuffer, hashLength);
 
                 if (PhEqualString(hexString, RemoteHashString, TRUE))
                 {
-                    Updater_SetStatusText(hwndDlg, L"Hash Verified");
+                    //Updater_SetStatusText(hwndDlg, L"Hash Verified");
                 }
                 else
                 {
-                    if (WindowsVersion >= WINDOWS_VISTA)
-                        SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
+                    //if (WindowsVersion >= WINDOWS_VISTA)
+                        //SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
 
-                    Updater_SetStatusText(hwndDlg, L"Hash failed");
+                    //Updater_SetStatusText(hwndDlg, L"Hash failed");
                 }
 
                 PhDereferenceObject(hexString);
@@ -503,8 +488,8 @@ static void __cdecl VistaDownloadWorkerThreadStart(
             else
             {
                 // Show fancy Red progressbar if hash failed on Vista and above.
-                if (WindowsVersion >= WINDOWS_VISTA)
-                    SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
+                //if (WindowsVersion >= WINDOWS_VISTA)
+                    //SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
 
                 Updater_SetStatusText(hwndDlg, L"Hash failed");
             }
@@ -552,10 +537,14 @@ VOID ShowUpdateTaskDialog(VOID)
     {
         // some error occurred...check hr to see what it is
     }
+
+    DisposeConnection();
+    DisposeStrings();
+    DisposeFileHandles();
 }
 
 HRESULT CALLBACK TaskDlgWndProc(
-    __in HWND hwnd, 
+    __in HWND hwndDlg, 
     __in UINT uMsg, 
     __in WPARAM wParam, 
     __in LPARAM lParam, 
@@ -566,9 +555,9 @@ HRESULT CALLBACK TaskDlgWndProc(
     {
     case TDN_CREATED:
         {
-            SendMessage(hwnd, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 0);
+            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 0);
             
-            _beginthread(VistaWorkerThreadStart, 0, hwnd);
+            _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
         }
         break;
     case TDN_DESTROYED:
@@ -580,9 +569,37 @@ HRESULT CALLBACK TaskDlgWndProc(
         {
             switch(wParam)
             {
-            case 1000:
+            case 1005:
                 {
+                    TASKDIALOGCONFIG tc = { 0 };
+                    int nButton;
+
+                    tc.cbSize = sizeof(tc);
+                    tc.hwndParent = PhMainWndHandle;
+                    tc.hInstance = PhLibImageBase;
+                    tc.dwFlags = 
+                        TDF_ALLOW_DIALOG_CANCELLATION | 
+                        TDF_USE_COMMAND_LINKS | 
+                        TDF_POSITION_RELATIVE_TO_WINDOW |  
+                        TDF_SHOW_PROGRESS_BAR;
+
+                    tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+
+                    // TaskDialog icons
+                    tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
+
+                    // TaskDialog strings
+                    tc.pszWindowTitle = L"Process Hacker Updater";
+                    tc.pszMainInstruction = L"Downloading...";
+                    tc.pszContent = L"\r\nInitilzing...\r\n";
+                    tc.pfCallback = TaskDlgWndProc;
                     
+                    _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
+
+                    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, NULL, &tc);
+
+                    SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, 0, NULL);
+                    return S_FALSE;
                 }
                 break;
             }
@@ -595,7 +612,7 @@ HRESULT CALLBACK TaskDlgWndProc(
         break;
     case TDN_TIMER:
         {
-            SendMessage(hwnd, TDM_SET_PROGRESS_BAR_POS, 50, NULL);
+            
             return S_FALSE;
         }
         break;
