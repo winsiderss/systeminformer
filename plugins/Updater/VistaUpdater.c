@@ -591,7 +591,7 @@ HRESULT CALLBACK TaskDlgWndProc(
                     // TaskDialog strings
                     tc.pszWindowTitle = L"Process Hacker Updater";
                     tc.pszMainInstruction = L"Downloading...";
-                    tc.pszContent = L"\r\nInitilzing...\r\n";
+                    tc.pszContent = L"\r\n\r\nInitializing...";
                     tc.pfCallback = TaskDlgWndProc;
                     
                     _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
