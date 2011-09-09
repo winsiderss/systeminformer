@@ -911,7 +911,7 @@ BOOL PhInstalledUsingSetup(VOID)
 
 #pragma region Event Logging Functions
 
-VOID LogEvent(__in PPH_STRING str)
+static VOID LogEvent(__in PPH_STRING str)
 {
     PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
 
