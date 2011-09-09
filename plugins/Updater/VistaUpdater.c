@@ -46,15 +46,15 @@ LONG_PTR SetProgressBarPosition(HWND handle, INT newPosition);
 BOOL SetProgressBarState(HWND handle, int newState);
 BOOL SetMainInstruction(HWND handle, PCWSTR mainInstruction);
 
-static void __cdecl VistaSilentWorkerThreadStart(
+static NTSTATUS VistaSilentWorkerThreadStart(
     __in PVOID Parameter
     )
 {
     if (!ConnectionAvailable())
-        return;
+        return STATUS_SUCCESS;
 
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return;
+        return STATUS_SUCCESS;
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -67,12 +67,12 @@ static void __cdecl VistaSilentWorkerThreadStart(
 
         // Read the resulting xml into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
-            return;
+            return STATUS_SUCCESS;
 
         if (!QueryXmlData(data, &xmlData))
         {
             PhFree(data);
-            return;
+            return STATUS_SUCCESS;
         }
 
         PhFree(data);
@@ -109,9 +109,11 @@ static void __cdecl VistaSilentWorkerThreadStart(
     }
 
     DisposeConnection();
+
+    return STATUS_SUCCESS;
 }
 
-static void __cdecl VistaWorkerThreadStart(
+static NTSTATUS VistaWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -120,10 +122,10 @@ static void __cdecl VistaWorkerThreadStart(
 
     SetProgressBarPosition(hwndDlg, 40);
 
-    Sleep(3000);
+    //Sleep(1000);
 
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return;
+        return STATUS_SUCCESS;
 
     SetProgressBarPosition(hwndDlg, 80);
 
@@ -138,12 +140,12 @@ static void __cdecl VistaWorkerThreadStart(
 
         // Read the resulting xml into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
-            return;
+            return STATUS_SUCCESS;
 
         if (!QueryXmlData(data, &xmlData))
         {
             PhFree(data);
-            return;
+            return STATUS_SUCCESS;
         }
 
         PhFree(data);
@@ -271,19 +273,23 @@ static void __cdecl VistaWorkerThreadStart(
                 FILE_ATTRIBUTE_NORMAL,
                 0)) == INVALID_HANDLE_VALUE)
             {
-                UpdateContent(hwndDlg, PhFormatString(L"(InitializeFile) CreateFile failed (%d)", GetLastError())->Buffer);
+                UpdateContent(hwndDlg, L"CreateFile failed, Check log.");
+                LogEvent(PhFormatString(L"(VistaWorkerThreadStart) CreateFile error: %d", GetLastError()));
             }
         }
     }
     else
     {
-        UpdateContent(hwndDlg, PhFormatString(L"(WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError())->Buffer);
+        UpdateContent(hwndDlg, L"SendRequest failed, Check log.");
+        LogEvent(PhFormatString(L"(VistaWorkerThreadStart) HttpSendRequest error: %d", GetLastError()));
     }
 
     DisposeConnection();
+
+    return STATUS_SUCCESS;
 }
 
-static void __cdecl VistaDownloadWorkerThreadStart(
+static NTSTATUS VistaDownloadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -305,14 +311,14 @@ static void __cdecl VistaDownloadWorkerThreadStart(
     UpdateContent(hwndDlg, L"\r\n\r\nConnectionAvailable...");
     
     if (!ConnectionAvailable())
-        return;
+        return STATUS_SUCCESS;
 
     UpdateContent(hwndDlg, L"\r\n\r\nInitializeConnection...");
     
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
-        return;
+        return STATUS_SUCCESS;
     }
 
     UpdateContent(hwndDlg, L"\r\n\r\nHttpSendRequest...");
@@ -346,7 +352,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Update the hash of bytes we just downloaded.
@@ -356,7 +362,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Zero the buffer.
@@ -366,7 +372,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Update our total bytes downloaded
@@ -428,7 +434,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"(DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 PhUpdateHash(&hashContext, buffer, dwBytesRead);
@@ -436,7 +442,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
 
                 // Reset the buffer.
@@ -445,7 +451,7 @@ static void __cdecl VistaDownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return;
+                    return STATUS_SUCCESS;
                 }
             }
         }
@@ -508,6 +514,8 @@ static void __cdecl VistaDownloadWorkerThreadStart(
     {
         UpdateContent(hwndDlg, PhFormatString(L"(DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError())->Buffer);
     }
+
+    return STATUS_SUCCESS;
 }
 
 VOID ShowUpdateTaskDialog(VOID)
@@ -523,7 +531,7 @@ VOID ShowUpdateTaskDialog(VOID)
 
         tdPage.pszWindowTitle = L"Process Hacker Updater";
         tdPage.pszMainInstruction = L"Checking for Updates...";
-
+        tdPage.pszContent = L" ";
         tdPage.dwCommonButtons = TDCBF_CLOSE_BUTTON;
         tdPage.pfCallback = TaskDlgWndProc;
 
@@ -555,7 +563,7 @@ HRESULT CALLBACK TaskDlgWndProc(
         { 
             WindowVisible = TRUE;
 
-            _beginthread(VistaWorkerThreadStart, 0, hwndDlg);
+            PhCreateThread(0, VistaWorkerThreadStart, hwndDlg);
         }
         break;
     case TDN_DESTROYED:
@@ -632,7 +640,7 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
         {
             EnableButton(hwndDlg, 1011, FALSE);
 
-            _beginthread(VistaDownloadWorkerThreadStart, 0, hwndDlg);
+            PhCreateThread(0, VistaDownloadWorkerThreadStart, hwndDlg);
         }
         break;
     case TDN_DESTROYED:
@@ -640,6 +648,8 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
             DisposeConnection();
             DisposeStrings();
             DisposeFileHandles();
+             
+            WindowVisible = FALSE;
         }
         break; 
     case TDN_BUTTON_CLICKED:
@@ -713,7 +723,7 @@ static BOOL InitializeConnection(
 
     if (!NetRequest)
     {
-        LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
+        LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest_H failed (%d)", GetLastError()));
         DisposeConnection();
         return FALSE;
     }
@@ -724,7 +734,7 @@ static BOOL InitializeConnection(
 VOID VistaStartInitialCheck(VOID)
 {
     // Queue up our initial update check.
-    _beginthread(VistaSilentWorkerThreadStart, 0, NULL);
+    PhCreateThread(0, VistaSilentWorkerThreadStart, NULL);
 }
 
 static VOID DisposeConnection(VOID)
@@ -799,7 +809,8 @@ static BOOL ReadRequestString(
             data = PhReAllocate(data, allocatedLength);
         }
 
-        memcpy(data + dataLength, buffer, returnLength);
+        RtlCopyMemory(data + dataLength, buffer, returnLength);
+
         dataLength += returnLength;
     }
 

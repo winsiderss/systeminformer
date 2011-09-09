@@ -86,7 +86,7 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 #pragma endregion
 
 #pragma region Functions
-
+void LoadLibs(void);
 VOID VistaStartInitialCheck(VOID);
 VOID StartInitialCheck(VOID);
 
@@ -158,26 +158,6 @@ VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Context
     );
 
-
-
-HRESULT CALLBACK TaskDlgDownloadPageWndProc(
-    __in HWND hwndDlg, 
-    __in UINT uMsg, 
-    __in WPARAM wParam, 
-    __in LPARAM lParam, 
-    __in LONG_PTR lpRefData
-    );
-
-HRESULT CALLBACK TaskDlgWndProc(
-    __in HWND hwnd, 
-    __in UINT uMsg, 
-    __in WPARAM wParam, 
-    __in LPARAM lParam, 
-    __in LONG_PTR lpRefData
-    );
-
-
-
 INT_PTR CALLBACK MainWndProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -192,7 +172,6 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in LPARAM lParam
     );
 
-
 typedef HRESULT (WINAPI *_TaskDialogIndirect)(
     __in const TASKDIALOGCONFIG *pTaskConfig,
     __in int *pnButton,
@@ -201,5 +180,18 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
     );
 
 _TaskDialogIndirect TaskDialogIndirect_I;
+
+typedef HINTERNET (WINAPI *_HttpOpenRequestW)(
+    __in HINTERNET hConnect,
+    __in_opt LPCWSTR lpszVerb,
+    __in_opt LPCWSTR lpszObjectName,
+    __in_opt LPCWSTR lpszVersion,
+    __in_opt LPCWSTR lpszReferrer,
+    __in_z_opt LPCWSTR FAR * lplpszAcceptTypes,
+    __in DWORD dwFlags,
+    __in_opt DWORD_PTR dwContext
+    );
+
+_HttpOpenRequestW HttpOpenRequest_H;
 
 #pragma endregion
