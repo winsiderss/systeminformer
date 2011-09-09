@@ -15,10 +15,20 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ *x
  * You should have received a copy of the GNU General Public License
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include "windowsx.h"
+#include <ShlObj.h>
+#include <stdint.h>
+
+extern __declspec(dllexport) void CALLBACK FunName(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow);
+extern __declspec(dllexport) void CALLBACK FunName(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
+{
+    MessageBox(hwnd, L"TEST", L"TETET", 0);
+}
 
 #include "updater.h"
 

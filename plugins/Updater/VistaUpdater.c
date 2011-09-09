@@ -30,7 +30,7 @@
 #endif
 
 static PPH_STRING RemoteHashString = NULL, LocalFilePathString = NULL, LocalFileNameString = NULL;
-static HANDLE TempFileHandle = NULL, hEvent = NULL;
+static HANDLE TempFileHandle = NULL;
 static HINTERNET NetInitialize = NULL;
 static HINTERNET NetConnection = NULL;
 static HINTERNET NetRequest = NULL;
@@ -128,8 +128,6 @@ static NTSTATUS VistaWorkerThreadStart(
     HWND hwndDlg = (HWND)Parameter;
 
     SetProgressBarPosition(hwndDlg, 40);
-
-    Sleep(1000);
 
     if (!InitializeConnection(hwndDlg, UPDATE_URL, UPDATE_FILE))
         return STATUS_SUCCESS;
@@ -310,8 +308,6 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
     PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
     PH_HASH_CONTEXT hashContext;
 
-    Sleep(1000);
-
     UpdateContent(hwndDlg, L"\r\n\r\nConnectionAvailable...");
     
     if (!ConnectionAvailable())
@@ -359,6 +355,8 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
+                    DisposeFileHandles();
+                    DeleteFile(LocalFilePathString->Buffer);
                     return STATUS_SUCCESS;
                 }
 
@@ -368,13 +366,10 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
                 // Write the downloaded bytes to disk.
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\nDownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
+                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
+                    DisposeFileHandles();
+                    DeleteFile(LocalFilePathString->Buffer);
                     return STATUS_SUCCESS;
-                }
-
-                while (WaitForSingleObject(hEvent, 0) != WAIT_TIMEOUT)
-                {
-                    Sleep(100);
                 }
 
                 // Zero the buffer.
@@ -383,7 +378,9 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
                 // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
                 if (dwBytesRead != dwBytesWritten)
                 {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
+                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed %d", GetLastError()));
+                    DisposeFileHandles();
+                    DeleteFile(LocalFilePathString->Buffer);
                     return STATUS_SUCCESS;
                 }
 
@@ -436,36 +433,6 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
         else
         {
             // No content length...impossible to calculate % complete so just read until we are done.
-            UpdateContent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", GetLastError())->Buffer);
-
-            while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
-            {
-                if (dwBytesRead == 0)
-                    break;
-
-                if (!nReadFile)
-                {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
-                }
-
-                PhUpdateHash(&hashContext, buffer, dwBytesRead);
-
-                if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
-                {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
-                }
-
-                // Reset the buffer.
-                RtlZeroMemory(buffer, BUFFER_LEN);
-
-                if (dwBytesRead != dwBytesWritten)
-                {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
-                }
-            }
         }
 
         DisposeConnection();
@@ -525,6 +492,11 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
     else
     {
         LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+        
+        DisposeFileHandles();   
+
+        if (LocalFilePathString)
+            DeleteFile(LocalFilePathString->Buffer);
     }
 
     return STATUS_SUCCESS;
@@ -602,8 +574,6 @@ HRESULT CALLBACK TaskDlgWndProc(
                     TASKDIALOG_BUTTON cb[] =
                     { 
                         { 1001, L"&Install" },
-                        { 1003, L"&Resume" },
-                        { 1002, L"&Pause" },
                     };
 
                     tc.cbSize = sizeof(tc);
@@ -655,8 +625,6 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
             EnableButton(hwndDlg, 1002, FALSE);
             EnableButton(hwndDlg, 1003, FALSE);
 
-            hEvent = CreateEvent(NULL, TRUE, FALSE, L"Suspend/Resume Download Event");
-               
             PhCreateThread(0, VistaDownloadWorkerThreadStart, hwndDlg);
         }
         break;
@@ -673,16 +641,6 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
         {
             switch(wParam)
             {
-            case 1003:
-                EnableButton(hwndDlg, 1002, TRUE);
-                EnableButton(hwndDlg, 1003, FALSE);
-                PulseEvent(hEvent);
-                return S_FALSE;
-            case 1002:
-                EnableButton(hwndDlg, 1003, TRUE);
-                EnableButton(hwndDlg, 1002, FALSE);
-                SetEvent(hEvent);
-                return S_FALSE;
             case 1001:
                 {
                     PhShellExecute(hwndDlg, LocalFilePathString->Buffer, NULL);
@@ -716,6 +674,8 @@ BOOL InitializeConnection(
     if (!NetInitialize)
     {
         LogVistaEvent(hwndDlg, PhFormatString(L"(InitializeConnection) InternetOpen failed: %d", GetLastError()));
+        DisposeFileHandles();   
+        DeleteFile(LocalFilePathString->Buffer);
         return FALSE;
     }
 
@@ -734,7 +694,8 @@ BOOL InitializeConnection(
     if (!NetConnection)
     {
         LogVistaEvent(hwndDlg, PhFormatString(L"(InitializeConnection) InternetConnect failed: %d", GetLastError()));
-        DisposeConnection();
+        DisposeFileHandles();   
+        DeleteFile(LocalFilePathString->Buffer);
         return FALSE;
     }
 
@@ -753,7 +714,8 @@ BOOL InitializeConnection(
     if (!NetRequest)
     {
         LogVistaEvent(hwndDlg, PhFormatString(L"(InitializeConnection) HttpOpenRequest failed: %d", GetLastError()));
-        DisposeConnection();
+        DisposeFileHandles();   
+        DeleteFile(LocalFilePathString->Buffer);
         return FALSE;
     }
 
@@ -808,12 +770,6 @@ static VOID DisposeFileHandles(VOID)
     {
         NtClose(TempFileHandle);
         TempFileHandle = NULL;
-    }
-
-    if (hEvent)
-    {
-        NtClose(hEvent);
-        hEvent = NULL;
     }
 }
 

@@ -45,18 +45,13 @@ VOID InitGfx(VOID);
 VOID GetGfxUsages(VOID);
 VOID GetDriverVersion(VOID);
 VOID GetGfxTemp(VOID);
-VOID GetGfxFanSpeed(VOID);
+PPH_STRING GetGfxFanSpeed(VOID);
 VOID GetGfxClockSpeeds(VOID);
 
 PPH_STRING GetGfxName(VOID);
 
 NvPhysicalGpuHandle EnumNvidiaGpuHandles(VOID);
 NvDisplayHandle EnumNvidiaDisplayHandles(VOID);
-
-VOID LogEvent(
-    __in PWSTR str, 
-    __in NvStatus status
-    );
 
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
