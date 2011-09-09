@@ -30,7 +30,7 @@
 #endif
 
 static PPH_STRING RemoteHashString = NULL, LocalFilePathString = NULL, LocalFileNameString = NULL;
-static HANDLE TempFileHandle = NULL;
+static HANDLE TempFileHandle = NULL, hEvent = NULL;
 static HINTERNET NetInitialize = NULL;
 static HINTERNET NetConnection = NULL;
 static HINTERNET NetRequest = NULL;
@@ -322,7 +322,7 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
     }
 
     UpdateContent(hwndDlg, L"\r\n\r\nHttpSendRequest...");
-
+    
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         CHAR buffer[BUFFER_LEN];
@@ -334,9 +334,12 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
 
         // Zero the buffer.
         RtlZeroMemory(buffer, BUFFER_LEN);
-     
+
         // Initialize hash algorithm.
         PhInitializeHash(&hashContext, HashAlgorithm);
+        
+        // Enable the pause button.
+        EnableButton(hwndDlg, 1002, TRUE);
 
         UpdateContent(hwndDlg, L"\r\n\r\nHttpQueryInfo...");
 
@@ -363,6 +366,11 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
                     return STATUS_SUCCESS;
+                }
+
+                while (WaitForSingleObject(hEvent, 0) != WAIT_TIMEOUT)
+                {
+                    Sleep(100);
                 }
 
                 // Zero the buffer.
@@ -460,11 +468,12 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
         DisposeFileHandles();
         PhDereferenceObject(uriPath);
 
-        EnableButton(hwndDlg, 1011, TRUE);
-        EnableButton(hwndDlg, 1008, FALSE);
-
         SetProgressBarPosition(hwndDlg, 100);
-       
+         
+        EnableButton(hwndDlg, 1001, TRUE);           
+        EnableButton(hwndDlg, 1002, FALSE);   
+        EnableButton(hwndDlg, 1003, FALSE);
+
         if (!PhElevated)
             SetButtonElevationRequiredState(hwndDlg, 1011, TRUE);
 
@@ -589,8 +598,9 @@ HRESULT CALLBACK TaskDlgWndProc(
 
                     TASKDIALOG_BUTTON cb[] =
                     { 
-                        { 1011, L"&Install" },
-                        //{ 1008, L"&Pause" },
+                        { 1001, L"&Install" },
+                        { 1003, L"&Resume" },
+                        { 1002, L"&Pause" },
                     };
 
                     tc.cbSize = sizeof(tc);
@@ -638,8 +648,12 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
     {
     case TDN_NAVIGATED:
         {
-            EnableButton(hwndDlg, 1011, FALSE);
+            EnableButton(hwndDlg, 1001, FALSE);
+            EnableButton(hwndDlg, 1002, FALSE);
+            EnableButton(hwndDlg, 1003, FALSE);
 
+            hEvent = CreateEvent(NULL, TRUE, FALSE, L"Suspend/Resume Download Event");
+               
             PhCreateThread(0, VistaDownloadWorkerThreadStart, hwndDlg);
         }
         break;
@@ -656,12 +670,23 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
         {
             switch(wParam)
             {
-            case 1011:
+            case 1003:
+                EnableButton(hwndDlg, 1002, TRUE);
+                EnableButton(hwndDlg, 1003, FALSE);
+                PulseEvent(hEvent);
+                return S_FALSE;
+            case 1002:
+                EnableButton(hwndDlg, 1003, TRUE);
+                EnableButton(hwndDlg, 1002, FALSE);
+                SetEvent(hEvent);
+                return S_FALSE;
+            case 1001:
                 {
                     PhShellExecute(hwndDlg, LocalFilePathString->Buffer, NULL);
 
                     ProcessHacker_Destroy(PhMainWndHandle);
                 }
+                break;
             }
         }
         break;
