@@ -131,7 +131,7 @@ INT_PTR CALLBACK MainWndProc(
                 3,
                 3,
                 hwndDlg,
-                (HMENU)IDC_GPUGRAPH,
+                (HMENU)110,
                 PluginInstance->DllBase,
                 NULL
                 );
@@ -147,7 +147,7 @@ INT_PTR CALLBACK MainWndProc(
                 3,
                 3,
                 hwndDlg,
-                (HMENU)IDC_CONTGRAPH,
+                (HMENU)111,
                 PluginInstance->DllBase,
                 NULL
                 );
@@ -163,7 +163,7 @@ INT_PTR CALLBACK MainWndProc(
                 3,
                 3,
                 hwndDlg,
-                (HMENU)IDC_MEMGRAPH,
+                (HMENU)109,
                 PluginInstance->DllBase,
                 NULL
                 );
@@ -645,7 +645,7 @@ INT_PTR CALLBACK MainPanelDlgProc(
             {
             case NV_GPU_PERF_DECREASE_NONE:
                 {
-                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"No Slowdown detected.");
+                    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, L"No perf decrease detected.");
                 }
                 break;
             case NV_GPU_PERF_DECREASE_REASON_THERMAL_PROTECTION:
@@ -685,7 +685,9 @@ INT_PTR CALLBACK MainPanelDlgProc(
             SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTES_V, PhFormatString(L"%.2f MHz", GfxMemoryClockCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ZSENDS_V, PhFormatString(L"%.2f MHz", GfxShaderClockCount)->Buffer);
             //SetDlgItemText(hwndDlg, IDC_ZSENDS_V, PhaFormatUInt64(EtNetworkSendCount, TRUE)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZSENDBYTES_V, PhaFormatSize(EtNetworkSendDelta.Value, -1)->Buffer);
+            
+            SetDlgItemText(hwndDlg, IDC_FANSPEED, GetGfxFanSpeed()->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V3, GetGfxName()->Buffer);
         }
         break;
     }
@@ -700,7 +702,6 @@ static VOID NTAPI GfxUpdateHandler(
 {
     PostMessage(GfxWindowHandle, WM_GFX_UPDATE, 0, 0);
 }
-
 
 static VOID GfxSetAlwaysOnTop(
     VOID
@@ -963,13 +964,15 @@ VOID GetGfxUsages(VOID)
 
 PPH_STRING GetGfxName(VOID)
 {
-    NvStatus status = NVAPI_ERROR;
-    NvAPI_ShortString str = { 0 };
-    status = NvAPI_GetFullName(physHandle, str);
+    NvStatus status;
+
+    NvAPI_ShortString version = {0};
+
+    status = NvAPI_GetFullName(physHandle, version);
 
     if (NV_SUCCESS(status))
     {
-        return PhCreateStringFromAnsi(str);
+        return PhCreateStringFromAnsi(version);
     }
     else
     {
@@ -1033,23 +1036,25 @@ VOID GetGfxTemp(VOID)
     }
 }
 
-VOID GetGfxFanSpeed(VOID)
+PPH_STRING GetGfxFanSpeed(VOID)
 {
     NvStatus status = NVAPI_ERROR;
 
-    NV_COOLER_INFO_V2 coolInfo = { 0 };
-    coolInfo.Version = NV_COOLER_INFO_VER;
+    NV_COOLER_INFO_V2 v2 = { 0 };
+    v2.Version = NV_COOLER_INFO_VER;
 
-    status = NvAPI_GetCoolerSettings(physHandle, 0, &coolInfo);
+    status = NvAPI_GetCoolerSettings(physHandle, 0, &v2);
 
     if (NV_SUCCESS(status))
     {
-
+        return PhFormatString(L"Fan Speed: %d%%", v2.Values[0].CurrentLevel);
     }
     else
     {
         LogEvent(L"gfxinfo: (GetGfxFanSpeed) NvAPI_GetCoolerSettings failed (%s)", status);
     }
+
+    return NULL;
 }
 
 VOID GetGfxClockSpeeds(VOID)
@@ -1150,17 +1155,14 @@ VOID InitGfx(VOID)
                 NvAPI_GetUsages = (P_NvAPI_GPU_GetUsages)NvAPI_QueryInterface(0x189A1FDF);
                 NvAPI_GetMemoryInfo = (P_NvAPI_GetMemoryInfo)NvAPI_QueryInterface(0x774AA982);
                 NvAPI_GetPhysicalGPUsFromDisplay = (P_NvAPI_GetPhysicalGPUsFromDisplay)NvAPI_QueryInterface(0x34EF9506);
-
-                // Driver Functions
+                NvAPI_GetInterfaceVersionString = (P_NvAPI_GetInterfaceVersionString)NvAPI_QueryInterface(0x1053FA5);
                 NvAPI_GetFullName = (P_NvAPI_GPU_GetFullName)NvAPI_QueryInterface(0xCEEE8E9F);
+
                 NvAPI_GetAllClocks = (P_NvAPI_GPU_GetAllClocks)NvAPI_QueryInterface(0x1BD69F49); 
                 NvAPI_GetThermalSettings = (P_NvAPI_GPU_GetThermalSettings)NvAPI_QueryInterface(0xE3640A56);
                 NvAPI_GetCoolerSettings = (P_NvAPI_GPU_GetCoolerSettings)NvAPI_QueryInterface(0xDA141340);
                 NvAPI_GetDisplayDriverVersion = (P_NvAPI_GetDisplayDriverVersion)NvAPI_QueryInterface(0xF951A4D1);
                 NvAPI_GetPerfDecreaseInfo = (P_NvAPI_GPU_GetPerfDecreaseInfo)NvAPI_QueryInterface(0x7F7F4600);
-
-                // Broken?
-                NvAPI_SetFPSIndicatorState = (P_NvAPI_D3D_SetFPSIndicatorState)NvAPI_QueryInterface(0xA776E8DB);
 
                 { 
                     NvStatus status = NvAPI_Initialize();
