@@ -35,6 +35,12 @@
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
 
+PPH_PLUGIN PluginInstance;
+PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+
 typedef struct _UPDATER_XML_DATA
 {
     ULONG MinorVersion;
@@ -44,27 +50,17 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING Hash;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
-#pragma region Instances
-
-PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-
-#pragma endregion
-
 #pragma region Functions
 
-VOID VistaStartInitialCheck(VOID);
-VOID ShowUpdateTaskDialog(VOID);
+void VistaStartInitialCheck(void);
+void ShowUpdateTaskDialog(void);
 
-BOOL PhInstalledUsingSetup(VOID);
-BOOL ConnectionAvailable(VOID);
+BOOL PhInstalledUsingSetup(void);
+BOOL ConnectionAvailable(void);
 
-VOID DisposeConnection(VOID);
-VOID DisposeStrings(VOID);
-VOID DisposeFileHandles(VOID);
+void DisposeConnection(void);
+void DisposeStrings(void);
+void DisposeFileHandles(void);
 
 BOOL ParseVersionString(
     __in PWSTR String,
@@ -119,14 +115,5 @@ HRESULT CALLBACK TaskDlgWndProc(
     __in LPARAM lParam, 
     __in LONG_PTR lpRefData
     );
-
-typedef HRESULT (WINAPI *_TaskDialogIndirect)(
-    __in const TASKDIALOGCONFIG *pTaskConfig,
-    __in int *pnButton,
-    __in int *pnRadioButton,
-    __in BOOL *pfVerificationFlagChecked
-    );
-
-_TaskDialogIndirect TaskDialogIndirect_I;
 
 #pragma endregion
