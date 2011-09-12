@@ -248,7 +248,7 @@ VOID EtProcessTreeNewMessage(
                 getCellText->Text = text->sr;
             }
 
-            PhSwapReference(&block->TextCache[message->SubId], text);
+            PhSwapReference2(&block->TextCache[message->SubId], text);
             block->TextCacheValid[message->SubId] = TRUE;
         }
 
@@ -476,7 +476,12 @@ VOID EtNetworkTreeNewMessage(
                     EtpUpdateFirewallStatus(block);
 
                     if (block->FirewallStatus < FirewallMaximumStatus)
+					{
                         text = strings[block->FirewallStatus];
+
+						if (text)
+							PhReferenceObject(text);
+					}
                 }
                 break;
             }
@@ -486,7 +491,7 @@ VOID EtNetworkTreeNewMessage(
                 getCellText->Text = text->sr;
             }
 
-            PhSwapReference(&block->TextCache[message->SubId], text);
+            PhSwapReference2(&block->TextCache[message->SubId], text);
             block->TextCacheValid[message->SubId] = TRUE;
         }
 
