@@ -21,7 +21,6 @@ typedef enum _PH_UPDATER_STATE
 #pragma region Includes
 
 #include "phdk.h"
-#include "phapppub.h"
 #include "resource.h"
 #include "wininet.h"
 #include "mxml.h"
