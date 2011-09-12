@@ -476,12 +476,12 @@ VOID EtNetworkTreeNewMessage(
                     EtpUpdateFirewallStatus(block);
 
                     if (block->FirewallStatus < FirewallMaximumStatus)
-					{
+                    {
                         text = strings[block->FirewallStatus];
 
-						if (text)
-							PhReferenceObject(text);
-					}
+                        if (text)
+                            PhReferenceObject(text);
+                    }
                 }
                 break;
             }
