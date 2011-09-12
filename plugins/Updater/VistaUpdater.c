@@ -22,7 +22,6 @@
 */
 
 #include "vistaheader.h"
-#include "process.h"
 
 // Always consider the remote version newer
 #ifdef _DEBUG
@@ -47,12 +46,6 @@ BOOL SetProgressBarState(HWND handle, int newState);
 BOOL SetMainInstruction(HWND handle, PCWSTR mainInstruction);
 VOID LogVistaEvent(HWND handle, __in PPH_STRING str);
 
-BOOL InitializeConnection(
-    __in HWND hwndDlg,
-    __in PCWSTR host,
-    __in PCWSTR path
-    );
-
 static NTSTATUS VistaSilentWorkerThreadStart(
     __in PVOID Parameter
     )
@@ -60,7 +53,7 @@ static NTSTATUS VistaSilentWorkerThreadStart(
     if (!ConnectionAvailable())
         return STATUS_SUCCESS;
 
-    if (!InitializeConnection(Parameter, UPDATE_URL, UPDATE_FILE))
+    if (!VistaInitializeConnection(Parameter, UPDATE_URL, UPDATE_FILE))
         return STATUS_SUCCESS;
 
     // Send the HTTP request.
@@ -129,7 +122,7 @@ static NTSTATUS VistaWorkerThreadStart(
 
     SetProgressBarPosition(hwndDlg, 40);
 
-    if (!InitializeConnection(hwndDlg, UPDATE_URL, UPDATE_FILE))
+    if (!VistaInitializeConnection(hwndDlg, UPDATE_URL, UPDATE_FILE))
         return STATUS_SUCCESS;
 
     SetProgressBarPosition(hwndDlg, 80);
@@ -315,7 +308,7 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
 
     UpdateContent(hwndDlg, L"\r\n\r\nInitializeConnection...");
     
-    if (!InitializeConnection(hwndDlg, DOWNLOAD_SERVER, uriPath->Buffer))
+    if (!VistaInitializeConnection(hwndDlg, DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
         return STATUS_SUCCESS;
@@ -656,7 +649,7 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
     return S_OK;
 }
 
-BOOL InitializeConnection(
+BOOL VistaInitializeConnection(
     __in HWND hwndDlg,
     __in PCWSTR host,
     __in PCWSTR path

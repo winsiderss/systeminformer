@@ -22,7 +22,6 @@
 */
 
 #include "updater.h"
-#include <process.h>
 
 // Always consider the remote version newer
 #ifdef _DEBUG

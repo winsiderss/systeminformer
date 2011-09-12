@@ -4,7 +4,6 @@
 #pragma comment(lib, "Shell32.lib")
 
 #include "phdk.h"
-#include "phapppub.h"
 #include "resource.h"
 #include "wininet.h"
 #include "mxml.h"
@@ -61,6 +60,12 @@ BOOL ConnectionAvailable(void);
 void DisposeConnection(void);
 void DisposeStrings(void);
 void DisposeFileHandles(void);
+
+BOOL VistaInitializeConnection(
+    __in HWND hwndDlg,
+    __in PCWSTR host,
+    __in PCWSTR path
+    );
 
 BOOL ParseVersionString(
     __in PWSTR String,
