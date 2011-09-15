@@ -256,7 +256,7 @@ static PPH_PROCESS_RECORD PhpReferenceMaxCpuRecord(
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
-    return PhFindProcessRecord((HANDLE)maxProcessId, &time);
+    return PhFindProcessRecord(LongToHandle(maxProcessId), &time);
 }
 
 static PPH_STRING PhapGetMaxCpuString(
