@@ -152,7 +152,7 @@ typedef struct _PH_PROCESS_ITEM
         ULONG Flags;
         struct
         {
-            ULONG Reserved1 : 1;
+            ULONG UpdateIsDotNet : 1;
             ULONG IsBeingDebugged : 1;
             ULONG IsDotNet : 1;
             ULONG IsElevated : 1;

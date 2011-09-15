@@ -222,7 +222,6 @@ HRESULT CreateXCLRDataProcess(
     __out struct IXCLRDataProcess **DataProcess
     )
 {
-    PPH_IS_DOT_NET_CONTEXT isDotNetContext;
     ULONG flags;
     BOOLEAN clrV4;
     HMODULE dllBase;
@@ -230,15 +229,10 @@ HRESULT CreateXCLRDataProcess(
 
     clrV4 = FALSE;
 
-    if (NT_SUCCESS(PhCreateIsDotNetContext(&isDotNetContext, NULL, 0)))
+    if (NT_SUCCESS(PhGetProcessIsDotNetEx(ProcessId, NULL, 0, NULL, &flags)))
     {
-        if (PhGetProcessIsDotNetFromContext(isDotNetContext, ProcessId, &flags))
-        {
-            if (flags & PH_IS_DOT_NET_VERSION_4)
-                clrV4 = TRUE;
-        }
-
-        PhFreeIsDotNetContext(isDotNetContext);
+        if (flags & PH_CLR_VERSION_4_ABOVE)
+            clrV4 = TRUE;
     }
 
     // Load the correct version of mscordacwks.dll.

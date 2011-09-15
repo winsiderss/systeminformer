@@ -4684,34 +4684,6 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
     return status;
 }
 
-typedef struct _GET_PROCESS_IS_DOT_NET_CONTEXT
-{
-    HANDLE ProcessId;
-    PPH_STRING SectionName;
-    PPH_STRING SectionNameV4;
-    BOOLEAN Found;
-} GET_PROCESS_IS_DOT_NET_CONTEXT, *PGET_PROCESS_IS_DOT_NET_CONTEXT;
-
-BOOLEAN NTAPI PhpGetProcessIsDotNetCallback(
-    __in PPH_STRING Name,
-    __in PPH_STRING TypeName,
-    __in_opt PVOID Context
-    )
-{
-    PGET_PROCESS_IS_DOT_NET_CONTEXT context = Context;
-
-    if (PhEqualString2(TypeName, L"Section", TRUE) &&
-        (PhEqualString(Name, context->SectionName, TRUE) ||
-        PhEqualString(Name, context->SectionNameV4, TRUE))
-        )
-    {
-        context->Found = TRUE;
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 /**
  * Determines if a process is managed.
  *
@@ -4724,236 +4696,225 @@ NTSTATUS PhGetProcessIsDotNet(
     __out PBOOLEAN IsDotNet
     )
 {
-    // All .NET processes have a handle open to a section named
-    // \BaseNamedObjects\Cor_Private_IPCBlock(_v4)_<ProcessId>.
-    // This is the same object used by the ICorPublish::GetProcess
-    // function. Instead of calling that function, we simply check
-    // for the existence of that section object. This means:
-    // * Better performance.
-    // * No need for admin rights to get .NET status of processes
-    //   owned by other users.
-
-    NTSTATUS status;
-    OBJECT_ATTRIBUTES oa;
-    UNICODE_STRING directoryName;
-    HANDLE directoryHandle;
-    GET_PROCESS_IS_DOT_NET_CONTEXT context;
-
-    RtlInitUnicodeString(&directoryName, L"\\BaseNamedObjects");
-    InitializeObjectAttributes(
-        &oa,
-        &directoryName,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-        );
-    status = NtOpenDirectoryObject(
-        &directoryHandle,
-        DIRECTORY_QUERY,
-        &oa
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    context.ProcessId = ProcessId;
-    context.SectionName = PhFormatString(L"Cor_Private_IPCBlock_%u", (ULONG)ProcessId);
-    context.SectionNameV4 = PhFormatString(L"Cor_Private_IPCBlock_v4_%u", (ULONG)ProcessId);
-    context.Found = FALSE;
-
-    PhEnumDirectoryObjects(
-        directoryHandle,
-        PhpGetProcessIsDotNetCallback,
-        &context
-        );
-
-    PhDereferenceObject(context.SectionName);
-    PhDereferenceObject(context.SectionNameV4);
-
-    NtClose(directoryHandle);
-
-    *IsDotNet = context.Found;
-
-    return status;
+    return PhGetProcessIsDotNetEx(ProcessId, NULL, 0, IsDotNet, NULL);
 }
 
-typedef struct _PH_IS_DOT_NET_ENTRY
-{
-    ULONG Next; // can't use pointer; if the entries array is resized, the pointer becomes invalid
-    ULONG Flags;
-    HANDLE ProcessId;
-} PH_IS_DOT_NET_ENTRY, *PPH_IS_DOT_NET_ENTRY;
-
-typedef struct _PH_IS_DOT_NET_CONTEXT
-{
-    PPH_IS_DOT_NET_ENTRY Entries;
-    ULONG NumberOfEntries;
-    ULONG NumberOfAllocatedEntries;
-    ULONG Buckets[16];
-} PH_IS_DOT_NET_CONTEXT, *PPH_IS_DOT_NET_CONTEXT;
-
-BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
-    __in PPH_STRING Name,
-    __in PPH_STRING TypeName,
+BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
+    __in PLDR_DATA_TABLE_ENTRY Module,
     __in_opt PVOID Context
     )
 {
-    static PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Cor_Private_IPCBlock_");
-    static PH_STRINGREF prefixAddV4 = PH_STRINGREF_INIT(L"v4_");
-
-    PPH_IS_DOT_NET_CONTEXT context = Context;
+    static PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
+    static PH_STRINGREF mscorwksString = PH_STRINGREF_INIT(L"mscorwks.dll");
+    static PH_STRINGREF mscorsvrString = PH_STRINGREF_INIT(L"mscorsvr.dll");
+    static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework\\");
+    static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework64\\");
 
     if (
-        PhEqualString2(TypeName, L"Section", TRUE) &&
-        PhStartsWithStringRef(&Name->sr, &prefix, TRUE)
+        RtlEqualUnicodeString(&Module->BaseDllName, &clrString.us, TRUE) ||
+        RtlEqualUnicodeString(&Module->BaseDllName, &mscorwksString.us, TRUE) ||
+        RtlEqualUnicodeString(&Module->BaseDllName, &mscorsvrString.us, TRUE)
         )
     {
-        PPH_IS_DOT_NET_ENTRY entry;
-        ULONG flags;
-        PH_STRINGREF name;
-        ULONG64 processId;
-        ULONG entryIndex;
-        ULONG index;
+        PH_STRINGREF fileName;
+        PPH_STRINGREF splitAt;
+        PH_STRINGREF firstPart;
+        PH_STRINGREF secondPart;
 
-        flags = PH_IS_DOT_NET_VERSION_PRE_4;
-
-        name = Name->sr;
-        name.Buffer += prefix.Length / sizeof(WCHAR);
-        name.Length -= prefix.Length;
-
-        if (PhStartsWithStringRef(&name, &prefixAddV4, TRUE))
+#ifdef _M_X64
+        if (*(PULONG)Context & PH_CLR_PROCESS_IS_WOW64)
         {
-            flags = PH_IS_DOT_NET_VERSION_4;
-            name.Buffer += prefixAddV4.Length / sizeof(WCHAR);
-            name.Length -= prefixAddV4.Length;
+#endif
+            splitAt = &frameworkString;
+#ifdef _M_X64
         }
-
-        if (PhStringToInteger64(&name, 10, &processId))
+        else
         {
-            // Note that if a process is using both .NET v4 and an older version, there will
-            // be two entries for the process.
+            splitAt = &framework64String;
+        }
+#endif
 
-            if (context->NumberOfEntries == context->NumberOfAllocatedEntries)
+        fileName.us = Module->FullDllName;
+
+        if (PhSplitStringRefAtString(&fileName, splitAt, TRUE, &firstPart, &secondPart))
+        {
+            if (secondPart.Length >= 4 * sizeof(WCHAR)) // vx.x
             {
-                context->NumberOfAllocatedEntries *= 2;
-                context->Entries = PhReAllocate(
-                    context->Entries,
-                    context->NumberOfAllocatedEntries * sizeof(PH_IS_DOT_NET_ENTRY)
-                    );
+                if (secondPart.Buffer[1] == '1')
+                {
+                    if (secondPart.Buffer[3] == '0')
+                        *(PULONG)Context |= PH_CLR_VERSION_1_0;
+                    else if (secondPart.Buffer[3] == '1')
+                        *(PULONG)Context |= PH_CLR_VERSION_1_1;
+                }
+                else if (secondPart.Buffer[1] == '2')
+                {
+                    *(PULONG)Context |= PH_CLR_VERSION_2_0;
+                }
+                else if (secondPart.Buffer[1] >= '4' && secondPart.Buffer[1] <= '9')
+                {
+                    *(PULONG)Context |= PH_CLR_VERSION_4_ABOVE;
+                }
             }
-
-            entryIndex = context->NumberOfEntries++;
-            entry = &context->Entries[entryIndex];
-            entry->Flags = flags;
-            entry->ProcessId = (HANDLE)processId;
-
-            index = ((ULONG)processId / 4) & (sizeof(context->Buckets) / sizeof(ULONG) - 1);
-            entry->Next = context->Buckets[index];
-            context->Buckets[index] = entryIndex;
         }
     }
 
     return TRUE;
 }
 
-NTSTATUS PhCreateIsDotNetContext(
-    __out PPH_IS_DOT_NET_CONTEXT *IsDotNetContext,
-    __in_opt PPH_STRINGREF DirectoryNames,
-    __in ULONG NumberOfDirectoryNames
+/**
+ * Determines if a process is managed.
+ *
+ * \param ProcessId The ID of the process.
+ * \param IsDotNet A variable which receives a boolean indicating
+ * whether the process is managed.
+ * \param Flags A variable which receives additional flags.
+ */
+NTSTATUS PhGetProcessIsDotNetEx(
+    __in HANDLE ProcessId,
+    __in_opt HANDLE ProcessHandle,
+    __in ULONG InFlags,
+    __out_opt PBOOLEAN IsDotNet,
+    __out_opt PULONG Flags
     )
 {
     NTSTATUS status;
-    PPH_IS_DOT_NET_CONTEXT isDotNetContext;
-    OBJECT_ATTRIBUTES oa;
-    HANDLE directoryHandle;
-    PH_STRINGREF defaultDirectoryName;
-    ULONG i;
+    HANDLE processHandle;
+    ULONG flags;
+#ifdef _M_X64
+    BOOLEAN isWow64;
+#endif
 
-    isDotNetContext = PhAllocate(sizeof(PH_IS_DOT_NET_CONTEXT));
-    isDotNetContext->NumberOfEntries = 0;
-    isDotNetContext->NumberOfAllocatedEntries = 16;
-    isDotNetContext->Entries = PhAllocate(isDotNetContext->NumberOfAllocatedEntries * sizeof(PH_IS_DOT_NET_ENTRY));
-    memset(isDotNetContext->Buckets, -1, sizeof(isDotNetContext->Buckets));
-
-    if (!DirectoryNames || NumberOfDirectoryNames == 0)
+    if (InFlags & PH_CLR_USE_SECTION_CHECK)
     {
-        PhInitializeStringRef(&defaultDirectoryName, L"\\BaseNamedObjects");
-        DirectoryNames = &defaultDirectoryName;
-        NumberOfDirectoryNames = 1;
-    }
+        HANDLE sectionHandle;
+        OBJECT_ATTRIBUTES objectAttributes;
+        PPH_STRING sectionName;
+        PH_FORMAT format[2];
 
-    for (i = 0; i < NumberOfDirectoryNames; i++)
-    {
+        // Most .NET processes have a handle open to a section named
+        // \BaseNamedObjects\Cor_Private_IPCBlock(_v4)_<ProcessId>.
+        // This is the same object used by the ICorPublish::GetProcess
+        // function. Instead of calling that function, we simply check
+        // for the existence of that section object. This means:
+        // * Better performance.
+        // * No need for admin rights to get .NET status of processes
+        //   owned by other users.
+
+        PhInitFormatIU(&format[1], (ULONG_PTR)ProcessId);
+
+        // Version 4 section object
+
+        PhInitFormatS(&format[0], L"\\BaseNamedObjects\\Cor_Private_IPCBlock_v4_");
+        sectionName = PhFormat(format, 2, 96);
+
         InitializeObjectAttributes(
-            &oa,
-            &DirectoryNames[i].us,
+            &objectAttributes,
+            &sectionName->us,
             OBJ_CASE_INSENSITIVE,
             NULL,
             NULL
             );
-        status = NtOpenDirectoryObject(
-            &directoryHandle,
-            DIRECTORY_QUERY,
-            &oa
+        status = NtOpenSection(
+            &sectionHandle,
+            SECTION_QUERY,
+            &objectAttributes
             );
+        PhDereferenceObject(sectionName);
 
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
         {
-            PhEnumDirectoryObjects(
-                directoryHandle,
-                PhpCreateIsDotNetContextCallback,
-                isDotNetContext
-                );
+            if (NT_SUCCESS(status))
+                NtClose(sectionHandle);
 
-            NtClose(directoryHandle);
+            if (IsDotNet)
+                *IsDotNet = TRUE;
+
+            if (Flags)
+                *Flags = PH_CLR_VERSION_4_ABOVE;
+
+            return TRUE;
+        }
+
+        // Version 2 section object
+
+        PhInitFormatS(&format[0], L"\\BaseNamedObjects\\Cor_Private_IPCBlock_");
+        sectionName = PhFormat(format, 2, 90);
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &sectionName->us,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+        status = NtOpenSection(
+            &sectionHandle,
+            SECTION_QUERY,
+            &objectAttributes
+            );
+        PhDereferenceObject(sectionName);
+
+        if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
+        {
+            if (NT_SUCCESS(status))
+                NtClose(sectionHandle);
+
+            if (IsDotNet)
+                *IsDotNet = TRUE;
+
+            if (Flags)
+                *Flags = PH_CLR_VERSION_2_0;
+
+            return TRUE;
         }
     }
 
-    *IsDotNetContext = isDotNetContext;
-
-    return STATUS_SUCCESS;
-}
-
-VOID PhFreeIsDotNetContext(
-    __inout PPH_IS_DOT_NET_CONTEXT IsDotNetContext
-    )
-{
-    PhFree(IsDotNetContext->Entries);
-    PhFree(IsDotNetContext);
-}
-
-BOOLEAN PhGetProcessIsDotNetFromContext(
-    __in PPH_IS_DOT_NET_CONTEXT IsDotNetContext,
-    __in HANDLE ProcessId,
-    __out_opt PULONG Flags
-    )
-{
-    BOOLEAN result;
-    ULONG flags;
-    PPH_IS_DOT_NET_ENTRY entry;
-    ULONG index;
-    ULONG i;
-
-    result = FALSE;
     flags = 0;
+    processHandle = NULL;
 
-    index = ((ULONG)ProcessId / 4) & (sizeof(IsDotNetContext->Buckets) / sizeof(ULONG) - 1);
-
-    for (i = IsDotNetContext->Buckets[index]; i != -1; i = entry->Next)
+    if (!ProcessHandle)
     {
-        entry = &IsDotNetContext->Entries[i];
+        if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
+            return status;
 
-        if (entry->ProcessId == ProcessId)
-        {
-            result = TRUE;
-            flags |= entry->Flags;
-        }
+        ProcessHandle = processHandle;
     }
+
+#ifdef _M_X64
+    if (InFlags & PH_CLR_NO_WOW64_CHECK)
+    {
+        isWow64 = !!(InFlags & PH_CLR_KNOWN_IS_WOW64);
+    }
+    else
+    {
+        isWow64 = FALSE;
+        PhGetProcessIsWow64(ProcessHandle, &isWow64);
+    }
+
+    if (isWow64)
+    {
+        flags |= PH_CLR_PROCESS_IS_WOW64;
+        PhEnumProcessModules32(ProcessHandle, PhpIsDotNetEnumProcessModulesCallback, &flags);
+    }
+    else
+    {
+#endif
+        PhEnumProcessModules(ProcessHandle, PhpIsDotNetEnumProcessModulesCallback, &flags);
+#ifdef _M_X64
+    }
+#endif
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    if (IsDotNet)
+        *IsDotNet = (flags & PH_CLR_VERSION_MASK) != 0;
 
     if (Flags)
         *Flags = flags;
 
-    return result;
+    return status;
 }
 
 /**

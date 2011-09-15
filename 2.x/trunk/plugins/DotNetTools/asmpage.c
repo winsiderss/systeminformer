@@ -27,12 +27,6 @@
 #include "clretw.h"
 #include <colmgr.h>
 
-#define CLR_VERSION_1_0 0x1
-#define CLR_VERSION_1_1 0x2
-#define CLR_VERSION_2_0 0x4
-#define CLR_VERSION_4_ABOVE 0x8
-#define CLR_PROCESS_IS_WOW64 0x100000
-
 #define DNATNC_STRUCTURE 0
 #define DNATNC_ID 1
 #define DNATNC_FLAGS 2
@@ -924,91 +918,6 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     return Context->TraceResult;
 }
 
-BOOLEAN NTAPI DotNetVersionsEnumModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
-    )
-{
-    if (
-        PhEqualString2(Module->Name, L"clr.dll", TRUE) ||
-        PhEqualString2(Module->Name, L"mscorwks.dll", TRUE) ||
-        PhEqualString2(Module->Name, L"mscorsvr.dll", TRUE)
-        )
-    {
-        static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework\\");
-        static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework64\\");
-        PPH_STRINGREF splitAt;
-        PH_STRINGREF firstPart;
-        PH_STRINGREF secondPart;
-
-#ifdef _M_X64
-        if (*(PULONG)Context & CLR_PROCESS_IS_WOW64)
-        {
-#endif
-            splitAt = &frameworkString;
-#ifdef _M_X64
-        }
-        else
-        {
-            splitAt = &framework64String;
-        }
-#endif
-
-        if (PhSplitStringRefAtString(&Module->FileName->sr, splitAt, TRUE, &firstPart, &secondPart))
-        {
-            if (secondPart.Length >= 4 * sizeof(WCHAR)) // vx.x
-            {
-                if (secondPart.Buffer[1] == '1')
-                {
-                    if (secondPart.Buffer[3] == '0')
-                        *(PULONG)Context |= CLR_VERSION_1_0;
-                    else if (secondPart.Buffer[3] == '1')
-                        *(PULONG)Context |= CLR_VERSION_1_1;
-                }
-                else if (secondPart.Buffer[1] == '2')
-                {
-                    *(PULONG)Context |= CLR_VERSION_2_0;
-                }
-                else if (secondPart.Buffer[1] >= '4' && secondPart.Buffer[1] <= '9')
-                {
-                    *(PULONG)Context |= CLR_VERSION_4_ABOVE;
-                }
-            }
-        }
-    }
-
-    return TRUE;
-}
-
-ULONG GetProcessDotNetVersions(
-    __in HANDLE ProcessId
-    )
-{
-    HANDLE processHandle;
-    ULONG versions;
-#ifdef _M_X64
-    BOOLEAN isWow64;
-#endif
-
-    versions = 0;
-
-    if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
-    {
-#ifdef _M_X64
-        isWow64 = FALSE;
-        PhGetProcessIsWow64(processHandle, &isWow64);
-
-        if (isWow64)
-            versions |= CLR_PROCESS_IS_WOW64;
-#endif
-
-        PhEnumGenericModules(ProcessId, processHandle, 0, DotNetVersionsEnumModulesCallback, &versions);
-        NtClose(processHandle);
-    }
-
-    return versions;
-}
-
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1045,7 +954,8 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             context->WindowHandle = hwndDlg;
             context->ProcessItem = processItem;
 
-            context->ClrVersions = GetProcessDotNetVersions(processItem->ProcessId);
+            context->ClrVersions = 0;
+            PhGetProcessIsDotNetEx(processItem->ProcessId, NULL, 0, NULL, &context->ClrVersions);
 
             context->NodeList = PhCreateList(64);
             context->NodeRootList = PhCreateList(2);
@@ -1071,25 +981,25 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
 
             SetCursor(LoadCursor(NULL, IDC_WAIT));
 
-            if (context->ClrVersions & CLR_VERSION_1_0)
+            if (context->ClrVersions & PH_CLR_VERSION_1_0)
             {
                 AddFakeClrNode(context, L"CLR v1.0.3705"); // what PE displays
             }
 
-            if (context->ClrVersions & CLR_VERSION_1_1)
+            if (context->ClrVersions & PH_CLR_VERSION_1_1)
             {
                 AddFakeClrNode(context, L"CLR v1.1.4322");
             }
 
             timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
 
-            if (context->ClrVersions & CLR_VERSION_2_0)
+            if (context->ClrVersions & PH_CLR_VERSION_2_0)
             {
                 context->ClrV2Node = AddFakeClrNode(context, L"CLR v2.0.50727");
                 result = UpdateDotNetTraceInfoWithTimeout(context, TRUE, &timeout);
             }
 
-            if (context->ClrVersions & CLR_VERSION_4_ABOVE)
+            if (context->ClrVersions & PH_CLR_VERSION_4_ABOVE)
             {
                 result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
             }
