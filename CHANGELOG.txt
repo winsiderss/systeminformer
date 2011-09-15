@@ -1,5 +1,11 @@
 Process Hacker
 
+2.22
+ * NEW/IMPROVED:
+   * Added Windows 8 support:
+     * Improved .NET process detection
+ * FIXED:
+
 2.21
  * NEW/IMPROVED:
    * Added Private Bytes Delta, ASLR and Subsystem columns

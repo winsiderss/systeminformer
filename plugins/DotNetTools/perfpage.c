@@ -66,21 +66,15 @@ HRESULT CreateCorpubPublish(
     )
 {
     HRESULT result;
-    PPH_IS_DOT_NET_CONTEXT isDotNetContext;
     ULONG flags;
     BOOLEAN clrV4;
 
     clrV4 = FALSE;
 
-    if (NT_SUCCESS(PhCreateIsDotNetContext(&isDotNetContext, NULL, 0)))
+    if (NT_SUCCESS(PhGetProcessIsDotNetEx(ProcessId, NULL, 0, NULL, &flags)))
     {
-        if (PhGetProcessIsDotNetFromContext(isDotNetContext, ProcessId, &flags))
-        {
-            if (flags & PH_IS_DOT_NET_VERSION_4)
-                clrV4 = TRUE;
-        }
-
-        PhFreeIsDotNetContext(isDotNetContext);
+        if (flags & PH_CLR_VERSION_4_ABOVE)
+            clrV4 = TRUE;
     }
 
     // Using CoCreateInstance always seems to create a v2-compatible class, but not a v4-compatible one.

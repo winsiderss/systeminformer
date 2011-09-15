@@ -278,6 +278,9 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
         if (WindowsVersion >= WINDOWS_VISTA)
             AddAsmPageToPropContext(propContext);
         AddPerfPageToPropContext(propContext);
+
+        if (!propContext->ProcessItem->IsDotNet)
+            propContext->ProcessItem->UpdateIsDotNet = TRUE; // force a refresh
     }
 }
 

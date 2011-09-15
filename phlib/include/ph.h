@@ -693,27 +693,23 @@ NTSTATUS PhGetProcessIsDotNet(
     __out PBOOLEAN IsDotNet
     );
 
-#define PH_IS_DOT_NET_VERSION_PRE_4 0x1
-#define PH_IS_DOT_NET_VERSION_4 0x2
+#define PH_CLR_USE_SECTION_CHECK 0x1
+#define PH_CLR_NO_WOW64_CHECK 0x2
+#define PH_CLR_KNOWN_IS_WOW64 0x4
 
-typedef struct _PH_IS_DOT_NET_CONTEXT *PPH_IS_DOT_NET_CONTEXT;
-
-PHLIBAPI
-NTSTATUS PhCreateIsDotNetContext(
-    __out PPH_IS_DOT_NET_CONTEXT *IsDotNetContext,
-    __in_opt PPH_STRINGREF DirectoryNames,
-    __in ULONG NumberOfDirectoryNames
-    );
-
-PHLIBAPI
-VOID PhFreeIsDotNetContext(
-    __inout PPH_IS_DOT_NET_CONTEXT IsDotNetContext
-    );
+#define PH_CLR_VERSION_1_0 0x1
+#define PH_CLR_VERSION_1_1 0x2
+#define PH_CLR_VERSION_2_0 0x4
+#define PH_CLR_VERSION_4_ABOVE 0x8
+#define PH_CLR_VERSION_MASK 0xf
+#define PH_CLR_PROCESS_IS_WOW64 0x100000
 
 PHLIBAPI
-BOOLEAN PhGetProcessIsDotNetFromContext(
-    __in PPH_IS_DOT_NET_CONTEXT IsDotNetContext,
+NTSTATUS PhGetProcessIsDotNetEx(
     __in HANDLE ProcessId,
+    __in_opt HANDLE ProcessHandle,
+    __in ULONG InFlags,
+    __out_opt PBOOLEAN IsDotNet,
     __out_opt PULONG Flags
     );
 
