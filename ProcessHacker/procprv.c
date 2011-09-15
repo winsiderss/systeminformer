@@ -93,6 +93,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
 
     HANDLE ConsoleHostProcessId;
 
+    BOOLEAN IsDotNet;
     BOOLEAN IsPosix;
     BOOLEAN IsWow64;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -230,8 +231,6 @@ PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
-
-static PPH_IS_DOT_NET_CONTEXT PhpIsDotNetContext = NULL;
 
 static PTS_ALL_PROCESSES_INFO PhpTsProcesses = NULL;
 static ULONG PhpTsNumberOfProcesses;
@@ -820,7 +819,16 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-    // POSIX, command line
+    // WOW64
+    if (processHandleLimited)
+    {
+#ifdef _M_X64
+        // WOW64
+        PhGetProcessIsWow64(processHandleLimited, &Data->IsWow64);
+#endif
+    }
+
+    // POSIX, command line, .NET
     {
         HANDLE processHandle;
 
@@ -833,6 +841,7 @@ VOID PhpProcessQueryStage1(
         if (NT_SUCCESS(status))
         {
             BOOLEAN isPosix = FALSE;
+            BOOLEAN isDotNet = FALSE;
             PPH_STRING commandLine;
             ULONG i;
 
@@ -865,6 +874,19 @@ VOID PhpProcessQueryStage1(
             {
                 Data->CommandLine = commandLine;
             }
+
+            PhGetProcessIsDotNetEx(
+                processId,
+                processHandle,
+#ifdef _M_X64
+                PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
+#else
+                0,
+#endif
+                &isDotNet,
+                NULL
+                );
+            Data->IsDotNet = isDotNet;
 
             NtClose(processHandle);
         }
@@ -900,11 +922,6 @@ VOID PhpProcessQueryStage1(
                 NtClose(tokenHandle);
             }
         }
-
-#ifdef _M_X64
-        // WOW64
-        PhGetProcessIsWow64(processHandleLimited, &Data->IsWow64);
-#endif
     }
 
     // Job
@@ -1083,6 +1100,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IntegrityString = Data->IntegrityString;
     processItem->JobName = Data->JobName;
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
+    processItem->IsDotNet = Data->IsDotNet;
     processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
@@ -1682,7 +1700,6 @@ VOID PhProcessProviderUpdate(
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG bucketIndex;
 
-    BOOLEAN isDotNetContextUpdated = FALSE;
     BOOLEAN isCycleCpuUsageEnabled = FALSE;
 
     ULONG64 sysTotalTime; // total time for this update period
@@ -1698,33 +1715,6 @@ VOID PhProcessProviderUpdate(
     if (runCount % 8 == 0)
     {
         PhUpdateDosDevicePrefixes();
-    }
-
-    if (runCount % 16 == 1)
-    {
-        if (PhpIsDotNetContext)
-        {
-            PhFreeIsDotNetContext(PhpIsDotNetContext);
-            PhpIsDotNetContext = NULL;
-        }
-
-        if (PhPluginsEnabled)
-        {
-            PH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES directoryNames;
-
-            PhInitializeStringRef(&directoryNames.DirectoryNames[0], L"\\BaseNamedObjects");
-            directoryNames.NumberOfDirectoryNames = 1;
-
-            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackGetIsDotNetDirectoryNames), &directoryNames);
-
-            PhCreateIsDotNetContext(&PhpIsDotNetContext, directoryNames.DirectoryNames, directoryNames.NumberOfDirectoryNames);
-            isDotNetContextUpdated = TRUE;
-        }
-        else
-        {
-            PhCreateIsDotNetContext(&PhpIsDotNetContext, NULL, 0);
-            isDotNetContextUpdated = TRUE;
-        }
     }
 
     if (runCount % 512 == 0) // yes, a very long time
@@ -2184,13 +2174,17 @@ VOID PhProcessProviderUpdate(
             }
 
             // .NET
-            if (isDotNetContextUpdated && PhpIsDotNetContext && !processItem->IsDotNet)
+            if (processItem->UpdateIsDotNet)
             {
-                if (PhGetProcessIsDotNetFromContext(PhpIsDotNetContext, processItem->ProcessId, NULL))
+                BOOLEAN isDotNet;
+
+                if (NT_SUCCESS(PhGetProcessIsDotNet(processItem->ProcessId, &isDotNet)))
                 {
-                    processItem->IsDotNet = TRUE;
+                    processItem->IsDotNet = isDotNet;
                     modified = TRUE;
                 }
+
+                processItem->UpdateIsDotNet = FALSE;
             }
 
             if (modified)

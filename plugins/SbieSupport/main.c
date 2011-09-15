@@ -29,8 +29,6 @@ typedef struct _BOX_INFO
     WCHAR BoxName[34];
     PH_STRINGREF IpcRoot;
     WCHAR IpcRootBuffer[256];
-
-    PPH_STRING IsDotNetDirectoryName;
 } BOX_INFO, *PBOX_INFO;
 
 typedef struct _BOXED_PROCESS
@@ -99,7 +97,6 @@ PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
 PH_CALLBACK_REGISTRATION GetProcessTooltipTextCallbackRegistration;
-PH_CALLBACK_REGISTRATION GetIsDotNetDirectoryNamesCallbackRegistration;
 
 P_SbieApi_QueryBoxPath SbieApi_QueryBoxPath;
 P_SbieApi_EnumBoxes SbieApi_EnumBoxes;
@@ -112,8 +109,6 @@ BOOLEAN BoxedProcessesUpdated = FALSE;
 
 BOX_INFO BoxInfo[16];
 ULONG BoxInfoCount;
-
-PPH_LIST NeedsDereference;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -180,12 +175,6 @@ LOGICAL DllMain(
                 NULL,
                 &GetProcessTooltipTextCallbackRegistration
                 );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackGetIsDotNetDirectoryNames),
-                GetIsDotNetDirectoryNamesCallback,
-                NULL,
-                &GetIsDotNetDirectoryNamesCallbackRegistration
-                );
 
             {
                 static PH_SETTING_CREATE settings[] =
@@ -233,8 +222,6 @@ VOID NTAPI LoadCallback(
         BoxedProcessesHashFunction,
         32
         );
-
-    NeedsDereference = PhCreateList(4);
 
     sbieDllPath = PhGetStringSetting(L"ProcessHacker.SbieSupport.SbieDllPath");
     module = LoadLibrary(sbieDllPath->Buffer);
@@ -395,38 +382,6 @@ VOID NTAPI GetProcessTooltipTextCallback(
     PhReleaseQueuedLockShared(&BoxedProcessesLock);
 }
 
-VOID NTAPI GetIsDotNetDirectoryNamesCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES isDotNetDirectoryNames = Parameter;
-    ULONG i;
-
-    PhAcquireQueuedLockShared(&BoxedProcessesLock);
-
-    for (i = 0; i < NeedsDereference->Count; i++)
-        PhDereferenceObject(NeedsDereference->Items[i]);
-
-    PhClearList(NeedsDereference);
-
-    for (i = 0; i < BoxInfoCount; i++)
-    {
-        if (isDotNetDirectoryNames->NumberOfDirectoryNames <
-            sizeof(isDotNetDirectoryNames->DirectoryNames) / sizeof(PH_STRINGREF))
-        {
-            isDotNetDirectoryNames->DirectoryNames[isDotNetDirectoryNames->NumberOfDirectoryNames++] =
-                BoxInfo[i].IsDotNetDirectoryName->sr;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    PhReleaseQueuedLockShared(&BoxedProcessesLock);
-}
-
 VOID NTAPI RefreshSandboxieInfo(
     __in_opt PVOID Context,
     __in BOOLEAN TimerOrWaitFired
@@ -435,7 +390,6 @@ VOID NTAPI RefreshSandboxieInfo(
     LONG index;
     WCHAR boxName[34];
     ULONG pids[512];
-    ULONG i;
     PBOX_INFO boxInfo;
 
     if (!SbieApi_QueryBoxPath || !SbieApi_EnumBoxes || !SbieApi_EnumProcessEx)
@@ -444,9 +398,6 @@ VOID NTAPI RefreshSandboxieInfo(
     PhAcquireQueuedLockExclusive(&BoxedProcessesLock);
 
     PhClearHashtable(BoxedProcessesHashtable);
-
-    for (i = 0; i < BoxInfoCount; i++)
-        PhAddItemList(NeedsDereference, BoxInfo[i].IsDotNetDirectoryName);
 
     BoxInfoCount = 0;
 
@@ -511,12 +462,6 @@ VOID NTAPI RefreshSandboxieInfo(
                 if (boxInfo->IpcRootBuffer[0] != 0)
                 {
                     PhInitializeStringRef(&boxInfo->IpcRoot, boxInfo->IpcRootBuffer);
-
-                    boxInfo->IsDotNetDirectoryName = PhFormatString(
-                        L"%s\\Sessions\\%u\\BaseNamedObjects",
-                        boxInfo->IpcRoot.Buffer,
-                        NtCurrentPeb()->SessionId
-                        );
                 }
                 else
                 {
