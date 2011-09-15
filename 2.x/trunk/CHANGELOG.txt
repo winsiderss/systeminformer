@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Added Windows 8 support:
      * Improved .NET process detection
+   * Updated WindowExplorer plugin:
+     * Fixed hook support for low integrity processes
  * FIXED:
    * Fixed bug preventing Interrupts/DPCs from being shown 
      as the max. CPU process on 64-bit systems

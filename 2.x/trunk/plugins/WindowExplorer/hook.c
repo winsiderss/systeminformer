@@ -100,6 +100,12 @@ BOOLEAN WepCreateServerObjects(
     OBJECT_ATTRIBUTES objectAttributes;
     WCHAR buffer[256];
     UNICODE_STRING objectName;
+    SECURITY_DESCRIPTOR securityDescriptor;
+    UCHAR saclBuffer[sizeof(ACL) + FIELD_OFFSET(SYSTEM_MANDATORY_LABEL_ACE, SidStart) + FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG)];
+    PACL sacl;
+    UCHAR mandatoryLabelAceBuffer[FIELD_OFFSET(SYSTEM_MANDATORY_LABEL_ACE, SidStart) + FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG)];
+    PSYSTEM_MANDATORY_LABEL_ACE mandatoryLabelAce;
+    PSID sid;
 
     if (!WeServerSharedSection)
     {
@@ -183,6 +189,37 @@ BOOLEAN WepCreateServerObjects(
         {
             WepCloseServerObjects();
             return FALSE;
+        }
+    }
+
+    // If mandatory labels are supported, set it to the lowest possible level.
+    if (WE_WindowsVersion >= WINDOWS_VISTA)
+    {
+        static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
+
+        RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+
+        sacl = (PACL)saclBuffer;
+        RtlCreateAcl(sacl, sizeof(saclBuffer), ACL_REVISION);
+
+        mandatoryLabelAce = (PSYSTEM_MANDATORY_LABEL_ACE)mandatoryLabelAceBuffer;
+        mandatoryLabelAce->Header.AceType = SYSTEM_MANDATORY_LABEL_ACE_TYPE;
+        mandatoryLabelAce->Header.AceFlags = 0;
+        mandatoryLabelAce->Header.AceSize = sizeof(mandatoryLabelAceBuffer);
+        mandatoryLabelAce->Mask = SYSTEM_MANDATORY_LABEL_NO_WRITE_UP;
+
+        sid = (PSID)&mandatoryLabelAce->SidStart;
+        RtlInitializeSid(sid, &mandatoryLabelAuthority, 1);
+        *RtlSubAuthoritySid(sid, 0) = SECURITY_MANDATORY_LOW_RID;
+
+        if (NT_SUCCESS(RtlAddAce(sacl, ACL_REVISION, MAXULONG32, mandatoryLabelAce, sizeof(mandatoryLabelAceBuffer))))
+        {
+            if (NT_SUCCESS(RtlSetSaclSecurityDescriptor(&securityDescriptor, TRUE, sacl, FALSE)))
+            {
+                NtSetSecurityObject(WeServerSharedSection, LABEL_SECURITY_INFORMATION, &securityDescriptor);
+                NtSetSecurityObject(WeServerSharedSectionLock, LABEL_SECURITY_INFORMATION, &securityDescriptor);
+                NtSetSecurityObject(WeServerSharedSectionEvent, LABEL_SECURITY_INFORMATION, &securityDescriptor);
+            }
         }
     }
 
