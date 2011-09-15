@@ -27,7 +27,7 @@
 #include "resource.h"
 #include <windowsx.h>
 
-#define NUMBER_OF_PAGES 3
+#define NUMBER_OF_PAGES 4
 #define WEM_RESOLVE_DONE (WM_APP + 1234)
 
 typedef struct _WINDOW_PROPERTIES_CONTEXT
