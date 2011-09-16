@@ -570,7 +570,7 @@ NTSTATUS PhWriteVirtualMemory(
  */
 NTSTATUS PhpQueryProcessVariableSize(
     __in HANDLE ProcessHandle,
-    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PROCESSINFOCLASS ProcessInformationClass,
     __out PVOID *Buffer
     )
 {

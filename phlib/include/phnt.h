@@ -30,6 +30,7 @@
 #define PHNT_WS03 52
 #define PHNT_VISTA 60
 #define PHNT_WIN7 61
+#define PHNT_WIN8 62
 
 #ifndef PHNT_MODE
 #define PHNT_MODE PHNT_MODE_USER
