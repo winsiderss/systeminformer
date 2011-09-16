@@ -219,10 +219,18 @@ VOID NTAPI EtpEtwEventCallback(
         {
             DiskIo_TypeGroup1 *data = EventTrace->MofData;
 
-            if (EventTrace->Header.ProcessId != -1)
+            if (WindowsVersion >= WINDOWS_8)
             {
-                diskEvent.ClientId.UniqueProcess = UlongToHandle(EventTrace->Header.ProcessId);
-                diskEvent.ClientId.UniqueThread = UlongToHandle(EventTrace->Header.ThreadId);
+                diskEvent.ClientId.UniqueThread = UlongToHandle(data->IssuingThreadId);
+                diskEvent.ClientId.UniqueProcess = EtThreadIdToProcessId(diskEvent.ClientId.UniqueThread);
+            }
+            else
+            {
+                if (EventTrace->Header.ProcessId != -1)
+                {
+                    diskEvent.ClientId.UniqueProcess = UlongToHandle(EventTrace->Header.ProcessId);
+                    diskEvent.ClientId.UniqueThread = UlongToHandle(EventTrace->Header.ThreadId);
+                }
             }
 
             diskEvent.IrpFlags = data->IrpFlags;
