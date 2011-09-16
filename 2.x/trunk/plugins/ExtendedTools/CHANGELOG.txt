@@ -1,3 +1,6 @@
+1.6
+ * Updated disk monitoring for Windows 8
+
 1.5
  * Added Disk tab
  * Added Hard Faults, Hard Faults Delta and Peak Threads columns
