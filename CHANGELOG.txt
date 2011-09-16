@@ -2,8 +2,10 @@ Process Hacker
 
 2.22
  * NEW/IMPROVED:
-   * Added Windows 8 support:
-     * Improved .NET process detection
+   * Added Windows 8 support
+   * Improved .NET process detection
+   * Updated ExtendedTools plugin:
+     * Updated disk monitoring for Windows 8
    * Updated WindowExplorer plugin:
      * Fixed hook support for low integrity processes
  * FIXED:

@@ -33,7 +33,7 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     __in_opt PVOID Context
     );
 
-VOID EtpUpdateDiskInformation(
+VOID EtpUpdateProcessInformation(
     VOID
     );
 
@@ -61,6 +61,9 @@ PH_CIRCULAR_BUFFER_ULONG EtNetworkReceiveHistory;
 PH_CIRCULAR_BUFFER_ULONG EtNetworkSendHistory;
 PH_CIRCULAR_BUFFER_ULONG EtMaxDiskHistory; // ID of max. disk usage process
 PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory; // ID of max. network usage process
+
+PVOID EtpProcessInformation;
+PH_QUEUED_LOCK EtpProcessInformationLock = PH_QUEUED_LOCK_INIT;
 
 VOID EtEtwStatisticsInitialization(
     VOID
@@ -217,6 +220,12 @@ static VOID NTAPI ProcessesUpdatedCallback(
     ULONG maxNetworkValue = 0;
     PET_PROCESS_BLOCK maxNetworkBlock = NULL;
 
+    // Since Windows 8, we no longer get the correct process/thread IDs in the 
+    // event headers for disk events. We need to update our process information since 
+    // etwmon uses our EtThreadIdToProcessId function.
+    if (WindowsVersion >= WINDOWS_8)
+        EtpUpdateProcessInformation();
+
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it
     // manually.
     EtFlushEtwSession();
@@ -347,4 +356,55 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
 
         listEntry = listEntry->Flink;
     }
+}
+
+VOID EtpUpdateProcessInformation(
+    VOID
+    )
+{
+    PhAcquireQueuedLockExclusive(&EtpProcessInformationLock);
+
+    if (EtpProcessInformation)
+    {
+        PhFree(EtpProcessInformation);
+        EtpProcessInformation = NULL;
+    }
+
+    PhEnumProcesses(&EtpProcessInformation);
+
+    PhReleaseQueuedLockExclusive(&EtpProcessInformationLock);
+}
+
+HANDLE EtThreadIdToProcessId(
+    __in HANDLE ThreadId
+    )
+{
+    PSYSTEM_PROCESS_INFORMATION process;
+    ULONG i;
+    HANDLE processId;
+
+    if (!EtpProcessInformation)
+        return NULL;
+
+    PhAcquireQueuedLockShared(&EtpProcessInformationLock);
+
+    process = PH_FIRST_PROCESS(EtpProcessInformation);
+
+    do
+    {
+        for (i = 0; i < process->NumberOfThreads; i++)
+        {
+            if (process->Threads[i].ClientId.UniqueThread == ThreadId)
+            {
+                processId = process->UniqueProcessId;
+                PhReleaseQueuedLockShared(&EtpProcessInformationLock);
+
+                return processId;
+            }
+        }
+    } while (process = PH_NEXT_PROCESS(process));
+
+    PhReleaseQueuedLockShared(&EtpProcessInformationLock);
+
+    return NULL;
 }

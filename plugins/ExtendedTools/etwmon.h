@@ -13,6 +13,7 @@ typedef struct
     ULONG_PTR FileObject;
     ULONG_PTR Irp;
     ULONG64 HighResResponseTime;
+    ULONG IssuingThreadId; // since WIN8 (ETW_DISKIO_READWRITE_V3)
 } DiskIo_TypeGroup1;
 
 typedef struct
@@ -116,6 +117,10 @@ VOID EtProcessDiskEvent(
 
 VOID EtProcessNetworkEvent(
     __in PET_ETW_NETWORK_EVENT Event
+    );
+
+HANDLE EtThreadIdToProcessId(
+    __in HANDLE ThreadId
     );
 
 // etwdisk
