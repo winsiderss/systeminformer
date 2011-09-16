@@ -4707,8 +4707,8 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     static PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
     static PH_STRINGREF mscorwksString = PH_STRINGREF_INIT(L"mscorwks.dll");
     static PH_STRINGREF mscorsvrString = PH_STRINGREF_INIT(L"mscorsvr.dll");
-    static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework\\");
-    static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework64\\");
+    static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework\\");
+    static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework64\\");
 
     if (
         RtlEqualUnicodeString(&Module->BaseDllName, &clrString.us, TRUE) ||
@@ -4717,43 +4717,53 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
         )
     {
         PH_STRINGREF fileName;
-        PPH_STRINGREF splitAt;
-        PH_STRINGREF firstPart;
-        PH_STRINGREF secondPart;
+        PH_STRINGREF systemRoot;
+        PPH_STRINGREF frameworkPart;
 
 #ifdef _M_X64
         if (*(PULONG)Context & PH_CLR_PROCESS_IS_WOW64)
         {
 #endif
-            splitAt = &frameworkString;
+            frameworkPart = &frameworkString;
 #ifdef _M_X64
         }
         else
         {
-            splitAt = &framework64String;
+            frameworkPart = &framework64String;
         }
 #endif
 
         fileName.us = Module->FullDllName;
 
-        if (PhSplitStringRefAtString(&fileName, splitAt, TRUE, &firstPart, &secondPart))
+        PhGetSystemRoot(&systemRoot);
+
+        if (PhStartsWithStringRef(&fileName, &systemRoot, TRUE))
         {
-            if (secondPart.Length >= 4 * sizeof(WCHAR)) // vx.x
+            fileName.Buffer = (PWSTR)((PCHAR)fileName.Buffer + systemRoot.Length);
+            fileName.Length -= systemRoot.Length;
+
+            if (PhStartsWithStringRef(&fileName, frameworkPart, TRUE))
             {
-                if (secondPart.Buffer[1] == '1')
+                fileName.Buffer = (PWSTR)((PCHAR)fileName.Buffer + frameworkPart->Length);
+                fileName.Length -= frameworkPart->Length;
+
+                if (fileName.Length >= 4 * sizeof(WCHAR)) // vx.x
                 {
-                    if (secondPart.Buffer[3] == '0')
-                        *(PULONG)Context |= PH_CLR_VERSION_1_0;
-                    else if (secondPart.Buffer[3] == '1')
-                        *(PULONG)Context |= PH_CLR_VERSION_1_1;
-                }
-                else if (secondPart.Buffer[1] == '2')
-                {
-                    *(PULONG)Context |= PH_CLR_VERSION_2_0;
-                }
-                else if (secondPart.Buffer[1] >= '4' && secondPart.Buffer[1] <= '9')
-                {
-                    *(PULONG)Context |= PH_CLR_VERSION_4_ABOVE;
+                    if (fileName.Buffer[1] == '1')
+                    {
+                        if (fileName.Buffer[3] == '0')
+                            *(PULONG)Context |= PH_CLR_VERSION_1_0;
+                        else if (fileName.Buffer[3] == '1')
+                            *(PULONG)Context |= PH_CLR_VERSION_1_1;
+                    }
+                    else if (fileName.Buffer[1] == '2')
+                    {
+                        *(PULONG)Context |= PH_CLR_VERSION_2_0;
+                    }
+                    else if (fileName.Buffer[1] >= '4' && fileName.Buffer[1] <= '9')
+                    {
+                        *(PULONG)Context |= PH_CLR_VERSION_4_ABOVE;
+                    }
                 }
             }
         }
