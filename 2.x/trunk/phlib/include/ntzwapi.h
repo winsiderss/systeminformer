@@ -2310,7 +2310,7 @@ NTSTATUS
 NTAPI
 ZwQueryInformationProcess(
     __in HANDLE ProcessHandle,
-    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PROCESSINFOCLASS ProcessInformationClass,
     __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength,
     __out_opt PULONG ReturnLength
@@ -2332,7 +2332,7 @@ NTSTATUS
 NTAPI
 ZwQueryInformationThread(
     __in HANDLE ThreadHandle,
-    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in THREADINFOCLASS ThreadInformationClass,
     __out_bcount(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength,
     __out_opt PULONG ReturnLength
@@ -3227,7 +3227,7 @@ NTSTATUS
 NTAPI
 ZwSetInformationProcess(
     __in HANDLE ProcessHandle,
-    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PROCESSINFOCLASS ProcessInformationClass,
     __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength
     );
@@ -3247,7 +3247,7 @@ NTSTATUS
 NTAPI
 ZwSetInformationThread(
     __in HANDLE ThreadHandle,
-    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in THREADINFOCLASS ThreadInformationClass,
     __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength
     );

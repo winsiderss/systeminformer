@@ -95,7 +95,7 @@ typedef struct _WOW64_PROCESS
 // source:http://www.microsoft.com/whdc/system/Sysinternals/MoreThan64proc.mspx
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-typedef enum _PROCESS_INFORMATION_CLASS
+typedef enum _PROCESSINFOCLASS
 {
     ProcessBasicInformation, // 0, q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
     ProcessQuotaLimits, // qs: QUOTA_LIMITS, QUOTA_LIMITS_EX
@@ -148,12 +148,16 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessTokenVirtualizationEnabled, // s: ULONG
     ProcessConsoleHostProcess, // q: ULONG_PTR
     ProcessWindowInformation, // 50, q: PROCESS_WINDOW_INFORMATION
+    ProcessHandleInformation, // q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
+    ProcessMitigationPolicy, // qs: PROCESS_MITIGATION_POLICY_INFORMATION
+    ProcessDynamicFunctionTableInformation,
+    ProcessHandleCheckingMode,
     MaxProcessInfoClass
-} PROCESS_INFORMATION_CLASS;
+} PROCESSINFOCLASS;
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-typedef enum _THREAD_INFORMATION_CLASS
+typedef enum _THREADINFOCLASS
 {
     ThreadBasicInformation, // q: THREAD_BASIC_INFORMATION
     ThreadTimes, // q: KERNEL_USER_TIMES
@@ -189,8 +193,9 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadUmsInformation,
     ThreadCounterProfiling,
     ThreadIdealProcessorEx, // q: PROCESSOR_NUMBER
+    ThreadCpuAccountingInformation, // since WIN8
     MaxThreadInfoClass
-} THREAD_INFORMATION_CLASS;
+} THREADINFOCLASS;
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -419,6 +424,33 @@ typedef struct _PROCESS_WINDOW_INFORMATION
     WCHAR WindowTitle[1];
 } PROCESS_WINDOW_INFORMATION, *PPROCESS_WINDOW_INFORMATION;
 
+// private
+typedef struct _PROCESS_HANDLE_TABLE_ENTRY_INFO
+{
+    HANDLE HandleValue;
+    ULONG_PTR HandleCount;
+    ULONG_PTR PointerCount;
+    ULONG GrantedAccess;
+    ULONG ObjectTypeIndex;
+    ULONG HandleAttributes;
+    ULONG Reserved;
+} PROCESS_HANDLE_TABLE_ENTRY_INFO, *PPROCESS_HANDLE_TABLE_ENTRY_INFO;
+
+// private
+typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
+{
+    ULONG_PTR NumberOfHandles;
+    ULONG_PTR Reserved;
+    PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
+} PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
+
+// private
+typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
+{
+    ULONG Policy; // PROCESS_MITIGATION_POLICY
+    // TODO: ASLRPolicy, DEPPolicy, StackCheckPolicy, StrictHandleCheckPolicy, SystemCallDisablePolicy
+} PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
+
 // Thread information structures
 
 typedef struct _THREAD_BASIC_INFORMATION
@@ -575,7 +607,7 @@ NTSTATUS
 NTAPI
 NtQueryInformationProcess(
     __in HANDLE ProcessHandle,
-    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PROCESSINFOCLASS ProcessInformationClass,
     __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength,
     __out_opt PULONG ReturnLength
@@ -613,7 +645,7 @@ NTSTATUS
 NTAPI
 NtSetInformationProcess(
     __in HANDLE ProcessHandle,
-    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PROCESSINFOCLASS ProcessInformationClass,
     __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength
     );
@@ -707,7 +739,7 @@ NTSTATUS
 NTAPI
 NtQueryInformationThread(
     __in HANDLE ThreadHandle,
-    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in THREADINFOCLASS ThreadInformationClass,
     __out_bcount(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength,
     __out_opt PULONG ReturnLength
@@ -718,7 +750,7 @@ NTSTATUS
 NTAPI
 NtSetInformationThread(
     __in HANDLE ThreadHandle,
-    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in THREADINFOCLASS ThreadInformationClass,
     __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength
     );
