@@ -107,14 +107,7 @@ VOID NTAPI MainWindowShowingCallback(
 
     if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
     {
-        if (WindowsVersion >= WINDOWS_VISTA)
-        {
-            VistaStartInitialCheck();
-        }
-        else
-        {
-            StartInitialCheck();
-        }        
+		StartInitialCheck();   
     }
 }
 
@@ -129,14 +122,7 @@ VOID NTAPI MenuItemCallback(
     {
     case UPDATE_MENUITEM:
         {
-            if (WindowsVersion >= WINDOWS_VISTA)
-            {
-                ShowUpdateTaskDialog();
-            }
-            else
-            {
-                ShowUpdateDialog();
-            }
+			ShowUpdateDialog();
         }
         break;
     }

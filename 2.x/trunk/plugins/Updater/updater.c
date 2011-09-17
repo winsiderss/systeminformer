@@ -606,7 +606,7 @@ INT_PTR CALLBACK MainWndProc(
     return FALSE;
 }
 
-static BOOL InitializeConnection(
+BOOL InitializeConnection(
     __in PCWSTR host,
     __in PCWSTR path
     )
@@ -910,7 +910,7 @@ BOOL PhInstalledUsingSetup(VOID)
 
 #pragma region Event Logging Functions
 
-static VOID LogEvent(__in PPH_STRING str)
+VOID LogEvent(__in PPH_STRING str)
 {
     PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
 
@@ -921,7 +921,7 @@ static VOID LogEvent(__in PPH_STRING str)
 
 #pragma region Dispose Functions
 
-static VOID DisposeConnection(VOID)
+VOID DisposeConnection(VOID)
 {
     if (NetInitialize)
     {
@@ -942,7 +942,7 @@ static VOID DisposeConnection(VOID)
     }
 }
 
-static VOID DisposeStrings(VOID)
+VOID DisposeStrings(VOID)
 {
     if (LocalFilePathString)
     {
@@ -957,7 +957,7 @@ static VOID DisposeStrings(VOID)
     }
 }
 
-static VOID DisposeFileHandles(VOID)
+VOID DisposeFileHandles(VOID)
 {
     if (TempFileHandle)
     {
@@ -966,7 +966,7 @@ static VOID DisposeFileHandles(VOID)
     }
 }
 
-static VOID FreeXmlData(
+VOID FreeXmlData(
     __in PUPDATER_XML_DATA XmlData
     )
 {
