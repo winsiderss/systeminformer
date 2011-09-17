@@ -1,5 +1,6 @@
 1.6
  * Updated disk monitoring for Windows 8
+ * Updated memory list information for Windows 8
 
 1.5
  * Added Disk tab

@@ -6,6 +6,7 @@ Process Hacker
    * Improved .NET process detection
    * Updated ExtendedTools plugin:
      * Updated disk monitoring for Windows 8
+     * Updated memory list information for Windows 8
    * Updated WindowExplorer plugin:
      * Fixed hook support for low integrity processes
  * FIXED:

@@ -1446,6 +1446,7 @@ typedef struct _SYSTEM_MEMORY_LIST_INFORMATION
     ULONG_PTR BadPageCount;
     ULONG_PTR PageCountByPriority[8];
     ULONG_PTR RepurposedPagesByPriority[8];
+    ULONG_PTR ModifiedPageCountPageFile;
 } SYSTEM_MEMORY_LIST_INFORMATION, *PSYSTEM_MEMORY_LIST_INFORMATION;
 
 // private
