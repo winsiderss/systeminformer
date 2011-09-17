@@ -21,7 +21,7 @@
 * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "vistaheader.h"
+#include "updater.h"
 
 // Always consider the remote version newer
 #ifdef _DEBUG
@@ -37,14 +37,13 @@ static BOOL WindowVisible = FALSE;
 static BOOL EnableCache = TRUE;
 static PH_HASH_ALGORITHM HashAlgorithm = Sha1HashAlgorithm;
 
-void SetProgressBarMarquee(HWND handle, BOOL startMarquee, INT speed);
-void UpdateContent(HWND handle, LPCWSTR content);
-void EnableButton(HWND handle, INT buttonId, BOOL enable);
-void SetButtonElevationRequiredState(HWND handle, INT buttonId, BOOL elevationRequired);
+VOID SetProgressBarMarquee(HWND handle, BOOL startMarquee, INT speed);
+VOID UpdateContent(HWND handle, LPCWSTR content);
+VOID EnableButton(HWND handle, INT buttonId, BOOL enable);
+VOID SetButtonElevationRequiredState(HWND handle, INT buttonId, BOOL elevationRequired);
 LONG_PTR SetProgressBarPosition(HWND handle, INT newPosition);
-BOOL SetProgressBarState(HWND handle, int newState);
+BOOL SetProgressBarState(HWND handle, INT newState);
 BOOL SetMainInstruction(HWND handle, PCWSTR mainInstruction);
-VOID LogVistaEvent(HWND handle, __in PPH_STRING str);
 
 static NTSTATUS VistaSilentWorkerThreadStart(
     __in PVOID Parameter
@@ -53,7 +52,7 @@ static NTSTATUS VistaSilentWorkerThreadStart(
     if (!ConnectionAvailable())
         return STATUS_SUCCESS;
 
-    if (!VistaInitializeConnection(Parameter, UPDATE_URL, UPDATE_FILE))
+    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return STATUS_SUCCESS;
 
     // Send the HTTP request.
@@ -96,8 +95,6 @@ static NTSTATUS VistaSilentWorkerThreadStart(
             Sleep(2000);
 
             DisposeConnection();
-
-            ShowUpdateTaskDialog();
         }
 
         PhDereferenceObject(localVersion);
@@ -105,7 +102,7 @@ static NTSTATUS VistaSilentWorkerThreadStart(
     }
     else
     {
-        LogVistaEvent(Parameter, PhFormatString(L"\r\n(WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+        LogEvent(PhFormatString(L"\r\n(WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
     }
 
     DisposeConnection();
@@ -122,7 +119,7 @@ static NTSTATUS VistaWorkerThreadStart(
 
     SetProgressBarPosition(hwndDlg, 40);
 
-    if (!VistaInitializeConnection(hwndDlg, UPDATE_URL, UPDATE_FILE))
+    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
         return STATUS_SUCCESS;
 
     SetProgressBarPosition(hwndDlg, 80);
@@ -197,7 +194,7 @@ static NTSTATUS VistaWorkerThreadStart(
             tc.pszContent = PhFormatString(L"Version: %u.%u \r\nReleased: %s \r\nSize: %s", xmlData.MajorVersion, xmlData.MinorVersion, xmlData.RelDate->Buffer, xmlData.Size->Buffer)->Buffer;
             tc.pszExpandedInformation = L"<A HREF=\"http://processhacker.sourceforge.net/changelog.php\">View Changelog</A>";
 
-            tc.pfCallback = TaskDlgWndProc;
+            //tc.pfCallback = TaskDlgWndProc;
 
             SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
         }
@@ -270,13 +267,13 @@ static NTSTATUS VistaWorkerThreadStart(
                 FILE_ATTRIBUTE_NORMAL, 0
                 )) == INVALID_HANDLE_VALUE)
             {
-                LogVistaEvent(hwndDlg,  PhFormatString(L"(VistaWorkerThreadStart) CreateFile error: %d", GetLastError()));
+                LogEvent(PhFormatString(L"(VistaWorkerThreadStart) CreateFile error: %d", GetLastError()));
             }
         }
     }
     else
     {
-        LogVistaEvent(hwndDlg, PhFormatString(L"(VistaWorkerThreadStart) HttpSendRequest error: %d", GetLastError()));
+        LogEvent(PhFormatString(L"(VistaWorkerThreadStart) HttpSendRequest error: %d", GetLastError()));
     }
 
     DisposeConnection();
@@ -308,7 +305,7 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
 
     UpdateContent(hwndDlg, L"\r\n\r\nInitializeConnection...");
     
-    if (!VistaInitializeConnection(hwndDlg, DOWNLOAD_SERVER, uriPath->Buffer))
+    if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
         return STATUS_SUCCESS;
@@ -347,7 +344,7 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
 
                 if (!nReadFile)
                 {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
+                    LogEvent(PhFormatString(L"\r\n(DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
                     DisposeFileHandles();
                     DeleteFile(LocalFilePathString->Buffer);
                     return STATUS_SUCCESS;
@@ -359,7 +356,7 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
                 // Write the downloaded bytes to disk.
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
+                    LogEvent(PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
                     DisposeFileHandles();
                     DeleteFile(LocalFilePathString->Buffer);
                     return STATUS_SUCCESS;
@@ -371,7 +368,7 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
                 // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
                 if (dwBytesRead != dwBytesWritten)
                 {
-                    LogVistaEvent(hwndDlg, PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed %d", GetLastError()));
+                    LogEvent(PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed %d", GetLastError()));
                     DisposeFileHandles();
                     DeleteFile(LocalFilePathString->Buffer);
                     return STATUS_SUCCESS;
@@ -484,7 +481,7 @@ static NTSTATUS VistaDownloadWorkerThreadStart(
     }
     else
     {
-        LogVistaEvent(hwndDlg, PhFormatString(L"\r\n(DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+        LogEvent(PhFormatString(L"\r\n(DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
         
         DisposeFileHandles();   
 
@@ -510,7 +507,7 @@ VOID ShowUpdateTaskDialog(VOID)
         tdPage.pszMainInstruction = L"Checking for Updates...";
         tdPage.pszContent = L" ";
         tdPage.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-        tdPage.pfCallback = TaskDlgWndProc;
+        //tdPage.pfCallback = TaskDlgWndProc;
 
         EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
         HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
@@ -580,7 +577,7 @@ HRESULT CALLBACK TaskDlgWndProc(
                     tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                     tc.nDefaultButton = IDCLOSE; 
 
-                    tc.pfCallback = TaskDlgDownloadPageWndProc;
+                    //tc.pfCallback = TaskDlgDownloadPageWndProc;
                     tc.cButtons = ARRAYSIZE(cb);
                     tc.pButtons = cb;
                                         
@@ -649,190 +646,6 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
     return S_OK;
 }
 
-BOOL VistaInitializeConnection(
-    __in HWND hwndDlg,
-    __in PCWSTR host,
-    __in PCWSTR path
-    )
-{
-    // Initialize the wininet library.
-    NetInitialize = InternetOpen(
-        L"PH Updater", // user-agent
-        INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration
-        NULL,
-        NULL,
-        0
-        );
-
-    if (!NetInitialize)
-    {
-        LogVistaEvent(hwndDlg, PhFormatString(L"(InitializeConnection) InternetOpen failed: %d", GetLastError()));
-        DisposeFileHandles();   
-        DeleteFile(LocalFilePathString->Buffer);
-        return FALSE;
-    }
-
-    // Connect to the server.
-    NetConnection = InternetConnect(
-        NetInitialize,
-        host,
-        INTERNET_DEFAULT_HTTP_PORT,
-        NULL,
-        NULL,
-        INTERNET_SERVICE_HTTP,
-        0,
-        0
-        );
-
-    if (!NetConnection)
-    {
-        LogVistaEvent(hwndDlg, PhFormatString(L"(InitializeConnection) InternetConnect failed: %d", GetLastError()));
-        DisposeFileHandles();   
-        DeleteFile(LocalFilePathString->Buffer);
-        return FALSE;
-    }
-
-    // Open the HTTP request.
-    NetRequest = HttpOpenRequest(
-        NetConnection,
-        L"GET",
-        path,
-        L"HTTP/1.1",
-        NULL,
-        NULL,
-        EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
-        0
-        );
-
-    if (!NetRequest)
-    {
-        LogVistaEvent(hwndDlg, PhFormatString(L"(InitializeConnection) HttpOpenRequest failed: %d", GetLastError()));
-        DisposeFileHandles();   
-        DeleteFile(LocalFilePathString->Buffer);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-VOID VistaStartInitialCheck(VOID)
-{
-    // Queue up our initial update check.
-    PhCreateThread(0, VistaSilentWorkerThreadStart, NULL);
-}
-
-static VOID DisposeConnection(VOID)
-{
-    if (NetInitialize)
-    {
-        InternetCloseHandle(NetInitialize);
-        NetInitialize = NULL;
-    }
-
-    if (NetConnection)
-    {
-        InternetCloseHandle(NetConnection);
-        NetConnection = NULL;
-    }
-
-    if (NetRequest)
-    {
-        InternetCloseHandle(NetRequest);
-        NetRequest = NULL;
-    }
-}
-
-static VOID DisposeStrings(VOID)
-{
-    if (LocalFilePathString)
-    {
-        PhDereferenceObject(LocalFilePathString);
-        LocalFilePathString = NULL;
-    }
-
-    if (LocalFileNameString)
-    {
-        PhDereferenceObject(LocalFileNameString);
-        LocalFileNameString = NULL;
-    }
-}
-
-static VOID DisposeFileHandles(VOID)
-{
-    if (TempFileHandle)
-    {
-        NtClose(TempFileHandle);
-        TempFileHandle = NULL;
-    }
-}
-
-static BOOL ReadRequestString(
-    __in HINTERNET Handle,
-    __out PSTR *Data,
-    __out_opt PULONG DataLength
-    )
-{
-    CHAR buffer[BUFFER_LEN];
-    PSTR data;
-    ULONG allocatedLength;
-    ULONG dataLength;
-    ULONG returnLength;
-
-    allocatedLength = sizeof(buffer);
-    data = PhAllocate(allocatedLength);
-    dataLength = 0;
-
-    while (InternetReadFile(Handle, buffer, BUFFER_LEN, &returnLength))
-    {
-        if (returnLength == 0)
-            break;
-
-        if (allocatedLength < dataLength + returnLength)
-        {
-            allocatedLength *= 2;
-            data = PhReAllocate(data, allocatedLength);
-        }
-
-        RtlCopyMemory(data + dataLength, buffer, returnLength);
-
-        dataLength += returnLength;
-    }
-
-    if (allocatedLength < dataLength + 1)
-    {
-        allocatedLength++;
-        data = PhReAllocate(data, allocatedLength);
-    }
-
-    // Ensure that the buffer is null-terminated.
-    data[dataLength] = 0;
-
-    *Data = data;
-
-    if (DataLength)
-        *DataLength = dataLength;
-
-    return TRUE;
-}
-
-static VOID FreeXmlData(
-    __in PUPDATER_XML_DATA XmlData
-    )
-{
-    PhDereferenceObject(XmlData->RelDate);
-    PhDereferenceObject(XmlData->Size);
-    PhDereferenceObject(XmlData->Hash);
-}
-
-VOID LogVistaEvent(HWND handle, __in PPH_STRING str)
-{
-    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, str);
-
-    UpdateContent(handle, str->Buffer);
-
-    PhDereferenceObject(str);
-}
-
 /// <summary>
 /// Simulate the action of a button click in the TaskDialog. This can be a DialogResult value 
 /// or the ButtonID set on a TasDialogButton set on TaskDialog.Buttons.
@@ -882,20 +695,16 @@ BOOL SetProgressBarState(HWND handle, int newState)
 /// <param name="minRange">Minimum range value. By default, the minimum value is zero.</param>
 /// <param name="maxRange">Maximum range value.  By default, the maximum value is 100.</param>
 /// <returns>If the function succeeds the return value is true.</returns>
-BOOL SetProgressBarRange(HWND handle, INT minRange, INT maxRange)
+BOOL SetProgressBarRange(HWND handle, INT nMinRange, INT nMaxRange)
 {
-    // TDM_SET_PROGRESS_BAR_RANGE          = WM_USER+105, // lParam = MAKELPARAM(nMinRange, nMaxRange)
-    // #define MAKELPARAM(l, h)      ((LPARAM)(DWORD)MAKELONG(l, h))
-    // #define MAKELONG(a, b)      ((LONG)(((WORD)(((DWORD_PTR)(a)) & 0xffff)) | ((DWORD)((WORD)(((DWORD_PTR)(b)) & 0xffff))) << 16))
-    
     return SendMessage(
-        handle,
-        TDM_SET_PROGRESS_BAR_RANGE,
-        0,
-        ((((INT)minRange) & 0xffff) | ((((INT)maxRange) & 0xffff) << 16))
-        ) != 0;
+		handle, 
+		TDM_SET_PROGRESS_BAR_RANGE, 
+		0, 
+		MAKELPARAM(nMinRange, nMaxRange)
+		) != 0;
 
-    // Return value is actually prior range.
+    // TODO: Return value is actually prior range: http://msdn.microsoft.com/en-us/library/bb760532.aspx
 }
 
 /// <summary>
