@@ -45,452 +45,282 @@ LONG_PTR SetProgressBarPosition(HWND handle, INT newPosition);
 BOOL SetProgressBarState(HWND handle, INT newState);
 BOOL SetMainInstruction(HWND handle, PCWSTR mainInstruction);
 
-static NTSTATUS VistaSilentWorkerThreadStart(
-    __in PVOID Parameter
-    )
-{
-    if (!ConnectionAvailable())
-        return STATUS_SUCCESS;
-
-    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return STATUS_SUCCESS;
-
-    // Send the HTTP request.
-    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
-    {
-        PSTR data;
-        UPDATER_XML_DATA xmlData;
-        PPH_STRING localVersion;
-        ULONG localMajorVersion = 0;
-        ULONG localMinorVersion = 0;
-
-        // Read the resulting xml into our buffer.
-        if (!ReadRequestString(NetRequest, &data, NULL))
-            return STATUS_SUCCESS;
-
-        if (!QueryXmlData(data, &xmlData))
-        {
-            PhFree(data);
-            return STATUS_SUCCESS;
-        }
-
-        PhFree(data);
-
-        localVersion = PhGetPhVersion();
-
-#ifndef TEST_MODE
-        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
-        {
-            PhDereferenceObject(localVersion);
-            FreeXmlData(&xmlData);
-        }
-#else
-        localMajorVersion = 0;
-        localMinorVersion = 0;
-#endif
-
-        if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
-        {
-            // delay dialog creation for 2 seconds.
-            Sleep(2000);
-
-            DisposeConnection();
-        }
-
-        PhDereferenceObject(localVersion);
-        FreeXmlData(&xmlData);
-    }
-    else
-    {
-        LogEvent(PhFormatString(L"\r\n(WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-    }
-
-    DisposeConnection();
-
-    return STATUS_SUCCESS;
-}
-
-static NTSTATUS VistaWorkerThreadStart(
-    __in PVOID Parameter
-    )
-{
-    INT result = 0;
-    HWND hwndDlg = (HWND)Parameter;
-
-    SetProgressBarPosition(hwndDlg, 40);
-
-    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return STATUS_SUCCESS;
-
-    SetProgressBarPosition(hwndDlg, 80);
-
-    // Send the HTTP request.
-    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
-    {
-        PSTR data;
-        UPDATER_XML_DATA xmlData;
-        PPH_STRING localVersion;
-        ULONG localMajorVersion = 0;
-        ULONG localMinorVersion = 0;
-
-        // Read the resulting xml into our buffer.
-        if (!ReadRequestString(NetRequest, &data, NULL))
-            return STATUS_SUCCESS;
-
-        if (!QueryXmlData(data, &xmlData))
-        {
-            PhFree(data);
-            return STATUS_SUCCESS;
-        }
-
-        PhFree(data);
-
-        localVersion = PhGetPhVersion();
-
-#ifndef TEST_MODE
-        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
-        {
-            PhDereferenceObject(localVersion);
-            FreeXmlData(&xmlData);
-        }
-#else
-        localMajorVersion = 0;
-        localMinorVersion = 0;
-#endif
-
-        result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
-
-        PhSwapReference(&RemoteHashString, xmlData.Hash);
-        
-        if (result > 0)
-        {
-            TASKDIALOGCONFIG tc = { sizeof(TASKDIALOGCONFIG) };
-
-            TASKDIALOG_BUTTON cb[] =
-            { 
-                { 1005, L"&Download the update now" },
-                { 1006, L"Do &not download the update" },
-            };
-    
-            LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
-
-            tc.cbSize = sizeof(tc);
-            tc.hwndParent = PhMainWndHandle;
-            tc.hInstance = PhLibImageBase;
-            tc.dwFlags = 
-                TDF_ALLOW_DIALOG_CANCELLATION |
-                TDF_USE_COMMAND_LINKS |  
-                TDF_POSITION_RELATIVE_TO_WINDOW | 
-                TDF_EXPAND_FOOTER_AREA | 
-                TDF_ENABLE_HYPERLINKS;
-
-            tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-            tc.pszMainIcon = MAKEINTRESOURCE(101);   
-            tc.cButtons = ARRAYSIZE(cb);
-            tc.pButtons = cb;
-    
-            tc.pszWindowTitle = L"Process Hacker Updater";
-            tc.pszMainInstruction = PhFormatString(L"Process Hacker %u.%u available", xmlData.MajorVersion, xmlData.MinorVersion)->Buffer;
-            tc.pszContent = PhFormatString(L"Version: %u.%u \r\nReleased: %s \r\nSize: %s", xmlData.MajorVersion, xmlData.MinorVersion, xmlData.RelDate->Buffer, xmlData.Size->Buffer)->Buffer;
-            tc.pszExpandedInformation = L"<A HREF=\"http://processhacker.sourceforge.net/changelog.php\">View Changelog</A>";
-
-            //tc.pfCallback = TaskDlgWndProc;
-
-            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
-        }
-        else if (result == 0)
-        {
-            TASKDIALOGCONFIG tc = { sizeof(TASKDIALOGCONFIG) };
-    
-            PPH_STRING sText2 = PhFormatString(L"Process Hacker %u.%u \r\n%s", localMajorVersion, localMinorVersion, xmlData.RelDate->Buffer);
-            
-            tc.cbSize = sizeof(tc);
-            tc.hwndParent = PhMainWndHandle;
-            tc.hInstance = PhLibImageBase;
-            tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_ENABLE_HYPERLINKS;
-            tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-            tc.pszWindowTitle = L"Process Hacker Updater";
-            tc.pszMainInstruction = L"You're running the latest version";
-            tc.pszContent = sText2->Buffer;
-            tc.pszExpandedInformation = L"<A HREF=\"http://processhacker.sourceforge.net/changelog.php\">View Changelog</A>";
-            tc.pszMainIcon = MAKEINTRESOURCE(SecuritySuccess);
-
-            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
-
-            PhDereferenceObject(sText2);
-        }
-        else if (result < 0)
-        {
-            TASKDIALOGCONFIG tc = { sizeof(TASKDIALOGCONFIG) };
-    
-            PPH_STRING summaryText = PhFormatString(L"You're running a newer version");
-            PPH_STRING verText = PhFormatString(L"Current version: %s \r\nRemote version: %u.%u", localVersion->Buffer, xmlData.MajorVersion, xmlData.MinorVersion);
-
-            tc.cbSize = sizeof(tc);
-            tc.hwndParent = PhMainWndHandle;
-            tc.hInstance = PhLibImageBase;
-            tc.dwFlags = 
-                 TDF_ALLOW_DIALOG_CANCELLATION
-                | TDF_USE_COMMAND_LINKS
-                | TDF_POSITION_RELATIVE_TO_WINDOW 
-                | TDF_CALLBACK_TIMER;
-
-            tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-            tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
-            tc.pszWindowTitle = L"Process Hacker Updater";
-            tc.pszMainInstruction = summaryText->Buffer;
-            tc.pszContent = verText->Buffer;
-
-            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
-
-            PhDereferenceObject(verText);
-            PhDereferenceObject(summaryText);
-        }
-
-        FreeXmlData(&xmlData);
-        PhDereferenceObject(localVersion);
-
-        if (LocalFileNameString)
-        {
-            PPH_STRING sText = PhFormatString(L"\\\\%s", LocalFileNameString->Buffer);
-           
-            LocalFilePathString = PhGetKnownLocation(CSIDL_DESKTOP, sText->Buffer);
-
-            PhDereferenceObject(sText);
-
-            if ((TempFileHandle = CreateFile(
-                LocalFilePathString->Buffer, 
-                GENERIC_WRITE, 
-                FILE_SHARE_WRITE, 
-                0, 
-                CREATE_ALWAYS, 
-                FILE_ATTRIBUTE_NORMAL, 0
-                )) == INVALID_HANDLE_VALUE)
-            {
-                LogEvent(PhFormatString(L"(VistaWorkerThreadStart) CreateFile error: %d", GetLastError()));
-            }
-        }
-    }
-    else
-    {
-        LogEvent(PhFormatString(L"(VistaWorkerThreadStart) HttpSendRequest error: %d", GetLastError()));
-    }
-
-    DisposeConnection();
-
-    return STATUS_SUCCESS;
-}
-
-static NTSTATUS VistaDownloadWorkerThreadStart(
-    __in PVOID Parameter
-    )
-{
-    DWORD dwTotalReadSize = 0,
-          dwContentLen = 0,
-          dwBytesRead = 0,
-          dwBytesWritten = 0,
-          dwBufLen = sizeof(dwContentLen);
-
-    BOOL nReadFile = FALSE;
-    HWND hwndDlg = (HWND)Parameter, 
-        hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
-
-    PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
-    PH_HASH_CONTEXT hashContext;
-
-    UpdateContent(hwndDlg, L"\r\n\r\nConnectionAvailable...");
-    
-    if (!ConnectionAvailable())
-        return STATUS_SUCCESS;
-
-    UpdateContent(hwndDlg, L"\r\n\r\nInitializeConnection...");
-    
-    if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
-    {
-        PhDereferenceObject(uriPath);
-        return STATUS_SUCCESS;
-    }
-
-    UpdateContent(hwndDlg, L"\r\n\r\nHttpSendRequest...");
-    
-    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
-    {
-        CHAR buffer[BUFFER_LEN];
-        DWORD dwStartTicks = GetTickCount();
-        DWORD dwLastTicks = dwStartTicks;
-        DWORD dwLastTotalBytes = 0, 
-            dwNowTicks = 0,
-            dwTimeTaken = 0;
-
-        // Zero the buffer.
-        RtlZeroMemory(buffer, BUFFER_LEN);
-
-        // Initialize hash algorithm.
-        PhInitializeHash(&hashContext, HashAlgorithm);
-        
-        // Enable the pause button.
-        EnableButton(hwndDlg, 1002, TRUE);
-
-        UpdateContent(hwndDlg, L"\r\n\r\nHttpQueryInfo...");
-
-        if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
-        {
-            UpdateContent(hwndDlg, L"\r\n\r\nInternetReadFile...");
-
-            while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
-            {
-                if (dwBytesRead == 0)
-                    break;
-
-                if (!nReadFile)
-                {
-                    LogEvent(PhFormatString(L"\r\n(DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    DisposeFileHandles();
-                    DeleteFile(LocalFilePathString->Buffer);
-                    return STATUS_SUCCESS;
-                }
-
-                // Update the hash of bytes we just downloaded.
-                PhUpdateHash(&hashContext, buffer, dwBytesRead);
-
-                // Write the downloaded bytes to disk.
-                if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
-                {
-                    LogEvent(PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    DisposeFileHandles();
-                    DeleteFile(LocalFilePathString->Buffer);
-                    return STATUS_SUCCESS;
-                }
-
-                // Zero the buffer.
-                RtlZeroMemory(buffer, BUFFER_LEN);
-
-                // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
-                if (dwBytesRead != dwBytesWritten)
-                {
-                    LogEvent(PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed %d", GetLastError()));
-                    DisposeFileHandles();
-                    DeleteFile(LocalFilePathString->Buffer);
-                    return STATUS_SUCCESS;
-                }
-
-                // Update our total bytes downloaded
-                dwTotalReadSize += dwBytesRead;
-
-                // Calculate the transfer rate and download speed. 
-                dwNowTicks = GetTickCount();
-                dwTimeTaken = dwNowTicks - dwLastTicks;
-
-                // Update the transfer rate and estimated time every second.
-                if (dwTimeTaken > 0)
-                {
-                    ULONG64 kbPerSecond = (ULONG64)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
-        
-                    // Set last counters for the next loop.
-                    dwLastTicks = dwNowTicks;
-                    dwLastTotalBytes = dwTotalReadSize;
-
-                    // Update the estimated time left, progress and download speed.
-                    {
-                        ULONG64 dwSecondsLeft =  (ULONG64)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
-
-                        // Calculate the percentage of our total bytes downloaded per the length.
-                        INT dlProgress = (INT)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
-
-                        PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
-                        PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-                        PPH_STRING sRemaningBytes = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
-                        PPH_STRING sDlSpeed = PhFormatSize(kbPerSecond, -1);
- 
-                        PPH_STRING sText = PhFormatString(
-                            L"Downloaded: %s of %s (%d%%)\r\nSpeed: %s/s\r\nRemaning: %s (%ds)", 
-                             dlCurrent->Buffer, dlLength->Buffer, dlProgress, sDlSpeed->Buffer, sRemaningBytes->Buffer, dwSecondsLeft
-                            );
-
-                        SetProgressBarPosition(hwndDlg, dlProgress);
-
-                        SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)sText->Buffer);
-
-                        PhDereferenceObject(sText);
-                        PhDereferenceObject(sDlSpeed);
-                        PhDereferenceObject(sRemaningBytes);
-                        PhDereferenceObject(dlLength);
-                        PhDereferenceObject(dlCurrent);
-                    }
-                }
-            }
-        }
-        else
-        {
-            // No content length...impossible to calculate % complete so just read until we are done.
-        }
-
-        DisposeConnection();
-        DisposeFileHandles();
-        PhDereferenceObject(uriPath);
-
-        SetMainInstruction(hwndDlg, L"Download Complete.");
-        SetProgressBarPosition(hwndDlg, 100);
-        
-        if (!PhElevated)
-            SetButtonElevationRequiredState(hwndDlg, 1001, TRUE);
-
-        EnableButton(hwndDlg, 1001, TRUE);           
-        EnableButton(hwndDlg, 1002, FALSE);   
-        EnableButton(hwndDlg, 1003, FALSE);
-
-        {
-            UCHAR hashBuffer[20];
-            ULONG hashLength = 0;
-
-            if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
-            {
-                PH_STRING *hexString = PhBufferToHexString(hashBuffer, hashLength);
-
-                if (PhEqualString(hexString, RemoteHashString, TRUE))
-                {
-                    UpdateContent(hwndDlg, L"\r\n\r\nHash Verified.");
-                }
-                else
-                {
-                    SetProgressBarState(hwndDlg, PBST_ERROR);
-                    
-                    switch (HashAlgorithm)
-                    {
-                    case Md5HashAlgorithm:
-                        {
-                            UpdateContent(hwndDlg, PhFormatString(L"Md5 hash check failed.\r\nLocal: %s\r\nRemote: %s", hexString->Buffer, RemoteHashString->Buffer)->Buffer);
-                        }
-                        break;
-                    case Sha1HashAlgorithm:
-                        {
-                            UpdateContent(hwndDlg, PhFormatString(L"Sha1 hash check failed.\r\nLocal: %s\r\nRemote: %s", hexString->Buffer, RemoteHashString->Buffer)->Buffer);
-                        }
-                        break;
-                    }
-                }
-
-                PhDereferenceObject(hexString);
-            }
-            else
-            {
-                SetProgressBarState(hwndDlg, PBST_ERROR);
-                UpdateContent(hwndDlg, L"\r\n\r\nPhFinalHash failed.");
-            }
-        }
-    }
-    else
-    {
-        LogEvent(PhFormatString(L"\r\n(DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
-        
-        DisposeFileHandles();   
-
-        if (LocalFilePathString)
-            DeleteFile(LocalFilePathString->Buffer);
-    }
-
-    return STATUS_SUCCESS;
-}
+//static NTSTATUS VistaSilentWorkerThreadStart(
+//    __in PVOID Parameter
+//    )
+//{
+//    if (!ConnectionAvailable())
+//        return STATUS_SUCCESS;
+//
+//    if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
+//        return STATUS_SUCCESS;
+//
+//    // Send the HTTP request.
+//    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
+//    {
+//        PSTR data;
+//        UPDATER_XML_DATA xmlData;
+//        PPH_STRING localVersion;
+//        ULONG localMajorVersion = 0;
+//        ULONG localMinorVersion = 0;
+//
+//        // Read the resulting xml into our buffer.
+//        if (!ReadRequestString(NetRequest, &data, NULL))
+//            return STATUS_SUCCESS;
+//
+//        if (!QueryXmlData(data, &xmlData))
+//        {
+//            PhFree(data);
+//            return STATUS_SUCCESS;
+//        }
+//
+//        PhFree(data);
+//
+//        localVersion = PhGetPhVersion();
+//
+//#ifndef TEST_MODE
+//        if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+//        {
+//            PhDereferenceObject(localVersion);
+//            FreeXmlData(&xmlData);
+//        }
+//#else
+//        localMajorVersion = 0;
+//        localMinorVersion = 0;
+//#endif
+//
+//        if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
+//        {
+//            // delay dialog creation for 2 seconds.
+//            Sleep(2000);
+//
+//            DisposeConnection();
+//        }
+//
+//        PhDereferenceObject(localVersion);
+//        FreeXmlData(&xmlData);
+//    }
+//    else
+//    {
+//        LogEvent(PhFormatString(L"\r\n(WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+//    }
+//
+//    DisposeConnection();
+//
+//    return STATUS_SUCCESS;
+//}
+//
+//
+//static NTSTATUS VistaDownloadWorkerThreadStart(
+//    __in PVOID Parameter
+//    )
+//{
+//    DWORD dwTotalReadSize = 0,
+//          dwContentLen = 0,
+//          dwBytesRead = 0,
+//          dwBytesWritten = 0,
+//          dwBufLen = sizeof(dwContentLen);
+//
+//    BOOL nReadFile = FALSE;
+//    HWND hwndDlg = (HWND)Parameter, 
+//        hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
+//
+//    PPH_STRING uriPath = PhFormatString(DOWNLOAD_PATH, LocalFileNameString->Buffer);
+//    PH_HASH_CONTEXT hashContext;
+//
+//    UpdateContent(hwndDlg, L"\r\n\r\nConnectionAvailable...");
+//    
+//    if (!ConnectionAvailable())
+//        return STATUS_SUCCESS;
+//
+//    UpdateContent(hwndDlg, L"\r\n\r\nInitializeConnection...");
+//    
+//    if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
+//    {
+//        PhDereferenceObject(uriPath);
+//        return STATUS_SUCCESS;
+//    }
+//
+//    UpdateContent(hwndDlg, L"\r\n\r\nHttpSendRequest...");
+//    
+//    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
+//    {
+//        CHAR buffer[BUFFER_LEN];
+//        DWORD dwStartTicks = GetTickCount();
+//        DWORD dwLastTicks = dwStartTicks;
+//        DWORD dwLastTotalBytes = 0, 
+//            dwNowTicks = 0,
+//            dwTimeTaken = 0;
+//
+//        // Zero the buffer.
+//        RtlZeroMemory(buffer, BUFFER_LEN);
+//
+//        // Initialize hash algorithm.
+//        PhInitializeHash(&hashContext, HashAlgorithm);
+//        
+//        // Enable the pause button.
+//        EnableButton(hwndDlg, 1002, TRUE);
+//
+//        UpdateContent(hwndDlg, L"\r\n\r\nHttpQueryInfo...");
+//
+//        if (HttpQueryInfo(NetRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
+//        {
+//            UpdateContent(hwndDlg, L"\r\n\r\nInternetReadFile...");
+//
+//            while ((nReadFile = InternetReadFile(NetRequest, buffer, BUFFER_LEN, &dwBytesRead)))
+//            {
+//                if (dwBytesRead == 0)
+//                    break;
+//
+//                if (!nReadFile)
+//                {
+//                    LogEvent(PhFormatString(L"\r\n(DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
+//                    DisposeFileHandles();
+//                    DeleteFile(LocalFilePathString->Buffer);
+//                    return STATUS_SUCCESS;
+//                }
+//
+//                // Update the hash of bytes we just downloaded.
+//                PhUpdateHash(&hashContext, buffer, dwBytesRead);
+//
+//                // Write the downloaded bytes to disk.
+//                if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
+//                {
+//                    LogEvent(PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
+//                    DisposeFileHandles();
+//                    DeleteFile(LocalFilePathString->Buffer);
+//                    return STATUS_SUCCESS;
+//                }
+//
+//                // Zero the buffer.
+//                RtlZeroMemory(buffer, BUFFER_LEN);
+//
+//                // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
+//                if (dwBytesRead != dwBytesWritten)
+//                {
+//                    LogEvent(PhFormatString(L"\r\n\r\n(DownloadWorkerThreadStart) WriteFile failed %d", GetLastError()));
+//                    DisposeFileHandles();
+//                    DeleteFile(LocalFilePathString->Buffer);
+//                    return STATUS_SUCCESS;
+//                }
+//
+//                // Update our total bytes downloaded
+//                dwTotalReadSize += dwBytesRead;
+//
+//                // Calculate the transfer rate and download speed. 
+//                dwNowTicks = GetTickCount();
+//                dwTimeTaken = dwNowTicks - dwLastTicks;
+//
+//                // Update the transfer rate and estimated time every second.
+//                if (dwTimeTaken > 0)
+//                {
+//                    ULONG64 kbPerSecond = (ULONG64)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
+//        
+//                    // Set last counters for the next loop.
+//                    dwLastTicks = dwNowTicks;
+//                    dwLastTotalBytes = dwTotalReadSize;
+//
+//                    // Update the estimated time left, progress and download speed.
+//                    {
+//                        ULONG64 dwSecondsLeft =  (ULONG64)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
+//
+//                        // Calculate the percentage of our total bytes downloaded per the length.
+//                        INT dlProgress = (INT)(((double)dwTotalReadSize / (double)dwContentLen) * 100);
+//
+//                        PPH_STRING dlCurrent = PhFormatSize(dwTotalReadSize, -1);
+//                        PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
+//                        PPH_STRING sRemaningBytes = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
+//                        PPH_STRING sDlSpeed = PhFormatSize(kbPerSecond, -1);
+// 
+//                        PPH_STRING sText = PhFormatString(
+//                            L"Downloaded: %s of %s (%d%%)\r\nSpeed: %s/s\r\nRemaning: %s (%ds)", 
+//                             dlCurrent->Buffer, dlLength->Buffer, dlProgress, sDlSpeed->Buffer, sRemaningBytes->Buffer, dwSecondsLeft
+//                            );
+//
+//                        SetProgressBarPosition(hwndDlg, dlProgress);
+//
+//                        SendMessage(hwndDlg, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)sText->Buffer);
+//
+//                        PhDereferenceObject(sText);
+//                        PhDereferenceObject(sDlSpeed);
+//                        PhDereferenceObject(sRemaningBytes);
+//                        PhDereferenceObject(dlLength);
+//                        PhDereferenceObject(dlCurrent);
+//                    }
+//                }
+//            }
+//        }
+//        else
+//        {
+//            // No content length...impossible to calculate % complete so just read until we are done.
+//        }
+//
+//        DisposeConnection();
+//        DisposeFileHandles();
+//        PhDereferenceObject(uriPath);
+//
+//        SetMainInstruction(hwndDlg, L"Download Complete.");
+//        SetProgressBarPosition(hwndDlg, 100);
+//        
+//        if (!PhElevated)
+//            SetButtonElevationRequiredState(hwndDlg, 1001, TRUE);
+//
+//        EnableButton(hwndDlg, 1001, TRUE);           
+//        EnableButton(hwndDlg, 1002, FALSE);   
+//        EnableButton(hwndDlg, 1003, FALSE);
+//
+//        {
+//            UCHAR hashBuffer[20];
+//            ULONG hashLength = 0;
+//
+//            if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
+//            {
+//                PH_STRING *hexString = PhBufferToHexString(hashBuffer, hashLength);
+//
+//                if (PhEqualString(hexString, RemoteHashString, TRUE))
+//                {
+//                    UpdateContent(hwndDlg, L"\r\n\r\nHash Verified.");
+//                }
+//                else
+//                {
+//                    SetProgressBarState(hwndDlg, PBST_ERROR);
+//                    
+//                    switch (HashAlgorithm)
+//                    {
+//                    case Md5HashAlgorithm:
+//                        {
+//                            UpdateContent(hwndDlg, PhFormatString(L"Md5 hash check failed.\r\nLocal: %s\r\nRemote: %s", hexString->Buffer, RemoteHashString->Buffer)->Buffer);
+//                        }
+//                        break;
+//                    case Sha1HashAlgorithm:
+//                        {
+//                            UpdateContent(hwndDlg, PhFormatString(L"Sha1 hash check failed.\r\nLocal: %s\r\nRemote: %s", hexString->Buffer, RemoteHashString->Buffer)->Buffer);
+//                        }
+//                        break;
+//                    }
+//                }
+//
+//                PhDereferenceObject(hexString);
+//            }
+//            else
+//            {
+//                SetProgressBarState(hwndDlg, PBST_ERROR);
+//                UpdateContent(hwndDlg, L"\r\n\r\nPhFinalHash failed.");
+//            }
+//        }
+//    }
+//    else
+//    {
+//        LogEvent(PhFormatString(L"\r\n(DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
+//        
+//        DisposeFileHandles();   
+//
+//        if (LocalFilePathString)
+//            DeleteFile(LocalFilePathString->Buffer);
+//    }
+//
+//    return STATUS_SUCCESS;
+//}
 
 VOID ShowUpdateTaskDialog(VOID)
 {
@@ -536,8 +366,6 @@ HRESULT CALLBACK TaskDlgWndProc(
     case TDN_CREATED:
         { 
             WindowVisible = TRUE;
-
-            PhCreateThread(0, VistaWorkerThreadStart, hwndDlg);
         }
         break;
     case TDN_DESTROYED:
@@ -614,8 +442,6 @@ HRESULT CALLBACK TaskDlgDownloadPageWndProc(
             EnableButton(hwndDlg, 1001, FALSE);
             EnableButton(hwndDlg, 1002, FALSE);
             EnableButton(hwndDlg, 1003, FALSE);
-
-            PhCreateThread(0, VistaDownloadWorkerThreadStart, hwndDlg);
         }
         break;
     case TDN_DESTROYED:
