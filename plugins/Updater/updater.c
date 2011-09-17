@@ -22,6 +22,7 @@
 */
 
 #include "updater.h"
+#include <process.h>
 
 // Always consider the remote version newer
 #ifdef _DEBUG
@@ -42,15 +43,15 @@ static HINTERNET NetInitialize = NULL;
 static HINTERNET NetConnection = NULL;
 static HINTERNET NetRequest = NULL;
 
-static NTSTATUS SilentWorkerThreadStart(
+static void __cdecl SilentWorkerThreadStart(
     __in PVOID Parameter
     )
 {
     if (!ConnectionAvailable())
-        return STATUS_SUCCESS;
+        return;
 
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return STATUS_SUCCESS;
+        return;
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -63,12 +64,12 @@ static NTSTATUS SilentWorkerThreadStart(
 
         // Read the resulting xml into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
-            return STATUS_SUCCESS;
+            return;
 
         if (!QueryXmlData(data, &xmlData))
         {
             PhFree(data);
-            return STATUS_SUCCESS;
+            return;
         }
 
         PhFree(data);
@@ -103,18 +104,16 @@ static NTSTATUS SilentWorkerThreadStart(
     }
 
     DisposeConnection();
-
-    return STATUS_SUCCESS;
 }
 
-static NTSTATUS DownloadChangelogText(
+static void __cdecl DownloadChangelogText(
     __in PVOID Parameter
     )
 {
     HWND hwndDlg = (HWND)Parameter;
 
     if (!InitializeConnection(L"processhacker.svn.sourceforge.net", L"/viewvc/processhacker/2.x/trunk/CHANGELOG.txt"))//?revision=4612"))
-        return STATUS_SUCCESS;
+        return;
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -124,26 +123,16 @@ static NTSTATUS DownloadChangelogText(
         // Read the page into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
         {
-            return STATUS_SUCCESS;
-        }
-        else
-        {
-            PPH_STRING str = PhCreateStringFromAnsi(data);
-
-            SetDlgItemText(hwndDlg, IDC_EDIT1, PhGetString(str));
-
-            PhDereferenceObject(str);
+            return;
         }
 
         PhFree(data);
     }
 
     PhUpdaterState = Downloading;
-
-    return STATUS_SUCCESS;
 }
 
-static NTSTATUS WorkerThreadStart(
+static void __cdecl WorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -151,7 +140,7 @@ static NTSTATUS WorkerThreadStart(
     HWND hwndDlg = (HWND)Parameter;
   
     if (!InitializeConnection(UPDATE_URL, UPDATE_FILE))
-        return STATUS_SUCCESS;
+        return;
 
     // Send the HTTP request.
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
@@ -164,12 +153,12 @@ static NTSTATUS WorkerThreadStart(
 
         // Read the resulting xml into our buffer.
         if (!ReadRequestString(NetRequest, &data, NULL))
-            return STATUS_SUCCESS;
+            return;
 
         if (!QueryXmlData(data, &xmlData))
         {
             PhFree(data);
-            return STATUS_SUCCESS;
+            return;
         }
 
         PhFree(data);
@@ -256,17 +245,15 @@ static NTSTATUS WorkerThreadStart(
     {
         LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
         DisposeConnection();
-        return STATUS_SUCCESS;
+        return;
     }
 
     DisposeConnection();
       
     PhUpdaterState = Downloading;
-
-    return STATUS_SUCCESS;
 }
 
-static NTSTATUS DownloadWorkerThreadStart(
+static void __cdecl DownloadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
@@ -284,12 +271,12 @@ static NTSTATUS DownloadWorkerThreadStart(
     PH_HASH_CONTEXT hashContext;
 
     if (!ConnectionAvailable())
-        return STATUS_SUCCESS;
+        return;
 
     if (!InitializeConnection(DOWNLOAD_SERVER, uriPath->Buffer))
     {
         PhDereferenceObject(uriPath);
-        return STATUS_SUCCESS;
+        return;
     }
 
     Updater_SetStatusText(hwndDlg, L"Connecting");
@@ -322,7 +309,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Update the hash of bytes we just downloaded.
@@ -332,7 +319,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Zero the buffer.
@@ -342,7 +329,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Update our total bytes downloaded
@@ -418,7 +405,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!nReadFile)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) InternetReadFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 PhUpdateHash(&hashContext, buffer, dwBytesRead);
@@ -426,7 +413,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (!WriteFile(TempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
 
                 // Reset the buffer.
@@ -435,7 +422,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                 if (dwBytesRead != dwBytesWritten)
                 {
                     LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) WriteFile failed (%d)", GetLastError()));
-                    return STATUS_SUCCESS;
+                    return;
                 }
             }
         }
@@ -479,6 +466,8 @@ static NTSTATUS DownloadWorkerThreadStart(
             }
         }
 
+		PostMessage(hwndProgress, PBM_SETPOS, 100, 0);
+
 		// Enable Install button
         SetDlgItemText(hwndDlg, IDC_DOWNLOAD, L"Install");
         Updater_EnableUI(hwndDlg);
@@ -492,8 +481,6 @@ static NTSTATUS DownloadWorkerThreadStart(
     {
         LogEvent(PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpSendRequest failed (%d)", GetLastError()));
     }
-
-    return STATUS_SUCCESS;
 }
 
 INT_PTR CALLBACK MainWndProc(
@@ -526,7 +513,7 @@ INT_PTR CALLBACK MainWndProc(
             HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
             PhUpdaterState = Default;
             
-            PhCreateThread(0, WorkerThreadStart, hwndDlg);
+            _beginthread(WorkerThreadStart, 0, hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -573,7 +560,7 @@ INT_PTR CALLBACK MainWndProc(
                                 PostMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
    
                                 // Star our Downloader thread   
-                                PhCreateThread(0, DownloadWorkerThreadStart, hwndDlg);
+                                _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
                             }
                             else
                             {
@@ -866,7 +853,7 @@ LONG CompareVersions(
 VOID StartInitialCheck(VOID)
 {
     // Queue up our initial update check.
-    PhCreateThread(0, SilentWorkerThreadStart, NULL);
+    _beginthread(SilentWorkerThreadStart, 0, NULL);
 }
 
 VOID ShowUpdateDialog(VOID)
@@ -977,3 +964,91 @@ VOID FreeXmlData(
 }
 
 #pragma endregion
+
+
+VOID CreatePage(HWND hwndDlg, UPDATER_XML_DATA xmlData)
+{
+	TASKDIALOGCONFIG tc = { sizeof(TASKDIALOGCONFIG) };
+
+	TASKDIALOG_BUTTON cb[] =
+	{ 
+		{ 1005, L"&Download the update now" },
+		{ 1006, L"Do &not download the update" },
+	};
+
+	LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
+
+	tc.cbSize = sizeof(tc);
+	tc.hwndParent = PhMainWndHandle;
+	tc.hInstance = PhLibImageBase;
+	tc.dwFlags = 
+		TDF_ALLOW_DIALOG_CANCELLATION |
+		TDF_USE_COMMAND_LINKS |  
+		TDF_POSITION_RELATIVE_TO_WINDOW | 
+		TDF_EXPAND_FOOTER_AREA | 
+		TDF_ENABLE_HYPERLINKS;
+
+	tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+	tc.pszMainIcon = MAKEINTRESOURCE(101);   
+	tc.cButtons = ARRAYSIZE(cb);
+	tc.pButtons = cb;
+
+	tc.pszWindowTitle = L"Process Hacker Updater";
+	tc.pszMainInstruction = PhFormatString(L"Process Hacker %u.%u available", xmlData.MajorVersion, xmlData.MinorVersion)->Buffer;
+	tc.pszContent = PhFormatString(L"Version: %u.%u \r\nReleased: %s \r\nSize: %s", xmlData.MajorVersion, xmlData.MinorVersion, xmlData.RelDate->Buffer, xmlData.Size->Buffer)->Buffer;
+	tc.pszExpandedInformation = L"<A HREF=\"http://processhacker.sourceforge.net/changelog.php\">View Changelog</A>";
+
+	//tc.pfCallback = TaskDlgWndProc;
+
+	SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
+}
+
+VOID CreatePageTwo(HWND hwndDlg, UPDATER_XML_DATA xmlData)
+{
+	TASKDIALOGCONFIG tc = { sizeof(TASKDIALOGCONFIG) };
+
+	PPH_STRING sText2 = PhFormatString(L"Process Hacker %u.%u \r\n%s", xmlData.MajorVersion, xmlData.MinorVersion, xmlData.RelDate->Buffer);
+
+	tc.cbSize = sizeof(tc);
+	tc.hwndParent = PhMainWndHandle;
+	tc.hInstance = PhLibImageBase;
+	tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_ENABLE_HYPERLINKS;
+	tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+	tc.pszWindowTitle = L"Process Hacker Updater";
+	tc.pszMainInstruction = L"You're running the latest version";
+	tc.pszContent = sText2->Buffer;
+	tc.pszExpandedInformation = L"<A HREF=\"http://processhacker.sourceforge.net/changelog.php\">View Changelog</A>";
+	tc.pszMainIcon = MAKEINTRESOURCE(SecuritySuccess);
+
+	SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
+
+	PhDereferenceObject(sText2);
+}
+
+VOID CreatePageThree(HWND hwndDlg, UPDATER_XML_DATA xmlData)
+{
+	TASKDIALOGCONFIG tc = { sizeof(TASKDIALOGCONFIG) };
+
+	PPH_STRING summaryText = PhFormatString(L"You're running a newer version");
+	PPH_STRING verText = PhFormatString(L"Current version: %s \r\nRemote version: %u.%u", L"localVersion->Buffer", xmlData.MajorVersion, xmlData.MinorVersion);
+
+	tc.cbSize = sizeof(tc);
+	tc.hwndParent = PhMainWndHandle;
+	tc.hInstance = PhLibImageBase;
+	tc.dwFlags = 
+		TDF_ALLOW_DIALOG_CANCELLATION
+		| TDF_USE_COMMAND_LINKS
+		| TDF_POSITION_RELATIVE_TO_WINDOW 
+		| TDF_CALLBACK_TIMER;
+
+	tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+	tc.pszMainIcon = MAKEINTRESOURCEW(SecurityWarning);
+	tc.pszWindowTitle = L"Process Hacker Updater";
+	tc.pszMainInstruction = summaryText->Buffer;
+	tc.pszContent = verText->Buffer;
+
+	SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&tc);
+
+	PhDereferenceObject(verText);
+	PhDereferenceObject(summaryText);
+}
