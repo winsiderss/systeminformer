@@ -1,13 +1,7 @@
 #pragma once
 
-#pragma region libs
-
 #pragma comment(lib, "Wininet.lib")
 #pragma comment(lib, "Shell32.lib")
-
-#pragma endregion
-
-#pragma region enums
 
 typedef enum _PH_UPDATER_STATE
 {
@@ -15,10 +9,6 @@ typedef enum _PH_UPDATER_STATE
     Downloading,
     Installing
 } PH_UPDATER_STATE;
-
-#pragma endregion
-
-#pragma region Includes
 
 #include "phdk.h"
 #include "resource.h"
@@ -30,12 +20,9 @@ typedef enum _PH_UPDATER_STATE
 #include <ShlObj.h>
 #include <stdint.h>
 
-#pragma endregion
-
 #pragma region Defines
 
 #define TDIF_SIZE_TO_CONTENT 0x1000000
-
 #define SecurityStop UINT16_MAX - 1
 #define SecurityInformation UINT16_MAX - 2
 #define SecurityShield  UINT16_MAX - 3
@@ -85,18 +72,21 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 #pragma endregion
 
 #pragma region Functions
-void LoadLibs(void);
-VOID VistaStartInitialCheck(VOID);
-VOID StartInitialCheck(VOID);
 
+VOID StartInitialCheck(VOID);
 VOID ShowUpdateDialog(VOID);
-VOID ShowUpdateTaskDialog(VOID);
 
 VOID DisposeConnection(VOID);
 VOID DisposeStrings(VOID);
 VOID DisposeFileHandles(VOID);
 
+BOOL PhInstalledUsingSetup(VOID);
 BOOL ConnectionAvailable(VOID);
+
+BOOL InitializeConnection(
+    __in PCWSTR host,
+    __in PCWSTR path
+    );
 
 BOOL ParseVersionString(
     __in PWSTR String,
@@ -110,8 +100,6 @@ LONG CompareVersions(
     __in ULONG MajorVersion2,
     __in ULONG MinorVersion2
     );
-
-BOOL PhInstalledUsingSetup(VOID);
 
 BOOL ReadRequestString(
     __in HINTERNET Handle,
@@ -179,18 +167,5 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
     );
 
 _TaskDialogIndirect TaskDialogIndirect_I;
-
-typedef HINTERNET (WINAPI *_HttpOpenRequestW)(
-    __in HINTERNET hConnect,
-    __in_opt LPCWSTR lpszVerb,
-    __in_opt LPCWSTR lpszObjectName,
-    __in_opt LPCWSTR lpszVersion,
-    __in_opt LPCWSTR lpszReferrer,
-    __in_z_opt LPCWSTR FAR * lplpszAcceptTypes,
-    __in DWORD dwFlags,
-    __in_opt DWORD_PTR dwContext
-    );
-
-_HttpOpenRequestW HttpOpenRequest_H;
 
 #pragma endregion

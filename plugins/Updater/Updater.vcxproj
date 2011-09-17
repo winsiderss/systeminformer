@@ -173,12 +173,11 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="VistaUpdater.c" />
-    <ClCompile Include="XpUpdater.c" />
+    <ClCompile Include="updater.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="updater.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="vistaheader.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Updater.rc" />
