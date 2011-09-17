@@ -16,7 +16,6 @@
 #define IDC_HASHCOMBOBOX                1009
 #define IDC_RTIMETEXT                   1009
 #define IDC_DOWNLOAD                    1010
-#define IDC_EDIT1                       1015
 
 // Next default values for new objects
 // 
