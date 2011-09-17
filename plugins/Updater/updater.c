@@ -446,14 +446,6 @@ static NTSTATUS DownloadWorkerThreadStart(
 
         PhUpdaterState = Installing;
 
-        Updater_SetStatusText(hwndDlg, L"Download Complete");
-        // Enable Install button before computing the hash result (user might not care about file hash result)
-        SetDlgItemText(hwndDlg, IDC_DOWNLOAD, L"Install");
-        Updater_EnableUI(hwndDlg);
-
-        if (!PhElevated)
-            SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
-
         {
             UCHAR hashBuffer[20];
             ULONG hashLength = 0;
@@ -465,14 +457,14 @@ static NTSTATUS DownloadWorkerThreadStart(
 
                 if (PhEqualString(hexString, RemoteHashString, TRUE))
                 {
-                    Updater_SetStatusText(hwndDlg, L"Hash Verified");
+					SetDlgItemText(hwndDlg, IDC_RTIMETEXT, L"Hash Verified");
                 }
                 else
                 {
                     if (WindowsVersion >= WINDOWS_VISTA)
                         SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
-
-                    Updater_SetStatusText(hwndDlg, L"Hash failed");
+					
+					SetDlgItemText(hwndDlg, IDC_RTIMETEXT, L"Hash failed");
                 }
 
                 PhDereferenceObject(hexString);
@@ -482,10 +474,19 @@ static NTSTATUS DownloadWorkerThreadStart(
                 // Show fancy Red progressbar if hash failed on Vista and above.
                 if (WindowsVersion >= WINDOWS_VISTA)
                     SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
-
-                Updater_SetStatusText(hwndDlg, L"Hash failed");
+				
+				SetDlgItemText(hwndDlg, IDC_RTIMETEXT, L"Hash failed");
             }
         }
+
+		// Enable Install button
+        SetDlgItemText(hwndDlg, IDC_DOWNLOAD, L"Install");
+        Updater_EnableUI(hwndDlg);
+
+        if (!PhElevated)
+		{
+            SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
+		}
     }
     else
     {
