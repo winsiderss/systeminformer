@@ -29,6 +29,12 @@
 #include <winsta.h>
 #include <dbghelp.h>
 
+typedef LONG (WINAPI *_GetPackageFullName)(
+    __in HANDLE hProcess,
+    __inout UINT32 *packageFullNameLength,
+    __out_opt PWSTR packageFullName
+    );
+
 GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
 GUID VISTA_CONTEXT_GUID = { 0xe2011457, 0x1546, 0x43c5, { 0xa5, 0xfe, 0x00, 0x8d, 0xee, 0xe3, 0xd3, 0xf0 } };
 GUID WIN7_CONTEXT_GUID = { 0x35138b9a, 0x5d96, 0x4fbd, { 0x8e, 0x2d, 0xa2, 0x44, 0x02, 0x25, 0xf9, 0x3a } };
@@ -124,6 +130,47 @@ NTSTATUS PhGetProcessSwitchContext(
         return status;
 
     return STATUS_SUCCESS;
+}
+
+PPH_STRING PhGetProcessPackageFullName(
+    __in HANDLE ProcessHandle
+    )
+{
+    static _GetPackageFullName getPackageFullName = NULL;
+
+    LONG result;
+    PPH_STRING name;
+    ULONG nameLength;
+
+    if (!getPackageFullName)
+        getPackageFullName = PhGetProcAddress(L"kernel32.dll", "GetPackageFullName");
+
+    if (!getPackageFullName)
+        return NULL;
+
+    nameLength = 101;
+    name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
+
+    result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
+
+    if (result == ERROR_INSUFFICIENT_BUFFER)
+    {
+        PhDereferenceObject(name);
+        name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
+
+        result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
+    }
+
+    if (result == ERROR_SUCCESS)
+    {
+        PhTrimToNullTerminatorString(name);
+        return name;
+    }
+    else
+    {
+        PhDereferenceObject(name);
+        return NULL;
+    }
 }
 
 /**

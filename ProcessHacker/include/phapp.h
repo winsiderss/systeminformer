@@ -119,6 +119,10 @@ NTSTATUS PhGetProcessSwitchContext(
     __out PGUID Guid
     );
 
+PPH_STRING PhGetProcessPackageFullName(
+    __in HANDLE ProcessHandle
+    );
+
 typedef enum _PH_KNOWN_PROCESS_TYPE
 {
     UnknownProcessType,
