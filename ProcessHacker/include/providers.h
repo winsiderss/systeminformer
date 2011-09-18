@@ -219,7 +219,9 @@ typedef struct _PH_PROCESS_ITEM
     PH_CIRCULAR_BUFFER_SIZE_T PrivateBytesHistory;
     //PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory;
 
+    // New fields
     PH_UINTPTR_DELTA PrivateBytesDelta;
+    PPH_STRING PackageFullName;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
 // The process itself is dead.

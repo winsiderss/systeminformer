@@ -311,6 +311,11 @@ PPH_STRING PhGetProcessTooltipText(
             PhDereferenceObject(clientIdString);
         }
 
+        if (Process->PackageFullName)
+        {
+            PhAppendFormatStringBuilder(&notes, L"    Package name: %s\n", Process->PackageFullName->Buffer);
+        }
+
         if (Process->IsDotNet)
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
