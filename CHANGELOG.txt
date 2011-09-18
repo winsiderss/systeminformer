@@ -10,6 +10,7 @@ Process Hacker
    * Updated WindowExplorer plugin:
      * Fixed hook support for low integrity processes
  * FIXED:
+   * Fixed memory leaks
    * Fixed bug preventing Interrupts/DPCs from being shown 
      as the max. CPU process on 64-bit systems
 
