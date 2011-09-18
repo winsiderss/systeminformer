@@ -26,6 +26,7 @@
 #include <windowsx.h>
 
 _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
+_IsImmersiveProcess IsImmersiveProcess_I;
 _RunFileDlg RunFileDlg;
 _SetWindowTheme SetWindowTheme_I;
 _IsThemeActive IsThemeActive_I;
@@ -55,6 +56,8 @@ VOID PhGuiSupportInitialization(
 
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
+    if (WINDOWS_HAS_IMMERSIVE)
+        IsImmersiveProcess_I = PhGetProcAddress(L"user32.dll", "IsImmersiveProcess");
     RunFileDlg = (PVOID)GetProcAddress(shell32Handle, (PSTR)61);
     SetWindowTheme_I = (PVOID)GetProcAddress(uxthemeHandle, "SetWindowTheme");
     IsThemeActive_I = (PVOID)GetProcAddress(uxthemeHandle, "IsThemeActive");

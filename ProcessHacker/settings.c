@@ -180,6 +180,8 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"ColorDebuggedProcesses", L"ffbbcc");
     PhpAddIntegerSetting(L"UseColorElevatedProcesses", L"1");
     PhpAddIntegerSetting(L"ColorElevatedProcesses", L"00aaff");
+    PhpAddIntegerSetting(L"UseColorImmersiveProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorImmersiveProcesses", L"cbc0ff"); // Pink
     PhpAddIntegerSetting(L"UseColorSuspended", L"1");
     PhpAddIntegerSetting(L"ColorSuspended", L"777777");
     PhpAddIntegerSetting(L"UseColorDotNet", L"1");
@@ -236,6 +238,8 @@ VOID PhUpdateCachedSettings(
     UPDATE_INTEGER_CS(ColorDebuggedProcesses);
     UPDATE_INTEGER_CS(UseColorElevatedProcesses);
     UPDATE_INTEGER_CS(ColorElevatedProcesses);
+    UPDATE_INTEGER_CS(UseColorImmersiveProcesses);
+    UPDATE_INTEGER_CS(ColorImmersiveProcesses);
     UPDATE_INTEGER_CS(UseColorSuspended);
     UPDATE_INTEGER_CS(ColorSuspended);
     UPDATE_INTEGER_CS(UseColorDotNet);
