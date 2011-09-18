@@ -791,6 +791,7 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(L"ColorPosixProcesses", L"POSIX Processes", L"Processes running under the POSIX subsystem."),
     COLOR_ITEM(L"ColorDebuggedProcesses", L"Debugged Processes", L"Processes that are currently being debugged."),
     COLOR_ITEM(L"ColorElevatedProcesses", L"Elevated Processes", L"Processes with full privileges on a system with UAC enabled."),
+    COLOR_ITEM(L"ColorImmersiveProcesses", L"Immersive Processes", L"Processes that belong to a Metro style app."),
     COLOR_ITEM(L"ColorSuspended", L"Suspended Processes and Threads", L"Processes and threads that are suspended from execution."),
     COLOR_ITEM(L"ColorDotNet", L".NET Processes and DLLs", L".NET, or managed processes and DLLs."),
     COLOR_ITEM(L"ColorPacked", L"Packed Processes", L"Executables are sometimes \"packed\" to reduce their size."),

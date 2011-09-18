@@ -136,6 +136,8 @@ EXT ULONG PhCsUseColorDebuggedProcesses;
 EXT ULONG PhCsColorDebuggedProcesses;
 EXT ULONG PhCsUseColorElevatedProcesses;
 EXT ULONG PhCsColorElevatedProcesses;
+EXT ULONG PhCsUseColorImmersiveProcesses;
+EXT ULONG PhCsColorImmersiveProcesses;
 EXT ULONG PhCsUseColorSuspended;
 EXT ULONG PhCsColorSuspended;
 EXT ULONG PhCsUseColorDotNet;

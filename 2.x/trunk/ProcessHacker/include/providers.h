@@ -162,7 +162,8 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsPosix : 1;
             ULONG IsSuspended : 1;
             ULONG IsWow64 : 1;
-            ULONG Spare : 22;
+            ULONG IsImmersive : 1;
+            ULONG Spare : 21;
         };
     };
 

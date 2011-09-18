@@ -2454,21 +2454,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
             else if (PhCsUseColorPosixProcesses && processItem->IsPosix)
                 getNodeColor->BackColor = PhCsColorPosixProcesses;
-            else if (PhCsUseColorWow64Processes && processItem->IsWow64)
-                getNodeColor->BackColor = PhCsColorWow64Processes;
             else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
                 getNodeColor->BackColor = PhCsColorJobProcesses;
-            //else if (
-            //    PhCsUseColorPacked &&
-            //    (processItem->VerifyResult != VrUnknown &&
-            //    processItem->VerifyResult != VrNoSignature &&
-            //    processItem->VerifyResult != VrTrusted
-            //    ))
-            //    getNodeColor->BackColor = PhCsColorPacked;
+            else if (PhCsUseColorImmersiveProcesses && processItem->IsImmersive)
+                getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (PhCsUseColorDotNet && processItem->IsDotNet)
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (PhCsUseColorPacked && processItem->IsPacked)
                 getNodeColor->BackColor = PhCsColorPacked;
+            else if (PhCsUseColorWow64Processes && processItem->IsWow64)
+                getNodeColor->BackColor = PhCsColorWow64Processes;
             else if (PhCsUseColorServiceProcesses && processItem->ServiceList && processItem->ServiceList->Count != 0)
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
             else if (
