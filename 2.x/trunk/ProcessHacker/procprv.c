@@ -92,6 +92,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     BOOLEAN IsInSignificantJob;
 
     HANDLE ConsoleHostProcessId;
+    PPH_STRING PackageFullName;
 
     BOOLEAN IsDotNet;
     BOOLEAN IsPosix;
@@ -983,6 +984,12 @@ VOID PhpProcessQueryStage1(
         PhGetProcessConsoleHostProcessId(processHandleLimited, &Data->ConsoleHostProcessId);
     }
 
+    // Package full name
+    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE)
+    {
+        Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
+    }
+
     if (processHandleLimited)
         NtClose(processHandleLimited);
 
@@ -1100,6 +1107,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IntegrityString = Data->IntegrityString;
     processItem->JobName = Data->JobName;
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
+    processItem->PackageFullName = Data->PackageFullName;
     processItem->IsDotNet = Data->IsDotNet;
     processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
