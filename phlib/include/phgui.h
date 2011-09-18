@@ -17,6 +17,10 @@ typedef BOOL (WINAPI *_ChangeWindowMessageFilter)(
     __in DWORD dwFlag
     );
 
+typedef BOOL (WINAPI *_IsImmersiveProcess)(
+    __in HANDLE hProcess
+    );
+
 #define RFF_NOBROWSE 0x0001
 #define RFF_NODEFAULT 0x0002
 #define RFF_CALCDIRECTORY 0x0004
@@ -114,6 +118,7 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
 
 #ifndef _PH_GUISUP_PRIVATE
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
+extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern _RunFileDlg RunFileDlg;
 extern _IsThemeActive IsThemeActive_I;
 extern _OpenThemeData OpenThemeData_I;

@@ -315,6 +315,8 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
             PhAppendStringBuilder2(&notes, L"    Process is elevated.\n");
+        if (Process->IsImmersive)
+            PhAppendStringBuilder2(&notes, L"    Process is metro-style app.\n");
         if (Process->IsInJob)
             PhAppendStringBuilder2(&notes, L"    Process is in a job.\n");
         if (Process->IsPosix)
