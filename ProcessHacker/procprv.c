@@ -94,7 +94,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     HANDLE ConsoleHostProcessId;
 
     BOOLEAN IsDotNet;
-    BOOLEAN IsImmersive;
     BOOLEAN IsPosix;
     BOOLEAN IsWow64;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -984,13 +983,6 @@ VOID PhpProcessQueryStage1(
         PhGetProcessConsoleHostProcessId(processHandleLimited, &Data->ConsoleHostProcessId);
     }
 
-    // Immersive
-    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE)
-    {
-        if (IsImmersiveProcess_I)
-            Data->IsImmersive = !!IsImmersiveProcess_I(processHandleLimited);
-    }
-
     if (processHandleLimited)
         NtClose(processHandleLimited);
 
@@ -1110,7 +1102,6 @@ VOID PhpFillProcessItemStage1(
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
     processItem->IsDotNet = Data->IsDotNet;
     processItem->IsElevated = Data->IsElevated;
-    processItem->IsImmersive = Data->IsImmersive;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsPosix = Data->IsPosix;
@@ -2194,6 +2185,20 @@ VOID PhProcessProviderUpdate(
                 }
 
                 processItem->UpdateIsDotNet = FALSE;
+            }
+
+            // Immersive
+            if (processItem->QueryHandle && IsImmersiveProcess_I)
+            {
+                BOOLEAN isImmersive;
+
+                isImmersive = !!IsImmersiveProcess_I(processItem->QueryHandle);
+
+                if (processItem->IsImmersive != isImmersive)
+                {
+                    processItem->IsImmersive = isImmersive;
+                    modified = TRUE;
+                }
             }
 
             if (modified)
