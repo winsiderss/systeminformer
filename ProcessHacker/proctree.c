@@ -189,6 +189,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_MAXIMUMWORKINGSET, FALSE, L"Maximum Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVATEBYTESDELTA, FALSE, L"Private Bytes Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SUBSYSTEM, FALSE, L"Subsystem", 110, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_PACKAGENAME, FALSE, L"Package Name", 160, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -832,16 +833,28 @@ static VOID PhpUpdateProcessNodeDepStatus(
         HANDLE processHandle;
         ULONG depStatus;
 
-        depStatus = 0;
-
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_INFORMATION,
-            ProcessNode->ProcessItem->ProcessId
-            )))
+#ifdef _M_X64
+        if (ProcessNode->ProcessItem->IsWow64)
+#else
+        if (TRUE)
+#endif
         {
-            PhGetProcessDepStatus(processHandle, &depStatus);
-            NtClose(processHandle);
+            depStatus = 0;
+
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_INFORMATION,
+                ProcessNode->ProcessItem->ProcessId
+                )))
+            {
+                PhGetProcessDepStatus(processHandle, &depStatus);
+                NtClose(processHandle);
+            }
+        }
+        else
+        {
+            if (ProcessNode->ProcessItem->QueryHandle)
+                depStatus = PH_PROCESS_DEP_ENABLED | PH_PROCESS_DEP_PERMANENT;
         }
 
         ProcessNode->DepStatus = depStatus;
@@ -900,7 +913,9 @@ static VOID PhpUpdateProcessOsContext(
             {
                 if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
                 {
-                    if (memcmp(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID, sizeof(GUID)) == 0)
+                    if (memcmp(&ProcessNode->OsContextGuid, &WIN8_CONTEXT_GUID, sizeof(GUID)) == 0)
+                        ProcessNode->OsContextVersion = WINDOWS_8;
+                    else if (memcmp(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID, sizeof(GUID)) == 0)
                         ProcessNode->OsContextVersion = WINDOWS_7;
                     else if (memcmp(&ProcessNode->OsContextGuid, &VISTA_CONTEXT_GUID, sizeof(GUID)) == 0)
                         ProcessNode->OsContextVersion = WINDOWS_VISTA;
@@ -1642,6 +1657,12 @@ BEGIN_SORT_FUNCTION(Subsystem)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PackageName)
+{
+    sortResult = PhCompareStringWithNull(processItem1->PackageFullName, processItem2->PackageFullName, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1753,7 +1774,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(MinimumWorkingSet),
                         SORT_FUNCTION(MaximumWorkingSet),
                         SORT_FUNCTION(PrivateBytesDelta),
-                        SORT_FUNCTION(Subsystem)
+                        SORT_FUNCTION(Subsystem),
+                        SORT_FUNCTION(PackageName)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2308,6 +2330,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     switch (node->OsContextVersion)
                     {
+                    case WINDOWS_8:
+                        PhInitializeStringRef(&getCellText->Text, L"Windows 8");
+                        break;
                     case WINDOWS_7:
                         PhInitializeStringRef(&getCellText->Text, L"Windows 7");
                         break;
@@ -2405,6 +2430,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhInitializeStringRef(&getCellText->Text, L"Unknown");
                     break;
                 }
+                break;
+            case PHPRTLC_PACKAGENAME:
+                getCellText->Text = PhGetStringRef(processItem->PackageFullName);
                 break;
             default:
                 return FALSE;

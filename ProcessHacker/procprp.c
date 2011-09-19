@@ -661,7 +661,10 @@ VOID PhpUpdateProcessDep(
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_DEP, L"Enabled, Permanent");
+        if (ProcessItem->QueryHandle)
+            SetDlgItemText(hwndDlg, IDC_DEP, L"Enabled, Permanent");
+        else
+            SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
     }
 }
 
