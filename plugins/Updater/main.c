@@ -118,13 +118,16 @@ VOID NTAPI MenuItemCallback(
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
 
-    switch (menuItem->Id)
+    if (menuItem != NULL)
     {
-    case UPDATE_MENUITEM:
+        switch (menuItem->Id)
         {
-			ShowUpdateDialog();
+        case UPDATE_MENUITEM:
+            {
+                ShowUpdateDialog();
+            }
+            break;
         }
-        break;
     }
 }
 
