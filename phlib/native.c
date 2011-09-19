@@ -4776,6 +4776,17 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
  * Determines if a process is managed.
  *
  * \param ProcessId The ID of the process.
+ * \param ProcessHandle An optional handle to the process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ 
+ * access.
+ * \param InFlags A combination of flags.
+ * \li \c PH_CLR_USE_SECTION_CHECK Checks for the existence of related 
+ * section objects to determine whether the process is managed.
+ * \li \c PH_CLR_NO_WOW64_CHECK Instead of a separate query, uses the 
+ * presence of the \c PH_CLR_KNOWN_IS_WOW64 flag to determine whether 
+ * the process is running under WOW64.
+ * \li \c PH_CLR_KNOWN_IS_WOW64 When \c PH_CLR_NO_WOW64_CHECK is specified, 
+ * indicates that the process is managed.
  * \param IsDotNet A variable which receives a boolean indicating
  * whether the process is managed.
  * \param Flags A variable which receives additional flags.
