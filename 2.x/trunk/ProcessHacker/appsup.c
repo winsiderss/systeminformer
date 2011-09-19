@@ -38,6 +38,7 @@ typedef LONG (WINAPI *_GetPackageFullName)(
 GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
 GUID VISTA_CONTEXT_GUID = { 0xe2011457, 0x1546, 0x43c5, { 0xa5, 0xfe, 0x00, 0x8d, 0xee, 0xe3, 0xd3, 0xf0 } };
 GUID WIN7_CONTEXT_GUID = { 0x35138b9a, 0x5d96, 0x4fbd, { 0x8e, 0x2d, 0xa2, 0x44, 0x02, 0x25, 0xf9, 0x3a } };
+GUID WIN8_CONTEXT_GUID = { 0x4a2f28e3, 0x53b9, 0x4441, { 0xba, 0x9c, 0xd6, 0x9d, 0x4a, 0x4a, 0x6e, 0x38 } };
 
 /**
  * Determines whether a process is suspended.
@@ -79,25 +80,40 @@ NTSTATUS PhGetProcessSwitchContext(
     PROCESS_BASIC_INFORMATION basicInfo;
 #ifdef _M_X64
     PVOID peb32;
-    ULONG contextData32;
+    ULONG data32;
 #endif
-    PVOID contextData;
+    PVOID data;
 
     // Reverse-engineered from WdcGetProcessSwitchContext (wdc.dll).
+    // On Windows 8, the function is now SdbGetAppCompatData (apphelp.dll).
 
 #ifdef _M_X64
     if (NT_SUCCESS(PhGetProcessPeb32(ProcessHandle, &peb32)) && peb32)
     {
-        if (!NT_SUCCESS(status = PhReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, pContextData)),
-            &contextData32,
-            sizeof(ULONG),
-            NULL
-            )))
-            return status;
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, pShimData)),
+                &data32,
+                sizeof(ULONG),
+                NULL
+                )))
+                return status;
+        }
+        else
+        {
+            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, pContextData)),
+                &data32,
+                sizeof(ULONG),
+                NULL
+                )))
+                return status;
+        }
 
-        contextData = UlongToPtr(contextData32);
+        data = UlongToPtr(data32);
     }
     else
     {
@@ -105,29 +121,57 @@ NTSTATUS PhGetProcessSwitchContext(
         if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
             return status;
 
-        if (!NT_SUCCESS(status = PhReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pContextData)),
-            &contextData,
-            sizeof(PVOID),
-            NULL
-            )))
-            return status;
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pShimData)),
+                &data,
+                sizeof(PVOID),
+                NULL
+                )))
+                return status;
+        }
+        else
+        {
+            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pContextData)),
+                &data,
+                sizeof(PVOID),
+                NULL
+                )))
+                return status;
+        }
 #ifdef _M_X64
     }
 #endif
 
-    if (!contextData)
+    if (!data)
         return STATUS_UNSUCCESSFUL; // no compatibility context data
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
-        ProcessHandle,
-        PTR_ADD_OFFSET(contextData, 32), // Magic value from WdcGetProcessSwitchContext
-        Guid,
-        sizeof(GUID),
-        NULL
-        )))
-        return status;
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(data, 2040), // Magic value from SbReadProcContextByHandle
+            Guid,
+            sizeof(GUID),
+            NULL
+            )))
+            return status;
+    }
+    else
+    {
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(data, 32), // Magic value from WdcGetProcessSwitchContext
+            Guid,
+            sizeof(GUID),
+            NULL
+            )))
+            return status;
+    }
 
     return STATUS_SUCCESS;
 }

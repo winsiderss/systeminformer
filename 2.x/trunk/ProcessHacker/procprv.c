@@ -499,6 +499,7 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
     if (processItem->JobName) PhDereferenceObject(processItem->JobName);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
+    if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
 
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 
