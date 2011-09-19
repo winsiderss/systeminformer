@@ -327,6 +327,11 @@ VOID ShowUpdateTaskDialog(VOID)
     if (!WindowVisible)
     {
         TASKDIALOGCONFIG tdPage = { sizeof(TASKDIALOGCONFIG) };
+        INT pButton = 0, pRadioButton = 0;
+        BOOL pFlagChecked = FALSE;
+
+        HRESULT hr = ERROR_SUCCESS;
+
         tdPage.cbSize = sizeof(tdPage);
         tdPage.hwndParent = PhMainWndHandle;
         tdPage.hInstance = PhLibImageBase;
@@ -342,7 +347,9 @@ VOID ShowUpdateTaskDialog(VOID)
         EnableCache = PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache");
         HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
 
-        if (!TaskDialogIndirect_I(&tdPage, NULL, NULL, NULL))
+        hr = TaskDialogIndirect_I(&tdPage, &pButton, &pRadioButton, &pFlagChecked);
+
+        if (FAILED(hr))
         {   
             // some error occurred...check hr to see what it is
         }
