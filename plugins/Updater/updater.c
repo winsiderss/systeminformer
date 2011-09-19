@@ -284,11 +284,14 @@ static void __cdecl DownloadWorkerThreadStart(
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         CHAR buffer[BUFFER_LEN];
-        DWORD dwStartTicks = GetTickCount();
-        DWORD dwLastTicks = dwStartTicks;
-        DWORD dwLastTotalBytes = 0, 
-              dwNowTicks = 0,
-              dwTimeTaken = 0;
+        DWORD dwLastTotalBytes = 0;
+        ULONGLONG dwStartTicks = 0, dwLastTicks = 0, dwNowTicks = 0, dwTimeTaken = 0;
+
+        // Set our last ticks.
+        if (WindowsVersion > WINDOWS_XP)
+            dwLastTicks = (dwStartTicks = GetTickCount64());
+        else
+            dwLastTicks = (dwStartTicks = GetTickCount());
 
         // Zero the buffer.
         RtlZeroMemory(buffer, BUFFER_LEN);
@@ -336,7 +339,15 @@ static void __cdecl DownloadWorkerThreadStart(
                 dwTotalReadSize += dwBytesRead;
 
                 // Calculate the transfer rate and download speed. 
-                dwNowTicks = GetTickCount();
+                if (WindowsVersion > WINDOWS_XP)
+                {
+                    dwNowTicks = GetTickCount64();
+                }
+                else
+                {
+                    dwNowTicks = GetTickCount();
+                }
+
                 dwTimeTaken = dwNowTicks - dwLastTicks;
 
                 // Update the progress every 500ms.
@@ -368,7 +379,7 @@ static void __cdecl DownloadWorkerThreadStart(
 
                     // Update the estimated time left.
                     {
-                        ULONG64 dwSecondsLeft =  (ULONG64)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
+                        INT dwSecondsLeft =  (INT)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
                         
                         PPH_STRING sRemaningBytes = PhFormatSize(dwContentLen - dwLastTotalBytes, -1);
                         PPH_STRING sText = PhFormatString(L"Remaning: %s (%ds)", sRemaningBytes->Buffer, dwSecondsLeft);
@@ -494,9 +505,9 @@ INT_PTR CALLBACK MainWndProc(
     {
     case ENABLE_UI:
         {
-            EnableWindow(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-            EnableWindow(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
-            EnableWindow(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+            Edit_Enable(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+            Edit_Enable(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
     case WM_INITDIALOG:
@@ -811,11 +822,8 @@ BOOL ParseVersionString(
     __out PULONG MinorVersion
     )
 {
-    PH_STRINGREF sr;
-    PH_STRINGREF majorPart;
-    PH_STRINGREF minorPart;
-    ULONG64 majorInteger;
-    ULONG64 minorInteger;
+    PH_STRINGREF sr, majorPart, minorPart;
+    ULONG64 majorInteger = 0, minorInteger = 0;
 
     PhInitializeStringRef(&sr, String);
 
@@ -980,7 +988,7 @@ VOID CreatePage(HWND hwndDlg, UPDATER_XML_DATA xmlData)
 
 	tc.cbSize = sizeof(tc);
 	tc.hwndParent = PhMainWndHandle;
-	tc.hInstance = PhLibImageBase;
+	tc.hInstance = (HINSTANCE)PhLibImageBase;
 	tc.dwFlags = 
 		TDF_ALLOW_DIALOG_CANCELLATION |
 		TDF_USE_COMMAND_LINKS |  
@@ -990,7 +998,7 @@ VOID CreatePage(HWND hwndDlg, UPDATER_XML_DATA xmlData)
 
 	tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
 	tc.pszMainIcon = MAKEINTRESOURCE(101);   
-	tc.cButtons = ARRAYSIZE(cb);
+	tc.cButtons = _countof(cb);
 	tc.pButtons = cb;
 
 	tc.pszWindowTitle = L"Process Hacker Updater";
@@ -1011,7 +1019,7 @@ VOID CreatePageTwo(HWND hwndDlg, UPDATER_XML_DATA xmlData)
 
 	tc.cbSize = sizeof(tc);
 	tc.hwndParent = PhMainWndHandle;
-	tc.hInstance = PhLibImageBase;
+	tc.hInstance = (HINSTANCE)PhLibImageBase;
 	tc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_ENABLE_HYPERLINKS;
 	tc.dwCommonButtons = TDCBF_CLOSE_BUTTON;
 	tc.pszWindowTitle = L"Process Hacker Updater";
@@ -1034,7 +1042,7 @@ VOID CreatePageThree(HWND hwndDlg, UPDATER_XML_DATA xmlData)
 
 	tc.cbSize = sizeof(tc);
 	tc.hwndParent = PhMainWndHandle;
-	tc.hInstance = PhLibImageBase;
+	tc.hInstance = (HINSTANCE)PhLibImageBase;
 	tc.dwFlags = 
 		TDF_ALLOW_DIALOG_CANCELLATION
 		| TDF_USE_COMMAND_LINKS
