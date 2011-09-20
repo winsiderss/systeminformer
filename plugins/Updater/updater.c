@@ -199,7 +199,9 @@ static void __cdecl WorkerThreadStart(
 
             LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
 
-            Updater_EnableUI(hwndDlg);
+            Edit_Enable(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+            Edit_Enable(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         else if (result == 0)
         {
@@ -279,8 +281,8 @@ static void __cdecl DownloadWorkerThreadStart(
         return;
     }
 
-    Updater_SetStatusText(hwndDlg, L"Connecting");
-
+    Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Connecting");
+    
     if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         CHAR buffer[BUFFER_LEN];
@@ -360,9 +362,9 @@ static void __cdecl DownloadWorkerThreadStart(
                     PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
                     PPH_STRING str = PhFormatString(L"Downloaded: %s of %s (%d%%)", dlCurrent->Buffer, dlLength->Buffer, dlProgress);
 
-                    Updater_SetStatusText(hwndDlg, str->Buffer);
+                    Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), str->Buffer);
                     PostMessage(hwndProgress, PBM_SETPOS, dlProgress, 0);
-
+                    
                     PhDereferenceObject(str);
                     PhDereferenceObject(dlLength);
                     PhDereferenceObject(dlCurrent);
@@ -480,8 +482,10 @@ static void __cdecl DownloadWorkerThreadStart(
 		PostMessage(hwndProgress, PBM_SETPOS, 100, 0);
 
 		// Enable Install button
-        SetDlgItemText(hwndDlg, IDC_DOWNLOAD, L"Install");
-        Updater_EnableUI(hwndDlg);
+        Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
+        Edit_Enable(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+        Edit_Enable(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+        Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
 
         if (!PhElevated)
 		{
@@ -503,13 +507,6 @@ INT_PTR CALLBACK MainWndProc(
 {
     switch (uMsg)
     {
-    case ENABLE_UI:
-        {
-            Edit_Enable(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-            Edit_Enable(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
-            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-        }
-        break;
     case WM_INITDIALOG:
         {
             DisposeConnection();
@@ -560,7 +557,7 @@ INT_PTR CALLBACK MainWndProc(
 
                             if (PhInstalledUsingSetup())
                             {
-                                Updater_SetStatusText(hwndDlg, L"Initializing");
+                                Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Initializing");
 
                                 // Show the status text
                                 ShowWindow(GetDlgItem(hwndDlg, IDC_STATUSTEXT), SW_SHOW);
