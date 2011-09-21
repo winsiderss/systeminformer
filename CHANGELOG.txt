@@ -1,5 +1,9 @@
 Process Hacker
 
+2.23
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.22
  * NEW/IMPROVED:
    * Added highlighting for metro style apps
