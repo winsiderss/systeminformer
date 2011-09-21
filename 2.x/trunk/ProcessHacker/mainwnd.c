@@ -71,6 +71,8 @@ static HFONT CurrentCustomFont;
 static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN ServiceTreeListLoaded = FALSE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
+static HMENU UsersMenuHandle;
+static BOOLEAN UsersMenuInitialized = FALSE;
 static BOOLEAN UpdateAutomatically = TRUE;
 
 static PH_CALLBACK_REGISTRATION SymInitRegistration;
@@ -168,6 +170,7 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+    UsersMenuHandle = GetSubMenu(PhMainWndMenuHandle, 3);
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(
@@ -276,10 +279,6 @@ BOOLEAN PhMainWndInitialization(
     if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
 
-    // TS notification registration is done in the delayed load function. It's therefore
-    // possible that we miss a notification, but it's a trade-off.
-    PhMwpUpdateUsersMenu();
-
     return TRUE;
 }
 
@@ -326,6 +325,11 @@ LRESULT CALLBACK PhMwpWndProc(
     case WM_MENUCOMMAND:
         {
             PhMwpOnMenuCommand((ULONG)wParam, (HMENU)lParam);
+        }
+        break;
+    case WM_INITMENUPOPUP:
+        {
+            PhMwpOnInitMenuPopup((HMENU)wParam, LOWORD(lParam), !!HIWORD(lParam));
         }
         break;
     case WM_SIZE:
@@ -1799,6 +1803,22 @@ VOID PhMwpOnMenuCommand(
     }
 }
 
+VOID PhMwpOnInitMenuPopup(
+    __in HMENU Menu,
+    __in ULONG Index,
+    __in BOOLEAN IsWindowMenu
+    )
+{
+    if (Menu == UsersMenuHandle)
+    {
+        if (!UsersMenuInitialized)
+        {
+            PhMwpUpdateUsersMenu();
+            UsersMenuInitialized = TRUE;
+        }
+    }
+}
+
 VOID PhMwpOnSize(
     VOID
     )
@@ -1922,6 +1942,7 @@ VOID PhMwpOnWtsSessionChange(
     if (Reason == WTS_SESSION_LOGON || Reason == WTS_SESSION_LOGOFF)
     {
         PhMwpUpdateUsersMenu();
+        UsersMenuInitialized = TRUE;
     }
 }
 
@@ -4581,7 +4602,7 @@ VOID PhMwpUpdateUsersMenu(
     ULONG j;
     MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
 
-    menu = GetSubMenu(PhMainWndMenuHandle, 3);
+    menu = UsersMenuHandle;
 
     // Delete all items in the Users menu.
     while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;
