@@ -1941,8 +1941,10 @@ VOID PhMwpOnWtsSessionChange(
 {
     if (Reason == WTS_SESSION_LOGON || Reason == WTS_SESSION_LOGOFF)
     {
-        PhMwpUpdateUsersMenu();
-        UsersMenuInitialized = TRUE;
+        if (UsersMenuInitialized)
+        {
+            PhMwpUpdateUsersMenu();
+        }
     }
 }
 
