@@ -285,8 +285,6 @@ BOOLEAN PhCmLoadSettingsEx(
     {
         columnHashtable = PhCreateSimpleHashtable(20);
 
-        memset(orderArray, 0, sizeof(orderArray));
-
         remainingColumnPart = *Settings;
 
         while (remainingColumnPart.Length != 0)
@@ -377,6 +375,8 @@ BOOLEAN PhCmLoadSettingsEx(
         count = 0;
         total = TreeNew_GetColumnCount(TreeNewHandle);
         hasFixedColumn = !!TreeNew_GetFixedColumn(TreeNewHandle);
+        memset(orderArray, 0, sizeof(orderArray));
+        maxOrder = 0;
 
         while (count < total)
         {
@@ -395,10 +395,21 @@ BOOLEAN PhCmLoadSettingsEx(
                         setColumn.Width = (*columnPtr)->Width;
                         TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
 
-                        // For compatibility reasons, normal columns have their display indicies stored
-                        // one higher than usual (so they start from 1, not 0). Fix that here.
-                        if (hasFixedColumn && !setColumn.Fixed && (*columnPtr)->DisplayIndex != 0)
-                            (*columnPtr)->DisplayIndex--;
+                        if (!setColumn.Fixed)
+                        {
+                            // For compatibility reasons, normal columns have their display indicies stored
+                            // one higher than usual (so they start from 1, not 0). Fix that here.
+                            if (hasFixedColumn && (*columnPtr)->DisplayIndex != 0)
+                                (*columnPtr)->DisplayIndex--;
+
+                            if ((*columnPtr)->DisplayIndex < PH_CM_ORDER_LIMIT)
+                            {
+                                orderArray[(*columnPtr)->DisplayIndex] = i;
+
+                                if ((ULONG)maxOrder < (*columnPtr)->DisplayIndex + 1)
+                                    maxOrder = (*columnPtr)->DisplayIndex + 1;
+                            }
+                        }
                     }
                     else if (!setColumn.Fixed) // never hide the fixed column
                     {
@@ -423,36 +434,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
         if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
         {
-            // Do a second pass to create the order array. This is because the ViewIndex of each column
-            // were unstable in the previous pass since we were both adding and removing columns.
-
-            PhBeginEnumHashtable(columnHashtable, &enumContext);
-            maxOrder = 0;
-
-            while (pair = PhNextEnumHashtable(&enumContext))
-            {
-                PPH_TREENEW_COLUMN column;
-                PH_TREENEW_COLUMN tempColumn;
-
-                column = pair->Value;
-
-                if (!TreeNew_GetColumn(TreeNewHandle, column->Id, &tempColumn))
-                    continue;
-
-                if (tempColumn.Fixed)
-                    continue; // fixed column cannot be re-ordered
-
-                if (column->DisplayIndex < PH_CM_ORDER_LIMIT)
-                {
-                    orderArray[column->DisplayIndex] = tempColumn.s.ViewIndex;
-
-                    if ((ULONG)maxOrder < column->DisplayIndex + 1)
-                        maxOrder = column->DisplayIndex + 1;
-                }
-            }
-
             // Set the order array.
-
             TreeNew_SetColumnOrderArray(TreeNewHandle, maxOrder, orderArray);
         }
 
