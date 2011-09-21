@@ -71,6 +71,8 @@ static HFONT CurrentCustomFont;
 static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN ServiceTreeListLoaded = FALSE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
+static HMENU HackerMenuHandle;
+static BOOLEAN HackerMenuInitialized = FALSE;
 static HMENU UsersMenuHandle;
 static BOOLEAN UsersMenuInitialized = FALSE;
 static BOOLEAN UpdateAutomatically = TRUE;
@@ -170,6 +172,7 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+    HackerMenuHandle = GetSubMenu(PhMainWndMenuHandle, 0);
     UsersMenuHandle = GetSubMenu(PhMainWndMenuHandle, 3);
 
     // Choose a more appropriate rectangle for the window.
@@ -206,35 +209,6 @@ BOOLEAN PhMainWndInitialization(
 
         PhDeleteStringBuilder(&stringBuilder);
     }
-
-    // Fix some menu items.
-    if (PhElevated)
-    {
-        DeleteMenu(PhMainWndMenuHandle, ID_HACKER_RUNASADMINISTRATOR, 0);
-        DeleteMenu(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, 0);
-    }
-    else
-    {
-        _LoadIconMetric loadIconMetric;
-        HICON shieldIcon;
-        MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-
-        // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
-        // resolution and look very bad when scaled down to the small icon size.
-
-        loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
-
-        if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
-        {
-            menuItemInfo.fMask = MIIM_BITMAP;
-            menuItemInfo.hbmpItem = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-            DestroyIcon(shieldIcon);
-
-            SetMenuItemInfo(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, FALSE, &menuItemInfo);
-        }
-    }
-
-    DrawMenuBar(PhMainWndHandle);
 
     PhMwpOnSettingChange();
 
@@ -1807,7 +1781,41 @@ VOID PhMwpOnInitMenuPopup(
     __in BOOLEAN IsWindowMenu
     )
 {
-    if (Menu == UsersMenuHandle)
+    if (Menu == HackerMenuHandle)
+    {
+        if (!HackerMenuInitialized)
+        {
+            // Fix some menu items.
+            if (PhElevated)
+            {
+                DeleteMenu(PhMainWndMenuHandle, ID_HACKER_RUNASADMINISTRATOR, 0);
+                DeleteMenu(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, 0);
+            }
+            else
+            {
+                _LoadIconMetric loadIconMetric;
+                HICON shieldIcon;
+                MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+                // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
+                // resolution and look very bad when scaled down to the small icon size.
+
+                loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
+
+                if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
+                {
+                    menuItemInfo.fMask = MIIM_BITMAP;
+                    menuItemInfo.hbmpItem = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+                    DestroyIcon(shieldIcon);
+
+                    SetMenuItemInfo(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, FALSE, &menuItemInfo);
+                }
+            }
+
+            HackerMenuInitialized = TRUE;
+        }
+    }
+    else if (Menu == UsersMenuHandle)
     {
         if (!UsersMenuInitialized)
         {
