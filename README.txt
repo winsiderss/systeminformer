@@ -58,7 +58,7 @@ assist with certain functionality. This includes:
 * More powerful process and thread termination (*)
 * Setting DEP status of processes
 * Capturing kernel-mode stack traces
-* More efficiently enumerating process handles
+* More efficiently enumerating process handles (*)
 * Retrieving names for file handles
 * Retrieving names for EtwRegistration objects (*)
 * Setting handle attributes
