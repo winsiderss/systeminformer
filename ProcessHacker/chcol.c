@@ -226,7 +226,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                     if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
                     {
-                        // Apply visiblity settings.
+                        // Apply visiblity settings and build the order array.
 
                         TreeNew_SetRedraw(context->ControlHandle, FALSE);
 
@@ -237,29 +237,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                             index = IndexOfStringInList(activeList, column->Text);
                             column->Visible = index != -1;
-                            column->DisplayIndex = index; // the active list box order is the actual display order
 
                             TreeNew_SetColumn(context->ControlHandle, TN_COLUMN_FLAG_VISIBLE, column);
-                        }
 
-                        // Do a second pass to create the order array. This is because the ViewIndex of each column
-                        // were unstable in the previous pass since we were both adding and removing columns.
-                        for (i = 0; i < context->Columns->Count; i++)
-                        {
-                            PPH_TREENEW_COLUMN column = context->Columns->Items[i];
-                            PH_TREENEW_COLUMN tempColumn;
-
-                            if (column->Visible)
+                            if (column->Visible && index < ORDER_LIMIT)
                             {
-                                if (column->DisplayIndex < ORDER_LIMIT)
-                                {
-                                    TreeNew_GetColumn(context->ControlHandle, column->Id, &tempColumn);
+                                orderArray[index] = column->Id;
 
-                                    orderArray[column->DisplayIndex] = tempColumn.s.ViewIndex;
-
-                                    if ((ULONG)maxOrder < column->DisplayIndex + 1)
-                                        maxOrder = column->DisplayIndex + 1;
-                                }
+                                if ((ULONG)maxOrder < index + 1)
+                                    maxOrder = index + 1;
                             }
                         }
 

@@ -1644,21 +1644,52 @@ ULONG_PTR PhTnpOnUserMessage(
         break;
     case TNM_GETCOLUMNORDERARRAY:
         {
-            // TODO: To avoid exposing ViewIndex to users, the user should really be passing in
-            // an array of IDs and these should then be mapped to their header control indicies.
-            return Header_GetOrderArray(Context->HeaderHandle, (ULONG)WParam, (PLONG)LParam);
+            ULONG count = (ULONG)WParam;
+            PULONG order = (PULONG)LParam;
+            ULONG i;
+
+            if (count != Context->NumberOfColumnsByDisplay)
+                return FALSE;
+
+            for (i = 0; i < count; i++)
+            {
+                order[i] = Context->ColumnsByDisplay[i]->Id;
+            }
         }
-        break;
+        return TRUE;
     case TNM_SETCOLUMNORDERARRAY:
         {
-            // TODO
-            if (!Header_SetOrderArray(Context->HeaderHandle, (ULONG)WParam, (PLONG)LParam))
+            ULONG count = (ULONG)WParam;
+            PULONG order = (PULONG)LParam;
+            ULONG i;
+            PULONG newOrder;
+            PPH_TREENEW_COLUMN column;
+
+            newOrder = PhAllocate(count * sizeof(ULONG));
+
+            for (i = 0; i < count; i++)
+            {
+                if (!(column = PhTnpLookupColumnById(Context, order[i])))
+                {
+                    PhFree(newOrder);
+                    return FALSE;
+                }
+
+                newOrder[i] = column->s.ViewIndex;
+            }
+
+            if (!Header_SetOrderArray(Context->HeaderHandle, count, newOrder))
+            {
+                PhFree(newOrder);
                 return FALSE;
+            }
+
+            PhFree(newOrder);
 
             PhTnpUpdateColumnHeaders(Context);
             PhTnpUpdateColumnMaps(Context);
         }
-        break;
+        return TRUE;
     case TNM_SETCURSOR:
         {
             Context->Cursor = (HCURSOR)LParam;
