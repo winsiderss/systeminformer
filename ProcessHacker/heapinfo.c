@@ -31,6 +31,7 @@ typedef struct _PROCESS_HEAPS_CONTEXT
     PVOID ProcessHeap;
 
     HWND ListViewHandle;
+    HFONT BoldFont;
 } PROCESS_HEAPS_CONTEXT, *PPROCESS_HEAPS_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessHeapsDlgProc(
@@ -50,8 +51,8 @@ VOID PhShowProcessHeapsDialog(
     PRTL_DEBUG_INFORMATION debugBuffer;
     HANDLE processHandle;
 
+    memset(&context, 0, sizeof(PROCESS_HEAPS_CONTEXT));
     context.ProcessItem = ProcessItem;
-    context.ProcessHeap = NULL;
 
     debugBuffer = RtlCreateQueryDebugBuffer(0, FALSE);
 
@@ -152,7 +153,12 @@ static HFONT NTAPI PhpHeapFontFunction(
     PPROCESS_HEAPS_CONTEXT context = Context;
 
     if (heapInfo->BaseAddress == context->ProcessHeap)
-        return PhBoldMessageFont;
+    {
+        if (!context->BoldFont)
+            context->BoldFont = PhDuplicateFontWithNewWeight((HFONT)SendMessage(context->ListViewHandle, WM_GETFONT, 0, 0), FW_BOLD);
+
+        return context->BoldFont;
+    }
 
     return NULL;
 }
@@ -235,6 +241,9 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
         break;
     case WM_DESTROY:
         {
+            if (context->BoldFont)
+                DeleteObject(context->BoldFont);
+
             RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
