@@ -26,9 +26,7 @@
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 extern HFONT PhApplicationFont;
-extern HFONT PhBoldMessageFont;
 extern PPH_STRING PhCurrentUserName;
-extern HFONT PhIconTitleFont;
 extern HINSTANCE PhInstanceHandle;
 extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
@@ -244,6 +242,11 @@ PHAPPAPI
 BOOLEAN PhGetListViewContextMenuPoint(
     __in HWND ListViewHandle,
     __out PPOINT Point
+    );
+
+HFONT PhDuplicateFontWithNewWeight(
+    __in HFONT Font,
+    __in LONG NewWeight
     );
 
 PHAPPAPI

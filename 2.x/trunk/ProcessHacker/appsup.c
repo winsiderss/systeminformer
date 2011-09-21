@@ -868,6 +868,24 @@ BOOLEAN PhGetListViewContextMenuPoint(
     return FALSE;
 }
 
+HFONT PhDuplicateFontWithNewWeight(
+    __in HFONT Font,
+    __in LONG NewWeight
+    )
+{
+    LOGFONT logFont;
+
+    if (GetObject(Font, sizeof(LOGFONT), &logFont))
+    {
+        logFont.lfWeight = NewWeight;
+        return CreateFontIndirect(&logFont);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
 VOID PhLoadWindowPlacementFromSetting(
     __in_opt PWSTR PositionSettingName,
     __in_opt PWSTR SizeSettingName,

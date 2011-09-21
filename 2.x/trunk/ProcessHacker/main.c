@@ -65,7 +65,6 @@ VOID PhpEnablePrivileges(
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 PHAPPAPI HFONT PhApplicationFont;
-HFONT PhBoldMessageFont;
 PPH_STRING PhCurrentUserName = NULL;
 HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
@@ -406,7 +405,6 @@ VOID PhInitializeFont(
     __in HWND hWnd
     )
 {
-    LOGFONT iconTitleFont;
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
     BOOLEAN success;
 
@@ -422,27 +420,6 @@ VOID PhInitializeFont(
         else
             PhApplicationFont = NULL;
     }
-
-    if (
-        !(PhBoldMessageFont = PhpCreateFont(hWnd, L"Microsoft Sans Serif", 8, FW_BOLD)) &&
-        !(PhBoldMessageFont = PhpCreateFont(hWnd, L"Tahoma", 8, FW_BOLD))
-        )
-    {
-        if (success)
-        {
-            metrics.lfMessageFont.lfWeight = FW_BOLD;
-            PhBoldMessageFont = CreateFontIndirect(&metrics.lfMessageFont);
-        }
-        else
-        {
-            PhBoldMessageFont = NULL;
-        }
-    }
-
-    success = !!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &iconTitleFont, 0);
-
-    if (success)
-        PhIconTitleFont = CreateFontIndirect(&iconTitleFont);
 }
 
 VOID PhInitializeKph(
