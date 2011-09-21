@@ -702,15 +702,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             if (node->ModuleItem->IsFirst)
             {
                 if (!context->BoldFont)
-                {
-                    LOGFONT logFont;
-
-                    if (GetObject((HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0), sizeof(LOGFONT), &logFont))
-                    {
-                        logFont.lfWeight = FW_BOLD;
-                        context->BoldFont = CreateFontIndirect(&logFont);
-                    }
-                }
+                    context->BoldFont = PhDuplicateFontWithNewWeight((HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0), FW_BOLD);
 
                 getNodeFont->Font = context->BoldFont ? context->BoldFont : NULL;
                 getNodeFont->Flags = TN_CACHE;

@@ -248,7 +248,7 @@ BOOLEAN PhMainWndInitialization(
     PhMwpSelectionChangedTabControl(-1);
 
     // Perform a layout.
-    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+    PhMwpOnSize();
 
     PhStartProviderThread(&PhPrimaryProviderThread);
     PhStartProviderThread(&PhSecondaryProviderThread);
@@ -648,8 +648,6 @@ VOID PhMwpOnSettingChange(
 
     if (PhApplicationFont)
         DeleteObject(PhApplicationFont);
-    if (PhBoldMessageFont)
-        DeleteObject(PhBoldMessageFont);
 
     PhInitializeFont(PhMainWndHandle);
 
