@@ -60,6 +60,12 @@ VOID PhMwpOnMenuCommand(
     __in HMENU Menu
     );
 
+VOID PhMwpOnInitMenuPopup(
+    __in HMENU Menu,
+    __in ULONG Index,
+    __in BOOLEAN IsWindowMenu
+    );
+
 VOID PhMwpOnSize(
     VOID
     );
