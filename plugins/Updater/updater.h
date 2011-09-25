@@ -40,16 +40,18 @@ typedef enum _PH_UPDATER_STATE
     Default,
     Downloading,
     Hashing,
-    Installing
+    Installing,
+	Retry
 } PH_UPDATER_STATE;
 
-VOID StartInitialCheck(VOID);
-VOID ShowUpdateDialog(VOID);
-VOID DisposeConnection(VOID);
-VOID DisposeStrings(VOID);
-VOID DisposeFileHandles(VOID);
-BOOL PhInstalledUsingSetup(VOID);
-BOOL ConnectionAvailable(VOID);
+void RunAction(HWND hwndDlg);
+void StartInitialCheck(void);
+void ShowUpdateDialog(void);
+void DisposeConnection(void);
+void DisposeStrings(void);
+void DisposeFileHandles(void);
+BOOL PhInstalledUsingSetup();
+BOOL ConnectionAvailable();
 
 BOOL ParseVersionString(
     __in PWSTR String,
@@ -80,31 +82,35 @@ BOOL QueryXmlData(
     __out PUPDATER_XML_DATA XmlData
     );
 
-VOID FreeXmlData(
+mxml_type_t QueryXmlDataCallback(
+    __in mxml_node_t *node
+    );
+
+void FreeXmlData(
     __in PUPDATER_XML_DATA XmlData
     );
 
-VOID LogEvent(
+void LogEvent(
     __in HWND hwndDlg,
     __in PPH_STRING str
     );
 
-VOID NTAPI LoadCallback(
+void NTAPI LoadCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
-VOID NTAPI MenuItemCallback(
+void NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
-VOID NTAPI MainWindowShowingCallback(
+void NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
-VOID NTAPI ShowOptionsCallback(
+void NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
