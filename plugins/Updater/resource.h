@@ -1,8 +1,9 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by Updater.rc
-//
-#define IDD_OUTPUT                      101
+// ??M
+#define IDD_UPDATEWINDOW                101
+#define IDD_UPDATE                      101
 #define IDB_BITMAP1                     105
 #define IDD_OPTIONS                     109
 #define IDC_ENABLECACHE                 1001
