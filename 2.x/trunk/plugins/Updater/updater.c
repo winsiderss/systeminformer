@@ -22,12 +22,6 @@
 */
 
 #include "updater.h"
-#include <process.h>
-
-// Always consider the remote version newer
-#ifdef _DEBUG
-#define TEST_MODE
-#endif
 
 static PPH_STRING RemoteHashString = NULL, LocalFilePathString = NULL, LocalFileNameString = NULL;
 static HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
@@ -168,17 +162,40 @@ static void __cdecl WorkerThreadStart(
         Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), summaryText->Buffer);
         PhDereferenceObject(summaryText);
 
-        summaryText = PhFormatString(L"Size: %s", xmlData.Size->Buffer);
-        Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), summaryText->Buffer);
-        PhDereferenceObject(summaryText);
+		summaryText = PhFormatString(L"Size: %s", xmlData.Size->Buffer);
+		Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), summaryText->Buffer);
+		PhDereferenceObject(summaryText);
 
-        LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
+		LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
 
-        Edit_Visible(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-        Edit_Visible(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+		Edit_Visible(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+		Edit_Visible(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
 
-        Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-    }
+		Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+
+		{
+			PPH_STRING sText = PhFormatString(L"\\%s", LocalFileNameString->Buffer);
+
+			LocalFilePathString = PhGetKnownLocation(CSIDL_DESKTOP, sText->Buffer);
+
+			PhDereferenceObject(sText);
+
+			// Create output file
+			if ((TempFileHandle = CreateFile(
+				LocalFilePathString->Buffer,
+				GENERIC_WRITE,
+				FILE_SHARE_WRITE,
+				0,                     // handle cannot be inherited
+				CREATE_ALWAYS,         // if file exists, delete it
+				FILE_ATTRIBUTE_NORMAL,
+				0)) == INVALID_HANDLE_VALUE)
+			{
+				LogEvent(hwndDlg, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
+			}
+		}
+
+		PhUpdaterState = Downloading;
+	}
     else if (result == 0)
     {
         PPH_STRING summaryText = PhFormatString(L"You're running the latest version: %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
@@ -190,37 +207,18 @@ static void __cdecl WorkerThreadStart(
     else if (result < 0)
     {
         PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %u.%u", localMajorVersion, localMinorVersion);
+		PPH_STRING stableText = PhFormatString(L"Latest stable version: %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
 
-        Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), summaryText->Buffer);
-
-        PhDereferenceObject(summaryText);
+		Edit_Visible(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+		Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), summaryText->Buffer);
+		Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), stableText->Buffer);
+        
+		PhDereferenceObject(summaryText);
+		PhDereferenceObject(stableText);
     }
 
     FreeXmlData(&xmlData);
     DisposeConnection();
-
-    {
-        PPH_STRING sText = PhFormatString(L"\\%s", LocalFileNameString->Buffer);
-
-		LocalFilePathString = PhGetKnownLocation(CSIDL_DESKTOP, sText->Buffer);
-
-        PhDereferenceObject(sText);
-
-        // Create output file
-        if ((TempFileHandle = CreateFile(
-            LocalFilePathString->Buffer,
-            GENERIC_WRITE,
-            FILE_SHARE_WRITE,
-            0,                     // handle cannot be inherited
-            CREATE_ALWAYS,         // if file exists, delete it
-            FILE_ATTRIBUTE_NORMAL,
-            0)) == INVALID_HANDLE_VALUE)
-        {
-            LogEvent(hwndDlg, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
-        }
-    }
-
-    PhUpdaterState = Downloading;
 }
 
 static void __cdecl DownloadWorkerThreadStart(
@@ -438,7 +436,6 @@ static void __cdecl DownloadWorkerThreadStart(
 
 		// Enable the Install button
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-        
         
         // If PH is not elevated show the UAC sheild since it'll be shown by the PH setup.
         if (!PhElevated)
@@ -895,9 +892,9 @@ VOID RunAction(
             {
                 Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Initializing");
                 // Show the status text
-                Edit_Visible(GetDlgItem(hwndDlg, IDC_STATUSTEXT), TRUE);
-                Edit_Visible(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), TRUE);
-                Edit_Visible(GetDlgItem(hwndDlg, IDC_RTIMETEXT), TRUE);
+                Edit_Enable(GetDlgItem(hwndDlg, IDC_STATUSTEXT), TRUE);
+                Edit_Enable(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), TRUE);
+                Edit_Enable(GetDlgItem(hwndDlg, IDC_RTIMETEXT), TRUE);
 
                 // Star our Downloader thread   
                 _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
