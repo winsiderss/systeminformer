@@ -892,9 +892,9 @@ VOID RunAction(
             {
                 Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Initializing");
                 // Show the status text
-                Edit_Enable(GetDlgItem(hwndDlg, IDC_STATUSTEXT), TRUE);
-                Edit_Enable(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), TRUE);
-                Edit_Enable(GetDlgItem(hwndDlg, IDC_RTIMETEXT), TRUE);
+                Edit_Visible(GetDlgItem(hwndDlg, IDC_STATUSTEXT), TRUE);
+                Edit_Visible(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), TRUE);
+                Edit_Visible(GetDlgItem(hwndDlg, IDC_RTIMETEXT), TRUE);
 
                 // Star our Downloader thread   
                 _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
@@ -914,7 +914,7 @@ VOID RunAction(
         }
     case Installing:
         {
-            PhShellExecute(hwndDlg, LocalFilePathString->Buffer, NULL);
+            PhShellExecute(hwndDlg, LocalFilePathString->Buffer, L"/silent");
             DisposeConnection();
 
             ProcessHacker_Destroy(PhMainWndHandle);
