@@ -250,7 +250,7 @@ static void __cdecl DownloadWorkerThreadStart(
 
     Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Connecting");
     
-    if (!HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
+    if (HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         CHAR buffer[BUFFER_LEN];
         DWORD dwLastTotalBytes = 0;
@@ -441,23 +441,25 @@ static void __cdecl DownloadWorkerThreadStart(
         if (!PhElevated)
             SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
-        DisposeConnection();
-        DisposeFileHandles();
-        PhDereferenceObject(uriPath);
-
         PhUpdaterState = Installing;
-    }
-    else
-    {
-        LogEvent(hwndDlg, PhFormatString(L"HttpSendRequest failed (%d)", GetLastError()));
+	}
+	else
+	{
+		LogEvent(hwndDlg, PhFormatString(L"HttpSendRequest failed (%d)", GetLastError()));
 
 		// Enable the Install button.
-        Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-        Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+		Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+		Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
 
-        // Reset the state and let user retry the download.
-        PhUpdaterState = Retry;
-    }
+		// Reset the state and let user retry the download.
+		PhUpdaterState = Retry;
+	}
+
+	DisposeConnection();
+	DisposeFileHandles();
+
+	if (uriPath)
+		PhDereferenceObject(uriPath);
 }
 
 INT_PTR CALLBACK MainWndProc(
