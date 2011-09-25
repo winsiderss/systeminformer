@@ -12,6 +12,12 @@
 #include <ShlObj.h>
 #include <stdint.h>
 #include <CommCtrl.h>
+#include <process.h>
+
+// Always consider the remote version newer
+#ifdef _DEBUG
+//#define TEST_MODE
+#endif
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
