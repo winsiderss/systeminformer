@@ -16,7 +16,7 @@
 
 // Always consider the remote version newer
 #ifdef _DEBUG
-//#define TEST_MODE
+#define TEST_MODE
 #endif
 
 #define BUFFER_LEN 512
