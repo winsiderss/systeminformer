@@ -21,9 +21,6 @@
     <ClCompile Include="options.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VistaUpdater.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="updater.c">
       <Filter>Source Files</Filter>
     </ClCompile>
