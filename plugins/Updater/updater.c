@@ -174,8 +174,9 @@ static void __cdecl WorkerThreadStart(
 
         LocalFileNameString = PhFormatString(L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
 
-        Edit_Enable(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-        Edit_Enable(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+        Edit_Visible(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+        Edit_Visible(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
     }
     else if (result == 0)
@@ -423,19 +424,21 @@ static void __cdecl DownloadWorkerThreadStart(
             }
         }
 
+		// Set button text for next action
+		Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
         // Set Status
         Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Download Complete");
 
-        // Set Progress complete.
+        // Set progress complete
 		PostMessage(hwndProgress, PBM_SETPOS, 100, 0);
         
-        // Enable the labels. 
-        Edit_Enable(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-        Edit_Enable(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+        // Enable the labels
+		Edit_Visible(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), FALSE);
+        Edit_Visible(GetDlgItem(hwndDlg, IDC_RTIMETEXT), FALSE);
 
-		// Enable the Install button.
+		// Enable the Install button
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-        Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
+        
         
         // If PH is not elevated show the UAC sheild since it'll be shown by the PH setup.
         if (!PhElevated)
@@ -892,9 +895,9 @@ VOID RunAction(
             {
                 Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Initializing");
                 // Show the status text
-                Edit_Enable(GetDlgItem(hwndDlg, IDC_STATUSTEXT), TRUE);
-                Edit_Enable(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), TRUE);
-                Edit_Enable(GetDlgItem(hwndDlg, IDC_RTIMETEXT), TRUE);
+                Edit_Visible(GetDlgItem(hwndDlg, IDC_STATUSTEXT), TRUE);
+                Edit_Visible(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), TRUE);
+                Edit_Visible(GetDlgItem(hwndDlg, IDC_RTIMETEXT), TRUE);
 
                 // Star our Downloader thread   
                 _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);

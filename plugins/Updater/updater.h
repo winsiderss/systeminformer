@@ -21,6 +21,9 @@
 #define DOWNLOAD_SERVER L"sourceforge.net"
 #define DOWNLOAD_PATH L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
 
+#define Edit_Visible(hWnd, visible) \
+	ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE)
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
