@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}</ProjectGuid>
-    <RootNamespace>NetworkTools</RootNamespace>
+    <RootNamespace>Updater</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>Updater</ProjectName>
   </PropertyGroup>
@@ -171,7 +171,6 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
-    <ClCompile Include="VistaUpdater.c" />
     <ClCompile Include="updater.c" />
   </ItemGroup>
   <ItemGroup>
