@@ -11,6 +11,7 @@
 #include <ShellAPI.h>
 #include <ShlObj.h>
 #include <stdint.h>
+#include <CommCtrl.h>
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
@@ -20,23 +21,10 @@
 #define DOWNLOAD_SERVER L"sourceforge.net"
 #define DOWNLOAD_PATH L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
 
-#define TDIF_SIZE_TO_CONTENT 0x1000000
-#define SecurityStop UINT16_MAX - 1
-#define SecurityInformation UINT16_MAX - 2
-#define SecurityShield  UINT16_MAX - 3
-#define SecurityShieldBlue UINT16_MAX - 4
-#define SecurityWarning UINT16_MAX - 5
-#define SecurityError UINT16_MAX - 6
-#define SecuritySuccess UINT16_MAX - 7
-#define SecurityShieldGray UINT16_MAX - 8
-#define ASecurityWarning UINT16_MAX
-
 PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-_TaskDialogIndirect TaskDialogIndirect_I;
 
 typedef struct _UPDATER_XML_DATA
 {
@@ -97,6 +85,7 @@ VOID FreeXmlData(
     );
 
 VOID LogEvent(
+    __in HWND hwndDlg,
     __in PPH_STRING str
     );
 
