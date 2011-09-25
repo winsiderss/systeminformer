@@ -32,7 +32,7 @@ LOGICAL DllMain(
     {
         { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
         { IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
-        { IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"0" },
+        { IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"1" },
     };
 
     switch (Reason)
@@ -52,12 +52,6 @@ LOGICAL DllMain(
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=273";
             info->HasOptions = TRUE;
     
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
                 MainWindowShowingCallback,
@@ -83,18 +77,6 @@ LOGICAL DllMain(
     }
 
     return TRUE;
-}
-
-VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        if (!TaskDialogIndirect_I)
-            TaskDialogIndirect_I = (_TaskDialogIndirect)PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
-    }
 }
 
 VOID NTAPI MainWindowShowingCallback(
