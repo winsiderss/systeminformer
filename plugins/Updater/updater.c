@@ -650,7 +650,7 @@ BOOL InitializeConnection(
 
     if (!NetInitialize)
     {
-        LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
+        LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
         return FALSE;
     }
 
@@ -668,7 +668,7 @@ BOOL InitializeConnection(
 
     if (!NetConnection)
     {
-        LogEvent(PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
+        LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
 
         DisposeConnection();
 
@@ -689,7 +689,7 @@ BOOL InitializeConnection(
 
     if (!NetRequest)
     {
-        LogEvent(PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
+        LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
 
         DisposeConnection();
 
@@ -768,7 +768,7 @@ BOOL QueryXmlData(
     // Check our XML.
     if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
     {
-        LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
+        LogEvent(NULL, PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
         goto CleanupAndExit;
     }
 
@@ -776,7 +776,7 @@ BOOL QueryXmlData(
     xmlNodeVer = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
     if (xmlNodeVer == NULL || xmlNodeVer->type != MXML_ELEMENT)
     {
-        LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeVer failed."));
+        LogEvent(NULL, PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeVer failed."));
         goto CleanupAndExit;
     }
 
@@ -784,7 +784,7 @@ BOOL QueryXmlData(
     xmlNodeRelDate = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
     if (xmlNodeRelDate == NULL || xmlNodeRelDate->type != MXML_ELEMENT)
     {
-        LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeRelDate failed."));
+        LogEvent(NULL, PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeRelDate failed."));
         goto CleanupAndExit;
     }
 
@@ -792,7 +792,7 @@ BOOL QueryXmlData(
     xmlNodeSize = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
     if (xmlNodeSize == NULL || xmlNodeSize->type != MXML_ELEMENT)
     {
-        LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeSize failed."));
+        LogEvent(NULL, PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeSize failed."));
         goto CleanupAndExit;
     }
 
@@ -803,7 +803,7 @@ BOOL QueryXmlData(
 
     if (xmlNodeHash == NULL || xmlNodeHash->type != MXML_ELEMENT)
     {
-        LogEvent(PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeHash failed."));
+        LogEvent(NULL, PhFormatString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeHash failed."));
         goto CleanupAndExit;
     }
 
@@ -832,7 +832,7 @@ BOOL ConnectionAvailable(VOID)
 
     if (!InternetGetConnectedState(&dwType, 0))
     {
-        LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetGetConnectedState failed to detect an active Internet connection (%d)", GetLastError()));
+        LogEvent(NULL, PhFormatString(L"Updater: (ConnectionAvailable) InternetGetConnectedState failed to detect an active Internet connection (%d)", GetLastError()));
         return FALSE;
     }
 
@@ -927,7 +927,7 @@ BOOL PhInstalledUsingSetup(VOID)
         return TRUE;
     }
 
-    LogEvent(PhFormatString(L"Updater: (PhInstalledUsingSetup) PhOpenKey failed (0x%x)", status));
+    LogEvent(NULL, PhFormatString(L"Updater: (PhInstalledUsingSetup) PhOpenKey failed (0x%x)", status));
     return FALSE;
 }
 
