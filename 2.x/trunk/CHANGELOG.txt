@@ -2,6 +2,7 @@ Process Hacker
 
 2.23
  * NEW/IMPROVED:
+   * Enabled multi-selection in the hidden processes window
  * FIXED:
 
 2.22

@@ -49,6 +49,9 @@ typedef struct _COLUMN_INFO
     BOOLEAN SortDescending;
 } COLUMN_INFO, *PCOLUMN_INFO;
 
+static GUID IID_INetFwMgr_I = { 0xf7898af5, 0xcac4, 0x4632, { 0xa2, 0xec, 0xda, 0x06, 0xe5, 0x11, 0x1a, 0xf2 } };
+static GUID CLSID_NetFwMgr_I = { 0x304ce942, 0x6e39, 0x40d8, { 0x94, 0x3a, 0xb9, 0x13, 0xc4, 0x0c, 0x9c, 0xd4 } };
+
 VOID EtpAddTreeNewColumn(
     __in PPH_PLUGIN_TREENEW_INFORMATION TreeNewInfo,
     __in ULONG SubId,
@@ -570,7 +573,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
     if (!manager)
     {
-        if (!SUCCEEDED(CoCreateInstance(&CLSID_NetFwMgr, NULL, CLSCTX_INPROC_SERVER, &IID_INetFwMgr, &manager)))
+        if (!SUCCEEDED(CoCreateInstance(&CLSID_NetFwMgr_I, NULL, CLSCTX_INPROC_SERVER, &IID_INetFwMgr_I, &manager)))
             return FirewallUnknownStatus;
 
         if (!manager)

@@ -22,9 +22,6 @@
 
 #define CINTERFACE
 #define COBJMACROS
-
-#pragma comment(lib, "CorGuids.lib")
-
 #include "dn.h"
 #include "resource.h"
 #include <windowsx.h>
@@ -44,6 +41,9 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+static GUID CLSID_CorpubPublish_I = { 0x047a9a40, 0x657e, 0x11d3, { 0x8d, 0x5b, 0x00, 0x10, 0x4b, 0x35, 0xe7, 0xef } };
+static GUID IID_ICorPublish_I = { 0x9613a0e7, 0x5a68, 0x11d3, { 0x8f, 0x84, 0x00, 0xa0, 0xc9, 0xb4, 0xd5, 0x0c } };
 
 static PH_INITONCE DotNetObjectTypeInfoInitOnce = PH_INITONCE_INIT;
 static PPERF_OBJECT_TYPE_INFO DotNetObjectTypeInfo = NULL;
@@ -117,9 +117,9 @@ HRESULT CreateCorpubPublish(
             {
                 IClassFactory *factory;
 
-                if (SUCCEEDED(dllGetClassObject(&CLSID_CorpubPublish, &IID_IClassFactory, &factory)))
+                if (SUCCEEDED(dllGetClassObject(&CLSID_CorpubPublish_I, &IID_IClassFactory, &factory)))
                 {
-                    result = IClassFactory_CreateInstance(factory, NULL, &IID_ICorPublish, Publish);
+                    result = IClassFactory_CreateInstance(factory, NULL, &IID_ICorPublish_I, Publish);
                     IClassFactory_Release(factory);
 
                     return result;
@@ -128,7 +128,7 @@ HRESULT CreateCorpubPublish(
         }
     }
 
-    return CoCreateInstance(&CLSID_CorpubPublish, NULL, CLSCTX_INPROC_SERVER, &IID_ICorPublish, Publish);
+    return CoCreateInstance(&CLSID_CorpubPublish_I, NULL, CLSCTX_INPROC_SERVER, &IID_ICorPublish_I, Publish);
 }
 
 HRESULT GetCorPublishProcess(
