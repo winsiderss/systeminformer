@@ -252,17 +252,19 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                 break;
             case IDC_TERMINATE:
                 {
-                    PPH_HIDDEN_PROCESS_ENTRY entry;
+                    PPH_HIDDEN_PROCESS_ENTRY *entries;
+                    ULONG numberOfEntries;
+                    ULONG i;
 
-                    entry = PhGetSelectedListViewItemParam(PhHiddenProcessesListViewHandle);
+                    PhGetSelectedListViewItemParams(PhHiddenProcessesListViewHandle, &entries, &numberOfEntries);
 
-                    if (entry)
+                    if (numberOfEntries != 0)
                     {
                         if (!PhGetIntegerSetting(L"EnableWarnings") ||
                             PhShowConfirmMessage(
                             hwndDlg,
                             L"terminate",
-                            L"the selected process",
+                            L"the selected process(es)",
                             L"Terminating a hidden process may cause the system to become unstable "
                             L"or crash.",
                             TRUE
@@ -270,31 +272,44 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                         {
                             NTSTATUS status;
                             HANDLE processHandle;
+                            BOOLEAN refresh;
 
-                            if (ProcessesMethod == BruteForceScanMethod)
+                            refresh = FALSE;
+
+                            for (i = 0; i < numberOfEntries; i++)
                             {
-                                status = PhOpenProcess(
-                                    &processHandle,
-                                    PROCESS_TERMINATE,
-                                    entry->ProcessId
-                                    );
-                            }
-                            else
-                            {
-                                status = PhOpenProcessByCsrHandles(
-                                    &processHandle,
-                                    PROCESS_TERMINATE,
-                                    entry->ProcessId
-                                    );
+                                if (ProcessesMethod == BruteForceScanMethod)
+                                {
+                                    status = PhOpenProcess(
+                                        &processHandle,
+                                        PROCESS_TERMINATE,
+                                        entries[i]->ProcessId
+                                        );
+                                }
+                                else
+                                {
+                                    status = PhOpenProcessByCsrHandles(
+                                        &processHandle,
+                                        PROCESS_TERMINATE,
+                                        entries[i]->ProcessId
+                                        );
+                                }
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                                    NtClose(processHandle);
+
+                                    if (NT_SUCCESS(status))
+                                        refresh = TRUE;
+                                }
+                                else
+                                {
+                                    PhShowStatus(hwndDlg, L"Unable to terminate the process", status, 0);
+                                }
                             }
 
-                            if (NT_SUCCESS(status))
-                            {
-                                status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
-                                NtClose(processHandle);
-                            }
-
-                            if (NT_SUCCESS(status))
+                            if (refresh)
                             {
                                 LARGE_INTEGER interval;
 
@@ -304,12 +319,10 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                                 NtDelayExecution(FALSE, &interval);
                                 SendMessage(hwndDlg, WM_COMMAND, IDC_SCAN, 0);
                             }
-                            else
-                            {
-                                PhShowStatus(hwndDlg, L"Unable to terminate the process", status, 0);
-                            }
                         }
                     }
+
+                    PhFree(entries);
                 }
                 break;
             case IDC_SAVE:
@@ -406,7 +419,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     {
                         EnableWindow(
                             GetDlgItem(hwndDlg, IDC_TERMINATE),
-                            ListView_GetSelectedCount(PhHiddenProcessesListViewHandle) == 1
+                            ListView_GetSelectedCount(PhHiddenProcessesListViewHandle) > 0
                             );
                     }
                 }
