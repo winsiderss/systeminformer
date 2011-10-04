@@ -383,22 +383,37 @@ HFONT PhpCreateFont(
     __in ULONG Weight
     )
 {
-    return CreateFont(
-        -MulDiv(Size, GetDeviceCaps(GetDC(hWnd), LOGPIXELSY), 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        DEFAULT_PITCH,
-        Name
-        );
+    HFONT font;
+    HDC hdc;
+
+    hdc = GetDC(hWnd);
+
+    if (hdc)
+    {
+        font = CreateFont(
+            -MulDiv(Size, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+            0,
+            0,
+            0,
+            Weight,
+            FALSE,
+            FALSE,
+            FALSE,
+            ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            DEFAULT_QUALITY,
+            DEFAULT_PITCH,
+            Name
+            );
+        ReleaseDC(hWnd, hdc);
+
+        return font;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 VOID PhInitializeFont(
