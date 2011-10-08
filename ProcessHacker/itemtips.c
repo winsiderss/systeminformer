@@ -321,7 +321,7 @@ PPH_STRING PhGetProcessTooltipText(
         if (Process->IsElevated)
             PhAppendStringBuilder2(&notes, L"    Process is elevated.\n");
         if (Process->IsImmersive)
-            PhAppendStringBuilder2(&notes, L"    Process is a metro style app.\n");
+            PhAppendStringBuilder2(&notes, L"    Process is a Metro style app.\n");
         if (Process->IsInJob)
             PhAppendStringBuilder2(&notes, L"    Process is in a job.\n");
         if (Process->IsPosix)
