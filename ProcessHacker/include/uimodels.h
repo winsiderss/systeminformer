@@ -427,10 +427,12 @@ VOID PhWriteProcessTree(
 #define PHSVTLC_BINARYPATH 6
 #define PHSVTLC_ERRORCONTROL 7
 #define PHSVTLC_GROUP 8
+#define PHSVTLC_DESCRIPTION 9
 
-#define PHSVTLC_MAXIMUM 9
+#define PHSVTLC_MAXIMUM 10
 
 #define PHSN_CONFIG 0x1
+#define PHSN_DESCRIPTION 0x2
 
 typedef struct _PH_SERVICE_NODE
 {
@@ -447,6 +449,8 @@ typedef struct _PH_SERVICE_NODE
     // Config
     PPH_STRING BinaryPath;
     PPH_STRING LoadOrderGroup;
+    // Description
+    PPH_STRING Description;
 
     PPH_STRING TooltipText;
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
