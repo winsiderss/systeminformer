@@ -2,6 +2,7 @@
 #define EXTNOTI_H
 
 #define SETTING_PREFIX L"ProcessHacker.ExtendedNotifications."
+#define SETTING_NAME_ENABLE_GROWL (SETTING_PREFIX L"EnableGrowl")
 #define SETTING_NAME_LOG_FILENAME (SETTING_PREFIX L"LogFileName")
 #define SETTING_NAME_PROCESS_LIST (SETTING_PREFIX L"ProcessList")
 #define SETTING_NAME_SERVICE_LIST (SETTING_PREFIX L"ServiceList")

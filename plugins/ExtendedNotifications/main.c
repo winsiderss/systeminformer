@@ -24,6 +24,7 @@
 #include <windowsx.h>
 #include "extnoti.h"
 #include "resource.h"
+#include "gntp-send/growl.h"
 
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
@@ -38,6 +39,14 @@ VOID NTAPI ShowOptionsCallback(
 VOID NTAPI NotifyEventCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
+    );
+
+VOID RegisterGrowl(
+    VOID
+    );
+
+VOID NotifyGrowl(
+    __in PPH_PLUGIN_NOTIFY_EVENT NotifyEvent
     );
 
 INT_PTR CALLBACK ProcessesDlgProc(
@@ -61,6 +70,13 @@ INT_PTR CALLBACK LoggingDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK GrowlDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -68,6 +84,16 @@ PH_CALLBACK_REGISTRATION NotifyEventCallbackRegistration;
 
 PPH_LIST ProcessFilterList;
 PPH_LIST ServiceFilterList;
+
+PSTR GrowlNotifications[] =
+{
+    "Process Created",
+    "Process Terminated",
+    "Service Created",
+    "Service Deleted",
+    "Service Started",
+    "Service Stopped"
+};
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -114,6 +140,7 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
+                    { IntegerSettingType, SETTING_NAME_ENABLE_GROWL, L"0" },
                     { StringSettingType, SETTING_NAME_LOG_FILENAME, L"" },
                     { StringSettingType, SETTING_NAME_PROCESS_LIST, L"\\i*" },
                     { StringSettingType, SETTING_NAME_SERVICE_LIST, L"\\i*" }
@@ -300,6 +327,9 @@ VOID NTAPI LoadCallback(
     PhDereferenceObject(string);
 
     FileLogInitialization();
+
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
+        RegisterGrowl();
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -309,7 +339,7 @@ VOID NTAPI ShowOptionsCallback(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[3];
+    HPROPSHEETPAGE pages[4];
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -343,6 +373,14 @@ VOID NTAPI ShowOptionsCallback(
     propSheetPage.hInstance = PluginInstance->DllBase;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_LOGGING);
     propSheetPage.pfnDlgProc = LoggingDlgProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // Growl
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.hInstance = PluginInstance->DllBase;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_GROWL);
+    propSheetPage.pfnDlgProc = GrowlDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     PropertySheet(&propSheetHeader);
@@ -422,6 +460,140 @@ VOID NTAPI NotifyEventCallback(
 
     if (filterType == FilterExclude)
         notifyEvent->Handled = TRUE; // pretend we handled the notification to prevent it from displaying
+
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
+        NotifyGrowl(notifyEvent);
+}
+
+VOID RegisterGrowl(
+    VOID
+    )
+{
+    static BOOLEAN registered = FALSE;
+
+    if (registered)
+        return;
+
+    growl_tcp_register("127.0.0.1", "Process Hacker", GrowlNotifications, sizeof(GrowlNotifications) / sizeof(PSTR), NULL, NULL);
+
+    registered = TRUE;
+}
+
+VOID NotifyGrowl(
+    __in PPH_PLUGIN_NOTIFY_EVENT NotifyEvent
+    )
+{
+    PSTR notification;
+    PPH_STRING title;
+    PPH_ANSI_STRING titleAnsi;
+    PPH_STRING message;
+    PPH_ANSI_STRING messageAnsi;
+    PPH_PROCESS_ITEM processItem;
+    PPH_SERVICE_ITEM serviceItem;
+    PPH_PROCESS_ITEM parentProcessItem;
+
+    if (NotifyEvent->Handled)
+        return;
+
+    switch (NotifyEvent->Type)
+    {
+    case PH_NOTIFY_PROCESS_CREATE:
+        processItem = NotifyEvent->Parameter;
+        notification = GrowlNotifications[0];
+        title = processItem->ProcessName;
+        PhReferenceObject(title);
+
+        parentProcessItem = PhReferenceProcessItemForParent(
+            processItem->ParentProcessId,
+            processItem->ProcessId,
+            &processItem->CreateTime
+            );
+
+        message = PhFormatString(
+            L"The process %s (%u) was started by %s.",
+            processItem->ProcessName->Buffer,
+            (ULONG)processItem->ProcessId,
+            parentProcessItem ? parentProcessItem->ProcessName->Buffer : L"an unknown process"
+            );
+
+        if (parentProcessItem)
+            PhDereferenceObject(parentProcessItem);
+
+        break;
+    case PH_NOTIFY_PROCESS_DELETE:
+        processItem = NotifyEvent->Parameter;
+        notification = GrowlNotifications[1];
+        title = processItem->ProcessName;
+        PhReferenceObject(title);
+
+        message = PhFormatString(L"The process %s (%u) was terminated.",
+            processItem->ProcessName->Buffer,
+            (ULONG)processItem->ProcessId
+            );
+
+        break;
+    case PH_NOTIFY_SERVICE_CREATE:
+        serviceItem = NotifyEvent->Parameter;
+        notification = GrowlNotifications[2];
+        title = serviceItem->DisplayName;
+        PhReferenceObject(title);
+
+        message = PhFormatString(L"The service %s (%s) has been created.",
+            serviceItem->Name->Buffer,
+            serviceItem->DisplayName->Buffer
+            );
+
+        break;
+    case PH_NOTIFY_SERVICE_DELETE:
+        serviceItem = NotifyEvent->Parameter;
+        notification = GrowlNotifications[3];
+        title = serviceItem->DisplayName;
+        PhReferenceObject(title);
+
+        message = PhFormatString(L"The service %s (%s) has been deleted.",
+            serviceItem->Name->Buffer,
+            serviceItem->DisplayName->Buffer
+            );
+
+        break;
+    case PH_NOTIFY_SERVICE_START:
+        serviceItem = NotifyEvent->Parameter;
+        notification = GrowlNotifications[4];
+        title = serviceItem->DisplayName;
+        PhReferenceObject(title);
+
+        message = PhFormatString(L"The service %s (%s) has been started.",
+            serviceItem->Name->Buffer,
+            serviceItem->DisplayName->Buffer
+            );
+
+        break;
+    case PH_NOTIFY_SERVICE_STOP:
+        serviceItem = NotifyEvent->Parameter;
+        notification = GrowlNotifications[5];
+        title = serviceItem->DisplayName;
+        PhReferenceObject(title);
+
+        message = PhFormatString(L"The service %s (%s) has been stopped.",
+            serviceItem->Name->Buffer,
+            serviceItem->DisplayName->Buffer
+            );
+
+        break;
+    default:
+        return;
+    }
+
+    titleAnsi = PhCreateAnsiStringFromUnicodeEx(title->Buffer, title->Length);
+    messageAnsi = PhCreateAnsiStringFromUnicodeEx(message->Buffer, message->Length);
+
+    if (growl_tcp_notify("127.0.0.1", "Process Hacker", notification, titleAnsi->Buffer, messageAnsi->Buffer, NULL, NULL, NULL) == 0)
+        NotifyEvent->Handled = TRUE;
+
+    PhDereferenceObject(messageAnsi);
+    PhDereferenceObject(titleAnsi);
+    PhDereferenceObject(message);
+    PhDereferenceObject(title);
 }
 
 PPH_STRING FormatFilterEntry(
@@ -894,6 +1066,55 @@ INT_PTR CALLBACK LoggingDlgProc(
             case PSN_APPLY:
                 {
                     PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_LOGFILENAME)->sr);
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                }
+                return TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK GrowlDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PPH_STRING licenseText;
+
+            licenseText = PhCreateStringFromAnsi(gntp_send_license_text);
+            SetDlgItemText(hwndDlg, IDC_LICENSE, licenseText->Buffer);
+            PhDereferenceObject(licenseText);
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL), PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL) ? BST_CHECKED : BST_UNCHECKED);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                {
+                    SetWindowLong(hwndDlg, DWL_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_ENABLEGROWL));
+                }
+                return TRUE;
+            case PSN_APPLY:
+                {
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_GROWL, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL)) == BST_CHECKED);
+
+                    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
+                        RegisterGrowl();
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }

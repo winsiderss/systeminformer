@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Added Description column to service list
    * Enabled multi-selection in the hidden processes window
+   * Updated ExtendedNotifications plugin:
+     * Added Growl support
  * FIXED:
 
 2.22
