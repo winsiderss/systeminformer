@@ -18,12 +18,12 @@
 
 int growl_tcp_parse_hostname( const char *const server , int default_port , struct sockaddr_in *const sockaddr  );
 
-void growl_tcp_write_raw( int sock, const unsigned char * data, const int data_length )
+void growl_tcp_write_raw( SOCKET sock, const unsigned char * data, const int data_length )
 {
     send(sock, data, data_length, 0);
 }
 
-void growl_tcp_write( int sock , const char *const format , ... ) 
+void growl_tcp_write( SOCKET sock , const char *const format , ... ) 
 {
     int length;
     char *output;
@@ -52,7 +52,7 @@ void growl_tcp_write( int sock , const char *const format , ... )
     PhFree(output);
 }
 
-char *growl_tcp_read(int sock) {
+char *growl_tcp_read(SOCKET sock) {
     const int growsize = 80;
     char c = 0;
     char* line = (char*) PhAllocateSafe(growsize);
@@ -79,8 +79,8 @@ char *growl_tcp_read(int sock) {
     return line;
 }
 
-int growl_tcp_open(const char* server) {
-    int sock = -1;
+SOCKET growl_tcp_open(const char* server) {
+    SOCKET sock = -1;
 #ifdef _WIN32
     char on;
 #else
@@ -93,7 +93,7 @@ int growl_tcp_open(const char* server) {
         return -1;
     }
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
         perror("create socket");
         return -1;
     }
@@ -112,7 +112,7 @@ int growl_tcp_open(const char* server) {
     return sock;
 }
 
-void growl_tcp_close(int sock) {
+void growl_tcp_close(SOCKET sock) {
 #ifdef _WIN32
     if (sock > 0) closesocket(sock);
 #else
@@ -122,7 +122,7 @@ void growl_tcp_close(int sock) {
 
 int growl_tcp_parse_hostname( const char *const server , int default_port , struct sockaddr_in *const sockaddr )
 {
-    char *hostname = PhDuplicateAnsiStringZSafe(server);
+    char *hostname = PhDuplicateAnsiStringZSafe((PSTR)server);
     char *port = strchr( hostname, ':' );
     struct hostent* host_ent;
     if( port != NULL )
@@ -152,7 +152,7 @@ int growl_tcp_parse_hostname( const char *const server , int default_port , stru
 int growl_tcp_datagram( const char *server , const unsigned char *data , const int data_length )
 {
     struct sockaddr_in serv_addr;
-    int sock = 0;
+    SOCKET sock = 0;
 
     if( growl_tcp_parse_hostname( server , 9887 , &serv_addr ) == -1 )
     {
@@ -160,7 +160,7 @@ int growl_tcp_datagram( const char *server , const unsigned char *data , const i
     }
     
     sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if( sock < 0 )
+    if( sock == INVALID_SOCKET )
     {
         return -1;
     }

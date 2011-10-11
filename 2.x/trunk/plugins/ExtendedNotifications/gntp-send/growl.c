@@ -72,8 +72,8 @@ char* gen_password_hash_alloc(const char* password, const char* salt) {
 
     memset(md5tmp, 0, sizeof(md5tmp));
     md5_starts(&md5ctx);
-    md5_update(&md5ctx, (uint8_t*)password, strlen(password));
-    md5_update(&md5ctx, (uint8_t*)salt, strlen(salt));
+    md5_update(&md5ctx, (uint8_t*)password, (uint32_t)strlen(password));
+    md5_update(&md5ctx, (uint8_t*)salt, (uint32_t)strlen(salt));
     md5_finish(&md5ctx, (uint8_t*)md5tmp);
 
     md5_starts(&md5ctx);
@@ -117,7 +117,7 @@ char *growl_generate_authheader_alloc(const char*const password)
 int growl_tcp_register( const char *const server , const char *const appname , const char **const notifications , const int notifications_count ,
         const char *const password, const char* const icon  )
 {
-    int sock = -1;
+    SOCKET sock = -1;
     int i=0;
     char *authheader;
     char *iconid = NULL;
@@ -142,7 +142,7 @@ int growl_tcp_register( const char *const server , const char *const appname , c
             md5_starts(&md5ctx);
             while (!feof(iconfile)) {
                 bytes_read = fread(buffer, 1, 1024, iconfile);
-                if (bytes_read) md5_update(&md5ctx, buffer, bytes_read);
+                if (bytes_read) md5_update(&md5ctx, buffer, (uint32_t)bytes_read);
             }
             fseek(iconfile, 0, SEEK_SET);
             md5_finish(&md5ctx, md5tmp);
@@ -188,7 +188,7 @@ int growl_tcp_register( const char *const server , const char *const appname , c
         while (!feof(iconfile)) 
         {
             size_t bytes_read = fread(buffer, 1, 1024, iconfile);
-            if (bytes_read) growl_tcp_write_raw(sock, buffer, bytes_read);
+            if (bytes_read) growl_tcp_write_raw(sock, buffer, (int)bytes_read);
         }
         growl_tcp_write(sock, "" );
         
@@ -205,7 +205,7 @@ int growl_tcp_register( const char *const server , const char *const appname , c
         } 
         else 
         {
-            int len = strlen(line);
+            int len = (int)strlen(line);
             /* fprintf(stderr, "%s\n", line); */
             if (strncmp(line, "GNTP/1.0 -ERROR", 15) == 0) 
             {
@@ -235,7 +235,7 @@ int growl_tcp_register( const char *const server , const char *const appname , c
 int growl_tcp_notify( const char *const server,const char *const appname,const char *const notify,const char *const title, const char *const message ,
                                 const char *const password, const char* const url, const char* const icon)
 {
-    int sock = -1;
+    SOCKET sock = -1;
 
     char *authheader = growl_generate_authheader_alloc(password);
     char *iconid = NULL;
@@ -264,7 +264,7 @@ int growl_tcp_notify( const char *const server,const char *const appname,const c
             while (!feof(iconfile))
             {
                 bytes_read = fread(buffer, 1, 1024, iconfile);
-                if (bytes_read) md5_update(&md5ctx, buffer, bytes_read);
+                if (bytes_read) md5_update(&md5ctx, buffer, (uint32_t)bytes_read);
             }
             fseek(iconfile, 0, SEEK_SET);
             md5_finish(&md5ctx, md5tmp);
@@ -295,7 +295,7 @@ int growl_tcp_notify( const char *const server,const char *const appname,const c
         while (!feof(iconfile)) 
         {
             size_t bytes_read = fread(buffer, 1, 1024, iconfile);
-            if (bytes_read) growl_tcp_write_raw(sock, buffer, bytes_read);
+            if (bytes_read) growl_tcp_write_raw(sock, buffer, (int)bytes_read);
         }
         growl_tcp_write(sock, "" );
     }
@@ -312,7 +312,7 @@ int growl_tcp_notify( const char *const server,const char *const appname,const c
             goto leave;
         } else 
         {
-            int len = strlen(line);
+            int len = (int)strlen(line);
             /* fprintf(stderr, "%s\n", line); */
             if (strncmp(line, "GNTP/1.0 -ERROR", 15) == 0) 
             {
@@ -362,7 +362,7 @@ void growl_append_md5( unsigned char *const data , const int data_length , const
     md5_update(&md5ctx, (uint8_t*)data, data_length );
     if(password != NULL)
     {
-        md5_update(&md5ctx, (uint8_t*)password, strlen(password));
+        md5_update(&md5ctx, (uint8_t*)password, (uint32_t)strlen(password));
     }
     md5_finish(&md5ctx, (uint8_t*)md5tmp);
 
@@ -372,7 +372,7 @@ void growl_append_md5( unsigned char *const data , const int data_length , const
 
 int growl_udp_register( const char *const server , const char *const appname , const char **const notifications , const int notifications_count , const char *const password  )
 {
-    int register_header_length = 22+strlen(appname);
+    int register_header_length = 22+(int)strlen(appname);
     unsigned char *data;
     int pointer = 0;
     int rc = 0;
@@ -381,7 +381,7 @@ int growl_udp_register( const char *const server , const char *const appname , c
     uint8_t GROWL_PROTOCOL_VERSION  = 1;
     uint8_t GROWL_TYPE_REGISTRATION = 0;
 
-    uint16_t appname_length = ntohs(strlen(appname));
+    uint16_t appname_length = ntohs((u_short)strlen(appname));
     uint8_t _notifications_count = notifications_count;
     uint8_t default_notifications_count = notifications_count;
     uint8_t j;
@@ -390,7 +390,7 @@ int growl_udp_register( const char *const server , const char *const appname , c
 
     for(i=0;i<notifications_count;i++)
     {
-        register_header_length += 3 + strlen(notifications[i]);
+        register_header_length += 3 + (int)strlen(notifications[i]);
     }	
     data = (unsigned char*)PhAllocateSafe(register_header_length);
     if (!data) return -1;
@@ -409,15 +409,15 @@ int growl_udp_register( const char *const server , const char *const appname , c
     memcpy( data + pointer, &default_notifications_count , 1 );	
     pointer++;
     sprintf( (char*)data + pointer , "%s" , appname );
-    pointer += strlen(appname);
+    pointer += (int)strlen(appname);
 
     for(i=0;i<notifications_count;i++)
     {
-        uint16_t notify_length = ntohs(strlen(notifications[i]));
+        uint16_t notify_length = ntohs((u_short)strlen(notifications[i]));
         memcpy( data + pointer, &notify_length , 2 );		
         pointer +=2;
         sprintf( (char*)data + pointer , "%s" , notifications[i] );
-        pointer += strlen(notifications[i]);
+        pointer += (int)strlen(notifications[i]);
     } 
 
     for(j=0;j<notifications_count;j++)
@@ -438,7 +438,7 @@ int growl_udp_register( const char *const server , const char *const appname , c
 int growl_udp_notify( const char *const server,const char *const appname,const char *const notify,const char *const title, const char *const message ,
                                 const char *const password )
 {
-    int notify_header_length = 28 + strlen(appname)+strlen(notify)+strlen(message)+strlen(title);
+    int notify_header_length = 28 + (int)(strlen(appname)+strlen(notify)+strlen(message)+strlen(title));
     unsigned char *data = (unsigned char*)PhAllocateSafe(notify_header_length);
     int pointer = 0;
     int rc = 0;
@@ -447,10 +447,10 @@ int growl_udp_notify( const char *const server,const char *const appname,const c
     uint8_t GROWL_TYPE_NOTIFICATION = 1;
 
     uint16_t flags = ntohs(0);
-    uint16_t appname_length = ntohs(strlen(appname));
-    uint16_t notify_length = ntohs(strlen(notify));
-    uint16_t title_length = ntohs(strlen(title));
-    uint16_t message_length = ntohs(strlen(message));
+    uint16_t appname_length = ntohs((u_short)strlen(appname));
+    uint16_t notify_length = ntohs((u_short)strlen(notify));
+    uint16_t title_length = ntohs((u_short)strlen(title));
+    uint16_t message_length = ntohs((u_short)strlen(message));
 
     if (!data) return -1;
 
@@ -473,13 +473,13 @@ int growl_udp_notify( const char *const server,const char *const appname,const c
     memcpy( data + pointer , &appname_length , 2 );	
     pointer += 2;
     strcpy( (char*)data + pointer , notify );
-    pointer += strlen(notify);
+    pointer += (int)strlen(notify);
     strcpy( (char*)data + pointer , title );
-    pointer += strlen(title);
+    pointer += (int)strlen(title);
     strcpy( (char*)data + pointer , message );
-    pointer += strlen(message);
+    pointer += (int)strlen(message);
     strcpy( (char*)data + pointer , appname );
-    pointer += strlen(appname);
+    pointer += (int)strlen(appname);
 
 
     growl_append_md5( data , pointer , password );
