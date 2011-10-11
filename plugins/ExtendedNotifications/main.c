@@ -1106,7 +1106,7 @@ INT_PTR CALLBACK GrowlDlgProc(
             {
             case PSN_QUERYINITIALFOCUS:
                 {
-                    SetWindowLong(hwndDlg, DWL_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_ENABLEGROWL));
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_ENABLEGROWL));
                 }
                 return TRUE;
             case PSN_APPLY:
