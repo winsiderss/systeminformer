@@ -131,9 +131,10 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start Type", 100, PH_ALIGN_LEFT, 4, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
 
-    PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, 7, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_DESCRIPTION, FALSE, L"Description", 200, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -279,6 +280,7 @@ VOID PhpRemoveServiceNode(
 
     if (ServiceNode->BinaryPath) PhDereferenceObject(ServiceNode->BinaryPath);
     if (ServiceNode->LoadOrderGroup) PhDereferenceObject(ServiceNode->LoadOrderGroup);
+    if (ServiceNode->Description) PhDereferenceObject(ServiceNode->Description);
 
     if (ServiceNode->TooltipText) PhDereferenceObject(ServiceNode->TooltipText);
 
@@ -340,6 +342,25 @@ static VOID PhpUpdateServiceNodeConfig(
         }
 
         ServiceNode->ValidMask |= PHSN_CONFIG;
+    }
+}
+
+static VOID PhpUpdateServiceNodeDescription(
+    __inout PPH_SERVICE_NODE ServiceNode
+    )
+{
+    if (!(ServiceNode->ValidMask & PHSN_DESCRIPTION))
+    {
+        SC_HANDLE serviceHandle;
+
+        if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+        {
+            PhSwapReference2(&ServiceNode->Description, PhGetServiceDescription(serviceHandle));
+
+            CloseServiceHandle(serviceHandle);
+        }
+
+        ServiceNode->ValidMask |= PHSN_DESCRIPTION;
     }
 }
 
@@ -431,6 +452,14 @@ BEGIN_SORT_FUNCTION(Group)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Description)
+{
+    PhpUpdateServiceNodeDescription(node1);
+    PhpUpdateServiceNodeDescription(node2);
+    sortResult = PhCompareStringWithNull(node1->Description, node2->Description, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -462,7 +491,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(Pid),
                     SORT_FUNCTION(BinaryPath),
                     SORT_FUNCTION(ErrorControl),
-                    SORT_FUNCTION(Group)
+                    SORT_FUNCTION(Group),
+                    SORT_FUNCTION(Description)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -535,6 +565,10 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             case PHSVTLC_GROUP:
                 PhpUpdateServiceNodeConfig(node);
                 getCellText->Text = PhGetStringRef(node->LoadOrderGroup);
+                break;
+            case PHSVTLC_DESCRIPTION:
+                PhpUpdateServiceNodeDescription(node);
+                getCellText->Text = PhGetStringRef(node->Description);
                 break;
             default:
                 return FALSE;

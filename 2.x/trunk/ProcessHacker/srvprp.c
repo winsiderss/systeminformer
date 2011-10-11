@@ -356,7 +356,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             {
             case PSN_QUERYINITIALFOCUS:
                 {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_TYPE));
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_STARTTYPE));
                 }
                 return TRUE;
             case PSN_KILLACTIVE:
