@@ -135,6 +135,16 @@ BEGIN
     LTEXT           "Changes will require a restart of Process Hacker.",IDC_STATIC,14,45,157,8
 END
 
+IDD_GROWL DIALOGEX 0, 0, 255, 229
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Growl"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_LICENSE,7,34,241,188,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+    CONTROL         "Send notifications to Growl",IDC_ENABLEGROWL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,101,10
+    LTEXT           "gntp-send license:",IDC_STATIC,7,23,60,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -161,6 +171,14 @@ BEGIN
     END
 
     IDD_LOGGING, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 248
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 222
+    END
+
+    IDD_GROWL, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 248
