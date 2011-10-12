@@ -42,11 +42,15 @@ VOID NTAPI NotifyEventCallback(
     );
 
 VOID RegisterGrowl(
-    VOID
+    __in BOOLEAN Force
     );
 
 VOID NotifyGrowl(
     __in PPH_PLUGIN_NOTIFY_EVENT NotifyEvent
+    );
+
+NTSTATUS NTAPI RegisterGrowlCallback(
+    __in PVOID Parameter
     );
 
 INT_PTR CALLBACK ProcessesDlgProc(
@@ -329,7 +333,9 @@ VOID NTAPI LoadCallback(
     FileLogInitialization();
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
-        RegisterGrowl();
+    {
+        PhQueueItemGlobalWorkQueue(RegisterGrowlCallback, NULL);
+    }
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -466,12 +472,12 @@ VOID NTAPI NotifyEventCallback(
 }
 
 VOID RegisterGrowl(
-    VOID
+    __in BOOLEAN Force
     )
 {
     static BOOLEAN registered = FALSE;
 
-    if (registered)
+    if (!Force && registered)
         return;
 
     growl_tcp_register("127.0.0.1", "Process Hacker", GrowlNotifications, sizeof(GrowlNotifications) / sizeof(PSTR), NULL, NULL);
@@ -587,6 +593,8 @@ VOID NotifyGrowl(
     titleAnsi = PhCreateAnsiStringFromUnicodeEx(title->Buffer, title->Length);
     messageAnsi = PhCreateAnsiStringFromUnicodeEx(message->Buffer, message->Length);
 
+    RegisterGrowl(TRUE);
+
     if (growl_tcp_notify("127.0.0.1", "Process Hacker", notification, titleAnsi->Buffer, messageAnsi->Buffer, NULL, NULL, NULL) == 0)
         NotifyEvent->Handled = TRUE;
 
@@ -594,6 +602,15 @@ VOID NotifyGrowl(
     PhDereferenceObject(titleAnsi);
     PhDereferenceObject(message);
     PhDereferenceObject(title);
+}
+
+NTSTATUS NTAPI RegisterGrowlCallback(
+    __in PVOID Parameter
+    )
+{
+    RegisterGrowl(FALSE);
+
+    return STATUS_SUCCESS;
 }
 
 PPH_STRING FormatFilterEntry(
@@ -1114,7 +1131,7 @@ INT_PTR CALLBACK GrowlDlgProc(
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_GROWL, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL)) == BST_CHECKED);
 
                     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
-                        RegisterGrowl();
+                        RegisterGrowl(FALSE);
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }
