@@ -114,6 +114,9 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = propContext->PropSheetPages;
 
+    if (PhCsForceNoParent)
+        propSheetHeader.hwndParent = NULL;
+
     memcpy(&propContext->PropSheetHeader, &propSheetHeader, sizeof(PROPSHEETHEADER));
 
     propContext->ProcessItem = ProcessItem;
