@@ -115,7 +115,9 @@ HWND NTAPI EtpDiskTabCreateFunction(
         &DiskItemsUpdatedRegistration
         );
 
+    SetCursor(LoadCursor(NULL, IDC_WAIT));
     EtInitializeDiskInformation();
+    SetCursor(LoadCursor(NULL, IDC_ARROW));
 
     return hwnd;
 }
