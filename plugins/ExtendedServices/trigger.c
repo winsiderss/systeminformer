@@ -732,6 +732,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
     if (Context->InfoList->Count != 0)
     {
         PhCreateAlloc(&triggerInfo.pTriggers, Context->InfoList->Count * sizeof(SERVICE_TRIGGER));
+        PhaDereferenceObject(triggerInfo.pTriggers);
         memset(triggerInfo.pTriggers, 0, Context->InfoList->Count * sizeof(SERVICE_TRIGGER));
 
         for (i = 0; i < Context->InfoList->Count; i++)
@@ -747,6 +748,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
             {
                 trigger->cDataItems = info->DataList->Count;
                 PhCreateAlloc(&trigger->pDataItems, info->DataList->Count * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM));
+                PhaDereferenceObject(trigger->pDataItems);
 
                 for (j = 0; j < info->DataList->Count; j++)
                 {
