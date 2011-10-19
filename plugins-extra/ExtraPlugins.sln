@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HexPidPlugin", "HexPidPlugi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AvgCpuPlugin", "AvgCpuPlugin\AvgCpuPlugin.vcxproj", "{A68DC3E8-5E2E-4883-A2A4-81F921458A9C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsInfo", "GfxPlugin\GraphicsInfo.vcxproj", "{B509BF8F-6007-4173-B05E-5037B958C12F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -29,6 +31,14 @@ Global
 		{A68DC3E8-5E2E-4883-A2A4-81F921458A9C}.Release|Win32.Build.0 = Release|Win32
 		{A68DC3E8-5E2E-4883-A2A4-81F921458A9C}.Release|x64.ActiveCfg = Release|x64
 		{A68DC3E8-5E2E-4883-A2A4-81F921458A9C}.Release|x64.Build.0 = Release|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|Win32.Build.0 = Debug|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|x64.ActiveCfg = Debug|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|x64.Build.0 = Debug|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|Win32.ActiveCfg = Release|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|Win32.Build.0 = Release|Win32
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|x64.ActiveCfg = Release|x64
+		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
