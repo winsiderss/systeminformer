@@ -817,6 +817,27 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
             NtClose(processHandle);
         }
 
+        // Use an alternative method if we don't have sufficient access.
+        if (status2 == STATUS_ACCESS_DENIED && WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (NT_SUCCESS(status2 = PhGetProcessImageFileNameByProcessId((HANDLE)pid, &fileName)))
+            {
+                entry.ProcessId = (HANDLE)pid;
+                entry.FileName = PhGetFileName(fileName);
+                PhDereferenceObject(fileName);
+
+                if (PhFindItemList(pids, (HANDLE)pid) != -1)
+                    entry.Type = NormalProcess;
+                else
+                    entry.Type = HiddenProcess;
+
+                if (!Callback(&entry, Context))
+                    stop = TRUE;
+
+                PhDereferenceObject(entry.FileName);
+            }
+        }
+
         if (status2 == STATUS_INVALID_CID || status2 == STATUS_INVALID_PARAMETER)
             status2 = STATUS_SUCCESS;
 
