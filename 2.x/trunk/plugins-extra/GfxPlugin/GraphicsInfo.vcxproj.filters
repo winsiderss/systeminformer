@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="options.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="output.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\gfxinfo.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="resources\resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\nvapi.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\adl_defines.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\adl_sdk.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\adl_structures.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{c268e770-6f12-45bb-9905-572e433281bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{a909abda-0fe8-4637-9e5d-78a5d0969bb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{f6b56f88-06f8-4a89-bef5-ca4886afc1d9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resources\GraphicsInfo.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
