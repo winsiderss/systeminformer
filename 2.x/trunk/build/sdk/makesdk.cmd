@@ -119,5 +119,6 @@ for %%a in (
     bin\Release32\SamplePlugin.dll
     main.c
     SamplePlugin.sln
-    SamplePlugin.vcproj
+    SamplePlugin.vcxproj
+    SamplePlugin.vcxproj.filters
     ) do echo f | xcopy /Q ..\..\plugins\SamplePlugin\%%a ..\..\sdk\samples\SamplePlugin\%%a
