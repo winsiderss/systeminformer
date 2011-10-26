@@ -24,7 +24,7 @@
 ; *Inno Setup v5.4.2(+): http://www.jrsoftware.org/isdl.php
 
 
-#define installer_build_number "09"
+#define installer_build_number "10"
 
 
 #if VER < 0x05040200
@@ -181,7 +181,7 @@ Source: Icons\uninstall.ico;                                      DestDir: {app}
 [Icons]
 Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
-Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt;    WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
+Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
 Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};     Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
@@ -191,38 +191,38 @@ Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2;  
 
 
 [InstallDelete]
-Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Check: NOT IsTaskSelected('desktopicon\user')   AND IsUpdate()
-Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Check: NOT IsTaskSelected('desktopicon\common') AND IsUpdate()
-Type: files;      Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2.lnk; Check: NOT IsTaskSelected('quicklaunchicon') AND IsUpdate()
-Type: files;      Name: {group}\Help and Support\Process Hacker Help.lnk; Check: IsUpdate()
+Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Check: NOT IsTaskSelected('desktopicon\user')   AND IsUpgrade()
+Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Check: NOT IsTaskSelected('desktopicon\common') AND IsUpgrade()
+Type: files;      Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2.lnk; Check: NOT IsTaskSelected('quicklaunchicon') AND IsUpgrade()
+Type: files;      Name: {group}\Help and Support\Process Hacker Help.lnk; Check: IsUpgrade()
 
 Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: reset_settings
 
-Type: files;      Name: {app}\Help.htm;                              Check: IsUpdate()
-Type: files;      Name: {app}\peview.exe;                            Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
-Type: files;      Name: {group}\PE Viewer.lnk;                       Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
-Type: files;      Name: {app}\plugins\DotNetTools.dll;               Check: NOT IsComponentSelected('plugins\dotnettools')           AND IsUpdate()
-Type: files;      Name: {app}\plugins\ExtendedNotifications.dll;     Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpdate()
-Type: files;      Name: {app}\plugins\ExtendedServices.dll;          Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpdate()
-Type: files;      Name: {app}\plugins\ExtendedTools.dll;             Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpdate()
-Type: files;      Name: {app}\plugins\NetworkTools.dll;              Check: NOT IsComponentSelected('plugins\networktools')          AND IsUpdate()
-Type: files;      Name: {app}\plugins\OnlineChecks.dll;              Check: NOT IsComponentSelected('plugins\onlinechecks')          AND IsUpdate()
-Type: files;      Name: {app}\plugins\SbieSupport.dll;               Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpdate()
-Type: files;      Name: {app}\plugins\ToolStatus.dll;                Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpdate()
-Type: files;      Name: {app}\plugins\Updater.dll;                   Check: NOT IsComponentSelected('plugins\updater')               AND IsUpdate()
-Type: files;      Name: {app}\plugins\WindowExplorer.dll;            Check: NOT IsComponentSelected('plugins\windowexplorer')        AND IsUpdate()
+Type: files;      Name: {app}\Help.htm;                              Check: IsUpgrade()
+Type: files;      Name: {app}\peview.exe;                            Check: NOT IsComponentSelected('peview')                        AND IsUpgrade()
+Type: files;      Name: {group}\PE Viewer.lnk;                       Check: NOT IsComponentSelected('peview')                        AND IsUpgrade()
+Type: files;      Name: {app}\plugins\DotNetTools.dll;               Check: NOT IsComponentSelected('plugins\dotnettools')           AND IsUpgrade()
+Type: files;      Name: {app}\plugins\ExtendedNotifications.dll;     Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpgrade()
+Type: files;      Name: {app}\plugins\ExtendedServices.dll;          Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpgrade()
+Type: files;      Name: {app}\plugins\ExtendedTools.dll;             Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpgrade()
+Type: files;      Name: {app}\plugins\NetworkTools.dll;              Check: NOT IsComponentSelected('plugins\networktools')          AND IsUpgrade()
+Type: files;      Name: {app}\plugins\OnlineChecks.dll;              Check: NOT IsComponentSelected('plugins\onlinechecks')          AND IsUpgrade()
+Type: files;      Name: {app}\plugins\SbieSupport.dll;               Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpgrade()
+Type: files;      Name: {app}\plugins\ToolStatus.dll;                Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpgrade()
+Type: files;      Name: {app}\plugins\Updater.dll;                   Check: NOT IsComponentSelected('plugins\updater')               AND IsUpgrade()
+Type: files;      Name: {app}\plugins\WindowExplorer.dll;            Check: NOT IsComponentSelected('plugins\windowexplorer')        AND IsUpgrade()
 Type: dirifempty; Name: {app}\plugins
 
 
 [Registry]
 Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe""";       Flags: uninsdeletevalue; Tasks: startup
 Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"" -hide"; Flags: uninsdeletevalue; Tasks: startup\minimized
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Flags: deletevalue uninsdeletevalue; Tasks: remove_startup
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2;            Flags: deletevalue uninsdeletevalue; Tasks: remove_startup
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Tasks: set_default_taskmgr
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: PHDefaulTaskmgrCheck()
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Flags: deletevalue uninsdeletevalue; Check: PHDefaulTaskmgrCheck(); Tasks: restore_taskmgr reset_settings
+Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Flags: deletevalue uninsdeletevalue; Tasks: restore_taskmgr reset_settings; Check: PHDefaulTaskmgrCheck()
 
 
 [Run]
@@ -233,23 +233,25 @@ Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsi
 [Code]
 // Global variables and constants
 const installer_mutex_name = 'process_hacker2_setup_mutex';
+
+
+function IsUpgrade(): Boolean;
 var
-  is_update: Boolean;
-
-
-function IsUpdate(): Boolean;
+  sPrevPath: String;
 begin
-  Result := is_update;
+  sPrevPath := WizardForm.PrevAppDir;
+  Result := (sPrevPath <> '');
 end;
 
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
-  if IsUpdate then begin
-    Case PageID of
-      // Hide the license page
-      wpLicense: Result := True;
-    else
+  if IsUpgrade() then begin
+    // Hide the license page
+    if PageID = wpLicense then begin
+      Result := True;
+    end
+    else begin
       Result := False;
     end;
   end;
@@ -307,7 +309,7 @@ begin
 end;
 
 
-Procedure CurStepChanged(CurStep: TSetupStep);
+procedure CurStepChanged(CurStep: TSetupStep);
 begin
   case CurStep of ssInstall:
   begin
@@ -332,7 +334,7 @@ begin
 end;
 
 
-Procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   // When uninstalling ask user to delete Process Hacker's settings
   // based on whether the settings file exists only
@@ -354,18 +356,13 @@ end;
 function InitializeSetup(): Boolean;
 begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
-  if CheckForMutexes(installer_mutex_name) then begin
-    if NOT WizardSilent() then begin
-       SuppressibleMsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK, MB_OK);
-      Result := False;
-    end;
+  if CheckForMutexes(installer_mutex_name) AND NOT WizardSilent() then begin
+    SuppressibleMsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK, MB_OK);
+    Result := False;
   end
   else begin
-    CreateMutex(installer_mutex_name);
-
-    is_update := RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Process_Hacker2_is1');
     Result := True;
-
+    CreateMutex(installer_mutex_name);
   end;
 end;
 
