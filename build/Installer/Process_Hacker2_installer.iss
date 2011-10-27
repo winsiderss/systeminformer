@@ -246,14 +246,12 @@ end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
-  if IsUpgrade() then begin
-    // Hide the license page
-    if PageID = wpLicense then begin
-      Result := True;
-    end
-    else begin
-      Result := False;
-    end;
+  // Hide the license page
+  if IsUpgrade() AND (PageID = wpLicense) then begin
+    Result := True;
+  end
+  else begin
+    Result := False;
   end;
 end;
 
@@ -316,6 +314,7 @@ begin
     if IsServiceRunning('KProcessHacker2') then begin
       StopService('KProcessHacker2');
     end;
+
     if IsTaskSelected('delete_KPH_service') then begin
       RemoveService('KProcessHacker2');
     end;
@@ -330,6 +329,7 @@ begin
       StartService('KProcessHacker2');
     end;
   end;
+
  end;
 end;
 
@@ -341,14 +341,17 @@ begin
   if CurUninstallStep = usUninstall then begin
     StopService('KProcessHacker2');
     RemoveService('KProcessHacker2');
+
     if SettingsExistCheck then begin
       if SuppressibleMsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO OR MB_DEFBUTTON2, IDNO) = IDYES then begin
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
       end;
     end;
+
     RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2'));
     RemoveDir(ExpandConstant('{app}\plugins'));
     RemoveDir(ExpandConstant('{app}'));
+
   end;
 end;
 
