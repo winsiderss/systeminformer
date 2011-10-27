@@ -18,6 +18,9 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_ETWSYS_ALWAYS_ON_TOP (SETTING_PREFIX L"EtwSysAlwaysOnTop")
 #define SETTING_NAME_ETWSYS_WINDOW_POSITION (SETTING_PREFIX L"EtwSysWindowPosition")
 #define SETTING_NAME_ETWSYS_WINDOW_SIZE (SETTING_PREFIX L"EtwSysWindowSize")
+#define SETTING_NAME_GPUSYS_ALWAYS_ON_TOP (SETTING_PREFIX L"GpuSysAlwaysOnTop")
+#define SETTING_NAME_GPUSYS_WINDOW_POSITION (SETTING_PREFIX L"GpuSysWindowPosition")
+#define SETTING_NAME_GPUSYS_WINDOW_SIZE (SETTING_PREFIX L"GpuSysWindowSize")
 #define SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION (SETTING_PREFIX L"MemoryListsWindowPosition")
 
 // Process icon
@@ -333,6 +336,25 @@ VOID EtSaveSettingsDiskTreeList(
 
 extern BOOLEAN EtGpuEnabled;
 
+extern ULONG EtGpuTotalNodeCount;
+extern ULONG EtGpuTotalSegmentCount;
+extern ULONG64 EtGpuDedicatedLimit;
+extern ULONG64 EtGpuSharedLimit;
+
+extern PH_UINT64_DELTA EtClockTotalRunningTimeDelta;
+extern LARGE_INTEGER EtClockTotalRunningTimeFrequency;
+extern PH_UINT64_DELTA EtGpuTotalRunningTimeDelta;
+extern PH_UINT64_DELTA EtGpuSystemRunningTimeDelta;
+extern FLOAT EtGpuNodeUsage;
+extern PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
+extern PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
+extern PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
+
+extern ULONG64 EtGpuDedicatedUsage;
+extern ULONG64 EtGpuSharedUsage;
+extern PH_CIRCULAR_BUFFER_ULONG EtGpuDedicatedHistory;
+extern PH_CIRCULAR_BUFFER_ULONG EtGpuSharedHistory;
+
 VOID EtGpuMonitorInitialization(
     VOID
     );
@@ -362,6 +384,12 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 // etwsys
 
 VOID EtShowEtwSystemDialog(
+    VOID
+    );
+
+// gpusys
+
+VOID EtShowGpuSystemDialog(
     VOID
     );
 
