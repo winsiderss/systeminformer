@@ -409,6 +409,9 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
     EtGpuNodeUsage = (FLOAT)EtGpuTotalRunningTimeDelta.Delta / elapsedTime;
 
+    if (EtGpuNodeUsage > 1)
+        EtGpuNodeUsage = 1; // VMs seem to have very unreliable clocks
+
     // Update per-process statistics.
     // Note: no lock is needed because we only ever modify the list on this same thread.
 
@@ -424,7 +427,12 @@ static VOID NTAPI ProcessesUpdatedCallback(
         EtpUpdateNodeInformation(block);
 
         if (elapsedTime != 0)
+        {
             block->GpuNodeUsage = (FLOAT)block->GpuRunningTimeDelta.Delta / elapsedTime;
+
+            if (block->GpuNodeUsage > 1)
+                block->GpuNodeUsage = 1;
+        }
 
         if (maxNodeValue < block->GpuNodeUsage)
         {
