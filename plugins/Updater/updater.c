@@ -914,7 +914,7 @@ VOID RunAction(
         }
     case Installing:
         {
-            PhShellExecute(hwndDlg, LocalFilePathString->Buffer, L"/silent");
+            PhShellExecute(hwndDlg, LocalFilePathString->Buffer, NULL);
             DisposeConnection();
 
             ProcessHacker_Destroy(PhMainWndHandle);
