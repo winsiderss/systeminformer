@@ -1780,8 +1780,8 @@ VOID PhProcessProviderUpdate(
     //
     // The first method is simpler but has a problem when a process exits and its cycle time
     // is no longer counted in the system-wide total. This may cause the delta to be
-    // negative and all other calculations to become invalid. Process Explorer simply ignores
-    // this fact and treats the system-wide delta as unsigned (and therefore huge when negative),
+    // negative and all other calculations to become invalid. Process Explorer simply ignored
+    // this fact and treated the system-wide delta as unsigned (and therefore huge when negative),
     // leading to all CPU usages being displayed as "< 0.01".
     //
     // The second method is used here, but the adjustments must be done before the main new/modified
