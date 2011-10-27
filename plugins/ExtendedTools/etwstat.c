@@ -276,29 +276,29 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
     if (runCount != 0)
     {
-        PhAddItemCircularBuffer2_ULONG(&EtDiskReadHistory, EtDiskReadDelta.Delta);
-        PhAddItemCircularBuffer2_ULONG(&EtDiskWriteHistory, EtDiskWriteDelta.Delta);
-        PhAddItemCircularBuffer2_ULONG(&EtNetworkReceiveHistory, EtNetworkReceiveDelta.Delta);
-        PhAddItemCircularBuffer2_ULONG(&EtNetworkSendHistory, EtNetworkSendDelta.Delta);
+        PhAddItemCircularBuffer_ULONG(&EtDiskReadHistory, EtDiskReadDelta.Delta);
+        PhAddItemCircularBuffer_ULONG(&EtDiskWriteHistory, EtDiskWriteDelta.Delta);
+        PhAddItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, EtNetworkReceiveDelta.Delta);
+        PhAddItemCircularBuffer_ULONG(&EtNetworkSendHistory, EtNetworkSendDelta.Delta);
 
         if (maxDiskBlock)
         {
-            PhAddItemCircularBuffer2_ULONG(&EtMaxDiskHistory, (ULONG)maxDiskBlock->ProcessItem->ProcessId);
+            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, (ULONG)maxDiskBlock->ProcessItem->ProcessId);
             PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
         }
         else
         {
-            PhAddItemCircularBuffer2_ULONG(&EtMaxDiskHistory, (ULONG)NULL);
+            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, (ULONG)NULL);
         }
 
         if (maxNetworkBlock)
         {
-            PhAddItemCircularBuffer2_ULONG(&EtMaxNetworkHistory, (ULONG)maxNetworkBlock->ProcessItem->ProcessId);
+            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, (ULONG)maxNetworkBlock->ProcessItem->ProcessId);
             PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
         }
         else
         {
-            PhAddItemCircularBuffer2_ULONG(&EtMaxNetworkHistory, (ULONG)NULL);
+            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, (ULONG)NULL);
         }
     }
 

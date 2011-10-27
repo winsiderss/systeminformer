@@ -1,3 +1,6 @@
+1.7
+ * Added GPU monitoring
+
 1.6
  * Updated disk monitoring for Windows 8
  * Updated memory list information for Windows 8

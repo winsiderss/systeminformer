@@ -14,6 +14,7 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (SETTING_PREFIX L"DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (SETTING_PREFIX L"DiskTreeListSort")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (SETTING_PREFIX L"EnableEtwMonitor")
+#define SETTING_NAME_ENABLE_GPU_MONITOR (SETTING_PREFIX L"EnableGpuMonitor")
 #define SETTING_NAME_ETWSYS_ALWAYS_ON_TOP (SETTING_PREFIX L"EtwSysAlwaysOnTop")
 #define SETTING_NAME_ETWSYS_WINDOW_POSITION (SETTING_PREFIX L"EtwSysWindowPosition")
 #define SETTING_NAME_ETWSYS_WINDOW_SIZE (SETTING_PREFIX L"EtwSysWindowSize")
@@ -116,7 +117,10 @@ typedef struct _ET_DISK_NODE
 #define ETPRTNC_HARDFAULTS 21
 #define ETPRTNC_HARDFAULTSDELTA 22
 #define ETPRTNC_PEAKTHREADS 23
-#define ETPRTNC_MAXIMUM 23
+#define ETPRTNC_GPU 24
+#define ETPRTNC_GPUDEDICATEDBYTES 25
+#define ETPRTNC_GPUSHAREDBYTES 26
+#define ETPRTNC_MAXIMUM 26
 
 // Network list columns
 
@@ -170,6 +174,11 @@ typedef struct _ET_PROCESS_BLOCK
     PH_UINT32_DELTA NetworkReceiveRawDelta;
     PH_UINT32_DELTA NetworkSendDelta;
     PH_UINT32_DELTA NetworkSendRawDelta;
+
+    PH_UINT64_DELTA GpuRunningTimeDelta;
+    FLOAT GpuNodeUsage;
+    ULONG64 GpuDedicatedUsage;
+    ULONG64 GpuSharedUsage;
 
     PH_UINT32_DELTA HardFaultsDelta;
 
@@ -317,6 +326,14 @@ VOID EtLoadSettingsDiskTreeList(
     );
 
 VOID EtSaveSettingsDiskTreeList(
+    VOID
+    );
+
+// gpumon
+
+extern BOOLEAN EtGpuEnabled;
+
+VOID EtGpuMonitorInitialization(
     VOID
     );
 

@@ -6,6 +6,8 @@ Process Hacker
    * Enabled multi-selection in the hidden processes window
    * Updated ExtendedNotifications plugin:
      * Added Growl support
+   * Updated ExtendedTools plugin:
+     * Added GPU monitoring
  * FIXED:
 
 2.22

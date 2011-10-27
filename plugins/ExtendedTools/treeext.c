@@ -110,7 +110,10 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_NETWORKTOTALBYTESDELTA, L"Network Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_HARDFAULTS, L"Hard Faults", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_HARDFAULTSDELTA, L"Hard Faults Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_PEAKTHREADS, L"Peak Threads", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }
+        { ETPRTNC_PEAKTHREADS, L"Peak Threads", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPU, L"GPU", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPUDEDICATEDBYTES, L"GPU Dedicated Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPUSHAREDBYTES, L"GPU Shared Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -241,6 +244,23 @@ VOID EtProcessTreeNewMessage(
             case ETPRTNC_PEAKTHREADS:
                 text = PhFormatUInt64(block->ProcessItem->PeakNumberOfThreads, TRUE);
                 break;
+            case ETPRTNC_GPU:
+                if (block->GpuNodeUsage >= 0.01)
+                {
+                    PH_FORMAT format;
+
+                    PhInitFormatF(&format, block->GpuNodeUsage * 100, 2);
+                    text = PhFormat(&format, 1, 0);
+                }
+                break;
+            case ETPRTNC_GPUDEDICATEDBYTES:
+                if (block->GpuDedicatedUsage != 0)
+                    text = PhFormatSize(block->GpuDedicatedUsage, -1);
+                break;
+            case ETPRTNC_GPUSHAREDBYTES:
+                if (block->GpuSharedUsage != 0)
+                    text = PhFormatSize(block->GpuSharedUsage, -1);
+                break;
             }
 
             if (text)
@@ -344,6 +364,15 @@ LONG EtpProcessTreeNewSortFunction(
         break;
     case ETPRTNC_PEAKTHREADS:
         result = uintcmp(block1->ProcessItem->PeakNumberOfThreads, block2->ProcessItem->PeakNumberOfThreads);
+        break;
+    case ETPRTNC_GPU:
+        result = singlecmp(block1->GpuNodeUsage, block2->GpuNodeUsage);
+        break;
+    case ETPRTNC_GPUDEDICATEDBYTES:
+        result = uint64cmp(block1->GpuDedicatedUsage, block2->GpuDedicatedUsage);
+        break;
+    case ETPRTNC_GPUSHAREDBYTES:
+        result = uint64cmp(block1->GpuSharedUsage, block2->GpuSharedUsage);
         break;
     }
 
