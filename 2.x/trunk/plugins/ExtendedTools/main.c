@@ -284,6 +284,7 @@ LOGICAL DllMain(
                     { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                     { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                     { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
+                    { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
                     { IntegerSettingType, SETTING_NAME_ETWSYS_ALWAYS_ON_TOP, L"0" },
                     { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_POSITION, L"400,400" },
                     { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_SIZE, L"500,400" },
@@ -305,6 +306,7 @@ VOID NTAPI LoadCallback(
     )
 {
     EtEtwStatisticsInitialization();
+    EtGpuMonitorInitialization();
 }
 
 VOID NTAPI UnloadCallback(

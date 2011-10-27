@@ -63,6 +63,9 @@
     <ClCompile Include="procicon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gpumon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -75,6 +78,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="disktabp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dkmt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gpumon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
