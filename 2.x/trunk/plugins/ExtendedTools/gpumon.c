@@ -192,14 +192,28 @@ static BOOLEAN EtpInitializeD3DStatistics(
 
                         if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
                         {
-                            if (queryStatistics.QueryResult.SegmentInformationV1.Aperture)
-                                EtGpuSharedLimit += queryStatistics.QueryResult.SegmentInformationV1.CommitLimit;
+                            ULONG64 commitLimit;
+                            ULONG aperture;
+
+                            if (WindowsVersion >= WINDOWS_8)
+                            {
+                                commitLimit = queryStatistics.QueryResult.SegmentInformation.CommitLimit;
+                                aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
+                            }
                             else
-                                EtGpuDedicatedLimit += queryStatistics.QueryResult.SegmentInformationV1.CommitLimit;
+                            {
+                                commitLimit = queryStatistics.QueryResult.SegmentInformationV1.CommitLimit;
+                                aperture = queryStatistics.QueryResult.SegmentInformationV1.Aperture;
+                            }
+
+                            if (aperture)
+                                EtGpuSharedLimit += commitLimit;
+                            else
+                                EtGpuDedicatedLimit += commitLimit;
 
                             if (i < 32)
                             {
-                                if (queryStatistics.QueryResult.SegmentInformationV1.Aperture)
+                                if (aperture)
                                     gpuAdapter->ApertureBitMap |= 1 << i;
                             }
                         }
@@ -271,10 +285,21 @@ static VOID EtpUpdateSegmentInformation(
                 }
                 else
                 {
-                    if (gpuAdapter->ApertureBitMap & (1 << j))
-                        sharedUsage += queryStatistics.QueryResult.SegmentInformationV1.BytesCommitted;
+                    ULONG64 bytesCommitted;
+
+                    if (WindowsVersion >= WINDOWS_8)
+                    {
+                        bytesCommitted = queryStatistics.QueryResult.SegmentInformation.BytesCommitted;
+                    }
                     else
-                        dedicatedUsage += queryStatistics.QueryResult.SegmentInformationV1.BytesCommitted;
+                    {
+                        bytesCommitted = queryStatistics.QueryResult.SegmentInformationV1.BytesCommitted;
+                    }
+
+                    if (gpuAdapter->ApertureBitMap & (1 << j))
+                        sharedUsage += bytesCommitted;
+                    else
+                        dedicatedUsage += bytesCommitted;
                 }
             }
         }
