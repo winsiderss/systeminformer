@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   ETW system information dialog
  *
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2010-2011 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -390,7 +390,7 @@ INT_PTR CALLBACK EtpEtwSysDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 500, 400);
+            PhResizingMinimumSize((PRECT)lParam, wParam, 420, 350);
         }
         break;
     case WM_COMMAND:

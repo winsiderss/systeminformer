@@ -66,6 +66,9 @@
     <ClCompile Include="gpumon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gpusys.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
