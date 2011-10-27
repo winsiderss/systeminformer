@@ -85,8 +85,8 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     )
 {
     PPH_STRING buffer;
-    ULONG32 bufferLength;
-    ULONG32 returnLength;
+    ULONG bufferLength;
+    ULONG returnLength;
     ULONG64 displacement;
 
     bufferLength = 33;
@@ -144,8 +144,8 @@ PPH_STRING GetNameXClrDataAppDomain(
 {
     IXCLRDataAppDomain *appDomain;
     PPH_STRING buffer;
-    ULONG32 bufferLength;
-    ULONG32 returnLength;
+    ULONG bufferLength;
+    ULONG returnLength;
 
     appDomain = AppDomain;
 
@@ -469,7 +469,11 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
     }
     else
     {
-        return HRESULT_FROM_NT(status);
+        ULONG result;
+
+        result = RtlNtStatusToDosError(status);
+
+        return HRESULT_FROM_WIN32(result);
     }
 }
 
