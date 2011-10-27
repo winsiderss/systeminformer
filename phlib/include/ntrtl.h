@@ -5948,6 +5948,26 @@ RtlGetUnloadEventTraceEx(
 
 // end_msdn
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+LOGICAL
+NTAPI
+RtlQueryPerformanceCounter(
+    __out PLARGE_INTEGER PerformanceCounter
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+LOGICAL
+NTAPI
+RtlQueryPerformanceFrequency(
+    __out PLARGE_INTEGER PerformanceFrequency
+    );
+#endif
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

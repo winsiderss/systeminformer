@@ -76,6 +76,8 @@
 #define IDC_ZREPURPOSED7_V              1050
 #define IDC_BUTTON1                     1051
 #define IDC_EMPTY                       1051
+#define IDC_CHECK1                      1052
+#define IDC_ENABLEGPUMONITOR            1052
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -91,7 +93,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_CONTROL_VALUE         1053
 #define _APS_NEXT_SYMED_VALUE           109
 #endif
 #endif

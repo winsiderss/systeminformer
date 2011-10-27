@@ -55,6 +55,7 @@ INT_PTR CALLBACK OptionsDlgProc(
     case WM_INITDIALOG:
         {
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_COMMAND:
@@ -68,6 +69,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                 {
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR)) == BST_CHECKED);
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR,
+                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR)) == BST_CHECKED);
 
                     EndDialog(hwndDlg, IDOK);
                 }
