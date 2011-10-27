@@ -288,7 +288,10 @@ LOGICAL DllMain(
                     { IntegerSettingType, SETTING_NAME_ETWSYS_ALWAYS_ON_TOP, L"0" },
                     { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_POSITION, L"400,400" },
                     { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_SIZE, L"500,400" },
-                    { IntegerPairSettingType, SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION, L"400,400" }
+                    { IntegerPairSettingType, SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION, L"400,400" },
+                    { IntegerSettingType, SETTING_NAME_GPUSYS_ALWAYS_ON_TOP, L"0" },
+                    { IntegerPairSettingType, SETTING_NAME_GPUSYS_WINDOW_POSITION, L"400,400" },
+                    { IntegerPairSettingType, SETTING_NAME_GPUSYS_WINDOW_SIZE, L"500,500" }
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
@@ -338,6 +341,11 @@ VOID NTAPI MenuItemCallback(
     case ID_VIEW_DISKANDNETWORK:
         {
             EtShowEtwSystemDialog();
+        }
+        break;
+    case ID_VIEW_GPUINFORMATION:
+        {
+            EtShowGpuSystemDialog();
         }
         break;
     case ID_VIEW_MEMORYLISTS:
@@ -392,9 +400,15 @@ VOID NTAPI MainWindowShowingCallback(
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_MEMORYLISTS, L"Memory Lists", NULL);
 
-    if (EtEtwEnabled)
+    if (EtGpuEnabled)
     {
         // This will get inserted before Memory Lists.
+        PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_GPUINFORMATION, L"GPU Information", NULL);
+    }
+
+    if (EtEtwEnabled)
+    {
+        // This will get inserted before GPU Information.
         PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_DISKANDNETWORK, L"Disk and Network", NULL);
 
         EtInitializeDiskTab();

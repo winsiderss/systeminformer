@@ -51,6 +51,7 @@ PH_UINT64_DELTA EtGpuSystemRunningTimeDelta;
 FLOAT EtGpuNodeUsage;
 PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
 PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
+PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
 
 ULONG64 EtGpuDedicatedUsage;
 ULONG64 EtGpuSharedUsage;
@@ -105,6 +106,7 @@ VOID EtGpuMonitorInitialization(
         sampleCount = PhGetIntegerSetting(L"SampleCount");
         PhInitializeCircularBuffer_FLOAT(&EtGpuNodeHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtMaxGpuNodeHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtGpuDedicatedHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtGpuSharedHistory, sampleCount);
 
@@ -419,11 +421,13 @@ static VOID NTAPI ProcessesUpdatedCallback(
         if (maxNodeBlock)
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, (ULONG)maxNodeBlock->ProcessItem->ProcessId);
+            PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, maxNodeBlock->GpuNodeUsage);
             PhReferenceProcessRecordForStatistics(maxNodeBlock->ProcessItem->Record);
         }
         else
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, (ULONG)NULL);
+            PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, 0);
         }
     }
 
