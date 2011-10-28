@@ -83,6 +83,8 @@ VOID EtpUpdateGpuInfo(
 
     if (Context->Block->ProcessItem->QueryHandle)
         EtQueryProcessGpuStatistics(Context->Block->ProcessItem->QueryHandle, &statistics);
+    else
+        memset(&statistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
 
     PhPrintTimeSpan(runningTimeString, statistics.RunningTime * 10, PH_TIMESPAN_HMSM);
 
