@@ -69,6 +69,9 @@
     <ClCompile Include="gpusys.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gpuprprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
