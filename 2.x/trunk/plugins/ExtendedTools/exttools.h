@@ -359,6 +359,38 @@ VOID EtGpuMonitorInitialization(
     VOID
     );
 
+typedef struct _ET_PROCESS_GPU_STATISTICS
+{
+    ULONG SegmentCount;
+    ULONG NodeCount;
+
+    ULONG64 DedicatedCommitted;
+    ULONG64 SharedCommitted;
+
+    ULONG64 BytesAllocated;
+    ULONG64 BytesReserved;
+    ULONG64 WriteCombinedBytesAllocated;
+    ULONG64 WriteCombinedBytesReserved;
+    ULONG64 CachedBytesAllocated;
+    ULONG64 CachedBytesReserved;
+    ULONG64 SectionBytesAllocated;
+    ULONG64 SectionBytesReserved;
+
+    ULONG64 RunningTime;
+    ULONG64 ContextSwitches;
+} ET_PROCESS_GPU_STATISTICS, *PET_PROCESS_GPU_STATISTICS;
+
+VOID EtQueryProcessGpuStatistics(
+    __in HANDLE ProcessHandle,
+    __out PET_PROCESS_GPU_STATISTICS Statistics
+    );
+
+// gpuprprp
+
+VOID EtProcessGpuPropertiesInitializing(
+    __in PVOID Parameter
+    );
+
 // treeext
 
 VOID EtProcessTreeNewInitializing(

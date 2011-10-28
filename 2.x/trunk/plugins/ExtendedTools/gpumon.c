@@ -466,3 +466,77 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
     runCount++;
 }
+
+VOID EtQueryProcessGpuStatistics(
+    __in HANDLE ProcessHandle,
+    __out PET_PROCESS_GPU_STATISTICS Statistics
+    )
+{
+    ULONG i;
+    ULONG j;
+    PETP_GPU_ADAPTER gpuAdapter;
+    D3DKMT_QUERYSTATISTICS queryStatistics;
+
+    memset(Statistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
+
+    for (i = 0; i < EtpGpuAdapterList->Count; i++)
+    {
+        gpuAdapter = EtpGpuAdapterList->Items[i];
+
+        Statistics->SegmentCount += gpuAdapter->SegmentCount;
+        Statistics->NodeCount += gpuAdapter->NodeCount;
+
+        for (j = 0; j < gpuAdapter->SegmentCount; j++)
+        {
+            memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+            queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT;
+            queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+            queryStatistics.hProcess = ProcessHandle;
+            queryStatistics.QueryProcessSegment.SegmentId = j;
+
+            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            {
+                if (gpuAdapter->ApertureBitMap & (1 << j))
+                {
+                    Statistics->SharedCommitted += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                }
+                else
+                {
+                    Statistics->DedicatedCommitted += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                }
+            }
+        }
+
+        for (j = 0; j < gpuAdapter->NodeCount; j++)
+        {
+            memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+            queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_NODE;
+            queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+            queryStatistics.hProcess = ProcessHandle;
+            queryStatistics.QueryProcessNode.NodeId = j;
+
+            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            {
+                Statistics->RunningTime += queryStatistics.QueryResult.ProcessNodeInformation.RunningTime.QuadPart;
+                Statistics->ContextSwitches += queryStatistics.QueryResult.ProcessNodeInformation.ContextSwitch;
+            }
+        }
+
+        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS;
+        queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+        queryStatistics.hProcess = ProcessHandle;
+
+        if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+        {
+            Statistics->BytesAllocated += queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesAllocated;
+            Statistics->BytesReserved += queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesReserved;
+            Statistics->WriteCombinedBytesAllocated += queryStatistics.QueryResult.ProcessInformation.SystemMemory.WriteCombinedBytesAllocated;
+            Statistics->WriteCombinedBytesReserved += queryStatistics.QueryResult.ProcessInformation.SystemMemory.WriteCombinedBytesReserved;
+            Statistics->CachedBytesAllocated += queryStatistics.QueryResult.ProcessInformation.SystemMemory.CachedBytesAllocated;
+            Statistics->CachedBytesReserved += queryStatistics.QueryResult.ProcessInformation.SystemMemory.CachedBytesReserved;
+            Statistics->SectionBytesAllocated += queryStatistics.QueryResult.ProcessInformation.SystemMemory.SectionBytesAllocated;
+            Statistics->SectionBytesReserved += queryStatistics.QueryResult.ProcessInformation.SystemMemory.SectionBytesReserved;
+        }
+    }
+}
