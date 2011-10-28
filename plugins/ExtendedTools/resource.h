@@ -30,6 +30,7 @@
 #define IDR_DISK                        112
 #define IDD_SYSGPUINFO_PANEL            112
 #define ID_VIEW_GPUINFORMATION          112
+#define IDD_PROCGPU                     113
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -91,6 +92,20 @@
 #define IDC_ZDEDICATEDLIMIT_V           1056
 #define IDC_ZSHAREDCURRENT_V            1057
 #define IDC_ZSHAREDLIMIT_V              1058
+#define IDC_ZDEDICATEDCOMMITTED_V       1059
+#define IDC_ZSHAREDCOMMITTED_V          1060
+#define IDC_ZRUNNINGTIME_V              1063
+#define IDC_ZCONTEXTSWITCHES_V          1064
+#define IDC_ZTOTALALLOCATED_V           1065
+#define IDC_ZTOTALRESERVED_V            1066
+#define IDC_ZWRITECOMBINEDALLOCATED_V   1067
+#define IDC_ZWRITECOMBINEDRESERVED_V    1068
+#define IDC_ZCACHEDALLOCATED_V          1069
+#define IDC_ZCACHEDRESERVED_V           1070
+#define IDC_ZSECTIONALLOCATED_V         1071
+#define IDC_ZSECTIONRESERVED_V          1072
+#define IDC_ZTOTALSEGMENTS_V            1073
+#define IDC_ZTOTALNODES_V               1074
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -106,7 +121,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1059
+#define _APS_NEXT_CONTROL_VALUE         1075
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

@@ -176,6 +176,7 @@
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmon.c" />
     <ClCompile Include="gpumon.c" />
+    <ClCompile Include="gpuprprp.c" />
     <ClCompile Include="gpusys.c" />
     <ClCompile Include="procicon.c" />
     <ClCompile Include="treeext.c" />

@@ -297,6 +297,44 @@ BEGIN
     RTEXT           "Static",IDC_ZSHAREDLIMIT_V,182,23,54,8,SS_ENDELLIPSIS
 END
 
+IDD_PROCGPU DIALOGEX 0, 0, 260, 260
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "GPU"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Memory",IDC_STATIC,7,7,118,46
+    LTEXT           "Dedicated",IDC_STATIC,15,18,33,8
+    LTEXT           "Shared",IDC_STATIC,15,29,24,8
+    RTEXT           "Static",IDC_ZDEDICATEDCOMMITTED_V,62,18,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSHAREDCOMMITTED_V,78,29,38,8,SS_ENDELLIPSIS
+    GROUPBOX        "Nodes",IDC_STATIC,129,7,124,46
+    LTEXT           "Running Time",IDC_STATIC,137,18,44,8
+    LTEXT           "Context Switches",IDC_STATIC,137,29,57,8
+    RTEXT           "Static",IDC_ZRUNNINGTIME_V,189,18,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZCONTEXTSWITCHES_V,205,29,38,8,SS_ENDELLIPSIS
+    GROUPBOX        "System Memory",IDC_STATIC,7,57,167,103
+    LTEXT           "Total Allocated",IDC_STATIC,15,68,48,8
+    LTEXT           "Total Reserved",IDC_STATIC,15,79,50,8
+    LTEXT           "Write Combined Allocated",IDC_STATIC,15,90,83,8
+    LTEXT           "Write Combined Reserved",IDC_STATIC,15,101,84,8
+    RTEXT           "Static",IDC_ZTOTALALLOCATED_V,110,68,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZTOTALRESERVED_V,110,79,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITECOMBINEDALLOCATED_V,110,90,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITECOMBINEDRESERVED_V,110,101,54,8,SS_ENDELLIPSIS
+    LTEXT           "Cached Allocated",IDC_STATIC,15,112,56,8
+    LTEXT           "Cached Reserved",IDC_STATIC,15,123,58,8
+    LTEXT           "Section Allocated",IDC_STATIC,15,134,56,8
+    LTEXT           "Section Reserved",IDC_STATIC,15,145,57,8
+    RTEXT           "Static",IDC_ZCACHEDALLOCATED_V,110,112,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZCACHEDRESERVED_V,110,123,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSECTIONALLOCATED_V,110,134,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSECTIONRESERVED_V,110,145,54,8,SS_ENDELLIPSIS
+    LTEXT           "Total Segments",IDC_STATIC,15,40,50,8
+    RTEXT           "Static",IDC_ZTOTALSEGMENTS_V,78,40,38,8,SS_ENDELLIPSIS
+    LTEXT           "Total Nodes",IDC_STATIC,137,40,39,8
+    RTEXT           "Static",IDC_ZTOTALNODES_V,205,40,38,8,SS_ENDELLIPSIS
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -392,6 +430,14 @@ BEGIN
 
     IDD_SYSGPUINFO_PANEL, DIALOG
     BEGIN
+    END
+
+    IDD_PROCGPU, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 253
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 253
     END
 END
 #endif    // APSTUDIO_INVOKED

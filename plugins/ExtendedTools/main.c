@@ -420,6 +420,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     __in_opt PVOID Context
     )
 {
+    EtProcessGpuPropertiesInitializing(Parameter);
     EtProcessEtwPropertiesInitializing(Parameter);
 }
 
