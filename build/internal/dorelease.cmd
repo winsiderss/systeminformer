@@ -50,6 +50,7 @@ for %%a in (
     SbieSupport
     ToolStatus
     Updater
+    UserNotes
     WindowExplorer
     ) do copy %1\bin\Release32\plugins\%%a.dll %2\bin\plugins\x86\%%a.dll
 
@@ -64,6 +65,7 @@ for %%a in (
     SbieSupport
     ToolStatus
     Updater
+    UserNotes
     WindowExplorer
     ) do copy %1\bin\Release64\plugins\%%a.dll %2\bin\plugins\x64\%%a.dll
 

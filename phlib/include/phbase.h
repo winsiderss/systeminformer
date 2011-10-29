@@ -1113,8 +1113,8 @@ FORCEINLINE VOID PhReverseStringRef(
     __in PPH_STRINGREF String
     )
 {
-    ULONG i;
-    ULONG j;
+    LONG i;
+    LONG j;
     WCHAR t;
 
     for (i = 0, j = String->Length / sizeof(WCHAR) - 1; i <= j; i++, j--)

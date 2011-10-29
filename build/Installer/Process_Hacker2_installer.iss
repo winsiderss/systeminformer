@@ -117,6 +117,7 @@ Name: "plugins\onlinechecks";          Description: "Online Checks";           T
 Name: "plugins\sbiesupport";           Description: "Sandboxie Support";       Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\toolstatus";            Description: "Toolbar and Status Bar";  Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\updater";               Description: "Updater";                 Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\usernotes";               Description: "User Notes";            Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\windowexplorer";        Description: "Window Explorer";         Types: full custom;         Flags: disablenouninstallwarning
 
 
@@ -172,6 +173,8 @@ Source: ..\..\bin\Release32\plugins\ToolStatus.dll;               DestDir: {app}
 Source: ..\..\bin\Release64\plugins\ToolStatus.dll;               DestDir: {app}\plugins; Components: plugins\toolstatus;            Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\Updater.dll;                  DestDir: {app}\plugins; Components: plugins\updater;               Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\Updater.dll;                  DestDir: {app}\plugins; Components: plugins\updater;               Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\bin\Release32\plugins\UserNotes.dll;                DestDir: {app}\plugins; Components: plugins\usernotes;             Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\bin\Release64\plugins\UserNotes.dll;                DestDir: {app}\plugins; Components: plugins\usernotes;             Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\WindowExplorer.dll;           DestDir: {app}\plugins; Components: plugins\windowexplorer;        Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\WindowExplorer.dll;           DestDir: {app}\plugins; Components: plugins\windowexplorer;        Flags: ignoreversion; Check: Is64BitInstallMode()
 
@@ -211,6 +214,7 @@ Type: files;      Name: {app}\plugins\OnlineChecks.dll;              Check: NOT 
 Type: files;      Name: {app}\plugins\SbieSupport.dll;               Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpgrade()
 Type: files;      Name: {app}\plugins\ToolStatus.dll;                Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpgrade()
 Type: files;      Name: {app}\plugins\Updater.dll;                   Check: NOT IsComponentSelected('plugins\updater')               AND IsUpgrade()
+Type: files;      Name: {app}\plugins\UserNotes.dll;                 Check: NOT IsComponentSelected('plugins\usernotes')             AND IsUpgrade()
 Type: files;      Name: {app}\plugins\WindowExplorer.dll;            Check: NOT IsComponentSelected('plugins\windowexplorer')        AND IsUpgrade()
 Type: dirifempty; Name: {app}\plugins
 
