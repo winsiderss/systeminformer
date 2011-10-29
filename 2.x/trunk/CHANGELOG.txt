@@ -5,6 +5,7 @@ Process Hacker
    * Added Description column to service list
    * Enabled multi-selection in the hidden processes window
    * Made grid color darker
+   * Added UserNotes plugin
    * Updated ExtendedNotifications plugin:
      * Added Growl support
    * Updated ExtendedTools plugin:

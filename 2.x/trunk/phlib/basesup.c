@@ -4427,18 +4427,21 @@ BOOLEAN PhpStringToInteger64(
     )
 {
     LONG64 result;
+    ULONG64 place;
     ULONG length;
     ULONG i;
 
     length = String->Length / sizeof(WCHAR);
     result = 0;
+    place = 1;
 
     for (i = 0; i < length; i++)
     {
         WCHAR c;
 
         c = String->Buffer[length - i - 1];
-        result += PhCharToInteger[(UCHAR)c] * PhExponentiate64(Base, i);
+        result += PhCharToInteger[(UCHAR)c] * place;
+        place *= Base;
     }
 
     *Integer = result;
@@ -4562,114 +4565,6 @@ BOOLEAN PhStringToInteger64(
  * \param Integer The integer to process.
  * \param Base The base which the integer is
  * represented with. The maximum value is
- * 69. The base cannot be 1.
- * \param Prefix A character to add to the
- * beginning of the string, except when \a Integer
- * is 0.
- *
- * \return The resulting string.
- */
-PPH_STRING PhpIntegerToString64(
-    __in ULONG64 Integer,
-    __in ULONG Base,
-    __in_opt WCHAR Prefix
-    )
-{
-    PPH_STRING string;
-    ULONG allocatedLength;
-    ULONG shift;
-    ULONG mask;
-
-    if (Integer == 0)
-        return PhCreateString(L"0");
-
-    allocatedLength = 16 * sizeof(WCHAR);
-    string = PhCreateStringEx(NULL, allocatedLength);
-    string->Length = 0;
-
-    // For power-of-two bases we can use optimized arithmetic.
-    switch (Base)
-    {
-    case 2:
-        shift = 1;
-        break;
-    case 4:
-        shift = 2;
-        break;
-    case 8:
-        shift = 3;
-        break;
-    case 16:
-        shift = 4;
-        break;
-    case 32:
-        shift = 5;
-        break;
-    case 64:
-        shift = 6;
-        break;
-    default:
-        shift = 0;
-        break;
-    }
-
-    if (shift)
-        mask = Base - 1;
-
-    while (Integer)
-    {
-        ULONG64 r;
-
-        if (shift)
-        {
-            r = Integer & mask;
-            Integer >>= shift;
-        }
-        else
-        {
-            r = Integer % Base;
-            Integer /= Base;
-        }
-
-        // Resize the string if necessary.
-        if (string->Length == allocatedLength - sizeof(WCHAR)) // ensure there is space for the prefix
-        {
-            PPH_STRING newString;
-
-            allocatedLength *= 2;
-            newString = PhCreateStringEx(NULL, allocatedLength);
-            memcpy(newString->Buffer, string->Buffer, string->Length);
-            newString->Length = string->Length;
-
-            PhDereferenceObject(string);
-            string = newString;
-        }
-
-        string->Buffer[string->Length / sizeof(WCHAR)] = PhIntegerToChar[(ULONG)r];
-        string->Length += sizeof(WCHAR);
-    }
-
-    // Add the prefix if necessary.
-    if (Prefix)
-    {
-        string->Buffer[string->Length / sizeof(WCHAR)] = Prefix;
-        string->Length += sizeof(WCHAR);
-    }
-
-    // Reverse the string.
-    PhReverseStringRef(&string->sr);
-    // Null-terminate the string.
-    string->Buffer[string->Length / sizeof(WCHAR)] = 0;
-
-    return string;
-}
-
-/**
- * Converts an integer to a string.
- *
- * \param Integer The integer to process.
- * \param Base The base which the integer is
- * represented with. The maximum value is
  * 69. The base cannot be 1. If the parameter is 0,
  * the base used is 10.
  * \param Signed TRUE if \a Integer is a signed value,
@@ -4684,23 +4579,23 @@ PPH_STRING PhIntegerToString64(
     __in BOOLEAN Signed
     )
 {
-    WCHAR prefix;
+    PH_FORMAT format;
 
     if (Base == 1 || Base > 69)
         return NULL;
 
-    if (!Base)
-        Base = 10;
+    if (Signed)
+        PhInitFormatI64D(&format, Integer);
+    else
+        PhInitFormatI64U(&format, Integer);
 
-    prefix = 0;
-
-    if (Signed && Integer < 0)
+    if (Base != 0)
     {
-        prefix = '-';
-        Integer = -Integer;
+        format.Type |= FormatUseRadix;
+        format.Radix = (UCHAR)Base;
     }
 
-    return PhpIntegerToString64(Integer, Base, prefix);
+    return PhFormat(&format, 1, 0);
 }
 
 VOID PhPrintTimeSpan(
