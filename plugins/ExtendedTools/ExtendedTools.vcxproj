@@ -190,6 +190,7 @@
     <ClCompile Include="options.c" />
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />
+    <ClCompile Include="utils.c" />
     <ClCompile Include="wswatch.c" />
   </ItemGroup>
   <ItemGroup>

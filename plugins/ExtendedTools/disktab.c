@@ -320,29 +320,6 @@ VOID EtUpdateDiskNode(
     TreeNew_NodesStructured(DiskTreeNewHandle);
 }
 
-VOID EtpFormatRate(
-    __in ULONG64 ValuePerPeriod,
-    __inout PPH_STRING *Buffer,
-    __out PPH_STRINGREF String
-    )
-{
-    ULONG64 number;
-
-    number = ValuePerPeriod;
-    number *= 1000;
-    number /= PhGetIntegerSetting(L"UpdateInterval");
-
-    if (number != 0)
-    {
-        PH_FORMAT format[2];
-
-        PhInitFormatSize(&format[0], number);
-        PhInitFormatS(&format[1], L"/s");
-        PhSwapReference2(Buffer, PhFormat(format, 2, 0));
-        *String = (*Buffer)->sr;
-    }
-}
-
 #define SORT_FUNCTION(Column) EtpDiskTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl EtpDiskTreeNewCompare##Column( \
@@ -474,13 +451,13 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 getCellText->Text = diskItem->FileNameWin32->sr;
                 break;
             case ETDSTNC_READRATEAVERAGE:
-                EtpFormatRate(diskItem->ReadAverage, &node->ReadRateAverageText, &getCellText->Text);
+                EtFormatRate(diskItem->ReadAverage, &node->ReadRateAverageText, &getCellText->Text);
                 break;
             case ETDSTNC_WRITERATEAVERAGE:
-                EtpFormatRate(diskItem->WriteAverage, &node->WriteRateAverageText, &getCellText->Text);
+                EtFormatRate(diskItem->WriteAverage, &node->WriteRateAverageText, &getCellText->Text);
                 break;
             case ETDSTNC_TOTALRATEAVERAGE:
-                EtpFormatRate(diskItem->ReadAverage + diskItem->WriteAverage, &node->TotalRateAverageText, &getCellText->Text);
+                EtFormatRate(diskItem->ReadAverage + diskItem->WriteAverage, &node->TotalRateAverageText, &getCellText->Text);
                 break;
             case ETDSTNC_IOPRIORITY:
                 switch (diskItem->IoPriority)

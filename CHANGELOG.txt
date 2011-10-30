@@ -10,6 +10,7 @@ Process Hacker
      * Added Growl support
    * Updated ExtendedTools plugin:
      * Added GPU monitoring
+     * Added rate columns for disk and network I/O
  * FIXED:
 
 2.22
