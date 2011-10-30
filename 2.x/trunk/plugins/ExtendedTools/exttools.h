@@ -123,7 +123,13 @@ typedef struct _ET_DISK_NODE
 #define ETPRTNC_GPU 24
 #define ETPRTNC_GPUDEDICATEDBYTES 25
 #define ETPRTNC_GPUSHAREDBYTES 26
-#define ETPRTNC_MAXIMUM 26
+#define ETPRTNC_DISKREADRATE 27
+#define ETPRTNC_DISKWRITERATE 28
+#define ETPRTNC_DISKTOTALRATE 29
+#define ETPRTNC_NETWORKRECEIVERATE 30
+#define ETPRTNC_NETWORKSENDRATE 31
+#define ETPRTNC_NETWORKTOTALRATE 32
+#define ETPRTNC_MAXIMUM 32
 
 // Network list columns
 
@@ -138,7 +144,10 @@ typedef struct _ET_DISK_NODE
 #define ETNETNC_SENDBYTESDELTA 9
 #define ETNETNC_TOTALBYTESDELTA 10
 #define ETNETNC_FIREWALLSTATUS 11
-#define ETNETNC_MAXIMUM 11
+#define ETNETNC_RECEIVERATE 12
+#define ETNETNC_SENDRATE 13
+#define ETNETNC_TOTALRATE 14
+#define ETNETNC_MAXIMUM 14
 
 // Firewall status
 
@@ -230,6 +239,14 @@ PET_PROCESS_BLOCK EtGetProcessBlock(
 
 PET_NETWORK_BLOCK EtGetNetworkBlock(
     __in PPH_NETWORK_ITEM NetworkItem
+    );
+
+// utils
+
+VOID EtFormatRate(
+    __in ULONG64 ValuePerPeriod,
+    __inout PPH_STRING *Buffer,
+    __out_opt PPH_STRINGREF String
     );
 
 // etwmon

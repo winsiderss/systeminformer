@@ -1,5 +1,6 @@
 1.7
  * Added GPU monitoring
+ * Added rate columns for disk and network I/O
 
 1.6
  * Updated disk monitoring for Windows 8
