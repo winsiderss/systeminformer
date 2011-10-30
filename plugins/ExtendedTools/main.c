@@ -164,7 +164,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Extended Tools";
             info->Author = L"wj32";
-            info->Description = L"Extended functionality for Windows Vista and above, including ETW monitoring and a Disk tab.";
+            info->Description = L"Extended functionality for Windows Vista and above, including ETW monitoring, GPU monitoring and a Disk tab.";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(
