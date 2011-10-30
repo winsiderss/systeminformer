@@ -22,7 +22,6 @@
 
 #include "exttools.h"
 #include "resource.h"
-#include "d3dkmt.h"
 
 #define MSG_UPDATE (WM_APP + 1)
 
