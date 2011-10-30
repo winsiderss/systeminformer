@@ -113,7 +113,13 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_PEAKTHREADS, L"Peak Threads", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_GPU, L"GPU", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_GPUDEDICATEDBYTES, L"GPU Dedicated Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_GPUSHAREDBYTES, L"GPU Shared Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }
+        { ETPRTNC_GPUSHAREDBYTES, L"GPU Shared Bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKREADRATE, L"Disk Read Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKWRITERATE, L"Disk Write Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_DISKTOTALRATE, L"Disk Total Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKRECEIVERATE, L"Network Receive Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKSENDRATE, L"Network Send Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NETWORKTOTALRATE, L"Network Total Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -261,6 +267,30 @@ VOID EtProcessTreeNewMessage(
                 if (block->GpuSharedUsage != 0)
                     text = PhFormatSize(block->GpuSharedUsage, -1);
                 break;
+            case ETPRTNC_DISKREADRATE:
+                if (block->DiskReadRawDelta.Delta != 0)
+                    EtFormatRate(block->DiskReadRawDelta.Delta, &text, NULL);
+                break;
+            case ETPRTNC_DISKWRITERATE:
+                if (block->DiskWriteRawDelta.Delta != 0)
+                    EtFormatRate(block->DiskWriteRawDelta.Delta, &text, NULL);
+                break;
+            case ETPRTNC_DISKTOTALRATE:
+                if (block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta != 0)
+                    EtFormatRate(block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta, &text, NULL);
+                break;
+            case ETPRTNC_NETWORKRECEIVERATE:
+                if (block->NetworkReceiveRawDelta.Delta != 0)
+                    EtFormatRate(block->NetworkReceiveRawDelta.Delta, &text, NULL);
+                break;
+            case ETPRTNC_NETWORKSENDRATE:
+                if (block->NetworkSendRawDelta.Delta != 0)
+                    EtFormatRate(block->NetworkSendRawDelta.Delta, &text, NULL);
+                break;
+            case ETPRTNC_NETWORKTOTALRATE:
+                if (block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta != 0)
+                    EtFormatRate(block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta, &text, NULL);
+                break;
             }
 
             if (text)
@@ -374,6 +404,24 @@ LONG EtpProcessTreeNewSortFunction(
     case ETPRTNC_GPUSHAREDBYTES:
         result = uint64cmp(block1->GpuSharedUsage, block2->GpuSharedUsage);
         break;
+    case ETPRTNC_DISKREADRATE:
+        result = uintcmp(block1->DiskReadRawDelta.Delta, block2->DiskReadRawDelta.Delta);
+        break;
+    case ETPRTNC_DISKWRITERATE:
+        result = uintcmp(block1->DiskWriteRawDelta.Delta, block2->DiskWriteRawDelta.Delta);
+        break;
+    case ETPRTNC_DISKTOTALRATE:
+        result = uintcmp(block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta, block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta);
+        break;
+    case ETPRTNC_NETWORKRECEIVERATE:
+        result = uintcmp(block1->NetworkReceiveRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta);
+        break;
+    case ETPRTNC_NETWORKSENDRATE:
+        result = uintcmp(block1->NetworkSendRawDelta.Delta, block2->NetworkSendRawDelta.Delta);
+        break;
+    case ETPRTNC_NETWORKTOTALRATE:
+        result = uintcmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
+        break;
     }
 
     return result;
@@ -395,7 +443,10 @@ VOID EtNetworkTreeNewInitializing(
         { ETNETNC_RECEIVEBYTESDELTA, L"Receive Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETNETNC_SENDBYTESDELTA, L"Send Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETNETNC_TOTALBYTESDELTA, L"Total Bytes Delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETNETNC_FIREWALLSTATUS, L"Firewall Status", 170, PH_ALIGN_LEFT, 0, FALSE }
+        { ETNETNC_FIREWALLSTATUS, L"Firewall Status", 170, PH_ALIGN_LEFT, 0, FALSE },
+        { ETNETNC_RECEIVERATE, L"Receive Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_SENDRATE, L"Send Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETNETNC_TOTALRATE, L"Total Rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -513,6 +564,18 @@ VOID EtNetworkTreeNewMessage(
                     }
                 }
                 break;
+            case ETNETNC_RECEIVERATE:
+                if (block->ReceiveRawDelta.Delta != 0)
+                    EtFormatRate(block->ReceiveRawDelta.Delta, &text, NULL);
+                break;
+            case ETNETNC_SENDRATE:
+                if (block->SendRawDelta.Delta != 0)
+                    EtFormatRate(block->SendRawDelta.Delta, &text, NULL);
+                break;
+            case ETNETNC_TOTALRATE:
+                if (block->ReceiveRawDelta.Delta + block->SendRawDelta.Delta != 0)
+                    EtFormatRate(block->ReceiveRawDelta.Delta + block->SendRawDelta.Delta, &text, NULL);
+                break;
             }
 
             if (text)
@@ -582,6 +645,15 @@ LONG EtpNetworkTreeNewSortFunction(
         EtpUpdateFirewallStatus(block1);
         EtpUpdateFirewallStatus(block2);
         result = intcmp(block1->FirewallStatus, block2->FirewallStatus);
+        break;
+    case ETNETNC_RECEIVERATE:
+        result = uintcmp(block1->ReceiveRawDelta.Delta, block2->ReceiveRawDelta.Delta);
+        break;
+    case ETNETNC_SENDRATE:
+        result = uintcmp(block1->SendRawDelta.Delta, block2->SendRawDelta.Delta);
+        break;
+    case ETNETNC_TOTALRATE:
+        result = uintcmp(block1->ReceiveRawDelta.Delta + block1->SendRawDelta.Delta, block2->ReceiveRawDelta.Delta + block2->SendRawDelta.Delta);
         break;
     }
 
