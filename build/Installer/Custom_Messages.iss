@@ -23,8 +23,8 @@
 ;English
 en.msg_SetupIsRunningWarning =Process Hacker Setup is already running!
 en.msg_DeleteLogSettings     =Do you also want to delete Process Hacker's settings?%n%nIf you plan on reinstalling Process Hacker you do not have to delete them.
-en.msg_servicemanager        =The service manager is not available
-en.msg_servicemanager2       =Only NT based systems support services
+en.msg_servicemanager        =The service manager is not available.
+en.msg_servicemanager2       =Only NT based systems support services.
 en.tsk_AllUsers              =For all users
 en.tsk_CreateKPHService      =Install KProcessHacker as a service
 en.tsk_CurrentUser           =For the current user only
