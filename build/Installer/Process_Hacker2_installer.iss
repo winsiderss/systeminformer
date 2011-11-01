@@ -349,7 +349,7 @@ begin
     RemoveService('KProcessHacker2');
 
     if SettingsExistCheck then begin
-      if SuppressibleMsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then begin
+      if SuppressibleMsgBox(CustomMessage('msg_DeleteLogSettings'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then begin
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
       end;
     end;
@@ -366,7 +366,7 @@ function InitializeSetup(): Boolean;
 begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
   if CheckForMutexes(installer_mutex_name) and not WizardSilent() then begin
-    SuppressibleMsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK, MB_OK);
+    SuppressibleMsgBox(CustomMessage('msg_SetupIsRunningWarning'), mbError, MB_OK, MB_OK);
     Result := False;
   end
   else begin
@@ -379,7 +379,7 @@ end;
 function InitializeUninstall(): Boolean;
 begin
   if CheckForMutexes(installer_mutex_name) then begin
-    SuppressibleMsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK, MB_OK);
+    SuppressibleMsgBox(CustomMessage('msg_SetupIsRunningWarning'), mbError, MB_OK, MB_OK);
     Result := False;
   end
   else begin

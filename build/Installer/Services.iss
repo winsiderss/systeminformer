@@ -16,8 +16,6 @@
 ;* along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "Custom_Messages.iss"
-
 [Code]
 // Various service related functions
 
@@ -67,49 +65,49 @@ const
 // #######################################################################################
 // nt based service utilities
 // #######################################################################################
-function OpenSCManager(lpMachineName, lpDatabaseName: AnsiString; dwDesiredAccess :cardinal): HANDLE;
+function OpenSCManager(lpMachineName, lpDatabaseName: AnsiString; dwDesiredAccess: cardinal): HANDLE;
 external 'OpenSCManagerA@advapi32.dll stdcall';
 
-function OpenService(hSCManager :HANDLE;lpServiceName: AnsiString; dwDesiredAccess :cardinal): HANDLE;
+function OpenService(hSCManager: HANDLE; lpServiceName: AnsiString; dwDesiredAccess: cardinal): HANDLE;
 external 'OpenServiceA@advapi32.dll stdcall';
 
-function CloseServiceHandle(hSCObject :HANDLE): Boolean;
+function CloseServiceHandle(hSCObject: HANDLE): Boolean;
 external 'CloseServiceHandle@advapi32.dll stdcall';
 
-function CreateService(hSCManager :HANDLE;lpServiceName, lpDisplayName: AnsiString;dwDesiredAccess,dwServiceType,dwStartType,dwErrorControl: cardinal;lpBinaryPathName,lpLoadOrderGroup: AnsiString; lpdwTagId : cardinal;lpDependencies,lpServiceStartName,lpPassword :AnsiString): cardinal;
+function CreateService(hSCManager: HANDLE; lpServiceName, lpDisplayName: AnsiString; dwDesiredAccess,dwServiceType,dwStartType,dwErrorControl: cardinal; lpBinaryPathName,lpLoadOrderGroup: AnsiString; lpdwTagId: cardinal; lpDependencies,lpServiceStartName,lpPassword: AnsiString): cardinal;
 external 'CreateServiceA@advapi32.dll stdcall';
 
-function DeleteService(hService :HANDLE): Boolean;
+function DeleteService(hService: HANDLE): Boolean;
 external 'DeleteService@advapi32.dll stdcall';
 
-function StartNTService(hService :HANDLE;dwNumServiceArgs : cardinal;lpServiceArgVectors : cardinal) : Boolean;
+function StartNTService(hService: HANDLE; dwNumServiceArgs: cardinal; lpServiceArgVectors: cardinal): Boolean;
 external 'StartServiceA@advapi32.dll stdcall';
 
-function ControlService(hService :HANDLE; dwControl :cardinal;var ServiceStatus :SERVICE_STATUS) : Boolean;
+function ControlService(hService: HANDLE; dwControl: cardinal; var ServiceStatus: SERVICE_STATUS): Boolean;
 external 'ControlService@advapi32.dll stdcall';
 
-function QueryServiceStatus(hService :HANDLE;var ServiceStatus :SERVICE_STATUS) : Boolean;
+function QueryServiceStatus(hService: HANDLE; var ServiceStatus: SERVICE_STATUS): Boolean;
 external 'QueryServiceStatus@advapi32.dll stdcall';
 
-function QueryServiceStatusEx(hService :HANDLE;ServiceStatus :SERVICE_STATUS) : Boolean;
+function QueryServiceStatusEx(hService: HANDLE; ServiceStatus: SERVICE_STATUS): Boolean;
 external 'QueryServiceStatus@advapi32.dll stdcall';
 
 
-function OpenServiceManager() : HANDLE;
+function OpenServiceManager(): HANDLE;
 begin
-  if UsingWinNT() = true then begin
+  if UsingWinNT() = True then begin
     Result := OpenSCManager('','ServicesActive',SC_MANAGER_ALL_ACCESS);
     if Result = 0 then
-      MsgBox(ExpandConstant('{cm:msg_servicemanager}'), mbError, MB_OK)
+      SuppressibleMsgBox(CustomMessage('msg_ServiceManager'), mbError, MB_OK, MB_OK)
   end
   else begin
-    MsgBox(ExpandConstant('{cm:msg_servicemanager2}'), mbError, MB_OK)
+    SuppressibleMsgBox(CustomMessage('msg_ServiceManager2'), mbError, MB_OK, MB_OK)
     Result := 0;
   end;
 end;
 
 
-function InstallService(FileName, ServiceName, DisplayName, Description : AnsiString;ServiceType,StartType :cardinal) : Boolean;
+function InstallService(FileName, ServiceName, DisplayName, Description: AnsiString; ServiceType,StartType: cardinal): Boolean;
 var
   hSCM    : HANDLE;
   hService: HANDLE;
@@ -119,7 +117,7 @@ begin
   if hSCM <> 0 then begin
     hService := CreateService(hSCM,ServiceName,DisplayName,SERVICE_ALL_ACCESS,ServiceType,StartType,0,FileName,'',0,'','','');
     if hService <> 0 then begin
-      Result := true;
+      Result := True;
       // Win2K & WinXP supports aditional description text for services
       if Description<> '' then
         RegWriteStringValue(HKLM,'System\CurrentControlSet\Services\' + ServiceName,'Description',Description);
@@ -130,7 +128,7 @@ begin
 end;
 
 
-function RemoveService(ServiceName: String) : Boolean;
+function RemoveService(ServiceName: String): Boolean;
 var
   hSCM    : HANDLE;
   hService: HANDLE;
@@ -148,7 +146,7 @@ begin
 end;
 
 
-function StartService(ServiceName: String) : Boolean;
+function StartService(ServiceName: String): Boolean;
 var
   hSCM    : HANDLE;
   hService: HANDLE;
@@ -166,7 +164,7 @@ begin
 end;
 
 
-function StopService(ServiceName: String) : Boolean;
+function StopService(ServiceName: String): Boolean;
 var
   hSCM    : HANDLE;
   hService: HANDLE;
@@ -185,7 +183,7 @@ begin
 end;
 
 
-function IsServiceRunning(ServiceName: String) : Boolean;
+function IsServiceRunning(ServiceName: String): Boolean;
 var
   hSCM    : HANDLE;
   hService: HANDLE;
@@ -197,7 +195,7 @@ begin
     hService := OpenService(hSCM,ServiceName,SERVICE_QUERY_STATUS);
     if hService <> 0 then begin
       if QueryServiceStatus(hService,Status) then begin
-        Result :=(Status.dwCurrentState = SERVICE_RUNNING)
+        Result := (Status.dwCurrentState = SERVICE_RUNNING)
       end;
       CloseServiceHandle(hService)
       end;
