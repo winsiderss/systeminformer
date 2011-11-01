@@ -1376,14 +1376,13 @@ RtlCompareUnicodeString(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// private
 NTSYSAPI
 LONG
 NTAPI
 RtlCompareUnicodeStrings(
-    __in_ecount(String1Length) PWSTR String1,
+    __in_ecount(String1Length) PWCH String1,
     __in SIZE_T String1Length,
-    __in_ecount(String2Length) PWSTR String2,
+    __in_ecount(String2Length) PWCH String2,
     __in SIZE_T String2Length,
     __in BOOLEAN CaseInSensitive
     );

@@ -36,6 +36,9 @@
 #define FILE_OPEN_REQUIRING_OPLOCK 0x00010000
 #define FILE_DISALLOW_EXCLUSIVE 0x00020000
 #endif
+#if (PHNT_VERSION >= PHNT_WIN8)
+#define FILE_SESSION_AWARE 0x00040000
+#endif
 
 #define FILE_RESERVE_OPFILTER 0x00100000
 #define FILE_OPEN_REPARSE_POINT 0x00200000
@@ -105,6 +108,9 @@
 #define FILE_CHARACTERISTIC_PNP_DEVICE 0x00000800
 #define FILE_CHARACTERISTIC_TS_DEVICE 0x00001000
 #define FILE_CHARACTERISTIC_WEBDAV_DEVICE 0x00002000
+#define FILE_CHARACTERISTIC_CSV 0x00010000
+#define FILE_DEVICE_ALLOW_APPCONTAINER_TRAVERSAL 0x00020000
+#define FILE_PORTABLE_DEVICE 0x00040000
 
 // Named pipe values
 
@@ -174,7 +180,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileEaInformation,
     FileAccessInformation,
     FileNameInformation,
-    FileRenameInformation,
+    FileRenameInformation, // 10
     FileLinkInformation,
     FileNamesInformation,
     FileDispositionInformation,
@@ -184,7 +190,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileAlignmentInformation,
     FileAllInformation,
     FileAllocationInformation,
-    FileEndOfFileInformation,
+    FileEndOfFileInformation, // 20
     FileAlternateNameInformation,
     FileStreamInformation,
     FilePipeInformation,
@@ -194,7 +200,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileMailslotSetInformation,
     FileCompressionInformation,
     FileObjectIdInformation,
-    FileCompletionInformation,
+    FileCompletionInformation, // 30
     FileMoveClusterInformation,
     FileQuotaInformation,
     FileReparsePointInformation,
@@ -204,7 +210,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileIdBothDirectoryInformation,
     FileIdFullDirectoryInformation,
     FileValidDataLengthInformation,
-    FileShortNameInformation,
+    FileShortNameInformation, // 40
     FileIoCompletionNotificationInformation,
     FileIoStatusBlockRangeInformation,
     FileIoPriorityHintInformation,
@@ -214,12 +220,16 @@ typedef enum _FILE_INFORMATION_CLASS
     FileProcessIdsUsingFileInformation,
     FileNormalizedNameInformation,
     FileNetworkPhysicalNameInformation,
-    FileIdGlobalTxDirectoryInformation,
+    FileIdGlobalTxDirectoryInformation, // 50
     FileIsRemoteDeviceInformation,
     FileAttributeCacheInformation,
     FileNumaNodeInformation,
     FileStandardLinkInformation,
     FileRemoteProtocolInformation,
+    FileRenameInformationBypassAccessCheck, // (kernel-mode only) // since WIN8
+    FileLinkInformationBypassAccessCheck, // (kernel-mode only)
+    FileIntegrityStreamInformation,
+    FileVolumeNameInformation,
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -553,6 +563,16 @@ typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
     } ProtocolSpecificReserved;
 } FILE_REMOTE_PROTOCOL_INFORMATION, *PFILE_REMOTE_PROTOCOL_INFORMATION;
 
+#define CHECKSUM_ENFORCEMENT_OFF 0x00000001
+
+typedef struct _FILE_INTEGRITY_STREAM_INFORMATION
+{
+    USHORT ChecksumAlgorithm;
+    UCHAR ChecksumChunkShift;
+    UCHAR ClusterShift;
+    ULONG Flags;
+} FILE_INTEGRITY_STREAM_INFORMATION, *PFILE_INTEGRITY_STREAM_INFORMATION;
+
 // NtQueryDirectoryFile types
 
 typedef struct _FILE_DIRECTORY_INFORMATION
@@ -736,6 +756,7 @@ typedef enum _FSINFOCLASS
     FileFsObjectIdInformation,
     FileFsDriverPathInformation,
     FileFsVolumeFlagsInformation,
+    FileFsSectorSizeInformation, // since WIN8
     FileFsMaximumInformation
 } FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 
@@ -804,6 +825,23 @@ typedef struct _FILE_FS_VOLUME_FLAGS_INFORMATION
 {
     ULONG Flags;
 } FILE_FS_VOLUME_FLAGS_INFORMATION, *PFILE_FS_VOLUME_FLAGS_INFORMATION;
+
+#define SSINFO_FLAGS_ALIGNED_DEVICE 0x00000001
+#define SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE 0x00000002
+
+// If set for Sector and Partition fields, alignment is not known.
+#define SSINFO_OFFSET_UNKNOWN 0xffffffff
+
+typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION
+{
+    ULONG LogicalBytesPerSector;
+    ULONG PhysicalBytesPerSectorForAtomicity;
+    ULONG PhysicalBytesPerSectorForPerformance;
+    ULONG FileSystemEffectivePhysicalBytesPerSectorForAtomicity;
+    ULONG Flags;
+    ULONG ByteOffsetForSectorAlignment;
+    ULONG ByteOffsetForPartitionAlignment;
+} FILE_FS_SECTOR_SIZE_INFORMATION, *PFILE_FS_SECTOR_SIZE_INFORMATION;
 
 // NtNotifyChangeDirectoryFile
 
@@ -896,6 +934,19 @@ NtFlushBuffersFile(
     __in HANDLE FileHandle,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
+
+#define FLUSH_FLAGS_FILE_DATA_ONLY 0x00000001
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFlushBuffersFileEx(
+    __in HANDLE FileHandle,
+    __in ULONG Flags,
+    __out PIO_STATUS_BLOCK IoStatusBlock
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
