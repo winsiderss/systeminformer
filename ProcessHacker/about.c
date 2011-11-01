@@ -81,31 +81,24 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 break;
             }
         }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            __try
+            switch (header->code)
             {
-                switch (header->code)
+            case NM_CLICK:
                 {
-                case NM_CLICK:
+                    switch (header->idFrom)
                     {
-                        switch (header->idFrom)
-                        {
-                        case IDC_CREDITS:
-                        case IDC_LINK_SF:
-                            PhShellExecute(hwndDlg, ((PNMLINK)header)->item.szUrl, NULL);
-                            break;
-                        }
+                    case IDC_CREDITS:
+                    case IDC_LINK_SF:
+                        PhShellExecute(hwndDlg, ((PNMLINK)header)->item.szUrl, NULL);
+                        break;
                     }
-                    break;
                 }
-            }
-            __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_ACCESS_VIOLATION))
-            {
-                // Seems that the SysLink control is a bit retarded.
-                dprintf("About dialog exception in WM_NOTIFY: 0x%x\n", GetExceptionCode());
+                break;
             }
         }
         break;
