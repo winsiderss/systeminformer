@@ -110,7 +110,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessLdtInformation, // 10
     ProcessLdtSize,
     ProcessDefaultHardErrorMode, // qs: ULONG
-    ProcessIoPortHandlers,
+    ProcessIoPortHandlers, // (kernel-mode only)
     ProcessPooledUsageAndLimits, // q: POOLED_USAGE_AND_LIMITS
     ProcessWorkingSetWatch, // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
     ProcessUserModeIOPL,
@@ -120,7 +120,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleCount, // 20, q: ULONG, PROCESS_HANDLE_INFORMATION
     ProcessAffinityMask, // s: KAFFINITY
     ProcessPriorityBoost, // qs: ULONG
-    ProcessDeviceMap,
+    ProcessDeviceMap, // qs: PROCESS_DEVICEMAP_INFORMATION, PROCESS_DEVICEMAP_INFORMATION_EX
     ProcessSessionInformation, // q: PROCESS_SESSION_INFORMATION
     ProcessForegroundInformation, // s: PROCESS_FOREGROUND_BACKGROUND
     ProcessWow64Information, // q: ULONG_PTR
@@ -149,9 +149,11 @@ typedef enum _PROCESSINFOCLASS
     ProcessConsoleHostProcess, // q: ULONG_PTR
     ProcessWindowInformation, // 50, q: PROCESS_WINDOW_INFORMATION
     ProcessHandleInformation, // q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
-    ProcessMitigationPolicy, // qs: PROCESS_MITIGATION_POLICY_INFORMATION
+    ProcessMitigationPolicy, // s: PROCESS_MITIGATION_POLICY_INFORMATION
     ProcessDynamicFunctionTableInformation,
     ProcessHandleCheckingMode,
+    ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
+    ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -194,6 +196,7 @@ typedef enum _THREADINFOCLASS
     ThreadCounterProfiling,
     ThreadIdealProcessorEx, // q: PROCESSOR_NUMBER
     ThreadCpuAccountingInformation, // since WIN8
+    ThreadSwitchStackCheck,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -333,6 +336,41 @@ typedef struct _PROCESS_FOREGROUND_BACKGROUND
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+typedef struct _PROCESS_DEVICEMAP_INFORMATION
+{
+    union
+    {
+        struct
+        {
+            HANDLE DirectoryHandle;
+        } Set;
+        struct
+        {
+            ULONG DriveMap;
+            UCHAR DriveType[32];
+        } Query;
+    };
+} PROCESS_DEVICEMAP_INFORMATION, *PPROCESS_DEVICEMAP_INFORMATION;
+
+#define PROCESS_LUID_DOSDEVICES_ONLY 0x00000001
+
+typedef struct _PROCESS_DEVICEMAP_INFORMATION_EX
+{
+    union
+    {
+        struct
+        {
+            HANDLE DirectoryHandle;
+        } Set;
+        struct
+        {
+            ULONG DriveMap;
+            UCHAR DriveType[32];
+        } Query;
+    };
+    ULONG Flags; // PROCESS_LUID_DOSDEVICES_ONLY
+} PROCESS_DEVICEMAP_INFORMATION_EX, *PPROCESS_DEVICEMAP_INFORMATION_EX;
+
 typedef struct _PROCESS_SESSION_INFORMATION
 {
     ULONG SessionId;
@@ -444,12 +482,112 @@ typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
     PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
 
+// TODO: Remove these after Windows 8 SDK
+
+typedef enum _PROCESS_MITIGATION_POLICY
+{
+    ProcessDEPPolicy,
+    ProcessASLRPolicy,
+    ProcessStackCheckPolicy,
+    ProcessStrictHandleCheckPolicy,
+    ProcessSystemCallDisablePolicy,
+    MaxProcessMitigationPolicy
+} PROCESS_MITIGATION_POLICY, *PPROCESS_MITIGATION_POLICY;
+
+typedef struct _PROCESS_MITIGATION_ASLR_POLICY
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG EnableStackRandomization : 1;
+            ULONG EnableForceRelocateImages : 1;
+            ULONG EnableHighEntropy : 1; // only available at creation time
+            ULONG DisallowStrippedImages : 1;
+            ULONG ReservedFlags : 28;
+        };
+    };
+} PROCESS_MITIGATION_ASLR_POLICY, *PPROCESS_MITIGATION_ASLR_POLICY;
+
+typedef struct _PROCESS_MITIGATION_DEP_POLICY
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Enable : 1;
+            ULONG DisableAtlThunkEmulation : 1;
+            ULONG ReservedFlags : 30;
+        };
+    };
+    BOOLEAN Permanent;
+} PROCESS_MITIGATION_DEP_POLICY, *PPROCESS_MITIGATION_DEP_POLICY;
+
+typedef struct _PROCESS_MITIGATION_STACKCHECK_POLICY
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Permanent : 1;
+            ULONG ReservedFlags : 31;
+        };
+    };
+} PROCESS_MITIGATION_STACKCHECK_POLICY, *PPROCESS_MITIGATION_STACKCHECK_POLICY;
+
+typedef struct _PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG RaiseExceptionOnInvalidHandleReference : 1;
+            ULONG HandleExceptionsPermanentlyEnabled : 1;
+            ULONG ReservedFlags : 30;
+        };
+    };
+} PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY, *PPROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY;
+
+typedef struct _PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG DisallowWin32kSystemCalls : 1;
+            ULONG ReservedFlags : 31;
+        };
+    };
+} PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY, *PPROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY;
+
 // private
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 {
-    ULONG Policy; // PROCESS_MITIGATION_POLICY
-    // TODO: ASLRPolicy, DEPPolicy, StackCheckPolicy, StrictHandleCheckPolicy, SystemCallDisablePolicy
+    PROCESS_MITIGATION_POLICY Policy;
+    union
+    {
+        PROCESS_MITIGATION_ASLR_POLICY ASLRPolicy;
+        PROCESS_MITIGATION_DEP_POLICY DEPPolicy;
+        PROCESS_MITIGATION_STACKCHECK_POLICY StackCheckPolicy;
+        PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY StrictHandleCheckPolicy;
+        PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY SystemCallDisablePolicy;
+    };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
+
+typedef struct _PROCESS_KEEPALIVE_COUNT_INFORMATION
+{
+    ULONG Count;
+} PROCESS_KEEPALIVE_COUNT_INFORMATION, *PPROCESS_KEEPALIVE_COUNT_INFORMATION;
+
+typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
+{
+    UNICODE_STRING TargetDevicePath;
+} PROCESS_REVOKE_FILE_HANDLES_INFORMATION, *PPROCESS_REVOKE_FILE_HANDLES_INFORMATION;
 
 // Thread information structures
 

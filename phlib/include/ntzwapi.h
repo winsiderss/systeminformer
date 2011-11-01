@@ -1296,6 +1296,15 @@ ZwFlushBuffersFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwFlushBuffersFileEx(
+    __in HANDLE FileHandle,
+    __in ULONG Flags,
+    __out PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwFlushInstallUILanguage(
     __in LANGID InstallUILanguage,
     __in ULONG SetComittedFlag
