@@ -83,6 +83,16 @@ typedef struct _KEY_FLAGS_INFORMATION
     ULONG UserFlags;
 } KEY_FLAGS_INFORMATION, *PKEY_FLAGS_INFORMATION;
 
+typedef struct _KEY_VIRTUALIZATION_INFORMATION
+{
+    ULONG VirtualizationCandidate : 1; // Tells whether the key is part of the virtualization namespace scope (only HKLM\Software for now).
+    ULONG VirtualizationEnabled : 1; // Tells whether virtualization is enabled on this key. Can be 1 only if above flag is 1.
+    ULONG VirtualTarget : 1; // Tells if the key is a virtual key. Can be 1 only if above 2 are 0. Valid only on the virtual store key handles.
+    ULONG VirtualStore : 1; // Tells if the key is a part of the virtual sore path. Valid only on the virtual store key handles.
+    ULONG VirtualSource : 1; // Tells if the key has ever been virtualized, can be 1 only if VirtualizationCandidate is 1.
+    ULONG Reserved : 27;
+} KEY_VIRTUALIZATION_INFORMATION, *PKEY_VIRTUALIZATION_INFORMATION;
+
 typedef enum _KEY_SET_INFORMATION_CLASS
 {
     KeyWriteTimeInformation,
