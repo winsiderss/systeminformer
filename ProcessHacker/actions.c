@@ -1198,7 +1198,7 @@ BOOLEAN PhUiRestartProcess(
             L"The process will be restarted with the same command line and "
             L"working directory, but if it is running under a different user it "
             L"will be restarted under the current user.",
-            TRUE
+            FALSE
             );
     }
     else
