@@ -73,6 +73,8 @@ static BOOLEAN ServiceTreeListLoaded = FALSE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
 static HMENU HackerMenuHandle;
 static BOOLEAN HackerMenuInitialized = FALSE;
+static HMENU ToolsMenuHandle;
+static BOOLEAN ToolsMenuInitialized = FALSE;
 static HMENU UsersMenuHandle;
 static BOOLEAN UsersMenuInitialized = FALSE;
 static BOOLEAN UpdateAutomatically = TRUE;
@@ -173,6 +175,7 @@ BOOLEAN PhMainWndInitialization(
 
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
     HackerMenuHandle = GetSubMenu(PhMainWndMenuHandle, 0);
+    ToolsMenuHandle = GetSubMenu(PhMainWndMenuHandle, 2);
     UsersMenuHandle = GetSubMenu(PhMainWndMenuHandle, 3);
 
     // Choose a more appropriate rectangle for the window.
@@ -1813,6 +1816,17 @@ VOID PhMwpOnInitMenuPopup(
             }
 
             HackerMenuInitialized = TRUE;
+        }
+    }
+    else if (Menu == ToolsMenuHandle)
+    {
+        if (!ToolsMenuInitialized)
+        {
+#ifdef _M_X64
+            DeleteMenu(PhMainWndMenuHandle, ID_TOOLS_HIDDENPROCESSES);
+#endif
+
+            ToolsMenuInitialized = TRUE;
         }
     }
     else if (Menu == UsersMenuHandle)
