@@ -14,6 +14,7 @@ Process Hacker
  * FIXED:
    * Freezing when viewing the tooltip for a process with a 
      very long command line
+   * Disabled Hidden Processes feature on 64-bit systems
 
 2.22
  * NEW/IMPROVED:
