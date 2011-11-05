@@ -98,10 +98,14 @@ PPH_STRING PhGetProcessTooltipText(
 
     if (Process->CommandLine)
     {
+        tempString = PhEllipsisString(Process->CommandLine, 100 * 10);
+
         // This is necessary because the tooltip control seems to use some kind of O(n^9999) word-wrapping 
         // algorithm.
-        PhpAppendStringWithLineBreaks(&stringBuilder, &Process->CommandLine->sr, 100, NULL);
+        PhpAppendStringWithLineBreaks(&stringBuilder, &tempString->sr, 100, NULL);
         PhAppendCharStringBuilder(&stringBuilder, '\n');
+
+        PhDereferenceObject(tempString);
     }
 
     // File information
