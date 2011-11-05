@@ -31,6 +31,49 @@ VOID PhpFillRunningTasks(
     __inout PPH_STRING_BUILDER Tasks
     );
 
+VOID PhpAppendStringWithLineBreaks(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PPH_STRINGREF String,
+    __in ULONG CharactersPerLine,
+    __in_opt PWSTR IndentAfterFirstLine
+    )
+{
+    PH_STRINGREF line;
+    ULONG bytesPerLine;
+    BOOLEAN afterFirstLine;
+    ULONG bytesToAppend;
+    ULONG indentAfterFirstLineLength;
+
+    line = *String;
+    bytesPerLine = CharactersPerLine * sizeof(WCHAR);
+    afterFirstLine = FALSE;
+
+    if (IndentAfterFirstLine)
+        indentAfterFirstLineLength = (ULONG)wcslen(IndentAfterFirstLine) * sizeof(WCHAR);
+
+    while (line.Length != 0)
+    {
+        bytesToAppend = line.Length;
+
+        if (bytesToAppend > bytesPerLine)
+            bytesToAppend = bytesPerLine;
+
+        if (afterFirstLine)
+        {
+            PhAppendCharStringBuilder(StringBuilder, '\n');
+
+            if (IndentAfterFirstLine)
+                PhAppendStringBuilderEx(StringBuilder, IndentAfterFirstLine, indentAfterFirstLineLength);
+        }
+
+        PhAppendStringBuilderEx(StringBuilder, line.Buffer, bytesToAppend);
+        afterFirstLine = TRUE;
+
+        line.Buffer = (PWSTR)((PCHAR)line.Buffer + bytesToAppend);
+        line.Length -= (USHORT)bytesToAppend;
+    }
+}
+
 static int __cdecl ServiceForTooltipCompare(
     __in const void *elem1,
     __in const void *elem2
@@ -55,7 +98,9 @@ PPH_STRING PhGetProcessTooltipText(
 
     if (Process->CommandLine)
     {
-        PhAppendStringBuilder(&stringBuilder, Process->CommandLine);
+        // This is necessary because the tooltip control seems to use some kind of O(n^9999) word-wrapping 
+        // algorithm.
+        PhpAppendStringWithLineBreaks(&stringBuilder, &Process->CommandLine->sr, 100, NULL);
         PhAppendCharStringBuilder(&stringBuilder, '\n');
     }
 

@@ -12,6 +12,8 @@ Process Hacker
      * Added GPU monitoring
      * Added rate columns for disk and network I/O
  * FIXED:
+   * Freezing when viewing the tooltip for a process with a 
+     very long command line
 
 2.22
  * NEW/IMPROVED:
