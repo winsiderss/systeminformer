@@ -1823,7 +1823,7 @@ VOID PhMwpOnInitMenuPopup(
         if (!ToolsMenuInitialized)
         {
 #ifdef _M_X64
-            DeleteMenu(PhMainWndMenuHandle, ID_TOOLS_HIDDENPROCESSES);
+            DeleteMenu(PhMainWndMenuHandle, ID_TOOLS_HIDDENPROCESSES, 0);
 #endif
 
             ToolsMenuInitialized = TRUE;
