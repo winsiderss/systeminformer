@@ -62,7 +62,7 @@ VOID EtGpuMonitorInitialization(
     VOID
     )
 {
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) && WindowsVersion >= WINDOWS_7)
     {
         HMODULE gdi32Handle;
         HMODULE setupapiHandle;
