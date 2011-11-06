@@ -1631,7 +1631,7 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
 PATTRIBUTE_NODE PhpAddAttributeNode(
     __in PATTRIBUTE_TREE_CONTEXT Context,
     __in_opt PATTRIBUTE_NODE Parent,
-    __in_opt PPH_STRING Text
+    __in_opt __assumeRefs(1) PPH_STRING Text
     )
 {
     PATTRIBUTE_NODE node;
@@ -1649,7 +1649,7 @@ PATTRIBUTE_NODE PhpAddAttributeNode(
     else
         PhAddItemList(Context->RootList, node);
 
-    PhSwapReference(&node->Text, Text);
+    PhSwapReference2(&node->Text, Text);
 
     return node;
 }
@@ -2039,6 +2039,9 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
         {
             PhpInitializeAttributeTreeContext(&tokenPageContext->AuthzTreeContext, tnHandle);
             PhpAddTokenAttributes(tokenPageContext, tnHandle);
+
+            if (tokenPageContext->AuthzTreeContext.RootList->Count == 0)
+                PhpAddAttributeNode(&tokenPageContext->AuthzTreeContext, NULL, PhCreateString(L"(None)"));
         }
         break;
     case WM_DESTROY:
