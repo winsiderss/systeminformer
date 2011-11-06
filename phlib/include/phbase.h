@@ -2311,62 +2311,6 @@ FORCEINLINE BOOLEAN PhEnumPointerList(
     return FALSE;
 }
 
-// queue
-
-#ifndef _PH_BASESUP_PRIVATE
-extern PPH_OBJECT_TYPE PhQueueType;
-#endif
-
-/**
- * A queue structure.
- * Storage is automatically allocated for new
- * elements.
- */
-typedef struct _PH_QUEUE
-{
-    /** The number of items in the queue. */
-    ULONG Count;
-    /** The number of items for which storage is allocated. */
-    ULONG AllocatedCount;
-    /** The array of queue items. */
-    PVOID *Items;
-    /** The index of the first slot in the queue. */
-    ULONG Head;
-    /** The index of the last available slot in the queue. */
-    ULONG Tail;
-} PH_QUEUE, *PPH_QUEUE;
-
-PHLIBAPI
-PPH_QUEUE
-NTAPI
-PhCreateQueue(
-    __in ULONG InitialCapacity
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhEnqueueItemQueue(
-    __inout PPH_QUEUE Queue,
-    __in PVOID Item
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhDequeueItemQueue(
-    __inout PPH_QUEUE Queue,
-    __out PVOID *Item
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhPeekItemQueue(
-    __in PPH_QUEUE Queue,
-    __out PVOID *Item
-    );
-
 // hash
 
 typedef struct _PH_HASH_ENTRY

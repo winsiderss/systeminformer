@@ -152,7 +152,6 @@ PPH_STRING PhGetDiagnosticsString(
     OBJECT_TYPE_COUNT(PhFullStringType);
     OBJECT_TYPE_COUNT(PhListType);
     OBJECT_TYPE_COUNT(PhPointerListType);
-    OBJECT_TYPE_COUNT(PhQueueType);
     OBJECT_TYPE_COUNT(PhHashtableType);
     OBJECT_TYPE_COUNT(PhFileStreamType);
 

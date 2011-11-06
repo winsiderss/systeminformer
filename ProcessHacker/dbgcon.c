@@ -195,10 +195,6 @@ static VOID PhpPrintObjectInfo(
     {
         wprintf(L"\tCount: %u", ((PPH_POINTER_LIST)PhObjectHeaderToObject(ObjectHeader))->Count);
     }
-    else if (ObjectHeader->Type == PhQueueType)
-    {
-        wprintf(L"\tCount: %u", ((PPH_QUEUE)PhObjectHeaderToObject(ObjectHeader))->Count);
-    }
     else if (ObjectHeader->Type == PhHashtableType)
     {
         wprintf(L"\tCount: %u", ((PPH_HASHTABLE)PhObjectHeaderToObject(ObjectHeader))->Count);
