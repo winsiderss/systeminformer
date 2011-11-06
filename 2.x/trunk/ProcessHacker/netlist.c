@@ -745,7 +745,7 @@ VOID PhCopyNetworkList(
 {
     PPH_FULL_STRING text;
 
-    text = PhGetTreeNewText(NetworkTreeListHandle, PHNETLC_MAXIMUM);
+    text = PhGetTreeNewText(NetworkTreeListHandle, 0);
     PhSetClipboardStringEx(NetworkTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }

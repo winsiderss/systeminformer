@@ -3115,9 +3115,9 @@ PPH_LIST PhGetProcessTreeListLines(
     // The number of columns.
     ULONG columns;
     // A column display index to ID map.
-    ULONG displayToId[PHPRTLC_MAXIMUM];
+    PULONG displayToId;
     // A column display index to text map.
-    PWSTR displayToText[PHPRTLC_MAXIMUM];
+    PWSTR *displayToText;
     // The actual string table.
     PPH_STRING **table;
     ULONG i;
@@ -3129,7 +3129,7 @@ PPH_LIST PhGetProcessTreeListLines(
     rows = NumberOfNodes + 1;
 
     // Create the display index to ID map.
-    PhMapDisplayIndexTreeNew(TreeListHandle, PHPRTLC_MAXIMUM, displayToId, displayToText, &columns);
+    PhMapDisplayIndexTreeNew(TreeListHandle, &displayToId, &displayToText, &columns);
 
     PhaCreateTextTable(&table, rows, columns);
 
@@ -3156,6 +3156,9 @@ PPH_LIST PhGetProcessTreeListLines(
             );
     }
 
+    PhFree(displayToId);
+    PhFree(displayToText);
+
     lines = PhaFormatTextTable(table, rows, columns, Mode);
 
     PhDeleteAutoPool(&autoPool);
@@ -3169,7 +3172,7 @@ VOID PhCopyProcessTree(
 {
     PPH_FULL_STRING text;
 
-    text = PhGetTreeNewText(ProcessTreeListHandle, PHPRTLC_MAXIMUM);
+    text = PhGetTreeNewText(ProcessTreeListHandle, 0);
     PhSetClipboardStringEx(ProcessTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }

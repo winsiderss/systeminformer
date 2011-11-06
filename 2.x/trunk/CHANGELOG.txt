@@ -15,6 +15,7 @@ Process Hacker
      * Added GPU monitoring
      * Added rate columns for disk and network I/O
  * FIXED:
+   * Fixed copying lists when plugin columns are enabled
    * Freezing when viewing the tooltip for a process with a 
      very long command line
    * Disabled Hidden Processes feature on 64-bit systems
