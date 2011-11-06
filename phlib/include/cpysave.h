@@ -20,16 +20,15 @@ PPH_LIST PhaFormatTextTable(
 
 VOID PhMapDisplayIndexTreeNew(
     __in HWND TreeNewHandle,
-    __in ULONG MaximumNumberOfColumns,
-    __out_ecount(MaximumNumberOfColumns) PULONG DisplayToId,
-    __out_ecount_opt(MaximumNumberOfColumns) PWSTR *DisplayToText,
+    __out_opt PULONG *DisplayToId,
+    __out_opt PWSTR **DisplayToText,
     __out PULONG NumberOfColumns
     );
 
 PHLIBAPI
 PPH_FULL_STRING PhGetTreeNewText(
     __in HWND TreeNewHandle,
-    __in ULONG MaximumNumberOfColumns
+    __reserved ULONG Reserved
     );
 
 PHLIBAPI

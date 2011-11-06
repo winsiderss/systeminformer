@@ -238,61 +238,59 @@ PPH_LIST PhaFormatTextTable(
 
 VOID PhMapDisplayIndexTreeNew(
     __in HWND TreeNewHandle,
-    __in ULONG MaximumNumberOfColumns,
-    __out_ecount(MaximumNumberOfColumns) PULONG DisplayToId,
-    __out_ecount_opt(MaximumNumberOfColumns) PWSTR *DisplayToText,
+    __out_opt PULONG *DisplayToId,
+    __out_opt PWSTR **DisplayToText,
     __out PULONG NumberOfColumns
     )
 {
-    PH_TREENEW_COLUMN column;
+    PPH_TREENEW_COLUMN fixedColumn;
+    ULONG numberOfColumns;
+    PULONG displayToId;
+    PWSTR *displayToText;
     ULONG i;
-    ULONG count;
-    ULONG increment;
+    PH_TREENEW_COLUMN column;
 
-    count = 0;
+    fixedColumn = TreeNew_GetFixedColumn(TreeNewHandle);
+    numberOfColumns = TreeNew_GetVisibleColumnCount(TreeNewHandle);
 
-    if (TreeNew_GetFixedColumn(TreeNewHandle))
-        increment = 1;
-    else
-        increment = 0;
+    displayToId = PhAllocate(numberOfColumns * sizeof(ULONG));
 
-    for (i = 0; i < MaximumNumberOfColumns; i++)
+    if (fixedColumn)
     {
-        if (TreeNew_GetColumn(TreeNewHandle, i, &column))
-        {
-            if (column.Visible)
-            {
-                if (column.Fixed)
-                {
-                    DisplayToId[0] = i;
-
-                    if (DisplayToText)
-                        DisplayToText[0] = column.Text;
-
-                    count++;
-                }
-                else
-                {
-                    if (column.DisplayIndex < MaximumNumberOfColumns)
-                    {
-                        DisplayToId[column.DisplayIndex + increment] = i;
-
-                        if (DisplayToText)
-                            DisplayToText[column.DisplayIndex + increment] = column.Text;
-
-                        count++;
-                    }
-                }
-            }
-        }
+        TreeNew_GetColumnOrderArray(TreeNewHandle, numberOfColumns - 1, displayToId + 1);
+        displayToId[0] = fixedColumn->Id;
+    }
+    else
+    {
+        TreeNew_GetColumnOrderArray(TreeNewHandle, numberOfColumns, displayToId);
     }
 
-    *NumberOfColumns = count;
+    if (DisplayToText)
+    {
+        displayToText = PhAllocate(numberOfColumns * sizeof(PWSTR));
+
+        for (i = 0; i < numberOfColumns; i++)
+        {
+            if (TreeNew_GetColumn(TreeNewHandle, displayToId[i], &column))
+            {
+                displayToText[i] = column.Text;
+            }
+        }
+
+        *DisplayToText = displayToText;
+    }
+
+    if (DisplayToId)
+        *DisplayToId = displayToId;
+    else
+        PhFree(displayToId);
+
+    *NumberOfColumns = numberOfColumns;
 }
 
 PPH_FULL_STRING PhGetTreeNewText(
     __in HWND TreeNewHandle,
-    __in ULONG MaximumNumberOfColumns
+    __reserved ULONG Reserved
     )
 {
     PPH_FULL_STRING string;
@@ -302,9 +300,7 @@ PPH_FULL_STRING PhGetTreeNewText(
     ULONG i;
     ULONG j;
 
-    displayToId = PhAllocate(MaximumNumberOfColumns * sizeof(ULONG));
-
-    PhMapDisplayIndexTreeNew(TreeNewHandle, MaximumNumberOfColumns, displayToId, NULL, &columns);
+    PhMapDisplayIndexTreeNew(TreeNewHandle, &displayToId, NULL, &columns);
     rows = TreeNew_GetFlatNodeCount(TreeNewHandle);
 
     string = PhCreateFullString2(0x100);
@@ -351,7 +347,6 @@ PPH_LIST PhGetGenericTreeNewLines(
     ULONG rows;
     ULONG columns;
     ULONG numberOfNodes;
-    ULONG maxId;
     PULONG displayToId;
     PWSTR *displayToText;
     PPH_STRING **table;
@@ -361,12 +356,9 @@ PPH_LIST PhGetGenericTreeNewLines(
     PhInitializeAutoPool(&autoPool);
 
     numberOfNodes = TreeNew_GetFlatNodeCount(TreeNewHandle);
-    maxId = TreeNew_GetMaxId(TreeNewHandle) + 1;
-    displayToId = PhAllocate(sizeof(ULONG) * maxId);
-    displayToText = PhAllocate(sizeof(PWSTR) * maxId);
 
     rows = numberOfNodes + 1;
-    PhMapDisplayIndexTreeNew(TreeNewHandle, maxId, displayToId, displayToText, &columns);
+    PhMapDisplayIndexTreeNew(TreeNewHandle, &displayToId, &displayToText, &columns);
 
     PhaCreateTextTable(&table, rows, columns);
 

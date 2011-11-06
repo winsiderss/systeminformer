@@ -1065,7 +1065,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 {
                     PPH_FULL_STRING text;
 
-                    text = PhGetTreeNewText(context->TnHandle, DNATNC_MAXIMUM);
+                    text = PhGetTreeNewText(context->TnHandle, 0);
                     PhSetClipboardStringEx(context->TnHandle, text->Buffer, text->Length);
                     PhDereferenceObject(text);
                 }
