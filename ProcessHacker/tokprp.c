@@ -21,6 +21,38 @@
  */
 
 #include <phapp.h>
+#include <emenu.h>
+
+// TODO: Remove after Windows 8 SDK ----
+
+#define SECURITY_APP_PACKAGE_AUTHORITY              {0,0,0,0,0,15}
+
+#define SECURITY_APP_PACKAGE_BASE_RID               (0x00000002L)
+#define SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT      (2L)
+#define SECURITY_APP_PACKAGE_RID_COUNT              (8L)
+#define SECURITY_CAPABILITY_BASE_RID                (0x00000003L)
+#define SECURITY_BUILTIN_CAPABILITY_RID_COUNT       (2L)
+#define SECURITY_CAPABILITY_RID_COUNT               (5L)
+
+#define SECURITY_CAPABILITY_INTERNET_CLIENT                     (0x00000001L)
+#define SECURITY_CAPABILITY_INTERNET_CLIENT_SERVER              (0x00000002L)
+#define SECURITY_CAPABILITY_PRIVATE_NETWORK_CLIENT_SERVER       (0x00000003L)
+#define SECURITY_CAPABILITY_PICTURES_LIBRARY                    (0x00000004L)
+#define SECURITY_CAPABILITY_VIDEOS_LIBRARY                      (0x00000005L)
+#define SECURITY_CAPABILITY_MUSIC_LIBRARY                       (0x00000006L)
+#define SECURITY_CAPABILITY_DOCUMENTS_LIBRARY                   (0x00000007L)
+#define SECURITY_CAPABILITY_DEFAULT_WINDOWS_CREDENTIALS         (0x00000008L)
+#define SECURITY_CAPABILITY_SHARED_USER_CERTIFICATES            (0x00000009L)
+#define SECURITY_CAPABILITY_REMOVABLE_STORAGE                   (0x0000000AL)
+
+#define TokenAppContainerSid 31
+
+typedef struct _TOKEN_APPCONTAINER_INFORMATION
+{
+    PSID TokenAppContainer;
+} TOKEN_APPCONTAINER_INFORMATION, *PTOKEN_APPCONTAINER_INFORMATION;
+
+// ----
 
 typedef struct _TOKEN_PAGE_CONTEXT
 {
@@ -267,6 +299,57 @@ PWSTR PhGetElevationTypeString(
     }
 }
 
+BOOLEAN PhpUpdateTokenGroups(
+    __in HWND hwndDlg,
+    __in PTOKEN_PAGE_CONTEXT TokenPageContext,
+    __in HWND GroupsLv,
+    __in HANDLE TokenHandle
+    )
+{
+    PTOKEN_GROUPS groups;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhGetTokenGroups(TokenHandle, &groups)))
+        return FALSE;
+
+    ExtendedListView_SetRedraw(GroupsLv, FALSE);
+
+    ListView_DeleteAllItems(GroupsLv);
+
+    for (i = 0; i < groups->GroupCount; i++)
+    {
+        INT lvItemIndex;
+        PPH_STRING fullName;
+        PPH_STRING attributesString;
+
+        if (!(fullName = PhGetSidFullName(groups->Groups[i].Sid, TRUE, NULL)))
+            fullName = PhSidToStringSid(groups->Groups[i].Sid);
+
+        if (fullName)
+        {
+            lvItemIndex = PhAddListViewItem(GroupsLv, MAXINT, fullName->Buffer,
+                &groups->Groups[i]);
+            attributesString = PhGetGroupAttributesString(
+                groups->Groups[i].Attributes);
+            PhSetListViewSubItem(GroupsLv, lvItemIndex, 1, attributesString->Buffer);
+
+            PhDereferenceObject(attributesString);
+            PhDereferenceObject(fullName);
+        }
+    }
+
+    ExtendedListView_SortItems(GroupsLv);
+
+    ExtendedListView_SetRedraw(GroupsLv, TRUE);
+
+    if (TokenPageContext->Groups)
+        PhFree(TokenPageContext->Groups);
+
+    TokenPageContext->Groups = groups;
+
+    return TRUE;
+}
+
 FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -328,6 +411,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
             SetDlgItemText(hwndDlg, IDC_USER, L"Unknown");
             SetDlgItemText(hwndDlg, IDC_USERSID, L"Unknown");
+            SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"Unknown");
+
+            if (!WINDOWS_HAS_UAC)
+                ShowWindow(GetDlgItem(hwndDlg, IDC_INTEGRITY), SW_HIDE);
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -342,6 +429,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 TOKEN_ELEVATION_TYPE elevationType;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
+                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                PPH_STRING appContainerSid;
                 ULONG i;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -394,33 +483,35 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     SetDlgItemText(hwndDlg, IDC_VIRTUALIZED, L"N/A");
                 }
 
-                // Groups
-                if (NT_SUCCESS(PhGetTokenGroups(tokenHandle, &tokenPageContext->Groups)))
+                if (WINDOWS_HAS_IMMERSIVE)
                 {
-                    for (i = 0; i < tokenPageContext->Groups->GroupCount; i++)
+                    appContainerSid = NULL;
+
+                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
                     {
-                        INT lvItemIndex;
-                        PPH_STRING fullName;
-                        PPH_STRING attributesString;
+                        if (appContainerInfo->TokenAppContainer)
+                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
 
-                        if (!(fullName = PhGetSidFullName(tokenPageContext->Groups->Groups[i].Sid, TRUE, NULL)))
-                            fullName = PhSidToStringSid(tokenPageContext->Groups->Groups[i].Sid);
-
-                        if (fullName)
-                        {
-                            lvItemIndex = PhAddListViewItem(groupsLv, MAXINT, fullName->Buffer,
-                                &tokenPageContext->Groups->Groups[i]);
-                            attributesString = PhGetGroupAttributesString(
-                                tokenPageContext->Groups->Groups[i].Attributes);
-                            PhSetListViewSubItem(groupsLv, lvItemIndex, 1, attributesString->Buffer);
-
-                            PhDereferenceObject(attributesString);
-                            PhDereferenceObject(fullName);
-                        }
+                        PhFree(appContainerInfo);
                     }
 
-                    ExtendedListView_SortItems(groupsLv);
+                    if (appContainerSid)
+                    {
+                        SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, appContainerSid->Buffer);
+                        PhDereferenceObject(appContainerSid);
+                    }
+                    else
+                    {
+                        SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"N/A");
+                    }
                 }
+                else
+                {
+                    SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"N/A");
+                }
+
+                // Groups
+                PhpUpdateTokenGroups(hwndDlg, tokenPageContext, groupsLv, tokenHandle);
 
                 // Privileges
                 if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &tokenPageContext->Privileges)))
@@ -631,6 +722,121 @@ INT_PTR CALLBACK PhpTokenPageProc(
             case ID_PRIVILEGE_COPY:
                 {
                     PhCopyListView(tokenPageContext->PrivilegesListViewHandle);
+                }
+                break;
+            case IDC_INTEGRITY:
+                {
+                    NTSTATUS status;
+                    RECT rect;
+                    PPH_EMENU menu;
+                    HANDLE tokenHandle;
+                    MANDATORY_LEVEL integrityLevel;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
+
+                    menu = PhCreateEMenu();
+
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelSecureProcess, L"Protected", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelSystem, L"System", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelHigh, L"High", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelMedium, L"Medium", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelLow, L"Low", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelUntrusted, L"Untrusted", NULL, NULL), -1);
+
+                    integrityLevel = -1;
+
+                    // Put a radio check on the menu item that corresponds with the current integrity level.
+                    // Also disable menu items which correspond to higher integrity levels since
+                    // NtSetInformationToken doesn't allow integrity levels to be raised.
+                    if (NT_SUCCESS(tokenPageContext->OpenObject(
+                        &tokenHandle,
+                        TOKEN_QUERY,
+                        tokenPageContext->Context
+                        )))
+                    {
+                        if (NT_SUCCESS(PhGetTokenIntegrityLevel(
+                            tokenHandle,
+                            &integrityLevel,
+                            NULL
+                            )))
+                        {
+                            ULONG i;
+
+                            for (i = 0; i < menu->Items->Count; i++)
+                            {
+                                PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
+
+                                if (menuItem->Id == integrityLevel)
+                                {
+                                    menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                                }
+                                else if (menuItem->Id > (ULONG)integrityLevel)
+                                {
+                                    menuItem->Flags |= PH_EMENU_DISABLED;
+                                }
+                            }
+                        }
+
+                        NtClose(tokenHandle);
+                    }
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_NONOTIFY | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id != integrityLevel)
+                    {
+                        if (PhShowConfirmMessage(
+                            hwndDlg,
+                            L"set",
+                            L"the integrity level",
+                            L"Once lowered, the integrity level of the token cannot be raised again.",
+                            FALSE
+                            ))
+                        {
+                            if (NT_SUCCESS(status = tokenPageContext->OpenObject(
+                                &tokenHandle,
+                                TOKEN_QUERY | TOKEN_ADJUST_DEFAULT,
+                                tokenPageContext->Context
+                                )))
+                            {
+                                static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
+
+                                UCHAR newSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG)];
+                                PSID newSid;
+                                TOKEN_MANDATORY_LABEL mandatoryLabel;
+
+                                newSid = (PSID)newSidBuffer;
+                                RtlInitializeSid(newSid, &mandatoryLabelAuthority, 1);
+                                *RtlSubAuthoritySid(newSid, 0) = MANDATORY_LEVEL_TO_MANDATORY_RID(selectedItem->Id);
+                                mandatoryLabel.Label.Sid = newSid;
+                                mandatoryLabel.Label.Attributes = SE_GROUP_INTEGRITY;
+
+                                status = NtSetInformationToken(
+                                    tokenHandle,
+                                    TokenIntegrityLevel,
+                                    &mandatoryLabel,
+                                    sizeof(TOKEN_MANDATORY_LABEL)
+                                    );
+
+                                if (NT_SUCCESS(status))
+                                    PhpUpdateTokenGroups(hwndDlg, tokenPageContext, GetDlgItem(hwndDlg, IDC_GROUPS), tokenHandle);
+
+                                NtClose(tokenHandle);
+                            }
+
+                            if (!NT_SUCCESS(status))
+                                PhShowStatus(hwndDlg, L"Unable to set the integrity level", status, 0);
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             case IDC_ADVANCED:

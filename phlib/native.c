@@ -2362,6 +2362,30 @@ NTSTATUS PhpQueryTokenVariableSize(
 }
 
 /**
+ * Queries variable-sized information for a token.
+ * The function allocates a buffer to contain the information.
+ *
+ * \param TokenHandle A handle to a token. The access required
+ * depends on the information class specified.
+ * \param TokenInformationClass The information class to retrieve.
+ * \param Buffer A variable which receives a pointer to a buffer
+ * containing the information. You must free the buffer using
+ * PhFree() when you no longer need it.
+ */
+NTSTATUS PhQueryTokenVariableSize(
+    __in HANDLE TokenHandle,
+    __in TOKEN_INFORMATION_CLASS TokenInformationClass,
+    __out PVOID *Buffer
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenInformationClass,
+        Buffer
+        );
+}
+
+/**
  * Gets a token's user.
  *
  * \param TokenHandle A handle to a token. The handle
@@ -2598,14 +2622,14 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
  */
 NTSTATUS PhGetTokenIntegrityLevel(
     __in HANDLE TokenHandle,
-    __out_opt PPH_INTEGRITY IntegrityLevel,
+    __out_opt PMANDATORY_LEVEL IntegrityLevel,
     __out_opt PWSTR *IntegrityString
     )
 {
     NTSTATUS status;
     PTOKEN_MANDATORY_LABEL mandatoryLabel;
     ULONG subAuthority;
-    PH_INTEGRITY integrityLevel;
+    MANDATORY_LEVEL integrityLevel;
     PWSTR integrityString;
 
     status = PhpQueryTokenVariableSize(TokenHandle, TokenIntegrityLevel, &mandatoryLabel);
@@ -2619,31 +2643,27 @@ NTSTATUS PhGetTokenIntegrityLevel(
     switch (subAuthority)
     {
     case SECURITY_MANDATORY_UNTRUSTED_RID:
-        integrityLevel = PiUntrusted;
+        integrityLevel = MandatoryLevelUntrusted;
         integrityString = L"Untrusted";
         break;
     case SECURITY_MANDATORY_LOW_RID:
-        integrityLevel = PiLow;
+        integrityLevel = MandatoryLevelLow;
         integrityString = L"Low";
         break;
     case SECURITY_MANDATORY_MEDIUM_RID:
-        integrityLevel = PiMedium;
+        integrityLevel = MandatoryLevelMedium;
         integrityString = L"Medium";
         break;
-    case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
-        integrityLevel = PiMediumPlus;
-        integrityString = L"MediumPlus";
-        break;
     case SECURITY_MANDATORY_HIGH_RID:
-        integrityLevel = PiHigh;
+        integrityLevel = MandatoryLevelHigh;
         integrityString = L"High";
         break;
     case SECURITY_MANDATORY_SYSTEM_RID:
-        integrityLevel = PiSystem;
+        integrityLevel = MandatoryLevelSystem;
         integrityString = L"System";
         break;
     case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
-        integrityLevel = PiProtected;
+        integrityLevel = MandatoryLevelSecureProcess;
         integrityString = L"Protected";
         break;
     default:

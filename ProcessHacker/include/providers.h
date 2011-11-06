@@ -130,7 +130,7 @@ typedef struct _PH_PROCESS_ITEM
 
     PPH_STRING UserName;
     TOKEN_ELEVATION_TYPE ElevationType;
-    PH_INTEGRITY IntegrityLevel;
+    MANDATORY_LEVEL IntegrityLevel;
     PWSTR IntegrityString;
 
     // Other
