@@ -177,6 +177,7 @@
 #define IDC_SOURCENAME                  1059
 #define IDC_PROPERTIES                  1060
 #define IDC_SOURCELUID                  1060
+#define IDC_APPCONTAINERSID             1060
 #define IDC_LIST                        1061
 #define IDC_SIZESINBYTES                1062
 #define IDC_PROCESSES                   1063
@@ -203,6 +204,7 @@
 #define IDC_DETAILS                     1079
 #define IDC_ADD                         1079
 #define IDC_FONT                        1079
+#define IDC_INTEGRITY                   1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082

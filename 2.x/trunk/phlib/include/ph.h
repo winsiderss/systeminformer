@@ -375,6 +375,12 @@ NTSTATUS PhGetJobProcessIdList(
     __out PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
     );
 
+NTSTATUS PhQueryTokenVariableSize(
+    __in HANDLE TokenHandle,
+    __in TOKEN_INFORMATION_CLASS TokenInformationClass,
+    __out PVOID *Buffer
+    );
+
 PHLIBAPI
 NTSTATUS PhGetTokenUser(
     __in HANDLE TokenHandle,
@@ -432,24 +438,10 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
     __in BOOLEAN IsVirtualizationEnabled
     );
 
-/** Specifies a token integrity level. */
-typedef enum _PH_INTEGRITY
-{
-    PiUntrusted = 0,
-    PiLow = 1,
-    PiMedium = 2,
-    PiMediumPlus = 3, // unused
-    PiHigh = 4,
-    PiSystem = 5,
-    PiInstaller = 6,
-    PiProtected = 7, // unused
-    PiSecure = 8 // unused
-} PH_INTEGRITY, *PPH_INTEGRITY;
-
 PHLIBAPI
 NTSTATUS PhGetTokenIntegrityLevel(
     __in HANDLE TokenHandle,
-    __out_opt PPH_INTEGRITY IntegrityLevel,
+    __out_opt PMANDATORY_LEVEL IntegrityLevel,
     __out_opt PWSTR *IntegrityString
     );
 
