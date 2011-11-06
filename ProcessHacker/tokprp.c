@@ -22,8 +22,9 @@
 
 #include <phapp.h>
 #include <emenu.h>
+#include <cpysave.h>
 
-// TODO: Remove after Windows 8 SDK ----
+// ---- TODO: Remove after Windows 8 SDK ----
 
 #define SECURITY_APP_PACKAGE_AUTHORITY              {0,0,0,0,0,15}
 
@@ -45,14 +46,98 @@
 #define SECURITY_CAPABILITY_SHARED_USER_CERTIFICATES            (0x00000009L)
 #define SECURITY_CAPABILITY_REMOVABLE_STORAGE                   (0x0000000AL)
 
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_INVALID   0x00
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64     0x01
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_UINT64    0x02
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING    0x03
+
+typedef struct _CLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE {
+    DWORD64             Version;
+    PWSTR               Name;
+} CLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE, *PCLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE;
+
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN      0x04
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_SID       0x05
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_BOOLEAN   0x06
+
+typedef struct _CLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE {
+    PVOID   pValue;         //  Pointer is BYTE aligned.
+    DWORD   ValueLength;    //  In bytes
+} CLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE,
+    *PCLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE;
+
+#define CLAIM_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING  0x10
+#define CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE      0x0001
+#define CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE         0x0002
+#define CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY 0x0004
+#define CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT 0x0008
+#define CLAIM_SECURITY_ATTRIBUTE_DISABLED 0x0010
+#define CLAIM_SECURITY_ATTRIBUTE_MANDATORY 0x0020
+
+#define CLAIM_SECURITY_ATTRIBUTE_VALID_FLAGS   (    \
+                        CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE       |  \
+                        CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE  |  \
+                        CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY     |  \
+                        CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT   |  \
+                        CLAIM_SECURITY_ATTRIBUTE_DISABLED              |  \
+                        CLAIM_SECURITY_ATTRIBUTE_MANDATORY )
+
+#define CLAIM_SECURITY_ATTRIBUTE_CUSTOM_FLAGS   0xFFFF0000
+
+typedef struct _CLAIM_SECURITY_ATTRIBUTE_V1 {
+    PWSTR   Name;
+    WORD    ValueType;
+    WORD    Reserved;
+    DWORD   Flags;
+    DWORD   ValueCount;
+
+    union {
+        PLONG64                                         pInt64;
+        PDWORD64                                        pUint64;
+        PWSTR                                           *ppString;
+        PCLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE            pFqbn;
+        PCLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE    pOctetString;
+    } Values;
+} CLAIM_SECURITY_ATTRIBUTE_V1, *PCLAIM_SECURITY_ATTRIBUTE_V1;
+
+#define CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1    1
+#define CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION       \
+    CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1
+
+typedef struct _CLAIM_SECURITY_ATTRIBUTES_INFORMATION {
+    WORD    Version;
+    WORD    Reserved;
+    DWORD   AttributeCount;
+    union {
+        PCLAIM_SECURITY_ATTRIBUTE_V1    pAttributeV1;
+    } Attribute;
+} CLAIM_SECURITY_ATTRIBUTES_INFORMATION, *PCLAIM_SECURITY_ATTRIBUTES_INFORMATION;
+
+#define TokenCapabilities 30
 #define TokenAppContainerSid 31
+#define TokenUserClaimAttributes 33
+#define TokenDeviceClaimAttributes 34
+#define TokenAttributes 39
 
 typedef struct _TOKEN_APPCONTAINER_INFORMATION
 {
     PSID TokenAppContainer;
 } TOKEN_APPCONTAINER_INFORMATION, *PTOKEN_APPCONTAINER_INFORMATION;
 
-// ----
+// ---- ----
+
+typedef struct _ATTRIBUTE_NODE
+{
+    PH_TREENEW_NODE Node;
+    PPH_LIST Children;
+    PPH_STRING Text;
+} ATTRIBUTE_NODE, *PATTRIBUTE_NODE;
+
+typedef struct _ATTRIBUTE_TREE_CONTEXT
+{
+    PPH_LIST RootList;
+    PPH_LIST NodeList;
+} ATTRIBUTE_TREE_CONTEXT, *PATTRIBUTE_TREE_CONTEXT;
 
 typedef struct _TOKEN_PAGE_CONTEXT
 {
@@ -65,6 +150,10 @@ typedef struct _TOKEN_PAGE_CONTEXT
 
     PTOKEN_GROUPS Groups;
     PTOKEN_PRIVILEGES Privileges;
+    PTOKEN_GROUPS Capabilities;
+
+    ATTRIBUTE_TREE_CONTEXT ClaimsTreeContext;
+    ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
 
 INT CALLBACK PhpTokenPropPageProc(
@@ -93,6 +182,35 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
     );
 
 INT_PTR CALLBACK PhpTokenAdvancedPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+BOOLEAN NTAPI PhpAttributeTreeNewCallback(
+    __in HWND hwnd,
+    __in PH_TREENEW_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2,
+    __in_opt PVOID Context
+    );
+
+INT_PTR CALLBACK PhpTokenClaimsPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpTokenAttributesPageProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -206,7 +324,17 @@ PPH_STRING PhGetGroupAttributesString(
     else if (Attributes & SE_GROUP_USE_FOR_DENY_ONLY)
         baseString = L"Use for Deny Only";
     else
-        baseString = L"Unknown";
+        baseString = NULL;
+
+    if (!baseString)
+    {
+        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            return PhCreateString(L"Default Enabled");
+        else if (Attributes & SE_GROUP_ENABLED)
+            return PhReferenceEmptyString();
+        else
+            return PhCreateString(L"Disabled");
+    }
 
     if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
         string = PhConcatStrings2(baseString, L" (Default Enabled)");
@@ -299,6 +427,44 @@ PWSTR PhGetElevationTypeString(
     }
 }
 
+PWSTR PhGetBuiltinCapabilityString(
+    __in PSID CapabilitySid
+    )
+{
+    static SID_IDENTIFIER_AUTHORITY appPackageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
+
+    if (memcmp(RtlIdentifierAuthoritySid(CapabilitySid), &appPackageAuthority, sizeof(SID_IDENTIFIER_AUTHORITY)) == 0 &&
+        *RtlSubAuthorityCountSid(CapabilitySid) == SECURITY_BUILTIN_CAPABILITY_RID_COUNT &&
+        *RtlSubAuthoritySid(CapabilitySid, 0) == SECURITY_CAPABILITY_BASE_RID)
+    {
+        switch (*RtlSubAuthoritySid(CapabilitySid, 1))
+        {
+        case SECURITY_CAPABILITY_INTERNET_CLIENT:
+            return L"Internet Client";
+        case SECURITY_CAPABILITY_INTERNET_CLIENT_SERVER:
+            return L"Internet Client Server";
+        case SECURITY_CAPABILITY_PRIVATE_NETWORK_CLIENT_SERVER:
+            return L"Private Network Client Server";
+        case SECURITY_CAPABILITY_PICTURES_LIBRARY:
+            return L"Pictures Library";
+        case SECURITY_CAPABILITY_VIDEOS_LIBRARY:
+            return L"Videos Library";
+        case SECURITY_CAPABILITY_MUSIC_LIBRARY:
+            return L"Music Library";
+        case SECURITY_CAPABILITY_DOCUMENTS_LIBRARY:
+            return L"Documents Library";
+        case SECURITY_CAPABILITY_DEFAULT_WINDOWS_CREDENTIALS:
+            return L"Default Windows Credentials";
+        case SECURITY_CAPABILITY_SHARED_USER_CERTIFICATES:
+            return L"Shared User Certificates";
+        case SECURITY_CAPABILITY_REMOVABLE_STORAGE:
+            return L"Removable Storage";
+        }
+    }
+
+    return NULL;
+}
+
 BOOLEAN PhpUpdateTokenGroups(
     __in HWND hwndDlg,
     __in PTOKEN_PAGE_CONTEXT TokenPageContext,
@@ -327,10 +493,8 @@ BOOLEAN PhpUpdateTokenGroups(
 
         if (fullName)
         {
-            lvItemIndex = PhAddListViewItem(GroupsLv, MAXINT, fullName->Buffer,
-                &groups->Groups[i]);
-            attributesString = PhGetGroupAttributesString(
-                groups->Groups[i].Attributes);
+            lvItemIndex = PhAddListViewItem(GroupsLv, MAXINT, fullName->Buffer, &groups->Groups[i]);
+            attributesString = PhGetGroupAttributesString(groups->Groups[i].Attributes);
             PhSetListViewSubItem(GroupsLv, lvItemIndex, 1, attributesString->Buffer);
 
             PhDereferenceObject(attributesString);
@@ -910,9 +1074,9 @@ VOID PhpShowTokenAdvancedProperties(
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    HPROPSHEETPAGE pages[3];
-    PROPSHEETPAGE generalPage;
-    PROPSHEETPAGE advancedPage;
+    HPROPSHEETPAGE pages[6];
+    PROPSHEETPAGE page;
+    ULONG numberOfPages;
     PH_STD_OBJECT_SECURITY stdObjectSecurity;
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;
@@ -923,27 +1087,62 @@ VOID PhpShowTokenAdvancedProperties(
         PSH_PROPTITLE;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Token";
-    propSheetHeader.nPages = 3;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
 
+    numberOfPages = 0;
+
     // General
 
-    memset(&generalPage, 0, sizeof(PROPSHEETPAGE));
-    generalPage.dwSize = sizeof(PROPSHEETPAGE);
-    generalPage.pszTemplate = MAKEINTRESOURCE(IDD_TOKGENERAL);
-    generalPage.pfnDlgProc = PhpTokenGeneralPageProc;
-    generalPage.lParam = (LPARAM)Context;
-    pages[0] = CreatePropertySheetPage(&generalPage);
+    memset(&page, 0, sizeof(PROPSHEETPAGE));
+    page.dwSize = sizeof(PROPSHEETPAGE);
+    page.pszTemplate = MAKEINTRESOURCE(IDD_TOKGENERAL);
+    page.pfnDlgProc = PhpTokenGeneralPageProc;
+    page.lParam = (LPARAM)Context;
+    pages[numberOfPages++] = CreatePropertySheetPage(&page);
 
     // Advanced
 
-    memset(&advancedPage, 0, sizeof(PROPSHEETPAGE));
-    advancedPage.dwSize = sizeof(PROPSHEETPAGE);
-    advancedPage.pszTemplate = MAKEINTRESOURCE(IDD_TOKADVANCED);
-    advancedPage.pfnDlgProc = PhpTokenAdvancedPageProc;
-    advancedPage.lParam = (LPARAM)Context;
-    pages[1] = CreatePropertySheetPage(&advancedPage);
+    memset(&page, 0, sizeof(PROPSHEETPAGE));
+    page.dwSize = sizeof(PROPSHEETPAGE);
+    page.pszTemplate = MAKEINTRESOURCE(IDD_TOKADVANCED);
+    page.pfnDlgProc = PhpTokenAdvancedPageProc;
+    page.lParam = (LPARAM)Context;
+    pages[numberOfPages++] = CreatePropertySheetPage(&page);
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        // Capabilities
+
+        memset(&page, 0, sizeof(PROPSHEETPAGE));
+        page.dwSize = sizeof(PROPSHEETPAGE);
+        page.pszTemplate = MAKEINTRESOURCE(IDD_TOKCAPABILITIES);
+        page.pfnDlgProc = PhpTokenCapabilitiesPageProc;
+        page.lParam = (LPARAM)Context;
+        pages[numberOfPages++] = CreatePropertySheetPage(&page);
+
+        // Claims
+
+        memset(&page, 0, sizeof(PROPSHEETPAGE));
+        page.dwSize = sizeof(PROPSHEETPAGE);
+        page.dwFlags = PSP_USETITLE;
+        page.pszTemplate = MAKEINTRESOURCE(IDD_TOKATTRIBUTES);
+        page.pszTitle = L"Claims";
+        page.pfnDlgProc = PhpTokenClaimsPageProc;
+        page.lParam = (LPARAM)Context;
+        pages[numberOfPages++] = CreatePropertySheetPage(&page);
+
+        // (Token) Attributes
+
+        memset(&page, 0, sizeof(PROPSHEETPAGE));
+        page.dwSize = sizeof(PROPSHEETPAGE);
+        page.dwFlags = PSP_USETITLE;
+        page.pszTemplate = MAKEINTRESOURCE(IDD_TOKATTRIBUTES);
+        page.pszTitle = L"Attributes";
+        page.pfnDlgProc = PhpTokenAttributesPageProc;
+        page.lParam = (LPARAM)Context;
+        pages[numberOfPages++] = CreatePropertySheetPage(&page);
+    }
 
     // Security
 
@@ -953,7 +1152,7 @@ VOID PhpShowTokenAdvancedProperties(
 
     if (PhGetAccessEntries(L"Token", &accessEntries, &numberOfAccessEntries))
     {
-        pages[2] = PhCreateSecurityPage(
+        pages[numberOfPages++] = PhCreateSecurityPage(
             L"Token",
             PhStdGetObjectSecurity,
             PhStdSetObjectSecurity,
@@ -964,6 +1163,7 @@ VOID PhpShowTokenAdvancedProperties(
         PhFree(accessEntries);
     }
 
+    propSheetHeader.nPages = numberOfPages;
     PropertySheet(&propSheetHeader);
 }
 
@@ -1231,6 +1431,619 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             SetDlgItemText(hwndDlg, IDC_AUTHENTICATIONLUID, authenticationLuid);
             SetDlgItemText(hwndDlg, IDC_MEMORYUSED, PhGetStringOrDefault(memoryUsed, L"Unknown"));
             SetDlgItemText(hwndDlg, IDC_MEMORYAVAILABLE, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in_opt PVOID Context
+    )
+{
+    PSID_AND_ATTRIBUTES sidAndAttributes = Param;
+
+    return PhGetGroupAttributesColor(sidAndAttributes->Attributes);
+}
+
+INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+    HWND lvHandle;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!tokenPageContext)
+        return FALSE;
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HANDLE tokenHandle;
+            ULONG i;
+
+            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Flags");
+            PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetItemColorFunction(lvHandle, PhpTokenCapabilitiesColorFunction);
+
+            if (NT_SUCCESS(tokenPageContext->OpenObject(
+                &tokenHandle,
+                TOKEN_QUERY,
+                tokenPageContext->Context
+                )))
+            {
+                if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenCapabilities, &tokenPageContext->Capabilities)))
+                {
+                    for (i = 0; i < tokenPageContext->Capabilities->GroupCount; i++)
+                    {
+                        INT lvItemIndex;
+                        PWSTR name;
+                        PPH_STRING sidString;
+                        PPH_STRING attributesString;
+
+                        name = PhGetBuiltinCapabilityString(tokenPageContext->Capabilities->Groups[i].Sid);
+                        sidString = NULL;
+
+                        if (!name)
+                        {
+                            sidString = PhSidToStringSid(tokenPageContext->Capabilities->Groups[i].Sid);
+                            name = PhGetString(sidString);
+                        }
+
+                        if (name)
+                        {
+                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name,
+                                &tokenPageContext->Capabilities->Groups[i]);
+                            attributesString = PhGetGroupAttributesString(
+                                tokenPageContext->Capabilities->Groups[i].Attributes);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, attributesString->Buffer);
+
+                            PhDereferenceObject(attributesString);
+
+                            if (sidString)
+                                PhDereferenceObject(sidString);
+                        }
+                    }
+
+                    if (ListView_GetItemCount(lvHandle) != 0)
+                    {
+                        ListView_SetColumnWidth(lvHandle, 0, LVSCW_AUTOSIZE);
+                        ExtendedListView_SetColumnWidth(lvHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                    }
+
+                    ExtendedListView_SortItems(lvHandle);
+                }
+
+                NtClose(tokenHandle);
+            }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhFree(tokenPageContext->Capabilities);
+            tokenPageContext->Capabilities = NULL;
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, lvHandle);
+        }
+        break;
+    }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
+
+    return FALSE;
+}
+
+BOOLEAN NTAPI PhpAttributeTreeNewCallback(
+    __in HWND hwnd,
+    __in PH_TREENEW_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2,
+    __in_opt PVOID Context
+    )
+{
+    PATTRIBUTE_TREE_CONTEXT context;
+    PATTRIBUTE_NODE node;
+
+    context = Context;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            node = (PATTRIBUTE_NODE)getChildren->Node;
+
+            if (!node)
+            {
+                getChildren->Children = (PPH_TREENEW_NODE *)context->RootList->Items;
+                getChildren->NumberOfChildren = context->RootList->Count;
+            }
+            else
+            {
+                getChildren->Children = (PPH_TREENEW_NODE *)node->Children->Items;
+                getChildren->NumberOfChildren = node->Children->Count;
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+
+            node = (PATTRIBUTE_NODE)isLeaf->Node;
+
+            isLeaf->IsLeaf = node->Children->Count == 0;
+        }
+        return TRUE;
+    case TreeNewGetCellText:
+        {
+            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
+
+            node = (PATTRIBUTE_NODE)getCellText->Node;
+
+            if (getCellText->Id == 0)
+                getCellText->Text = PhGetStringRef(node->Text);
+            else
+                return FALSE;
+        }
+        return TRUE;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    PPH_FULL_STRING text;
+
+                    text = PhGetTreeNewText(hwnd, 1);
+                    PhSetClipboardStringEx(hwnd, text->Buffer, text->Length);
+                    PhDereferenceObject(text);
+                }
+                break;
+            }
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+PATTRIBUTE_NODE PhpAddAttributeNode(
+    __in PATTRIBUTE_TREE_CONTEXT Context,
+    __in_opt PATTRIBUTE_NODE Parent,
+    __in_opt PPH_STRING Text
+    )
+{
+    PATTRIBUTE_NODE node;
+
+    node = PhAllocate(sizeof(ATTRIBUTE_NODE));
+    memset(node, 0, sizeof(ATTRIBUTE_NODE));
+    PhInitializeTreeNewNode(&node->Node);
+
+    node->Children = PhCreateList(2);
+
+    PhAddItemList(Context->NodeList, node);
+
+    if (Parent)
+        PhAddItemList(Parent->Children, node);
+    else
+        PhAddItemList(Context->RootList, node);
+
+    PhSwapReference(&node->Text, Text);
+
+    return node;
+}
+
+VOID PhpDestroyAttributeNode(
+    __in PATTRIBUTE_NODE Node
+    )
+{
+    PhDereferenceObject(Node->Children);
+    PhSwapReference(&Node->Text, NULL);
+    PhFree(Node);
+}
+
+VOID PhpInitializeAttributeTreeContext(
+    __out PATTRIBUTE_TREE_CONTEXT Context,
+    __in HWND TreeNewHandle
+    )
+{
+    PH_TREENEW_VIEW_PARTS parts;
+
+    Context->NodeList = PhCreateList(10);
+    Context->RootList = PhCreateList(10);
+
+    PhSetControlTheme(TreeNewHandle, L"explorer");
+    TreeNew_SetCallback(TreeNewHandle, PhpAttributeTreeNewCallback, Context);
+    TreeNew_GetViewParts(TreeNewHandle, &parts);
+    PhAddTreeNewColumn(TreeNewHandle, 0, TRUE, L"Attributes", parts.ClientRect.right - parts.VScrollWidth, PH_ALIGN_LEFT, 0, 0);
+}
+
+VOID PhpDeleteAttributeTreeContext(
+    __inout PATTRIBUTE_TREE_CONTEXT Context
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+        PhpDestroyAttributeNode(Context->NodeList->Items[i]);
+
+    PhDereferenceObject(Context->NodeList);
+    PhDereferenceObject(Context->RootList);
+}
+
+PWSTR PhGetSecurityAttributeTypeString(
+    __in USHORT Type
+    )
+{
+    // These types are shared between CLAIM_* and TOKEN_* security attributes.
+
+    switch (Type)
+    {
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_INVALID:
+        return L"Invalid";
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64:
+        return L"Int64";
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64:
+        return L"UInt64";
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
+        return L"String";
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
+        return L"FQBN";
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
+        return L"SID";
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
+        return L"Boolean";
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+        return L"Octet String";
+    default:
+        return L"(Unknown)";
+    }
+}
+
+PPH_STRING PhGetSecurityAttributeFlagsString(
+    __in ULONG Flags
+    )
+{
+    PH_STRING_BUILDER sb;
+
+    // These flags are shared between CLAIM_* and TOKEN_* security attributes.
+
+    PhInitializeStringBuilder(&sb, 100);
+
+    if (Flags & TOKEN_SECURITY_ATTRIBUTE_MANDATORY)
+        PhAppendStringBuilder2(&sb, L"Mandatory, ");
+    if (Flags & TOKEN_SECURITY_ATTRIBUTE_DISABLED)
+        PhAppendStringBuilder2(&sb, L"Disabled, ");
+    if (Flags & TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT)
+        PhAppendStringBuilder2(&sb, L"Default Disabled, ");
+    if (Flags & TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY)
+        PhAppendStringBuilder2(&sb, L"Use for Deny Only, ");
+    if (Flags & TOKEN_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE)
+        PhAppendStringBuilder2(&sb, L"Case-sensitive, ");
+    if (Flags & TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE)
+        PhAppendStringBuilder2(&sb, L"Non-inheritable, ");
+
+    if (sb.String->Length != 0)
+        PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+    else
+        PhAppendStringBuilder2(&sb, L"(None)");
+
+    return PhFinalStringBuilderString(&sb);
+}
+
+PPH_STRING PhFormatClaimSecurityAttributeValue(
+    __in PCLAIM_SECURITY_ATTRIBUTE_V1 Attribute,
+    __in ULONG ValueIndex
+    )
+{
+    PH_FORMAT format;
+
+    switch (Attribute->ValueType)
+    {
+    case CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64:
+        PhInitFormatI64D(&format, Attribute->Values.pInt64[ValueIndex]);
+        return PhFormat(&format, 1, 0);
+    case CLAIM_SECURITY_ATTRIBUTE_TYPE_UINT64:
+        PhInitFormatI64U(&format, Attribute->Values.pUint64[ValueIndex]);
+        return PhFormat(&format, 1, 0);
+    case CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING:
+        return PhCreateString(Attribute->Values.ppString[ValueIndex]);
+    case CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN:
+        return PhFormatString(L"Version %I64u: %s",
+            Attribute->Values.pFqbn[ValueIndex].Version,
+            Attribute->Values.pFqbn[ValueIndex].Name);
+    case CLAIM_SECURITY_ATTRIBUTE_TYPE_SID:
+        {
+            if (RtlValidSid(Attribute->Values.pOctetString[ValueIndex].pValue))
+            {
+                PPH_STRING name;
+
+                name = PhGetSidFullName(Attribute->Values.pOctetString[ValueIndex].pValue, TRUE, NULL);
+
+                if (name)
+                    return name;
+
+                name = PhSidToStringSid(Attribute->Values.pOctetString[ValueIndex].pValue);
+
+                if (name)
+                    return name;
+            }
+        }
+        return PhCreateString(L"(Invalid SID)");
+    case CLAIM_SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
+        return PhCreateString(Attribute->Values.pInt64[ValueIndex] != 0 ? L"True" : L"False");
+    case CLAIM_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+        return PhCreateString(L"(Octet string)");
+    default:
+        return PhCreateString(L"(Unknown)");
+    }
+}
+
+PPH_STRING PhFormatTokenSecurityAttributeValue(
+    __in PTOKEN_SECURITY_ATTRIBUTE_V1 Attribute,
+    __in ULONG ValueIndex
+    )
+{
+    PH_FORMAT format;
+
+    switch (Attribute->ValueType)
+    {
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64:
+        PhInitFormatI64D(&format, Attribute->Values.pInt64[ValueIndex]);
+        return PhFormat(&format, 1, 0);
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64:
+        PhInitFormatI64U(&format, Attribute->Values.pUint64[ValueIndex]);
+        return PhFormat(&format, 1, 0);
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
+        return PhCreateStringEx(Attribute->Values.pString[ValueIndex].Buffer, Attribute->Values.pString[ValueIndex].Length);
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
+        return PhFormatString(L"Version %I64u: %.*s",
+            Attribute->Values.pFqbn[ValueIndex].Version,
+            Attribute->Values.pFqbn[ValueIndex].Name.Length / sizeof(WCHAR),
+            Attribute->Values.pFqbn[ValueIndex].Name.Buffer);
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
+        {
+            if (RtlValidSid(Attribute->Values.pOctetString[ValueIndex].pValue))
+            {
+                PPH_STRING name;
+
+                name = PhGetSidFullName(Attribute->Values.pOctetString[ValueIndex].pValue, TRUE, NULL);
+
+                if (name)
+                    return name;
+
+                name = PhSidToStringSid(Attribute->Values.pOctetString[ValueIndex].pValue);
+
+                if (name)
+                    return name;
+            }
+        }
+        return PhCreateString(L"(Invalid SID)");
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
+        return PhCreateString(Attribute->Values.pInt64[ValueIndex] != 0 ? L"True" : L"False");
+    case TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+        return PhCreateString(L"(Octet string)");
+    default:
+        return PhCreateString(L"(Unknown)");
+    }
+}
+
+BOOLEAN PhpAddTokenClaimAttributes(
+    __in PTOKEN_PAGE_CONTEXT TokenPageContext,
+    __in HWND tnHandle,
+    __in BOOLEAN DeviceClaims,
+    __in PATTRIBUTE_NODE Parent
+    )
+{
+    HANDLE tokenHandle;
+    PCLAIM_SECURITY_ATTRIBUTES_INFORMATION info;
+    ULONG i;
+    ULONG j;
+
+    if (!NT_SUCCESS(TokenPageContext->OpenObject(
+        &tokenHandle,
+        TOKEN_QUERY,
+        TokenPageContext->Context
+        )))
+        return FALSE;
+
+    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, DeviceClaims ? TokenDeviceClaimAttributes : TokenUserClaimAttributes, &info)))
+    {
+        for (i = 0; i < info->AttributeCount; i++)
+        {
+            PCLAIM_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+            PATTRIBUTE_NODE node;
+            PPH_STRING temp;
+
+            // Attribute
+            node = PhpAddAttributeNode(&TokenPageContext->ClaimsTreeContext, Parent, PhCreateString(attribute->Name));
+            // Type
+            PhpAddAttributeNode(&TokenPageContext->ClaimsTreeContext, node,
+                PhFormatString(L"Type: %s", PhGetSecurityAttributeTypeString(attribute->ValueType)));
+            // Flags
+            temp = PhGetSecurityAttributeFlagsString(attribute->Flags);
+            PhpAddAttributeNode(&TokenPageContext->ClaimsTreeContext, node,
+                PhFormatString(L"Flags: %s", temp->Buffer));
+            PhDereferenceObject(temp);
+
+            // Values
+            for (j = 0; j < attribute->ValueCount; j++)
+            {
+                temp = PhFormatClaimSecurityAttributeValue(attribute, j);
+                PhpAddAttributeNode(&TokenPageContext->ClaimsTreeContext, node,
+                    PhFormatString(L"Value %u: %s", j, temp->Buffer));
+                PhDereferenceObject(temp);
+            }
+        }
+
+        PhFree(info);
+    }
+
+    NtClose(tokenHandle);
+
+    TreeNew_NodesStructured(tnHandle);
+
+    return TRUE;
+}
+
+INT_PTR CALLBACK PhpTokenClaimsPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+    HWND tnHandle;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!tokenPageContext)
+        return FALSE;
+
+    tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PATTRIBUTE_NODE userNode;
+            PATTRIBUTE_NODE deviceNode;
+
+            PhpInitializeAttributeTreeContext(&tokenPageContext->ClaimsTreeContext, tnHandle);
+
+            TreeNew_SetRedraw(tnHandle, FALSE);
+
+            userNode = PhpAddAttributeNode(&tokenPageContext->ClaimsTreeContext, NULL, PhCreateString(L"User claims"));
+            PhpAddTokenClaimAttributes(tokenPageContext, tnHandle, FALSE, userNode);
+            deviceNode = PhpAddAttributeNode(&tokenPageContext->ClaimsTreeContext, NULL, PhCreateString(L"Device claims"));
+            PhpAddTokenClaimAttributes(tokenPageContext, tnHandle, TRUE, deviceNode);
+
+            if (userNode->Children->Count == 0)
+                PhpAddAttributeNode(&tokenPageContext->ClaimsTreeContext, userNode, PhCreateString(L"(None)"));
+            if (deviceNode->Children->Count == 0)
+                PhpAddAttributeNode(&tokenPageContext->ClaimsTreeContext, deviceNode, PhCreateString(L"(None)"));
+
+            TreeNew_NodesStructured(tnHandle);
+            TreeNew_SetRedraw(tnHandle, TRUE);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpDeleteAttributeTreeContext(&tokenPageContext->ClaimsTreeContext);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhpAddTokenAttributes(
+    __in PTOKEN_PAGE_CONTEXT TokenPageContext,
+    __in HWND tnHandle
+    )
+{
+    HANDLE tokenHandle;
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    ULONG i;
+    ULONG j;
+
+    if (!NT_SUCCESS(TokenPageContext->OpenObject(
+        &tokenHandle,
+        TOKEN_QUERY,
+        TokenPageContext->Context
+        )))
+        return FALSE;
+
+    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAttributes, &info)))
+    {
+        for (i = 0; i < info->AttributeCount; i++)
+        {
+            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+            PATTRIBUTE_NODE node;
+            PPH_STRING temp;
+
+            // Attribute
+            node = PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, NULL,
+                PhCreateStringEx(attribute->Name.Buffer, attribute->Name.Length));
+            // Type
+            PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, node,
+                PhFormatString(L"Type: %s", PhGetSecurityAttributeTypeString(attribute->ValueType)));
+            // Flags
+            temp = PhGetSecurityAttributeFlagsString(attribute->Flags);
+            PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, node,
+                PhFormatString(L"Flags: %s", temp->Buffer));
+            PhDereferenceObject(temp);
+
+            // Values
+            for (j = 0; j < attribute->ValueCount; j++)
+            {
+                temp = PhFormatTokenSecurityAttributeValue(attribute, j);
+                PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, node,
+                    PhFormatString(L"Value %u: %s", j, temp->Buffer));
+                PhDereferenceObject(temp);
+            }
+        }
+
+        PhFree(info);
+    }
+
+    NtClose(tokenHandle);
+
+    TreeNew_NodesStructured(tnHandle);
+
+    return TRUE;
+}
+
+INT_PTR CALLBACK PhpTokenAttributesPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+    HWND tnHandle;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!tokenPageContext)
+        return FALSE;
+
+    tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhpInitializeAttributeTreeContext(&tokenPageContext->AuthzTreeContext, tnHandle);
+            PhpAddTokenAttributes(tokenPageContext, tnHandle);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpDeleteAttributeTreeContext(&tokenPageContext->AuthzTreeContext);
         }
         break;
     }
