@@ -2038,10 +2038,16 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
     case WM_INITDIALOG:
         {
             PhpInitializeAttributeTreeContext(&tokenPageContext->AuthzTreeContext, tnHandle);
+
+            TreeNew_SetRedraw(tnHandle, FALSE);
+
             PhpAddTokenAttributes(tokenPageContext, tnHandle);
 
             if (tokenPageContext->AuthzTreeContext.RootList->Count == 0)
                 PhpAddAttributeNode(&tokenPageContext->AuthzTreeContext, NULL, PhCreateString(L"(None)"));
+
+            TreeNew_NodesStructured(tnHandle);
+            TreeNew_SetRedraw(tnHandle, TRUE);
         }
         break;
     case WM_DESTROY:
