@@ -109,7 +109,6 @@ PPH_OBJECT_TYPE PhAnsiStringType;
 PPH_OBJECT_TYPE PhFullStringType;
 PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhPointerListType;
-PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
 
 // Misc.
@@ -193,14 +192,6 @@ BOOLEAN PhInitializeBase(
         L"PointerList",
         0,
         PhpPointerListDeleteProcedure
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhQueueType,
-        L"Queue",
-        0,
-        PhpQueueDeleteProcedure
         )))
         return FALSE;
 
@@ -2212,19 +2203,21 @@ VOID PhInitializeStringBuilder(
     __in ULONG InitialCapacity
     )
 {
+    // Make sure the initial capacity is even, as required for all string objects.
+    if (InitialCapacity & 1)
+        InitialCapacity++;
+
     StringBuilder->AllocatedLength = InitialCapacity;
 
     // Allocate a PH_STRING for the string builder.
-    // We will dereference it and allocate a new one
-    // when we need to resize the string.
+    // We will dereference it and allocate a new one when we need to resize the string.
 
     StringBuilder->String = PhCreateStringEx(
         NULL,
         StringBuilder->AllocatedLength
         );
 
-    // We will keep modifying the Length field of the
-    // string so:
+    // We will keep modifying the Length field of the string so:
     // 1. We know how much of the string is used, and
     // 2. The user can simply get a reference to the
     //    string and use it as-is.
@@ -3160,142 +3153,6 @@ VOID PhRemoveItemPointerList(
     PointerList->FreeEntry = index;
 
     PointerList->Count--;
-}
-
-/**
- * Creates a queue object.
- *
- * \param InitialCapacity The number of elements to
- * allocate storage for initially.
- */
-PPH_QUEUE PhCreateQueue(
-    __in ULONG InitialCapacity
-    )
-{
-    PPH_QUEUE queue;
-
-    if (!NT_SUCCESS(PhCreateObject(
-        &queue,
-        sizeof(PH_QUEUE),
-        0,
-        PhQueueType
-        )))
-        return NULL;
-
-    // Initial capacity of 0 is not allowed.
-    if (InitialCapacity == 0)
-        InitialCapacity = 1;
-
-    queue->Count = 0;
-    queue->AllocatedCount = InitialCapacity;
-    queue->Items = PhAllocate(queue->AllocatedCount * sizeof(PVOID));
-    queue->Head = 0;
-    queue->Tail = 0;
-
-    return queue;
-}
-
-VOID NTAPI PhpQueueDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    )
-{
-    PPH_QUEUE queue = (PPH_QUEUE)Object;
-
-    PhFree(queue->Items);
-}
-
-/**
- * Enqueues an item to a queue.
- *
- * \param Queue A queue object.
- * \param Item The item to enqueue.
- */
-VOID PhEnqueueItemQueue(
-    __inout PPH_QUEUE Queue,
-    __in PVOID Item
-    )
-{
-    // See if we need to resize the queue.
-    if (Queue->Count == Queue->AllocatedCount)
-    {
-        ULONG oldAllocatedCount = Queue->AllocatedCount;
-        PVOID *oldItems = Queue->Items;
-
-        Queue->AllocatedCount *= 2;
-        Queue->Items = PhAllocate(Queue->AllocatedCount * sizeof(PVOID));
-
-        // Copy the old items over if necessary.
-        if (Queue->Count > 0)
-        {
-            if (Queue->Head < Queue->Tail)
-            {
-                memcpy(Queue->Items, &oldItems[Queue->Head], Queue->Count * sizeof(PVOID));
-            }
-            else
-            {
-                memcpy(Queue->Items, &oldItems[Queue->Head], (oldAllocatedCount - Queue->Head) * sizeof(PVOID));
-                memcpy(&Queue->Items[oldAllocatedCount - Queue->Head], oldItems, Queue->Tail * sizeof(PVOID));
-            }
-        }
-
-        PhFree(oldItems);
-        Queue->Head = 0;
-        Queue->Tail = Queue->Count;
-    }
-
-    Queue->Items[Queue->Tail] = Item;
-    Queue->Tail = (Queue->Tail + 1) % Queue->AllocatedCount;
-    Queue->Count++;
-}
-
-/**
- * Dequeues an item from a queue.
- *
- * \param Queue A queue object.
- * \param Item A variable which receives the
- * dequeued item.
- *
- * \return TRUE if an item was dequeued,
- * FALSE if the queue was empty.
- */
-BOOLEAN PhDequeueItemQueue(
-    __inout PPH_QUEUE Queue,
-    __out PVOID *Item
-    )
-{
-    if (Queue->Count == 0)
-        return FALSE;
-
-    *Item = Queue->Items[Queue->Head];
-    Queue->Head = (Queue->Head + 1) % Queue->AllocatedCount;
-    Queue->Count--;
-
-    return TRUE;
-}
-
-/**
- * Retrieves an item from the front of a queue
- * without removing it.
- *
- * \param Queue A queue object.
- * \param Item A variable which receives the
- * item.
- *
- * \return TRUE if an item was retrieved,
- * FALSE if the queue was empty.
- */
-BOOLEAN PhPeekItemQueue(
-    __in PPH_QUEUE Queue,
-    __out PVOID *Item
-    )
-{
-    if (Queue->Count == 0)
-        return FALSE;
-
-    *Item = Queue->Items[Queue->Head];
-
-    return TRUE;
 }
 
 FORCEINLINE ULONG PhpValidateHash(
