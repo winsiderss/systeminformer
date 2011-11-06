@@ -84,7 +84,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
 
     TOKEN_ELEVATION_TYPE ElevationType;
     BOOLEAN IsElevated;
-    PH_INTEGRITY IntegrityLevel;
+    MANDATORY_LEVEL IntegrityLevel;
     PWSTR IntegrityString;
 
     PPH_STRING JobName;
