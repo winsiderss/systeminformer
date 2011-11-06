@@ -2,8 +2,10 @@ Process Hacker
 
 2.23
  * NEW/IMPROVED:
-   * Added Description column to service list
+   * Added display of token capabilities, user/device claims
+     and security attributes
    * Added ability to change token integrity levels
+   * Added Description column to service list
    * Made grid color darker
    * Enabled multi-selection in the hidden processes window
    * Added UserNotes plugin
