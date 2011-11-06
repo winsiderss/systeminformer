@@ -329,6 +329,7 @@ VOID PhTnpCreateTreeNewContext(
 
     context->FixedWidthMinimum = 20;
     context->RowHeight = 1; // must never be 0
+    context->HotNodeIndex = -1;
     context->Callback = PhTnpNullCallback;
     context->FlatList = PhCreateList(64);
     context->TooltipIndex = -1;
