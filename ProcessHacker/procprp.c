@@ -2870,7 +2870,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     PPH_FULL_STRING text;
 
-                    text = PhGetTreeNewText(tnHandle, PHTHTLC_MAXIMUM);
+                    text = PhGetTreeNewText(tnHandle, 0);
                     PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
                     PhDereferenceObject(text);
                 }
@@ -3453,7 +3453,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 {
                     PPH_FULL_STRING text;
 
-                    text = PhGetTreeNewText(tnHandle, PHMOTLC_MAXIMUM);
+                    text = PhGetTreeNewText(tnHandle, 0);
                     PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
                     PhDereferenceObject(text);
                 }
@@ -4632,7 +4632,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 {
                     PPH_FULL_STRING text;
 
-                    text = PhGetTreeNewText(tnHandle, PHHNTLC_MAXIMUM);
+                    text = PhGetTreeNewText(tnHandle, 0);
                     PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
                     PhDereferenceObject(text);
                 }

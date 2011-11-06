@@ -740,7 +740,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 {
                     PPH_FULL_STRING text;
 
-                    text = PhGetTreeNewText(context->TreeNewHandle, WEWNTLC_MAXIMUM);
+                    text = PhGetTreeNewText(context->TreeNewHandle, 0);
                     PhSetClipboardStringEx(hwndDlg, text->Buffer, text->Length);
                     PhDereferenceObject(text);
                 }

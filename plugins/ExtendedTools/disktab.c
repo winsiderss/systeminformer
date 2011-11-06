@@ -724,7 +724,7 @@ VOID EtCopyDiskList(
 {
     PPH_FULL_STRING text;
 
-    text = PhGetTreeNewText(DiskTreeNewHandle, ETDSTNC_MAXIMUM);
+    text = PhGetTreeNewText(DiskTreeNewHandle, 0);
     PhSetClipboardStringEx(DiskTreeNewHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }

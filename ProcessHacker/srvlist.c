@@ -759,7 +759,7 @@ VOID PhCopyServiceList(
 {
     PPH_FULL_STRING text;
 
-    text = PhGetTreeNewText(ServiceTreeListHandle, PHSVTLC_MAXIMUM);
+    text = PhGetTreeNewText(ServiceTreeListHandle, 0);
     PhSetClipboardStringEx(ServiceTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }
