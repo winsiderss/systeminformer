@@ -253,13 +253,10 @@ static void __cdecl DownloadWorkerThreadStart(
     {
         CHAR buffer[BUFFER_LEN];
         DWORD dwLastTotalBytes = 0;
-        ULONGLONG dwStartTicks = 0, dwLastTicks = 0, dwNowTicks = 0, dwTimeTaken = 0;
+        DWORD dwStartTicks = 0, dwLastTicks = 0, dwNowTicks = 0, dwTimeTaken = 0;
 
         // Set our last ticks.
-        if (WindowsVersion > WINDOWS_XP)
-            dwLastTicks = (dwStartTicks = GetTickCount64());
-        else
-            dwLastTicks = (dwStartTicks = GetTickCount());
+        dwLastTicks = (dwStartTicks = GetTickCount());
 
         // Zero the buffer.
         RtlZeroMemory(buffer, BUFFER_LEN);
@@ -304,10 +301,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 }
 
                 // Calculate the transfer rate and download speed. 
-                if (WindowsVersion > WINDOWS_XP)
-                    dwNowTicks = GetTickCount64();
-                else
-                    dwNowTicks = GetTickCount();
+                dwNowTicks = GetTickCount();
 
                 dwTimeTaken = dwNowTicks - dwLastTicks;   
                 // Update our total bytes downloaded
