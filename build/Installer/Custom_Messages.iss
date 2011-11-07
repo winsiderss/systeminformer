@@ -24,7 +24,6 @@
 en.msg_SetupIsRunningWarning =Process Hacker Setup is already running!
 en.msg_DeleteLogSettings     =Do you also want to delete Process Hacker's settings?%n%nIf you plan on reinstalling Process Hacker you do not have to delete them.
 en.msg_servicemanager        =The service manager is not available.
-en.msg_servicemanager2       =Only NT based systems support services.
 en.tsk_AllUsers              =For all users
 en.tsk_CreateKPHService      =Install KProcessHacker as a service
 en.tsk_CurrentUser           =For the current user only
@@ -37,6 +36,7 @@ en.tsk_SetDefaultTaskmgr     =Set Process Hacker as the default task manager for
 en.tsk_StartupDescr          =Start Process Hacker on system startup
 en.tsk_StartupDescrMin       =Minimized on system tray
 en.tsk_Startup               =Startup options:
+en.run_ViewChangelog         =View the changelog
 en.run_VisitWebsite          =Visit Process Hacker Website
 en.sm_Changelog              =Changelog
 en.sm_com_Changelog          =Process Hacker Changelog

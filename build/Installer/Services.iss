@@ -1,3 +1,5 @@
+;* Original source: http://goo.gl/PTi56
+;*
 ;* Process Hacker - Various services functions
 ;*
 ;* This file is part of Process Hacker.
@@ -95,15 +97,9 @@ external 'QueryServiceStatus@advapi32.dll stdcall';
 
 function OpenServiceManager(): HANDLE;
 begin
-  if UsingWinNT() = True then begin
-    Result := OpenSCManager('','ServicesActive',SC_MANAGER_ALL_ACCESS);
-    if Result = 0 then
-      SuppressibleMsgBox(CustomMessage('msg_ServiceManager'), mbError, MB_OK, MB_OK)
-  end
-  else begin
-    SuppressibleMsgBox(CustomMessage('msg_ServiceManager2'), mbError, MB_OK, MB_OK)
-    Result := 0;
-  end;
+  Result := OpenSCManager('','ServicesActive',SC_MANAGER_ALL_ACCESS);
+  if Result = 0 then
+    SuppressibleMsgBox(CustomMessage('msg_ServiceManager'), mbError, MB_OK, MB_OK)
 end;
 
 
@@ -119,7 +115,7 @@ begin
     if hService <> 0 then begin
       Result := True;
       // Win2K & WinXP supports aditional description text for services
-      if Description<> '' then
+      if Description <> '' then
         RegWriteStringValue(HKLM,'System\CurrentControlSet\Services\' + ServiceName,'Description',Description);
       CloseServiceHandle(hService)
     end;
