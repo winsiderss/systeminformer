@@ -33,6 +33,13 @@ INT CALLBACK PhpOptionsPropSheetProc(
     __in LPARAM lParam
     );
 
+LRESULT CALLBACK PhpOptionsWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -72,6 +79,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
 static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
 static POINT StartLocation;
+static WNDPROC OldWndProc;
 
 // General
 static HFONT CurrentFontInstance;
@@ -212,22 +220,99 @@ static VOID PhpPageInit(
 {
     if (!PageInit)
     {
-        // HACK
+        HWND optionsWindow;
+        HWND resetButton;
+        RECT clientRect;
+        RECT rect;
 
+        optionsWindow = GetParent(hwndDlg);
+        OldWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
+        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PhpOptionsWndProc);
+
+        // Create the Reset button.
+        GetClientRect(optionsWindow, &clientRect);
+        GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
+        MapWindowPoints(NULL, optionsWindow, (POINT *)&rect, 2);
+        resetButton = CreateWindowEx(
+            WS_EX_NOPARENTNOTIFY,
+            L"BUTTON",
+            L"Reset",
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            clientRect.right - rect.right,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            optionsWindow,
+            (HMENU)IDC_RESET,
+            PhInstanceHandle,
+            NULL
+            );
+        SendMessage(resetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
+
+        // Set the location of the options window.
         if (StartLocation.x == MINLONG)
         {
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+            PhCenterWindow(optionsWindow, GetParent(optionsWindow));
         }
         else
         {
-            SetWindowPos(GetParent(hwndDlg), NULL, StartLocation.x, StartLocation.y, 0, 0,
+            SetWindowPos(optionsWindow, NULL, StartLocation.x, StartLocation.y, 0, 0,
                 SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
         }
 
-        SetWindowText(GetParent(hwndDlg), L"Options"); // so the title isn't "Options Properties"
+        SetWindowText(optionsWindow, L"Options"); // so the title isn't "Options Properties"
 
         PageInit = TRUE;
     }
+}
+
+LRESULT CALLBACK PhpOptionsWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_RESET:
+                {
+                    if (PhShowMessage(
+                        hwnd,
+                        MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2,
+                        L"Do you want to reset all settings and restart Process Hacker?"
+                        ) == IDYES)
+                    {
+                        ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+
+                        PhResetSettings();
+
+                        if (PhSettingsFileName)
+                            PhSaveSettings(PhSettingsFileName->Buffer);
+
+                        PhShellProcessHacker(
+                            PhMainWndHandle,
+                            L"-v",
+                            SW_SHOW,
+                            0,
+                            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                            0,
+                            NULL
+                            );
+                        ProcessHacker_Destroy(PhMainWndHandle);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \
