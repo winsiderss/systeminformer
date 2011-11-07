@@ -896,14 +896,16 @@ NTSTATUS PhSaveSettings(
     NTSTATUS status;
     HANDLE fileHandle;
     mxml_node_t *topNode;
-    ULONG enumerationKey = 0;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_SETTING setting;
 
     topNode = mxmlNewElement(MXML_NO_PARENT, "settings");
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    while (PhEnumHashtable(PhSettingsHashtable, &setting, &enumerationKey))
+    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
+
+    while (setting = PhNextEnumHashtable(&enumContext))
     {
         PPH_STRING settingValue;
 
@@ -970,6 +972,26 @@ NTSTATUS PhSaveSettings(
     NtClose(fileHandle);
 
     return STATUS_SUCCESS;
+}
+
+VOID PhResetSettings(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SETTING setting;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
+    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
+
+    while (setting = PhNextEnumHashtable(&enumContext))
+    {
+        PhpFreeSettingValue(setting->Type, setting);
+        PhpSettingFromString(setting->Type, &setting->DefaultValue, NULL, setting);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
 VOID PhAddSettings(
