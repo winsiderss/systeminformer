@@ -24,62 +24,59 @@
 ; *Inno Setup v5.4.2(+): http://www.jrsoftware.org/isdl.php
 
 
-#define installer_build_number "10"
-
-
 #if VER < 0x05040200
   #error Update your Inno Setup version
 #endif
 
 #include "..\..\ProcessHacker\include\phappres.h"
-#define app_version           str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + ".0.0"
-#define simple_app_version    str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
-#define installer_build_date  GetDateTimeString('mmm, d yyyy', '', '')
+; Include the custom messages and services
+#include "Custom_Messages.iss"
+#include "Services.iss"
 
-#define quick_launch "{userappdata}\Microsoft\Internet Explorer\Quick Launch"
+#define installer_build_number "10"
+#define copyright              "Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3."
+#define app_version            str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
+#define installer_build_date   GetDateTimeString('mmm, d yyyy', '', '')
+#define quick_launch           "{userappdata}\Microsoft\Internet Explorer\Quick Launch"
 
 
 [Setup]
 AppID=Process_Hacker2
-AppCopyright=Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3.
+AppCopyright={#copyright}
 AppContact=http://sourceforge.net/tracker/?group_id=242527
 AppName=Process Hacker
-AppVerName=Process Hacker {#simple_app_version}
-AppVersion={#simple_app_version}
+AppVerName=Process Hacker {#app_version}
+AppVersion={#app_version}
 AppPublisher=wj32
 AppPublisherURL=http://processhacker.sourceforge.net/
 AppSupportURL=http://sourceforge.net/projects/processhacker/support
 AppUpdatesURL=http://processhacker.sourceforge.net/
-UninstallDisplayName=Process Hacker {#simple_app_version}
+UninstallDisplayName=Process Hacker {#app_version}
 DefaultDirName={pf}\Process Hacker 2
 DefaultGroupName=Process Hacker 2
 VersionInfoCompany=wj32
-VersionInfoCopyright=Licensed under the GNU GPL, v3.
+VersionInfoCopyright={#copyright}
 VersionInfoDescription=Process Hacker Setup
 VersionInfoProductName=Process Hacker
-VersionInfoProductTextVersion={#simple_app_version}
-VersionInfoProductVersion={#simple_app_version}
-VersionInfoTextVersion={#simple_app_version}
-VersionInfoVersion={#simple_app_version}
+VersionInfoProductTextVersion={#app_version}
+VersionInfoProductVersion={#app_version}
+VersionInfoTextVersion={#app_version}
+VersionInfoVersion={#app_version}
 MinVersion=0,5.01.2600sp2
 LicenseFile=..\..\LICENSE.txt
-InfoAfterFile=..\..\CHANGELOG.txt
 SetupIconFile=..\..\ProcessHacker\ProcessHacker.ico
 UninstallDisplayIcon={app}\ProcessHacker.exe
 WizardImageFile=Icons\ProcessHackerLarge.bmp
 WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
 OutputDir=.
-OutputBaseFilename=processhacker-{#simple_app_version}-setup
+OutputBaseFilename=processhacker-{#app_version}-setup
 AllowNoIcons=yes
 Compression=lzma2/ultra
 InternalCompressLevel=max
 SolidCompression=yes
 EnableDirDoesntExistWarning=no
 ShowTasksTreeLines=yes
-AlwaysShowDirOnReadyPage=yes
-AlwaysShowGroupOnReadyPage=yes
 PrivilegesRequired=admin
-ShowLanguageDialog=no
 DisableDirPage=auto
 DisableProgramGroupPage=auto
 AppMutex=Global\ProcessHacker2Mutant
@@ -91,13 +88,10 @@ ArchitecturesInstallIn64BitMode=x64
 Name: en; MessagesFile: compiler:Default.isl
 
 
-; Include the installer's custom messages and services stuff
-#include "Custom_Messages.iss"
-#include "Services.iss"
-
-
 [Messages]
-BeveledLabel=Process Hacker v{#simple_app_version}, Setup v{#installer_build_number} built on {#installer_build_date}
+BeveledLabel=Process Hacker v{#app_version}, Setup v{#installer_build_number} built on {#installer_build_date}
+SetupAppTitle=Setup - Process Hacker
+SetupWindowTitle=Setup - Process Hacker
 
 
 [Types]
@@ -185,14 +179,14 @@ Source: Icons\uninstall.ico;                                      DestDir: {app}
 
 [Icons]
 Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
-Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
 Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};     Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
-Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
-Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user
-Name: {#quick_launch}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: quicklaunchicon
+Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
+Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user
+Name: {#quick_launch}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: quicklaunchicon
 
 
 [InstallDelete]
@@ -233,7 +227,8 @@ Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Exec
 
 [Run]
 Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent runascurrentuser
-Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite};               Flags: nowait postinstall skipifsilent shellexec runascurrentuser unchecked
+Filename: {app}\CHANGELOG.txt;                   Description: {cm:run_ViewChangelog};              Flags: nowait postinstall skipifsilent unchecked shellexec
+Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite};               Flags: nowait postinstall skipifsilent unchecked shellexec
 
 
 [Code]
@@ -265,10 +260,10 @@ end;
 // Check if KProcessHacker is installed as a service
 function KPHServiceCheck(): Boolean;
 var
-  dvalue: DWORD;
+  dwStart: DWORD;
 begin
-  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dvalue) then begin
-    if dvalue = 1 then begin
+  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dwStart) then begin
+    if dwStart = 1 then begin
       Result := True;
     end else
       Result := False;
