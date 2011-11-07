@@ -451,7 +451,7 @@ LOGICAL DllMain(
             return FALSE;
 
         info->DisplayName = L"User Notes";
-        info->Description = L"Allows the user to comments for processes and services.";
+        info->Description = L"Allows the user to add comments for processes and services.";
         info->Author = L"wj32";
         info->HasOptions = TRUE;
 
