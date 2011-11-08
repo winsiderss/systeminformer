@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Added Image base to peview
  * FIXED:
+   * Retrieval of version information for certain files
 
 2.23
  * NEW/IMPROVED:
