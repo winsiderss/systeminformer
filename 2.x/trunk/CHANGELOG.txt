@@ -1,5 +1,9 @@
 Process Hacker
 
+2.24
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.23
  * NEW/IMPROVED:
    * Added display of token capabilities, user/device claims
