@@ -29,6 +29,7 @@
 typedef struct _PHP_GRAPH_CONTEXT
 {
     HWND Handle;
+    ULONG Style;
     PH_GRAPH_DRAW_INFO DrawInfo;
 
     HDC BufferedContext;
@@ -36,6 +37,12 @@ typedef struct _PHP_GRAPH_CONTEXT
     HBITMAP BufferedBitmap;
     PVOID BufferedBits;
     RECT BufferedContextRect;
+
+    HDC FadeOutContext;
+    HBITMAP FadeOutOldBitmap;
+    HBITMAP FadeOutBitmap;
+    PVOID FadeOutBits;
+    RECT FadeOutContextRect;
 
     HWND TooltipHandle;
     WNDPROC TooltipOldWndProc;
@@ -400,7 +407,6 @@ FORCEINLINE VOID PhpGetGraphPoint(
  * \li \a Step is fixed at 2.
  * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \ref PH_GRAPH_OVERLAY_LINE_2
  * is never used.
- * \li \a BackColor is fixed at RGB(0, 0, 0).
  */
 VOID PhDrawGraphDirect(
     __in HDC hdc,
@@ -457,7 +463,14 @@ VOID PhDrawGraphDirect(
     lineColor2 = COLORREF_TO_BITS(DrawInfo->LineColor2);
     lineBackColor2 = COLORREF_TO_BITS(DrawInfo->LineBackColor2);
 
-    memset(bits, 0, numberOfPixels * 4);
+    if (DrawInfo->BackColor == 0)
+    {
+        memset(bits, 0, numberOfPixels * 4);
+    }
+    else
+    {
+        PhxfFillMemoryUlong(bits, COLORREF_TO_BITS(DrawInfo->BackColor), numberOfPixels);
+    }
 
     x = width - 1;
     intermediate = FALSE;
@@ -635,7 +648,7 @@ VOID PhDrawGraphDirect(
                 gridYCounter = 0;
 
             // Draw the horizontal grid line.
-            for (i = x; i < numberOfPixels; i += gridXIncrement)
+            for (i = x + gridXIncrement; i < numberOfPixels; i += gridXIncrement)
             {
                 bits[i] = gridColor;
             }
@@ -745,7 +758,7 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.Height = 3;
     context->DrawInfo.Flags = PH_GRAPH_USE_GRID;
     context->DrawInfo.Step = 2;
-    context->DrawInfo.BackColor = RGB(0x00, 0x00, 0x00);
+    context->DrawInfo.BackColor = RGB(0xef, 0xef, 0xef);
     context->DrawInfo.LineDataCount = 0;
     context->DrawInfo.LineData1 = NULL;
     context->DrawInfo.LineData2 = NULL;
@@ -753,9 +766,9 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.LineColor2 = RGB(0xff, 0x00, 0x00);
     context->DrawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x00);
     context->DrawInfo.LineBackColor2 = RGB(0x77, 0x00, 0x00);
-    context->DrawInfo.GridColor = RGB(0x00, 0x77, 0x00);
-    context->DrawInfo.GridWidth = 12;
-    context->DrawInfo.GridHeight = 12;
+    context->DrawInfo.GridColor = RGB(0xaf, 0xaf, 0xaf);
+    context->DrawInfo.GridWidth = 20;
+    context->DrawInfo.GridHeight = 40;
     context->DrawInfo.GridStart = 0;
     context->DrawInfo.TextColor = RGB(0x00, 0xff, 0x00);
     context->DrawInfo.TextBoxColor = RGB(0x00, 0x22, 0x00);
@@ -824,10 +837,79 @@ static VOID PhpCreateBufferedContext(
     header.biHeight = Context->BufferedContextRect.bottom;
     header.biPlanes = 1;
     header.biBitCount = 32;
+
     Context->BufferedBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &Context->BufferedBits, NULL, 0);
 
     ReleaseDC(Context->Handle, hdc);
     Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
+}
+
+static VOID PhpDeleteFadeOutContext(
+    __in PPHP_GRAPH_CONTEXT Context
+    )
+{
+    if (Context->FadeOutContext)
+    {
+        SelectObject(Context->FadeOutContext, Context->FadeOutOldBitmap);
+        DeleteObject(Context->FadeOutBitmap);
+        DeleteDC(Context->FadeOutContext);
+
+        Context->FadeOutContext = NULL;
+        Context->FadeOutBitmap = NULL;
+        Context->FadeOutBits = NULL;
+    }
+}
+
+static VOID PhpCreateFadeOutContext(
+    __in PPHP_GRAPH_CONTEXT Context
+    )
+{
+    HDC hdc;
+    BITMAPINFOHEADER header;
+    ULONG i;
+    ULONG j;
+    ULONG height;
+    COLORREF backColor;
+    ULONG currentAlpha;
+    ULONG currentColor;
+
+    PhpDeleteFadeOutContext(Context);
+
+    GetClientRect(Context->Handle, &Context->FadeOutContextRect);
+    Context->FadeOutContextRect.right = GC_FADEOUT_WIDTH;
+
+    hdc = GetDC(Context->Handle);
+    Context->FadeOutContext = CreateCompatibleDC(hdc);
+
+    memset(&header, 0, sizeof(BITMAPINFOHEADER));
+    header.biSize = sizeof(BITMAPINFOHEADER);
+    header.biWidth = Context->FadeOutContextRect.right;
+    header.biHeight = Context->FadeOutContextRect.bottom;
+    header.biPlanes = 1;
+    header.biBitCount = 32;
+
+    Context->FadeOutBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &Context->FadeOutBits, NULL, 0);
+
+    ReleaseDC(Context->Handle, hdc);
+    Context->FadeOutOldBitmap = SelectObject(Context->FadeOutContext, Context->FadeOutBitmap);
+
+    height = Context->FadeOutContextRect.bottom;
+    backColor = GetSysColor(COLOR_WINDOW);
+
+    for (i = 0; i < GC_FADEOUT_WIDTH; i++)
+    {
+        currentAlpha = 255 - (ULONG)((FLOAT)(i * i) / (GC_FADEOUT_WIDTH * GC_FADEOUT_WIDTH) * 255);
+        currentColor =
+            ((backColor & 0xff) * currentAlpha / 255) +
+            ((((backColor >> 8) & 0xff) * currentAlpha / 255) << 8) +
+            ((((backColor >> 16) & 0xff) * currentAlpha / 255) << 16) +
+            (currentAlpha << 24);
+
+        for (j = i; j < height * GC_FADEOUT_WIDTH; j += GC_FADEOUT_WIDTH)
+        {
+            ((PULONG)Context->FadeOutBits)[j] = currentColor;
+        }
+    }
 }
 
 static VOID PhpUpdateTooltip(
@@ -971,7 +1053,10 @@ LRESULT CALLBACK PhpGraphWndProc(
     {
     case WM_CREATE:
         {
+            CREATESTRUCT *createStruct = (CREATESTRUCT *)lParam;
+
             context->Handle = hwnd;
+            context->Style = createStruct->style;
         }
         break;
     case WM_DESTROY:
@@ -979,6 +1064,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             if (context->TooltipHandle)
                 DestroyWindow(context->TooltipHandle);
 
+            PhpDeleteFadeOutContext(context);
             PhpDeleteBufferedContext(context);
             PhpFreeGraphContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
@@ -988,6 +1074,10 @@ LRESULT CALLBACK PhpGraphWndProc(
         {
             // Force a re-create of the buffered context.
             PhpCreateBufferedContext(context);
+
+            if (context->Style & GC_STYLE_FADEOUT)
+                PhpCreateFadeOutContext(context);
+
             SendMessage(hwnd, GCM_DRAW, 0, 0);
         }
         break;
@@ -1009,9 +1099,46 @@ LRESULT CALLBACK PhpGraphWndProc(
                 EndPaint(hwnd, &paintStruct);
             }
         }
-        break;
+        return 0;
     case WM_ERASEBKGND:
         return 1;
+    case WM_NCPAINT:
+        {
+            HRGN updateRegion;
+
+            updateRegion = (HRGN)wParam;
+
+            if (updateRegion == (HRGN)1) // HRGN_FULL
+                updateRegion = NULL;
+
+            // Themed border
+            if (context->Style & WS_BORDER)
+            {
+                HDC hdc;
+                ULONG flags;
+                RECT rect;
+
+                // Note the use of undocumented flags below. GetDCEx doesn't work without these.
+
+                flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
+
+                if (updateRegion)
+                    flags |= DCX_INTERSECTRGN | 0x40000;
+
+                if (hdc = GetDCEx(hwnd, updateRegion, flags))
+                {
+                    GetClientRect(hwnd, &rect);
+                    rect.right += 2;
+                    rect.bottom += 2;
+                    SetDCBrushColor(hdc, RGB(0x8f, 0x8f, 0x8f));
+                    FrameRect(hdc, &rect, GetStockObject(DC_BRUSH));
+
+                    ReleaseDC(hwnd, hdc);
+                    return 0;
+                }
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -1139,6 +1266,32 @@ LRESULT CALLBACK PhpGraphWndProc(
 
             if (context->BufferedBits)
                 PhDrawGraphDirect(context->BufferedContext, context->BufferedBits, &context->DrawInfo);
+
+            if (context->Style & GC_STYLE_FADEOUT)
+            {
+                BLENDFUNCTION blendFunction;
+
+                if (!context->FadeOutContext)
+                    PhpCreateFadeOutContext(context);
+
+                blendFunction.BlendOp = AC_SRC_OVER;
+                blendFunction.BlendFlags = 0;
+                blendFunction.SourceConstantAlpha = 255;
+                blendFunction.AlphaFormat = AC_SRC_ALPHA;
+                GdiAlphaBlend(
+                    context->BufferedContext,
+                    0,
+                    0,
+                    GC_FADEOUT_WIDTH,
+                    context->FadeOutContextRect.bottom,
+                    context->FadeOutContext,
+                    0,
+                    0,
+                    GC_FADEOUT_WIDTH,
+                    context->FadeOutContextRect.bottom,
+                    blendFunction
+                    );
+            }
         }
         return TRUE;
     case GCM_MOVEGRID:

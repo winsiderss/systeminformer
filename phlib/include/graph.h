@@ -75,6 +75,14 @@ VOID PhSetGraphText(
     __in ULONG Align
     );
 
+// Configuration
+
+#define GC_FADEOUT_WIDTH 100
+
+// Styles
+
+#define GC_STYLE_FADEOUT 0x1
+
 // Messages
 
 #define GCM_GETDRAWINFO (WM_APP + 1301)
