@@ -2,6 +2,7 @@ Process Hacker
 
 2.24
  * NEW/IMPROVED:
+   * Added Image base to peview
  * FIXED:
 
 2.23

@@ -118,18 +118,20 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Target machine:",IDC_STATIC,7,7,53,8
     LTEXT           "Static",IDC_TARGETMACHINE,78,7,215,8
-    LTEXT           "Checksum:",IDC_STATIC,7,31,36,8
-    LTEXT           "Static",IDC_CHECKSUM,78,31,215,8
-    LTEXT           "Subsystem:",IDC_STATIC,7,43,38,8
-    LTEXT           "Subsystem Version:",IDC_STATIC,7,55,64,8
-    LTEXT           "Characteristics:",IDC_STATIC,7,67,51,8
-    LTEXT           "Static",IDC_SUBSYSTEM,78,43,215,8
-    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,55,215,8
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,94,286,179
-    LTEXT           "Sections:",IDC_STATIC,7,83,30,8
-    EDITTEXT        IDC_CHARACTERISTICS,76,67,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Time stamp:",IDC_STATIC,7,19,40,8
-    LTEXT           "Static",IDC_TIMESTAMP,78,19,215,8
+    LTEXT           "Checksum:",IDC_STATIC,7,40,36,8
+    LTEXT           "Static",IDC_CHECKSUM,78,40,215,8
+    LTEXT           "Subsystem:",IDC_STATIC,7,51,38,8
+    LTEXT           "Subsystem version:",IDC_STATIC,7,62,64,8
+    LTEXT           "Characteristics:",IDC_STATIC,7,73,51,8
+    LTEXT           "Static",IDC_SUBSYSTEM,78,51,215,8
+    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,62,215,8
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,99,286,174
+    LTEXT           "Sections:",IDC_STATIC,7,88,30,8
+    EDITTEXT        IDC_CHARACTERISTICS,76,73,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Time stamp:",IDC_STATIC,7,18,40,8
+    LTEXT           "Static",IDC_TIMESTAMP,78,18,215,8
+    LTEXT           "Image base:",IDC_STATIC,7,29,41,8
+    LTEXT           "Static",IDC_IMAGEBASE,78,29,215,8
 END
 
 IDD_PEIMPORTS DIALOGEX 0, 0, 300, 280
