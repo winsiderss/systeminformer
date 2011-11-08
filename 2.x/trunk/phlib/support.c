@@ -2145,20 +2145,31 @@ VOID PhGetSystemRoot(
     )
 {
     static PH_STRINGREF systemRoot;
-    static PH_INITONCE initOnce;
 
-    if (PhBeginInitOnce(&initOnce))
+    PH_STRINGREF localSystemRoot;
+    SIZE_T count;
+
+    if (systemRoot.Buffer)
     {
-        PhInitializeStringRef(&systemRoot, USER_SHARED_DATA->NtSystemRoot);
-
-        // Make sure the system root string doesn't have a trailing backslash.
-        if (systemRoot.Buffer[systemRoot.Length / 2 - 1] == '\\')
-            systemRoot.Length -= 2;
-
-        PhEndInitOnce(&initOnce);
+        *SystemRoot = systemRoot;
+        return;
     }
 
-    *SystemRoot = systemRoot;
+    localSystemRoot.Buffer = USER_SHARED_DATA->NtSystemRoot;
+    count = wcslen(localSystemRoot.Buffer);
+    localSystemRoot.Length = (USHORT)(count * sizeof(WCHAR));
+    localSystemRoot.us.MaximumLength = localSystemRoot.Length;
+
+    // Make sure the system root string doesn't have a trailing backslash.
+    if (localSystemRoot.Buffer[count - 1] == '\\')
+        localSystemRoot.Length -= sizeof(WCHAR);
+
+    *SystemRoot = localSystemRoot;
+
+    systemRoot.Length = localSystemRoot.Length;
+    systemRoot.us.MaximumLength = localSystemRoot.us.MaximumLength;
+    MemoryBarrier();
+    systemRoot.Buffer = localSystemRoot.Buffer;
 }
 
 /**
