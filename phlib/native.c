@@ -3891,10 +3891,14 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     __in_opt PVOID Context2
     )
 {
+    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\system32\\");
+
     BOOLEAN cont;
     LDR_DATA_TABLE_ENTRY nativeEntry;
     PWSTR baseDllNameBuffer;
     PWSTR fullDllNameBuffer;
+    PH_STRINGREF fullDllName;
+    PH_STRINGREF systemRootString;
 
     // Convert the 32-bit entry to a native-sized entry.
 
@@ -3938,6 +3942,31 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     {
         fullDllNameBuffer[nativeEntry.FullDllName.Length / 2] = 0;
         nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
+
+        // WOW64 file system redirection - convert "system32" to "SysWOW64".
+        if (!(nativeEntry.FullDllName.Length & 1)) // validate the string length
+        {
+            fullDllName.Buffer = fullDllNameBuffer;
+            fullDllName.Length = nativeEntry.FullDllName.Length;
+
+            PhGetSystemRoot(&systemRootString);
+
+            if (PhStartsWithStringRef(&fullDllName, &systemRootString, TRUE))
+            {
+                fullDllName.Buffer = (PWSTR)((PCHAR)fullDllName.Buffer + systemRootString.Length);
+                fullDllName.Length -= systemRootString.Length;
+
+                if (PhStartsWithStringRef(&fullDllName, &system32String, TRUE))
+                {
+                    fullDllName.Buffer[1] = 'S';
+                    fullDllName.Buffer[4] = 'W';
+                    fullDllName.Buffer[5] = 'O';
+                    fullDllName.Buffer[6] = 'W';
+                    fullDllName.Buffer[7] = '6';
+                    fullDllName.Buffer[8] = '4';
+                }
+            }
+        }
     }
 
     // Execute the callback.

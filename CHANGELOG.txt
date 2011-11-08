@@ -4,7 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Added Image base to peview
  * FIXED:
-   * Retrieval of version information for certain files
+   * Fixed retrieval of version information for certain files
+   * Fixed WOW64 DLL file names
 
 2.23
  * NEW/IMPROVED:
