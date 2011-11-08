@@ -273,13 +273,16 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
     BOOLEAN isDotNet;
 
-    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)) && isDotNet)
+    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)))
     {
-        if (WindowsVersion >= WINDOWS_VISTA)
-            AddAsmPageToPropContext(propContext);
-        AddPerfPageToPropContext(propContext);
+        if (isDotNet)
+        {
+            if (WindowsVersion >= WINDOWS_VISTA)
+                AddAsmPageToPropContext(propContext);
+            AddPerfPageToPropContext(propContext);
+        }
 
-        if (!propContext->ProcessItem->IsDotNet)
+        if (propContext->ProcessItem->IsDotNet != isDotNet)
             propContext->ProcessItem->UpdateIsDotNet = TRUE; // force a refresh
     }
 }
