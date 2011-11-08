@@ -3294,6 +3294,15 @@ PhaSubstring(
 PHLIBAPI
 VOID
 FASTCALL
+PhxfFillMemoryUlong(
+    __inout PULONG Memory,
+    __in ULONG Value,
+    __in ULONG Count
+    );
+
+PHLIBAPI
+VOID
+FASTCALL
 PhxfAddInt32(
     __inout __needsAlign(16) PLONG A,
     __in __needsAlign(16) PLONG B,

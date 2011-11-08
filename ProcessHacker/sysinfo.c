@@ -417,7 +417,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             CpuGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
-                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT,
                 0,
                 0,
                 3,
@@ -433,7 +433,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             IoGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
-                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT,
                 0,
                 0,
                 3,
@@ -449,7 +449,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PhysicalGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
-                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT,
                 0,
                 0,
                 3,
@@ -526,6 +526,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PostQuitMessage(0);
         }
         break;
+    case WM_CTLCOLORDLG:
+        return (LONG_PTR)GetSysColorBrush(COLOR_WINDOW);
     case WM_SHOWWINDOW:
         {
             RECT margin;
@@ -749,10 +751,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = PhCsColorCpuKernel;
-                        drawInfo->LineColor2 = PhCsColorCpuUser;
-                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
-                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
+                        drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
+                        drawInfo->LineColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
+                        drawInfo->LineBackColor1 = PhMakeColorBrighter(PhCsColorCpuKernel, 125);
+                        drawInfo->LineBackColor2 = PhMakeColorBrighter(PhCsColorCpuUser, 125);
 
                         PhGraphStateGetDrawInfo(
                             &CpuGraphState,
@@ -793,10 +795,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = PhCsColorIoReadOther;
-                        drawInfo->LineColor2 = PhCsColorIoWrite;
-                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
-                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
+                        drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
+                        drawInfo->LineColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
+                        drawInfo->LineBackColor1 = PhMakeColorBrighter(PhCsColorIoReadOther, 125);
+                        drawInfo->LineBackColor2 = PhMakeColorBrighter(PhCsColorIoWrite, 125);
 
                         PhGraphStateGetDrawInfo(
                             &IoGraphState,
@@ -873,8 +875,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
-                        drawInfo->LineColor1 = PhCsColorPhysical;
-                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorPhysical);
+                        drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorPhysical);
+                        drawInfo->LineBackColor1 = PhMakeColorBrighter(PhCsColorPhysical, 125);
 
                         PhGraphStateGetDrawInfo(
                             &PhysicalGraphState,

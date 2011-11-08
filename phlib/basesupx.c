@@ -272,6 +272,101 @@ unsigned short __cdecl ph_chksum(unsigned long sum, unsigned short *buf, unsigne
 
 #endif
 
+VOID FASTCALL PhxpfFillMemoryUlongFallback(
+    __inout PULONG Memory,
+    __in ULONG Value,
+    __in ULONG Count
+    )
+{
+    if (Count != 0)
+    {
+        do
+        {
+            *Memory++ = Value;
+        } while (--Count != 0);
+    }
+}
+
+/**
+ * Fills a memory block with a ULONG pattern.
+ *
+ * \param Memory The memory block. The block must be 
+ * 4 byte aligned.
+ * \param Value The ULONG pattern.
+ * \param Count The number of elements.
+ */
+PHLIBAPI
+VOID
+FASTCALL
+PhxfFillMemoryUlong(
+    __inout PULONG Memory,
+    __in ULONG Value,
+    __in ULONG Count
+    )
+{
+    __m128i pattern;
+    ULONG count;
+
+    if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+    {
+        PhxpfFillMemoryUlongFallback(Memory, Value, Count);
+        return;
+    }
+
+    if ((ULONG_PTR)Memory & 0xf)
+    {
+        switch ((ULONG_PTR)Memory & 0xf)
+        {
+        case 0x4:
+            if (Count >= 1)
+            {
+                *Memory++ = Value;
+                Count--;
+            }
+            __fallthrough;
+        case 0x8:
+            if (Count >= 1)
+            {
+                *Memory++ = Value;
+                Count--;
+            }
+            __fallthrough;
+        case 0xc:
+            if (Count >= 1)
+            {
+                *Memory++ = Value;
+                Count--;
+            }
+            break;
+        }
+    }
+
+    pattern = _mm_set1_epi32(Value);
+    count = Count / 4;
+
+    if (count != 0)
+    {
+        do
+        {
+            _mm_store_si128((__m128i *)Memory, pattern);
+            Memory += 4;
+        } while (--count != 0);
+    }
+
+    switch (Count & 0x3)
+    {
+    case 0x3:
+        *Memory++ = Value;
+        __fallthrough;
+    case 0x2:
+        *Memory++ = Value;
+        __fallthrough;
+    case 0x1:
+        *Memory++ = Value;
+        break;
+    }
+}
+
 VOID FASTCALL PhxpfAddInt32Fallback(
     __inout PLONG A,
     __in PLONG B,
