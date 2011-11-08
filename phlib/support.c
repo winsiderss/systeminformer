@@ -1670,7 +1670,7 @@ ULONG PhGetFileVersionInfoLangCodePage(
     }
     else
     {
-        return 0x40904e4;
+        return (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252;
     }
 }
 
@@ -1733,6 +1733,17 @@ PPH_STRING PhGetFileVersionInfoString2(
         return NULL;
 }
 
+VOID PhpGetImageVersionInfoFields(
+    __out PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    __in PVOID VersionInfo,
+    __in ULONG LangCodePage
+    )
+{
+    ImageVersionInfo->CompanyName = PhGetFileVersionInfoString2(VersionInfo, LangCodePage, L"CompanyName");
+    ImageVersionInfo->FileDescription = PhGetFileVersionInfoString2(VersionInfo, LangCodePage, L"FileDescription");
+    ImageVersionInfo->ProductName = PhGetFileVersionInfoString2(VersionInfo, LangCodePage, L"ProductName");
+}
+
 /**
  * Initializes a structure with version information.
  *
@@ -1756,10 +1767,22 @@ BOOLEAN PhInitializeImageVersionInfo(
         return FALSE;
 
     langCodePage = PhGetFileVersionInfoLangCodePage(versionInfo);
+    PhpGetImageVersionInfoFields(ImageVersionInfo, versionInfo, langCodePage);
 
-    ImageVersionInfo->CompanyName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"CompanyName");
-    ImageVersionInfo->FileDescription = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"FileDescription");
-    ImageVersionInfo->ProductName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"ProductName");
+    if (!ImageVersionInfo->CompanyName && !ImageVersionInfo->FileDescription && !ImageVersionInfo->ProductName)
+    {
+        // Use the windows-1252 code page.
+        PhpGetImageVersionInfoFields(ImageVersionInfo, versionInfo, (langCodePage & 0xffff0000) + 1252);
+
+        // Use the default language (US English).
+        if (!ImageVersionInfo->CompanyName && !ImageVersionInfo->FileDescription && !ImageVersionInfo->ProductName)
+        {
+            PhpGetImageVersionInfoFields(ImageVersionInfo, versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252);
+
+            if (!ImageVersionInfo->CompanyName && !ImageVersionInfo->FileDescription && !ImageVersionInfo->ProductName)
+                PhpGetImageVersionInfoFields(ImageVersionInfo, versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 0);
+        }
+    }
 
     // The version information is language-independent and must be read from the root block.
     if (VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
