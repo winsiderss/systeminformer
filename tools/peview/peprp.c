@@ -232,7 +232,19 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 PhDereferenceObject(string);
             }
 
-            string = PhFormatString(L"0x%Ix (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum);
+            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                string = PhFormatString(L"0x%Ix", PvMappedImage.NtHeaders->OptionalHeader.ImageBase);
+            }
+            else
+            {
+                string = PhFormatString(L"0x%I64x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->ImageBase);
+            }
+
+            SetDlgItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
+            PhDereferenceObject(string);
+
+            string = PhFormatString(L"0x%Ix (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
             SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
             PhDereferenceObject(string);
 
@@ -285,7 +297,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 
             string = PhFormatString(
                 L"%u.%u",
-                PvMappedImage.NtHeaders->OptionalHeader.MajorSubsystemVersion,
+                PvMappedImage.NtHeaders->OptionalHeader.MajorSubsystemVersion, // same for 32-bit and 64-bit images
                 PvMappedImage.NtHeaders->OptionalHeader.MinorSubsystemVersion
                 );
             SetDlgItemText(hwndDlg, IDC_SUBSYSTEMVERSION, string->Buffer);
@@ -358,7 +370,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             ULONG headerCheckSum;
             ULONG realCheckSum;
 
-            headerCheckSum = PvMappedImage.NtHeaders->OptionalHeader.CheckSum;
+            headerCheckSum = PvMappedImage.NtHeaders->OptionalHeader.CheckSum; // same for 32-bit and 64-bit images
             realCheckSum = (ULONG)wParam;
 
             if (headerCheckSum == 0)

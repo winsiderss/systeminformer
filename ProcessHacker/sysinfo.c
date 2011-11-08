@@ -731,24 +731,24 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
                     if (header->hwndFrom == CpuGraphHandle)
                     {
-                        if (PhCsGraphShowText)
-                        {
-                            HDC hdc;
+                        //if (PhCsGraphShowText)
+                        //{
+                        //    HDC hdc;
 
-                            PhSwapReference2(&CpuGraphState.TooltipText,
-                                PhFormatString(L"%.2f%%",
-                                (PhCpuKernelUsage + PhCpuUserUsage) * 100
-                                ));
+                        //    PhSwapReference2(&CpuGraphState.TooltipText,
+                        //        PhFormatString(L"%.2f%%",
+                        //        (PhCpuKernelUsage + PhCpuUserUsage) * 100
+                        //        ));
 
-                            hdc = Graph_GetBufferedContext(CpuGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &CpuGraphState.TooltipText->sr,
-                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                        }
-                        else
-                        {
+                        //    hdc = Graph_GetBufferedContext(CpuGraphHandle);
+                        //    SelectObject(hdc, PhApplicationFont);
+                        //    PhSetGraphText(hdc, drawInfo, &CpuGraphState.TooltipText->sr,
+                        //        &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        //}
+                        //else
+                        //{
                             drawInfo->Text.Buffer = NULL;
-                        }
+                        //}
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
@@ -773,26 +773,26 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                     }
                     else if (header->hwndFrom == IoGraphHandle)
                     {
-                        if (PhCsGraphShowText)
-                        {
-                            HDC hdc;
+                        //if (PhCsGraphShowText)
+                        //{
+                        //    HDC hdc;
 
-                            PhSwapReference2(&IoGraphState.TooltipText,
-                                PhFormatString(
-                                L"R+O: %s, W: %s",
-                                PhaFormatSize(PhIoReadDelta.Delta + PhIoOtherDelta.Delta, -1)->Buffer,
-                                PhaFormatSize(PhIoWriteDelta.Delta, -1)->Buffer
-                                ));
+                        //    PhSwapReference2(&IoGraphState.TooltipText,
+                        //        PhFormatString(
+                        //        L"R+O: %s, W: %s",
+                        //        PhaFormatSize(PhIoReadDelta.Delta + PhIoOtherDelta.Delta, -1)->Buffer,
+                        //        PhaFormatSize(PhIoWriteDelta.Delta, -1)->Buffer
+                        //        ));
 
-                            hdc = Graph_GetBufferedContext(IoGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &IoGraphState.TooltipText->sr,
-                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                        }
-                        else
-                        {
+                        //    hdc = Graph_GetBufferedContext(IoGraphHandle);
+                        //    SelectObject(hdc, PhApplicationFont);
+                        //    PhSetGraphText(hdc, drawInfo, &IoGraphState.TooltipText->sr,
+                        //        &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        //}
+                        //else
+                        //{
                             drawInfo->Text.Buffer = NULL;
-                        }
+                        //}
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
@@ -852,27 +852,27 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         totalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
                         usedPages = totalPages - PhPerfInformation.AvailablePages;
 
-                        if (PhCsGraphShowText)
-                        {
-                            HDC hdc;
+                        //if (PhCsGraphShowText)
+                        //{
+                        //    HDC hdc;
 
-                            PhSwapReference2(&PhysicalGraphState.TooltipText,
-                                PhFormatString(
-                                L"%s / %s (%.2f%%)",
-                                PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                                PhaFormatSize(UInt32x32To64(totalPages, PAGE_SIZE), -1)->Buffer,
-                                (FLOAT)usedPages * 100 / totalPages
-                                ));
+                        //    PhSwapReference2(&PhysicalGraphState.TooltipText,
+                        //        PhFormatString(
+                        //        L"%s / %s (%.2f%%)",
+                        //        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                        //        PhaFormatSize(UInt32x32To64(totalPages, PAGE_SIZE), -1)->Buffer,
+                        //        (FLOAT)usedPages * 100 / totalPages
+                        //        ));
 
-                            hdc = Graph_GetBufferedContext(PhysicalGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &PhysicalGraphState.TooltipText->sr,
-                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                        }
-                        else
-                        {
+                        //    hdc = Graph_GetBufferedContext(PhysicalGraphHandle);
+                        //    SelectObject(hdc, PhApplicationFont);
+                        //    PhSetGraphText(hdc, drawInfo, &PhysicalGraphState.TooltipText->sr,
+                        //        &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        //}
+                        //else
+                        //{
                             drawInfo->Text.Buffer = NULL;
-                        }
+                        //}
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
                         drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorPhysical);
