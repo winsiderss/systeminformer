@@ -525,7 +525,7 @@ NTSTATUS PhDuplicateObject(
     __in ULONG Options
     );
 
-#define PH_ENUM_PROCESS_MODULES_ITERS 0x800
+#define PH_ENUM_PROCESS_MODULES_LIMIT 0x800
 
 /**
  * A callback function passed to PhEnumProcessModules()
@@ -544,11 +544,27 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
     __in_opt PVOID Context
     );
 
+#define PH_ENUM_PROCESS_MODULES_DONT_RESOLVE_WOW64_FS 0x1
+#define PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME 0x2
+
+typedef struct _PH_ENUM_PROCESS_MODULES_PARAMETERS
+{
+    PPH_ENUM_PROCESS_MODULES_CALLBACK Callback;
+    PVOID Context;
+    ULONG Flags;
+} PH_ENUM_PROCESS_MODULES_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_PARAMETERS;
+
 PHLIBAPI
 NTSTATUS PhEnumProcessModules(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
     __in_opt PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS PhEnumProcessModulesEx(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
     );
 
 PHLIBAPI
@@ -563,6 +579,12 @@ NTSTATUS PhEnumProcessModules32(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
     __in_opt PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS PhEnumProcessModules32Ex(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
     );
 
 PHLIBAPI
