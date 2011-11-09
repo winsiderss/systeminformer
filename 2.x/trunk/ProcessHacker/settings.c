@@ -36,6 +36,7 @@
 
 #define PH_SETTINGS_PRIVATE
 #include <phapp.h>
+#include "mxml/mxml.h"
 #include <settings.h>
 #include <settingsp.h>
 
