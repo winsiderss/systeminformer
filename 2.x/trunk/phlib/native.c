@@ -3575,7 +3575,7 @@ NTSTATUS PhpEnumProcessModules(
 
     while (
         currentLink != startLink &&
-        i <= PH_ENUM_PROCESS_MODULES_ITERS
+        i <= PH_ENUM_PROCESS_MODULES_LIMIT
         )
     {
         PVOID addressOfEntry;
@@ -3622,70 +3622,111 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     )
 {
     NTSTATUS status;
+    PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
     BOOLEAN cont;
+    PPH_STRING mappedFileName;
     PWSTR fullDllNameOriginal;
     PWSTR fullDllNameBuffer;
     PWSTR baseDllNameOriginal;
     PWSTR baseDllNameBuffer;
 
-    // Read the full DLL name string and add a null terminator.
+    parameters = Context1;
+    mappedFileName = NULL;
 
-    fullDllNameOriginal = Entry->FullDllName.Buffer;
-    fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + 2);
-
-    if (NT_SUCCESS(status = PhReadVirtualMemory(
-        ProcessHandle,
-        Entry->FullDllName.Buffer,
-        fullDllNameBuffer,
-        Entry->FullDllName.Length,
-        NULL
-        )))
+    if (parameters->Flags & PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME)
     {
-        fullDllNameBuffer[Entry->FullDllName.Length / 2] = 0;
-        Entry->FullDllName.Buffer = fullDllNameBuffer;
+        PhGetProcessMappedFileName(ProcessHandle, Entry->DllBase, &mappedFileName);
     }
 
-    baseDllNameOriginal = Entry->BaseDllName.Buffer;
-
-    // Try to use the buffer we just read in.
-    if (
-        NT_SUCCESS(status) &&
-        (ULONG_PTR)baseDllNameOriginal >= (ULONG_PTR)fullDllNameOriginal &&
-        (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length >= (ULONG_PTR)baseDllNameOriginal &&
-        (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length <= (ULONG_PTR)fullDllNameOriginal + Entry->FullDllName.Length
-        )
+    if (mappedFileName)
     {
-        baseDllNameBuffer = NULL;
+        ULONG indexOfLastBackslash;
 
-        Entry->BaseDllName.Buffer = (PWSTR)((ULONG_PTR)Entry->FullDllName.Buffer +
-            ((ULONG_PTR)baseDllNameOriginal - (ULONG_PTR)fullDllNameOriginal));
+        Entry->FullDllName.Buffer = mappedFileName->Buffer;
+        Entry->FullDllName.Length = mappedFileName->Length;
+        Entry->FullDllName.MaximumLength = mappedFileName->Length + 2;
+
+        indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, '\\');
+
+        if (indexOfLastBackslash != -1)
+        {
+            Entry->BaseDllName.Buffer = Entry->FullDllName.Buffer + indexOfLastBackslash + 1;
+            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * 2 - 2;
+            Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length;
+        }
+        else
+        {
+            Entry->BaseDllName = Entry->FullDllName;
+        }
     }
     else
     {
-        // Read the base DLL name string and add a null terminator.
+        // Read the full DLL name string and add a null terminator.
 
-        baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + 2);
+        fullDllNameOriginal = Entry->FullDllName.Buffer;
+        fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + 2);
 
-        if (NT_SUCCESS(PhReadVirtualMemory(
+        if (NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
-            Entry->BaseDllName.Buffer,
-            baseDllNameBuffer,
-            Entry->BaseDllName.Length,
+            Entry->FullDllName.Buffer,
+            fullDllNameBuffer,
+            Entry->FullDllName.Length,
             NULL
             )))
         {
-            baseDllNameBuffer[Entry->BaseDllName.Length / 2] = 0;
-            Entry->BaseDllName.Buffer = baseDllNameBuffer;
+            fullDllNameBuffer[Entry->FullDllName.Length / 2] = 0;
+            Entry->FullDllName.Buffer = fullDllNameBuffer;
+        }
+
+        baseDllNameOriginal = Entry->BaseDllName.Buffer;
+
+        // Try to use the buffer we just read in.
+        if (
+            NT_SUCCESS(status) &&
+            (ULONG_PTR)baseDllNameOriginal >= (ULONG_PTR)fullDllNameOriginal &&
+            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length >= (ULONG_PTR)baseDllNameOriginal &&
+            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length <= (ULONG_PTR)fullDllNameOriginal + Entry->FullDllName.Length
+            )
+        {
+            baseDllNameBuffer = NULL;
+
+            Entry->BaseDllName.Buffer = (PWSTR)((ULONG_PTR)Entry->FullDllName.Buffer +
+                ((ULONG_PTR)baseDllNameOriginal - (ULONG_PTR)fullDllNameOriginal));
+        }
+        else
+        {
+            // Read the base DLL name string and add a null terminator.
+
+            baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + 2);
+
+            if (NT_SUCCESS(PhReadVirtualMemory(
+                ProcessHandle,
+                Entry->BaseDllName.Buffer,
+                baseDllNameBuffer,
+                Entry->BaseDllName.Length,
+                NULL
+                )))
+            {
+                baseDllNameBuffer[Entry->BaseDllName.Length / 2] = 0;
+                Entry->BaseDllName.Buffer = baseDllNameBuffer;
+            }
         }
     }
 
     // Execute the callback.
-    cont = ((PPH_ENUM_PROCESS_MODULES_CALLBACK)Context1)(Entry, Context2);
+    cont = parameters->Callback(Entry, parameters->Context);
 
-    PhFree(fullDllNameBuffer);
+    if (mappedFileName)
+    {
+        PhDereferenceObject(mappedFileName);
+    }
+    else
+    {
+        PhFree(fullDllNameBuffer);
 
-    if (baseDllNameBuffer)
-        PhFree(baseDllNameBuffer);
+        if (baseDllNameBuffer)
+            PhFree(baseDllNameBuffer);
+    }
 
     return cont;
 }
@@ -3707,11 +3748,35 @@ NTSTATUS PhEnumProcessModules(
     __in_opt PVOID Context
     )
 {
+    PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
+
+    parameters.Callback = Callback;
+    parameters.Context = Context;
+    parameters.Flags = 0;
+
+    return PhEnumProcessModulesEx(ProcessHandle, &parameters);
+}
+
+/**
+ * Enumerates the modules loaded by a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access. If
+ * \c PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME is specified in
+ * \a Parameters, the handle should have PROCESS_QUERY_INFORMATION
+ * access.
+ * \param Parameters The enumeration parameters.
+ */
+NTSTATUS PhEnumProcessModulesEx(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
+    )
+{
     return PhpEnumProcessModules(
         ProcessHandle,
         PhpEnumProcessModulesCallback,
-        Callback,
-        Context
+        Parameters,
+        NULL
         );
 }
 
@@ -3845,7 +3910,7 @@ NTSTATUS PhpEnumProcessModules32(
 
     while (
         currentLink != startLink &&
-        i <= PH_ENUM_PROCESS_MODULES_ITERS
+        i <= PH_ENUM_PROCESS_MODULES_LIMIT
         )
     {
         ULONG addressOfEntry;
@@ -3893,12 +3958,16 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 {
     static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\system32\\");
 
+    PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
     BOOLEAN cont;
     LDR_DATA_TABLE_ENTRY nativeEntry;
+    PPH_STRING mappedFileName;
     PWSTR baseDllNameBuffer;
     PWSTR fullDllNameBuffer;
     PH_STRINGREF fullDllName;
     PH_STRINGREF systemRootString;
+
+    parameters = Context1;
 
     // Convert the 32-bit entry to a native-sized entry.
 
@@ -3912,68 +3981,109 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     nativeEntry.LoadCount = Entry->LoadCount;
     nativeEntry.TlsIndex = Entry->TlsIndex;
 
-    // Read the base DLL name string and add a null terminator.
+    mappedFileName = NULL;
 
-    baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + 2);
-
-    if (NT_SUCCESS(PhReadVirtualMemory(
-        ProcessHandle,
-        nativeEntry.BaseDllName.Buffer,
-        baseDllNameBuffer,
-        nativeEntry.BaseDllName.Length,
-        NULL
-        )))
+    if (parameters->Flags & PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME)
     {
-        baseDllNameBuffer[nativeEntry.BaseDllName.Length / 2] = 0;
-        nativeEntry.BaseDllName.Buffer = baseDllNameBuffer;
+        PhGetProcessMappedFileName(ProcessHandle, nativeEntry.DllBase, &mappedFileName);
     }
 
-    // Read the full DLL name string and add a null terminator.
-
-    fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + 2);
-
-    if (NT_SUCCESS(PhReadVirtualMemory(
-        ProcessHandle,
-        nativeEntry.FullDllName.Buffer,
-        fullDllNameBuffer,
-        nativeEntry.FullDllName.Length,
-        NULL
-        )))
+    if (mappedFileName)
     {
-        fullDllNameBuffer[nativeEntry.FullDllName.Length / 2] = 0;
-        nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
+        ULONG indexOfLastBackslash;
 
-        // WOW64 file system redirection - convert "system32" to "SysWOW64".
-        if (!(nativeEntry.FullDllName.Length & 1)) // validate the string length
+        nativeEntry.FullDllName.Buffer = mappedFileName->Buffer;
+        nativeEntry.FullDllName.Length = mappedFileName->Length;
+        nativeEntry.FullDllName.MaximumLength = mappedFileName->Length + 2;
+
+        indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, '\\');
+
+        if (indexOfLastBackslash != -1)
         {
-            fullDllName.Buffer = fullDllNameBuffer;
-            fullDllName.Length = nativeEntry.FullDllName.Length;
+            nativeEntry.BaseDllName.Buffer = nativeEntry.FullDllName.Buffer + indexOfLastBackslash + 1;
+            nativeEntry.BaseDllName.Length = nativeEntry.FullDllName.Length - (USHORT)indexOfLastBackslash * 2 - 2;
+            nativeEntry.BaseDllName.MaximumLength = nativeEntry.BaseDllName.Length;
+        }
+        else
+        {
+            nativeEntry.BaseDllName = nativeEntry.FullDllName;
+        }
+    }
+    else
+    {
+        // Read the base DLL name string and add a null terminator.
 
-            PhGetSystemRoot(&systemRootString);
+        baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + 2);
 
-            if (PhStartsWithStringRef(&fullDllName, &systemRootString, TRUE))
+        if (NT_SUCCESS(PhReadVirtualMemory(
+            ProcessHandle,
+            nativeEntry.BaseDllName.Buffer,
+            baseDllNameBuffer,
+            nativeEntry.BaseDllName.Length,
+            NULL
+            )))
+        {
+            baseDllNameBuffer[nativeEntry.BaseDllName.Length / 2] = 0;
+            nativeEntry.BaseDllName.Buffer = baseDllNameBuffer;
+        }
+
+        // Read the full DLL name string and add a null terminator.
+
+        fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + 2);
+
+        if (NT_SUCCESS(PhReadVirtualMemory(
+            ProcessHandle,
+            nativeEntry.FullDllName.Buffer,
+            fullDllNameBuffer,
+            nativeEntry.FullDllName.Length,
+            NULL
+            )))
+        {
+            fullDllNameBuffer[nativeEntry.FullDllName.Length / 2] = 0;
+            nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
+
+            if (!(parameters->Flags & PH_ENUM_PROCESS_MODULES_DONT_RESOLVE_WOW64_FS))
             {
-                fullDllName.Buffer = (PWSTR)((PCHAR)fullDllName.Buffer + systemRootString.Length);
-                fullDllName.Length -= systemRootString.Length;
-
-                if (PhStartsWithStringRef(&fullDllName, &system32String, TRUE))
+                // WOW64 file system redirection - convert "system32" to "SysWOW64".
+                if (!(nativeEntry.FullDllName.Length & 1)) // validate the string length
                 {
-                    fullDllName.Buffer[1] = 'S';
-                    fullDllName.Buffer[4] = 'W';
-                    fullDllName.Buffer[5] = 'O';
-                    fullDllName.Buffer[6] = 'W';
-                    fullDllName.Buffer[7] = '6';
-                    fullDllName.Buffer[8] = '4';
+                    fullDllName.Buffer = fullDllNameBuffer;
+                    fullDllName.Length = nativeEntry.FullDllName.Length;
+
+                    PhGetSystemRoot(&systemRootString);
+
+                    if (PhStartsWithStringRef(&fullDllName, &systemRootString, TRUE))
+                    {
+                        fullDllName.Buffer = (PWSTR)((PCHAR)fullDllName.Buffer + systemRootString.Length);
+                        fullDllName.Length -= systemRootString.Length;
+
+                        if (PhStartsWithStringRef(&fullDllName, &system32String, TRUE))
+                        {
+                            fullDllName.Buffer[1] = 'S';
+                            fullDllName.Buffer[4] = 'W';
+                            fullDllName.Buffer[5] = 'O';
+                            fullDllName.Buffer[6] = 'W';
+                            fullDllName.Buffer[7] = '6';
+                            fullDllName.Buffer[8] = '4';
+                        }
+                    }
                 }
             }
         }
     }
 
     // Execute the callback.
-    cont = ((PPH_ENUM_PROCESS_MODULES_CALLBACK)Context1)(&nativeEntry, Context2);
+    cont = parameters->Callback(&nativeEntry, parameters->Context);
 
-    PhFree(baseDllNameBuffer);
-    PhFree(fullDllNameBuffer);
+    if (mappedFileName)
+    {
+        PhDereferenceObject(mappedFileName);
+    }
+    else
+    {
+        PhFree(baseDllNameBuffer);
+        PhFree(fullDllNameBuffer);
+    }
 
     return cont;
 }
@@ -4001,11 +4111,41 @@ NTSTATUS PhEnumProcessModules32(
     __in_opt PVOID Context
     )
 {
+    PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
+
+    parameters.Callback = Callback;
+    parameters.Context = Context;
+    parameters.Flags = 0;
+
+    return PhEnumProcessModules32Ex(ProcessHandle, &parameters);
+}
+
+/**
+ * Enumerates the 32-bit modules loaded by a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access. If
+ * \c PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME is specified in
+ * \a Parameters, the handle should have PROCESS_QUERY_INFORMATION
+ * access.
+ * \param Parameters The enumeration parameters.
+ *
+ * \retval STATUS_NOT_SUPPORTED The process is not
+ * running under WOW64.
+ *
+ * \remarks Do not use this function under a 32-bit
+ * environment.
+ */
+NTSTATUS PhEnumProcessModules32Ex(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
+    )
+{
     return PhpEnumProcessModules32(
         ProcessHandle,
         PhpEnumProcessModules32Callback,
-        Callback,
-        Context
+        Parameters,
+        NULL
         );
 }
 
@@ -5584,6 +5724,7 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 {
     PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
     PVOID Context;
+    HANDLE ProcessHandle;
     ULONG Type;
     PPH_HASHTABLE BaseAddressHashtable;
 
@@ -5598,6 +5739,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
     PH_MODULE_INFO moduleInfo;
     PPH_STRING fileName;
+    PPH_STRING baseName;
     BOOLEAN cont;
 
     context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
@@ -5612,20 +5754,34 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         PhAddEntryHashtable(context->BaseAddressHashtable, &Module->DllBase);
     }
 
-    fileName = PhCreateStringEx(
-        Module->FullDllName.Buffer,
-        Module->FullDllName.Length
-        );
+    // Try to use the mapped file name if we can because the file name stored 
+    // in the loader entry is not always accurate.
+    if (NT_SUCCESS(PhGetProcessMappedFileName(
+        context->ProcessHandle,
+        Module->DllBase,
+        &fileName
+        )))
+    {
+        baseName = PhGetBaseName(fileName);
+    }
+    else
+    {
+        fileName = PhCreateStringEx(
+            Module->FullDllName.Buffer,
+            Module->FullDllName.Length
+            );
+        baseName = PhCreateStringEx(
+            Module->BaseDllName.Buffer,
+            Module->BaseDllName.Length
+            );
+    }
 
     moduleInfo.Type = context->Type;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
     moduleInfo.EntryPoint = Module->EntryPoint;
     moduleInfo.Flags = Module->Flags;
-    moduleInfo.Name = PhCreateStringEx(
-        Module->BaseDllName.Buffer,
-        Module->BaseDllName.Length
-        );
+    moduleInfo.Name = baseName;
     moduleInfo.FileName = PhGetFileName(fileName);
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->LoadCount;
@@ -5990,6 +6146,7 @@ NTSTATUS PhEnumGenericModules(
         BOOLEAN isWow64 = FALSE;
 #endif
         ENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
+        PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
 
         if (!ProcessHandle)
         {
@@ -6014,14 +6171,18 @@ NTSTATUS PhEnumGenericModules(
 
         context.Callback = Callback;
         context.Context = Context;
+        context.ProcessHandle = ProcessHandle;
         context.Type = PH_MODULE_TYPE_MODULE;
         context.BaseAddressHashtable = baseAddressHashtable;
         context.LoadOrderIndex = 0;
 
-        status = PhEnumProcessModules(
+        parameters.Callback = EnumGenericProcessModulesCallback;
+        parameters.Context = &context;
+        parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
+
+        status = PhEnumProcessModulesEx(
             ProcessHandle,
-            EnumGenericProcessModulesCallback,
-            &context
+            &parameters
             );
 
 #ifdef _M_X64
@@ -6036,10 +6197,9 @@ NTSTATUS PhEnumGenericModules(
             context.BaseAddressHashtable = baseAddressHashtable;
             context.LoadOrderIndex = 0;
 
-            status = PhEnumProcessModules32(
+            status = PhEnumProcessModules32Ex(
                 ProcessHandle,
-                EnumGenericProcessModulesCallback,
-                &context
+                &parameters
                 );
         }
 #endif
