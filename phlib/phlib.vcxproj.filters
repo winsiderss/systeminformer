@@ -99,69 +99,6 @@
     <ClCompile Include="ntimport.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pcre\pcre_chartables.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_compile.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_config.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_dfa_exec.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_exec.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_fullinfo.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_get.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_globals.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_info.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_maketables.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_newline.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_ord2utf8.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_refcount.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_study.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_tables.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_try_flipped.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_ucd.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_valid_utf8.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_version.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_xclass.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcreposix.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -347,15 +284,6 @@
     <ClInclude Include="include\ntxcapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\pcre.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pcre\pcre_internal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pcre\pcreposix.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\ph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -440,8 +368,5 @@
     <ClInclude Include="include\winmisc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="pcre\pcre_printint.src" />
   </ItemGroup>
 </Project>

@@ -2,7 +2,6 @@
 #define SETTINGSP_H
 
 #include <shlobj.h>
-#include "mxml/mxml.h"
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
     __in PVOID Entry1,

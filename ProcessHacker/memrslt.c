@@ -23,7 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <memsrch.h>
-#include <pcre.h>
+#include "pcre/pcre.h"
 #include <windowsx.h>
 
 #define FILTER_CONTAINS 1
