@@ -955,7 +955,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     tableListEntry = tableListHeadEntry.Flink;
     count = 0; // make sure we can't be forced into an infinite loop by crafted data
 
-    while (tableListEntry != tableListHead && count < PH_ENUM_PROCESS_MODULES_ITERS)
+    while (tableListEntry != tableListHead && count < PH_ENUM_PROCESS_MODULES_LIMIT)
     {
         functionTableAddress = CONTAINING_RECORD(tableListEntry, DYNAMIC_FUNCTION_TABLE, ListEntry);
 
