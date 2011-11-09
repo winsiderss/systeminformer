@@ -3,9 +3,9 @@ Process Hacker
 2.24
  * NEW/IMPROVED:
    * Added Image base to peview
+   * Improved module scanning
  * FIXED:
    * Fixed retrieval of version information for certain files
-   * Fixed WOW64 DLL file names
 
 2.23
  * NEW/IMPROVED:
