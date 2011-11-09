@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phappres.h>
 
 static INT_PTR CALLBACK PhpAboutDlgProc(
     __in HWND hwndDlg,
@@ -33,18 +34,17 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PPH_STRING versionString;
+            PPH_STRING appName;
 
-            if (versionString = PhGetPhVersion())
-            {
-                static PH_STRINGREF processHackerString = PH_STRINGREF_INIT(L"Process Hacker ");
-                PPH_STRING appName;
-
-                appName = PhConcatStringRef2(&processHackerString, &versionString->sr);
-                SetDlgItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
-                PhDereferenceObject(appName);
-                PhDereferenceObject(versionString);
-            }
+            appName = PhFormatString(
+                L"Process Hacker %u.%u.%u.%u",
+                PHAPP_VERSION_MAJOR,
+                PHAPP_VERSION_MINOR,
+                PHAPP_VERSION_BUILD,
+                PHAPP_VERSION_REVISION
+                );
+            SetDlgItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
+            PhDereferenceObject(appName);
 
             SetDlgItemText(hwndDlg, IDC_CREDITS,
                 L"    Installer originally by XhmikosR\n"
