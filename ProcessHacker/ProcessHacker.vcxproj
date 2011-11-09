@@ -97,6 +97,12 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
+    <PreBuildEvent>
+      <Command>call update_rev.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating revision number...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Midl>
@@ -121,6 +127,12 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
+    <PreBuildEvent>
+      <Command>call update_rev.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating revision number...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -148,6 +160,12 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
     </Link>
+    <PreBuildEvent>
+      <Command>call update_rev.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating revision number...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -178,6 +196,12 @@
       <TargetMachine>MachineX64</TargetMachine>
       <SetChecksum>true</SetChecksum>
     </Link>
+    <PreBuildEvent>
+      <Command>call update_rev.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating revision number...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\phlib\basesup.c" />

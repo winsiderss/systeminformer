@@ -28,14 +28,22 @@
   #error Update your Inno Setup version
 #endif
 
+#define ISPP_IS_BUGGY
 #include "..\..\ProcessHacker\include\phappres.h"
+
 ; Include the custom messages and services
 #include "Custom_Messages.iss"
 #include "Services.iss"
 
 #define installer_build_number "10"
 #define copyright              "Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3."
+
+#if defined(TWO_DIGIT_VER)
 #define app_version            str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
+#elif defined(THREE_DIGIT_VER)
+#define app_version            str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + "." + str(PHAPP_VERSION_BUILD)
+#endif
+
 #define installer_build_date   GetDateTimeString('mmm, d yyyy', '', '')
 #define quick_launch           "{userappdata}\Microsoft\Internet Explorer\Quick Launch"
 
