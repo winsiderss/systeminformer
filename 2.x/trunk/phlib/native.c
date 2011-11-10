@@ -5724,7 +5724,6 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 {
     PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
     PVOID Context;
-    HANDLE ProcessHandle;
     ULONG Type;
     PPH_HASHTABLE BaseAddressHashtable;
 
@@ -5739,7 +5738,6 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
     PH_MODULE_INFO moduleInfo;
     PPH_STRING fileName;
-    PPH_STRING baseName;
     BOOLEAN cont;
 
     context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
@@ -5754,34 +5752,14 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         PhAddEntryHashtable(context->BaseAddressHashtable, &Module->DllBase);
     }
 
-    // Try to use the mapped file name if we can because the file name stored 
-    // in the loader entry is not always accurate.
-    if (NT_SUCCESS(PhGetProcessMappedFileName(
-        context->ProcessHandle,
-        Module->DllBase,
-        &fileName
-        )))
-    {
-        baseName = PhGetBaseName(fileName);
-    }
-    else
-    {
-        fileName = PhCreateStringEx(
-            Module->FullDllName.Buffer,
-            Module->FullDllName.Length
-            );
-        baseName = PhCreateStringEx(
-            Module->BaseDllName.Buffer,
-            Module->BaseDllName.Length
-            );
-    }
+    fileName = PhCreateStringEx(Module->FullDllName.Buffer, Module->FullDllName.Length);
 
     moduleInfo.Type = context->Type;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
     moduleInfo.EntryPoint = Module->EntryPoint;
     moduleInfo.Flags = Module->Flags;
-    moduleInfo.Name = baseName;
+    moduleInfo.Name = PhCreateStringEx(Module->BaseDllName.Buffer, Module->BaseDllName.Length);
     moduleInfo.FileName = PhGetFileName(fileName);
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->LoadCount;
@@ -6171,7 +6149,6 @@ NTSTATUS PhEnumGenericModules(
 
         context.Callback = Callback;
         context.Context = Context;
-        context.ProcessHandle = ProcessHandle;
         context.Type = PH_MODULE_TYPE_MODULE;
         context.BaseAddressHashtable = baseAddressHashtable;
         context.LoadOrderIndex = 0;
