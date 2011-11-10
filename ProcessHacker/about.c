@@ -47,7 +47,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             PhDereferenceObject(appName);
 
             SetDlgItemText(hwndDlg, IDC_CREDITS,
-                L"    Installer originally by XhmikosR\n"
+                L"    Installer by XhmikosR\n"
                 L"    Driver signed by the ReactOS Foundation\n"
                 L"Thanks to:\n"
                 L"    dmex\n"
