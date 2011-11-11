@@ -1,8 +1,8 @@
 /*
  * Process Hacker -
- *   system information
+ *   system information window
  *
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2011 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -24,10 +24,10 @@
 #include <kphuser.h>
 #include <settings.h>
 #include <windowsx.h>
+#include <sysinfop.h>
 
 #define WM_PH_SYSINFO_ACTIVATE (WM_APP + 150)
 #define WM_PH_SYSINFO_UPDATE (WM_APP + 151)
-#define WM_PH_SYSINFO_PANEL_UPDATE (WM_APP + 160)
 
 NTSTATUS PhpSysInfoThreadStart(
     __in PVOID Parameter
@@ -40,41 +40,49 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
     __in LPARAM lParam
     );
 
-INT_PTR CALLBACK PhpSysInfoPanelDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+BOOLEAN PhpCpuSectionCallback(
+    __in PPH_SYSINFO_SECTION Section,
+    __in HWND DialogWindowHandle,
+    __in PH_SYSINFO_SECTION_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2
+    );
+
+BOOLEAN PhpMemorySectionCallback(
+    __in PPH_SYSINFO_SECTION Section,
+    __in HWND DialogWindowHandle,
+    __in PH_SYSINFO_SECTION_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2
+    );
+
+BOOLEAN PhpIoSectionCallback(
+    __in PPH_SYSINFO_SECTION Section,
+    __in HWND DialogWindowHandle,
+    __in PH_SYSINFO_SECTION_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2
     );
 
 HANDLE PhSysInfoThreadHandle = NULL;
 HWND PhSysInfoWindowHandle = NULL;
-HWND PhSysInfoPanelWindowHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-static BOOLEAN InInitDialog;
 
-static BOOLEAN OneGraphPerCpu;
+static PH_SYSINFO_VIEW_TYPE CurrentView;
+static PH_SYSINFO_PARAMETERS CurrentParameters;
+static PPH_LIST SectionList;
+
+static PPH_SYSINFO_SECTION CpuSection;
+static PPH_SYSINFO_SECTION MemorySection;
+static PPH_SYSINFO_SECTION IoSection;
+
 static BOOLEAN AlwaysOnTop;
 
-static HWND CpuGraphHandle;
-static HWND IoGraphHandle;
-static HWND PhysicalGraphHandle;
-static HWND *CpusGraphHandle;
-
-static PH_GRAPH_STATE CpuGraphState;
-static PH_GRAPH_STATE IoGraphState;
-static PH_GRAPH_STATE PhysicalGraphState;
-static PPH_GRAPH_STATE CpusGraphState;
-
-static BOOLEAN MmAddressesInitialized = FALSE;
-static PSIZE_T MmSizeOfPagedPoolInBytes = NULL;
-static PSIZE_T MmMaximumNonPagedPoolInBytes = NULL;
-
 VOID PhShowSystemInformationDialog(
-    VOID
+    __in_opt PWSTR SectionName
     )
 {
     if (!PhSysInfoWindowHandle)
@@ -91,62 +99,6 @@ VOID PhShowSystemInformationDialog(
     SendMessage(PhSysInfoWindowHandle, WM_PH_SYSINFO_ACTIVATE, 0, 0);
 }
 
-static NTSTATUS PhpLoadMmAddresses(
-    __in PVOID Parameter
-    )
-{
-    PRTL_PROCESS_MODULES kernelModules;
-    PPH_SYMBOL_PROVIDER symbolProvider;
-    PPH_STRING kernelFileName;
-    PPH_STRING newFileName;
-    PH_SYMBOL_INFORMATION symbolInfo;
-
-    if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
-    {
-        if (kernelModules->NumberOfModules >= 1)
-        {
-            symbolProvider = PhCreateSymbolProvider(NULL);
-            PhLoadSymbolProviderOptions(symbolProvider);
-
-            kernelFileName = PhCreateStringFromAnsi(kernelModules->Modules[0].FullPathName);
-            newFileName = PhGetFileName(kernelFileName);
-            PhDereferenceObject(kernelFileName);
-
-            PhLoadModuleSymbolProvider(
-                symbolProvider,
-                newFileName->Buffer,
-                (ULONG64)kernelModules->Modules[0].ImageBase,
-                kernelModules->Modules[0].ImageSize
-                );
-            PhDereferenceObject(newFileName);
-
-            if (PhGetSymbolFromName(
-                symbolProvider,
-                L"MmSizeOfPagedPoolInBytes",
-                &symbolInfo
-                ))
-            {
-                MmSizeOfPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
-            }
-
-            if (PhGetSymbolFromName(
-                symbolProvider,
-                L"MmMaximumNonPagedPoolInBytes",
-                &symbolInfo
-                ))
-            {
-                MmMaximumNonPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
-            }
-
-            PhDereferenceObject(symbolProvider);
-        }
-
-        PhFree(kernelModules);
-    }
-
-    return STATUS_SUCCESS;
-}
-
 static NTSTATUS PhpSysInfoThreadStart(
     __in PVOID Parameter
     )
@@ -156,12 +108,6 @@ static NTSTATUS PhpSysInfoThreadStart(
     MSG message;
 
     PhInitializeAutoPool(&autoPool);
-
-    if (!MmAddressesInitialized && KphIsConnected())
-    {
-        PhQueueItemGlobalWorkQueue(PhpLoadMmAddresses, NULL);
-        MmAddressesInitialized = TRUE;
-    }
 
     PhSysInfoWindowHandle = CreateDialog(
         PhInstanceHandle,
@@ -191,7 +137,6 @@ static NTSTATUS PhpSysInfoThreadStart(
     NtClose(PhSysInfoThreadHandle);
 
     PhSysInfoWindowHandle = NULL;
-    PhSysInfoPanelWindowHandle = NULL;
     PhSysInfoThreadHandle = NULL;
 
     return STATUS_SUCCESS;
@@ -205,26 +150,494 @@ static VOID PhpSetAlwaysOnTop(
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
 
-static VOID PhpSetOneGraphPerCpu(
-    VOID
-    )
-{
-    ULONG i;
-
-    ShowWindow(CpuGraphHandle, !OneGraphPerCpu ? SW_SHOW : SW_HIDE);
-
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-    {
-        ShowWindow(CpusGraphHandle[i], OneGraphPerCpu ? SW_SHOW : SW_HIDE);
-    }
-}
-
 static VOID NTAPI SysInfoUpdateHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
 {
     PostMessage(PhSysInfoWindowHandle, WM_PH_SYSINFO_UPDATE, 0, 0);
+}
+
+static VOID PhpColorSetupFunction(
+    __out PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in COLORREF Color1,
+    __in COLORREF Color2
+    )
+{
+    DrawInfo->LineColor1 = PhHalveColorBrightness(Color1);
+    DrawInfo->LineBackColor1 = PhMakeColorBrighter(Color1, 125);
+    DrawInfo->LineColor2 = PhHalveColorBrightness(Color2);
+    DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
+}
+
+static VOID PhpInitializeParameters(
+    __in HWND WindowHandle
+    )
+{
+    LOGFONT logFont;
+    HDC hdc;
+    TEXTMETRIC textMetrics;
+    HFONT originalFont;
+
+    memset(&CurrentParameters, 0, sizeof(PH_SYSINFO_PARAMETERS));
+
+    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+    {
+        CurrentParameters.Font = CreateFontIndirect(&logFont);
+    }
+    else
+    {
+        CurrentParameters.Font = PhApplicationFont;
+        GetObject(PhApplicationFont, sizeof(LOGFONT), &logFont);
+    }
+
+    hdc = GetDC(WindowHandle);
+
+    logFont.lfHeight -= MulDiv(4, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
+
+    logFont.lfHeight -= MulDiv(4, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
+
+    CurrentParameters.GraphBackColor = RGB(0xef, 0xef, 0xef);
+    CurrentParameters.PanelForeColor = RGB(0x00, 0x00, 0x00);
+
+    CurrentParameters.ColorSetupFunction = PhpColorSetupFunction;
+
+    originalFont = SelectObject(hdc, CurrentParameters.Font);
+    GetTextMetrics(hdc, &textMetrics);
+    CurrentParameters.FontHeight = textMetrics.tmHeight;
+
+    SelectObject(hdc, CurrentParameters.MediumFont);
+    GetTextMetrics(hdc, &textMetrics);
+    CurrentParameters.MediumFontHeight = textMetrics.tmHeight;
+
+    SelectObject(hdc, originalFont);
+
+    CurrentParameters.MinimumGraphHeight =
+        PH_SYSINFO_PANEL_PADDING +
+        CurrentParameters.MediumFontHeight +
+        PH_SYSINFO_PANEL_PADDING;
+
+    CurrentParameters.SectionViewGraphHeight =
+        PH_SYSINFO_PANEL_PADDING +
+        CurrentParameters.MediumFontHeight +
+        PH_SYSINFO_PANEL_PADDING +
+        CurrentParameters.FontHeight +
+        2 +
+        CurrentParameters.FontHeight +
+        PH_SYSINFO_PANEL_PADDING +
+        2;
+
+    ReleaseDC(WindowHandle, hdc);
+}
+
+static VOID PhpDeleteParameters(
+    VOID
+    )
+{
+    if (CurrentParameters.Font)
+        DeleteObject(CurrentParameters.Font);
+    if (CurrentParameters.MediumFont)
+        DeleteObject(CurrentParameters.MediumFont);
+    if (CurrentParameters.LargeFont)
+        DeleteObject(CurrentParameters.LargeFont);
+}
+
+static PPH_SYSINFO_SECTION PhpCreateSection(
+    __in PPH_SYSINFO_SECTION Template
+    )
+{
+    PPH_SYSINFO_SECTION section;
+    PH_GRAPH_OPTIONS options;
+
+    section = PhAllocate(sizeof(PH_SYSINFO_SECTION));
+    memset(section, 0, sizeof(PH_SYSINFO_SECTION));
+
+    section->Name = Template->Name;
+    section->Flags = Template->Flags;
+    section->Callback = Template->Callback;
+
+    section->GraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL,
+        0,
+        0,
+        3,
+        3,
+        PhSysInfoWindowHandle,
+        (HMENU)(IDDYNAMIC + 1 + SectionList->Count),
+        PhInstanceHandle,
+        NULL
+        );
+    PhInitializeGraphState(&section->GraphState);
+    section->Parameters = &CurrentParameters;
+
+    Graph_GetOptions(section->GraphHandle, &options);
+    options.FadeOutWidth = PH_SYSINFO_FADE_WIDTH;
+    options.DefaultCursor = LoadCursor(NULL, IDC_HAND);
+    Graph_SetOptions(section->GraphHandle, &options);
+    Graph_SetTooltip(section->GraphHandle, TRUE);
+
+    PhAddItemList(SectionList, section);
+
+    return section;
+}
+
+static VOID PhpDestroySection(
+    __in PPH_SYSINFO_SECTION Section
+    )
+{
+    PhDeleteGraphState(&Section->GraphState);
+    PhFree(Section);
+}
+
+static PPH_SYSINFO_SECTION PhpCreateInternalSection(
+    __in PWSTR Name,
+    __in ULONG Flags,
+    __in PPH_SYSINFO_SECTION_CALLBACK Callback
+    )
+{
+    PH_SYSINFO_SECTION section;
+
+    memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
+    section.Name = Name;
+    section.Flags = Flags;
+    section.Callback = Callback;
+
+    return PhpCreateSection(&section);
+}
+
+static VOID PhpDefaultDrawPanel(
+    __in PPH_SYSINFO_SECTION Section,
+    __in PPH_SYSINFO_DRAW_PANEL DrawPanel
+    )
+{
+    HDC hdc;
+    RECT rect;
+
+    hdc = DrawPanel->hdc;
+
+    SetTextColor(hdc, CurrentParameters.PanelForeColor);
+    SetBkMode(hdc, TRANSPARENT);
+
+    rect.left = PH_SYSINFO_PANEL_PADDING;
+    rect.top = PH_SYSINFO_PANEL_PADDING;
+    rect.right = PH_SYSINFO_FADE_WIDTH;
+    rect.bottom = DrawPanel->Rect.bottom;
+
+    if (DrawPanel->Title)
+    {
+        SelectObject(hdc, CurrentParameters.MediumFont);
+        DrawText(hdc, DrawPanel->Title->Buffer, DrawPanel->Title->Length / 2, &rect, DT_NOPREFIX | DT_SINGLELINE);
+    }
+
+    if (DrawPanel->SubTitle)
+    {
+        rect.top += CurrentParameters.MediumFontHeight + PH_SYSINFO_PANEL_PADDING;
+        SelectObject(hdc, CurrentParameters.Font);
+        DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &rect, DT_NOPREFIX);
+    }
+}
+
+INT_PTR CALLBACK PhpSysInfoDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+
+            PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
+
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                SysInfoUpdateHandler,
+                NULL,
+                &ProcessesUpdatedRegistration
+                );
+
+            PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            ULONG i;
+            PPH_SYSINFO_SECTION section;
+
+            PhUnregisterCallback(
+                &PhProcessesUpdatedEvent,
+                &ProcessesUpdatedRegistration
+                );
+
+            PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
+
+            PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
+
+            for (i = 0; i < SectionList->Count; i++)
+            {
+                section = SectionList->Items[i];
+                PhpDestroySection(section);
+            }
+
+            PhDereferenceObject(SectionList);
+            PhpDeleteParameters();
+
+            PhDeleteLayoutManager(&WindowLayoutManager);
+            PostQuitMessage(0);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            RECT buttonRect;
+            RECT clientRect;
+
+            SectionList = PhCreateList(8);
+            PhpInitializeParameters(hwndDlg);
+
+            CpuSection = PhpCreateInternalSection(L"CPU", 0, PhpCpuSectionCallback);
+            MemorySection = PhpCreateInternalSection(L"Memory", 0, PhpMemorySectionCallback);
+            IoSection = PhpCreateInternalSection(L"I/O", 0, PhpIoSectionCallback);
+
+            GetWindowRect(GetDlgItem(hwndDlg, IDOK), &buttonRect);
+            MapWindowPoints(NULL, hwndDlg, (POINT *)&buttonRect, 2);
+            GetClientRect(hwndDlg, &clientRect);
+
+            MinimumSize.left = 0;
+            MinimumSize.top = 0;
+            MinimumSize.right = 400;
+            MinimumSize.bottom = 200;
+
+            if (SectionList->Count != 0)
+            {
+                MinimumSize.bottom =
+                    GetSystemMetrics(SM_CYCAPTION) +
+                    PH_SYSINFO_WINDOW_PADDING +
+                    CurrentParameters.SectionViewGraphHeight * SectionList->Count +
+                    PH_SYSINFO_GRAPH_PADDING * (SectionList->Count - 1) +
+                    PH_SYSINFO_WINDOW_PADDING +
+                    clientRect.bottom - buttonRect.top +
+                    GetSystemMetrics(SM_CYSIZEFRAME) * 2;
+            }
+
+            AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowAlwaysOnTop");
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
+            PhpSetAlwaysOnTop();
+
+            SendMessage(hwndDlg, WM_SIZE, 0, 0);
+            SendMessage(hwndDlg, WM_PH_SYSINFO_UPDATE, 0, 0);
+        }
+        break;
+    case WM_SIZE:
+        {
+            RECT buttonRect;
+            RECT clientRect;
+            ULONG availableHeight;
+            ULONG availableWidth;
+            ULONG graphHeight;
+            ULONG i;
+            PPH_SYSINFO_SECTION section;
+            HDWP deferHandle;
+            ULONG y;
+
+            PhLayoutManagerLayout(&WindowLayoutManager);
+
+            if (SectionList && SectionList->Count != 0)
+            {
+                GetWindowRect(GetDlgItem(hwndDlg, IDOK), &buttonRect);
+                MapWindowPoints(NULL, hwndDlg, (POINT *)&buttonRect, 2);
+                GetClientRect(hwndDlg, &clientRect);
+
+                availableHeight = buttonRect.top - PH_SYSINFO_WINDOW_PADDING * 2;
+                availableWidth = clientRect.right - PH_SYSINFO_WINDOW_PADDING * 2;
+                graphHeight = (availableHeight - PH_SYSINFO_GRAPH_PADDING * (SectionList->Count - 1)) / SectionList->Count;
+
+                deferHandle = BeginDeferWindowPos(SectionList->Count);
+                y = PH_SYSINFO_WINDOW_PADDING;
+
+                for (i = 0; i < SectionList->Count; i++)
+                {
+                    section = SectionList->Items[i];
+
+                    deferHandle = DeferWindowPos(
+                        deferHandle,
+                        section->GraphHandle,
+                        NULL,
+                        PH_SYSINFO_WINDOW_PADDING,
+                        y,
+                        availableWidth,
+                        graphHeight,
+                        SWP_NOACTIVATE | SWP_NOZORDER
+                        );
+                    y += graphHeight + PH_SYSINFO_GRAPH_PADDING;
+
+                    section->GraphState.Valid = FALSE;
+                }
+
+                EndDeferWindowPos(deferHandle);
+            }
+        }
+        break;
+    case WM_SIZING:
+        {
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDCANCEL:
+            case IDOK:
+                DestroyWindow(hwndDlg);
+                break;
+            case IDC_ALWAYSONTOP:
+                {
+                    AlwaysOnTop = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP)) == BST_CHECKED;
+                    PhpSetAlwaysOnTop();
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case GCN_GETDRAWINFO:
+                {
+                    PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
+                    PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+                    ULONG i;
+                    PPH_SYSINFO_SECTION section;
+
+                    for (i = 0; i < SectionList->Count; i++)
+                    {
+                        section = SectionList->Items[i];
+
+                        if (getDrawInfo->Header.hwndFrom == section->GraphHandle)
+                        {
+                            section->Callback(section, hwndDlg, SysInfoGraphGetDrawInfo, drawInfo, 0);
+
+                            if (CurrentView == SysInfoSectionView)
+                                drawInfo->Flags &= ~PH_GRAPH_USE_GRID;
+
+                            break;
+                        }
+                    }
+                }
+                break;
+            case GCN_GETTOOLTIPTEXT:
+                {
+                    PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
+                    ULONG i;
+                    PPH_SYSINFO_SECTION section;
+
+                    if (getTooltipText->Index < getTooltipText->TotalCount)
+                    {
+                        for (i = 0; i < SectionList->Count; i++)
+                        {
+                            section = SectionList->Items[i];
+
+                            if (getTooltipText->Header.hwndFrom == section->GraphHandle)
+                            {
+                                PH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT graphGetTooltipText;
+
+                                graphGetTooltipText.Index = getTooltipText->Index;
+                                PhInitializeEmptyStringRef(&graphGetTooltipText.Text);
+
+                                section->Callback(section, hwndDlg, SysInfoGraphGetTooltipText, &graphGetTooltipText, 0);
+
+                                getTooltipText->Text = graphGetTooltipText.Text;
+
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+            case GCN_DRAWPANEL:
+                {
+                    PPH_GRAPH_DRAWPANEL drawPanel = (PPH_GRAPH_DRAWPANEL)lParam;
+                    ULONG i;
+                    PPH_SYSINFO_SECTION section;
+
+                    for (i = 0; i < SectionList->Count; i++)
+                    {
+                        section = SectionList->Items[i];
+
+                        if (drawPanel->Header.hwndFrom == section->GraphHandle)
+                        {
+                            PH_SYSINFO_DRAW_PANEL sysInfoDrawPanel;
+
+                            sysInfoDrawPanel.hdc = drawPanel->hdc;
+                            sysInfoDrawPanel.Rect = drawPanel->Rect;
+                            sysInfoDrawPanel.Rect.right = PH_SYSINFO_FADE_WIDTH;
+                            sysInfoDrawPanel.CustomDraw = FALSE;
+
+                            sysInfoDrawPanel.Title = NULL;
+                            sysInfoDrawPanel.SubTitle = NULL;
+
+                            section->Callback(section, hwndDlg, SysInfoGraphDrawPanel, &sysInfoDrawPanel, NULL);
+
+                            if (!sysInfoDrawPanel.CustomDraw)
+                                PhpDefaultDrawPanel(section, &sysInfoDrawPanel);
+
+                            PhSwapReference(&sysInfoDrawPanel.Title, NULL);
+                            PhSwapReference(&sysInfoDrawPanel.SubTitle, NULL);
+
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_PH_SYSINFO_ACTIVATE:
+        {
+            if (IsIconic(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
+        }
+        break;
+    case WM_PH_SYSINFO_UPDATE:
+        {
+            ULONG i;
+            PPH_SYSINFO_SECTION section;
+
+            for (i = 0; i < SectionList->Count; i++)
+            {
+                section = SectionList->Items[i];
+
+                section->Callback(section, hwndDlg, SysInfoTick, NULL, NULL);
+
+                section->GraphState.Valid = FALSE;
+                section->GraphState.TooltipIndex = -1;
+                Graph_MoveGrid(section->GraphHandle, 1);
+                Graph_Draw(section->GraphHandle);
+                Graph_UpdateTooltip(section->GraphHandle);
+                InvalidateRect(section->GraphHandle, NULL, FALSE);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
 }
 
 static PPH_PROCESS_RECORD PhpReferenceMaxCpuRecord(
@@ -303,6 +716,155 @@ static PPH_STRING PhapGetMaxCpuString(
     return maxUsageString;
 }
 
+static BOOLEAN PhpCpuSectionCallback(
+    __in PPH_SYSINFO_SECTION Section,
+    __in HWND DialogWindowHandle,
+    __in PH_SYSINFO_SECTION_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2
+    )
+{
+    switch (Message)
+    {
+    case SysInfoGraphGetDrawInfo:
+        {
+            PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
+            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
+
+            if (!Section->GraphState.Valid)
+            {
+                PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
+                PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, Section->GraphState.Data2, drawInfo->LineDataCount);
+                Section->GraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case SysInfoGraphGetTooltipText:
+        {
+            PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
+            FLOAT cpuKernel;
+            FLOAT cpuUser;
+
+            cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
+            cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
+
+            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                L"%.2f%%%s\n%s",
+                (cpuKernel + cpuUser) * 100,
+                PhGetStringOrEmpty(PhapGetMaxCpuString(getTooltipText->Index)),
+                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ));
+            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+        }
+        break;
+    case SysInfoGraphDrawPanel:
+        {
+            PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
+
+            drawPanel->Title = PhCreateString(L"CPU");
+            drawPanel->SubTitle = PhFormatString(L"%.2f%%", (PhCpuKernelUsage + PhCpuUserUsage) * 100);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+static PPH_STRING PhapFormatSizeWithPrecision(
+    __in ULONG64 Size,
+    __in USHORT Precision
+    )
+{
+    PH_FORMAT format;
+
+    format.Type = SizeFormatType | FormatUsePrecision;
+    format.Precision = Precision;
+    format.u.Size = Size;
+
+    return PHA_DEREFERENCE(PhFormat(&format, 1, 0));
+}
+
+static BOOLEAN PhpMemorySectionCallback(
+    __in PPH_SYSINFO_SECTION Section,
+    __in HWND DialogWindowHandle,
+    __in PH_SYSINFO_SECTION_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2
+    )
+{
+    switch (Message)
+    {
+    case SysInfoGraphGetDrawInfo:
+        {
+            PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
+            ULONG i;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0);
+            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhPhysicalHistory.Count);
+
+            if (!Section->GraphState.Valid)
+            {
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                }
+
+                if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
+                {
+                    // Scale the data.
+                    PhxfDivideSingle2U(
+                        Section->GraphState.Data1,
+                        (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                Section->GraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case SysInfoGraphGetTooltipText:
+        {
+            PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
+            ULONG usedPages;
+
+            usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
+
+            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                L"Physical Memory: %s\n%s",
+                PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ));
+            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+        }
+        break;
+    case SysInfoGraphDrawPanel:
+        {
+            PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
+            ULONG totalPages;
+            ULONG usedPages;
+
+            totalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
+            usedPages = totalPages - PhPerfInformation.AvailablePages;
+
+            drawPanel->Title = PhCreateString(L"Memory");
+            drawPanel->SubTitle = PhFormatString(
+                L"%.0f%%\n%s / %s",
+                (FLOAT)usedPages * 100 / totalPages,
+                PhapFormatSizeWithPrecision(UInt32x32To64(usedPages, PAGE_SIZE), 1)->Buffer,
+                PhapFormatSizeWithPrecision(UInt32x32To64(totalPages, PAGE_SIZE), 1)->Buffer
+                );
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 static PPH_PROCESS_RECORD PhpReferenceMaxIoRecord(
     __in LONG Index
     )
@@ -371,986 +933,98 @@ static PPH_STRING PhapGetMaxIoString(
     return maxUsageString;
 }
 
-INT_PTR CALLBACK PhpSysInfoDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+static BOOLEAN PhpIoSectionCallback(
+    __in PPH_SYSINFO_SECTION Section,
+    __in HWND DialogWindowHandle,
+    __in PH_SYSINFO_SECTION_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2
     )
 {
-    switch (uMsg)
+    switch (Message)
     {
-    case WM_INITDIALOG:
+    case SysInfoGraphGetDrawInfo:
         {
-            ULONG processors;
+            PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
+            FLOAT max;
 
-            // Perform the allocations early or else in other message handlers we may
-            // be doing null dereferences.
-            processors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-            CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * processors);
-            CpusGraphHandle = PhAllocate(sizeof(HWND) * processors);
-            memset(CpusGraphHandle, 0, sizeof(HWND) * processors);
+            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
+            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhIoReadHistory.Count);
 
-            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
-            // the drawing issue that arises when using WS_CLIPCHILDREN. However
-            // in removing the flicker from the graphs the group boxes will now flicker.
-            // It's a good tradeoff since no one stares at the group boxes.
-            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
-
-            PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
-
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ONEGRAPHPERCPU), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-
-            MinimumSize.left = 0;
-            MinimumSize.top = 0;
-            MinimumSize.right = 413;
-            MinimumSize.bottom = 360;
-            MapDialogRect(hwndDlg, &MinimumSize);
-
-            PhInitializeGraphState(&CpuGraphState);
-            PhInitializeGraphState(&IoGraphState);
-            PhInitializeGraphState(&PhysicalGraphState);
-
-            CpuGraphHandle = CreateWindow(
-                PH_GRAPH_CLASSNAME,
-                NULL,
-                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT,
-                0,
-                0,
-                3,
-                3,
-                hwndDlg,
-                (HMENU)IDC_CPU,
-                PhInstanceHandle,
-                NULL
-                );
-            Graph_SetTooltip(CpuGraphHandle, TRUE);
-            BringWindowToTop(CpuGraphHandle);
-
-            IoGraphHandle = CreateWindow(
-                PH_GRAPH_CLASSNAME,
-                NULL,
-                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT,
-                0,
-                0,
-                3,
-                3,
-                hwndDlg,
-                (HMENU)IDC_IO,
-                PhInstanceHandle,
-                NULL
-                );
-            Graph_SetTooltip(IoGraphHandle, TRUE);
-            BringWindowToTop(IoGraphHandle);
-
-            PhysicalGraphHandle = CreateWindow(
-                PH_GRAPH_CLASSNAME,
-                NULL,
-                WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT,
-                0,
-                0,
-                3,
-                3,
-                hwndDlg,
-                (HMENU)IDC_PHYSICAL,
-                PhInstanceHandle,
-                NULL
-                );
-            Graph_SetTooltip(PhysicalGraphHandle, TRUE);
-            BringWindowToTop(PhysicalGraphHandle);
-
-            for (i = 0; i < processors; i++)
+            if (!Section->GraphState.Valid)
             {
-                PhInitializeGraphState(&CpusGraphState[i]);
+                max = 0;
 
-                CpusGraphHandle[i] = CreateWindow(
-                    PH_GRAPH_CLASSNAME,
-                    NULL,
-                    WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
-                    0,
-                    0,
-                    3,
-                    3,
-                    hwndDlg,
-                    (HMENU)(IDC_CPU0 + i),
-                    PhInstanceHandle,
-                    NULL
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT data1;
+                    FLOAT data2;
+
+                    Section->GraphState.Data1[i] = data1 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
+                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
+                    Section->GraphState.Data2[i] = data2 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
+
+                    if (max < data1 + data2)
+                        max = data1 + data2;
+                }
+
+                // Minimum scaling of 1 MB.
+                if (max < 1024 * 1024)
+                    max = 1024 * 1024;
+
+                // Scale the data.
+
+                PhxfDivideSingle2U(
+                    Section->GraphState.Data1,
+                    max,
+                    drawInfo->LineDataCount
                     );
-                Graph_SetTooltip(CpusGraphHandle[i], TRUE);
-                BringWindowToTop(CpusGraphHandle[i]);
-            }
-
-            PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
-                SysInfoUpdateHandler,
-                NULL,
-                &ProcessesUpdatedRegistration
-                );
-
-            InInitDialog = TRUE;
-            PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
-            InInitDialog = FALSE;
-        }
-        break;
-    case WM_DESTROY:
-        {
-            ULONG i;
-
-            PhUnregisterCallback(
-                &PhProcessesUpdatedEvent,
-                &ProcessesUpdatedRegistration
-                );
-
-            PhFree(CpusGraphHandle);
-            CpusGraphHandle = NULL;
-
-            for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-                PhDeleteGraphState(&CpusGraphState[i]);
-
-            PhFree(CpusGraphState);
-            CpusGraphState = NULL;
-
-            PhDeleteGraphState(&CpuGraphState);
-            PhDeleteGraphState(&IoGraphState);
-            PhDeleteGraphState(&PhysicalGraphState);
-
-            PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
-            PhSetIntegerSetting(L"SysInfoWindowOneGraphPerCpu", OneGraphPerCpu);
-
-            PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
-
-            PhDeleteLayoutManager(&WindowLayoutManager);
-            PostQuitMessage(0);
-        }
-        break;
-    case WM_CTLCOLORDLG:
-        return (LONG_PTR)GetSysColorBrush(COLOR_WINDOW);
-    case WM_SHOWWINDOW:
-        {
-            RECT margin;
-
-            PhSysInfoPanelWindowHandle = CreateDialog(
-                PhInstanceHandle,
-                MAKEINTRESOURCE(IDD_SYSINFO_PANEL),
-                PhSysInfoWindowHandle,
-                PhpSysInfoPanelDlgProc
-                );
-
-            SetWindowPos(PhSysInfoPanelWindowHandle, NULL, 10, 0, 0, 0,
-                SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
-            ShowWindow(PhSysInfoPanelWindowHandle, SW_SHOW);
-
-            AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowAlwaysOnTop");
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
-            PhpSetAlwaysOnTop();
-
-            if (PhSystemBasicInformation.NumberOfProcessors != 1)
-            {
-                OneGraphPerCpu = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowOneGraphPerCpu");
-                Button_SetCheck(GetDlgItem(hwndDlg, IDC_ONEGRAPHPERCPU), OneGraphPerCpu ? BST_CHECKED : BST_UNCHECKED);
-                PhpSetOneGraphPerCpu();
-            }
-            else
-            {
-                OneGraphPerCpu = FALSE;
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ONEGRAPHPERCPU), FALSE);
-                PhpSetOneGraphPerCpu();
-            }
-
-            margin.left = 0;
-            margin.top = 0;
-            margin.right = 0;
-            margin.bottom = 25;
-            MapDialogRect(hwndDlg, &margin);
-
-            PhAddLayoutItemEx(&WindowLayoutManager, PhSysInfoPanelWindowHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT, margin);
-
-            SendMessage(hwndDlg, WM_SIZE, 0, 0);
-            SendMessage(hwndDlg, WM_PH_SYSINFO_UPDATE, 0, 0);
-        }
-        break;
-    case WM_SIZE:
-        {
-            HDWP deferHandle;
-            HWND cpuGroupBox = GetDlgItem(hwndDlg, IDC_GROUPCPU);
-            HWND ioGroupBox = GetDlgItem(hwndDlg, IDC_GROUPIO);
-            HWND physicalGroupBox = GetDlgItem(hwndDlg, IDC_GROUPPHYSICAL);
-            RECT clientRect;
-            RECT panelRect;
-            RECT margin = { 13, 13, 13, 13 };
-            RECT innerMargin = { 10, 20, 10, 10 };
-            LONG between = 3;
-            LONG width;
-            LONG height;
-
-            // PhLoadWindowPlacementFromSetting in WM_INITDIALOG causes WM_SIZE to be sent, but this seems
-            // to cause major lag. Ignore the message if it's from WM_INITDIALOG.
-            if (InInitDialog)
-                break;
-
-            PhLayoutManagerLayout(&WindowLayoutManager);
-
-            CpuGraphState.Valid = FALSE;
-            IoGraphState.Valid = FALSE;
-            PhysicalGraphState.Valid = FALSE;
-
-            GetClientRect(hwndDlg, &clientRect);
-            // Limit the rectangle bottom to the top of the panel.
-            GetWindowRect(PhSysInfoPanelWindowHandle, &panelRect);
-            MapWindowPoints(NULL, hwndDlg, (POINT *)&panelRect, 2);
-            clientRect.bottom = panelRect.top;
-
-            width = clientRect.right - margin.left - margin.right;
-            height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
-
-            deferHandle = BeginDeferWindowPos(6);
-
-            deferHandle = DeferWindowPos(deferHandle, cpuGroupBox, NULL, margin.left, margin.top,
-                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
-
-            if (!OneGraphPerCpu)
-            {
-                deferHandle = DeferWindowPos(
-                    deferHandle,
-                    CpuGraphHandle,
-                    NULL,
-                    margin.left + innerMargin.left,
-                    margin.top + innerMargin.top,
-                    width - innerMargin.left - innerMargin.right,
-                    height - innerMargin.top - innerMargin.bottom,
-                    SWP_NOACTIVATE | SWP_NOZORDER
+                PhxfDivideSingle2U(
+                    Section->GraphState.Data2,
+                    max,
+                    drawInfo->LineDataCount
                     );
+
+                Section->GraphState.Valid = TRUE;
             }
-            else
-            {
-                ULONG i;
-                ULONG processors;
-                ULONG graphBetween = 5;
-                ULONG graphWidth;
-                ULONG x;
+        }
+        break;
+    case SysInfoGraphGetTooltipText:
+        {
+            PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
+            ULONG64 ioRead;
+            ULONG64 ioWrite;
+            ULONG64 ioOther;
 
-                processors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-                graphWidth = (width - innerMargin.left - innerMargin.right - graphBetween * (processors - 1)) / processors;
-                x = margin.left + innerMargin.left;
+            ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
+            ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
+            ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
-                for (i = 0; i < processors; i++)
-                {
-                    // Give the last graph the remaining space; the width we calculated might be off by a few
-                    // pixels due to integer division.
-                    if (i == processors - 1)
-                    {
-                        graphWidth = clientRect.right - margin.right - innerMargin.right - x;
-                    }
+            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                L"R: %s\nW: %s\nO: %s%s\n%s",
+                PhaFormatSize(ioRead, -1)->Buffer,
+                PhaFormatSize(ioWrite, -1)->Buffer,
+                PhaFormatSize(ioOther, -1)->Buffer,
+                PhGetStringOrEmpty(PhapGetMaxIoString(getTooltipText->Index)),
+                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ));
+            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+        }
+        break;
+    case SysInfoGraphDrawPanel:
+        {
+            PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
 
-                    deferHandle = DeferWindowPos(
-                        deferHandle,
-                        CpusGraphHandle[i],
-                        NULL,
-                        x,
-                        margin.top + innerMargin.top,
-                        graphWidth,
-                        height - innerMargin.top - innerMargin.bottom,
-                        SWP_NOACTIVATE | SWP_NOZORDER
-                        );
-                    x += graphWidth + graphBetween;
-                }
-            }
-
-            deferHandle = DeferWindowPos(deferHandle, ioGroupBox, NULL, margin.left, margin.top + height + between,
-                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
-            deferHandle = DeferWindowPos(
-                deferHandle,
-                IoGraphHandle,
-                NULL,
-                margin.left + innerMargin.left,
-                margin.top + height + between + innerMargin.top,
-                width - innerMargin.left - innerMargin.right,
-                height - innerMargin.top - innerMargin.bottom,
-                SWP_NOACTIVATE | SWP_NOZORDER
+            drawPanel->Title = PhCreateString(L"I/O");
+            drawPanel->SubTitle = PhFormatString(
+                L"R+O: %s\nW: %s",
+                PhapFormatSizeWithPrecision(PhIoReadDelta.Delta + PhIoOtherDelta.Delta, 1)->Buffer,
+                PhapFormatSizeWithPrecision(PhIoWriteDelta.Delta, 1)->Buffer
                 );
-
-            deferHandle = DeferWindowPos(deferHandle, physicalGroupBox, NULL, margin.left, margin.top + (height + between) * 2,
-                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
-            deferHandle = DeferWindowPos(
-                deferHandle,
-                PhysicalGraphHandle,
-                NULL,
-                margin.left + innerMargin.left,
-                margin.top + (height + between) * 2 + innerMargin.top,
-                width - innerMargin.left - innerMargin.right,
-                height - innerMargin.top - innerMargin.bottom,
-                SWP_NOACTIVATE | SWP_NOZORDER
-                );
-
-            EndDeferWindowPos(deferHandle);
-        }
-        break;
-    case WM_SIZING:
-        {
-            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDCANCEL:
-            case IDOK:
-                DestroyWindow(hwndDlg);
-                break;
-            case IDC_ALWAYSONTOP:
-                {
-                    AlwaysOnTop = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP)) == BST_CHECKED;
-                    PhpSetAlwaysOnTop();
-                }
-                break;
-            case IDC_ONEGRAPHPERCPU:
-                {
-                    OneGraphPerCpu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ONEGRAPHPERCPU)) == BST_CHECKED;
-                    PhpSetOneGraphPerCpu();
-                    SendMessage(hwndDlg, WM_SIZE, 0, 0);
-                }
-                break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case GCN_GETDRAWINFO:
-                {
-                    PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
-                    PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-                    ULONG i;
-
-                    if (header->hwndFrom == CpuGraphHandle)
-                    {
-                        //if (PhCsGraphShowText)
-                        //{
-                        //    HDC hdc;
-
-                        //    PhSwapReference2(&CpuGraphState.TooltipText,
-                        //        PhFormatString(L"%.2f%%",
-                        //        (PhCpuKernelUsage + PhCpuUserUsage) * 100
-                        //        ));
-
-                        //    hdc = Graph_GetBufferedContext(CpuGraphHandle);
-                        //    SelectObject(hdc, PhApplicationFont);
-                        //    PhSetGraphText(hdc, drawInfo, &CpuGraphState.TooltipText->sr,
-                        //        &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                        //}
-                        //else
-                        //{
-                            drawInfo->Text.Buffer = NULL;
-                        //}
-
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
-                        drawInfo->LineColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
-                        drawInfo->LineBackColor1 = PhMakeColorBrighter(PhCsColorCpuKernel, 125);
-                        drawInfo->LineBackColor2 = PhMakeColorBrighter(PhCsColorCpuUser, 125);
-
-                        PhGraphStateGetDrawInfo(
-                            &CpuGraphState,
-                            getDrawInfo,
-                            PhCpuKernelHistory.Count
-                            );
-
-                        if (!CpuGraphState.Valid)
-                        {
-                            PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory,
-                                CpuGraphState.Data1, drawInfo->LineDataCount);
-                            PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory,
-                                CpuGraphState.Data2, drawInfo->LineDataCount);
-                            CpuGraphState.Valid = TRUE;
-                        }
-                    }
-                    else if (header->hwndFrom == IoGraphHandle)
-                    {
-                        //if (PhCsGraphShowText)
-                        //{
-                        //    HDC hdc;
-
-                        //    PhSwapReference2(&IoGraphState.TooltipText,
-                        //        PhFormatString(
-                        //        L"R+O: %s, W: %s",
-                        //        PhaFormatSize(PhIoReadDelta.Delta + PhIoOtherDelta.Delta, -1)->Buffer,
-                        //        PhaFormatSize(PhIoWriteDelta.Delta, -1)->Buffer
-                        //        ));
-
-                        //    hdc = Graph_GetBufferedContext(IoGraphHandle);
-                        //    SelectObject(hdc, PhApplicationFont);
-                        //    PhSetGraphText(hdc, drawInfo, &IoGraphState.TooltipText->sr,
-                        //        &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                        //}
-                        //else
-                        //{
-                            drawInfo->Text.Buffer = NULL;
-                        //}
-
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
-                        drawInfo->LineColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
-                        drawInfo->LineBackColor1 = PhMakeColorBrighter(PhCsColorIoReadOther, 125);
-                        drawInfo->LineBackColor2 = PhMakeColorBrighter(PhCsColorIoWrite, 125);
-
-                        PhGraphStateGetDrawInfo(
-                            &IoGraphState,
-                            getDrawInfo,
-                            PhIoReadHistory.Count
-                            );
-
-                        if (!IoGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
-                            {
-                                FLOAT data1;
-                                FLOAT data2;
-
-                                IoGraphState.Data1[i] = data1 =
-                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
-                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
-                                IoGraphState.Data2[i] = data2 =
-                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
-
-                                if (max < data1 + data2)
-                                    max = data1 + data2;
-                            }
-
-                            if (max != 0)
-                            {
-                                // Scale the data.
-
-                                PhxfDivideSingle2U(
-                                    IoGraphState.Data1,
-                                    max,
-                                    drawInfo->LineDataCount
-                                    );
-                                PhxfDivideSingle2U(
-                                    IoGraphState.Data2,
-                                    max,
-                                    drawInfo->LineDataCount
-                                    );
-                            }
-
-                            IoGraphState.Valid = TRUE;
-                        }
-                    }
-                    else if (header->hwndFrom == PhysicalGraphHandle)
-                    {
-                        ULONG totalPages;
-                        ULONG usedPages;
-
-                        totalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
-                        usedPages = totalPages - PhPerfInformation.AvailablePages;
-
-                        //if (PhCsGraphShowText)
-                        //{
-                        //    HDC hdc;
-
-                        //    PhSwapReference2(&PhysicalGraphState.TooltipText,
-                        //        PhFormatString(
-                        //        L"%s / %s (%.2f%%)",
-                        //        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                        //        PhaFormatSize(UInt32x32To64(totalPages, PAGE_SIZE), -1)->Buffer,
-                        //        (FLOAT)usedPages * 100 / totalPages
-                        //        ));
-
-                        //    hdc = Graph_GetBufferedContext(PhysicalGraphHandle);
-                        //    SelectObject(hdc, PhApplicationFont);
-                        //    PhSetGraphText(hdc, drawInfo, &PhysicalGraphState.TooltipText->sr,
-                        //        &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                        //}
-                        //else
-                        //{
-                            drawInfo->Text.Buffer = NULL;
-                        //}
-
-                        drawInfo->Flags = PH_GRAPH_USE_GRID;
-                        drawInfo->LineColor1 = PhHalveColorBrightness(PhCsColorPhysical);
-                        drawInfo->LineBackColor1 = PhMakeColorBrighter(PhCsColorPhysical, 125);
-
-                        PhGraphStateGetDrawInfo(
-                            &PhysicalGraphState,
-                            getDrawInfo,
-                            PhPhysicalHistory.Count
-                            );
-
-                        if (!PhysicalGraphState.Valid)
-                        {
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
-                            {
-                                PhysicalGraphState.Data1[i] =
-                                    (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
-                            }
-
-                            if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
-                            {
-                                // Scale the data.
-                                PhxfDivideSingle2U(
-                                    PhysicalGraphState.Data1,
-                                    (FLOAT)totalPages,
-                                    drawInfo->LineDataCount
-                                    );
-                            }
-
-                            PhysicalGraphState.Valid = TRUE;
-                        }
-                    }
-                    else
-                    {
-                        for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-                        {
-                            if (header->hwndFrom != CpusGraphHandle[i])
-                                continue;
-
-                            if (PhCsGraphShowText)
-                            {
-                                HDC hdc;
-
-                                PhSwapReference2(&CpusGraphState[i].TooltipText,
-                                    PhFormatString(L"%.2f%% (K: %.2f%%, U: %.2f%%)",
-                                    (PhCpusKernelUsage[i] + PhCpusUserUsage[i]) * 100,
-                                    PhCpusKernelUsage[i] * 100,
-                                    PhCpusUserUsage[i] * 100
-                                    ));
-
-                                hdc = Graph_GetBufferedContext(CpusGraphHandle[i]);
-                                SelectObject(hdc, PhApplicationFont);
-                                PhSetGraphText(hdc, drawInfo, &CpusGraphState[i].TooltipText->sr,
-                                    &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                            }
-                            else
-                            {
-                                drawInfo->Text.Buffer = NULL;
-                            }
-
-                            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                            drawInfo->LineColor1 = RGB(0x00, 0xff, 0x00);
-                            drawInfo->LineColor2 = RGB(0xff, 0x00, 0x00);
-                            drawInfo->LineBackColor1 = RGB(0x00, 0x77, 0x00);
-                            drawInfo->LineBackColor2 = RGB(0x77, 0x00, 0x00);
-
-                            PhGraphStateGetDrawInfo(
-                                &CpusGraphState[i],
-                                getDrawInfo,
-                                PhCpusKernelHistory[i].Count
-                                );
-
-                            if (!CpusGraphState[i].Valid)
-                            {
-                                PhCopyCircularBuffer_FLOAT(&PhCpusKernelHistory[i],
-                                    CpusGraphState[i].Data1, drawInfo->LineDataCount);
-                                PhCopyCircularBuffer_FLOAT(&PhCpusUserHistory[i],
-                                    CpusGraphState[i].Data2, drawInfo->LineDataCount);
-                                CpusGraphState[i].Valid = TRUE;
-                            }
-                        }
-                    }
-                }
-                break;
-            case GCN_GETTOOLTIPTEXT:
-                {
-                    PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
-                    ULONG i;
-
-                    if (
-                        header->hwndFrom == CpuGraphHandle &&
-                        getTooltipText->Index < getTooltipText->TotalCount
-                        )
-                    {
-                        if (CpuGraphState.TooltipIndex != getTooltipText->Index)
-                        {
-                            FLOAT cpuKernel;
-                            FLOAT cpuUser;
-
-                            cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
-                            cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
-
-                            PhSwapReference2(&CpuGraphState.TooltipText, PhFormatString(
-                                L"%.2f%%%s\n%s",
-                                (cpuKernel + cpuUser) * 100,
-                                PhGetStringOrEmpty(PhapGetMaxCpuString(getTooltipText->Index)),
-                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                ));
-                        }
-
-                        getTooltipText->Text = CpuGraphState.TooltipText->sr;
-                    }
-                    else if (
-                        header->hwndFrom == IoGraphHandle &&
-                        getTooltipText->Index < getTooltipText->TotalCount
-                        )
-                    {
-                        if (IoGraphState.TooltipIndex != getTooltipText->Index)
-                        {
-                            ULONG64 ioRead;
-                            ULONG64 ioWrite;
-                            ULONG64 ioOther;
-
-                            ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
-                            ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
-                            ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
-
-                            PhSwapReference2(&IoGraphState.TooltipText, PhFormatString(
-                                L"R: %s\nW: %s\nO: %s%s\n%s",
-                                PhaFormatSize(ioRead, -1)->Buffer,
-                                PhaFormatSize(ioWrite, -1)->Buffer,
-                                PhaFormatSize(ioOther, -1)->Buffer,
-                                PhGetStringOrEmpty(PhapGetMaxIoString(getTooltipText->Index)),
-                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                ));
-                        }
-
-                        getTooltipText->Text = IoGraphState.TooltipText->sr;
-                    }
-                    else if (
-                        header->hwndFrom == PhysicalGraphHandle &&
-                        getTooltipText->Index < getTooltipText->TotalCount
-                        )
-                    {
-                        if (PhysicalGraphState.TooltipIndex != getTooltipText->Index)
-                        {
-                            ULONG usedPages;
-
-                            usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
-
-                            PhSwapReference2(&PhysicalGraphState.TooltipText, PhFormatString(
-                                L"Physical Memory: %s\n%s",
-                                PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                ));
-                        }
-
-                        getTooltipText->Text = PhysicalGraphState.TooltipText->sr;
-                    }
-                    else if (
-                        getTooltipText->Index < getTooltipText->TotalCount
-                        )
-                    {
-                        for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-                        {
-                            if (header->hwndFrom != CpusGraphHandle[i])
-                                continue;
-
-                            if (CpusGraphState[i].TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT cpuKernel;
-                                FLOAT cpuUser;
-
-                                cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[i], getTooltipText->Index);
-                                cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[i], getTooltipText->Index);
-
-                                PhSwapReference2(&CpusGraphState[i].TooltipText, PhFormatString(
-                                    L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
-                                    (cpuKernel + cpuUser) * 100,
-                                    cpuKernel * 100,
-                                    cpuUser * 100,
-                                    PhGetStringOrEmpty(PhapGetMaxCpuString(getTooltipText->Index)),
-                                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                    ));
-                            }
-
-                            getTooltipText->Text = CpusGraphState[i].TooltipText->sr;
-                        }
-                    }
-                }
-                break;
-            case GCN_MOUSEEVENT:
-                {
-                    PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)lParam;
-                    PPH_PROCESS_RECORD record;
-                    ULONG i;
-
-                    record = NULL;
-
-                    if (mouseEvent->Message == WM_LBUTTONDBLCLK)
-                    {
-                        if (
-                            header->hwndFrom == CpuGraphHandle &&
-                            mouseEvent->Index < mouseEvent->TotalCount
-                            )
-                        {
-                            record = PhpReferenceMaxCpuRecord(mouseEvent->Index);
-                        }
-                        else if (
-                            header->hwndFrom == IoGraphHandle &&
-                            mouseEvent->Index < mouseEvent->TotalCount
-                            )
-                        {
-                            record = PhpReferenceMaxIoRecord(mouseEvent->Index);
-                        }
-                        else if (
-                            mouseEvent->Index < mouseEvent->TotalCount
-                            )
-                        {
-                            for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-                            {
-                                if (header->hwndFrom != CpusGraphHandle[i])
-                                    continue;
-
-                                record = PhpReferenceMaxCpuRecord(mouseEvent->Index);
-                            }
-                        }
-                    }
-
-                    if (record)
-                    {
-                        PhShowProcessRecordDialog(PhSysInfoWindowHandle, record);
-                        PhDereferenceProcessRecord(record);
-                    }
-                }
-                break;
-            }
-        }
-        break;
-    case WM_PH_SYSINFO_ACTIVATE:
-        {
-            if (IsIconic(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
-            else
-                ShowWindow(hwndDlg, SW_SHOW);
-
-            SetForegroundWindow(hwndDlg);
-        }
-        break;
-    case WM_PH_SYSINFO_UPDATE:
-        {
-            ULONG i;
-
-            CpuGraphState.Valid = FALSE;
-            CpuGraphState.TooltipIndex = -1;
-            Graph_MoveGrid(CpuGraphHandle, 1);
-            Graph_Draw(CpuGraphHandle);
-            Graph_UpdateTooltip(CpuGraphHandle);
-            InvalidateRect(CpuGraphHandle, NULL, FALSE);
-
-            IoGraphState.Valid = FALSE;
-            IoGraphState.TooltipIndex = -1;
-            Graph_MoveGrid(IoGraphHandle, 1);
-            Graph_Draw(IoGraphHandle);
-            Graph_UpdateTooltip(IoGraphHandle);
-            InvalidateRect(IoGraphHandle, NULL, FALSE);
-
-            PhysicalGraphState.Valid = FALSE;
-            PhysicalGraphState.TooltipIndex = -1;
-            Graph_MoveGrid(PhysicalGraphHandle, 1);
-            Graph_Draw(PhysicalGraphHandle);
-            Graph_UpdateTooltip(PhysicalGraphHandle);
-            InvalidateRect(PhysicalGraphHandle, NULL, FALSE);
-
-            for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-            {
-                CpusGraphState[i].Valid = FALSE;
-                CpusGraphState[i].TooltipIndex = -1;
-                Graph_MoveGrid(CpusGraphHandle[i], 1);
-                Graph_Draw(CpusGraphHandle[i]);
-                Graph_UpdateTooltip(CpusGraphHandle[i]);
-                InvalidateRect(CpusGraphHandle[i], NULL, FALSE);
-            }
-
-            SendMessage(PhSysInfoPanelWindowHandle, WM_PH_SYSINFO_PANEL_UPDATE, 0, 0);
-        }
-        break;
-    }
-
-    return FALSE;
-}
-
-static VOID PhpGetPoolLimits(
-    __out PSIZE_T Paged,
-    __out PSIZE_T NonPaged
-    )
-{
-    SIZE_T paged = 0;
-    SIZE_T nonPaged = 0;
-
-    if (MmSizeOfPagedPoolInBytes)
-    {
-        KphReadVirtualMemoryUnsafe(
-            NtCurrentProcess(),
-            MmSizeOfPagedPoolInBytes,
-            &paged,
-            sizeof(SIZE_T),
-            NULL
-            );
-    }
-
-    if (MmMaximumNonPagedPoolInBytes)
-    {
-        KphReadVirtualMemoryUnsafe(
-            NtCurrentProcess(),
-            MmMaximumNonPagedPoolInBytes,
-            &nonPaged,
-            sizeof(SIZE_T),
-            NULL
-            );
-    }
-
-    *Paged = paged;
-    *NonPaged = nonPaged;
-}
-
-INT_PTR CALLBACK PhpSysInfoPanelDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-
-        }
-        break;
-    case WM_DESTROY:
-        {
-
-        }
-        break;
-    case WM_PH_SYSINFO_PANEL_UPDATE:
-        {
-            WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"Unknown";
-            SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
-            SYSTEM_FILECACHE_INFORMATION fileCacheInfo;
-            PWSTR pagedLimit;
-            PWSTR nonPagedLimit;
-
-            if (!NT_SUCCESS(NtQuerySystemInformation(
-                SystemFileCacheInformation,
-                &fileCacheInfo,
-                sizeof(SYSTEM_FILECACHE_INFORMATION),
-                NULL
-                )))
-            {
-                memset(&fileCacheInfo, 0, sizeof(SYSTEM_FILECACHE_INFORMATION));
-            }
-
-            // System
-
-            SetDlgItemText(hwndDlg, IDC_ZPROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZTHREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZHANDLES_V, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
-
-            if (NT_SUCCESS(NtQuerySystemInformation(
-                SystemTimeOfDayInformation,
-                &timeOfDayInfo,
-                sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
-                NULL
-                )))
-            {
-                PhPrintTimeSpan(
-                    timeSpan,
-                    timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart,
-                    PH_TIMESPAN_DHMS
-                    );
-            }
-
-            SetDlgItemText(hwndDlg, IDC_ZUPTIME_V, timeSpan);
-
-            // Commit Charge
-
-            SetDlgItemText(hwndDlg, IDC_ZCOMMITCURRENT_V,
-                PhaFormatSize(UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE), -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZCOMMITPEAK_V,
-                PhaFormatSize(UInt32x32To64(PhPerfInformation.PeakCommitment, PAGE_SIZE), -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZCOMMITLIMIT_V,
-                PhaFormatSize(UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE), -1)->Buffer);
-
-            // Physical Memory
-
-            SetDlgItemText(hwndDlg, IDC_ZPHYSICALCURRENT_V,
-                PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages, PAGE_SIZE), -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPHYSICALSYSTEMCACHE_V,
-                PhaFormatSize(UInt32x32To64(fileCacheInfo.CurrentSizeIncludingTransitionInPages, PAGE_SIZE), -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPHYSICALTOTAL_V,
-                PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer);
-
-            // Kernel Pools
-
-            SetDlgItemText(hwndDlg, IDC_ZPAGEDPHYSICAL_V,
-                PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentPagedPoolPage, PAGE_SIZE), -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPAGEDVIRTUAL_V,
-                PhaFormatSize(UInt32x32To64(PhPerfInformation.PagedPoolPages, PAGE_SIZE), -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPAGEDALLOCS_V,
-                PhaFormatUInt64(PhPerfInformation.PagedPoolAllocs, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPAGEDFREES_V,
-                PhaFormatUInt64(PhPerfInformation.PagedPoolFrees, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDUSAGE_V,
-                PhaFormatSize(UInt32x32To64(PhPerfInformation.NonPagedPoolPages, PAGE_SIZE), -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDALLOCS_V,
-                PhaFormatUInt64(PhPerfInformation.NonPagedPoolAllocs, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDFREES_V,
-                PhaFormatUInt64(PhPerfInformation.NonPagedPoolFrees, TRUE)->Buffer);
-
-            if (MmAddressesInitialized && (MmSizeOfPagedPoolInBytes || MmMaximumNonPagedPoolInBytes))
-            {
-                SIZE_T paged;
-                SIZE_T nonPaged;
-
-                PhpGetPoolLimits(&paged, &nonPaged);
-                pagedLimit = PhaFormatSize(paged, -1)->Buffer;
-                nonPagedLimit = PhaFormatSize(nonPaged, -1)->Buffer;
-            }
-            else
-            {
-                if (!KphIsConnected())
-                {
-                    pagedLimit = nonPagedLimit = L"no driver";
-                }
-                else
-                {
-                    pagedLimit = nonPagedLimit = L"no symbols";
-                }
-            }
-
-            SetDlgItemText(hwndDlg, IDC_ZPAGEDLIMIT_V, pagedLimit);
-            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDLIMIT_V, nonPagedLimit);
-
-            // Page Faults
-
-            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSTOTAL_V,
-                PhaFormatUInt64(PhPerfInformation.PageFaultCount, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSCOPYONWRITE_V,
-                PhaFormatUInt64(PhPerfInformation.CopyOnWriteCount, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSTRANSITION_V,
-                PhaFormatUInt64(PhPerfInformation.TransitionCount, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSCACHE_V,
-                PhaFormatUInt64(fileCacheInfo.PageFaultCount, TRUE)->Buffer);
-
-            // I/O
-
-            SetDlgItemText(hwndDlg, IDC_ZIOREADS_V,
-                PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V,
-                PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V,
-                PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V,
-                PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, -1)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V,
-                PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V,
-                PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, -1)->Buffer);
-
-            // CPU
-
-            SetDlgItemText(hwndDlg, IDC_ZCONTEXTSWITCHES_V,
-                PhaFormatUInt64(PhPerfInformation.ContextSwitches, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZINTERRUPTS_V,
-                PhaFormatUInt64(PhCpuTotals.InterruptCount, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZSYSTEMCALLS_V,
-                PhaFormatUInt64(PhPerfInformation.SystemCalls, TRUE)->Buffer);
         }
         break;
     }

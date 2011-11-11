@@ -30,7 +30,10 @@ typedef struct _PHP_GRAPH_CONTEXT
 {
     HWND Handle;
     ULONG Style;
+    ULONG_PTR Id;
     PH_GRAPH_DRAW_INFO DrawInfo;
+    PH_GRAPH_OPTIONS Options;
+    BOOLEAN NeedsDraw;
 
     HDC BufferedContext;
     HBITMAP BufferedOldBitmap;
@@ -752,8 +755,8 @@ VOID PhpCreateGraphContext(
     PPHP_GRAPH_CONTEXT context;
 
     context = PhAllocate(sizeof(PHP_GRAPH_CONTEXT));
+    memset(context, 0, sizeof(PHP_GRAPH_CONTEXT));
 
-    memset(&context->DrawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
     context->DrawInfo.Width = 3;
     context->DrawInfo.Height = 3;
     context->DrawInfo.Flags = PH_GRAPH_USE_GRID;
@@ -766,20 +769,16 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.LineColor2 = RGB(0xff, 0x00, 0x00);
     context->DrawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x00);
     context->DrawInfo.LineBackColor2 = RGB(0x77, 0x00, 0x00);
-    context->DrawInfo.GridColor = RGB(0xaf, 0xaf, 0xaf);
+    context->DrawInfo.GridColor = RGB(0xc7, 0xc7, 0xc7);
     context->DrawInfo.GridWidth = 20;
     context->DrawInfo.GridHeight = 40;
     context->DrawInfo.GridStart = 0;
     context->DrawInfo.TextColor = RGB(0x00, 0xff, 0x00);
     context->DrawInfo.TextBoxColor = RGB(0x00, 0x22, 0x00);
 
-    context->BufferedContext = NULL;
+    context->Options.FadeOutBackColor = RGB(0xef, 0xef, 0xef);
+    context->Options.FadeOutWidth = 100;
 
-    context->TooltipHandle = NULL;
-    context->TooltipOldWndProc = NULL;
-    context->TooltipVisible = FALSE;
-    context->ValidMonitor = NULL;
-    memset(&context->MonitorInfo, 0, sizeof(MONITORINFO));
     context->MonitorInfo.cbSize = sizeof(MONITORINFO);
 
     *Context = context;
@@ -870,13 +869,15 @@ static VOID PhpCreateFadeOutContext(
     ULONG j;
     ULONG height;
     COLORREF backColor;
+    ULONG fadeOutWidth;
+    FLOAT fadeOutWidthSquared;
     ULONG currentAlpha;
     ULONG currentColor;
 
     PhpDeleteFadeOutContext(Context);
 
     GetClientRect(Context->Handle, &Context->FadeOutContextRect);
-    Context->FadeOutContextRect.right = GC_FADEOUT_WIDTH;
+    Context->FadeOutContextRect.right = Context->Options.FadeOutWidth;
 
     hdc = GetDC(Context->Handle);
     Context->FadeOutContext = CreateCompatibleDC(hdc);
@@ -893,19 +894,24 @@ static VOID PhpCreateFadeOutContext(
     ReleaseDC(Context->Handle, hdc);
     Context->FadeOutOldBitmap = SelectObject(Context->FadeOutContext, Context->FadeOutBitmap);
 
-    height = Context->FadeOutContextRect.bottom;
-    backColor = GetSysColor(COLOR_WINDOW);
+    if (!Context->FadeOutBits)
+        return;
 
-    for (i = 0; i < GC_FADEOUT_WIDTH; i++)
+    height = Context->FadeOutContextRect.bottom;
+    backColor = Context->Options.FadeOutBackColor;
+    fadeOutWidth = Context->Options.FadeOutWidth;
+    fadeOutWidthSquared = (FLOAT)fadeOutWidth * fadeOutWidth;
+
+    for (i = 0; i < fadeOutWidth; i++)
     {
-        currentAlpha = 255 - (ULONG)((FLOAT)(i * i) / (GC_FADEOUT_WIDTH * GC_FADEOUT_WIDTH) * 255);
+        currentAlpha = 255 - (ULONG)((FLOAT)(i * i) / fadeOutWidthSquared * 255);
         currentColor =
             ((backColor & 0xff) * currentAlpha / 255) +
             ((((backColor >> 8) & 0xff) * currentAlpha / 255) << 8) +
             ((((backColor >> 16) & 0xff) * currentAlpha / 255) << 16) +
             (currentAlpha << 24);
 
-        for (j = i; j < height * GC_FADEOUT_WIDTH; j += GC_FADEOUT_WIDTH)
+        for (j = i; j < height * fadeOutWidth; j += fadeOutWidth)
         {
             ((PULONG)Context->FadeOutBits)[j] = currentColor;
         }
@@ -1029,6 +1035,68 @@ static LRESULT CALLBACK PhpTooltipWndProc(
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
+VOID PhpDrawGraphControl(
+    __in HWND hwnd,
+    __in PPHP_GRAPH_CONTEXT Context
+    )
+{
+    Context->DrawInfo.Width = Context->BufferedContextRect.right;
+    Context->DrawInfo.Height = Context->BufferedContextRect.bottom;
+
+    {
+        PH_GRAPH_GETDRAWINFO getDrawInfo;
+
+        getDrawInfo.Header.hwndFrom = hwnd;
+        getDrawInfo.Header.idFrom = Context->Id;
+        getDrawInfo.Header.code = GCN_GETDRAWINFO;
+        getDrawInfo.DrawInfo = &Context->DrawInfo;
+
+        SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
+    }
+
+    if (Context->BufferedBits)
+        PhDrawGraphDirect(Context->BufferedContext, Context->BufferedBits, &Context->DrawInfo);
+
+    if (Context->Style & GC_STYLE_FADEOUT)
+    {
+        BLENDFUNCTION blendFunction;
+
+        if (!Context->FadeOutContext)
+            PhpCreateFadeOutContext(Context);
+
+        blendFunction.BlendOp = AC_SRC_OVER;
+        blendFunction.BlendFlags = 0;
+        blendFunction.SourceConstantAlpha = 255;
+        blendFunction.AlphaFormat = AC_SRC_ALPHA;
+        GdiAlphaBlend(
+            Context->BufferedContext,
+            0,
+            0,
+            Context->Options.FadeOutWidth,
+            Context->FadeOutContextRect.bottom,
+            Context->FadeOutContext,
+            0,
+            0,
+            Context->Options.FadeOutWidth,
+            Context->FadeOutContextRect.bottom,
+            blendFunction
+            );
+    }
+
+    if (Context->Style & GC_STYLE_DRAW_PANEL)
+    {
+        PH_GRAPH_DRAWPANEL drawPanel;
+
+        drawPanel.Header.hwndFrom = hwnd;
+        drawPanel.Header.idFrom = Context->Id;
+        drawPanel.Header.code = GCN_DRAWPANEL;
+        drawPanel.hdc = Context->BufferedContext;
+        drawPanel.Rect = Context->BufferedContextRect;
+
+        SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&drawPanel);
+    }
+}
+
 LRESULT CALLBACK PhpGraphWndProc(
     __in HWND hwnd,
     __in UINT uMsg,
@@ -1057,6 +1125,7 @@ LRESULT CALLBACK PhpGraphWndProc(
 
             context->Handle = hwnd;
             context->Style = createStruct->style;
+            context->Id = (ULONG_PTR)createStruct->hMenu;
         }
         break;
     case WM_DESTROY:
@@ -1073,28 +1142,42 @@ LRESULT CALLBACK PhpGraphWndProc(
     case WM_SIZE:
         {
             // Force a re-create of the buffered context.
-            PhpCreateBufferedContext(context);
+            PhpDeleteBufferedContext(context);
 
             if (context->Style & GC_STYLE_FADEOUT)
-                PhpCreateFadeOutContext(context);
+                PhpDeleteFadeOutContext(context);
 
-            SendMessage(hwnd, GCM_DRAW, 0, 0);
+            context->NeedsDraw = TRUE;
+            InvalidateRect(hwnd, NULL, FALSE);
         }
         break;
     case WM_PAINT:
         {
             PAINTSTRUCT paintStruct;
-            RECT clientRect;
             HDC hdc;
 
             if (hdc = BeginPaint(hwnd, &paintStruct))
             {
-                GetClientRect(hwnd, &clientRect);
+                if (!context->BufferedContext)
+                    PhpCreateBufferedContext(context);
 
-                if (context->BufferedContext)
+                if (context->NeedsDraw)
                 {
-                    BitBlt(hdc, 0, 0, clientRect.right, clientRect.bottom, context->BufferedContext, 0, 0, SRCCOPY);
+                    PhpDrawGraphControl(hwnd, context);
+                    context->NeedsDraw = FALSE;
                 }
+
+                BitBlt(
+                    hdc,
+                    paintStruct.rcPaint.left,
+                    paintStruct.rcPaint.top,
+                    paintStruct.rcPaint.right - paintStruct.rcPaint.left,
+                    paintStruct.rcPaint.bottom - paintStruct.rcPaint.top,
+                    context->BufferedContext,
+                    paintStruct.rcPaint.left,
+                    paintStruct.rcPaint.top,
+                    SRCCOPY
+                    );
 
                 EndPaint(hwnd, &paintStruct);
             }
@@ -1156,7 +1239,11 @@ LRESULT CALLBACK PhpGraphWndProc(
                     MapWindowPoints(NULL, hwnd, &point, 1);
                     GetClientRect(hwnd, &clientRect);
 
+                    if (context->Style & WS_BORDER)
+                        point.x++;
+
                     getTooltipText.Header.hwndFrom = hwnd;
+                    getTooltipText.Header.idFrom = context->Id;
                     getTooltipText.Header.code = GCN_GETTOOLTIPTEXT;
                     getTooltipText.Index = (clientRect.right - point.x) / context->DrawInfo.Step;
                     getTooltipText.TotalCount = context->DrawInfo.LineDataCount;
@@ -1177,6 +1264,15 @@ LRESULT CALLBACK PhpGraphWndProc(
             case TTN_POP:
                 context->TooltipVisible = FALSE;
                 break;
+            }
+        }
+        break;
+    case WM_SETCURSOR:
+        {
+            if (context->Options.DefaultCursor)
+            {
+                SetCursor(context->Options.DefaultCursor);
+                return TRUE;
             }
         }
         break;
@@ -1214,6 +1310,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             GetClientRect(hwnd, &clientRect);
 
             mouseEvent.Header.hwndFrom = hwnd;
+            mouseEvent.Header.idFrom = context->Id;
             mouseEvent.Header.code = GCN_MOUSEEVENT;
             mouseEvent.Message = uMsg;
             mouseEvent.Keys = (ULONG)wParam;
@@ -1248,50 +1345,7 @@ LRESULT CALLBACK PhpGraphWndProc(
         return TRUE;
     case GCM_DRAW:
         {
-            if (!context->BufferedContext)
-                PhpCreateBufferedContext(context);
-
-            context->DrawInfo.Width = context->BufferedContextRect.right;
-            context->DrawInfo.Height = context->BufferedContextRect.bottom;
-
-            {
-                PH_GRAPH_GETDRAWINFO getDrawInfo;
-
-                getDrawInfo.Header.hwndFrom = hwnd;
-                getDrawInfo.Header.code = GCN_GETDRAWINFO;
-                getDrawInfo.DrawInfo = &context->DrawInfo;
-
-                SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
-            }
-
-            if (context->BufferedBits)
-                PhDrawGraphDirect(context->BufferedContext, context->BufferedBits, &context->DrawInfo);
-
-            if (context->Style & GC_STYLE_FADEOUT)
-            {
-                BLENDFUNCTION blendFunction;
-
-                if (!context->FadeOutContext)
-                    PhpCreateFadeOutContext(context);
-
-                blendFunction.BlendOp = AC_SRC_OVER;
-                blendFunction.BlendFlags = 0;
-                blendFunction.SourceConstantAlpha = 255;
-                blendFunction.AlphaFormat = AC_SRC_ALPHA;
-                GdiAlphaBlend(
-                    context->BufferedContext,
-                    0,
-                    0,
-                    GC_FADEOUT_WIDTH,
-                    context->FadeOutContextRect.bottom,
-                    context->FadeOutContext,
-                    0,
-                    0,
-                    GC_FADEOUT_WIDTH,
-                    context->FadeOutContextRect.bottom,
-                    blendFunction
-                    );
-            }
+            context->NeedsDraw = TRUE;
         }
         return TRUE;
     case GCM_MOVEGRID:
@@ -1366,6 +1420,13 @@ LRESULT CALLBACK PhpGraphWndProc(
                 PhpUpdateTooltip(context);
             }
         }
+        return TRUE;
+    case GCM_GETOPTIONS:
+        memcpy((PPH_GRAPH_OPTIONS)lParam, &context->Options, sizeof(PH_GRAPH_OPTIONS));
+        return TRUE;
+    case GCM_SETOPTIONS:
+        memcpy(&context->Options, (PPH_GRAPH_OPTIONS)lParam, sizeof(PH_GRAPH_OPTIONS));
+        PhpDeleteFadeOutContext(context);
         return TRUE;
     }
 

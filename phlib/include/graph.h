@@ -77,21 +77,29 @@ VOID PhSetGraphText(
 
 // Configuration
 
-#define GC_FADEOUT_WIDTH 100
+typedef struct _PH_GRAPH_OPTIONS
+{
+    COLORREF FadeOutBackColor;
+    ULONG FadeOutWidth;
+    HCURSOR DefaultCursor;
+} PH_GRAPH_OPTIONS, *PPH_GRAPH_OPTIONS;
 
 // Styles
 
 #define GC_STYLE_FADEOUT 0x1
+#define GC_STYLE_DRAW_PANEL 0x2
 
 // Messages
 
-#define GCM_GETDRAWINFO (WM_APP + 1301)
-#define GCM_SETDRAWINFO (WM_APP + 1302)
-#define GCM_DRAW (WM_APP + 1303)
-#define GCM_MOVEGRID (WM_APP + 1304)
-#define GCM_GETBUFFEREDCONTEXT (WM_APP + 1305)
-#define GCM_SETTOOLTIP (WM_APP + 1306)
-#define GCM_UPDATETOOLTIP (WM_APP + 1307)
+#define GCM_GETDRAWINFO (WM_USER + 1301)
+#define GCM_SETDRAWINFO (WM_USER + 1302)
+#define GCM_DRAW (WM_USER + 1303)
+#define GCM_MOVEGRID (WM_USER + 1304)
+#define GCM_GETBUFFEREDCONTEXT (WM_USER + 1305)
+#define GCM_SETTOOLTIP (WM_USER + 1306)
+#define GCM_UPDATETOOLTIP (WM_USER + 1307)
+#define GCM_GETOPTIONS (WM_USER + 1308)
+#define GCM_SETOPTIONS (WM_USER + 1309)
 
 #define Graph_GetDrawInfo(hWnd, DrawInfo) \
     SendMessage((hWnd), GCM_GETDRAWINFO, 0, (LPARAM)(DrawInfo))
@@ -107,12 +115,17 @@ VOID PhSetGraphText(
     ((HDC)SendMessage((hWnd), GCM_SETTOOLTIP, (WPARAM)(Enable), 0))
 #define Graph_UpdateTooltip(hWnd) \
     ((HDC)SendMessage((hWnd), GCM_UPDATETOOLTIP, 0, 0))
+#define Graph_GetOptions(hWnd, Options) \
+    SendMessage((hWnd), GCM_GETOPTIONS, 0, (LPARAM)(Options))
+#define Graph_SetOptions(hWnd, Options) \
+    SendMessage((hWnd), GCM_SETOPTIONS, 0, (LPARAM)(Options))
 
 // Notifications
 
-#define GCN_GETDRAWINFO (WM_APP + 1351)
-#define GCN_GETTOOLTIPTEXT (WM_APP + 1352)
-#define GCN_MOUSEEVENT (WM_APP + 1353)
+#define GCN_GETDRAWINFO (WM_USER + 1351)
+#define GCN_GETTOOLTIPTEXT (WM_USER + 1352)
+#define GCN_MOUSEEVENT (WM_USER + 1353)
+#define GCN_DRAWPANEL (WM_USER + 1354)
 
 typedef struct _PH_GRAPH_GETDRAWINFO
 {
@@ -139,6 +152,13 @@ typedef struct _PH_GRAPH_MOUSEEVENT
     ULONG Keys;
     POINT Point;
 } PH_GRAPH_MOUSEEVENT, *PPH_GRAPH_MOUSEEVENT;
+
+typedef struct _PH_GRAPH_DRAWPANEL
+{
+    NMHDR Header;
+    HDC hdc;
+    RECT Rect;
+} PH_GRAPH_DRAWPANEL, *PPH_GRAPH_DRAWPANEL;
 
 // Graph buffer management
 
