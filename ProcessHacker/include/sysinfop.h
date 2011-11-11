@@ -7,6 +7,7 @@
 #define PH_SYSINFO_GRAPH_PADDING 9
 #define PH_SYSINFO_SMALL_GRAPH_WIDTH 48
 #define PH_SYSINFO_SMALL_GRAPH_PADDING 5
+#define PH_SYSINFO_SEPARATOR_WIDTH 3
 
 #define SI_MSG_SYSINFO_FIRST (WM_APP + 150)
 #define SI_MSG_SYSINFO_ACTIVATE (WM_APP + 150)
@@ -100,6 +101,11 @@ VOID PhSipDrawRestoreSummaryPanel(
     __in PRECT Rect
     );
 
+VOID PhSipDrawSeparator(
+    __in HDC hdc,
+    __in PRECT Rect
+    );
+
 VOID PhSipDrawPanel(
     __in PPH_SYSINFO_SECTION Section,
     __in HDC hdc,
@@ -162,12 +168,38 @@ BOOLEAN PhSipCpuSectionCallback(
     __in_opt PVOID Parameter2
     );
 
+INT_PTR CALLBACK PhSipCpuDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhSipCpuPanelDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+VOID PhSipUpdateCpuGraphs(
+    VOID
+    );
+
+VOID PhSipUpdateCpuPanel(
+    VOID
+    );
+
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
     __in LONG Index
     );
 
 PPH_STRING PhSipGetMaxCpuString(
     __in LONG Index
+    );
+
+VOID PhSipGetCpuBrandString(
+    __out_ecount(49) PWSTR BrandString
     );
 
 // Memory section

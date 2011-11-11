@@ -10,6 +10,7 @@ rem Source distribution
 if exist "%SVNBIN%\svn.exe". (
     if exist %2\ProcessHacker2 rmdir /S /Q %2\ProcessHacker2
     "%SVNBIN%\svn.exe" export %1 %2\ProcessHacker2
+    echo #define PHAPP_VERSION_REVISION 0 > %2\ProcessHacker2\ProcessHacker\include\phapprev.h
     if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-src.zip %2\ProcessHacker2\*
     )
 
