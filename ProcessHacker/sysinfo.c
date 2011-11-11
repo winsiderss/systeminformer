@@ -41,8 +41,16 @@ static HWND SeparatorControl;
 static HWND RestoreSummaryControl;
 
 static PPH_SYSINFO_SECTION CpuSection;
+static HWND CpuDialog;
 static PH_LAYOUT_MANAGER CpuLayoutManager;
+static RECT CpuGraphMargin;
+static HWND CpuGraphHandle;
+static PH_GRAPH_STATE CpuGraphState;
+static HWND *CpusGraphHandle;
+static PPH_GRAPH_STATE CpusGraphState;
+static BOOLEAN OneGraphPerCpu;
 static HWND CpuPanel;
+static ULONG NumberOfProcessors;
 static PSYSTEM_INTERRUPT_INFORMATION InterruptInformation;
 static PPROCESSOR_POWER_INFORMATION PowerInformation;
 static PH_UINT32_DELTA ContextSwitchesDelta;
@@ -285,8 +293,9 @@ VOID PhSipOnShowWindow(
 
     MinimumSize.left = 0;
     MinimumSize.top = 0;
-    MinimumSize.right = 400;
+    MinimumSize.right = 300;
     MinimumSize.bottom = 200;
+    MapDialogRect(PhSipWindow, &MinimumSize);
 
     if (SectionList->Count != 0)
     {
@@ -662,7 +671,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
 
     Graph_GetOptions(section->GraphHandle, &options);
     options.FadeOutWidth = PH_SYSINFO_FADE_WIDTH;
-    //options.DefaultCursor = LoadCursor(NULL, IDC_HAND);
+    options.DefaultCursor = LoadCursor(NULL, IDC_HAND);
     Graph_SetOptions(section->GraphHandle, &options);
     Graph_SetTooltip(section->GraphHandle, TRUE);
 
@@ -1131,12 +1140,31 @@ BOOLEAN PhSipCpuSectionCallback(
     {
     case SysInfoCreate:
         {
-            InterruptInformation = PhAllocate(sizeof(SYSTEM_INTERRUPT_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
-            PowerInformation = PhAllocate(sizeof(PROCESSOR_POWER_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
+            ULONG i;
+
+            NumberOfProcessors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            CpusGraphHandle = PhAllocate(sizeof(HWND) * NumberOfProcessors);
+            CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * NumberOfProcessors);
+            InterruptInformation = PhAllocate(sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors);
+            PowerInformation = PhAllocate(sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+
+            PhInitializeGraphState(&CpuGraphState);
+
+            for (i = 0; i < NumberOfProcessors; i++)
+                PhInitializeGraphState(&CpusGraphState[i]);
         }
         return TRUE;
     case SysInfoDestroy:
         {
+            ULONG i;
+
+            PhDeleteGraphState(&CpuGraphState);
+
+            for (i = 0; i < NumberOfProcessors; i++)
+                PhDeleteGraphState(&CpusGraphState[i]);
+
+            PhFree(CpusGraphHandle);
+            PhFree(CpusGraphState);
             PhFree(InterruptInformation);
             PhFree(PowerInformation);
         }
@@ -1151,11 +1179,11 @@ BOOLEAN PhSipCpuSectionCallback(
             if (NT_SUCCESS(NtQuerySystemInformation(
                 SystemInterruptInformation,
                 InterruptInformation,
-                sizeof(SYSTEM_INTERRUPT_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+                sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors,
                 NULL
                 )))
             {
-                for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+                for (i = 0; i < NumberOfProcessors; i++)
                     dpcCount += InterruptInformation[i].DpcCount;
             }
 
@@ -1169,10 +1197,10 @@ BOOLEAN PhSipCpuSectionCallback(
                 NULL,
                 0,
                 PowerInformation,
-                sizeof(PROCESSOR_POWER_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
+                sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors
                 )))
             {
-                memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
+                memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
             }
 
             PhSipUpdateCpuGraphs();
@@ -1246,13 +1274,16 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
     {
     case WM_INITDIALOG:
         {
-            PPH_LAYOUT_ITEM templateItem;
+            PPH_LAYOUT_ITEM graphItem;
+            PPH_LAYOUT_ITEM panelItem;
             WCHAR brandString[49];
 
+            CpuDialog = hwndDlg;
             PhInitializeLayoutManager(&CpuLayoutManager, hwndDlg);
             PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_CPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_CPU), NULL, PH_ANCHOR_ALL);
-            templateItem = PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            graphItem = PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
+            CpuGraphMargin = graphItem->Margin;
+            panelItem = PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)CurrentParameters.LargeFont, FALSE);
             SendMessage(GetDlgItem(hwndDlg, IDC_CPUNAME), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
@@ -1262,7 +1293,22 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
 
             CpuPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc);
             ShowWindow(CpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&CpuLayoutManager, CpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, templateItem->Margin);
+            PhAddLayoutItemEx(&CpuLayoutManager, CpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+
+            PhSipCreateCpuGraphs();
+
+            if (NumberOfProcessors != 1)
+            {
+                OneGraphPerCpu = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowOneGraphPerCpu");
+                Button_SetCheck(GetDlgItem(CpuPanel, IDC_ONEGRAPHPERCPU), OneGraphPerCpu ? BST_CHECKED : BST_UNCHECKED);
+                PhSipSetOneGraphPerCpu();
+            }
+            else
+            {
+                OneGraphPerCpu = FALSE;
+                EnableWindow(GetDlgItem(CpuPanel, IDC_ONEGRAPHPERCPU), FALSE);
+                PhSipSetOneGraphPerCpu();
+            }
 
             PhSipUpdateCpuGraphs();
             PhSipUpdateCpuPanel();
@@ -1276,6 +1322,29 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&CpuLayoutManager);
+            PhSipLayoutCpuGraphs();
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            NMHDR *header = (NMHDR *)lParam;
+            ULONG i;
+
+            if (header->hwndFrom == CpuGraphHandle)
+            {
+                PhSipNotifyCpuGraph(-1, header);
+            }
+            else
+            {
+                for (i = 0; i < NumberOfProcessors; i++)
+                {
+                    if (header->hwndFrom == CpusGraphHandle[i])
+                    {
+                        PhSipNotifyCpuGraph(i, header);
+                        break;
+                    }
+                }
+            }
         }
         break;
     }
@@ -1298,16 +1367,279 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_SPEED), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_ONEGRAPHPERCPU:
+                {
+                    OneGraphPerCpu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ONEGRAPHPERCPU)) == BST_CHECKED;
+                    PhSipLayoutCpuGraphs();
+                    PhSipSetOneGraphPerCpu();
+                }
+                break;
+            }
+        }
+        break;
     }
 
     return FALSE;
+}
+
+VOID PhSipCreateCpuGraphs(
+    VOID
+    )
+{
+    ULONG i;
+
+    CpuGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_CHILD | WS_BORDER | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        CpuDialog,
+        (HMENU)IDC_CPU,
+        PhInstanceHandle,
+        NULL
+        );
+    Graph_SetTooltip(CpuGraphHandle, TRUE);
+
+    for (i = 0; i < NumberOfProcessors; i++)
+    {
+        CpusGraphHandle[i] = CreateWindow(
+            PH_GRAPH_CLASSNAME,
+            NULL,
+            WS_CHILD | WS_BORDER | WS_BORDER,
+            0,
+            0,
+            3,
+            3,
+            CpuDialog,
+            (HMENU)(IDC_CPU0 + i),
+            PhInstanceHandle,
+            NULL
+            );
+        Graph_SetTooltip(CpusGraphHandle[i], TRUE);
+    }
+}
+
+VOID PhSipLayoutCpuGraphs(
+    VOID
+    )
+{
+    RECT clientRect;
+    HDWP deferHandle;
+
+    GetClientRect(CpuDialog, &clientRect);
+    deferHandle = BeginDeferWindowPos(OneGraphPerCpu ? NumberOfProcessors : 1);
+
+    if (!OneGraphPerCpu)
+    {
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            CpuGraphHandle,
+            NULL,
+            CpuGraphMargin.left,
+            CpuGraphMargin.top,
+            clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right,
+            clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+    }
+    else
+    {
+        ULONG i;
+        ULONG graphWidth;
+        ULONG x;
+
+        graphWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - PH_SYSINFO_CPU_PADDING * (NumberOfProcessors - 1)) / NumberOfProcessors;
+        x = CpuGraphMargin.left;
+
+        for (i = 0; i < NumberOfProcessors; i++)
+        {
+            // Give the last graph the remaining space; the width we calculated might be off by a few
+            // pixels due to integer division.
+            if (i == NumberOfProcessors - 1)
+            {
+                graphWidth = clientRect.right - CpuGraphMargin.right - x;
+            }
+
+            deferHandle = DeferWindowPos(
+                deferHandle,
+                CpusGraphHandle[i],
+                NULL,
+                x,
+                CpuGraphMargin.top,
+                graphWidth,
+                clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
+            x += graphWidth + PH_SYSINFO_CPU_PADDING;
+        }
+    }
+
+    EndDeferWindowPos(deferHandle);
+}
+
+VOID PhSipSetOneGraphPerCpu(
+    VOID
+    )
+{
+    ULONG i;
+
+    ShowWindow(CpuGraphHandle, !OneGraphPerCpu ? SW_SHOW : SW_HIDE);
+
+    for (i = 0; i < NumberOfProcessors; i++)
+    {
+        ShowWindow(CpusGraphHandle[i], OneGraphPerCpu ? SW_SHOW : SW_HIDE);
+    }
+}
+
+VOID PhSipNotifyCpuGraph(
+    __in ULONG Index,
+    __in NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
+
+            if (Index == -1)
+            {
+                PhGraphStateGetDrawInfo(
+                    &CpuGraphState,
+                    getDrawInfo,
+                    PhCpuKernelHistory.Count
+                    );
+
+                if (!CpuGraphState.Valid)
+                {
+                    PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, CpuGraphState.Data1, drawInfo->LineDataCount);
+                    PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, CpuGraphState.Data2, drawInfo->LineDataCount);
+                    CpuGraphState.Valid = TRUE;
+                }
+            }
+            else
+            {
+                PhGraphStateGetDrawInfo(
+                    &CpusGraphState[Index],
+                    getDrawInfo,
+                    PhCpuKernelHistory.Count
+                    );
+
+                if (!CpusGraphState[Index].Valid)
+                {
+                    PhCopyCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], CpusGraphState[Index].Data1, drawInfo->LineDataCount);
+                    PhCopyCircularBuffer_FLOAT(&PhCpusUserHistory[Index], CpusGraphState[Index].Data2, drawInfo->LineDataCount);
+                    CpusGraphState[Index].Valid = TRUE;
+                }
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (Index == -1)
+                {
+                    if (CpuGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT cpuKernel;
+                        FLOAT cpuUser;
+
+                        cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
+                        cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
+
+                        PhSwapReference2(&CpuGraphState.TooltipText, PhFormatString(
+                            L"%.2f%%%s\n%s",
+                            (cpuKernel + cpuUser) * 100,
+                            PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
+                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                            ));
+                    }
+
+                    getTooltipText->Text = CpuGraphState.TooltipText->sr;
+                }
+                else
+                {
+                    if (CpusGraphState[Index].TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT cpuKernel;
+                        FLOAT cpuUser;
+
+                        cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], getTooltipText->Index);
+                        cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[Index], getTooltipText->Index);
+
+                        PhSwapReference2(&CpusGraphState[Index].TooltipText, PhFormatString(
+                            L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
+                            (cpuKernel + cpuUser) * 100,
+                            cpuKernel * 100,
+                            cpuUser * 100,
+                            PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
+                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                            ));
+                    }
+
+                    getTooltipText->Text = CpusGraphState[Index].TooltipText->sr;
+                }
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record;
+
+            record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            {
+                record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
+            }
+
+            if (record)
+            {
+                PhShowProcessRecordDialog(CpuDialog, record);
+                PhDereferenceProcessRecord(record);
+            }
+        }
+        break;
+    }
 }
 
 VOID PhSipUpdateCpuGraphs(
     VOID
     )
 {
+    ULONG i;
 
+    CpuGraphState.Valid = FALSE;
+    CpuGraphState.TooltipIndex = -1;
+    Graph_MoveGrid(CpuGraphHandle, 1);
+    Graph_Draw(CpuGraphHandle);
+    Graph_UpdateTooltip(CpuGraphHandle);
+    InvalidateRect(CpuGraphHandle, NULL, FALSE);
+
+    for (i = 0; i < NumberOfProcessors; i++)
+    {
+        CpusGraphState[i].Valid = FALSE;
+        CpusGraphState[i].TooltipIndex = -1;
+        Graph_MoveGrid(CpusGraphHandle[i], 1);
+        Graph_Draw(CpusGraphHandle[i]);
+        Graph_UpdateTooltip(CpusGraphHandle[i]);
+        InvalidateRect(CpusGraphHandle[i], NULL, FALSE);
+    }
 }
 
 VOID PhSipUpdateCpuPanel(

@@ -7,7 +7,9 @@
 #define PH_SYSINFO_GRAPH_PADDING 9
 #define PH_SYSINFO_SMALL_GRAPH_WIDTH 48
 #define PH_SYSINFO_SMALL_GRAPH_PADDING 5
-#define PH_SYSINFO_SEPARATOR_WIDTH 3
+#define PH_SYSINFO_SEPARATOR_WIDTH 2
+
+#define PH_SYSINFO_CPU_PADDING 5
 
 #define SI_MSG_SYSINFO_FIRST (WM_APP + 150)
 #define SI_MSG_SYSINFO_ACTIVATE (WM_APP + 150)
@@ -180,6 +182,23 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
+    );
+
+VOID PhSipCreateCpuGraphs(
+    VOID
+    );
+
+VOID PhSipLayoutCpuGraphs(
+    VOID
+    );
+
+VOID PhSipSetOneGraphPerCpu(
+    VOID
+    );
+
+VOID PhSipNotifyCpuGraph(
+    __in ULONG Index,
+    __in NMHDR *Header
     );
 
 VOID PhSipUpdateCpuGraphs(

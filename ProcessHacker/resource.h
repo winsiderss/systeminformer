@@ -436,6 +436,8 @@
 #define IDC_DPCSDELTA_V                 1309
 #define IDC_SYSTEMCALLDELTA_V           1310
 #define IDC_SYSTEMCALLSDELTA_V          1310
+#define IDC_CPU_LAYOUT                  1311
+#define IDC_GRAPH_LAYOUT                1311
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -666,7 +668,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        198
 #define _APS_NEXT_COMMAND_VALUE         40252
-#define _APS_NEXT_CONTROL_VALUE         1311
+#define _APS_NEXT_CONTROL_VALUE         1312
 #define _APS_NEXT_SYMED_VALUE           134
 #endif
 #endif
