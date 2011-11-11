@@ -181,6 +181,7 @@ VOID PhSipOnInitDialog(
 
     PhInitializeLayoutManager(&WindowLayoutManager, PhSipWindow);
 
+    PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhSipWindow, IDC_INSTRUCTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
     PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhSipWindow, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
     PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhSipWindow, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
@@ -826,7 +827,7 @@ VOID PhSipLayoutSectionView(
     availableWidth = clientRect.right - PH_SYSINFO_WINDOW_PADDING * 2;
     graphHeight = (availableHeight - PH_SYSINFO_GRAPH_PADDING * (SectionList->Count - 1)) / SectionList->Count;
 
-    deferHandle = BeginDeferWindowPos(SectionList->Count * 2 + 1);
+    deferHandle = BeginDeferWindowPos(SectionList->Count * 2 + 2);
     y = PH_SYSINFO_WINDOW_PADDING;
     // TODO: Progressively make each section graph smaller as the window gets smaller
     for (i = 0; i < SectionList->Count; i++)
@@ -871,6 +872,20 @@ VOID PhSipLayoutSectionView(
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
+    if (section->DialogHandle)
+    {
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            section->DialogHandle,
+            NULL,
+            PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40,
+            PH_SYSINFO_WINDOW_PADDING,
+            clientRect.right - PH_SYSINFO_WINDOW_PADDING - (PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40),
+            availableHeight,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+    }
+
     EndDeferWindowPos(deferHandle);
 }
 
@@ -911,6 +926,7 @@ VOID PhSipEnterSectionView(
     }
 
     ShowWindow(RestoreSummaryControl, SW_SHOW);
+    ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_HIDE);
 
     PhSipLayoutSectionView();
 }
@@ -942,6 +958,7 @@ VOID PhSipRestoreSummaryView(
     }
 
     ShowWindow(RestoreSummaryControl, SW_HIDE);
+    ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_SHOW);
 
     PhSipLayoutSummaryView();
 }
