@@ -838,6 +838,27 @@ VOID PhPluginGetSystemStatistics(
 
     Statistics->MaxCpuProcessId = LongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
     Statistics->MaxIoProcessId = LongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0));
+
+    Statistics->CpuKernelHistory = &PhCpuKernelHistory;
+    Statistics->CpuUserHistory = &PhCpuUserHistory;
+    Statistics->CpusKernelHistory = &PhCpusKernelHistory;
+    Statistics->CpusUserHistory = &PhCpusUserHistory;
+    Statistics->IoReadHistory = &PhIoReadHistory;
+    Statistics->IoWriteHistory = &PhIoWriteHistory;
+    Statistics->IoOtherHistory = &PhIoOtherHistory;
+    Statistics->CommitHistory = &PhCommitHistory;
+    Statistics->PhysicalHistory = &PhPhysicalHistory;
+    Statistics->MaxCpuHistory = &PhMaxCpuHistory;
+    Statistics->MaxIoHistory = &PhMaxIoHistory;
+#ifdef PH_RECORD_MAX_USAGE
+    Statistics->MaxCpuUsageHistory = &PhMaxCpuUsageHistory;
+    Statistics->MaxIoReadOtherHistory = &PhMaxIoReadOtherHistory;
+    Statistics->MaxIoWriteHistory = &PhMaxIoWriteHistory;
+#else
+    Statistics->MaxCpuUsageHistory = NULL;
+    Statistics->MaxIoReadOtherHistory = NULL;
+    Statistics->MaxIoWriteHistory = NULL;
+#endif
 }
 
 static VOID NTAPI PhpPluginEMenuItemDeleteFunction(

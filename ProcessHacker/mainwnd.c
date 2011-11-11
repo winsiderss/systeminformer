@@ -833,7 +833,7 @@ VOID PhMwpOnCommand(
         ProcessHacker_Destroy(PhMainWndHandle);
         break;
     case ID_VIEW_SYSTEMINFORMATION:
-        PhShowSystemInformationDialog();
+        PhShowSystemInformationDialog(NULL);
         break;
     case ID_TRAYICONS_CPUHISTORY:
     case ID_TRAYICONS_CPUUSAGE:
