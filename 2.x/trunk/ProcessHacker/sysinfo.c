@@ -37,10 +37,21 @@ static PPH_LIST SectionList;
 static PH_SYSINFO_PARAMETERS CurrentParameters;
 static PH_SYSINFO_VIEW_TYPE CurrentView;
 static PPH_SYSINFO_SECTION CurrentSection;
+static HWND SeparatorControl;
 static HWND RestoreSummaryControl;
 
 static PPH_SYSINFO_SECTION CpuSection;
+static PH_LAYOUT_MANAGER CpuLayoutManager;
+static HWND CpuPanel;
+static PSYSTEM_INTERRUPT_INFORMATION InterruptInformation;
+static PPROCESSOR_POWER_INFORMATION PowerInformation;
+static PH_UINT32_DELTA ContextSwitchesDelta;
+static PH_UINT32_DELTA InterruptsDelta;
+static PH_UINT64_DELTA DpcsDelta;
+static PH_UINT32_DELTA SystemCallsDelta;
+
 static PPH_SYSINFO_SECTION MemorySection;
+
 static PPH_SYSINFO_SECTION IoSection;
 
 static BOOLEAN AlwaysOnTop;
@@ -241,6 +252,19 @@ VOID PhSipOnShowWindow(
     MemorySection = PhSipCreateInternalSection(L"Memory", 0, PhSipMemorySectionCallback);
     IoSection = PhSipCreateInternalSection(L"I/O", 0, PhSipIoSectionCallback);
 
+    SeparatorControl = CreateWindow(
+        L"STATIC",
+        NULL,
+        WS_CHILD | WS_CLIPSIBLINGS | SS_OWNERDRAW,
+        0,
+        0,
+        3,
+        3,
+        PhSipWindow,
+        (HMENU)IDC_SEPARATOR,
+        PhInstanceHandle,
+        NULL
+        );
     RestoreSummaryControl = CreateWindow(
         L"STATIC",
         NULL,
@@ -455,6 +479,11 @@ BOOLEAN PhSipOnDrawItem(
         PhSipDrawRestoreSummaryPanel(DrawItemStruct->hDC, &DrawItemStruct->rcItem);
         return TRUE;
     }
+    else if (Id == IDC_SEPARATOR)
+    {
+        PhSipDrawSeparator(DrawItemStruct->hDC, &DrawItemStruct->rcItem);
+        return TRUE;
+    }
 
     for (i = 0; i < SectionList->Count; i++)
     {
@@ -654,6 +683,8 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
 
     PhAddItemList(SectionList, section);
 
+    section->Callback(section, SysInfoCreate, NULL, NULL);
+
     return section;
 }
 
@@ -661,6 +692,8 @@ VOID PhSipDestroySection(
     __in PPH_SYSINFO_SECTION Section
     )
 {
+    Section->Callback(Section, SysInfoDestroy, NULL, NULL);
+
     PhDeleteGraphState(&Section->GraphState);
     PhFree(Section);
 }
@@ -692,6 +725,19 @@ VOID PhSipDrawRestoreSummaryPanel(
 
     SelectObject(hdc, CurrentParameters.MediumFont);
     DrawText(hdc, L"Back", 4, Rect, DT_CENTER | DT_VCENTER | DT_NOPREFIX | DT_SINGLELINE);
+}
+
+VOID PhSipDrawSeparator(
+    __in HDC hdc,
+    __in PRECT Rect
+    )
+{
+    RECT rect;
+
+    rect = *Rect;
+    FillRect(hdc, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+    rect.left += 1;
+    FillRect(hdc, &rect, GetSysColorBrush(COLOR_3DSHADOW));
 }
 
 VOID PhSipDrawPanel(
@@ -827,7 +873,7 @@ VOID PhSipLayoutSectionView(
     availableWidth = clientRect.right - PH_SYSINFO_WINDOW_PADDING * 2;
     graphHeight = (availableHeight - PH_SYSINFO_GRAPH_PADDING * (SectionList->Count - 1)) / SectionList->Count;
 
-    deferHandle = BeginDeferWindowPos(SectionList->Count * 2 + 2);
+    deferHandle = BeginDeferWindowPos(SectionList->Count * 2 + 3);
     y = PH_SYSINFO_WINDOW_PADDING;
     // TODO: Progressively make each section graph smaller as the window gets smaller
     for (i = 0; i < SectionList->Count; i++)
@@ -872,15 +918,26 @@ VOID PhSipLayoutSectionView(
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    if (section->DialogHandle)
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        SeparatorControl,
+        NULL,
+        PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40 + PH_SYSINFO_WINDOW_PADDING - 7,
+        PH_SYSINFO_WINDOW_PADDING,
+        PH_SYSINFO_SEPARATOR_WIDTH,
+        availableHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+
+    if (CurrentSection && CurrentSection->DialogHandle)
     {
         deferHandle = DeferWindowPos(
             deferHandle,
-            section->DialogHandle,
+            CurrentSection->DialogHandle,
             NULL,
-            PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40,
+            PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40 + PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SEPARATOR_WIDTH,
             PH_SYSINFO_WINDOW_PADDING,
-            clientRect.right - PH_SYSINFO_WINDOW_PADDING - (PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40),
+            clientRect.right - PH_SYSINFO_WINDOW_PADDING - PH_SYSINFO_WINDOW_PADDING - PH_SYSINFO_SEPARATOR_WIDTH - (PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40),
             availableHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
@@ -926,6 +983,7 @@ VOID PhSipEnterSectionView(
     }
 
     ShowWindow(RestoreSummaryControl, SW_SHOW);
+    ShowWindow(SeparatorControl, SW_SHOW);
     ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_HIDE);
 
     PhSipLayoutSectionView();
@@ -958,6 +1016,7 @@ VOID PhSipRestoreSummaryView(
     }
 
     ShowWindow(RestoreSummaryControl, SW_HIDE);
+    ShowWindow(SeparatorControl, SW_HIDE);
     ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_SHOW);
 
     PhSipLayoutSummaryView();
@@ -1070,6 +1129,65 @@ BOOLEAN PhSipCpuSectionCallback(
 {
     switch (Message)
     {
+    case SysInfoCreate:
+        {
+            InterruptInformation = PhAllocate(sizeof(SYSTEM_INTERRUPT_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
+            PowerInformation = PhAllocate(sizeof(PROCESSOR_POWER_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
+        }
+        return TRUE;
+    case SysInfoDestroy:
+        {
+            PhFree(InterruptInformation);
+            PhFree(PowerInformation);
+        }
+        return TRUE;
+    case SysInfoTick:
+        {
+            ULONG64 dpcCount;
+            ULONG i;
+
+            dpcCount = 0;
+
+            if (NT_SUCCESS(NtQuerySystemInformation(
+                SystemInterruptInformation,
+                InterruptInformation,
+                sizeof(SYSTEM_INTERRUPT_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+                NULL
+                )))
+            {
+                for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+                    dpcCount += InterruptInformation[i].DpcCount;
+            }
+
+            PhUpdateDelta(&ContextSwitchesDelta, PhPerfInformation.ContextSwitches);
+            PhUpdateDelta(&InterruptsDelta, PhCpuTotals.InterruptCount);
+            PhUpdateDelta(&DpcsDelta, dpcCount);
+            PhUpdateDelta(&SystemCallsDelta, PhPerfInformation.SystemCalls);
+
+            if (!NT_SUCCESS(NtPowerInformation(
+                ProcessorInformation,
+                NULL,
+                0,
+                PowerInformation,
+                sizeof(PROCESSOR_POWER_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
+                )))
+            {
+                memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
+            }
+
+            PhSipUpdateCpuGraphs();
+            PhSipUpdateCpuPanel();
+        }
+        return TRUE;
+    case SysInfoCreateDialog:
+        {
+            PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
+
+            createDialog->Instance = PhInstanceHandle;
+            createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_CPU);
+            createDialog->DialogProc = PhSipCpuDialogProc;
+        }
+        return TRUE;
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
@@ -1115,6 +1233,129 @@ BOOLEAN PhSipCpuSectionCallback(
     }
 
     return FALSE;
+}
+
+INT_PTR CALLBACK PhSipCpuDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PPH_LAYOUT_ITEM templateItem;
+            WCHAR brandString[49];
+
+            PhInitializeLayoutManager(&CpuLayoutManager, hwndDlg);
+            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_CPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_CPU), NULL, PH_ANCHOR_ALL);
+            templateItem = PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)CurrentParameters.LargeFont, FALSE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_CPUNAME), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
+
+            PhSipGetCpuBrandString(brandString);
+            SetDlgItemText(hwndDlg, IDC_CPUNAME, brandString);
+
+            CpuPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc);
+            ShowWindow(CpuPanel, SW_SHOW);
+            PhAddLayoutItemEx(&CpuLayoutManager, CpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, templateItem->Margin);
+
+            PhSipUpdateCpuGraphs();
+            PhSipUpdateCpuPanel();
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&CpuLayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&CpuLayoutManager);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhSipCpuPanelDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            SendMessage(GetDlgItem(hwndDlg, IDC_UTILIZATION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_SPEED), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+VOID PhSipUpdateCpuGraphs(
+    VOID
+    )
+{
+
+}
+
+VOID PhSipUpdateCpuPanel(
+    VOID
+    )
+{
+    HWND hwnd = CpuPanel;
+    SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+    WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = L"Unknown";
+
+    SetDlgItemText(hwnd, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
+    SetDlgItemText(hwnd, IDC_SPEED, PhaFormatString(L"%.2f / %.2f GHz", (FLOAT)PowerInformation[0].CurrentMhz / 1000, (FLOAT)PowerInformation[0].MaxMhz / 1000)->Buffer);
+
+    SetDlgItemText(hwnd, IDC_PROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
+    SetDlgItemText(hwnd, IDC_THREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
+    SetDlgItemText(hwnd, IDC_HANDLES_V, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
+
+    if (NT_SUCCESS(NtQuerySystemInformation(
+        SystemTimeOfDayInformation,
+        &timeOfDayInfo,
+        sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+        NULL
+        )))
+    {
+        PhPrintTimeSpan(uptimeString, timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart, PH_TIMESPAN_DHMS);
+    }
+
+    SetDlgItemText(hwnd, IDC_UPTIME_V, uptimeString);
+
+    if (ContextSwitchesDelta.Delta != ContextSwitchesDelta.Value)
+        SetDlgItemText(hwnd, IDC_CONTEXTSWITCHESDELTA_V, PhaFormatUInt64(ContextSwitchesDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(hwnd, IDC_CONTEXTSWITCHESDELTA_V, L"-");
+
+    if (InterruptsDelta.Delta != InterruptsDelta.Value)
+        SetDlgItemText(hwnd, IDC_INTERRUPTSDELTA_V, PhaFormatUInt64(InterruptsDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(hwnd, IDC_INTERRUPTSDELTA_V, L"-");
+
+    if (DpcsDelta.Delta != DpcsDelta.Value)
+        SetDlgItemText(hwnd, IDC_DPCSDELTA_V, PhaFormatUInt64(DpcsDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(hwnd, IDC_DPCSDELTA_V, L"-");
+
+    if (SystemCallsDelta.Delta != SystemCallsDelta.Value)
+        SetDlgItemText(hwnd, IDC_SYSTEMCALLSDELTA_V, PhaFormatUInt64(SystemCallsDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(hwnd, IDC_SYSTEMCALLSDELTA_V, L"-");
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
@@ -1191,6 +1432,20 @@ PPH_STRING PhSipGetMaxCpuString(
     }
 
     return maxUsageString;
+}
+
+VOID PhSipGetCpuBrandString(
+    __out_ecount(49) PWSTR BrandString
+    )
+{
+    ULONG brandString[4 * 3];
+
+    __cpuid(&brandString[0], 0x80000002);
+    __cpuid(&brandString[4], 0x80000003);
+    __cpuid(&brandString[8], 0x80000004);
+
+    PhZeroExtendToUnicode((PSTR)brandString, 48, BrandString);
+    BrandString[48] = 0;
 }
 
 BOOLEAN PhSipMemorySectionCallback(
