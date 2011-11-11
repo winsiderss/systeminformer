@@ -45,6 +45,7 @@
 #define IDD_HEAPS                       132
 #define ID_SHOWCONTEXTMENU              132
 #define IDR_PRIVILEGE                   133
+#define IDC_SEPARATOR                   133
 #define IDR_FINDOBJ                     134
 #define IDD_HIDDENPROCESSES             135
 #define IDD_RUNAS                       136
@@ -85,7 +86,6 @@
 #define IDD_OPTADVANCED                 171
 #define IDI_BLACK                       172
 #define IDR_ICON                        173
-#define IDD_SYSINFO_PANEL               174
 #define IDD_GDIHANDLES                  175
 #define IDD_LOG                         178
 #define IDD_OPTSYMBOLS                  179
@@ -108,6 +108,8 @@
 #define IDD_TOKCAPABILITIES             194
 #define IDI_COGGO                       195
 #define IDD_TOKATTRIBUTES               195
+#define IDD_SYSINFO_CPU                 196
+#define IDD_SYSINFO_CPUPANEL            197
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -342,51 +344,26 @@
 #define IDC_GROUPCPU                    1198
 #define IDC_GROUPPRIVATEBYTES           1199
 #define IDC_GROUPIO                     1200
-#define IDC_ZPROCESSES_V                1201
-#define IDC_ZTHREADS_V                  1202
 #define IDC_ONEGRAPHPERCPU              1202
 #define IDC_ALWAYSONTOP                 1203
-#define IDC_ZUPTIME_V                   1204
 #define IDC_GROUPPHYSICAL               1204
-#define IDC_ZCOMMITCURRENT_V            1205
-#define IDC_ZCOMMITPEAK_V               1206
 #define IDC_COPY                        1206
-#define IDC_ZCOMMITLIMIT_V              1207
 #define IDC_INACTIVE                    1207
-#define IDC_ZPHYSICALCURRENT_V          1208
 #define IDC_ACTIVE                      1208
-#define IDC_ZPHYSICALSYSTEMCACHE_V      1209
 #define IDC_SHOW                        1209
-#define IDC_ZPHYSICALTOTAL_V            1210
 #define IDC_HIDE                        1210
 #define IDC_REPLACETASKMANAGER          1211
-#define IDC_ZPAGEDPHYSICAL_V            1215
 #define IDC_AUTOSCROLL                  1215
-#define IDC_ZPAGEDVIRTUAL_V             1216
 #define IDC_UNDECORATESYMBOLS           1216
-#define IDC_ZPAGEDALLOCS_V              1217
 #define IDC_DBGHELPPATH                 1217
-#define IDC_ZPAGEDFREES_V               1218
 #define IDC_DBGHELPSEARCHPATH           1218
-#define IDC_ZPAGEDLIMIT_V               1219
 #define IDC_COLLAPSESERVICES            1219
-#define IDC_ZNONPAGEDUSAGE_V            1220
 #define IDC_ICONSINGLECLICK             1220
-#define IDC_ZNONPAGEDALLOCS_V           1221
 #define IDC_DESKTOP                     1221
-#define IDC_ZNONPAGEDFREES_V            1222
 #define IDC_ENABLEPROCDB                1222
-#define IDC_ZNONPAGEDLIMIT_V            1223
-#define IDC_ZPAGEFAULTSTOTAL_V          1224
 #define IDC_REREAD                      1224
-#define IDC_ZPAGEFAULTSCOPYONWRITE_V    1225
 #define IDC_WRITE                       1225
-#define IDC_ZPAGEFAULTSTRANSITION_V     1226
-#define IDC_ZPAGEFAULTSCACHE_V          1227
 #define IDC_MEMORY_LAYOUT               1227
-#define IDC_ZCONTEXTSWITCHES_V          1228
-#define IDC_ZINTERRUPTS_V               1229
-#define IDC_ZSYSTEMCALLS_V              1230
 #define IDC_VALUE                       1230
 #define IDC_DELAYEDSTART                1234
 #define IDC_MINIMUMLENGTH               1236
@@ -445,6 +422,20 @@
 #define IDC_STATICBL12                  1295
 #define IDC_BASICINFORMATION            1296
 #define IDC_INSTRUCTION                 1298
+#define IDC_CPUNAME                     1299
+#define IDC_LAYOUT                      1300
+#define IDC_UTILIZATION                 1301
+#define IDC_SPEED                       1302
+#define IDC_PROCESSES_V                 1303
+#define IDC_THREADS_V                   1304
+#define IDC_UTILIZATION2                1305
+#define IDC_HANDLES_V                   1305
+#define IDC_UPTIME_V                    1306
+#define IDC_CONTEXTSWITCHESDELTA_V      1307
+#define IDC_INTERRUPTSDELTA_V           1308
+#define IDC_DPCSDELTA_V                 1309
+#define IDC_SYSTEMCALLDELTA_V           1310
+#define IDC_SYSTEMCALLSDELTA_V          1310
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -673,9 +664,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        196
+#define _APS_NEXT_RESOURCE_VALUE        198
 #define _APS_NEXT_COMMAND_VALUE         40252
-#define _APS_NEXT_CONTROL_VALUE         1299
-#define _APS_NEXT_SYMED_VALUE           133
+#define _APS_NEXT_CONTROL_VALUE         1311
+#define _APS_NEXT_SYMED_VALUE           134
 #endif
 #endif

@@ -750,6 +750,8 @@ typedef struct _PH_SYSINFO_PARAMETERS
 
 typedef enum _PH_SYSINFO_SECTION_MESSAGE
 {
+    SysInfoCreate,
+    SysInfoDestroy,
     SysInfoTick,
     SysInfoViewChanging, // PH_SYSINFO_VIEW_TYPE Parameter1, PPH_SYSINFO_SECTION Parameter2
     SysInfoCreateDialog, // PPH_SYSINFO_CREATE_DIALOG Parameter1
