@@ -267,7 +267,6 @@
     <ClCompile Include="hndlprp.c" />
     <ClCompile Include="hndlprv.c" />
     <ClCompile Include="hndlstat.c" />
-    <ClCompile Include="include\sysinfop.h" />
     <ClCompile Include="infodlg.c" />
     <ClCompile Include="itemtips.c" />
     <ClCompile Include="jobprp.c" />
@@ -379,6 +378,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="include\settings.h" />
     <ClInclude Include="include\settingsp.h" />
+    <ClInclude Include="include\sysinfop.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp" />

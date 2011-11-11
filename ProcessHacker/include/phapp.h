@@ -733,6 +733,8 @@ typedef VOID (NTAPI *PPH_SYSINFO_COLOR_SETUP_FUNCTION)(
 
 typedef struct _PH_SYSINFO_PARAMETERS
 {
+    HWND SysInfoWindowHandle;
+
     HFONT Font;
     HFONT MediumFont;
     HFONT LargeFont;
@@ -749,7 +751,7 @@ typedef struct _PH_SYSINFO_PARAMETERS
 typedef enum _PH_SYSINFO_SECTION_MESSAGE
 {
     SysInfoTick,
-    SysInfoViewChanged, // PH_SYSINFO_VIEW_TYPE Parameter1
+    SysInfoViewChanging, // PH_SYSINFO_VIEW_TYPE Parameter1, PPH_SYSINFO_SECTION Parameter2
     SysInfoCreateDialog, // PPH_SYSINFO_CREATE_DIALOG Parameter1
     SysInfoGraphGetDrawInfo, // PPH_GRAPH_DRAW_INFO Parameter1
     SysInfoGraphGetTooltipText, // PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT Parameter1
@@ -759,7 +761,6 @@ typedef enum _PH_SYSINFO_SECTION_MESSAGE
 
 typedef BOOLEAN (NTAPI *PPH_SYSINFO_SECTION_CALLBACK)(
     __in struct _PH_SYSINFO_SECTION *Section,
-    __in HWND DialogWindowHandle,
     __in PH_SYSINFO_SECTION_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2
@@ -772,6 +773,7 @@ typedef struct _PH_SYSINFO_CREATE_DIALOG
     // Parameters for default create
     PVOID Instance;
     PWSTR Template;
+    DLGPROC DialogProc;
 } PH_SYSINFO_CREATE_DIALOG, *PPH_SYSINFO_CREATE_DIALOG;
 
 typedef struct _PH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT
@@ -811,7 +813,15 @@ typedef struct _PH_SYSINFO_SECTION
     // Private
 
     HWND DialogHandle;
+    HWND PanelHandle;
+    ULONG PanelId;
 } PH_SYSINFO_SECTION, *PPH_SYSINFO_SECTION;
+
+VOID PhSiSetColorsGraphDrawInfo(
+    __out PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in COLORREF Color1,
+    __in COLORREF Color2
+    );
 
 VOID PhShowSystemInformationDialog(
     __in_opt PWSTR SectionName
