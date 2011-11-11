@@ -390,6 +390,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             }
 
             PhDereferenceObject(SectionList);
+            SectionList = NULL;
             PhpDeleteParameters();
 
             PhDeleteLayoutManager(&WindowLayoutManager);
