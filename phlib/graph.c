@@ -949,8 +949,6 @@ static VOID PhpUpdateTooltip(
     {
         TRACKMOUSEEVENT trackMouseEvent = { sizeof(trackMouseEvent) };
 
-        SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, TRUE, (LPARAM)&toolInfo);
-
         trackMouseEvent.dwFlags = TME_LEAVE;
         trackMouseEvent.hwndTrack = Context->Handle;
         TrackMouseEvent(&trackMouseEvent);
@@ -973,6 +971,11 @@ static VOID PhpUpdateTooltip(
     point.y += 12;
 
     SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
+
+    if (!Context->TooltipVisible)
+    {
+        SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, TRUE, (LPARAM)&toolInfo);
+    }
 }
 
 static LRESULT CALLBACK PhpTooltipWndProc(
