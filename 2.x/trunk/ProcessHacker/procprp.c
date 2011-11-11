@@ -1526,10 +1526,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = PhCsColorCpuKernel;
-                        drawInfo->LineColor2 = PhCsColorCpuUser;
-                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
-                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->CpuGraphState,
@@ -1569,8 +1566,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
-                        drawInfo->LineColor1 = PhCsColorPrivate;
-                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->PrivateGraphState,
@@ -1625,10 +1621,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = PhCsColorIoReadOther;
-                        drawInfo->LineColor2 = PhCsColorIoWrite;
-                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
-                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->IoGraphState,
