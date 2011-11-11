@@ -33,6 +33,7 @@ typedef struct _PHP_GRAPH_CONTEXT
     ULONG_PTR Id;
     PH_GRAPH_DRAW_INFO DrawInfo;
     PH_GRAPH_OPTIONS Options;
+    BOOLEAN NeedsUpdate;
     BOOLEAN NeedsDraw;
 
     HDC BufferedContext;
@@ -972,10 +973,11 @@ static VOID PhpUpdateTooltip(
 
     SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
 
-    if (!Context->TooltipVisible)
-    {
-        SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, TRUE, (LPARAM)&toolInfo);
-    }
+    // HACK for buggy tooltip control
+    if (!IsWindowVisible(Context->TooltipHandle))
+        SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, FALSE, (LPARAM)&toolInfo);
+
+    SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, TRUE, (LPARAM)&toolInfo);
 }
 
 static LRESULT CALLBACK PhpTooltipWndProc(
@@ -1038,25 +1040,29 @@ static LRESULT CALLBACK PhpTooltipWndProc(
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
+VOID PhpUpdateDrawInfo(
+    __in HWND hwnd,
+    __in PPHP_GRAPH_CONTEXT Context
+    )
+{
+    PH_GRAPH_GETDRAWINFO getDrawInfo;
+
+    Context->DrawInfo.Width = Context->BufferedContextRect.right;
+    Context->DrawInfo.Height = Context->BufferedContextRect.bottom;
+
+    getDrawInfo.Header.hwndFrom = hwnd;
+    getDrawInfo.Header.idFrom = Context->Id;
+    getDrawInfo.Header.code = GCN_GETDRAWINFO;
+    getDrawInfo.DrawInfo = &Context->DrawInfo;
+
+    SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
+}
+
 VOID PhpDrawGraphControl(
     __in HWND hwnd,
     __in PPHP_GRAPH_CONTEXT Context
     )
 {
-    Context->DrawInfo.Width = Context->BufferedContextRect.right;
-    Context->DrawInfo.Height = Context->BufferedContextRect.bottom;
-
-    {
-        PH_GRAPH_GETDRAWINFO getDrawInfo;
-
-        getDrawInfo.Header.hwndFrom = hwnd;
-        getDrawInfo.Header.idFrom = Context->Id;
-        getDrawInfo.Header.code = GCN_GETDRAWINFO;
-        getDrawInfo.DrawInfo = &Context->DrawInfo;
-
-        SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
-    }
-
     if (Context->BufferedBits)
         PhDrawGraphDirect(Context->BufferedContext, Context->BufferedBits, &Context->DrawInfo);
 
@@ -1142,14 +1148,24 @@ LRESULT CALLBACK PhpGraphWndProc(
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
         break;
+    case WM_STYLECHANGED:
+        {
+            STYLESTRUCT *styleStruct = (STYLESTRUCT *)lParam;
+
+            if (wParam == GWL_STYLE)
+            {
+                context->Style = styleStruct->styleNew;
+                context->NeedsDraw = TRUE;
+            }
+        }
+        break;
     case WM_SIZE:
         {
             // Force a re-create of the buffered context.
             PhpDeleteBufferedContext(context);
+            PhpDeleteFadeOutContext(context);
 
-            if (context->Style & GC_STYLE_FADEOUT)
-                PhpDeleteFadeOutContext(context);
-
+            context->NeedsUpdate = TRUE;
             context->NeedsDraw = TRUE;
             InvalidateRect(hwnd, NULL, FALSE);
         }
@@ -1163,6 +1179,12 @@ LRESULT CALLBACK PhpGraphWndProc(
             {
                 if (!context->BufferedContext)
                     PhpCreateBufferedContext(context);
+
+                if (context->NeedsUpdate)
+                {
+                    PhpUpdateDrawInfo(hwnd, context);
+                    context->NeedsUpdate = FALSE;
+                }
 
                 if (context->NeedsDraw)
                 {
@@ -1239,16 +1261,13 @@ LRESULT CALLBACK PhpGraphWndProc(
                     PH_GRAPH_GETTOOLTIPTEXT getTooltipText;
 
                     GetCursorPos(&point);
-                    MapWindowPoints(NULL, hwnd, &point, 1);
+                    ScreenToClient(hwnd, &point);
                     GetClientRect(hwnd, &clientRect);
-
-                    if (context->Style & WS_BORDER)
-                        point.x++;
 
                     getTooltipText.Header.hwndFrom = hwnd;
                     getTooltipText.Header.idFrom = context->Id;
                     getTooltipText.Header.code = GCN_GETTOOLTIPTEXT;
-                    getTooltipText.Index = (clientRect.right - point.x) / context->DrawInfo.Step;
+                    getTooltipText.Index = (clientRect.right - point.x - 1) / context->DrawInfo.Step;
                     getTooltipText.TotalCount = context->DrawInfo.LineDataCount;
                     getTooltipText.Text.Buffer = NULL;
                     getTooltipText.Text.Length = 0;
@@ -1320,7 +1339,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             mouseEvent.Point.x = LOWORD(lParam);
             mouseEvent.Point.y = HIWORD(lParam);
 
-            mouseEvent.Index = (clientRect.right - mouseEvent.Point.x) / context->DrawInfo.Step;
+            mouseEvent.Index = (clientRect.right - mouseEvent.Point.x - 1) / context->DrawInfo.Step;
             mouseEvent.TotalCount = context->DrawInfo.LineDataCount;
 
             SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&mouseEvent);
@@ -1348,6 +1367,7 @@ LRESULT CALLBACK PhpGraphWndProc(
         return TRUE;
     case GCM_DRAW:
         {
+            PhpUpdateDrawInfo(hwnd, context);
             context->NeedsDraw = TRUE;
         }
         return TRUE;
@@ -1369,7 +1389,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 context->TooltipHandle = CreateWindow(
                     TOOLTIPS_CLASS,
                     NULL,
-                    WS_POPUP | TTS_NOPREFIX,
+                    WS_POPUP | WS_EX_TRANSPARENT | TTS_NOPREFIX,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,

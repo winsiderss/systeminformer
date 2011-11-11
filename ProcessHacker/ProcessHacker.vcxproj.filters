@@ -453,9 +453,6 @@
     <ClCompile Include="pcre\pcre_xclass.c">
       <Filter>PCRE</Filter>
     </ClCompile>
-    <ClCompile Include="include\sysinfop.h">
-      <Filter>Headers</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -546,6 +543,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="pcre\config.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sysinfop.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
