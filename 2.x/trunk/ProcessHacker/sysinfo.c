@@ -1368,6 +1368,17 @@ VOID PhSipInitializeCpuDialog(
         PhInitializeGraphState(&CpusGraphState[i]);
 
     CpuTicked = 0;
+
+    if (!NT_SUCCESS(NtPowerInformation(
+        ProcessorInformation,
+        NULL,
+        0,
+        PowerInformation,
+        sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors
+        )))
+    {
+        memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+    }
 }
 
 VOID PhSipUninitializeCpuDialog(
