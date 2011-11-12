@@ -424,7 +424,10 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_INVOKE (WM_APP + 138)
 #define WM_PH_ADD_MENU_ITEM (WM_APP + 139)
 #define WM_PH_ADD_TAB_PAGE (WM_APP + 140)
-#define WM_PH_LAST (WM_APP + 140)
+#define WM_PH_REFRESH (WM_APP + 141)
+#define WM_PH_GET_UPDATE_AUTOMATICALLY (WM_APP + 142)
+#define WM_PH_SET_UPDATE_AUTOMATICALLY (WM_APP + 143)
+#define WM_PH_LAST (WM_APP + 143)
 
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
@@ -460,6 +463,12 @@ extern BOOLEAN PhMainWndExiting;
     ((ULONG_PTR)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
 #define ProcessHacker_AddTabPage(hWnd, TabPage) \
     SendMessage(hWnd, WM_PH_ADD_TAB_PAGE, 0, (LPARAM)(TabPage))
+#define ProcessHacker_Refresh(hWnd) \
+    SendMessage(hWnd, WM_PH_REFRESH, 0, 0)
+#define ProcessHacker_GetUpdateAutomatically(hWnd) \
+    ((BOOLEAN)SendMessage(hWnd, WM_PH_GET_UPDATE_AUTOMATICALLY, 0, 0))
+#define ProcessHacker_SetUpdateAutomatically(hWnd, Value) \
+    SendMessage(hWnd, WM_PH_SET_UPDATE_AUTOMATICALLY, (WPARAM)(Value), 0)
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {

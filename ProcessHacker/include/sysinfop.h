@@ -1,6 +1,8 @@
 #ifndef SYSINFOP_H
 #define SYSINFOP_H
 
+// Constants
+
 #define PH_SYSINFO_FADE_WIDTH 140
 #define PH_SYSINFO_PANEL_PADDING 3
 #define PH_SYSINFO_WINDOW_PADDING 13
@@ -16,6 +18,13 @@
 #define SI_MSG_SYSINFO_ACTIVATE (WM_APP + 150)
 #define SI_MSG_SYSINFO_UPDATE (WM_APP + 151)
 #define SI_MSG_SYSINFO_LAST (WM_APP + 151)
+
+// Misc.
+
+typedef HRESULT (WINAPI *_EnableThemeDialogTexture)(
+    __in HWND hwnd,
+    __in DWORD dwFlags
+    );
 
 // Thread & window
 
