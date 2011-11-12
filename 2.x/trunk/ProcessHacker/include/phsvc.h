@@ -195,4 +195,9 @@ NTSTATUS PhSvcApiInvokeRunAsService(
     __inout PPHSVC_API_MSG Message
     );
 
+NTSTATUS PhSvcApiIssueMemoryListCommand(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
 #endif
