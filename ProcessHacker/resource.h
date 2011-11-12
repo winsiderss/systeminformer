@@ -119,6 +119,8 @@
 #define IDD_MEMLISTS                    202
 #define IDR_EMPTYMEMORYLISTS            203
 #define IDR_EMPTYMEMLISTS               204
+#define IDD_DIALOG1                     205
+#define IDD_CONTAINER                   205
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -742,7 +744,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        205
+#define _APS_NEXT_RESOURCE_VALUE        206
 #define _APS_NEXT_COMMAND_VALUE         40259
 #define _APS_NEXT_CONTROL_VALUE         1361
 #define _APS_NEXT_SYMED_VALUE           135

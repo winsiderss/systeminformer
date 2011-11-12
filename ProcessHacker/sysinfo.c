@@ -45,6 +45,7 @@ static PPH_LIST SectionList;
 static PH_SYSINFO_PARAMETERS CurrentParameters;
 static PH_SYSINFO_VIEW_TYPE CurrentView;
 static PPH_SYSINFO_SECTION CurrentSection;
+static HWND ContainerControl;
 static HWND SeparatorControl;
 static HWND RestoreSummaryControl;
 static _EnableThemeDialogTexture EnableThemeDialogTexture_I;
@@ -269,12 +270,20 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
     return FALSE;
 }
 
+INT_PTR CALLBACK PhSipContainerDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    return FALSE;
+}
+
 VOID PhSipOnInitDialog(
     VOID
     )
 {
-    PhSetWindowStyle(PhSipWindow, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
-
     PhInitializeLayoutManager(&WindowLayoutManager, PhSipWindow);
 
     PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhSipWindow, IDC_INSTRUCTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
@@ -286,6 +295,13 @@ VOID PhSipOnInitDialog(
         PhSipSysInfoUpdateHandler,
         NULL,
         &ProcessesUpdatedRegistration
+        );
+
+    ContainerControl = CreateDialog(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_CONTAINER),
+        PhSipWindow,
+        PhSipContainerDialogProc
         );
 
     if (!EnableThemeDialogTexture_I)
@@ -356,7 +372,7 @@ VOID PhSipOnShowWindow(
     SeparatorControl = CreateWindow(
         L"STATIC",
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | SS_OWNERDRAW,
+        WS_CHILD | SS_OWNERDRAW,
         0,
         0,
         3,
@@ -369,7 +385,7 @@ VOID PhSipOnShowWindow(
     RestoreSummaryControl = CreateWindow(
         L"STATIC",
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | SS_OWNERDRAW | SS_NOTIFY,
+        WS_CHILD | SS_OWNERDRAW | SS_NOTIFY,
         0,
         0,
         3,
@@ -379,6 +395,9 @@ VOID PhSipOnShowWindow(
         PhInstanceHandle,
         NULL
         );
+
+    if (EnableThemeDialogTexture_I)
+        EnableThemeDialogTexture_I(ContainerControl, ETDT_ENABLETAB);
 
     GetWindowRect(GetDlgItem(PhSipWindow, IDOK), &buttonRect);
     MapWindowPoints(NULL, PhSipWindow, (POINT *)&buttonRect, 2);
@@ -705,6 +724,7 @@ VOID PhSipInitializeParameters(
     memset(&CurrentParameters, 0, sizeof(PH_SYSINFO_PARAMETERS));
 
     CurrentParameters.SysInfoWindowHandle = PhSipWindow;
+    CurrentParameters.ContainerWindowHandle = ContainerControl;
 
     if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
     {
@@ -786,7 +806,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->GraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL,
         0,
         0,
         3,
@@ -809,7 +829,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->PanelHandle = CreateWindow(
         L"STATIC",
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | SS_OWNERDRAW,
+        WS_CHILD | SS_OWNERDRAW,
         0,
         0,
         3,
@@ -1021,6 +1041,7 @@ VOID PhSipLayoutSectionView(
     PPH_SYSINFO_SECTION section;
     HDWP deferHandle;
     ULONG y;
+    ULONG containerLeft;
 
     GetWindowRect(GetDlgItem(PhSipWindow, IDOK), &buttonRect);
     MapWindowPoints(NULL, PhSipWindow, (POINT *)&buttonRect, 2);
@@ -1086,21 +1107,32 @@ VOID PhSipLayoutSectionView(
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
+    containerLeft = PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40 + PH_SYSINFO_WINDOW_PADDING - 7 + PH_SYSINFO_SEPARATOR_WIDTH;
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        ContainerControl,
+        NULL,
+        containerLeft,
+        PH_SYSINFO_WINDOW_PADDING,
+        clientRect.right - containerLeft,
+        availableHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+
+    EndDeferWindowPos(deferHandle);
+
     if (CurrentSection && CurrentSection->DialogHandle)
     {
-        deferHandle = DeferWindowPos(
-            deferHandle,
+        SetWindowPos(
             CurrentSection->DialogHandle,
             NULL,
-            PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40 + PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SEPARATOR_WIDTH,
             PH_SYSINFO_WINDOW_PADDING,
-            clientRect.right - PH_SYSINFO_WINDOW_PADDING - PH_SYSINFO_WINDOW_PADDING - PH_SYSINFO_SEPARATOR_WIDTH - (PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40),
+            0,
+            clientRect.right - containerLeft - PH_SYSINFO_WINDOW_PADDING - PH_SYSINFO_WINDOW_PADDING,
             availableHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
     }
-
-    EndDeferWindowPos(deferHandle);
 }
 
 VOID PhSipEnterSectionView(
@@ -1139,6 +1171,7 @@ VOID PhSipEnterSectionView(
         }
     }
 
+    ShowWindow(ContainerControl, SW_SHOW);
     ShowWindow(RestoreSummaryControl, SW_SHOW);
     ShowWindow(SeparatorControl, SW_SHOW);
     ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_HIDE);
@@ -1172,6 +1205,7 @@ VOID PhSipRestoreSummaryView(
             ShowWindow(section->DialogHandle, SW_HIDE);
     }
 
+    ShowWindow(ContainerControl, SW_HIDE);
     ShowWindow(RestoreSummaryControl, SW_HIDE);
     ShowWindow(SeparatorControl, SW_HIDE);
     ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_SHOW);
@@ -1223,10 +1257,7 @@ HWND PhSipDefaultCreateDialog(
         ((DLGTEMPLATE *)dialogCopy)->style = DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD;
     }
 
-    dialogHandle = CreateDialogIndirect(Instance, (DLGTEMPLATE *)dialogCopy, PhSipWindow, DialogProc);
-
-    if (EnableThemeDialogTexture_I)
-        EnableThemeDialogTexture_I(dialogHandle, ETDT_ENABLETAB);
+    dialogHandle = CreateDialogIndirect(Instance, (DLGTEMPLATE *)dialogCopy, ContainerControl, DialogProc);
 
     PhFree(dialogCopy);
 
