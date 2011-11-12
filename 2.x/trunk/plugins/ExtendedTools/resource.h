@@ -15,10 +15,10 @@
 #define IDD_DIALOG1                     106
 #define IDD_PROCDISKNET                 106
 #define IDC_NETWORK                     106
-#define IDD_SYSDISKNET                  107
 #define ID_VIEW_DISKANDNETWORK          107
 #define IDD_SYSDISKNET_PANEL            108
 #define ID_PROCESS_WSWATCH              108
+#define IDD_SYSINFO_DISKPANEL           108
 #define IDD_OPTIONS                     109
 #define IDC_GPU                         109
 #define IDD_WSWATCH                     110
@@ -33,6 +33,9 @@
 #define ID_VIEW_GPUINFORMATION          112
 #define IDD_SYSINFO_GPUPANEL            112
 #define IDD_PROCGPU                     113
+#define IDD_SYSINFO_DISK                114
+#define IDD_SYSINFO_NETPANEL            116
+#define IDD_SYSINFO_NET                 117
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -67,9 +70,6 @@
 #define IDC_ZSENDS_V                    1032
 #define IDC_ZSENDBYTES_V                1033
 #define IDC_ZSENDBYTESDELTA_V           1034
-#define IDC_GROUPDISK                   1035
-#define IDC_GROUPNETWORK                1036
-#define IDC_ALWAYSONTOP                 1037
 #define IDC_ENABLEETW                   1038
 #define IDC_ENABLEETWMONITOR            1038
 #define IDC_ENABLE                      1039
@@ -115,6 +115,10 @@
 #define IDC_GPU_L                       1079
 #define IDC_DEDICATED_L                 1080
 #define IDC_SHARED_L                    1081
+#define IDC_ZRECEIVESDELTA_V            1082
+#define IDC_ZSENDSDELTA_V               1083
+#define IDC_ZWRITESDELTA_V              1084
+#define IDC_ZREADSDELTA_V               1085
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -130,7 +134,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1082
+#define _APS_NEXT_CONTROL_VALUE         1086
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

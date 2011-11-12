@@ -55,6 +55,11 @@ PH_UINT32_DELTA EtDiskWriteDelta;
 PH_UINT32_DELTA EtNetworkReceiveDelta;
 PH_UINT32_DELTA EtNetworkSendDelta;
 
+PH_UINT32_DELTA EtDiskReadCountDelta;
+PH_UINT32_DELTA EtDiskWriteCountDelta;
+PH_UINT32_DELTA EtNetworkReceiveCountDelta;
+PH_UINT32_DELTA EtNetworkSendCountDelta;
+
 PH_CIRCULAR_BUFFER_ULONG EtDiskReadHistory;
 PH_CIRCULAR_BUFFER_ULONG EtDiskWriteHistory;
 PH_CIRCULAR_BUFFER_ULONG EtNetworkReceiveHistory;
@@ -236,6 +241,11 @@ static VOID NTAPI ProcessesUpdatedCallback(
     PhUpdateDelta(&EtDiskWriteDelta, EtpDiskWriteRaw);
     PhUpdateDelta(&EtNetworkReceiveDelta, EtpNetworkReceiveRaw);
     PhUpdateDelta(&EtNetworkSendDelta, EtpNetworkSendRaw);
+
+    PhUpdateDelta(&EtDiskReadCountDelta, EtDiskReadCount);
+    PhUpdateDelta(&EtDiskWriteCountDelta, EtDiskWriteCount);
+    PhUpdateDelta(&EtNetworkReceiveCountDelta, EtNetworkReceiveCount);
+    PhUpdateDelta(&EtNetworkSendCountDelta, EtNetworkSendCount);
 
     // Update per-process statistics.
     // Note: no lock is needed because we only ever modify the list on this same thread.

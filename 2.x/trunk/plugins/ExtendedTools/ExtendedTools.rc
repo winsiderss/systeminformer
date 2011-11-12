@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,7,0,0
- PRODUCTVERSION 1,7,0,0
+ FILEVERSION 1,8,0,0
+ PRODUCTVERSION 1,8,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.7"
+            VALUE "FileVersion", "1.8"
             VALUE "InternalName", "ExtendedTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedTools.dll"
             VALUE "ProductName", "Extended Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.7"
+            VALUE "ProductVersion", "1.8"
         END
     END
     BLOCK "VarFileInfo"
@@ -208,39 +208,19 @@ BEGIN
     RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,205,74,38,8,SS_ENDELLIPSIS
 END
 
-IDD_SYSDISKNET DIALOGEX 0, 0, 361, 221
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-CAPTION "Disk and Network"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "Close",IDOK,304,200,50,14
-    GROUPBOX        "Disk I/O",IDC_GROUPDISK,7,7,347,53,0,WS_EX_TRANSPARENT
-    GROUPBOX        "Network I/O",IDC_GROUPNETWORK,7,62,347,53,0,WS_EX_TRANSPARENT
-    CONTROL         "Always on Top",IDC_ALWAYSONTOP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,238,202,63,10
-END
-
-IDD_SYSDISKNET_PANEL DIALOGEX 0, 0, 246, 58
+IDD_SYSINFO_DISKPANEL DIALOGEX 0, 0, 146, 58
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Disk I/O",IDC_STATIC,0,0,118,58
-    LTEXT           "Reads",IDC_STATIC,8,11,21,8
-    LTEXT           "Read Bytes",IDC_STATIC,8,22,38,8
-    LTEXT           "Writes",IDC_STATIC,8,33,22,8
-    LTEXT           "Write Bytes",IDC_STATIC,8,44,38,8
-    RTEXT           "Static",IDC_ZREADS_V,55,11,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZREADBYTES_V,71,22,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZWRITES_V,55,33,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZWRITEBYTES_V,71,44,38,8,SS_ENDELLIPSIS
-    GROUPBOX        "Network I/O",IDC_STATIC,122,0,124,58
-    LTEXT           "Receives",IDC_STATIC,130,11,30,8
-    LTEXT           "Receive Bytes",IDC_STATIC,130,23,46,8
-    LTEXT           "Sends",IDC_STATIC,130,34,20,8
-    LTEXT           "Send Bytes",IDC_STATIC,130,44,37,8
-    RTEXT           "Static",IDC_ZRECEIVES_V,182,11,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZRECEIVEBYTES_V,198,23,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSENDS_V,182,34,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSENDBYTES_V,198,44,38,8,SS_ENDELLIPSIS
+    GROUPBOX        "Disk I/O",IDC_STATIC,0,0,145,58
+    LTEXT           "Reads Delta",IDC_STATIC,8,11,40,8
+    LTEXT           "Read Bytes Delta",IDC_STATIC,8,22,56,8
+    LTEXT           "Writes Delta",IDC_STATIC,8,33,40,8
+    LTEXT           "Write Bytes Delta",IDC_STATIC,8,44,57,8
+    RTEXT           "Static",IDC_ZREADSDELTA_V,84,11,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZREADBYTESDELTA_V,78,22,60,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITESDELTA_V,84,33,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITEBYTESDELTA_V,82,44,56,8,SS_ENDELLIPSIS
 END
 
 IDD_OPTIONS DIALOGEX 0, 0, 215, 77
@@ -337,6 +317,41 @@ BEGIN
     RTEXT           "Static",IDC_ZTOTALNODES_V,205,40,38,8,SS_ENDELLIPSIS
 END
 
+IDD_SYSINFO_DISK DIALOGEX 0, 0, 315, 186
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Disk"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Disk",IDC_TITLE,0,0,72,21
+    LTEXT           "Panel layout",IDC_LAYOUT,0,124,315,61,NOT WS_VISIBLE
+    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,99,NOT WS_VISIBLE
+END
+
+IDD_SYSINFO_NETPANEL DIALOGEX 0, 0, 145, 58
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Network I/O",IDC_STATIC,0,0,145,58
+    LTEXT           "Receives Delta",IDC_STATIC,8,11,48,8
+    LTEXT           "Receive Bytes Delta",IDC_STATIC,8,22,65,8
+    LTEXT           "Sends Delta",IDC_STATIC,8,33,39,8
+    LTEXT           "Send Bytes Delta",IDC_STATIC,8,44,56,8
+    RTEXT           "Static",IDC_ZRECEIVESDELTA_V,84,11,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZRECEIVEBYTESDELTA_V,78,22,60,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDSDELTA_V,84,33,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,82,44,56,8,SS_ENDELLIPSIS
+END
+
+IDD_SYSINFO_NET DIALOGEX 0, 0, 315, 186
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Network"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Network",IDC_TITLE,0,0,72,21
+    LTEXT           "Panel layout",IDC_LAYOUT,0,124,315,61,NOT WS_VISIBLE
+    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,99,NOT WS_VISIBLE
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -394,15 +409,7 @@ BEGIN
         BOTTOMMARGIN, 253
     END
 
-    IDD_SYSDISKNET, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 354
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 214
-    END
-
-    IDD_SYSDISKNET_PANEL, DIALOG
+    IDD_SYSINFO_DISKPANEL, DIALOG
     BEGIN
     END
 
@@ -436,6 +443,18 @@ BEGIN
         RIGHTMARGIN, 253
         TOPMARGIN, 7
         BOTTOMMARGIN, 253
+    END
+
+    IDD_SYSINFO_DISK, DIALOG
+    BEGIN
+    END
+
+    IDD_SYSINFO_NETPANEL, DIALOG
+    BEGIN
+    END
+
+    IDD_SYSINFO_NET, DIALOG
+    BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -34,6 +34,7 @@ static _SetupDiGetClassDevsW SetupDiGetClassDevsW_I;
 static _SetupDiDestroyDeviceInfoList SetupDiDestroyDeviceInfoList_I;
 static _SetupDiEnumDeviceInterfaces SetupDiEnumDeviceInterfaces_I;
 static _SetupDiGetDeviceInterfaceDetailW SetupDiGetDeviceInterfaceDetailW_I;
+static _SetupDiGetDeviceRegistryPropertyW SetupDiGetDeviceRegistryPropertyW_I;
 
 BOOLEAN EtGpuEnabled;
 static PPH_LIST EtpGpuAdapterList;
@@ -80,6 +81,7 @@ VOID EtGpuMonitorInitialization(
             SetupDiDestroyDeviceInfoList_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiDestroyDeviceInfoList");
             SetupDiEnumDeviceInterfaces_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiEnumDeviceInterfaces");
             SetupDiGetDeviceInterfaceDetailW_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiGetDeviceInterfaceDetailW");
+            SetupDiGetDeviceRegistryPropertyW_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiGetDeviceRegistryPropertyW");
         }
 
         if (
@@ -128,6 +130,7 @@ static BOOLEAN EtpInitializeD3DStatistics(
     ULONG memberIndex;
     SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
     PSP_DEVICE_INTERFACE_DETAIL_DATA detailData;
+    SP_DEVINFO_DATA deviceInfoData;
     ULONG detailDataSize;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
@@ -145,8 +148,9 @@ static BOOLEAN EtpInitializeD3DStatistics(
         detailDataSize = 0x100;
         detailData = PhAllocate(detailDataSize);
         detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
-        if (!(result = SetupDiGetDeviceInterfaceDetailW_I(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, NULL)) &&
+        if (!(result = SetupDiGetDeviceInterfaceDetailW_I(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData)) &&
             GetLastError() == ERROR_INSUFFICIENT_BUFFER)
         {
             PhFree(detailData);
@@ -155,7 +159,7 @@ static BOOLEAN EtpInitializeD3DStatistics(
             if (detailDataSize >= sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA))
                 detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
-            result = SetupDiGetDeviceInterfaceDetailW_I(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, NULL);
+            result = SetupDiGetDeviceInterfaceDetailW_I(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData);
         }
 
         if (result)
@@ -175,6 +179,7 @@ static BOOLEAN EtpInitializeD3DStatistics(
 
                     gpuAdapter = PhAllocate(sizeof(ETP_GPU_ADAPTER));
                     gpuAdapter->AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
+                    gpuAdapter->Description = EtpQueryDeviceDescription(deviceInfoSet, &deviceInfoData);
                     gpuAdapter->NodeCount = queryStatistics.QueryResult.AdapterInformation.NodeCount;
                     gpuAdapter->SegmentCount = queryStatistics.QueryResult.AdapterInformation.NbSegments;
                     gpuAdapter->ApertureBitMap = 0;
@@ -230,6 +235,56 @@ static BOOLEAN EtpInitializeD3DStatistics(
     SetupDiDestroyDeviceInfoList_I(deviceInfoSet);
 
     return TRUE;
+}
+
+static PPH_STRING EtpQueryDeviceDescription(
+    __in HDEVINFO DeviceInfoSet,
+    __in PSP_DEVINFO_DATA DeviceInfoData
+    )
+{
+    LOGICAL result;
+    PPH_STRING string;
+    ULONG bufferSize;
+
+    if (!SetupDiGetDeviceRegistryPropertyW_I)
+        return NULL;
+
+    bufferSize = 0x40;
+    string = PhCreateStringEx(NULL, bufferSize);
+
+    if (!(result = SetupDiGetDeviceRegistryPropertyW_I(
+        DeviceInfoSet,
+        DeviceInfoData,
+        SPDRP_DEVICEDESC,
+        NULL,
+        (PBYTE)string->Buffer,
+        bufferSize,
+        &bufferSize
+        )) && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+    {
+        PhDereferenceObject(string);
+        string = PhCreateStringEx(NULL, bufferSize);
+
+        result = SetupDiGetDeviceRegistryPropertyW_I(
+            DeviceInfoSet,
+            DeviceInfoData,
+            SPDRP_DEVICEDESC,
+            NULL,
+            (PBYTE)string->Buffer,
+            bufferSize,
+            NULL
+            );
+    }
+
+    if (!result)
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+
+    PhTrimToNullTerminatorString(string);
+
+    return string;
 }
 
 static VOID EtpUpdateSegmentInformation(
@@ -465,6 +520,35 @@ static VOID NTAPI ProcessesUpdatedCallback(
     }
 
     runCount++;
+}
+
+ULONG EtGetGpuAdapterCount(
+    VOID
+    )
+{
+    return EtpGpuAdapterList->Count;
+}
+
+PPH_STRING EtGetGpuAdapterDescription(
+    __in ULONG Index
+    )
+{
+    PPH_STRING description;
+
+    if (Index >= EtpGpuAdapterList->Count)
+        return NULL;
+
+    description = ((PETP_GPU_ADAPTER)EtpGpuAdapterList->Items[Index])->Description;
+
+    if (description)
+    {
+        PhReferenceObject(description);
+        return description;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 VOID EtQueryProcessGpuStatistics(

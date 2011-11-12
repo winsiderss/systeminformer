@@ -184,7 +184,6 @@
     <ClCompile Include="etwprprp.c" />
     <ClCompile Include="etwsys.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="memlists.c" />
     <ClCompile Include="modsrv.c" />
     <ClCompile Include="objprp.c" />
     <ClCompile Include="options.c" />
@@ -197,8 +196,10 @@
     <ClInclude Include="d3dkmt.h" />
     <ClInclude Include="disktabp.h" />
     <ClInclude Include="etwmon.h" />
+    <ClInclude Include="etwsys.h" />
     <ClInclude Include="exttools.h" />
     <ClInclude Include="gpumon.h" />
+    <ClInclude Include="gpusys.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

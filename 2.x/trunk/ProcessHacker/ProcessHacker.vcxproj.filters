@@ -453,6 +453,9 @@
     <ClCompile Include="pcre\pcre_xclass.c">
       <Filter>PCRE</Filter>
     </ClCompile>
+    <ClCompile Include="memlists.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
