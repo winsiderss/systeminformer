@@ -10,6 +10,7 @@
 #define PH_SYSINFO_SEPARATOR_WIDTH 2
 
 #define PH_SYSINFO_CPU_PADDING 5
+#define PH_SYSINFO_MEMORY_PADDING 3
 
 #define SI_MSG_SYSINFO_FIRST (WM_APP + 150)
 #define SI_MSG_SYSINFO_ACTIVATE (WM_APP + 150)
@@ -170,6 +171,18 @@ BOOLEAN PhSipCpuSectionCallback(
     __in_opt PVOID Parameter2
     );
 
+VOID PhSipInitializeCpuDialog(
+    VOID
+    );
+
+VOID PhSipUninitializeCpuDialog(
+    VOID
+    );
+
+VOID PhSipTickCpuDialog(
+    VOID
+    );
+
 INT_PTR CALLBACK PhSipCpuDialogProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -228,6 +241,61 @@ BOOLEAN PhSipMemorySectionCallback(
     __in PH_SYSINFO_SECTION_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2
+    );
+
+VOID PhSipInitializeMemoryDialog(
+    VOID
+    );
+
+VOID PhSipUninitializeMemoryDialog(
+    VOID
+    );
+
+VOID PhSipTickMemoryDialog(
+    VOID
+    );
+
+INT_PTR CALLBACK PhSipMemoryDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+VOID PhSipLayoutMemoryGraphs(
+    VOID
+    );
+
+VOID PhSipNotifyCommitGraph(
+    __in NMHDR *Header
+    );
+
+VOID PhSipNotifyPhysicalGraph(
+    __in NMHDR *Header
+    );
+
+VOID PhSipUpdateMemoryGraphs(
+    VOID
+    );
+
+VOID PhSipUpdateMemoryPanel(
+    VOID
+    );
+
+NTSTATUS PhSipLoadMmAddresses(
+    __in PVOID Parameter
+    );
+
+VOID PhSipGetPoolLimits(
+    __out PSIZE_T Paged,
+    __out PSIZE_T NonPaged
     );
 
 // I/O section
