@@ -749,13 +749,16 @@ typedef struct _PH_SYSINFO_PARAMETERS
     HFONT MediumFont;
     HFONT LargeFont;
     ULONG FontHeight;
+    ULONG FontAverageWidth;
     ULONG MediumFontHeight;
+    ULONG MediumFontAverageWidth;
     COLORREF GraphBackColor;
     COLORREF PanelForeColor;
     PPH_SYSINFO_COLOR_SETUP_FUNCTION ColorSetupFunction;
 
     ULONG MinimumGraphHeight;
     ULONG SectionViewGraphHeight;
+    ULONG PanelWidth;
 } PH_SYSINFO_PARAMETERS, *PPH_SYSINFO_PARAMETERS;
 
 typedef enum _PH_SYSINFO_SECTION_MESSAGE
