@@ -89,4 +89,8 @@ NTSTATUS PhSvcCallInvokeRunAsService(
     __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
+NTSTATUS PhSvcCallIssueMemoryListCommand(
+    __in SYSTEM_MEMORY_LIST_COMMAND Command
+    );
+
 #endif

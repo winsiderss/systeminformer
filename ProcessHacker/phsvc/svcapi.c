@@ -47,7 +47,8 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiSetTcpEntry,
     PhSvcApiControlThread,
     PhSvcApiAddAccountRight,
-    PhSvcApiInvokeRunAsService
+    PhSvcApiInvokeRunAsService,
+    PhSvcApiIssueMemoryListCommand
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -866,6 +867,33 @@ NTSTATUS PhSvcApiInvokeRunAsService(
     }
 
     PhSvcpReleaseRunAsServiceParameters(&capturedParameters);
+
+    return status;
+}
+
+NTSTATUS PhSvcApiIssueMemoryListCommand(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PVOID returnedState;
+    ULONG privilege = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
+
+    if (NT_SUCCESS(status = RtlAcquirePrivilege(
+        &privilege,
+        1,
+        0,
+        &returnedState
+        )))
+    {
+        status = NtSetSystemInformation(
+            SystemMemoryListInformation,
+            &Message->u.IssueMemoryListCommand.i.Command,
+            sizeof(SYSTEM_MEMORY_LIST_COMMAND)
+            );
+        RtlReleasePrivilege(returnedState);
+    }
 
     return status;
 }
