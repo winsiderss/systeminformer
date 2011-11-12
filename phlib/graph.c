@@ -1162,10 +1162,10 @@ LRESULT CALLBACK PhpGraphWndProc(
     case WM_SIZE:
         {
             // Force a re-create of the buffered context.
-            PhpDeleteBufferedContext(context);
+            PhpCreateBufferedContext(context);
             PhpDeleteFadeOutContext(context);
 
-            context->NeedsUpdate = TRUE;
+            PhpUpdateDrawInfo(hwnd, context);
             context->NeedsDraw = TRUE;
             InvalidateRect(hwnd, NULL, FALSE);
         }

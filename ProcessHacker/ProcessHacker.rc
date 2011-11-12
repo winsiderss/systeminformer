@@ -1001,7 +1001,7 @@ CAPTION "System Information"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "Close",IDOK,366,226,50,14
-    CONTROL         "Always on Top",IDC_ALWAYSONTOP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,297,228,63,10
+    CONTROL         "Always on &Top",IDC_ALWAYSONTOP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,297,228,63,10
     LTEXT           "Click a graph to view details for that section.",IDC_INSTRUCTION,7,228,144,8
 END
 
@@ -2256,8 +2256,10 @@ END
 
 IDR_SYSINFO_ACCEL ACCELERATORS
 BEGIN
-    VK_BACK,        IDC_BACK,               VIRTKEY, NOINVERT
     "B",            IDC_BACK,               VIRTKEY, ALT, NOINVERT
+    VK_BACK,        IDC_BACK,               VIRTKEY, NOINVERT
+    VK_F5,          IDC_REFRESH,            VIRTKEY, NOINVERT
+    VK_PAUSE,       IDC_PAUSE,              VIRTKEY, NOINVERT
 END
 
 
