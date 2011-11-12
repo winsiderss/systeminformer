@@ -234,25 +234,14 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                     if (command != -1)
                     {
                         NTSTATUS status;
-                        PVOID returnedState;
-                        ULONG privilege = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
 
-                        if (NT_SUCCESS(status = RtlAcquirePrivilege(
-                            &privilege,
-                            1,
-                            0,
-                            &returnedState
-                            )))
-                        {
-                            SetCursor(LoadCursor(NULL, IDC_WAIT));
-                            status = NtSetSystemInformation(
-                                SystemMemoryListInformation,
-                                &command,
-                                sizeof(SYSTEM_MEMORY_LIST_COMMAND)
-                                );
-                            SetCursor(LoadCursor(NULL, IDC_ARROW));
-                            RtlReleasePrivilege(returnedState);
-                        }
+                        SetCursor(LoadCursor(NULL, IDC_WAIT));
+                        status = NtSetSystemInformation(
+                            SystemMemoryListInformation,
+                            &command,
+                            sizeof(SYSTEM_MEMORY_LIST_COMMAND)
+                            );
+                        SetCursor(LoadCursor(NULL, IDC_ARROW));
 
                         if (status == STATUS_PRIVILEGE_NOT_HELD)
                         {
