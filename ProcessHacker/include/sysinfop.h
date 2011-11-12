@@ -77,6 +77,14 @@ VOID PhSipOnUserMessage(
 
 // Framework
 
+VOID PhSipRegisterDialog(
+    __in HWND DialogWindowHandle
+    );
+
+VOID PhSipUnregisterDialog(
+    __in HWND DialogWindowHandle
+    );
+
 VOID PhSipInitializeParameters(
     VOID
     );

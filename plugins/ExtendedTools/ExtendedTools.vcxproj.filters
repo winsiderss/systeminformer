@@ -33,9 +33,6 @@
     <ClCompile Include="etwmon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="memlists.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="etwstat.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -93,6 +90,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gpumon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gpusys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="etwsys.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

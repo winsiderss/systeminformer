@@ -34,6 +34,7 @@
 
 static HANDLE PhSipThread = NULL;
 static HWND PhSipWindow = NULL;
+static PPH_LIST PhSipDialogList = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
@@ -157,6 +158,20 @@ NTSTATUS PhSipSysInfoThreadStart(
                 processed = TRUE;
         }
 
+        if (PhSipDialogList)
+        {
+            ULONG i;
+
+            for (i = 0; i < PhSipDialogList->Count; i++)
+            {
+                if (IsDialogMessage((HWND)PhSipDialogList->Items[i], &message))
+                {
+                    processed = TRUE;
+                    break;
+                }
+            }
+        }
+
         if (!processed)
         {
             if (!IsDialogMessage(PhSipWindow, &message))
@@ -175,6 +190,12 @@ NTSTATUS PhSipSysInfoThreadStart(
 
     PhSipWindow = NULL;
     PhSipThread = NULL;
+
+    if (PhSipDialogList)
+    {
+        PhDereferenceObject(PhSipDialogList);
+        PhSipDialogList = NULL;
+    }
 
     return STATUS_SUCCESS;
 }
@@ -264,8 +285,6 @@ VOID PhSipOnInitDialog(
         NULL,
         &ProcessesUpdatedRegistration
         );
-
-    PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
 }
 
 VOID PhSipOnDestroy(
@@ -377,6 +396,8 @@ VOID PhSipOnShowWindow(
             clientRect.bottom - buttonRect.top +
             GetSystemMetrics(SM_CYSIZEFRAME) * 2;
     }
+
+    PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
 
     AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowAlwaysOnTop");
     Button_SetCheck(GetDlgItem(PhSipWindow, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
@@ -637,6 +658,26 @@ VOID PhSiSetColorsGraphDrawInfo(
     DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
 }
 
+VOID PhSipRegisterDialog(
+    __in HWND DialogWindowHandle
+    )
+{
+    if (!PhSipDialogList)
+        PhSipDialogList = PhCreateList(4);
+
+    PhAddItemList(PhSipDialogList, DialogWindowHandle);
+}
+
+VOID PhSipUnregisterDialog(
+    __in HWND DialogWindowHandle
+    )
+{
+    ULONG index;
+
+    if ((index = PhFindItemList(PhSipDialogList, DialogWindowHandle)) != -1)
+        PhRemoveItemList(PhSipDialogList, index);
+}
+
 VOID PhSipInitializeParameters(
     VOID
     )
@@ -662,10 +703,10 @@ VOID PhSipInitializeParameters(
 
     hdc = GetDC(PhSipWindow);
 
-    logFont.lfHeight -= MulDiv(4, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= MulDiv(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
-    logFont.lfHeight -= MulDiv(4, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= MulDiv(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
     CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
 
     CurrentParameters.GraphBackColor = RGB(0xef, 0xef, 0xef);
@@ -2191,6 +2232,18 @@ INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
     case WM_INITDIALOG:
         {
             NOTHING;
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_MORE:
+                {
+                    PhShowMemoryListsDialog(PhSipWindow, PhSipRegisterDialog, PhSipUnregisterDialog);
+                }
+                break;
+            }
         }
         break;
     }

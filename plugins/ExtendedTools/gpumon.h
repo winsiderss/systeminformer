@@ -31,11 +31,22 @@ typedef BOOL (WINAPI *_SetupDiGetDeviceInterfaceDetailW)(
     __out_opt PSP_DEVINFO_DATA DeviceInfoData
     );
 
+typedef BOOL (WINAPI *_SetupDiGetDeviceRegistryPropertyW)(
+    __in HDEVINFO DeviceInfoSet,
+    __in PSP_DEVINFO_DATA DeviceInfoData,
+    __in DWORD Property,
+    __out_opt PDWORD PropertyRegDataType,
+    __out_opt PBYTE PropertyBuffer,
+    __in DWORD PropertyBufferSize,
+    __out_opt PDWORD RequiredSize
+    );
+
 // Structures
 
 typedef struct _ETP_GPU_ADAPTER
 {
     LUID AdapterLuid;
+    PPH_STRING Description;
     ULONG SegmentCount;
     ULONG NodeCount;
 
@@ -46,6 +57,11 @@ typedef struct _ETP_GPU_ADAPTER
 
 BOOLEAN EtpInitializeD3DStatistics(
     VOID
+    );
+
+PPH_STRING EtpQueryDeviceDescription(
+    __in HDEVINFO DeviceInfoSet,
+    __in PSP_DEVINFO_DATA DeviceInfoData
     );
 
 VOID NTAPI ProcessesUpdatedCallback(

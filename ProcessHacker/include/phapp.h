@@ -1451,6 +1451,14 @@ VOID PhShowMemoryEditorDialog(
     __in ULONG SelectLength
     );
 
+// memlists
+
+VOID PhShowMemoryListsDialog(
+    __in HWND ParentWindowHandle,
+    __in_opt VOID (NTAPI *RegisterDialog)(HWND),
+    __in_opt VOID (NTAPI *UnregisterDialog)(HWND)
+    );
+
 // memprot
 
 VOID PhShowMemoryProtectDialog(

@@ -127,6 +127,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerPairSetting(L"MemResultsPosition", L"300,300");
     PhpAddIntegerPairSetting(L"MemResultsSize", L"500,520");
     PhpAddStringSetting(L"MemoryListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"MemoryListsWindowPosition", L"400,400");
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
     PhpAddStringSetting(L"ModuleTreeListColumns", L"");
     PhpAddStringSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
