@@ -337,6 +337,12 @@ VOID PhpInitializePropSheetLayoutStage2(
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
     windowRectangle.Size = PhGetIntegerPairSetting(L"ProcPropSize");
+
+    if (windowRectangle.Size.X < MinimumSize.right)
+        windowRectangle.Size.X = MinimumSize.right;
+    if (windowRectangle.Size.Y < MinimumSize.bottom)
+        windowRectangle.Size.Y = MinimumSize.bottom;
+
     PhAdjustRectangleToWorkingArea(hwnd, &windowRectangle);
 
     MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
