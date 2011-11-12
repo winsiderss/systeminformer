@@ -17,6 +17,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcControlThreadApiNumber = 10,
     PhSvcAddAccountRightApiNumber = 11,
     PhSvcInvokeRunAsServiceApiNumber = 12,
+    PhSvcIssueMemoryListCommandApiNumber = 13,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -191,6 +192,14 @@ typedef union _PHSVC_API_ADDACCOUNTRIGHT
     } i;
 } PHSVC_API_ADDACCOUNTRIGHT, *PPHSVC_API_ADDACCOUNTRIGHT;
 
+typedef union _PHSVC_API_ISSUEMEMORYLISTCOMMAND
+{
+    struct
+    {
+        SYSTEM_MEMORY_LIST_COMMAND Command;
+    } i;
+} PHSVC_API_ISSUEMEMORYLISTCOMMAND, *PPHSVC_API_ISSUEMEMORYLISTCOMMAND;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
@@ -215,6 +224,7 @@ typedef struct _PHSVC_API_MSG
                 PHSVC_API_SETTCPENTRY SetTcpEntry;
                 PHSVC_API_CONTROLTHREAD ControlThread;
                 PHSVC_API_ADDACCOUNTRIGHT AddAccountRight;
+                PHSVC_API_ISSUEMEMORYLISTCOMMAND IssueMemoryListCommand;
             } u;
         };
     };

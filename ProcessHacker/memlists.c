@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsvccl.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 
@@ -243,19 +244,36 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                             &returnedState
                             )))
                         {
+                            SetCursor(LoadCursor(NULL, IDC_WAIT));
                             status = NtSetSystemInformation(
                                 SystemMemoryListInformation,
                                 &command,
                                 sizeof(SYSTEM_MEMORY_LIST_COMMAND)
                                 );
+                            SetCursor(LoadCursor(NULL, IDC_ARROW));
                             RtlReleasePrivilege(returnedState);
                         }
 
                         if (status == STATUS_PRIVILEGE_NOT_HELD)
                         {
-                            PhShowError(hwndDlg, L"Process Hacker must be elevated to execute this command.");
+                            if (!PhElevated)
+                            {
+                                if (PhUiConnectToPhSvc(hwndDlg, FALSE))
+                                {
+                                    SetCursor(LoadCursor(NULL, IDC_WAIT));
+                                    status = PhSvcCallIssueMemoryListCommand(command);
+                                    SetCursor(LoadCursor(NULL, IDC_ARROW));
+                                    PhUiDisconnectFromPhSvc();
+                                }
+                                else
+                                {
+                                    // User cancelled eleavtion.
+                                    status = STATUS_SUCCESS;
+                                }
+                            }
                         }
-                        else if (!NT_SUCCESS(status))
+
+                        if (!NT_SUCCESS(status))
                         {
                             PhShowStatus(hwndDlg, L"Unable to execute the memory list command", status, 0);
                         }

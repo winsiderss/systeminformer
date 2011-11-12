@@ -737,3 +737,18 @@ NTSTATUS PhSvcCallInvokeRunAsService(
 {
     return PhSvcpCallExecuteRunAsCommand(PhSvcInvokeRunAsServiceApiNumber, Parameters);
 }
+
+NTSTATUS PhSvcCallIssueMemoryListCommand(
+    __in SYSTEM_MEMORY_LIST_COMMAND Command
+    )
+{
+    PHSVC_API_MSG m;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcIssueMemoryListCommandApiNumber;
+    m.u.IssueMemoryListCommand.i.Command = Command;
+
+    return PhSvcpCallServer(&m);
+}
