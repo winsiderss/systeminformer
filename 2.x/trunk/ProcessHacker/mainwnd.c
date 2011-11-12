@@ -2225,6 +2225,24 @@ ULONG_PTR PhMwpOnUserMessage(
             return (ULONG_PTR)PhMwpAddTabPage((PPH_ADDITIONAL_TAB_PAGE)LParam);
         }
         break;
+    case WM_PH_REFRESH:
+        {
+            SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_REFRESH, 0);
+        }
+        break;
+    case WM_PH_GET_UPDATE_AUTOMATICALLY:
+        {
+            return UpdateAutomatically;
+        }
+        break;
+    case WM_PH_SET_UPDATE_AUTOMATICALLY:
+        {
+            if (!!WParam != UpdateAutomatically)
+            {
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_UPDATEAUTOMATICALLY, 0);
+            }
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)WParam;

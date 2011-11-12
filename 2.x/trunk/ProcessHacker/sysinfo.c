@@ -25,6 +25,7 @@
 #include <settings.h>
 #include <phplug.h>
 #include <windowsx.h>
+#include <uxtheme.h>
 #include <sysinfop.h>
 
 // TODO:
@@ -46,6 +47,7 @@ static PH_SYSINFO_VIEW_TYPE CurrentView;
 static PPH_SYSINFO_SECTION CurrentSection;
 static HWND SeparatorControl;
 static HWND RestoreSummaryControl;
+static _EnableThemeDialogTexture EnableThemeDialogTexture_I;
 
 static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;
@@ -285,6 +287,9 @@ VOID PhSipOnInitDialog(
         NULL,
         &ProcessesUpdatedRegistration
         );
+
+    if (!EnableThemeDialogTexture_I)
+        EnableThemeDialogTexture_I = PhGetProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
 }
 
 VOID PhSipOnDestroy(
@@ -458,6 +463,16 @@ VOID PhSipOnCommand(
     case IDC_BACK:
         {
             PhSipRestoreSummaryView();
+        }
+        break;
+    case IDC_REFRESH:
+        {
+            ProcessHacker_Refresh(PhMainWndHandle);
+        }
+        break;
+    case IDC_PAUSE:
+        {
+            ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
         }
         break;
     }
@@ -1209,6 +1224,9 @@ HWND PhSipDefaultCreateDialog(
     }
 
     dialogHandle = CreateDialogIndirect(Instance, (DLGTEMPLATE *)dialogCopy, PhSipWindow, DialogProc);
+
+    if (EnableThemeDialogTexture_I)
+        EnableThemeDialogTexture_I(dialogHandle, ETDT_ENABLETAB);
 
     PhFree(dialogCopy);
 
@@ -2133,9 +2151,10 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
     {
     case WM_INITDIALOG:
         {
+            static BOOL (WINAPI *getPhysicallyInstalledSystemMemory)(PULONGLONG) = NULL;
+
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
-            BOOL (WINAPI *getPhysicallyInstalledSystemMemory)(PULONGLONG);
             ULONGLONG installedMemory;
 
             PhSipInitializeMemoryDialog();
@@ -2150,7 +2169,8 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)CurrentParameters.LargeFont, FALSE);
             SendMessage(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
 
-            getPhysicallyInstalledSystemMemory = PhGetProcAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory");
+            if (!getPhysicallyInstalledSystemMemory)
+                getPhysicallyInstalledSystemMemory = PhGetProcAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory");
 
             if (getPhysicallyInstalledSystemMemory && getPhysicallyInstalledSystemMemory(&installedMemory))
             {
