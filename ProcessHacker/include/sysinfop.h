@@ -39,6 +39,13 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PhSipContainerDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 // Event handlers
 
 VOID PhSipOnInitDialog(

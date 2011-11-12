@@ -762,6 +762,7 @@ typedef VOID (NTAPI *PPH_SYSINFO_COLOR_SETUP_FUNCTION)(
 typedef struct _PH_SYSINFO_PARAMETERS
 {
     HWND SysInfoWindowHandle;
+    HWND ContainerWindowHandle;
 
     HFONT Font;
     HFONT MediumFont;
