@@ -438,8 +438,8 @@ VOID EtShowEtwSystemDialog(
 
 // gpusys
 
-VOID EtShowGpuSystemDialog(
-    VOID
+VOID EtGpuSystemInformationInitializing(
+    __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
 // memlists

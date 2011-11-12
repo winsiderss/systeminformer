@@ -800,11 +800,11 @@ typedef struct _PH_SYSINFO_SECTION
     // Public
 
     // Initialization
-    PWSTR Name;
+    PH_STRINGREF Name;
     ULONG Flags;
     PPH_SYSINFO_SECTION_CALLBACK Callback;
     PVOID Context;
-    PVOID Reserved[2];
+    PVOID Reserved[3];
 
     // State
     HWND GraphHandle;

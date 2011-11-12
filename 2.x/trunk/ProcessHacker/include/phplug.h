@@ -38,6 +38,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackHandleTreeNewInitializing = 24, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackHandleTreeNewUninitializing = 25, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackThreadStackControl = 26, // PPH_PLUGIN_THREAD_STACK_CONTROL Data [properties thread]
+    GeneralCallbackSystemInformationInitializing = 27, // PPH_PLUGIN_SYSINFO_POINTERS Data [system information thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -190,6 +191,31 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
         } GetTooltip;
     } u;
 } PH_PLUGIN_THREAD_STACK_CONTROL, *PPH_PLUGIN_THREAD_STACK_CONTROL;
+
+typedef PPH_SYSINFO_SECTION (NTAPI *PPH_SYSINFO_CREATE_SECTION)(
+    __in PPH_SYSINFO_SECTION Template
+    );
+
+typedef PPH_SYSINFO_SECTION (NTAPI *PPH_SYSINFO_FIND_SECTION)(
+    __in PPH_STRINGREF Name
+    );
+
+typedef VOID (NTAPI *PPH_SYSINFO_ENTER_SECTION_VIEW)(
+    __in PPH_SYSINFO_SECTION NewSection
+    );
+
+typedef VOID (NTAPI *PPH_SYSINFO_RESTORE_SUMMARY_VIEW)(
+    VOID
+    );
+
+typedef struct _PH_PLUGIN_SYSINFO_POINTERS
+{
+    HWND WindowHandle;
+    PPH_SYSINFO_CREATE_SECTION CreateSection;
+    PPH_SYSINFO_FIND_SECTION FindSection;
+    PPH_SYSINFO_ENTER_SECTION_VIEW EnterSectionView;
+    PPH_SYSINFO_RESTORE_SUMMARY_VIEW RestoreSummaryView;
+} PH_PLUGIN_SYSINFO_POINTERS, *PPH_PLUGIN_SYSINFO_POINTERS;
 
 typedef struct _PH_PLUGIN_TREENEW_MESSAGE
 {

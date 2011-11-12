@@ -23,8 +23,14 @@
 #include <phapp.h>
 #include <kphuser.h>
 #include <settings.h>
+#include <phplug.h>
 #include <windowsx.h>
 #include <sysinfop.h>
+
+// TODO:
+// * Keyboard navigation & focus rectangles for graphs
+// * Themed controls
+// * Flexible resizing
 
 static HANDLE PhSipThread = NULL;
 static HWND PhSipWindow = NULL;
@@ -310,6 +316,18 @@ VOID PhSipOnShowWindow(
     CpuSection = PhSipCreateInternalSection(L"CPU", 0, PhSipCpuSectionCallback);
     MemorySection = PhSipCreateInternalSection(L"Memory", 0, PhSipMemorySectionCallback);
     IoSection = PhSipCreateInternalSection(L"I/O", 0, PhSipIoSectionCallback);
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_SYSINFO_POINTERS pointers;
+
+        pointers.WindowHandle = PhSipWindow;
+        pointers.CreateSection = PhSipCreateSection;
+        pointers.FindSection = PhSipFindSection;
+        pointers.EnterSectionView = PhSipEnterSectionView;
+        pointers.RestoreSummaryView = PhSipRestoreSummaryView;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing), &pointers);
+    }
 
     SeparatorControl = CreateWindow(
         L"STATIC",
@@ -763,6 +781,24 @@ VOID PhSipDestroySection(
     PhFree(Section);
 }
 
+PPH_SYSINFO_SECTION PhSipFindSection(
+    __in PPH_STRINGREF Name
+    )
+{
+    ULONG i;
+    PPH_SYSINFO_SECTION section;
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        section = SectionList->Items[i];
+
+        if (PhEqualStringRef(&section->Name, Name, TRUE))
+            return section;
+    }
+
+    return NULL;
+}
+
 PPH_SYSINFO_SECTION PhSipCreateInternalSection(
     __in PWSTR Name,
     __in ULONG Flags,
@@ -772,7 +808,7 @@ PPH_SYSINFO_SECTION PhSipCreateInternalSection(
     PH_SYSINFO_SECTION section;
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-    section.Name = Name;
+    PhInitializeStringRef(&section.Name, Name);
     section.Flags = Flags;
     section.Callback = Callback;
 
@@ -1699,7 +1735,7 @@ VOID PhSipNotifyCpuGraph(
 
             record = NULL;
 
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
             {
                 record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
             }
@@ -2939,21 +2975,22 @@ VOID PhSipNotifyIoGraph(
                         max = data1 + data2;
                 }
 
-                if (max != 0)
-                {
-                    // Scale the data.
+                // Minimum scaling of 1 MB.
+                if (max < 1024 * 1024)
+                    max = 1024 * 1024;
 
-                    PhxfDivideSingle2U(
-                        IoGraphState.Data1,
-                        max,
-                        drawInfo->LineDataCount
-                        );
-                    PhxfDivideSingle2U(
-                        IoGraphState.Data2,
-                        max,
-                        drawInfo->LineDataCount
-                        );
-                }
+                // Scale the data.
+
+                PhxfDivideSingle2U(
+                    IoGraphState.Data1,
+                    max,
+                    drawInfo->LineDataCount
+                    );
+                PhxfDivideSingle2U(
+                    IoGraphState.Data2,
+                    max,
+                    drawInfo->LineDataCount
+                    );
 
                 IoGraphState.Valid = TRUE;
             }
@@ -2996,7 +3033,7 @@ VOID PhSipNotifyIoGraph(
 
             record = NULL;
 
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
             {
                 record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
             }

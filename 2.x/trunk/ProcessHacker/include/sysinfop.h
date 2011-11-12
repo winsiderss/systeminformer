@@ -93,6 +93,10 @@ VOID PhSipDestroySection(
     __in PPH_SYSINFO_SECTION Section
     );
 
+PPH_SYSINFO_SECTION PhSipFindSection(
+    __in PPH_STRINGREF Name
+    );
+
 PPH_SYSINFO_SECTION PhSipCreateInternalSection(
     __in PWSTR Name,
     __in ULONG Flags,
