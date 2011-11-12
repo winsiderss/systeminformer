@@ -31,7 +31,6 @@
 // TODO:
 // * Keyboard navigation & focus rectangles for graphs
 // * Themed controls
-// * Flexible resizing
 
 static HANDLE PhSipThread = NULL;
 static HWND PhSipWindow = NULL;
@@ -161,7 +160,7 @@ NTSTATUS PhSipSysInfoThreadStart(
                 processed = TRUE;
         }
 
-        if (PhSipDialogList)
+        if (!processed && PhSipDialogList)
         {
             ULONG i;
 
@@ -320,6 +319,11 @@ VOID PhSipOnDestroy(
         &ProcessesUpdatedRegistration
         );
 
+    if (CurrentSection)
+        PhSetStringSetting2(L"SysInfoWindowSection", &CurrentSection->Name);
+    else
+        PhSetStringSetting(L"SysInfoWindowSection", L"");
+
     PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
 
     PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
@@ -345,6 +349,8 @@ VOID PhSipOnShowWindow(
 {
     RECT buttonRect;
     RECT clientRect;
+    PPH_STRING sectionName;
+    PPH_SYSINFO_SECTION section;
 
     if (SectionList)
         return;
@@ -405,23 +411,43 @@ VOID PhSipOnShowWindow(
 
     MinimumSize.left = 0;
     MinimumSize.top = 0;
-    MinimumSize.right = 400;
-    MinimumSize.bottom = 200;
+    MinimumSize.right = 430;
+    MinimumSize.bottom = 290;
     MapDialogRect(PhSipWindow, &MinimumSize);
+
+    MinimumSize.right += CurrentParameters.PanelWidth;
+    MinimumSize.right += GetSystemMetrics(SM_CXFRAME) * 2;
+    MinimumSize.bottom += GetSystemMetrics(SM_CYFRAME) * 2;
 
     if (SectionList->Count != 0)
     {
-        MinimumSize.bottom =
+        ULONG newMinimumHeight;
+
+        newMinimumHeight =
             GetSystemMetrics(SM_CYCAPTION) +
             PH_SYSINFO_WINDOW_PADDING +
-            CurrentParameters.SectionViewGraphHeight * (SectionList->Count + 1) + // includes Back button
+            CurrentParameters.MinimumGraphHeight * SectionList->Count +
+            CurrentParameters.MinimumGraphHeight + // Back button
             PH_SYSINFO_GRAPH_PADDING * SectionList->Count +
             PH_SYSINFO_WINDOW_PADDING +
             clientRect.bottom - buttonRect.top +
-            GetSystemMetrics(SM_CYSIZEFRAME) * 2;
+            GetSystemMetrics(SM_CYFRAME) * 2;
+
+        if (newMinimumHeight > (ULONG)MinimumSize.bottom)
+            MinimumSize.bottom = newMinimumHeight;
     }
 
     PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
+
+    sectionName = PhGetStringSetting(L"SysInfoWindowSection");
+
+    if (sectionName->Length != 0 &&
+        (section = PhSipFindSection(&sectionName->sr)))
+    {
+        PhSipEnterSectionView(section);
+    }
+
+    PhDereferenceObject(sectionName);
 
     AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowAlwaysOnTop");
     Button_SetCheck(GetDlgItem(PhSipWindow, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
@@ -752,10 +778,12 @@ VOID PhSipInitializeParameters(
     originalFont = SelectObject(hdc, CurrentParameters.Font);
     GetTextMetrics(hdc, &textMetrics);
     CurrentParameters.FontHeight = textMetrics.tmHeight;
+    CurrentParameters.FontAverageWidth = textMetrics.tmAveCharWidth;
 
     SelectObject(hdc, CurrentParameters.MediumFont);
     GetTextMetrics(hdc, &textMetrics);
     CurrentParameters.MediumFontHeight = textMetrics.tmHeight;
+    CurrentParameters.MediumFontAverageWidth = textMetrics.tmAveCharWidth;
 
     SelectObject(hdc, originalFont);
 
@@ -773,6 +801,8 @@ VOID PhSipInitializeParameters(
         CurrentParameters.FontHeight +
         PH_SYSINFO_PANEL_PADDING +
         2;
+
+    CurrentParameters.PanelWidth = CurrentParameters.MediumFontAverageWidth * 10;
 
     ReleaseDC(PhSipWindow, hdc);
 }
@@ -820,7 +850,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->Parameters = &CurrentParameters;
 
     Graph_GetOptions(section->GraphHandle, &options);
-    options.FadeOutWidth = PH_SYSINFO_FADE_WIDTH;
+    options.FadeOutWidth = CurrentParameters.PanelWidth + PH_SYSINFO_FADE_ADD;
     options.DefaultCursor = LoadCursor(NULL, IDC_HAND);
     Graph_SetOptions(section->GraphHandle, &options);
     Graph_SetTooltip(section->GraphHandle, TRUE);
@@ -930,7 +960,7 @@ VOID PhSipDrawPanel(
 
     sysInfoDrawPanel.hdc = hdc;
     sysInfoDrawPanel.Rect = *Rect;
-    sysInfoDrawPanel.Rect.right = PH_SYSINFO_FADE_WIDTH;
+    sysInfoDrawPanel.Rect.right = CurrentParameters.PanelWidth;
     sysInfoDrawPanel.CustomDraw = FALSE;
 
     sysInfoDrawPanel.Title = NULL;
@@ -939,7 +969,10 @@ VOID PhSipDrawPanel(
     Section->Callback(Section, SysInfoGraphDrawPanel, &sysInfoDrawPanel, NULL);
 
     if (!sysInfoDrawPanel.CustomDraw)
+    {
+        sysInfoDrawPanel.Rect.right = Rect->right;
         PhSipDefaultDrawPanel(Section, &sysInfoDrawPanel);
+    }
 
     PhSwapReference(&sysInfoDrawPanel.Title, NULL);
     PhSwapReference(&sysInfoDrawPanel.SubTitle, NULL);
@@ -952,6 +985,7 @@ VOID PhSipDefaultDrawPanel(
 {
     HDC hdc;
     RECT rect;
+    ULONG flags;
 
     hdc = DrawPanel->hdc;
 
@@ -964,20 +998,27 @@ VOID PhSipDefaultDrawPanel(
 
     rect.left = PH_SYSINFO_PANEL_PADDING;
     rect.top = PH_SYSINFO_PANEL_PADDING;
-    rect.right = PH_SYSINFO_FADE_WIDTH;
+    rect.right = CurrentParameters.PanelWidth;
     rect.bottom = DrawPanel->Rect.bottom;
+
+    flags = DT_NOPREFIX;
+
+    if (CurrentView == SysInfoSummaryView)
+        rect.right = DrawPanel->Rect.right; // allow the text to overflow
+    else
+        flags |= DT_END_ELLIPSIS;
 
     if (DrawPanel->Title)
     {
         SelectObject(hdc, CurrentParameters.MediumFont);
-        DrawText(hdc, DrawPanel->Title->Buffer, DrawPanel->Title->Length / 2, &rect, DT_NOPREFIX | DT_SINGLELINE);
+        DrawText(hdc, DrawPanel->Title->Buffer, DrawPanel->Title->Length / 2, &rect, flags | DT_SINGLELINE);
     }
 
     if (DrawPanel->SubTitle)
     {
         rect.top += CurrentParameters.MediumFontHeight + PH_SYSINFO_PANEL_PADDING;
         SelectObject(hdc, CurrentParameters.Font);
-        DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &rect, DT_NOPREFIX);
+        DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &rect, flags);
     }
 }
 
@@ -1051,9 +1092,12 @@ VOID PhSipLayoutSectionView(
     availableWidth = clientRect.right - PH_SYSINFO_WINDOW_PADDING * 2;
     graphHeight = (availableHeight - PH_SYSINFO_GRAPH_PADDING * (SectionList->Count - 1)) / SectionList->Count;
 
+    if (graphHeight > CurrentParameters.SectionViewGraphHeight)
+        graphHeight = CurrentParameters.SectionViewGraphHeight;
+
     deferHandle = BeginDeferWindowPos(SectionList->Count * 2 + 3);
     y = PH_SYSINFO_WINDOW_PADDING;
-    // TODO: Progressively make each section graph smaller as the window gets smaller
+
     for (i = 0; i < SectionList->Count; i++)
     {
         section = SectionList->Items[i];
@@ -1065,7 +1109,7 @@ VOID PhSipLayoutSectionView(
             PH_SYSINFO_WINDOW_PADDING,
             y,
             PH_SYSINFO_SMALL_GRAPH_WIDTH,
-            CurrentParameters.SectionViewGraphHeight,
+            graphHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
 
@@ -1075,12 +1119,12 @@ VOID PhSipLayoutSectionView(
             NULL,
             PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING,
             y,
-            PH_SYSINFO_FADE_WIDTH - 40,
-            CurrentParameters.SectionViewGraphHeight,
+            CurrentParameters.PanelWidth,
+            graphHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
 
-        y += CurrentParameters.SectionViewGraphHeight + PH_SYSINFO_SMALL_GRAPH_PADDING;
+        y += graphHeight + PH_SYSINFO_SMALL_GRAPH_PADDING;
 
         section->GraphState.Valid = FALSE;
     }
@@ -1091,8 +1135,8 @@ VOID PhSipLayoutSectionView(
         NULL,
         PH_SYSINFO_WINDOW_PADDING,
         y,
-        PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40,
-        CurrentParameters.SectionViewGraphHeight,
+        PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth,
+        graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -1100,14 +1144,14 @@ VOID PhSipLayoutSectionView(
         deferHandle,
         SeparatorControl,
         NULL,
-        PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40 + PH_SYSINFO_WINDOW_PADDING - 7,
+        PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth + PH_SYSINFO_WINDOW_PADDING - 7,
         PH_SYSINFO_WINDOW_PADDING,
         PH_SYSINFO_SEPARATOR_WIDTH,
         availableHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    containerLeft = PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_FADE_WIDTH - 40 + PH_SYSINFO_WINDOW_PADDING - 7 + PH_SYSINFO_SEPARATOR_WIDTH;
+    containerLeft = PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth + PH_SYSINFO_WINDOW_PADDING - 7 + PH_SYSINFO_SEPARATOR_WIDTH;
     deferHandle = DeferWindowPos(
         deferHandle,
         ContainerControl,
