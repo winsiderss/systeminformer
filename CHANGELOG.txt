@@ -2,8 +2,11 @@ Process Hacker
 
 2.24
  * NEW/IMPROVED:
+   * Completely new system information window
    * Added Image base to peview
    * Improved module scanning
+   * Updated ExtendedTools plugin:
+     * Added support for new system information window
  * FIXED:
    * Fixed retrieval of version information for certain files
 

@@ -736,6 +736,103 @@ PhShowProcessProperties(
     __in PPH_PROCESS_PROPCONTEXT Context
     );
 
+// sysinfo
+
+typedef enum _PH_SYSINFO_VIEW_TYPE
+{
+    SysInfoSummaryView,
+    SysInfoSectionView
+} PH_SYSINFO_VIEW_TYPE;
+
+typedef VOID (NTAPI *PPH_SYSINFO_COLOR_SETUP_FUNCTION)(
+    __out PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in COLORREF Color1,
+    __in COLORREF Color2
+    );
+
+typedef struct _PH_SYSINFO_PARAMETERS
+{
+    HWND SysInfoWindowHandle;
+
+    HFONT Font;
+    HFONT MediumFont;
+    HFONT LargeFont;
+    ULONG FontHeight;
+    ULONG MediumFontHeight;
+    COLORREF GraphBackColor;
+    COLORREF PanelForeColor;
+    PPH_SYSINFO_COLOR_SETUP_FUNCTION ColorSetupFunction;
+
+    // ...
+} PH_SYSINFO_PARAMETERS, *PPH_SYSINFO_PARAMETERS;
+
+typedef enum _PH_SYSINFO_SECTION_MESSAGE
+{
+    SysInfoCreate,
+    SysInfoDestroy,
+    SysInfoTick,
+    SysInfoViewChanging, // PH_SYSINFO_VIEW_TYPE Parameter1, PPH_SYSINFO_SECTION Parameter2
+    SysInfoCreateDialog, // PPH_SYSINFO_CREATE_DIALOG Parameter1
+    SysInfoGraphGetDrawInfo, // PPH_GRAPH_DRAW_INFO Parameter1
+    SysInfoGraphGetTooltipText, // PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT Parameter1
+    SysInfoGraphDrawPanel, // PPH_SYSINFO_DRAW_PANEL Parameter1
+    MaxSysInfoMessage
+} PH_SYSINFO_SECTION_MESSAGE;
+
+typedef BOOLEAN (NTAPI *PPH_SYSINFO_SECTION_CALLBACK)(
+    __in struct _PH_SYSINFO_SECTION *Section,
+    __in PH_SYSINFO_SECTION_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2
+    );
+
+typedef struct _PH_SYSINFO_CREATE_DIALOG
+{
+    BOOLEAN CustomCreate;
+
+    // Parameters for default create
+    PVOID Instance;
+    PWSTR Template;
+    DLGPROC DialogProc;
+} PH_SYSINFO_CREATE_DIALOG, *PPH_SYSINFO_CREATE_DIALOG;
+
+typedef struct _PH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT
+{
+    ULONG Index;
+    PH_STRINGREF Text;
+} PH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT, *PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT;
+
+typedef struct _PH_SYSINFO_DRAW_PANEL
+{
+    HDC hdc;
+    RECT Rect;
+    BOOLEAN CustomDraw;
+
+    // Parameters for default draw
+    PPH_STRING Title;
+    PPH_STRING SubTitle;
+} PH_SYSINFO_DRAW_PANEL, *PPH_SYSINFO_DRAW_PANEL;
+
+typedef struct _PH_SYSINFO_SECTION
+{
+    // Public
+
+    // Initialization
+    PH_STRINGREF Name;
+    ULONG Flags;
+    PPH_SYSINFO_SECTION_CALLBACK Callback;
+    PVOID Context;
+    PVOID Reserved[3];
+
+    // State
+    HWND GraphHandle;
+    PH_GRAPH_STATE GraphState;
+    PPH_SYSINFO_PARAMETERS Parameters;
+    PVOID Reserved2[3];
+
+    // ...
+} PH_SYSINFO_SECTION, *PPH_SYSINFO_SECTION;
+
 // log
 
 #define PH_LOG_ENTRY_MESSAGE 9

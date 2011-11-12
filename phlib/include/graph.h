@@ -180,6 +180,7 @@ VOID PhDeleteGraphBuffers(
     __inout PPH_GRAPH_BUFFERS Buffers
     );
 
+PHLIBAPI
 VOID PhGetDrawInfoGraphBuffers(
     __inout PPH_GRAPH_BUFFERS Buffers,
     __inout PPH_GRAPH_DRAW_INFO DrawInfo,
