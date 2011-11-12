@@ -116,6 +116,9 @@
 #define IDD_SYSINFO_MEM                 199
 #define IDD_SYSINFO_IO                  200
 #define IDD_SYSINFO_IOPANEL             201
+#define IDD_MEMLISTS                    202
+#define IDR_EMPTYMEMORYLISTS            203
+#define IDR_EMPTYMEMLISTS               204
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -215,6 +218,7 @@
 #define IDC_ADD                         1079
 #define IDC_FONT                        1079
 #define IDC_INTEGRITY                   1079
+#define IDC_MORE                        1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
@@ -485,6 +489,17 @@
 #define IDC_ZLISTSTANDBY1_V             1347
 #define IDC_ZLISTSTANDBY2_V             1348
 #define IDC_ZLISTSTANDBY3_V             1349
+#define IDC_ZLISTBAD_V                  1350
+#define IDC_ZLISTREPURPOSED_V           1351
+#define IDC_ZLISTREPURPOSED0_V          1352
+#define IDC_ZLISTREPURPOSED1_V          1353
+#define IDC_ZLISTREPURPOSED2_V          1354
+#define IDC_ZLISTREPURPOSED3_V          1355
+#define IDC_ZLISTREPURPOSED4_V          1356
+#define IDC_ZLISTREPURPOSED5_V          1357
+#define IDC_ZLISTREPURPOSED6_V          1358
+#define IDC_ZLISTREPURPOSED7_V          1359
+#define IDC_EMPTY                       1360
 #define IDC_ZLISTSTANDBY4_V             1364
 #define IDC_ZLISTSTANDBY5_V             1365
 #define IDC_ZLISTSTANDBY6_V             1366
@@ -714,6 +729,10 @@
 #define ID_MODULE_OPENFILELOCATION      40247
 #define ID_PROCESS_OPENFILELOCATION     40248
 #define ID_MISCELLANEOUS_REDUCEWORKINGSET 40249
+#define ID_EMPTY_EMPTYWORKINGSETS       40250
+#define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40251
+#define ID_EMPTY_EMPTYSTANDBYLIST       40252
+#define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40253
 #define IDC_BACK                        40255
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
@@ -723,9 +742,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        199
+#define _APS_NEXT_RESOURCE_VALUE        205
 #define _APS_NEXT_COMMAND_VALUE         40256
-#define _APS_NEXT_CONTROL_VALUE         1347
+#define _APS_NEXT_CONTROL_VALUE         1361
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

@@ -276,6 +276,7 @@
     <ClCompile Include="mainwnd.c" />
     <ClCompile Include="mdump.c" />
     <ClCompile Include="memedit.c" />
+    <ClCompile Include="memlists.c" />
     <ClCompile Include="memprot.c" />
     <ClCompile Include="memprv.c" />
     <ClCompile Include="memrslt.c" />

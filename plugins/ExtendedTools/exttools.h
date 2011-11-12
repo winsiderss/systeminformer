@@ -15,13 +15,6 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_DISK_TREE_LIST_SORT (SETTING_PREFIX L"DiskTreeListSort")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (SETTING_PREFIX L"EnableEtwMonitor")
 #define SETTING_NAME_ENABLE_GPU_MONITOR (SETTING_PREFIX L"EnableGpuMonitor")
-#define SETTING_NAME_ETWSYS_ALWAYS_ON_TOP (SETTING_PREFIX L"EtwSysAlwaysOnTop")
-#define SETTING_NAME_ETWSYS_WINDOW_POSITION (SETTING_PREFIX L"EtwSysWindowPosition")
-#define SETTING_NAME_ETWSYS_WINDOW_SIZE (SETTING_PREFIX L"EtwSysWindowSize")
-#define SETTING_NAME_GPUSYS_ALWAYS_ON_TOP (SETTING_PREFIX L"GpuSysAlwaysOnTop")
-#define SETTING_NAME_GPUSYS_WINDOW_POSITION (SETTING_PREFIX L"GpuSysWindowPosition")
-#define SETTING_NAME_GPUSYS_WINDOW_SIZE (SETTING_PREFIX L"GpuSysWindowSize")
-#define SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION (SETTING_PREFIX L"MemoryListsWindowPosition")
 
 // Process icon
 
@@ -265,6 +258,11 @@ extern PH_UINT32_DELTA EtDiskWriteDelta;
 extern PH_UINT32_DELTA EtNetworkReceiveDelta;
 extern PH_UINT32_DELTA EtNetworkSendDelta;
 
+extern PH_UINT32_DELTA EtDiskReadCountDelta;
+extern PH_UINT32_DELTA EtDiskWriteCountDelta;
+extern PH_UINT32_DELTA EtNetworkReceiveCountDelta;
+extern PH_UINT32_DELTA EtNetworkSendCountDelta;
+
 extern PH_CIRCULAR_BUFFER_ULONG EtDiskReadHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtDiskWriteHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtNetworkReceiveHistory;
@@ -397,6 +395,14 @@ typedef struct _ET_PROCESS_GPU_STATISTICS
     ULONG64 ContextSwitches;
 } ET_PROCESS_GPU_STATISTICS, *PET_PROCESS_GPU_STATISTICS;
 
+ULONG EtGetGpuAdapterCount(
+    VOID
+    );
+
+PPH_STRING EtGetGpuAdapterDescription(
+    __in ULONG Index
+    );
+
 VOID EtQueryProcessGpuStatistics(
     __in HANDLE ProcessHandle,
     __out PET_PROCESS_GPU_STATISTICS Statistics
@@ -432,20 +438,14 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
 // etwsys
 
-VOID EtShowEtwSystemDialog(
-    VOID
+VOID EtEtwSystemInformationInitializing(
+    __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
 // gpusys
 
 VOID EtGpuSystemInformationInitializing(
     __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
-    );
-
-// memlists
-
-VOID EtShowMemoryListsDialog(
-    VOID
     );
 
 // modsrv

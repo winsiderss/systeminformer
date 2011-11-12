@@ -296,14 +296,7 @@ LOGICAL DllMain(
                     { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                     { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                     { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
-                    { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
-                    { IntegerSettingType, SETTING_NAME_ETWSYS_ALWAYS_ON_TOP, L"0" },
-                    { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_POSITION, L"400,400" },
-                    { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_SIZE, L"500,400" },
-                    { IntegerPairSettingType, SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION, L"400,400" },
-                    { IntegerSettingType, SETTING_NAME_GPUSYS_ALWAYS_ON_TOP, L"0" },
-                    { IntegerPairSettingType, SETTING_NAME_GPUSYS_WINDOW_POSITION, L"400,400" },
-                    { IntegerPairSettingType, SETTING_NAME_GPUSYS_WINDOW_SIZE, L"500,500" }
+                    { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" }
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
@@ -350,16 +343,6 @@ VOID NTAPI MenuItemCallback(
 
     switch (menuItem->Id)
     {
-    case ID_VIEW_DISKANDNETWORK:
-        {
-            EtShowEtwSystemDialog();
-        }
-        break;
-    case ID_VIEW_MEMORYLISTS:
-        {
-            EtShowMemoryListsDialog();
-        }
-        break;
     case ID_PROCESS_UNLOADEDMODULES:
         {
             EtShowUnloadedDllsDialog(PhMainWndHandle, menuItem->Context);
@@ -405,13 +388,8 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_MEMORYLISTS, L"Memory Lists", NULL);
-
     if (EtEtwEnabled)
     {
-        // This will get inserted before GPU Information.
-        PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_DISKANDNETWORK, L"Disk and Network", NULL);
-
         EtInitializeDiskTab();
     }
 }
@@ -560,6 +538,8 @@ VOID NTAPI SystemInformationInitializingCallback(
 {
     if (EtGpuEnabled)
         EtGpuSystemInformationInitializing(Parameter);
+    if (EtEtwEnabled)
+        EtEtwSystemInformationInitializing(Parameter);
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(
