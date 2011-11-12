@@ -51,6 +51,7 @@ static PPH_GRAPH_STATE CpusGraphState;
 static BOOLEAN OneGraphPerCpu;
 static HWND CpuPanel;
 static ULONG NumberOfProcessors;
+static ULONG CpuTicked;
 static PSYSTEM_INTERRUPT_INFORMATION InterruptInformation;
 static PPROCESSOR_POWER_INFORMATION PowerInformation;
 static PH_UINT32_DELTA ContextSwitchesDelta;
@@ -59,6 +60,26 @@ static PH_UINT64_DELTA DpcsDelta;
 static PH_UINT32_DELTA SystemCallsDelta;
 
 static PPH_SYSINFO_SECTION MemorySection;
+static HWND MemoryDialog;
+static PH_LAYOUT_MANAGER MemoryLayoutManager;
+static RECT MemoryGraphMargin;
+static HWND CommitGraphHandle;
+static PH_GRAPH_STATE CommitGraphState;
+static HWND PhysicalGraphHandle;
+static HWND MemoryPanel;
+static PH_GRAPH_STATE PhysicalGraphState;
+static ULONG MemoryTicked;
+static PH_UINT32_DELTA PagedAllocsDelta;
+static PH_UINT32_DELTA PagedFreesDelta;
+static PH_UINT32_DELTA NonPagedAllocsDelta;
+static PH_UINT32_DELTA NonPagedFreesDelta;
+static PH_UINT32_DELTA PageFaultsDelta;
+static PH_UINT32_DELTA PageReadsDelta;
+static PH_UINT32_DELTA PagefileWritesDelta;
+static PH_UINT32_DELTA MappedWritesDelta;
+static BOOLEAN MmAddressesInitialized;
+static PSIZE_T MmSizeOfPagedPoolInBytes;
+static PSIZE_T MmMaximumNonPagedPoolInBytes;
 
 static PPH_SYSINFO_SECTION IoSection;
 
@@ -1138,73 +1159,21 @@ BOOLEAN PhSipCpuSectionCallback(
 {
     switch (Message)
     {
-    case SysInfoCreate:
-        {
-            ULONG i;
-
-            NumberOfProcessors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-            CpusGraphHandle = PhAllocate(sizeof(HWND) * NumberOfProcessors);
-            CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * NumberOfProcessors);
-            InterruptInformation = PhAllocate(sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors);
-            PowerInformation = PhAllocate(sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
-
-            PhInitializeGraphState(&CpuGraphState);
-
-            for (i = 0; i < NumberOfProcessors; i++)
-                PhInitializeGraphState(&CpusGraphState[i]);
-        }
-        return TRUE;
     case SysInfoDestroy:
         {
-            ULONG i;
-
-            PhDeleteGraphState(&CpuGraphState);
-
-            for (i = 0; i < NumberOfProcessors; i++)
-                PhDeleteGraphState(&CpusGraphState[i]);
-
-            PhFree(CpusGraphHandle);
-            PhFree(CpusGraphState);
-            PhFree(InterruptInformation);
-            PhFree(PowerInformation);
+            if (CpuDialog)
+            {
+                PhSipUninitializeCpuDialog();
+                CpuDialog = NULL;
+            }
         }
         return TRUE;
     case SysInfoTick:
         {
-            ULONG64 dpcCount;
-            ULONG i;
-
-            dpcCount = 0;
-
-            if (NT_SUCCESS(NtQuerySystemInformation(
-                SystemInterruptInformation,
-                InterruptInformation,
-                sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors,
-                NULL
-                )))
+            if (CpuDialog)
             {
-                for (i = 0; i < NumberOfProcessors; i++)
-                    dpcCount += InterruptInformation[i].DpcCount;
+                PhSipTickCpuDialog();
             }
-
-            PhUpdateDelta(&ContextSwitchesDelta, PhPerfInformation.ContextSwitches);
-            PhUpdateDelta(&InterruptsDelta, PhCpuTotals.InterruptCount);
-            PhUpdateDelta(&DpcsDelta, dpcCount);
-            PhUpdateDelta(&SystemCallsDelta, PhPerfInformation.SystemCalls);
-
-            if (!NT_SUCCESS(NtPowerInformation(
-                ProcessorInformation,
-                NULL,
-                0,
-                PowerInformation,
-                sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors
-                )))
-            {
-                memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
-            }
-
-            PhSipUpdateCpuGraphs();
-            PhSipUpdateCpuPanel();
         }
         return TRUE;
     case SysInfoCreateDialog:
@@ -1263,6 +1232,93 @@ BOOLEAN PhSipCpuSectionCallback(
     return FALSE;
 }
 
+VOID PhSipInitializeCpuDialog(
+    VOID
+    )
+{
+    ULONG i;
+
+    PhInitializeDelta(&ContextSwitchesDelta);
+    PhInitializeDelta(&InterruptsDelta);
+    PhInitializeDelta(&DpcsDelta);
+    PhInitializeDelta(&SystemCallsDelta);
+
+    NumberOfProcessors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    CpusGraphHandle = PhAllocate(sizeof(HWND) * NumberOfProcessors);
+    CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * NumberOfProcessors);
+    InterruptInformation = PhAllocate(sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors);
+    PowerInformation = PhAllocate(sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+
+    PhInitializeGraphState(&CpuGraphState);
+
+    for (i = 0; i < NumberOfProcessors; i++)
+        PhInitializeGraphState(&CpusGraphState[i]);
+
+    CpuTicked = 0;
+}
+
+VOID PhSipUninitializeCpuDialog(
+    VOID
+    )
+{
+    ULONG i;
+
+    PhDeleteGraphState(&CpuGraphState);
+
+    for (i = 0; i < NumberOfProcessors; i++)
+        PhDeleteGraphState(&CpusGraphState[i]);
+
+    PhFree(CpusGraphHandle);
+    PhFree(CpusGraphState);
+    PhFree(InterruptInformation);
+    PhFree(PowerInformation);
+}
+
+VOID PhSipTickCpuDialog(
+    VOID
+    )
+{
+    ULONG64 dpcCount;
+    ULONG i;
+
+    dpcCount = 0;
+
+    if (NT_SUCCESS(NtQuerySystemInformation(
+        SystemInterruptInformation,
+        InterruptInformation,
+        sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors,
+        NULL
+        )))
+    {
+        for (i = 0; i < NumberOfProcessors; i++)
+            dpcCount += InterruptInformation[i].DpcCount;
+    }
+
+    PhUpdateDelta(&ContextSwitchesDelta, PhPerfInformation.ContextSwitches);
+    PhUpdateDelta(&InterruptsDelta, PhCpuTotals.InterruptCount);
+    PhUpdateDelta(&DpcsDelta, dpcCount);
+    PhUpdateDelta(&SystemCallsDelta, PhPerfInformation.SystemCalls);
+
+    if (!NT_SUCCESS(NtPowerInformation(
+        ProcessorInformation,
+        NULL,
+        0,
+        PowerInformation,
+        sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors
+        )))
+    {
+        memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+    }
+
+    CpuTicked++;
+
+    if (CpuTicked > 2)
+        CpuTicked = 2;
+
+    PhSipUpdateCpuGraphs();
+    PhSipUpdateCpuPanel();
+}
+
 INT_PTR CALLBACK PhSipCpuDialogProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1277,6 +1333,8 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
             WCHAR brandString[49];
+
+            PhSipInitializeCpuDialog();
 
             CpuDialog = hwndDlg;
             PhInitializeLayoutManager(&CpuLayoutManager, hwndDlg);
@@ -1395,7 +1453,7 @@ VOID PhSipCreateCpuGraphs(
     CpuGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_CHILD | WS_BORDER | WS_BORDER,
+        WS_CHILD | WS_BORDER,
         0,
         0,
         3,
@@ -1412,7 +1470,7 @@ VOID PhSipCreateCpuGraphs(
         CpusGraphHandle[i] = CreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_CHILD | WS_BORDER | WS_BORDER,
+            WS_CHILD | WS_BORDER,
             0,
             0,
             3,
@@ -1653,9 +1711,9 @@ VOID PhSipUpdateCpuPanel(
     SetDlgItemText(hwnd, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
     SetDlgItemText(hwnd, IDC_SPEED, PhaFormatString(L"%.2f / %.2f GHz", (FLOAT)PowerInformation[0].CurrentMhz / 1000, (FLOAT)PowerInformation[0].MaxMhz / 1000)->Buffer);
 
-    SetDlgItemText(hwnd, IDC_PROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
-    SetDlgItemText(hwnd, IDC_THREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
-    SetDlgItemText(hwnd, IDC_HANDLES_V, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
+    SetDlgItemText(hwnd, IDC_ZPROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
+    SetDlgItemText(hwnd, IDC_ZTHREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
+    SetDlgItemText(hwnd, IDC_ZHANDLES_V, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
 
     if (NT_SUCCESS(NtQuerySystemInformation(
         SystemTimeOfDayInformation,
@@ -1667,27 +1725,27 @@ VOID PhSipUpdateCpuPanel(
         PhPrintTimeSpan(uptimeString, timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart, PH_TIMESPAN_DHMS);
     }
 
-    SetDlgItemText(hwnd, IDC_UPTIME_V, uptimeString);
+    SetDlgItemText(hwnd, IDC_ZUPTIME_V, uptimeString);
 
-    if (ContextSwitchesDelta.Delta != ContextSwitchesDelta.Value)
-        SetDlgItemText(hwnd, IDC_CONTEXTSWITCHESDELTA_V, PhaFormatUInt64(ContextSwitchesDelta.Delta, TRUE)->Buffer);
+    if (CpuTicked > 1)
+        SetDlgItemText(hwnd, IDC_ZCONTEXTSWITCHESDELTA_V, PhaFormatUInt64(ContextSwitchesDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_CONTEXTSWITCHESDELTA_V, L"-");
+        SetDlgItemText(hwnd, IDC_ZCONTEXTSWITCHESDELTA_V, L"-");
 
-    if (InterruptsDelta.Delta != InterruptsDelta.Value)
-        SetDlgItemText(hwnd, IDC_INTERRUPTSDELTA_V, PhaFormatUInt64(InterruptsDelta.Delta, TRUE)->Buffer);
+    if (CpuTicked > 1)
+        SetDlgItemText(hwnd, IDC_ZINTERRUPTSDELTA_V, PhaFormatUInt64(InterruptsDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_INTERRUPTSDELTA_V, L"-");
+        SetDlgItemText(hwnd, IDC_ZINTERRUPTSDELTA_V, L"-");
 
-    if (DpcsDelta.Delta != DpcsDelta.Value)
-        SetDlgItemText(hwnd, IDC_DPCSDELTA_V, PhaFormatUInt64(DpcsDelta.Delta, TRUE)->Buffer);
+    if (CpuTicked > 1)
+        SetDlgItemText(hwnd, IDC_ZDPCSDELTA_V, PhaFormatUInt64(DpcsDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_DPCSDELTA_V, L"-");
+        SetDlgItemText(hwnd, IDC_ZDPCSDELTA_V, L"-");
 
-    if (SystemCallsDelta.Delta != SystemCallsDelta.Value)
-        SetDlgItemText(hwnd, IDC_SYSTEMCALLSDELTA_V, PhaFormatUInt64(SystemCallsDelta.Delta, TRUE)->Buffer);
+    if (CpuTicked > 1)
+        SetDlgItemText(hwnd, IDC_ZSYSTEMCALLSDELTA_V, PhaFormatUInt64(SystemCallsDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_SYSTEMCALLSDELTA_V, L"-");
+        SetDlgItemText(hwnd, IDC_ZSYSTEMCALLSDELTA_V, L"-");
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
@@ -1789,6 +1847,32 @@ BOOLEAN PhSipMemorySectionCallback(
 {
     switch (Message)
     {
+    case SysInfoDestroy:
+        {
+            if (MemoryDialog)
+            {
+                PhSipUninitializeMemoryDialog();
+                MemoryDialog = NULL;
+            }
+        }
+        break;
+    case SysInfoTick:
+        {
+            if (MemoryDialog)
+            {
+                PhSipTickMemoryDialog();
+            }
+        }
+        return TRUE;
+    case SysInfoCreateDialog:
+        {
+            PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
+
+            createDialog->Instance = PhInstanceHandle;
+            createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_MEM);
+            createDialog->DialogProc = PhSipMemoryDialogProc;
+        }
+        return TRUE;
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
@@ -1855,6 +1939,667 @@ BOOLEAN PhSipMemorySectionCallback(
     }
 
     return FALSE;
+}
+
+VOID PhSipInitializeMemoryDialog(
+    VOID
+    )
+{
+    PhInitializeDelta(&PagedAllocsDelta);
+    PhInitializeDelta(&PagedFreesDelta);
+    PhInitializeDelta(&NonPagedAllocsDelta);
+    PhInitializeDelta(&NonPagedFreesDelta);
+    PhInitializeDelta(&PageFaultsDelta);
+    PhInitializeDelta(&PageReadsDelta);
+    PhInitializeDelta(&PagefileWritesDelta);
+    PhInitializeDelta(&MappedWritesDelta);
+
+    PhInitializeGraphState(&CommitGraphState);
+    PhInitializeGraphState(&PhysicalGraphState);
+
+    MemoryTicked = 0;
+
+    if (!MmAddressesInitialized && KphIsConnected())
+    {
+        PhQueueItemGlobalWorkQueue(PhSipLoadMmAddresses, NULL);
+        MmAddressesInitialized = TRUE;
+    }
+}
+
+VOID PhSipUninitializeMemoryDialog(
+    VOID
+    )
+{
+    PhDeleteGraphState(&CommitGraphState);
+    PhDeleteGraphState(&PhysicalGraphState);
+}
+
+VOID PhSipTickMemoryDialog(
+    VOID
+    )
+{
+    PhUpdateDelta(&PagedAllocsDelta, PhPerfInformation.PagedPoolAllocs);
+    PhUpdateDelta(&PagedFreesDelta, PhPerfInformation.PagedPoolFrees);
+    PhUpdateDelta(&NonPagedAllocsDelta, PhPerfInformation.NonPagedPoolAllocs);
+    PhUpdateDelta(&NonPagedFreesDelta, PhPerfInformation.NonPagedPoolFrees);
+    PhUpdateDelta(&PageFaultsDelta, PhPerfInformation.PageFaultCount);
+    PhUpdateDelta(&PageReadsDelta, PhPerfInformation.PageReadCount);
+    PhUpdateDelta(&PagefileWritesDelta, PhPerfInformation.DirtyPagesWriteCount);
+    PhUpdateDelta(&MappedWritesDelta, PhPerfInformation.MappedPagesWriteCount);
+
+    MemoryTicked++;
+
+    if (MemoryTicked > 2)
+        MemoryTicked = 2;
+
+    PhSipUpdateMemoryGraphs();
+    PhSipUpdateMemoryPanel();
+}
+
+INT_PTR CALLBACK PhSipMemoryDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PPH_LAYOUT_ITEM graphItem;
+            PPH_LAYOUT_ITEM panelItem;
+            BOOL (WINAPI *getPhysicallyInstalledSystemMemory)(PULONGLONG);
+            ULONGLONG installedMemory;
+
+            PhSipInitializeMemoryDialog();
+
+            MemoryDialog = hwndDlg;
+            PhInitializeLayoutManager(&MemoryLayoutManager, hwndDlg);
+            PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            graphItem = PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
+            MemoryGraphMargin = graphItem->Margin;
+            panelItem = PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)CurrentParameters.LargeFont, FALSE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
+
+            getPhysicallyInstalledSystemMemory = PhGetProcAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory");
+
+            if (getPhysicallyInstalledSystemMemory && getPhysicallyInstalledSystemMemory(&installedMemory))
+            {
+                SetDlgItemText(hwndDlg, IDC_TOTALPHYSICAL,
+                    PhaConcatStrings2(PhaFormatSize(installedMemory * 1024, -1)->Buffer, L" installed")->Buffer);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_TOTALPHYSICAL,
+                    PhaConcatStrings2(PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer, L" total")->Buffer);
+            }
+
+            MemoryPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_MEMPANEL), hwndDlg, PhSipMemoryPanelDialogProc);
+            ShowWindow(MemoryPanel, SW_SHOW);
+            PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+
+            CommitGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_VISIBLE | WS_CHILD | WS_BORDER,
+                0,
+                0,
+                3,
+                3,
+                MemoryDialog,
+                (HMENU)IDC_COMMIT,
+                PhInstanceHandle,
+                NULL
+                );
+            Graph_SetTooltip(CommitGraphHandle, TRUE);
+
+            PhysicalGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_VISIBLE | WS_CHILD | WS_BORDER,
+                0,
+                0,
+                3,
+                3,
+                MemoryDialog,
+                (HMENU)IDC_PHYSICAL,
+                PhInstanceHandle,
+                NULL
+                );
+            Graph_SetTooltip(PhysicalGraphHandle, TRUE);
+
+            PhSipUpdateMemoryGraphs();
+            PhSipUpdateMemoryPanel();
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&MemoryLayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&MemoryLayoutManager);
+            PhSipLayoutMemoryGraphs();
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            NMHDR *header = (NMHDR *)lParam;
+
+            if (header->hwndFrom == CommitGraphHandle)
+            {
+                PhSipNotifyCommitGraph(header);
+            }
+            else if (header->hwndFrom == PhysicalGraphHandle)
+            {
+                PhSipNotifyPhysicalGraph(header);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            NOTHING;
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+VOID PhSipLayoutMemoryGraphs(
+    VOID
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    ULONG graphWidth;
+    ULONG graphHeight;
+    HDWP deferHandle;
+    ULONG y;
+
+    GetClientRect(MemoryDialog, &clientRect);
+    GetClientRect(GetDlgItem(MemoryDialog, IDC_COMMIT_L), &labelRect);
+    graphWidth = clientRect.right - MemoryGraphMargin.left - MemoryGraphMargin.right;
+    graphHeight = (clientRect.bottom - MemoryGraphMargin.top - MemoryGraphMargin.bottom - labelRect.bottom * 2 - PH_SYSINFO_MEMORY_PADDING * 3) / 2;
+
+    deferHandle = BeginDeferWindowPos(4);
+    y = MemoryGraphMargin.top;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(MemoryDialog, IDC_COMMIT_L),
+        NULL,
+        MemoryGraphMargin.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + PH_SYSINFO_MEMORY_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        CommitGraphHandle,
+        NULL,
+        MemoryGraphMargin.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + PH_SYSINFO_MEMORY_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(MemoryDialog, IDC_PHYSICAL_L),
+        NULL,
+        MemoryGraphMargin.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + PH_SYSINFO_MEMORY_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        PhysicalGraphHandle,
+        NULL,
+        MemoryGraphMargin.left,
+        y,
+        graphWidth,
+        clientRect.bottom - MemoryGraphMargin.bottom - y,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+
+    EndDeferWindowPos(deferHandle);
+}
+
+VOID PhSipNotifyCommitGraph(
+    __in NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            ULONG i;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
+
+            PhGraphStateGetDrawInfo(
+                &CommitGraphState,
+                getDrawInfo,
+                PhCommitHistory.Count
+                );
+
+            if (!CommitGraphState.Valid)
+            {
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    CommitGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                }
+
+                if (PhPerfInformation.CommitLimit != 0)
+                {
+                    // Scale the data.
+                    PhxfDivideSingle2U(
+                        CommitGraphState.Data1,
+                        (FLOAT)PhPerfInformation.CommitLimit,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                CommitGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (CommitGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG usedPages;
+
+                    usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
+
+                    PhSwapReference2(&CommitGraphState.TooltipText, PhFormatString(
+                        L"Commit Charge: %s\n%s",
+                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                        ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                }
+
+                getTooltipText->Text = CommitGraphState.TooltipText->sr;
+            }
+        }
+        break;
+    }
+}
+
+VOID PhSipNotifyPhysicalGraph(
+    __in NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            ULONG i;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPhysical, 0);
+
+            PhGraphStateGetDrawInfo(
+                &PhysicalGraphState,
+                getDrawInfo,
+                PhPhysicalHistory.Count
+                );
+
+            if (!PhysicalGraphState.Valid)
+            {
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    PhysicalGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                }
+
+                if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
+                {
+                    // Scale the data.
+                    PhxfDivideSingle2U(
+                        PhysicalGraphState.Data1,
+                        (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                PhysicalGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (PhysicalGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG usedPages;
+
+                    usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
+
+                    PhSwapReference2(&PhysicalGraphState.TooltipText, PhFormatString(
+                        L"Physical Memory: %s\n%s",
+                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                        ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                }
+
+                getTooltipText->Text = PhysicalGraphState.TooltipText->sr;
+            }
+        }
+        break;
+    }
+}
+
+VOID PhSipUpdateMemoryGraphs(
+    VOID
+    )
+{
+    CommitGraphState.Valid = FALSE;
+    CommitGraphState.TooltipIndex = -1;
+    Graph_MoveGrid(CommitGraphHandle, 1);
+    Graph_Draw(CommitGraphHandle);
+    Graph_UpdateTooltip(CommitGraphHandle);
+    InvalidateRect(CommitGraphHandle, NULL, FALSE);
+
+    PhysicalGraphState.Valid = FALSE;
+    PhysicalGraphState.TooltipIndex = -1;
+    Graph_MoveGrid(PhysicalGraphHandle, 1);
+    Graph_Draw(PhysicalGraphHandle);
+    Graph_UpdateTooltip(PhysicalGraphHandle);
+    InvalidateRect(PhysicalGraphHandle, NULL, FALSE);
+}
+
+VOID PhSipUpdateMemoryPanel(
+    VOID
+    )
+{
+    PWSTR pagedLimit;
+    PWSTR nonPagedLimit;
+    SYSTEM_MEMORY_LIST_INFORMATION memoryListInfo;
+
+    // Commit Charge
+
+    SetDlgItemText(MemoryPanel, IDC_ZCOMMITCURRENT_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE), -1)->Buffer);
+    SetDlgItemText(MemoryPanel, IDC_ZCOMMITPEAK_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.PeakCommitment, PAGE_SIZE), -1)->Buffer);
+    SetDlgItemText(MemoryPanel, IDC_ZCOMMITLIMIT_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE), -1)->Buffer);
+
+    // Physical Memory
+
+    SetDlgItemText(MemoryPanel, IDC_ZPHYSICALCURRENT_V,
+        PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages, PAGE_SIZE), -1)->Buffer);
+    SetDlgItemText(MemoryPanel, IDC_ZPHYSICALTOTAL_V,
+        PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer);
+    SetDlgItemText(MemoryPanel, IDC_ZPHYSICALCACHEWS_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentSystemCachePage, PAGE_SIZE), -1)->Buffer);
+    SetDlgItemText(MemoryPanel, IDC_ZPHYSICALKERNELWS_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentSystemCodePage, PAGE_SIZE), -1)->Buffer);
+    SetDlgItemText(MemoryPanel, IDC_ZPHYSICALDRIVERWS_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentSystemDriverPage, PAGE_SIZE), -1)->Buffer);
+
+    // Paged Pool
+
+    SetDlgItemText(MemoryPanel, IDC_ZPAGEDWORKINGSET_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentPagedPoolPage, PAGE_SIZE), -1)->Buffer);
+    SetDlgItemText(MemoryPanel, IDC_ZPAGEDVIRTUALSIZE_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.PagedPoolPages, PAGE_SIZE), -1)->Buffer);
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZPAGEDALLOCSDELTA_V, PhaFormatUInt64(PagedAllocsDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZPAGEDALLOCSDELTA_V, L"-");
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZPAGEDFREESDELTA_V, PhaFormatUInt64(PagedFreesDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZPAGEDFREESDELTA_V, L"-");
+
+    // Non-Paged Pool
+
+    SetDlgItemText(MemoryPanel, IDC_ZNONPAGEDUSAGE_V,
+        PhaFormatSize(UInt32x32To64(PhPerfInformation.NonPagedPoolPages, PAGE_SIZE), -1)->Buffer);
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, PhaFormatUInt64(PagedAllocsDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, L"-");
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZNONPAGEDFREESDELTA_V, PhaFormatUInt64(NonPagedFreesDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZNONPAGEDFREESDELTA_V, L"-");
+
+    // Pools (KPH)
+
+    if (MmAddressesInitialized && (MmSizeOfPagedPoolInBytes || MmMaximumNonPagedPoolInBytes))
+    {
+        SIZE_T paged;
+        SIZE_T nonPaged;
+
+        PhSipGetPoolLimits(&paged, &nonPaged);
+        pagedLimit = PhaFormatSize(paged, -1)->Buffer;
+        nonPagedLimit = PhaFormatSize(nonPaged, -1)->Buffer;
+    }
+    else
+    {
+        if (!KphIsConnected())
+        {
+            pagedLimit = nonPagedLimit = L"no driver";
+        }
+        else
+        {
+            pagedLimit = nonPagedLimit = L"no symbols";
+        }
+    }
+
+    SetDlgItemText(MemoryPanel, IDC_ZPAGEDLIMIT_V, pagedLimit);
+    SetDlgItemText(MemoryPanel, IDC_ZNONPAGEDLIMIT_V, nonPagedLimit);
+
+    // Paging
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGPAGEFAULTSDELTA_V, PhaFormatUInt64(PageFaultsDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGPAGEFAULTSDELTA_V, L"-");
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGPAGEREADSDELTA_V, PhaFormatUInt64(PageReadsDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGPAGEREADSDELTA_V, L"-");
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGPAGEFILEWRITESDELTA_V, PhaFormatUInt64(PagefileWritesDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGPAGEFILEWRITESDELTA_V, L"-");
+
+    if (MemoryTicked > 1)
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGMAPPEDWRITESDELTA_V, PhaFormatUInt64(MappedWritesDelta.Delta, TRUE)->Buffer);
+    else
+        SetDlgItemText(MemoryPanel, IDC_ZPAGINGMAPPEDWRITESDELTA_V, L"-");
+
+    // Memory Lists
+
+    if (WindowsVersion >= WINDOWS_VISTA && NT_SUCCESS(NtQuerySystemInformation(
+        SystemMemoryListInformation,
+        &memoryListInfo,
+        sizeof(SYSTEM_MEMORY_LIST_INFORMATION),
+        NULL
+        )))
+    {
+        ULONG_PTR standbyPageCount;
+        ULONG_PTR repurposedPageCount;
+        ULONG i;
+
+        standbyPageCount = 0;
+        repurposedPageCount = 0;
+
+        for (i = 0; i < 8; i++)
+        {
+            standbyPageCount += memoryListInfo.PageCountByPriority[i];
+            repurposedPageCount += memoryListInfo.RepurposedPagesByPriority[i];
+        }
+
+        SetDlgItemText(MemoryPanel, IDC_ZLISTZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIED_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDNOWRITE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY_V, PhaFormatSize((ULONG64)standbyPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY0_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[0] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY1_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[1] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY2_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[2] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY3_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[3] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY4_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[4] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
+    }
+    else
+    {
+        SetDlgItemText(MemoryPanel, IDC_ZLISTZEROED_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTFREE_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIED_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDNOWRITE_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY0_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY1_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY2_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY3_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY4_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY5_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY6_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY7_V, L"N/A");
+    }
+}
+
+NTSTATUS PhSipLoadMmAddresses(
+    __in PVOID Parameter
+    )
+{
+    PRTL_PROCESS_MODULES kernelModules;
+    PPH_SYMBOL_PROVIDER symbolProvider;
+    PPH_STRING kernelFileName;
+    PPH_STRING newFileName;
+    PH_SYMBOL_INFORMATION symbolInfo;
+
+    if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
+    {
+        if (kernelModules->NumberOfModules >= 1)
+        {
+            symbolProvider = PhCreateSymbolProvider(NULL);
+            PhLoadSymbolProviderOptions(symbolProvider);
+
+            kernelFileName = PhCreateStringFromAnsi(kernelModules->Modules[0].FullPathName);
+            newFileName = PhGetFileName(kernelFileName);
+            PhDereferenceObject(kernelFileName);
+
+            PhLoadModuleSymbolProvider(
+                symbolProvider,
+                newFileName->Buffer,
+                (ULONG64)kernelModules->Modules[0].ImageBase,
+                kernelModules->Modules[0].ImageSize
+                );
+            PhDereferenceObject(newFileName);
+
+            if (PhGetSymbolFromName(
+                symbolProvider,
+                L"MmSizeOfPagedPoolInBytes",
+                &symbolInfo
+                ))
+            {
+                MmSizeOfPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+            }
+
+            if (PhGetSymbolFromName(
+                symbolProvider,
+                L"MmMaximumNonPagedPoolInBytes",
+                &symbolInfo
+                ))
+            {
+                MmMaximumNonPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+            }
+
+            PhDereferenceObject(symbolProvider);
+        }
+
+        PhFree(kernelModules);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhSipGetPoolLimits(
+    __out PSIZE_T Paged,
+    __out PSIZE_T NonPaged
+    )
+{
+    SIZE_T paged = 0;
+    SIZE_T nonPaged = 0;
+
+    if (MmSizeOfPagedPoolInBytes)
+    {
+        KphReadVirtualMemoryUnsafe(
+            NtCurrentProcess(),
+            MmSizeOfPagedPoolInBytes,
+            &paged,
+            sizeof(SIZE_T),
+            NULL
+            );
+    }
+
+    if (MmMaximumNonPagedPoolInBytes)
+    {
+        KphReadVirtualMemoryUnsafe(
+            NtCurrentProcess(),
+            MmMaximumNonPagedPoolInBytes,
+            &nonPaged,
+            sizeof(SIZE_T),
+            NULL
+            );
+    }
+
+    *Paged = paged;
+    *NonPaged = nonPaged;
 }
 
 BOOLEAN PhSipIoSectionCallback(
