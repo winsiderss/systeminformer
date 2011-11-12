@@ -112,6 +112,7 @@
 #define IDD_SYSINFO_CPU                 196
 #define IDD_SYSINFO_CPUPANEL            197
 #define IDD_SYSINFO_MEMPANEL            198
+#define IDR_SYSINFO_ACCEL               198
 #define IDD_SYSINFO_MEM                 199
 #define IDD_SYSINFO_IO                  200
 #define IDD_SYSINFO_IOPANEL             201
@@ -475,7 +476,6 @@
 #define IDC_COMMIT_L                    1339
 #define IDC_PHYSICAL_L                  1340
 #define IDC_ZUPTIME_V                   1341
-#define IDC_ZUPTIME_V2                  1342
 #define IDC_ZOTHERBYTESDELTA_V          1342
 #define IDC_ZREADSDELTA_V               1343
 #define IDC_ZREADBYTESDELTA_V           1344
@@ -714,6 +714,7 @@
 #define ID_MODULE_OPENFILELOCATION      40247
 #define ID_PROCESS_OPENFILELOCATION     40248
 #define ID_MISCELLANEOUS_REDUCEWORKINGSET 40249
+#define IDC_BACK                        40255
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -722,8 +723,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        198
-#define _APS_NEXT_COMMAND_VALUE         40252
+#define _APS_NEXT_RESOURCE_VALUE        199
+#define _APS_NEXT_COMMAND_VALUE         40256
 #define _APS_NEXT_CONTROL_VALUE         1347
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
