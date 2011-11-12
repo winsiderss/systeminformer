@@ -50,8 +50,8 @@ static HWND *CpusGraphHandle;
 static PPH_GRAPH_STATE CpusGraphState;
 static BOOLEAN OneGraphPerCpu;
 static HWND CpuPanel;
-static ULONG NumberOfProcessors;
 static ULONG CpuTicked;
+static ULONG NumberOfProcessors;
 static PSYSTEM_INTERRUPT_INFORMATION InterruptInformation;
 static PPROCESSOR_POWER_INFORMATION PowerInformation;
 static PH_UINT32_DELTA ContextSwitchesDelta;
@@ -66,8 +66,8 @@ static RECT MemoryGraphMargin;
 static HWND CommitGraphHandle;
 static PH_GRAPH_STATE CommitGraphState;
 static HWND PhysicalGraphHandle;
-static HWND MemoryPanel;
 static PH_GRAPH_STATE PhysicalGraphState;
+static HWND MemoryPanel;
 static ULONG MemoryTicked;
 static PH_UINT32_DELTA PagedAllocsDelta;
 static PH_UINT32_DELTA PagedFreesDelta;
@@ -82,6 +82,15 @@ static PSIZE_T MmSizeOfPagedPoolInBytes;
 static PSIZE_T MmMaximumNonPagedPoolInBytes;
 
 static PPH_SYSINFO_SECTION IoSection;
+static HWND IoDialog;
+static PH_LAYOUT_MANAGER IoLayoutManager;
+static HWND IoGraphHandle;
+static PH_GRAPH_STATE IoGraphState;
+static HWND IoPanel;
+static ULONG IoTicked;
+static PH_UINT64_DELTA IoReadDelta;
+static PH_UINT64_DELTA IoWriteDelta;
+static PH_UINT64_DELTA IoOtherDelta;
 
 static BOOLEAN AlwaysOnTop;
 
@@ -1272,6 +1281,8 @@ VOID PhSipUninitializeCpuDialog(
     PhFree(CpusGraphState);
     PhFree(InterruptInformation);
     PhFree(PowerInformation);
+
+    PhSetIntegerSetting(L"SysInfoWindowOneGraphPerCpu", OneGraphPerCpu);
 }
 
 VOID PhSipTickCpuDialog(
@@ -2493,6 +2504,11 @@ VOID PhSipUpdateMemoryPanel(
         SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
         SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
         SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
+
+        if (WindowsVersion >= WINDOWS_8)
+            SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCountPageFile * PAGE_SIZE, -1)->Buffer);
+        else
+            SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, L"N/A");
     }
     else
     {
@@ -2500,6 +2516,7 @@ VOID PhSipUpdateMemoryPanel(
         SetDlgItemText(MemoryPanel, IDC_ZLISTFREE_V, L"N/A");
         SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIED_V, L"N/A");
         SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDNOWRITE_V, L"N/A");
+        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, L"N/A");
         SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY_V, L"N/A");
         SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY0_V, L"N/A");
         SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY1_V, L"N/A");
@@ -2611,6 +2628,32 @@ BOOLEAN PhSipIoSectionCallback(
 {
     switch (Message)
     {
+    case SysInfoDestroy:
+        {
+            if (IoDialog)
+            {
+                PhSipUninitializeIoDialog();
+                IoDialog = NULL;
+            }
+        }
+        break;
+    case SysInfoTick:
+        {
+            if (IoDialog)
+            {
+                PhSipTickIoDialog();
+            }
+        }
+        break;
+    case SysInfoCreateDialog:
+        {
+            PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
+
+            createDialog->Instance = PhInstanceHandle;
+            createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_IO);
+            createDialog->DialogProc = PhSipIoDialogProc;
+        }
+        return TRUE;
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
@@ -2698,6 +2741,290 @@ BOOLEAN PhSipIoSectionCallback(
     }
 
     return FALSE;
+}
+
+VOID PhSipInitializeIoDialog(
+    VOID
+    )
+{
+    PhInitializeDelta(&IoReadDelta);
+    PhInitializeDelta(&IoWriteDelta);
+    PhInitializeDelta(&IoOtherDelta);
+
+    PhInitializeGraphState(&IoGraphState);
+
+    IoTicked = 0;
+}
+
+VOID PhSipUninitializeIoDialog(
+    VOID
+    )
+{
+    PhDeleteGraphState(&IoGraphState);
+}
+
+VOID PhSipTickIoDialog(
+    VOID
+    )
+{
+    PhUpdateDelta(&IoReadDelta, PhPerfInformation.IoReadOperationCount);
+    PhUpdateDelta(&IoWriteDelta, PhPerfInformation.IoWriteOperationCount);
+    PhUpdateDelta(&IoOtherDelta, PhPerfInformation.IoOtherOperationCount);
+
+    IoTicked++;
+
+    if (IoTicked > 2)
+        IoTicked = 2;
+
+    PhSipUpdateIoGraph();
+    PhSipUpdateIoPanel();
+}
+
+INT_PTR CALLBACK PhSipIoDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PPH_LAYOUT_ITEM graphItem;
+            PPH_LAYOUT_ITEM panelItem;
+
+            PhSipInitializeIoDialog();
+
+            IoDialog = hwndDlg;
+            PhInitializeLayoutManager(&IoLayoutManager, hwndDlg);
+            graphItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
+            panelItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)CurrentParameters.LargeFont, FALSE);
+
+            IoPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_IOPANEL), hwndDlg, PhSipIoPanelDialogProc);
+            ShowWindow(IoPanel, SW_SHOW);
+            PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+
+            IoGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_VISIBLE | WS_CHILD | WS_BORDER,
+                0,
+                0,
+                3,
+                3,
+                IoDialog,
+                (HMENU)IDC_IO,
+                PhInstanceHandle,
+                NULL
+                );
+            Graph_SetTooltip(IoGraphHandle, TRUE);
+
+            PhAddLayoutItemEx(&IoLayoutManager, IoGraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
+
+            PhSipUpdateIoGraph();
+            PhSipUpdateIoPanel();
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&IoLayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&IoLayoutManager);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            NMHDR *header = (NMHDR *)lParam;
+
+            if (header->hwndFrom == IoGraphHandle)
+            {
+                PhSipNotifyIoGraph(header);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhSipIoPanelDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            NOTHING;
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+VOID PhSipNotifyIoGraph(
+    __in NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            ULONG i;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
+
+            PhGraphStateGetDrawInfo(
+                &IoGraphState,
+                getDrawInfo,
+                PhIoReadHistory.Count
+                );
+
+            if (!IoGraphState.Valid)
+            {
+                FLOAT max = 0;
+
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT data1;
+                    FLOAT data2;
+
+                    IoGraphState.Data1[i] = data1 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
+                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
+                    IoGraphState.Data2[i] = data2 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
+
+                    if (max < data1 + data2)
+                        max = data1 + data2;
+                }
+
+                if (max != 0)
+                {
+                    // Scale the data.
+
+                    PhxfDivideSingle2U(
+                        IoGraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhxfDivideSingle2U(
+                        IoGraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                IoGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (IoGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 ioRead;
+                    ULONG64 ioWrite;
+                    ULONG64 ioOther;
+
+                    ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
+                    ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
+                    ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
+
+                    PhSwapReference2(&IoGraphState.TooltipText, PhFormatString(
+                        L"R: %s\nW: %s\nO: %s%s\n%s",
+                        PhaFormatSize(ioRead, -1)->Buffer,
+                        PhaFormatSize(ioWrite, -1)->Buffer,
+                        PhaFormatSize(ioOther, -1)->Buffer,
+                        PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
+                        ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                }
+
+                getTooltipText->Text = IoGraphState.TooltipText->sr;
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record;
+
+            record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            {
+                record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
+            }
+
+            if (record)
+            {
+                PhShowProcessRecordDialog(IoDialog, record);
+                PhDereferenceProcessRecord(record);
+            }
+        }
+        break;
+    }
+}
+
+VOID PhSipUpdateIoGraph(
+    VOID
+    )
+{
+    IoGraphState.Valid = FALSE;
+    IoGraphState.TooltipIndex = -1;
+    Graph_MoveGrid(IoGraphHandle, 1);
+    Graph_Draw(IoGraphHandle);
+    Graph_UpdateTooltip(IoGraphHandle);
+    InvalidateRect(IoGraphHandle, NULL, FALSE);
+}
+
+VOID PhSipUpdateIoPanel(
+    VOID
+    )
+{
+    if (IoTicked > 1)
+    {
+        SetDlgItemText(IoPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(IoReadDelta.Delta, TRUE)->Buffer);
+        SetDlgItemText(IoPanel, IDC_ZWRITESDELTA_V, PhaFormatUInt64(IoWriteDelta.Delta, TRUE)->Buffer);
+        SetDlgItemText(IoPanel, IDC_ZOTHERDELTA_V, PhaFormatUInt64(IoOtherDelta.Delta, TRUE)->Buffer);
+    }
+    else
+    {
+        SetDlgItemText(IoPanel, IDC_ZREADSDELTA_V, L"-");
+        SetDlgItemText(IoPanel, IDC_ZWRITESDELTA_V, L"-");
+        SetDlgItemText(IoPanel, IDC_ZOTHERDELTA_V, L"-");
+    }
+
+    if (PhIoReadHistory.Count != 0)
+    {
+        SetDlgItemText(IoPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(PhIoReadDelta.Delta, -1)->Buffer);
+        SetDlgItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(PhIoWriteDelta.Delta, -1)->Buffer);
+        SetDlgItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, PhaFormatSize(PhIoOtherDelta.Delta, -1)->Buffer);
+    }
+    else
+    {
+        SetDlgItemText(IoPanel, IDC_ZREADBYTESDELTA_V, L"-");
+        SetDlgItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, L"-");
+        SetDlgItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, L"-");
+    }
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(

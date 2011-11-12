@@ -113,6 +113,8 @@
 #define IDD_SYSINFO_CPUPANEL            197
 #define IDD_SYSINFO_MEMPANEL            198
 #define IDD_SYSINFO_MEM                 199
+#define IDD_SYSINFO_IO                  200
+#define IDD_SYSINFO_IOPANEL             201
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -343,6 +345,7 @@
 #define IDC_ZIOPRIORITY_V               1194
 #define IDC_ZHANDLES_V                  1195
 #define IDC_ZGDIHANDLES_V               1196
+#define IDC_ZOTHERDELTA_V               1196
 #define IDC_ZUSERHANDLES_V              1197
 #define IDC_GROUPCPU                    1198
 #define IDC_GROUPPRIVATEBYTES           1199
@@ -472,7 +475,13 @@
 #define IDC_COMMIT_L                    1339
 #define IDC_PHYSICAL_L                  1340
 #define IDC_ZUPTIME_V                   1341
+#define IDC_ZUPTIME_V2                  1342
+#define IDC_ZOTHERBYTESDELTA_V          1342
+#define IDC_ZREADSDELTA_V               1343
+#define IDC_ZREADBYTESDELTA_V           1344
+#define IDC_ZWRITESDELTA_V              1345
 #define IDC_ZLISTSTANDBY0_V             1346
+#define IDC_ZWRITEBYTESDELTA_V          1346
 #define IDC_ZLISTSTANDBY1_V             1347
 #define IDC_ZLISTSTANDBY2_V             1348
 #define IDC_ZLISTSTANDBY3_V             1349
@@ -484,6 +493,7 @@
 #define IDC_ZPAGINGPAGEREADSDELTA_V     1369
 #define IDC_ZPAGINGPAGEFILEWRITESDELTA_V 1370
 #define IDC_ZPAGINGMAPPEDWRITESDELTA_V  1371
+#define IDC_ZLISTMODIFIEDPAGEFILE_V     1373
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -714,7 +724,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        198
 #define _APS_NEXT_COMMAND_VALUE         40252
-#define _APS_NEXT_CONTROL_VALUE         1342
+#define _APS_NEXT_CONTROL_VALUE         1347
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif
