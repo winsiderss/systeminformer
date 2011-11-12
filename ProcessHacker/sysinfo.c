@@ -119,6 +119,8 @@ NTSTATUS PhSipSysInfoThreadStart(
     PH_AUTO_POOL autoPool;
     BOOL result;
     MSG message;
+    HACCEL acceleratorTable;
+    BOOLEAN processed;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -131,15 +133,31 @@ NTSTATUS PhSipSysInfoThreadStart(
 
     PhSetEvent(&InitializedEvent);
 
+    acceleratorTable = LoadAccelerators(PhInstanceHandle, MAKEINTRESOURCE(IDR_SYSINFO_ACCEL));
+
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(PhSipWindow, &message))
+        processed = FALSE;
+
+        if (
+            message.hwnd == PhSipWindow ||
+            IsChild(PhSipWindow, message.hwnd)
+            )
         {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
+            if (TranslateAccelerator(PhSipWindow, acceleratorTable, &message))
+                processed = TRUE;
+        }
+
+        if (!processed)
+        {
+            if (!IsDialogMessage(PhSipWindow, &message))
+            {
+                TranslateMessage(&message);
+                DispatchMessage(&message);
+            }
         }
 
         PhDrainAutoPool(&autoPool);
@@ -282,6 +300,9 @@ VOID PhSipOnShowWindow(
     RECT buttonRect;
     RECT clientRect;
 
+    if (SectionList)
+        return;
+
     SectionList = PhCreateList(8);
     PhSipInitializeParameters();
     CurrentView = SysInfoSummaryView;
@@ -323,7 +344,7 @@ VOID PhSipOnShowWindow(
 
     MinimumSize.left = 0;
     MinimumSize.top = 0;
-    MinimumSize.right = 300;
+    MinimumSize.right = 400;
     MinimumSize.bottom = 200;
     MapDialogRect(PhSipWindow, &MinimumSize);
 
@@ -343,8 +364,8 @@ VOID PhSipOnShowWindow(
     Button_SetCheck(GetDlgItem(PhSipWindow, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
     PhSipSetAlwaysOnTop();
 
-    SendMessage(PhSipWindow, WM_SIZE, 0, 0);
-    SendMessage(PhSipWindow, SI_MSG_SYSINFO_UPDATE, 0, 0);
+    PhSipOnSize();
+    PhSipOnUserMessage(SI_MSG_SYSINFO_UPDATE, 0, 0);
 }
 
 VOID PhSipOnSize(
@@ -393,6 +414,11 @@ VOID PhSipOnCommand(
             {
                 PhSipRestoreSummaryView();
             }
+        }
+        break;
+    case IDC_BACK:
+        {
+            PhSipRestoreSummaryView();
         }
         break;
     }
@@ -763,7 +789,7 @@ VOID PhSipDrawRestoreSummaryPanel(
     SetBkMode(hdc, TRANSPARENT);
 
     SelectObject(hdc, CurrentParameters.MediumFont);
-    DrawText(hdc, L"Back", 4, Rect, DT_CENTER | DT_VCENTER | DT_NOPREFIX | DT_SINGLELINE);
+    DrawText(hdc, L"&Back", 5, Rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
 VOID PhSipDrawSeparator(
@@ -1133,6 +1159,7 @@ VOID PhSipSetAlwaysOnTop(
     VOID
     )
 {
+    SetFocus(PhSipWindow); // HACK - SetWindowPos doesn't work properly without this
     SetWindowPos(PhSipWindow, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
