@@ -26,10 +26,12 @@
 #define IDR_EMPTYMEMLISTS               111
 #define IDD_SYSGPUINFO                  111
 #define IDC_SHARED                      111
+#define IDD_SYSINFO_GPU                 111
 #define IDR_MENU1                       112
 #define IDR_DISK                        112
 #define IDD_SYSGPUINFO_PANEL            112
 #define ID_VIEW_GPUINFORMATION          112
+#define IDD_SYSINFO_GPUPANEL            112
 #define IDD_PROCGPU                     113
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
@@ -106,6 +108,13 @@
 #define IDC_ZSECTIONRESERVED_V          1072
 #define IDC_ZTOTALSEGMENTS_V            1073
 #define IDC_ZTOTALNODES_V               1074
+#define IDC_TITLE                       1075
+#define IDC_GRAPH_LAYOUT                1076
+#define IDC_LAYOUT                      1077
+#define IDC_GPUNAME                     1078
+#define IDC_GPU_L                       1079
+#define IDC_DEDICATED_L                 1080
+#define IDC_SHARED_L                    1081
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -121,7 +130,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1075
+#define _APS_NEXT_CONTROL_VALUE         1082
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

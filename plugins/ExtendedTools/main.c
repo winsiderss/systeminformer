@@ -88,6 +88,11 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI SystemInformationInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -140,6 +145,7 @@ PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
@@ -246,6 +252,12 @@ LOGICAL DllMain(
                 NULL,
                 &NetworkTreeNewInitializingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing),
+                SystemInformationInitializingCallback,
+                NULL,
+                &SystemInformationInitializingCallbackRegistration
+                );
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -343,11 +355,6 @@ VOID NTAPI MenuItemCallback(
             EtShowEtwSystemDialog();
         }
         break;
-    case ID_VIEW_GPUINFORMATION:
-        {
-            EtShowGpuSystemDialog();
-        }
-        break;
     case ID_VIEW_MEMORYLISTS:
         {
             EtShowMemoryListsDialog();
@@ -399,12 +406,6 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_MEMORYLISTS, L"Memory Lists", NULL);
-
-    if (EtGpuEnabled)
-    {
-        // This will get inserted before Memory Lists.
-        PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_GPUINFORMATION, L"GPU Information", NULL);
-    }
 
     if (EtEtwEnabled)
     {
@@ -550,6 +551,15 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
 
     NetworkTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtNetworkTreeNewInitializing(Parameter);
+}
+
+VOID NTAPI SystemInformationInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    if (EtGpuEnabled)
+        EtGpuSystemInformationInitializing(Parameter);
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(

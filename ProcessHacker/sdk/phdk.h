@@ -13,6 +13,7 @@
 #include "providers.h"
 
 #include "treenew.h"
+#include "graph.h"
 #include "emenu.h"
 #include "cpysave.h"
 #include "phapppub.h"

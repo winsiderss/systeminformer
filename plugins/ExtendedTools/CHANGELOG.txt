@@ -1,3 +1,6 @@
+1.8
+ * Added support for new system information window
+
 1.7
  * Added GPU monitoring
  * Added rate columns for disk and network I/O
