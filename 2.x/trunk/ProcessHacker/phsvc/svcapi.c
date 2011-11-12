@@ -877,23 +877,12 @@ NTSTATUS PhSvcApiIssueMemoryListCommand(
     )
 {
     NTSTATUS status;
-    PVOID returnedState;
-    ULONG privilege = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
 
-    if (NT_SUCCESS(status = RtlAcquirePrivilege(
-        &privilege,
-        1,
-        0,
-        &returnedState
-        )))
-    {
-        status = NtSetSystemInformation(
-            SystemMemoryListInformation,
-            &Message->u.IssueMemoryListCommand.i.Command,
-            sizeof(SYSTEM_MEMORY_LIST_COMMAND)
-            );
-        RtlReleasePrivilege(returnedState);
-    }
+    status = NtSetSystemInformation(
+        SystemMemoryListInformation,
+        &Message->u.IssueMemoryListCommand.i.Command,
+        sizeof(SYSTEM_MEMORY_LIST_COMMAND)
+        );
 
     return status;
 }
