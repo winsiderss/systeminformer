@@ -307,6 +307,44 @@ BOOLEAN PhSipIoSectionCallback(
     __in_opt PVOID Parameter2
     );
 
+VOID PhSipInitializeIoDialog(
+    VOID
+    );
+
+VOID PhSipUninitializeIoDialog(
+    VOID
+    );
+
+VOID PhSipTickIoDialog(
+    VOID
+    );
+
+INT_PTR CALLBACK PhSipIoDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhSipIoPanelDialogProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+VOID PhSipNotifyIoGraph(
+    __in NMHDR *Header
+    );
+
+VOID PhSipUpdateIoGraph(
+    VOID
+    );
+
+VOID PhSipUpdateIoPanel(
+    VOID
+    );
+
 PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
     __in LONG Index
     );
