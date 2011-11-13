@@ -1216,7 +1216,7 @@ VOID PhSipLayoutSectionView(
 
     availableHeight = buttonRect.top - PH_SYSINFO_WINDOW_PADDING * 2;
     availableWidth = clientRect.right - PH_SYSINFO_WINDOW_PADDING * 2;
-    graphHeight = (availableHeight - PH_SYSINFO_GRAPH_PADDING * (SectionList->Count - 1)) / SectionList->Count;
+    graphHeight = (availableHeight - PH_SYSINFO_SMALL_GRAPH_PADDING * SectionList->Count) / (SectionList->Count + 1);
 
     if (graphHeight > CurrentParameters.SectionViewGraphHeight)
         graphHeight = CurrentParameters.SectionViewGraphHeight;
@@ -1249,6 +1249,7 @@ VOID PhSipLayoutSectionView(
             graphHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
+        InvalidateRect(section->PanelHandle, NULL, TRUE);
 
         y += graphHeight + PH_SYSINFO_SMALL_GRAPH_PADDING;
 
@@ -1265,6 +1266,7 @@ VOID PhSipLayoutSectionView(
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
+    InvalidateRect(RestoreSummaryControl, NULL, TRUE);
 
     deferHandle = DeferWindowPos(
         deferHandle,
