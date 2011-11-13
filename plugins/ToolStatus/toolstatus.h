@@ -16,7 +16,20 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     );
 
+VOID ApplyToolbarSettings(
+    VOID
+    );
+
 VOID NTAPI ProcessesUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
+VOID DrawWindowBorderForTargeting(
+    __in HWND hWnd
+    );
+
+VOID NTAPI LayoutPaddingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
@@ -36,6 +49,13 @@ VOID UpdateStatusBar(
 
 VOID ShowStatusMenu(
     __in PPOINT Point
+    );
+
+INT_PTR CALLBACK OptionsDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
     );
 
 #define TIDC_REFRESH 0
