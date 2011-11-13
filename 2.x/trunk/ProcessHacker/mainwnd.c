@@ -55,7 +55,9 @@ static BOOLEAN DelayedLoadCompleted = FALSE;
 static ULONG NotifyIconMask;
 static ULONG NotifyIconNotifyMask;
 
+static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
 static RECT LayoutPadding = { 0, 0, 0, 0 };
+static BOOLEAN LayoutPaddingValid = TRUE;
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
@@ -2118,18 +2120,14 @@ ULONG_PTR PhMwpOnUserMessage(
                 SetFocus(NetworkTreeListHandle);
         }
         break;
-    case WM_PH_GET_LAYOUT_PADDING:
+    case WM_PH_GET_CALLBACK_LAYOUT_PADDING:
         {
-            PRECT rect = (PRECT)LParam;
-
-            *rect = LayoutPadding;
+            return (ULONG_PTR)&LayoutPaddingCallback;
         }
         break;
-    case WM_PH_SET_LAYOUT_PADDING:
+    case WM_PH_INVALIDATE_LAYOUT_PADDING:
         {
-            PRECT rect = (PRECT)LParam;
-
-            LayoutPadding = *rect;
+            LayoutPaddingValid = FALSE;
         }
         break;
     case WM_PH_SELECT_PROCESS_NODE:
@@ -2689,6 +2687,18 @@ VOID PhMwpSymInitHandler(
     PhSymbolProviderDynamicImport();
 }
 
+VOID PhMwpUpdateLayoutPadding(
+    VOID
+    )
+{
+    PH_LAYOUT_PADDING_DATA data;
+
+    memset(&data, 0, sizeof(PH_LAYOUT_PADDING_DATA));
+    PhInvokeCallback(&LayoutPaddingCallback, &data);
+
+    LayoutPadding = data.Padding;
+}
+
 VOID PhMwpApplyLayoutPadding(
     __inout PRECT Rect,
     __in PRECT Padding
@@ -2708,6 +2718,12 @@ VOID PhMwpLayout(
 
     // Resize the tab control.
     // Don't defer the resize. The tab control doesn't repaint properly.
+
+    if (!LayoutPaddingValid)
+    {
+        PhMwpUpdateLayoutPadding();
+        LayoutPaddingValid = TRUE;
+    }
 
     GetClientRect(PhMainWndHandle, &rect);
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
@@ -2954,6 +2970,12 @@ VOID PhMwpLayoutTabControl(
 {
     RECT rect;
     INT selectedIndex;
+
+    if (!LayoutPaddingValid)
+    {
+        PhMwpUpdateLayoutPadding();
+        LayoutPaddingValid = TRUE;
+    }
 
     GetClientRect(PhMainWndHandle, &rect);
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);

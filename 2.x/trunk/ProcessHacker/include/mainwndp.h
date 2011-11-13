@@ -183,6 +183,10 @@ VOID PhMwpSymInitHandler(
     __in_opt PVOID Context
     );
 
+VOID PhMwpUpdateLayoutPadding(
+    VOID
+    );
+
 VOID PhMwpApplyLayoutPadding(
     __inout PRECT Rect,
     __in PRECT Padding

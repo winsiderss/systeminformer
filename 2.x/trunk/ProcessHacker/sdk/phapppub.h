@@ -520,8 +520,8 @@ PHAPPAPI extern HWND PhMainWndHandle;
 #define WM_PH_CANCEL_EARLY_SHUTDOWN (WM_APP + 124)
 #define WM_PH_TOGGLE_VISIBLE (WM_APP + 127)
 #define WM_PH_SELECT_TAB_PAGE (WM_APP + 130)
-#define WM_PH_GET_LAYOUT_PADDING (WM_APP + 131)
-#define WM_PH_SET_LAYOUT_PADDING (WM_APP + 132)
+#define WM_PH_GET_CALLBACK_LAYOUT_PADDING (WM_APP + 131)
+#define WM_PH_INVALIDATE_LAYOUT_PADDING (WM_APP + 132)
 #define WM_PH_SELECT_PROCESS_NODE (WM_APP + 133)
 #define WM_PH_SELECT_SERVICE_ITEM (WM_APP + 134)
 #define WM_PH_SELECT_NETWORK_ITEM (WM_APP + 135)
@@ -546,10 +546,10 @@ PHAPPAPI extern HWND PhMainWndHandle;
     SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
 #define ProcessHacker_SelectTabPage(hWnd, Index) \
     SendMessage(hWnd, WM_PH_SELECT_TAB_PAGE, (WPARAM)(Index), 0)
-#define ProcessHacker_GetLayoutPadding(hWnd, Rect) \
-    SendMessage(hWnd, WM_PH_GET_LAYOUT_PADDING, 0, (LPARAM)(Rect))
-#define ProcessHacker_SetLayoutPadding(hWnd, Rect) \
-    SendMessage(hWnd, WM_PH_SET_LAYOUT_PADDING, 0, (LPARAM)(Rect))
+#define ProcessHacker_GetCallbackLayoutPadding(hWnd) \
+    ((PPH_CALLBACK)SendMessage(hWnd, WM_PH_GET_CALLBACK_LAYOUT_PADDING, 0, 0))
+#define ProcessHacker_InvalidateLayoutPadding(hWnd) \
+    SendMessage(hWnd, WM_PH_INVALIDATE_LAYOUT_PADDING, 0, 0)
 #define ProcessHacker_SelectProcessNode(hWnd, ProcessNode) \
     SendMessage(hWnd, WM_PH_SELECT_PROCESS_NODE, 0, (LPARAM)(ProcessNode))
 #define ProcessHacker_SelectServiceItem(hWnd, ServiceItem) \
@@ -568,6 +568,11 @@ PHAPPAPI extern HWND PhMainWndHandle;
     ((BOOLEAN)SendMessage(hWnd, WM_PH_GET_UPDATE_AUTOMATICALLY, 0, 0))
 #define ProcessHacker_SetUpdateAutomatically(hWnd, Value) \
     SendMessage(hWnd, WM_PH_SET_UPDATE_AUTOMATICALLY, (WPARAM)(Value), 0)
+
+typedef struct _PH_LAYOUT_PADDING_DATA
+{
+    RECT Padding;
+} PH_LAYOUT_PADDING_DATA, *PPH_LAYOUT_PADDING_DATA;
 
 typedef struct _PH_ADDMENUITEM
 {
