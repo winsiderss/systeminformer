@@ -26,11 +26,8 @@
 #include <phplug.h>
 #include <windowsx.h>
 #include <uxtheme.h>
+#include <vssym32.h>
 #include <sysinfop.h>
-
-// TODO:
-// * Keyboard navigation & focus rectangles for graphs
-// * Themed controls
 
 static HANDLE PhSipThread = NULL;
 static HWND PhSipWindow = NULL;
@@ -47,7 +44,13 @@ static PPH_SYSINFO_SECTION CurrentSection;
 static HWND ContainerControl;
 static HWND SeparatorControl;
 static HWND RestoreSummaryControl;
+static WNDPROC RestoreSummaryControlOldWndProc;
+static BOOLEAN RestoreSummaryControlHot;
+static BOOLEAN RestoreSummaryControlHasFocus;
+
 static _EnableThemeDialogTexture EnableThemeDialogTexture_I;
+static HTHEME ThemeData;
+static BOOLEAN ThemeHasItemBackground;
 
 static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;
@@ -237,6 +240,11 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             PhSipOnSizing((ULONG)wParam, (PRECT)lParam);
         }
         break;
+    case WM_THEMECHANGED:
+        {
+            PhSipOnThemeChanged();
+        }
+        break;
     case WM_COMMAND:
         {
             PhSipOnCommand(LOWORD(wParam), HIWORD(wParam));
@@ -305,6 +313,9 @@ VOID PhSipOnInitDialog(
 
     if (!EnableThemeDialogTexture_I)
         EnableThemeDialogTexture_I = PhGetProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
+
+    PhSetControlTheme(PhSipWindow, L"explorer");
+    PhSipUpdateThemeData();
 }
 
 VOID PhSipOnDestroy(
@@ -337,6 +348,12 @@ VOID PhSipOnDestroy(
     PhDereferenceObject(SectionList);
     SectionList = NULL;
     PhSipDeleteParameters();
+
+    if (ThemeData)
+    {
+        CloseThemeData_I(ThemeData);
+        ThemeData = NULL;
+    }
 
     PhDeleteLayoutManager(&WindowLayoutManager);
     PostQuitMessage(0);
@@ -388,10 +405,11 @@ VOID PhSipOnShowWindow(
         PhInstanceHandle,
         NULL
         );
+
     RestoreSummaryControl = CreateWindow(
         L"STATIC",
         NULL,
-        WS_CHILD | SS_OWNERDRAW | SS_NOTIFY,
+        WS_CHILD | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
         0,
         0,
         3,
@@ -401,6 +419,9 @@ VOID PhSipOnShowWindow(
         PhInstanceHandle,
         NULL
         );
+    RestoreSummaryControlOldWndProc = (WNDPROC)GetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC);
+    SetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
+    RestoreSummaryControlHot = FALSE;
 
     if (EnableThemeDialogTexture_I)
         EnableThemeDialogTexture_I(ContainerControl, ETDT_ENABLETAB);
@@ -480,6 +501,13 @@ VOID PhSipOnSizing(
     PhResizingMinimumSize(DragRectangle, Edge, MinimumSize.right, MinimumSize.bottom);
 }
 
+VOID PhSipOnThemeChanged(
+    VOID
+    )
+{
+    PhSipUpdateThemeData();
+}
+
 VOID PhSipOnCommand(
     __in ULONG Id,
     __in ULONG Code
@@ -520,6 +548,33 @@ VOID PhSipOnCommand(
             ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
         }
         break;
+    }
+
+    if (SectionList && Id >= ID_DIGIT1 && Id <= ID_DIGIT9)
+    {
+        ULONG index;
+
+        index = Id - ID_DIGIT1;
+
+        if (index < SectionList->Count)
+            PhSipEnterSectionView(SectionList->Items[index]);
+    }
+
+    if (SectionList && Code == STN_CLICKED)
+    {
+        ULONG i;
+        PPH_SYSINFO_SECTION section;
+
+        for (i = 0; i < SectionList->Count; i++)
+        {
+            section = SectionList->Items[i];
+
+            if (Id == section->PanelId)
+            {
+                PhSipEnterSectionView(section);
+                break;
+            }
+        }
     }
 }
 
@@ -836,7 +891,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->GraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER | GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL,
         0,
         0,
         3,
@@ -859,7 +914,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->PanelHandle = CreateWindow(
         L"STATIC",
         NULL,
-        WS_CHILD | SS_OWNERDRAW,
+        WS_CHILD | SS_OWNERDRAW | SS_NOTIFY,
         0,
         0,
         3,
@@ -869,6 +924,14 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         PhInstanceHandle,
         NULL
         );
+
+    SetProp(section->GraphHandle, PhMakeContextAtom(), section);
+    section->GraphOldWndProc = (WNDPROC)GetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC);
+    SetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC, (LONG_PTR)PhSipGraphHookWndProc);
+
+    SetProp(section->PanelHandle, PhMakeContextAtom(), section);
+    section->PanelOldWndProc = (WNDPROC)GetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC);
+    SetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
 
     PhAddItemList(SectionList, section);
 
@@ -927,11 +990,24 @@ VOID PhSipDrawRestoreSummaryPanel(
     )
 {
     FillRect(hdc, Rect, GetSysColorBrush(COLOR_3DFACE));
+
+    if (ThemeHasItemBackground && (RestoreSummaryControlHot || RestoreSummaryControlHasFocus))
+    {
+        DrawThemeBackground_I(
+            ThemeData,
+            hdc,
+            TVP_TREEITEM,
+            TREIS_HOT,
+            Rect,
+            Rect
+            );
+    }
+
     SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
     SetBkMode(hdc, TRANSPARENT);
 
     SelectObject(hdc, CurrentParameters.MediumFont);
-    DrawText(hdc, L"&Back", 5, Rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    DrawText(hdc, L"Back", 4, Rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
 VOID PhSipDrawSeparator(
@@ -989,6 +1065,56 @@ VOID PhSipDefaultDrawPanel(
 
     hdc = DrawPanel->hdc;
 
+    if (ThemeHasItemBackground)
+    {
+        if (CurrentView == SysInfoSectionView)
+        {
+            INT stateId;
+
+            stateId = -1;
+
+            if (Section->GraphHot || Section->PanelHot || Section->HasFocus)
+            {
+                if (Section == CurrentSection)
+                    stateId = TREIS_HOTSELECTED;
+                else
+                    stateId = TREIS_HOT;
+            }
+            else if (Section == CurrentSection)
+            {
+                stateId = TREIS_SELECTED;
+            }
+
+            if (stateId != -1)
+            {
+                RECT themeRect;
+
+                themeRect = DrawPanel->Rect;
+                themeRect.left -= 2; // remove left edge
+
+                DrawThemeBackground_I(
+                    ThemeData,
+                    hdc,
+                    TVP_TREEITEM,
+                    stateId,
+                    &themeRect,
+                    &DrawPanel->Rect
+                    );
+            }
+        }
+        else if (Section->HasFocus)
+        {
+            DrawThemeBackground_I(
+                ThemeData,
+                hdc,
+                TVP_TREEITEM,
+                TREIS_HOT,
+                &DrawPanel->Rect,
+                &DrawPanel->Rect
+                );
+        }
+    }
+
     if (CurrentView == SysInfoSummaryView)
         SetTextColor(hdc, CurrentParameters.PanelForeColor);
     else
@@ -996,7 +1122,7 @@ VOID PhSipDefaultDrawPanel(
 
     SetBkMode(hdc, TRANSPARENT);
 
-    rect.left = PH_SYSINFO_PANEL_PADDING;
+    rect.left = PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_PANEL_PADDING;
     rect.top = PH_SYSINFO_PANEL_PADDING;
     rect.right = CurrentParameters.PanelWidth;
     rect.bottom = DrawPanel->Rect.bottom;
@@ -1117,9 +1243,9 @@ VOID PhSipLayoutSectionView(
             deferHandle,
             section->PanelHandle,
             NULL,
-            PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING,
+            PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH,
             y,
-            CurrentParameters.PanelWidth,
+            PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth,
             graphHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
@@ -1186,15 +1312,18 @@ VOID PhSipEnterSectionView(
     ULONG i;
     PPH_SYSINFO_SECTION section;
     BOOLEAN fromSummaryView;
+    PPH_SYSINFO_SECTION oldSection;
 
     fromSummaryView = CurrentView == SysInfoSummaryView;
     CurrentView = SysInfoSectionView;
+    oldSection = CurrentSection;
     CurrentSection = NewSection;
 
     for (i = 0; i < SectionList->Count; i++)
     {
         section = SectionList->Items[i];
 
+        section->HasFocus = FALSE;
         section->Callback(section, SysInfoViewChanging, (PVOID)CurrentView, CurrentSection);
 
         if (fromSummaryView)
@@ -1219,6 +1348,11 @@ VOID PhSipEnterSectionView(
     ShowWindow(RestoreSummaryControl, SW_SHOW);
     ShowWindow(SeparatorControl, SW_SHOW);
     ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_HIDE);
+
+    if (oldSection)
+        InvalidateRect(oldSection->PanelHandle, NULL, TRUE);
+
+    InvalidateRect(NewSection->PanelHandle, NULL, TRUE);
 
     PhSipLayoutSectionView();
 }
@@ -1322,6 +1456,324 @@ VOID PhSipCreateSectionDialog(
         {
             Section->DialogHandle = PhSipDefaultCreateDialog(createDialog.Instance, createDialog.Template, createDialog.DialogProc);
         }
+    }
+}
+
+LRESULT CALLBACK PhSipGraphHookWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    WNDPROC oldWndProc;
+    PPH_SYSINFO_SECTION section;
+
+    section = GetProp(hwnd, PhMakeContextAtom());
+
+    if (!section)
+        return 0;
+
+    oldWndProc = section->GraphOldWndProc;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            RemoveProp(hwnd, PhMakeContextAtom());
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        }
+        break;
+    case WM_SETFOCUS:
+        section->HasFocus = TRUE;
+
+        if (CurrentView == SysInfoSummaryView)
+        {
+            Graph_Draw(section->GraphHandle);
+            InvalidateRect(section->GraphHandle, NULL, FALSE);
+        }
+        else
+        {
+            InvalidateRect(section->PanelHandle, NULL, TRUE);
+        }
+
+        break;
+    case WM_KILLFOCUS:
+        section->HasFocus = FALSE;
+
+        if (CurrentView == SysInfoSummaryView)
+        {
+            Graph_Draw(section->GraphHandle);
+            InvalidateRect(section->GraphHandle, NULL, FALSE);
+        }
+        else
+        {
+            InvalidateRect(section->PanelHandle, NULL, TRUE);
+        }
+
+        break;
+    case WM_GETDLGCODE:
+        if (wParam == VK_SPACE || wParam == VK_RETURN ||
+            wParam == VK_UP || wParam == VK_DOWN ||
+            wParam == VK_LEFT || wParam == VK_RIGHT)
+            return DLGC_WANTALLKEYS;
+        break;
+    case WM_KEYDOWN:
+        {
+            if (wParam == VK_SPACE || wParam == VK_RETURN)
+            {
+                PhSipEnterSectionView(section);
+            }
+            else if (wParam == VK_UP || wParam == VK_LEFT ||
+                wParam == VK_DOWN || wParam == VK_RIGHT)
+            {
+                ULONG i;
+
+                for (i = 0; i < SectionList->Count; i++)
+                {
+                    if (SectionList->Items[i] == section)
+                    {
+                        if ((wParam == VK_UP || wParam == VK_LEFT) && i > 0)
+                        {
+                            SetFocus(((PPH_SYSINFO_SECTION)SectionList->Items[i - 1])->GraphHandle);
+                        }
+                        else if (wParam == VK_DOWN || wParam == VK_RIGHT)
+                        {
+                            if (i < SectionList->Count - 1)
+                                SetFocus(((PPH_SYSINFO_SECTION)SectionList->Items[i + 1])->GraphHandle);
+                            else
+                                SetFocus(RestoreSummaryControl);
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            TRACKMOUSEEVENT trackMouseEvent;
+
+            trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+            trackMouseEvent.dwFlags = TME_LEAVE;
+            trackMouseEvent.hwndTrack = hwnd;
+            trackMouseEvent.dwHoverTime = 0;
+            TrackMouseEvent(&trackMouseEvent);
+
+            if (!(section->GraphHot || section->PanelHot))
+            {
+                section->GraphHot = TRUE;
+                InvalidateRect(section->PanelHandle, NULL, TRUE);
+            }
+            else
+            {
+                section->GraphHot = TRUE;
+            }
+        }
+        break;
+    case WM_MOUSELEAVE:
+        {
+            if (!section->PanelHot)
+            {
+                section->GraphHot = FALSE;
+                InvalidateRect(section->PanelHandle, NULL, TRUE);
+            }
+            else
+            {
+                section->GraphHot = FALSE;
+            }
+
+            section->HasFocus = FALSE;
+
+            if (CurrentView == SysInfoSummaryView)
+            {
+                Graph_Draw(section->GraphHandle);
+                InvalidateRect(section->GraphHandle, NULL, FALSE);
+            }
+        }
+        break;
+    case WM_UPDATEUISTATE:
+        {
+            switch (LOWORD(wParam))
+            {
+            case UIS_SET:
+                if (HIWORD(wParam) & UISF_HIDEFOCUS)
+                    section->HideFocus = TRUE;
+                break;
+            case UIS_CLEAR:
+                if (HIWORD(wParam) & UISF_HIDEFOCUS)
+                    section->HideFocus = FALSE;
+                break;
+            case UIS_INITIALIZE:
+                section->HideFocus = !!(HIWORD(wParam) & UISF_HIDEFOCUS);
+                break;
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+LRESULT CALLBACK PhSipPanelHookWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    WNDPROC oldWndProc;
+    PPH_SYSINFO_SECTION section;
+
+    section = GetProp(hwnd, PhMakeContextAtom());
+
+    if (section)
+        oldWndProc = section->PanelOldWndProc;
+    else
+        oldWndProc = RestoreSummaryControlOldWndProc;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            RemoveProp(hwnd, PhMakeContextAtom());
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        }
+        break;
+    case WM_SETFOCUS:
+        {
+            if (!section)
+            {
+                RestoreSummaryControlHasFocus = TRUE;
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+        }
+        break;
+    case WM_KILLFOCUS:
+        {
+            if (!section)
+            {
+                RestoreSummaryControlHasFocus = FALSE;
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+        }
+        break;
+    case WM_GETDLGCODE:
+        if (wParam == VK_SPACE || wParam == VK_RETURN ||
+            wParam == VK_UP || wParam == VK_DOWN ||
+            wParam == VK_LEFT || wParam == VK_RIGHT)
+            return DLGC_WANTALLKEYS;
+        break;
+    case WM_KEYDOWN:
+        {
+            if (wParam == VK_SPACE || wParam == VK_RETURN)
+            {
+                if (section)
+                    PhSipEnterSectionView(section);
+                else
+                    PhSipRestoreSummaryView();
+            }
+            else if (wParam == VK_UP || wParam == VK_LEFT)
+            {
+                if (!section && SectionList->Count != 0)
+                {
+                    SetFocus(((PPH_SYSINFO_SECTION)SectionList->Items[SectionList->Count - 1])->GraphHandle);
+                }
+            }
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            TRACKMOUSEEVENT trackMouseEvent;
+
+            trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+            trackMouseEvent.dwFlags = TME_LEAVE;
+            trackMouseEvent.hwndTrack = hwnd;
+            trackMouseEvent.dwHoverTime = 0;
+            TrackMouseEvent(&trackMouseEvent);
+
+            if (section)
+            {
+                if (!(section->GraphHot || section->PanelHot))
+                {
+                    section->PanelHot = TRUE;
+                    InvalidateRect(section->PanelHandle, NULL, TRUE);
+                }
+                else
+                {
+                    section->PanelHot = TRUE;
+                }
+            }
+            else
+            {
+                RestoreSummaryControlHot = TRUE;
+                InvalidateRect(RestoreSummaryControl, NULL, TRUE);
+            }
+        }
+        break;
+    case WM_MOUSELEAVE:
+        {
+            if (section)
+            {
+                section->HasFocus = FALSE;
+
+                if (!section->GraphHot)
+                {
+                    section->PanelHot = FALSE;
+                    InvalidateRect(section->PanelHandle, NULL, TRUE);
+                }
+                else
+                {
+                    section->PanelHot = FALSE;
+                }
+            }
+            else
+            {
+                RestoreSummaryControlHasFocus = FALSE;
+                RestoreSummaryControlHot = FALSE;
+                InvalidateRect(RestoreSummaryControl, NULL, TRUE);
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+VOID PhSipUpdateThemeData(
+    VOID
+    )
+{
+    if (
+        IsThemeActive_I &&
+        OpenThemeData_I &&
+        CloseThemeData_I &&
+        IsThemePartDefined_I &&
+        DrawThemeBackground_I
+        )
+    {
+        if (ThemeData)
+        {
+            CloseThemeData_I(ThemeData);
+            ThemeData = NULL;
+        }
+
+        ThemeData = OpenThemeData_I(PhSipWindow, L"TREEVIEW");
+
+        if (ThemeData)
+        {
+            ThemeHasItemBackground = !!IsThemePartDefined_I(ThemeData, TVP_TREEITEM, 0);
+        }
+        else
+        {
+            ThemeHasItemBackground = FALSE;
+        }
+    }
+    else
+    {
+        ThemeData = NULL;
+        ThemeHasItemBackground = FALSE;
     }
 }
 

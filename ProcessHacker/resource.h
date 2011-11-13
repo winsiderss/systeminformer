@@ -736,6 +736,15 @@
 #define ID_EMPTY_EMPTYSTANDBYLIST       40252
 #define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40253
 #define IDC_BACK                        40255
+#define ID_DIGIT1                       40263
+#define ID_DIGIT2                       40264
+#define ID_DIGIT3                       40265
+#define ID_DIGIT4                       40266
+#define ID_DIGIT5                       40267
+#define ID_DIGIT6                       40268
+#define ID_DIGIT7                       40269
+#define ID_DIGIT8                       40270
+#define ID_DIGIT9                       40271
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -745,7 +754,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        206
-#define _APS_NEXT_COMMAND_VALUE         40259
+#define _APS_NEXT_COMMAND_VALUE         40273
 #define _APS_NEXT_CONTROL_VALUE         1361
 #define _APS_NEXT_SYMED_VALUE           135
 #endif

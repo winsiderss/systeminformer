@@ -827,9 +827,19 @@ typedef struct _PH_SYSINFO_SECTION
 
     // Private
 
+    struct
+    {
+        ULONG GraphHot : 1;
+        ULONG PanelHot : 1;
+        ULONG HasFocus : 1;
+        ULONG HideFocus : 1;
+        ULONG SpareFlags : 28;
+    };
     HWND DialogHandle;
     HWND PanelHandle;
     ULONG PanelId;
+    WNDPROC GraphOldWndProc;
+    WNDPROC PanelOldWndProc;
 } PH_SYSINFO_SECTION, *PPH_SYSINFO_SECTION;
 
 VOID PhSiSetColorsGraphDrawInfo(

@@ -2273,8 +2273,17 @@ IDR_SYSINFO_ACCEL ACCELERATORS
 BEGIN
     "B",            IDC_BACK,               VIRTKEY, ALT, NOINVERT
     VK_BACK,        IDC_BACK,               VIRTKEY, NOINVERT
-    VK_F5,          IDC_REFRESH,            VIRTKEY, NOINVERT
     VK_PAUSE,       IDC_PAUSE,              VIRTKEY, NOINVERT
+    VK_F5,          IDC_REFRESH,            VIRTKEY, NOINVERT
+    "1",            ID_DIGIT1,              VIRTKEY, NOINVERT
+    "2",            ID_DIGIT2,              VIRTKEY, NOINVERT
+    "3",            ID_DIGIT3,              VIRTKEY, NOINVERT
+    "4",            ID_DIGIT4,              VIRTKEY, NOINVERT
+    "5",            ID_DIGIT5,              VIRTKEY, NOINVERT
+    "6",            ID_DIGIT6,              VIRTKEY, NOINVERT
+    "7",            ID_DIGIT7,              VIRTKEY, NOINVERT
+    "8",            ID_DIGIT8,              VIRTKEY, NOINVERT
+    "9",            ID_DIGIT9,              VIRTKEY, NOINVERT
 END
 
 
