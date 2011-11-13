@@ -38,27 +38,19 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
     AllText = 2
 } TOOLBAR_DISPLAY_STYLE;
 
-INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
-
-VOID ApplyToolbarSettings(
-    VOID
-    );
-
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 
 HWND ToolBarHandle;
 BOOLEAN EnableToolBar;
+RECT ToolBarRect;
 HWND StatusBarHandle;
 BOOLEAN EnableStatusBar;
+RECT StatusBarRect;
 HIMAGELIST ToolBarImageList;
 ULONG StatusMask;
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
@@ -280,6 +272,7 @@ VOID NTAPI MainWindowShowingCallback(
 
     ApplyToolbarSettings();
 
+    PhRegisterCallback(ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), LayoutPaddingCallback, NULL, &LayoutPaddingCallbackRegistration);
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 }
 
@@ -333,7 +326,9 @@ VOID NTAPI ProcessesUpdatedCallback(
     )
 {
     ProcessesUpdatedCount++;
-    UpdateStatusBar();
+
+    if (EnableStatusBar)
+        UpdateStatusBar();
 }
 
 VOID DrawWindowBorderForTargeting(
@@ -373,6 +368,19 @@ VOID DrawWindowBorderForTargeting(
         RestoreDC(hdc, oldDc);
         ReleaseDC(hWnd, hdc);
     }
+}
+
+VOID NTAPI LayoutPaddingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_LAYOUT_PADDING_DATA data = Parameter;
+
+    if (EnableToolBar)
+        data->Padding.top += ToolBarRect.bottom + 2;
+    if (EnableStatusBar)
+        data->Padding.bottom += StatusBarRect.bottom;
 }
 
 LRESULT CALLBACK MainWndSubclassProc(
@@ -668,35 +676,20 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SIZE:
         {
-            RECT padding;
-            RECT rect;
-
-            ProcessHacker_GetLayoutPadding(hWnd, &padding);
-
             if (EnableToolBar)
             {
                 // Get the toolbar to resize itself.
                 SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
-                GetClientRect(ToolBarHandle, &rect);
-                padding.top = rect.bottom + 2;
-            }
-            else
-            {
-                padding.top = 0;
+                GetClientRect(ToolBarHandle, &ToolBarRect);
             }
 
             if (EnableStatusBar)
             {
                 SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
-                GetClientRect(StatusBarHandle, &rect);
-                padding.bottom = rect.bottom;
-            }
-            else
-            {
-                padding.bottom = 0;
+                GetClientRect(StatusBarHandle, &StatusBarRect);
             }
 
-            ProcessHacker_SetLayoutPadding(hWnd, &padding);
+            ProcessHacker_InvalidateLayoutPadding(hWnd);
         }
         break;
     }
