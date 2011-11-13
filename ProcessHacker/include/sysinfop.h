@@ -70,6 +70,10 @@ VOID PhSipOnSizing(
     __in PRECT DragRectangle
     );
 
+VOID PhSipOnThemeChanged(
+    VOID
+    );
+
 VOID PhSipOnCommand(
     __in ULONG Id,
     __in ULONG Code
@@ -174,7 +178,25 @@ VOID PhSipCreateSectionDialog(
     __in PPH_SYSINFO_SECTION Section
     );
 
+LRESULT CALLBACK PhSipGraphHookWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+LRESULT CALLBACK PhSipPanelHookWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 // Misc.
+
+VOID PhSipUpdateThemeData(
+    VOID
+    );
 
 VOID PhSipSetAlwaysOnTop(
     VOID
