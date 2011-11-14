@@ -194,6 +194,10 @@ VOID PhNfSaveSettings(
         PhSetStringSetting2(L"IconMaskList", &iconListBuilder.String->sr);
         PhDeleteStringBuilder(&iconListBuilder);
     }
+    else
+    {
+        PhSetStringSetting(L"IconMaskList", L"");
+    }
 }
 
 VOID PhNfUninitialization(
