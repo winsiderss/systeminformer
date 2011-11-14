@@ -315,6 +315,8 @@ VOID NTAPI LoadCallback(
 {
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
+
+    EtRegisterNotifyIcons();
 }
 
 VOID NTAPI UnloadCallback(

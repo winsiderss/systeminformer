@@ -106,6 +106,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY
+    PhpAddStringSetting(L"IconMaskList", L"");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"a"); // 10
     PhpAddIntegerSetting(L"IconSingleClick", L"0");

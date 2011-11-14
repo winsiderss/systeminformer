@@ -28,6 +28,7 @@
 #include <phplug.h>
 #include <cpysave.h>
 #include <mainwndp.h>
+#include <notifico.h>
 #include <memsrch.h>
 #include <symprv.h>
 #include <windowsx.h>
@@ -52,7 +53,6 @@ HMENU PhMainWndMenuHandle;
 static BOOLEAN NeedsMaximize = FALSE;
 
 static BOOLEAN DelayedLoadCompleted = FALSE;
-static ULONG NotifyIconMask;
 static ULONG NotifyIconNotifyMask;
 
 static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
@@ -75,6 +75,9 @@ static BOOLEAN ServiceTreeListLoaded = FALSE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
 static HMENU HackerMenuHandle;
 static BOOLEAN HackerMenuInitialized = FALSE;
+static HMENU ViewMenuHandle;
+static HMENU TrayIconsMenuHandle;
+static BOOLEAN TrayIconsMenuInitialized = FALSE;
 static HMENU ToolsMenuHandle;
 static BOOLEAN ToolsMenuInitialized = FALSE;
 static HMENU UsersMenuHandle;
@@ -88,7 +91,6 @@ static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-static PH_CALLBACK_REGISTRATION ProcessesUpdatedForIconsRegistration;
 static BOOLEAN ProcessesNeedsRedraw = FALSE;
 
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
@@ -177,6 +179,7 @@ BOOLEAN PhMainWndInitialization(
 
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
     HackerMenuHandle = GetSubMenu(PhMainWndMenuHandle, 0);
+    ViewMenuHandle = GetSubMenu(PhMainWndMenuHandle, 1);
     ToolsMenuHandle = GetSubMenu(PhMainWndMenuHandle, 2);
     UsersMenuHandle = GetSubMenu(PhMainWndMenuHandle, 3);
 
@@ -234,7 +237,7 @@ BOOLEAN PhMainWndInitialization(
 
     UpdateWindow(PhMainWndHandle);
 
-    if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && NotifyIconMask != 0)
+    if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfTestIconMask(PH_ICON_ALL))
         ShowCommand = SW_HIDE;
     if (PhStartupParameters.ShowVisible)
         ShowCommand = SW_SHOW;
@@ -501,12 +504,6 @@ VOID PhMwpInitializeControls(
         NULL,
         &ProcessesUpdatedRegistration
         );
-    PhRegisterCallback(
-        &PhProcessesUpdatedEvent,
-        PhMwpProcessesUpdatedForIconsHandler,
-        NULL,
-        &ProcessesUpdatedForIconsRegistration
-        );
 
     PhRegisterCallback(
         &PhServiceAddedEvent,
@@ -563,16 +560,10 @@ NTSTATUS PhMwpDelayedLoadFunction(
     __in PVOID Parameter
     )
 {
-    ULONG i;
-
     // Register for window station notifications.
     WinStationRegisterConsoleNotification(NULL, PhMainWndHandle, WNOTIFY_ALL_SESSIONS);
 
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconMask & i)
-            PhAddNotifyIcon(i);
-    }
+    PhNfLoadStage2();
 
     // Make sure we get closed late in the shutdown process.
     SetProcessShutdownParameters(0x100, 0);
@@ -587,9 +578,6 @@ VOID PhMwpOnDestroy(
     VOID
     )
 {
-    ULONG mask;
-    ULONG i;
-
     // Notify plugins that we are shutting down.
 
     if (PhPluginsEnabled)
@@ -598,16 +586,7 @@ VOID PhMwpOnDestroy(
     if (!PhMainWndExiting)
         ProcessHacker_SaveAllSettings(PhMainWndHandle);
 
-    // Remove all icons to prevent them hanging around after we exit.
-
-    mask = NotifyIconMask;
-    NotifyIconMask = 0; // prevent further icon updating
-
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (mask & i)
-            PhRemoveNotifyIcon(i);
-    }
+    PhNfUninitialization();
 
     PostQuitMessage(0);
 }
@@ -643,7 +622,7 @@ VOID PhMwpOnCommand(
         {
             if (PhGetIntegerSetting(L"HideOnClose"))
             {
-                if (NotifyIconMask != 0)
+                if (PhNfTestIconMask(PH_ICON_ALL))
                     ShowWindow(PhMainWndHandle, SW_HIDE);
             }
             else if (PhGetIntegerSetting(L"CloseOnEscape"))
@@ -844,7 +823,6 @@ VOID PhMwpOnCommand(
     case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
         {
             ULONG i;
-            BOOLEAN enable;
 
             switch (Id)
             {
@@ -865,24 +843,7 @@ VOID PhMwpOnCommand(
                 break;
             }
 
-            enable = !(GetMenuState(PhMainWndMenuHandle, Id, 0) & MF_CHECKED);
-
-            if (enable)
-            {
-                NotifyIconMask |= i;
-                PhAddNotifyIcon(i);
-            }
-            else
-            {
-                NotifyIconMask &= ~i;
-                PhRemoveNotifyIcon(i);
-            }
-
-            CheckMenuItem(
-                PhMainWndMenuHandle,
-                Id,
-                enable ? MF_CHECKED : MF_UNCHECKED
-                );
+            PhNfSetVisibleIcon(i, !(GetMenuState(PhMainWndMenuHandle, Id, 0) & MF_CHECKED));
         }
         break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
@@ -1739,7 +1700,7 @@ BOOLEAN PhMwpOnSysCommand(
     {
     case SC_CLOSE:
         {
-            if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
+            if (PhGetIntegerSetting(L"HideOnClose") && PhNfTestIconMask(PH_ICON_ALL))
             {
                 ShowWindow(PhMainWndHandle, SW_HIDE);
                 return TRUE;
@@ -1752,7 +1713,7 @@ BOOLEAN PhMwpOnSysCommand(
             // may not have a chance to later.
             PhMwpSaveWindowSettings();
 
-            if (PhGetIntegerSetting(L"HideOnMinimize") && NotifyIconMask != 0)
+            if (PhGetIntegerSetting(L"HideOnMinimize") && PhNfTestIconMask(PH_ICON_ALL))
             {
                 ShowWindow(PhMainWndHandle, SW_HIDE);
                 return TRUE;
@@ -1818,6 +1779,120 @@ VOID PhMwpOnInitMenuPopup(
             }
 
             HackerMenuInitialized = TRUE;
+        }
+    }
+    else if (Menu == ViewMenuHandle)
+    {
+        ULONG i;
+        ULONG count;
+
+        if (!TrayIconsMenuHandle)
+        {
+            HMENU subMenu;
+
+            // Windows doesn't give us a way of assigning IDs to submenus, so just
+            // go through the whole list.
+
+            count = GetMenuItemCount(ViewMenuHandle);
+            subMenu = NULL;
+
+            if (count != -1)
+            {
+                for (i = 0; i < count; i++)
+                {
+                    subMenu = GetSubMenu(ViewMenuHandle, i);
+
+                    if (GetMenuState(subMenu, ID_TRAYICONS_CPUHISTORY, 0) != -1)
+                    {
+                        // Found it.
+                        TrayIconsMenuHandle = subMenu;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    else if (Menu == TrayIconsMenuHandle)
+    {
+        ULONG i;
+        ULONG count;
+
+        if (!TrayIconsMenuInitialized)
+        {
+            ULONG id;
+            ULONG maximum;
+            PPH_NF_ICON icon;
+
+            // Add menu items for the registered tray icons.
+
+            id = PH_ICON_DEFAULT_MAXIMUM;
+            maximum = PhNfGetMaximumIconId();
+
+            for (; id != maximum; id <<= 1)
+            {
+                if (icon = PhNfGetIconById(id))
+                {
+                    MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
+
+                    menuItemInfo.fMask = MIIM_ID | MIIM_DATA | MIIM_STRING;
+                    menuItemInfo.wID = ID_TRAYICONS_REGISTERED;
+                    menuItemInfo.dwItemData = (ULONG_PTR)icon;
+                    menuItemInfo.dwTypeData = icon->Text;
+                    InsertMenuItem(TrayIconsMenuHandle, MAXINT, TRUE, &menuItemInfo);
+                }
+            }
+
+            TrayIconsMenuInitialized = TRUE;
+        }
+
+        // Update the check marks on the menu items.
+
+        count = GetMenuItemCount(TrayIconsMenuHandle);
+
+        if (count != -1)
+        {
+            MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
+            ULONG id;
+
+            for (i = 0; i < count; i++)
+            {
+                menuItemInfo.fMask = MIIM_ID | MIIM_DATA;
+
+                if (GetMenuItemInfo(TrayIconsMenuHandle, i, TRUE, &menuItemInfo))
+                {
+                    switch (menuItemInfo.wID)
+                    {
+                    case ID_TRAYICONS_CPUHISTORY:
+                        id = PH_ICON_CPU_HISTORY;
+                        break;
+                    case ID_TRAYICONS_IOHISTORY:
+                        id = PH_ICON_IO_HISTORY;
+                        break;
+                    case ID_TRAYICONS_COMMITHISTORY:
+                        id = PH_ICON_COMMIT_HISTORY;
+                        break;
+                    case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
+                        id = PH_ICON_PHYSICAL_HISTORY;
+                        break;
+                    case ID_TRAYICONS_CPUUSAGE:
+                        id = PH_ICON_CPU_USAGE;
+                        break;
+                    case ID_TRAYICONS_REGISTERED:
+                        if (menuItemInfo.dwItemData)
+                            id = ((PPH_NF_ICON)menuItemInfo.dwItemData)->IconId;
+                        else
+                            id = -1;
+                        break;
+                    }
+
+                    if (id != -1)
+                    {
+                        menuItemInfo.fMask = MIIM_STATE;
+                        menuItemInfo.fState = PhNfTestIconMask(id) ? MFS_CHECKED : MFS_UNCHECKED;
+                        SetMenuItemInfo(TrayIconsMenuHandle, i, TRUE, &menuItemInfo);
+                    }
+                }
+            }
         }
     }
     else if (Menu == ToolsMenuHandle)
@@ -2033,29 +2108,7 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_NOTIFY_ICON_MESSAGE:
         {
-            switch (LOWORD(LParam))
-            {
-            case WM_LBUTTONDOWN:
-                {
-                    if (PhGetIntegerSetting(L"IconSingleClick"))
-                        SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
-                }
-                break;
-            case WM_LBUTTONDBLCLK:
-                {
-                    if (!PhGetIntegerSetting(L"IconSingleClick"))
-                        SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
-                }
-                break;
-            case WM_RBUTTONUP:
-                {
-                    POINT location;
-
-                    GetCursorPos(&location);
-                    PhMwpShowIconContextMenu(location);
-                }
-                break;
-            }
+            PhNfForwardMessage(WParam, LParam);
         }
         break;
     case WM_PH_TOGGLE_VISIBLE:
@@ -2366,26 +2419,6 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
 }
 
-VOID NTAPI PhMwpProcessesUpdatedForIconsHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    // We do icon updating on the provider thread so we don't block the main GUI when
-    // explorer is not responding.
-
-    if (NotifyIconMask & PH_ICON_CPU_HISTORY)
-        PhUpdateIconCpuHistory();
-    if (NotifyIconMask & PH_ICON_IO_HISTORY)
-        PhUpdateIconIoHistory();
-    if (NotifyIconMask & PH_ICON_COMMIT_HISTORY)
-        PhUpdateIconCommitHistory();
-    if (NotifyIconMask & PH_ICON_PHYSICAL_HISTORY)
-        PhUpdateIconPhysicalHistory();
-    if (NotifyIconMask & PH_ICON_CPU_USAGE)
-        PhUpdateIconCpuUsage();
-}
-
 VOID NTAPI PhMwpServiceAddedHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -2484,7 +2517,6 @@ VOID PhMwpLoadSettings(
     ULONG opacity;
     ULONG id;
     PPH_STRING customFont;
-    ULONG i;
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
     {
@@ -2540,34 +2572,7 @@ VOID PhMwpLoadSettings(
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
 
-    NotifyIconMask = PhGetIntegerSetting(L"IconMask");
-
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconMask & i)
-        {
-            switch (i)
-            {
-            case PH_ICON_CPU_HISTORY:
-                id = ID_TRAYICONS_CPUHISTORY;
-                break;
-            case PH_ICON_IO_HISTORY:
-                id = ID_TRAYICONS_IOHISTORY;
-                break;
-            case PH_ICON_COMMIT_HISTORY:
-                id = ID_TRAYICONS_COMMITHISTORY;
-                break;
-            case PH_ICON_PHYSICAL_HISTORY:
-                id = ID_TRAYICONS_PHYSICALMEMORYHISTORY;
-                break;
-            case PH_ICON_CPU_USAGE:
-                id = ID_TRAYICONS_CPUUSAGE;
-                break;
-            }
-
-            CheckMenuItem(PhMainWndMenuHandle, id, MF_CHECKED);
-        }
-    }
+    PhNfLoadStage1();
 
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
@@ -2616,7 +2621,8 @@ VOID PhMwpSaveSettings(
     if (NetworkTreeListLoaded)
         PhSaveSettingsNetworkTreeList();
 
-    PhSetIntegerSetting(L"IconMask", NotifyIconMask);
+    PhNfSaveSettings();
+
     PhSetIntegerSetting(L"IconNotifyMask", NotifyIconNotifyMask);
 
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", PhMainWndHandle);
@@ -2843,6 +2849,24 @@ VOID PhMwpDispatchMenuCommand(
             }
 
             return;
+        }
+        break;
+    case ID_TRAYICONS_REGISTERED:
+        {
+            if (ItemData)
+            {
+                PPH_NF_ICON icon;
+                MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
+
+                icon = (PPH_NF_ICON)ItemData;
+
+                menuItemInfo.fMask = MIIM_STATE;
+
+                if (GetMenuItemInfo(MenuHandle, ItemIndex, TRUE, &menuItemInfo))
+                {
+                    PhNfSetVisibleIcon(icon->IconId, !(menuItemInfo.fState & MF_CHECKED));
+                }
+            }
         }
         break;
     case ID_USER_CONNECT:
@@ -3309,7 +3333,7 @@ VOID PhMwpAddIconProcesses(
     PhFree(processItems);
 }
 
-VOID PhMwpShowIconContextMenu(
+VOID PhShowIconContextMenu(
     __in POINT Location
     )
 {
@@ -3530,17 +3554,7 @@ VOID PhShowIconNotification(
     __in ULONG Flags
     )
 {
-    ULONG i;
-
-    // Find a visible icon to display the balloon tip on.
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconMask & i)
-        {
-            PhShowBalloonTipNotifyIcon(i, Title, Text, 10, Flags);
-            break;
-        }
-    }
+    PhNfShowBalloonTip(0, Title, Text, 10, Flags);
 }
 
 BOOLEAN PhMwpPluginNotifyEvent(

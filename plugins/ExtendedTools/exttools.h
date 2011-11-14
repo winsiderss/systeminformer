@@ -448,6 +448,12 @@ VOID EtGpuSystemInformationInitializing(
     __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
+// iconext
+
+VOID EtRegisterNotifyIcons(
+    VOID
+    );
+
 // modsrv
 
 VOID EtShowModuleServicesDialog(

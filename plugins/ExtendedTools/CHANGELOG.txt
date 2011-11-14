@@ -1,5 +1,6 @@
 1.8
  * Added support for new system information window
+ * Added Disk, Network and GPU tray icons
 
 1.7
  * Added GPU monitoring
