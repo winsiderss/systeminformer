@@ -49,6 +49,7 @@
 #define IDR_FINDOBJ                     134
 #define IDC_COMMIT                      134
 #define IDD_HIDDENPROCESSES             135
+#define ID_TRAYICONS_REGISTERED         135
 #define IDD_RUNAS                       136
 #define IDD_PROGRESS                    137
 #define IDD_PAGEFILES                   138
@@ -757,6 +758,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        206
 #define _APS_NEXT_COMMAND_VALUE         40273
 #define _APS_NEXT_CONTROL_VALUE         1361
-#define _APS_NEXT_SYMED_VALUE           135
+#define _APS_NEXT_SYMED_VALUE           136
 #endif
 #endif

@@ -25,6 +25,7 @@
 #include <emenu.h>
 #include <phplug.h>
 #include <extmgri.h>
+#include <notifico.h>
 #define CINTERFACE
 #define COBJMACROS
 #include <mscoree.h>
@@ -1019,5 +1020,32 @@ PVOID PhPluginGetObjectExtension(
         &Plugin->AppContext,
         ObjectType,
         Object
+        );
+}
+
+/**
+ * Creates a notification icon.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param Object The object.
+ * \param ObjectType The type of object for which an extension has been registered.
+ */
+struct _PH_NF_ICON *PhPluginRegisterIcon(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG SubId,
+    __in_opt PVOID Context,
+    __in PWSTR Text,
+    __in ULONG Flags,
+    __in struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
+    )
+{
+    return PhNfRegisterIcon(
+        Plugin,
+        SubId,
+        Context,
+        Text,
+        Flags,
+        RegistrationData->UpdateCallback,
+        RegistrationData->MessageCallback
         );
 }

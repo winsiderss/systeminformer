@@ -117,11 +117,6 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     __in_opt PVOID Context
     );
 
-VOID NTAPI PhMwpProcessesUpdatedForIconsHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
 VOID NTAPI PhMwpServiceAddedHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context

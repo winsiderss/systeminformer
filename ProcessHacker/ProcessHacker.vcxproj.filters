@@ -551,6 +551,9 @@
     <ClInclude Include="include\sysinfop.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\notifico.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp">

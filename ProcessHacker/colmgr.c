@@ -118,7 +118,7 @@ PPH_CM_COLUMN PhCmFindColumn(
     {
         column = CONTAINING_RECORD(listEntry, PH_CM_COLUMN, ListEntry);
 
-        if (column->SubId == SubId && PhEqualStringRef2(PluginName, column->Plugin->Name, FALSE))
+        if (column->SubId == SubId && PhEqualStringRef(PluginName, &column->Plugin->AppContext.AppName, FALSE))
             return column;
 
         listEntry = listEntry->Flink;

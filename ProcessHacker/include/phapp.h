@@ -537,6 +537,10 @@ BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     );
 
+VOID PhShowIconContextMenu(
+    __in POINT Location
+    );
+
 PHAPPAPI
 VOID PhShowIconNotification(
     __in PWSTR Title,
@@ -859,63 +863,6 @@ VOID PhSiSetColorsGraphDrawInfo(
 
 VOID PhShowSystemInformationDialog(
     __in_opt PWSTR SectionName
-    );
-
-// notifico
-
-#define PH_ICON_MINIMUM 0x1
-#define PH_ICON_CPU_HISTORY 0x1
-#define PH_ICON_IO_HISTORY 0x2
-#define PH_ICON_COMMIT_HISTORY 0x4
-#define PH_ICON_PHYSICAL_HISTORY 0x8
-#define PH_ICON_CPU_USAGE 0x10
-#define PH_ICON_MAXIMUM 0x20
-
-VOID PhAddNotifyIcon(
-    __in ULONG Id
-    );
-
-VOID PhRemoveNotifyIcon(
-    __in ULONG Id
-    );
-
-VOID PhModifyNotifyIcon(
-    __in ULONG Id,
-    __in ULONG Flags,
-    __in_opt PWSTR Text,
-    __in_opt HICON Icon
-    );
-
-VOID PhShowBalloonTipNotifyIcon(
-    __in ULONG Id,
-    __in PWSTR Title,
-    __in PWSTR Text,
-    __in ULONG Timeout,
-    __in ULONG Flags
-    );
-
-HICON PhBitmapToIcon(
-    __in HBITMAP Bitmap
-    );
-
-VOID PhUpdateIconCpuHistory(
-    VOID
-    );
-
-VOID PhUpdateIconIoHistory(
-    VOID
-    );
-
-VOID PhUpdateIconCommitHistory(
-    VOID
-    );
-
-VOID PhUpdateIconPhysicalHistory(
-    VOID
-    );
-
-VOID PhUpdateIconCpuUsage(
-    VOID
     );
 
 // log
