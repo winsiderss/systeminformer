@@ -1519,14 +1519,14 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&performanceContext->CpuGraphState.TooltipText,
+                            PhSwapReference2(&performanceContext->CpuGraphState.Text,
                                 PhFormatString(L"%.2f%%",
                                 (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
                                 ));
 
                             hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
                             SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.TooltipText->sr,
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.Text->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
                         else
@@ -1558,7 +1558,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&performanceContext->PrivateGraphState.TooltipText,
+                            PhSwapReference2(&performanceContext->PrivateGraphState.Text,
                                 PhConcatStrings2(
                                 L"Private Bytes: ",
                                 PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
@@ -1566,7 +1566,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
                             SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.TooltipText->sr,
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.Text->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
                         else
@@ -1612,7 +1612,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&performanceContext->IoGraphState.TooltipText,
+                            PhSwapReference2(&performanceContext->IoGraphState.Text,
                                 PhFormatString(
                                 L"R+O: %s, W: %s",
                                 PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
@@ -1621,7 +1621,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
                             SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.TooltipText->sr,
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.Text->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
                         else
