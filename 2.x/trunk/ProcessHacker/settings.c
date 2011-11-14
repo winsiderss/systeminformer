@@ -202,6 +202,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
 
     PhpAddIntegerSetting(L"GraphShowText", L"1");
+    PhpAddIntegerSetting(L"GraphColorMode", L"0");
     PhpAddIntegerSetting(L"ColorCpuKernel", L"00ff00");
     PhpAddIntegerSetting(L"ColorCpuUser", L"0000ff");
     PhpAddIntegerSetting(L"ColorIoReadOther", L"00ffff");
@@ -260,6 +261,7 @@ VOID PhUpdateCachedSettings(
     UPDATE_INTEGER_CS(UseColorInheritHandles);
     UPDATE_INTEGER_CS(ColorInheritHandles);
     UPDATE_INTEGER_CS(GraphShowText);
+    UPDATE_INTEGER_CS(GraphColorMode);
     UPDATE_INTEGER_CS(ColorCpuKernel);
     UPDATE_INTEGER_CS(ColorCpuUser);
     UPDATE_INTEGER_CS(ColorIoReadOther);

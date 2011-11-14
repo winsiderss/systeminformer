@@ -225,6 +225,11 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             PhSipOnDestroy();
         }
         break;
+    case WM_NCDESTROY:
+        {
+            PhSipOnNcDestroy();
+        }
+        break;
     case WM_SHOWWINDOW:
         {
             PhSipOnShowWindow(!!wParam, (ULONG)lParam);
@@ -322,9 +327,6 @@ VOID PhSipOnDestroy(
     VOID
     )
 {
-    ULONG i;
-    PPH_SYSINFO_SECTION section;
-
     PhUnregisterCallback(
         &PhProcessesUpdatedEvent,
         &ProcessesUpdatedRegistration
@@ -338,6 +340,14 @@ VOID PhSipOnDestroy(
     PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
 
     PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
+}
+
+VOID PhSipOnNcDestroy(
+    VOID
+    )
+{
+    ULONG i;
+    PPH_SYSINFO_SECTION section;
 
     for (i = 0; i < SectionList->Count; i++)
     {
@@ -758,7 +768,41 @@ VOID PhSipOnUserMessage(
             }
         }
         break;
+    case SI_MSG_SYSINFO_CHANGE_SETTINGS:
+        {
+            ULONG i;
+            PPH_SYSINFO_SECTION section;
+            PH_GRAPH_OPTIONS options;
+
+            if (SectionList)
+            {
+                for (i = 0; i < SectionList->Count; i++)
+                {
+                    section = SectionList->Items[i];
+                    Graph_GetOptions(section->GraphHandle, &options);
+                    options.FadeOutBackColor = CurrentParameters.GraphBackColor;
+                    Graph_SetOptions(section->GraphHandle, &options);
+                }
+            }
+
+            InvalidateRect(PhSipWindow, NULL, TRUE);
+        }
+        break;
     }
+}
+
+VOID PhSiNotifyChangeSettings(
+    VOID
+    )
+{
+    HWND window;
+
+    PhSipUpdateColorParameters();
+
+    window = PhSipWindow;
+
+    if (window)
+        PostMessage(window, SI_MSG_SYSINFO_CHANGE_SETTINGS, 0, 0);
 }
 
 VOID PhSiSetColorsGraphDrawInfo(
@@ -767,10 +811,29 @@ VOID PhSiSetColorsGraphDrawInfo(
     __in COLORREF Color2
     )
 {
-    DrawInfo->LineColor1 = PhHalveColorBrightness(Color1);
-    DrawInfo->LineBackColor1 = PhMakeColorBrighter(Color1, 125);
-    DrawInfo->LineColor2 = PhHalveColorBrightness(Color2);
-    DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
+    switch (PhCsGraphColorMode)
+    {
+    case 0: // New colors
+        DrawInfo->BackColor = RGB(0xef, 0xef, 0xef);
+        DrawInfo->LineColor1 = PhHalveColorBrightness(Color1);
+        DrawInfo->LineBackColor1 = PhMakeColorBrighter(Color1, 125);
+        DrawInfo->LineColor2 = PhHalveColorBrightness(Color2);
+        DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
+        DrawInfo->GridColor = RGB(0xc7, 0xc7, 0xc7);
+        DrawInfo->TextColor = RGB(0x00, 0x00, 0x00);
+        DrawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
+        break;
+    case 1: // Old colors
+        DrawInfo->BackColor = RGB(0x00, 0x00, 0x00);
+        DrawInfo->LineColor1 = Color1;
+        DrawInfo->LineBackColor1 = PhHalveColorBrightness(Color1);
+        DrawInfo->LineColor2 = Color2;
+        DrawInfo->LineBackColor2 = PhHalveColorBrightness(Color2);
+        DrawInfo->GridColor = RGB(0x00, 0x57, 0x00);
+        DrawInfo->TextColor = RGB(0x00, 0xff, 0x00);
+        DrawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
+        break;
+    }
 }
 
 VOID PhSipRegisterDialog(
@@ -825,8 +888,7 @@ VOID PhSipInitializeParameters(
     logFont.lfHeight -= MulDiv(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
     CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
 
-    CurrentParameters.GraphBackColor = RGB(0xef, 0xef, 0xef);
-    CurrentParameters.PanelForeColor = RGB(0x00, 0x00, 0x00);
+    PhSipUpdateColorParameters();
 
     CurrentParameters.ColorSetupFunction = PhSiSetColorsGraphDrawInfo;
 
@@ -874,6 +936,23 @@ VOID PhSipDeleteParameters(
         DeleteObject(CurrentParameters.LargeFont);
 }
 
+VOID PhSipUpdateColorParameters(
+    VOID
+    )
+{
+    switch (PhCsGraphColorMode)
+    {
+    case 0: // New colors
+        CurrentParameters.GraphBackColor = RGB(0xef, 0xef, 0xef);
+        CurrentParameters.PanelForeColor = RGB(0x00, 0x00, 0x00);
+        break;
+    case 1: // Old colors
+        CurrentParameters.GraphBackColor = RGB(0x00, 0x00, 0x00);
+        CurrentParameters.PanelForeColor = RGB(0xff, 0xff, 0xff);
+        break;
+    }
+}
+
 PPH_SYSINFO_SECTION PhSipCreateSection(
     __in PPH_SYSINFO_SECTION Template
     )
@@ -905,6 +984,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->Parameters = &CurrentParameters;
 
     Graph_GetOptions(section->GraphHandle, &options);
+    options.FadeOutBackColor = CurrentParameters.GraphBackColor;
     options.FadeOutWidth = CurrentParameters.PanelWidth + PH_SYSINFO_FADE_ADD;
     options.DefaultCursor = LoadCursor(NULL, IDC_HAND);
     Graph_SetOptions(section->GraphHandle, &options);
@@ -1661,6 +1741,11 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             }
         }
         break;
+    case WM_SETCURSOR:
+        {
+            SetCursor(LoadCursor(NULL, IDC_HAND));
+        }
+        return TRUE;
     case WM_GETDLGCODE:
         if (wParam == VK_SPACE || wParam == VK_RETURN ||
             wParam == VK_UP || wParam == VK_DOWN ||
