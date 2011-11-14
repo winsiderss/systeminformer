@@ -412,6 +412,7 @@
 #define IDC_CHECK1                      1274
 #define IDC_PROPAGATECPUUSAGE           1274
 #define IDC_SHIFT                       1274
+#define IDC_USEOLDCOLORS                1274
 #define IDC_CUSTOM1                     1276
 #define IDC_SYSLINK1                    1279
 #define IDC_OPENURL                     1279

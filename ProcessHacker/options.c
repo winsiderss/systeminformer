@@ -183,6 +183,7 @@ VOID PhShowOptionsDialog(
             ProcessHacker_SaveAllSettings(PhMainWndHandle);
             PhInvalidateAllProcessNodes();
             PhReloadSettingsProcessTreeList();
+            PhSiNotifyChangeSettings();
         }
         else
         {
@@ -1051,6 +1052,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
 
             // Show Text
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
+            SetDlgItemCheckForSetting(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
 
             ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_CPUUSER), PhCsColorCpuUser);
             ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL), PhCsColorCpuKernel);
@@ -1069,6 +1071,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             case PSN_APPLY:
                 {
                     SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
+                    SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
                     PH_SET_INTEGER_CACHED_SETTING(ColorCpuUser, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUUSER)));
                     PH_SET_INTEGER_CACHED_SETTING(ColorCpuKernel, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL)));
                     PH_SET_INTEGER_CACHED_SETTING(ColorIoReadOther, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IORO)));
