@@ -596,6 +596,8 @@ VOID PhpAdvancedPageSave(
     __in HWND hwndDlg
     )
 {
+    ULONG sampleCount;
+
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
@@ -607,7 +609,12 @@ VOID PhpAdvancedPageSave(
     if (WindowsVersion >= WINDOWS_7)
         SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
 
-    PhSetIntegerSetting(L"SampleCount", GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE));
+    sampleCount = GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE);
+
+    if (sampleCount == 0)
+        sampleCount = 1;
+
+    PhSetIntegerSetting(L"SampleCount", sampleCount);
 
     // Replace Task Manager
     if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)))
