@@ -1071,16 +1071,23 @@ VOID PhSipDrawRestoreSummaryPanel(
 {
     FillRect(hdc, Rect, GetSysColorBrush(COLOR_3DFACE));
 
-    if (ThemeHasItemBackground && (RestoreSummaryControlHot || RestoreSummaryControlHasFocus))
+    if (RestoreSummaryControlHot || RestoreSummaryControlHasFocus)
     {
-        DrawThemeBackground_I(
-            ThemeData,
-            hdc,
-            TVP_TREEITEM,
-            TREIS_HOT,
-            Rect,
-            Rect
-            );
+        if (ThemeHasItemBackground)
+        {
+            DrawThemeBackground_I(
+                ThemeData,
+                hdc,
+                TVP_TREEITEM,
+                TREIS_HOT,
+                Rect,
+                Rect
+                );
+        }
+        else
+        {
+            FillRect(hdc, Rect, GetSysColorBrush(COLOR_WINDOW));
+        }
     }
 
     SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
@@ -1192,6 +1199,29 @@ VOID PhSipDefaultDrawPanel(
                 &DrawPanel->Rect,
                 &DrawPanel->Rect
                 );
+        }
+    }
+    else
+    {
+        if (CurrentView == SysInfoSectionView)
+        {
+            HBRUSH brush;
+
+            brush = NULL;
+
+            if (Section->GraphHot || Section->PanelHot || Section->HasFocus)
+            {
+                brush = GetSysColorBrush(COLOR_WINDOW); // TODO: Use a different color
+            }
+            else if (Section == CurrentSection)
+            {
+                brush = GetSysColorBrush(COLOR_WINDOW);
+            }
+
+            if (brush)
+            {
+                FillRect(hdc, &DrawPanel->Rect, brush);
+            }
         }
     }
 

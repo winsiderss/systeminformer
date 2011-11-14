@@ -1635,9 +1635,9 @@ BEGIN
     LTEXT           "Memory",IDC_TITLE,0,0,110,21
     LTEXT           "Panel layout",IDC_LAYOUT,0,74,315,175,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,51,NOT WS_VISIBLE
-    RTEXT           "Total physical",IDC_TOTALPHYSICAL,229,4,86,16,SS_WORDELLIPSIS
-    LTEXT           "Commit Charge:",IDC_COMMIT_L,117,4,52,8
-    LTEXT           "Physical Memory:",IDC_PHYSICAL_L,172,4,56,8
+    RTEXT           "Total physical",IDC_TOTALPHYSICAL,127,4,188,16,SS_WORDELLIPSIS
+    LTEXT           "Commit Charge:",IDC_COMMIT_L,111,1,52,8
+    LTEXT           "Physical Memory:",IDC_PHYSICAL_L,111,7,56,8
 END
 
 IDD_SYSINFO_IO DIALOGEX 0, 0, 316, 187
