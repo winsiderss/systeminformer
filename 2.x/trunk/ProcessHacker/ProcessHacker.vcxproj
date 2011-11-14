@@ -355,6 +355,7 @@
     <ClInclude Include="include\extmgr.h" />
     <ClInclude Include="include\extmgri.h" />
     <ClInclude Include="include\mainwndp.h" />
+    <ClInclude Include="include\notifico.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\uimodels.h" />
     <ClInclude Include="mxml\config.h" />

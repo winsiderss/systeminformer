@@ -443,6 +443,18 @@ PhPluginGetObjectExtension(
     __in PH_EM_OBJECT_TYPE ObjectType
     );
 
+PHAPPAPI
+struct _PH_NF_ICON *
+NTAPI
+PhPluginRegisterIcon(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG SubId,
+    __in_opt PVOID Context,
+    __in PWSTR Text,
+    __in ULONG Flags,
+    __in struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
+    );
+
 #ifdef __cplusplus
 }
 #endif

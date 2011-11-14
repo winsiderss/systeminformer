@@ -79,6 +79,7 @@ for %%a in (
     colmgr.h
     extmgr.h
     hidnproc.h
+    notifico.h
     phplug.h
     providers.h
     ) do copy ..\..\ProcessHacker\include\%%a ..\..\sdk\include\%%a
