@@ -122,6 +122,8 @@
 #define IDR_EMPTYMEMLISTS               204
 #define IDD_DIALOG1                     205
 #define IDD_CONTAINER                   205
+#define IDD_SYSINFO_MEMPANEL1           206
+#define IDD_SYSINFO_MEMPANELXP          206
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
