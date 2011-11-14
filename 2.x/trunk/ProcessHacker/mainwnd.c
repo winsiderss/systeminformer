@@ -1845,7 +1845,7 @@ VOID PhMwpOnInitMenuPopup(
             TrayIconsMenuInitialized = TRUE;
         }
 
-        // Update the check marks on the menu items.
+        // Update the text and check marks on the menu items.
 
         count = GetMenuItemCount(TrayIconsMenuHandle);
 
@@ -1853,6 +1853,7 @@ VOID PhMwpOnInitMenuPopup(
         {
             MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
             ULONG id;
+            PPH_NF_ICON icon;
 
             for (i = 0; i < count; i++)
             {
@@ -1860,6 +1861,9 @@ VOID PhMwpOnInitMenuPopup(
 
                 if (GetMenuItemInfo(TrayIconsMenuHandle, i, TRUE, &menuItemInfo))
                 {
+                    id = -1;
+                    icon = NULL;
+
                     switch (menuItemInfo.wID)
                     {
                     case ID_TRAYICONS_CPUHISTORY:
@@ -1879,9 +1883,10 @@ VOID PhMwpOnInitMenuPopup(
                         break;
                     case ID_TRAYICONS_REGISTERED:
                         if (menuItemInfo.dwItemData)
-                            id = ((PPH_NF_ICON)menuItemInfo.dwItemData)->IconId;
-                        else
-                            id = -1;
+                        {
+                            icon = (PPH_NF_ICON)menuItemInfo.dwItemData;
+                            id = icon->IconId;
+                        }
                         break;
                     }
 
@@ -1889,6 +1894,17 @@ VOID PhMwpOnInitMenuPopup(
                     {
                         menuItemInfo.fMask = MIIM_STATE;
                         menuItemInfo.fState = PhNfTestIconMask(id) ? MFS_CHECKED : MFS_UNCHECKED;
+
+                        if (icon)
+                        {
+                            menuItemInfo.fMask |= MIIM_STRING;
+
+                            if (icon->Flags & PH_NF_ICON_UNAVAILABLE)
+                                menuItemInfo.dwTypeData = PhaConcatStrings2(icon->Text, L" (Unavailable)")->Buffer;
+                            else
+                                menuItemInfo.dwTypeData = icon->Text;
+                        }
+
                         SetMenuItemInfo(TrayIconsMenuHandle, i, TRUE, &menuItemInfo);
                     }
                 }
