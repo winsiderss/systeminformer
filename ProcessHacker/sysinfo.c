@@ -442,7 +442,7 @@ VOID PhSipOnShowWindow(
 
     MinimumSize.left = 0;
     MinimumSize.top = 0;
-    MinimumSize.right = 430;
+    MinimumSize.right = WindowsVersion >= WINDOWS_VISTA ? 430 : 370; // XP doesn't have the Memory Lists group
     MinimumSize.bottom = 290;
     MapDialogRect(PhSipWindow, &MinimumSize);
 
@@ -1353,9 +1353,9 @@ VOID PhSipLayoutSectionView(
         SeparatorControl,
         NULL,
         PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth + PH_SYSINFO_WINDOW_PADDING - 7,
-        PH_SYSINFO_WINDOW_PADDING,
+        0,
         PH_SYSINFO_SEPARATOR_WIDTH,
-        availableHeight,
+        PH_SYSINFO_WINDOW_PADDING + availableHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -1365,9 +1365,9 @@ VOID PhSipLayoutSectionView(
         ContainerControl,
         NULL,
         containerLeft,
-        PH_SYSINFO_WINDOW_PADDING,
+        0,
         clientRect.right - containerLeft,
-        availableHeight,
+        PH_SYSINFO_WINDOW_PADDING + availableHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -1379,7 +1379,7 @@ VOID PhSipLayoutSectionView(
             CurrentSection->DialogHandle,
             NULL,
             PH_SYSINFO_WINDOW_PADDING,
-            0,
+            PH_SYSINFO_WINDOW_PADDING,
             clientRect.right - containerLeft - PH_SYSINFO_WINDOW_PADDING - PH_SYSINFO_WINDOW_PADDING,
             availableHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
@@ -2797,7 +2797,12 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
                     PhaConcatStrings2(PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer, L" total")->Buffer);
             }
 
-            MemoryPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_MEMPANEL), hwndDlg, PhSipMemoryPanelDialogProc);
+            MemoryPanel = CreateDialog(
+                PhInstanceHandle,
+                WindowsVersion >= WINDOWS_VISTA ? MAKEINTRESOURCE(IDD_SYSINFO_MEMPANEL) : MAKEINTRESOURCE(IDD_SYSINFO_MEMPANELXP),
+                hwndDlg,
+                PhSipMemoryPanelDialogProc
+                );
             ShowWindow(MemoryPanel, SW_SHOW);
             PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
@@ -3232,61 +3237,64 @@ VOID PhSipUpdateMemoryPanel(
 
     // Memory Lists
 
-    if (WindowsVersion >= WINDOWS_VISTA && NT_SUCCESS(NtQuerySystemInformation(
-        SystemMemoryListInformation,
-        &memoryListInfo,
-        sizeof(SYSTEM_MEMORY_LIST_INFORMATION),
-        NULL
-        )))
+    if (WindowsVersion >= WINDOWS_VISTA)
     {
-        ULONG_PTR standbyPageCount;
-        ULONG_PTR repurposedPageCount;
-        ULONG i;
-
-        standbyPageCount = 0;
-        repurposedPageCount = 0;
-
-        for (i = 0; i < 8; i++)
+        if (NT_SUCCESS(NtQuerySystemInformation(
+            SystemMemoryListInformation,
+            &memoryListInfo,
+            sizeof(SYSTEM_MEMORY_LIST_INFORMATION),
+            NULL
+            )))
         {
-            standbyPageCount += memoryListInfo.PageCountByPriority[i];
-            repurposedPageCount += memoryListInfo.RepurposedPagesByPriority[i];
+            ULONG_PTR standbyPageCount;
+            ULONG_PTR repurposedPageCount;
+            ULONG i;
+
+            standbyPageCount = 0;
+            repurposedPageCount = 0;
+
+            for (i = 0; i < 8; i++)
+            {
+                standbyPageCount += memoryListInfo.PageCountByPriority[i];
+                repurposedPageCount += memoryListInfo.RepurposedPagesByPriority[i];
+            }
+
+            SetDlgItemText(MemoryPanel, IDC_ZLISTZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIED_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCount * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDNOWRITE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageCount * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY_V, PhaFormatSize((ULONG64)standbyPageCount * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY0_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[0] * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY1_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[1] * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY2_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[2] * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY3_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[3] * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY4_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[4] * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
+
+            if (WindowsVersion >= WINDOWS_8)
+                SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCountPageFile * PAGE_SIZE, -1)->Buffer);
+            else
+                SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, L"N/A");
         }
-
-        SetDlgItemText(MemoryPanel, IDC_ZLISTZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIED_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDNOWRITE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY_V, PhaFormatSize((ULONG64)standbyPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY0_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[0] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY1_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[1] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY2_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[2] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY3_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[3] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY4_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[4] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
-
-        if (WindowsVersion >= WINDOWS_8)
-            SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCountPageFile * PAGE_SIZE, -1)->Buffer);
         else
+        {
+            SetDlgItemText(MemoryPanel, IDC_ZLISTZEROED_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTFREE_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIED_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDNOWRITE_V, L"N/A");
             SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, L"N/A");
-    }
-    else
-    {
-        SetDlgItemText(MemoryPanel, IDC_ZLISTZEROED_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTFREE_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIED_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDNOWRITE_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTMODIFIEDPAGEFILE_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY0_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY1_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY2_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY3_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY4_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY5_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY6_V, L"N/A");
-        SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY7_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY0_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY1_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY2_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY3_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY4_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY5_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY6_V, L"N/A");
+            SetDlgItemText(MemoryPanel, IDC_ZLISTSTANDBY7_V, L"N/A");
+        }
     }
 }
 
