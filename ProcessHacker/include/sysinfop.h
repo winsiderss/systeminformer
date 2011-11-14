@@ -17,7 +17,8 @@
 #define SI_MSG_SYSINFO_FIRST (WM_APP + 150)
 #define SI_MSG_SYSINFO_ACTIVATE (WM_APP + 150)
 #define SI_MSG_SYSINFO_UPDATE (WM_APP + 151)
-#define SI_MSG_SYSINFO_LAST (WM_APP + 151)
+#define SI_MSG_SYSINFO_CHANGE_SETTINGS (WM_APP + 152)
+#define SI_MSG_SYSINFO_LAST (WM_APP + 152)
 
 // Misc.
 
@@ -53,6 +54,10 @@ VOID PhSipOnInitDialog(
     );
 
 VOID PhSipOnDestroy(
+    VOID
+    );
+
+VOID PhSipOnNcDestroy(
     VOID
     );
 
@@ -110,6 +115,10 @@ VOID PhSipInitializeParameters(
     );
 
 VOID PhSipDeleteParameters(
+    VOID
+    );
+
+VOID PhSipUpdateColorParameters(
     VOID
     );
 

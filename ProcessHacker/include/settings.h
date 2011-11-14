@@ -158,6 +158,7 @@ EXT ULONG PhCsColorProtectedHandles;
 EXT ULONG PhCsUseColorInheritHandles;
 EXT ULONG PhCsColorInheritHandles;
 EXT ULONG PhCsGraphShowText;
+EXT ULONG PhCsGraphColorMode;
 EXT ULONG PhCsColorCpuKernel;
 EXT ULONG PhCsColorCpuUser;
 EXT ULONG PhCsColorIoReadOther;

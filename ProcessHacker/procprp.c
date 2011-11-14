@@ -1457,14 +1457,17 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             PhInitializeGraphState(&performanceContext->IoGraphState);
 
             performanceContext->CpuGraphHandle = GetDlgItem(hwndDlg, IDC_CPU);
+            PhSetWindowStyle(performanceContext->CpuGraphHandle, WS_BORDER, WS_BORDER);
             Graph_SetTooltip(performanceContext->CpuGraphHandle, TRUE);
             BringWindowToTop(performanceContext->CpuGraphHandle);
 
             performanceContext->PrivateGraphHandle = GetDlgItem(hwndDlg, IDC_PRIVATEBYTES);
+            PhSetWindowStyle(performanceContext->PrivateGraphHandle, WS_BORDER, WS_BORDER);
             Graph_SetTooltip(performanceContext->PrivateGraphHandle, TRUE);
             BringWindowToTop(performanceContext->PrivateGraphHandle);
 
             performanceContext->IoGraphHandle = GetDlgItem(hwndDlg, IDC_IO);
+            PhSetWindowStyle(performanceContext->IoGraphHandle, WS_BORDER, WS_BORDER);
             Graph_SetTooltip(performanceContext->IoGraphHandle, TRUE);
             BringWindowToTop(performanceContext->IoGraphHandle);
         }

@@ -847,6 +847,10 @@ typedef struct _PH_SYSINFO_SECTION
     WNDPROC PanelOldWndProc;
 } PH_SYSINFO_SECTION, *PPH_SYSINFO_SECTION;
 
+VOID PhSiNotifyChangeSettings(
+    VOID
+    );
+
 VOID PhSiSetColorsGraphDrawInfo(
     __out PPH_GRAPH_DRAW_INFO DrawInfo,
     __in COLORREF Color1,
