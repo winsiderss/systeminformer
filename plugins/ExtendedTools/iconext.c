@@ -23,9 +23,17 @@
 #include "exttools.h"
 #include <notifico.h>
 
-#define DISK_ICON_ID 1
-#define NETWORK_ICON_ID 2
-#define GPU_ICON_ID 3
+#define GPU_ICON_ID 1
+#define DISK_ICON_ID 2
+#define NETWORK_ICON_ID 3
+
+VOID EtpGpuIconUpdateCallback(
+    __in struct _PH_NF_ICON *Icon,
+    __out PVOID *NewIconOrBitmap,
+    __out PULONG Flags,
+    __out PPH_STRING *NewText,
+    __in_opt PVOID Context
+    );
 
 VOID EtpDiskIconUpdateCallback(
     __in struct _PH_NF_ICON *Icon,
@@ -43,14 +51,6 @@ VOID EtpNetworkIconUpdateCallback(
     __in_opt PVOID Context
     );
 
-VOID EtpGpuIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
-    );
-
 VOID EtRegisterNotifyIcons(
     VOID
     )
@@ -58,6 +58,16 @@ VOID EtRegisterNotifyIcons(
     PH_NF_ICON_REGISTRATION_DATA data;
 
     data.MessageCallback = NULL;
+
+    data.UpdateCallback = EtpGpuIconUpdateCallback;
+    PhPluginRegisterIcon(
+        PluginInstance,
+        GPU_ICON_ID,
+        NULL,
+        L"GPU History",
+        EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        &data
+        );
 
     data.UpdateCallback = EtpDiskIconUpdateCallback;
     PhPluginRegisterIcon(
@@ -78,16 +88,91 @@ VOID EtRegisterNotifyIcons(
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
+}
 
-    data.UpdateCallback = EtpGpuIconUpdateCallback;
-    PhPluginRegisterIcon(
-        PluginInstance,
-        GPU_ICON_ID,
+VOID EtpGpuIconUpdateCallback(
+    __in struct _PH_NF_ICON *Icon,
+    __out PVOID *NewIconOrBitmap,
+    __out PULONG Flags,
+    __out PPH_STRING *NewText,
+    __in_opt PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
+
+        16,
         NULL,
-        L"GPU History",
-        EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
-        &data
-        );
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG maxDataCount;
+    ULONG lineDataCount;
+    PFLOAT lineData1;
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HANDLE maxGpuProcessId;
+    PPH_PROCESS_ITEM maxGpuProcessItem;
+    PH_FORMAT format[8];
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    maxDataCount = drawInfo.Width / 2 + 1;
+    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
+
+    lineDataCount = min(maxDataCount, EtGpuNodeHistory.Count);
+    PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, lineData1, lineDataCount);
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+
+    if (bits)
+        PhDrawGraphDirect(hdc, bits, &drawInfo);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    if (EtMaxGpuNodeHistory.Count != 0)
+        maxGpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, 0);
+    else
+        maxGpuProcessId = NULL;
+
+    if (maxGpuProcessId)
+        maxGpuProcessItem = PhReferenceProcessItem(maxGpuProcessId);
+    else
+        maxGpuProcessItem = NULL;
+
+    PhInitFormatS(&format[0], L"GPU Usage: ");
+    PhInitFormatF(&format[1], EtGpuNodeUsage * 100, 2);
+    PhInitFormatC(&format[2], '%');
+
+    if (maxGpuProcessItem)
+    {
+        PhInitFormatC(&format[3], '\n');
+        PhInitFormatSR(&format[4], maxGpuProcessItem->ProcessName->sr);
+        PhInitFormatS(&format[5], L": ");
+        PhInitFormatF(&format[6], EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUsage * 100, 2);
+        PhInitFormatC(&format[7], '%');
+    }
+
+    *NewText = PhFormat(format, maxGpuProcessItem ? 8 : 3, 128);
+    if (maxGpuProcessItem) PhDereferenceObject(maxGpuProcessItem);
 }
 
 VOID EtpDiskIconUpdateCallback(
@@ -167,7 +252,10 @@ VOID EtpDiskIconUpdateCallback(
 
     // Text
 
-    maxDiskProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+    if (EtMaxDiskHistory.Count != 0)
+        maxDiskProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+    else
+        maxDiskProcessId = NULL;
 
     if (maxDiskProcessId)
         maxDiskProcessItem = PhReferenceProcessItem(maxDiskProcessId);
@@ -266,7 +354,10 @@ VOID EtpNetworkIconUpdateCallback(
 
     // Text
 
-    maxNetworkProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+    if (EtMaxNetworkHistory.Count != 0)
+        maxNetworkProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+    else
+        maxNetworkProcessId = NULL;
 
     if (maxNetworkProcessId)
         maxNetworkProcessItem = PhReferenceProcessItem(maxNetworkProcessId);
@@ -286,86 +377,4 @@ VOID EtpNetworkIconUpdateCallback(
 
     *NewText = PhFormat(format, maxNetworkProcessItem ? 6 : 4, 128);
     if (maxNetworkProcessItem) PhDereferenceObject(maxNetworkProcessItem);
-}
-
-VOID EtpGpuIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
-    )
-{
-    static PH_GRAPH_DRAW_INFO drawInfo =
-    {
-        16,
-        16,
-        0,
-        2,
-        RGB(0x00, 0x00, 0x00),
-
-        16,
-        NULL,
-        NULL,
-        0,
-        0,
-        0,
-        0
-    };
-    ULONG maxDataCount;
-    ULONG lineDataCount;
-    PFLOAT lineData1;
-    HBITMAP bitmap;
-    PVOID bits;
-    HDC hdc;
-    HBITMAP oldBitmap;
-    HANDLE maxGpuProcessId;
-    PPH_PROCESS_ITEM maxGpuProcessItem;
-    PH_FORMAT format[8];
-
-    // Icon
-
-    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
-    maxDataCount = drawInfo.Width / 2 + 1;
-    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
-
-    lineDataCount = min(maxDataCount, EtGpuNodeHistory.Count);
-    PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, lineData1, lineDataCount);
-
-    drawInfo.LineDataCount = lineDataCount;
-    drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
-    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
-
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
-
-    SelectObject(hdc, oldBitmap);
-    *NewIconOrBitmap = bitmap;
-    *Flags = PH_NF_UPDATE_IS_BITMAP;
-
-    // Text
-
-    maxGpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, 0);
-
-    if (maxGpuProcessId)
-        maxGpuProcessItem = PhReferenceProcessItem(maxGpuProcessId);
-    else
-        maxGpuProcessItem = NULL;
-
-    PhInitFormatS(&format[0], L"GPU Usage: ");
-    PhInitFormatF(&format[1], EtGpuNodeUsage * 100, 2);
-    PhInitFormatC(&format[2], '%');
-
-    if (maxGpuProcessItem)
-    {
-        PhInitFormatC(&format[3], '\n');
-        PhInitFormatSR(&format[4], maxGpuProcessItem->ProcessName->sr);
-        PhInitFormatS(&format[5], L": ");
-        PhInitFormatF(&format[6], EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUsage * 100, 2);
-        PhInitFormatC(&format[7], '%');
-    }
-
-    *NewText = PhFormat(format, maxGpuProcessItem ? 8 : 3, 128);
-    if (maxGpuProcessItem) PhDereferenceObject(maxGpuProcessItem);
 }
