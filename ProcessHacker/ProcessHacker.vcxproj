@@ -98,7 +98,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>call update_rev.bat</Command>
+      <Command>update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
@@ -128,7 +128,7 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>call update_rev.bat</Command>
+      <Command>update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
@@ -161,7 +161,7 @@
       <SetChecksum>true</SetChecksum>
     </Link>
     <PreBuildEvent>
-      <Command>call update_rev.bat</Command>
+      <Command>update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
@@ -197,7 +197,7 @@
       <SetChecksum>true</SetChecksum>
     </Link>
     <PreBuildEvent>
-      <Command>call update_rev.bat</Command>
+      <Command>update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
