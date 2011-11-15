@@ -36,13 +36,21 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
         {
             PPH_STRING appName;
 
+#if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
-                L"Process Hacker %u.%u.%u.%u",
+                L"Process Hacker %u.%u (r%u)",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR,
-                PHAPP_VERSION_BUILD,
                 PHAPP_VERSION_REVISION
                 );
+#else
+            appName = PhFormatString(
+                L"Process Hacker %u.%u",
+                PHAPP_VERSION_MAJOR,
+                PHAPP_VERSION_MINOR
+                );
+#endif
+
             SetDlgItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
             PhDereferenceObject(appName);
 
