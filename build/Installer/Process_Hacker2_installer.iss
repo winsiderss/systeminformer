@@ -22,6 +22,8 @@
 ;
 ; Requirements:
 ; *Inno Setup v5.4.2(+): http://www.jrsoftware.org/isdl.php
+;
+; TODO: add the revision number
 
 
 #if VER < 0x05040200
@@ -35,7 +37,7 @@
 #include "Custom_Messages.iss"
 #include "Services.iss"
 
-#define installer_build_number "10"
+#define installer_build_number "11"
 #define copyright              "Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
@@ -92,7 +94,6 @@ ArchitecturesInstallIn64BitMode=x64
 
 
 [Languages]
-; Installer's languages
 Name: en; MessagesFile: compiler:Default.isl
 
 
@@ -103,26 +104,26 @@ SetupWindowTitle=Setup - Process Hacker
 
 
 [Types]
-Name: "full";                          Description: "Full installation"
-Name: "minimal";                       Description: "Minimal installation"
-Name: "custom";                        Description: "Custom installation";                                 Flags: iscustom
+Name: full;                          Description: Full installation
+Name: minimal;                       Description: Minimal installation
+Name: custom;                        Description: Custom installation;                                 Flags: iscustom
 
 
 [Components]
-Name: "main";                          Description: "Main application";        Types: full minimal custom; Flags: fixed
-Name: "peview";                        Description: "PE Viewer";               Types: full minimal custom; Flags: disablenouninstallwarning
-Name: "plugins";                       Description: "Plugins";                 Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\dotnettools";           Description: ".NET Tools";              Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendednotifications"; Description: "Extended Notifications";  Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendedservices";      Description: "Extended Services";       Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendedtools";         Description: "Extended Tools";          Types: full custom;         Flags: disablenouninstallwarning;   MinVersion: 0,6.00
-Name: "plugins\networktools";          Description: "Network Tools";           Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\onlinechecks";          Description: "Online Checks";           Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\sbiesupport";           Description: "Sandboxie Support";       Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\toolstatus";            Description: "Toolbar and Status Bar";  Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\updater";               Description: "Updater";                 Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\usernotes";             Description: "User Notes";              Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\windowexplorer";        Description: "Window Explorer";         Types: full custom;         Flags: disablenouninstallwarning
+Name: main;                          Description: Main application;        Types: full minimal custom; Flags: fixed
+Name: peview;                        Description: PE Viewer;               Types: full minimal custom; Flags: disablenouninstallwarning
+Name: plugins;                       Description: Plugins;                 Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\dotnettools;           Description: .NET Tools;              Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\extendednotifications; Description: Extended Notifications;  Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\extendedservices;      Description: Extended Services;       Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\extendedtools;         Description: Extended Tools;          Types: full custom;         Flags: disablenouninstallwarning;       MinVersion: 0,6.00
+Name: plugins\networktools;          Description: Network Tools;           Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\onlinechecks;          Description: Online Checks;           Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\sbiesupport;           Description: Sandboxie Support;       Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\toolstatus;            Description: Toolbar and Status Bar;  Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\updater;               Description: Updater;                 Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\usernotes;             Description: User Notes;              Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\windowexplorer;        Description: Window Explorer;         Types: full custom;         Flags: disablenouninstallwarning
 
 
 [Tasks]
