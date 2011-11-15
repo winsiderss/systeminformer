@@ -828,6 +828,7 @@ typedef struct _PH_SYSINFO_DRAW_PANEL
     // Parameters for default draw
     PPH_STRING Title;
     PPH_STRING SubTitle;
+    PPH_STRING SubTitleOverflow;
 } PH_SYSINFO_DRAW_PANEL, *PPH_SYSINFO_DRAW_PANEL;
 
 typedef struct _PH_SYSINFO_SECTION

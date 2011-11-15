@@ -1128,6 +1128,7 @@ VOID PhSipDrawPanel(
 
     sysInfoDrawPanel.Title = NULL;
     sysInfoDrawPanel.SubTitle = NULL;
+    sysInfoDrawPanel.SubTitleOverflow = NULL;
 
     Section->Callback(Section, SysInfoGraphDrawPanel, &sysInfoDrawPanel, NULL);
 
@@ -1252,9 +1253,24 @@ VOID PhSipDefaultDrawPanel(
 
     if (DrawPanel->SubTitle)
     {
+        RECT measureRect;
+
         rect.top += CurrentParameters.MediumFontHeight + PH_SYSINFO_PANEL_PADDING;
         SelectObject(hdc, CurrentParameters.Font);
-        DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &rect, flags);
+
+        measureRect = rect;
+        DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &measureRect, (flags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+
+        if (measureRect.right <= rect.right || !DrawPanel->SubTitleOverflow)
+        {
+            // Text fits; draw normally.
+            DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &rect, flags);
+        }
+        else
+        {
+            // Text doesn't fit; draw the alternative text.
+            DrawText(hdc, DrawPanel->SubTitleOverflow->Buffer, DrawPanel->SubTitleOverflow->Length / 2, &rect, flags);
+        }
     }
 }
 
@@ -2721,6 +2737,11 @@ BOOLEAN PhSipMemorySectionCallback(
                 (FLOAT)usedPages * 100 / totalPages,
                 PhSipFormatSizeWithPrecision(UInt32x32To64(usedPages, PAGE_SIZE), 1)->Buffer,
                 PhSipFormatSizeWithPrecision(UInt32x32To64(totalPages, PAGE_SIZE), 1)->Buffer
+                );
+            drawPanel->SubTitleOverflow = PhFormatString(
+                L"%.0f%%\n%s",
+                (FLOAT)usedPages * 100 / totalPages,
+                PhSipFormatSizeWithPrecision(UInt32x32To64(usedPages, PAGE_SIZE), 1)->Buffer
                 );
         }
         return TRUE;
