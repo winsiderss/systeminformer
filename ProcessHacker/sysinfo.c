@@ -1141,6 +1141,7 @@ VOID PhSipDrawPanel(
 
     PhSwapReference(&sysInfoDrawPanel.Title, NULL);
     PhSwapReference(&sysInfoDrawPanel.SubTitle, NULL);
+    PhSwapReference(&sysInfoDrawPanel.SubTitleOverflow, NULL);
 }
 
 VOID PhSipDefaultDrawPanel(
