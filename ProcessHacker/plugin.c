@@ -798,7 +798,7 @@ ULONG_PTR PhPluginAddMenuItem(
 
     if (Location < 0x1000)
     {
-        addMenuItem.Location = Location;
+        addMenuItem.Location = (ULONG)Location;
     }
     else
     {
