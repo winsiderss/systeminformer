@@ -337,6 +337,54 @@ VOID PhDeleteTreeNewColumnMenu(
     __in PPH_TN_COLUMN_MENU_DATA Data
     );
 
+typedef struct _PH_TN_FILTER_SUPPORT
+{
+    PPH_LIST FilterList;
+    HWND TreeNewHandle;
+    PPH_LIST NodeList;
+} PH_TN_FILTER_SUPPORT, *PPH_TN_FILTER_SUPPORT;
+
+typedef BOOLEAN (NTAPI *PPH_TN_FILTER_FUNCTION)(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    );
+
+typedef struct _PH_TN_FILTER_ENTRY
+{
+    PPH_TN_FILTER_FUNCTION Filter;
+    PVOID Context;
+} PH_TN_FILTER_ENTRY, *PPH_TN_FILTER_ENTRY;
+
+VOID PhInitializeTreeNewFilterSupport(
+    __out PPH_TN_FILTER_SUPPORT Support,
+    __in HWND TreeNewHandle,
+    __in PPH_LIST NodeList
+    );
+
+VOID PhDeleteTreeNewFilterSupport(
+    __in PPH_TN_FILTER_SUPPORT Support
+    );
+
+PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TN_FILTER_FUNCTION Filter,
+    __in_opt PVOID Context
+    );
+
+VOID PhRemoveTreeNewFilter(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TN_FILTER_ENTRY Entry
+    );
+
+BOOLEAN PhApplyTreeNewFiltersToNode(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TREENEW_NODE Node
+    );
+
+VOID PhApplyTreeNewFilters(
+    __in PPH_TN_FILTER_SUPPORT Support
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(

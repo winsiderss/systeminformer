@@ -74,6 +74,8 @@ static PPH_LIST NetworkNodeList; // list of all nodes
 BOOLEAN PhNetworkTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST NetworkNodeStateList = NULL; // list of nodes which need to be processed
 
+static PH_TN_FILTER_SUPPORT FilterSupport;
+
 VOID PhNetworkTreeListInitialization(
     VOID
     )
@@ -146,6 +148,8 @@ VOID PhInitializeNetworkTreeList(
         treeNewInfo.CmData = &NetworkTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing), &treeNewInfo);
     }
+
+    PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, NetworkNodeList);
 }
 
 VOID PhLoadSettingsNetworkTreeList(
@@ -174,6 +178,13 @@ VOID PhSaveSettingsNetworkTreeList(
     PhSetStringSetting2(L"NetworkTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
+}
+
+struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportNetworkTreeList(
+    VOID
+    )
+{
+    return &FilterSupport;
 }
 
 PPH_NETWORK_NODE PhAddNetworkNode(
@@ -211,6 +222,9 @@ PPH_NETWORK_NODE PhAddNetworkNode(
 
     PhAddEntryHashtable(NetworkNodeHashtable, &networkNode);
     PhAddItemList(NetworkNodeList, networkNode);
+
+    if (FilterSupport.NodeList)
+        networkNode->Node.Visible = PhApplyTreeNewFiltersToNode(&FilterSupport, &networkNode->Node);
 
     PhEmCallObjectOperation(EmNetworkNodeType, networkNode, EmObjectCreate);
 

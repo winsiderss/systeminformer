@@ -63,6 +63,8 @@ static PH_CM_MANAGER ServiceTreeListCm;
 static PPH_HASHTABLE ServiceNodeHashtable; // hashtable of all nodes
 static PPH_LIST ServiceNodeList; // list of all nodes
 
+static PH_TN_FILTER_SUPPORT FilterSupport;
+
 static HICON ServiceApplicationIcon;
 static HICON ServiceApplicationGoIcon;
 static HICON ServiceCogIcon;
@@ -150,6 +152,8 @@ VOID PhInitializeServiceTreeList(
         treeNewInfo.CmData = &ServiceTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing), &treeNewInfo);
     }
+
+    PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ServiceNodeList);
 }
 
 VOID PhLoadSettingsServiceTreeList(
@@ -178,6 +182,13 @@ VOID PhSaveSettingsServiceTreeList(
     PhSetStringSetting2(L"ServiceTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
+}
+
+struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportServiceTreeList(
+    VOID
+    )
+{
+    return &FilterSupport;
 }
 
 PPH_SERVICE_NODE PhAddServiceNode(
@@ -212,6 +223,9 @@ PPH_SERVICE_NODE PhAddServiceNode(
 
     PhAddEntryHashtable(ServiceNodeHashtable, &serviceNode);
     PhAddItemList(ServiceNodeList, serviceNode);
+
+    if (FilterSupport.FilterList)
+        serviceNode->Node.Visible = PhApplyTreeNewFiltersToNode(&FilterSupport, &serviceNode->Node);
 
     PhEmCallObjectOperation(EmServiceNodeType, serviceNode, EmObjectCreate);
 

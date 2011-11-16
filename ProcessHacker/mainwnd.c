@@ -109,8 +109,11 @@ static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
 static ULONG SelectedUserSessionId;
 
-static PPH_PROCESS_TREE_FILTER_ENTRY CurrentUserFilterEntry = NULL;
-static PPH_PROCESS_TREE_FILTER_ENTRY SignedFilterEntry = NULL;
+static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
+static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
+//static PPH_TN_FILTER_ENTRY CurrentUserNetworkFilterEntry = NULL;
+//static PPH_TN_FILTER_ENTRY SignedNetworkFilterEntry = NULL;
+static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -842,15 +845,15 @@ VOID PhMwpOnCommand(
         {
             if (!CurrentUserFilterEntry)
             {
-                CurrentUserFilterEntry = PhAddProcessTreeFilter(PhMwpCurrentUserProcessTreeFilter, NULL);
+                CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
             }
             else
             {
-                PhRemoveProcessTreeFilter(CurrentUserFilterEntry);
+                PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), CurrentUserFilterEntry);
                 CurrentUserFilterEntry = NULL;
             }
 
-            PhApplyProcessTreeFilters();
+            PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
             PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
         }
@@ -868,17 +871,34 @@ VOID PhMwpOnCommand(
                         );
                 }
 
-                SignedFilterEntry = PhAddProcessTreeFilter(PhMwpSignedProcessTreeFilter, NULL);
+                SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
             }
             else
             {
-                PhRemoveProcessTreeFilter(SignedFilterEntry);
+                PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), SignedFilterEntry);
                 SignedFilterEntry = NULL;
             }
 
-            PhApplyProcessTreeFilters();
+            PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
             PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
+        }
+        break;
+    case ID_VIEW_HIDEDRIVERSERVICES:
+        {
+            if (!DriverFilterEntry)
+            {
+                DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
+            }
+            else
+            {
+                PhRemoveTreeNewFilter(PhGetFilterSupportServiceTreeList(), DriverFilterEntry);
+                DriverFilterEntry = NULL;
+            }
+
+            PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
+
+            PhSetIntegerSetting(L"HideDriverServices", !!DriverFilterEntry);
         }
         break;
     case ID_VIEW_SHOWCPUBELOW001:
@@ -2377,12 +2397,12 @@ VOID PhMwpLoadSettings(
 
     if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
     {
-        CurrentUserFilterEntry = PhAddProcessTreeFilter(PhMwpCurrentUserProcessTreeFilter, NULL);
+        CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
     }
 
     if (PhGetIntegerSetting(L"HideSignedProcesses"))
     {
-        SignedFilterEntry = PhAddProcessTreeFilter(PhMwpSignedProcessTreeFilter, NULL);
+        SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
     }
 
     customFont = PhGetStringSetting(L"Font");
@@ -2734,6 +2754,7 @@ VOID PhMwpInitializeSubMenu(
         ULONG i;
         PPH_EMENU_ITEM menuItem;
         ULONG id;
+        ULONG placeholderIndex;
 
         trayIconsMenuItem = PhMwpFindTrayIconsMenuItem(Menu);
 
@@ -2807,22 +2828,10 @@ VOID PhMwpInitializeSubMenu(
             }
         }
 
-        if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
-            menuItem->Flags |= PH_EMENU_CHECKED;
-        if (SignedFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
-            menuItem->Flags |= PH_EMENU_CHECKED;
-
-        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_SHOWCPUBELOW001))
+        if (menuItem = PhFindEMenuItemEx(Menu, 0, NULL, ID_VIEW_SECTIONPLACEHOLDER, NULL, &placeholderIndex))
         {
-            if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
-            {
-                if (PhCsShowCpuBelow001)
-                    menuItem->Flags |= PH_EMENU_CHECKED;
-            }
-            else
-            {
-                menuItem->Flags |= PH_EMENU_DISABLED;
-            }
+            PhDestroyEMenuItem(menuItem);
+            PhMwpInitializeSectionMenuItems(Menu, placeholderIndex);
         }
 
         if (AlwaysOnTop && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_ALWAYSONTOP)))
@@ -2931,6 +2940,64 @@ PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
     }
 
     return NULL;
+}
+
+VOID PhMwpInitializeSectionMenuItems(
+    __in PPH_EMENU Menu,
+    __in ULONG StartIndex
+    )
+{
+    INT selectedIndex;
+    PPH_EMENU_ITEM menuItem;
+
+    selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+    if (selectedIndex == ProcessesTabIndex)
+    {
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide Processes From Other Users", NULL, NULL), StartIndex);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide Signed Processes", NULL, NULL), StartIndex + 1);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU Below 0.01", NULL, NULL), StartIndex + 2);
+
+        if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+        if (SignedFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+
+        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_SHOWCPUBELOW001))
+        {
+            if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+            {
+                if (PhCsShowCpuBelow001)
+                    menuItem->Flags |= PH_EMENU_CHECKED;
+            }
+            else
+            {
+                menuItem->Flags |= PH_EMENU_DISABLED;
+            }
+        }
+    }
+    else if (selectedIndex == ServicesTabIndex)
+    {
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"Hide Driver Services", NULL, NULL), StartIndex);
+
+        if (DriverFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEDRIVERSERVICES)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+    }
+    else if (selectedIndex == NetworkTabIndex)
+    {
+        // Remove the extra separator.
+        PhRemoveEMenuItem(Menu, NULL, StartIndex);
+
+        // Disabled for now - may cause user confusion.
+
+        //PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide Processes From Other Users", NULL, NULL), StartIndex);
+        //PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide Signed Processes", NULL, NULL), StartIndex + 1);
+
+        //if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
+        //    menuItem->Flags |= PH_EMENU_CHECKED;
+        //if (SignedFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+        //    menuItem->Flags |= PH_EMENU_CHECKED;
+    }
 }
 
 VOID PhMwpLayoutTabControl(
@@ -3537,28 +3604,32 @@ VOID PhMwpShowProcessProperties(
 }
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
+    __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     )
 {
-    if (!ProcessNode->ProcessItem->UserName)
+    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
+
+    if (!processNode->ProcessItem->UserName)
         return FALSE;
 
     if (!PhCurrentUserName)
         return FALSE;
 
-    if (!PhEqualString(ProcessNode->ProcessItem->UserName, PhCurrentUserName, TRUE))
+    if (!PhEqualString(processNode->ProcessItem->UserName, PhCurrentUserName, TRUE))
         return FALSE;
 
     return TRUE;
 }
 
 BOOLEAN PhMwpSignedProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
+    __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     )
 {
-    if (ProcessNode->ProcessItem->VerifyResult == VrTrusted)
+    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
+
+    if (processNode->ProcessItem->VerifyResult == VrTrusted)
         return FALSE;
 
     return TRUE;
@@ -4042,7 +4113,7 @@ VOID PhMwpOnProcessModified(
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
 
     if (SignedFilterEntry)
-        PhApplyProcessTreeFilters();
+        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 }
 
 VOID PhMwpOnProcessRemoved(
@@ -4102,6 +4173,11 @@ VOID PhMwpNeedServiceTreeList(
 
         PhLoadSettingsServiceTreeList();
 
+        if (PhGetIntegerSetting(L"HideDriverServices"))
+        {
+            DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
+        }
+
         if (ServicesPendingList)
         {
             PPH_SERVICE_ITEM serviceItem;
@@ -4118,6 +4194,19 @@ VOID PhMwpNeedServiceTreeList(
             PhSwapReference(&ServicesPendingList, NULL);
         }
     }
+}
+
+BOOLEAN PhMwpDriverServiceTreeFilter(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    )
+{
+    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
+
+    if (serviceNode->ServiceItem->Type & SERVICE_DRIVER)
+        return FALSE;
+
+    return TRUE;
 }
 
 VOID PhMwpInitializeServiceMenu(
@@ -4318,6 +4407,9 @@ VOID PhMwpOnServiceModified(
         //}
 
         PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
+
+        if (DriverFilterEntry)
+            PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
     }
 
     serviceChange = PhGetServiceChange(ServiceModifiedData);
@@ -4449,6 +4541,38 @@ VOID PhMwpNeedNetworkTreeList(
 
         PhLoadSettingsNetworkTreeList();
     }
+}
+
+BOOLEAN PhMwpCurrentUserNetworkTreeFilter(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    )
+{
+    PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
+    PPH_PROCESS_NODE processNode;
+
+    processNode = PhFindProcessNode(networkNode->NetworkItem->ProcessId);
+
+    if (processNode)
+        return PhMwpCurrentUserProcessTreeFilter(&processNode->Node, NULL);
+
+    return TRUE;
+}
+
+BOOLEAN PhMwpSignedNetworkTreeFilter(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    )
+{
+    PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
+    PPH_PROCESS_NODE processNode;
+
+    processNode = PhFindProcessNode(networkNode->NetworkItem->ProcessId);
+
+    if (processNode)
+        return PhMwpSignedProcessTreeFilter(&processNode->Node, NULL);
+
+    return TRUE;
 }
 
 VOID PhMwpInitializeNetworkMenu(

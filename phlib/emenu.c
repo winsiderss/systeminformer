@@ -174,8 +174,44 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     __in_opt ULONG Id
     )
 {
-    ULONG i;
+    return PhFindEMenuItemEx(Item, Flags, Text, Id, NULL, NULL);
+}
+
+/**
+ * Finds a child menu item.
+ *
+ * \param Item The parent menu item.
+ * \param Flags A combination of the following:
+ * \li \c PH_EMENU_FIND_DESCEND Searches recursively within child
+ * menu items.
+ * \li \c PH_EMENU_FIND_STARTSWITH Performs a partial text search
+ * instead of an exact search.
+ * \li \c PH_EMENU_FIND_LITERAL Performs a literal search instead of
+ * ignoring prefix characters (ampersands).
+ * \param Text The text of the menu item to find. If NULL, the text
+ * is ignored.
+ * \param Id The identifier of the menu item to find. If 0, the
+ * identifier is ignored.
+ * \param FoundParent A variable which receives the parent of the 
+ * found menu item.
+ * \param FoundIndex A variable which receives the index of the 
+ * found menu item.
+ *
+ * \return The found menu item, or NULL if the menu item could not
+ * be found.
+ */
+PPH_EMENU_ITEM PhFindEMenuItemEx(
+    __in PPH_EMENU_ITEM Item,
+    __in ULONG Flags,
+    __in_opt PWSTR Text,
+    __in_opt ULONG Id,
+    __out_opt PPH_EMENU_ITEM *FoundParent,
+    __out_opt PULONG FoundIndex
+    )
+{
     PH_STRINGREF searchText;
+    ULONG i;
+    PPH_EMENU_ITEM item;
 
     if (!Item->Items)
         return NULL;
@@ -185,8 +221,6 @@ PPH_EMENU_ITEM PhFindEMenuItem(
 
     for (i = 0; i < Item->Items->Count; i++)
     {
-        PPH_EMENU_ITEM item;
-
         item = Item->Items->Items[i];
 
         if (Text)
@@ -200,37 +234,54 @@ PPH_EMENU_ITEM PhFindEMenuItem(
                 if (Flags & PH_EMENU_FIND_STARTSWITH)
                 {
                     if (PhStartsWithStringRef(&text, &searchText, TRUE))
-                        return item;
+                        goto FoundItemHere;
                 }
                 else
                 {
                     if (PhEqualStringRef(&text, &searchText, TRUE))
-                        return item;
+                        goto FoundItemHere;
                 }
             }
             else
             {
                 if (PhCompareUnicodeStringZIgnoreMenuPrefix(Text, item->Text,
                     TRUE, !!(Flags & PH_EMENU_FIND_STARTSWITH)) == 0)
-                    return item;
+                    goto FoundItemHere;
             }
         }
 
         if (Id && item->Id == Id)
-            return item;
+            goto FoundItemHere;
 
         if (Flags & PH_EMENU_FIND_DESCEND)
         {
             PPH_EMENU_ITEM foundItem;
+            PPH_EMENU_ITEM foundParent;
+            ULONG foundIndex;
 
-            foundItem = PhFindEMenuItem(item, Flags, Text, Id);
+            foundItem = PhFindEMenuItemEx(item, Flags, Text, Id, &foundParent, &foundIndex);
 
             if (foundItem)
+            {
+                if (FoundParent)
+                    *FoundParent = foundParent;
+                if (FoundIndex)
+                    *FoundIndex = foundIndex;
+
                 return foundItem;
+            }
         }
     }
 
     return NULL;
+
+FoundItemHere:
+    if (FoundParent)
+        *FoundParent = Item;
+    if (FoundIndex)
+        *FoundIndex = i;
+
+    return item;
 }
 
 /**
