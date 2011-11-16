@@ -385,6 +385,7 @@ VOID PhSipOnShowWindow(
     SectionList = PhCreateList(8);
     PhSipInitializeParameters();
     CurrentView = SysInfoSummaryView;
+    CurrentSection = NULL;
 
     CpuSection = PhSipCreateInternalSection(L"CPU", 0, PhSipCpuSectionCallback);
     MemorySection = PhSipCreateInternalSection(L"Memory", 0, PhSipMemorySectionCallback);
