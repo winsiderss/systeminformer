@@ -1334,3 +1334,111 @@ VOID PhDeleteTreeNewColumnMenu(
         Data->Menu = NULL;
     }
 }
+
+VOID PhInitializeTreeNewFilterSupport(
+    __out PPH_TN_FILTER_SUPPORT Support,
+    __in HWND TreeNewHandle,
+    __in PPH_LIST NodeList
+    )
+{
+    Support->FilterList = NULL;
+    Support->TreeNewHandle = TreeNewHandle;
+    Support->NodeList = NodeList;
+}
+
+VOID PhDeleteTreeNewFilterSupport(
+    __in PPH_TN_FILTER_SUPPORT Support
+    )
+{
+    PhDereferenceObject(Support->FilterList);
+}
+
+PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TN_FILTER_FUNCTION Filter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_TN_FILTER_ENTRY entry;
+
+    entry = PhAllocate(sizeof(PH_TN_FILTER_ENTRY));
+    entry->Filter = Filter;
+    entry->Context = Context;
+
+    if (!Support->FilterList)
+        Support->FilterList = PhCreateList(2);
+
+    PhAddItemList(Support->FilterList, entry);
+
+    return entry;
+}
+
+VOID PhRemoveTreeNewFilter(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TN_FILTER_ENTRY Entry
+    )
+{
+    ULONG index;
+
+    if (!Support->FilterList)
+        return;
+
+    index = PhFindItemList(Support->FilterList, Entry);
+
+    if (index != -1)
+    {
+        PhRemoveItemList(Support->FilterList, index);
+        PhFree(Entry);
+    }
+}
+
+BOOLEAN PhApplyTreeNewFiltersToNode(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TREENEW_NODE Node
+    )
+{
+    BOOLEAN show;
+    ULONG i;
+
+    show = TRUE;
+
+    if (Support->FilterList)
+    {
+        for (i = 0; i < Support->FilterList->Count; i++)
+        {
+            PPH_TN_FILTER_ENTRY entry;
+
+            entry = Support->FilterList->Items[i];
+
+            if (!entry->Filter(Node, entry->Context))
+            {
+                show = FALSE;
+                break;
+            }
+        }
+    }
+
+    return show;
+}
+
+VOID PhApplyTreeNewFilters(
+    __in PPH_TN_FILTER_SUPPORT Support
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Support->NodeList->Count; i++)
+    {
+        PPH_TREENEW_NODE node;
+
+        node = Support->NodeList->Items[i];
+        node->Visible = PhApplyTreeNewFiltersToNode(Support, node);
+
+        if (!node->Visible && node->Selected)
+        {
+            node->Selected = FALSE;
+        }
+    }
+
+    TreeNew_NodesStructured(Support->TreeNewHandle);
+}

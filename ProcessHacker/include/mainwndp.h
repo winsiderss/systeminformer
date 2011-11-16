@@ -230,6 +230,11 @@ PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
     __in PPH_EMENU Menu
     );
 
+VOID PhMwpInitializeSectionMenuItems(
+    __in PPH_EMENU Menu,
+    __in ULONG StartIndex
+    );
+
 // Tab control
 
 VOID PhMwpLayoutTabControl(
@@ -275,12 +280,12 @@ VOID PhMwpShowProcessProperties(
     );
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
+    __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     );
 
 BOOLEAN PhMwpSignedProcessTreeFilter(
-    __in PPH_PROCESS_NODE ProcessNode,
+    __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     );
 
@@ -326,6 +331,11 @@ VOID PhMwpNeedServiceTreeList(
     VOID
     );
 
+BOOLEAN PhMwpDriverServiceTreeFilter(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    );
+
 VOID PhMwpInitializeServiceMenu(
     __in PPH_EMENU Menu,
     __in PPH_SERVICE_ITEM *Services,
@@ -353,6 +363,16 @@ VOID PhMwpOnServicesUpdated(
 
 VOID PhMwpNeedNetworkTreeList(
     VOID
+    );
+
+BOOLEAN PhMwpCurrentUserNetworkTreeFilter(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    );
+
+BOOLEAN PhMwpSignedNetworkTreeFilter(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
     );
 
 VOID PhMwpInitializeNetworkMenu(

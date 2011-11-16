@@ -66,6 +66,15 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     __in_opt ULONG Id
     );
 
+PPH_EMENU_ITEM PhFindEMenuItemEx(
+    __in PPH_EMENU_ITEM Item,
+    __in ULONG Flags,
+    __in_opt PWSTR Text,
+    __in_opt ULONG Id,
+    __out_opt PPH_EMENU_ITEM *FoundParent,
+    __out_opt PULONG FoundIndex
+    );
+
 PHLIBAPI
 ULONG PhIndexOfEMenuItem(
     __in PPH_EMENU_ITEM Parent,
