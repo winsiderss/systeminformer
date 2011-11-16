@@ -570,7 +570,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             {
                 getCellTooltip->Text = node->TooltipText->sr;
                 getCellTooltip->Unfolding = FALSE;
-                getCellTooltip->MaximumWidth = 550;
+                getCellTooltip->MaximumWidth = -1;
             }
             else
             {
