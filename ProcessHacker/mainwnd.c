@@ -88,6 +88,7 @@ static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 static BOOLEAN ProcessesNeedsRedraw = FALSE;
+static PPH_PROCESS_NODE ProcessToScrollTo = NULL;
 
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
 static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
@@ -884,6 +885,17 @@ VOID PhMwpOnCommand(
             PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
         }
         break;
+    case ID_VIEW_SCROLLTONEWPROCESSES:
+        {
+            PH_SET_INTEGER_CACHED_SETTING(ScrollToNewProcesses, !PhCsScrollToNewProcesses);
+        }
+        break;
+    case ID_VIEW_SHOWCPUBELOW001:
+        {
+            PH_SET_INTEGER_CACHED_SETTING(ShowCpuBelow001, !PhCsShowCpuBelow001);
+            PhInvalidateAllProcessNodes();
+        }
+        break;
     case ID_VIEW_HIDEDRIVERSERVICES:
         {
             if (!DriverFilterEntry)
@@ -899,12 +911,6 @@ VOID PhMwpOnCommand(
             PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
 
             PhSetIntegerSetting(L"HideDriverServices", !!DriverFilterEntry);
-        }
-        break;
-    case ID_VIEW_SHOWCPUBELOW001:
-        {
-            PH_SET_INTEGER_CACHED_SETTING(ShowCpuBelow001, !PhCsShowCpuBelow001);
-            PhInvalidateAllProcessNodes();
         }
         break;
     case ID_VIEW_ALWAYSONTOP:
@@ -2956,11 +2962,14 @@ VOID PhMwpInitializeSectionMenuItems(
     {
         PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide Processes From Other Users", NULL, NULL), StartIndex);
         PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide Signed Processes", NULL, NULL), StartIndex + 1);
-        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU Below 0.01", NULL, NULL), StartIndex + 2);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scroll to New Processes", NULL, NULL), StartIndex + 2);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU Below 0.01", NULL, NULL), StartIndex + 3);
 
         if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
             menuItem->Flags |= PH_EMENU_CHECKED;
         if (SignedFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+        if (PhCsScrollToNewProcesses && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_SCROLLTONEWPROCESSES)))
             menuItem->Flags |= PH_EMENU_CHECKED;
 
         if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_SHOWCPUBELOW001))
@@ -4100,6 +4109,9 @@ VOID PhMwpOnProcessAdded(
 
         if (parentProcess)
             PhDereferenceObject(parentProcess);
+
+        if (PhCsScrollToNewProcesses)
+            ProcessToScrollTo = processNode;
     }
 
     // PhCreateProcessNode has its own reference.
@@ -4120,6 +4132,8 @@ VOID PhMwpOnProcessRemoved(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PPH_PROCESS_NODE processNode;
+
     if (!ProcessesNeedsRedraw)
     {
         TreeNew_SetRedraw(ProcessTreeListHandle, FALSE);
@@ -4140,7 +4154,11 @@ VOID PhMwpOnProcessRemoved(
         }
     }
 
-    PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+    processNode = PhFindProcessNode(ProcessItem->ProcessId);
+    PhRemoveProcessNode(processNode);
+
+    if (ProcessToScrollTo == processNode) // shouldn't happen, but just in case
+        ProcessToScrollTo = NULL;
 }
 
 VOID PhMwpOnProcessesUpdated(
@@ -4160,6 +4178,12 @@ VOID PhMwpOnProcessesUpdated(
     {
         TreeNew_SetRedraw(ProcessTreeListHandle, TRUE);
         ProcessesNeedsRedraw = FALSE;
+    }
+
+    if (ProcessToScrollTo)
+    {
+        TreeNew_EnsureVisible(ProcessTreeListHandle, &ProcessToScrollTo->Node);
+        ProcessToScrollTo = NULL;
     }
 }
 

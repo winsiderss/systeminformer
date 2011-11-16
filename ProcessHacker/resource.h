@@ -751,6 +751,7 @@
 #define ID_DIGIT9                       40271
 #define ID_VIEW_HIDEDRIVERSERVICES      40273
 #define ID_VIEW_SECTIONPLACEHOLDER      40274
+#define ID_VIEW_SCROLLTONEWPROCESSES    40275
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -760,7 +761,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        206
-#define _APS_NEXT_COMMAND_VALUE         40275
+#define _APS_NEXT_COMMAND_VALUE         40276
 #define _APS_NEXT_CONTROL_VALUE         1361
 #define _APS_NEXT_SYMED_VALUE           136
 #endif

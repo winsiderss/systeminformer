@@ -3,6 +3,7 @@ Process Hacker
 2.24
  * NEW/IMPROVED:
    * Completely new system information window
+   * Added option to scroll to new processes
    * Added option to hide driver services
    * Improved module scanning
    * Added Image base to peview
