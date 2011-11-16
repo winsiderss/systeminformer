@@ -579,6 +579,7 @@ typedef struct _PH_ADDMENUITEM
     __in PVOID Plugin;
     __in ULONG Location;
     __in_opt PWSTR InsertAfter;
+    __in ULONG Flags;
     __in ULONG Id;
     __in PWSTR Text;
     __in_opt PVOID Context;

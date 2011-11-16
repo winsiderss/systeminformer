@@ -116,15 +116,22 @@ VOID PhDeleteEMenuData(
     __inout PPH_EMENU_DATA Data
     );
 
-HMENU PhEMenuToPopupMenu(
+HMENU PhEMenuToHMenu(
     __in PPH_EMENU_ITEM Menu,
     __in ULONG Flags,
     __inout_opt PPH_EMENU_DATA Data
     );
 
-VOID PhPopupMenuToEMenuItem(
+VOID PhEMenuToHMenu2(
+    __in HMENU MenuHandle,
+    __in PPH_EMENU_ITEM Menu,
+    __in ULONG Flags,
+    __inout_opt PPH_EMENU_DATA Data
+    );
+
+VOID PhHMenuToEMenuItem(
     __inout PPH_EMENU_ITEM MenuItem,
-    __in HMENU PopupMenu
+    __in HMENU MenuHandle
     );
 
 PHLIBAPI

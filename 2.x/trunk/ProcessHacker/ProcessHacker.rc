@@ -135,7 +135,7 @@ BEGIN
             MENUITEM "Slow (5s)",                   ID_UPDATEINTERVAL_SLOW
             MENUITEM "Very Slow (10s)",             ID_UPDATEINTERVAL_VERYSLOW
         END
-        MENUITEM "&Update Automatically\aPause", ID_VIEW_UPDATEAUTOMATICALLY, CHECKED
+        MENUITEM "&Update Automatically\aPause", ID_VIEW_UPDATEAUTOMATICALLY
     END
     POPUP "&Tools"
     BEGIN
