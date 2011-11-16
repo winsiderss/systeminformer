@@ -51,6 +51,7 @@ BOOLEAN PhMainWndExiting = FALSE;
 HMENU PhMainWndMenuHandle;
 
 static BOOLEAN NeedsMaximize = FALSE;
+static BOOLEAN AlwaysOnTop = FALSE;
 
 static BOOLEAN DelayedLoadCompleted = FALSE;
 static ULONG NotifyIconNotifyMask;
@@ -73,14 +74,9 @@ static HFONT CurrentCustomFont;
 static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN ServiceTreeListLoaded = FALSE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
-static HMENU HackerMenuHandle;
-static BOOLEAN HackerMenuInitialized = FALSE;
-static HMENU ViewMenuHandle;
-static HMENU TrayIconsMenuHandle;
-static BOOLEAN TrayIconsMenuInitialized = FALSE;
-static HMENU ToolsMenuHandle;
-static BOOLEAN ToolsMenuInitialized = FALSE;
-static HMENU UsersMenuHandle;
+static HMENU SubMenuHandles[5];
+static PPH_EMENU SubMenuObjects[5];
+static PPH_LIST LegacyAddMenuItemList;
 static BOOLEAN UsersMenuInitialized = FALSE;
 static BOOLEAN UpdateAutomatically = TRUE;
 
@@ -178,10 +174,6 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
-    HackerMenuHandle = GetSubMenu(PhMainWndMenuHandle, 0);
-    ViewMenuHandle = GetSubMenu(PhMainWndMenuHandle, 1);
-    ToolsMenuHandle = GetSubMenu(PhMainWndMenuHandle, 2);
-    UsersMenuHandle = GetSubMenu(PhMainWndMenuHandle, 3);
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(
@@ -843,7 +835,7 @@ VOID PhMwpOnCommand(
                 break;
             }
 
-            PhNfSetVisibleIcon(i, !(GetMenuState(PhMainWndMenuHandle, Id, 0) & MF_CHECKED));
+            PhNfSetVisibleIcon(i, !PhNfTestIconMask(i));
         }
         break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
@@ -861,11 +853,6 @@ VOID PhMwpOnCommand(
             PhApplyProcessTreeFilters();
 
             PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
-            CheckMenuItem(
-                PhMainWndMenuHandle,
-                ID_VIEW_HIDEPROCESSESFROMOTHERUSERS,
-                CurrentUserFilterEntry ? MF_CHECKED : MF_UNCHECKED
-                );
         }
         break;
     case ID_VIEW_HIDESIGNEDPROCESSES:
@@ -892,37 +879,20 @@ VOID PhMwpOnCommand(
             PhApplyProcessTreeFilters();
 
             PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
-            CheckMenuItem(
-                PhMainWndMenuHandle,
-                ID_VIEW_HIDESIGNEDPROCESSES,
-                SignedFilterEntry ? MF_CHECKED : MF_UNCHECKED
-                );
         }
         break;
     case ID_VIEW_SHOWCPUBELOW001:
         {
             PH_SET_INTEGER_CACHED_SETTING(ShowCpuBelow001, !PhCsShowCpuBelow001);
-            CheckMenuItem(
-                PhMainWndMenuHandle,
-                ID_VIEW_SHOWCPUBELOW001,
-                PhCsShowCpuBelow001 ? MF_CHECKED : MF_UNCHECKED
-                );
             PhInvalidateAllProcessNodes();
         }
         break;
     case ID_VIEW_ALWAYSONTOP:
         {
-            BOOLEAN topMost;
-
-            topMost = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, 0) & MF_CHECKED);
-            SetWindowPos(PhMainWndHandle, topMost ? HWND_TOPMOST : HWND_NOTOPMOST,
+            AlwaysOnTop = !AlwaysOnTop;
+            SetWindowPos(PhMainWndHandle, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
                 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-            PhSetIntegerSetting(L"MainWindowAlwaysOnTop", topMost);
-            CheckMenuItem(
-                PhMainWndMenuHandle,
-                ID_VIEW_ALWAYSONTOP,
-                topMost ? MF_CHECKED : MF_UNCHECKED
-                );
+            PhSetIntegerSetting(L"MainWindowAlwaysOnTop", AlwaysOnTop);
         }
         break;
     case ID_OPACITY_10:
@@ -941,7 +911,6 @@ VOID PhMwpOnCommand(
             opacity = 100 - ((Id - ID_OPACITY_10) + 1) * 10;
             PhSetIntegerSetting(L"MainWindowOpacity", opacity);
             PhMwpSetWindowOpacity(opacity);
-            PhMwpSetCheckOpacityMenu(TRUE, opacity);
         }
         break;
     case ID_VIEW_REFRESH:
@@ -979,13 +948,6 @@ VOID PhMwpOnCommand(
 
             PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
             PhApplyUpdateInterval(interval);
-            CheckMenuRadioItem(
-                PhMainWndMenuHandle,
-                ID_UPDATEINTERVAL_FAST,
-                ID_UPDATEINTERVAL_VERYSLOW,
-                Id,
-                MF_BYCOMMAND
-                );
         }
         break;
     case ID_VIEW_UPDATEAUTOMATICALLY:
@@ -997,12 +959,6 @@ VOID PhMwpOnCommand(
 
             if (TabCtrl_GetCurSel(TabControlHandle) == NetworkTabIndex)
                 PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
-
-            CheckMenuItem(
-                PhMainWndMenuHandle,
-                ID_VIEW_UPDATEAUTOMATICALLY,
-                UpdateAutomatically ? MF_CHECKED : MF_UNCHECKED
-                );
         }
         break;
     case ID_TOOLS_CREATESERVICE:
@@ -1747,189 +1703,60 @@ VOID PhMwpOnInitMenuPopup(
     __in BOOLEAN IsWindowMenu
     )
 {
-    if (Menu == HackerMenuHandle)
+    ULONG i;
+    BOOLEAN found;
+    PPH_EMENU menu;
+
+    found = FALSE;
+
+    for (i = 0; i < sizeof(SubMenuHandles) / sizeof(HWND); i++)
     {
-        if (!HackerMenuInitialized)
+        if (Menu == SubMenuHandles[i])
         {
-            // Fix some menu items.
-            if (PhElevated)
-            {
-                DeleteMenu(PhMainWndMenuHandle, ID_HACKER_RUNASADMINISTRATOR, 0);
-                DeleteMenu(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, 0);
-            }
-            else
-            {
-                _LoadIconMetric loadIconMetric;
-                HICON shieldIcon;
-                MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-
-                // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
-                // resolution and look very bad when scaled down to the small icon size.
-
-                loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
-
-                if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
-                {
-                    menuItemInfo.fMask = MIIM_BITMAP;
-                    menuItemInfo.hbmpItem = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-                    DestroyIcon(shieldIcon);
-
-                    SetMenuItemInfo(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, FALSE, &menuItemInfo);
-                }
-            }
-
-            HackerMenuInitialized = TRUE;
+            found = TRUE;
+            break;
         }
     }
-    else if (Menu == ViewMenuHandle)
+
+    if (!found)
+        return;
+
+    if (Index == 3)
     {
-        ULONG i;
-        ULONG count;
-
-        if (!TrayIconsMenuHandle)
-        {
-            HMENU subMenu;
-
-            // Windows doesn't give us a way of assigning IDs to submenus, so just
-            // go through the whole list.
-
-            count = GetMenuItemCount(ViewMenuHandle);
-            subMenu = NULL;
-
-            if (count != -1)
-            {
-                for (i = 0; i < count; i++)
-                {
-                    subMenu = GetSubMenu(ViewMenuHandle, i);
-
-                    if (GetMenuState(subMenu, ID_TRAYICONS_CPUHISTORY, 0) != -1)
-                    {
-                        // Found it.
-                        TrayIconsMenuHandle = subMenu;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    else if (Menu == TrayIconsMenuHandle)
-    {
-        ULONG i;
-        ULONG count;
-
-        if (!TrayIconsMenuInitialized)
-        {
-            ULONG id;
-            ULONG maximum;
-            PPH_NF_ICON icon;
-
-            // Add menu items for the registered tray icons.
-
-            id = PH_ICON_DEFAULT_MAXIMUM;
-            maximum = PhNfGetMaximumIconId();
-
-            for (; id != maximum; id <<= 1)
-            {
-                if (icon = PhNfGetIconById(id))
-                {
-                    MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
-
-                    menuItemInfo.fMask = MIIM_ID | MIIM_DATA | MIIM_STRING;
-                    menuItemInfo.wID = ID_TRAYICONS_REGISTERED;
-                    menuItemInfo.dwItemData = (ULONG_PTR)icon;
-                    menuItemInfo.dwTypeData = icon->Text;
-                    InsertMenuItem(TrayIconsMenuHandle, MAXINT, TRUE, &menuItemInfo);
-                }
-            }
-
-            TrayIconsMenuInitialized = TRUE;
-        }
-
-        // Update the text and check marks on the menu items.
-
-        count = GetMenuItemCount(TrayIconsMenuHandle);
-
-        if (count != -1)
-        {
-            MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
-            ULONG id;
-            PPH_NF_ICON icon;
-
-            for (i = 0; i < count; i++)
-            {
-                menuItemInfo.fMask = MIIM_ID | MIIM_DATA;
-
-                if (GetMenuItemInfo(TrayIconsMenuHandle, i, TRUE, &menuItemInfo))
-                {
-                    id = -1;
-                    icon = NULL;
-
-                    switch (menuItemInfo.wID)
-                    {
-                    case ID_TRAYICONS_CPUHISTORY:
-                        id = PH_ICON_CPU_HISTORY;
-                        break;
-                    case ID_TRAYICONS_IOHISTORY:
-                        id = PH_ICON_IO_HISTORY;
-                        break;
-                    case ID_TRAYICONS_COMMITHISTORY:
-                        id = PH_ICON_COMMIT_HISTORY;
-                        break;
-                    case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
-                        id = PH_ICON_PHYSICAL_HISTORY;
-                        break;
-                    case ID_TRAYICONS_CPUUSAGE:
-                        id = PH_ICON_CPU_USAGE;
-                        break;
-                    case ID_TRAYICONS_REGISTERED:
-                        if (menuItemInfo.dwItemData)
-                        {
-                            icon = (PPH_NF_ICON)menuItemInfo.dwItemData;
-                            id = icon->IconId;
-                        }
-                        break;
-                    }
-
-                    if (id != -1)
-                    {
-                        menuItemInfo.fMask = MIIM_STATE;
-                        menuItemInfo.fState = PhNfTestIconMask(id) ? MFS_CHECKED : MFS_UNCHECKED;
-
-                        if (icon)
-                        {
-                            menuItemInfo.fMask |= MIIM_STRING;
-
-                            if (icon->Flags & PH_NF_ICON_UNAVAILABLE)
-                                menuItemInfo.dwTypeData = PhaConcatStrings2(icon->Text, L" (Unavailable)")->Buffer;
-                            else
-                                menuItemInfo.dwTypeData = icon->Text;
-                        }
-
-                        SetMenuItemInfo(TrayIconsMenuHandle, i, TRUE, &menuItemInfo);
-                    }
-                }
-            }
-        }
-    }
-    else if (Menu == ToolsMenuHandle)
-    {
-        if (!ToolsMenuInitialized)
-        {
-#ifdef _M_X64
-            DeleteMenu(PhMainWndMenuHandle, ID_TOOLS_HIDDENPROCESSES, 0);
-#endif
-
-            ToolsMenuInitialized = TRUE;
-        }
-    }
-    else if (Menu == UsersMenuHandle)
-    {
+        // Special case for Users menu.
         if (!UsersMenuInitialized)
         {
             PhMwpUpdateUsersMenu();
             UsersMenuInitialized = TRUE;
         }
+
+        return;
     }
+
+    // Delete all items in this submenu.
+    while (DeleteMenu(Menu, 0, MF_BYPOSITION)) ;
+
+    // Delete the previous EMENU for this submenu.
+    if (SubMenuObjects[Index])
+        PhDestroyEMenu(SubMenuObjects[Index]);
+
+    menu = PhCreateEMenu();
+    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND), Index);
+
+    PhMwpInitializeSubMenu(menu, Index);
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+        menuInfo.Menu = menu;
+        menuInfo.OwnerWindow = PhMainWndHandle;
+        menuInfo.u.MainMenu.SubMenuIndex = Index;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainMenuInitializing), &menuInfo);
+    }
+
+    PhEMenuToHMenu2(Menu, menu, 0, NULL);
+    SubMenuObjects[Index] = menu;
 }
 
 VOID PhMwpOnSize(
@@ -2276,15 +2103,7 @@ ULONG_PTR PhMwpOnUserMessage(
         {
             PPH_ADDMENUITEM addMenuItem = (PPH_ADDMENUITEM)LParam;
 
-            return PhMwpAddPluginMenuItem(
-                addMenuItem->Plugin,
-                addMenuItem->ParentMenu,
-                addMenuItem->InsertAfter,
-                addMenuItem->Flags,
-                addMenuItem->Id,
-                addMenuItem->Text,
-                addMenuItem->Context
-                );
+            return PhMwpLegacyAddPluginMenuItem(addMenuItem);
         }
         break;
     case WM_PH_ADD_TAB_PAGE:
@@ -2531,12 +2350,11 @@ VOID PhMwpLoadSettings(
     )
 {
     ULONG opacity;
-    ULONG id;
     PPH_STRING customFont;
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
     {
-        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, MF_CHECKED);
+        AlwaysOnTop = TRUE;
         SetWindowPos(PhMainWndHandle, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE);
     }
@@ -2545,41 +2363,6 @@ VOID PhMwpLoadSettings(
 
     if (opacity != 0)
         PhMwpSetWindowOpacity(opacity);
-
-    PhMwpSetCheckOpacityMenu(TRUE, opacity);
-
-    switch (PhGetIntegerSetting(L"UpdateInterval"))
-    {
-    case 500:
-        id = ID_UPDATEINTERVAL_FAST;
-        break;
-    case 1000:
-        id = ID_UPDATEINTERVAL_NORMAL;
-        break;
-    case 2000:
-        id = ID_UPDATEINTERVAL_BELOWNORMAL;
-        break;
-    case 5000:
-        id = ID_UPDATEINTERVAL_SLOW;
-        break;
-    case 10000:
-        id = ID_UPDATEINTERVAL_VERYSLOW;
-        break;
-    default:
-        id = -1;
-        break;
-    }
-
-    if (id != -1)
-    {
-        CheckMenuRadioItem(
-            PhMainWndMenuHandle,
-            ID_UPDATEINTERVAL_FAST,
-            ID_UPDATEINTERVAL_VERYSLOW,
-            id,
-            MF_BYCOMMAND
-            );
-    }
 
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
@@ -2595,25 +2378,11 @@ VOID PhMwpLoadSettings(
     if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
     {
         CurrentUserFilterEntry = PhAddProcessTreeFilter(PhMwpCurrentUserProcessTreeFilter, NULL);
-        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, MF_CHECKED);
     }
 
     if (PhGetIntegerSetting(L"HideSignedProcesses"))
     {
         SignedFilterEntry = PhAddProcessTreeFilter(PhMwpSignedProcessTreeFilter, NULL);
-        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDESIGNEDPROCESSES, MF_CHECKED);
-    }
-
-    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
-    {
-        if (PhCsShowCpuBelow001)
-        {
-            CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_CHECKED);
-        }
-    }
-    else
-    {
-        EnableMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_GRAYED | MF_DISABLED);
     }
 
     customFont = PhGetStringSetting(L"Font");
@@ -2758,21 +2527,6 @@ VOID PhMwpLayout(
     PhMwpLayoutTabControl(DeferHandle);
 }
 
-VOID PhMwpSetCheckOpacityMenu(
-    __in BOOLEAN AssumeAllUnchecked,
-    __in ULONG Opacity
-    )
-{
-    // The setting is stored backwards - 0 means opaque, 100 means transparent.
-    CheckMenuRadioItem(
-        PhMainWndMenuHandle,
-        ID_OPACITY_10,
-        ID_OPACITY_OPAQUE,
-        ID_OPACITY_10 + (10 - Opacity / 10) - 1,
-        MF_BYCOMMAND
-        );
-}
-
 VOID PhMwpSetWindowOpacity(
     __in ULONG Opacity
     )
@@ -2836,11 +2590,17 @@ VOID PhMwpInitializeMainMenu(
     )
 {
     MENUINFO menuInfo;
+    ULONG i;
 
     menuInfo.cbSize = sizeof(MENUINFO);
     menuInfo.fMask = MIM_STYLE;
     menuInfo.dwStyle = MNS_NOTIFYBYPOS;
     SetMenuInfo(Menu, &menuInfo);
+
+    for (i = 0; i < sizeof(SubMenuHandles) / sizeof(HMENU); i++)
+    {
+        SubMenuHandles[i] = GetSubMenu(PhMainWndMenuHandle, i);
+    }
 }
 
 VOID PhMwpDispatchMenuCommand(
@@ -2854,35 +2614,31 @@ VOID PhMwpDispatchMenuCommand(
     {
     case ID_PLUGIN_MENU_ITEM:
         {
-            PPH_PLUGIN_MENU_ITEM menuItem;
+            PPH_EMENU_ITEM menuItem;
 
-            menuItem = (PPH_PLUGIN_MENU_ITEM)ItemData;
+            menuItem = (PPH_EMENU_ITEM)ItemData;
 
             if (menuItem)
-            {
-                menuItem->OwnerWindow = PhMainWndHandle;
-                PhInvokeCallback(PhGetPluginCallback(menuItem->Plugin, PluginCallbackMenuItem), menuItem);
-            }
+                PhPluginTriggerEMenuItem(PhMainWndHandle, menuItem);
 
             return;
         }
         break;
     case ID_TRAYICONS_REGISTERED:
         {
-            if (ItemData)
+            PPH_EMENU_ITEM menuItem;
+
+            menuItem = (PPH_EMENU_ITEM)ItemData;
+
+            if (menuItem)
             {
                 PPH_NF_ICON icon;
-                MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
 
-                icon = (PPH_NF_ICON)ItemData;
-
-                menuItemInfo.fMask = MIIM_STATE;
-
-                if (GetMenuItemInfo(MenuHandle, ItemIndex, TRUE, &menuItemInfo))
-                {
-                    PhNfSetVisibleIcon(icon->IconId, !(menuItemInfo.fState & MF_CHECKED));
-                }
+                icon = menuItem->Context;
+                PhNfSetVisibleIcon(icon->IconId, !PhNfTestIconMask(icon->IconId));
             }
+
+            return;
         }
         break;
     case ID_USER_CONNECT:
@@ -2900,108 +2656,281 @@ VOID PhMwpDispatchMenuCommand(
     SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
 }
 
-ULONG_PTR PhMwpAddPluginMenuItem(
-    __in PPH_PLUGIN Plugin,
-    __in HMENU ParentMenu,
-    __in_opt PWSTR InsertAfter,
-    __in ULONG Flags,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PVOID Context
+ULONG_PTR PhMwpLegacyAddPluginMenuItem(
+    __in PPH_ADDMENUITEM AddMenuItem
     )
 {
-    PPH_PLUGIN_MENU_ITEM menuItem;
-    HMENU menu;
-    ULONG insertIndex;
-    ULONG textCount;
-    WCHAR textBuffer[256];
-    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-    HMENU subMenu;
+    PPH_ADDMENUITEM addMenuItem;
+    PPH_PLUGIN_MENU_ITEM pluginMenuItem;
 
-    textCount = (ULONG)wcslen(Text);
+    if (!LegacyAddMenuItemList)
+        LegacyAddMenuItemList = PhCreateList(8);
 
-    if (textCount > 128)
-        return FALSE;
+    addMenuItem = PhAllocateCopy(AddMenuItem, sizeof(PH_ADDMENUITEM));
+    PhAddItemList(LegacyAddMenuItemList, addMenuItem);
 
-    menuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
-    memset(menuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
-    menuItem->Plugin = Plugin;
-    menuItem->Id = Id;
-    menuItem->Context = Context;
-    menuItem->ParentMenu = ParentMenu;
-    menuItem->SubMenu = NULL;
+    pluginMenuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
+    memset(pluginMenuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
+    pluginMenuItem->Plugin = AddMenuItem->Plugin;
+    pluginMenuItem->Id = AddMenuItem->Id;
+    pluginMenuItem->Context = AddMenuItem->Context;
 
-    menu = ParentMenu;
+    addMenuItem->Context = pluginMenuItem;
 
-    if (InsertAfter)
+    return TRUE;
+}
+
+VOID PhMwpInitializeSubMenu(
+    __in PPH_EMENU Menu,
+    __in ULONG Index
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+
+    if (Index == 0) // Hacker
     {
-        ULONG count;
-
-        menuItemInfo.fMask = MIIM_STRING;
-        menuItemInfo.dwTypeData = textBuffer;
-        menuItemInfo.cch = sizeof(textBuffer) / sizeof(WCHAR);
-
-        insertIndex = 0;
-        count = GetMenuItemCount(menu);
-
-        if (count == -1)
-            return FALSE;
-
-        for (insertIndex = 0; insertIndex < count; insertIndex++)
+        // Fix some menu items.
+        if (PhElevated)
         {
-            if (GetMenuItemInfo(menu, insertIndex, TRUE, &menuItemInfo) && menuItemInfo.dwTypeData)
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASADMINISTRATOR))
+                PhDestroyEMenuItem(menuItem);
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
+                PhDestroyEMenuItem(menuItem);
+        }
+        else
+        {
+            static HBITMAP shieldBitmap = NULL;
+
+            if (!shieldBitmap)
             {
-                if (PhCompareUnicodeStringZIgnoreMenuPrefix(InsertAfter, menuItemInfo.dwTypeData, TRUE, TRUE) == 0)
+                _LoadIconMetric loadIconMetric;
+                HICON shieldIcon = NULL;
+
+                // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
+                // resolution and look very bad when scaled down to the small icon size.
+
+                loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
+
+                if (loadIconMetric)
                 {
-                    insertIndex++;
-                    break;
+                    if (SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
+                    {
+                        shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+                        DestroyIcon(shieldIcon);
+                    }
                 }
+            }
+
+            if (shieldBitmap)
+            {
+                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
+                    menuItem->Bitmap = shieldBitmap;
             }
         }
     }
-    else
+    else if (Index == 1) // View
     {
-        insertIndex = 0;
-    }
+        PPH_EMENU_ITEM trayIconsMenuItem;
+        ULONG i;
+        PPH_EMENU_ITEM menuItem;
+        ULONG id;
 
-    if (textCount == 1 && Text[0] == '-')
-    {
-        menuItem->RealId = 0;
+        trayIconsMenuItem = PhMwpFindTrayIconsMenuItem(Menu);
 
-        menuItemInfo.fMask = 0;
-        menuItemInfo.fType = MFT_SEPARATOR;
-    }
-    else
-    {
-        menuItem->RealId = ID_PLUGIN_MENU_ITEM;
-
-        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
-        menuItemInfo.wID = menuItem->RealId;
-        menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
-        menuItemInfo.dwTypeData = Text;
-
-        if (Flags & PH_MENU_ITEM_SUB_MENU)
+        if (trayIconsMenuItem)
         {
-            subMenu = CreatePopupMenu();
-            menuItemInfo.fMask |= MIIM_SUBMENU;
-            menuItemInfo.hSubMenu = subMenu;
-            menuItem->SubMenu = subMenu;
+            ULONG maximum;
+            PPH_NF_ICON icon;
+
+            // Add menu items for the registered tray icons.
+
+            id = PH_ICON_DEFAULT_MAXIMUM;
+            maximum = PhNfGetMaximumIconId();
+
+            for (; id != maximum; id <<= 1)
+            {
+                if (icon = PhNfGetIconById(id))
+                {
+                    PhInsertEMenuItem(trayIconsMenuItem, PhCreateEMenuItem(0, ID_TRAYICONS_REGISTERED, icon->Text, NULL, icon), -1);
+                }
+            }
+
+            // Update the text and check marks on the menu items.
+
+            for (i = 0; i < trayIconsMenuItem->Items->Count; i++)
+            {
+                menuItem = trayIconsMenuItem->Items->Items[i];
+
+                id = -1;
+                icon = NULL;
+
+                switch (menuItem->Id)
+                {
+                case ID_TRAYICONS_CPUHISTORY:
+                    id = PH_ICON_CPU_HISTORY;
+                    break;
+                case ID_TRAYICONS_IOHISTORY:
+                    id = PH_ICON_IO_HISTORY;
+                    break;
+                case ID_TRAYICONS_COMMITHISTORY:
+                    id = PH_ICON_COMMIT_HISTORY;
+                    break;
+                case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
+                    id = PH_ICON_PHYSICAL_HISTORY;
+                    break;
+                case ID_TRAYICONS_CPUUSAGE:
+                    id = PH_ICON_CPU_USAGE;
+                    break;
+                case ID_TRAYICONS_REGISTERED:
+                    icon = menuItem->Context;
+                    id = icon->IconId;
+                    break;
+                }
+
+                if (id != -1)
+                {
+                    if (PhNfTestIconMask(id))
+                        menuItem->Flags |= PH_EMENU_CHECKED;
+
+                    if (icon && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
+                    {
+                        PPH_STRING newText;
+
+                        if (menuItem->Text && (menuItem->Flags & PH_EMENU_TEXT_OWNED))
+                            PhFree(menuItem->Text);
+
+                        newText = PhaConcatStrings2(icon->Text, L" (Unavailable)");
+                        menuItem->Text = PhAllocateCopy(newText->Buffer, newText->Length + sizeof(WCHAR));
+                        menuItem->Flags |= PH_EMENU_TEXT_OWNED;
+                    }
+                }
+            }
+        }
+
+        if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+        if (SignedFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+
+        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_SHOWCPUBELOW001))
+        {
+            if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+            {
+                if (PhCsShowCpuBelow001)
+                    menuItem->Flags |= PH_EMENU_CHECKED;
+            }
+            else
+            {
+                menuItem->Flags |= PH_EMENU_DISABLED;
+            }
+        }
+
+        if (AlwaysOnTop && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_ALWAYSONTOP)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+
+        // The opacity setting is stored backwards - 0 means opaque, 100 means transparent.
+        id = ID_OPACITY_10 + (10 - PhGetIntegerSetting(L"MainWindowOpacity") / 10) - 1;
+
+        if (menuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, NULL, id))
+            menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+
+        switch (PhGetIntegerSetting(L"UpdateInterval"))
+        {
+        case 500:
+            id = ID_UPDATEINTERVAL_FAST;
+            break;
+        case 1000:
+            id = ID_UPDATEINTERVAL_NORMAL;
+            break;
+        case 2000:
+            id = ID_UPDATEINTERVAL_BELOWNORMAL;
+            break;
+        case 5000:
+            id = ID_UPDATEINTERVAL_SLOW;
+            break;
+        case 10000:
+            id = ID_UPDATEINTERVAL_VERYSLOW;
+            break;
+        default:
+            id = -1;
+            break;
+        }
+
+        if (id != -1 && (menuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, NULL, id)))
+            menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+
+        if (UpdateAutomatically && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_UPDATEAUTOMATICALLY)))
+            menuItem->Flags |= PH_EMENU_CHECKED;
+    }
+    else if (Index == 2) // Tools
+    {
+#ifdef _M_X64
+        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_HIDDENPROCESSES))
+            PhDestroyEMenuItem(menuItem);
+#endif
+    }
+
+    if (LegacyAddMenuItemList)
+    {
+        ULONG i;
+        PPH_ADDMENUITEM addMenuItem;
+
+        for (i = 0; i < LegacyAddMenuItemList->Count; i++)
+        {
+            addMenuItem = LegacyAddMenuItemList->Items[i];
+
+            if (addMenuItem->Location == Index)
+            {
+                ULONG insertIndex;
+
+                if (addMenuItem->InsertAfter)
+                {
+                    for (insertIndex = 0; insertIndex < Menu->Items->Count; insertIndex++)
+                    {
+                        menuItem = Menu->Items->Items[insertIndex];
+
+                        if (!(menuItem->Flags & PH_EMENU_SEPARATOR) && (PhCompareUnicodeStringZIgnoreMenuPrefix(
+                            addMenuItem->InsertAfter,
+                            menuItem->Text,
+                            TRUE,
+                            TRUE
+                            ) == 0))
+                        {
+                            insertIndex++;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    insertIndex = 0;
+                }
+
+                if (addMenuItem->Text[0] == '-' && addMenuItem->Text[1] == 0)
+                    PhInsertEMenuItem(Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), insertIndex);
+                else
+                    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PLUGIN_MENU_ITEM, addMenuItem->Text, NULL, addMenuItem->Context), insertIndex);
+            }
         }
     }
+}
 
-    InsertMenuItem(menu, insertIndex, TRUE, &menuItemInfo);
+PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
+    __in PPH_EMENU Menu
+    )
+{
+    ULONG i;
+    PPH_EMENU_ITEM menuItem;
 
-    if (Flags & PH_MENU_ITEM_RETURN_MENU)
+    for (i = 0; i < Menu->Items->Count; i++)
     {
-        return (ULONG_PTR)menuItem;
+        menuItem = Menu->Items->Items[i];
+
+        if (PhFindEMenuItem(menuItem, 0, NULL, ID_TRAYICONS_CPUHISTORY))
+            return menuItem;
     }
-    else
-    {
-        if (Flags & PH_MENU_ITEM_SUB_MENU)
-            return (ULONG_PTR)subMenu;
-        else
-            return TRUE;
-    }
+
+    return NULL;
 }
 
 VOID PhMwpLayoutTabControl(
@@ -4694,7 +4623,7 @@ VOID PhMwpUpdateUsersMenu(
     ULONG j;
     MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
 
-    menu = UsersMenuHandle;
+    menu = SubMenuHandles[3];
 
     // Delete all items in the Users menu.
     while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;

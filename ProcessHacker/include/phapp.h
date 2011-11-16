@@ -493,7 +493,7 @@ typedef struct _PH_LAYOUT_PADDING_DATA
 typedef struct _PH_ADDMENUITEM
 {
     __in PVOID Plugin;
-    __in HMENU ParentMenu;
+    __in ULONG Location;
     __in_opt PWSTR InsertAfter;
     __in ULONG Flags;
     __in ULONG Id;

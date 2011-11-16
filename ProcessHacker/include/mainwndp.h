@@ -217,14 +217,17 @@ VOID PhMwpDispatchMenuCommand(
     __in ULONG_PTR ItemData
     );
 
-ULONG_PTR PhMwpAddPluginMenuItem(
-    __in PPH_PLUGIN Plugin,
-    __in HMENU ParentMenu,
-    __in_opt PWSTR InsertAfter,
-    __in ULONG Flags,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PVOID Context
+ULONG_PTR PhMwpLegacyAddPluginMenuItem(
+    __in PPH_ADDMENUITEM AddMenuItem
+    );
+
+VOID PhMwpInitializeSubMenu(
+    __in PPH_EMENU Menu,
+    __in ULONG Index
+    );
+
+PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
+    __in PPH_EMENU Menu
     );
 
 // Tab control
