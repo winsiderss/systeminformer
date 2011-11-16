@@ -120,6 +120,7 @@ EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsForceNoParent;
 EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsPropagateCpuUsage;
+EXT ULONG PhCsScrollToNewProcesses;
 EXT ULONG PhCsShowCpuBelow001;
 EXT ULONG PhCsUpdateInterval;
 

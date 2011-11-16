@@ -148,6 +148,7 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
+    PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
@@ -225,6 +226,7 @@ VOID PhUpdateCachedSettings(
     UPDATE_INTEGER_CS(ForceNoParent);
     UPDATE_INTEGER_CS(HighlightingDuration);
     UPDATE_INTEGER_CS(PropagateCpuUsage);
+    UPDATE_INTEGER_CS(ScrollToNewProcesses);
     UPDATE_INTEGER_CS(ShowCpuBelow001);
     UPDATE_INTEGER_CS(UpdateInterval);
 
