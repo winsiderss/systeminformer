@@ -11,6 +11,7 @@ Process Hacker
      * Added Disk, Network and GPU tray icons
  * FIXED:
    * Fixed retrieval of version information for certain files
+   * Fixed driver file names on Windows XP
 
 2.23
  * NEW/IMPROVED:

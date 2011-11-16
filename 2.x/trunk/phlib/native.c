@@ -5820,6 +5820,20 @@ VOID PhpRtlModulesToGenericModules(
 
         PhDereferenceObject(fileName);
 
+        if (module->OffsetToFileName == 0)
+        {
+            static PH_STRINGREF driversString = PH_STRINGREF_INIT(L"\\System32\\Drivers\\");
+            PH_STRINGREF systemRoot;
+            PPH_STRING newFileName;
+
+            // We only have the file name, without a path. The driver must be in the 
+            // default drivers directory.
+            PhGetSystemRoot(&systemRoot);
+            newFileName = PhConcatStringRef3(&systemRoot, &driversString, &moduleInfo.Name->sr);
+            PhDereferenceObject(moduleInfo.FileName);
+            moduleInfo.FileName = newFileName;
+        }
+
         cont = Callback(&moduleInfo, Context);
 
         PhDereferenceObject(moduleInfo.Name);
