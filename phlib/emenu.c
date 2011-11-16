@@ -389,7 +389,7 @@ VOID PhDestroyEMenu(
 
 /**
  * Initializes a data structure containing additional information
- * resulting from a call to PhEMenuToPopupMenu().
+ * resulting from a call to PhEMenuToHMenu().
  */
 VOID PhInitializeEMenuData(
     __out PPH_EMENU_DATA Data
@@ -424,18 +424,48 @@ VOID PhDeleteEMenuData(
  * \return A menu handle. The menu object must be destroyed using
  * DestroyMenu() when it is no longer needed.
  */
-HMENU PhEMenuToPopupMenu(
+HMENU PhEMenuToHMenu(
     __in PPH_EMENU_ITEM Menu,
     __in ULONG Flags,
     __inout_opt PPH_EMENU_DATA Data
     )
 {
-    HMENU popupMenu;
+    HMENU menuHandle;
+
+    menuHandle = CreatePopupMenu();
+
+    if (!menuHandle)
+        return NULL;
+
+    PhEMenuToHMenu2(menuHandle, Menu, Flags, Data);
+
+    return menuHandle;
+}
+
+/**
+ * Converts an EMENU to a Windows menu object.
+ *
+ * \param MenuHandle A handle to a Windows menu object.
+ * \param Menu The menu item to convert. The items are appended to 
+ * \a MenuHandle.
+ * \param Flags A combination of the following:
+ * \li \c PH_EMENU_CONVERT_ID Automatically assigns a unique
+ * identifier to each converted menu item. The resulting
+ * mappings are placed in \a Data.
+ * \param Data Additional data resulting from the conversion.
+ * The data structure must be initialized by PhInitializeEMenuData()
+ * prior to calling this function.
+ */
+VOID PhEMenuToHMenu2(
+    __in HMENU MenuHandle,
+    __in PPH_EMENU_ITEM Menu,
+    __in ULONG Flags,
+    __inout_opt PPH_EMENU_DATA Data
+    )
+{
     ULONG i;
     PPH_EMENU_ITEM item;
     MENUITEMINFO menuItemInfo;
-
-    popupMenu = CreatePopupMenu();
 
     for (i = 0; i < Menu->Items->Count; i++)
     {
@@ -517,13 +547,11 @@ HMENU PhEMenuToPopupMenu(
         if (item->Items && item->Items->Count != 0)
         {
             menuItemInfo.fMask |= MIIM_SUBMENU;
-            menuItemInfo.hSubMenu = PhEMenuToPopupMenu(item, Flags, Data);
+            menuItemInfo.hSubMenu = PhEMenuToHMenu(item, Flags, Data);
         }
 
-        InsertMenuItem(popupMenu, MAXINT, TRUE, &menuItemInfo);
+        InsertMenuItem(MenuHandle, MAXINT, TRUE, &menuItemInfo);
     }
-
-    return popupMenu;
 }
 
 /**
@@ -531,17 +559,17 @@ HMENU PhEMenuToPopupMenu(
  *
  * \param MenuItem The menu item in which the converted menu items
  * will be placed.
- * \param PopupMenu A menu handle.
+ * \param MenuHandle A menu handle.
  */
-VOID PhPopupMenuToEMenuItem(
+VOID PhHMenuToEMenuItem(
     __inout PPH_EMENU_ITEM MenuItem,
-    __in HMENU PopupMenu
+    __in HMENU MenuHandle
     )
 {
     ULONG i;
     ULONG count;
 
-    count = GetMenuItemCount(PopupMenu);
+    count = GetMenuItemCount(MenuHandle);
 
     if (count != -1)
     {
@@ -556,7 +584,7 @@ VOID PhPopupMenuToEMenuItem(
             menuItemInfo.cch = sizeof(buffer) / sizeof(WCHAR);
             menuItemInfo.dwTypeData = buffer;
 
-            if (!GetMenuItemInfo(PopupMenu, i, TRUE, &menuItemInfo))
+            if (!GetMenuItemInfo(MenuHandle, i, TRUE, &menuItemInfo))
                 continue;
 
             menuItem = PhCreateEMenuItem(
@@ -584,7 +612,7 @@ VOID PhPopupMenuToEMenuItem(
                 );
 
             if (menuItemInfo.hSubMenu)
-                PhPopupMenuToEMenuItem(menuItem, menuItemInfo.hSubMenu);
+                PhHMenuToEMenuItem(menuItem, menuItemInfo.hSubMenu);
 
             PhInsertEMenuItem(MenuItem, menuItem, -1);
         }
@@ -618,7 +646,7 @@ VOID PhLoadResourceEMenuItem(
     else
         realMenu = menu;
 
-    PhPopupMenuToEMenuItem(MenuItem, realMenu);
+    PhHMenuToEMenuItem(MenuItem, realMenu);
 
     DestroyMenu(menu);
 }
@@ -685,7 +713,7 @@ PPH_EMENU_ITEM PhShowEMenu(
 
     PhInitializeEMenuData(&data);
 
-    if (popupMenu = PhEMenuToPopupMenu(Menu, PH_EMENU_CONVERT_ID, &data))
+    if (popupMenu = PhEMenuToHMenu(Menu, PH_EMENU_CONVERT_ID, &data))
     {
         result = TrackPopupMenu(
             popupMenu,

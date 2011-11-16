@@ -759,7 +759,8 @@ ULONG PhPluginReserveIds(
 }
 
 /**
- * Adds a menu item to the program's main menu.
+ * Adds a menu item to the program's main menu. This function is
+ * deprecated. Use \c GeneralCallbackMainMenuInitializing instead.
  *
  * \param Plugin A plugin instance structure.
  * \param Location A handle to the parent menu, or one of the following:
@@ -769,14 +770,11 @@ ULONG PhPluginReserveIds(
  * new menu item after. The search is a case-insensitive prefix search
  * that ignores prefix characters (ampersands).
  * \param Id An identifier for the menu item. This should be unique
- * within the plugin. You may also specify the following flags:
- * \li \c PH_MENU_ITEM_SUB_MENU The menu item has a submenu.
+ * within the plugin.
  * \param Text The text of the menu item.
  * \param Context A user-defined value for the menu item.
  *
- * \return TRUE if the function succeeded, otherwise FALSE. If
- * \c PH_MENU_ITEM_SUB_MENU is specified in \a Flags, the return value
- * is a handle to the submenu.
+ * \return TRUE if the function succeeded, otherwise FALSE.
  *
  * \remarks The \ref PluginCallbackMenuItem callback is invoked when
  * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure
@@ -800,11 +798,11 @@ ULONG_PTR PhPluginAddMenuItem(
 
     if (Location < 0x1000)
     {
-        addMenuItem.ParentMenu = GetSubMenu(GetMenu(PhMainWndHandle), (ULONG)Location);
+        addMenuItem.Location = Location;
     }
     else
     {
-        addMenuItem.ParentMenu = (HMENU)Location;
+        return 0;
     }
 
     addMenuItem.Flags = Id & PH_MENU_ITEM_VALID_FLAGS;
@@ -910,7 +908,6 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
     memset(pluginMenuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
     pluginMenuItem->Plugin = Plugin;
     pluginMenuItem->Id = Id;
-    pluginMenuItem->RealId = 0;
     pluginMenuItem->Context = Context;
 
     item->Context = pluginMenuItem;

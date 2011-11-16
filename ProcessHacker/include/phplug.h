@@ -16,7 +16,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackGetProcessHighlightingColor = 2, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data [main thread]
     GeneralCallbackGetProcessTooltipText = 3, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data [main thread]
     GeneralCallbackProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
-    GeneralCallbackReserved1 = 5, // removed
+    GeneralCallbackMainMenuInitializing = 5, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackNotifyEvent = 6, // PPH_PLUGIN_NOTIFY_EVENT Data [main thread]
     GeneralCallbackServicePropertiesInitializing = 7, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
     GeneralCallbackHandlePropertiesInitializing = 8, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
@@ -107,6 +107,10 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
 
     union
     {
+        struct
+        {
+            ULONG SubMenuIndex;
+        } MainMenu;
         struct
         {
             PPH_PROCESS_ITEM *Processes;
@@ -318,12 +322,12 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 {
     PPH_PLUGIN Plugin;
     ULONG Id;
-    ULONG RealId;
+    ULONG Reserved1;
     PVOID Context;
 
     HWND OwnerWindow; // valid only when the menu item is chosen
-    HMENU ParentMenu; // valid only for main menu items
-    HMENU SubMenu; // valid only for main menu items
+    PVOID Reserved2;
+    PVOID Reserved3;
     PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION DeleteFunction; // valid only for EMENU-based menu items
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
@@ -331,9 +335,9 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
 
-// Id flags
+// Id flags (non-functional)
 #define PH_MENU_ITEM_SUB_MENU 0x80000000
-#define PH_MENU_ITEM_RETURN_MENU 0x40000000 // return a pointer to the PH_PLUGIN_MENU_ITEM
+#define PH_MENU_ITEM_RETURN_MENU 0x40000000
 #define PH_MENU_ITEM_VALID_FLAGS 0xc0000000
 
 PHAPPAPI
