@@ -106,10 +106,8 @@ BEGIN
             MENUITEM "Commit History",              ID_TRAYICONS_COMMITHISTORY
             MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
-        MENUITEM "Hide Processes From Other Users", ID_VIEW_HIDEPROCESSESFROMOTHERUSERS
-        MENUITEM "Hide Signed Processes",       ID_VIEW_HIDESIGNEDPROCESSES
         MENUITEM SEPARATOR
-        MENUITEM "Show CPU Below 0.01",         ID_VIEW_SHOWCPUBELOW001
+        MENUITEM "<section placeholder>",       ID_VIEW_SECTIONPLACEHOLDER
         MENUITEM SEPARATOR
         MENUITEM "&Always on Top",              ID_VIEW_ALWAYSONTOP
         POPUP "&Opacity"

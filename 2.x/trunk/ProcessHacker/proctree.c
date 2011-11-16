@@ -59,10 +59,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in_opt PVOID Context
     );
 
-BOOLEAN PhpApplyProcessTreeFiltersToNode(
-    __in PPH_PROCESS_NODE Node
-    );
-
 static HWND ProcessTreeListHandle;
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
@@ -75,7 +71,7 @@ static PPH_LIST ProcessNodeRootList; // list of root nodes
 BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need to be processed
 
-static PPH_LIST ProcessTreeFilterList = NULL;
+static PH_TN_FILTER_SUPPORT FilterSupport;
 static BOOLEAN NeedCyclesInformation = FALSE;
 
 static HDC GraphContext = NULL;
@@ -210,6 +206,8 @@ VOID PhInitializeProcessTreeList(
         treeNewInfo.CmData = &ProcessTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing), &treeNewInfo);
     }
+
+    PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
 }
 
 static VOID PhpEnableColumnCustomDraw(
@@ -265,6 +263,13 @@ VOID PhReloadSettingsProcessTreeList(
 {
     SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL,
         PhGetIntegerSetting(L"EnableInstantTooltips") ? 0 : -1);
+}
+
+struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportProcessTreeList(
+    VOID
+    )
+{
+    return &FilterSupport;
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessNode(
@@ -397,8 +402,8 @@ PPH_PROCESS_NODE PhAddProcessNode(
         }
     }
 
-    if (ProcessTreeFilterList)
-        processNode->Node.Visible = PhpApplyProcessTreeFiltersToNode(processNode);
+    if (FilterSupport.FilterList)
+        processNode->Node.Visible = PhApplyTreeNewFiltersToNode(&FilterSupport, &processNode->Node);
 
     PhEmCallObjectOperation(EmProcessNodeType, processNode, EmObjectCreate);
 
@@ -2955,93 +2960,6 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     TreeNew_SetMarkNode(ProcessTreeListHandle, &ProcessNode->Node);
     TreeNew_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node);
     TreeNew_InvalidateNode(ProcessTreeListHandle, &ProcessNode->Node);
-}
-
-PPH_PROCESS_TREE_FILTER_ENTRY PhAddProcessTreeFilter(
-    __in PPH_PROCESS_TREE_FILTER Filter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PROCESS_TREE_FILTER_ENTRY entry;
-
-    entry = PhAllocate(sizeof(PH_PROCESS_TREE_FILTER_ENTRY));
-    entry->Filter = Filter;
-    entry->Context = Context;
-
-    if (!ProcessTreeFilterList)
-        ProcessTreeFilterList = PhCreateList(2);
-
-    PhAddItemList(ProcessTreeFilterList, entry);
-
-    return entry;
-}
-
-VOID PhRemoveProcessTreeFilter(
-    __in PPH_PROCESS_TREE_FILTER_ENTRY Entry
-    )
-{
-    ULONG index;
-
-    if (!ProcessTreeFilterList)
-        return;
-
-    index = PhFindItemList(ProcessTreeFilterList, Entry);
-
-    if (index != -1)
-    {
-        PhRemoveItemList(ProcessTreeFilterList, index);
-        PhFree(Entry);
-    }
-}
-
-BOOLEAN PhpApplyProcessTreeFiltersToNode(
-    __in PPH_PROCESS_NODE Node
-    )
-{
-    BOOLEAN show;
-    ULONG i;
-
-    show = TRUE;
-
-    if (ProcessTreeFilterList)
-    {
-        for (i = 0; i < ProcessTreeFilterList->Count; i++)
-        {
-            PPH_PROCESS_TREE_FILTER_ENTRY entry;
-
-            entry = ProcessTreeFilterList->Items[i];
-
-            if (!entry->Filter(Node, entry->Context))
-            {
-                show = FALSE;
-                break;
-            }
-        }
-    }
-
-    return show;
-}
-
-VOID PhApplyProcessTreeFilters(
-    VOID
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < ProcessNodeList->Count; i++)
-    {
-        PPH_PROCESS_NODE node;
-
-        node = ProcessNodeList->Items[i];
-        node->Node.Visible = PhpApplyProcessTreeFiltersToNode(node);
-
-        if (!node->Node.Visible && node->Node.Selected)
-        {
-            node->Node.Selected = FALSE;
-        }
-    }
-
-    TreeNew_NodesStructured(ProcessTreeListHandle);
 }
 
 VOID PhpPopulateTableWithProcessNodes(
