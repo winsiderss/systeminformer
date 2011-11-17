@@ -85,8 +85,11 @@ typedef struct _LDR_DDAG_NODE32
     ULONG LoadCount;
     ULONG ReferenceCount;
     ULONG DependencyCount;
-    LDRP_CSLIST32 Dependencies;
-    SINGLE_LIST_ENTRY32 RemovalLink;
+    union
+    {
+        LDRP_CSLIST32 Dependencies;
+        SINGLE_LIST_ENTRY32 RemovalLink;
+    };
     LDRP_CSLIST32 IncomingDependencies;
     LDR_DDAG_STATE State;
     SINGLE_LIST_ENTRY32 CondenseLink;
