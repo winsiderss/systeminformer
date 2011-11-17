@@ -13,7 +13,6 @@ Process Hacker
  * FIXED:
    * Fixed retrieval of version information for certain files
    * Fixed driver file names on Windows XP
-   * Fixed unloading of modules on Windows 8
 
 2.23
  * NEW/IMPROVED:
