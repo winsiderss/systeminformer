@@ -3823,6 +3823,8 @@ VOID PhSipUpdateIoPanel(
     VOID
     )
 {
+    // I/O Deltas
+
     if (IoTicked > 1)
     {
         SetDlgItemText(IoPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(IoReadDelta.Delta, TRUE)->Buffer);
@@ -3848,6 +3850,15 @@ VOID PhSipUpdateIoPanel(
         SetDlgItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, L"-");
         SetDlgItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, L"-");
     }
+
+    // I/O Totals
+
+    SetDlgItemText(IoPanel, IDC_ZREADS_V, PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
+    SetDlgItemText(IoPanel, IDC_ZREADBYTES_V, PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, -1)->Buffer);
+    SetDlgItemText(IoPanel, IDC_ZWRITES_V, PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
+    SetDlgItemText(IoPanel, IDC_ZWRITEBYTES_V, PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, -1)->Buffer);
+    SetDlgItemText(IoPanel, IDC_ZOTHER_V, PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
+    SetDlgItemText(IoPanel, IDC_ZOTHERBYTES_V, PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, -1)->Buffer);
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
