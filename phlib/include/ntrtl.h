@@ -1,10 +1,6 @@
 #ifndef _NTRTL_H
 #define _NTRTL_H
 
-#include <ntldr.h>
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 // Linked lists
 
 FORCEINLINE VOID InitializeListHead(
@@ -146,8 +142,6 @@ typedef enum _RTL_GENERIC_COMPARE_RESULTS
     GenericGreaterThan,
     GenericEqual
 } RTL_GENERIC_COMPARE_RESULTS;
-
-struct _RTL_AVL_TABLE;
 
 typedef RTL_GENERIC_COMPARE_RESULTS (NTAPI *PRTL_AVL_COMPARE_ROUTINE)(
     __in struct _RTL_AVL_TABLE *Table,
@@ -550,6 +544,57 @@ NTAPI
 RtlIsGenericTableEmpty(
     __in PRTL_GENERIC_TABLE Table
     );
+
+// RB trees
+
+typedef struct _RTL_BALANCED_NODE
+{
+    union
+    {
+        struct _RTL_BALANCED_NODE *Children[2];
+        struct
+        {
+            struct _RTL_BALANCED_NODE *Left;
+            struct _RTL_BALANCED_NODE *Right;
+        };
+    };
+    union
+    {
+        ULONG_PTR Red : 1;
+        ULONG_PTR Balance : 2;
+        ULONG_PTR ParentValue;
+    };
+} RTL_BALANCED_NODE, *PRTL_BALANCED_NODE;
+
+typedef struct _RTL_RB_TREE
+{
+    PRTL_BALANCED_NODE Root;
+    PRTL_BALANCED_NODE Min;
+} RTL_RB_TREE, *PRTL_RB_TREE;
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlRbInsertNodeEx(
+    __in PRTL_RB_TREE Tree,
+    __in_opt PRTL_BALANCED_NODE Parent,
+    __in BOOLEAN Right,
+    __in PRTL_BALANCED_NODE Node
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlRbRemoveNode(
+    __in PRTL_RB_TREE Tree,
+    __in PRTL_BALANCED_NODE Node
+    );
+
+#endif
 
 // Hash tables
 
@@ -3480,9 +3525,6 @@ typedef struct _RTL_PROCESS_VERIFIER_OPTIONS
     UCHAR OptionData[1];
 } RTL_PROCESS_VERIFIER_OPTIONS, *PRTL_PROCESS_VERIFIER_OPTIONS;
 
-typedef struct RTL_PROCESS_BACKTRACES *PRTL_PROCESS_BACKTRACES;
-typedef struct RTL_PROCESS_LOCKS *PRTL_PROCESS_LOCKS;
-
 // private
 typedef struct _RTL_DEBUG_INFORMATION
 {
@@ -3500,12 +3542,12 @@ typedef struct _RTL_DEBUG_INFORMATION
     SIZE_T ViewSize;
     union
     {
-        PRTL_PROCESS_MODULES Modules;
-        PRTL_PROCESS_MODULE_INFORMATION_EX *ModulesEx;
+        struct _RTL_PROCESS_MODULES *Modules;
+        struct _RTL_PROCESS_MODULE_INFORMATION_EX *ModulesEx;
     };
-    PRTL_PROCESS_BACKTRACES BackTraces;
-    PRTL_PROCESS_HEAPS Heaps;
-    PRTL_PROCESS_LOCKS Locks;
+    struct _RTL_PROCESS_BACKTRACES *BackTraces;
+    struct _RTL_PROCESS_HEAPS *Heaps;
+    struct _RTL_PROCESS_LOCKS *Locks;
     PVOID SpecificHeap;
     HANDLE TargetProcessHandle;
     PRTL_PROCESS_VERIFIER_OPTIONS VerifierOptions;
@@ -5966,7 +6008,5 @@ RtlQueryPerformanceFrequency(
     __out PLARGE_INTEGER PerformanceFrequency
     );
 #endif
-
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

@@ -72,9 +72,10 @@ extern "C" {
 #include <ntpnpapi.h>
 #include <ntpoapi.h>
 #include <ntregapi.h>
+#include <ntrtl.h>
 #endif
 
-#include <ntrtl.h>
+#include <ntldr.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
