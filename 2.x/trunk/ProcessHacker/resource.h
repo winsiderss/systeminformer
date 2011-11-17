@@ -357,6 +357,7 @@
 #define IDC_ZGDIHANDLES_V               1196
 #define IDC_ZOTHERDELTA_V               1196
 #define IDC_ZUSERHANDLES_V              1197
+#define IDC_ZOTHER_V                    1197
 #define IDC_GROUPCPU                    1198
 #define IDC_GROUPPRIVATEBYTES           1199
 #define IDC_GROUPIO                     1200
@@ -493,10 +494,16 @@
 #define IDC_ZLISTSTANDBY0_V             1346
 #define IDC_ZWRITEBYTESDELTA_V          1346
 #define IDC_ZLISTSTANDBY1_V             1347
+#define IDC_ZREADS_V                    1347
 #define IDC_ZLISTSTANDBY2_V             1348
+#define IDC_ZREADBYTES_V                1348
 #define IDC_ZLISTSTANDBY3_V             1349
+#define IDC_ZWRITES_V                   1349
 #define IDC_ZLISTBAD_V                  1350
+#define IDC_ZWRITEBYTES_V               1350
 #define IDC_ZLISTREPURPOSED_V           1351
+#define IDC_ZOTHERBYTESDELTA_V2         1351
+#define IDC_ZOTHERBYTES_V               1351
 #define IDC_ZLISTREPURPOSED0_V          1352
 #define IDC_ZLISTREPURPOSED1_V          1353
 #define IDC_ZLISTREPURPOSED2_V          1354
