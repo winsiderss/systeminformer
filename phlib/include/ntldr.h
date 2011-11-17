@@ -3,17 +3,20 @@
 
 // DLLs
 
+// symbols
 typedef struct _LDR_SERVICE_TAG_RECORD
 {
     struct _LDR_SERVICE_TAG_RECORD *Next;
     ULONG ServiceTag;
 } LDR_SERVICE_TAG_RECORD, *PLDR_SERVICE_TAG_RECORD;
 
+// symbols
 typedef struct _LDRP_CSLIST
 {
     PSINGLE_LIST_ENTRY Tail;
 } LDRP_CSLIST, *PLDRP_CSLIST;
 
+// symbols
 typedef enum _LDR_DDAG_STATE
 {
     LdrModulesMerged = -5,
@@ -33,6 +36,7 @@ typedef enum _LDR_DDAG_STATE
     LdrModulesReadyToRun = 9
 } LDR_DDAG_STATE;
 
+// symbols
 typedef struct _LDR_DDAG_NODE
 {
     LIST_ENTRY Modules;
@@ -51,6 +55,15 @@ typedef struct _LDR_DDAG_NODE
     ULONG PreorderNumber;
     ULONG LowestLink;
 } LDR_DDAG_NODE, *PLDR_DDAG_NODE;
+
+// rev
+typedef struct _LDR_DEPENDENCY_RECORD
+{
+    SINGLE_LIST_ENTRY DependencyLink;
+    PLDR_DDAG_NODE DependencyNode;
+    SINGLE_LIST_ENTRY IncomingDependencyLink;
+    PLDR_DDAG_NODE IncomingDependencyNode;
+} LDR_DEPENDENCY_RECORD, *PLDR_DEPENDENCY_RECORD;
 
 #define LDRP_STATIC_LINK 0x00000002
 #define LDRP_IMAGE_DLL 0x00000004
