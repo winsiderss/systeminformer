@@ -3784,7 +3784,7 @@ typedef struct _SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT
 {
     NTSTATUS Status;
     PVOID BaseAddress;
-    USHORT LoadCount;
+    ULONG LoadCount;
 } SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT, *PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT;
 
 BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
@@ -3801,7 +3801,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
     {
         context->Status = PhWriteVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(AddressOfEntry, FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadCount)),
+            PTR_ADD_OFFSET(AddressOfEntry, FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ObsoleteLoadCount)),
             &context->LoadCount,
             sizeof(USHORT),
             NULL
@@ -3827,7 +3827,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
 NTSTATUS PhSetProcessModuleLoadCount(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __in USHORT LoadCount
+    __in ULONG LoadCount
     )
 {
     NTSTATUS status;
@@ -3978,7 +3978,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     UStr32ToUStr(&nativeEntry.FullDllName, &Entry->FullDllName);
     UStr32ToUStr(&nativeEntry.BaseDllName, &Entry->BaseDllName);
     nativeEntry.Flags = Entry->Flags;
-    nativeEntry.LoadCount = Entry->LoadCount;
+    nativeEntry.ObsoleteLoadCount = Entry->ObsoleteLoadCount;
     nativeEntry.TlsIndex = Entry->TlsIndex;
 
     mappedFileName = NULL;
@@ -4163,7 +4163,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
     {
         context->Status = PhWriteVirtualMemory(
             ProcessHandle,
-            UlongToPtr(AddressOfEntry + FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, LoadCount)),
+            UlongToPtr(AddressOfEntry + FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount)),
             &context->LoadCount,
             sizeof(USHORT),
             NULL
@@ -4194,7 +4194,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
 NTSTATUS PhSetProcessModuleLoadCount32(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __in USHORT LoadCount
+    __in ULONG LoadCount
     )
 {
     NTSTATUS status;
@@ -5762,7 +5762,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     moduleInfo.Name = PhCreateStringEx(Module->BaseDllName.Buffer, Module->BaseDllName.Length);
     moduleInfo.FileName = PhGetFileName(fileName);
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
-    moduleInfo.LoadCount = Module->LoadCount;
+    moduleInfo.LoadCount = Module->ObsoleteLoadCount;
 
     PhDereferenceObject(fileName);
 
