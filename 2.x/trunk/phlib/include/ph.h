@@ -571,7 +571,7 @@ PHLIBAPI
 NTSTATUS PhSetProcessModuleLoadCount(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __in USHORT LoadCount
+    __in ULONG LoadCount
     );
 
 PHLIBAPI
@@ -591,7 +591,7 @@ PHLIBAPI
 NTSTATUS PhSetProcessModuleLoadCount32(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __in USHORT LoadCount
+    __in ULONG LoadCount
     );
 
 PHLIBAPI

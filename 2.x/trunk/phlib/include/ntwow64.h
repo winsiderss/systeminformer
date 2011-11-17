@@ -29,6 +29,31 @@ typedef enum _WOW64_SHARED_INFORMATION
 
 #define WOW64_POINTER(Type) ULONG
 
+typedef struct _RTL_BALANCED_NODE32
+{
+    union
+    {
+        WOW64_POINTER(struct _RTL_BALANCED_NODE *) Children[2];
+        struct
+        {
+            WOW64_POINTER(struct _RTL_BALANCED_NODE *) Left;
+            WOW64_POINTER(struct _RTL_BALANCED_NODE *) Right;
+        };
+    };
+    union
+    {
+        WOW64_POINTER(ULONG_PTR) Red : 1;
+        WOW64_POINTER(ULONG_PTR) Balance : 2;
+        WOW64_POINTER(ULONG_PTR) ParentValue;
+    };
+} RTL_BALANCED_NODE32, *PRTL_BALANCED_NODE32;
+
+typedef struct _RTL_RB_TREE32
+{
+    WOW64_POINTER(PRTL_BALANCED_NODE) Root;
+    WOW64_POINTER(PRTL_BALANCED_NODE) Min;
+} RTL_RB_TREE32, *PRTL_RB_TREE32;
+
 typedef struct _PEB_LDR_DATA32
 {
     ULONG Length;
@@ -42,43 +67,98 @@ typedef struct _PEB_LDR_DATA32
     WOW64_POINTER(HANDLE) ShutdownThreadId;
 } PEB_LDR_DATA32, *PPEB_LDR_DATA32;
 
-#define LDR_DATA_TABLE_ENTRY_SIZE_WINXP32 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ForwarderLinks)
+typedef struct _LDR_SERVICE_TAG_RECORD32
+{
+    WOW64_POINTER(struct _LDR_SERVICE_TAG_RECORD *) Next;
+    ULONG ServiceTag;
+} LDR_SERVICE_TAG_RECORD32, *PLDR_SERVICE_TAG_RECORD32;
+
+typedef struct _LDRP_CSLIST32
+{
+    WOW64_POINTER(PSINGLE_LIST_ENTRY) Tail;
+} LDRP_CSLIST32, *PLDRP_CSLIST32;
+
+typedef struct _LDR_DDAG_NODE32
+{
+    LIST_ENTRY32 Modules;
+    WOW64_POINTER(PLDR_SERVICE_TAG_RECORD) ServiceTagList;
+    ULONG LoadCount;
+    ULONG ReferenceCount;
+    ULONG DependencyCount;
+    LDRP_CSLIST32 Dependencies;
+    SINGLE_LIST_ENTRY32 RemovalLink;
+    LDRP_CSLIST32 IncomingDependencies;
+    LDR_DDAG_STATE State;
+    SINGLE_LIST_ENTRY32 CondenseLink;
+    ULONG PreorderNumber;
+    ULONG LowestLink;
+} LDR_DDAG_NODE32, *PLDR_DDAG_NODE32;
+
+#define LDR_DATA_TABLE_ENTRY_SIZE_WINXP32 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DdagNode)
 
 typedef struct _LDR_DATA_TABLE_ENTRY32
 {
     LIST_ENTRY32 InLoadOrderLinks;
     LIST_ENTRY32 InMemoryOrderLinks;
-    LIST_ENTRY32 InInitializationOrderLinks;
+    union
+    {
+        LIST_ENTRY32 InInitializationOrderLinks;
+        LIST_ENTRY32 InProgressLinks;
+    };
     WOW64_POINTER(PVOID) DllBase;
     WOW64_POINTER(PVOID) EntryPoint;
     ULONG SizeOfImage;
     UNICODE_STRING32 FullDllName;
     UNICODE_STRING32 BaseDllName;
-    ULONG Flags;
-    USHORT LoadCount;
-    USHORT TlsIndex;
     union
     {
-        LIST_ENTRY32 HashLinks;
+        UCHAR FlagGroup[4];
+        ULONG Flags;
         struct
         {
-            WOW64_POINTER(PVOID) SectionPointer;
-            ULONG CheckSum;
+            ULONG PackagedBinary : 1;
+            ULONG MarkedForRemoval : 1;
+            ULONG ImageDll : 1;
+            ULONG LoadNotificationsSent : 1;
+            ULONG TelemetryEntryProcessed : 1;
+            ULONG ProcessStaticImport : 1;
+            ULONG InLegacyLists : 1;
+            ULONG InIndexes : 1;
+            ULONG ShimDll : 1;
+            ULONG InExceptionTable : 1;
+            ULONG ReservedFlags1 : 2;
+            ULONG LoadInProgress : 1;
+            ULONG ReservedFlags2 : 1;
+            ULONG EntryProcessed : 1;
+            ULONG ReservedFlags3 : 3;
+            ULONG DontCallForThreads : 1;
+            ULONG ProcessAttachCalled : 1;
+            ULONG ProcessAttachFailed : 1;
+            ULONG CorDeferredValidate : 1;
+            ULONG CorImage : 1;
+            ULONG DontRelocate : 1;
+            ULONG CorILOnly : 1;
+            ULONG ReservedFlags5 : 3;
+            ULONG Redirected : 1;
+            ULONG ReservedFlags6 : 2;
+            ULONG CompatDatabaseProcessed : 1;
         };
     };
-    union
-    {
-        ULONG TimeDateStamp;
-        WOW64_POINTER(PVOID) LoadedImports;
-    };
-    WOW64_POINTER(PVOID) EntryPointActivationContext;
+    USHORT ObsoleteLoadCount;
+    USHORT TlsIndex;
+    LIST_ENTRY32 HashLinks;
+    ULONG TimeDateStamp;
+    WOW64_POINTER(struct _ACTIVATION_CONTEXT *) EntryPointActivationContext;
     WOW64_POINTER(PVOID) PatchInformation;
-    LIST_ENTRY32 ForwarderLinks;
-    LIST_ENTRY32 ServiceTagLinks;
-    LIST_ENTRY32 StaticLinks;
-    WOW64_POINTER(PVOID) ContextInformation;
+    WOW64_POINTER(PLDR_DDAG_NODE) DdagNode;
+    LIST_ENTRY32 NodeModuleLink;
+    WOW64_POINTER(struct _LDRP_DLL_SNAP_CONTEXT *) SnapContext;
+    WOW64_POINTER(PVOID) SwitchBackContext;
+    RTL_BALANCED_NODE32 BaseAddressIndexNode;
+    RTL_BALANCED_NODE32 MappingInfoIndexNode;
     WOW64_POINTER(ULONG_PTR) OriginalBase;
     LARGE_INTEGER LoadTime;
+    ULONG BaseNameHashValue;
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
 
 typedef struct _CURDIR32
