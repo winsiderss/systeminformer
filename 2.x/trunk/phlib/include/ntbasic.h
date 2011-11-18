@@ -113,6 +113,8 @@ typedef struct _UNICODE_STRING
 
 typedef const UNICODE_STRING *PCUNICODE_STRING;
 
+#define RTL_CONSTANT_STRING(s) { sizeof(s) - sizeof((s)[0]), sizeof(s), s }
+
 // Portability
 
 typedef struct _SINGLE_LIST_ENTRY32
@@ -172,6 +174,9 @@ typedef const OBJECT_ATTRIBUTES *PCOBJECT_ATTRIBUTES;
     (p)->SecurityDescriptor = s; \
     (p)->SecurityQualityOfService = NULL; \
     }
+
+#define RTL_CONSTANT_OBJECT_ATTRIBUTES(n, a) { sizeof(OBJECT_ATTRIBUTES), NULL, n, a, NULL, NULL }
+#define RTL_INIT_OBJECT_ATTRIBUTES(n, a) RTL_CONSTANT_OBJECT_ATTRIBUTES(n, a)
 
 // Portability
 
