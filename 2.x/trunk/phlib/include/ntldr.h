@@ -1,6 +1,8 @@
 #ifndef _NTLDR_H
 #define _NTLDR_H
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 // DLLs
 
 // symbols
@@ -163,8 +165,6 @@ typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(
     __in ULONG Reason,
     __in_opt PCONTEXT Context
     );
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 NTSYSAPI
 NTSTATUS
