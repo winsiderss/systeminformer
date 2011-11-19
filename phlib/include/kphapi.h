@@ -127,6 +127,39 @@ typedef enum _KPH_SECURITY_LEVEL
     KphMaxSecurityLevel
 } KPH_SECURITY_LEVEL, *PKPH_SECURITY_LEVEL;
 
+typedef struct _KPH_DYN_STRUCT_DATA
+{
+    SHORT EgeGuid;
+    SHORT EpObjectTable;
+    SHORT EpProtectedProcessOff;
+    SHORT EpProtectedProcessBit;
+    SHORT EpRundownProtect;
+    SHORT EreGuidEntry;
+    SHORT HtHandleContentionEvent;
+    SHORT OtName;
+    SHORT OtIndex;
+} KPH_DYN_STRUCT_DATA, *PKPH_DYN_STRUCT_DATA;
+
+typedef struct _KPH_DYN_PACKAGE
+{
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT ServicePackMajor; // -1 to ignore
+    USHORT BuildNumber; // -1 to ignore
+    ULONG ResultingNtVersion; // PHNT_*
+    KPH_DYN_STRUCT_DATA StructData;
+} KPH_DYN_PACKAGE, *PKPH_DYN_PACKAGE;
+
+#define KPH_DYN_CONFIGURATION_VERSION 1
+#define KPH_DYN_MAXIMUM_PACKAGES 64
+
+typedef struct _KPH_DYN_CONFIGURATION
+{
+    ULONG Version;
+    ULONG NumberOfPackages;
+    KPH_DYN_PACKAGE Packages[1];
+} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
+
 // Features
 
 // No features defined.

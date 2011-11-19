@@ -35,6 +35,12 @@
     ((scan)->ProcedureAddress = NULL), \
     bytes \
     )
+#define C_2sTo4(x) ((unsigned int)(signed short)(x))
+
+NTSTATUS KphpLoadDynamicConfiguration(
+    __in PVOID Buffer,
+    __in ULONG Length
+    );
 
 #ifdef _X86_
 
@@ -52,6 +58,8 @@ NTSTATUS KphpAmd64DataInitialization(
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KphDynamicDataInitialization)
+#pragma alloc_text(PAGE, KphReadDynamicDataParameters)
+#pragma alloc_text(PAGE, KphpLoadDynamicConfiguration)
 #ifdef _X86_
 #pragma alloc_text(PAGE, KphpX86DataInitialization)
 #else
@@ -113,25 +121,6 @@ static UCHAR PspTerminateThreadByPointer61Bytes[] =
     0xbe, 0x80, 0x02, 0x00, 0x00, 0xf6, 0x07, 0x40
 };
 
-#else
-
-// AMD64
-
-static UCHAR PsTerminateProcess61Bytes[] =
-{
-    0x48, 0x89, 0x5c, 0x24, 0x08, 0x48, 0x89, 0x74,
-    0x24, 0x10, 0x57, 0x48, 0x83, 0xec, 0x20, 0x65,
-    0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00,
-    0x4c, 0x8b, 0xd1, 0xbe, 0x01, 0x00, 0x00, 0x00
-};
-static UCHAR PspTerminateThreadByPointer61Bytes[] =
-{
-    0x48, 0x89, 0x5c, 0x24, 0x08, 0x48, 0x89, 0x6c,
-    0x24, 0x10, 0x48, 0x89, 0x74, 0x24, 0x18, 0x57,
-    0x48, 0x83, 0xec, 0x40, 0xf6, 0x81, 0x48, 0x04,
-    0x00, 0x00, 0x40, 0x41, 0x8a, 0xf0, 0x8b, 0xea
-};
-
 #endif
 
 NTSTATUS KphDynamicDataInitialization(
@@ -153,10 +142,128 @@ NTSTATUS KphDynamicDataInitialization(
 #ifdef _X86_
     KphpX86DataInitialization();
 #else
-    KphpAmd64DataInitialization();
+    // AMD64 data is read from the registry, but we use the fallback 
+    // function here if needed.
+    if (KphDynNtVersion == 0)
+        KphpAmd64DataInitialization();
 #endif
 
     return status;
+}
+
+NTSTATUS KphReadDynamicDataParameters(
+    __in_opt HANDLE KeyHandle
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING valueName;
+    PKEY_VALUE_PARTIAL_INFORMATION info;
+    ULONG resultLength;
+
+    PAGED_CODE();
+
+    if (!KeyHandle)
+        return STATUS_UNSUCCESSFUL;
+
+    RtlInitUnicodeString(&valueName, L"DynamicConfiguration");
+
+    status = ZwQueryValueKey(
+        KeyHandle,
+        &valueName,
+        KeyValuePartialInformation,
+        NULL,
+        0,
+        &resultLength
+        );
+
+    if (status != STATUS_BUFFER_OVERFLOW && status != STATUS_BUFFER_TOO_SMALL)
+    {
+        // Unexpected status; fail now.
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    info = ExAllocatePoolWithTag(PagedPool, resultLength, 'ThpK');
+
+    if (!info)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    status = ZwQueryValueKey(
+        KeyHandle,
+        &valueName,
+        KeyValuePartialInformation,
+        info,
+        resultLength,
+        &resultLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (info->Type == REG_BINARY)
+            status = KphpLoadDynamicConfiguration(info->Data, info->DataLength);
+        else
+            status = STATUS_OBJECT_TYPE_MISMATCH;
+
+        if (!NT_SUCCESS(status))
+            dprintf("Unable to load dynamic configuration: 0x%x\n", status);
+    }
+
+    ExFreePoolWithTag(info, 'ThpK');
+
+    return status;
+}
+
+NTSTATUS KphpLoadDynamicConfiguration(
+    __in PVOID Buffer,
+    __in ULONG Length
+    )
+{
+    PKPH_DYN_CONFIGURATION config;
+    ULONG i;
+    PKPH_DYN_PACKAGE package;
+
+    PAGED_CODE();
+
+    config = Buffer;
+
+    if (Length < FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages))
+        return STATUS_INVALID_PARAMETER;
+    if (config->Version != KPH_DYN_CONFIGURATION_VERSION)
+        return STATUS_INVALID_PARAMETER;
+    if (config->NumberOfPackages > KPH_DYN_MAXIMUM_PACKAGES)
+        return STATUS_INVALID_PARAMETER;
+    if (Length < FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages) + config->NumberOfPackages * sizeof(KPH_DYN_PACKAGE))
+        return STATUS_INVALID_PARAMETER;
+
+    dprintf("Loading dynamic configuration with %u package(s)\n", config->NumberOfPackages);
+
+    for (i = 0; i < config->NumberOfPackages; i++)
+    {
+        package = &config->Packages[i];
+
+        if (package->MajorVersion == KphDynOsVersionInfo.dwMajorVersion &&
+            package->MinorVersion == KphDynOsVersionInfo.dwMinorVersion &&
+            (package->ServicePackMajor == -1 || package->ServicePackMajor == KphDynOsVersionInfo.wServicePackMajor) &&
+            (package->BuildNumber == -1 || package->BuildNumber == KphDynOsVersionInfo.dwBuildNumber))
+        {
+            dprintf("Found matching package at index %u for Windows %u.%u\n", i, package->MajorVersion, package->MinorVersion);
+
+            KphDynNtVersion = package->ResultingNtVersion;
+
+            KphDynEgeGuid = C_2sTo4(package->StructData.EgeGuid);
+            KphDynEpObjectTable = C_2sTo4(package->StructData.EpObjectTable);
+            KphDynEpProtectedProcessOff = C_2sTo4(package->StructData.EpProtectedProcessOff);
+            KphDynEpProtectedProcessBit = C_2sTo4(package->StructData.EpProtectedProcessBit);
+            KphDynEpRundownProtect = C_2sTo4(package->StructData.EpRundownProtect);
+            KphDynEreGuidEntry = C_2sTo4(package->StructData.EreGuidEntry);
+            KphDynHtHandleContentionEvent = C_2sTo4(package->StructData.HtHandleContentionEvent);
+            KphDynOtName = C_2sTo4(package->StructData.OtName);
+            KphDynOtIndex = C_2sTo4(package->StructData.OtIndex);
+
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return STATUS_NOT_FOUND;
 }
 
 #ifdef _X86_
@@ -465,36 +572,21 @@ static NTSTATUS KphpAmd64DataInitialization(
 
         if (servicePack == 0)
         {
-            KphDynOtName = 0x78;
-            KphDynOtIndex = 0x90;
         }
         else if (servicePack == 1)
         {
-            KphDynOtName = 0x10;
-            KphDynOtIndex = 0x28;
         }
         else if (servicePack == 2)
         {
-            KphDynOtName = 0x10;
-            KphDynOtIndex = 0x28;
         }
         else
         {
             return STATUS_NOT_SUPPORTED;
         }
-
-        KphDynEgeGuid = 0x14;
-        KphDynEpObjectTable = 0x160;
-        KphDynEpProtectedProcessOff = 0x36c;
-        KphDynEpProtectedProcessBit = 0xb;
-        KphDynEpRundownProtect = 0xd8;
-        KphDynEreGuidEntry = 0x10;
     }
     // Windows 7, Windows Server 2008 R2
     else if (majorVersion == 6 && minorVersion == 1)
     {
-        //ULONG_PTR searchOffset = (ULONG_PTR)KphGetSystemRoutineAddress(L"ObQueryNameString");
-
         KphDynNtVersion = PHNT_WIN7;
 
         if (servicePack == 0)
@@ -507,36 +599,21 @@ static NTSTATUS KphpAmd64DataInitialization(
         {
             return STATUS_NOT_SUPPORTED;
         }
-
-        KphDynEgeGuid = 0x14;
-        KphDynEpObjectTable = 0x200;
-        KphDynEpProtectedProcessOff = 0x43c;
-        KphDynEpProtectedProcessBit = 0xb;
-        KphDynEpRundownProtect = 0x178;
-        KphDynEreGuidEntry = 0x10;
-        KphDynOtName = 0x10;
-        KphDynOtIndex = 0x28; // now only a UCHAR, not a ULONG
-
-        // Disabled for now because they aren't really necessary on x64.
-        //if (searchOffset)
-        //{
-        //    INIT_SCAN(
-        //        &KphDynPsTerminateProcessScan,
-        //        PsTerminateProcess61Bytes,
-        //        sizeof(PsTerminateProcess61Bytes),
-        //        searchOffset, 0x100000, 0
-        //        );
-        //    INIT_SCAN(
-        //        &KphDynPspTerminateThreadByPointerScan,
-        //        PspTerminateThreadByPointer61Bytes,
-        //        sizeof(PspTerminateThreadByPointer61Bytes),
-        //        searchOffset, 0x100000, 0
-        //        );
-        //}
-
-        dprintf("Initialized version-specific data for Windows 7 SP%d\n", servicePack);
     }
-    else if (majorVersion == 6 && minorVersion > 1 || majorVersion > 6)
+    // Windows 8
+    else if (majorVersion == 6 && minorVersion == 2)
+    {
+        KphDynNtVersion = PHNT_WIN8;
+
+        if (servicePack == 0)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+    else if (majorVersion == 6 && minorVersion > 2 || majorVersion > 6)
     {
         KphDynNtVersion = 0xffffffff;
         return STATUS_NOT_SUPPORTED;

@@ -228,6 +228,7 @@
     <ClCompile Include="..\phlib\icotobmp.c" />
     <ClCompile Include="..\phlib\iosup.c" />
     <ClCompile Include="..\phlib\kph.c" />
+    <ClCompile Include="..\phlib\kphdata.c" />
     <ClCompile Include="..\phlib\lsa.c" />
     <ClCompile Include="..\phlib\mapimg.c" />
     <ClCompile Include="..\phlib\maplib.c" />

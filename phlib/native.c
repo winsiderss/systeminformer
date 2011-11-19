@@ -371,6 +371,7 @@ NTSTATUS PhTerminateThread(
     __in NTSTATUS ExitStatus
     )
 {
+#ifndef _M_X64
     NTSTATUS status;
 
     if (KphIsConnected())
@@ -383,6 +384,7 @@ NTSTATUS PhTerminateThread(
         if (status != STATUS_NOT_SUPPORTED)
             return status;
     }
+#endif
 
     return NtTerminateThread(
         ThreadHandle,

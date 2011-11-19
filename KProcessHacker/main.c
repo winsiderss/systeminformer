@@ -271,6 +271,8 @@ NTSTATUS KphpReadDriverParameters(
     RtlInitUnicodeString(&valueName, L"DisableDynamicProcedureScan");
     KphParameters.DisableDynamicProcedureScan = KphpReadIntegerParameter(parametersKeyHandle, &valueName, FALSE);
 
+    KphReadDynamicDataParameters(parametersKeyHandle);
+
     if (parametersKeyHandle)
         ZwClose(parametersKeyHandle);
 

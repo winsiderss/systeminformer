@@ -50,6 +50,7 @@ EXT RTL_OSVERSIONINFOEXW KphDynOsVersionInfo;
 // Ep: EPROCESS
 // Ere: ETW_REG_ENTRY
 // Et: ETHREAD
+// Ht: HANDLE_TABLE
 // Oh: OBJECT_HEADER
 // Ot: OBJECT_TYPE
 // Oti: OBJECT_TYPE_INITIALIZER, offset measured from an OBJECT_TYPE
@@ -59,6 +60,7 @@ EXT ULONG KphDynEpProtectedProcessOff OFFDEFAULT;
 EXT ULONG KphDynEpProtectedProcessBit OFFDEFAULT;
 EXT ULONG KphDynEpRundownProtect OFFDEFAULT;
 EXT ULONG KphDynEreGuidEntry OFFDEFAULT;
+EXT ULONG KphDynHtHandleContentionEvent OFFDEFAULT;
 EXT ULONG KphDynOtName OFFDEFAULT;
 EXT ULONG KphDynOtIndex OFFDEFAULT;
 
@@ -68,6 +70,10 @@ EXT KPH_PROCEDURE_SCAN KphDynPspTerminateThreadByPointerScan;
 
 NTSTATUS KphDynamicDataInitialization(
     VOID
+    );
+
+NTSTATUS KphReadDynamicDataParameters(
+    __in_opt HANDLE KeyHandle
     );
 
 PVOID KphGetDynamicProcedureScan(
