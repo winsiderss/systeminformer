@@ -40,7 +40,14 @@ typedef struct _KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT
     NTSTATUS Status;
 } KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT, *PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT;
 
+BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
+    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
+    __in HANDLE Handle,
+    __in PVOID Context
+    );
+
 BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
+    __in PHANDLE_TABLE HandleTable,
     __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
     __in HANDLE Handle,
     __in PVOID Context
@@ -50,6 +57,8 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
 #pragma alloc_text(PAGE, KphGetObjectType)
 #pragma alloc_text(PAGE, KphReferenceProcessHandleTable)
 #pragma alloc_text(PAGE, KphDereferenceProcessHandleTable)
+#pragma alloc_text(PAGE, KphUnlockHandleTableEntry)
+#pragma alloc_text(PAGE, KphpEnumerateProcessHandlesEnumCallback61)
 #pragma alloc_text(PAGE, KphpEnumerateProcessHandlesEnumCallback)
 #pragma alloc_text(PAGE, KpiEnumerateProcessHandles)
 #pragma alloc_text(PAGE, KphQueryNameObject)
@@ -60,9 +69,6 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
 #pragma alloc_text(PAGE, KpiDuplicateObject)
 #pragma alloc_text(PAGE, KphOpenNamedObject)
 #endif
-
-/* This attribute is now stored in the GrantedAccess field. */
-ULONG ObpAccessProtectCloseBit = 0x2000000;
 
 /**
  * Gets the type of an object.
@@ -152,7 +158,32 @@ VOID KphDereferenceProcessHandleTable(
     KphReleaseProcessRundownProtection(Process);
 }
 
-BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
+VOID KphUnlockHandleTableEntry(
+    __in PHANDLE_TABLE HandleTable,
+    __in PHANDLE_TABLE_ENTRY HandleTableEntry
+    )
+{
+    PEX_PUSH_LOCK handleContentionEvent;
+
+    PAGED_CODE();
+
+    // Set the unlocked bit.
+
+#ifdef _M_X64
+    InterlockedExchangeAdd64(&HandleTableEntry->Value, 1);
+#else
+    InterlockedExchangeAdd(&HandleTableEntry->Value, 1);
+#endif
+
+    // Allow waiters to wake up.
+
+    handleContentionEvent = (PEX_PUSH_LOCK)((ULONG_PTR)HandleTable + KphDynHtHandleContentionEvent);
+
+    if (*(PULONG_PTR)handleContentionEvent != 0)
+        ExfUnblockPushLock_I(handleContentionEvent, NULL);
+}
+
+BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
     __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
     __in HANDLE Handle,
     __in PVOID Context
@@ -221,6 +252,23 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
     return FALSE;
 }
 
+BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
+    __in PHANDLE_TABLE HandleTable,
+    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
+    __in HANDLE Handle,
+    __in PVOID Context
+    )
+{
+    BOOLEAN result;
+
+    PAGED_CODE();
+
+    result = KphpEnumerateProcessHandlesEnumCallback61(HandleTableEntry, Handle, Context);
+    KphUnlockHandleTableEntry(HandleTable, HandleTableEntry);
+
+    return result;
+}
+
 /**
  * Enumerates the handles of a process.
  *
@@ -247,6 +295,12 @@ NTSTATUS KpiEnumerateProcessHandles(
     KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
 
     PAGED_CODE();
+
+    if (KphDynNtVersion >= PHNT_WIN8 &&
+        (!ExfUnblockPushLock_I || KphDynHtHandleContentionEvent == -1))
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
 
     if (AccessMode != KernelMode)
     {
@@ -293,12 +347,26 @@ NTSTATUS KpiEnumerateProcessHandles(
     context.Status = STATUS_SUCCESS;
 
     // Enumerate the handles.
-    result = ExEnumHandleTable(
-        handleTable,
-        KphpEnumerateProcessHandlesEnumCallback,
-        &context,
-        NULL
-        );
+
+    if (KphDynNtVersion >= PHNT_WIN8)
+    {
+        result = ExEnumHandleTable(
+            handleTable,
+            KphpEnumerateProcessHandlesEnumCallback,
+            &context,
+            NULL
+            );
+    }
+    else
+    {
+        result = ExEnumHandleTable(
+            handleTable,
+            (PEX_ENUM_HANDLE_CALLBACK)KphpEnumerateProcessHandlesEnumCallback61,
+            &context,
+            NULL
+            );
+    }
+
     KphDereferenceProcessHandleTable(process);
     ObDereferenceObject(process);
 

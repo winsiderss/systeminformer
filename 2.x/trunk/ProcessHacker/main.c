@@ -443,11 +443,19 @@ VOID PhInitializeKph(
 {
     static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
     PPH_STRING kprocesshackerFileName;
+    KPH_PARAMETERS parameters;
 
     // Append kprocesshacker.sys to the application directory.
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
 
-    KphConnect2(L"KProcessHacker2", kprocesshackerFileName->Buffer);
+    parameters.SecurityLevel = KphSecurityPrivilegeCheck;
+#ifdef _M_X64
+    parameters.CreateDynamicConfiguration = TRUE;
+#else
+    parameters.CreateDynamicConfiguration = FALSE;
+#endif
+
+    KphConnect2Ex(L"KProcessHacker2", kprocesshackerFileName->Buffer, &parameters);
     PhDereferenceObject(kprocesshackerFileName);
 
     if (KphIsConnected())
@@ -801,10 +809,14 @@ VOID PhpProcessStartupParameters(
     {
         NTSTATUS status;
         PPH_STRING kprocesshackerFileName;
+        KPH_PARAMETERS parameters;
 
         kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, L"\\kprocesshacker.sys");
 
-        status = KphInstall(L"KProcessHacker2", kprocesshackerFileName->Buffer);
+        parameters.SecurityLevel = KphSecurityNone;
+        parameters.CreateDynamicConfiguration = TRUE;
+
+        status = KphInstallEx(L"KProcessHacker2", kprocesshackerFileName->Buffer, &parameters);
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to install KProcessHacker", status, 0);

@@ -171,6 +171,7 @@
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="iosup.c" />
     <ClCompile Include="kph.c" />
+    <ClCompile Include="kphdata.c" />
     <ClCompile Include="lsa.c" />
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />

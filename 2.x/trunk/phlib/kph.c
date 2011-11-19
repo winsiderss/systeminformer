@@ -300,6 +300,24 @@ NTSTATUS KphSetParameters(
     if (!NT_SUCCESS(status))
         goto SetValuesEnd;
 
+    if (Parameters->CreateDynamicConfiguration)
+    {
+        KPH_DYN_CONFIGURATION configuration;
+
+        RtlInitUnicodeString(&valueName, L"DynamicConfiguration");
+
+        configuration.Version = KPH_DYN_CONFIGURATION_VERSION;
+        configuration.NumberOfPackages = 1;
+
+        if (NT_SUCCESS(KphInitializeDynamicPackage(&configuration.Packages[0])))
+        {
+            status = NtSetValueKey(parametersKeyHandle, &valueName, 0, REG_BINARY, &configuration, sizeof(KPH_DYN_CONFIGURATION));
+
+            if (!NT_SUCCESS(status))
+                goto SetValuesEnd;
+        }
+    }
+
     // Put more parameters here...
 
 SetValuesEnd:
