@@ -6,6 +6,7 @@
 typedef struct _KPH_PARAMETERS
 {
     KPH_SECURITY_LEVEL SecurityLevel;
+    BOOLEAN CreateDynamicConfiguration;
 } KPH_PARAMETERS, *PKPH_PARAMETERS;
 
 PHLIBAPI
@@ -334,6 +335,12 @@ KphQueryInformationDriver(
     __out_bcount(DriverInformationLength) PVOID DriverInformation,
     __in ULONG DriverInformationLength,
     __out_opt PULONG ReturnLength
+    );
+
+// kphdata
+
+NTSTATUS KphInitializeDynamicPackage(
+    __out PKPH_DYN_PACKAGE Package
     );
 
 #endif

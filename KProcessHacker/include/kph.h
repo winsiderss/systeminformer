@@ -56,6 +56,7 @@ NTSTATUS KphDispatchDeviceControl(
 
 // dynimp
 
+extern _ExfUnblockPushLock ExfUnblockPushLock_I;
 extern _ObGetObjectType ObGetObjectType_I;
 extern _PsAcquireProcessExitSynchronization PsAcquireProcessExitSynchronization_I;
 extern _PsIsProtectedProcess PsIsProtectedProcess_I;
@@ -83,6 +84,11 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
 
 VOID KphDereferenceProcessHandleTable(
     __in PEPROCESS Process
+    );
+
+VOID KphUnlockHandleTableEntry(
+    __in PHANDLE_TABLE HandleTable,
+    __in PHANDLE_TABLE_ENTRY HandleTableEntry
     );
 
 NTSTATUS KpiEnumerateProcessHandles(

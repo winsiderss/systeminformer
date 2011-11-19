@@ -59,6 +59,13 @@ KeInsertQueueApc(
 
 // EX
 
+typedef struct _EX_PUSH_LOCK_WAIT_BLOCK *PEX_PUSH_LOCK_WAIT_BLOCK;
+
+typedef VOID (FASTCALL *_ExfUnblockPushLock)(
+    __inout PEX_PUSH_LOCK PushLock,
+    __inout_opt PEX_PUSH_LOCK_WAIT_BLOCK WaitBlock
+    );
+
 typedef struct _HANDLE_TABLE_ENTRY
 {
     union
@@ -76,7 +83,15 @@ typedef struct _HANDLE_TABLE_ENTRY
 
 typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
 
+typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK_61)(
+    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
+    __in HANDLE Handle,
+    __in PVOID Context
+    );
+
+// since WIN8
 typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK)(
+    __in PHANDLE_TABLE HandleTable,
     __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
     __in HANDLE Handle,
     __in PVOID Context
@@ -107,15 +122,37 @@ ZwQuerySystemInformation(
 #define OBJ_PROTECT_CLOSE 0x00000001
 #define OBJ_HANDLE_ATTRIBUTES (OBJ_PROTECT_CLOSE | OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)
 
+// This attribute is now stored in the GrantedAccess field.
+#define ObpAccessProtectCloseBit 0x2000000
+
 #define ObpDecodeGrantedAccess(Access) \
     ((Access) & ~ObpAccessProtectCloseBit)
+
+#ifdef _M_X64
+#define ObpDecodeObject(Object) \
+    (KphDynNtVersion >= PHNT_WIN8 ? \
+    (PVOID)(((LONG_PTR)(Object) >> 19) & ~(ULONG_PTR)0xf) : \
+    (PVOID)((ULONG_PTR)(Object) & ~OBJ_HANDLE_ATTRIBUTES))
+#else
 #define ObpDecodeObject(Object) \
     ((PVOID)((ULONG_PTR)(Object) & ~OBJ_HANDLE_ATTRIBUTES))
+#endif
+
+#ifdef _M_X64
+#define ObpGetHandleAttributes(HandleTableEntry) \
+    (KphDynNtVersion >= PHNT_WIN8 ? \
+    ((ULONG)((HandleTableEntry)->Value >> 20) & 0x3) : \
+    (((HandleTableEntry)->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) | \
+    (((HandleTableEntry)->GrantedAccess & ObpAccessProtectCloseBit) ? \
+    OBJ_PROTECT_CLOSE : 0) \
+    ))
+#else
 #define ObpGetHandleAttributes(HandleTableEntry) \
     (((HandleTableEntry)->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) | \
     (((HandleTableEntry)->GrantedAccess & ObpAccessProtectCloseBit) ? \
     OBJ_PROTECT_CLOSE : 0) \
     )
+#endif
 
 typedef struct _OBJECT_CREATE_INFORMATION OBJECT_CREATE_INFORMATION, *POBJECT_CREATE_INFORMATION;
 
