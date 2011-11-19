@@ -173,10 +173,22 @@ static void __cdecl WorkerThreadStart(
 
 		Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
 
-		{
-			PPH_STRING sText = PhFormatString(L"\\%s", LocalFileNameString->Buffer);
+        {
+            PPH_STRING sText = PhFormatString(L"\\%s", LocalFileNameString->Buffer);
 
-			LocalFilePathString = PhGetKnownLocation(CSIDL_DESKTOP, sText->Buffer);
+            UINT dwRetVal = 0;
+            TCHAR lpTempPathBuffer[MAX_PATH];
+
+            // Get the temp path env string (no guarantee it's a valid path).
+            dwRetVal = GetTempPath(MAX_PATH, lpTempPathBuffer);
+
+            if (dwRetVal > MAX_PATH || dwRetVal == 0)
+            {
+                OutputDebugString(L"GetTempPath failed");
+                return;
+            }	
+
+            LocalFilePathString = PhConcatStrings2(lpTempPathBuffer, sText->Buffer);
 
 			PhDereferenceObject(sText);
 
@@ -307,8 +319,8 @@ static void __cdecl DownloadWorkerThreadStart(
                 // Update our total bytes downloaded
                 dwTotalReadSize += dwBytesRead;
 
-                // Update the transfer rate and estimated time every 200ms.
-                if (dwTimeTaken > 200)
+                // Update the transfer rate and estimated time every 100ms.
+                if (dwTimeTaken > 100)
                 {
                     ULONG64 kbPerSecond = (ULONG64)(((double)(dwTotalReadSize) - (double)(dwLastTotalBytes)) / ((double)(dwTimeTaken)) * 1024);
                     INT dwSecondsLeft =  (INT)(((double)dwNowTicks - dwStartTicks) / dwTotalReadSize * (dwContentLen - dwTotalReadSize) / 1000);
@@ -441,7 +453,7 @@ static void __cdecl DownloadWorkerThreadStart(
 	{
 		LogEvent(hwndDlg, PhFormatString(L"HttpSendRequest failed (%d)", GetLastError()));
 
-		// Enable the Install button.
+		// Enable the 'Retry' button.
 		Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
 		Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
 
