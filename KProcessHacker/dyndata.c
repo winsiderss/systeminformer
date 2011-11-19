@@ -242,8 +242,8 @@ NTSTATUS KphpLoadDynamicConfiguration(
 
         if (package->MajorVersion == KphDynOsVersionInfo.dwMajorVersion &&
             package->MinorVersion == KphDynOsVersionInfo.dwMinorVersion &&
-            (package->ServicePackMajor == -1 || package->ServicePackMajor == KphDynOsVersionInfo.wServicePackMajor) &&
-            (package->BuildNumber == -1 || package->BuildNumber == KphDynOsVersionInfo.dwBuildNumber))
+            (package->ServicePackMajor == (USHORT)-1 || package->ServicePackMajor == KphDynOsVersionInfo.wServicePackMajor) &&
+            (package->BuildNumber == (USHORT)-1 || package->BuildNumber == KphDynOsVersionInfo.dwBuildNumber))
         {
             dprintf("Found matching package at index %u for Windows %u.%u\n", i, package->MajorVersion, package->MinorVersion);
 
