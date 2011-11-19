@@ -35,14 +35,13 @@ HANDLE PhSvcApiPortHandle;
 ULONG PhSvcApiNumberOfClients = 0;
 
 NTSTATUS PhSvcApiPortInitialization(
-    __in PPH_STRINGREF PortName
+    __in PUNICODE_STRING PortName
     )
 {
     static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
 
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectName;
     PSECURITY_DESCRIPTOR securityDescriptor;
     ULONG sdAllocationLength;
     UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
@@ -52,8 +51,6 @@ NTSTATUS PhSvcApiPortInitialization(
     HANDLE threadHandle;
 
     // Create the API port.
-
-    objectName = PortName->us;
 
     administratorsSid = (PSID)administratorsSidBuffer;
     RtlInitializeSid(administratorsSid, &ntAuthority, 2);
@@ -78,7 +75,7 @@ NTSTATUS PhSvcApiPortInitialization(
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &objectName,
+        PortName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         securityDescriptor

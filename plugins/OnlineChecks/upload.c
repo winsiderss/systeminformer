@@ -178,7 +178,7 @@ static NTSTATUS UploadWorkerThreadStart(
     HINTERNET requestHandle = NULL;
     PPH_STRING boundary = NULL;
     PPH_ANSI_STRING boundaryAnsi = NULL;
-    PPH_FULL_STRING headers = NULL;
+    PH_STRING_BUILDER headers = { 0 };
     PPH_ANSI_STRING baseFileNameAnsi;
     PUCHAR data = NULL;
     ULONG dataLength = 0;
@@ -397,20 +397,20 @@ static NTSTATUS UploadWorkerThreadStart(
     // Create and add the header.
 
     {
-        headers = PhCreateFullString2(100);
+        PhInitializeStringBuilder(&headers, 100);
 
-        PhAppendFullString2(
-            headers,
+        PhAppendStringBuilder2(
+            &headers,
             L"Content-Type: multipart/form-data; boundary="
             );
-        PhAppendFullString(headers, boundary);
-        PhAppendFullString2(headers, L"\r\n");
-        PhAppendFormatFullString(headers, L"Content-Length: %u\r\n", dataLength);
+        PhAppendStringBuilder(&headers, boundary);
+        PhAppendStringBuilder2(&headers, L"\r\n");
+        PhAppendFormatStringBuilder(&headers, L"Content-Length: %u\r\n", dataLength);
 
         HttpAddRequestHeaders(
             requestHandle,
-            headers->Buffer,
-            (ULONG)headers->Length,
+            headers.String->Buffer,
+            (ULONG)headers.String->Length,
             HTTP_ADDREQ_FLAG_REPLACE | HTTP_ADDREQ_FLAG_ADD
             );
     }
@@ -570,8 +570,8 @@ ExitCleanup:
         PhFreePage(data);
     if (baseFileNameAnsi)
         PhDereferenceObject(baseFileNameAnsi);
-    if (headers)
-        PhDereferenceObject(headers);
+    if (headers.String)
+        PhDeleteStringBuilder(&headers);
     if (boundaryAnsi)
         PhDereferenceObject(boundaryAnsi);
     if (boundary)

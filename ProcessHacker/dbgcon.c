@@ -183,10 +183,6 @@ static VOID PhpPrintObjectInfo(
     {
         wprintf(L"\t%.32S", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
     }
-    else if (ObjectHeader->Type == PhFullStringType)
-    {
-        wprintf(L"\t%.32s", ((PPH_FULL_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
-    }
     else if (ObjectHeader->Type == PhListType)
     {
         wprintf(L"\tCount: %u", ((PPH_LIST)PhObjectHeaderToObject(ObjectHeader))->Count);
@@ -245,10 +241,6 @@ static VOID PhpDumpObjectInfo(
         else if (ObjectHeader->Type == PhAnsiStringType)
         {
             wprintf(L"%S\n", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
-        }
-        else if (ObjectHeader->Type == PhFullStringType)
-        {
-            wprintf(L"%s\n", ((PPH_FULL_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
         }
         else if (ObjectHeader->Type == PhHashtableType)
         {
@@ -375,7 +367,7 @@ static BOOLEAN PhpStringHashtableCompareFunction(
     PSTRING_TABLE_ENTRY entry1 = Entry1;
     PSTRING_TABLE_ENTRY entry2 = Entry2;
 
-    return RtlEqualUnicodeString(&entry1->String->us, &entry2->String->us, FALSE);
+    return PhEqualString(entry1->String, entry2->String, FALSE);
 }
 
 static ULONG PhpStringHashtableHashFunction(
@@ -663,14 +655,14 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
     {
         WCHAR buffer[512];
-        PH_STRINGREF name = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+        UNICODE_STRING name = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
         UNICODE_STRING var;
         PPH_STRING newSearchPath;
 
         var.Buffer = buffer;
         var.MaximumLength = sizeof(buffer);
 
-        if (!NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &name.us, &var)))
+        if (!NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &name, &var)))
             buffer[0] = 0;
 
         newSearchPath = PhFormatString(L"%s;%s", buffer, PhApplicationDirectory->Buffer);
@@ -1412,7 +1404,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             if (filterString)
             {
-                ULONG length;
+                SIZE_T length;
 
                 PhInitializeStringRef(&filterRef, filterString);
 

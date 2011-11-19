@@ -738,7 +738,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_COPY:
                 {
-                    PPH_FULL_STRING text;
+                    PPH_STRING text;
 
                     text = PhGetTreeNewText(context->TreeNewHandle, 0);
                     PhSetClipboardStringEx(hwndDlg, text->Buffer, text->Length);

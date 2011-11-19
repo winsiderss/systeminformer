@@ -112,30 +112,6 @@ VOID Test_stringref(
     DO_STRSTR_TEST(PhFindStringInStringRef, L"0sdfasdf1sdfasdf2sdfasdf3sdfasdg4sdfg", L"asdg4Gdfg", -1, FALSE);
 }
 
-VOID Test_fullstring(
-    VOID
-    )
-{
-    PPH_FULL_STRING fullString;
-
-    fullString = PhCreateFullStringEx(NULL, 0, 1);
-
-    PhAppendFullString2(fullString, L"asdf");
-    assert(wcscmp(fullString->Buffer, L"asdf") == 0);
-    PhAppendCharFullString(fullString, '!');
-    assert(wcscmp(fullString->Buffer, L"asdf!") == 0);
-    PhAppendCharFullString2(fullString, '?', 3);
-    assert(wcscmp(fullString->Buffer, L"asdf!???") == 0);
-
-    PhInsertFullString2(fullString, 0, L"12 ");
-    assert(wcscmp(fullString->Buffer, L"12 asdf!???") == 0);
-    PhInsertFullString2(fullString, 2, L"34");
-    assert(wcscmp(fullString->Buffer, L"1234 asdf!???") == 0);
-
-    PhRemoveFullString(fullString, 4, 5);
-    assert(wcscmp(fullString->Buffer, L"1234!???") == 0);
-}
-
 VOID Test_hexstring(
     VOID
     )
@@ -215,7 +191,6 @@ VOID Test_basesup(
     Test_time();
     Test_stringz();
     Test_stringref();
-    Test_fullstring();
     Test_hexstring();
     Test_strint();
 }

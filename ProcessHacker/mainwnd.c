@@ -2484,7 +2484,7 @@ VOID PhMwpSymInitHandler(
                 static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
 
                 dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
-                dbghelpFolder.Length = (USHORT)(indexOfFileName * sizeof(WCHAR));
+                dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
 
                 symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
                 LoadLibrary(symsrvPath->Buffer);

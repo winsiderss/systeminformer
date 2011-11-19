@@ -1250,7 +1250,7 @@ VOID PhSipDefaultDrawPanel(
     if (DrawPanel->Title)
     {
         SelectObject(hdc, CurrentParameters.MediumFont);
-        DrawText(hdc, DrawPanel->Title->Buffer, DrawPanel->Title->Length / 2, &rect, flags | DT_SINGLELINE);
+        DrawText(hdc, DrawPanel->Title->Buffer, (ULONG)DrawPanel->Title->Length / 2, &rect, flags | DT_SINGLELINE);
     }
 
     if (DrawPanel->SubTitle)
@@ -1261,17 +1261,17 @@ VOID PhSipDefaultDrawPanel(
         SelectObject(hdc, CurrentParameters.Font);
 
         measureRect = rect;
-        DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &measureRect, (flags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+        DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / 2, &measureRect, (flags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
 
         if (measureRect.right <= rect.right || !DrawPanel->SubTitleOverflow)
         {
             // Text fits; draw normally.
-            DrawText(hdc, DrawPanel->SubTitle->Buffer, DrawPanel->SubTitle->Length / 2, &rect, flags);
+            DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / 2, &rect, flags);
         }
         else
         {
             // Text doesn't fit; draw the alternative text.
-            DrawText(hdc, DrawPanel->SubTitleOverflow->Buffer, DrawPanel->SubTitleOverflow->Length / 2, &rect, flags);
+            DrawText(hdc, DrawPanel->SubTitleOverflow->Buffer, (ULONG)DrawPanel->SubTitleOverflow->Length / 2, &rect, flags);
         }
     }
 }

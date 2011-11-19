@@ -214,6 +214,7 @@ BOOLEAN FiCreateFile(
     OBJECT_ATTRIBUTES oa;
     IO_STATUS_BLOCK isb;
     PPH_STRING fileName;
+    UNICODE_STRING fileNameUs;
 
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
@@ -244,9 +245,15 @@ BOOLEAN FiCreateFile(
 
     fileName = FiFormatFileName(FileName);
 
+    if (!PhStringRefToUnicodeString(&fileName->sr, &fileNameUs))
+    {
+        PhDereferenceObject(fileName);
+        return FALSE;
+    }
+
     InitializeObjectAttributes(
         &oa,
-        &fileName->us,
+        &fileNameUs,
         (!FiArgCaseSensitive ? OBJ_CASE_INSENSITIVE : 0),
         NULL,
         NULL
@@ -341,7 +348,7 @@ int __cdecl main(int argc, char *argv[])
     if (!NT_SUCCESS(PhInitializePhLibEx(0, 0, 0)))
         return 1;
 
-    commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
 
     if (!PhParseCommandLine(
         &commandLine,
@@ -819,6 +826,7 @@ int __cdecl main(int argc, char *argv[])
     else if (PhEqualString2(FiArgAction, L"dir", TRUE))
     {
         HANDLE fileHandle;
+        UNICODE_STRING pattern;
         PPH_STRING totalSize, totalAllocSize;
 
         if (FiCreateFile(
@@ -836,9 +844,12 @@ int __cdecl main(int argc, char *argv[])
             FipDirTotalSize = 0;
             FipDirTotalAllocSize = 0;
 
+            if (FiArgPattern)
+                PhStringRefToUnicodeString(&FiArgPattern->sr, &pattern);
+
             PhEnumDirectoryFile(
                 fileHandle,
-                FiArgPattern ? &FiArgPattern->sr : NULL,
+                FiArgPattern ? &pattern : NULL,
                 FipEnumDirectoryFileForDir,
                 NULL
                 );

@@ -760,7 +760,7 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_FILE)(
 PHLIBAPI
 NTSTATUS PhEnumDirectoryFile(
     __in HANDLE FileHandle,
-    __in_opt PPH_STRINGREF SearchPattern,
+    __in_opt PUNICODE_STRING SearchPattern,
     __in PPH_ENUM_DIRECTORY_FILE Callback,
     __in_opt PVOID Context
     );
@@ -1407,8 +1407,8 @@ NTSTATUS PhTransceiveNamedPipe(
 
 PHLIBAPI
 NTSTATUS PhWaitForNamedPipe(
-    __in_opt PPH_STRINGREF FileSystemName,
-    __in PPH_STRINGREF Name,
+    __in_opt PUNICODE_STRING FileSystemName,
+    __in PUNICODE_STRING Name,
     __in_opt PLARGE_INTEGER Timeout,
     __in BOOLEAN UseDefaultTimeout
     );
@@ -2431,11 +2431,11 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 
 typedef struct _PH_CREATE_PROCESS_INFO
 {
-    PPH_STRINGREF DllPath;
-    PPH_STRINGREF WindowTitle;
-    PPH_STRINGREF DesktopInfo;
-    PPH_STRINGREF ShellInfo;
-    PPH_STRINGREF RuntimeData;
+    PUNICODE_STRING DllPath;
+    PUNICODE_STRING WindowTitle;
+    PUNICODE_STRING DesktopInfo;
+    PUNICODE_STRING ShellInfo;
+    PUNICODE_STRING RuntimeData;
 } PH_CREATE_PROCESS_INFO, *PPH_CREATE_PROCESS_INFO;
 
 #define PH_CREATE_PROCESS_INHERIT_HANDLES 0x1
@@ -2736,7 +2736,7 @@ typedef BOOLEAN (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
 PHLIBAPI
 PPH_STRING PhParseCommandLinePart(
     __in PPH_STRINGREF CommandLine,
-    __inout PULONG Index
+    __inout PULONG_PTR Index
     );
 
 PHLIBAPI

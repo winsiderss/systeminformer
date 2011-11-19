@@ -1613,7 +1613,7 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
                 {
-                    PPH_FULL_STRING text;
+                    PPH_STRING text;
 
                     text = PhGetTreeNewText(hwnd, 0);
                     PhSetClipboardStringEx(hwnd, text->Buffer, text->Length);

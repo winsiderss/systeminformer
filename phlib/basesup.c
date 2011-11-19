@@ -66,7 +66,6 @@
  * which are then invoked by other code.
  */
 
-#define _PH_BASESUP_PRIVATE
 #include <phbase.h>
 #include <phintrnl.h>
 #include <math.h>
@@ -160,18 +159,6 @@ BOOLEAN PhInitializeBase(
         L"AnsiString",
         0,
         NULL
-        )))
-        return FALSE;
-
-    parameters.FreeListSize = sizeof(PH_FULL_STRING);
-    parameters.FreeListCount = 32;
-
-    if (!NT_SUCCESS(PhCreateObjectTypeEx(
-        &PhFullStringType,
-        L"FullString",
-        PHOBJTYPE_USE_FREE_LIST,
-        PhpFullStringDeleteProcedure,
-        &parameters
         )))
         return FALSE;
 
@@ -1055,6 +1042,167 @@ LONG PhCompareUnicodeStringZNatural(
         return PhpCompareUnicodeStringZNatural(A, B, TRUE);
 }
 
+LONG PhCompareStringRef(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    SIZE_T l1;
+    SIZE_T l2;
+    PWSTR s1;
+    PWSTR s2;
+    WCHAR c1;
+    WCHAR c2;
+    PWSTR end;
+
+    // Note: this function assumes that the difference between the lengths of
+    // the two strings can fit inside a LONG.
+
+    l1 = String1->Length;
+    l2 = String2->Length;
+    assert(!(l1 & 1));
+    assert(!(l2 & 1));
+    s1 = String1->Buffer;
+    s2 = String2->Buffer;
+
+    end = (PWSTR)((PCHAR)s1 + (l1 <= l2 ? l1 : l2));
+
+    if (!IgnoreCase)
+    {
+        while (s1 != end)
+        {
+            c1 = *s1;
+            c2 = *s2;
+
+            if (c1 != c2)
+                return (LONG)c1 - (LONG)c2;
+
+            s1++;
+            s2++;
+        }
+    }
+    else
+    {
+        while (s1 != end)
+        {
+            c1 = *s1;
+            c2 = *s2;
+
+            if (c1 != c2)
+            {
+                c1 = RtlUpcaseUnicodeChar(c1);
+                c2 = RtlUpcaseUnicodeChar(c2);
+
+                if (c1 != c2)
+                    return (LONG)c1 - (LONG)c2;
+            }
+
+            s1++;
+            s2++;
+        }
+    }
+
+    return (LONG)(l1 - l2);
+}
+
+BOOLEAN PhEqualStringRef(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    SIZE_T l1;
+    SIZE_T l2;
+    PWSTR s1;
+    PWSTR s2;
+    WCHAR c1;
+    WCHAR c2;
+    SIZE_T length;
+
+    l1 = String1->Length;
+    l2 = String2->Length;
+    assert(!(l1 & 1));
+    assert(!(l2 & 1));
+
+    if (l1 != l2)
+        return FALSE;
+
+    s1 = String1->Buffer;
+    s2 = String2->Buffer;
+
+    length = l1 / sizeof(ULONG_PTR);
+
+    if (length != 0)
+    {
+        do
+        {
+            if (*(PULONG_PTR)s1 != *(PULONG_PTR)s2)
+            {
+                if (!IgnoreCase)
+                {
+                    return FALSE;
+                }
+                else
+                {
+                    // Compare character-by-character to ignore case.
+                    l1 = length * sizeof(ULONG_PTR) + (l1 & (sizeof(ULONG_PTR) - 1));
+                    l1 /= sizeof(WCHAR);
+                    goto CompareCharacters;
+                }
+            }
+
+            s1 += sizeof(ULONG_PTR) / sizeof(WCHAR);
+            s2 += sizeof(ULONG_PTR) / sizeof(WCHAR);
+        } while (--length != 0);
+    }
+
+    // Compare character-by-character because we have no more ULONG_PTR blocks
+    // to compare.
+    l1 = (l1 & (sizeof(ULONG_PTR) - 1)) / sizeof(WCHAR);
+
+CompareCharacters:
+    if (l1 != 0)
+    {
+        if (!IgnoreCase)
+        {
+            do
+            {
+                c1 = *s1;
+                c2 = *s2;
+
+                if (c1 != c2)
+                    return FALSE;
+
+                s1++;
+                s2++;
+            } while (--l1 != 0);
+        }
+        else
+        {
+            do
+            {
+                c1 = *s1;
+                c2 = *s2;
+
+                if (c1 != c2)
+                {
+                    c1 = RtlUpcaseUnicodeChar(c1);
+                    c2 = RtlUpcaseUnicodeChar(c2);
+
+                    if (c1 != c2)
+                        return FALSE;
+                }
+
+                s1++;
+                s2++;
+            } while (--l1 != 0);
+        }
+    }
+
+    return TRUE;
+}
+
 /**
  * Locates a string in a string.
  *
@@ -1067,17 +1215,17 @@ LONG PhCompareUnicodeStringZNatural(
  * \a String2 in \a String1 after \a StartIndex. If \a String2 was not
  * found, -1 is returned.
  */
-ULONG PhFindStringInStringRef(
+ULONG_PTR PhFindStringInStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
     __in BOOLEAN IgnoreCase
     )
 {
     PWSTR string1;
-    ULONG length1;
+    SIZE_T length1;
     PWSTR string2;
-    ULONG length2;
-    ULONG i;
+    SIZE_T length2;
+    SIZE_T i;
 
     string1 = String1->Buffer;
     length1 = String1->Length / sizeof(WCHAR);
@@ -1094,7 +1242,7 @@ ULONG PhFindStringInStringRef(
         {
             PWSTR s1;
             PWSTR s2;
-            ULONG l2;
+            SIZE_T l2;
 
             s1 = string1;
             s2 = string2;
@@ -1129,28 +1277,28 @@ ContinueLoop:
 
         return -1;
 FoundString:
-        return (ULONG)(string1 - String1->Buffer);
+        return (ULONG_PTR)(string1 - String1->Buffer);
     }
     else
     {
-        UNICODE_STRING us1;
-        UNICODE_STRING us2;
+        PH_STRINGREF sr1;
+        PH_STRINGREF sr2;
 
-        us1 = String1->us;
-        us2 = String2->us;
-        us1.Length = us2.Length;
+        sr1 = *String1;
+        sr2 = *String2;
+        sr1.Length = sr2.Length;
 
         for (i = length1 - length2 + 1; i != 0; i--)
         {
-            if (RtlEqualUnicodeString(&us1, &us2, TRUE))
+            if (PhEqualStringRef(&sr1, &sr2, TRUE))
                 goto FoundUString;
 
-            us1.Buffer++;
+            sr1.Buffer++;
         }
 
         return -1;
 FoundUString:
-        return (ULONG)(us1.Buffer - String1->Buffer);
+        return (ULONG_PTR)(sr1.Buffer - String1->Buffer);
     }
 }
 
@@ -1178,12 +1326,12 @@ BOOLEAN PhSplitStringRefAtChar(
     )
 {
     PH_STRINGREF input;
-    ULONG index;
+    PWCHAR location;
 
     input = *Input; // get a copy of the input because FirstPart/SecondPart may alias Input
-    index = PhFindCharInStringRef(Input, 0, Separator);
+    location = wmemchr(Input->Buffer, Separator, Input->Length / sizeof(WCHAR));
 
-    if (index == -1)
+    if (!location)
     {
         // The separator was not found.
 
@@ -1196,68 +1344,9 @@ BOOLEAN PhSplitStringRefAtChar(
     }
 
     FirstPart->Buffer = input.Buffer;
-    FirstPart->Length = (USHORT)(index * sizeof(WCHAR));
-    SecondPart->Buffer = &input.Buffer[index + 1];
-    SecondPart->Length = input.Length - (USHORT)(index * sizeof(WCHAR)) - sizeof(WCHAR);
-
-    return TRUE;
-}
-
-/**
- * Splits a string.
- *
- * \param Input The input string.
- * \param SeparatorCharSet The characters to search for.
- * \param Flags A combination of the following:
- * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_START_AT_END
- * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_COMPLEMENT_CHAR_SET
- * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_CASE_INSENSITIVE
- * \param FirstPart A variable which receives the part of \a Input
- * before the separator. This may be the same variable as \a Input. If
- * the separator is not found in \a Input, this variable is set to
- * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input
- * after the separator. This may be the same variable as \a Input. If
- * the separator is not found in \a Input, this variable is set to
- * an empty string.
- *
- * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
- */
-BOOLEAN PhSplitStringRefAtCharEx(
-    __in PPH_STRINGREF Input,
-    __in PPH_STRINGREF SeparatorCharSet,
-    __in ULONG Flags,
-    __out PPH_STRINGREF FirstPart,
-    __out PPH_STRINGREF SecondPart
-    )
-{
-    PH_STRINGREF input;
-    PH_STRINGREF separatorCharSet;
-    USHORT prefixLength;
-
-    input = *Input;
-    separatorCharSet = *SeparatorCharSet;
-
-    // RtlFindCharInUnicodeString expects a "valid" string.
-    input.us.MaximumLength = input.us.Length;
-    separatorCharSet.us.MaximumLength = separatorCharSet.us.Length;
-
-    if (!NT_SUCCESS(RtlFindCharInUnicodeString(Flags, &input.us, &separatorCharSet.us, &prefixLength)))
-    {
-        // The separator was not found or an error occurred.
-
-        FirstPart->Buffer = Input->Buffer;
-        FirstPart->Length = Input->Length;
-        SecondPart->Buffer = NULL;
-        SecondPart->Length = 0;
-
-        return FALSE;
-    }
-
-    FirstPart->Buffer = input.Buffer;
-    FirstPart->Length = prefixLength;
-    SecondPart->Buffer = &input.Buffer[prefixLength / sizeof(WCHAR) + 1];
-    SecondPart->Length = input.Length - prefixLength - sizeof(WCHAR);
+    FirstPart->Length = (ULONG_PTR)location - (ULONG_PTR)input.Buffer;
+    SecondPart->Buffer = location + 1;
+    SecondPart->Length = input.Length - ((ULONG_PTR)location - (ULONG_PTR)input.Buffer) - sizeof(WCHAR);
 
     return TRUE;
 }
@@ -1289,7 +1378,7 @@ BOOLEAN PhSplitStringRefAtString(
     )
 {
     PH_STRINGREF input;
-    ULONG index;
+    ULONG_PTR index;
 
     input = *Input; // get a copy of the input because FirstPart/SecondPart may alias Input
     index = PhFindStringInStringRef(Input, Separator, IgnoreCase);
@@ -1307,9 +1396,9 @@ BOOLEAN PhSplitStringRefAtString(
     }
 
     FirstPart->Buffer = input.Buffer;
-    FirstPart->Length = (USHORT)(index * sizeof(WCHAR));
-    SecondPart->Buffer = &input.Buffer[index + Separator->Length / 2];
-    SecondPart->Length = input.Length - (USHORT)(index * sizeof(WCHAR)) - Separator->Length;
+    FirstPart->Length = index * sizeof(WCHAR);
+    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + Separator->Length);
+    SecondPart->Length = input.Length - index * sizeof(WCHAR) - Separator->Length;
 
     return TRUE;
 }
@@ -1342,15 +1431,15 @@ PPH_STRING PhCreateStringEx(
 
     if (!NT_SUCCESS(PhCreateObject(
         &string,
-        FIELD_OFFSET(PH_STRING, Buffer) + Length + sizeof(WCHAR), // null terminator
+        FIELD_OFFSET(PH_STRING, Data) + Length + sizeof(WCHAR), // null terminator
         0,
         PhStringType
         )))
         return NULL;
 
     assert(!(Length & 1));
-    string->us.MaximumLength = string->us.Length = (USHORT)Length;
-    string->us.Buffer = string->Buffer;
+    string->Length = Length;
+    string->Buffer = string->Data;
     *(PWCHAR)((PCHAR)string->Buffer + Length) = 0;
 
     if (Buffer)
@@ -1406,7 +1495,7 @@ PPH_STRING PhCreateStringFromAnsiEx(
 
     status = RtlMultiByteToUnicodeN(
         string->Buffer,
-        string->Length,
+        (ULONG)string->Length,
         NULL,
         Buffer,
         (ULONG)Length
@@ -1775,423 +1864,6 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
 }
 
 /**
- * Creates a string object from an existing
- * null-terminated string.
- *
- * \param Buffer A null-terminated Unicode string.
- */
-PPH_FULL_STRING PhCreateFullString(
-    __in PWSTR Buffer
-    )
-{
-    SIZE_T length;
-
-    length = wcslen(Buffer) * sizeof(WCHAR);
-
-    return PhCreateFullStringEx(Buffer, length, length);
-}
-
-/**
- * Creates a string object.
- *
- * \param InitialCapacity The number of bytes to allocate
- * for the string. This should not include space for a null
- * terminator.
- */
-PPH_FULL_STRING PhCreateFullString2(
-    __in SIZE_T InitialCapacity
-    )
-{
-    return PhCreateFullStringEx(NULL, 0, InitialCapacity);
-}
-
-/**
- * Creates a string object using a specified length.
- *
- * \param Buffer A null-terminated Unicode string.
- * \param Length The length, in bytes, of the string.
- * \param InitialCapacity The number of bytes to allocate
- * for the string. This should not include space for a null
- * terminator. If the specified value is less than \a Length,
- * \a Length bytes are still allocated.
- */
-PPH_FULL_STRING PhCreateFullStringEx(
-    __in_opt PWSTR Buffer,
-    __in SIZE_T Length,
-    __in_opt SIZE_T InitialCapacity
-    )
-{
-    PPH_FULL_STRING string;
-
-    if (!NT_SUCCESS(PhCreateObject(
-        &string,
-        sizeof(PH_FULL_STRING), // null terminator
-        0,
-        PhFullStringType
-        )))
-        return NULL;
-
-    if (InitialCapacity < Length)
-        InitialCapacity = Length;
-
-    string->Length = Length;
-    string->AllocatedLength = InitialCapacity;
-    string->Buffer = PhAllocate(string->AllocatedLength + sizeof(WCHAR));
-    *(PWCHAR)((PCHAR)string->Buffer + Length) = 0;
-
-    if (Buffer)
-    {
-        memcpy(string->Buffer, Buffer, Length);
-    }
-
-    return string;
-}
-
-VOID NTAPI PhpFullStringDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    )
-{
-    PPH_FULL_STRING string = (PPH_FULL_STRING)Object;
-
-    PhFree(string->Buffer);
-}
-
-FORCEINLINE VOID PhpWriteNullTerminatorFullString(
-    __in PPH_FULL_STRING String
-    )
-{
-    assert(!(String->Length & 1));
-    *(PWCHAR)((PCHAR)String->Buffer + String->Length) = 0;
-}
-
-/**
- * Resizes a string object.
- *
- * \param String A string object.
- * \param NewLength The new required length of the string object.
- * This should not include space for a null terminator. If
- * \a Growing is TRUE, \a NewLength must not be smaller than the
- * current allocated length.
- * \param Growing TRUE to use sizing logic for growing strings,
- * otherwise FALSE to resize to the exact specified length.
- */
-VOID PhResizeFullString(
-    __inout PPH_FULL_STRING String,
-    __in SIZE_T NewLength,
-    __in BOOLEAN Growing
-    )
-{
-    if (Growing)
-    {
-        assert(NewLength >= String->AllocatedLength);
-
-        // Double the string size. If that still isn't
-        // enough room, just use the new length.
-        String->AllocatedLength *= 2;
-
-        if (String->AllocatedLength < NewLength)
-            String->AllocatedLength = NewLength;
-    }
-    else
-    {
-        String->AllocatedLength = NewLength;
-
-        // This check only applies when we're shortening the string.
-        if (String->Length > String->AllocatedLength)
-            String->Length = String->AllocatedLength;
-    }
-
-    // Resize the buffer.
-    String->Buffer = PhReAllocate(String->Buffer, String->AllocatedLength + sizeof(WCHAR));
-    // Make sure we have a null terminator.
-    PhpWriteNullTerminatorFullString(String);
-}
-
-/**
- * Appends a string to the end of a string.
- *
- * \param String A string object.
- * \param ShortString The string to append.
- */
-VOID PhAppendFullString(
-    __inout PPH_FULL_STRING String,
-    __in PPH_STRING ShortString
-    )
-{
-    PhAppendFullStringEx(
-        String,
-        ShortString->Buffer,
-        ShortString->Length
-        );
-}
-
-/**
- * Appends a string to the end of a string.
- *
- * \param String A string object.
- * \param StringZ The string to append.
- */
-VOID PhAppendFullString2(
-    __inout PPH_FULL_STRING String,
-    __in PWSTR StringZ
-    )
-{
-    PhAppendFullStringEx(
-        String,
-        StringZ,
-        wcslen(StringZ) * sizeof(WCHAR)
-        );
-}
-
-/**
- * Appends a string to the end of a string.
- *
- * \param String A string object.
- * \param Buffer The string to append. Specify NULL
- * to simply reserve \a Length bytes.
- * \param Length The number of bytes to append.
- */
-VOID PhAppendFullStringEx(
-    __inout PPH_FULL_STRING String,
-    __in_opt PWSTR Buffer,
-    __in SIZE_T Length
-    )
-{
-    if (Length == 0)
-        return;
-
-    // Resize the string if necessary.
-    if (String->AllocatedLength < String->Length + Length)
-        PhResizeFullString(String, String->Length + Length, TRUE);
-
-    if (Buffer)
-    {
-        memcpy(
-            (PCHAR)String->Buffer + String->Length,
-            Buffer,
-            Length
-            );
-    }
-
-    String->Length += Length;
-    PhpWriteNullTerminatorFullString(String);
-}
-
-/**
- * Appends a character to the end of a string.
- *
- * \param String A string object.
- * \param Character The character to append.
- */
-VOID PhAppendCharFullString(
-    __inout PPH_FULL_STRING String,
-    __in WCHAR Character
-    )
-{
-    if (String->AllocatedLength < String->Length + sizeof(WCHAR))
-        PhResizeFullString(String, String->Length + sizeof(WCHAR), TRUE);
-
-    *(PWCHAR)((PCHAR)String->Buffer + String->Length) = Character;
-    String->Length += sizeof(WCHAR);
-    PhpWriteNullTerminatorFullString(String);
-}
-
-/**
- * Appends a number of characters to the end of a string.
- *
- * \param String A string object.
- * \param Character The character to append.
- * \param Count The number of times to append the character.
- */
-VOID PhAppendCharFullString2(
-    __inout PPH_FULL_STRING String,
-    __in WCHAR Character,
-    __in SIZE_T Count
-    )
-{
-    if (Count == 0)
-        return;
-
-    if (String->AllocatedLength < String->Length + Count * sizeof(WCHAR))
-        PhResizeFullString(String, String->Length + Count * sizeof(WCHAR), TRUE);
-
-    wmemset(
-        (PWCHAR)((PCHAR)String->Buffer + String->Length),
-        Character,
-        Count
-        );
-
-    String->Length += Count * sizeof(WCHAR);
-    PhpWriteNullTerminatorFullString(String);
-}
-
-/**
- * Appends a formatted string to the end of a string.
- *
- * \param String A string object.
- * \param Format The format-control string.
- */
-VOID PhAppendFormatFullString(
-    __inout PPH_FULL_STRING String,
-    __in __format_string PWSTR Format,
-    ...
-    )
-{
-    va_list argptr;
-
-    va_start(argptr, Format);
-    PhAppendFormatFullString_V(String, Format, argptr);
-}
-
-VOID PhAppendFormatFullString_V(
-    __inout PPH_FULL_STRING String,
-    __in __format_string PWSTR Format,
-    __in va_list ArgPtr
-    )
-{
-    int length;
-    SIZE_T lengthInBytes;
-
-    length = _vscwprintf(Format, ArgPtr);
-
-    if (length == -1 || length == 0)
-        return;
-
-    lengthInBytes = (SIZE_T)(ULONG)length * sizeof(WCHAR);
-
-    if (String->AllocatedLength < String->Length + lengthInBytes)
-        PhResizeFullString(String, String->Length + lengthInBytes, TRUE);
-
-    _vsnwprintf(
-        (PWCHAR)((PCHAR)String->Buffer + String->Length),
-        length,
-        Format,
-        ArgPtr
-        );
-
-    String->Length += lengthInBytes;
-    PhpWriteNullTerminatorFullString(String);
-}
-
-/**
- * Inserts a string into a string.
- *
- * \param String A string object.
- * \param Index The index, in characters, at which to
- * insert the string.
- * \param ShortString The string to insert.
- */
-VOID PhInsertFullString(
-    __inout PPH_FULL_STRING String,
-    __in SIZE_T Index,
-    __in PPH_STRING ShortString
-    )
-{
-    PhInsertFullStringEx(
-        String,
-        Index,
-        ShortString->Buffer,
-        ShortString->Length
-        );
-}
-
-/**
- * Inserts a string into a string.
- *
- * \param String A string object.
- * \param Index The index, in characters, at which to
- * insert the string.
- * \param StringZ The string to insert.
- */
-VOID PhInsertFullString2(
-    __inout PPH_FULL_STRING String,
-    __in SIZE_T Index,
-    __in PWSTR StringZ
-    )
-{
-    PhInsertFullStringEx(
-        String,
-        Index,
-        StringZ,
-        wcslen(StringZ) * sizeof(WCHAR)
-        );
-}
-
-/**
- * Inserts a string into a string.
- *
- * \param String A string object.
- * \param Index The index, in characters, at which to
- * insert the string.
- * \param Buffer The string to insert. Specify NULL to
- * simply reserve \a Length bytes at \a Index.
- * \param Length The number of bytes to insert.
- */
-VOID PhInsertFullStringEx(
-    __inout PPH_FULL_STRING String,
-    __in SIZE_T Index,
-    __in_opt PWSTR Buffer,
-    __in SIZE_T Length
-    )
-{
-    if (Length == 0)
-        return;
-
-    // Resize the string if necessary.
-    if (String->AllocatedLength < String->Length + Length)
-        PhResizeFullString(String, String->Length + Length, TRUE);
-
-    if (Index * sizeof(WCHAR) < String->Length)
-    {
-        // Create some space for the string.
-        memmove(
-            &String->Buffer[Index + Length / sizeof(WCHAR)],
-            &String->Buffer[Index],
-            String->Length - Index * sizeof(WCHAR)
-            );
-    }
-
-    if (Buffer)
-    {
-        // Copy the new string.
-        memcpy(
-            &String->Buffer[Index],
-            Buffer,
-            Length
-            );
-    }
-
-    String->Length += Length;
-    PhpWriteNullTerminatorFullString(String);
-}
-
-/**
- * Removes characters from a string.
- *
- * \param String A string object.
- * \param StartIndex The index, in characters, at
- * which to begin removing characters.
- * \param Count The number of characters to remove.
- */
-VOID PhRemoveFullString(
-    __inout PPH_FULL_STRING String,
-    __in SIZE_T StartIndex,
-    __in SIZE_T Count
-    )
-{
-    // Overwrite the removed part with the part behind it.
-
-    memmove(
-        &String->Buffer[StartIndex],
-        &String->Buffer[StartIndex + Count],
-        String->Length - (Count + StartIndex) * sizeof(WCHAR)
-        );
-    String->Length -= Count * sizeof(WCHAR);
-    PhpWriteNullTerminatorFullString(String);
-}
-
-/**
  * Initializes a string builder object.
  *
  * \param StringBuilder A string builder object.
@@ -2200,7 +1872,7 @@ VOID PhRemoveFullString(
  */
 VOID PhInitializeStringBuilder(
     __out PPH_STRING_BUILDER StringBuilder,
-    __in ULONG InitialCapacity
+    __in SIZE_T InitialCapacity
     )
 {
     // Make sure the initial capacity is even, as required for all string objects.
@@ -2244,7 +1916,7 @@ VOID PhDeleteStringBuilder(
 
 VOID PhpResizeStringBuilder(
     __in PPH_STRING_BUILDER StringBuilder,
-    __in ULONG NewCapacity
+    __in SIZE_T NewCapacity
     )
 {
     PPH_STRING newString;
@@ -2368,7 +2040,7 @@ VOID PhAppendStringBuilder2(
     PhAppendStringBuilderEx(
         StringBuilder,
         String,
-        (ULONG)wcslen(String) * sizeof(WCHAR)
+        wcslen(String) * sizeof(WCHAR)
         );
 }
 
@@ -2384,7 +2056,7 @@ VOID PhAppendStringBuilder2(
 VOID PhAppendStringBuilderEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in_opt PWSTR String,
-    __in ULONG Length
+    __in SIZE_T Length
     )
 {
     if (Length == 0)
@@ -2407,7 +2079,7 @@ VOID PhAppendStringBuilderEx(
             );
     }
 
-    StringBuilder->String->Length += (USHORT)Length;
+    StringBuilder->String->Length += Length;
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
@@ -2444,7 +2116,7 @@ VOID PhAppendCharStringBuilder(
 VOID PhAppendCharStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in WCHAR Character,
-    __in ULONG Count
+    __in SIZE_T Count
     )
 {
     if (Count == 0)
@@ -2462,7 +2134,7 @@ VOID PhAppendCharStringBuilder2(
         Count
         );
 
-    StringBuilder->String->Length += (USHORT)(Count * sizeof(WCHAR));
+    StringBuilder->String->Length += Count * sizeof(WCHAR);
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
@@ -2492,14 +2164,14 @@ VOID PhAppendFormatStringBuilder_V(
     )
 {
     int length;
-    ULONG lengthInBytes;
+    SIZE_T lengthInBytes;
 
     length = _vscwprintf(Format, ArgPtr);
 
     if (length == -1 || length == 0)
         return;
 
-    lengthInBytes = (ULONG)length * sizeof(WCHAR);
+    lengthInBytes = length * sizeof(WCHAR);
 
     if (StringBuilder->AllocatedLength < StringBuilder->String->Length + lengthInBytes)
         PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + lengthInBytes);
@@ -2511,7 +2183,7 @@ VOID PhAppendFormatStringBuilder_V(
         ArgPtr
         );
 
-    StringBuilder->String->Length += (USHORT)lengthInBytes;
+    StringBuilder->String->Length += lengthInBytes;
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
@@ -2525,7 +2197,7 @@ VOID PhAppendFormatStringBuilder_V(
  */
 VOID PhInsertStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in ULONG Index,
+    __in SIZE_T Index,
     __in PPH_STRING String
     )
 {
@@ -2547,7 +2219,7 @@ VOID PhInsertStringBuilder(
  */
 VOID PhInsertStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in ULONG Index,
+    __in SIZE_T Index,
     __in PWSTR String
     )
 {
@@ -2555,7 +2227,7 @@ VOID PhInsertStringBuilder2(
         StringBuilder,
         Index,
         String,
-        (ULONG)wcslen(String) * sizeof(WCHAR)
+        wcslen(String) * sizeof(WCHAR)
         );
 }
 
@@ -2571,9 +2243,9 @@ VOID PhInsertStringBuilder2(
  */
 VOID PhInsertStringBuilderEx(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in ULONG Index,
+    __in SIZE_T Index,
     __in_opt PWSTR String,
-    __in ULONG Length
+    __in SIZE_T Length
     )
 {
     if (Length == 0)
@@ -2605,7 +2277,7 @@ VOID PhInsertStringBuilderEx(
             );
     }
 
-    StringBuilder->String->Length += (USHORT)Length;
+    StringBuilder->String->Length += Length;
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
@@ -2619,8 +2291,8 @@ VOID PhInsertStringBuilderEx(
  */
 VOID PhRemoveStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in ULONG StartIndex,
-    __in ULONG Count
+    __in SIZE_T StartIndex,
+    __in SIZE_T Count
     )
 {
     // Overwrite the removed part with the part
@@ -2631,7 +2303,7 @@ VOID PhRemoveStringBuilder(
         &StringBuilder->String->Buffer[StartIndex + Count],
         StringBuilder->String->Length - (Count + StartIndex) * sizeof(WCHAR)
         );
-    StringBuilder->String->Length -= (USHORT)(Count * sizeof(WCHAR));
+    StringBuilder->String->Length -= Count * sizeof(WCHAR);
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
@@ -3601,7 +3273,7 @@ BOOLEAN PhRemoveEntryHashtable(
  */
 ULONG FASTCALL PhfHashBytesHsieh(
     __in PUCHAR Bytes,
-    __in ULONG Length
+    __in SIZE_T Length
     )
 {
     // Hsieh hash, http://www.azillionmonkeys.com/qed/hash.html
@@ -3612,8 +3284,8 @@ ULONG FASTCALL PhfHashBytesHsieh(
     if (!Length)
         return 0;
 
-    hash = Length;
-    rem = Length & 3;
+    hash = (ULONG)Length;
+    rem = (ULONG)Length & 3;
     Length >>= 2;
 
     for (; Length > 0; Length--)
@@ -3663,14 +3335,14 @@ ULONG FASTCALL PhfHashBytesHsieh(
  */
 ULONG FASTCALL PhfHashBytesMurmur(
     __in PUCHAR Bytes,
-    __in ULONG Length
+    __in SIZE_T Length
     )
 {
     // Murmur hash, http://murmurhash.googlepages.com
 #define MURMUR_MAGIC 0x5bd1e995
 #define MURMUR_SHIFT 24
 
-    ULONG hash = Length;
+    ULONG hash = (ULONG)Length;
     ULONG tmp;
 
     while (Length >= 4)
@@ -3714,10 +3386,10 @@ ULONG FASTCALL PhfHashBytesMurmur(
  */
 ULONG FASTCALL PhfHashBytesSdbm(
     __in PUCHAR Bytes,
-    __in ULONG Length
+    __in SIZE_T Length
     )
 {
-    ULONG hash = Length;
+    ULONG hash = (ULONG)Length;
     PUCHAR endByte = Bytes + Length;
 
     while (Bytes != endByte)
@@ -4222,8 +3894,8 @@ BOOLEAN PhHexStringToBuffer(
     __out_bcount(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     )
 {
-    ULONG i;
-    ULONG length;
+    SIZE_T i;
+    SIZE_T length;
 
     // The string must have an even length.
     if ((String->Length / sizeof(WCHAR)) & 1)
@@ -4285,8 +3957,8 @@ BOOLEAN PhpStringToInteger64(
 {
     LONG64 result;
     ULONG64 place;
-    ULONG length;
-    ULONG i;
+    SIZE_T length;
+    SIZE_T i;
 
     length = String->Length / sizeof(WCHAR);
     result = 0;

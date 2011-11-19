@@ -117,9 +117,9 @@ PPH_STRING PhpGetX500Value(
     )
 {
     WCHAR keyNamePlusEquals[10];
-    ULONG keyNameLength;
-    ULONG startIndex;
-    ULONG endIndex;
+    SIZE_T keyNameLength;
+    ULONG_PTR startIndex;
+    ULONG_PTR endIndex;
 
     keyNameLength = KeyName->Length / sizeof(WCHAR);
     assert(!(keyNameLength > sizeof(keyNamePlusEquals) / sizeof(WCHAR) - 2));

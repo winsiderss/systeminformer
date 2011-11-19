@@ -392,8 +392,8 @@ BOOLEAN PhaGetProcessKnownCommandLine(
         {
             // rundll32.exe <DllName>,<ProcedureName> ...
 
-            ULONG i;
-            ULONG lastIndexOfComma;
+            SIZE_T i;
+            ULONG_PTR lastIndexOfComma;
             PPH_STRING dllName;
             PPH_STRING procedureName;
 
@@ -410,7 +410,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Get the DLL name part.
 
-            while (i < (ULONG)CommandLine->Length / 2 && CommandLine->Buffer[i] == ' ')
+            while (i < CommandLine->Length / 2 && CommandLine->Buffer[i] == ' ')
                 i++;
 
             dllName = PhParseCommandLinePart(&CommandLine->sr, &i);
@@ -457,10 +457,11 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             static PH_STRINGREF inprocServer32Name = PH_STRINGREF_INIT(L"InprocServer32");
 
-            ULONG i;
-            ULONG indexOfProcessId;
+            SIZE_T i;
+            ULONG_PTR indexOfProcessId;
             PPH_STRING argPart;
             PPH_STRING guidString;
+            UNICODE_STRING guidStringUs;
             GUID guid;
             HANDLE clsidKeyHandle;
             HANDLE inprocServer32KeyHandle;
@@ -500,11 +501,12 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             guidString = PhaSubstring(
                 argPart,
                 indexOfProcessId + 11,
-                argPart->Length / 2 - indexOfProcessId - 11
+                (ULONG)argPart->Length / 2 - indexOfProcessId - 11
                 );
+            PhStringRefToUnicodeString(&guidString->sr, &guidStringUs);
 
             if (!NT_SUCCESS(RtlGUIDFromString(
-                &guidString->us,
+                &guidStringUs,
                 &guid
                 )))
                 return FALSE;
@@ -564,8 +566,8 @@ PPH_STRING PhEscapeStringForDelimiter(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    ULONG length;
-    ULONG i;
+    SIZE_T length;
+    SIZE_T i;
     WCHAR temp[2];
 
     length = String->Length / 2;
@@ -595,8 +597,8 @@ PPH_STRING PhUnescapeStringForDelimiter(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    ULONG length;
-    ULONG i;
+    SIZE_T length;
+    SIZE_T i;
 
     length = String->Length / 2;
     PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
@@ -801,7 +803,7 @@ VOID PhCopyListView(
     __in HWND ListViewHandle
     )
 {
-    PPH_FULL_STRING text;
+    PPH_STRING text;
 
     text = PhGetListViewText(ListViewHandle);
     PhSetClipboardStringEx(ListViewHandle, text->Buffer, text->Length);

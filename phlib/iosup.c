@@ -366,15 +366,15 @@ NTSTATUS PhTransceiveNamedPipe(
 }
 
 NTSTATUS PhWaitForNamedPipe(
-    __in_opt PPH_STRINGREF FileSystemName,
-    __in PPH_STRINGREF Name,
+    __in_opt PUNICODE_STRING FileSystemName,
+    __in PUNICODE_STRING Name,
     __in_opt PLARGE_INTEGER Timeout,
     __in BOOLEAN UseDefaultTimeout
     )
 {
     NTSTATUS status;
     IO_STATUS_BLOCK isb;
-    PH_STRINGREF localNpfsName;
+    UNICODE_STRING localNpfsName;
     HANDLE fileSystemHandle;
     OBJECT_ATTRIBUTES oa;
     PFILE_PIPE_WAIT_FOR_BUFFER waitForBuffer;
@@ -382,13 +382,13 @@ NTSTATUS PhWaitForNamedPipe(
 
     if (!FileSystemName)
     {
-        PhInitializeStringRef(&localNpfsName, L"\\Device\\NamedPipe");
+        RtlInitUnicodeString(&localNpfsName, L"\\Device\\NamedPipe");
         FileSystemName = &localNpfsName;
     }
 
     InitializeObjectAttributes(
         &oa,
-        &FileSystemName->us,
+        FileSystemName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
@@ -428,7 +428,7 @@ NTSTATUS PhWaitForNamedPipe(
         waitForBuffer->TimeoutSpecified = TRUE;
     }
 
-    waitForBuffer->NameLength = Name->Length;
+    waitForBuffer->NameLength = (ULONG)Name->Length;
     memcpy(waitForBuffer->Name, Name->Buffer, Name->Length);
 
     status = NtFsControlFile(

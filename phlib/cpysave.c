@@ -31,8 +31,8 @@ VOID PhpEscapeStringForCsv(
     __in PPH_STRING String
     )
 {
-    ULONG i;
-    ULONG length;
+    SIZE_T i;
+    SIZE_T length;
     PWCHAR runStart;
     ULONG runLength;
 
@@ -141,7 +141,7 @@ PPH_LIST PhaFormatTextTable(
                 ULONG newCount;
 
                 if (Table[i][j])
-                    newCount = Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
+                    newCount = (ULONG)(Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE);
                 else
                     newCount = 0;
 
@@ -175,7 +175,7 @@ PPH_LIST PhaFormatTextTable(
                     if (Table[i][j])
                     {
                         // Calculate the number of tabs needed.
-                        k = tabCount[j] + 1 - Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
+                        k = (ULONG)(tabCount[j] + 1 - Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE);
 
                         PhAppendStringBuilder(&stringBuilder, Table[i][j]);
                     }
@@ -197,7 +197,7 @@ PPH_LIST PhaFormatTextTable(
                     if (Table[i][j])
                     {
                         // Calculate the number of spaces needed.
-                        k = (tabCount[j] + 1) * TAB_SIZE - Table[i][j]->Length / sizeof(WCHAR);
+                        k = (ULONG)((tabCount[j] + 1) * TAB_SIZE - Table[i][j]->Length / sizeof(WCHAR));
 
                         PhAppendStringBuilder(&stringBuilder, Table[i][j]);
                     }
@@ -288,12 +288,12 @@ VOID PhMapDisplayIndexTreeNew(
     *NumberOfColumns = numberOfColumns;
 }
 
-PPH_FULL_STRING PhGetTreeNewText(
+PPH_STRING PhGetTreeNewText(
     __in HWND TreeNewHandle,
     __reserved ULONG Reserved
     )
 {
-    PPH_FULL_STRING string;
+    PH_STRING_BUILDER stringBuilder;
     PULONG displayToId;
     ULONG rows;
     ULONG columns;
@@ -303,7 +303,7 @@ PPH_FULL_STRING PhGetTreeNewText(
     PhMapDisplayIndexTreeNew(TreeNewHandle, &displayToId, NULL, &columns);
     rows = TreeNew_GetFlatNodeCount(TreeNewHandle);
 
-    string = PhCreateFullString2(0x100);
+    PhInitializeStringBuilder(&stringBuilder, 0x100);
 
     for (i = 0; i < rows; i++)
     {
@@ -321,20 +321,20 @@ PPH_FULL_STRING PhGetTreeNewText(
             PhInitializeEmptyStringRef(&getCellText.Text);
             TreeNew_GetCellText(TreeNewHandle, &getCellText);
 
-            PhAppendFullStringEx(string, getCellText.Text.Buffer, getCellText.Text.Length);
-            PhAppendFullString2(string, L", ");
+            PhAppendStringBuilderEx(&stringBuilder, getCellText.Text.Buffer, getCellText.Text.Length);
+            PhAppendStringBuilder2(&stringBuilder, L", ");
         }
 
         // Remove the trailing comma and space.
-        if (string->Length != 0)
-            PhRemoveFullString(string, string->Length / 2 - 2, 2);
+        if (stringBuilder.String->Length != 0)
+            PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
 
-        PhAppendFullString2(string, L"\r\n");
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
     PhFree(displayToId);
 
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 PPH_LIST PhGetGenericTreeNewLines(
@@ -446,11 +446,11 @@ VOID PhaMapDisplayIndexListView(
     *NumberOfColumns = count;
 }
 
-PPH_FULL_STRING PhGetListViewText(
+PPH_STRING PhGetListViewText(
     __in HWND ListViewHandle
     )
 {
-    PPH_FULL_STRING string;
+    PH_STRING_BUILDER stringBuilder;
     ULONG displayToId[100];
     ULONG rows;
     ULONG columns;
@@ -460,7 +460,7 @@ PPH_FULL_STRING PhGetListViewText(
     PhaMapDisplayIndexListView(ListViewHandle, displayToId, NULL, 100, &columns);
     rows = ListView_GetItemCount(ListViewHandle);
 
-    string = PhCreateFullString2(0x100);
+    PhInitializeStringBuilder(&stringBuilder, 0x100);
 
     for (i = 0; i < rows; i++)
     {
@@ -473,19 +473,19 @@ PPH_FULL_STRING PhGetListViewText(
 
             buffer[0] = 0;
             ListView_GetItemText(ListViewHandle, i, j, buffer, sizeof(buffer) / sizeof(WCHAR));
-            PhAppendFullString2(string, buffer);
+            PhAppendStringBuilder2(&stringBuilder, buffer);
 
-            PhAppendFullString2(string, L", ");
+            PhAppendStringBuilder2(&stringBuilder, L", ");
         }
 
         // Remove the trailing comma and space.
-        if (string->Length != 0)
-            PhRemoveFullString(string, string->Length / 2 - 2, 2);
+        if (stringBuilder.String->Length != 0)
+            PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
 
-        PhAppendFullString2(string, L"\r\n");
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 PPH_LIST PhGetListViewLines(

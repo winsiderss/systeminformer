@@ -118,7 +118,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     __in LPARAM lParam
     );
 
-static PH_STRINGREF DotNetLoggerName = PH_STRINGREF_INIT(L"PhDnLogger");
+static UNICODE_STRING DotNetLoggerName = RTL_CONSTANT_STRING(L"PhDnLogger");
 static GUID ClrRuntimeProviderGuid = { 0xe13c0d23, 0xccbc, 0x4e12, { 0x93, 0x1b, 0xd9, 0xcc, 0x2e, 0xee, 0x27, 0xe4 } };
 static GUID ClrRundownProviderGuid = { 0xa669021c, 0xc450, 0x4609, { 0xa0, 0x35, 0x5a, 0xf5, 0x9a, 0xf4, 0xdf, 0x18 } };
 
@@ -731,8 +731,8 @@ VOID NTAPI DotNetEventCallback(
                     PWSTR moduleNativePath;
                     SIZE_T moduleNativePathLength;
                     PDNA_NODE node;
-                    ULONG indexOfBackslash;
-                    ULONG indexOfLastDot;
+                    ULONG_PTR indexOfBackslash;
+                    ULONG_PTR indexOfLastDot;
 
                     moduleILPath = data->ModuleILPath;
                     moduleILPathLength = wcslen(moduleILPath) * sizeof(WCHAR);
@@ -761,11 +761,11 @@ VOID NTAPI DotNetEventCallback(
 
                             if (indexOfLastDot != -1 && indexOfLastDot > indexOfBackslash)
                             {
-                                node->StructureText.Length = (USHORT)((indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR));
+                                node->StructureText.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
                             }
                             else
                             {
-                                node->StructureText.Length = node->PathText->Length - (USHORT)(indexOfBackslash * sizeof(WCHAR)) - sizeof(WCHAR);
+                                node->StructureText.Length = node->PathText->Length - indexOfBackslash * sizeof(WCHAR) - sizeof(WCHAR);
                             }
                         }
                         else
@@ -1063,7 +1063,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             {
             case ID_COPY:
                 {
-                    PPH_FULL_STRING text;
+                    PPH_STRING text;
 
                     text = PhGetTreeNewText(context->TnHandle, 0);
                     PhSetClipboardStringEx(context->TnHandle, text->Buffer, text->Length);

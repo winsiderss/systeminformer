@@ -85,17 +85,17 @@ static VOID PhpUpdateLogList(
     }
 }
 
-static PPH_FULL_STRING PhpGetStringForSelectedLogEntries(
+static PPH_STRING PhpGetStringForSelectedLogEntries(
     __in BOOLEAN All
     )
 {
-    PPH_FULL_STRING string;
+    PH_STRING_BUILDER stringBuilder;
     ULONG i;
 
     if (ListViewCount == 0)
-        return PhCreateFullString(L"");
+        return PhReferenceEmptyString();
 
-    string = PhCreateFullString2(0x100);
+    PhInitializeStringBuilder(&stringBuilder, 0x100);
 
     i = ListViewCount - 1;
 
@@ -121,14 +121,14 @@ static PPH_FULL_STRING PhpGetStringForSelectedLogEntries(
 
         PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
         temp = PhFormatDateTime(&systemTime);
-        PhAppendFullString(string, temp);
+        PhAppendStringBuilder(&stringBuilder, temp);
         PhDereferenceObject(temp);
-        PhAppendFullString2(string, L": ");
+        PhAppendStringBuilder2(&stringBuilder, L": ");
 
         temp = PhFormatLogEntry(entry);
-        PhAppendFullString(string, temp);
+        PhAppendStringBuilder(&stringBuilder, temp);
         PhDereferenceObject(temp);
-        PhAppendFullString2(string, L"\r\n");
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
 
 ContinueLoop:
 
@@ -138,7 +138,7 @@ ContinueLoop:
         i--;
     }
 
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 INT_PTR CALLBACK PhpLogDlgProc(
@@ -216,7 +216,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                 break;
             case IDC_COPY:
                 {
-                    PPH_FULL_STRING string;
+                    PPH_STRING string;
                     ULONG selectedCount;
 
                     selectedCount = ListView_GetSelectedCount(ListViewHandle);
@@ -257,7 +257,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                         NTSTATUS status;
                         PPH_STRING fileName;
                         PPH_FILE_STREAM fileStream;
-                        PPH_FULL_STRING string;
+                        PPH_STRING string;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
                         PhaDereferenceObject(fileName);

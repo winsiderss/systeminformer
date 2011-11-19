@@ -128,7 +128,7 @@ ULONG FindPerfIndexInTextData(
         textData += length + 1;
 
         textSr.Buffer = text;
-        textSr.Length = (USHORT)(length * sizeof(WCHAR));
+        textSr.Length = length * sizeof(WCHAR);
 
         if (PhEqualStringRef(&textSr, Text, TRUE))
             return index;

@@ -1,6 +1,9 @@
 Process Hacker
 
 2.24
+ * NOTE:
+   * This release has significant internal code changes. Please
+     make sure all plugins are up-to-date.
  * NEW/IMPROVED:
    * Completely new system information window
    * Added option to scroll to new processes
