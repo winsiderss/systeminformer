@@ -511,7 +511,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->CpuUsageText;
-                            getCellText->Text.Length = (USHORT)(returnLength - sizeof(WCHAR)); // minus null terminator
+                            getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
                         }
                     }
                     else if (cpuUsage != 0 && PhCsShowCpuBelow001)
@@ -525,7 +525,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->CpuUsageText;
-                            getCellText->Text.Length = (USHORT)(returnLength - sizeof(WCHAR));
+                            getCellText->Text.Length = returnLength - sizeof(WCHAR);
                         }
                     }
                 }

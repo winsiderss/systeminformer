@@ -102,8 +102,8 @@ PPH_STRING PhaUpperString(
 
 PPH_STRING PhaSubstring(
     __in PPH_STRING String,
-    __in ULONG StartIndex,
-    __in ULONG Count
+    __in SIZE_T StartIndex,
+    __in SIZE_T Count
     )
 {
     return PHA_DEREFERENCE(PhSubstring(String, StartIndex, Count));

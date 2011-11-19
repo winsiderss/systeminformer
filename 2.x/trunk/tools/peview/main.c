@@ -57,7 +57,7 @@ INT WINAPI WinMain(
 
     PhApplicationName = L"PE Viewer";
 
-    commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
 
     PhParseCommandLine(
         &commandLine,

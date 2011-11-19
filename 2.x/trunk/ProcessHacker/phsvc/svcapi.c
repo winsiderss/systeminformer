@@ -834,8 +834,7 @@ NTSTATUS PhSvcApiAddAccountRight(
         {
             if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, NULL)))
             {
-                userRightUs = userRight->us;
-                userRightUs.MaximumLength = userRightUs.Length;
+                PhStringRefToUnicodeString(&userRight->sr, &userRightUs);
                 status = LsaAddAccountRights(policyHandle, accountSid, &userRightUs, 1);
                 LsaClose(policyHandle);
             }

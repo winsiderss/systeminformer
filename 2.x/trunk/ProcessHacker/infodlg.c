@@ -111,7 +111,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     else
                     {
                         string.Buffer = buffer + selStart;
-                        string.Length = (USHORT)((selEnd - selStart) * 2);
+                        string.Length = (selEnd - selStart) * 2;
                     }
 
                     PhSetClipboardString(hwndDlg, &string);

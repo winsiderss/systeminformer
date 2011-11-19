@@ -110,9 +110,9 @@ BOOLEAN PhpLocateDisabledPlugin(
     )
 {
     BOOLEAN found;
-    ULONG i;
-    ULONG length;
-    ULONG endOfPart;
+    SIZE_T i;
+    SIZE_T length;
+    ULONG_PTR endOfPart;
     PH_STRINGREF part;
 
     found = FALSE;
@@ -127,14 +127,14 @@ BOOLEAN PhpLocateDisabledPlugin(
             endOfPart = length;
 
         part.Buffer = &List->Buffer[i];
-        part.Length = (USHORT)((endOfPart - i) * sizeof(WCHAR));
+        part.Length = (endOfPart - i) * sizeof(WCHAR);
 
         if (PhEqualStringRef(&part, BaseName, TRUE))
         {
             found = TRUE;
 
             if (FoundIndex)
-                *FoundIndex = i;
+                *FoundIndex = (ULONG)i;
 
             break;
         }
@@ -199,9 +199,9 @@ VOID PhSetPluginDisabled(
 
         // We need to remove the plugin from the disabled list.
 
-        removeCount = BaseName->Length / 2;
+        removeCount = (ULONG)BaseName->Length / 2;
 
-        if (foundIndex + BaseName->Length / 2 < (ULONG)disabled->Length / 2)
+        if (foundIndex + (ULONG)BaseName->Length / 2 < (ULONG)disabled->Length / 2)
         {
             // Remove the following pipe character as well.
             removeCount++;
@@ -233,7 +233,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     PPH_STRING fileName;
 
     baseName.Buffer = Information->FileName;
-    baseName.Length = (USHORT)Information->FileNameLength;
+    baseName.Length = Information->FileNameLength;
 
     if (PhEndsWithStringRef2(&baseName, L".dll", TRUE))
     {
@@ -285,9 +285,8 @@ VOID PhLoadPlugins(
         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
-        PH_STRINGREF pattern;
+        UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*.dll");
 
-        PhInitializeStringRef(&pattern, L"*.dll");
         PhEnumDirectoryFile(pluginsDirectoryHandle, &pattern, EnumPluginsDirectoryCallback, NULL);
         NtClose(pluginsDirectoryHandle);
     }
@@ -574,9 +573,9 @@ BOOLEAN PhpValidatePluginName(
     __in PPH_STRINGREF Name
     )
 {
-    ULONG i;
+    SIZE_T i;
     PWSTR buffer;
-    ULONG count;
+    SIZE_T count;
 
     buffer = Name->Buffer;
     count = Name->Length / sizeof(WCHAR);

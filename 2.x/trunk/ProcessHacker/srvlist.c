@@ -771,7 +771,7 @@ VOID PhCopyServiceList(
     VOID
     )
 {
-    PPH_FULL_STRING text;
+    PPH_STRING text;
 
     text = PhGetTreeNewText(ServiceTreeListHandle, 0);
     PhSetClipboardStringEx(ServiceTreeListHandle, text->Buffer, text->Length);

@@ -99,7 +99,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
         {
             PCHOICE_DIALOG_CONTEXT context = (PCHOICE_DIALOG_CONTEXT)lParam;
             ULONG type;
-            ULONG i;
+            SIZE_T i;
             HWND comboBoxHandle;
             HWND checkBoxHandle;
             RECT checkBoxRect;
@@ -148,13 +148,13 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             else if (type == PH_CHOICE_DIALOG_USER_CHOICE && context->SavedChoicesSettingName)
             {
                 PPH_STRING savedChoices = PhGetStringSetting(context->SavedChoicesSettingName);
-                ULONG indexOfDelim;
+                ULONG_PTR indexOfDelim;
                 PPH_STRING savedChoice;
 
                 i = 0;
 
                 // Split the saved choices using the delimiter.
-                while (i < (ULONG)savedChoices->Length / 2)
+                while (i < savedChoices->Length / 2)
                 {
                     // BUG BUG BUG - what if the user saves "\s"?
                     indexOfDelim = PhFindStringInString(savedChoices, i, L"\\s");

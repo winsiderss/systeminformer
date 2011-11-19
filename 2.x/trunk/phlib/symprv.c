@@ -919,7 +919,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     __out_opt PDYNAMIC_FUNCTION_TABLE FunctionTable,
     __out_bcount_opt(OutOfProcessCallbackDllSize) PWCHAR OutOfProcessCallbackDllBuffer,
     __in ULONG OutOfProcessCallbackDllBufferSize,
-    __out_opt PPH_STRINGREF OutOfProcessCallbackDllString
+    __out_opt PUNICODE_STRING OutOfProcessCallbackDllString
     )
 {
     NTSTATUS status;
@@ -1001,7 +1001,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
                             {
                                 OutOfProcessCallbackDllString->Buffer = OutOfProcessCallbackDllBuffer;
                                 OutOfProcessCallbackDllString->Length = (USHORT)(i * sizeof(WCHAR));
-                                OutOfProcessCallbackDllString->us.MaximumLength = OutOfProcessCallbackDllString->Length;
+                                OutOfProcessCallbackDllString->MaximumLength = OutOfProcessCallbackDllString->Length;
                             }
 
                             break;
@@ -1021,7 +1021,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
                     {
                         OutOfProcessCallbackDllString->Buffer = NULL;
                         OutOfProcessCallbackDllString->Length = 0;
-                        OutOfProcessCallbackDllString->us.MaximumLength = 0;
+                        OutOfProcessCallbackDllString->MaximumLength = 0;
                     }
                 }
             }
@@ -1088,7 +1088,7 @@ PRUNTIME_FUNCTION PhpLookupFunctionEntry(
 NTSTATUS PhpAccessCallbackFunctionTable(
     __in HANDLE ProcessHandle,
     __in PVOID FunctionTableAddress,
-    __in PPH_STRINGREF OutOfProcessCallbackDllString,
+    __in PUNICODE_STRING OutOfProcessCallbackDllString,
     __out PRUNTIME_FUNCTION *Functions,
     __out PULONG NumberOfFunctions
     )
@@ -1116,13 +1116,13 @@ NTSTATUS PhpAccessCallbackFunctionTable(
         )))
         return status;
 
-    status = NtQueryValueKey(keyHandle, &OutOfProcessCallbackDllString->us, KeyValuePartialInformation, NULL, 0, &returnLength);
+    status = NtQueryValueKey(keyHandle, OutOfProcessCallbackDllString, KeyValuePartialInformation, NULL, 0, &returnLength);
     NtClose(keyHandle);
 
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
         return STATUS_ACCESS_DISABLED_BY_POLICY_DEFAULT;
 
-    status = LdrLoadDll(NULL, NULL, &OutOfProcessCallbackDllString->us, &dllHandle);
+    status = LdrLoadDll(NULL, NULL, OutOfProcessCallbackDllString, &dllHandle);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1191,7 +1191,7 @@ NTSTATUS PhAccessOutOfProcessFunctionEntry(
     PDYNAMIC_FUNCTION_TABLE functionTableAddress;
     DYNAMIC_FUNCTION_TABLE functionTable;
     WCHAR outOfProcessCallbackDll[512];
-    PH_STRINGREF outOfProcessCallbackDllString;
+    UNICODE_STRING outOfProcessCallbackDllString;
     PRUNTIME_FUNCTION functions;
     ULONG numberOfFunctions;
     PRUNTIME_FUNCTION function;

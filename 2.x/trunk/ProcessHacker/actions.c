@@ -1325,8 +1325,8 @@ BOOLEAN PhUiDebugProcess(
 
         HANDLE keyHandle;
         PPH_STRING debugger;
-        ULONG firstIndex;
-        ULONG secondIndex;
+        ULONG_PTR firstIndex;
+        ULONG_PTR secondIndex;
 
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,

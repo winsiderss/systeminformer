@@ -26,7 +26,7 @@ VOID PhMapDisplayIndexTreeNew(
     );
 
 PHLIBAPI
-PPH_FULL_STRING PhGetTreeNewText(
+PPH_STRING PhGetTreeNewText(
     __in HWND TreeNewHandle,
     __reserved ULONG Reserved
     );
@@ -45,7 +45,7 @@ VOID PhaMapDisplayIndexListView(
     __out PULONG NumberOfColumns
     );
 
-PPH_FULL_STRING PhGetListViewText(
+PPH_STRING PhGetListViewText(
     __in HWND ListViewHandle
     );
 

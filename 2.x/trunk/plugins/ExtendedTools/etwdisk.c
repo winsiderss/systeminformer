@@ -152,10 +152,10 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
  */
 FORCEINLINE ULONG EtpHashStringIgnoreCase(
     __in PWSTR String,
-    __in ULONG Count
+    __in SIZE_T Count
     )
 {
-    ULONG hash = Count;
+    ULONG hash = (ULONG)Count;
 
     if (Count == 0)
         return 0;

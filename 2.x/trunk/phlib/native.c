@@ -45,7 +45,7 @@ typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES32_CALLBACK)(
 
 static PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
 
-static PH_STRINGREF PhDevicePrefixes[26];
+static UNICODE_STRING PhDevicePrefixes[26];
 static PH_QUEUED_LOCK PhDevicePrefixesLock = PH_QUEUED_LOCK_INIT;
 
 static PPH_STRING PhDeviceMupPrefixes[PH_DEVICE_MUP_PREFIX_MAX_COUNT] = { 0 };
@@ -53,11 +53,11 @@ static ULONG PhDeviceMupPrefixesCount = 0;
 static PH_QUEUED_LOCK PhDeviceMupPrefixesLock = PH_QUEUED_LOCK_INIT;
 
 static PH_INITONCE PhPredefineKeyInitOnce = PH_INITONCE_INIT;
-static PH_STRINGREF PhPredefineKeyNames[PH_KEY_MAXIMUM_PREDEFINE] =
+static UNICODE_STRING PhPredefineKeyNames[PH_KEY_MAXIMUM_PREDEFINE] =
 {
-    PH_STRINGREF_INIT(L"\\Registry\\Machine"),
-    PH_STRINGREF_INIT(L"\\Registry\\User"),
-    PH_STRINGREF_INIT(L"\\Registry\\Machine\\Software\\Classes"),
+    RTL_CONSTANT_STRING(L"\\Registry\\Machine"),
+    RTL_CONSTANT_STRING(L"\\Registry\\User"),
+    RTL_CONSTANT_STRING(L"\\Registry\\Machine\\Software\\Classes"),
     { 0, 0, NULL }
 };
 static HANDLE PhPredefineKeyHandles[PH_KEY_MAXIMUM_PREDEFINE] = { 0 };
@@ -1248,9 +1248,9 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     *EnumerationKey = currentIndex;
 
     Variable->Name.Buffer = name;
-    Variable->Name.Length = (USHORT)(nameLength * sizeof(WCHAR));
+    Variable->Name.Length = nameLength * sizeof(WCHAR);
     Variable->Value.Buffer = value;
-    Variable->Value.Length = (USHORT)(valueLength * sizeof(WCHAR));
+    Variable->Value.Length = valueLength * sizeof(WCHAR);
 
     return TRUE;
 }
@@ -3119,14 +3119,22 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
     NTSTATUS status;
     POPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT context = Context;
     PPH_STRING driverName;
+    UNICODE_STRING driverNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE driverHandle;
     DRIVER_BASIC_INFORMATION basicInfo;
 
     driverName = PhConcatStringRef2(&driverDirectoryName, &Name->sr);
+
+    if (!PhStringRefToUnicodeString(&driverName->sr, &driverNameUs))
+    {
+        PhDereferenceObject(driverName);
+        return TRUE;
+    }
+
     InitializeObjectAttributes(
         &objectAttributes,
-        &driverName->us,
+        &driverNameUs,
         0,
         NULL,
         NULL
@@ -3323,10 +3331,17 @@ NTSTATUS PhpUnloadDriver(
 
     NTSTATUS status;
     PPH_STRING fullServiceKeyName;
+    UNICODE_STRING fullServiceKeyNameUs;
     HANDLE serviceKeyHandle;
     ULONG disposition;
 
     fullServiceKeyName = PhConcatStringRef2(&fullServicesKeyName, &ServiceKeyName->sr);
+
+    if (!PhStringRefToUnicodeString(&fullServiceKeyName->sr, &fullServiceKeyNameUs))
+    {
+        PhDereferenceObject(fullServiceKeyName);
+        return STATUS_NAME_TOO_LONG;
+    }
 
     if (NT_SUCCESS(status = PhCreateKey(
         &serviceKeyHandle,
@@ -3340,7 +3355,7 @@ NTSTATUS PhpUnloadDriver(
     {
         if (disposition == REG_CREATED_NEW_KEY)
         {
-            static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
+            static UNICODE_STRING imagePath = RTL_CONSTANT_STRING(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
 
             UNICODE_STRING valueName;
             ULONG dword;
@@ -3359,7 +3374,7 @@ NTSTATUS PhpUnloadDriver(
             NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_SZ, imagePath.Buffer, imagePath.Length + 2);
         }
 
-        status = NtUnloadDriver(&fullServiceKeyName->us);
+        status = NtUnloadDriver(&fullServiceKeyNameUs);
 
         if (disposition == REG_CREATED_NEW_KEY)
         {
@@ -3642,12 +3657,9 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
     if (mappedFileName)
     {
-        ULONG indexOfLastBackslash;
+        ULONG_PTR indexOfLastBackslash;
 
-        Entry->FullDllName.Buffer = mappedFileName->Buffer;
-        Entry->FullDllName.Length = mappedFileName->Length;
-        Entry->FullDllName.MaximumLength = mappedFileName->Length + 2;
-
+        PhStringRefToUnicodeString(&mappedFileName->sr, &Entry->FullDllName);
         indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, '\\');
 
         if (indexOfLastBackslash != -1)
@@ -3992,12 +4004,9 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
     if (mappedFileName)
     {
-        ULONG indexOfLastBackslash;
+        ULONG_PTR indexOfLastBackslash;
 
-        nativeEntry.FullDllName.Buffer = mappedFileName->Buffer;
-        nativeEntry.FullDllName.Length = mappedFileName->Length;
-        nativeEntry.FullDllName.MaximumLength = mappedFileName->Length + 2;
-
+        PhStringRefToUnicodeString(&mappedFileName->sr, &nativeEntry.FullDllName);
         indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, '\\');
 
         if (indexOfLastBackslash != -1)
@@ -4233,7 +4242,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     PGET_PROCEDURE_ADDRESS_REMOTE_CONTEXT context = Context;
     PH_STRINGREF fullDllName;
 
-    fullDllName.us = Module->FullDllName;
+    PhUnicodeStringToStringRef(&Module->FullDllName, &fullDllName);
 
     if (PhEqualStringRef(&fullDllName, &context->FileName, TRUE))
     {
@@ -4895,21 +4904,22 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     __in_opt PVOID Context
     )
 {
-    static PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
-    static PH_STRINGREF mscorwksString = PH_STRINGREF_INIT(L"mscorwks.dll");
-    static PH_STRINGREF mscorsvrString = PH_STRINGREF_INIT(L"mscorsvr.dll");
-    static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework\\");
-    static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework64\\");
+    static UNICODE_STRING clrString = RTL_CONSTANT_STRING(L"clr.dll");
+    static UNICODE_STRING mscorwksString = RTL_CONSTANT_STRING(L"mscorwks.dll");
+    static UNICODE_STRING mscorsvrString = RTL_CONSTANT_STRING(L"mscorsvr.dll");
+    static UNICODE_STRING frameworkString = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework\\");
+    static UNICODE_STRING framework64String = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework64\\");
 
     if (
-        RtlEqualUnicodeString(&Module->BaseDllName, &clrString.us, TRUE) ||
-        RtlEqualUnicodeString(&Module->BaseDllName, &mscorwksString.us, TRUE) ||
-        RtlEqualUnicodeString(&Module->BaseDllName, &mscorsvrString.us, TRUE)
+        RtlEqualUnicodeString(&Module->BaseDllName, &clrString, TRUE) ||
+        RtlEqualUnicodeString(&Module->BaseDllName, &mscorwksString, TRUE) ||
+        RtlEqualUnicodeString(&Module->BaseDllName, &mscorsvrString, TRUE)
         )
     {
-        PH_STRINGREF fileName;
-        PH_STRINGREF systemRoot;
-        PPH_STRINGREF frameworkPart;
+        UNICODE_STRING fileName;
+        PH_STRINGREF systemRootSr;
+        UNICODE_STRING systemRoot;
+        PUNICODE_STRING frameworkPart;
 
 #ifdef _M_X64
         if (*(PULONG)Context & PH_CLR_PROCESS_IS_WOW64)
@@ -4924,16 +4934,16 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
         }
 #endif
 
-        fileName.us = Module->FullDllName;
+        fileName = Module->FullDllName;
+        PhGetSystemRoot(&systemRootSr);
+        PhStringRefToUnicodeString(&systemRootSr, &systemRoot);
 
-        PhGetSystemRoot(&systemRoot);
-
-        if (PhStartsWithStringRef(&fileName, &systemRoot, TRUE))
+        if (RtlPrefixUnicodeString(&systemRoot, &fileName, TRUE))
         {
             fileName.Buffer = (PWSTR)((PCHAR)fileName.Buffer + systemRoot.Length);
             fileName.Length -= systemRoot.Length;
 
-            if (PhStartsWithStringRef(&fileName, frameworkPart, TRUE))
+            if (RtlPrefixUnicodeString(frameworkPart, &fileName, TRUE))
             {
                 fileName.Buffer = (PWSTR)((PCHAR)fileName.Buffer + frameworkPart->Length);
                 fileName.Length -= frameworkPart->Length;
@@ -5002,6 +5012,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
         HANDLE sectionHandle;
         OBJECT_ATTRIBUTES objectAttributes;
         PPH_STRING sectionName;
+        UNICODE_STRING sectionNameUs;
         PH_FORMAT format[2];
 
         // Most .NET processes have a handle open to a section named
@@ -5019,10 +5030,11 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
         PhInitFormatS(&format[0], L"\\BaseNamedObjects\\Cor_Private_IPCBlock_v4_");
         sectionName = PhFormat(format, 2, 96);
+        PhStringRefToUnicodeString(&sectionName->sr, &sectionNameUs);
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &sectionName->us,
+            &sectionNameUs,
             OBJ_CASE_INSENSITIVE,
             NULL,
             NULL
@@ -5052,10 +5064,11 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
         PhInitFormatS(&format[0], L"\\BaseNamedObjects\\Cor_Private_IPCBlock_");
         sectionName = PhFormat(format, 2, 90);
+        PhStringRefToUnicodeString(&sectionName->sr, &sectionNameUs);
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &sectionName->us,
+            &sectionNameUs,
             OBJ_CASE_INSENSITIVE,
             NULL,
             NULL
@@ -5240,7 +5253,7 @@ NTSTATUS PhEnumDirectoryObjects(
 
 NTSTATUS PhEnumDirectoryFile(
     __in HANDLE FileHandle,
-    __in_opt PPH_STRINGREF SearchPattern,
+    __in_opt PUNICODE_STRING SearchPattern,
     __in PPH_ENUM_DIRECTORY_FILE Callback,
     __in_opt PVOID Context
     )
@@ -5271,7 +5284,7 @@ NTSTATUS PhEnumDirectoryFile(
                 bufferSize,
                 FileDirectoryInformation,
                 FALSE,
-                SearchPattern ? &SearchPattern->us : NULL,
+                SearchPattern,
                 firstTime
                 );
 
@@ -5373,7 +5386,7 @@ VOID PhInitializeDevicePrefixes(
     for (i = 0; i < 26; i++)
     {
         PhDevicePrefixes[i].Length = 0;
-        PhDevicePrefixes[i].us.MaximumLength = PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
+        PhDevicePrefixes[i].MaximumLength = PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
         PhDevicePrefixes[i].Buffer = (PWSTR)buffer;
         buffer += PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
     }
@@ -5515,7 +5528,7 @@ VOID PhUpdateDosDevicePrefixes(
 
             if (!NT_SUCCESS(NtQuerySymbolicLinkObject(
                 linkHandle,
-                &PhDevicePrefixes[i].us,
+                &PhDevicePrefixes[i],
                 NULL
                 )))
             {
@@ -5562,19 +5575,19 @@ PPH_STRING PhResolveDevicePrefix(
     for (i = 0; i < 26; i++)
     {
         BOOLEAN isPrefix = FALSE;
-        ULONG prefixLength;
+        PH_STRINGREF prefix;
 
         PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
 
-        prefixLength = PhDevicePrefixes[i].Length;
+        PhUnicodeStringToStringRef(&PhDevicePrefixes[i], &prefix);
 
-        if (prefixLength != 0)
+        if (prefix.Length != 0)
         {
-            if (PhStartsWithStringRef(&Name->sr, &PhDevicePrefixes[i], TRUE))
+            if (PhStartsWithStringRef(&Name->sr, &prefix, TRUE))
             {
                 // To ensure we match the longest prefix, make sure the next character is a backslash or
                 // the path is equal to the prefix.
-                if (Name->Length == prefixLength || Name->Buffer[prefixLength / sizeof(WCHAR)] == '\\')
+                if (Name->Length == prefix.Length || Name->Buffer[prefix.Length / sizeof(WCHAR)] == '\\')
                 {
                     isPrefix = TRUE;
                 }
@@ -5586,13 +5599,13 @@ PPH_STRING PhResolveDevicePrefix(
         if (isPrefix)
         {
             // <letter>:path
-            newName = PhCreateStringEx(NULL, 2 * sizeof(WCHAR) + Name->Length - prefixLength);
+            newName = PhCreateStringEx(NULL, 2 * sizeof(WCHAR) + Name->Length - prefix.Length);
             newName->Buffer[0] = (WCHAR)('A' + i);
             newName->Buffer[1] = ':';
             memcpy(
                 &newName->Buffer[2],
-                &Name->Buffer[prefixLength / sizeof(WCHAR)],
-                Name->Length - prefixLength
+                &Name->Buffer[prefix.Length / sizeof(WCHAR)],
+                Name->Length - prefix.Length
                 );
 
             break;
@@ -5608,7 +5621,7 @@ PPH_STRING PhResolveDevicePrefix(
         for (i = 0; i < PhDeviceMupPrefixesCount; i++)
         {
             BOOLEAN isPrefix = FALSE;
-            ULONG prefixLength;
+            SIZE_T prefixLength;
 
             prefixLength = PhDeviceMupPrefixes[i]->Length;
 
@@ -6228,14 +6241,14 @@ VOID PhpInitializePredefineKeys(
     VOID
     )
 {
-    static PH_STRINGREF currentUserPrefix = PH_STRINGREF_INIT(L"\\Registry\\User\\");
+    static UNICODE_STRING currentUserPrefix = RTL_CONSTANT_STRING(L"\\Registry\\User\\");
 
     NTSTATUS status;
     HANDLE tokenHandle;
     PTOKEN_USER tokenUser;
     UNICODE_STRING stringSid;
     WCHAR stringSidBuffer[MAX_UNICODE_STACK_BUFFER_LENGTH];
-    PPH_STRINGREF currentUserKeyName;
+    PUNICODE_STRING currentUserKeyName;
 
     // Get the string SID of the current user.
     if (NT_SUCCESS(status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &tokenHandle)))
@@ -6289,13 +6302,17 @@ NTSTATUS PhpInitializeKeyObjectAttributes(
     )
 {
     NTSTATUS status;
+    UNICODE_STRING objectName;
     ULONG predefineIndex;
     HANDLE predefineHandle;
     OBJECT_ATTRIBUTES predefineObjectAttributes;
 
+    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
     InitializeObjectAttributes(
         ObjectAttributes,
-        &ObjectName->us,
+        &objectName,
         Attributes | OBJ_CASE_INSENSITIVE,
         RootDirectory,
         NULL
@@ -6326,7 +6343,7 @@ NTSTATUS PhpInitializeKeyObjectAttributes(
 
                 InitializeObjectAttributes(
                     &predefineObjectAttributes,
-                    &PhPredefineKeyNames[predefineIndex].us,
+                    &PhPredefineKeyNames[predefineIndex],
                     OBJ_CASE_INSENSITIVE,
                     NULL,
                     NULL

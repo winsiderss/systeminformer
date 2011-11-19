@@ -445,16 +445,19 @@ BOOLEAN EspEnumerateEtwPublishers(
 
         if (NT_SUCCESS(status))
         {
+            UNICODE_STRING nameUs;
             PH_STRINGREF name;
             HANDLE keyHandle;
             GUID guid;
             PPH_STRING publisherName;
 
+            nameUs.Buffer = buffer->Name;
+            nameUs.Length = (USHORT)buffer->NameLength;
             name.Buffer = buffer->Name;
-            name.Length = (USHORT)buffer->NameLength;
+            name.Length = buffer->NameLength;
 
             // Make sure this is a valid publisher key.
-            if (NT_SUCCESS(RtlGUIDFromString(&name.us, &guid)))
+            if (NT_SUCCESS(RtlGUIDFromString(&nameUs, &guid)))
             {
                 if (NT_SUCCESS(PhOpenKey(
                     &keyHandle,
@@ -759,7 +762,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
 
                     if (data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
                     {
-                        dataItem->cbData = data->String->Length + 2; // include null terminator
+                        dataItem->cbData = (ULONG)data->String->Length + 2; // include null terminator
                         dataItem->pData = (PBYTE)data->String->Buffer;
                     }
                     else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
@@ -1081,14 +1084,14 @@ PPH_STRING EspConvertNewLinesToNulls(
     )
 {
     PPH_STRING text;
-    ULONG count;
-    ULONG i;
+    SIZE_T count;
+    SIZE_T i;
 
     text = PhCreateStringEx(NULL, String->Length + 2); // plus one character for an extra null terminator (see below)
     text->Length = 0;
     count = 0;
 
-    for (i = 0; i < (ULONG)String->Length / 2; i++)
+    for (i = 0; i < String->Length / 2; i++)
     {
         // Lines are terminated by "\r\n".
         if (String->Buffer[i] == '\r')
@@ -1112,7 +1115,7 @@ PPH_STRING EspConvertNewLinesToNulls(
             text->Buffer[count++] = 0;
     }
 
-    text->Length = (USHORT)(count * 2);
+    text->Length = count * 2;
 
     return text;
 }
@@ -1122,11 +1125,11 @@ PPH_STRING EspConvertNullsToSpaces(
     )
 {
     PPH_STRING text;
-    ULONG j;
+    SIZE_T j;
 
     text = PhDuplicateString(String);
 
-    for (j = 0; j < (ULONG)text->Length / 2; j++)
+    for (j = 0; j < text->Length / 2; j++)
     {
         if (text->Buffer[j] == 0)
             text->Buffer[j] = ' ';
@@ -1463,7 +1466,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     {
                         UNICODE_STRING guidString;
 
-                        guidString = customSubTypeString->us;
+                        PhStringRefToUnicodeString(&customSubTypeString->sr, &guidString);
 
                         // Trim whitespace.
 

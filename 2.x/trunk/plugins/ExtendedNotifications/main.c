@@ -209,8 +209,8 @@ VOID LoadFilterList(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    ULONG length;
-    ULONG i;
+    SIZE_T length;
+    SIZE_T i;
     PFILTER_ENTRY entry;
 
     length = String->Length / 2;
@@ -275,8 +275,8 @@ PPH_STRING SaveFilterList(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    ULONG i;
-    ULONG j;
+    SIZE_T i;
+    SIZE_T j;
     WCHAR temp[2];
 
     PhInitializeStringBuilder(&stringBuilder, 100);
@@ -286,7 +286,7 @@ PPH_STRING SaveFilterList(
     for (i = 0; i < FilterList->Count; i++)
     {
         PFILTER_ENTRY entry = FilterList->Items[i];
-        ULONG length;
+        SIZE_T length;
 
         // Write the entry type.
 

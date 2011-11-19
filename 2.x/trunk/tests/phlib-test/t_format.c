@@ -55,7 +55,7 @@ static VOID Test_string(
     format[1].Type = StringZFormatType;
     format[1].u.StringZ = L"is ";
     format[2].Type = AnsiStringFormatType;
-    PhInitializeAnsiStringRef(&format[2].u.AnsiString, "a ");
+    RtlInitAnsiString(&format[2].u.AnsiString.as, "a ");
     format[3].Type = AnsiStringZFormatType;
     format[3].u.AnsiStringZ = "string.";
     result = PhFormatToBuffer(format, 4, buffer, sizeof(buffer), NULL);

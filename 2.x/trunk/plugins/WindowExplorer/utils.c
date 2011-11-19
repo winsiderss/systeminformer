@@ -54,7 +54,7 @@ VOID WeFormatLocalObjectName(
         length += originalNameLength;
 
         ObjectName->Buffer = Buffer;
-        ObjectName->MaximumLength = ObjectName->Length = (USHORT)(length * sizeof(WCHAR));
+        ObjectName->MaximumLength = (ObjectName->Length = (USHORT)(length * sizeof(WCHAR))) + sizeof(WCHAR);
     }
     else
     {

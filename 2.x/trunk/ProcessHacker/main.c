@@ -765,7 +765,7 @@ VOID PhpProcessStartupParameters(
     };
     PH_STRINGREF commandLine;
 
-    commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
 
     memset(&PhStartupParameters, 0, sizeof(PH_STARTUP_PARAMETERS));
 

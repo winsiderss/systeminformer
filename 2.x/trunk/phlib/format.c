@@ -37,7 +37,7 @@
 
 extern ULONG PhMaxSizeUnit;
 
-#define SMALL_BUFFER_LENGTH (PHOBJ_SMALL_OBJECT_SIZE - FIELD_OFFSET(PH_STRING, Buffer) - sizeof(WCHAR))
+#define SMALL_BUFFER_LENGTH (PHOBJ_SMALL_OBJECT_SIZE - FIELD_OFFSET(PH_STRING, Data) - sizeof(WCHAR))
 #define BUFFER_SIZE 512
 
 #define PHP_FORMAT_NEGATIVE 0x1
@@ -189,7 +189,7 @@ PPH_STRING PhFormat(
 
 #include "format_i.h"
 
-    string->Length = (USHORT)(usedLength);
+    string->Length = usedLength;
     // Null-terminate the string.
     string->Buffer[usedLength / sizeof(WCHAR)] = 0;
 

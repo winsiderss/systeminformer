@@ -39,17 +39,17 @@ VOID PhpAppendStringWithLineBreaks(
     )
 {
     PH_STRINGREF line;
-    ULONG bytesPerLine;
+    SIZE_T bytesPerLine;
     BOOLEAN afterFirstLine;
-    ULONG bytesToAppend;
-    ULONG indentAfterFirstLineLength;
+    SIZE_T bytesToAppend;
+    SIZE_T indentAfterFirstLineLength;
 
     line = *String;
     bytesPerLine = CharactersPerLine * sizeof(WCHAR);
     afterFirstLine = FALSE;
 
     if (IndentAfterFirstLine)
-        indentAfterFirstLineLength = (ULONG)wcslen(IndentAfterFirstLine) * sizeof(WCHAR);
+        indentAfterFirstLineLength = wcslen(IndentAfterFirstLine) * sizeof(WCHAR);
 
     while (line.Length != 0)
     {
@@ -70,7 +70,7 @@ VOID PhpAppendStringWithLineBreaks(
         afterFirstLine = TRUE;
 
         line.Buffer = (PWSTR)((PCHAR)line.Buffer + bytesToAppend);
-        line.Length -= (USHORT)bytesToAppend;
+        line.Length -= bytesToAppend;
     }
 }
 

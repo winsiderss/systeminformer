@@ -59,7 +59,7 @@ NTSTATUS PhCommandModeStart(
     NTSTATUS status = STATUS_SUCCESS;
     PH_STRINGREF commandLine;
 
-    commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
 
     PhParseCommandLine(
         &commandLine,
