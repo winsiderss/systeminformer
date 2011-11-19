@@ -93,7 +93,7 @@ NTSTATUS EspLoadOtherInfo(
 
                 lvItemIndex = PhAddListViewItem(Context->PrivilegesLv, MAXINT, privilege, privilegeString);
                 privilegeSr.Buffer = privilege;
-                privilegeSr.Length = (USHORT)(privilegeLength * sizeof(WCHAR));
+                privilegeSr.Length = privilegeLength * sizeof(WCHAR);
 
                 if (PhLookupPrivilegeDisplayName(&privilegeSr, &displayName))
                 {

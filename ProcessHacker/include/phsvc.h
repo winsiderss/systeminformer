@@ -15,7 +15,7 @@ typedef struct _PHSVC_STOP
 } PHSVC_STOP, *PPHSVC_STOP;
 
 NTSTATUS PhSvcMain(
-    __in_opt PPH_STRINGREF PortName,
+    __in_opt PUNICODE_STRING PortName,
     __in_opt PLARGE_INTEGER Timeout,
     __inout_opt PPHSVC_STOP Stop
     );
@@ -88,7 +88,7 @@ typedef struct _PHSVC_THREAD_CONTEXT
 } PHSVC_THREAD_CONTEXT, *PPHSVC_THREAD_CONTEXT;
 
 NTSTATUS PhSvcApiPortInitialization(
-    __in PPH_STRINGREF PortName
+    __in PUNICODE_STRING PortName
     );
 
 PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(

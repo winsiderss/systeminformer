@@ -38,7 +38,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
 
-    PPH_FULL_STRING ReceivedString;
+    PH_STRING_BUILDER ReceivedString;
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
 INT_PTR CALLBACK NetworkOutputDlgProc(
@@ -60,7 +60,7 @@ VOID PerformNetworkAction(
     context.Action = Action;
     context.Address = *Address;
     PhInitializeQueuedLock(&context.WindowHandleLock);
-    context.ReceivedString = PhCreateFullString2(PAGE_SIZE);
+    PhInitializeStringBuilder(&context.ReceivedString, PAGE_SIZE);
 
     DialogBoxParam(
         PluginInstance->DllBase,
@@ -77,7 +77,7 @@ VOID PerformNetworkAction(
         NtClose(context.ThreadHandle);
     }
 
-    PhDereferenceObject(context.ReceivedString);
+    PhDeleteStringBuilder(&context.ReceivedString);
 }
 
 static NTSTATUS NetworkWorkerThreadStart(
@@ -293,24 +293,24 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
                 if (NT_SUCCESS(RtlOemStringToUnicodeString(&convertedString, &inputString, TRUE)))
                 {
-                    PhAppendFullStringEx(context->ReceivedString, convertedString.Buffer, convertedString.Length);
+                    PhAppendStringBuilderEx(&context->ReceivedString, convertedString.Buffer, convertedString.Length);
                     RtlFreeUnicodeString(&convertedString);
 
                     // Remove leading newlines.
                     if (
-                        context->ReceivedString->Length >= 2 * 2 &&
-                        context->ReceivedString->Buffer[0] == '\r' && context->ReceivedString->Buffer[1] == '\n'
+                        context->ReceivedString.String->Length >= 2 * 2 &&
+                        context->ReceivedString.String->Buffer[0] == '\r' && context->ReceivedString.String->Buffer[1] == '\n'
                         )
                     {
-                        PhRemoveFullString(context->ReceivedString, 0, 2);
+                        PhRemoveStringBuilder(&context->ReceivedString, 0, 2);
                     }
 
-                    SetDlgItemText(hwndDlg, IDC_TEXT, context->ReceivedString->Buffer);
+                    SetDlgItemText(hwndDlg, IDC_TEXT, context->ReceivedString.String->Buffer);
                     SendMessage(
                         GetDlgItem(hwndDlg, IDC_TEXT),
                         EM_SETSEL,
-                        context->ReceivedString->Length / 2 - 1,
-                        context->ReceivedString->Length / 2 - 1
+                        context->ReceivedString.String->Length / 2 - 1,
+                        context->ReceivedString.String->Length / 2 - 1
                         );
                     SendMessage(GetDlgItem(hwndDlg, IDC_TEXT), WM_VSCROLL, SB_BOTTOM, 0);
                 }

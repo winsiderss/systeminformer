@@ -432,7 +432,7 @@ CreateResult:
                         {
                             memcpy(result->Display.Buffer, displayBuffer, displayLength);
                             result->Display.Buffer[displayLength / sizeof(WCHAR)] = 0;
-                            result->Display.Length = (USHORT)displayLength;
+                            result->Display.Length = displayLength;
                         }
 
                         Options->Header.Callback(

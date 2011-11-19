@@ -757,7 +757,7 @@ VOID PhCopyNetworkList(
     VOID
     )
 {
-    PPH_FULL_STRING text;
+    PPH_STRING text;
 
     text = PhGetTreeNewText(NetworkTreeListHandle, 0);
     PhSetClipboardStringEx(NetworkTreeListHandle, text->Buffer, text->Length);

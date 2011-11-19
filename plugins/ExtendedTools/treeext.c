@@ -694,7 +694,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
     result = FirewallUnknownStatus;
 
-    if (imageFileNameBStr = SysAllocStringLen(processItem->FileName->Buffer, processItem->FileName->Length / sizeof(WCHAR)))
+    if (imageFileNameBStr = SysAllocStringLen(processItem->FileName->Buffer, (ULONG)processItem->FileName->Length / sizeof(WCHAR)))
     {
         localAddressBStr = NULL;
 

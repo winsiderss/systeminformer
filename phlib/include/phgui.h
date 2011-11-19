@@ -210,7 +210,7 @@ FORCEINLINE LRESULT PhReflectMessage(
 
 #define PH_DEFINE_MAKE_ATOM(AtomName) \
 do { \
-    static PH_STRINGREF atomName = PH_STRINGREF_INIT(AtomName); \
+    static UNICODE_STRING atomName = RTL_CONSTANT_STRING(AtomName); \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static RTL_ATOM atom = 0; \
 \

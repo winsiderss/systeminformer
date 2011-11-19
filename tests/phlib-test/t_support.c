@@ -49,26 +49,26 @@ static VOID Test_guid(
 {
     GUID guid;
     GUID ns;
-    PH_STRINGREF dnsNamespace = PH_STRINGREF_INIT(L"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}");
-    PH_STRINGREF urlNamespace = PH_STRINGREF_INIT(L"{6ba7b811-9dad-11d1-80b4-00c04fd430c8}");
-    PH_STRINGREF oidNamespace = PH_STRINGREF_INIT(L"{6ba7b812-9dad-11d1-80b4-00c04fd430c8}");
-    PH_STRINGREF x500Namespace = PH_STRINGREF_INIT(L"{6ba7b814-9dad-11d1-80b4-00c04fd430c8}");
+    UNICODE_STRING dnsNamespace = RTL_CONSTANT_STRING(L"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}");
+    UNICODE_STRING urlNamespace = RTL_CONSTANT_STRING(L"{6ba7b811-9dad-11d1-80b4-00c04fd430c8}");
+    UNICODE_STRING oidNamespace = RTL_CONSTANT_STRING(L"{6ba7b812-9dad-11d1-80b4-00c04fd430c8}");
+    UNICODE_STRING x500Namespace = RTL_CONSTANT_STRING(L"{6ba7b814-9dad-11d1-80b4-00c04fd430c8}");
 
     // Taken from http://svn.python.org/projects/python/branches/py3k/Lib/test/test_uuid.py
 
-    RtlGUIDFromString(&dnsNamespace.us, &ns);
+    RtlGUIDFromString(&dnsNamespace, &ns);
     PhGenerateGuidFromName(&guid, &ns, "python.org", 10, GUID_VERSION_MD5);
     assert(AreGuidsEqual(&guid, L"{6fa459ea-ee8a-3ca4-894e-db77e160355e}"));
 
-    RtlGUIDFromString(&urlNamespace.us, &ns);
+    RtlGUIDFromString(&urlNamespace, &ns);
     PhGenerateGuidFromName(&guid, &ns, "http://python.org/", 18, GUID_VERSION_MD5);
     assert(AreGuidsEqual(&guid, L"{9fe8e8c4-aaa8-32a9-a55c-4535a88b748d}"));
 
-    RtlGUIDFromString(&oidNamespace.us, &ns);
+    RtlGUIDFromString(&oidNamespace, &ns);
     PhGenerateGuidFromName(&guid, &ns, "1.3.6.1", 7, GUID_VERSION_SHA1);
     assert(AreGuidsEqual(&guid, L"{1447fa61-5277-5fef-a9b3-fbc6e44f4af3}"));
 
-    RtlGUIDFromString(&x500Namespace.us, &ns);
+    RtlGUIDFromString(&x500Namespace, &ns);
     PhGenerateGuidFromName(&guid, &ns, "c=ca", 4, GUID_VERSION_SHA1);
     assert(AreGuidsEqual(&guid, L"{cc957dd1-a972-5349-98cd-874190002798}"));
 }

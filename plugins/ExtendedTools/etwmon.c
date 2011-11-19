@@ -57,7 +57,7 @@ static GUID UdpIpGuid_I = { 0xbf3a50c5, 0xa9c9, 0x4988, { 0xa0, 0x05, 0x2d, 0xf0
 // ETW tracing layer
 
 BOOLEAN EtEtwEnabled;
-static PH_STRINGREF EtpLoggerName = PH_STRINGREF_INIT(KERNEL_LOGGER_NAME);
+static UNICODE_STRING EtpLoggerName = RTL_CONSTANT_STRING(KERNEL_LOGGER_NAME);
 static TRACEHANDLE EtpSessionHandle;
 static PEVENT_TRACE_PROPERTIES EtpTraceProperties;
 static BOOLEAN EtpEtwActive;
@@ -67,7 +67,7 @@ static HANDLE EtpEtwMonitorThreadHandle;
 
 // ETW rundown layer
 
-static PH_STRINGREF EtpRundownLoggerName = PH_STRINGREF_INIT(L"PhEtRundownLogger");
+static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"PhEtRundownLogger");
 static TRACEHANDLE EtpRundownSessionHandle;
 static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties;
 static BOOLEAN EtpRundownActive;

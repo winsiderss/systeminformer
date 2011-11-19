@@ -133,7 +133,7 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     if (Displacement)
         *Displacement = displacement;
 
-    buffer->Length = (USHORT)((returnLength - 1) * 2);
+    buffer->Length = (returnLength - 1) * 2;
 
     return buffer;
 }
@@ -174,7 +174,7 @@ PPH_STRING GetNameXClrDataAppDomain(
         }
     }
 
-    buffer->Length = (USHORT)((returnLength - 1) * 2);
+    buffer->Length = (returnLength - 1) * 2;
 
     return buffer;
 }
@@ -403,8 +403,8 @@ BOOLEAN NTAPI PhpGetImageBaseCallback(
 {
     PPHP_GET_IMAGE_BASE_CONTEXT context = Context;
 
-    if (RtlEqualUnicodeString(&Module->FullDllName, &context->ImagePath.us, TRUE) ||
-        RtlEqualUnicodeString(&Module->BaseDllName, &context->ImagePath.us, TRUE))
+    if (RtlEqualUnicodeString(&Module->FullDllName, &context->ImagePath, TRUE) ||
+        RtlEqualUnicodeString(&Module->BaseDllName, &context->ImagePath, TRUE))
     {
         context->BaseAddress = Module->DllBase;
         return FALSE;
@@ -422,7 +422,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
     PHP_GET_IMAGE_BASE_CONTEXT context;
 
-    PhInitializeStringRef(&context.ImagePath, (PWSTR)imagePath);
+    RtlInitUnicodeString(&context.ImagePath, (PWSTR)imagePath);
     context.BaseAddress = NULL;
     PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
 

@@ -76,16 +76,16 @@ VOID PhShowMemoryResultsDialog(
     ShowWindow(windowHandle, SW_SHOW);
 }
 
-static PPH_FULL_STRING PhpGetStringForSelectedResults(
+static PPH_STRING PhpGetStringForSelectedResults(
     __in HWND ListViewHandle,
     __in PPH_LIST Results,
     __in BOOLEAN All
     )
 {
-    PPH_FULL_STRING string;
+    PH_STRING_BUILDER stringBuilder;
     ULONG i;
 
-    string = PhCreateFullString2(0x100);
+    PhInitializeStringBuilder(&stringBuilder, 0x100);
 
     for (i = 0; i < Results->Count; i++)
     {
@@ -99,11 +99,11 @@ static PPH_FULL_STRING PhpGetStringForSelectedResults(
 
         result = Results->Items[i];
 
-        PhAppendFormatFullString(string, L"0x%Ix (%u): %s\r\n", result->Address, result->Length,
+        PhAppendFormatStringBuilder(&stringBuilder, L"0x%Ix (%u): %s\r\n", result->Address, result->Length,
             result->Display.Buffer ? result->Display.Buffer : L"");
     }
 
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 static VOID FilterResults(
@@ -228,7 +228,7 @@ static VOID FilterResults(
                     PH_DISPLAY_BUFFER_COUNT,
                     &ansiLength,
                     result->Display.Buffer,
-                    result->Display.Length
+                    (ULONG)result->Display.Length
                     )))
                     continue;
 
@@ -405,7 +405,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             case IDC_COPY:
                 {
                     HWND lvHandle;
-                    PPH_FULL_STRING string;
+                    PPH_STRING string;
                     ULONG selectedCount;
 
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -447,7 +447,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         NTSTATUS status;
                         PPH_STRING fileName;
                         PPH_FILE_STREAM fileStream;
-                        PPH_FULL_STRING string;
+                        PPH_STRING string;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
                         PhaDereferenceObject(fileName);

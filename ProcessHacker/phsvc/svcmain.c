@@ -27,18 +27,18 @@ HANDLE PhSvcTimeoutStandbyEventHandle;
 HANDLE PhSvcTimeoutCancelEventHandle;
 
 NTSTATUS PhSvcMain(
-    __in_opt PPH_STRINGREF PortName,
+    __in_opt PUNICODE_STRING PortName,
     __in_opt PLARGE_INTEGER Timeout,
     __inout_opt PPHSVC_STOP Stop
     )
 {
     NTSTATUS status;
-    PH_STRINGREF portName;
+    UNICODE_STRING portName;
     LARGE_INTEGER timeout;
 
     if (!PortName)
     {
-        PhInitializeStringRef(&portName, PHSVC_PORT_NAME);
+        RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
         PortName = &portName;
     }
 

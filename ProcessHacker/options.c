@@ -645,7 +645,7 @@ VOID PhpAdvancedPageSave(
                     PPH_STRING quotedFileName;
 
                     quotedFileName = PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\"");
-                    status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, quotedFileName->Length + 2);
+                    status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, (ULONG)quotedFileName->Length + 2);
                     PhDereferenceObject(quotedFileName);
                 }
                 else
