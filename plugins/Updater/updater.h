@@ -1,23 +1,16 @@
 #pragma once
 
 #pragma comment(lib, "Wininet.lib")
-#pragma comment(lib, "Shell32.lib")
 
 #include "phdk.h"
 #include "resource.h"
 #include "mxml.h"
 #include <wininet.h>
 #include <windowsx.h>
-#include <ShellAPI.h>
-#include <ShlObj.h>
-#include <stdint.h>
-#include <CommCtrl.h>
 #include <process.h>
 
 // Always consider the remote version newer
-#ifdef _DEBUG
-#define TEST_MODE
-#endif
+//#define TEST_MODE
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
