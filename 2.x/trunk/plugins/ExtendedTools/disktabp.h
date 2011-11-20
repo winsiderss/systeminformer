@@ -19,6 +19,13 @@ VOID NTAPI EtpDiskTabSaveContentCallback(
     __in PVOID Context
     );
 
+VOID NTAPI EtpDiskTabFontChangedCallback(
+    __in PVOID Parameter1,
+    __in PVOID Parameter2,
+    __in PVOID Parameter3,
+    __in PVOID Context
+    );
+
 BOOLEAN EtpDiskNodeHashtableCompareFunction(
     __in PVOID Entry1,
     __in PVOID Entry2

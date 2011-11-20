@@ -52,6 +52,7 @@ VOID EtInitializeDiskTab(
     tabPage.Index = MAXINT;
     tabPage.SelectionChangedCallback = EtpDiskTabSelectionChangedCallback;
     tabPage.SaveContentCallback = EtpDiskTabSaveContentCallback;
+    tabPage.FontChangedCallback = EtpDiskTabFontChangedCallback;
     ProcessHacker_AddTabPage(PhMainWndHandle, &tabPage);
 }
 
@@ -146,6 +147,17 @@ VOID NTAPI EtpDiskTabSaveContentCallback(
     ULONG mode = PtrToUlong(Parameter2);
 
     EtWriteDiskList(fileStream, mode);
+}
+
+VOID NTAPI EtpDiskTabFontChangedCallback(
+    __in PVOID Parameter1,
+    __in PVOID Parameter2,
+    __in PVOID Parameter3,
+    __in PVOID Context
+    )
+{
+    if (DiskTreeNewHandle)
+        SendMessage(DiskTreeNewHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
 }
 
 BOOLEAN EtpDiskNodeHashtableCompareFunction(
