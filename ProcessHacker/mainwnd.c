@@ -2109,6 +2109,21 @@ ULONG_PTR PhMwpOnUserMessage(
                     SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
                     SendMessage(ServiceTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
                     SendMessage(NetworkTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
+
+                    if (AdditionalTabPageList)
+                    {
+                        ULONG i;
+
+                        for (i = 0; i < AdditionalTabPageList->Count; i++)
+                        {
+                            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+
+                            if (tabPage->FontChangedCallback)
+                            {
+                                tabPage->FontChangedCallback((PVOID)newFont, NULL, NULL, tabPage->Context);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -3061,6 +3076,9 @@ VOID PhMwpLayoutTabControl(
                 {
                     tabPage->WindowHandle = tabPage->CreateFunction(tabPage->Context);
                     BringWindowToTop(tabPage->WindowHandle);
+
+                    if (CurrentCustomFont && tabPage->FontChangedCallback)
+                        tabPage->FontChangedCallback((PVOID)CurrentCustomFont, NULL, NULL, tabPage->Context);
                 }
 
                 if (tabPage->WindowHandle)

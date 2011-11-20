@@ -1,6 +1,7 @@
 1.8
  * Added support for new system information window
  * Added Disk, Network and GPU tray icons
+ * Added support for custom fonts in the Disk tab
 
 1.7
  * Added GPU monitoring
