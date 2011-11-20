@@ -686,11 +686,11 @@ int __cdecl main(int argc, char *argv[])
             ULONG renameInfoSize;
             IO_STATUS_BLOCK isb;
 
-            renameInfoSize = FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName) + newFileName->Length;
+            renameInfoSize = FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName) + (ULONG)newFileName->Length;
             renameInfo = PhAllocate(renameInfoSize);
             renameInfo->ReplaceIfExists = FiArgForce;
             renameInfo->RootDirectory = NULL;
-            renameInfo->FileNameLength = newFileName->Length;
+            renameInfo->FileNameLength = (ULONG)newFileName->Length;
             memcpy(renameInfo->FileName, newFileName->Buffer, newFileName->Length);
 
             status = NtSetInformationFile(fileHandle, &isb, renameInfo, renameInfoSize, FileRenameInformation);
