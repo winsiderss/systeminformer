@@ -1493,7 +1493,7 @@ ULONG_PTR PhFindStringInStringRef(
     }
     else
     {
-        c = *sr2.Buffer++;
+        c = RtlUpcaseUnicodeChar(*sr2.Buffer++);
 
         for (i = length1 - length2 + 1; i != 0; i--)
         {
