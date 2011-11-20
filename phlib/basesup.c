@@ -1308,9 +1308,7 @@ ULONG_PTR PhFindCharInStringRef(
                     mask = _mm_movemask_epi8(block);
 
                     if (_BitScanForward(&index, mask))
-                    {
                         return (String->Length - length16 * 16) / sizeof(WCHAR) - length + index / 2;
-                    }
 
                     buffer += 16 / sizeof(WCHAR);
                 } while (--length16 != 0);
@@ -1398,9 +1396,7 @@ ULONG_PTR PhFindLastCharInStringRef(
                     mask = _mm_movemask_epi8(block);
 
                     if (_BitScanReverse(&index, mask))
-                    {
                         return (length16 - 1) * 16 / sizeof(WCHAR) + length + index / 2;
-                    }
 
                     buffer -= 16 / sizeof(WCHAR);
                 } while (--length16 != 0);
@@ -1461,85 +1457,56 @@ ULONG_PTR PhFindStringInStringRef(
     __in BOOLEAN IgnoreCase
     )
 {
-    PWSTR string1;
     SIZE_T length1;
-    PWSTR string2;
     SIZE_T length2;
+    PH_STRINGREF sr1;
+    PH_STRINGREF sr2;
+    WCHAR c;
     SIZE_T i;
 
-    string1 = String1->Buffer;
     length1 = String1->Length / sizeof(WCHAR);
-    string2 = String2->Buffer;
     length2 = String2->Length / sizeof(WCHAR);
 
     // Can't be a substring if it's bigger than the first string.
     if (length2 > length1)
         return -1;
+    // We always get a match if the substring is zero-length.
+    if (length2 == 0)
+        return 0;
+
+    sr1.Buffer = String1->Buffer;
+    sr1.Length = String2->Length - sizeof(WCHAR);
+    sr2.Buffer = String2->Buffer;
+    sr2.Length = String2->Length - sizeof(WCHAR);
 
     if (!IgnoreCase)
     {
+        c = *sr2.Buffer++;
+
         for (i = length1 - length2 + 1; i != 0; i--)
         {
-            PWSTR s1;
-            PWSTR s2;
-            SIZE_T l2;
-
-            s1 = string1;
-            s2 = string2;
-            l2 = length2 & -2;
-
-            if (l2)
+            if (*sr1.Buffer++ == c && PhEqualStringRef(&sr1, &sr2, FALSE))
             {
-                do
-                {
-                    if (*(PULONG)s1 != *(PULONG)s2)
-                        goto ContinueLoop;
-
-                    s1 += 2;
-                    s2 += 2;
-                    l2 -= 2;
-                } while (l2);
+                goto FoundUString;
             }
-
-            if (length2 & 1)
-            {
-                if (*s1 == *s2)
-                    goto FoundString;
-            }
-            else
-            {
-                goto FoundString;
-            }
-
-ContinueLoop:
-            string1++;
         }
-
-        return -1;
-FoundString:
-        return (ULONG_PTR)(string1 - String1->Buffer);
     }
     else
     {
-        PH_STRINGREF sr1;
-        PH_STRINGREF sr2;
-
-        sr1 = *String1;
-        sr2 = *String2;
-        sr1.Length = sr2.Length;
+        c = *sr2.Buffer++;
 
         for (i = length1 - length2 + 1; i != 0; i--)
         {
-            if (PhEqualStringRef(&sr1, &sr2, TRUE))
+            if (RtlUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
+            {
                 goto FoundUString;
-
-            sr1.Buffer++;
+            }
         }
-
-        return -1;
-FoundUString:
-        return (ULONG_PTR)(sr1.Buffer - String1->Buffer);
     }
+
+    return -1;
+FoundUString:
+    return (ULONG_PTR)(sr1.Buffer - String1->Buffer - 1);
 }
 
 /**
