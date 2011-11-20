@@ -1565,14 +1565,27 @@ FORCEINLINE ULONG_PTR PhFindCharInString(
     __in WCHAR Char
     )
 {
-    PWSTR location;
+    if (StartIndex != 0)
+    {
+        ULONG_PTR r;
+        PH_STRINGREF sr;
 
-    location = wmemchr(&String->Buffer[StartIndex], Char, String->Length / sizeof(WCHAR) - StartIndex);
+        sr = String->sr;
 
-    if (location)
-        return (ULONG_PTR)(location - String->Buffer);
+        sr.Buffer += StartIndex;
+        sr.Length -= StartIndex * sizeof(WCHAR);
+
+        r = PhFindCharInStringRef(&sr, Char, FALSE);
+
+        if (r != -1)
+            return r + StartIndex;
+        else
+            return -1;
+    }
     else
-        return -1;
+    {
+        return PhFindCharInStringRef(&String->sr, Char, FALSE);
+    }
 }
 
 /**
@@ -1592,14 +1605,27 @@ FORCEINLINE ULONG_PTR PhFindLastCharInString(
     __in WCHAR Char
     )
 {
-    PWSTR location;
+    if (StartIndex != 0)
+    {
+        ULONG_PTR r;
+        PH_STRINGREF sr;
 
-    location = wcsrchr(&String->Buffer[StartIndex], Char);
+        sr = String->sr;
 
-    if (location)
-        return (ULONG_PTR)(location - String->Buffer);
+        sr.Buffer += StartIndex;
+        sr.Length -= StartIndex * sizeof(WCHAR);
+
+        r = PhFindLastCharInStringRef(&sr, Char, FALSE);
+
+        if (r != -1)
+            return r + StartIndex;
+        else
+            return -1;
+    }
     else
-        return -1;
+    {
+        return PhFindLastCharInStringRef(&String->sr, Char, FALSE);
+    }
 }
 
 /**
