@@ -1723,6 +1723,11 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             }
         }
         break;
+    case WM_NCLBUTTONDOWN:
+        {
+            PhSipEnterSectionView(section);
+        }
+        break;
     case WM_UPDATEUISTATE:
         {
             switch (LOWORD(wParam))
