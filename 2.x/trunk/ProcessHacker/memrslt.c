@@ -422,7 +422,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         string = PhpGetStringForSelectedResults(lvHandle, context->Results, FALSE);
                     }
 
-                    PhSetClipboardStringEx(hwndDlg, string->Buffer, string->Length);
+                    PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
                     SetFocus(lvHandle);

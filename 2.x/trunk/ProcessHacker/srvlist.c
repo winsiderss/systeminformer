@@ -688,9 +688,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            PhShowServiceContextMenu(mouseEvent->Location);
+            PhShowServiceContextMenu(contextMenu);
         }
         return TRUE;
     }
@@ -774,7 +774,7 @@ VOID PhCopyServiceList(
     PPH_STRING text;
 
     text = PhGetTreeNewText(ServiceTreeListHandle, 0);
-    PhSetClipboardStringEx(ServiceTreeListHandle, text->Buffer, text->Length);
+    PhSetClipboardString(ServiceTreeListHandle, &text->sr);
     PhDereferenceObject(text);
 }
 

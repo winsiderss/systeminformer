@@ -1000,7 +1000,7 @@ PPH_STRING PhEscapeStringForMenuPrefix(
     SIZE_T i;
     SIZE_T length;
     PWCHAR runStart;
-    ULONG runLength;
+    SIZE_T runCount;
 
     length = String->Length / sizeof(WCHAR);
     runStart = NULL;
@@ -1014,7 +1014,7 @@ PPH_STRING PhEscapeStringForMenuPrefix(
         case '&':
             if (runStart)
             {
-                PhAppendStringBuilderEx(&stringBuilder, runStart, runLength * sizeof(WCHAR));
+                PhAppendStringBuilderEx(&stringBuilder, runStart, runCount * sizeof(WCHAR));
                 runStart = NULL;
             }
 
@@ -1024,12 +1024,12 @@ PPH_STRING PhEscapeStringForMenuPrefix(
         default:
             if (runStart)
             {
-                runLength++;
+                runCount++;
             }
             else
             {
                 runStart = &String->Buffer[i];
-                runLength = 1;
+                runCount = 1;
             }
 
             break;
@@ -1037,7 +1037,7 @@ PPH_STRING PhEscapeStringForMenuPrefix(
     }
 
     if (runStart)
-        PhAppendStringBuilderEx(&stringBuilder, runStart, runLength * sizeof(WCHAR));
+        PhAppendStringBuilderEx(&stringBuilder, runStart, runCount * sizeof(WCHAR));
 
     return PhFinalStringBuilderString(&stringBuilder);
 }

@@ -2831,9 +2831,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPOINT location = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            PhShowProcessContextMenu(*location);
+            PhShowProcessContextMenu(contextMenu);
         }
         return TRUE;
     case TreeNewNodeExpanding:
@@ -3091,7 +3091,7 @@ VOID PhCopyProcessTree(
     PPH_STRING text;
 
     text = PhGetTreeNewText(ProcessTreeListHandle, 0);
-    PhSetClipboardStringEx(ProcessTreeListHandle, text->Buffer, text->Length);
+    PhSetClipboardString(ProcessTreeListHandle, &text->sr);
     PhDereferenceObject(text);
 }
 
