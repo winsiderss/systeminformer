@@ -2284,7 +2284,7 @@ VOID PhShowThreadContextMenu(
     __in HWND hwndDlg,
     __in PPH_PROCESS_ITEM ProcessItem,
     __in PPH_THREADS_CONTEXT Context,
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_THREAD_ITEM *threads;
@@ -2302,6 +2302,7 @@ VOID PhShowThreadContextMenu(
         PhSetFlagsEMenuItem(menu, ID_THREAD_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhpInitializeThreadMenu(menu, ProcessItem->ProcessId, threads, numberOfThreads);
+        PhInsertCopyCellEMenuItem(menu, ID_THREAD_COPY, Context->ListContext.TreeNewHandle, ContextMenu->Column);
 
         if (PhPluginsEnabled)
         {
@@ -2321,15 +2322,17 @@ VOID PhShowThreadContextMenu(
             hwndDlg,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-            Location.x,
-            Location.y
+            ContextMenu->Location.x,
+            ContextMenu->Location.y
             );
 
         if (item)
         {
             BOOLEAN handled = FALSE;
 
-            if (PhPluginsEnabled)
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled && PhPluginsEnabled)
                 handled = PhPluginTriggerEMenuItem(hwndDlg, item);
 
             if (!handled)
@@ -2576,11 +2579,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
             case ID_SHOWCONTEXTMENU:
                 {
-                    POINT location;
-
-                    location.x = GET_X_LPARAM(lParam); // sign-extend
-                    location.y = GET_Y_LPARAM(lParam);
-                    PhShowThreadContextMenu(hwndDlg, processItem, threadsContext, location);
+                    PhShowThreadContextMenu(hwndDlg, processItem, threadsContext, (PPH_TREENEW_CONTEXT_MENU)lParam);
                 }
                 break;
             case ID_THREAD_INSPECT:
@@ -2873,7 +2872,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PPH_STRING text;
 
                     text = PhGetTreeNewText(tnHandle, 0);
-                    PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
+                    PhSetClipboardString(tnHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -3167,7 +3166,7 @@ VOID PhShowModuleContextMenu(
     __in HWND hwndDlg,
     __in PPH_PROCESS_ITEM ProcessItem,
     __in PPH_MODULES_CONTEXT Context,
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_MODULE_ITEM *modules;
@@ -3185,6 +3184,7 @@ VOID PhShowModuleContextMenu(
         PhSetFlagsEMenuItem(menu, ID_MODULE_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhpInitializeModuleMenu(menu, ProcessItem->ProcessId, modules, numberOfModules);
+        PhInsertCopyCellEMenuItem(menu, ID_MODULE_COPY, Context->ListContext.TreeNewHandle, ContextMenu->Column);
 
         if (PhPluginsEnabled)
         {
@@ -3204,15 +3204,17 @@ VOID PhShowModuleContextMenu(
             hwndDlg,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-            Location.x,
-            Location.y
+            ContextMenu->Location.x,
+            ContextMenu->Location.y
             );
 
         if (item)
         {
             BOOLEAN handled = FALSE;
 
-            if (PhPluginsEnabled)
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled && PhPluginsEnabled)
                 handled = PhPluginTriggerEMenuItem(hwndDlg, item);
 
             if (!handled)
@@ -3383,11 +3385,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             {
             case ID_SHOWCONTEXTMENU:
                 {
-                    POINT location;
-
-                    location.x = GET_X_LPARAM(lParam); // sign-extend
-                    location.y = GET_Y_LPARAM(lParam);
-                    PhShowModuleContextMenu(hwndDlg, processItem, modulesContext, location);
+                    PhShowModuleContextMenu(hwndDlg, processItem, modulesContext, (PPH_TREENEW_CONTEXT_MENU)lParam);
                 }
                 break;
             case ID_MODULE_UNLOAD:
@@ -3456,7 +3454,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_STRING text;
 
                     text = PhGetTreeNewText(tnHandle, 0);
-                    PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
+                    PhSetClipboardString(tnHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -4347,7 +4345,7 @@ VOID PhShowHandleContextMenu(
     __in HWND hwndDlg,
     __in PPH_PROCESS_ITEM ProcessItem,
     __in PPH_HANDLES_CONTEXT Context,
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_HANDLE_ITEM *handles;
@@ -4365,6 +4363,7 @@ VOID PhShowHandleContextMenu(
         PhSetFlagsEMenuItem(menu, ID_HANDLE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhpInitializeHandleMenu(menu, ProcessItem->ProcessId, handles, numberOfHandles, Context);
+        PhInsertCopyCellEMenuItem(menu, ID_HANDLE_COPY, Context->ListContext.TreeNewHandle, ContextMenu->Column);
 
         if (PhPluginsEnabled)
         {
@@ -4384,15 +4383,17 @@ VOID PhShowHandleContextMenu(
             hwndDlg,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-            Location.x,
-            Location.y
+            ContextMenu->Location.x,
+            ContextMenu->Location.y
             );
 
         if (item)
         {
             BOOLEAN handled = FALSE;
 
-            if (PhPluginsEnabled)
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled && PhPluginsEnabled)
                 handled = PhPluginTriggerEMenuItem(hwndDlg, item);
 
             if (!handled)
@@ -4567,11 +4568,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             {
             case ID_SHOWCONTEXTMENU:
                 {
-                    POINT location;
-
-                    location.x = GET_X_LPARAM(lParam); // sign-extend
-                    location.y = GET_Y_LPARAM(lParam);
-                    PhShowHandleContextMenu(hwndDlg, processItem, handlesContext, location);
+                    PhShowHandleContextMenu(hwndDlg, processItem, handlesContext, (PPH_TREENEW_CONTEXT_MENU)lParam);
                 }
                 break;
             case ID_HANDLE_CLOSE:
@@ -4635,7 +4632,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     PPH_STRING text;
 
                     text = PhGetTreeNewText(tnHandle, 0);
-                    PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
+                    PhSetClipboardString(tnHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;

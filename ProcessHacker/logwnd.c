@@ -232,7 +232,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                         string = PhpGetStringForSelectedLogEntries(FALSE);
                     }
 
-                    PhSetClipboardStringEx(hwndDlg, string->Buffer, string->Length);
+                    PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
                     SetFocus(ListViewHandle);

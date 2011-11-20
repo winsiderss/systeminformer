@@ -1616,7 +1616,7 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
                     PPH_STRING text;
 
                     text = PhGetTreeNewText(hwnd, 0);
-                    PhSetClipboardStringEx(hwnd, text->Buffer, text->Length);
+                    PhSetClipboardString(hwnd, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;

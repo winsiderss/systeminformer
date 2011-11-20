@@ -792,9 +792,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenu);
         }
         return TRUE;
     case TreeNewGetDialogCode:

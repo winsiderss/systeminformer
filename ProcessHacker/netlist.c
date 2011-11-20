@@ -638,9 +638,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            PhShowNetworkContextMenu(mouseEvent->Location);
+            PhShowNetworkContextMenu(contextMenu);
         }
         return TRUE;
     }
@@ -760,7 +760,7 @@ VOID PhCopyNetworkList(
     PPH_STRING text;
 
     text = PhGetTreeNewText(NetworkTreeListHandle, 0);
-    PhSetClipboardStringEx(NetworkTreeListHandle, text->Buffer, text->Length);
+    PhSetClipboardString(NetworkTreeListHandle, &text->sr);
     PhDereferenceObject(text);
 }
 

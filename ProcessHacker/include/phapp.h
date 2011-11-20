@@ -385,6 +385,24 @@ VOID PhApplyTreeNewFilters(
     __in PPH_TN_FILTER_SUPPORT Support
     );
 
+typedef struct _PH_COPY_CELL_CONTEXT
+{
+    HWND TreeNewHandle;
+    ULONG Id; // column ID
+    PPH_STRING MenuItemText;
+} PH_COPY_CELL_CONTEXT, *PPH_COPY_CELL_CONTEXT;
+
+BOOLEAN PhInsertCopyCellEMenuItem(
+    __in struct _PH_EMENU_ITEM *Menu,
+    __in ULONG InsertAfterId,
+    __in HWND TreeNewHandle,
+    __in PPH_TREENEW_COLUMN Column
+    );
+
+BOOLEAN PhHandleCopyCellEMenuItem(
+    struct _PH_EMENU_ITEM *SelectedItem
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
@@ -597,15 +615,15 @@ VOID PhShowIconNotification(
     );
 
 VOID PhShowProcessContextMenu(
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 
 VOID PhShowServiceContextMenu(
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 
 VOID PhShowNetworkContextMenu(
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 
 // plugins
