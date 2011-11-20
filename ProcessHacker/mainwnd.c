@@ -3997,7 +3997,7 @@ VOID PhMwpInitializeProcessMenu(
 }
 
 VOID PhShowProcessContextMenu(
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_PROCESS_ITEM *processes;
@@ -4015,6 +4015,7 @@ VOID PhShowProcessContextMenu(
         PhSetFlagsEMenuItem(menu, ID_PROCESS_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhMwpInitializeProcessMenu(menu, processes, numberOfProcesses);
+        PhInsertCopyCellEMenuItem(menu, ID_PROCESS_COPY, ProcessTreeListHandle, ContextMenu->Column);
 
         if (PhPluginsEnabled)
         {
@@ -4033,15 +4034,17 @@ VOID PhShowProcessContextMenu(
             PhMainWndHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-            Location.x,
-            Location.y
+            ContextMenu->Location.x,
+            ContextMenu->Location.y
             );
 
         if (item)
         {
             BOOLEAN handled = FALSE;
 
-            if (PhPluginsEnabled)
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled && PhPluginsEnabled)
                 handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
 
             if (!handled)
@@ -4311,7 +4314,7 @@ VOID PhMwpInitializeServiceMenu(
 }
 
 VOID PhShowServiceContextMenu(
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_SERVICE_ITEM *services;
@@ -4329,6 +4332,7 @@ VOID PhShowServiceContextMenu(
         PhSetFlagsEMenuItem(menu, ID_SERVICE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhMwpInitializeServiceMenu(menu, services, numberOfServices);
+        PhInsertCopyCellEMenuItem(menu, ID_SERVICE_COPY, ServiceTreeListHandle, ContextMenu->Column);
 
         if (PhPluginsEnabled)
         {
@@ -4347,15 +4351,17 @@ VOID PhShowServiceContextMenu(
             PhMainWndHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-            Location.x,
-            Location.y
+            ContextMenu->Location.x,
+            ContextMenu->Location.y
             );
 
         if (item)
         {
             BOOLEAN handled = FALSE;
 
-            if (PhPluginsEnabled)
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled && PhPluginsEnabled)
                 handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
 
             if (!handled)
@@ -4653,7 +4659,7 @@ VOID PhMwpInitializeNetworkMenu(
 }
 
 VOID PhShowNetworkContextMenu(
-    __in POINT Location
+    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_NETWORK_ITEM *networkItems;
@@ -4671,6 +4677,7 @@ VOID PhShowNetworkContextMenu(
         PhSetFlagsEMenuItem(menu, ID_NETWORK_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhMwpInitializeNetworkMenu(menu, networkItems, numberOfNetworkItems);
+        PhInsertCopyCellEMenuItem(menu, ID_NETWORK_COPY, NetworkTreeListHandle, ContextMenu->Column);
 
         if (PhPluginsEnabled)
         {
@@ -4689,15 +4696,17 @@ VOID PhShowNetworkContextMenu(
             PhMainWndHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-            Location.x,
-            Location.y
+            ContextMenu->Location.x,
+            ContextMenu->Location.y
             );
 
         if (item)
         {
             BOOLEAN handled = FALSE;
 
-            if (PhPluginsEnabled)
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled && PhPluginsEnabled)
                 handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
 
             if (!handled)

@@ -8,6 +8,7 @@ Process Hacker
    * Completely new system information window
    * Added option to scroll to new processes
    * Added option to hide driver services
+   * Added menu item to copy individual cells
    * Improved module scanning
    * Added Image base to peview
    * Updated ExtendedTools plugin:

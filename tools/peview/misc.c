@@ -32,7 +32,7 @@ VOID PvCopyListView(
     PPH_STRING text;
 
     text = PhGetListViewText(ListViewHandle);
-    PhSetClipboardStringEx(ListViewHandle, text->Buffer, text->Length);
+    PhSetClipboardString(ListViewHandle, &text->sr);
     PhDereferenceObject(text);
 }
 

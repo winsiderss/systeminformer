@@ -51,6 +51,7 @@
 #define IDD_HIDDENPROCESSES             135
 #define ID_TRAYICONS_REGISTERED         135
 #define IDD_RUNAS                       136
+#define ID_COPY_CELL                    136
 #define IDD_PROGRESS                    137
 #define IDD_PAGEFILES                   138
 #define IDD_TOKGENERAL                  139
@@ -770,6 +771,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        206
 #define _APS_NEXT_COMMAND_VALUE         40276
 #define _APS_NEXT_CONTROL_VALUE         1361
-#define _APS_NEXT_SYMED_VALUE           136
+#define _APS_NEXT_SYMED_VALUE           137
 #endif
 #endif

@@ -806,7 +806,7 @@ VOID PhCopyListView(
     PPH_STRING text;
 
     text = PhGetListViewText(ListViewHandle);
-    PhSetClipboardStringEx(ListViewHandle, text->Buffer, text->Length);
+    PhSetClipboardString(ListViewHandle, &text->sr);
     PhDereferenceObject(text);
 }
 
@@ -1443,4 +1443,108 @@ VOID PhApplyTreeNewFilters(
     }
 
     TreeNew_NodesStructured(Support->TreeNewHandle);
+}
+
+VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
+    __in struct _PH_EMENU_ITEM *Item
+    )
+{
+    PPH_COPY_CELL_CONTEXT context;
+
+    context = Item->Context;
+    PhDereferenceObject(context->MenuItemText);
+    PhFree(Item->Context);
+}
+
+BOOLEAN PhInsertCopyCellEMenuItem(
+    __in struct _PH_EMENU_ITEM *Menu,
+    __in ULONG InsertAfterId,
+    __in HWND TreeNewHandle,
+    __in PPH_TREENEW_COLUMN Column
+    )
+{
+    PPH_EMENU_ITEM parentItem;
+    ULONG indexInParent;
+    PPH_COPY_CELL_CONTEXT context;
+    PH_STRINGREF columnText;
+    PPH_STRING escapedText;
+    PPH_STRING menuItemText;
+    PPH_EMENU_ITEM copyCellItem;
+
+    if (!Column)
+        return FALSE;
+
+    if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
+        return FALSE;
+
+    indexInParent++;
+
+    context = PhAllocate(sizeof(PH_COPY_CELL_CONTEXT));
+    context->TreeNewHandle = TreeNewHandle;
+    context->Id = Column->Id;
+
+    PhInitializeStringRef(&columnText, Column->Text);
+    escapedText = PhEscapeStringForMenuPrefix(&columnText);
+    menuItemText = PhFormatString(L"Copy \"%s\"", escapedText->Buffer);
+    PhDereferenceObject(escapedText);
+    copyCellItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
+    context->MenuItemText = menuItemText;
+
+    if (Column->CustomDraw)
+        copyCellItem->Flags |= PH_EMENU_DISABLED;
+
+    PhInsertEMenuItem(parentItem, copyCellItem, indexInParent);
+
+    return TRUE;
+}
+
+BOOLEAN PhHandleCopyCellEMenuItem(
+    __in struct _PH_EMENU_ITEM *SelectedItem
+    )
+{
+    PPH_COPY_CELL_CONTEXT context;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG count;
+    ULONG selectedCount;
+    ULONG i;
+    PPH_TREENEW_NODE node;
+    PH_TREENEW_GET_CELL_TEXT getCellText;
+
+    if (!SelectedItem)
+        return FALSE;
+    if (SelectedItem->Id != ID_COPY_CELL)
+        return FALSE;
+
+    context = SelectedItem->Context;
+
+    PhInitializeStringBuilder(&stringBuilder, 0x100);
+    count = TreeNew_GetFlatNodeCount(context->TreeNewHandle);
+    selectedCount = 0;
+
+    for (i = 0; i < count; i++)
+    {
+        node = TreeNew_GetFlatNode(context->TreeNewHandle, i);
+
+        if (node && node->Selected)
+        {
+            selectedCount++;
+
+            getCellText.Flags = 0;
+            getCellText.Node = node;
+            getCellText.Id = context->Id;
+            PhInitializeEmptyStringRef(&getCellText.Text);
+            TreeNew_GetCellText(context->TreeNewHandle, &getCellText);
+
+            PhAppendStringBuilderEx(&stringBuilder, getCellText.Text.Buffer, getCellText.Text.Length);
+            PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+        }
+    }
+
+    if (stringBuilder.String->Length != 0 && selectedCount == 1)
+        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+
+    PhSetClipboardString(context->TreeNewHandle, &stringBuilder.String->sr);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return TRUE;
 }
