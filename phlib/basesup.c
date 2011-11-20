@@ -112,6 +112,7 @@ PPH_OBJECT_TYPE PhHashtableType;
 
 // Misc.
 
+static BOOLEAN PhpSse2Available;
 static PPH_STRING PhSharedEmptyString = NULL;
 
 // Threads
@@ -145,6 +146,8 @@ BOOLEAN PhInitializeBase(
     )
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
+
+    PhpSse2Available = USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE];
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhStringType,
@@ -1147,35 +1150,77 @@ BOOLEAN PhEqualStringRef(
     s1 = String1->Buffer;
     s2 = String2->Buffer;
 
-    length = l1 / sizeof(ULONG_PTR);
-
-    if (length != 0)
+    if (PhpSse2Available)
     {
-        do
+        length = l1 / 16;
+
+        if (length != 0)
         {
-            if (*(PULONG_PTR)s1 != *(PULONG_PTR)s2)
+            __m128i b1;
+            __m128i b2;
+
+            do
             {
-                if (!IgnoreCase)
-                {
-                    return FALSE;
-                }
-                else
-                {
-                    // Compare character-by-character to ignore case.
-                    l1 = length * sizeof(ULONG_PTR) + (l1 & (sizeof(ULONG_PTR) - 1));
-                    l1 /= sizeof(WCHAR);
-                    goto CompareCharacters;
-                }
-            }
+                b1 = _mm_loadu_si128((__m128i *)s1);
+                b2 = _mm_loadu_si128((__m128i *)s2);
+                b1 = _mm_cmpeq_epi32(b1, b2);
 
-            s1 += sizeof(ULONG_PTR) / sizeof(WCHAR);
-            s2 += sizeof(ULONG_PTR) / sizeof(WCHAR);
-        } while (--length != 0);
+                if (_mm_movemask_epi8(b1) != 0xffff)
+                {
+                    if (!IgnoreCase)
+                    {
+                        return FALSE;
+                    }
+                    else
+                    {
+                        // Compare character-by-character to ignore case.
+                        l1 = length * 16 + (l1 & 15);
+                        l1 /= sizeof(WCHAR);
+                        goto CompareCharacters;
+                    }
+                }
+
+                s1 += 16 / sizeof(WCHAR);
+                s2 += 16 / sizeof(WCHAR);
+            } while (--length != 0);
+        }
+
+        // Compare character-by-character because we have no more 16-byte blocks
+        // to compare.
+        l1 = (l1 & 15) / sizeof(WCHAR);
     }
+    else
+    {
+        length = l1 / sizeof(ULONG_PTR);
 
-    // Compare character-by-character because we have no more ULONG_PTR blocks
-    // to compare.
-    l1 = (l1 & (sizeof(ULONG_PTR) - 1)) / sizeof(WCHAR);
+        if (length != 0)
+        {
+            do
+            {
+                if (*(PULONG_PTR)s1 != *(PULONG_PTR)s2)
+                {
+                    if (!IgnoreCase)
+                    {
+                        return FALSE;
+                    }
+                    else
+                    {
+                        // Compare character-by-character to ignore case.
+                        l1 = length * sizeof(ULONG_PTR) + (l1 & (sizeof(ULONG_PTR) - 1));
+                        l1 /= sizeof(WCHAR);
+                        goto CompareCharacters;
+                    }
+                }
+
+                s1 += sizeof(ULONG_PTR) / sizeof(WCHAR);
+                s2 += sizeof(ULONG_PTR) / sizeof(WCHAR);
+            } while (--length != 0);
+        }
+
+        // Compare character-by-character because we have no more ULONG_PTR blocks
+        // to compare.
+        l1 = (l1 & (sizeof(ULONG_PTR) - 1)) / sizeof(WCHAR);
+    }
 
 CompareCharacters:
     if (l1 != 0)
@@ -1237,24 +1282,59 @@ ULONG_PTR PhFindCharInStringRef(
     )
 {
     PWSTR buffer;
-    SIZE_T count;
+    SIZE_T length;
 
     buffer = String->Buffer;
-    count = String->Length / sizeof(WCHAR);
+    length = String->Length / sizeof(WCHAR);
 
-    if (count != 0)
+    if (!IgnoreCase)
     {
-        if (!IgnoreCase)
+        if (PhpSse2Available)
+        {
+            SIZE_T length16;
+
+            length16 = String->Length / 16;
+            length &= 7;
+
+            if (length16 != 0)
+            {
+                __m128i pattern;
+                __m128i block;
+                ULONG mask;
+                ULONG index;
+
+                pattern = _mm_set1_epi16(Character);
+
+                do
+                {
+                    block = _mm_loadu_si128((__m128i *)buffer);
+                    block = _mm_cmpeq_epi16(block, pattern);
+                    mask = _mm_movemask_epi8(block);
+
+                    if (_BitScanForward(&index, mask))
+                    {
+                        return (String->Length - length16 * 16) / sizeof(WCHAR) - length + index / 2;
+                    }
+
+                    buffer += 16 / sizeof(WCHAR);
+                } while (--length16 != 0);
+            }
+        }
+
+        if (length != 0)
         {
             do
             {
                 if (*buffer == Character)
-                    return String->Length / sizeof(WCHAR) - count;
+                    return String->Length / sizeof(WCHAR) - length;
 
                 buffer++;
-            } while (--count != 0);
+            } while (--length != 0);
         }
-        else
+    }
+    else
+    {
+        if (length != 0)
         {
             WCHAR c;
 
@@ -1263,10 +1343,10 @@ ULONG_PTR PhFindCharInStringRef(
             do
             {
                 if (RtlUpcaseUnicodeChar(*buffer) == c)
-                    return String->Length / sizeof(WCHAR) - count;
+                    return String->Length / sizeof(WCHAR) - length;
 
                 buffer++;
-            } while (--count != 0);
+            } while (--length != 0);
         }
     }
 
@@ -1291,36 +1371,77 @@ ULONG_PTR PhFindLastCharInStringRef(
     )
 {
     PWSTR buffer;
-    SIZE_T count;
+    SIZE_T length;
 
-    buffer = (PWSTR)((PCHAR)String->Buffer + String->Length - sizeof(WCHAR));
-    count = String->Length / sizeof(WCHAR);
+    buffer = (PWSTR)((PCHAR)String->Buffer + String->Length);
+    length = String->Length / sizeof(WCHAR);
 
-    if (count != 0)
+    if (!IgnoreCase)
     {
-        if (!IgnoreCase)
+        if (PhpSse2Available)
         {
+            SIZE_T length16;
+
+            length16 = String->Length / 16;
+            length &= 7;
+
+            if (length16 != 0)
+            {
+                __m128i pattern;
+                __m128i block;
+                ULONG mask;
+                ULONG index;
+
+                pattern = _mm_set1_epi16(Character);
+                buffer -= 16 / sizeof(WCHAR);
+
+                do
+                {
+                    block = _mm_loadu_si128((__m128i *)buffer);
+                    block = _mm_cmpeq_epi16(block, pattern);
+                    mask = _mm_movemask_epi8(block);
+
+                    if (_BitScanReverse(&index, mask))
+                    {
+                        return (length16 - 1) * 16 / sizeof(WCHAR) + length + index / 2;
+                    }
+
+                    buffer -= 16 / sizeof(WCHAR);
+                } while (--length16 != 0);
+
+                buffer += 16 / sizeof(WCHAR);
+            }
+        }
+
+        if (length != 0)
+        {
+            buffer--;
+
             do
             {
                 if (*buffer == Character)
-                    return count - 1;
+                    return length - 1;
 
                 buffer--;
-            } while (--count != 0);
+            } while (--length != 0);
         }
-        else
+    }
+    else
+    {
+        if (length != 0)
         {
             WCHAR c;
 
             c = RtlUpcaseUnicodeChar(Character);
+            buffer--;
 
             do
             {
                 if (RtlUpcaseUnicodeChar(*buffer) == c)
-                    return count - 1;
+                    return length - 1;
 
                 buffer--;
-            } while (--count != 0);
+            } while (--length != 0);
         }
     }
 
@@ -1449,12 +1570,12 @@ BOOLEAN PhSplitStringRefAtChar(
     )
 {
     PH_STRINGREF input;
-    PWCHAR location;
+    ULONG_PTR index;
 
     input = *Input; // get a copy of the input because FirstPart/SecondPart may alias Input
-    location = wmemchr(Input->Buffer, Separator, Input->Length / sizeof(WCHAR));
+    index = PhFindCharInStringRef(Input, Separator, FALSE);
 
-    if (!location)
+    if (index == -1)
     {
         // The separator was not found.
 
@@ -1467,9 +1588,9 @@ BOOLEAN PhSplitStringRefAtChar(
     }
 
     FirstPart->Buffer = input.Buffer;
-    FirstPart->Length = (ULONG_PTR)location - (ULONG_PTR)input.Buffer;
-    SecondPart->Buffer = location + 1;
-    SecondPart->Length = input.Length - ((ULONG_PTR)location - (ULONG_PTR)input.Buffer) - sizeof(WCHAR);
+    FirstPart->Length = index * sizeof(WCHAR);
+    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
 }

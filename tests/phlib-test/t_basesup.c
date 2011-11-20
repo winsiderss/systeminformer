@@ -85,6 +85,76 @@ VOID Test_stringref(
     VOID
     )
 {
+    ULONG i;
+    ULONG j;
+    PH_STRINGREF s1;
+    PH_STRINGREF s2;
+    PH_STRINGREF s3;
+    WCHAR buffer[26 * 2];
+
+    // PhEqualStringRef, PhFindCharInStringRef, PhFindLastCharInStringRef
+
+    for (i = 1; i < 26; i++)
+    {
+        s1.Buffer = buffer;
+        s1.Length = i * 2 * sizeof(WCHAR);
+
+        for (j = 0; j < i; j++)
+        {
+            buffer[j] = (WCHAR)('a' + j);
+            buffer[i + j] = (WCHAR)('A' + j);
+        }
+
+        s2.Buffer = buffer;
+        s2.Length = i * sizeof(WCHAR);
+        s3.Buffer = buffer + i;
+        s3.Length = i * sizeof(WCHAR);
+        assert(!PhEqualStringRef(&s2, &s3, FALSE));
+        assert(PhEqualStringRef(&s2, &s3, TRUE));
+
+        for (j = 0; j < i; j++)
+        {
+            buffer[j] = 'z';
+            assert(!PhEqualStringRef(&s2, &s3, FALSE));
+            assert(!PhEqualStringRef(&s2, &s3, TRUE));
+            buffer[j] = (WCHAR)('a' + j);
+        }
+
+        s3 = s2;
+        assert(PhEqualStringRef(&s2, &s3, FALSE));
+        assert(PhEqualStringRef(&s2, &s3, TRUE));
+
+        for (j = 0; j < i; j++)
+        {
+            assert(PhFindCharInStringRef(&s1, s1.Buffer[j], FALSE) == j);
+            assert(PhFindLastCharInStringRef(&s1, s1.Buffer[j], FALSE) == j);
+            assert(PhFindCharInStringRef(&s1, s1.Buffer[j], TRUE) == j % i);
+            assert(PhFindLastCharInStringRef(&s1, s1.Buffer[j], TRUE) == i + j % i);
+        }
+
+        s1.Length = i * sizeof(WCHAR);
+
+        for (j = 0; j < i; j++)
+        {
+            assert(PhFindCharInStringRef(&s1, s1.Buffer[j] - ('a' - 'A'), FALSE) == -1);
+            assert(PhFindLastCharInStringRef(&s1, s1.Buffer[j] - ('a' - 'A'), FALSE) == -1);
+            assert(PhFindCharInStringRef(&s1, s1.Buffer[j] - ('a' - 'A'), TRUE) == j);
+            assert(PhFindLastCharInStringRef(&s1, s1.Buffer[j] - ('a' - 'A'), TRUE) == j);
+        }
+
+        s1.Buffer += i;
+
+        for (j = 0; j < i; j++)
+        {
+            assert(PhFindCharInStringRef(&s1, s1.Buffer[j] + ('a' - 'A'), FALSE) == -1);
+            assert(PhFindLastCharInStringRef(&s1, s1.Buffer[j] + ('a' - 'A'), FALSE) == -1);
+            assert(PhFindCharInStringRef(&s1, s1.Buffer[j] + ('a' - 'A'), TRUE) == j);
+            assert(PhFindLastCharInStringRef(&s1, s1.Buffer[j] + ('a' - 'A'), TRUE) == j);
+        }
+    }
+
+    // PhFindStringInStringRef
+
 #define DO_STRSTR_TEST(func, s1, s2, expected, ...) \
     do { \
         PH_STRINGREF ___t1; \
