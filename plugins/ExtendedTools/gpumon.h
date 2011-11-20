@@ -50,13 +50,18 @@ typedef struct _ETP_GPU_ADAPTER
     ULONG SegmentCount;
     ULONG NodeCount;
 
-    ULONG ApertureBitMap;
+    RTL_BITMAP ApertureBitMap;
+    ULONG ApertureBitMapBuffer[1];
 } ETP_GPU_ADAPTER, *PETP_GPU_ADAPTER;
 
 // Functions
 
 BOOLEAN EtpInitializeD3DStatistics(
     VOID
+    );
+
+PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
+    __in ULONG NumberOfSegments
     );
 
 PPH_STRING EtpQueryDeviceDescription(

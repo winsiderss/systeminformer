@@ -121,7 +121,7 @@ VOID EtGpuMonitorInitialization(
     }
 }
 
-static BOOLEAN EtpInitializeD3DStatistics(
+BOOLEAN EtpInitializeD3DStatistics(
     VOID
     )
 {
@@ -177,12 +177,12 @@ static BOOLEAN EtpInitializeD3DStatistics(
                     PETP_GPU_ADAPTER gpuAdapter;
                     ULONG i;
 
-                    gpuAdapter = PhAllocate(sizeof(ETP_GPU_ADAPTER));
+                    gpuAdapter = EtpAllocateGpuAdapter(queryStatistics.QueryResult.AdapterInformation.NbSegments);
                     gpuAdapter->AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
                     gpuAdapter->Description = EtpQueryDeviceDescription(deviceInfoSet, &deviceInfoData);
                     gpuAdapter->NodeCount = queryStatistics.QueryResult.AdapterInformation.NodeCount;
                     gpuAdapter->SegmentCount = queryStatistics.QueryResult.AdapterInformation.NbSegments;
-                    gpuAdapter->ApertureBitMap = 0;
+                    RtlInitializeBitMap(&gpuAdapter->ApertureBitMap, gpuAdapter->ApertureBitMapBuffer, queryStatistics.QueryResult.AdapterInformation.NbSegments);
 
                     PhAddItemList(EtpGpuAdapterList, gpuAdapter);
                     EtGpuTotalNodeCount += gpuAdapter->NodeCount;
@@ -216,11 +216,8 @@ static BOOLEAN EtpInitializeD3DStatistics(
                             else
                                 EtGpuDedicatedLimit += commitLimit;
 
-                            if (i < 32)
-                            {
-                                if (aperture)
-                                    gpuAdapter->ApertureBitMap |= 1 << i;
-                            }
+                            if (aperture)
+                                RtlSetBits(&gpuAdapter->ApertureBitMap, i, 1);
                         }
                     }
                 }
@@ -237,7 +234,23 @@ static BOOLEAN EtpInitializeD3DStatistics(
     return TRUE;
 }
 
-static PPH_STRING EtpQueryDeviceDescription(
+PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
+    __in ULONG NumberOfSegments
+    )
+{
+    PETP_GPU_ADAPTER adapter;
+    SIZE_T sizeNeeded;
+
+    sizeNeeded = FIELD_OFFSET(ETP_GPU_ADAPTER, ApertureBitMapBuffer);
+    sizeNeeded += ((NumberOfSegments + sizeof(ULONG) * 8 - 1) / 8) & ~(sizeof(ULONG) - 1); // divide round up
+
+    adapter = PhAllocate(sizeNeeded);
+    memset(adapter, 0, sizeNeeded);
+
+    return adapter;
+}
+
+PPH_STRING EtpQueryDeviceDescription(
     __in HDEVINFO DeviceInfoSet,
     __in PSP_DEVINFO_DATA DeviceInfoData
     )
@@ -333,7 +346,7 @@ static VOID EtpUpdateSegmentInformation(
             {
                 if (Block)
                 {
-                    if (gpuAdapter->ApertureBitMap & (1 << j))
+                    if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
                         sharedUsage += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                     else
                         dedicatedUsage += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
@@ -351,7 +364,7 @@ static VOID EtpUpdateSegmentInformation(
                         bytesCommitted = queryStatistics.QueryResult.SegmentInformationV1.BytesCommitted;
                     }
 
-                    if (gpuAdapter->ApertureBitMap & (1 << j))
+                    if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
                         sharedUsage += bytesCommitted;
                     else
                         dedicatedUsage += bytesCommitted;
@@ -580,7 +593,7 @@ VOID EtQueryProcessGpuStatistics(
 
             if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
             {
-                if (gpuAdapter->ApertureBitMap & (1 << j))
+                if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
                 {
                     Statistics->SharedCommitted += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 }

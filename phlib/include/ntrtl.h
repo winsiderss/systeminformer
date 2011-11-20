@@ -4144,6 +4144,7 @@ RtlInitializeBitMap(
     __in ULONG SizeOfBitMap
     );
 
+#if (PHNT_MODE == PHNT_MODE_KERNEL)
 NTSYSAPI
 VOID
 NTAPI
@@ -4151,7 +4152,9 @@ RtlClearBit(
     __in PRTL_BITMAP BitMapHeader,
     __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
+#endif
 
+#if (PHNT_MODE == PHNT_MODE_KERNEL)
 NTSYSAPI
 VOID
 NTAPI
@@ -4159,6 +4162,7 @@ RtlSetBit(
     __in PRTL_BITMAP BitMapHeader,
     __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
+#endif
 
 __checkReturn
 NTSYSAPI
