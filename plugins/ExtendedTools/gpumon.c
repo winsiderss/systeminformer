@@ -242,7 +242,7 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     SIZE_T sizeNeeded;
 
     sizeNeeded = FIELD_OFFSET(ETP_GPU_ADAPTER, ApertureBitMapBuffer);
-    sizeNeeded += ((NumberOfSegments + sizeof(ULONG) * 8 - 1) / 8) & ~(sizeof(ULONG) - 1); // divide round up
+    sizeNeeded += ((NumberOfSegments + sizeof(ULONG) * 8 - 1) / 8) & ~(SIZE_T)(sizeof(ULONG) - 1); // divide round up
 
     adapter = PhAllocate(sizeNeeded);
     memset(adapter, 0, sizeNeeded);
