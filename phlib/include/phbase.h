@@ -942,6 +942,24 @@ PhEqualStringRef(
 PHLIBAPI
 ULONG_PTR
 NTAPI
+PhFindCharInStringRef(
+    __in PPH_STRINGREF String,
+    __in WCHAR Character,
+    __in BOOLEAN IgnoreCase
+    );
+
+PHLIBAPI
+ULONG_PTR
+NTAPI
+PhFindLastCharInStringRef(
+    __in PPH_STRINGREF String,
+    __in WCHAR Character,
+    __in BOOLEAN IgnoreCase
+    );
+
+PHLIBAPI
+ULONG_PTR
+NTAPI
 PhFindStringInStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
@@ -952,6 +970,16 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhSplitStringRefAtChar(
+    __in PPH_STRINGREF Input,
+    __in WCHAR Separator,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSplitStringRefAtLastChar(
     __in PPH_STRINGREF Input,
     __in WCHAR Separator,
     __out PPH_STRINGREF FirstPart,
@@ -1053,22 +1081,6 @@ FORCEINLINE BOOLEAN PhEndsWithStringRef2(
     PhInitializeStringRef(&sr2, String2);
 
     return PhEndsWithStringRef(String1, &sr2, IgnoreCase);
-}
-
-FORCEINLINE ULONG_PTR PhFindCharInStringRef(
-    __in PPH_STRINGREF String,
-    __in SIZE_T StartIndex,
-    __in WCHAR Char
-    )
-{
-    PWSTR location;
-
-    location = wmemchr(&String->Buffer[StartIndex], Char, String->Length / sizeof(WCHAR) - StartIndex);
-
-    if (location)
-        return (ULONG_PTR)(location - String->Buffer);
-    else
-        return -1;
 }
 
 FORCEINLINE VOID PhReverseStringRef(

@@ -1325,8 +1325,8 @@ BOOLEAN PhUiDebugProcess(
 
         HANDLE keyHandle;
         PPH_STRING debugger;
-        ULONG_PTR firstIndex;
-        ULONG_PTR secondIndex;
+        PH_STRINGREF commandPart;
+        PH_STRINGREF dummy;
 
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,
@@ -1340,17 +1340,10 @@ BOOLEAN PhUiDebugProcess(
 
             if (debugger)
             {
-                firstIndex = PhFindCharInString(debugger, 0, L'"');
-
-                if (firstIndex != -1)
+                if (PhSplitStringRefAtChar(&debugger->sr, '"', &dummy, &commandPart) &&
+                    PhSplitStringRefAtChar(&commandPart, '"', &commandPart, &dummy))
                 {
-                    firstIndex += 1;
-                    secondIndex = PhFindCharInString(debugger, firstIndex, L'"');
-
-                    if (secondIndex != -1)
-                    {
-                        DebuggerCommand = PhSubstring(debugger, firstIndex, secondIndex - firstIndex);
-                    }
+                    DebuggerCommand = PhCreateStringEx(commandPart.Buffer, commandPart.Length);
                 }
 
                 PhDereferenceObject(debugger);

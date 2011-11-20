@@ -1042,6 +1042,14 @@ LONG PhCompareUnicodeStringZNatural(
         return PhpCompareUnicodeStringZNatural(A, B, TRUE);
 }
 
+/**
+ * Compares two strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise
+ * FALSE.
+ */
 LONG PhCompareStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
@@ -1106,6 +1114,14 @@ LONG PhCompareStringRef(
     return (LONG)(l1 - l2);
 }
 
+/**
+ * Determines if two strings are equal.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise
+ * FALSE.
+ */
 BOOLEAN PhEqualStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
@@ -1204,6 +1220,114 @@ CompareCharacters:
 }
 
 /**
+ * Locates a character in a string.
+ *
+ * \param String1 The string to search.
+ * \param Character The character to search for.
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
+ * FALSE.
+ *
+ * \return The index, in characters, of the first occurrence of
+ * \a Character in \a String1. If \a Character was not found, -1 is returned.
+ */
+ULONG_PTR PhFindCharInStringRef(
+    __in PPH_STRINGREF String,
+    __in WCHAR Character,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PWSTR buffer;
+    SIZE_T count;
+
+    buffer = String->Buffer;
+    count = String->Length / sizeof(WCHAR);
+
+    if (count != 0)
+    {
+        if (!IgnoreCase)
+        {
+            do
+            {
+                if (*buffer == Character)
+                    return String->Length / sizeof(WCHAR) - count;
+
+                buffer++;
+            } while (--count != 0);
+        }
+        else
+        {
+            WCHAR c;
+
+            c = RtlUpcaseUnicodeChar(Character);
+
+            do
+            {
+                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                    return String->Length / sizeof(WCHAR) - count;
+
+                buffer++;
+            } while (--count != 0);
+        }
+    }
+
+    return -1;
+}
+
+/**
+ * Locates a character in a string, searching backwards.
+ *
+ * \param String1 The string to search.
+ * \param Character The character to search for.
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
+ * FALSE.
+ *
+ * \return The index, in characters, of the last occurrence of
+ * \a Character in \a String1. If \a Character was not found, -1 is returned.
+ */
+ULONG_PTR PhFindLastCharInStringRef(
+    __in PPH_STRINGREF String,
+    __in WCHAR Character,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PWSTR buffer;
+    SIZE_T count;
+
+    buffer = (PWSTR)((PCHAR)String->Buffer + String->Length - sizeof(WCHAR));
+    count = String->Length / sizeof(WCHAR);
+
+    if (count != 0)
+    {
+        if (!IgnoreCase)
+        {
+            do
+            {
+                if (*buffer == Character)
+                    return count - 1;
+
+                buffer--;
+            } while (--count != 0);
+        }
+        else
+        {
+            WCHAR c;
+
+            c = RtlUpcaseUnicodeChar(Character);
+
+            do
+            {
+                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                    return count - 1;
+
+                buffer--;
+            } while (--count != 0);
+        }
+    }
+
+    return -1;
+}
+
+/**
  * Locates a string in a string.
  *
  * \param String1 The string to search.
@@ -1212,8 +1336,7 @@ CompareCharacters:
  * FALSE.
  *
  * \return The index, in characters, of the first occurrence of
- * \a String2 in \a String1 after \a StartIndex. If \a String2 was not
- * found, -1 is returned.
+ * \a String2 in \a String1. If \a String2 was not found, -1 is returned.
  */
 ULONG_PTR PhFindStringInStringRef(
     __in PPH_STRINGREF String1,
@@ -1347,6 +1470,55 @@ BOOLEAN PhSplitStringRefAtChar(
     FirstPart->Length = (ULONG_PTR)location - (ULONG_PTR)input.Buffer;
     SecondPart->Buffer = location + 1;
     SecondPart->Length = input.Length - ((ULONG_PTR)location - (ULONG_PTR)input.Buffer) - sizeof(WCHAR);
+
+    return TRUE;
+}
+
+/**
+ * Splits a string at the last occurrence of a character.
+ *
+ * \param Input The input string.
+ * \param Separator The character to split at.
+ * \param FirstPart A variable which receives the part of \a Input
+ * before the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
+ * \a Input.
+ * \param SecondPart A variable which recieves the part of \a Input
+ * after the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
+ * an empty string.
+ *
+ * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
+ */
+BOOLEAN PhSplitStringRefAtLastChar(
+    __in PPH_STRINGREF Input,
+    __in WCHAR Separator,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    )
+{
+    PH_STRINGREF input;
+    ULONG_PTR index;
+
+    input = *Input; // get a copy of the input because FirstPart/SecondPart may alias Input
+    index = PhFindLastCharInStringRef(Input, Separator, FALSE);
+
+    if (index == -1)
+    {
+        // The separator was not found.
+
+        FirstPart->Buffer = Input->Buffer;
+        FirstPart->Length = Input->Length;
+        SecondPart->Buffer = NULL;
+        SecondPart->Length = 0;
+
+        return FALSE;
+    }
+
+    FirstPart->Buffer = input.Buffer;
+    FirstPart->Length = index * sizeof(WCHAR);
+    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
 }

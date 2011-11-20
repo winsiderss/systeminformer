@@ -975,15 +975,15 @@ static VOID PhpSplitUserName(
     )
 {
     PH_STRINGREF userName;
-    ULONG_PTR indexOfBackslash;
+    PH_STRINGREF domainPart;
+    PH_STRINGREF userPart;
 
     PhInitializeStringRef(&userName, UserName);
-    indexOfBackslash = PhFindCharInStringRef(&userName, 0, '\\');
 
-    if (indexOfBackslash != -1)
+    if (PhSplitStringRefAtChar(&userName, '\\', &domainPart, &userPart))
     {
-        *DomainPart = PhCreateStringEx(UserName, indexOfBackslash * 2);
-        *UserPart = PhCreateStringEx(UserName + indexOfBackslash + 1, userName.Length - indexOfBackslash * 2 - 2);
+        *DomainPart = PhCreateStringEx(domainPart.Buffer, domainPart.Length);
+        *UserPart = PhCreateStringEx(userPart.Buffer, userPart.Length);
     }
     else
     {
