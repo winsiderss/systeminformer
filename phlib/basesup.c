@@ -32,15 +32,11 @@
  * have a specified limit.
  *
  * String. The design of the string object was chosen for maximum compatibility. As such each
- * string buffer must be null-terminated, and each object contains an embedded UNICODE_STRING
+ * string buffer must be null-terminated, and each object contains an embedded PH_STRINGREF
  * structure. Note that efficient sub-string creation (no copying, only references the parent
  * string object) could not be implemented due to the mandatory null-termination. String objects
  * must be regarded as immutable (for thread-safety reasons) unless the object has just been
  * created and no references have been shared.
- *
- * Full string. These strings use full SIZE_T length fields, bypassing the 32k size limit
- * imposed on normal string objects which use USHORT length fields. Since full string objects
- * are rare, they are mutable and have functions similar to those of string builders.
  *
  * String builder. This is a set of functions which allow for efficient modification of strings.
  * For performance reasons, these functions modify string objects directly, even though they are
