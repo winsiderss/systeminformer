@@ -188,22 +188,11 @@ static void __cdecl WorkerThreadStart(
                 return;
             }	
 
+            PhDereferenceObject(LocalFileNameString);
+
             LocalFilePathString = PhConcatStrings2(lpTempPathBuffer, sText->Buffer);
 
 			PhDereferenceObject(sText);
-
-			// Create output file
-			if ((TempFileHandle = CreateFile(
-				LocalFilePathString->Buffer,
-				GENERIC_WRITE,
-				FILE_SHARE_WRITE,
-				0,                     // handle cannot be inherited
-				CREATE_ALWAYS,         // if file exists, delete it
-				FILE_ATTRIBUTE_NORMAL,
-				0)) == INVALID_HANDLE_VALUE)
-			{
-				LogEvent(hwndDlg, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
-			}
 		}
 
 		PhUpdaterState = Downloading;
@@ -901,6 +890,21 @@ VOID RunAction(
                 Edit_Visible(GetDlgItem(hwndDlg, IDC_STATUSTEXT), TRUE);
                 Edit_Visible(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), TRUE);
                 Edit_Visible(GetDlgItem(hwndDlg, IDC_RTIMETEXT), TRUE);
+
+                DisposeFileHandles();
+
+                // Create output file
+                if ((TempFileHandle = CreateFile(
+                    LocalFilePathString->Buffer,
+                    GENERIC_WRITE,
+                    FILE_SHARE_WRITE,
+                    0,                     // handle cannot be inherited
+                    CREATE_ALWAYS,         // if file exists, delete it
+                    FILE_ATTRIBUTE_NORMAL,
+                    0)) == INVALID_HANDLE_VALUE)
+                {
+                    LogEvent(hwndDlg, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
+                }
 
                 // Star our Downloader thread   
                 _beginthread(DownloadWorkerThreadStart, 0, hwndDlg);
