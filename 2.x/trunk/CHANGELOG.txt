@@ -18,6 +18,7 @@ Process Hacker
  * FIXED:
    * Fixed retrieval of version information for certain files
    * Fixed driver file names on Windows XP
+   * Fixed Run As Administrator when used with complex commands
 
 2.23
  * NEW/IMPROVED:
