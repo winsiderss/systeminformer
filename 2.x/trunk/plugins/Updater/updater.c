@@ -208,7 +208,7 @@ static void __cdecl WorkerThreadStart(
     else if (result < 0)
     {
         PPH_STRING summaryText = PhFormatString(L"You're running a newer version: %u.%u", localMajorVersion, localMinorVersion);
-		PPH_STRING stableText = PhFormatString(L"Latest stable version: %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
+		PPH_STRING stableText =  PhFormatString(L"The latest stable version available: %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
 
 		Edit_Visible(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
 		Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), summaryText->Buffer);
