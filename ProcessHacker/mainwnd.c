@@ -1002,6 +1002,18 @@ VOID PhMwpOnCommand(
             PhShowPagefilesDialog(PhMainWndHandle);
         }
         break;
+    case ID_TOOLS_STARTTASKMANAGER:
+        {
+            PPH_STRING systemDirectory;
+            PPH_STRING taskmgrFileName;
+
+            systemDirectory = PhGetSystemDirectory();
+            taskmgrFileName = PhConcatStrings2(systemDirectory->Buffer, L"\\taskmgr.exe");
+            PhDereferenceObject(systemDirectory);
+            PhCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
+            PhDereferenceObject(taskmgrFileName);
+        }
+        break;
     case ID_TOOLS_VERIFYFILESIGNATURE:
         {
             static PH_FILETYPE_FILTER filters[] =

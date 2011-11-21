@@ -140,6 +140,7 @@ BEGIN
         MENUITEM "Create Service...",           ID_TOOLS_CREATESERVICE
         MENUITEM "Hidden Processes",            ID_TOOLS_HIDDENPROCESSES
         MENUITEM "Pagefiles",                   ID_TOOLS_PAGEFILES
+        MENUITEM "Start Task Manager",          ID_TOOLS_STARTTASKMANAGER
         MENUITEM "Verify File Signature...",    ID_TOOLS_VERIFYFILESIGNATURE
     END
     POPUP "&Users"
