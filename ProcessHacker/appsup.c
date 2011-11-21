@@ -1145,16 +1145,14 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     )
 {
     BOOLEAN result;
-    HANDLE (NTAPI *dbgUiGetThreadDebugObject)(VOID);
-    VOID (NTAPI *dbgUiSetThreadDebugObject)(HANDLE);
+    BOOL (NTAPI *debugSetProcessKillOnExit)(BOOL);
+    BOOL (NTAPI *debugActiveProcessStop)(DWORD);
     BOOLEAN originalValue;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    HANDLE debugObjectHandle;
-    ULONG flags;
 
-    if (!(dbgUiGetThreadDebugObject = PhGetProcAddress(L"ntdll.dll", "DbgUiGetThreadDebugObject")) ||
-        !(dbgUiSetThreadDebugObject = PhGetProcAddress(L"ntdll.dll", "DbgUiSetThreadDebugObject")))
+    if (!(debugSetProcessKillOnExit = PhGetProcAddress(L"kernel32.dll", "DebugSetProcessKillOnExit")) ||
+        !(debugActiveProcessStop = PhGetProcAddress(L"kernel32.dll", "DebugActiveProcessStop")))
         return FALSE;
 
     result = FALSE;
@@ -1172,14 +1170,8 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     if (CreateProcess(FileName, NULL, NULL, NULL, FALSE, DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS, NULL, NULL, &startupInfo, &processInfo))
     {
         // Stop debugging taskmgr.exe now.
-
-        debugObjectHandle = dbgUiGetThreadDebugObject();
-        dbgUiSetThreadDebugObject(NULL);
-
-        flags = 0;
-        NtSetInformationDebugObject(debugObjectHandle, DebugObjectFlags, &flags, sizeof(ULONG), NULL);
-        NtClose(debugObjectHandle);
-
+        debugSetProcessKillOnExit(FALSE);
+        debugActiveProcessStop(processInfo.dwProcessId);
         result = TRUE;
     }
 
