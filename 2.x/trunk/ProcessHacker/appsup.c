@@ -1140,6 +1140,59 @@ BOOLEAN PhShellProcessHacker(
     return result;
 }
 
+BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
+    __in PWSTR FileName
+    )
+{
+    BOOLEAN result;
+    HANDLE (NTAPI *dbgUiGetThreadDebugObject)(VOID);
+    VOID (NTAPI *dbgUiSetThreadDebugObject)(HANDLE);
+    BOOLEAN originalValue;
+    STARTUPINFO startupInfo;
+    PROCESS_INFORMATION processInfo;
+    HANDLE debugObjectHandle;
+    ULONG flags;
+
+    if (!(dbgUiGetThreadDebugObject = PhGetProcAddress(L"ntdll.dll", "DbgUiGetThreadDebugObject")) ||
+        !(dbgUiSetThreadDebugObject = PhGetProcAddress(L"ntdll.dll", "DbgUiSetThreadDebugObject")))
+        return FALSE;
+
+    result = FALSE;
+
+    // This is NOT thread-safe.
+    originalValue = NtCurrentPeb()->ReadImageFileExecOptions;
+    NtCurrentPeb()->ReadImageFileExecOptions = FALSE;
+
+    memset(&startupInfo, 0, sizeof(STARTUPINFO));
+    startupInfo.cb = sizeof(STARTUPINFO);
+    memset(&processInfo, 0, sizeof(PROCESS_INFORMATION));
+
+    // The combination of ReadImageFileExecOptions = FALSE and the DEBUG_PROCESS flag
+    // allows us to skip the Debugger IFEO value.
+    if (CreateProcess(FileName, NULL, NULL, NULL, FALSE, DEBUG_PROCESS, NULL, NULL, &startupInfo, &processInfo))
+    {
+        // Stop debugging taskmgr.exe now.
+
+        debugObjectHandle = dbgUiGetThreadDebugObject();
+        dbgUiSetThreadDebugObject(NULL);
+
+        flags = 0;
+        NtSetInformationDebugObject(debugObjectHandle, DebugObjectFlags, &flags, sizeof(ULONG), NULL);
+        NtClose(debugObjectHandle);
+
+        result = TRUE;
+    }
+
+    if (processInfo.hProcess)
+        NtClose(processInfo.hProcess);
+    if (processInfo.hThread)
+        NtClose(processInfo.hThread);
+
+    NtCurrentPeb()->ReadImageFileExecOptions = originalValue;
+
+    return result;
+}
+
 VOID PhInitializeTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data
     )
