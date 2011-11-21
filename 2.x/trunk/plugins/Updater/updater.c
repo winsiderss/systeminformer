@@ -382,7 +382,7 @@ static void __cdecl DownloadWorkerThreadStart(
                 }
             }
         }
-
+        
         // Compute our hash result.
         {
             UCHAR hashBuffer[20];
@@ -399,8 +399,10 @@ static void __cdecl DownloadWorkerThreadStart(
                 }
                 else
                 {
-                    if (WindowsVersion >= WINDOWS_VISTA)
+                    if (WindowsVersion > WINDOWS_XP)
+                    {
                         SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
+                    }
 					
 					Edit_SetText(GetDlgItem(hwndDlg, IDC_RTIMETEXT), L"Hash failed");
                 }
@@ -410,25 +412,25 @@ static void __cdecl DownloadWorkerThreadStart(
             else
             {
                 // Show fancy Red progressbar if hash failed on Vista and above.
-                if (WindowsVersion >= WINDOWS_VISTA)
+                if (WindowsVersion > WINDOWS_XP)
+                {
                     SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
+                }
 				
 				Edit_SetText(GetDlgItem(hwndDlg, IDC_RTIMETEXT), L"PhFinalHash failed");
             }
         }
 
+        // Set progress complete
+		PostMessage(hwndProgress, PBM_SETPOS, 100, 0);
+
 		// Set button text for next action
 		Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
         // Set Status
         Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUSTEXT), L"Download Complete");
-
-        // Set progress complete
-		PostMessage(hwndProgress, PBM_SETPOS, 100, 0);
         
         // Enable the labels
 		Edit_Visible(GetDlgItem(hwndDlg, IDC_SPEEDTEXT), FALSE);
-        Edit_Visible(GetDlgItem(hwndDlg, IDC_RTIMETEXT), FALSE);
-
 		// Enable the Install button
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         
