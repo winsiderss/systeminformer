@@ -2754,6 +2754,14 @@ PPH_STRING PhEscapeCommandLinePart(
     __in PPH_STRINGREF String
     );
 
+PHLIBAPI
+BOOLEAN PhParseCommandLineFuzzy(
+    __in PPH_STRINGREF CommandLine,
+    __out PPH_STRINGREF FileName,
+    __out PPH_STRINGREF Arguments,
+    __out_opt PPH_STRING *FullFileName
+    );
+
 #ifdef __cplusplus
 }
 #endif
