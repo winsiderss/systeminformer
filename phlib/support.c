@@ -4888,3 +4888,229 @@ PPH_STRING PhEscapeCommandLinePart(
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
+
+VOID PhpSkipWhitespaceStringRef(
+    __inout PPH_STRINGREF String
+    )
+{
+    WCHAR c;
+
+    while (String->Length != 0)
+    {
+        c = *String->Buffer;
+
+        if (c != ' ' && c != '\t')
+            break;
+
+        String->Buffer++;
+        String->Length -= sizeof(WCHAR);
+    }
+}
+
+BOOLEAN PhpSearchFilePath(
+    __in PWSTR FileName,
+    __in_opt PWSTR Extension,
+    __out_ecount(MAX_PATH) PWSTR Buffer
+    )
+{
+    NTSTATUS status;
+    ULONG result;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    FILE_BASIC_INFORMATION basicInfo;
+
+    result = SearchPath(
+        NULL,
+        FileName,
+        Extension,
+        MAX_PATH,
+        Buffer,
+        NULL
+        );
+
+    if (result == 0 || result >= MAX_PATH)
+        return FALSE;
+
+    // Make sure this is not a directory.
+
+    if (!NT_SUCCESS(RtlDosPathNameToNtPathName_U(
+        Buffer,
+        &fileName,
+        NULL,
+        NULL
+        )))
+        return FALSE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtQueryAttributesFile(&objectAttributes, &basicInfo);
+    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+    if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        return FALSE;
+
+    return TRUE;
+}
+
+BOOLEAN PhParseCommandLineFuzzy(
+    __in PPH_STRINGREF CommandLine,
+    __out PPH_STRINGREF FileName,
+    __out PPH_STRINGREF Arguments,
+    __out_opt PPH_STRING *FullFileName
+    )
+{
+    PH_STRINGREF commandLine;
+    PH_STRINGREF temp;
+    PH_STRINGREF currentPart;
+    PH_STRINGREF remainingPart;
+    WCHAR buffer[MAX_PATH];
+    WCHAR originalChar;
+
+    commandLine = *CommandLine;
+
+    // Remove leading whitespace.
+    PhpSkipWhitespaceStringRef(&commandLine);
+
+    // Remove trailing whitespace.
+    while (commandLine.Length != 0)
+    {
+        if (commandLine.Buffer[commandLine.Length / 2 - 1] != ' ' &&
+            commandLine.Buffer[commandLine.Length / 2 - 1] != '\t')
+        {
+            break;
+        }
+
+        commandLine.Length -= sizeof(WCHAR);
+    }
+
+    if (commandLine.Length == 0)
+    {
+        PhInitializeEmptyStringRef(FileName);
+        PhInitializeEmptyStringRef(Arguments);
+
+        if (FullFileName)
+            *FullFileName = NULL;
+
+        return FALSE;
+    }
+
+    if (*commandLine.Buffer == '"')
+    {
+        PH_STRINGREF arguments;
+
+        commandLine.Buffer++;
+        commandLine.Length -= sizeof(WCHAR);
+
+        // Find the matching quote character and we have our file name.
+
+        if (!PhSplitStringRefAtChar(&commandLine, '"', &commandLine, &arguments))
+        {
+            FileName->Buffer = commandLine.Buffer - 1;
+            FileName->Length = commandLine.Length + sizeof(WCHAR);
+            PhInitializeEmptyStringRef(Arguments);
+
+            if (FullFileName)
+                *FullFileName = NULL;
+
+            return FALSE;
+        }
+
+        PhpSkipWhitespaceStringRef(&arguments);
+        *FileName = commandLine;
+        *Arguments = arguments;
+
+        if (FullFileName)
+        {
+            PPH_STRING tempCommandLine;
+
+            tempCommandLine = PhCreateStringEx(commandLine.Buffer, commandLine.Length);
+
+            if (PhpSearchFilePath(tempCommandLine->Buffer, L".exe", buffer))
+            {
+                *FullFileName = PhCreateString(buffer);
+            }
+            else
+            {
+                *FullFileName = NULL;
+            }
+
+            PhDereferenceObject(tempCommandLine);
+        }
+
+        return TRUE;
+    }
+
+    // Try to find an existing executable file, starting with the first part of the
+    // command line and successively restoring the rest of the command line.
+    // For example, in "C:\Program Files\Internet   Explorer\iexplore", we try
+    // to match:
+    // * "C:\Program"
+    // * "C:\Program Files\Internet"
+    // * "C:\Program Files\Internet "
+    // * "C:\Program Files\Internet  "
+    // * "C:\Program Files\Internet Explorer\iexplore"
+    //
+    // Note that we do not trim whitespace in each part because filenames can contain
+    // trailing whitespace before the extension (e.g. "Internet  .exe").
+
+    temp.Buffer = PhAllocate(commandLine.Length + sizeof(WCHAR));
+    memcpy(temp.Buffer, commandLine.Buffer, commandLine.Length);
+    temp.Buffer[commandLine.Length / sizeof(WCHAR)] = 0;
+    temp.Length = commandLine.Length;
+    remainingPart = temp;
+
+    while (remainingPart.Length != 0)
+    {
+        BOOLEAN found;
+        BOOLEAN result;
+
+        found = PhSplitStringRefAtChar(&remainingPart, ' ', &currentPart, &remainingPart);
+
+        if (found)
+        {
+            originalChar = *(remainingPart.Buffer - 1);
+            *(remainingPart.Buffer - 1) = 0;
+        }
+
+        result = PhpSearchFilePath(temp.Buffer, L".exe", buffer);
+
+        if (found)
+        {
+            *(remainingPart.Buffer - 1) = originalChar;
+        }
+
+        if (result)
+        {
+            FileName->Buffer = commandLine.Buffer;
+            FileName->Length = ((PCHAR)currentPart.Buffer - (PCHAR)temp.Buffer) + currentPart.Length;
+
+            PhpSkipWhitespaceStringRef(&remainingPart);
+            *Arguments = remainingPart;
+
+            if (FullFileName)
+                *FullFileName = PhCreateString(buffer);
+
+            PhFree(temp.Buffer);
+
+            return TRUE;
+        }
+    }
+
+    PhFree(temp.Buffer);
+
+    *FileName = *CommandLine;
+    PhInitializeEmptyStringRef(Arguments);
+
+    if (FullFileName)
+        *FullFileName = NULL;
+
+    return FALSE;
+}

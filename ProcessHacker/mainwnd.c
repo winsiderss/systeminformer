@@ -1836,8 +1836,22 @@ BOOLEAN PhMwpOnNotify(
 
         if (SelectedRunAsMode == RUNAS_MODE_ADMIN)
         {
-            if (PhShellExecuteEx(PhMainWndHandle, (PWSTR)runFileDlg->lpszFile,
-                NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+            PH_STRINGREF string;
+            PH_STRINGREF fileName;
+            PH_STRINGREF arguments;
+            PPH_STRING fullFileName;
+            PPH_STRING argumentsString;
+
+            PhInitializeStringRef(&string, (PWSTR)runFileDlg->lpszFile);
+            PhParseCommandLineFuzzy(&string, &fileName, &arguments, &fullFileName);
+
+            if (!fullFileName)
+                fullFileName = PhCreateStringEx(fileName.Buffer, fileName.Length);
+
+            argumentsString = PhCreateStringEx(arguments.Buffer, arguments.Length);
+
+            if (PhShellExecuteEx(PhMainWndHandle, fullFileName->Buffer, argumentsString->Buffer,
+                runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
             {
                 *Result = RF_CANCEL;
             }
@@ -1845,6 +1859,9 @@ BOOLEAN PhMwpOnNotify(
             {
                 *Result = RF_RETRY;
             }
+
+            PhDereferenceObject(fullFileName);
+            PhDereferenceObject(argumentsString);
 
             return TRUE;
         }
