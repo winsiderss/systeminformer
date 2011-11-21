@@ -298,6 +298,10 @@ BOOLEAN PhShellProcessHacker(
     __out_opt PHANDLE ProcessHandle
     );
 
+BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
+    __in PWSTR FileName
+    );
+
 typedef struct _PH_TN_COLUMN_MENU_DATA
 {
     HWND TreeNewHandle;
