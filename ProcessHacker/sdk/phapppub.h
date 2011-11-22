@@ -606,7 +606,8 @@ typedef struct _PH_ADDITIONAL_TAB_PAGE
     PPH_TAB_PAGE_CALLBACK_FUNCTION SelectionChangedCallback;
     PPH_TAB_PAGE_CALLBACK_FUNCTION SaveContentCallback;
     PPH_TAB_PAGE_CALLBACK_FUNCTION FontChangedCallback;
-    PVOID Reserved[4];
+    PPH_TAB_PAGE_CALLBACK_FUNCTION InitializeSectionMenuItemsCallback;
+    PVOID Reserved[3];
 } PH_ADDITIONAL_TAB_PAGE, *PPH_ADDITIONAL_TAB_PAGE;
 
 #define PH_NOTIFY_MINIMUM 0x1

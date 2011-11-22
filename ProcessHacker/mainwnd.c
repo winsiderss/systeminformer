@@ -3051,6 +3051,30 @@ VOID PhMwpInitializeSectionMenuItems(
         //if (SignedFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
         //    menuItem->Flags |= PH_EMENU_CHECKED;
     }
+    else if (AdditionalTabPageList)
+    {
+        ULONG i;
+
+        for (i = 0; i < AdditionalTabPageList->Count; i++)
+        {
+            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+
+            if (selectedIndex == tabPage->Index)
+            {
+                if (tabPage->InitializeSectionMenuItemsCallback)
+                {
+                    tabPage->InitializeSectionMenuItemsCallback(Menu, (PVOID)StartIndex, NULL, tabPage->Context);
+                }
+                else
+                {
+                    // Remove the extra separator.
+                    PhRemoveEMenuItem(Menu, NULL, StartIndex);
+                }
+
+                break;
+            }
+        }
+    }
 }
 
 VOID PhMwpLayoutTabControl(
