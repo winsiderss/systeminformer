@@ -16,6 +16,9 @@ Process Hacker
      * Added support for new system information window
      * Added Disk, Network and GPU tray icons
      * Added support for custom fonts in the Disk tab
+   * Updated Updater plugin:
+     * Added download speed
+     * Added remaining time
  * FIXED:
    * Fixed retrieval of version information for certain files
    * Fixed driver file names on Windows XP
