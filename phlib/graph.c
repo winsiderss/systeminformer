@@ -53,6 +53,9 @@ typedef struct _PHP_GRAPH_CONTEXT
     BOOLEAN TooltipVisible;
     HMONITOR ValidMonitor;
     MONITORINFO MonitorInfo;
+
+    HCURSOR LastCursor;
+    LONG LastCursorHeight;
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -919,6 +922,110 @@ static VOID PhpCreateFadeOutContext(
     }
 }
 
+static ULONG PhpGetLastWhiteRow(
+    __in HDC hdc,
+    __in HBITMAP Bitmap,
+    __in ULONG Width,
+    __in ULONG Height
+    )
+{
+    BITMAPINFO bitmapInfo;
+    PVOID bits;
+    ULONG result;
+
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    bitmapInfo.bmiHeader.biWidth = Width;
+    bitmapInfo.bmiHeader.biHeight = Height;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+
+    bits = PhAllocate(Width * sizeof(ULONG) * Height);
+    result = -1;
+
+    if (GetDIBits(hdc, Bitmap, 0, Height, bits, &bitmapInfo, DIB_RGB_COLORS) == Height)
+    {
+        PULONG mask;
+        ULONG x;
+        ULONG y;
+
+        mask = (PULONG)bits;
+
+        for (y = Height; y; y--)
+        {
+            for (x = Width; x; x--)
+            {
+                if (*mask++ != 0xffffff)
+                {
+                    result = y - 1;
+                    goto RowFound;
+                }
+            }
+        }
+    }
+
+RowFound:
+    PhFree(bits);
+
+    return result;
+}
+
+static BOOLEAN PhpGetCursorHeight(
+    __in PPHP_GRAPH_CONTEXT Context,
+    __out PLONG Height
+    )
+{
+    BOOLEAN result;
+    CURSORINFO cursorInfo = { sizeof(CURSORINFO) };
+    ICONINFO iconInfo;
+    BITMAP bitmap;
+    HDC hdc;
+    ULONG cursorHeight;
+
+    if (!GetCursorInfo(&cursorInfo))
+        return FALSE;
+
+    if (Context->LastCursor && cursorInfo.hCursor == Context->LastCursor)
+    {
+        *Height = Context->LastCursorHeight;
+        return TRUE;
+    }
+dprintf("Not cached! %u\n", GetTickCount());
+    if (!GetIconInfo((HICON)cursorInfo.hCursor, &iconInfo))
+        return FALSE;
+
+    result = FALSE;
+
+    if (GetObject(iconInfo.hbmMask, sizeof(BITMAP), &bitmap))
+    {
+        cursorHeight = -1;
+
+        if (hdc = GetDC(Context->Handle))
+        {
+            cursorHeight = PhpGetLastWhiteRow(hdc, iconInfo.hbmMask, bitmap.bmWidth, bitmap.bmHeight);
+            ReleaseDC(Context->Handle, hdc);
+        }
+
+        if (cursorHeight != -1)
+            cursorHeight += 4;
+        else
+            cursorHeight = 32;
+
+        *Height = cursorHeight;
+
+        Context->LastCursor = cursorInfo.hCursor;
+        Context->LastCursorHeight = cursorHeight;
+        result = TRUE;
+    }
+
+    DeleteObject(iconInfo.hbmMask);
+    DeleteObject(iconInfo.hbmColor);
+
+    return result;
+}
+
 static VOID PhpUpdateTooltip(
     __in PPHP_GRAPH_CONTEXT Context
     )
@@ -928,6 +1035,7 @@ static VOID PhpUpdateTooltip(
     HWND hwnd;
     TOOLINFO toolInfo = { sizeof(toolInfo) };
     HMONITOR monitor;
+    LONG cursorHeight;
 
     GetCursorPos(&point);
     GetWindowRect(Context->Handle, &windowRect);
@@ -968,8 +1076,10 @@ static VOID PhpUpdateTooltip(
     }
 
     // Add an offset to fix the case where the user moves the mouse to the bottom-right.
-    point.x += 12;
-    point.y += 12;
+    if (PhpGetCursorHeight(Context, &cursorHeight))
+        point.y += cursorHeight;
+    else
+        point.y += 32;
 
     SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
 
@@ -1316,6 +1426,8 @@ LRESULT CALLBACK PhpGraphWndProc(
                 toolInfo.uId = 1;
 
                 SendMessage(context->TooltipHandle, TTM_TRACKACTIVATE, FALSE, (LPARAM)&toolInfo);
+
+                context->LastCursor = NULL; // force a refresh of cursor info next time
             }
         }
         break;

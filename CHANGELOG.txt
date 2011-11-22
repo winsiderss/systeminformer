@@ -3,6 +3,7 @@ Process Hacker
 2.25
  * NEW/IMPROVED:
  * FIXED:
+   * Graph tooltip position with large cursors
 
 2.24
  * NOTE:
