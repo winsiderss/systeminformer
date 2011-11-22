@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
  * FIXED:
    * Graph tooltip position with large cursors
+   * Fixed .NET process detection
 
 2.24
  * NOTE:
