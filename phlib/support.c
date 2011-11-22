@@ -1361,132 +1361,6 @@ PPH_STRING PhFormatUInt64(
     return PhFormat(&format, 1, 0);
 }
 
-PPH_STRING PhpFormatDecimalFast(
-    __in PWSTR Value,
-    __in ULONG FractionalDigits,
-    __in WCHAR DecimalSeparator,
-    __in WCHAR ThousandSeparator
-    )
-{
-    PPH_STRING string;
-    ULONG inCount;
-    PWCHAR whole;
-    PWCHAR dot;
-    PWCHAR fractional;
-    ULONG inWholeCount;
-    ULONG inFractionalCount;
-    ULONG count;
-    ULONG outFractionalCount;
-    PWCHAR c;
-
-    inCount = (ULONG)wcslen(Value);
-
-    dot = wcschr(Value, '.');
-
-    if (dot)
-    {
-        inWholeCount = (ULONG)(dot - Value);
-        inFractionalCount = inCount - inWholeCount - 1;
-        fractional = dot + 1;
-    }
-    else
-    {
-        inWholeCount = inCount;
-        inFractionalCount = 0;
-        fractional = NULL;
-    }
-
-    // Ignore leading zeros.
-
-    whole = Value;
-
-    while (inWholeCount != 0 && *whole == '0')
-    {
-        whole++;
-        inWholeCount--;
-    }
-
-    // Ignore trailing zeros.
-
-    while (inFractionalCount != 0 && fractional[inFractionalCount - 1] == '0')
-    {
-        inFractionalCount--;
-    }
-
-    if (inWholeCount == 0)
-    {
-        if (FractionalDigits != 0)
-        {
-            string = PhCreateStringEx(NULL, (2 + FractionalDigits) * sizeof(WCHAR));
-            string->Buffer[0] = '0';
-            string->Buffer[1] = DecimalSeparator;
-            wmemset(&string->Buffer[2], '0', FractionalDigits);
-        }
-        else
-        {
-            return PhCreateString(L"0");
-        }
-
-        return string;
-    }
-
-    // Calculate the number of characters in the output.
-
-    // Start with the number of whole digits.
-    count = inWholeCount;
-    // Add the space needed for the thousand separators.
-    count += (inWholeCount - 1) / 3;
-
-    // Add space for the decimal separator and fractional digits.
-    if (FractionalDigits != 0)
-    {
-        count += 1;
-        count += FractionalDigits;
-    }
-
-    string = PhCreateStringEx(NULL, count * sizeof(WCHAR));
-    c = string->Buffer;
-
-    while (inWholeCount != 0)
-    {
-        *c++ = *whole++;
-
-        if (inWholeCount != 1 && (inWholeCount - 1) % 3 == 0)
-            *c++ = ThousandSeparator;
-
-        inWholeCount--;
-    }
-
-    if (FractionalDigits != 0)
-    {
-        *c++ = DecimalSeparator;
-        outFractionalCount = inFractionalCount;
-
-        if (outFractionalCount > FractionalDigits)
-            outFractionalCount = FractionalDigits;
-
-        while (outFractionalCount != 0)
-        {
-            *c++ = *fractional++;
-            outFractionalCount--;
-        }
-
-        // Pad the remaining space with zeros.
-        if (inFractionalCount < FractionalDigits)
-        {
-            outFractionalCount = FractionalDigits - inFractionalCount;
-
-            while (outFractionalCount != 0)
-            {
-                *c++ = '0';
-                outFractionalCount--;
-            }
-        }
-    }
-
-    return string;
-}
-
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,
@@ -1496,7 +1370,6 @@ PPH_STRING PhFormatDecimal(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static WCHAR decimalSeparator[4];
     static WCHAR thousandSeparator[4];
-    static BOOLEAN canUseFast;
 
     PPH_STRING string;
     NUMBERFMT format;
@@ -1516,21 +1389,7 @@ PPH_STRING PhFormatDecimal(
             thousandSeparator[1] = 0;
         }
 
-        canUseFast =
-            decimalSeparator[0] != 0 && decimalSeparator[1] == 0 &&
-            thousandSeparator[0] != 0 && thousandSeparator[1] == 0;
-
         PhEndInitOnce(&initOnce);
-    }
-
-    if (canUseFast && GroupDigits)
-    {
-        return PhpFormatDecimalFast(
-            Value,
-            FractionalDigits,
-            decimalSeparator[0],
-            thousandSeparator[0]
-            );
     }
 
     format.NumDigits = FractionalDigits;
@@ -2276,7 +2135,7 @@ PPH_STRING PhGetDllFileName(
         if (indexOfFileName != -1)
             indexOfFileName++;
         else
-            indexOfFileName = -1;
+            indexOfFileName = 0;
 
         *IndexOfFileName = (ULONG)indexOfFileName;
     }
@@ -2309,7 +2168,7 @@ PPH_STRING PhGetApplicationDirectory(
 
     if (fileName)
     {
-        if (indexOfFileName != -1)
+        if (indexOfFileName != 0)
         {
             // Remove the file name from the path.
             path = PhSubstring(fileName, 0, indexOfFileName);
@@ -4606,6 +4465,15 @@ BOOLEAN PhFinalHash(
     return result;
 }
 
+/**
+ * Parses one part of a command line string. Quotation marks and
+ * backslashes are handled appropriately.
+ *
+ * \param CommandLine The entire command line string.
+ * \param Index The starting index of the command line part to be
+ * parsed. There should be no leading whitespace at this index. The
+ * index is updated to point to the end of the command line part.
+ */
 PPH_STRING PhParseCommandLinePart(
     __in PPH_STRINGREF CommandLine,
     __inout PULONG_PTR Index
@@ -4699,6 +4567,22 @@ PPH_STRING PhParseCommandLinePart(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+/**
+ * Parses a command line string.
+ *
+ * \param CommandLine The command line string.
+ * \param Options An array of supported command line options.
+ * \param NumberOfOptions The number of elements in \a Options.
+ * \param Flags A combination of flags.
+ * \li \c PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS Unknown command
+ * line options are ignored instead of failing the function.
+ * \li \c PH_COMMAND_LINE_IGNORE_FIRST_PART The first part of the
+ * command line string is ignored. This is used when the first
+ * part of the string contains the executable file name.
+ * \param Callback A callback function to execute for each
+ * command line option found.
+ * \param Context A user-defined value to pass to \a Callback.
+ */
 BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
     __in_opt PPH_COMMAND_LINE_OPTION Options,
@@ -4960,6 +4844,19 @@ BOOLEAN PhpSearchFilePath(
     return TRUE;
 }
 
+/**
+ * Parses a command line string. If the string does not contain
+ * quotation marks around the file name part, the function
+ * determines the file name to use.
+ *
+ * \param CommandLine The command line string.
+ * \param FileName A variable which receives the part of
+ * \a CommandLine that contains the file name.
+ * \param Arguments A variable which receives the part of
+ * \a CommandLine that contains the arguments.
+ * \param FullFileName A variable which receives the full path
+ * and file name. This may be NULL if the file was not found.
+ */
 BOOLEAN PhParseCommandLineFuzzy(
     __in PPH_STRINGREF CommandLine,
     __out PPH_STRINGREF FileName,
@@ -5056,7 +4953,7 @@ BOOLEAN PhParseCommandLineFuzzy(
     // * "C:\Program Files\Internet"
     // * "C:\Program Files\Internet "
     // * "C:\Program Files\Internet  "
-    // * "C:\Program Files\Internet Explorer\iexplore"
+    // * "C:\Program Files\Internet   Explorer\iexplore"
     //
     // Note that we do not trim whitespace in each part because filenames can contain
     // trailing whitespace before the extension (e.g. "Internet  .exe").
