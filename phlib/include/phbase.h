@@ -997,6 +997,26 @@ PhSplitStringRefAtString(
     __out PPH_STRINGREF SecondPart
     );
 
+#define PH_SPLIT_AT_CHAR_SET 0x0 // default
+#define PH_SPLIT_AT_STRING 0x1
+#define PH_SPLIT_AT_RANGE 0x2
+#define PH_SPLIT_CASE_INSENSITIVE 0x1000
+#define PH_SPLIT_COMPLEMENT_CHAR_SET 0x2000
+#define PH_SPLIT_START_AT_END 0x4000
+#define PH_SPLIT_CHAR_SET_IS_UPPERCASE 0x8000
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSplitStringRefEx(
+    __in PPH_STRINGREF Input,
+    __in PPH_STRINGREF Separator,
+    __in ULONG Flags,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart,
+    __out_opt PPH_STRINGREF SeparatorPart
+    );
+
 FORCEINLINE LONG PhCompareStringRef2(
     __in PPH_STRINGREF String1,
     __in PWSTR String2,

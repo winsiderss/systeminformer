@@ -1552,7 +1552,7 @@ BOOLEAN PhSplitStringRefAtChar(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
@@ -1601,7 +1601,7 @@ BOOLEAN PhSplitStringRefAtLastChar(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
@@ -1653,10 +1653,227 @@ BOOLEAN PhSplitStringRefAtString(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + Separator->Length);
+    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + Separator->Length);
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - Separator->Length;
 
     return TRUE;
+}
+
+BOOLEAN PhSplitStringRefEx(
+    __in PPH_STRINGREF Input,
+    __in PPH_STRINGREF Separator,
+    __in ULONG Flags,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart,
+    __out_opt PPH_STRINGREF SeparatorPart
+    )
+{
+    PH_STRINGREF input;
+    SIZE_T separatorIndex;
+    SIZE_T separatorLength;
+    PWSTR charSet;
+    SIZE_T charSetCount;
+    BOOLEAN charSetTable[256];
+    BOOLEAN charSetTableComplete;
+    SIZE_T i;
+    SIZE_T j;
+    USHORT c;
+    PWSTR s;
+    LONG_PTR direction;
+
+    input = *Input; // get a copy of the input because FirstPart/SecondPart/SeparatorPart may alias Input
+
+    if (Flags & PH_SPLIT_AT_RANGE)
+    {
+        separatorIndex = (SIZE_T)Separator->Buffer;
+        separatorLength = Separator->Length;
+
+        if (separatorIndex == -1)
+            goto SeparatorNotFound;
+
+        goto SeparatorFound;
+    }
+    else if (Flags & PH_SPLIT_AT_STRING)
+    {
+        if (Flags & PH_SPLIT_START_AT_END)
+        {
+            // not implemented
+            goto SeparatorNotFound;
+        }
+
+        separatorIndex = PhFindStringInStringRef(Input, Separator, !!(Flags & PH_SPLIT_CASE_INSENSITIVE));
+
+        if (separatorIndex == -1)
+            goto SeparatorNotFound;
+
+        separatorLength = Separator->Length;
+        goto SeparatorFound;
+    }
+
+    // Special case for character sets with only one character.
+    if (!(Flags & PH_SPLIT_COMPLEMENT_CHAR_SET) && Separator->Length == sizeof(WCHAR))
+    {
+        if (!(Flags & PH_SPLIT_START_AT_END))
+            separatorIndex = PhFindCharInStringRef(Input, Separator->Buffer[0], !!(Flags & PH_SPLIT_CASE_INSENSITIVE));
+        else
+            separatorIndex = PhFindLastCharInStringRef(Input, Separator->Buffer[0], !!(Flags & PH_SPLIT_CASE_INSENSITIVE));
+
+        if (separatorIndex == -1)
+            goto SeparatorNotFound;
+
+        separatorLength = sizeof(WCHAR);
+        goto SeparatorFound;
+    }
+
+    if (input.Length == 0)
+        goto SeparatorNotFound;
+
+    // Build the character set lookup table.
+
+    charSet = Separator->Buffer;
+    charSetCount = Separator->Length / sizeof(WCHAR);
+    memset(charSetTable, 0, 256);
+    charSetTableComplete = TRUE;
+
+    for (i = 0; i < charSetCount; i++)
+    {
+        c = charSet[i];
+
+        if (Flags & PH_SPLIT_CASE_INSENSITIVE)
+            c = RtlUpcaseUnicodeChar(c);
+
+        charSetTable[c & 0xff] = TRUE;
+
+        if (c >= 256)
+            charSetTableComplete = FALSE;
+    }
+
+    // Perform the search.
+
+    i = input.Length / sizeof(WCHAR);
+    separatorLength = sizeof(WCHAR);
+
+    if (!(Flags & PH_SPLIT_START_AT_END))
+    {
+        s = input.Buffer;
+        direction = 1;
+    }
+    else
+    {
+        s = (PWSTR)((PCHAR)input.Buffer + input.Length - sizeof(WCHAR));
+        direction = -1;
+    }
+
+    do
+    {
+        c = *s;
+
+        if (Flags & PH_SPLIT_CASE_INSENSITIVE)
+            c = RtlUpcaseUnicodeChar(c);
+
+        if (c < 256 && charSetTableComplete)
+        {
+            if (!(Flags & PH_SPLIT_COMPLEMENT_CHAR_SET))
+            {
+                if (charSetTable[c])
+                    goto CharFound;
+            }
+            else
+            {
+                if (!charSetTable[c])
+                    goto CharFound;
+            }
+        }
+        else
+        {
+            if (!(Flags & PH_SPLIT_COMPLEMENT_CHAR_SET))
+            {
+                if (charSetTable[c & 0xff])
+                {
+                    if (!(Flags & PH_SPLIT_CASE_INSENSITIVE) || (Flags & PH_SPLIT_CHAR_SET_IS_UPPERCASE))
+                    {
+                        for (j = 0; j < charSetCount; j++)
+                        {
+                            if (charSet[j] == c)
+                                goto CharFound;
+                        }
+                    }
+                    else
+                    {
+                        for (j = 0; j < charSetCount; j++)
+                        {
+                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                                goto CharFound;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (charSetTable[c & 0xff])
+                {
+                    if (!(Flags & PH_SPLIT_CASE_INSENSITIVE) || (Flags & PH_SPLIT_CHAR_SET_IS_UPPERCASE))
+                    {
+                        for (j = 0; j < charSetCount; j++)
+                        {
+                            if (charSet[j] == c)
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        for (j = 0; j < charSetCount; j++)
+                        {
+                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                                break;
+                        }
+                    }
+
+                    if (j == charSetCount)
+                        goto CharFound;
+                }
+                else
+                {
+                    goto CharFound;
+                }
+            }
+        }
+
+        s += direction;
+    } while (--i != 0);
+
+    goto SeparatorNotFound;
+
+CharFound:
+    separatorIndex = s - input.Buffer;
+
+SeparatorFound:
+    FirstPart->Buffer = input.Buffer;
+    FirstPart->Length = separatorIndex * sizeof(WCHAR);
+    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + separatorIndex * sizeof(WCHAR) + separatorLength);
+    SecondPart->Length = input.Length - separatorIndex * sizeof(WCHAR) - separatorLength;
+
+    if (SeparatorPart)
+    {
+        SeparatorPart->Buffer = input.Buffer + separatorIndex;
+        SeparatorPart->Length = separatorLength;
+    }
+
+    return TRUE;
+
+SeparatorNotFound:
+    FirstPart->Buffer = input.Buffer;
+    FirstPart->Length = input.Length;
+    SecondPart->Buffer = NULL;
+    SecondPart->Length = 0;
+
+    if (SeparatorPart)
+    {
+        SeparatorPart->Buffer = NULL;
+        SeparatorPart->Length = 0;
+    }
+
+    return FALSE;
 }
 
 /**
