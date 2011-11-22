@@ -1,5 +1,9 @@
 Process Hacker
 
+2.25
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.24
  * NOTE:
    * This release has significant internal code changes. Please
