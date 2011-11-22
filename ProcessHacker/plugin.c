@@ -1023,8 +1023,14 @@ PVOID PhPluginGetObjectExtension(
  * Creates a notification icon.
  *
  * \param Plugin A plugin instance structure.
- * \param Object The object.
- * \param ObjectType The type of object for which an extension has been registered.
+ * \param SubId An identifier for the column. This should be unique within the
+ * plugin.
+ * \param Context A user-defined value.
+ * \param Text A string describing the notification icon.
+ * \param Flags A combination of flags.
+ * \li \c PH_NF_ICON_UNAVAILABLE The notification icon is currently unavailable.
+ * \param RegistrationData A \ref PH_NF_ICON_REGISTRATION_DATA structure that
+ * contains registration information.
  */
 struct _PH_NF_ICON *PhPluginRegisterIcon(
     __in PPH_PLUGIN Plugin,

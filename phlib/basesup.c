@@ -1263,7 +1263,7 @@ CompareCharacters:
 /**
  * Locates a character in a string.
  *
- * \param String1 The string to search.
+ * \param String The string to search.
  * \param Character The character to search for.
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
  * FALSE.
@@ -1350,7 +1350,7 @@ ULONG_PTR PhFindCharInStringRef(
 /**
  * Locates a character in a string, searching backwards.
  *
- * \param String1 The string to search.
+ * \param String The string to search.
  * \param Character The character to search for.
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
  * FALSE.
@@ -1659,6 +1659,42 @@ BOOLEAN PhSplitStringRefAtString(
     return TRUE;
 }
 
+/**
+ * Splits a string.
+ *
+ * \param Input The input string.
+ * \param Separator The character set, string or range to split at.
+ * \param Flags A combination of flags.
+ * \li \c PH_SPLIT_AT_CHAR_SET \a Separator specifies a character set.
+ * \a Input will be split at a character which is contained in
+ * \a Separator.
+ * \li \c PH_SPLIT_AT_STRING \a Separator specifies a string. \a Input
+ * will be split an occurrence of \a Separator.
+ * \li \c PH_SPLIT_AT_RANGE \a Separator specifies a range. The
+ * \a Buffer field contains a character index cast to \c PWSTR and the
+ * \a Length field contains the length of the range, in bytes.
+ * \li \c PH_SPLIT_CASE_INSENSITIVE Specifies a case-insensitive search.
+ * \li \c PH_SPLIT_COMPLEMENT_CHAR_SET If used with \c PH_SPLIT_AT_CHAR_SET,
+ * the separator is a character which is not contained in \a Separator.
+ * \li \c PH_SPLIT_START_AT_END If used with \c PH_SPLIT_AT_CHAR_SET,
+ * the search is performed starting from the end of the string.
+ * \li \c PH_SPLIT_CHAR_SET_IS_UPPERCASE If used with
+ * \c PH_SPLIT_CASE_INSENSITIVE, specifies that the character set in
+ * \a Separator contains only uppercase characters.
+ * \param FirstPart A variable which receives the part of \a Input
+ * before the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
+ * \a Input.
+ * \param SecondPart A variable which recieves the part of \a Input
+ * after the separator. This may be the same variable as \a Input. If
+ * the separator is not found in \a Input, this variable is set to
+ * an empty string.
+ * \param SeparatorPart A variable which receives the part of \a Input
+ * that is the separator. If the separator is not found in \a Input, this
+ * variable is set to an empty string.
+ *
+ * \return TRUE if a separator was found in \a Input, otherwise FALSE.
+ */
 BOOLEAN PhSplitStringRefEx(
     __in PPH_STRINGREF Input,
     __in PPH_STRINGREF Separator,

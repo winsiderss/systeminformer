@@ -2523,7 +2523,7 @@ VOID PhMwpSymInitHandler(
 
         if (fullDbghelpPath)
         {
-            if (indexOfFileName != -1)
+            if (indexOfFileName != 0)
             {
                 static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
 
