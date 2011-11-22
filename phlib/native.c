@@ -6295,24 +6295,20 @@ VOID PhpInitializePredefineKeys(
  */
 NTSTATUS PhpInitializeKeyObjectAttributes(
     __in_opt HANDLE RootDirectory,
-    __in PPH_STRINGREF ObjectName,
+    __in PUNICODE_STRING ObjectName,
     __in ULONG Attributes,
     __out POBJECT_ATTRIBUTES ObjectAttributes,
     __out PHANDLE NeedsClose
     )
 {
     NTSTATUS status;
-    UNICODE_STRING objectName;
     ULONG predefineIndex;
     HANDLE predefineHandle;
     OBJECT_ATTRIBUTES predefineObjectAttributes;
 
-    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
-        return STATUS_NAME_TOO_LONG;
-
     InitializeObjectAttributes(
         ObjectAttributes,
-        &objectName,
+        ObjectName,
         Attributes | OBJ_CASE_INSENSITIVE,
         RootDirectory,
         NULL
@@ -6407,12 +6403,16 @@ NTSTATUS PhCreateKey(
     )
 {
     NTSTATUS status;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE needsClose;
 
+    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
     if (!NT_SUCCESS(status = PhpInitializeKeyObjectAttributes(
         RootDirectory,
-        ObjectName,
+        &objectName,
         Attributes,
         &objectAttributes,
         &needsClose
@@ -6456,12 +6456,16 @@ NTSTATUS PhOpenKey(
     )
 {
     NTSTATUS status;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE needsClose;
 
+    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
     if (!NT_SUCCESS(status = PhpInitializeKeyObjectAttributes(
         RootDirectory,
-        ObjectName,
+        &objectName,
         Attributes,
         &objectAttributes,
         &needsClose
