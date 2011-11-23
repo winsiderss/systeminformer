@@ -66,6 +66,8 @@ static ULONG CpuTicked;
 static ULONG NumberOfProcessors;
 static PSYSTEM_INTERRUPT_INFORMATION InterruptInformation;
 static PPROCESSOR_POWER_INFORMATION PowerInformation;
+static PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION CurrentPerformanceDistribution;
+static PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION PreviousPerformanceDistribution;
 static PH_UINT32_DELTA ContextSwitchesDelta;
 static PH_UINT32_DELTA InterruptsDelta;
 static PH_UINT64_DELTA DpcsDelta;
@@ -2064,6 +2066,12 @@ VOID PhSipInitializeCpuDialog(
     {
         memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
     }
+
+    CurrentPerformanceDistribution = NULL;
+    PreviousPerformanceDistribution = NULL;
+
+    if (WindowsVersion >= WINDOWS_7)
+        PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
 }
 
 VOID PhSipUninitializeCpuDialog(
@@ -2081,6 +2089,11 @@ VOID PhSipUninitializeCpuDialog(
     PhFree(CpusGraphState);
     PhFree(InterruptInformation);
     PhFree(PowerInformation);
+
+    if (CurrentPerformanceDistribution)
+        PhFree(CurrentPerformanceDistribution);
+    if (PreviousPerformanceDistribution)
+        PhFree(PreviousPerformanceDistribution);
 
     PhSetIntegerSetting(L"SysInfoWindowOneGraphPerCpu", OneGraphPerCpu);
 }
@@ -2119,6 +2132,16 @@ VOID PhSipTickCpuDialog(
         )))
     {
         memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+    }
+
+    if (WindowsVersion >= WINDOWS_7)
+    {
+        if (PreviousPerformanceDistribution)
+            PhFree(PreviousPerformanceDistribution);
+
+        PreviousPerformanceDistribution = CurrentPerformanceDistribution;
+        CurrentPerformanceDistribution = NULL;
+        PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
     }
 
     CpuTicked++;
@@ -2516,11 +2539,30 @@ VOID PhSipUpdateCpuPanel(
     )
 {
     HWND hwnd = CpuPanel;
+    DOUBLE cpuFraction;
+    DOUBLE cpuGhz;
+    BOOLEAN distributionSucceeded;
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = L"Unknown";
 
     SetDlgItemText(hwnd, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
-    SetDlgItemText(hwnd, IDC_SPEED, PhaFormatString(L"%.2f / %.2f GHz", (FLOAT)PowerInformation[0].CurrentMhz / 1000, (FLOAT)PowerInformation[0].MaxMhz / 1000)->Buffer);
+
+    cpuGhz = 0;
+    distributionSucceeded = FALSE;
+
+    if (WindowsVersion >= WINDOWS_7 && CurrentPerformanceDistribution && PreviousPerformanceDistribution)
+    {
+        if (PhSipGetCpuFrequencyFromDistribution(&cpuFraction))
+        {
+            cpuGhz = (DOUBLE)PowerInformation[0].MaxMhz * cpuFraction / 1000;
+            distributionSucceeded = TRUE;
+        }
+    }
+
+    if (!distributionSucceeded)
+        cpuGhz = (DOUBLE)PowerInformation[0].CurrentMhz / 1000;
+
+    SetDlgItemText(hwnd, IDC_SPEED, PhaFormatString(L"%.2f / %.2f GHz", cpuGhz, (DOUBLE)PowerInformation[0].MaxMhz / 1000)->Buffer);
 
     SetDlgItemText(hwnd, IDC_ZPROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
     SetDlgItemText(hwnd, IDC_ZTHREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
@@ -2647,6 +2689,124 @@ VOID PhSipGetCpuBrandString(
 
     PhZeroExtendToUnicode((PSTR)brandString, 48, BrandString);
     BrandString[48] = 0;
+}
+
+BOOLEAN PhSipGetCpuFrequencyFromDistribution(
+    __out DOUBLE *Fraction
+    )
+{
+    PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION differences;
+    PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION stateDistribution;
+    ULONG i;
+    ULONG j;
+    DOUBLE count;
+    DOUBLE total;
+
+    // Calculate the differences from the last performance distribution.
+
+    if (CurrentPerformanceDistribution->ProcessorCount != NumberOfProcessors || PreviousPerformanceDistribution->ProcessorCount != NumberOfProcessors)
+        return FALSE;
+
+    differences = PhAllocate((FIELD_OFFSET(SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION, States) + sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * 2) * NumberOfProcessors);
+
+    for (i = 0; i < NumberOfProcessors; i++)
+    {
+        stateDistribution = (PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION)((PCHAR)CurrentPerformanceDistribution + CurrentPerformanceDistribution->Offsets[i]);
+
+        if (stateDistribution->StateCount != 2)
+        {
+            PhFree(differences);
+            return FALSE;
+        }
+
+        for (j = 0; j < stateDistribution->StateCount; j++)
+        {
+            differences[i].States[j] = stateDistribution->States[j];
+        }
+    }
+
+    for (i = 0; i < NumberOfProcessors; i++)
+    {
+        stateDistribution = (PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION)((PCHAR)PreviousPerformanceDistribution + PreviousPerformanceDistribution->Offsets[i]);
+
+        if (stateDistribution->StateCount != 2)
+        {
+            PhFree(differences);
+            return FALSE;
+        }
+
+        for (j = 0; j < stateDistribution->StateCount; j++)
+        {
+            differences[i].States[j].Hits -= stateDistribution->States[j].Hits;
+        }
+    }
+
+    // Calculate the frequency.
+
+    count = 0;
+    total = 0;
+
+    for (i = 0; i < NumberOfProcessors; i++)
+    {
+        for (j = 0; j < 2; j++)
+        {
+            count += differences[i].States[j].Hits;
+            total += differences[i].States[j].Hits * differences[i].States[j].PercentFrequency;
+        }
+    }
+
+    PhFree(differences);
+
+    if (count == 0)
+        return FALSE;
+
+    total /= count;
+    total /= 100;
+    *Fraction = total;
+
+    return TRUE;
+}
+
+NTSTATUS PhSipQueryProcessorPerformanceDistribution(
+    __out PVOID *Buffer
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG attempts;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQuerySystemInformation(
+        SystemProcessorPerformanceDistribution,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+    attempts = 0;
+
+    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQuerySystemInformation(
+            SystemProcessorPerformanceDistribution,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+        attempts++;
+    }
+
+    if (NT_SUCCESS(status))
+        *Buffer = buffer;
+    else
+        PhFree(buffer);
+
+    return status;
 }
 
 BOOLEAN PhSipMemorySectionCallback(
