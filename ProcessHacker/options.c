@@ -78,6 +78,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
 // All
 static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
+static BOOLEAN RestartRequired;
 static POINT StartLocation;
 static WNDPROC OldWndProc;
 
@@ -165,6 +166,7 @@ VOID PhShowOptionsDialog(
 
     PageInit = FALSE;
     PressedOk = FALSE;
+    RestartRequired = FALSE;
 
     if (PhStartupParameters.ShowOptions)
         StartLocation = PhStartupParameters.Point;
@@ -184,6 +186,29 @@ VOID PhShowOptionsDialog(
             PhInvalidateAllProcessNodes();
             PhReloadSettingsProcessTreeList();
             PhSiNotifyChangeSettings();
+
+            if (RestartRequired)
+            {
+                if (PhShowMessage(
+                    PhMainWndHandle,
+                    MB_ICONQUESTION | MB_YESNO,
+                    L"One or more options you have changed requires a restart of Process Hacker. "
+                    L"Do you want to restart Process Hacker now?"
+                    ) == IDYES)
+                {
+                    ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                    PhShellProcessHacker(
+                        PhMainWndHandle,
+                        L"-v",
+                        SW_SHOW,
+                        0,
+                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                        0,
+                        NULL
+                        );
+                    ProcessHacker_Destroy(PhMainWndHandle);
+                }
+            }
         }
         else
         {
@@ -320,6 +345,14 @@ LRESULT CALLBACK PhpOptionsWndProc(
     Button_SetCheck(GetDlgItem(hwndDlg, Id), PhGetIntegerSetting(Name) ? BST_CHECKED : BST_UNCHECKED)
 #define SetSettingForDlgItemCheck(hwndDlg, Id, Name) \
     PhSetIntegerSetting(Name, Button_GetCheck(GetDlgItem(hwndDlg, Id)) == BST_CHECKED)
+#define SetSettingForDlgItemCheckRestartRequired(hwndDlg, Id, Name) \
+    do { \
+        BOOLEAN __oldValue = !!PhGetIntegerSetting(Name); \
+        BOOLEAN __newValue = Button_GetCheck(GetDlgItem(hwndDlg, Id)) == BST_CHECKED; \
+        if (__newValue != __oldValue) \
+            RestartRequired = TRUE; \
+        PhSetIntegerSetting(Name, __newValue); \
+    } while (0)
 #define DialogChanged PropSheet_Changed(GetParent(hwndDlg), hwndDlg)
 
 static BOOLEAN GetCurrentFont(
@@ -465,7 +498,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     SetSettingForDlgItemCheck(hwndDlg, IDC_STARTHIDDEN, L"StartHidden");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
+                    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
 
                     if (NewFontSelection)
                     {
@@ -599,15 +632,15 @@ VOID PhpAdvancedPageSave(
     ULONG sampleCount;
 
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
-    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
+    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
-    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
-    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
+    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
+    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetSettingForDlgItemCheck(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
 
     if (WindowsVersion >= WINDOWS_7)
-        SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
+        SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
 
     sampleCount = GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE);
 
