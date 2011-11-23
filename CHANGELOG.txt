@@ -2,6 +2,7 @@ Process Hacker
 
 2.25
  * NEW/IMPROVED:
+   * Improved CPU frequency calculation
  * FIXED:
    * Graph tooltip position with large cursors
    * Fixed .NET process detection

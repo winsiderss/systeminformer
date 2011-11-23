@@ -293,6 +293,14 @@ VOID PhSipGetCpuBrandString(
     __out_ecount(49) PWSTR BrandString
     );
 
+BOOLEAN PhSipGetCpuFrequencyFromDistribution(
+    __out DOUBLE *Fraction
+    );
+
+NTSTATUS PhSipQueryProcessorPerformanceDistribution(
+    __out PVOID *Buffer
+    );
+
 // Memory section
 
 BOOLEAN PhSipMemorySectionCallback(
