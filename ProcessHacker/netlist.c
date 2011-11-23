@@ -609,6 +609,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_NETWORK_COPY, 0);
                 break;
+            case 'A':
+                TreeNew_SelectRange(NetworkTreeListHandle, 0, -1);
+                break;
             case VK_RETURN:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_NETWORK_GOTOPROCESS, 0);
                 break;
