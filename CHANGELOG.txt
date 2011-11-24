@@ -3,6 +3,9 @@ Process Hacker
 2.25
  * NEW/IMPROVED:
    * Improved CPU frequency calculation
+   * Updated ExtendedTools plugin:
+     * Added GPU node selection
+     * Fixed incorrect GPU usage calculation
  * FIXED:
    * Graph tooltip position with large cursors
    * Fixed .NET process detection
