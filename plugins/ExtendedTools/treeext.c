@@ -251,7 +251,7 @@ VOID EtProcessTreeNewMessage(
                 text = PhFormatUInt64(block->ProcessItem->PeakNumberOfThreads, TRUE);
                 break;
             case ETPRTNC_GPU:
-                if (block->GpuNodeUsage >= 0.01)
+                if (block->GpuNodeUsage >= 0.0001)
                 {
                     PH_FORMAT format;
 
