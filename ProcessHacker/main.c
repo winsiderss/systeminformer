@@ -588,6 +588,18 @@ VOID PhpInitializeSettings(
 
     // Apply basic global settings.
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
+
+    if (PhGetIntegerSetting(L"SampleCountAutomatic"))
+    {
+        ULONG sampleCount;
+
+        sampleCount = (GetSystemMetrics(SM_CXVIRTUALSCREEN) + 1) / 2;
+
+        if (sampleCount > 2048)
+            sampleCount = 2048;
+
+        PhSetIntegerSetting(L"SampleCount", sampleCount);
+    }
 }
 
 #define PH_ARG_SETTINGS 1
