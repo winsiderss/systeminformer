@@ -564,6 +564,10 @@ VOID PhpAdvancedPageLoad(
         SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
 
     SetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
+    SetDlgItemCheckForSetting(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
+
+    if (PhGetIntegerSetting(L"SampleCountAutomatic"))
+        EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
 
     // Replace Task Manager
 
@@ -643,9 +647,13 @@ VOID PhpAdvancedPageSave(
         SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
 
     sampleCount = GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE);
+    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
 
     if (sampleCount == 0)
         sampleCount = 1;
+
+    if (sampleCount != PhGetIntegerSetting(L"SampleCount"))
+        RestartRequired = TRUE;
 
     PhSetIntegerSetting(L"SampleCount", sampleCount);
 
@@ -745,6 +753,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLECYCLECPUUSAGE), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTLABEL), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC), FALSE);
             }
             else
             {
@@ -783,6 +792,11 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
                     if (threadHandle)
                         NtClose(threadHandle);
+                }
+                break;
+            case IDC_SAMPLECOUNTAUTOMATIC:
+                {
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), Button_GetCheck(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC)) != BST_CHECKED);
                 }
                 break;
             }
