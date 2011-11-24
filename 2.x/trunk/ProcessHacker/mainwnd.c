@@ -2434,18 +2434,6 @@ VOID PhMwpLoadSettings(
     if (opacity != 0)
         PhMwpSetWindowOpacity(opacity);
 
-    if (PhGetIntegerSetting(L"SampleCountAutomatic"))
-    {
-        ULONG sampleCount;
-
-        sampleCount = (GetSystemMetrics(SM_CXVIRTUALSCREEN) + 1) / 2;
-
-        if (sampleCount > 2048)
-            sampleCount = 2048;
-
-        PhSetIntegerSetting(L"SampleCount", sampleCount);
-    }
-
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
