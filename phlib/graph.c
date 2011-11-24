@@ -992,7 +992,7 @@ static BOOLEAN PhpGetCursorHeight(
         *Height = Context->LastCursorHeight;
         return TRUE;
     }
-dprintf("Not cached! %u\n", GetTickCount());
+
     if (!GetIconInfo((HICON)cursorInfo.hCursor, &iconInfo))
         return FALSE;
 
