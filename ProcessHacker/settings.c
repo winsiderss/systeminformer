@@ -148,6 +148,7 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
+    PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
