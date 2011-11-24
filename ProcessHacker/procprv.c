@@ -97,6 +97,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     BOOLEAN IsDotNet;
     BOOLEAN IsPosix;
     BOOLEAN IsWow64;
+    BOOLEAN IsWow64Valid;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
 
 typedef struct _PH_PROCESS_QUERY_S2_DATA
@@ -821,14 +822,16 @@ VOID PhpProcessQueryStage1(
         }
     }
 
+#ifdef _M_X64
     // WOW64
     if (processHandleLimited)
     {
-#ifdef _M_X64
-        // WOW64
-        PhGetProcessIsWow64(processHandleLimited, &Data->IsWow64);
-#endif
+        if (NT_SUCCESS(PhGetProcessIsWow64(processHandleLimited, &Data->IsWow64)))
+            Data->IsWow64Valid = TRUE;
     }
+#else
+    Data->IsWow64Valid = TRUE;
+#endif
 
     // POSIX, command line, .NET
     {
@@ -1115,6 +1118,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsPosix = Data->IsPosix;
     processItem->IsWow64 = Data->IsWow64;
+    processItem->IsWow64Valid = Data->IsWow64Valid;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 }

@@ -929,10 +929,17 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 NtClose(processHandle);
 
 #ifdef _M_X64
-            if (processItem->IsWow64)
-                SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"32-bit");
+            if (processItem->IsWow64Valid)
+            {
+                if (processItem->IsWow64)
+                    SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"32-bit");
+                else
+                    SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"64-bit");
+            }
             else
-                SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"64-bit");
+            {
+                SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"N/A");
+            }
 
             ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), SW_SHOW);
             ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_SHOW);
