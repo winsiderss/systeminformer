@@ -15,6 +15,7 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_DISK_TREE_LIST_SORT (SETTING_PREFIX L"DiskTreeListSort")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (SETTING_PREFIX L"EnableEtwMonitor")
 #define SETTING_NAME_ENABLE_GPU_MONITOR (SETTING_PREFIX L"EnableGpuMonitor")
+#define SETTING_NAME_GPU_NODE_BITMAP (SETTING_PREFIX L"GpuNodeBitmap")
 
 // Process icon
 
@@ -355,6 +356,7 @@ extern ULONG EtGpuTotalNodeCount;
 extern ULONG EtGpuTotalSegmentCount;
 extern ULONG64 EtGpuDedicatedLimit;
 extern ULONG64 EtGpuSharedLimit;
+extern RTL_BITMAP EtGpuNodeBitMap;
 
 extern PH_UINT64_DELTA EtClockTotalRunningTimeDelta;
 extern LARGE_INTEGER EtClockTotalRunningTimeFrequency;
@@ -364,6 +366,9 @@ extern FLOAT EtGpuNodeUsage;
 extern PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
 extern PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
+
+extern PPH_UINT64_DELTA EtGpuNodesTotalRunningTimeDelta;
+extern PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
 
 extern ULONG64 EtGpuDedicatedUsage;
 extern ULONG64 EtGpuSharedUsage;
@@ -395,12 +400,20 @@ typedef struct _ET_PROCESS_GPU_STATISTICS
     ULONG64 ContextSwitches;
 } ET_PROCESS_GPU_STATISTICS, *PET_PROCESS_GPU_STATISTICS;
 
+VOID EtSaveGpuMonitorSettings(
+    VOID
+    );
+
 ULONG EtGetGpuAdapterCount(
     VOID
     );
 
 PPH_STRING EtGetGpuAdapterDescription(
     __in ULONG Index
+    );
+
+VOID EtUpdateGpuNodeBitMap(
+    VOID
     );
 
 VOID EtQueryProcessGpuStatistics(
@@ -440,6 +453,13 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
 VOID EtEtwSystemInformationInitializing(
     __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    );
+
+// gpunodes
+
+VOID EtShowGpuNodesDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_SYSINFO_PARAMETERS Parameters
     );
 
 // gpusys

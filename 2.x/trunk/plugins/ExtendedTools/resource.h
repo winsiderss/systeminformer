@@ -34,6 +34,7 @@
 #define IDD_SYSINFO_GPUPANEL            112
 #define IDD_PROCGPU                     113
 #define IDD_SYSINFO_DISK                114
+#define IDD_GPUNODES                    115
 #define IDD_SYSINFO_NETPANEL            116
 #define IDD_SYSINFO_NET                 117
 #define IDC_LIST                        1001
@@ -85,8 +86,10 @@
 #define IDC_ZREPURPOSED7_V              1050
 #define IDC_BUTTON1                     1051
 #define IDC_EMPTY                       1051
+#define IDC_NODES                       1051
 #define IDC_CHECK1                      1052
 #define IDC_ENABLEGPUMONITOR            1052
+#define IDC_EXAMPLE                     1052
 #define IDC_GROUPGPU                    1053
 #define IDC_GROUPDEDICATED              1054
 #define IDC_GROUPSHARED                 1055
@@ -119,6 +122,7 @@
 #define IDC_ZSENDSDELTA_V               1083
 #define IDC_ZWRITESDELTA_V              1084
 #define IDC_ZREADSDELTA_V               1085
+#define IDC_INSTRUCTION                 1086
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -132,9 +136,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1086
+#define _APS_NEXT_CONTROL_VALUE         1087
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

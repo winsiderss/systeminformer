@@ -44,6 +44,10 @@ ULONG EtGpuTotalNodeCount;
 ULONG EtGpuTotalSegmentCount;
 ULONG64 EtGpuDedicatedLimit;
 ULONG64 EtGpuSharedLimit;
+ULONG EtGpuNextNodeIndex = 0;
+RTL_BITMAP EtGpuNodeBitMap;
+PULONG EtGpuNodeBitMapBuffer;
+ULONG EtGpuNodeBitMapBitsSet;
 
 PH_UINT64_DELTA EtClockTotalRunningTimeDelta;
 LARGE_INTEGER EtClockTotalRunningTimeFrequency;
@@ -53,6 +57,9 @@ FLOAT EtGpuNodeUsage;
 PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
 PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
 PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
+
+PPH_UINT64_DELTA EtGpuNodesTotalRunningTimeDelta;
+PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
 
 ULONG64 EtGpuDedicatedUsage;
 ULONG64 EtGpuSharedUsage;
@@ -104,6 +111,8 @@ VOID EtGpuMonitorInitialization(
     if (EtGpuEnabled)
     {
         ULONG sampleCount;
+        ULONG i;
+        PPH_STRING bitmapString;
 
         sampleCount = PhGetIntegerSetting(L"SampleCount");
         PhInitializeCircularBuffer_FLOAT(&EtGpuNodeHistory, sampleCount);
@@ -112,12 +121,32 @@ VOID EtGpuMonitorInitialization(
         PhInitializeCircularBuffer_ULONG(&EtGpuDedicatedHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtGpuSharedHistory, sampleCount);
 
+        EtGpuNodesTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
+        memset(EtGpuNodesTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
+        EtGpuNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
+
+        for (i = 0; i < EtGpuTotalNodeCount; i++)
+        {
+            PhInitializeCircularBuffer_FLOAT(&EtGpuNodesHistory[i], sampleCount);
+        }
+
         PhRegisterCallback(
             &PhProcessesUpdatedEvent,
             ProcessesUpdatedCallback,
             NULL,
             &ProcessesUpdatedCallbackRegistration
             );
+
+        // Load the node bitmap.
+
+        bitmapString = PhGetStringSetting(SETTING_NAME_GPU_NODE_BITMAP);
+
+        if (!(bitmapString->Length & 3) && bitmapString->Length / 4 <= BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount))
+        {
+            PhHexStringToBuffer(&bitmapString->sr, (PUCHAR)EtGpuNodeBitMapBuffer);
+        }
+
+        PhDereferenceObject(bitmapString);
     }
 }
 
@@ -188,6 +217,9 @@ BOOLEAN EtpInitializeD3DStatistics(
                     EtGpuTotalNodeCount += gpuAdapter->NodeCount;
                     EtGpuTotalSegmentCount += gpuAdapter->SegmentCount;
 
+                    gpuAdapter->FirstNodeIndex = EtGpuNextNodeIndex;
+                    EtGpuNextNodeIndex += gpuAdapter->NodeCount;
+
                     for (i = 0; i < gpuAdapter->SegmentCount; i++)
                     {
                         memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
@@ -231,6 +263,11 @@ BOOLEAN EtpInitializeD3DStatistics(
 
     SetupDiDestroyDeviceInfoList_I(deviceInfoSet);
 
+    EtGpuNodeBitMapBuffer = PhAllocate(BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount));
+    RtlInitializeBitMap(&EtGpuNodeBitMap, EtGpuNodeBitMapBuffer, EtGpuTotalNodeCount);
+    RtlSetBits(&EtGpuNodeBitMap, 0, 1);
+    EtGpuNodeBitMapBitsSet = 1;
+
     return TRUE;
 }
 
@@ -242,7 +279,7 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     SIZE_T sizeNeeded;
 
     sizeNeeded = FIELD_OFFSET(ETP_GPU_ADAPTER, ApertureBitMapBuffer);
-    sizeNeeded += ((NumberOfSegments + sizeof(ULONG) * 8 - 1) / 8) & ~(SIZE_T)(sizeof(ULONG) - 1); // divide round up
+    sizeNeeded += BYTES_NEEDED_FOR_BITS(NumberOfSegments);
 
     adapter = PhAllocate(sizeNeeded);
     memset(adapter, 0, sizeNeeded);
@@ -408,6 +445,9 @@ static VOID EtpUpdateNodeInformation(
 
         for (j = 0; j < gpuAdapter->NodeCount; j++)
         {
+            if (!RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j))
+                continue;
+
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
 
             if (Block)
@@ -457,6 +497,41 @@ static VOID EtpUpdateNodeInformation(
     }
 }
 
+static VOID EtpUpdatePerNodeInformation(
+    VOID
+    )
+{
+    ULONG i;
+    ULONG j;
+    PETP_GPU_ADAPTER gpuAdapter;
+    D3DKMT_QUERYSTATISTICS queryStatistics;
+
+    for (i = 0; i < EtpGpuAdapterList->Count; i++)
+    {
+        gpuAdapter = EtpGpuAdapterList->Items[i];
+
+        for (j = 0; j < gpuAdapter->NodeCount; j++)
+        {
+            if (!RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j))
+                continue;
+
+            memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+            queryStatistics.Type = D3DKMT_QUERYSTATISTICS_NODE;
+            queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+            queryStatistics.QueryNode.NodeId = j;
+
+            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            {
+                ULONG nodeIndex;
+
+                nodeIndex = gpuAdapter->FirstNodeIndex + j;
+
+                PhUpdateDelta(&EtGpuNodesTotalRunningTimeDelta[nodeIndex], queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart);
+            }
+        }
+    }
+}
+
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -464,7 +539,8 @@ static VOID NTAPI ProcessesUpdatedCallback(
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
 
-    ULONG64 elapsedTime; // total GPU node elapsed time in micro-seconds
+    DOUBLE elapsedTime; // total GPU node elapsed time in micro-seconds
+    ULONG i;
     PLIST_ENTRY listEntry;
     FLOAT maxNodeValue = 0;
     PET_PROCESS_BLOCK maxNodeBlock = NULL;
@@ -473,12 +549,17 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
     EtpUpdateSegmentInformation(NULL);
     EtpUpdateNodeInformation(NULL);
-    elapsedTime = EtClockTotalRunningTimeDelta.Delta * 1000000 * EtGpuTotalNodeCount / EtClockTotalRunningTimeFrequency.QuadPart;
+    EtpUpdatePerNodeInformation();
 
-    EtGpuNodeUsage = (FLOAT)EtGpuTotalRunningTimeDelta.Delta / elapsedTime;
+    elapsedTime = (DOUBLE)EtClockTotalRunningTimeDelta.Delta * 10000000 / EtClockTotalRunningTimeFrequency.QuadPart;
+
+    if (elapsedTime != 0)
+        EtGpuNodeUsage = (FLOAT)(EtGpuTotalRunningTimeDelta.Delta / (elapsedTime * EtGpuNodeBitMapBitsSet));
+    else
+        EtGpuNodeUsage = 0;
 
     if (EtGpuNodeUsage > 1)
-        EtGpuNodeUsage = 1; // VMs seem to have very unreliable clocks
+        EtGpuNodeUsage = 1;
 
     // Update per-process statistics.
     // Note: no lock is needed because we only ever modify the list on this same thread.
@@ -496,7 +577,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
         if (elapsedTime != 0)
         {
-            block->GpuNodeUsage = (FLOAT)block->GpuRunningTimeDelta.Delta / elapsedTime;
+            block->GpuNodeUsage = (FLOAT)(block->GpuRunningTimeDelta.Delta / (elapsedTime * EtGpuNodeBitMapBitsSet));
 
             if (block->GpuNodeUsage > 1)
                 block->GpuNodeUsage = 1;
@@ -519,6 +600,18 @@ static VOID NTAPI ProcessesUpdatedCallback(
         PhAddItemCircularBuffer_ULONG(&EtGpuDedicatedHistory, (ULONG)(EtGpuDedicatedUsage / PAGE_SIZE));
         PhAddItemCircularBuffer_ULONG(&EtGpuSharedHistory, (ULONG)(EtGpuSharedUsage / PAGE_SIZE));
 
+        for (i = 0; i < EtGpuTotalNodeCount; i++)
+        {
+            FLOAT usage;
+
+            usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime);
+
+            if (usage > 1)
+                usage = 1;
+
+            PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], usage);
+        }
+
         if (maxNodeBlock)
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, (ULONG)maxNodeBlock->ProcessItem->ProcessId);
@@ -533,6 +626,17 @@ static VOID NTAPI ProcessesUpdatedCallback(
     }
 
     runCount++;
+}
+
+VOID EtSaveGpuMonitorSettings(
+    VOID
+    )
+{
+    PPH_STRING string;
+
+    string = PhBufferToHexString((PUCHAR)EtGpuNodeBitMapBuffer, BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount));
+    PhSetStringSetting2(SETTING_NAME_GPU_NODE_BITMAP, &string->sr);
+    PhDereferenceObject(string);
 }
 
 ULONG EtGetGpuAdapterCount(
@@ -562,6 +666,13 @@ PPH_STRING EtGetGpuAdapterDescription(
     {
         return NULL;
     }
+}
+
+VOID EtUpdateGpuNodeBitMap(
+    VOID
+    )
+{
+    EtGpuNodeBitMapBitsSet = RtlNumberOfSetBits(&EtGpuNodeBitMap);
 }
 
 VOID EtQueryProcessGpuStatistics(

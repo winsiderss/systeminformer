@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,8,0,0
- PRODUCTVERSION 1,8,0,0
+ FILEVERSION 1,9,0,0
+ PRODUCTVERSION 1,9,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.8"
+            VALUE "FileVersion", "1.9"
             VALUE "InternalName", "ExtendedTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedTools.dll"
             VALUE "ProductName", "Extended Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.8"
+            VALUE "ProductVersion", "1.9"
         END
     END
     BLOCK "VarFileInfo"
@@ -256,27 +256,28 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "GPU",IDC_TITLE,0,0,72,21
     RTEXT           "GPU Name",IDC_GPUNAME,83,4,232,16,SS_WORDELLIPSIS
-    LTEXT           "Panel layout",IDC_LAYOUT,0,145,315,40,NOT WS_VISIBLE
-    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,121,NOT WS_VISIBLE
+    LTEXT           "Panel layout",IDC_LAYOUT,0,130,315,55,NOT WS_VISIBLE
+    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,102,NOT WS_VISIBLE
     LTEXT           "GPU:",IDC_GPU_L,73,0,17,8
     LTEXT           "Dedicated Memory:",IDC_DEDICATED_L,73,5,63,8
     LTEXT           "Shared Memory:",IDC_SHARED_L,74,11,54,8
 END
 
-IDD_SYSINFO_GPUPANEL DIALOGEX 0, 0, 246, 38
+IDD_SYSINFO_GPUPANEL DIALOGEX 0, 0, 246, 54
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Dedicated Memory",-1,0,0,118,38
+    GROUPBOX        "Dedicated Memory",-1,0,0,118,36
     LTEXT           "Current",-1,8,11,26,8
     LTEXT           "Limit",-1,8,22,15,8
     RTEXT           "Static",IDC_ZDEDICATEDCURRENT_V,55,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZDEDICATEDLIMIT_V,55,22,54,8,SS_ENDELLIPSIS
-    GROUPBOX        "Shared Memory",-1,122,0,124,38
+    GROUPBOX        "Shared Memory",-1,122,0,124,36
     LTEXT           "Current",-1,130,11,26,8
     LTEXT           "Limit",-1,130,23,15,8
     RTEXT           "Static",IDC_ZSHAREDCURRENT_V,182,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSHAREDLIMIT_V,182,23,54,8,SS_ENDELLIPSIS
+    PUSHBUTTON      "Nodes",IDC_NODES,0,40,50,14
 END
 
 IDD_PROCGPU DIALOGEX 0, 0, 260, 260
@@ -350,6 +351,17 @@ BEGIN
     LTEXT           "Network",IDC_TITLE,0,0,72,21
     LTEXT           "Panel layout",IDC_LAYOUT,0,124,315,61,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,99,NOT WS_VISIBLE
+END
+
+IDD_GPUNODES DIALOGEX 0, 0, 317, 183
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "GPU Nodes"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,260,162,50,14
+    LTEXT           "Graph layout",IDC_LAYOUT,7,21,303,137,NOT WS_VISIBLE
+    LTEXT           "Select the nodes that will be included in GPU usage calculations.",IDC_INSTRUCTION,7,7,303,8
+    CONTROL         "Example checkbox",IDC_EXAMPLE,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,7,166,75,10
 END
 
 
@@ -455,6 +467,14 @@ BEGIN
 
     IDD_SYSINFO_NET, DIALOG
     BEGIN
+    END
+
+    IDD_GPUNODES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 310
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
     END
 END
 #endif    // APSTUDIO_INVOKED
