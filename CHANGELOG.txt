@@ -9,6 +9,7 @@ Process Hacker
  * FIXED:
    * Graph tooltip position with large cursors
    * Fixed .NET process detection
+   * Fixed incorrect values in Bits column
 
 2.24
  * NOTE:

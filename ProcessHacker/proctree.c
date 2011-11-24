@@ -1429,7 +1429,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Bits)
 {
-    sortResult = intcmp(processItem1->IsWow64, processItem2->IsWow64);
+    sortResult = intcmp(processItem1->IsWow64Valid, processItem2->IsWow64Valid);
+
+    if (sortResult == 0)
+        sortResult = intcmp(processItem1->IsWow64, processItem2->IsWow64);
 }
 END_SORT_FUNCTION
 
@@ -2150,7 +2153,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_BITS:
 #ifdef _M_X64
-                PhInitializeStringRef(&getCellText->Text, processItem->IsWow64 ? L"32" : L"64");
+                if (processItem->IsWow64Valid)
+                    PhInitializeStringRef(&getCellText->Text, processItem->IsWow64 ? L"32" : L"64");
 #else
                 PhInitializeStringRef(&getCellText->Text, L"32");
 #endif
