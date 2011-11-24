@@ -41,6 +41,10 @@ typedef BOOL (WINAPI *_SetupDiGetDeviceRegistryPropertyW)(
     __out_opt PDWORD RequiredSize
     );
 
+// Macros
+
+#define BYTES_NEEDED_FOR_BITS(Bits) ((((Bits) + sizeof(ULONG) * 8 - 1) / 8) & ~(SIZE_T)(sizeof(ULONG) - 1)) // divide round up
+
 // Structures
 
 typedef struct _ETP_GPU_ADAPTER
@@ -49,6 +53,7 @@ typedef struct _ETP_GPU_ADAPTER
     PPH_STRING Description;
     ULONG SegmentCount;
     ULONG NodeCount;
+    ULONG FirstNodeIndex;
 
     RTL_BITMAP ApertureBitMap;
     ULONG ApertureBitMapBuffer[1];
