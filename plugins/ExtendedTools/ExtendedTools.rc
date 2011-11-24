@@ -267,17 +267,18 @@ IDD_SYSINFO_GPUPANEL DIALOGEX 0, 0, 246, 54
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Dedicated Memory",-1,0,0,118,36
-    LTEXT           "Current",-1,8,11,26,8
-    LTEXT           "Limit",-1,8,22,15,8
+    GROUPBOX        "Dedicated Memory",IDC_STATIC,0,0,118,36
+    LTEXT           "Current",IDC_STATIC,8,11,26,8
+    LTEXT           "Limit",IDC_STATIC,8,22,15,8
     RTEXT           "Static",IDC_ZDEDICATEDCURRENT_V,55,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZDEDICATEDLIMIT_V,55,22,54,8,SS_ENDELLIPSIS
-    GROUPBOX        "Shared Memory",-1,122,0,124,36
-    LTEXT           "Current",-1,130,11,26,8
-    LTEXT           "Limit",-1,130,23,15,8
+    GROUPBOX        "Shared Memory",IDC_STATIC,122,0,124,36
+    LTEXT           "Current",IDC_STATIC,130,11,26,8
+    LTEXT           "Limit",IDC_STATIC,130,23,15,8
     RTEXT           "Static",IDC_ZSHAREDCURRENT_V,182,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSHAREDLIMIT_V,182,23,54,8,SS_ENDELLIPSIS
-    PUSHBUTTON      "Nodes",IDC_NODES,0,40,50,14
+    PUSHBUTTON      "Nodes",IDC_NODES,152,40,50,14
+    LTEXT           "Select nodes used for GPU usage calculations:",IDC_STATIC,0,43,148,8
 END
 
 IDD_PROCGPU DIALOGEX 0, 0, 260, 260
