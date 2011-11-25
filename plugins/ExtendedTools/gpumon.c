@@ -447,7 +447,7 @@ static VOID EtpUpdateNodeInformation(
 
         for (j = 0; j < gpuAdapter->NodeCount; j++)
         {
-            if (!RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j))
+            if (Block && !RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j))
                 continue;
 
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
@@ -477,8 +477,17 @@ static VOID EtpUpdateNodeInformation(
                 }
                 else
                 {
-                    totalRunningTime += queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart;
-                    systemRunningTime += queryStatistics.QueryResult.NodeInformation.SystemInformation.RunningTime.QuadPart;
+                    ULONG nodeIndex;
+
+                    nodeIndex = gpuAdapter->FirstNodeIndex + j;
+
+                    PhUpdateDelta(&EtGpuNodesTotalRunningTimeDelta[nodeIndex], queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart);
+
+                    if (RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j))
+                    {
+                        totalRunningTime += queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart;
+                        systemRunningTime += queryStatistics.QueryResult.NodeInformation.SystemInformation.RunningTime.QuadPart;
+                    }
                 }
             }
         }
@@ -499,41 +508,6 @@ static VOID EtpUpdateNodeInformation(
     }
 }
 
-static VOID EtpUpdatePerNodeInformation(
-    VOID
-    )
-{
-    ULONG i;
-    ULONG j;
-    PETP_GPU_ADAPTER gpuAdapter;
-    D3DKMT_QUERYSTATISTICS queryStatistics;
-
-    for (i = 0; i < EtpGpuAdapterList->Count; i++)
-    {
-        gpuAdapter = EtpGpuAdapterList->Items[i];
-
-        for (j = 0; j < gpuAdapter->NodeCount; j++)
-        {
-            if (!RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j))
-                continue;
-
-            memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-            queryStatistics.Type = D3DKMT_QUERYSTATISTICS_NODE;
-            queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
-            queryStatistics.QueryNode.NodeId = j;
-
-            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
-            {
-                ULONG nodeIndex;
-
-                nodeIndex = gpuAdapter->FirstNodeIndex + j;
-
-                PhUpdateDelta(&EtGpuNodesTotalRunningTimeDelta[nodeIndex], queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart);
-            }
-        }
-    }
-}
-
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -551,7 +525,6 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
     EtpUpdateSegmentInformation(NULL);
     EtpUpdateNodeInformation(NULL);
-    EtpUpdatePerNodeInformation();
 
     elapsedTime = (DOUBLE)EtClockTotalRunningTimeDelta.Delta * 10000000 / EtClockTotalRunningTimeFrequency.QuadPart;
 
