@@ -70,6 +70,7 @@ static PH_CM_MANAGER NetworkTreeListCm;
 
 static PPH_HASHTABLE NetworkNodeHashtable; // hashtable of all nodes
 static PPH_LIST NetworkNodeList; // list of all nodes
+static LONG NextUniqueId = 1;
 
 BOOLEAN PhNetworkTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST NetworkNodeStateList = NULL; // list of nodes which need to be processed
@@ -212,6 +213,7 @@ PPH_NETWORK_NODE PhAddNetworkNode(
 
     networkNode->NetworkItem = NetworkItem;
     PhReferenceObject(NetworkItem);
+    networkNode->UniqueId = NextUniqueId++; // used to stabilize sorting
 
     memset(networkNode->TextCache, 0, sizeof(PH_STRINGREF) * PHNETLC_MAXIMUM);
     networkNode->Node.TextCache = networkNode->TextCache;
@@ -342,8 +344,8 @@ VOID PhTickNetworkNodes(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    /* if (sortResult == 0) */ \
-        /* sortResult = PhCompareString(networkItem1->Name, networkItem2->Name, TRUE); */ \
+    if (sortResult == 0) \
+        sortResult = intcmp(node1->UniqueId, node2->UniqueId); \
     \
     return PhModifySort(sortResult, NetworkTreeListSortOrder); \
 }
@@ -355,6 +357,9 @@ LONG PhpNetworkTreeNewPostSortFunction(
     __in PH_SORT_ORDER SortOrder
     )
 {
+    if (Result == 0)
+        Result = intcmp(((PPH_NETWORK_NODE)Node1)->UniqueId, ((PPH_NETWORK_NODE)Node2)->UniqueId);
+
     return PhModifySort(Result, SortOrder);
 }
 

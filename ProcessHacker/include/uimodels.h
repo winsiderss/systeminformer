@@ -530,6 +530,7 @@ typedef struct _PH_NETWORK_NODE
 
     PH_STRINGREF TextCache[PHNETLC_MAXIMUM];
 
+    LONG UniqueId;
     PPH_STRING ProcessNameText;
     PH_STRINGREF LocalAddressText;
     PH_STRINGREF RemoteAddressText;
