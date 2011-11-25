@@ -145,6 +145,7 @@ VOID EtGpuMonitorInitialization(
         if (!(bitmapString->Length & 3) && bitmapString->Length / 4 <= BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount))
         {
             PhHexStringToBuffer(&bitmapString->sr, (PUCHAR)EtGpuNodeBitMapBuffer);
+            EtGpuNodeBitMapBitsSet = RtlNumberOfSetBits(&EtGpuNodeBitMap);
         }
 
         PhDereferenceObject(bitmapString);
