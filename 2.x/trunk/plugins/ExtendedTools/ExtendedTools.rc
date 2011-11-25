@@ -361,8 +361,8 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,260,162,50,14
     LTEXT           "Graph layout",IDC_LAYOUT,7,21,303,137,NOT WS_VISIBLE
-    LTEXT           "Select the nodes that will be included in GPU usage calculations.",IDC_INSTRUCTION,7,7,303,8
     CONTROL         "Example checkbox",IDC_EXAMPLE,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,7,166,75,10
+    LTEXT           "Select the nodes that will be included in GPU usage calculations.",IDC_INSTRUCTION,7,7,204,8
 END
 
 
