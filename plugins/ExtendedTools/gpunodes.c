@@ -117,6 +117,8 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             ULONG i;
             HFONT font;
             PPH_STRING nodeString;
+            RECT labelRect;
+            RECT tempRect;
 
             WindowHandle = hwndDlg;
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -170,12 +172,29 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 PhDereferenceObject(nodeString);
             }
 
+            // Calculate the minimum size.
+
             MinimumSize.left = 0;
             MinimumSize.top = 0;
             MinimumSize.right = 45;
             MinimumSize.bottom = 170;
             MapDialogRect(hwndDlg, &MinimumSize);
             MinimumSize.right += (MinimumSize.right + GRAPH_PADDING) * EtGpuTotalNodeCount;
+
+            GetWindowRect(GetDlgItem(hwndDlg, IDC_INSTRUCTION), &labelRect);
+            MapWindowPoints(NULL, hwndDlg, (POINT *)&labelRect, 2);
+            labelRect.right += GetSystemMetrics(SM_CXFRAME) * 2;
+
+            tempRect.left = 0;
+            tempRect.top = 0;
+            tempRect.right = 7;
+            tempRect.bottom = 0;
+            MapDialogRect(hwndDlg, &tempRect);
+            labelRect.right += tempRect.right;
+
+            if (MinimumSize.right < labelRect.right)
+                MinimumSize.right = labelRect.right;
+
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
             EtpLoadNodeBitMap();
