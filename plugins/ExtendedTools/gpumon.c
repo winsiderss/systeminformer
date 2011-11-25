@@ -48,6 +48,7 @@ ULONG EtGpuNextNodeIndex = 0;
 RTL_BITMAP EtGpuNodeBitMap;
 PULONG EtGpuNodeBitMapBuffer;
 ULONG EtGpuNodeBitMapBitsSet;
+PULONG EtGpuNewNodeBitMapBuffer;
 
 PH_UINT64_DELTA EtClockTotalRunningTimeDelta;
 LARGE_INTEGER EtClockTotalRunningTimeFrequency;
@@ -561,6 +562,23 @@ static VOID NTAPI ProcessesUpdatedCallback(
     if (EtGpuNodeUsage > 1)
         EtGpuNodeUsage = 1;
 
+    // Do the update of the node bitmap if needed.
+    if (EtGpuNewNodeBitMapBuffer)
+    {
+        PULONG newBuffer;
+
+        newBuffer = _InterlockedExchangePointer(&EtGpuNewNodeBitMapBuffer, NULL);
+
+        if (newBuffer)
+        {
+            PhFree(EtGpuNodeBitMap.Buffer);
+            EtGpuNodeBitMap.Buffer = newBuffer;
+            EtGpuNodeBitMapBuffer = newBuffer;
+            EtGpuNodeBitMapBitsSet = RtlNumberOfSetBits(&EtGpuNodeBitMap);
+            EtSaveGpuMonitorSettings();
+        }
+    }
+
     // Update per-process statistics.
     // Note: no lock is needed because we only ever modify the list on this same thread.
 
@@ -668,11 +686,29 @@ PPH_STRING EtGetGpuAdapterDescription(
     }
 }
 
-VOID EtUpdateGpuNodeBitMap(
-    VOID
+VOID EtAllocateGpuNodeBitMap(
+    __out PRTL_BITMAP BitMap
     )
 {
-    EtGpuNodeBitMapBitsSet = RtlNumberOfSetBits(&EtGpuNodeBitMap);
+    SIZE_T numberOfBytes;
+
+    numberOfBytes = BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount);
+
+    BitMap->Buffer = PhAllocate(numberOfBytes);
+    BitMap->SizeOfBitMap = EtGpuTotalNodeCount;
+    memset(BitMap->Buffer, 0, numberOfBytes);
+}
+
+VOID EtUpdateGpuNodeBitMap(
+    __in PRTL_BITMAP NewBitMap
+    )
+{
+    PULONG buffer;
+
+    buffer = _InterlockedExchangePointer(&EtGpuNewNodeBitMapBuffer, NewBitMap->Buffer);
+
+    if (buffer)
+        PhFree(buffer);
 }
 
 VOID EtQueryProcessGpuStatistics(

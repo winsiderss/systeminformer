@@ -412,8 +412,12 @@ PPH_STRING EtGetGpuAdapterDescription(
     __in ULONG Index
     );
 
+VOID EtAllocateGpuNodeBitMap(
+    __out PRTL_BITMAP BitMap
+    );
+
 VOID EtUpdateGpuNodeBitMap(
-    VOID
+    __in PRTL_BITMAP NewBitMap
     );
 
 VOID EtQueryProcessGpuStatistics(
