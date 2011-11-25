@@ -86,21 +86,21 @@ VOID EtpSaveNodeBitMap(
     VOID
     )
 {
+    RTL_BITMAP newBitMap;
     ULONG i;
 
-    RtlClearAllBits(&EtGpuNodeBitMap);
+    EtAllocateGpuNodeBitMap(&newBitMap);
 
     for (i = 0; i < EtGpuTotalNodeCount; i++)
     {
         if (Button_GetCheck(CheckBoxHandle[i]) == BST_CHECKED)
-            RtlSetBits(&EtGpuNodeBitMap, i, 1);
+            RtlSetBits(&newBitMap, i, 1);
     }
 
-    if (RtlNumberOfSetBits(&EtGpuNodeBitMap) == 0)
-        RtlSetBits(&EtGpuNodeBitMap, 0, 1);
+    if (RtlNumberOfSetBits(&newBitMap) == 0)
+        RtlSetBits(&newBitMap, 0, 1);
 
-    EtUpdateGpuNodeBitMap();
-    EtSaveGpuMonitorSettings();
+    EtUpdateGpuNodeBitMap(&newBitMap);
 }
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
