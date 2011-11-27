@@ -385,10 +385,21 @@ static VOID EtpUpdateSegmentInformation(
             {
                 if (Block)
                 {
-                    if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
-                        sharedUsage += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                    ULONG64 bytesCommitted;
+
+                    if (WindowsVersion >= WINDOWS_8)
+                    {
+                        bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                    }
                     else
-                        dedicatedUsage += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                    {
+                        bytesCommitted = (ULONG)queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                    }
+
+                    if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
+                        sharedUsage += bytesCommitted;
+                    else
+                        dedicatedUsage += bytesCommitted;
                 }
                 else
                 {
@@ -690,6 +701,7 @@ VOID EtQueryProcessGpuStatistics(
     __out PET_PROCESS_GPU_STATISTICS Statistics
     )
 {
+    NTSTATUS status;
     ULONG i;
     ULONG j;
     PETP_GPU_ADAPTER gpuAdapter;
@@ -712,16 +724,23 @@ VOID EtQueryProcessGpuStatistics(
             queryStatistics.hProcess = ProcessHandle;
             queryStatistics.QueryProcessSegment.SegmentId = j;
 
-            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            if (NT_SUCCESS(status = D3DKMTQueryStatistics_I(&queryStatistics)))
             {
-                if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
+                ULONG64 bytesCommitted;
+
+                if (WindowsVersion >= WINDOWS_8)
                 {
-                    Statistics->SharedCommitted += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                    bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 }
                 else
                 {
-                    Statistics->DedicatedCommitted += queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
+                    bytesCommitted = (ULONG)queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 }
+
+                if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
+                    Statistics->SharedCommitted += bytesCommitted;
+                else
+                    Statistics->DedicatedCommitted += bytesCommitted;
             }
         }
 
