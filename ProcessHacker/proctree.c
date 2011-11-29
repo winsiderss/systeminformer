@@ -96,7 +96,7 @@ VOID PhInitializeProcessTreeList(
     ProcessTreeListHandle = hwnd;
     PhSetControlTheme(ProcessTreeListHandle, L"explorer");
     TreeNew_SetExtendedFlags(hwnd, TN_FLAG_ITEM_DRAG_SELECT, TN_FLAG_ITEM_DRAG_SELECT);
-    SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
+    SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     TreeNew_SetCallback(hwnd, PhpProcessTreeNewCallback, NULL);
 
