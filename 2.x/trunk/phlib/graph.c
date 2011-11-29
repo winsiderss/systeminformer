@@ -50,12 +50,7 @@ typedef struct _PHP_GRAPH_CONTEXT
 
     HWND TooltipHandle;
     WNDPROC TooltipOldWndProc;
-    BOOLEAN TooltipVisible;
-    HMONITOR ValidMonitor;
-    MONITORINFO MonitorInfo;
-
-    HCURSOR LastCursor;
-    LONG LastCursorHeight;
+    POINT LastCursorLocation;
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -783,8 +778,6 @@ VOID PhpCreateGraphContext(
     context->Options.FadeOutBackColor = RGB(0xef, 0xef, 0xef);
     context->Options.FadeOutWidth = 100;
 
-    context->MonitorInfo.cbSize = sizeof(MONITORINFO);
-
     *Context = context;
 }
 
@@ -922,234 +915,6 @@ static VOID PhpCreateFadeOutContext(
     }
 }
 
-static ULONG PhpGetLastWhiteRow(
-    __in HDC hdc,
-    __in HBITMAP Bitmap,
-    __in ULONG Width,
-    __in ULONG Height
-    )
-{
-    BITMAPINFO bitmapInfo;
-    PVOID bits;
-    ULONG result;
-
-    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bitmapInfo.bmiHeader.biPlanes = 1;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
-
-    bitmapInfo.bmiHeader.biWidth = Width;
-    bitmapInfo.bmiHeader.biHeight = Height;
-    bitmapInfo.bmiHeader.biBitCount = 32;
-
-    bits = PhAllocate(Width * sizeof(ULONG) * Height);
-    result = -1;
-
-    if (GetDIBits(hdc, Bitmap, 0, Height, bits, &bitmapInfo, DIB_RGB_COLORS) == Height)
-    {
-        PULONG mask;
-        ULONG x;
-        ULONG y;
-
-        mask = (PULONG)bits;
-
-        for (y = Height; y; y--)
-        {
-            for (x = Width; x; x--)
-            {
-                if (*mask++ != 0xffffff)
-                {
-                    result = y - 1;
-                    goto RowFound;
-                }
-            }
-        }
-    }
-
-RowFound:
-    PhFree(bits);
-
-    return result;
-}
-
-static BOOLEAN PhpGetCursorHeight(
-    __in PPHP_GRAPH_CONTEXT Context,
-    __out PLONG Height
-    )
-{
-    BOOLEAN result;
-    CURSORINFO cursorInfo = { sizeof(CURSORINFO) };
-    ICONINFO iconInfo;
-    BITMAP bitmap;
-    HDC hdc;
-    ULONG cursorHeight;
-
-    if (!GetCursorInfo(&cursorInfo))
-        return FALSE;
-
-    if (Context->LastCursor && cursorInfo.hCursor == Context->LastCursor)
-    {
-        *Height = Context->LastCursorHeight;
-        return TRUE;
-    }
-
-    if (!GetIconInfo((HICON)cursorInfo.hCursor, &iconInfo))
-        return FALSE;
-
-    result = FALSE;
-
-    if (GetObject(iconInfo.hbmMask, sizeof(BITMAP), &bitmap))
-    {
-        cursorHeight = -1;
-
-        if (hdc = GetDC(Context->Handle))
-        {
-            cursorHeight = PhpGetLastWhiteRow(hdc, iconInfo.hbmMask, bitmap.bmWidth, bitmap.bmHeight);
-            ReleaseDC(Context->Handle, hdc);
-        }
-
-        if (cursorHeight != -1)
-            cursorHeight += 4;
-        else
-            cursorHeight = 32;
-
-        *Height = cursorHeight;
-
-        Context->LastCursor = cursorInfo.hCursor;
-        Context->LastCursorHeight = cursorHeight;
-        result = TRUE;
-    }
-
-    DeleteObject(iconInfo.hbmMask);
-    DeleteObject(iconInfo.hbmColor);
-
-    return result;
-}
-
-static VOID PhpUpdateTooltip(
-    __in PPHP_GRAPH_CONTEXT Context
-    )
-{
-    POINT point;
-    RECT windowRect;
-    HWND hwnd;
-    TOOLINFO toolInfo = { sizeof(toolInfo) };
-    HMONITOR monitor;
-    LONG cursorHeight;
-
-    GetCursorPos(&point);
-    GetWindowRect(Context->Handle, &windowRect);
-
-    if (
-        point.x < windowRect.left || point.x >= windowRect.right ||
-        point.y < windowRect.top || point.y >= windowRect.bottom
-        )
-        return;
-
-    hwnd = WindowFromPoint(point);
-
-    if (hwnd != Context->Handle)
-        return;
-
-    toolInfo.hwnd = Context->Handle;
-    toolInfo.uId = 1;
-
-    if (!Context->TooltipVisible)
-    {
-        TRACKMOUSEEVENT trackMouseEvent = { sizeof(trackMouseEvent) };
-
-        trackMouseEvent.dwFlags = TME_LEAVE;
-        trackMouseEvent.hwndTrack = Context->Handle;
-        TrackMouseEvent(&trackMouseEvent);
-
-        Context->ValidMonitor = NULL; // force a refresh of monitor info
-    }
-
-    // Update monitor information only if the tooltip has moved onto another monitor.
-
-    monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
-
-    if (Context->ValidMonitor != monitor)
-    {
-        GetMonitorInfo(monitor, &Context->MonitorInfo);
-        Context->ValidMonitor = monitor;
-    }
-
-    // Add an offset to fix the case where the user moves the mouse to the bottom-right.
-    if (PhpGetCursorHeight(Context, &cursorHeight))
-        point.y += cursorHeight;
-    else
-        point.y += 32;
-
-    SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
-
-    // HACK for buggy tooltip control
-    if (!IsWindowVisible(Context->TooltipHandle))
-        SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, FALSE, (LPARAM)&toolInfo);
-
-    SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, TRUE, (LPARAM)&toolInfo);
-}
-
-static LRESULT CALLBACK PhpTooltipWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    )
-{
-    PPHP_GRAPH_CONTEXT context;
-    WNDPROC oldWndProc;
-
-    context = (PPHP_GRAPH_CONTEXT)GetProp(hwnd, PhpMakeGraphTooltipContextAtom());
-    oldWndProc = context->TooltipOldWndProc;
-
-    switch (uMsg)
-    {
-    case WM_DESTROY:
-        {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-
-            RemoveProp(hwnd, PhpMakeGraphTooltipContextAtom());
-        }
-        break;
-    case WM_MOVE:
-        {
-            TOOLINFO toolInfo = { sizeof(toolInfo) };
-            RECT windowRect;
-            BOOLEAN needsMove;
-
-            if (CallWindowProc(oldWndProc, hwnd, TTM_GETCURRENTTOOL, 0, (LPARAM)&toolInfo))
-            {
-                GetWindowRect(hwnd, &windowRect);
-                needsMove = FALSE;
-
-                // Make sure the tooltip isn't off-screen.
-                if (windowRect.right > context->MonitorInfo.rcWork.right)
-                {
-                    windowRect.left = context->MonitorInfo.rcWork.right - (windowRect.right - windowRect.left);
-                    needsMove = TRUE;
-                }
-
-                if (windowRect.bottom >context->MonitorInfo.rcWork.bottom)
-                {
-                    windowRect.top = context->MonitorInfo.rcWork.bottom - (windowRect.bottom - windowRect.top);
-                    needsMove = TRUE;
-                }
-
-                if (needsMove)
-                {
-                    SetWindowPos(hwnd, HWND_TOPMOST, windowRect.left, windowRect.top,
-                        windowRect.right - windowRect.left, windowRect.bottom - windowRect.top,
-                        SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOOWNERZORDER);
-                }
-            }
-        }
-        break;
-    }
-
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
-}
-
 VOID PhpUpdateDrawInfo(
     __in HWND hwnd,
     __in PPHP_GRAPH_CONTEXT Context
@@ -1238,6 +1003,30 @@ LRESULT CALLBACK PhpGraphWndProc(
 
     switch (uMsg)
     {
+    case WM_MOUSEMOVE:
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+        {
+            if (context->TooltipHandle)
+            {
+                MSG message;
+
+                message.hwnd = hwnd;
+                message.message = uMsg;
+                message.wParam = wParam;
+                message.lParam = lParam;
+                SendMessage(context->TooltipHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
+            }
+        }
+        break;
+    }
+
+    switch (uMsg)
+    {
     case WM_CREATE:
         {
             CREATESTRUCT *createStruct = (CREATESTRUCT *)lParam;
@@ -1278,6 +1067,18 @@ LRESULT CALLBACK PhpGraphWndProc(
             PhpUpdateDrawInfo(hwnd, context);
             context->NeedsDraw = TRUE;
             InvalidateRect(hwnd, NULL, FALSE);
+
+            if (context->TooltipHandle)
+            {
+                TOOLINFO toolInfo;
+
+                memset(&toolInfo, 0, sizeof(TOOLINFO));
+                toolInfo.cbSize = sizeof(TOOLINFO);
+                toolInfo.hwnd = hwnd;
+                toolInfo.uId = 1;
+                GetClientRect(hwnd, &toolInfo.rect);
+                SendMessage(context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+            }
         }
         break;
     case WM_PAINT:
@@ -1361,41 +1162,38 @@ LRESULT CALLBACK PhpGraphWndProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            switch (header->code)
+            if (header->hwndFrom == context->TooltipHandle)
             {
-            case TTN_GETDISPINFO:
+                switch (header->code)
                 {
-                    LPNMTTDISPINFO dispInfo = (LPNMTTDISPINFO)header;
-                    POINT point;
-                    RECT clientRect;
-                    PH_GRAPH_GETTOOLTIPTEXT getTooltipText;
-
-                    GetCursorPos(&point);
-                    ScreenToClient(hwnd, &point);
-                    GetClientRect(hwnd, &clientRect);
-
-                    getTooltipText.Header.hwndFrom = hwnd;
-                    getTooltipText.Header.idFrom = context->Id;
-                    getTooltipText.Header.code = GCN_GETTOOLTIPTEXT;
-                    getTooltipText.Index = (clientRect.right - point.x - 1) / context->DrawInfo.Step;
-                    getTooltipText.TotalCount = context->DrawInfo.LineDataCount;
-                    getTooltipText.Text.Buffer = NULL;
-                    getTooltipText.Text.Length = 0;
-
-                    SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getTooltipText);
-
-                    if (getTooltipText.Text.Buffer)
+                case TTN_GETDISPINFO:
                     {
-                        dispInfo->lpszText = getTooltipText.Text.Buffer;
+                        LPNMTTDISPINFO dispInfo = (LPNMTTDISPINFO)header;
+                        POINT point;
+                        RECT clientRect;
+                        PH_GRAPH_GETTOOLTIPTEXT getTooltipText;
+
+                        GetCursorPos(&point);
+                        ScreenToClient(hwnd, &point);
+                        GetClientRect(hwnd, &clientRect);
+
+                        getTooltipText.Header.hwndFrom = hwnd;
+                        getTooltipText.Header.idFrom = context->Id;
+                        getTooltipText.Header.code = GCN_GETTOOLTIPTEXT;
+                        getTooltipText.Index = (clientRect.right - point.x - 1) / context->DrawInfo.Step;
+                        getTooltipText.TotalCount = context->DrawInfo.LineDataCount;
+                        getTooltipText.Text.Buffer = NULL;
+                        getTooltipText.Text.Length = 0;
+
+                        SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getTooltipText);
+
+                        if (getTooltipText.Text.Buffer)
+                        {
+                            dispInfo->lpszText = getTooltipText.Text.Buffer;
+                        }
                     }
+                    break;
                 }
-                break;
-            case TTN_SHOW:
-                context->TooltipVisible = TRUE;
-                break;
-            case TTN_POP:
-                context->TooltipVisible = FALSE;
-                break;
             }
         }
         break;
@@ -1412,22 +1210,16 @@ LRESULT CALLBACK PhpGraphWndProc(
         {
             if (context->TooltipHandle)
             {
-                PhpUpdateTooltip(context);
-            }
-        }
-        break;
-    case WM_MOUSELEAVE:
-        {
-            if (context->TooltipHandle)
-            {
-                TOOLINFO toolInfo = { sizeof(toolInfo) };
+                POINT point;
 
-                toolInfo.hwnd = hwnd;
-                toolInfo.uId = 1;
+                GetCursorPos(&point);
+                ScreenToClient(hwnd, &point);
 
-                SendMessage(context->TooltipHandle, TTM_TRACKACTIVATE, FALSE, (LPARAM)&toolInfo);
-
-                context->LastCursor = NULL; // force a refresh of cursor info next time
+                if (context->LastCursorLocation.x != point.x || context->LastCursorLocation.y != point.y)
+                {
+                    SendMessage(context->TooltipHandle, TTM_UPDATE, 0, 0);
+                    context->LastCursorLocation = point;
+                }
             }
         }
         break;
@@ -1511,22 +1303,21 @@ LRESULT CALLBACK PhpGraphWndProc(
                     PhLibImageBase,
                     NULL
                     );
-                context->TooltipOldWndProc = (WNDPROC)GetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC);
-                SetProp(context->TooltipHandle, PhpMakeGraphTooltipContextAtom(), (HANDLE)context);
-                SetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC, (LONG_PTR)PhpTooltipWndProc);
 
                 SetWindowPos(context->TooltipHandle, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
-                toolInfo.uFlags = TTF_ABSOLUTE | TTF_TRACK;
+                toolInfo.uFlags = 0;
                 toolInfo.hwnd = hwnd;
                 toolInfo.uId = 1;
                 toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+                GetClientRect(hwnd, &toolInfo.rect);
                 SendMessage(context->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
+                SendMessage(context->TooltipHandle, TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+                SendMessage(context->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
                 // Allow newlines (-1 doesn't work)
-                // MAXINT doesn't work either on high DPI configurations for some reason.
-                SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, 4096);
+                SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
             }
             else
             {
@@ -1540,20 +1331,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             if (!context->TooltipHandle)
                 return FALSE;
 
-            if (context->TooltipVisible)
-            {
-                TOOLINFO toolInfo = { sizeof(toolInfo) };
-
-                toolInfo.hwnd = hwnd;
-                toolInfo.uId = 1;
-                toolInfo.lpszText = LPSTR_TEXTCALLBACK;
-
-                SendMessage(context->TooltipHandle, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
-            }
-            else
-            {
-                PhpUpdateTooltip(context);
-            }
+            SendMessage(context->TooltipHandle, TTM_UPDATE, 0, 0);
         }
         return TRUE;
     case GCM_GETOPTIONS:

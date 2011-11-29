@@ -119,7 +119,7 @@ VOID PhInitializeServiceTreeList(
 
     ServiceTreeListHandle = hwnd;
     PhSetControlTheme(ServiceTreeListHandle, L"explorer");
-    SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
+    SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     TreeNew_SetCallback(hwnd, PhpServiceTreeNewCallback, NULL);
 

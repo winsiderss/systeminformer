@@ -118,7 +118,7 @@ VOID PhInitializeNetworkTreeList(
 {
     NetworkTreeListHandle = hwnd;
     PhSetControlTheme(NetworkTreeListHandle, L"explorer");
-    SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
+    SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     TreeNew_SetCallback(hwnd, PhpNetworkTreeNewCallback, NULL);
 
