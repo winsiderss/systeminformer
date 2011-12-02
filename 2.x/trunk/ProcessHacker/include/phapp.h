@@ -633,11 +633,9 @@ VOID PhShowNetworkContextMenu(
     __in PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 
-// plugins
+// plugin
 
-#ifndef PLUGINS_PRIVATE
 extern PH_AVL_TREE PhPluginsByName;
-#endif
 
 VOID PhPluginsInitialization(
     VOID

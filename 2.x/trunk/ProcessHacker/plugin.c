@@ -193,7 +193,7 @@ VOID PhSetPluginDisabled(
             PhSetStringSetting2(L"DisabledPlugins", BaseName);
         }
     }
-    else if (found)
+    else if (!Disable && found)
     {
         ULONG removeCount;
 

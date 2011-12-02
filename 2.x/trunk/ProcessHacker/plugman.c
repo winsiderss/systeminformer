@@ -24,11 +24,13 @@
 #include <settings.h>
 #include <phplug.h>
 
+#define IS_PLUGIN_LOADED(Plugin) (!!(Plugin)->AppContext.AppName.Buffer)
 #define STR_OR_DEFAULT(String, Default) ((String) ? (String) : (Default))
 
 static HWND PluginsLv;
 static PPH_PLUGIN SelectedPlugin;
 static PPH_LIST DisabledPluginInstances; // fake PH_PLUGIN structures for disabled plugins
+static PPH_HASHTABLE DisabledPluginLookup; // list of all disabled plugins (including fake structures) by PH_PLUGIN address
 
 INT_PTR CALLBACK PhpPluginsDlgProc(
     __in HWND hwndDlg,
@@ -156,6 +158,33 @@ VOID PhpRefreshPluginDetails(
     }
 }
 
+BOOLEAN PhpIsPluginLoadedByBaseName(
+    __in PPH_STRINGREF BaseName
+    )
+{
+    PPH_AVL_LINKS links;
+
+    // Extremely inefficient code follows.
+    // TODO: Make this better.
+
+    links = PhMinimumElementAvlTree(&PhPluginsByName);
+
+    while (links)
+    {
+        PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
+        PH_STRINGREF pluginBaseName;
+
+        PhInitializeStringRef(&pluginBaseName, PhpGetPluginBaseName(plugin));
+
+        if (PhEqualStringRef(&pluginBaseName, BaseName, TRUE))
+            return TRUE;
+
+        links = PhSuccessorElementAvlTree(links);
+    }
+
+    return FALSE;
+}
+
 PPH_PLUGIN PhpCreateDisabledPlugin(
     __in PPH_STRINGREF BaseName
     )
@@ -184,8 +213,6 @@ VOID PhpAddDisabledPlugins(
     VOID
     )
 {
-    static PH_STRINGREF disabledString = PH_STRINGREF_INIT(L"(Disabled) ");
-
     PPH_STRING disabled;
     PH_STRINGREF remainingPart;
     PH_STRINGREF part;
@@ -202,16 +229,47 @@ VOID PhpAddDisabledPlugins(
 
         if (part.Length != 0)
         {
-            disabledPlugin = PhpCreateDisabledPlugin(&part);
-            PhAddItemList(DisabledPluginInstances, disabledPlugin);
+            if (!PhpIsPluginLoadedByBaseName(&part))
+            {
+                disabledPlugin = PhpCreateDisabledPlugin(&part);
+                PhAddItemList(DisabledPluginInstances, disabledPlugin);
+                PhAddItemSimpleHashtable(DisabledPluginLookup, disabledPlugin, NULL);
 
-            displayText = PhConcatStringRef2(&disabledString, &part);
-            lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, displayText->Buffer, disabledPlugin);
-            PhDereferenceObject(displayText);
+                displayText = PhCreateStringEx(part.Buffer, part.Length);
+                lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, displayText->Buffer, disabledPlugin);
+                PhDereferenceObject(displayText);
+            }
         }
     }
 
     PhDereferenceObject(disabled);
+}
+
+VOID PhpUpdateDisabledPlugin(
+    __in HWND hwndDlg,
+    __in INT ItemIndex,
+    __in PPH_PLUGIN Plugin,
+    __in BOOLEAN NewDisabledState
+    )
+{
+    if (NewDisabledState)
+    {
+        PhAddItemSimpleHashtable(DisabledPluginLookup, Plugin, NULL);
+    }
+    else
+    {
+        PhRemoveItemSimpleHashtable(DisabledPluginLookup, Plugin);
+    }
+
+    if (!IS_PLUGIN_LOADED(Plugin))
+    {
+        assert(!NewDisabledState);
+        ListView_DeleteItem(PluginsLv, ItemIndex);
+    }
+
+    InvalidateRect(PluginsLv, NULL, TRUE);
+
+    ShowWindow(GetDlgItem(hwndDlg, IDC_INSTRUCTION), SW_SHOW);
 }
 
 static COLORREF PhpPluginColorFunction(
@@ -224,7 +282,7 @@ static COLORREF PhpPluginColorFunction(
 
     if (plugin->Flags & PH_PLUGIN_FLAG_IS_CLR)
         return RGB(0xde, 0xff, 0x00);
-    if (!plugin->FileName)
+    if (PhFindItemSimpleHashtable(DisabledPluginLookup, plugin))
         return RGB(0x77, 0x77, 0x77); // fake disabled plugin
 
     return PhSysWindowColor;
@@ -246,10 +304,13 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
             PluginsLv = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(PluginsLv, FALSE, TRUE);
             PhSetControlTheme(PluginsLv, L"explorer");
-            PhAddListViewColumn(PluginsLv, 0, 0, 0, LVCFMT_LEFT, 200, L"Name");
-            PhAddListViewColumn(PluginsLv, 1, 1, 1, LVCFMT_LEFT, 160, L"Author");
+            PhAddListViewColumn(PluginsLv, 0, 0, 0, LVCFMT_LEFT, 100, L"File");
+            PhAddListViewColumn(PluginsLv, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
+            PhAddListViewColumn(PluginsLv, 2, 2, 2, LVCFMT_LEFT, 100, L"Author");
             PhSetExtendedListView(PluginsLv);
             ExtendedListView_SetItemColorFunction(PluginsLv, PhpPluginColorFunction);
+
+            DisabledPluginLookup = PhCreateSimpleHashtable(10);
 
             links = PhMinimumElementAvlTree(&PhPluginsByName);
 
@@ -257,12 +318,19 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
             {
                 PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
                 INT lvItemIndex;
+                PH_STRINGREF baseNameSr;
 
-                lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT,
-                    plugin->Information.DisplayName ? plugin->Information.DisplayName : plugin->Name, plugin);
+                lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, PhpGetPluginBaseName(plugin), plugin);
+
+                PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Information.DisplayName ? plugin->Information.DisplayName : plugin->Name);
 
                 if (plugin->Information.Author)
-                    PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Information.Author);
+                    PhSetListViewSubItem(PluginsLv, lvItemIndex, 2, plugin->Information.Author);
+
+                PhInitializeStringRef(&baseNameSr, PhpGetPluginBaseName(plugin));
+
+                if (PhIsPluginDisabled(&baseNameSr))
+                    PhAddItemSimpleHashtable(DisabledPluginLookup, plugin, NULL);
 
                 links = PhSuccessorElementAvlTree(links);
             }
@@ -284,6 +352,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 PhpFreeDisabledPlugin(DisabledPluginInstances->Items[i]);
 
             PhDereferenceObject(DisabledPluginInstances);
+            PhDereferenceObject(DisabledPluginLookup);
         }
         break;
     case WM_COMMAND:
@@ -300,10 +369,13 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                     {
                         PWSTR baseName;
                         PH_STRINGREF baseNameRef;
+                        BOOLEAN newDisabledState;
 
                         baseName = PhpGetPluginBaseName(SelectedPlugin);
                         PhInitializeStringRef(&baseNameRef, baseName);
-                        PhSetPluginDisabled(&baseNameRef, !PhIsPluginDisabled(&baseNameRef));
+                        newDisabledState = !PhIsPluginDisabled(&baseNameRef);
+                        PhSetPluginDisabled(&baseNameRef, newDisabledState);
+                        PhpUpdateDisabledPlugin(hwndDlg, PhFindListViewItemByFlags(PluginsLv, -1, LVNI_SELECTED), SelectedPlugin, newDisabledState);
 
                         SetDlgItemText(hwndDlg, IDC_DISABLE, PhpGetPluginDisableButtonText(baseName));
                     }
@@ -311,7 +383,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 break;
             case IDC_OPTIONS:
                 {
-                    if (SelectedPlugin)
+                    if (SelectedPlugin && IS_PLUGIN_LOADED(SelectedPlugin))
                     {
                         PhInvokeCallback(PhGetPluginCallback(SelectedPlugin, PluginCallbackShowOptions), hwndDlg);
                     }
@@ -328,9 +400,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 break;
             case IDC_OPENURL:
                 {
-                    if (SelectedPlugin)
-                    {
-                    }
+                    NOTHING;
                 }
                 break;
             }
@@ -359,7 +429,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 {
                     if (header->hwndFrom == GetDlgItem(hwndDlg, IDC_OPENURL))
                     {
-                        if (SelectedPlugin)
+                        if (SelectedPlugin && IS_PLUGIN_LOADED(SelectedPlugin))
                             PhShellExecute(hwndDlg, SelectedPlugin->Information.Url, NULL);
                     }
                 }
@@ -368,7 +438,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 {
                     if (header->hwndFrom == PluginsLv)
                     {
-                        if (SelectedPlugin)
+                        if (SelectedPlugin && IS_PLUGIN_LOADED(SelectedPlugin))
                         {
                             PhInvokeCallback(PhGetPluginCallback(SelectedPlugin, PluginCallbackShowOptions), hwndDlg);
                         }
