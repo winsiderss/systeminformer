@@ -1,5 +1,9 @@
 Process Hacker
 
+2.26
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.25
  * NEW/IMPROVED:
    * Improved CPU frequency calculation
