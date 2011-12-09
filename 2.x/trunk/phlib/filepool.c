@@ -1480,7 +1480,7 @@ BOOLEAN PhFppRemoveFreeList(
     if (blinkSegmentIndex != -1)
     {
         blinkSegmentHeader = PhFppGetHeaderSegment(Pool, blinkSegmentFirstBlock);
-        blinkSegmentHeader->FreeBlink = flinkSegmentIndex;
+        blinkSegmentHeader->FreeFlink = flinkSegmentIndex;
         PhFppDereferenceSegment(Pool, blinkSegmentIndex);
     }
     else
