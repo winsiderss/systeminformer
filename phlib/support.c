@@ -4647,7 +4647,7 @@ BOOLEAN PhParseCommandLine(
 
             for (; i < length; i++)
             {
-                if (!iswalnum(CommandLine->Buffer[i]))
+                if (!iswalnum(CommandLine->Buffer[i]) && CommandLine->Buffer[i] != '-')
                     break;
             }
 
