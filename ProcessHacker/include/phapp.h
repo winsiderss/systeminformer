@@ -81,6 +81,8 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING CommandValue;
 
     PPH_STRING RunAsServiceMode;
+
+    ULONG SelectPid;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 PHAPPAPI
