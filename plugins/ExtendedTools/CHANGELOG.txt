@@ -1,3 +1,6 @@
+1.10
+ * Improved support for multiple GPUs
+
 1.9
  * Added GPU node selection
  * Fixed incorrect GPU usage calculation
