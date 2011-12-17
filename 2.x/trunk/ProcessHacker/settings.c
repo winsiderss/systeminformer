@@ -155,6 +155,7 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerPairSetting(L"SessionShadowHotkey", L"106,2"); // VK_MULTIPLY,KBDCTRL
+    PhpAddIntegerSetting(L"ShowCommitInSummary", L"0");
     PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");

@@ -2,6 +2,8 @@ Process Hacker
 
 2.26
  * NEW/IMPROVED:
+   * Added option to show Commit Charge in system information
+     summary view
    * Added -selectpid command line option
    * Updated ExtendedTools plugin:
      * Improved support for multiple GPUs

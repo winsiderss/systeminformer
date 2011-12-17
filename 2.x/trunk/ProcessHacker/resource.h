@@ -516,6 +516,7 @@
 #define IDC_EMPTY                       1360
 #define IDC_CHECK2                      1361
 #define IDC_SAMPLECOUNTAUTOMATIC        1361
+#define IDC_SHOWCOMMITINSUMMARY         1361
 #define IDC_ZLISTSTANDBY4_V             1364
 #define IDC_ZLISTSTANDBY5_V             1365
 #define IDC_ZLISTSTANDBY6_V             1366
