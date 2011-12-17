@@ -649,6 +649,24 @@ ULONG EtGetGpuAdapterCount(
     return EtpGpuAdapterList->Count;
 }
 
+ULONG EtGetGpuAdapterIndexFromNodeIndex(
+    __in ULONG NodeIndex
+    )
+{
+    ULONG i;
+    PETP_GPU_ADAPTER gpuAdapter;
+
+    for (i = 0; i < EtpGpuAdapterList->Count; i++)
+    {
+        gpuAdapter = EtpGpuAdapterList->Items[i];
+
+        if (NodeIndex >= gpuAdapter->FirstNodeIndex && NodeIndex < gpuAdapter->FirstNodeIndex + gpuAdapter->NodeCount)
+            return i;
+    }
+
+    return -1;
+}
+
 PPH_STRING EtGetGpuAdapterDescription(
     __in ULONG Index
     )

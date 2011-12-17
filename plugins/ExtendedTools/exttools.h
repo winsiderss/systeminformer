@@ -408,6 +408,10 @@ ULONG EtGetGpuAdapterCount(
     VOID
     );
 
+ULONG EtGetGpuAdapterIndexFromNodeIndex(
+    __in ULONG NodeIndex
+    );
+
 PPH_STRING EtGetGpuAdapterDescription(
     __in ULONG Index
     );
