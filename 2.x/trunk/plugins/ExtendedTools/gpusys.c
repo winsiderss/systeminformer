@@ -691,10 +691,21 @@ PPH_STRING EtpGetGpuNameString(
 {
     PPH_STRING description;
 
-    description = EtGetGpuAdapterDescription(0);
+    if (EtGetGpuAdapterCount() == 1)
+    {
+        description = EtGetGpuAdapterDescription(0);
 
-    if (!description)
+        if (!description)
+            description = PhReferenceEmptyString();
+    }
+    else if (EtGetGpuAdapterCount() > 1)
+    {
+        description = PhCreateString(L"Multiple GPUs");
+    }
+    else
+    {
         description = PhReferenceEmptyString();
+    }
 
     return description;
 }

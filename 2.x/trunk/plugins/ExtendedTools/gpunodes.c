@@ -341,15 +341,35 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                 if (GraphState[i].TooltipIndex != getTooltipText->Index)
                                 {
                                     FLOAT gpu;
+                                    ULONG adapterIndex;
+                                    PPH_STRING adapterDescription;
 
                                     gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], getTooltipText->Index);
+                                    adapterIndex = EtGetGpuAdapterIndexFromNodeIndex(i);
+
+                                    if (adapterIndex != -1)
+                                    {
+                                        adapterDescription = EtGetGpuAdapterDescription(adapterIndex);
+
+                                        if (adapterDescription && adapterDescription->Length == 0)
+                                            PhSwapReference(&adapterDescription, NULL);
+
+                                        if (!adapterDescription)
+                                            adapterDescription = PhFormatString(L"Adapter %u", adapterIndex);
+                                    }
+                                    else
+                                    {
+                                        adapterDescription = PhCreateString(L"Unknown Adapter");
+                                    }
 
                                     PhSwapReference2(&GraphState[i].TooltipText, PhFormatString(
-                                        L"Node %u\n%.2f%%\n%s",
+                                        L"Node %u on %s\n%.2f%%\n%s",
                                         i,
+                                        adapterDescription->Buffer,
                                         gpu * 100,
                                         ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                         ));
+                                    PhDereferenceObject(adapterDescription);
                                 }
 
                                 getTooltipText->Text = GraphState[i].TooltipText->sr;
