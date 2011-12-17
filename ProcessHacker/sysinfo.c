@@ -2849,28 +2849,57 @@ BOOLEAN PhSipMemorySectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0);
-            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhPhysicalHistory.Count);
-
-            if (!Section->GraphState.Valid)
+            if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
-                for (i = 0; i < drawInfo->LineDataCount; i++)
-                {
-                    Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
-                }
+                drawInfo->Flags = PH_GRAPH_USE_GRID;
+                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0);
+                PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCommitHistory.Count);
 
-                if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
+                if (!Section->GraphState.Valid)
                 {
-                    // Scale the data.
-                    PhxfDivideSingle2U(
-                        Section->GraphState.Data1,
-                        (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
-                        drawInfo->LineDataCount
-                        );
-                }
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                    }
 
-                Section->GraphState.Valid = TRUE;
+                    if (PhPerfInformation.CommitLimit != 0)
+                    {
+                        // Scale the data.
+                        PhxfDivideSingle2U(
+                            Section->GraphState.Data1,
+                            (FLOAT)PhPerfInformation.CommitLimit,
+                            drawInfo->LineDataCount
+                            );
+                    }
+
+                    Section->GraphState.Valid = TRUE;
+                }
+            }
+            else
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID;
+                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0);
+                PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhPhysicalHistory.Count);
+
+                if (!Section->GraphState.Valid)
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                    }
+
+                    if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
+                    {
+                        // Scale the data.
+                        PhxfDivideSingle2U(
+                            Section->GraphState.Data1,
+                            (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
+                            drawInfo->LineDataCount
+                            );
+                    }
+
+                    Section->GraphState.Valid = TRUE;
+                }
             }
         }
         return TRUE;
@@ -2879,14 +2908,28 @@ BOOLEAN PhSipMemorySectionCallback(
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
             ULONG usedPages;
 
-            usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
+            if (PhGetIntegerSetting(L"ShowCommitInSummary"))
+            {
+                usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
-                L"Physical Memory: %s\n%s",
-                PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                ));
-            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+                PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                    L"Commit Charge: %s\n%s",
+                    PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                    ));
+                getTooltipText->Text = Section->GraphState.TooltipText->sr;
+            }
+            else
+            {
+                usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
+
+                PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                    L"Physical Memory: %s\n%s",
+                    PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                    ));
+                getTooltipText->Text = Section->GraphState.TooltipText->sr;
+            }
         }
         return TRUE;
     case SysInfoGraphDrawPanel:
@@ -2895,8 +2938,16 @@ BOOLEAN PhSipMemorySectionCallback(
             ULONG totalPages;
             ULONG usedPages;
 
-            totalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
-            usedPages = totalPages - PhPerfInformation.AvailablePages;
+            if (PhGetIntegerSetting(L"ShowCommitInSummary"))
+            {
+                totalPages = PhPerfInformation.CommitLimit;
+                usedPages = PhPerfInformation.CommittedPages;
+            }
+            else
+            {
+                totalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
+                usedPages = totalPages - PhPerfInformation.AvailablePages;
+            }
 
             drawPanel->Title = PhCreateString(L"Memory");
             drawPanel->SubTitle = PhFormatString(
