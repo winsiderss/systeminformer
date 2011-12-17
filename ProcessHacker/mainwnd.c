@@ -51,6 +51,7 @@ BOOLEAN PhMainWndExiting = FALSE;
 HMENU PhMainWndMenuHandle;
 
 static BOOLEAN NeedsMaximize = FALSE;
+static ULONG NeedsSelectPid = 0;
 static BOOLEAN AlwaysOnTop = FALSE;
 
 static BOOLEAN DelayedLoadCompleted = FALSE;
@@ -250,6 +251,8 @@ BOOLEAN PhMainWndInitialization(
             NeedsMaximize = TRUE;
         }
     }
+
+    NeedsSelectPid = PhStartupParameters.SelectPid;
 
     if (PhPluginsEnabled)
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), (PVOID)ShowCommand);
@@ -1955,6 +1958,14 @@ ULONG_PTR PhMwpOnUserMessage(
         {
             if (!PhMainWndExiting)
             {
+                if (WParam != 0)
+                {
+                    PPH_PROCESS_NODE processNode;
+
+                    if (processNode = PhFindProcessNode((HANDLE)WParam))
+                        PhSelectAndEnsureVisibleProcessNode(processNode);
+                }
+
                 if (!IsWindowVisible(PhMainWndHandle))
                 {
                     ShowWindow(PhMainWndHandle, SW_SHOW);
@@ -4187,6 +4198,14 @@ VOID PhMwpOnProcessAdded(
         if (PhCsScrollToNewProcesses)
             ProcessToScrollTo = processNode;
     }
+    else
+    {
+        if (NeedsSelectPid != 0)
+        {
+            if (processNode->ProcessId == UlongToHandle(NeedsSelectPid))
+                ProcessToScrollTo = processNode;
+        }
+    }
 
     // PhCreateProcessNode has its own reference.
     PhDereferenceObject(ProcessItem);
@@ -4252,6 +4271,17 @@ VOID PhMwpOnProcessesUpdated(
     {
         TreeNew_SetRedraw(ProcessTreeListHandle, TRUE);
         ProcessesNeedsRedraw = FALSE;
+    }
+
+    if (NeedsSelectPid != 0)
+    {
+        if (ProcessToScrollTo)
+        {
+            PhSelectAndEnsureVisibleProcessNode(ProcessToScrollTo);
+            ProcessToScrollTo = NULL;
+        }
+
+        NeedsSelectPid = 0;
     }
 
     if (ProcessToScrollTo)
