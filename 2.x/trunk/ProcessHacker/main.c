@@ -349,7 +349,7 @@ VOID PhActivatePreviousInstance(
     {
         ULONG_PTR result;
 
-        SendMessageTimeout(hwnd, WM_PH_ACTIVATE, 0, 0, SMTO_BLOCK, 5000, &result);
+        SendMessageTimeout(hwnd, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_BLOCK, 5000, &result);
 
         if (result == PH_ACTIVATE_REPLY)
         {
@@ -625,6 +625,7 @@ VOID PhpInitializeSettings(
 #define PH_ARG_ELEVATE 21
 #define PH_ARG_SILENT 22
 #define PH_ARG_HELP 23
+#define PH_ARG_SELECTPID 24
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -723,6 +724,10 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_HELP:
             PhStartupParameters.Help = TRUE;
             break;
+        case PH_ARG_SELECTPID:
+            if (PhStringToInteger64(&Value->sr, 0, &integer))
+                PhStartupParameters.SelectPid = (ULONG)integer;
+            break;
         }
     }
     else
@@ -773,7 +778,8 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_NEWINSTANCE, L"newinstance", NoArgumentType },
         { PH_ARG_ELEVATE, L"elevate", NoArgumentType },
         { PH_ARG_SILENT, L"s", NoArgumentType },
-        { PH_ARG_HELP, L"help", NoArgumentType }
+        { PH_ARG_HELP, L"help", NoArgumentType },
+        { PH_ARG_SELECTPID, L"selectpid", MandatoryArgumentType }
     };
     PH_STRINGREF commandLine;
 
