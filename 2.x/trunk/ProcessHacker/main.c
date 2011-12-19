@@ -814,6 +814,7 @@ VOID PhpProcessStartupParameters(
             L"-noplugins\n"
             L"-nosettings\n"
             L"-s\n"
+            L"-selectpid\n"
             L"-settings filename\n"
             L"-uninstallkph\n"
             L"-v\n"
