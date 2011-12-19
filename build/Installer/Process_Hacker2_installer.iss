@@ -257,13 +257,11 @@ end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
-  // Hide the license page
-  if IsUpgrade() and (PageID = wpLicense) then begin
-    Result := True;
-  end
-  else begin
+  // Hide the License and the Ready to install page if it's an upgrade
+  if IsUpgrade() and (PageID = wpLicense) or (PageID = wpReady) then
+    Result := True
+  else
     Result := False;
-  end;
 end;
 
 
@@ -273,9 +271,9 @@ var
   dwStart: DWORD;
 begin
   if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dwStart) then begin
-    if dwStart = 1 then begin
-      Result := True;
-    end else
+    if dwStart = 1 then
+      Result := True
+    else
       Result := False;
   end;
 end;
@@ -297,9 +295,9 @@ end;
 // Check if Process Hacker's settings exist
 function SettingsExistCheck(): Boolean;
 begin
-  if FileExists(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml')) then begin
-    Result := True;
-  end else
+  if FileExists(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml')) then
+    Result := True
+  else
     Result := False;
 end;
 
@@ -318,22 +316,26 @@ begin
 end;
 
 
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if IsUpgrade() and (CurPageID = wpSelectTasks) then
+    WizardForm.NextButton.Caption := SetupMessage(msgButtonInstall);
+end;
+
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   case CurStep of ssInstall:
   begin
-    if IsServiceRunning('KProcessHacker2') then begin
+    if IsServiceRunning('KProcessHacker2') then
       StopService('KProcessHacker2');
-    end;
-
-    if IsTaskSelected('delete_KPH_service') then begin
+    if IsTaskSelected('delete_KPH_service') then
       RemoveService('KProcessHacker2');
-    end;
   end;
 
   ssPostInstall:
   begin
-    if (KPHServiceCheck and not IsTaskSelected('delete_KPH_service') or (IsTaskSelected('create_KPH_service'))) then begin
+    if (KPHServiceCheck() and not IsTaskSelected('delete_KPH_service') or (IsTaskSelected('create_KPH_service'))) then begin
       StopService('KProcessHacker2');
       RemoveService('KProcessHacker2');
       InstallService(ExpandConstant('{app}\kprocesshacker.sys'), 'KProcessHacker2', 'KProcessHacker2', 'KProcessHacker2 driver', SERVICE_KERNEL_DRIVER, SERVICE_SYSTEM_START);
@@ -347,13 +349,13 @@ end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
-  // When uninstalling ask user to delete Process Hacker's settings
-  // based on whether the settings file exists only
   if CurUninstallStep = usUninstall then begin
     StopService('KProcessHacker2');
     RemoveService('KProcessHacker2');
 
-    if SettingsExistCheck then begin
+  // When uninstalling ask user to delete Process Hacker's settings
+  // based on whether the settings file exists only
+    if SettingsExistCheck() then begin
       if SuppressibleMsgBox(CustomMessage('msg_DeleteLogSettings'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then begin
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
       end;

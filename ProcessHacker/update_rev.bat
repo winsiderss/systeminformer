@@ -3,11 +3,12 @@ SETLOCAL
 
 SET "SUBWCREV=SubWCRev.exe"
 
-CD /D %~dp0
+PUSHD %~dp0
 
 "%SUBWCREV%" ".." "include\phapprev_in.h" "include\phapprev.h" -f
 IF %ERRORLEVEL% NEQ 0 GOTO NoSubWCRev
 
+POPD
 ENDLOCAL
 EXIT /B
 
@@ -24,5 +25,6 @@ ECHO #define PHAPP_VERSION_REVISION 0 >> "include\phapprev.h"
 ECHO.>> "include\phapprev.h"
 ECHO #endif // PHAPPREV_H>> "include\phapprev.h"
 
+POPD
 ENDLOCAL
 EXIT /B
