@@ -99,7 +99,7 @@ function OpenServiceManager(): HANDLE;
 begin
   Result := OpenSCManager('','ServicesActive',SC_MANAGER_ALL_ACCESS);
   if Result = 0 then
-    SuppressibleMsgBox(CustomMessage('msg_ServiceManager'), mbError, MB_OK, MB_OK)
+    SuppressibleMsgBox(CustomMessage('msg_ServiceManager'), mbError, MB_OK, MB_OK);
 end;
 
 
@@ -117,9 +117,9 @@ begin
       // Win2K & WinXP supports aditional description text for services
       if Description <> '' then
         RegWriteStringValue(HKLM,'System\CurrentControlSet\Services\' + ServiceName,'Description',Description);
-      CloseServiceHandle(hService)
+      CloseServiceHandle(hService);
     end;
-    CloseServiceHandle(hSCM)
+    CloseServiceHandle(hSCM);
   end;
 end;
 
@@ -135,9 +135,9 @@ begin
     hService := OpenService(hSCM,ServiceName,SERVICE_DELETE);
     if hService <> 0 then begin
       Result := DeleteService(hService);
-      CloseServiceHandle(hService)
+      CloseServiceHandle(hService);
     end;
-    CloseServiceHandle(hSCM)
+    CloseServiceHandle(hSCM);
   end;
 end;
 
@@ -153,9 +153,9 @@ begin
     hService := OpenService(hSCM,ServiceName,SERVICE_START);
     if hService <> 0 then begin
       Result := StartNTService(hService,0,0);
-      CloseServiceHandle(hService)
+      CloseServiceHandle(hService);
     end;
-    CloseServiceHandle(hSCM)
+    CloseServiceHandle(hSCM);
   end;
 end;
 
@@ -172,9 +172,9 @@ begin
     hService := OpenService(hSCM,ServiceName,SERVICE_STOP);
     if hService <> 0 then begin
       Result := ControlService(hService,SERVICE_CONTROL_STOP,Status);
-      CloseServiceHandle(hService)
+      CloseServiceHandle(hService);
     end;
-    CloseServiceHandle(hSCM)
+    CloseServiceHandle(hSCM);
   end;
 end;
 
@@ -191,10 +191,10 @@ begin
     hService := OpenService(hSCM,ServiceName,SERVICE_QUERY_STATUS);
     if hService <> 0 then begin
       if QueryServiceStatus(hService,Status) then begin
-        Result := (Status.dwCurrentState = SERVICE_RUNNING)
+        Result := (Status.dwCurrentState = SERVICE_RUNNING);
       end;
-      CloseServiceHandle(hService)
+      CloseServiceHandle(hService);
       end;
-    CloseServiceHandle(hSCM)
+    CloseServiceHandle(hSCM);
   end;
 end;
