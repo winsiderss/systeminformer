@@ -582,7 +582,7 @@ RtlRbInsertNodeEx(
     __in PRTL_RB_TREE Tree,
     __in_opt PRTL_BALANCED_NODE Parent,
     __in BOOLEAN Right,
-    __in PRTL_BALANCED_NODE Node
+    __out PRTL_BALANCED_NODE Node
     );
 
 // rev
@@ -1903,6 +1903,243 @@ RtlCompareAltitudes(
     );
 #endif
 
+// Prefix
+
+typedef struct _PREFIX_TABLE_ENTRY
+{
+    CSHORT NodeTypeCode;
+    CSHORT NameLength;
+    struct _PREFIX_TABLE_ENTRY *NextPrefixTree;
+    RTL_SPLAY_LINKS Links;
+    PSTRING Prefix;
+} PREFIX_TABLE_ENTRY, *PPREFIX_TABLE_ENTRY;
+
+typedef struct _PREFIX_TABLE
+{
+    CSHORT NodeTypeCode;
+    CSHORT NameLength;
+    PPREFIX_TABLE_ENTRY NextPrefixTree;
+} PREFIX_TABLE, *PPREFIX_TABLE;
+
+NTSYSAPI
+VOID
+NTAPI
+PfxInitialize(
+    __out PPREFIX_TABLE PrefixTable
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+PfxInsertPrefix(
+    __in PPREFIX_TABLE PrefixTable,
+    __in PSTRING Prefix,
+    __out PPREFIX_TABLE_ENTRY PrefixTableEntry
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+PfxRemovePrefix(
+    __in PPREFIX_TABLE PrefixTable,
+    __in PPREFIX_TABLE_ENTRY PrefixTableEntry
+    );
+
+NTSYSAPI
+PPREFIX_TABLE_ENTRY
+NTAPI
+PfxFindPrefix(
+    __in PPREFIX_TABLE PrefixTable,
+    __in PSTRING FullName
+    );
+
+typedef struct _UNICODE_PREFIX_TABLE_ENTRY
+{
+    CSHORT NodeTypeCode;
+    CSHORT NameLength;
+    struct _UNICODE_PREFIX_TABLE_ENTRY *NextPrefixTree;
+    struct _UNICODE_PREFIX_TABLE_ENTRY *CaseMatch;
+    RTL_SPLAY_LINKS Links;
+    PUNICODE_STRING Prefix;
+} UNICODE_PREFIX_TABLE_ENTRY, *PUNICODE_PREFIX_TABLE_ENTRY;
+
+typedef struct _UNICODE_PREFIX_TABLE
+{
+    CSHORT NodeTypeCode;
+    CSHORT NameLength;
+    PUNICODE_PREFIX_TABLE_ENTRY NextPrefixTree;
+    PUNICODE_PREFIX_TABLE_ENTRY LastNextEntry;
+} UNICODE_PREFIX_TABLE, *PUNICODE_PREFIX_TABLE;
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeUnicodePrefix(
+    __out PUNICODE_PREFIX_TABLE PrefixTable
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlInsertUnicodePrefix(
+    __in PUNICODE_PREFIX_TABLE PrefixTable,
+    __in PUNICODE_STRING Prefix,
+    __out PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlRemoveUnicodePrefix(
+    __in PUNICODE_PREFIX_TABLE PrefixTable,
+    __in PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
+    );
+
+NTSYSAPI
+PUNICODE_PREFIX_TABLE_ENTRY
+NTAPI
+RtlFindUnicodePrefix(
+    __in PUNICODE_PREFIX_TABLE PrefixTable,
+    __in PUNICODE_STRING FullName,
+    __in ULONG CaseInsensitiveIndex
+    );
+
+NTSYSAPI
+PUNICODE_PREFIX_TABLE_ENTRY
+NTAPI
+RtlNextUnicodePrefix(
+    __in PUNICODE_PREFIX_TABLE PrefixTable,
+    __in BOOLEAN Restart
+    );
+
+// Compression
+
+typedef struct _COMPRESSED_DATA_INFO
+{
+    USHORT CompressionFormatAndEngine; // COMPRESSION_FORMAT_* and COMPRESSION_ENGINE_*
+
+    UCHAR CompressionUnitShift;
+    UCHAR ChunkShift;
+    UCHAR ClusterShift;
+    UCHAR Reserved;
+
+    USHORT NumberOfChunks;
+
+    ULONG CompressedChunkSizes[1];
+} COMPRESSED_DATA_INFO, *PCOMPRESSED_DATA_INFO;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetCompressionWorkSpaceSize(
+    __in USHORT CompressionFormatAndEngine,
+    __out PULONG CompressBufferWorkSpaceSize,
+    __out PULONG CompressFragmentWorkSpaceSize
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCompressBuffer(
+    __in USHORT CompressionFormatAndEngine,
+    __in_bcount(UncompressedBufferSize) PUCHAR UncompressedBuffer,
+    __in ULONG UncompressedBufferSize,
+    __out_bcount_part(CompressedBufferSize, *FinalCompressedSize) PUCHAR CompressedBuffer,
+    __in ULONG CompressedBufferSize,
+    __in ULONG UncompressedChunkSize,
+    __out PULONG FinalCompressedSize,
+    __in PVOID WorkSpace
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDecompressBuffer(
+    __in USHORT CompressionFormat,
+    __out_bcount_part(UncompressedBufferSize, *FinalUncompressedSize) PUCHAR UncompressedBuffer,
+    __in ULONG UncompressedBufferSize,
+    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
+    __in ULONG CompressedBufferSize,
+    __out PULONG FinalUncompressedSize
+    );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDecompressBufferEx(
+    __in USHORT CompressionFormat,
+    __out_bcount_part(UncompressedBufferSize, *FinalUncompressedSize) PUCHAR UncompressedBuffer,
+    __in ULONG UncompressedBufferSize,
+    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
+    __in ULONG CompressedBufferSize,
+    __out PULONG FinalUncompressedSize,
+    __in PVOID WorkSpace
+    );
+#endif
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDecompressFragment(
+    __in USHORT CompressionFormat,
+    __out_bcount_part(UncompressedFragmentSize, *FinalUncompressedSize) PUCHAR UncompressedFragment,
+    __in ULONG UncompressedFragmentSize,
+    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
+    __in ULONG CompressedBufferSize,
+    __in_range(<, CompressedBufferSize) ULONG FragmentOffset,
+    __out PULONG FinalUncompressedSize,
+    __in PVOID WorkSpace
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDescribeChunk(
+    __in USHORT CompressionFormat,
+    __inout PUCHAR *CompressedBuffer,
+    __in PUCHAR EndOfCompressedBufferPlus1,
+    __out PUCHAR *ChunkBuffer,
+    __out PULONG ChunkSize
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlReserveChunk(
+    __in USHORT CompressionFormat,
+    __inout PUCHAR *CompressedBuffer,
+    __in PUCHAR EndOfCompressedBufferPlus1,
+    __out PUCHAR *ChunkBuffer,
+    __in ULONG ChunkSize
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDecompressChunks(
+    __out_bcount(UncompressedBufferSize) PUCHAR UncompressedBuffer,
+    __in ULONG UncompressedBufferSize,
+    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
+    __in ULONG CompressedBufferSize,
+    __in_bcount(CompressedTailSize) PUCHAR CompressedTail,
+    __in ULONG CompressedTailSize,
+    __in PCOMPRESSED_DATA_INFO CompressedDataInfo
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCompressChunks(
+    __in_bcount(UncompressedBufferSize) PUCHAR UncompressedBuffer,
+    __in ULONG UncompressedBufferSize,
+    __out_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
+    __in_range(>=, (UncompressedBufferSize - (UncompressedBufferSize / 16))) ULONG CompressedBufferSize,
+    __inout_bcount(CompressedDataInfoLength) PCOMPRESSED_DATA_INFO CompressedDataInfo,
+    __in_range(>, sizeof(COMPRESSED_DATA_INFO)) ULONG CompressedDataInfoLength,
+    __in PVOID WorkSpace
+    );
+
 // Locale
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2525,6 +2762,35 @@ RtlImageRvaToVa(
     __in PVOID Base,
     __in ULONG Rva,
     __inout_opt PIMAGE_SECTION_HEADER *LastRvaSection
+    );
+
+// Memory
+
+NTSYSAPI
+SIZE_T
+NTAPI
+RtlCompareMemoryUlong(
+    __in PVOID Source,
+    __in SIZE_T Length,
+    __in ULONG Pattern
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFillMemoryUlong(
+    __out PVOID Destination,
+    __in SIZE_T Length,
+    __in ULONG Pattern
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFillMemoryUlonglong(
+    __out PVOID Destination,
+    __in SIZE_T Length,
+    __in ULONGLONG Pattern
     );
 
 // Environment
