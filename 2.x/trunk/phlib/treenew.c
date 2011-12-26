@@ -6192,11 +6192,11 @@ VOID PhTnpDragSelect(
             // If the cursor is outside of the window, generate some messages
             // so the window keeps scrolling.
 
-            leftOrRight = cursorPoint.x < windowRect.left || cursorPoint.x >= windowRect.right;
-            aboveOrBelow = cursorPoint.y < windowRect.top || cursorPoint.y >= windowRect.bottom;
+            leftOrRight = cursorPoint.x < windowRect.left || cursorPoint.x > windowRect.right;
+            aboveOrBelow = cursorPoint.y < windowRect.top || cursorPoint.y > windowRect.bottom;
 
-            if ((Context->VScrollVisible && aboveOrBelow && PhTnpCanScroll(Context, FALSE, cursorPoint.y >= windowRect.bottom)) ||
-                (Context->HScrollVisible && leftOrRight && PhTnpCanScroll(Context, TRUE, cursorPoint.x >= windowRect.right)))
+            if ((Context->VScrollVisible && aboveOrBelow && PhTnpCanScroll(Context, FALSE, cursorPoint.y > windowRect.bottom)) ||
+                (Context->HScrollVisible && leftOrRight && PhTnpCanScroll(Context, TRUE, cursorPoint.x > windowRect.right)))
             {
                 SetCursorPos(cursorPoint.x, cursorPoint.y);
             }
