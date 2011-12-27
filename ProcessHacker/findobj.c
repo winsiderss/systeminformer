@@ -306,7 +306,13 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         SearchThreadHandle = PhCreateThread(0, PhpFindObjectsThreadStart, NULL);
 
                         if (!SearchThreadHandle)
+                        {
+                            PhDereferenceObject(SearchString);
+                            PhDereferenceObject(SearchResults);
+                            SearchString = NULL;
+                            SearchResults = NULL;
                             break;
+                        }
 
                         SetDlgItemText(hwndDlg, IDOK, L"Cancel");
 
