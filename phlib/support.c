@@ -4202,14 +4202,14 @@ NTSTATUS PhIsExecutablePacked(
     //    (on average fewer than 3 functions are imported
     //    from each module), and
     // 2. It references more than 2 modules but fewer than
-    //    5 modules.
+    //    6 modules.
     //
     // Or:
     //
-    // 1. The function-to-module ratio is lower than 4
-    //    (on average fewer than 4 functions are imported
+    // 1. The function-to-module ratio is lower than 2
+    //    (on average fewer than 2 functions are imported
     //    from each module), and
-    // 2. It references more than 4 modules but fewer than
+    // 2. It references more than 5 modules but fewer than
     //    31 modules.
     //
     // Or:
@@ -4299,6 +4299,7 @@ NTSTATUS PhIsExecutablePacked(
     // Determine if the image is packed.
 
     if (
+        numberOfModules != 0 &&
         (
         // Rule 1
         (numberOfModules < 3 && numberOfFunctions < 5 &&
@@ -4307,7 +4308,7 @@ NTSTATUS PhIsExecutablePacked(
         ((numberOfFunctions / numberOfModules) < 3 &&
         numberOfModules > 2 && numberOfModules < 5) ||
         // Rule 3
-        ((numberOfFunctions / numberOfModules) < 4 &&
+        ((numberOfFunctions / numberOfModules) < 2 &&
         numberOfModules > 4 && numberOfModules < 31) ||
         // Rule 4
         !hasTextSection
