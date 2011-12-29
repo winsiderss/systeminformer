@@ -1,5 +1,9 @@
 Process Hacker
 
+2.27
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.26
  * NEW/IMPROVED:
    * Added option to show Commit Charge in system information

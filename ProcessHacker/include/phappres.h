@@ -10,7 +10,7 @@
 #include "phapprev.h"
 
 #define PHAPP_VERSION_MAJOR 2
-#define PHAPP_VERSION_MINOR 26
+#define PHAPP_VERSION_MINOR 27
 #define PHAPP_VERSION_BUILD 0
 
 #if (PHAPP_VERSION_BUILD == 0)
