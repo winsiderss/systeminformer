@@ -76,6 +76,7 @@ VOID PhSvcDispatchApiCall(
     {
         Message->ReturnStatus = STATUS_INVALID_SYSTEM_SERVICE;
         *ReplyMessage = Message;
+        *ReplyPortHandle = Client->PortHandle;
         return;
     }
 

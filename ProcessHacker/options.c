@@ -888,7 +888,16 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
             {
             case PSN_APPLY:
                 {
-                    PhSetStringSetting2(L"DbgHelpPath", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH)->sr));
+                    PPH_STRING dbgHelpPath;
+                    PPH_STRING existingDbgHelpPath;
+
+                    dbgHelpPath = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH);
+                    existingDbgHelpPath = PHA_DEREFERENCE(PhGetStringSetting(L"DbgHelpPath"));
+
+                    if (!PhEqualString(dbgHelpPath, existingDbgHelpPath, TRUE))
+                        RestartRequired = TRUE;
+
+                    PhSetStringSetting2(L"DbgHelpPath", &dbgHelpPath->sr);
                     PhSetStringSetting2(L"DbgHelpSearchPath", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
                     SetSettingForDlgItemCheck(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
 
