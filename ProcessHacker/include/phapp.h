@@ -83,6 +83,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING RunAsServiceMode;
 
     ULONG SelectPid;
+    ULONG PriorityClass;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 PHAPPAPI
