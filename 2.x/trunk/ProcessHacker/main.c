@@ -197,12 +197,16 @@ INT WINAPI WinMain(
         NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
     }
 
-    // Set priority to High.
+    // Set priority.
     {
         PROCESS_PRIORITY_CLASS priorityClass;
 
         priorityClass.Foreground = FALSE;
         priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
+
+        if (PhStartupParameters.PriorityClass != 0)
+            priorityClass.PriorityClass = (UCHAR)PhStartupParameters.PriorityClass;
+
         NtSetInformationProcess(NtCurrentProcess(), ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
     }
 
@@ -626,6 +630,7 @@ VOID PhpInitializeSettings(
 #define PH_ARG_SILENT 22
 #define PH_ARG_HELP 23
 #define PH_ARG_SELECTPID 24
+#define PH_ARG_PRIORITY 25
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -728,6 +733,16 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             if (PhStringToInteger64(&Value->sr, 0, &integer))
                 PhStartupParameters.SelectPid = (ULONG)integer;
             break;
+        case PH_ARG_PRIORITY:
+            if (PhEqualString2(Value, L"r", TRUE))
+                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_REALTIME;
+            else if (PhEqualString2(Value, L"h", TRUE))
+                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
+            else if (PhEqualString2(Value, L"n", TRUE))
+                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
+            else if (PhEqualString2(Value, L"l", TRUE))
+                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
+            break;
         }
     }
     else
@@ -779,7 +794,8 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_ELEVATE, L"elevate", NoArgumentType },
         { PH_ARG_SILENT, L"s", NoArgumentType },
         { PH_ARG_HELP, L"help", NoArgumentType },
-        { PH_ARG_SELECTPID, L"selectpid", MandatoryArgumentType }
+        { PH_ARG_SELECTPID, L"selectpid", MandatoryArgumentType },
+        { PH_ARG_PRIORITY, L"priority", MandatoryArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -813,8 +829,9 @@ VOID PhpProcessStartupParameters(
             L"-nokph\n"
             L"-noplugins\n"
             L"-nosettings\n"
+            L"-priority r|h|n|l\n"
             L"-s\n"
-            L"-selectpid\n"
+            L"-selectpid pid-to-select\n"
             L"-settings filename\n"
             L"-uninstallkph\n"
             L"-v\n"
