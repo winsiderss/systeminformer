@@ -8,6 +8,7 @@ Process Hacker
    * Updated ExtendedTools plugin:
      * Improved support for multiple GPUs
  * FIXED:
+   * Fixed 100% CPU when starting on some machines
 
 2.25
  * NEW/IMPROVED:

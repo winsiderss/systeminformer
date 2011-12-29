@@ -597,28 +597,32 @@ VOID PhTnpOnPaint(
     HDC hdc;
     PAINTSTRUCT paintStruct;
 
-    if (Context->EnableRedraw <= 0)
-    {
-        HRGN updateRegion;
-
-        updateRegion = CreateRectRgn(0, 0, 0, 0);
-        GetUpdateRgn(hwnd, updateRegion, FALSE);
-
-        if (!Context->SuspendUpdateRegion)
-        {
-            Context->SuspendUpdateRegion = updateRegion;
-        }
-        else
-        {
-            CombineRgn(Context->SuspendUpdateRegion, Context->SuspendUpdateRegion, updateRegion, RGN_OR);
-            DeleteObject(updateRegion);
-        }
-
-        return;
-    }
-
     if (GetUpdateRect(hwnd, &updateRect, FALSE) && (updateRect.left | updateRect.right | updateRect.top | updateRect.bottom))
     {
+        if (Context->EnableRedraw <= 0)
+        {
+            HRGN updateRegion;
+
+            updateRegion = CreateRectRgn(0, 0, 0, 0);
+            GetUpdateRgn(hwnd, updateRegion, FALSE);
+
+            if (!Context->SuspendUpdateRegion)
+            {
+                Context->SuspendUpdateRegion = updateRegion;
+            }
+            else
+            {
+                CombineRgn(Context->SuspendUpdateRegion, Context->SuspendUpdateRegion, updateRegion, RGN_OR);
+                DeleteObject(updateRegion);
+            }
+
+            // Pretend we painted something; this ensures the update region is validated properly.
+            if (BeginPaint(hwnd, &paintStruct))
+                EndPaint(hwnd, &paintStruct);
+
+            return;
+        }
+
         if (Context->DoubleBuffered)
         {
             if (!Context->BufferedContext)
