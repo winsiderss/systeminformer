@@ -20,11 +20,11 @@
 ;
 ;
 ; Requirements:
-; *Inno Setup v5.4.2(+): http://www.jrsoftware.org/isdl.php
+; *Inno Setup: http://www.jrsoftware.org/isdl.php
 
 
-#if VER < 0x05040200
-  #error Update your Inno Setup version
+#if VER < EncodeVer(5,4,3)
+  #error Update your Inno Setup version (5.4.3 or newer)
 #endif
 
 #define ISPP_IS_BUGGY
@@ -34,7 +34,7 @@
 #include "Custom_Messages.iss"
 #include "Services.iss"
 
-#define installer_build_number "11"
+#define installer_build_number "12"
 #define copyright              "Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
@@ -242,7 +242,6 @@ Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsi
 
 
 [Code]
-// Global variables and constants
 const installer_mutex_name = 'process_hacker2_setup_mutex';
 
 
