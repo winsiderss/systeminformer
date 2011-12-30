@@ -138,7 +138,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION
     ProcessPagePriority, // q: ULONG
     ProcessInstrumentationCallback, // 40
-    ProcessThreadStackAllocation, // qs: PROCESS_STACK_ALLOCATION_INFORMATION
+    ProcessThreadStackAllocation, // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
     ProcessWorkingSetWatchEx, // q: PROCESS_WS_WATCH_INFORMATION_EX[]
     ProcessImageFileNameWin32, // q: UNICODE_STRING
     ProcessImageFileMapping, // q: HANDLE (input)
@@ -416,6 +416,16 @@ typedef struct _PROCESS_STACK_ALLOCATION_INFORMATION
     SIZE_T ZeroBits;
     PVOID StackBase;
 } PROCESS_STACK_ALLOCATION_INFORMATION, *PPROCESS_STACK_ALLOCATION_INFORMATION;
+
+// private
+typedef struct _PROCESS_STACK_ALLOCATION_INFORMATION_EX
+{
+    ULONG PreferredNode;
+    ULONG Reserved0;
+    ULONG Reserved1;
+    ULONG Reserved2;
+    PROCESS_STACK_ALLOCATION_INFORMATION AllocInfo;
+} PROCESS_STACK_ALLOCATION_INFORMATION_EX, *PPROCESS_STACK_ALLOCATION_INFORMATION_EX;
 
 // private
 typedef union _PROCESS_AFFINITY_UPDATE_MODE
