@@ -958,7 +958,7 @@ BOOLEAN PhpUiTerminateTreeProcess(
         Process->ProcessId
         )))
     {
-        status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+        status = PhTerminateProcess(processHandle, 1);
         NtClose(processHandle);
     }
 
@@ -1258,7 +1258,7 @@ BOOLEAN PhUiRestartProcess(
 
     if (!NT_SUCCESS(status = PhTerminateProcess(
         processHandle,
-        STATUS_SUCCESS
+        1
         )))
         goto ErrorExit;
 
