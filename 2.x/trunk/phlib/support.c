@@ -20,7 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _PH_SUPPORT_PRIVATE
 #include <phgui.h>
 #include <guisupp.h>
 #include <winsta.h>
@@ -50,6 +49,7 @@ typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
     );
 
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
+DECLSPEC_SELECTANY ULONG PhMinSizeUnit = 0;
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = MAXULONG32;
 
 /**
@@ -1436,8 +1436,9 @@ PPH_STRING PhFormatSize(
 
     // PhFormat handles this better than the old method.
 
-    format.Type = SizeFormatType | FormatUseRadix;
+    format.Type = SizeFormatType | FormatUseRadix | FormatUseParameter;
     format.Radix = (UCHAR)(MaxSizeUnit != -1 ? MaxSizeUnit : PhMaxSizeUnit);
+    format.Parameter = (UCHAR)PhMinSizeUnit;
     format.u.Size = Size;
 
     return PhFormat(&format, 1, 0);

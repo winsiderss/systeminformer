@@ -2966,8 +2966,8 @@ typedef enum _PH_FORMAT_TYPE
     FormatUsePad = 0x80,
     /** If not specified, 10 is assumed */
     FormatUseRadix = 0x100,
-    /** Reserved */
-    FormatUseReserved = 0x200,
+    /** If not specified, the default value is assumed */
+    FormatUseParameter = 0x200,
 
     // Floating-point flags
     /** Use standard form instead of normal form */
@@ -3019,7 +3019,9 @@ typedef struct _PH_FORMAT
      * types, this field specifies the base to convert the number into.
      * For \a Size, this field specifies the maximum size unit. */
     UCHAR Radix;
-    UCHAR Reserved;
+    /** The meaning of this field depends on the element type. For \a Size,
+     * this field specifies the minimum size unit. */
+    UCHAR Parameter;
     union
     {
         WCHAR Char;

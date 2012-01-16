@@ -1333,9 +1333,7 @@ NTSTATUS PhGetMappedArchiveImportEntry(
 
 // iosup
 
-#ifndef _PH_IOSUP_PRIVATE
 extern PPH_OBJECT_TYPE PhFileStreamType;
-#endif
 
 BOOLEAN PhIoSupportInitialization(
     VOID
@@ -1592,7 +1590,7 @@ VERIFY_RESULT PhVerifyFile(
 
 // provider
 
-#if !defined(_PH_PROVIDER_PRIVATE) && defined(DEBUG)
+#if defined(DEBUG)
 extern LIST_ENTRY PhDbgProviderListHead;
 extern PH_QUEUED_LOCK PhDbgProviderListLock;
 #endif
@@ -1702,9 +1700,7 @@ VOID PhSetEnabledProvider(
 
 // symprv
 
-#ifndef _PH_SYMPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
-#endif
 
 //#define PH_SYMBOL_PROVIDER_DELAY_INIT
 
@@ -1813,11 +1809,9 @@ VOID PhSetSearchPathSymbolProvider(
 
 // svcsup
 
-#ifndef _PH_SVCSUP_PRIVATE
 extern WCHAR *PhServiceTypeStrings[6];
 extern WCHAR *PhServiceStartTypeStrings[5];
 extern WCHAR *PhServiceErrorControlStrings[4];
-#endif
 
 PHLIBAPI
 PVOID PhEnumServices(
@@ -1911,10 +1905,9 @@ NTSTATUS PhGetThreadServiceTag(
 
 // support
 
-#ifndef _PH_SUPPORT_PRIVATE
 extern WCHAR *PhSizeUnitNames[7];
+extern ULONG PhMinSizeUnit;
 extern ULONG PhMaxSizeUnit;
-#endif
 
 typedef struct _PH_INTEGER_PAIR
 {

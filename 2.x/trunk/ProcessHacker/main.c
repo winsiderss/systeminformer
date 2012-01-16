@@ -592,6 +592,7 @@ VOID PhpInitializeSettings(
 
     // Apply basic global settings.
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
+    PhMinSizeUnit = PhGetIntegerSetting(L"MinSizeUnit");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {

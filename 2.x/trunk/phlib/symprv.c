@@ -20,7 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _PH_SYMPRV_PRIVATE
 #include <ph.h>
 #include <symprv.h>
 
