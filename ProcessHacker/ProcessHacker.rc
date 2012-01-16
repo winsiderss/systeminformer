@@ -584,10 +584,10 @@ CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,213,174,50,14
-    ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,21,20
+    ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,20,20
     LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,192,8
     LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,193,8
-    LTEXT           "Copyright (c) 2008-2011 wj32",IDC_STATIC,15,40,97,8
+    LTEXT           "Copyright (c) 2008-2012 wj32",IDC_STATIC,15,40,97,8
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,174,50,14
     CONTROL         "<a href=""http://sourceforge.net/projects/processhacker"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
                     "SysLink",WS_TABSTOP,7,177,130,11
