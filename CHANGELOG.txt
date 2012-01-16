@@ -2,7 +2,6 @@ Process Hacker
 
 2.27
  * NEW/IMPROVED:
-   * Added minimum size unit option
    * Updated OnlineChecks plugin:
      * 2012-01-16: Updated VirusTotal uploader and added hash checking
  * FIXED:
