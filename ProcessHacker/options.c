@@ -393,24 +393,31 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND comboBoxHandle;
+            HWND maxSizeUnitHandle;
+            HWND minSizeUnitHandle;
             ULONG i;
             LOGFONT font;
 
             PhpPageInit(hwndDlg);
 
-            comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
+            maxSizeUnitHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
+            minSizeUnitHandle = GetDlgItem(hwndDlg, IDC_MINSIZEUNIT);
 
             for (i = 0; i < sizeof(PhSizeUnitNames) / sizeof(PWSTR); i++)
-                ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
+            {
+                ComboBox_AddString(maxSizeUnitHandle, PhSizeUnitNames[i]);
+                ComboBox_AddString(minSizeUnitHandle, PhSizeUnitNames[i]);
+            }
 
             SetDlgItemText(hwndDlg, IDC_SEARCHENGINE, PHA_GET_STRING_SETTING(L"SearchEngine")->Buffer);
             SetDlgItemText(hwndDlg, IDC_PEVIEWER, PHA_GET_STRING_SETTING(L"ProgramInspectExecutables")->Buffer);
 
-            if (PhMaxSizeUnit != -1)
-                ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
+            if (PhMaxSizeUnit < sizeof(PhSizeUnitNames) / sizeof(PWSTR))
+                ComboBox_SetCurSel(maxSizeUnitHandle, PhMaxSizeUnit);
             else
-                ComboBox_SetCurSel(comboBoxHandle, sizeof(PhSizeUnitNames) / sizeof(PWSTR) - 1);
+                ComboBox_SetCurSel(maxSizeUnitHandle, sizeof(PhSizeUnitNames) / sizeof(PWSTR) - 1);
+
+            ComboBox_SetCurSel(minSizeUnitHandle, PhMinSizeUnit);
 
             SetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, PhGetIntegerSetting(L"IconProcesses"), FALSE);
 
@@ -444,6 +451,22 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         {
             switch (LOWORD(wParam))
             {
+            case IDC_MAXSIZEUNIT:
+            case IDC_MINSIZEUNIT:
+                {
+                    if (HIWORD(wParam) == CBN_SELCHANGE)
+                    {
+                        INT maxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT));
+                        INT minSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MINSIZEUNIT));
+
+                        if (minSizeUnit > maxSizeUnit)
+                        {
+                            ComboBox_SetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT), minSizeUnit);
+                            ComboBox_SetCurSel(GetDlgItem(hwndDlg, IDC_MINSIZEUNIT), maxSizeUnit);
+                        }
+                    }
+                }
+                break;
             case IDC_FONT:
                 {
                     LOGFONT font;
@@ -491,6 +514,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     PhSetStringSetting2(L"SearchEngine", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SEARCHENGINE)->sr));
                     PhSetStringSetting2(L"ProgramInspectExecutables", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PEVIEWER)->sr));
                     PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
+                    PhSetIntegerSetting(L"MinSizeUnit", PhMinSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MINSIZEUNIT)));
                     PhSetIntegerSetting(L"IconProcesses", GetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, NULL, FALSE));
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEONCLOSE, L"HideOnClose");
