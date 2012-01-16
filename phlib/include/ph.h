@@ -1906,7 +1906,6 @@ NTSTATUS PhGetThreadServiceTag(
 // support
 
 extern WCHAR *PhSizeUnitNames[7];
-extern ULONG PhMinSizeUnit;
 extern ULONG PhMaxSizeUnit;
 
 typedef struct _PH_INTEGER_PAIR

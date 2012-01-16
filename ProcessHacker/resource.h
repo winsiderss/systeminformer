@@ -319,8 +319,6 @@
 #define IDC_HIDEONMINIMIZE              1147
 #define IDC_STARTHIDDEN                 1148
 #define IDC_ENABLEKERNELMODEDRIVER      1149
-#define IDC_MAXSIZEUNIT2                1149
-#define IDC_MINSIZEUNIT                 1149
 #define IDC_PEVIEWER                    1151
 #define IDC_HIGHLIGHTINGDURATIONSPIN    1154
 #define IDC_HIGHLIGHTINGDURATION        1155
