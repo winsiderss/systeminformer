@@ -2,7 +2,7 @@
  * Process Hacker Online Checks -
  *   uploader
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -23,7 +23,11 @@
 #include <phdk.h>
 #include <wininet.h>
 #include "onlnchk.h"
+#include "sha256.h"
 #include "resource.h"
+
+#define HASH_SHA1 1
+#define HASH_SHA256 2
 
 #define UM_LAUNCH_COMMAND (WM_APP + 1)
 #define UM_ERROR (WM_APP + 2)
@@ -35,6 +39,7 @@ typedef struct _UPLOAD_CONTEXT
     PPH_STRING FileName;
     ULONG Service;
     HWND WindowHandle;
+    PH_QUEUED_LOCK Lock;
     HANDLE ThreadHandle;
 
     PPH_STRING LaunchCommand;
@@ -45,6 +50,8 @@ typedef struct _SERVICE_INFO
 {
     ULONG Id;
     PWSTR HostName;
+    ULONG HostPort;
+    ULONG HostFlags;
     PWSTR UploadObjectName;
     PSTR FileNameFieldName;
 } SERVICE_INFO, *PSERVICE_INFO;
@@ -58,9 +65,9 @@ INT_PTR CALLBACK UploadDlgProc(
 
 SERVICE_INFO UploadServiceInfo[] =
 {
-    { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", L"/file-upload/file_upload", "file" },
-    { UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", L"/processupload.php", "scanfile" },
-    { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", L"/cgi-bin/submit", "file" }
+    { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, INTERNET_FLAG_SECURE, L"???", "file" },
+    { UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTP_PORT, 0, L"/processupload.php", "scanfile" },
+    { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", "file" }
 };
 
 PUPLOAD_CONTEXT CreateUploadContext(
@@ -144,8 +151,24 @@ static VOID RaiseUploadError(
 
     PhSwapReference(&errorMessage, NULL);
 
+    PhAcquireQueuedLockExclusive(&Context->Lock);
+
     if (Context->WindowHandle)
         PostMessage(Context->WindowHandle, UM_ERROR, 0, 0);
+
+    PhReleaseQueuedLockExclusive(&Context->Lock);
+}
+
+static VOID SendLaunchCommand(
+    __in PUPLOAD_CONTEXT Context
+    )
+{
+    PhAcquireQueuedLockExclusive(&Context->Lock);
+
+    if (Context->WindowHandle)
+        PostMessage(Context->WindowHandle, UM_LAUNCH_COMMAND, 0, 0);
+
+    PhReleaseQueuedLockExclusive(&Context->Lock);
 }
 
 static PSERVICE_INFO GetUploadServiceInfo(
@@ -163,6 +186,202 @@ static PSERVICE_INFO GetUploadServiceInfo(
     return NULL;
 }
 
+static BOOLEAN PerformSubRequest(
+    __in PUPLOAD_CONTEXT Context,
+    __in PWSTR HostName,
+    __in PWSTR ObjectName,
+    __out_bcount(BufferLength) PVOID Buffer,
+    __in ULONG BufferLength,
+    __out PULONG ReturnLength
+    )
+{
+    BOOLEAN result = FALSE;
+    PPH_STRING userAgent;
+    HINTERNET internetHandle = NULL;
+    HINTERNET connectHandle = NULL;
+    HINTERNET requestHandle = NULL;
+
+    // Create a user agent string.
+    {
+        PPH_STRING phVersion;
+
+        phVersion = PhGetPhVersion();
+        userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer);
+        PhDereferenceObject(phVersion);
+    }
+
+    // Create the internet handle.
+
+    internetHandle = InternetOpen(userAgent->Buffer, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    PhDereferenceObject(userAgent);
+
+    if (!internetHandle)
+    {
+        RaiseUploadError(Context, L"Unable to initialize internet access", GetLastError());
+        goto ExitCleanup;
+    }
+
+    // Set the timeouts.
+    {
+        ULONG timeout = 5 * 60 * 1000; // 5 minutes
+
+        InternetSetOption(internetHandle, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(ULONG));
+        InternetSetOption(internetHandle, INTERNET_OPTION_SEND_TIMEOUT, &timeout, sizeof(ULONG));
+        InternetSetOption(internetHandle, INTERNET_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
+        InternetSetOption(internetHandle, INTERNET_OPTION_DATA_SEND_TIMEOUT, &timeout, sizeof(ULONG));
+        InternetSetOption(internetHandle, INTERNET_OPTION_DATA_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
+    }
+
+    // Connect to the online service.
+
+    connectHandle = InternetConnect(
+        internetHandle,
+        HostName,
+        80,
+        NULL,
+        NULL,
+        INTERNET_SERVICE_HTTP,
+        0,
+        0
+        );
+
+    if (!connectHandle)
+    {
+        RaiseUploadError(Context, L"Unable to connect to the service", GetLastError());
+        goto ExitCleanup;
+    }
+
+    // Create the request.
+
+    {
+        static PWSTR acceptTypes[2] = { L"*/*", NULL };
+
+        requestHandle = HttpOpenRequest(
+            connectHandle,
+            L"GET",
+            ObjectName,
+            L"HTTP/1.1",
+            L"",
+            acceptTypes,
+            INTERNET_FLAG_RELOAD,
+            0
+            );
+    }
+
+    if (!requestHandle)
+    {
+        RaiseUploadError(Context, L"Unable to create the request", GetLastError());
+        goto ExitCleanup;
+    }
+
+    // Send the request.
+
+    if (!HttpSendRequest(requestHandle, NULL, 0, NULL, 0))
+    {
+        RaiseUploadError(Context, L"Unable to send the request", GetLastError());
+        goto ExitCleanup;
+    }
+
+    // Handle service-specific actions.
+
+    if (!InternetReadFile(requestHandle, Buffer, BufferLength, ReturnLength))
+    {
+        RaiseUploadError(Context, L"Unable to complete the request", GetLastError());
+        goto ExitCleanup;
+    }
+
+    result = TRUE;
+
+ExitCleanup:
+    if (requestHandle)
+        InternetCloseHandle(requestHandle);
+    if (connectHandle)
+        InternetCloseHandle(connectHandle);
+    if (internetHandle)
+        InternetCloseHandle(internetHandle);
+
+    return result;
+}
+
+static NTSTATUS HashFileAndResetPosition(
+    __in HANDLE FileHandle,
+    __in PLARGE_INTEGER FileSize,
+    __in ULONG Algorithm,
+    __out PVOID Hash
+    )
+{
+    NTSTATUS status;
+    UCHAR buffer[PAGE_SIZE * 4];
+    IO_STATUS_BLOCK iosb;
+    PH_HASH_CONTEXT hashContext;
+    sha256_context sha256;
+    ULONG64 bytesRemaining;
+    FILE_POSITION_INFORMATION positionInfo;
+
+    bytesRemaining = FileSize->QuadPart;
+
+    switch (Algorithm)
+    {
+    case HASH_SHA1:
+        PhInitializeHash(&hashContext, Sha1HashAlgorithm);
+        break;
+    case HASH_SHA256:
+        sha256_starts(&sha256);
+        break;
+    }
+
+    while (bytesRemaining)
+    {
+        status = NtReadFile(
+            FileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &iosb,
+            buffer,
+            sizeof(buffer),
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        switch (Algorithm)
+        {
+        case HASH_SHA1:
+            PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
+            break;
+        case HASH_SHA256:
+            sha256_update(&sha256, (PUCHAR)buffer, (ULONG)iosb.Information);
+            break;
+        }
+
+        bytesRemaining -= (ULONG)iosb.Information;
+    }
+
+    if (status == STATUS_END_OF_FILE)
+        status = STATUS_SUCCESS;
+
+    if (NT_SUCCESS(status))
+    {
+        switch (Algorithm)
+        {
+        case HASH_SHA1:
+            PhFinalHash(&hashContext, Hash, 20, NULL);
+            break;
+        case HASH_SHA256:
+            sha256_finish(&sha256, Hash);
+            break;
+        }
+
+        positionInfo.CurrentByteOffset.QuadPart = 0;
+        status = NtSetInformationFile(FileHandle, &iosb, &positionInfo, sizeof(FILE_POSITION_INFORMATION), FilePositionInformation);
+    }
+
+    return status;
+}
+
 static NTSTATUS UploadWorkerThreadStart(
     __in PVOID Parameter
     )
@@ -172,17 +391,21 @@ static NTSTATUS UploadWorkerThreadStart(
     PSERVICE_INFO serviceInfo;
     PPH_STRING userAgent;
     HANDLE fileHandle = NULL;
+    LARGE_INTEGER fileSize64;
     ULONG fileSize;
+    PPH_STRING objectName = NULL;
     HINTERNET internetHandle = NULL;
     HINTERNET connectHandle = NULL;
     HINTERNET requestHandle = NULL;
     PPH_STRING boundary = NULL;
     PPH_ANSI_STRING boundaryAnsi = NULL;
     PH_STRING_BUILDER headers = { 0 };
-    PPH_ANSI_STRING baseFileNameAnsi;
+    PPH_ANSI_STRING baseFileNameAnsi = NULL;
     PUCHAR data = NULL;
     ULONG dataLength = 0;
     ULONG dataCursor = 0;
+    UCHAR buffer[PAGE_SIZE];
+    ULONG bufferSize;
 
     serviceInfo = GetUploadServiceInfo(context->Service);
 
@@ -206,8 +429,6 @@ static NTSTATUS UploadWorkerThreadStart(
 
     if (NT_SUCCESS(status))
     {
-        LARGE_INTEGER fileSize64;
-
         if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
         {
             if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
@@ -224,6 +445,124 @@ static NTSTATUS UploadWorkerThreadStart(
     {
         RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
         goto ExitCleanup;
+    }
+
+    switch (context->Service)
+    {
+    case UPLOAD_SERVICE_VIRUSTOTAL:
+        {
+            UCHAR hash[32];
+            PPH_STRING hashString;
+            PPH_STRING subObjectName;
+            PSTR uploadUrl;
+            PSTR quote;
+
+            status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA256, hash);
+
+            if (!NT_SUCCESS(status))
+            {
+                RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+                goto ExitCleanup;
+            }
+
+            hashString = PhBufferToHexString(hash, 32);
+            subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
+
+            if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, buffer, sizeof(buffer) - 1, &bufferSize))
+            {
+                PhDereferenceObject(hashString);
+                PhDereferenceObject(subObjectName);
+                goto ExitCleanup;
+            }
+
+            PhDereferenceObject(subObjectName);
+
+            buffer[bufferSize] = 0;
+
+            if (strstr(buffer, "\"file_exists\": true"))
+            {
+                // No upload needed; show the results immediately.
+                context->LaunchCommand = PhFormatString(L"http://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
+                PhDereferenceObject(hashString);
+                SendLaunchCommand(context);
+                goto ExitCleanup;
+            }
+
+            PhDereferenceObject(hashString);
+
+            uploadUrl = strstr(buffer, "\"upload_url\": \"https://www.virustotal.com");
+
+            if (!uploadUrl)
+            {
+                RaiseUploadError(context, L"Unable to complete the request (no upload URL provided)", 0);
+                goto ExitCleanup;
+            }
+
+            uploadUrl += 41;
+            quote = strchr(uploadUrl, '"');
+
+            if (!quote)
+            {
+                RaiseUploadError(context, L"Unable to complete the request (invalid upload URL)", 0);
+                goto ExitCleanup;
+            }
+
+            objectName = PhCreateStringFromAnsiEx(uploadUrl, quote - uploadUrl);
+        }
+        break;
+    case UPLOAD_SERVICE_JOTTI:
+        {
+            UCHAR hash[20];
+            PPH_STRING hashString;
+            PPH_STRING subObjectName;
+            PSTR id;
+            PSTR quote;
+
+            status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA1, hash);
+
+            if (!NT_SUCCESS(status))
+            {
+                RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+                goto ExitCleanup;
+            }
+
+            hashString = PhBufferToHexString(hash, 20);
+            subObjectName = PhConcatStrings2(L"/nestor/getfileforhash.php?hash=", hashString->Buffer);
+
+            if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, buffer, sizeof(buffer) - 1, &bufferSize))
+            {
+                PhDereferenceObject(hashString);
+                PhDereferenceObject(subObjectName);
+                goto ExitCleanup;
+            }
+
+            PhDereferenceObject(hashString);
+            PhDereferenceObject(subObjectName);
+
+            buffer[bufferSize] = 0;
+
+            if (id = strstr(buffer, "\"id\":"))
+            {
+                id += 6;
+                quote = strchr(id, '"');
+
+                if (quote)
+                {
+                    // No upload needed; show the results immediately.
+                    context->LaunchCommand = PhFormatString(L"http://virusscan.jotti.org/en/scanresult/%.*S", quote - id, id);
+                    SendLaunchCommand(context);
+                    goto ExitCleanup;
+                }
+            }
+
+            objectName = PhCreateString(serviceInfo->UploadObjectName);
+        }
+        break;
+    default:
+        {
+            objectName = PhCreateString(serviceInfo->UploadObjectName);
+        }
+        break;
     }
 
     // Create a user agent string.
@@ -262,7 +601,7 @@ static NTSTATUS UploadWorkerThreadStart(
     connectHandle = InternetConnect(
         internetHandle,
         serviceInfo->HostName,
-        80,
+        serviceInfo->HostPort,
         NULL,
         NULL,
         INTERNET_SERVICE_HTTP,
@@ -284,11 +623,11 @@ static NTSTATUS UploadWorkerThreadStart(
         requestHandle = HttpOpenRequest(
             connectHandle,
             L"POST",
-            serviceInfo->UploadObjectName,
+            objectName->Buffer,
             L"HTTP/1.1",
             L"",
             acceptTypes,
-            INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_AUTO_REDIRECT,
+            INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_AUTO_REDIRECT | serviceInfo->HostFlags,
             0
             );
     }
@@ -426,8 +765,6 @@ static NTSTATUS UploadWorkerThreadStart(
     // Handle service-specific actions.
 
     {
-        UCHAR buffer[PAGE_SIZE];
-        ULONG bufferSize;
         ULONG index;
 
         bufferSize = sizeof(buffer);
@@ -475,7 +812,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 if (hrefEquals)
                 {
                     hrefEquals += 6;
-                    quote = strchr(hrefEquals, '\"');
+                    quote = strchr(hrefEquals, '"');
 
                     if (quote)
                     {
@@ -535,7 +872,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 if (urlEquals)
                 {
                     urlEquals += 4;
-                    quote = strchr(urlEquals, '\"');
+                    quote = strchr(urlEquals, '"');
 
                     if (quote)
                     {
@@ -562,7 +899,7 @@ static NTSTATUS UploadWorkerThreadStart(
             break;
         }
 
-        PostMessage(context->WindowHandle, UM_LAUNCH_COMMAND, 0, 0);
+        SendLaunchCommand(context);
     }
 
 ExitCleanup:
@@ -582,6 +919,8 @@ ExitCleanup:
         InternetCloseHandle(connectHandle);
     if (internetHandle)
         InternetCloseHandle(internetHandle);
+    if (objectName)
+        PhDereferenceObject(objectName);
     if (fileHandle)
         NtClose(fileHandle);
 
@@ -630,7 +969,9 @@ INT_PTR CALLBACK UploadDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhAcquireQueuedLockExclusive(&context->Lock);
             context->WindowHandle = NULL;
+            PhReleaseQueuedLockExclusive(&context->Lock);
         }
         break;
     case WM_COMMAND:
