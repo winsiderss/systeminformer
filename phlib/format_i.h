@@ -472,6 +472,7 @@ CommonInt64Format:
         case SizeFormatType:
             {
                 ULONG i = 0;
+                ULONG minSizeUnit;
                 ULONG maxSizeUnit;
                 DOUBLE s;
                 PH_FORMAT doubleFormat;
@@ -487,16 +488,22 @@ CommonInt64Format:
                     goto ContinueLoop;
                 }
 
+                if (format->Type & FormatUseParameter)
+                    minSizeUnit = format->Parameter;
+                else
+                    minSizeUnit = PhMinSizeUnit;
+
                 if (format->Type & FormatUseRadix)
                     maxSizeUnit = format->Radix;
                 else
                     maxSizeUnit = PhMaxSizeUnit;
 
-                while (
-                    s >= 1024 &&
-                    i < sizeof(PhpSizeUnitNamesCounted) / sizeof(PH_STRINGREF) &&
-                    i < maxSizeUnit
-                    )
+                if (minSizeUnit >= sizeof(PhpSizeUnitNamesCounted) / sizeof(PH_STRINGREF))
+                    minSizeUnit = sizeof(PhpSizeUnitNamesCounted) / sizeof(PH_STRINGREF);
+                if (maxSizeUnit >= sizeof(PhpSizeUnitNamesCounted) / sizeof(PH_STRINGREF))
+                    maxSizeUnit = sizeof(PhpSizeUnitNamesCounted) / sizeof(PH_STRINGREF);
+
+                while (i < minSizeUnit || (s >= 1024 && i < maxSizeUnit))
                 {
                     s /= 1024;
                     i++;

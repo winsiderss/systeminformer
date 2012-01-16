@@ -35,6 +35,7 @@
 #include <phbase.h>
 #include <locale.h>
 
+extern ULONG PhMinSizeUnit;
 extern ULONG PhMaxSizeUnit;
 
 #define SMALL_BUFFER_LENGTH (PHOBJ_SMALL_OBJECT_SIZE - FIELD_OFFSET(PH_STRING, Data) - sizeof(WCHAR))
