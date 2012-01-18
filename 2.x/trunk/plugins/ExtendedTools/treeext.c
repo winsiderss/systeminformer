@@ -327,64 +327,64 @@ LONG EtpProcessTreeNewSortFunction(
     switch (SubId)
     {
     case ETPRTNC_DISKREADS:
-        result = uintcmp(block1->DiskReadCount, block2->DiskReadCount);
+        result = uint64cmp(block1->DiskReadCount, block2->DiskReadCount);
         break;
     case ETPRTNC_DISKWRITES:
-        result = uintcmp(block1->DiskWriteCount, block2->DiskWriteCount);
+        result = uint64cmp(block1->DiskWriteCount, block2->DiskWriteCount);
         break;
     case ETPRTNC_DISKREADBYTES:
-        result = uintcmp(block1->DiskReadRaw, block2->DiskReadRaw);
+        result = uint64cmp(block1->DiskReadRaw, block2->DiskReadRaw);
         break;
     case ETPRTNC_DISKWRITEBYTES:
-        result = uintcmp(block1->DiskWriteRaw, block2->DiskWriteRaw);
+        result = uint64cmp(block1->DiskWriteRaw, block2->DiskWriteRaw);
         break;
     case ETPRTNC_DISKTOTALBYTES:
-        result = uintcmp(block1->DiskReadRaw + block1->DiskWriteRaw, block2->DiskReadRaw + block2->DiskWriteRaw);
+        result = uint64cmp(block1->DiskReadRaw + block1->DiskWriteRaw, block2->DiskReadRaw + block2->DiskWriteRaw);
         break;
     case ETPRTNC_DISKREADSDELTA:
-        result = uintcmp(block1->DiskReadDelta.Delta, block2->DiskReadDelta.Delta);
+        result = uint64cmp(block1->DiskReadDelta.Delta, block2->DiskReadDelta.Delta);
         break;
     case ETPRTNC_DISKWRITESDELTA:
-        result = uintcmp(block1->DiskWriteDelta.Delta, block2->DiskWriteDelta.Delta);
+        result = uint64cmp(block1->DiskWriteDelta.Delta, block2->DiskWriteDelta.Delta);
         break;
     case ETPRTNC_DISKREADBYTESDELTA:
-        result = uintcmp(block1->DiskReadRawDelta.Delta, block2->DiskReadRawDelta.Delta);
+        result = uint64cmp(block1->DiskReadRawDelta.Delta, block2->DiskReadRawDelta.Delta);
         break;
     case ETPRTNC_DISKWRITEBYTESDELTA:
-        result = uintcmp(block1->DiskWriteRawDelta.Delta, block2->DiskWriteRawDelta.Delta);
+        result = uint64cmp(block1->DiskWriteRawDelta.Delta, block2->DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_DISKTOTALBYTESDELTA:
-        result = uintcmp(block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta, block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta);
+        result = uint64cmp(block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta, block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKRECEIVES:
-        result = uintcmp(block1->NetworkReceiveCount, block2->NetworkReceiveCount);
+        result = uint64cmp(block1->NetworkReceiveCount, block2->NetworkReceiveCount);
         break;
     case ETPRTNC_NETWORKSENDS:
-        result = uintcmp(block1->NetworkSendCount, block2->NetworkSendCount);
+        result = uint64cmp(block1->NetworkSendCount, block2->NetworkSendCount);
         break;
     case ETPRTNC_NETWORKRECEIVEBYTES:
-        result = uintcmp(block1->NetworkReceiveRaw, block2->NetworkReceiveRaw);
+        result = uint64cmp(block1->NetworkReceiveRaw, block2->NetworkReceiveRaw);
         break;
     case ETPRTNC_NETWORKSENDBYTES:
-        result = uintcmp(block1->NetworkSendRaw, block2->NetworkSendRaw);
+        result = uint64cmp(block1->NetworkSendRaw, block2->NetworkSendRaw);
         break;
     case ETPRTNC_NETWORKTOTALBYTES:
-        result = uintcmp(block1->NetworkReceiveRaw + block1->NetworkSendRaw, block2->NetworkReceiveRaw + block2->NetworkSendRaw);
+        result = uint64cmp(block1->NetworkReceiveRaw + block1->NetworkSendRaw, block2->NetworkReceiveRaw + block2->NetworkSendRaw);
         break;
     case ETPRTNC_NETWORKRECEIVESDELTA:
-        result = uintcmp(block1->NetworkReceiveDelta.Delta, block2->NetworkReceiveDelta.Delta);
+        result = uint64cmp(block1->NetworkReceiveDelta.Delta, block2->NetworkReceiveDelta.Delta);
         break;
     case ETPRTNC_NETWORKSENDSDELTA:
-        result = uintcmp(block1->NetworkSendDelta.Delta, block2->NetworkSendDelta.Delta);
+        result = uint64cmp(block1->NetworkSendDelta.Delta, block2->NetworkSendDelta.Delta);
         break;
     case ETPRTNC_NETWORKRECEIVEBYTESDELTA:
-        result = uintcmp(block1->NetworkReceiveRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta);
+        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKSENDBYTESDELTA:
-        result = uintcmp(block1->NetworkSendRawDelta.Delta, block2->NetworkSendRawDelta.Delta);
+        result = uint64cmp(block1->NetworkSendRawDelta.Delta, block2->NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKTOTALBYTESDELTA:
-        result = uintcmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
+        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_HARDFAULTS:
         result = uintcmp(block1->HardFaultsDelta.Value, block2->HardFaultsDelta.Value);
@@ -405,22 +405,22 @@ LONG EtpProcessTreeNewSortFunction(
         result = uint64cmp(block1->GpuSharedUsage, block2->GpuSharedUsage);
         break;
     case ETPRTNC_DISKREADRATE:
-        result = uintcmp(block1->DiskReadRawDelta.Delta, block2->DiskReadRawDelta.Delta);
+        result = uint64cmp(block1->DiskReadRawDelta.Delta, block2->DiskReadRawDelta.Delta);
         break;
     case ETPRTNC_DISKWRITERATE:
-        result = uintcmp(block1->DiskWriteRawDelta.Delta, block2->DiskWriteRawDelta.Delta);
+        result = uint64cmp(block1->DiskWriteRawDelta.Delta, block2->DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_DISKTOTALRATE:
-        result = uintcmp(block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta, block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta);
+        result = uint64cmp(block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta, block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKRECEIVERATE:
-        result = uintcmp(block1->NetworkReceiveRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta);
+        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKSENDRATE:
-        result = uintcmp(block1->NetworkSendRawDelta.Delta, block2->NetworkSendRawDelta.Delta);
+        result = uint64cmp(block1->NetworkSendRawDelta.Delta, block2->NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKTOTALRATE:
-        result = uintcmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
+        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
         break;
     }
 
@@ -612,34 +612,34 @@ LONG EtpNetworkTreeNewSortFunction(
     switch (SubId)
     {
     case ETNETNC_RECEIVES:
-        result = uintcmp(block1->ReceiveCount, block2->ReceiveCount);
+        result = uint64cmp(block1->ReceiveCount, block2->ReceiveCount);
         break;
     case ETNETNC_SENDS:
-        result = uintcmp(block1->SendCount, block2->SendCount);
+        result = uint64cmp(block1->SendCount, block2->SendCount);
         break;
     case ETNETNC_RECEIVEBYTES:
-        result = uintcmp(block1->ReceiveRaw, block2->ReceiveRaw);
+        result = uint64cmp(block1->ReceiveRaw, block2->ReceiveRaw);
         break;
     case ETNETNC_SENDBYTES:
-        result = uintcmp(block1->SendRaw, block2->SendRaw);
+        result = uint64cmp(block1->SendRaw, block2->SendRaw);
         break;
     case ETNETNC_TOTALBYTES:
-        result = uintcmp(block1->ReceiveRaw + block1->SendRaw, block2->ReceiveRaw + block2->SendRaw);
+        result = uint64cmp(block1->ReceiveRaw + block1->SendRaw, block2->ReceiveRaw + block2->SendRaw);
         break;
     case ETNETNC_RECEIVESDELTA:
-        result = uintcmp(block1->ReceiveDelta.Delta, block2->ReceiveDelta.Delta);
+        result = uint64cmp(block1->ReceiveDelta.Delta, block2->ReceiveDelta.Delta);
         break;
     case ETNETNC_SENDSDELTA:
-        result = uintcmp(block1->SendDelta.Delta, block2->SendDelta.Delta);
+        result = uint64cmp(block1->SendDelta.Delta, block2->SendDelta.Delta);
         break;
     case ETNETNC_RECEIVEBYTESDELTA:
-        result = uintcmp(block1->ReceiveRawDelta.Delta, block2->ReceiveRawDelta.Delta);
+        result = uint64cmp(block1->ReceiveRawDelta.Delta, block2->ReceiveRawDelta.Delta);
         break;
     case ETNETNC_SENDBYTESDELTA:
-        result = uintcmp(block1->SendRawDelta.Delta, block2->SendRawDelta.Delta);
+        result = uint64cmp(block1->SendRawDelta.Delta, block2->SendRawDelta.Delta);
         break;
     case ETNETNC_TOTALBYTESDELTA:
-        result = uintcmp(block1->ReceiveRawDelta.Delta + block1->SendRawDelta.Delta, block2->ReceiveRawDelta.Delta + block2->SendRawDelta.Delta);
+        result = uint64cmp(block1->ReceiveRawDelta.Delta + block1->SendRawDelta.Delta, block2->ReceiveRawDelta.Delta + block2->SendRawDelta.Delta);
         break;
     case ETNETNC_FIREWALLSTATUS:
         EtpUpdateFirewallStatus(block1);
@@ -647,13 +647,13 @@ LONG EtpNetworkTreeNewSortFunction(
         result = intcmp(block1->FirewallStatus, block2->FirewallStatus);
         break;
     case ETNETNC_RECEIVERATE:
-        result = uintcmp(block1->ReceiveRawDelta.Delta, block2->ReceiveRawDelta.Delta);
+        result = uint64cmp(block1->ReceiveRawDelta.Delta, block2->ReceiveRawDelta.Delta);
         break;
     case ETNETNC_SENDRATE:
-        result = uintcmp(block1->SendRawDelta.Delta, block2->SendRawDelta.Delta);
+        result = uint64cmp(block1->SendRawDelta.Delta, block2->SendRawDelta.Delta);
         break;
     case ETNETNC_TOTALRATE:
-        result = uintcmp(block1->ReceiveRawDelta.Delta + block1->SendRawDelta.Delta, block2->ReceiveRawDelta.Delta + block2->SendRawDelta.Delta);
+        result = uint64cmp(block1->ReceiveRawDelta.Delta + block1->SendRawDelta.Delta, block2->ReceiveRawDelta.Delta + block2->SendRawDelta.Delta);
         break;
     }
 

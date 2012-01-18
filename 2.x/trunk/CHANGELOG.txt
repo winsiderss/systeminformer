@@ -5,6 +5,7 @@ Process Hacker
    * Updated OnlineChecks plugin:
      * 2012-01-16: Updated VirusTotal uploader and added hash checking
  * FIXED:
+   * Fixed Description column sorting bug
 
 2.26
  * NEW/IMPROVED:

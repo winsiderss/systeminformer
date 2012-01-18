@@ -220,9 +220,9 @@ static VOID NTAPI ProcessesUpdatedCallback(
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
 
     PLIST_ENTRY listEntry;
-    ULONG maxDiskValue = 0;
+    ULONG64 maxDiskValue = 0;
     PET_PROCESS_BLOCK maxDiskBlock = NULL;
-    ULONG maxNetworkValue = 0;
+    ULONG64 maxNetworkValue = 0;
     PET_PROCESS_BLOCK maxNetworkBlock = NULL;
 
     // Since Windows 8, we no longer get the correct process/thread IDs in the 
