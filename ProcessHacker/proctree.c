@@ -402,6 +402,9 @@ PPH_PROCESS_NODE PhAddProcessNode(
         }
     }
 
+    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage && ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID)
+        PhInitializeStringRef(&processNode->DescriptionText, L"Interrupts and DPCs");
+
     if (FilterSupport.FilterList)
         processNode->Node.Visible = PhApplyTreeNewFiltersToNode(&FilterSupport, &processNode->Node);
 
@@ -1175,11 +1178,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Description)
 {
-    sortResult = PhCompareStringWithNull(
-        processItem1->VersionInfo.FileDescription,
-        processItem2->VersionInfo.FileDescription,
-        TRUE
-        );
+    PH_STRINGREF sr1;
+    PH_STRINGREF sr2;
+
+    sr1 = processItem1->VersionInfo.FileDescription ? processItem1->VersionInfo.FileDescription->sr : node1->DescriptionText;
+    sr2 = processItem2->VersionInfo.FileDescription ? processItem2->VersionInfo.FileDescription->sr : node2->DescriptionText;
+
+    sortResult = PhCompareStringRef(&sr1, &sr2, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1929,10 +1934,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRefOrEmpty(processItem->UserName);
                 break;
             case PHPRTLC_DESCRIPTION:
-                if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage && processItem->ProcessId == INTERRUPTS_PROCESS_ID)
-                    PhInitializeStringRef(&getCellText->Text, L"Interrupts and DPCs");
+                if (processItem->VersionInfo.FileDescription)
+                    getCellText->Text = processItem->VersionInfo.FileDescription->sr;
                 else
-                    getCellText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.FileDescription);
+                    getCellText->Text = node->DescriptionText;
                 break;
             case PHPRTLC_COMPANYNAME:
                 getCellText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.CompanyName);

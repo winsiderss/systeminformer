@@ -162,24 +162,24 @@ typedef struct _ET_PROCESS_BLOCK
     LIST_ENTRY ListEntry;
     PPH_PROCESS_ITEM ProcessItem;
 
-    ULONG DiskReadCount;
-    ULONG DiskWriteCount;
-    ULONG NetworkReceiveCount;
-    ULONG NetworkSendCount;
+    ULONG64 DiskReadCount;
+    ULONG64 DiskWriteCount;
+    ULONG64 NetworkReceiveCount;
+    ULONG64 NetworkSendCount;
 
-    ULONG DiskReadRaw;
-    ULONG DiskWriteRaw;
-    ULONG NetworkReceiveRaw;
-    ULONG NetworkSendRaw;
+    ULONG64 DiskReadRaw;
+    ULONG64 DiskWriteRaw;
+    ULONG64 NetworkReceiveRaw;
+    ULONG64 NetworkSendRaw;
 
-    PH_UINT32_DELTA DiskReadDelta;
-    PH_UINT32_DELTA DiskReadRawDelta;
-    PH_UINT32_DELTA DiskWriteDelta;
-    PH_UINT32_DELTA DiskWriteRawDelta;
-    PH_UINT32_DELTA NetworkReceiveDelta;
-    PH_UINT32_DELTA NetworkReceiveRawDelta;
-    PH_UINT32_DELTA NetworkSendDelta;
-    PH_UINT32_DELTA NetworkSendRawDelta;
+    PH_UINT64_DELTA DiskReadDelta;
+    PH_UINT64_DELTA DiskReadRawDelta;
+    PH_UINT64_DELTA DiskWriteDelta;
+    PH_UINT64_DELTA DiskWriteRawDelta;
+    PH_UINT64_DELTA NetworkReceiveDelta;
+    PH_UINT64_DELTA NetworkReceiveRawDelta;
+    PH_UINT64_DELTA NetworkSendDelta;
+    PH_UINT64_DELTA NetworkSendRawDelta;
 
     PH_UINT64_DELTA GpuRunningTimeDelta;
     FLOAT GpuNodeUsage;
@@ -200,21 +200,21 @@ typedef struct _ET_NETWORK_BLOCK
     LIST_ENTRY ListEntry;
     PPH_NETWORK_ITEM NetworkItem;
 
-    ULONG ReceiveCount;
-    ULONG SendCount;
-    ULONG ReceiveRaw;
-    ULONG SendRaw;
+    ULONG64 ReceiveCount;
+    ULONG64 SendCount;
+    ULONG64 ReceiveRaw;
+    ULONG64 SendRaw;
 
     union
     {
         struct
         {
-            PH_UINT32_DELTA ReceiveDelta;
-            PH_UINT32_DELTA ReceiveRawDelta;
-            PH_UINT32_DELTA SendDelta;
-            PH_UINT32_DELTA SendRawDelta;
+            PH_UINT64_DELTA ReceiveDelta;
+            PH_UINT64_DELTA ReceiveRawDelta;
+            PH_UINT64_DELTA SendDelta;
+            PH_UINT64_DELTA SendRawDelta;
         };
-        PH_UINT32_DELTA Deltas[4];
+        PH_UINT64_DELTA Deltas[4];
     };
 
     ET_FIREWALL_STATUS FirewallStatus;
