@@ -346,7 +346,7 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
     while (listEntry != &EtNetworkBlockListHead)
     {
         PET_NETWORK_BLOCK block;
-        PH_UINT32_DELTA oldDeltas[4];
+        PH_UINT64_DELTA oldDeltas[4];
 
         block = CONTAINING_RECORD(listEntry, ET_NETWORK_BLOCK, ListEntry);
 
