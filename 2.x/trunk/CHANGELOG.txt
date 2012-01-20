@@ -6,6 +6,7 @@ Process Hacker
      * 2012-01-16: Updated VirusTotal uploader and added hash checking
  * FIXED:
    * Fixed Description column sorting bug
+   * Fixed notification icon bug
 
 2.26
  * NEW/IMPROVED:
