@@ -508,15 +508,16 @@ BOOLEAN PhNfpModifyNotifyIcon(
 {
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
     PPH_NF_ICON icon;
+    ULONG notifyId;
 
     if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
         return FALSE;
 
-    if (!_BitScanForward(&Id, Id))
+    if (!_BitScanForward(&notifyId, Id))
         return FALSE;
 
     notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = Id;
+    notifyIcon.uID = notifyId;
     notifyIcon.uFlags = Flags;
 
     if (Text)
