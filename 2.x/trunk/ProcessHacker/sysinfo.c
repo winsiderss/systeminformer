@@ -2,7 +2,7 @@
  * Process Hacker -
  *   system information window
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -18,6 +18,41 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * This file is divided into two parts:
+ *
+ * System Information framework. The "framework" handles creation, layout
+ * and events for the top-level window itself. It manages the list of
+ * sections.
+ *
+ * Default sections. The CPU, Memory and I/O sections are also implemented
+ * in this file.
+ *
+ * A section is an object that provides information to the user about a
+ * type of system resource. The CPU, Memory and I/O sections are added
+ * automatically to every System Information window. Plugins can also add
+ * sections to the window. There are two views: summary and section. In
+ * summary view, rows of graphs are displayed in the window, one graph for
+ * each section. The section is responsible for providing the graph data
+ * and any text to draw on the left-hand side of the graph. In section view,
+ * the graphs become mini-graphs on the left-hand side of the window. The
+ * section displays its own embedded dialog in the remaining space. Any
+ * controls contained in this dialog, including graphs, are the
+ * responsibility of the section.
+ *
+ * Users can enter section view by:
+ * * Clicking on a graph or mini-graph.
+ * * Pressing a number from 1 to 9.
+ * * Using the tab or arrow keys to select a graph and pressing space or
+ *   enter.
+ *
+ * Users can return to summary view by:
+ * * Clicking "Back" on the left-hand side of the window.
+ * * Pressing Backspace.
+ * * Using the tab or arrow keys to select "Back" and pressing space or
+ *   enter.
  */
 
 #include <phapp.h>
