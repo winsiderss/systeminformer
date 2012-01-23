@@ -1,7 +1,7 @@
 ;* Process Hacker 2 - Installer script
 ;*
 ;* Copyright (C) 2011 wj32
-;* Copyright (C) 2010-2011 XhmikosR
+;* Copyright (C) 2010-2012 XhmikosR
 ;*
 ;* This file is part of Process Hacker.
 ;*
@@ -35,16 +35,16 @@
 #include "Services.iss"
 
 #define installer_build_number "12"
-#define copyright              "Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3."
+#define copyright              "Copyright © 2010-2012, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
-#define app_version            str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
-#define app_version_long       str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + ".0" + "." + str(PHAPP_VERSION_REVISION)
-#define app_version_full       str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + " (r" + str(PHAPP_VERSION_REVISION) + ")"
+  #define app_version          str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
+  #define app_version_long     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + ".0" + "." + str(PHAPP_VERSION_REVISION)
+  #define app_version_full     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + " (r" + str(PHAPP_VERSION_REVISION) + ")"
 #elif defined(THREE_DIGIT_VER)
-#define app_version            str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
-#define app_version_long       str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + "." + str(PHAPP_VERSION_BUILD) + "." + str(PHAPP_VERSION_REVISION)
-#define app_version_full       str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + "." + str(PHAPP_VERSION_BUILD) + " (r" + str(PHAPP_VERSION_REVISION) + ")"
+  #define app_version          str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
+  #define app_version_long     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + "." + str(PHAPP_VERSION_BUILD) + "." + str(PHAPP_VERSION_REVISION)
+  #define app_version_full     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + "." + str(PHAPP_VERSION_BUILD) + " (r" + str(PHAPP_VERSION_REVISION) + ")"
 #endif
 
 #define installer_build_date   GetDateTimeString('mmm, d yyyy', '', '')
@@ -365,6 +365,14 @@ begin
     RemoveDir(ExpandConstant('{app}'));
 
   end;
+end;
+
+
+procedure InitializeWizard();
+begin
+  WizardForm.SelectTasksLabel.Hide;
+  WizardForm.TasksList.Top    := 0;
+  WizardForm.TasksList.Height := PageFromID(wpSelectTasks).SurfaceHeight;
 end;
 
 
