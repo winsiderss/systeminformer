@@ -926,6 +926,8 @@ VOID RunAction(
         }
     case Installing:
         {
+            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+
             PhShellExecute(hwndDlg, LocalFilePathString->Buffer, NULL);
             DisposeConnection();
 
