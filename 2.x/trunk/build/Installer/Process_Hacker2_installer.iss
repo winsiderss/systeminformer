@@ -258,9 +258,7 @@ function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   // Hide the License and the Ready to install page if it's an upgrade
   if IsUpgrade() and (PageID = wpLicense) or (PageID = wpReady) then
-    Result := True
-  else
-    Result := False;
+    Result := True;
 end;
 
 
@@ -355,9 +353,8 @@ begin
   // When uninstalling ask user to delete Process Hacker's settings
   // based on whether the settings file exists only
     if SettingsExistCheck() then begin
-      if SuppressibleMsgBox(CustomMessage('msg_DeleteLogSettings'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then begin
+      if SuppressibleMsgBox(CustomMessage('msg_DeleteLogSettings'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
-      end;
     end;
 
     RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2'));
