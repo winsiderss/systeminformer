@@ -2,7 +2,7 @@
  * Process Hacker -
  *   service list control
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2011 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -66,7 +66,6 @@ HWND PhCreateServiceListControl(
 {
     HWND windowHandle;
     PPH_SERVICES_CONTEXT servicesContext;
-    ULONG i;
 
     servicesContext = PhAllocate(sizeof(PH_SERVICES_CONTEXT));
 
@@ -84,12 +83,7 @@ HWND PhCreateServiceListControl(
 
     if (!windowHandle)
     {
-        for (i = 0; i < NumberOfServices; i++)
-            PhDereferenceObject(Services[i]);
-
-        PhFree(Services);
         PhFree(servicesContext);
-
         return windowHandle;
     }
 
