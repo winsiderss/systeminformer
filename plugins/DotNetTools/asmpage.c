@@ -739,7 +739,7 @@ VOID NTAPI DotNetEventCallback(
                     moduleNativePath = (PWSTR)((PCHAR)moduleILPath + moduleILPathLength + sizeof(WCHAR));
                     moduleNativePathLength = wcslen(moduleNativePath) * sizeof(WCHAR);
 
-                    if (context->ClrV2Node)
+                    if (context->ClrV2Node && (moduleILPathLength != 0 || moduleNativePathLength != 0))
                     {
                         node = AddNode(context);
                         node->Type = DNA_TYPE_ASSEMBLY;
