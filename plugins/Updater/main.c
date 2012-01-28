@@ -2,7 +2,7 @@
  * Process Hacker Update Checker -
  *   main program
  *
- * Copyright (C) 2011 dmex
+ * Copyright (C) 2011-2012 dmex
  *
  * This file is part of Process Hacker.
  *
