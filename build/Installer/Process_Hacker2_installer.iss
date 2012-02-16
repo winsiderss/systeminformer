@@ -99,6 +99,8 @@ Name: en; MessagesFile: compiler:Default.isl
 
 
 [Messages]
+WelcomeLabel1=[name/ver]
+WelcomeLabel2=This will install [name] on your computer.%n%nIt is recommended that you close all other applications before continuing.
 BeveledLabel=Process Hacker v{#app_version_full}, Setup v{#installer_build_number} built on {#installer_build_date}
 SetupAppTitle=Setup - Process Hacker
 SetupWindowTitle=Setup - Process Hacker
