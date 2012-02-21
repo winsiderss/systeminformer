@@ -323,7 +323,7 @@ VOID EtpNetworkIconUpdateCallback(
     lineData2 = _alloca(maxDataCount * sizeof(FLOAT));
 
     lineDataCount = min(maxDataCount, EtNetworkReceiveHistory.Count);
-    max = 4 * 1024; // minimum scaling of 4 kB.
+    max = 1024 * 1024; // minimum scaling of 1 MB.
 
     for (i = 0; i < lineDataCount; i++)
     {

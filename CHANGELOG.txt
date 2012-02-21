@@ -1,5 +1,11 @@
 Process Hacker
 
+2.28
+ * NEW/IMPROVED:
+   * Updated ExtendedTools plugin:
+     * Fixed network graph scaling
+ * FIXED:
+
 2.27
  * NEW/IMPROVED:
    * Updated OnlineChecks plugin:

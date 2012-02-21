@@ -495,9 +495,9 @@ BOOLEAN EtpNetworkSectionCallback(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 4 kB.
-                if (max < 4 * 1024)
-                    max = 4 * 1024;
+                // Minimum scaling of 1 MB.
+                if (max < 1024 * 1024)
+                    max = 1024 * 1024;
 
                 // Scale the data.
 
@@ -674,9 +674,9 @@ VOID EtpNotifyNetworkGraph(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 4 kB.
-                if (max < 4 * 1024)
-                    max = 4 * 1024;
+                // Minimum scaling of 1 MB.
+                if (max < 1024 * 1024)
+                    max = 1024 * 1024;
 
                 // Scale the data.
 
