@@ -1,3 +1,6 @@
+1.11
+ * Fixed network graph scaling
+
 1.10
  * Improved support for multiple GPUs
 
