@@ -31,6 +31,10 @@
 #define TARGETING_MODE_THREAD 1 // select process and thread
 #define TARGETING_MODE_KILL 2 // Find Window and Kill
 
+#define NUMBER_OF_CONTROLS 2
+#define NUMBER_OF_BUTTONS 7
+#define NUMBER_OF_SEPARATORS 2
+
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
     ImageOnly = 0,
@@ -44,6 +48,12 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
+
+HWND ReBarHandle;
+RECT ReBarRect;
+
+HWND TextboxHandle;
+RECT TextboxRect;
 
 HWND ToolBarHandle;
 BOOLEAN EnableToolBar;
@@ -103,7 +113,6 @@ LOGICAL DllMain(
                 NULL,
                 &PluginShowOptionsCallbackRegistration
                 );
-
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
                 MainWindowShowingCallback,
@@ -144,7 +153,7 @@ VOID NTAPI LoadCallback(
     INITCOMMONCONTROLSEX icex;
 
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-    icex.dwICC = ICC_BAR_CLASSES;
+    icex.dwICC = ICC_COOL_CLASSES | ICC_BAR_CLASSES;
 
     InitCommonControlsEx(&icex);
 }
@@ -162,9 +171,6 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
-#define NUMBER_OF_CONTROLS 2
-#define NUMBER_OF_BUTTONS 7
-#define NUMBER_OF_SEPARATORS 2
 
 VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
@@ -177,33 +183,87 @@ VOID NTAPI MainWindowShowingCallback(
     ULONG imageIndex;
 
     IdRangeBase = PhPluginReserveIds(NUMBER_OF_CONTROLS + NUMBER_OF_BUTTONS);
-
     ToolBarIdRangeBase = IdRangeBase + NUMBER_OF_CONTROLS;
     ToolBarIdRangeEnd = ToolBarIdRangeBase + NUMBER_OF_BUTTONS;
 
-    ToolBarHandle = CreateWindowEx(
+    // Create the rebar.
+    ReBarHandle = CreateWindowExW(
+        WS_EX_TOOLWINDOW,
+        REBARCLASSNAME,
+        NULL,
+        WS_CHILD | WS_VISIBLE | CCS_NODIVIDER | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | RBS_FIXEDORDER,
+        0,0,0,0,
+        PhMainWndHandle,
+        NULL,
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
+    ToolBarHandle = CreateWindowExW(
         0,
         TOOLBARCLASSNAME,
-        L"",
-        WS_CHILD | CCS_TOP | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS,
+        NULL,
+        WS_CHILD | CCS_NORESIZE | CCS_NODIVIDER  | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS,
         0,
         0,
         0,
         0,
-        PhMainWndHandle,
+        ReBarHandle,
         (HMENU)(IdRangeBase),
-        PluginInstance->DllBase,
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
+    TextboxHandle = CreateWindowExW(
+        0,
+        WC_EDIT,
+        NULL,
+        WS_CHILD | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        ReBarHandle,
+        (HMENU)(IdRangeBase + 1),
+        (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
 
-    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, L"Taskbar");
+    // Set Searchbox control font.
+    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
+    // Set Searchbox Cue.
+    Edit_SetCueBannerText(TextboxHandle, L"Search");
+
+    {
+        REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
+        rBandInfo.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_IDEALSIZE;
+        rBandInfo.fStyle = RBBS_CHILDEDGE | RBBS_HIDETITLE | RBBS_NOGRIPPER;
+    
+        // Get the toolbar size.
+        GetClientRect(ToolBarHandle, &ToolBarRect);
+
+        // Add the toolbar.
+        rBandInfo.cxIdeal = 300;
+        rBandInfo.cxMinChild = ToolBarRect.right - ToolBarRect.left; // Width
+        rBandInfo.cyMinChild = (ToolBarRect.bottom - ToolBarRect.top) + 23; // Height
+        rBandInfo.hwndChild = ToolBarHandle;
+
+        SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
+
+        // Add the textbox.
+        rBandInfo.cxMinChild = 180;
+        rBandInfo.cyMinChild -= 3; // Set slightly smaller than the toolbar.
+        rBandInfo.hwndChild = TextboxHandle;
+
+        SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
+    }
+
+    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0,
-        TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
+    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
 
     ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
-    ImageList_SetImageCount(ToolBarImageList, sizeof(buttons) / sizeof(TBBUTTON));
+    ImageList_SetImageCount(ToolBarImageList, ARRAYSIZE(buttons));
     PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
     PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
     PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
@@ -244,13 +304,13 @@ VOID NTAPI MainWindowShowingCallback(
     DEFINE_BUTTON(L"Find Window and Thread");
     DEFINE_BUTTON(L"Find Window and Kill");
 
-    SendMessage(ToolBarHandle, TB_ADDBUTTONS, sizeof(buttons) / sizeof(TBBUTTON), (LPARAM)buttons);
+    SendMessage(ToolBarHandle, TB_ADDBUTTONS, ARRAYSIZE(buttons), (LPARAM)buttons);
     SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
-
+ 
     StatusBarHandle = CreateWindowEx(
         0,
         STATUSCLASSNAME,
-        L"",
+        NULL,
         WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
         0,
         0,
@@ -264,11 +324,12 @@ VOID NTAPI MainWindowShowingCallback(
 
     if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
         ShowWindow(ToolBarHandle, SW_SHOW);
+
     if (EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
         ShowWindow(StatusBarHandle, SW_SHOW);
 
     StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
-    DisplayStyle = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");
+    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");
 
     ApplyToolbarSettings();
 
@@ -378,10 +439,12 @@ VOID NTAPI LayoutPaddingCallback(
     PPH_LAYOUT_PADDING_DATA data = Parameter;
 
     if (EnableToolBar)
-        data->Padding.top += ToolBarRect.bottom + 2;
+        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
+    
     if (EnableStatusBar)
         data->Padding.bottom += StatusBarRect.bottom;
 }
+
 
 LRESULT CALLBACK MainWndSubclassProc(
     __in HWND hWnd,
@@ -436,6 +499,10 @@ LRESULT CALLBACK MainWndSubclassProc(
     case WM_NOTIFY:
         {
             LPNMHDR hdr = (LPNMHDR)lParam;
+
+            if (hdr->code == TCN_SELCHANGE)
+            {
+            }
 
             if (hdr->hwndFrom == ToolBarHandle)
             {
@@ -497,6 +564,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                 goto DefaultWndProc;
             }
+      
         }
         break;
     case WM_MOUSEMOVE:
@@ -676,6 +744,12 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SIZE:
         {
+            SendMessage(ReBarHandle, WM_SIZE, 0, 0); 
+            GetClientRect(ReBarHandle, &ReBarRect);
+ 
+            SendMessage(TextboxHandle, WM_SIZE, 0, 0); 
+            GetClientRect(TextboxHandle, &TextboxRect);
+
             if (EnableToolBar)
             {
                 // Get the toolbar to resize itself.
