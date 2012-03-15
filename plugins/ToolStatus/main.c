@@ -171,7 +171,6 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
-
 VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -188,10 +187,10 @@ VOID NTAPI MainWindowShowingCallback(
 
     // Create the rebar.
     ReBarHandle = CreateWindowExW(
-        WS_EX_TOOLWINDOW,
+        WS_EX_TOOLWINDOW ,
         REBARCLASSNAME,
         NULL,
-        WS_CHILD | WS_VISIBLE | CCS_NODIVIDER | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | RBS_FIXEDORDER,
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | RBS_FIXEDORDER,
         0,0,0,0,
         PhMainWndHandle,
         NULL,
@@ -202,7 +201,7 @@ VOID NTAPI MainWindowShowingCallback(
         0,
         TOOLBARCLASSNAME,
         NULL,
-        WS_CHILD | CCS_NORESIZE | CCS_NODIVIDER  | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS,
+        WS_CHILD | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS,
         0,
         0,
         0,
@@ -234,23 +233,25 @@ VOID NTAPI MainWindowShowingCallback(
 
     {
         REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
-        rBandInfo.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_IDEALSIZE;
-        rBandInfo.fStyle = RBBS_CHILDEDGE | RBBS_HIDETITLE | RBBS_NOGRIPPER;
-    
+        rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_IDEALSIZE;
+        rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE; // RBBS_CHILDEDGE
+
         // Get the toolbar size.
         GetClientRect(ToolBarHandle, &ToolBarRect);
 
         // Add the toolbar.
+        rBandInfo.wID = IdRangeBase;
         rBandInfo.cxIdeal = 300;
-        rBandInfo.cxMinChild = ToolBarRect.right - ToolBarRect.left; // Width
-        rBandInfo.cyMinChild = (ToolBarRect.bottom - ToolBarRect.top) + 23; // Height
+        rBandInfo.cxMinChild = 0; // Width
+        rBandInfo.cyMinChild = (ToolBarRect.bottom - ToolBarRect.top) + 24; // Height
         rBandInfo.hwndChild = ToolBarHandle;
 
         SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
 
         // Add the textbox.
+        rBandInfo.wID = IdRangeBase + 1;
         rBandInfo.cxMinChild = 180;
-        rBandInfo.cyMinChild -= 3; // Set slightly smaller than the toolbar.
+        rBandInfo.cyMinChild -= 5; // Set slightly smaller than the toolbar.
         rBandInfo.hwndChild = TextboxHandle;
 
         SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
@@ -318,7 +319,7 @@ VOID NTAPI MainWindowShowingCallback(
         0,
         PhMainWndHandle,
         (HMENU)(IdRangeBase + 1),
-        PluginInstance->DllBase,
+        (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
 
