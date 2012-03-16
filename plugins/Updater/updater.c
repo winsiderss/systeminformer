@@ -40,10 +40,10 @@ static NTSTATUS SilentWorkerThreadStart(
     ULONG localMinorVersion = 0;
 
     if (!ConnectionAvailable())
-        return;
+        return STATUS_NETWORK_ACCESS_DENIED;
 
     if (!QueryXmlData(&xmlData))
-        return;
+        return STATUS_NETWORK_ACCESS_DENIED;
 
     localVersion = PhGetPhVersion();
 
@@ -131,8 +131,6 @@ static NTSTATUS WorkerThreadStart(
 
         // Enable the download button.
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-
-        //LocalFilePathString = PhConcatStrings2(szTempPath, szFileName);
 
         PhUpdaterState = Downloading;
     }
@@ -297,7 +295,7 @@ static NTSTATUS DownloadWorkerThreadStart(
     if (!HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         LogEvent(hwndDlg, PhFormatString(L"HttpSendRequest failed (%d)", GetLastError()));
-        return;
+        return STATUS_SUCCESS;
     }
 
     Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), L"Connecting");
@@ -442,9 +440,9 @@ static NTSTATUS DownloadWorkerThreadStart(
                     dwLastTicks = dwNowTicks;
                     dwLastTotalBytes = dwTotalReadSize;
 
-                    Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), szDownloaded);
-                    Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szRemaning);    
-                    //E//dit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), szSpeed);
+                    Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szDownloaded);
+                    Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), szRemaning);    
+                    //Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), szSpeed);
 
                     // Update the progress bar position
                     PostMessage(hwndProgress, PBM_SETPOS, iProgress, 0);
@@ -457,8 +455,6 @@ static NTSTATUS DownloadWorkerThreadStart(
             }
         }
 
-        // Set Status
-         Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download Complete");
          // Set progress complete
          PostMessage(hwndProgress, PBM_SETPOS, 100, 0);
          // Set button text for next action
@@ -478,15 +474,15 @@ static NTSTATUS DownloadWorkerThreadStart(
              if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
              {
                  // Allocate our hash string, hex the final hash result in our hashBuffer.
-                 PH_STRING *hexString = PhBufferToHexString(hashBuffer, hashLength);
+                 PPH_STRING hexString = PhBufferToHexString(hashBuffer, hashLength);
 
-                 if (PhEqualString(hexString, xmlData.Hash, TRUE))
+                 if (!_wcsicmp(hexString->Buffer, xmlData.Hash))
                  {
-                     Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), L"Hash Verified");
+                     Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download Complete, Hash Verified");
                  }
                  else
                  {
-                     Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), L"Hash failed");
+                     Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download Complete, Hash failed");
 
                      if (WindowsVersion > WINDOWS_XP)
                          SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
@@ -496,7 +492,7 @@ static NTSTATUS DownloadWorkerThreadStart(
              }
              else
              {
-                 Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), L"PhFinalHash failed");
+                 Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"PhFinalHash failed");
 
                  // Show fancy Red progressbar if hash failed on Vista and above.
                  if (WindowsVersion > WINDOWS_XP)
@@ -798,25 +794,23 @@ BOOL QueryXmlData(
     PCHAR data;
     HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
     BOOL result = FALSE;
-    PPH_STRING temp;
     mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
 
-             // Initialize the wininet library.
-    NetInitialize = InternetOpen(
-        L"PHUpdater", // user-agent
-        INTERNET_OPEN_TYPE_PRECONFIG, // use system proxy configuration
+    // Initialize the wininet library.
+    if (!(NetInitialize = InternetOpen(
+        L"PHUpdater",
+        INTERNET_OPEN_TYPE_PRECONFIG,
         NULL,
         NULL,
         0
-        );
-    if (!NetInitialize)
+        )))
     {
         LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
-        return FALSE;
+        goto CleanupAndExit;
     }
 
     // Connect to the server.
-    NetConnection = InternetConnect(
+    if (!(NetConnection = InternetConnect(
         NetInitialize,
         UPDATE_URL,
         INTERNET_DEFAULT_HTTP_PORT,
@@ -825,12 +819,14 @@ BOOL QueryXmlData(
         INTERNET_SERVICE_HTTP,
         0,
         0
-        );
-    if (!NetConnection)
+        )))
     {
         LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
 
-        return FALSE;
+        if (NetInitialize)
+            InternetCloseHandle(NetInitialize);
+
+        goto CleanupAndExit;
     }
 
     // Open the HTTP request.
@@ -847,14 +843,14 @@ BOOL QueryXmlData(
     if (!NetRequest)
     {
         LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
-        return FALSE;
+        goto CleanupAndExit;
     }
 
     // Send the HTTP request.
     if (!HttpSendRequest(NetRequest, NULL, 0, NULL, 0))
     {
         LogEvent(NULL, PhFormatString(L"HttpSendRequest failed (%d)", GetLastError()));
-        return;
+        goto CleanupAndExit;
     }
 
     // Read the resulting xml into our buffer.
