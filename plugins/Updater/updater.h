@@ -1,16 +1,22 @@
-#pragma once
+#ifndef __UPDATER_H__
+#define __UPDATER_H__
+
+#define STRICT
+#define WIN32_LEAN_AND_MEAN
+#define CINTERFACE
+#define COBJMACROS
 
 #pragma comment(lib, "Wininet.lib")
-
 #include "phdk.h"
 #include "resource.h"
 #include "mxml.h"
+
 #include <wininet.h>
 #include <windowsx.h>
-#include <process.h>
+#include <Netlistmgr.h>
 
 // Always consider the remote version newer
-//#define TEST_MODE
+#define TEST_MODE
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
@@ -18,7 +24,6 @@
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
 #define DOWNLOAD_SERVER L"sourceforge.net"
-#define DOWNLOAD_PATH L"/projects/processhacker/files/processhacker2/%s/download" /* ?use_mirror=waix" */
 
 #define Edit_Visible(hWnd, visible) \
 	ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE)
@@ -32,9 +37,9 @@ typedef struct _UPDATER_XML_DATA
 {
     ULONG MinorVersion;
     ULONG MajorVersion;
-    PPH_STRING RelDate;
-    PPH_STRING Size;
-    PPH_STRING Hash;
+    WCHAR RelDate[MAX_PATH];
+    WCHAR Size[MAX_PATH];
+    WCHAR Hash[MAX_PATH];
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 typedef enum _PH_UPDATER_STATE
@@ -46,14 +51,22 @@ typedef enum _PH_UPDATER_STATE
 	Retry
 } PH_UPDATER_STATE;
 
-void RunAction(HWND hwndDlg);
-void StartInitialCheck(void);
-void ShowUpdateDialog(void);
-void DisposeConnection(void);
-void DisposeStrings(void);
-void DisposeFileHandles(void);
-BOOL PhInstalledUsingSetup();
-BOOL ConnectionAvailable();
+VOID ShowUpdateDialog(
+    __in PVOID Parameter
+    );
+VOID DisposeStrings(
+    VOID
+    );
+BOOL PhInstalledUsingSetup(
+    VOID
+    );
+BOOL ConnectionAvailable(
+    VOID
+    );
+
+VOID RunAction(
+    __in HWND hwndDlg
+    );
 
 BOOL ParseVersionString(
     __in PWSTR String,
@@ -68,11 +81,6 @@ LONG CompareVersions(
     __in ULONG MinorVersion2
     );
 
-BOOL InitializeConnection(
-    __in PCWSTR host,
-    __in PCWSTR path
-    );
-
 BOOL ReadRequestString(
     __in HINTERNET Handle,
     __out PSTR *Data,
@@ -80,7 +88,6 @@ BOOL ReadRequestString(
     );
 
 BOOL QueryXmlData(
-    __in PVOID Buffer,
     __out PUPDATER_XML_DATA XmlData
     );
 
@@ -130,3 +137,5 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+#endif
