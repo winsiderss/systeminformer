@@ -13,6 +13,137 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
+// Neutral resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BITMAP1             BITMAP                  "resources\\sflogo.bmp"
+#endif    // Neutral resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,1,0,0
+ PRODUCTVERSION 1,1,0,0
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "0c0904b0"
+        BEGIN
+            VALUE "CompanyName", "dmex"
+            VALUE "FileDescription", "Update Checker plugin for Process Hacker"
+            VALUE "FileVersion", "1.1.0.0"
+            VALUE "InternalName", "UpdateChecker"
+            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
+            VALUE "OriginalFilename", "Updater.dll"
+            VALUE "ProductName", "Update Checker plugin for Process Hacker"
+            VALUE "ProductVersion", "1.1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0xc09, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_UPDATE DIALOGEX 0, 0, 259, 98
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_NOFAILCREATE | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_NOPARENTNOTIFY | WS_EX_TRANSPARENT | WS_EX_APPWINDOW
+CAPTION "Process Hacker - Updater"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,203,77,50,14
+    CONTROL         "Checking...",IDC_MESSAGE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,7,5,169,12,WS_EX_TRANSPARENT
+    CONTROL         "Released:",IDC_RELDATE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,8,23,149,9,WS_EX_TRANSPARENT
+    CONTROL         "Size:",IDC_DLSIZE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,8,35,149,9,WS_EX_TRANSPARENT
+    PUSHBUTTON      "Update",IDC_DOWNLOAD,149,77,50,14,WS_DISABLED
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH,7,63,245,10
+    CONTROL         105,IDC_UPDATEICON,"Static",SS_BITMAP | SS_CENTERIMAGE | SS_REALSIZEIMAGE,178,2,80,18,WS_EX_TRANSPARENT
+END
+
+IDD_OPTIONS DIALOGEX 0, 0, 254, 80
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Updater Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,143,59,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,197,59,50,14
+    CONTROL         "Enable caching",IDC_ENABLECACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,48,63,10
+    COMBOBOX        IDC_HASHCOMBOBOX,78,24,84,15,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP,WS_EX_TRANSPARENT
+    LTEXT           "Hashing Algorithm:",IDC_STATIC,6,26,61,8
+    CONTROL         "Check for updates automatically",IDC_AUTOCHECKBOX,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,60,119,10
+    CONTROL         105,IDC_UPDATEICON,"Static",SS_BITMAP | SS_CENTERIMAGE | SS_REALSIZEIMAGE,168,6,80,18,WS_EX_TRANSPARENT
+    LTEXT           "Download Location:",IDC_STATIC,6,8,64,8
+    COMBOBOX        IDC_HASHCOMBOBOX2,78,6,84,15,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP,WS_EX_TRANSPARENT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_UPDATE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 252
+        TOPMARGIN, 5
+        BOTTOMMARGIN, 91
+    END
+
+    IDD_OPTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 247
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 73
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
@@ -44,117 +175,6 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
- FILEFLAGSMASK 0x17L
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x4L
- FILETYPE 0x2L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "0c0904b0"
-        BEGIN
-            VALUE "CompanyName", "dmex"
-            VALUE "FileDescription", "Update Checker plugin for Process Hacker"
-            VALUE "FileVersion", "1.0.0.0"
-            VALUE "InternalName", "UpdateChecker"
-            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
-            VALUE "OriginalFilename", "Updater.dll"
-            VALUE "ProductName", "Update Checker plugin for Process Hacker"
-            VALUE "ProductVersion", "1.0.0.0"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0xc09, 1200
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_UPDATE DIALOGEX 0, 0, 266, 98
-STYLE DS_LOCALEDIT | DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_SYSMENU
-EXSTYLE WS_EX_NOPARENTNOTIFY
-CAPTION "Update Check"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "Close",IDOK,209,79,50,15
-    PUSHBUTTON      "Update",IDC_DOWNLOAD,156,79,50,15,WS_DISABLED
-    CONTROL         105,IDC_STATIC,"Static",SS_BITMAP | SS_CENTERIMAGE,176,2,83,24
-    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH,6,61,253,14
-    CONTROL         "Ready",IDC_STATUSTEXT,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | NOT WS_VISIBLE | WS_GROUP,7,50,136,9,WS_EX_TRANSPARENT
-    CONTROL         "Checking...",IDC_MESSAGE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,6,6,150,9
-    CONTROL         "Released:",IDC_RELDATE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | NOT WS_VISIBLE | WS_GROUP,6,18,149,9
-    CONTROL         "Size:",IDC_DLSIZE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | NOT WS_VISIBLE | WS_GROUP,6,29,54,9
-    CONTROL         "Speed:",IDC_SPEEDTEXT,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | NOT WS_VISIBLE | WS_GROUP,151,50,108,9,WS_EX_TRANSPARENT
-    CONTROL         "Remaining:",IDC_RTIMETEXT,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | NOT WS_VISIBLE | WS_GROUP,7,79,133,9,WS_EX_TRANSPARENT
-END
-
-IDD_OPTIONS DIALOGEX 0, 0, 198, 82
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Updater Options"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,88,61,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,141,61,50,14
-    CONTROL         "Enable caching",IDC_ENABLECACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,26,63,10
-    COMBOBOX        IDC_HASHCOMBOBOX,71,7,40,15,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP,WS_EX_TRANSPARENT
-    LTEXT           "Hashing Algorithm:",IDC_STATIC,7,10,61,8
-    CONTROL         "Check for updates automatically",IDC_AUTOCHECKBOX,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,39,119,10
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_UPDATE, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 259
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 91
-    END
-
-    IDD_OPTIONS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 191
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 75
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_BITMAP1             BITMAP                  "resources\\sflogo.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

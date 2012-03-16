@@ -1,3 +1,9 @@
+1.2
+ * Redesigned layout
+ * Implemented INetworkListManager support for Vista and above.
+ * Fixed string handling
+ * Fixed error handling
+
 1.1
  * Added download speed
  * Added remaining time
