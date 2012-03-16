@@ -48,7 +48,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Update Checker";
             info->Author = L"dmex";
-            info->Description = L"Adds the ability to check for new Process Hacker releases via the Help menu.";
+            info->Description = L"Plugin for checking new Process Hacker releases via the Help menu.";
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=28&t=305";
             info->HasOptions = TRUE;
     
@@ -71,7 +71,7 @@ LOGICAL DllMain(
                 &PluginShowOptionsCallbackRegistration
                 );
 
-             PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+             PhAddSettings(settings, ARRAYSIZE(settings));
         }
         break;
     }
@@ -89,7 +89,8 @@ VOID NTAPI MainWindowShowingCallback(
 
     if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
     {
-		StartInitialCheck();   
+        // Queue up our initial update check.
+        StartInitialCheck();
     }
 }
 
@@ -106,7 +107,7 @@ VOID NTAPI MenuItemCallback(
         {
         case UPDATE_MENUITEM:
             {
-                ShowUpdateDialog();
+                ShowUpdateDialog(NULL);
             }
             break;
         }

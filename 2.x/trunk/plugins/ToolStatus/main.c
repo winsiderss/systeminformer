@@ -136,7 +136,7 @@ LOGICAL DllMain(
                     { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
                 };
 
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+                PhAddSettings(settings, ARRAYSIZE(settings));
             }
         }
         break;
@@ -164,7 +164,7 @@ VOID NTAPI ShowOptionsCallback(
     )
 {
     DialogBox(
-        PluginInstance->DllBase,
+        (HINSTANCE)PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
         (HWND)Parameter,
         OptionsDlgProc
@@ -187,11 +187,11 @@ VOID NTAPI MainWindowShowingCallback(
 
     // Create the rebar.
     ReBarHandle = CreateWindowExW(
-        WS_EX_TOOLWINDOW ,
+        WS_EX_TOOLWINDOW,
         REBARCLASSNAME,
         NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | RBS_FIXEDORDER,
-        0,0,0,0,
+        0, 0, 0, 0,
         PhMainWndHandle,
         NULL,
         (HINSTANCE)PluginInstance->DllBase,
@@ -202,10 +202,7 @@ VOID NTAPI MainWindowShowingCallback(
         TOOLBARCLASSNAME,
         NULL,
         WS_CHILD | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS,
-        0,
-        0,
-        0,
-        0,
+        0, 0, 0, 0,
         ReBarHandle,
         (HMENU)(IdRangeBase),
         (HINSTANCE)PluginInstance->DllBase,
@@ -265,13 +262,13 @@ VOID NTAPI MainWindowShowingCallback(
 
     ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
     ImageList_SetImageCount(ToolBarImageList, ARRAYSIZE(buttons));
-    PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
-    PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
-    PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
-    PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
-    PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
-    PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
-    PhSetImageListBitmap(ToolBarImageList, 6, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
+    PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
+    PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
+    PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
+    PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
+    PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
+    PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
+    PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
 
     SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
@@ -440,7 +437,7 @@ VOID NTAPI LayoutPaddingCallback(
     PPH_LAYOUT_PADDING_DATA data = Parameter;
 
     if (EnableToolBar)
-        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
+        data->Padding.top += (ToolBarRect.bottom - ToolBarRect.top); // Width
     
     if (EnableStatusBar)
         data->Padding.bottom += StatusBarRect.bottom;
@@ -500,10 +497,6 @@ LRESULT CALLBACK MainWndSubclassProc(
     case WM_NOTIFY:
         {
             LPNMHDR hdr = (LPNMHDR)lParam;
-
-            if (hdr->code == TCN_SELCHANGE)
-            {
-            }
 
             if (hdr->hwndFrom == ToolBarHandle)
             {
@@ -745,12 +738,6 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SIZE:
         {
-            SendMessage(ReBarHandle, WM_SIZE, 0, 0); 
-            GetClientRect(ReBarHandle, &ReBarRect);
- 
-            SendMessage(TextboxHandle, WM_SIZE, 0, 0); 
-            GetClientRect(TextboxHandle, &TextboxRect);
-
             if (EnableToolBar)
             {
                 // Get the toolbar to resize itself.
