@@ -31,7 +31,7 @@
 #define TARGETING_MODE_THREAD 1 // select process and thread
 #define TARGETING_MODE_KILL 2 // Find Window and Kill
 
-#define NUMBER_OF_CONTROLS 2
+#define NUMBER_OF_CONTROLS 3
 #define NUMBER_OF_BUTTONS 7
 #define NUMBER_OF_SEPARATORS 2
 
@@ -53,13 +53,12 @@ HWND ReBarHandle;
 RECT ReBarRect;
 
 HWND TextboxHandle;
-RECT TextboxRect;
 
 HWND ToolBarHandle;
 BOOLEAN EnableToolBar;
-RECT ToolBarRect;
 HWND StatusBarHandle;
 BOOLEAN EnableStatusBar;
+
 RECT StatusBarRect;
 HIMAGELIST ToolBarImageList;
 ULONG StatusMask;
@@ -222,33 +221,43 @@ VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
+    StatusBarHandle = CreateWindowEx(
+        0,
+        STATUSCLASSNAME,
+        NULL,
+        WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+        0,
+        0,
+        0,
+        0,
+        PhMainWndHandle,
+        (HMENU)(IdRangeBase + 2),
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
 
     // Set Searchbox control font.
     SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
+
     // Set Searchbox Cue.
     Edit_SetCueBannerText(TextboxHandle, L"Search");
 
     {
         REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
-        rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_IDEALSIZE;
-        rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE; // RBBS_CHILDEDGE
+        rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
+        rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_NOGRIPPER; //RBBS_CHILDEDGE
 
-        // Get the toolbar size.
-        GetClientRect(ToolBarHandle, &ToolBarRect);
-
-        // Add the toolbar.
-        rBandInfo.wID = IdRangeBase;
-        rBandInfo.cxIdeal = 300;
-        rBandInfo.cxMinChild = 0; // Width
-        rBandInfo.cyMinChild = (ToolBarRect.bottom - ToolBarRect.top) + 24; // Height
+        // Get the toolbar size and add the toolbar.
+        rBandInfo.wID = (IdRangeBase + 1);
+        rBandInfo.cyMinChild = HIWORD(SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0)) + 2; // Height
         rBandInfo.hwndChild = ToolBarHandle;
 
         SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
 
-        // Add the textbox.
-        rBandInfo.wID = IdRangeBase + 1;
+        // Add the textbox, slightly smaller than the toolbar.
+        rBandInfo.wID = (IdRangeBase + 2);
         rBandInfo.cxMinChild = 180;
-        rBandInfo.cyMinChild -= 5; // Set slightly smaller than the toolbar.
+        rBandInfo.cyMinChild -= 5;
         rBandInfo.hwndChild = TextboxHandle;
 
         SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
@@ -305,20 +314,6 @@ VOID NTAPI MainWindowShowingCallback(
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, ARRAYSIZE(buttons), (LPARAM)buttons);
     SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
  
-    StatusBarHandle = CreateWindowEx(
-        0,
-        STATUSCLASSNAME,
-        NULL,
-        WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
-        0,
-        0,
-        0,
-        0,
-        PhMainWndHandle,
-        (HMENU)(IdRangeBase + 1),
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
 
     if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
         ShowWindow(ToolBarHandle, SW_SHOW);
@@ -437,8 +432,10 @@ VOID NTAPI LayoutPaddingCallback(
     PPH_LAYOUT_PADDING_DATA data = Parameter;
 
     if (EnableToolBar)
-        data->Padding.top += (ToolBarRect.bottom - ToolBarRect.top); // Width
-    
+    {
+        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
+    }
+
     if (EnableStatusBar)
         data->Padding.bottom += StatusBarRect.bottom;
 }
@@ -740,9 +737,8 @@ LRESULT CALLBACK MainWndSubclassProc(
         {
             if (EnableToolBar)
             {
-                // Get the toolbar to resize itself.
-                SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
-                GetClientRect(ToolBarHandle, &ToolBarRect);
+                SendMessage(ReBarHandle, WM_SIZE, 0, 0);       
+                GetClientRect(ReBarHandle, &ReBarRect);  
             }
 
             if (EnableStatusBar)
