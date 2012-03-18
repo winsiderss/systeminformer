@@ -34,7 +34,7 @@
 #include "Custom_Messages.iss"
 #include "Services.iss"
 
-#define installer_build_number "12"
+#define installer_build_number "13"
 #define copyright              "Copyright © 2010-2012, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
@@ -82,7 +82,7 @@ WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
 OutputDir=.
 OutputBaseFilename=processhacker-{#app_version}-setup
 AllowNoIcons=yes
-Compression=lzma2/ultra
+Compression=lzma2/max
 InternalCompressLevel=max
 SolidCompression=yes
 EnableDirDoesntExistWarning=no
@@ -227,16 +227,6 @@ Type: files;      Name: {app}\plugins\WindowExplorer.dll;            Check: not 
 Type: dirifempty; Name: {app}\plugins
 
 
-[Registry]
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe""";       Flags: uninsdeletevalue; Tasks: startup
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"" -hide"; Flags: uninsdeletevalue; Tasks: startup\minimized
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2;            Flags: deletevalue uninsdeletevalue; Tasks: remove_startup
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Tasks: set_default_taskmgr
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: PHDefaulTaskmgrCheck()
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Flags: deletevalue uninsdeletevalue; Tasks: restore_taskmgr reset_settings; Check: PHDefaulTaskmgrCheck()
-
-
 [Run]
 Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent runascurrentuser
 Filename: {app}\CHANGELOG.txt;                   Description: {cm:run_ViewChangelog};              Flags: nowait postinstall skipifsilent unchecked shellexec
@@ -244,7 +234,10 @@ Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsi
 
 
 [Code]
-const installer_mutex_name = 'process_hacker2_setup_mutex';
+const
+  installer_mutex = 'process_hacker2_setup_mutex';
+  IFEO            = 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe';
+  HKCURUN         = 'Software\Microsoft\Windows\CurrentVersion\Run';
 
 
 function IsUpgrade(): Boolean;
@@ -271,10 +264,9 @@ var
 begin
   if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dwStart) then begin
     if dwStart = 1 then
-      Result := True
-    else
-      Result := False;
-  end;
+      Result := True;
+  end else
+    Result := False;
 end;
 
 
@@ -283,7 +275,7 @@ function PHDefaulTaskmgrCheck(): Boolean;
 var
   sDebugger: String;
 begin
-  if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe', 'Debugger', sDebugger) then begin
+  if RegQueryStringValue(HKLM, IFEO, 'Debugger', sDebugger) then begin
     if sDebugger = (ExpandConstant('"{app}\ProcessHacker.exe"')) then
       Result := True;
   end else
@@ -307,7 +299,7 @@ function StartupCheck(): Boolean;
 var
   svalue: String;
 begin
-  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Process Hacker 2', svalue) then begin
+  if RegQueryStringValue(HKCU, HKCURUN, 'Process Hacker 2', svalue) then begin
     if (svalue = (ExpandConstant('"{app}\ProcessHacker.exe"'))) or (svalue = (ExpandConstant('"{app}\ProcessHacker.exe" -hide'))) then
       Result := True;
   end else
@@ -324,25 +316,36 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  case CurStep of ssInstall:
-  begin
+  if CurStep = ssInstall then begin
     if IsServiceRunning('KProcessHacker2') then
       StopService('KProcessHacker2');
     if IsTaskSelected('delete_KPH_service') then
       RemoveService('KProcessHacker2');
   end;
 
-  ssPostInstall:
-  begin
+  if CurStep = ssPostInstall then begin
     if (KPHServiceCheck() and not IsTaskSelected('delete_KPH_service') or (IsTaskSelected('create_KPH_service'))) then begin
       StopService('KProcessHacker2');
       RemoveService('KProcessHacker2');
       InstallService(ExpandConstant('{app}\kprocesshacker.sys'), 'KProcessHacker2', 'KProcessHacker2', 'KProcessHacker2 driver', SERVICE_KERNEL_DRIVER, SERVICE_SYSTEM_START);
       StartService('KProcessHacker2');
     end;
-  end;
 
- end;
+    if IsTaskSelected('set_default_taskmgr') then
+      RegWriteStringValue(HKLM, IFEO, 'Debugger', ExpandConstant('"{app}\ProcessHacker.exe"'));
+    if IsTaskSelected('restore_taskmgr') then begin
+      RegDeleteValue(HKLM, IFEO, 'Debugger');
+      RegDeleteKeyIfEmpty(HKLM, IFEO);
+    end;
+
+    if IsTaskSelected('startup') then
+      RegWriteStringValue(HKCU, HKCURUN, 'Process Hacker 2', ExpandConstant('"{app}\ProcessHacker.exe"'));
+    if IsTaskSelected('startup\minimized') then
+      RegWriteStringValue(HKCU, HKCURUN, 'Process Hacker 2', ExpandConstant('"{app}\ProcessHacker.exe" -hide'));
+    if IsTaskSelected('remove_startup') then
+      RegDeleteValue(HKCU, HKCURUN, 'Process Hacker 2');
+
+  end;
 end;
 
 
@@ -352,12 +355,18 @@ begin
     StopService('KProcessHacker2');
     RemoveService('KProcessHacker2');
 
-  // When uninstalling ask user to delete Process Hacker's settings
-  // based on whether the settings file exists only
+    // When uninstalling ask user to delete Process Hacker's settings
+    // based on whether the settings file exists only
     if SettingsExistCheck() then begin
       if SuppressibleMsgBox(CustomMessage('msg_DeleteLogSettings'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
     end;
+
+    if PHDefaulTaskmgrCheck() then
+      RegDeleteValue(HKLM, IFEO, 'Debugger');
+    RegDeleteKeyIfEmpty(HKLM, IFEO);
+    if StartupCheck() then
+      RegDeleteValue(HKCU, HKCURUN, 'Process Hacker 2');
 
     RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2'));
     RemoveDir(ExpandConstant('{app}\plugins'));
@@ -378,25 +387,25 @@ end;
 function InitializeSetup(): Boolean;
 begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
-  if CheckForMutexes(installer_mutex_name) and not WizardSilent() then begin
+  if CheckForMutexes(installer_mutex) and not WizardSilent() then begin
     SuppressibleMsgBox(CustomMessage('msg_SetupIsRunningWarning'), mbError, MB_OK, MB_OK);
     Result := False;
   end
   else begin
     Result := True;
-    CreateMutex(installer_mutex_name);
+    CreateMutex(installer_mutex);
   end;
 end;
 
 
 function InitializeUninstall(): Boolean;
 begin
-  if CheckForMutexes(installer_mutex_name) then begin
+  if CheckForMutexes(installer_mutex) then begin
     SuppressibleMsgBox(CustomMessage('msg_SetupIsRunningWarning'), mbError, MB_OK, MB_OK);
     Result := False;
   end
   else begin
     Result := True;
-    CreateMutex(installer_mutex_name);
+    CreateMutex(installer_mutex);
   end;
 end;
