@@ -41,5 +41,3 @@ en.run_VisitWebsite          =Visit Process Hacker Website
 en.sm_Changelog              =Changelog
 en.sm_com_Changelog          =Process Hacker Changelog
 en.sm_Help                   =Help and Support
-en.sm_ReadmeFile             =ReadMe
-en.sm_com_ReadmeFile         =Process Hacker ReadMe
