@@ -164,6 +164,13 @@ typedef struct _PH_HANDLES_CONTEXT
 // proctree
 
 PHAPPAPI
+struct _PH_TN_FILTER_SUPPORT *
+NTAPI
+PhGetFilterSupportProcessTreeList(
+    VOID
+    );
+
+PHAPPAPI
 PPH_PROCESS_NODE
 NTAPI
 PhFindProcessNode(
@@ -245,6 +252,13 @@ PhApplyProcessTreeFilters(
 // srvlist
 
 PHAPPAPI
+struct _PH_TN_FILTER_SUPPORT *
+NTAPI
+PhGetFilterSupportServiceTreeList(
+    VOID
+    );
+
+PHAPPAPI
 PPH_SERVICE_NODE
 NTAPI
 PhFindServiceNode(
@@ -288,6 +302,13 @@ PhSelectAndEnsureVisibleServiceNode(
     );
 
 // netlist
+
+PHAPPAPI
+struct _PH_TN_FILTER_SUPPORT *
+NTAPI
+PhGetFilterSupportNetworkTreeList(
+    VOID
+    );
 
 PHAPPAPI
 PPH_NETWORK_NODE
@@ -493,18 +514,66 @@ typedef struct _PH_TN_COLUMN_MENU_DATA
 #define PH_TN_COLUMN_MENU_SIZE_ALL_COLUMNS_TO_FIT_ID ((ULONG)-4)
 
 PHAPPAPI
-VOID PhInitializeTreeNewColumnMenu(
+VOID
+NTAPI
+PhInitializeTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data
     );
 
 PHAPPAPI
-BOOLEAN PhHandleTreeNewColumnMenu(
+BOOLEAN
+NTAPI
+PhHandleTreeNewColumnMenu(
     __inout PPH_TN_COLUMN_MENU_DATA Data
     );
 
 PHAPPAPI
-VOID PhDeleteTreeNewColumnMenu(
+VOID
+NTAPI
+PhDeleteTreeNewColumnMenu(
     __in PPH_TN_COLUMN_MENU_DATA Data
+    );
+
+typedef struct _PH_TN_FILTER_SUPPORT
+{
+    PPH_LIST FilterList;
+    HWND TreeNewHandle;
+    PPH_LIST NodeList;
+} PH_TN_FILTER_SUPPORT, *PPH_TN_FILTER_SUPPORT;
+
+typedef BOOLEAN (NTAPI *PPH_TN_FILTER_FUNCTION)(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    );
+
+typedef struct _PH_TN_FILTER_ENTRY
+{
+    PPH_TN_FILTER_FUNCTION Filter;
+    PVOID Context;
+} PH_TN_FILTER_ENTRY, *PPH_TN_FILTER_ENTRY;
+
+PHAPPAPI
+PPH_TN_FILTER_ENTRY
+NTAPI
+PhAddTreeNewFilter(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TN_FILTER_FUNCTION Filter,
+    __in_opt PVOID Context
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhRemoveTreeNewFilter(
+    __in PPH_TN_FILTER_SUPPORT Support,
+    __in PPH_TN_FILTER_ENTRY Entry
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhApplyTreeNewFilters(
+    __in PPH_TN_FILTER_SUPPORT Support
     );
 
 // mainwnd
