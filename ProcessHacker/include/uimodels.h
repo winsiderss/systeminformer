@@ -323,6 +323,7 @@ VOID PhReloadSettingsProcessTreeList(
     VOID
     );
 
+PHAPPAPI
 struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportProcessTreeList(
     VOID
     );
@@ -450,6 +451,7 @@ VOID PhSaveSettingsServiceTreeList(
     VOID
     );
 
+PHAPPAPI
 struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportServiceTreeList(
     VOID
     );
@@ -557,6 +559,7 @@ VOID PhSaveSettingsNetworkTreeList(
     VOID
     );
 
+PHAPPAPI
 struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportNetworkTreeList(
     VOID
     );

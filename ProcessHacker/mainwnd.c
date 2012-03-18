@@ -3236,6 +3236,9 @@ VOID PhMwpSelectionChangedTabControl(
             ShowWindow(tabPage->WindowHandle, selectedIndex == tabPage->Index ? SW_SHOW : SW_HIDE);
         }
     }
+
+    if (PhPluginsEnabled)
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged), (PVOID)selectedIndex);
 }
 
 PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(

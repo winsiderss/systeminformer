@@ -372,12 +372,14 @@ VOID PhDeleteTreeNewFilterSupport(
     __in PPH_TN_FILTER_SUPPORT Support
     );
 
+PHAPPAPI
 PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
     __in PPH_TN_FILTER_SUPPORT Support,
     __in PPH_TN_FILTER_FUNCTION Filter,
     __in_opt PVOID Context
     );
 
+PHAPPAPI
 VOID PhRemoveTreeNewFilter(
     __in PPH_TN_FILTER_SUPPORT Support,
     __in PPH_TN_FILTER_ENTRY Entry
@@ -388,6 +390,7 @@ BOOLEAN PhApplyTreeNewFiltersToNode(
     __in PPH_TREENEW_NODE Node
     );
 
+PHAPPAPI
 VOID PhApplyTreeNewFilters(
     __in PPH_TN_FILTER_SUPPORT Support
     );
