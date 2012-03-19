@@ -47,6 +47,11 @@ VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI TabPageUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID DrawWindowBorderForTargeting(
     __in HWND hWnd
     );
