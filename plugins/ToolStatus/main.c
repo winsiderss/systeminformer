@@ -21,17 +21,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-
-#include "resource.h"
 #include "toolstatus.h"
-
-#include <phapppub.h>
-#include <phplug.h>
-
-#include <phappresource.h>
-#include <windowsx.h>
-
 
 #define TARGETING_MODE_NORMAL 0 // select process
 #define TARGETING_MODE_THREAD 1 // select process and thread
@@ -40,13 +30,6 @@
 #define NUMBER_OF_CONTROLS 3
 #define NUMBER_OF_BUTTONS 7
 #define NUMBER_OF_SEPARATORS 2
-
-typedef enum _TOOLBAR_DISPLAY_STYLE
-{
-    ImageOnly = 0,
-    SelectiveText = 1,
-    AllText = 2
-} TOOLBAR_DISPLAY_STYLE;
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -61,27 +44,19 @@ HWND TextboxHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND StatusBarHandle = NULL;
 HWND TargetingCurrentWindow = NULL;
-
-BOOLEAN EnableToolBar;
-BOOLEAN EnableStatusBar;
-
-RECT ReBarRect;
-RECT StatusBarRect;
-
-ULONG StatusMask;
-ULONG IdRangeBase;
-ULONG TargetingMode;
-ULONG ToolBarIdRangeBase;
-ULONG ToolBarIdRangeEnd;
+RECT ReBarRect = { 0 };
+RECT StatusBarRect = { 0 };
+ULONG StatusMask = 0;
+ULONG IdRangeBase = 0;
+ULONG TargetingMode = 0;
+ULONG ToolBarIdRangeBase = 0;
+ULONG ToolBarIdRangeEnd = 0;
 ULONG ProcessesUpdatedCount = 0;
 ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
-
 BOOLEAN TargetingWindow = FALSE;
 BOOLEAN TargetingCurrentWindowDraw = FALSE;
 BOOLEAN TargetingCompleted = FALSE;
-
 HIMAGELIST ToolBarImageList;
-TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -191,29 +166,159 @@ BOOLEAN ProcessTreeFilterCallback(
     // Check if the textbox actually contains anything. 
     if (GetWindowTextLengthW(TextboxHandle) > 0)
     {
-        BOOL result = FALSE;
+        BOOL itemFound = FALSE;
         PPH_STRING textboxText = PhGetWindowText(TextboxHandle);
         PPH_STRING pidText = PhCreateString(processNode->ProcessItem->ProcessIdString);
         
+        // Search process names.
         if (processNode->ProcessItem->ProcessName)
         {
-            // Search process names.
             if (PhFindStringInStringRef(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE) != -1)
             {
-                result = TRUE; 
+                itemFound = TRUE; 
             }
         }
 
         // Search process PIDs.
         if (PhFindStringInStringRef(&pidText->sr, &textboxText->sr, TRUE) != -1)
         {
-            result = TRUE;
+            itemFound = TRUE;
         }
 
         PhDereferenceObject(pidText);
         PhDereferenceObject(textboxText);
 
-        return result;
+        return itemFound;
+    }
+
+    // Textbox empty, allow all items to be shown.
+    return TRUE;
+}
+
+BOOLEAN ServiceTreeFilterCallback(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    )
+{
+    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
+
+     // Check if the textbox actually contains anything. 
+    if (GetWindowTextLengthW(TextboxHandle) > 0)
+    {
+        BOOL itemFound = FALSE;
+        PPH_STRING textboxText = PhGetWindowText(TextboxHandle);
+
+        // Search service name.
+        if (serviceNode->ServiceItem->Name)
+        {
+            if (PhFindStringInStringRef(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+        }
+  
+        // Search service display name.
+        if (serviceNode->ServiceItem->DisplayName)
+        {
+            if (PhFindStringInStringRef(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+        }
+    
+        // Search process PIDs.
+        if (serviceNode->ServiceItem->ProcessIdString)
+        {
+            PPH_STRING pidText = PhCreateString(serviceNode->ServiceItem->ProcessIdString);
+
+            if (PhFindStringInStringRef(&pidText->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE;
+            }
+
+            PhDereferenceObject(pidText);
+        }
+
+        PhDereferenceObject(textboxText);
+
+        return itemFound;
+    }
+
+    // Textbox empty, allow all items to be shown.
+    return TRUE;
+}
+
+BOOLEAN NetworkTreeFilterCallback(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    )
+{
+    PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
+
+     // Check if the textbox actually contains anything. 
+    if (GetWindowTextLengthW(TextboxHandle) > 0)
+    {
+        BOOL itemFound = FALSE;
+        PPH_STRING textboxText = PhGetWindowText(TextboxHandle);
+
+        // Search connection process name.
+        if (networkNode->NetworkItem->ProcessName)
+        {
+            if (PhFindStringInStringRef(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+        }
+  
+        // Search connection local IP address.
+        if (networkNode->NetworkItem->LocalAddressString)
+        {
+            PPH_STRING localAddress = PhCreateString(networkNode->NetworkItem->LocalAddressString);
+
+            if (PhFindStringInStringRef(&localAddress->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+
+            PhDereferenceObject(localAddress);
+        }
+  
+        if (networkNode->NetworkItem->LocalPortString)
+        {
+            PPH_STRING localPort = PhCreateString(networkNode->NetworkItem->LocalPortString);
+
+            if (PhFindStringInStringRef(&localPort->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+
+            PhDereferenceObject(localPort);
+        }
+
+              
+        if (networkNode->NetworkItem->RemoteAddressString)
+        {
+            PPH_STRING remoteAddress = PhCreateString(networkNode->NetworkItem->RemoteAddressString);
+
+            if (PhFindStringInStringRef(&remoteAddress->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+
+            PhDereferenceObject(remoteAddress);
+        }
+
+        if (networkNode->NetworkItem->RemoteHostString)
+        {
+            if (PhFindStringInStringRef(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+        }
+
+        PhDereferenceObject(textboxText);
+
+        return itemFound;
     }
 
     // Textbox empty, allow all items to be shown.
@@ -345,7 +450,6 @@ VOID NTAPI MainWindowShowingCallback(
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, ARRAYSIZE(tbButtonArray), (LPARAM)tbButtonArray);
     }
 
-
     SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
     // Ensure the toolbar recalculates its size based on its content.
     SendMessage(ToolBarHandle, TB_AUTOSIZE, 0L, 0L);
@@ -359,6 +463,8 @@ VOID NTAPI MainWindowShowingCallback(
     ApplyToolbarSettings();
 
     PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
+    PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
+    PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
     PhRegisterCallback(ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), LayoutPaddingCallback, NULL, &LayoutPaddingCallbackRegistration);
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
@@ -494,7 +600,10 @@ LRESULT CALLBACK MainWndSubclassProc(
                 //return 0; 
             case EN_CHANGE: 
                 {
+                    // TODO: change.
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+                    PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
+                    PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
                     goto DefaultWndProc;
                 }
             } 
@@ -1157,61 +1266,4 @@ VOID ShowStatusMenu(
     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask", StatusMask);
 
     UpdateStatusBar();
-}
-
-INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            HWND comboHandle = GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO);
-
-            ComboBox_AddString(comboHandle, L"Images only");
-            ComboBox_AddString(comboHandle, L"Selective text");
-            ComboBox_AddString(comboHandle, L"All text");
-            ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"));
-
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR), EnableToolBar ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR), EnableStatusBar ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS), 
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows") ? BST_CHECKED : BST_UNCHECKED);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                {
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle",
-                        (DisplayStyle = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar",
-                        (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR)) == BST_CHECKED));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar",
-                        (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR)) == BST_CHECKED));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows",
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
-
-                    ApplyToolbarSettings();
-
-                    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
-
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
-            }
-        }
-        break;
-    }
-
-    return FALSE;
 }
