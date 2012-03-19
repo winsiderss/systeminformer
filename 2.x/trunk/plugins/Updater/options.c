@@ -33,16 +33,26 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND hashCboxHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
+            HWND sfComboBoxHandle = GetDlgItem(hwndDlg, IDC_DLCOMBOBOX);
+            HWND hashComboBoxHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
 
-            ComboBox_AddString(hashCboxHandle, L"SHA1");
-            ComboBox_AddString(hashCboxHandle, L"MD5");
-            ComboBox_SetCurSel(hashCboxHandle, PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm"));
+            WCHAR *PhServiceTypeStrings[2] = { L"SHA1", L"MD5" };
 
-            if (PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache"))
+            PhAddComboBoxStrings(hashComboBoxHandle, PhServiceTypeStrings, ARRAYSIZE(PhServiceTypeStrings));
+            ComboBox_SetCurSel(hashComboBoxHandle, PhGetIntegerSetting(SETTING_HASH_ALGORITHM));
+
+
+            ComboBox_AddString(sfComboBoxHandle, L"Images only");
+            ComboBox_AddString(sfComboBoxHandle, L"Selective text");
+            ComboBox_AddString(sfComboBoxHandle, L"All text");
+            ComboBox_SetCurSel(sfComboBoxHandle, PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"));
+
+            
+
+            if (PhGetIntegerSetting(SETTING_ENABLE_CACHE))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE), BST_CHECKED);
 
-            if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
+            if (PhGetIntegerSetting(SETTING_AUTO_CHECK))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
         }
         break;
@@ -55,13 +65,13 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PhSetIntegerSetting(L"ProcessHacker.Updater.EnableCache",
+                    PhSetIntegerSetting(SETTING_ENABLE_CACHE,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE)) == BST_CHECKED);
 
-                    PhSetIntegerSetting(L"ProcessHacker.Updater.PromptStart",
+                    PhSetIntegerSetting(SETTING_AUTO_CHECK,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
 
-                    PhSetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm",
+                    PhSetIntegerSetting(SETTING_HASH_ALGORITHM,
                         ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX)));
 
                     EndDialog(hwndDlg, IDOK);
