@@ -18,6 +18,10 @@
 // Always consider the remote version newer
 #define TEST_MODE
 
+#define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
+#define SETTING_ENABLE_CACHE L"ProcessHacker.Updater.EnableCache"
+#define SETTING_HASH_ALGORITHM L"ProcessHacker.Updater.HashAlgorithm"
+
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
 
@@ -51,21 +55,16 @@ typedef enum _PH_UPDATER_STATE
 	Retry
 } PH_UPDATER_STATE;
 
-VOID ShowUpdateDialog(
+NTSTATUS ShowUpdateDialogThreadStart(
     __in PVOID Parameter
     );
-VOID DisposeStrings(
-    VOID
-    );
+
 BOOL PhInstalledUsingSetup(
     VOID
     );
+
 BOOL ConnectionAvailable(
     VOID
-    );
-
-VOID RunAction(
-    __in HWND hwndDlg
     );
 
 BOOL ParseVersionString(
@@ -95,40 +94,29 @@ mxml_type_t QueryXmlDataCallback(
     __in mxml_node_t *node
     );
 
-void FreeXmlData(
-    __in PUPDATER_XML_DATA XmlData
-    );
-
-void LogEvent(
+VOID LogEvent(
     __in HWND hwndDlg,
     __in PPH_STRING str
     );
 
-void NTAPI LoadCallback(
+VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
-void NTAPI MenuItemCallback(
+VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
-void NTAPI MainWindowShowingCallback(
+VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
-void NTAPI ShowOptionsCallback(
+VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
-    );
-
-INT_PTR CALLBACK MainWndProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
     );
 
 INT_PTR CALLBACK OptionsDlgProc(

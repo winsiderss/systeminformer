@@ -28,13 +28,6 @@ LOGICAL DllMain(
     __reserved PVOID Reserved
     )
 {
-    static PH_SETTING_CREATE settings[] =
-    {
-        { IntegerSettingType, L"ProcessHacker.Updater.EnableCache", L"1" },
-        { IntegerSettingType, L"ProcessHacker.Updater.HashAlgorithm", L"1" },
-        { IntegerSettingType, L"ProcessHacker.Updater.PromptStart", L"1" },
-    };
-
     switch (Reason)
     {
     case DLL_PROCESS_ATTACH:
@@ -47,9 +40,8 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Update Checker";
-            info->Author = L"dmex";
+            info->Author = L"dmex & wj32";
             info->Description = L"Plugin for checking new Process Hacker releases via the Help menu.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=28&t=305";
             info->HasOptions = TRUE;
     
             PhRegisterCallback(
@@ -71,7 +63,16 @@ LOGICAL DllMain(
                 &PluginShowOptionsCallbackRegistration
                 );
 
-             PhAddSettings(settings, ARRAYSIZE(settings));
+             {
+                 PH_SETTING_CREATE settings[] =
+                 {
+                     { IntegerSettingType, SETTING_ENABLE_CACHE, L"1" },
+                     { IntegerSettingType, SETTING_HASH_ALGORITHM, L"1" },
+                     { IntegerSettingType, SETTING_AUTO_CHECK, L"1" },
+                 };
+
+                 PhAddSettings(settings, ARRAYSIZE(settings));
+             }
         }
         break;
     }
@@ -87,7 +88,7 @@ VOID NTAPI MainWindowShowingCallback(
     // Add our menu item, 4 = Help menu.
     PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
 
-    if (PhGetIntegerSetting(L"ProcessHacker.Updater.PromptStart"))
+    if (PhGetIntegerSetting(SETTING_AUTO_CHECK))
     {
         // Queue up our initial update check.
         StartInitialCheck();
@@ -107,7 +108,7 @@ VOID NTAPI MenuItemCallback(
         {
         case UPDATE_MENUITEM:
             {
-                ShowUpdateDialog(NULL);
+                PhCreateThread(0, ShowUpdateDialogThreadStart, NULL);
             }
             break;
         }

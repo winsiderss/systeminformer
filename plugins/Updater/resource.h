@@ -14,7 +14,10 @@
 #define IDC_HASHCOMBOBOX                1009
 #define IDC_DOWNLOAD                    1010
 #define IDC_HASHCOMBOBOX2               1010
+#define IDC_DLCOMBOBOX                  1010
 #define IDC_UPDATEICON                  1017
+#define IDC_SYSLINK1                    1018
+#define IDC_EDIT1                       1019
 
 // Next default values for new objects
 // 
@@ -22,7 +25,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        108
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1018
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif
