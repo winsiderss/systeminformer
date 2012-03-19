@@ -83,49 +83,6 @@ BOOLEAN TargetingCompleted = FALSE;
 HIMAGELIST ToolBarImageList;
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
-
-VOID NTAPI TabPageUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    INT index = Parameter;
-    
-    // This callback is invoked before our Textbox has actually been created.
-    // GeneralCallbackMainWindowTabChanged is invoked before GeneralCallbackMainWindowShowing (where our controls are created).
-    if (TextboxHandle)
-    {
-        // Enable the textbox.
-        Edit_Enable(TextboxHandle, TRUE);
-
-        switch (index)
-        {
-        case 0:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
-            }
-            break;
-        case 1:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Services");
-            }
-            break;
-        case 2:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Network");
-            }
-            break;
-        default:
-            {
-                // Disable the textbox if 
-                //Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
-                Edit_Enable(TextboxHandle, FALSE);
-            }
-            break;
-        }
-    }
-}
-
 LOGICAL DllMain(
     __in HINSTANCE Instance,
     __in ULONG Reason,
@@ -145,7 +102,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Toolbar and Status Bar";
             info->Author = L"dmex & wj32";
-            info->Description = L"Adds a toolbar and a status bar.";
+            info->Description = L"Adds a Toolbar and a Status Bar.";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(
@@ -224,7 +181,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
-BOOLEAN ToolStatusProcessTreeFilter(
+BOOLEAN ProcessTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     )
@@ -241,14 +198,14 @@ BOOLEAN ToolStatusProcessTreeFilter(
         if (processNode->ProcessItem->ProcessName)
         {
             // Search process names.
-            if (!PhFindStringInStringRef(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE))
+            if (PhFindStringInStringRef(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE) != -1)
             {
                 result = TRUE; 
             }
         }
 
         // Search process PIDs.
-        if (!PhFindStringInStringRef(&pidText->sr, &textboxText->sr, TRUE))
+        if (PhFindStringInStringRef(&pidText->sr, &textboxText->sr, TRUE) != -1)
         {
             result = TRUE;
         }
@@ -280,7 +237,7 @@ VOID NTAPI MainWindowShowingCallback(
         WS_EX_TOOLWINDOW,
         REBARCLASSNAME,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP,// | RBS_FIXEDORDER,
+        WS_CHILD | WS_BORDER | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT,
         0, 0, 0, 0,
         PhMainWndHandle,
         NULL,
@@ -291,7 +248,7 @@ VOID NTAPI MainWindowShowingCallback(
         0,
         TOOLBARCLASSNAME,
         NULL,
-        WS_CHILD | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS,
+        WS_CHILD | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT,
         0, 0, 0, 0,
         ReBarHandle,
         (HMENU)(IdRangeBase),
@@ -321,9 +278,10 @@ VOID NTAPI MainWindowShowingCallback(
         NULL
         );
 
+    // Set the toolbar struct size.
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
-
+    // Set the extended toolbar styles.
+    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
     // Set Searchbox control font.
     SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);   
     // Limit the amount of chars.
@@ -336,7 +294,7 @@ VOID NTAPI MainWindowShowingCallback(
         REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
 
         rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-        rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_GRIPPERALWAYS; //RBBS_CHILDEDGE
+        rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
 
         //no imagelist to attach to rebar
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&ri);
@@ -387,8 +345,11 @@ VOID NTAPI MainWindowShowingCallback(
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, ARRAYSIZE(tbButtonArray), (LPARAM)tbButtonArray);
     }
 
-    SendMessage(ReBarHandle, WM_SIZE, 0, 0);
-    SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
+
+    SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
+    // Ensure the toolbar recalculates its size based on its content.
+    SendMessage(ToolBarHandle, TB_AUTOSIZE, 0L, 0L);
+    SendMessage(ToolBarHandle, WM_SIZE, 0L, 0L);
  
     //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
     //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
@@ -397,59 +358,10 @@ VOID NTAPI MainWindowShowingCallback(
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");
     ApplyToolbarSettings();
 
-    PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ToolStatusProcessTreeFilter, NULL);
+    PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
 
     PhRegisterCallback(ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), LayoutPaddingCallback, NULL, &LayoutPaddingCallbackRegistration);
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
-}
-
-VOID ApplyToolbarSettings(
-    VOID
-    )
-{
-    BOOLEAN buttonHasText[NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS] = { TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE };
-    ULONG i;
-
-    if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
-        ShowWindow(ToolBarHandle, SW_SHOW);
-    if (EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
-        ShowWindow(StatusBarHandle, SW_SHOW);
-
-    for (i = 0; i < NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS; i++)
-    {
-        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-        button.dwMask = TBIF_BYINDEX | TBIF_STYLE;
-
-        // Get settings for first button.
-        SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
-
-        // Skip separator buttons.
-        if (button.fsStyle != BTNS_SEP)
-        {
-            switch (DisplayStyle)
-            {
-            case ImageOnly:
-                button.fsStyle = BTNS_AUTOSIZE;
-                break;
-            case SelectiveText:
-                button.fsStyle = BTNS_AUTOSIZE;
-
-                if (buttonHasText[i])
-                    button.fsStyle = BTNS_SHOWTEXT;
-
-                break;
-            case AllText:
-                button.fsStyle = BTNS_SHOWTEXT;
-                break;
-            }
-
-            // Set updated button info.
-            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
-        }
-    }
-
-    // Repaint the toolbar.
-    InvalidateRect(ToolBarHandle, NULL, TRUE);
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
@@ -461,6 +373,64 @@ VOID NTAPI ProcessesUpdatedCallback(
 
     if (EnableStatusBar)
         UpdateStatusBar();
+}
+
+VOID NTAPI TabPageUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    INT index = Parameter;
+    
+    // This callback is invoked before our Textbox has actually been created.
+    // GeneralCallbackMainWindowTabChanged is invoked before GeneralCallbackMainWindowShowing (where our controls are created).
+    if (TextboxHandle)
+    {
+        // Enable the textbox.
+        Edit_Enable(TextboxHandle, TRUE);
+
+        switch (index)
+        {
+        case 0:
+            {
+                Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
+            }
+            break;
+        case 1:
+            {
+                Edit_SetCueBannerText(TextboxHandle, L"Search Services");
+            }
+            break;
+        case 2:
+            {
+                Edit_SetCueBannerText(TextboxHandle, L"Search Network");
+            }
+            break;
+        default:
+            {
+                // Disable the textbox if 
+                //Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
+                Edit_Enable(TextboxHandle, FALSE);
+            }
+            break;
+        }
+    }
+}
+
+VOID NTAPI LayoutPaddingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_LAYOUT_PADDING_DATA data = Parameter;
+
+    if (EnableToolBar)
+    {
+        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
+    }
+
+    if (EnableStatusBar)
+        data->Padding.bottom += StatusBarRect.bottom;
 }
 
 VOID DrawWindowBorderForTargeting(
@@ -500,22 +470,6 @@ VOID DrawWindowBorderForTargeting(
         RestoreDC(hdc, oldDc);
         ReleaseDC(hWnd, hdc);
     }
-}
-
-VOID NTAPI LayoutPaddingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_LAYOUT_PADDING_DATA data = Parameter;
-
-    if (EnableToolBar)
-    {
-        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
-    }
-
-    if (EnableStatusBar)
-        data->Padding.bottom += StatusBarRect.bottom;
 }
 
 LRESULT CALLBACK MainWndSubclassProc(
@@ -852,6 +806,55 @@ LRESULT CALLBACK MainWndSubclassProc(
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+VOID ApplyToolbarSettings(
+    VOID
+    )
+{
+    BOOLEAN buttonHasText[NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS] = { TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE };
+    ULONG i;
+
+    if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
+        ShowWindow(ToolBarHandle, SW_SHOW);
+    if (EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
+        ShowWindow(StatusBarHandle, SW_SHOW);
+
+    for (i = 0; i < NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS; i++)
+    {
+        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
+        button.dwMask = TBIF_BYINDEX | TBIF_STYLE;
+
+        // Get settings for first button.
+        SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
+
+        // Skip separator buttons.
+        if (button.fsStyle != BTNS_SEP)
+        {
+            switch (DisplayStyle)
+            {
+            case ImageOnly:
+                button.fsStyle = BTNS_AUTOSIZE;
+                break;
+            case SelectiveText:
+                button.fsStyle = BTNS_AUTOSIZE;
+
+                if (buttonHasText[i])
+                    button.fsStyle = BTNS_SHOWTEXT;
+
+                break;
+            case AllText:
+                button.fsStyle = BTNS_SHOWTEXT;
+                break;
+            }
+
+            // Set updated button info.
+            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
+        }
+    }
+
+    // Repaint the toolbar.
+    InvalidateRect(ToolBarHandle, NULL, TRUE);
 }
 
 VOID UpdateStatusBar(
