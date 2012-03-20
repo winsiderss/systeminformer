@@ -36,18 +36,43 @@ INT_PTR CALLBACK OptionsDlgProc(
             HWND sfComboBoxHandle = GetDlgItem(hwndDlg, IDC_DLCOMBOBOX);
             HWND hashComboBoxHandle = GetDlgItem(hwndDlg, IDC_HASHCOMBOBOX);
 
-            WCHAR *PhServiceTypeStrings[2] = { L"SHA1", L"MD5" };
+            WCHAR *hashTypeStrings[] = { L"SHA1", L"MD5" };
+            WCHAR *sfDownloadLocationStrings[] = 
+            { 
+                L"Auto-detect", 
+                L"AARNet (Melbourne, Australia, AU)", 
+                L"Waix (Perth, Australia, AU)"
+                L"Internode (Adelaide, Australia, AU)",
 
-            PhAddComboBoxStrings(hashComboBoxHandle, PhServiceTypeStrings, ARRAYSIZE(PhServiceTypeStrings));
+                L"Japan AIST (Nomi, Japan, JP)",
+                L"CDNetworks (Seoul, Korea, Republic of, KR)",
+                L"CityLan (Moscow, Russian Federation, RU)",
+                L"Ignum (Prague, Czech Republic, CZ)",
+                L"SWITCH (Zurich, Switzerland, CH)",
+                L"NetCologne (K&ouml;ln, Germany, DE)",
+                L"University of Kent (Bristol, United Kingdom, GB)",
+                
+                L"National Center for HPC (Taipei, Taiwan, TW)",
+                L"CDNetworks (Seoul, Korea, Republic of, KR)",
+                L"TENET (Wynberg, South Africa, ZA)",
+                L"garr.it (Ancona, Italy, IT)",
+                L"Centro de Computacao (Curitiba, Brazil, BR)",
+                L"German Research Network (Germany, DE)",
+                L"Free France (Paris, France, FR)",
+                L"HEAnet (Ireland, IE)",
+
+                L"Softlayer (Dallas, TX, US)",
+                L"Superb Internet (United States, US)",
+                L"Voxel Hosting (New York, NY, US)",
+
+                L"iWeb (Montreal, QC, CA)",
+            };
+
+            PhAddComboBoxStrings(hashComboBoxHandle, hashTypeStrings, ARRAYSIZE(hashTypeStrings));
             ComboBox_SetCurSel(hashComboBoxHandle, PhGetIntegerSetting(SETTING_HASH_ALGORITHM));
 
-
-            ComboBox_AddString(sfComboBoxHandle, L"Images only");
-            ComboBox_AddString(sfComboBoxHandle, L"Selective text");
-            ComboBox_AddString(sfComboBoxHandle, L"All text");
-            ComboBox_SetCurSel(sfComboBoxHandle, PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"));
-
-            
+            PhAddComboBoxStrings(sfComboBoxHandle, sfDownloadLocationStrings, ARRAYSIZE(sfDownloadLocationStrings));
+            ComboBox_SetCurSel(sfComboBoxHandle, ComboBox_FindString(sfComboBoxHandle, 0, L"Auto-detect"));          
 
             if (PhGetIntegerSetting(SETTING_ENABLE_CACHE))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE), BST_CHECKED);

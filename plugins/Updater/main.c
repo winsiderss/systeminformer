@@ -108,7 +108,7 @@ VOID NTAPI MenuItemCallback(
         {
         case UPDATE_MENUITEM:
             {
-                PhCreateThread(0, ShowUpdateDialogThreadStart, NULL);
+                ShowDialog();
             }
             break;
         }
