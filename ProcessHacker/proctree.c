@@ -849,14 +849,14 @@ static VOID PhpUpdateProcessNodeDepStatus(
         HANDLE processHandle;
         ULONG depStatus;
 
+        depStatus = 0;
+
 #ifdef _M_X64
         if (ProcessNode->ProcessItem->IsWow64)
 #else
         if (TRUE)
 #endif
         {
-            depStatus = 0;
-
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
                 PROCESS_QUERY_INFORMATION,

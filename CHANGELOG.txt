@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Updated ExtendedTools plugin:
      * Fixed network graph scaling
+   * Updated ToolStatus plugin:
+     * Added Searchbox
  * FIXED:
 
 2.27
