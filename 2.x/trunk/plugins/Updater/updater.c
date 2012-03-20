@@ -22,9 +22,13 @@
 */
 
 #include "updater.h"
-#include <phappresource.h>
+
+#define WM_SHOWDIALOG (WM_APP + 150)
+static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
 static BOOLEAN EnableCache = TRUE;
+static HWND UpdateDialogHandle = NULL;
+static HANDLE UpdaterThreadHandle = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Default;
 static PH_HASH_ALGORITHM HashAlgorithm = Sha1HashAlgorithm;
 
@@ -62,7 +66,7 @@ static NTSTATUS SilentUpdateCheckThreadStart(
         // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
         Sleep(3 * 1000);
 
-        PhCreateThread(0, ShowUpdateDialogThreadStart, NULL);
+        ShowDialog();
     }
 
     return STATUS_SUCCESS;
@@ -72,11 +76,12 @@ static NTSTATUS WorkerThreadStart(
     __in PVOID Parameter
     )
 {
-    PPH_STRING localVersion;
     INT result = 0;
     ULONG localMajorVersion = 0, localMinorVersion = 0;
-    HWND hwndDlg = (HWND)Parameter;
+    PPH_STRING localVersion;
     UPDATER_XML_DATA xmlData;
+
+    HWND hwndDlg = (HWND)Parameter;
 
     if (!ConnectionAvailable())
         return STATUS_UNSUCCESSFUL;
@@ -95,28 +100,49 @@ static NTSTATUS WorkerThreadStart(
     localMajorVersion = 0;
     localMinorVersion = 0;
 #endif
-
     result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
-
-    //RemoteHashString = PhCreateString(xmlData.Hash);
-    PhDereferenceObject(localVersion);
 
     if (result > 0)
     {
         UINT dwRetVal = 0;
-        WCHAR szSummaryText[MAX_PATH], 
-              szReleaseText[MAX_PATH], 
-              szSizeText[MAX_PATH], 
-              szFileName[MAX_PATH];
+        WCHAR szSummaryText[MAX_PATH]; 
+        WCHAR szReleaseText[MAX_PATH];
+        WCHAR szSizeText[MAX_PATH]; 
+        WCHAR szFileName[MAX_PATH];
 
         // Set the header text
-        swprintf_s(szSummaryText, ARRAYSIZE(szSummaryText), L"Process Hacker %u.%u", xmlData.MajorVersion, xmlData.MinorVersion);
+        swprintf_s(
+            szSummaryText, 
+            ARRAYSIZE(szSummaryText), 
+            L"Process Hacker %u.%u", 
+            xmlData.MajorVersion, 
+            xmlData.MinorVersion
+            );
+
         //Release text
-        swprintf_s(szReleaseText, ARRAYSIZE(szReleaseText), L"Released: %s", xmlData.RelDate);
+        swprintf_s(
+            szReleaseText, 
+            ARRAYSIZE(szReleaseText), 
+            L"Released: %s", 
+            xmlData.RelDate
+            );
+
         //Size text
-        swprintf_s(szSizeText, ARRAYSIZE(szSizeText), L"Size: %s", xmlData.Size);
-        // filename
-        swprintf_s(szFileName, ARRAYSIZE(szFileName), L"processhacker-%u.%u-setup.exe", xmlData.MajorVersion, xmlData.MinorVersion);
+        swprintf_s(
+            szSizeText, 
+            ARRAYSIZE(szSizeText), 
+            L"Size: %s", 
+            xmlData.Size
+            );
+
+        // setup download filename
+        swprintf_s(
+            szFileName, 
+            ARRAYSIZE(szFileName), 
+            L"processhacker-%u.%u-setup.exe", 
+            xmlData.MajorVersion, 
+            xmlData.MinorVersion
+            );
 
         Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), szSummaryText);
         Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), szReleaseText);
@@ -124,24 +150,14 @@ static NTSTATUS WorkerThreadStart(
 
         // Enable the download button.
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+        // Use the Scrollbar macro to enable the other controls.
+        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
+        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
 
         PhUpdaterState = Downloading;
     }
     else if (result == 0)
-    {
-        WCHAR szSummaryText[MAX_PATH];
-
-        swprintf_s(
-            szSummaryText, 
-            ARRAYSIZE(szSummaryText), 
-            L"You're running the latest version: %u.%u", 
-            xmlData.MajorVersion, 
-            xmlData.MinorVersion
-            );
-
-        Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), szSummaryText);
-    }
-    else if (result < 0)
     {
         WCHAR szSummaryText[MAX_PATH];
         WCHAR szStableText[MAX_PATH];
@@ -150,30 +166,60 @@ static NTSTATUS WorkerThreadStart(
         swprintf_s(
             szSummaryText, 
             ARRAYSIZE(szSummaryText), 
-            L"You're running a newer version: %u.%u", 
-            localMajorVersion, 
-            localMinorVersion
+            L"No updates available"
             );
 
         swprintf_s(
             szStableText, 
             ARRAYSIZE(szStableText), 
-            L"Latest stable version: %u.%u", 
+            L"You're running the latest stable version: %u.%u", 
             xmlData.MajorVersion, 
             xmlData.MinorVersion
             );
 
-        swprintf_s(
-            szReleaseText, 
-            ARRAYSIZE(szReleaseText), 
-            L"Released: %s", 
-            xmlData.RelDate
-            );
+        //swprintf_s(
+        //    szReleaseText, 
+        //    ARRAYSIZE(szReleaseText), 
+        //    L"",//L"Released: %s", 
+        //    NULL//xmlData.RelDate
+        //    );
             
         Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), szSummaryText);
         Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), szStableText);
-        Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szReleaseText);
+        //Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szReleaseText);
     }
+    else if (result < 0)
+    {
+        WCHAR szSummaryText[MAX_PATH];
+        WCHAR szStableText[MAX_PATH];
+        //WCHAR szReleaseText[MAX_PATH];
+
+        swprintf_s(
+            szSummaryText, 
+            ARRAYSIZE(szSummaryText), 
+            L"No updates available"
+            );
+
+        swprintf_s(
+            szStableText, 
+            ARRAYSIZE(szStableText), 
+            L"You're running SVN build: v%s", 
+            localVersion->Buffer
+            );
+
+        //swprintf_s(
+        //    szReleaseText, 
+        //    ARRAYSIZE(szReleaseText), 
+        //    L"Released: %s", 
+        //    xmlData.RelDate
+        //    );
+            
+        Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), szSummaryText);
+        Edit_SetText(GetDlgItem(hwndDlg, IDC_RELDATE), szStableText);
+        //Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szReleaseText);
+    }
+
+    PhDereferenceObject(localVersion);
 
     return STATUS_SUCCESS;
 }
@@ -183,11 +229,11 @@ static NTSTATUS DownloadWorkerThreadStart(
     )
 {
     WCHAR szDownloadPath[MAX_PATH];
-    DWORD dwTotalReadSize = 0,
-        dwContentLen = 0,
-        dwBytesRead = 0,
-        dwBytesWritten = 0,
-        dwBufLen = sizeof(dwContentLen);
+    DWORD dwTotalReadSize = 0;
+    DWORD dwContentLen = 0;
+    DWORD dwBytesRead = 0;
+    DWORD dwBytesWritten = 0;
+    DWORD dwBufLen = sizeof(dwContentLen);
 
     HWND hwndDlg = (HWND)Parameter, hwndProgress = GetDlgItem(hwndDlg, IDC_PROGRESS);
     
@@ -500,11 +546,11 @@ static NTSTATUS DownloadWorkerThreadStart(
 
                  if (!_wcsicmp(hexString, xmlData.Hash))
                  {
-                     Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download complete, Hash verified");
+                     Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download complete, Hash verified.");
                  }
                  else
                  {
-                     Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download complete, Hash failed");
+                     Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download complete, Hash failed.");
 
                      if (WindowsVersion > WINDOWS_XP)
                          SendMessage(hwndProgress, PBM_SETSTATE, PBST_ERROR, 0);
@@ -536,7 +582,6 @@ CleanupAndExit:
     if (TempFileHandle)
         CloseHandle(TempFileHandle);
 
-
     //return STATUS_UNSUCCESSFUL;
     return STATUS_SUCCESS;
 }
@@ -550,34 +595,41 @@ INT_PTR CALLBACK UpdaterWndProc(
 {
     switch (uMsg)
     {
+    case WM_SHOWDIALOG:
+        {
+            if (IsIconic(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
+        }
+        break;
     case WM_INITDIALOG:
         {
-            LOGFONT lHeaderFont = { 0 };
+            LOGFONT lHeaderFont = { 0 };       
 
-            EnableCache = (PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1 ? TRUE : FALSE);
+            // load the PH main icon using the 'magic' resource id.
+            HANDLE hPhIcon = LoadImageW(
+                GetModuleHandle(NULL), 
+                MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER), 
+                IMAGE_ICON, 
+                GetSystemMetrics(SM_CXICON), 
+                GetSystemMetrics(SM_CYICON),	
+                LR_SHARED
+                );
+            // Set the window icon.
+            SendMessageW(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)hPhIcon);
+
+            EnableCache = (PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1L ? TRUE : FALSE);
             HashAlgorithm = (PH_HASH_ALGORITHM)PhGetIntegerSetting(L"ProcessHacker.Updater.HashAlgorithm");
             PhUpdaterState = Default;
         
             lHeaderFont.lfHeight = -15;
             lHeaderFont.lfWeight = FW_MEDIUM;
             lHeaderFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-            // TODO: Do we need to check if Segoe exists? CreateFontIndirect works with invalid lfFaceName values...
+            // We don't check if Segoe exists, CreateFontIndirect does this for us.
             wcscat_s(lHeaderFont.lfFaceName, ARRAYSIZE(lHeaderFont.lfFaceName), L"Segoe UI");
-
-            {
-                // load the PH main icon using the 'magic' resource id.
-                HANDLE hPhIcon = LoadImageW(
-                    GetModuleHandle(NULL), 
-                    MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER), 
-                    IMAGE_ICON, 
-                    GetSystemMetrics(SM_CXICON), 
-                    GetSystemMetrics(SM_CYICON),	
-                    LR_SHARED
-                    );
-
-                // Set the window icon.
-                SendMessageW(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)hPhIcon);
-            }
 
             // Center the update window on PH if visible and not mimimized else center on desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(GetParent(hwndDlg)) && !IsIconic(GetParent(hwndDlg))) ? GetParent(hwndDlg) : NULL);
@@ -600,7 +652,7 @@ INT_PTR CALLBACK UpdaterWndProc(
             }
 
             // return stock White color as our window background.
-            return (HBRUSH)GetStockObject(WHITE_BRUSH);
+            return (INT_PTR)(HBRUSH)GetStockObject(WHITE_BRUSH);
         }
     case WM_COMMAND:
         {
@@ -629,7 +681,7 @@ INT_PTR CALLBACK UpdaterWndProc(
                                 // Let the user handle non-setup installation, show the homepage and close this dialog.
                                 PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
 
-                                EndDialog(hwndDlg, IDOK);
+                                PostQuitMessage(0);
                             }
                         }
                         break;
@@ -671,46 +723,7 @@ INT_PTR CALLBACK UpdaterWndProc(
     return FALSE;
 }
 
-NTSTATUS ShowUpdateDialogThreadStart(
-    __in PVOID Parameter
-    )
-{
-    static HWND updateDialogHandle = NULL;
 
-    // Check if our dialog handle is valid.
-    if (!IsWindow(updateDialogHandle)) 
-    { 
-        BOOL result;
-        MSG message;
-
-        updateDialogHandle = CreateDialog( 
-            (HINSTANCE)PluginInstance->DllBase, 
-            MAKEINTRESOURCE(IDD_UPDATE), 
-            PhMainWndHandle, 
-            UpdaterWndProc
-            ); 
-
-        ShowWindow(updateDialogHandle, SW_SHOW); 
-        UpdateWindow(updateDialogHandle); 
-
-        while (result = GetMessage(&message, NULL, 0, 0)) 
-        { 
-            if (result == -1)
-                break;
-
-            if (!IsWindow(updateDialogHandle) || !IsDialogMessage(updateDialogHandle, &message))
-            { 
-                TranslateMessage(&message); 
-                DispatchMessage(&message); 
-            }
-        }
-
-        DestroyWindow(updateDialogHandle);
-        updateDialogHandle = NULL;
-    }
-
-    return STATUS_SUCCESS;
-}
 
 
 LONG CompareVersions(
@@ -860,9 +873,9 @@ BOOL QueryXmlData(
     __out PUPDATER_XML_DATA XmlData
     )
 {
-    PCHAR data;
-    HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
+    PCHAR data = NULL;
     BOOL result = FALSE;
+    HINTERNET NetInitialize = NULL, NetConnection = NULL, NetRequest = NULL;
     mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
 
     // Initialize the wininet library.
@@ -1094,4 +1107,69 @@ VOID StartInitialCheck(
 {
     // Queue up our initial update check.
     PhCreateThread(0, SilentUpdateCheckThreadStart, NULL);
+}
+
+
+NTSTATUS ShowUpdateDialogThreadStart(
+    __in PVOID Parameter
+    )
+{
+    BOOL result;
+    MSG message;
+    PH_AUTO_POOL autoPool;
+
+    PhInitializeAutoPool(&autoPool);
+
+    UpdateDialogHandle = CreateDialog( 
+        (HINSTANCE)PluginInstance->DllBase, 
+        MAKEINTRESOURCE(IDD_UPDATE), 
+        PhMainWndHandle, 
+        UpdaterWndProc
+        ); 
+
+    PhSetEvent(&InitializedEvent);
+
+    while (result = GetMessage(&message, NULL, 0, 0)) 
+    { 
+        if (result == -1)
+            break;
+
+        if (!IsWindow(UpdateDialogHandle) || !IsDialogMessage(UpdateDialogHandle, &message))
+        { 
+            TranslateMessage(&message); 
+            DispatchMessage(&message); 
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    PhResetEvent(&InitializedEvent);
+    NtClose(UpdaterThreadHandle);
+
+    DestroyWindow(UpdateDialogHandle);
+
+    UpdaterThreadHandle = NULL;
+    UpdateDialogHandle = NULL;
+
+
+    return STATUS_SUCCESS;
+}
+
+VOID ShowDialog(
+    VOID
+    )
+{
+    if (!UpdaterThreadHandle)
+    {
+        if (!(UpdaterThreadHandle = PhCreateThread(0, ShowUpdateDialogThreadStart, NULL)))
+        {
+            PhShowStatus(PhMainWndHandle, L"Unable to create the updater window.", 0, GetLastError());
+            return;
+        }
+
+        PhWaitForEvent(&InitializedEvent, NULL);
+    }
+
+    SendMessage(UpdateDialogHandle, WM_SHOWDIALOG, 0, 0);
 }
