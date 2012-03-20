@@ -283,6 +283,7 @@ BOOLEAN NetworkTreeFilterCallback(
             PhDereferenceObject(localAddress);
         }
   
+        // Search local port.
         if (networkNode->NetworkItem->LocalPortString)
         {
             PPH_STRING localPort = PhCreateString(networkNode->NetworkItem->LocalPortString);
@@ -294,8 +295,8 @@ BOOLEAN NetworkTreeFilterCallback(
 
             PhDereferenceObject(localPort);
         }
-
-              
+       
+        // Search connection remote IP address.
         if (networkNode->NetworkItem->RemoteAddressString)
         {
             PPH_STRING remoteAddress = PhCreateString(networkNode->NetworkItem->RemoteAddressString);
@@ -308,9 +309,32 @@ BOOLEAN NetworkTreeFilterCallback(
             PhDereferenceObject(remoteAddress);
         }
 
+        // Search connection remote hostname.
         if (networkNode->NetworkItem->RemoteHostString)
         {
             if (PhFindStringInStringRef(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+        }
+
+        // Search connection remote port.        
+        if (networkNode->NetworkItem->RemotePortString)
+        {
+            PPH_STRING remotePort = PhCreateString(networkNode->NetworkItem->RemotePortString);
+
+            if (PhFindStringInStringRef(&remotePort->sr, &textboxText->sr, TRUE) != -1)
+            {
+                itemFound = TRUE; 
+            }
+
+            PhDereferenceObject(remotePort);
+        }
+
+        // Search connection owner name.
+        if (networkNode->NetworkItem->OwnerName)
+        {
+            if (PhFindStringInStringRef(&networkNode->NetworkItem->OwnerName->sr, &textboxText->sr, TRUE) != -1)
             {
                 itemFound = TRUE; 
             }
@@ -349,6 +373,7 @@ VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
+    // Create the toolbar.
     ToolBarHandle = CreateWindowExW(
         0,
         TOOLBARCLASSNAME,
@@ -360,6 +385,7 @@ VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
+    // Create the searchbox
     TextboxHandle = CreateWindowExW(
         0,
         WC_EDIT,
@@ -371,7 +397,8 @@ VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
-    StatusBarHandle = CreateWindowEx(
+    // Create the statusbar.
+    StatusBarHandle = CreateWindowExW(
         0,
         STATUSCLASSNAME,
         NULL,
@@ -387,13 +414,8 @@ VOID NTAPI MainWindowShowingCallback(
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     // Set the extended toolbar styles.
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-    // Set Searchbox control font.
-    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);   
-    // Limit the amount of chars.
-    SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
 
-    Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
-
+    // Add the rebar controls and attach our windows.
     {
         REBARINFO ri = { sizeof(REBARINFO) };
         REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
@@ -417,19 +439,26 @@ VOID NTAPI MainWindowShowingCallback(
         rBandInfo.hwndChild = TextboxHandle;
         SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
     }
+
+    // Set Searchbox control font.
+    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);   
+    // Limit the amount of chars.
+    SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
+
+    Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
  
     {
         TBBUTTON tbButtonArray[] =
         {
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Refresh" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Options" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, NULL },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Handles or DLLs" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"System Information" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, NULL },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window and Thread" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window and Kill" }
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
+            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
+            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
         };
 
         // Create the toolbar imagelist.
@@ -485,17 +514,12 @@ VOID NTAPI TabPageUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
-{
-    INT index = Parameter;
-    
-    // This callback is invoked before our Textbox has actually been created.
-    // GeneralCallbackMainWindowTabChanged is invoked before GeneralCallbackMainWindowShowing (where our controls are created).
+{    
     if (TextboxHandle)
     {
-        // Enable the textbox.
-        Edit_Enable(TextboxHandle, TRUE);
+        INT tabIndex = (INT)Parameter;
 
-        switch (index)
+        switch (tabIndex)
         {
         case 0:
             {
@@ -514,9 +538,7 @@ VOID NTAPI TabPageUpdatedCallback(
             break;
         default:
             {
-                // Disable the textbox if 
-                //Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
-                Edit_Enable(TextboxHandle, FALSE);
+                Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
             }
             break;
         }
@@ -530,13 +552,14 @@ VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA data = Parameter;
 
-    if (EnableToolBar)
+    if (data)
     {
-        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
-    }
+        if (EnableToolBar)
+            data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
 
-    if (EnableStatusBar)
-        data->Padding.bottom += StatusBarRect.bottom;
+        if (EnableStatusBar)
+            data->Padding.bottom += StatusBarRect.bottom;
+    }
 }
 
 VOID DrawWindowBorderForTargeting(
@@ -596,11 +619,9 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             switch (HIWORD(wParam)) 
             { 
-            //case EN_UPDATE: 
-                //return 0; 
             case EN_CHANGE: 
                 {
-                    // TODO: change.
+                    // Invoke search callbacks.
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());

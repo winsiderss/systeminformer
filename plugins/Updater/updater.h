@@ -1,19 +1,22 @@
 #ifndef __UPDATER_H__
 #define __UPDATER_H__
 
+#pragma comment(lib, "Wininet.lib")
+
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 #define COBJMACROS
 
-#pragma comment(lib, "Wininet.lib")
 #include "phdk.h"
-#include "resource.h"
+#include <phappresource.h>
 #include "mxml.h"
 
 #include <wininet.h>
 #include <windowsx.h>
 #include <Netlistmgr.h>
+
+#include "resource.h"
 
 // Always consider the remote version newer
 #define TEST_MODE
@@ -55,8 +58,8 @@ typedef enum _PH_UPDATER_STATE
 	Retry
 } PH_UPDATER_STATE;
 
-NTSTATUS ShowUpdateDialogThreadStart(
-    __in PVOID Parameter
+VOID ShowDialog(
+    VOID
     );
 
 BOOL PhInstalledUsingSetup(
