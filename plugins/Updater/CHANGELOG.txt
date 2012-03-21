@@ -1,11 +1,10 @@
 1.2
- * Redesigned UI.
- * Implemented INetworkListManager support for Vista and above.
- * Implemented download region configuration.
- * Fixed auto-update prompt location if PH minimized.
- * Fixed string handling
- * Fixed error handling
- * Fixed handle leak
+ * Updated UI
+ * Implemented INetworkListManager support for Vista and above
+ * Improved download speed calculation
+ * Improved time remaining calculation
+ * Fixed auto-update prompt location if PH minimized
+ * Fixed other various issues
 
 1.1
  * Added download speed
