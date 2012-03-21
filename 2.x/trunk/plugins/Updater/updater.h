@@ -12,6 +12,8 @@
 #include <phappresource.h>
 #include "mxml.h"
 
+#include <stdint.h>
+
 #include <wininet.h>
 #include <windowsx.h>
 #include <Netlistmgr.h>
@@ -23,7 +25,6 @@
 
 #define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
 #define SETTING_ENABLE_CACHE L"ProcessHacker.Updater.EnableCache"
-#define SETTING_HASH_ALGORITHM L"ProcessHacker.Updater.HashAlgorithm"
 
 #define BUFFER_LEN 512
 #define UPDATE_MENUITEM 1
@@ -59,6 +60,10 @@ typedef enum _PH_UPDATER_STATE
 } PH_UPDATER_STATE;
 
 VOID ShowDialog(
+    VOID
+    );
+
+VOID StartInitialCheck(
     VOID
     );
 
@@ -98,7 +103,7 @@ mxml_type_t QueryXmlDataCallback(
     );
 
 VOID LogEvent(
-    __in HWND hwndDlg,
+    __in_opt HWND hwndDlg,
     __in PPH_STRING str
     );
 
