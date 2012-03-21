@@ -40,7 +40,7 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Update Checker";
-            info->Author = L"dmex & wj32";
+            info->Author = L"dmex";
             info->Description = L"Plugin for checking new Process Hacker releases via the Help menu.";
             info->HasOptions = TRUE;
     
@@ -67,7 +67,6 @@ LOGICAL DllMain(
                  PH_SETTING_CREATE settings[] =
                  {
                      { IntegerSettingType, SETTING_ENABLE_CACHE, L"1" },
-                     { IntegerSettingType, SETTING_HASH_ALGORITHM, L"1" },
                      { IntegerSettingType, SETTING_AUTO_CHECK, L"1" },
                  };
 
