@@ -10,14 +10,9 @@
 #define IDC_AUTOCHECKBOX                1003
 #define IDC_PROGRESS                    1003
 #define IDC_RELDATE                     1005
-#define IDC_DLSIZE                      1006
-#define IDC_HASHCOMBOBOX                1009
+#define IDC_DLSIZE                      1007
 #define IDC_DOWNLOAD                    1010
-#define IDC_HASHCOMBOBOX2               1010
-#define IDC_DLCOMBOBOX                  1010
 #define IDC_UPDATEICON                  1017
-#define IDC_SYSLINK1                    1018
-#define IDC_EDIT1                       1019
 
 // Next default values for new objects
 // 
