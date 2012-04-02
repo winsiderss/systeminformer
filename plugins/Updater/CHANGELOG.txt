@@ -1,10 +1,11 @@
 1.2
  * Updated UI
- * Implemented INetworkListManager support for Vista and above
+ * Implemented more reliable connectivity check for Vista and above (INetworkListManager)
  * Improved download speed calculation
  * Improved time remaining calculation
  * Fixed auto-update prompt location if PH minimized
- * Fixed other various issues
+ * Fixed install failures if hash check failed
+ * Fixed minor code issues
 
 1.1
  * Added download speed

@@ -12,8 +12,6 @@
 #include <phappresource.h>
 #include "mxml.h"
 
-#include <stdint.h>
-
 #include <wininet.h>
 #include <windowsx.h>
 #include <Netlistmgr.h>
@@ -21,7 +19,7 @@
 #include "resource.h"
 
 // Always consider the remote version newer
-#define TEST_MODE
+//#define TEST_MODE
 
 #define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
 #define SETTING_ENABLE_CACHE L"ProcessHacker.Updater.EnableCache"
@@ -52,11 +50,8 @@ typedef struct _UPDATER_XML_DATA
 
 typedef enum _PH_UPDATER_STATE
 {
-    Default,
-    Downloading,
-    Hashing,
-    Installing,
-	Retry
+    Download,
+    Install
 } PH_UPDATER_STATE;
 
 VOID ShowDialog(
