@@ -300,7 +300,7 @@ static NTSTATUS DownloadWorkerThreadStart(
             );
 
         // Create output file 
-        tempFileHandle = CreateFile(
+        if ((tempFileHandle = CreateFile(
             szTempPathFileName,   
             GENERIC_READ | GENERIC_WRITE,   
             FILE_SHARE_READ | FILE_SHARE_WRITE,         
@@ -308,12 +308,11 @@ static NTSTATUS DownloadWorkerThreadStart(
             CREATE_ALWAYS,      
             FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,   
             NULL
-            );   
-
-        LogEvent(NULL, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
-
-        if (tempFileHandle == INVALID_HANDLE_VALUE)
+            )) == INVALID_HANDLE_VALUE)
+        {
+            LogEvent(NULL, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
             goto CleanupAndExit;
+        }
     
         SetupFilePath = PhCreateString(szTempPathFileName);
     }
