@@ -123,7 +123,7 @@ static NTSTATUS WorkerThreadStart(
         // Set the header text
         swprintf_s(
             szSummaryText, 
-            ARRAYSIZE(szSummaryText), 
+            _countof(szSummaryText), 
             L"Process Hacker %u.%u", 
             xmlData.MajorVersion, 
             xmlData.MinorVersion
@@ -132,7 +132,7 @@ static NTSTATUS WorkerThreadStart(
         //Release text
         swprintf_s(
             szReleaseText, 
-            ARRAYSIZE(szReleaseText), 
+            _countof(szReleaseText), 
             L"Released: %s", 
             xmlData.RelDate
             );
@@ -140,7 +140,7 @@ static NTSTATUS WorkerThreadStart(
         //Size text
         swprintf_s(
             szSizeText, 
-            ARRAYSIZE(szSizeText), 
+            _countof(szSizeText), 
             L"Size: %s", 
             xmlData.Size
             );
@@ -148,7 +148,7 @@ static NTSTATUS WorkerThreadStart(
         // setup download filename
         swprintf_s(
             szFileName, 
-            ARRAYSIZE(szFileName), 
+            _countof(szFileName), 
             L"processhacker-%u.%u-setup.exe", 
             xmlData.MajorVersion, 
             xmlData.MinorVersion
@@ -175,13 +175,13 @@ static NTSTATUS WorkerThreadStart(
 
         swprintf_s(
             szSummaryText, 
-            ARRAYSIZE(szSummaryText), 
+            _countof(szSummaryText), 
             L"No updates available"
             );
 
         swprintf_s(
             szStableText, 
-            ARRAYSIZE(szStableText), 
+            _countof(szStableText), 
             L"You're running the latest stable version: %u.%u", 
             xmlData.MajorVersion, 
             xmlData.MinorVersion
@@ -189,7 +189,7 @@ static NTSTATUS WorkerThreadStart(
 
         //swprintf_s(
         //    szReleaseText, 
-        //    ARRAYSIZE(szReleaseText), 
+        //    _countof(szReleaseText), 
         //    L"",//L"Released: %s", 
         //    NULL//xmlData.RelDate
         //    );
@@ -206,20 +206,20 @@ static NTSTATUS WorkerThreadStart(
 
         swprintf_s(
             szSummaryText, 
-            ARRAYSIZE(szSummaryText), 
+            _countof(szSummaryText), 
             L"No updates available"
             );
 
         swprintf_s(
             szStableText, 
-            ARRAYSIZE(szStableText), 
+            _countof(szStableText), 
             L"You're running SVN build: v%s", 
             localVersion->Buffer
             );
 
         //swprintf_s(
         //    szReleaseText, 
-        //    ARRAYSIZE(szReleaseText), 
+        //    _countof(szReleaseText), 
         //    L"Released: %s", 
         //    xmlData.RelDate
         //    );
@@ -275,7 +275,7 @@ static NTSTATUS DownloadWorkerThreadStart(
     // create the download path string.
     swprintf_s(
         szDownloadPath, 
-        ARRAYSIZE(szDownloadPath), 
+        _countof(szDownloadPath), 
         L"/projects/processhacker/files/processhacker2/processhacker-%u.%u-setup.exe/download?use_mirror=autoselect", /* ?use_mirror=waix" */
         xmlData.MajorVersion, 
         xmlData.MinorVersion
@@ -285,14 +285,14 @@ static NTSTATUS DownloadWorkerThreadStart(
         WCHAR szTempDir[MAX_PATH]; 
         WCHAR szTempPathFileName[MAX_PATH];
 
-        if (GetTempPath(ARRAYSIZE(szTempDir), szTempDir) == 0)   
+        if (GetTempPath(_countof(szTempDir), szTempDir) == 0)   
             goto CleanupAndExit;   
 
         // Append the tempath to our string: %TEMP%processhacker-%u.%u-setup.exe
         // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-%u.%u-setup.exe
         swprintf_s(
             szTempPathFileName, 
-            ARRAYSIZE(szTempPathFileName), 
+            _countof(szTempPathFileName), 
             L"%sprocesshacker-%u.%u-setup.exe",
             szTempDir,
             xmlData.MajorVersion, 
@@ -577,7 +577,7 @@ INT_PTR CALLBACK UpdaterWndProc(
             lHeaderFont.lfWeight = FW_MEDIUM;
             lHeaderFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
             // We don't check if Segoe exists, CreateFontIndirect does this for us.
-            wcscat_s(lHeaderFont.lfFaceName, ARRAYSIZE(lHeaderFont.lfFaceName), L"Segoe UI");          
+            wcscat_s(lHeaderFont.lfFaceName, _countof(lHeaderFont.lfFaceName), L"Segoe UI");          
             FontHandle = CreateFontIndirectW(&lHeaderFont);
             // Set the header font.
             SendMessageW(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)FontHandle, FALSE);
@@ -611,8 +611,8 @@ INT_PTR CALLBACK UpdaterWndProc(
                 SetTextColor(hDC, RGB(19, 112, 171));
             }
 
-            // return stock White color as our window background.
-            return (INT_PTR)(HBRUSH)GetStockObject(WHITE_BRUSH);
+            // set window background color.
+            return GetSysColorBrush(COLOR_WINDOW);;
         }
     case WM_COMMAND:
         {
@@ -990,7 +990,7 @@ BOOL QueryXmlData(
         // Convert into unicode string.
         swprintf_s(
             szTempString, 
-            ARRAYSIZE(szTempString), 
+            _countof(szTempString), 
             L"%hs", 
             xmlNodeVer->child->value.opaque
             );
@@ -1004,21 +1004,21 @@ BOOL QueryXmlData(
 
     swprintf_s(
         XmlData->RelDate, 
-        ARRAYSIZE(XmlData->RelDate), 
+        _countof(XmlData->RelDate), 
         L"%hs", 
         xmlNodeRelDate->child->value.opaque
         );
 
     swprintf_s(
         XmlData->Size, 
-        ARRAYSIZE(XmlData->Size), 
+        _countof(XmlData->Size), 
         L"%hs", 
         xmlNodeSize->child->value.opaque
         );
 
     swprintf_s(
         XmlData->Hash, 
-        ARRAYSIZE(XmlData->RelDate), 
+        _countof(XmlData->RelDate), 
         L"%hs", 
         xmlNodeHash->child->value.opaque
         );

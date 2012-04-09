@@ -70,7 +70,7 @@ LOGICAL DllMain(
                      { IntegerSettingType, SETTING_AUTO_CHECK, L"1" },
                  };
 
-                 PhAddSettings(settings, ARRAYSIZE(settings));
+                 PhAddSettings(settings, _countof(settings));
              }
         }
         break;
