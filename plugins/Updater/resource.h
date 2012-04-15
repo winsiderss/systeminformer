@@ -10,7 +10,7 @@
 #define IDC_AUTOCHECKBOX                1003
 #define IDC_PROGRESS                    1003
 #define IDC_RELDATE                     1005
-#define IDC_DLSIZE                      1007
+#define IDC_STATUS                      1007
 #define IDC_DOWNLOAD                    1010
 #define IDC_UPDATEICON                  1017
 

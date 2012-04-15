@@ -5,7 +5,6 @@
  * Improved time remaining calculation
  * Fixed auto-update prompt location if PH minimized
  * Fixed install failures if hash check failed
- * Fixed minor code issues
 
 1.1
  * Added download speed
