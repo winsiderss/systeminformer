@@ -7,6 +7,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 #define COBJMACROS
+// Fix for intellisense in C projects, VS uses C++ intellisense unless this is defined.
+#undef __cplusplus
 
 #include "phdk.h"
 #include <phappresource.h>

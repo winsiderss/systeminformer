@@ -80,7 +80,7 @@ static NTSTATUS SilentUpdateCheckThreadStart(
     return STATUS_SUCCESS;
 }
 
-static NTSTATUS WorkerThreadStart(
+static NTSTATUS CheckUpdateThreadStart(
     __in PVOID Parameter
     )
 {
@@ -156,14 +156,14 @@ static NTSTATUS WorkerThreadStart(
 
         SetDlgItemText(hwndDlg, IDC_MESSAGE, szSummaryText);
         SetDlgItemText(hwndDlg, IDC_RELDATE, szReleaseText);
-        SetDlgItemText(hwndDlg, IDC_DLSIZE, szSizeText);
+        SetDlgItemText(hwndDlg, IDC_STATUS, szSizeText);
 
         // Enable the download button.
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         // Use the Scrollbar macro to enable the other controls.
         ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
         ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_DLSIZE), TRUE);
+        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
 
         PhUpdaterState = Download;
     }
@@ -196,7 +196,7 @@ static NTSTATUS WorkerThreadStart(
             
         SetDlgItemText(hwndDlg, IDC_MESSAGE, szSummaryText);
         SetDlgItemText(hwndDlg, IDC_RELDATE, szStableText);
-        //Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szReleaseText);
+        //SetDlgItemText(hwndDlg, IDC_DLSIZE, szReleaseText);
     }
     else if (result < 0)
     {
@@ -234,7 +234,7 @@ static NTSTATUS WorkerThreadStart(
     return STATUS_SUCCESS;
 }
 
-static NTSTATUS DownloadWorkerThreadStart(
+static NTSTATUS DownloadUpdateThreadStart(
     __in PVOID Parameter
     )
 {
@@ -254,7 +254,7 @@ static NTSTATUS DownloadWorkerThreadStart(
     HWND hwndDlg = (HWND)Parameter;
 
     Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-    SetDlgItemText(hwndDlg, IDC_DLSIZE, L"Initializing");
+    SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
 
     // Reset the progress state on Vista and above.
     if (WindowsVersion > WINDOWS_XP)
@@ -333,7 +333,7 @@ static NTSTATUS DownloadWorkerThreadStart(
     // Connect to the server.
     if (!(hConnection = InternetConnect(
         hInitialize, 
-        DOWNLOAD_SERVER, //L"mirror.internode.on.net",
+        DOWNLOAD_SERVER,
         INTERNET_DEFAULT_HTTP_PORT, 
         NULL, 
         NULL, 
@@ -349,7 +349,7 @@ static NTSTATUS DownloadWorkerThreadStart(
     if (!(hRequest = HttpOpenRequest(
         hConnection,
         NULL,
-        szDownloadPath,//L"/pub/ubuntu/releases/oneiric/ubuntu-11.10-desktop-i386.iso",
+        szDownloadPath,
         L"HTTP/1.1",
         NULL,
         NULL,
@@ -361,7 +361,7 @@ static NTSTATUS DownloadWorkerThreadStart(
         goto CleanupAndExit;
     }
 
-    Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Connecting");
+    SetDlgItemText(hwndDlg, IDC_STATUS, L"Connecting");
 
     // Send the HTTP request.
     if (!HttpSendRequest(hRequest, NULL, 0, NULL, 0))
@@ -378,7 +378,6 @@ static NTSTATUS DownloadWorkerThreadStart(
     else
     { 
         CHAR buffer[BUFFER_LEN];
-        DWORD dwLastTotalBytes = 0;
         BOOL nReadFile = FALSE;
 
         // Zero the buffer.
@@ -390,7 +389,14 @@ static NTSTATUS DownloadWorkerThreadStart(
         if (!HttpQueryInfoW(hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
         {
             // No content length...impossible to calculate % complete so just read until we are done.
-            LogEvent(hwndDlg, PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", GetLastError()));
+
+            // Log the event, passing NULL as dialog handle as we need the status but also need to log the message.
+            LogEvent(NULL, PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", GetLastError()));
+
+            SetDlgItemText(hwndDlg, IDC_STATUS, L"Downloading...");
+
+            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75L);
 
             while ((nReadFile = InternetReadFile(hRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
@@ -420,6 +426,10 @@ static NTSTATUS DownloadWorkerThreadStart(
                     break;
                 }
             }
+
+            // Reset the marguee progress style. 
+            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, FALSE, 0L);
+            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_SMOOTH, PBS_SMOOTH);
         }
         else
         {
@@ -489,7 +499,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                         SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
                     // Set the download result, don't include hash status since it succeeded.
-                    Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download Complete");
+                    Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), L"Download Complete");
                     // Set button text for next action
                     Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
                     // Enable the Install button
@@ -502,7 +512,7 @@ static NTSTATUS DownloadWorkerThreadStart(
                     if (WindowsVersion > WINDOWS_XP)
                         SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0L);
 
-                    Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"Download complete, SHA1 Hash failed.");
+                    Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), L"Download complete, SHA1 Hash failed.");
 
                     // Set button text for next action
                     Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
@@ -516,7 +526,7 @@ static NTSTATUS DownloadWorkerThreadStart(
             }
             else
             {
-                Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), L"PhFinalHash failed");
+                Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), L"PhFinalHash failed");
 
                 // Show fancy Red progressbar if hash failed on Vista and above.
                 if (WindowsVersion > WINDOWS_XP)
@@ -542,7 +552,7 @@ CleanupAndExit:
     return STATUS_SUCCESS;
 }
 
-INT_PTR CALLBACK UpdaterWndProc(
+static INT_PTR CALLBACK UpdaterWndProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -577,8 +587,11 @@ INT_PTR CALLBACK UpdaterWndProc(
             lHeaderFont.lfWeight = FW_MEDIUM;
             lHeaderFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
             // We don't check if Segoe exists, CreateFontIndirect does this for us.
-            wcscat_s(lHeaderFont.lfFaceName, _countof(lHeaderFont.lfFaceName), L"Segoe UI");          
+            wcscat_s(lHeaderFont.lfFaceName, _countof(lHeaderFont.lfFaceName), L"Segoe UI");
+
+            // Create the font handle.
             FontHandle = CreateFontIndirectW(&lHeaderFont);
+
             // Set the header font.
             SendMessageW(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)FontHandle, FALSE);
  
@@ -586,7 +599,7 @@ INT_PTR CALLBACK UpdaterWndProc(
             PhCenterWindow(hwndDlg, (IsWindowVisible(GetParent(hwndDlg)) && !IsIconic(GetParent(hwndDlg))) ? GetParent(hwndDlg) : NULL);
 
             // Create our update check thread.
-            PhCreateThread(0, WorkerThreadStart, hwndDlg);
+            PhCreateThread(0, CheckUpdateThreadStart, hwndDlg);
         }
         break;   
     case WM_SHOWDIALOG:
@@ -598,7 +611,8 @@ INT_PTR CALLBACK UpdaterWndProc(
 
             SetForegroundWindow(hwndDlg);
         }
-        break;
+        break;   
+    case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
         {    
@@ -611,8 +625,11 @@ INT_PTR CALLBACK UpdaterWndProc(
                 SetTextColor(hDC, RGB(19, 112, 171));
             }
 
+            // Set a transparent background for the control backcolor.
+            SetBkMode(hDC, TRANSPARENT);
+
             // set window background color.
-            return GetSysColorBrush(COLOR_WINDOW);;
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);;
         }
     case WM_COMMAND:
         {
@@ -633,7 +650,7 @@ INT_PTR CALLBACK UpdaterWndProc(
                             if (PhInstalledUsingSetup())
                             {
                                 // Start our Downloader thread   
-                                DownloadThreadHandle = PhCreateThread(0, DownloadWorkerThreadStart, hwndDlg);
+                                DownloadThreadHandle = PhCreateThread(0, DownloadUpdateThreadStart, hwndDlg);
                             }
                             else
                             {
@@ -720,7 +737,7 @@ INT_PTR CALLBACK UpdaterWndProc(
                     );
             }
 
-            Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szDownloaded);
+            Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), szDownloaded);
 
             PhDereferenceObject(dlSpeed);
             PhDereferenceObject(dlLength);
@@ -817,7 +834,7 @@ VOID LogEvent(
 {
     if (hwndDlg)
     {
-        Edit_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), str->Buffer);
+        Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), str->Buffer);
     }
     else
     {
