@@ -400,7 +400,8 @@ static NTSTATUS DownloadUpdateThreadStart(
 
             while ((nReadFile = InternetReadFile(hRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
-                if (dwBytesRead == 0)
+                // If we get zero bytes or the download thread was closed.
+                if (dwBytesRead == 0 || !DownloadThreadHandle)
                     break;
 
                 if (!nReadFile)
@@ -442,7 +443,8 @@ static NTSTATUS DownloadUpdateThreadStart(
 
             while ((nReadFile = InternetReadFile(hRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
-                if (dwBytesRead == 0)
+                // If we get zero bytes or the download thread was closed.
+                if (dwBytesRead == 0 || !DownloadThreadHandle)
                     break;
 
                 if (!nReadFile)
