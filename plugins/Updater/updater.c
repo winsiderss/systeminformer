@@ -700,7 +700,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             WCHAR *rtext = L"second";
             time_t time_taken = (time(NULL) - TimeTransferred);
             time_t bps = dwTotalReadSize / (time_taken ? time_taken : 1);
-            time_t remain = (MulDiv(time_taken, dwContentLen, dwTotalReadSize) - time_taken);
+            time_t remain = (MulDiv((INT)time_taken, dwContentLen, dwTotalReadSize) - time_taken);
                    
             PPH_STRING dlRemaningBytes = PhFormatSize(dwTotalReadSize, -1);
             PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
@@ -777,13 +777,10 @@ BOOL ConnectionAvailable(
 {
     if (WindowsVersion > WINDOWS_XP)
     {
-        HRESULT hrResult = S_OK;
         INetworkListManager *pNetworkListManager; 
 
-        // Create an instance of the CLSID_NetworkListManger COM object.
-        hrResult = CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_INPROC, &IID_INetworkListManager, (void**)&pNetworkListManager);
-
-        if (SUCCEEDED(hrResult))
+        // Create an instance of the INetworkListManger COM object.
+        if (SUCCEEDED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_INPROC, &IID_INetworkListManager, &pNetworkListManager)))
         {
             VARIANT_BOOL vIsConnected = VARIANT_FALSE;
             VARIANT_BOOL vIsConnectedInternet = VARIANT_FALSE;
@@ -801,7 +798,6 @@ BOOL ConnectionAvailable(
         }
         else
         {
-            LogEvent(NULL, PhFormatString(L"NetworkListManager\\CoCreateInstance Failed (0x%x) \n", hrResult));
             goto NOT_SUPPORTED;
         }
     }
@@ -1208,6 +1204,6 @@ VOID StartInitialCheck(
     VOID
     )
 {
-    // Queue up our initial update check.
+    // Queue up our initial update check (PhQueueItemGlobalWorkQueue?).
     PhCreateThread(0, SilentUpdateCheckThreadStart, NULL);
 }
