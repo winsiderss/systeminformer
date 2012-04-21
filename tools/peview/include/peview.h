@@ -23,6 +23,10 @@ VOID PvLibProperties(
 
 // misc
 
+PPH_STRING PvResolveShortcutTarget(
+    __in PPH_STRING ShortcutFileName
+    );
+
 VOID PvCopyListView(
     __in HWND ListViewHandle
     );
