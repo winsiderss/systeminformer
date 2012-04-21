@@ -601,7 +601,7 @@ static NTSTATUS UploadWorkerThreadStart(
     connectHandle = InternetConnect(
         internetHandle,
         serviceInfo->HostName,
-        serviceInfo->HostPort,
+        (INTERNET_PORT)serviceInfo->HostPort,
         NULL,
         NULL,
         INTERNET_SERVICE_HTTP,
