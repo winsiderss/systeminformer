@@ -23,6 +23,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Updater", "Updater\Updater.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UserNotes", "UserNotes\UserNotes.vcxproj", "{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FirewallMonitor", "FirewallMonitor\FirewallMonitor.vcxproj", "{44A7C3BA-BAD5-40F3-AB70-442D44539053}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -119,6 +121,14 @@ Global
 		{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}.Release|Win32.Build.0 = Release|Win32
 		{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}.Release|x64.ActiveCfg = Release|x64
 		{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}.Release|x64.Build.0 = Release|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|Win32.ActiveCfg = Debug|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|Win32.Build.0 = Debug|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|x64.ActiveCfg = Debug|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|x64.Build.0 = Debug|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|Win32.ActiveCfg = Release|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|Win32.Build.0 = Release|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|x64.ActiveCfg = Release|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
