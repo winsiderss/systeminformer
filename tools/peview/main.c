@@ -93,6 +93,17 @@ INT WINAPI WinMain(
     if (!PvFileName)
         return 1;
 
+    if (PhEndsWithString2(PvFileName, L".lnk", TRUE))
+    {
+        PPH_STRING targetFileName;
+
+        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        targetFileName = PvResolveShortcutTarget(PvFileName);
+
+        if (targetFileName)
+            PhSwapReference2(&PvFileName, targetFileName);
+    }
+
     if (!PhEndsWithString2(PvFileName, L".lib", TRUE))
         PvPeProperties();
     else

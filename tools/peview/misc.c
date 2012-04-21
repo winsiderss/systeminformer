@@ -20,8 +20,50 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define CINTERFACE
+#define COBJMACROS
 #include <peview.h>
+#include <shobjidl.h>
+#undef CINTERFACE
+#undef COBJMACROS
 #include <cpysave.h>
+
+static GUID CLSID_ShellLink_I = { 0x00021401, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
+static GUID IID_IShellLinkW_I = { 0x000214f9, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
+static GUID IID_IPersistFile_I = { 0x0000010b, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
+
+PPH_STRING PvResolveShortcutTarget(
+    __in PPH_STRING ShortcutFileName
+    )
+{
+    PPH_STRING targetFileName;
+    IShellLinkW *shellLink;
+    IPersistFile *persistFile;
+    WCHAR path[MAX_PATH];
+
+    targetFileName = NULL;
+
+    if (SUCCEEDED(CoCreateInstance(&CLSID_ShellLink_I, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLinkW_I, &shellLink)))
+    {
+        if (SUCCEEDED(IShellLinkW_QueryInterface(shellLink, &IID_IPersistFile_I, &persistFile)))
+        {
+            if (SUCCEEDED(IPersistFile_Load(persistFile, ShortcutFileName->Buffer, STGM_READ)) &&
+                SUCCEEDED(IShellLinkW_Resolve(shellLink, NULL, SLR_NO_UI)))
+            {
+                if (SUCCEEDED(IShellLinkW_GetPath(shellLink, path, MAX_PATH, NULL, 0)))
+                {
+                    targetFileName = PhCreateString(path);
+                }
+            }
+
+            IPersistFile_Release(persistFile);
+        }
+
+        IShellLinkW_Release(shellLink);
+    }
+
+    return targetFileName;
+}
 
 // Copied from appsup.c
 
