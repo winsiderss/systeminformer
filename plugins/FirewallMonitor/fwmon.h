@@ -1,13 +1,33 @@
 #ifndef FWMON_H
 #define FWMON_H
 
+#define STRICT
+#define WIN32_LEAN_AND_MEAN
+#define CINTERFACE
+#define COBJMACROS
+#undef __cplusplus
+
 #include <phdk.h>
+
+#include "wf.h"
+#include "resource.h"
 
 extern PPH_PLUGIN PluginInstance;
 
 #define SETTING_PREFIX L"ProcessHacker.FirewallMonitor."
 #define SETTING_NAME_FW_TREE_LIST_COLUMNS (SETTING_PREFIX L"FwTreeListColumns")
 #define SETTING_NAME_FW_TREE_LIST_SORT (SETTING_PREFIX L"FwTreeListSort")
+
+typedef struct _FIREWALL_CONTEXT
+{
+    HWND ListViewHandle;
+    HWND TreeViewHandle;
+    HWND ReBarHandle;
+    HWND ToolBarHandle;
+    FW_PROFILE_TYPE Flags;
+    FW_DIRECTION Direction;
+    PH_LAYOUT_MANAGER LayoutManager;
+} FIREWALL_CONTEXT, *PFIREWALL_CONTEXT;
 
 typedef struct _FW_EVENT_ITEM
 {
@@ -62,6 +82,13 @@ VOID LoadSettingsFwTreeList(
 
 VOID SaveSettingsFwTreeList(
     VOID
+    );
+
+INT_PTR CALLBACK FirewallDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
     );
 
 #endif
