@@ -13,6 +13,335 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
+// English resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_FW MENU
+BEGIN
+    POPUP "Event"
+    BEGIN
+        MENUITEM "&Copy\aCtrl+C",               ID_EVENT_COPY
+    END
+END
+
+IDR_FIREWALLMENU MENU
+BEGIN
+    POPUP "Properties"
+    BEGIN
+        MENUITEM "Disable",                     ID_PROPERTIES_DISABLE, INACTIVE
+        MENUITEM SEPARATOR
+        MENUITEM "Cut",                         ID_PROPERTIES_CUT, INACTIVE
+        MENUITEM "Copy",                        ID_PROPERTIES_COPY, INACTIVE
+        MENUITEM "Delete",                      ID_PROPERTIES_DELETE, INACTIVE
+        MENUITEM SEPARATOR
+        MENUITEM "Properties",                  ID_PROPERTIES
+    END
+END
+
+IDR_MENUGENERAL MENU
+BEGIN
+    POPUP "Options"
+    BEGIN
+        MENUITEM SEPARATOR
+        MENUITEM "Exit",                        ID_OPTIONS_EXIT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_FIREWALL DIALOGEX 0, 0, 519, 276
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Windows Firewall"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",ID_CLOSE,462,255,50,14
+    CONTROL         "",IDC_FIREWALL_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,120,18,392,234
+    CONTROL         "",IDC_TREE1,"SysTreeView32",TVS_HASBUTTONS | TVS_SHOWSELALWAYS | TVS_TRACKSELECT | TVS_FULLROWSELECT | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,18,108,234
+END
+
+IDD_RULEGENERAL DIALOGEX 0, 0, 289, 249
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "General",IDC_STATIC,6,6,276,110
+    EDITTEXT        IDC_EDIT1,54,32,222,12,ES_AUTOHSCROLL
+    LTEXT           "Name:",IDC_STATIC,54,20,22,8
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,12,18,36,30
+    EDITTEXT        IDC_EDIT2,54,60,222,38,ES_AUTOHSCROLL
+    LTEXT           "Description:",IDC_STATIC,54,48,39,8
+    CONTROL         "Enabled",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,102,41,10
+    CONTROL         "Allow the connection",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON,26,128,82,10
+    CONTROL         "Allow the connection if secure",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,26,141,111,10
+    CONTROL         "Block the connection",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,26,154,81,10
+END
+
+IDD_RULEADVANCED DIALOGEX 0, 0, 289, 249
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Profiles",IDC_STATIC,6,6,276,66
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,12,18,36,30
+    LTEXT           "Specify profiles to which this rule applies:",IDC_STATIC,54,18,138,8
+    CONTROL         "Domain",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,66,30,108,10
+    CONTROL         "Public",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,66,43,108,10
+    CONTROL         "Private",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,66,56,108,10
+    GROUPBOX        "Interfaces",IDC_STATIC,6,78,276,66
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,12,90,36,30
+    LTEXT           "Specify interfaces to which this rule applies:",IDC_STATIC,54,90,144,8
+    GROUPBOX        "Edge Traversal",IDC_STATIC,6,150,276,90
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,12,162,36,30
+    COMBOBOX        IDC_COMBO1,66,174,192,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Specify interfaces to which this rule applies:",IDC_STATIC,54,162,144,8
+    COMBOBOX        IDC_COMBO2,66,102,192,12,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_RULEUSERS DIALOGEX 0, 0, 289, 249
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Authorized Users",IDC_STATIC,6,6,276,109
+    GROUPBOX        "Exceptions",IDC_STATIC,6,120,275,109
+    CONTROL         "Only allow connections from these users:",IDC_CHECK1,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,18,147,10
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,12,30,210,78
+    PUSHBUTTON      "Add",IDC_BUTTON1,228,30,50,14
+    PUSHBUTTON      "Remove",IDC_BUTTON2,228,48,50,14
+    CONTROL         "Skip this rule for connections from these users:",IDC_CHECK2,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,132,166,10
+    CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,12,144,210,81
+    PUSHBUTTON      "Add",IDC_BUTTON3,228,144,50,14
+    PUSHBUTTON      "Remove",IDC_BUTTON4,228,162,50,14
+    CONTROL         "<a>Firewall Rule Properties Page: Users Tab</a>",IDC_SYSLINK1,
+                    "SysLink",WS_TABSTOP,6,234,132,12
+END
+
+IDD_RULESCOPE DIALOGEX 0, 0, 289, 249
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Local IP Address",IDC_STATIC,6,6,276,109
+    GROUPBOX        "Exceptions",IDC_STATIC,6,120,275,109
+    PUSHBUTTON      "Add",IDC_BUTTON1,228,42,50,14
+    PUSHBUTTON      "Remove",IDC_BUTTON2,228,77,50,14
+    PUSHBUTTON      "Add",IDC_BUTTON3,228,156,50,14
+    PUSHBUTTON      "Remove",IDC_BUTTON4,228,192,50,14
+    CONTROL         "<a>Firewall Rule Properties Page: Scope Tab</a>",IDC_SYSLINK1,
+                    "SysLink",WS_TABSTOP,6,234,132,12
+    CONTROL         "Any IP Address",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,12,18,65,10
+    CONTROL         "These IP Address",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,12,30,72,10
+    CONTROL         "Any IP Address",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,12,132,65,10
+    CONTROL         "These IP Address",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,12,145,72,10
+    PUSHBUTTON      "Edit",IDC_BUTTON5,228,59,50,14
+    PUSHBUTTON      "Edit",IDC_BUTTON6,228,174,50,14
+    LISTBOX         IDC_LIST1,12,42,210,66,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LISTBOX         IDC_LIST2,12,156,210,66,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_RULECOMPUTERS DIALOGEX 0, 0, 289, 249
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Authorized Computers",IDC_STATIC,6,6,276,109
+    GROUPBOX        "Exceptions",IDC_STATIC,6,120,275,109
+    CONTROL         "Only allow connections from these computers:",IDC_CHECK1,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,18,163,10
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,12,30,210,78
+    PUSHBUTTON      "Add",IDC_BUTTON1,228,30,50,14
+    PUSHBUTTON      "Remove",IDC_BUTTON2,228,48,50,14
+    CONTROL         "Skip this rule for connections from these computers:",IDC_CHECK2,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,132,182,10
+    CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,12,144,210,81
+    PUSHBUTTON      "Add",IDC_BUTTON3,228,144,50,14
+    PUSHBUTTON      "Remove",IDC_BUTTON4,228,162,50,14
+    CONTROL         "<a>Firewall Rule Properties Page: Computers Tab</a>",IDC_SYSLINK1,
+                    "SysLink",WS_TABSTOP,6,234,149,12
+END
+
+IDD_RULEEXECUTABLE DIALOGEX 0, 0, 289, 249
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Programs",IDC_STATIC,6,6,276,54
+    GROUPBOX        "Services",IDC_STATIC,6,66,276,48
+    CONTROL         "All programs that meet the specified conditions",IDC_RADIO1,
+                    "Button",BS_AUTORADIOBUTTON,54,18,165,10
+    CONTROL         "This program:",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,54,30,60,10
+    EDITTEXT        IDC_EDIT1,66,42,156,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse",IDC_BUTTON1,228,42,50,14
+    LTEXT           "Specify the services to which this rule applies.",IDC_STATIC,54,78,148,8
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,12,18,36,30
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,12,78,36,30
+    PUSHBUTTON      "Customize",IDC_BUTTON2,54,90,50,14
+    CONTROL         "<a>Firewall Rule Properties Page: Programs and Services Tab</a>",IDC_SYSLINK1,
+                    "SysLink",WS_TABSTOP,6,234,186,12
+END
+
+IDD_RULEPORTS DIALOGEX 0, 0, 289, 249
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Protocols and Ports",IDC_STATIC,6,6,276,150
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,12,18,36,30
+    CONTROL         "<a>Firewall Rule Properties Page: Protocols and Ports Tab</a>",IDC_SYSLINK1,
+                    "SysLink",WS_TABSTOP,6,234,186,12
+    COMBOBOX        IDC_COMBO1,114,18,156,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO2,114,54,156,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO3,114,108,156,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,114,72,156,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT2,114,126,156,14,ES_AUTOHSCROLL
+    LTEXT           "Protocol Type:",IDC_STATIC,54,19,48,8
+    LTEXT           "Protocol Number:",IDC_STATIC,54,36,56,8
+    LTEXT           "Local Port:",IDC_STATIC,54,54,35,8
+    LTEXT           "Remote Port:",IDC_STATIC,54,108,44,8
+    LTEXT           "Example: 80,443, 5000-5010",IDC_STATIC,114,90,96,8
+    LTEXT           "Example: 80,443, 5000-5010",IDC_STATIC,114,144,96,8
+    GROUPBOX        "ICMP",IDC_STATIC,6,162,276,48
+    LTEXT           "Internet Control Message Protocol (ICMP) settings",IDC_STATIC,12,174,162,8
+    PUSHBUTTON      "Customize",IDC_BUTTON2,12,186,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_FIREWALL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 512
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 269
+    END
+
+    IDD_RULEGENERAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 282
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 242
+    END
+
+    IDD_RULEADVANCED, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 282
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 242
+    END
+
+    IDD_RULEUSERS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 282
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 242
+    END
+
+    IDD_RULESCOPE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 282
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 242
+    END
+
+    IDD_RULECOMPUTERS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 282
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 242
+    END
+
+    IDD_RULEEXECUTABLE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 282
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 242
+    END
+
+    IDD_RULEPORTS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 282
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 242
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_RULEADVANCED DLGINIT
+BEGIN
+    IDC_COMBO2, 0x403, 19, 0
+0x6f4c, 0x6163, 0x206c, 0x7241, 0x6165, 0x4e20, 0x7465, 0x6f77, 0x6b72, 
+"\000" 
+    IDC_COMBO2, 0x403, 14, 0
+0x6552, 0x6f6d, 0x6574, 0x4120, 0x6363, 0x7365, 0x0073, 
+    0
+END
+
+#endif    // English resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_FIREWALLICON        ICON                    "resources\\firewall.ico"
+IDI_ICONHOME            ICON                    "resources\\home.ico"
+IDI_HOMEICON            ICON                    "resources\\home2.ico"
+IDI_ICONPUBLIC          ICON                    "resources\\public.ico"
+IDI_WFICON              ICON                    "resources\\wfirewall.ico"
+IDI_ICONWORK            ICON                    "resources\\work.ico"
+IDI_ICONINBOUND         ICON                    "resources\\inbound.ico"
+IDI_ICONMONITOR         ICON                    "resources\\monitor.ico"
+IDI_ICONOUTBOUND        ICON                    "resources\\outbound.ico"
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
@@ -80,20 +409,6 @@ BEGIN
     BLOCK "VarFileInfo"
     BEGIN
         VALUE "Translation", 0xc09, 1200
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Menu
-//
-
-IDR_FW MENU
-BEGIN
-    POPUP "Event"
-    BEGIN
-        MENUITEM "&Copy\aCtrl+C",               ID_EVENT_COPY
     END
 END
 

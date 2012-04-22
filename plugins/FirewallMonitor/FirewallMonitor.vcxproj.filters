@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Resource Files\icons">
+      <UniqueIdentifier>{479e3232-66c7-4bb6-9a23-68e80f37e9b4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -24,14 +27,42 @@
     <ClCompile Include="monitor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fwdialog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="FirewallMonitor.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <None Include="resources\firewall.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\home.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\home2.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\inbound.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\monitor.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\outbound.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\public.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\wfirewall.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
+    <None Include="resources\work.ico">
+      <Filter>Resource Files\icons</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -43,5 +74,13 @@
     <ClInclude Include="fwtabp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="wf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FirewallMonitor.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

@@ -23,6 +23,7 @@
 
 #include "fwmon.h"
 #include "resource.h"
+#define FIREWALL_MENUITEM 1
 
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
@@ -44,11 +45,17 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -90,6 +97,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginShowOptionsCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
@@ -99,13 +112,13 @@ LOGICAL DllMain(
                 );
 
             {
-                static PH_SETTING_CREATE settings[] =
+                PH_SETTING_CREATE settings[] =
                 {
                     { StringSettingType, SETTING_NAME_FW_TREE_LIST_COLUMNS, L"" },
                     { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"0,2" }
                 };
 
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+                PhAddSettings(settings, _countof(settings));
             }
         }
         break;
@@ -119,7 +132,10 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     )
 {
-    NOTHING;
+    INITCOMMONCONTROLSEX icex = { sizeof(INITCOMMONCONTROLSEX) };
+    icex.dwICC = ICC_COOL_CLASSES | ICC_BAR_CLASSES;
+
+    InitCommonControlsEx(&icex);
 }
 
 VOID NTAPI UnloadCallback(
@@ -143,5 +159,35 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    InitializeFwTab();
+    //InitializeFwTab();
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, NULL, FIREWALL_MENUITEM, L"Windows Firewall", NULL);
+}
+
+VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+
+    if (menuItem != NULL)
+    {
+        switch (menuItem->Id)
+        {
+        case FIREWALL_MENUITEM:
+            {
+                PFIREWALL_CONTEXT context = PhAllocate(sizeof(FIREWALL_CONTEXT));
+                ZeroMemory(context, sizeof(FIREWALL_CONTEXT));
+
+                DialogBoxParam(
+                    (HINSTANCE)PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDD_DIALOG1),
+                    NULL,
+                    FirewallDlgProc,
+                    (LPARAM)context
+                    );
+            }
+            break;
+        }
+    }
 }
