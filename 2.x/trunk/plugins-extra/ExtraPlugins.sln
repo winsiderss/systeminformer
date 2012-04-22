@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AvgCpuPlugin", "AvgCpuPlugi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SetCriticalPlugin", "SetCriticalPlugin\SetCriticalPlugin.vcxproj", "{AF008176-46A6-4EFB-8061-D1EF9B9CEC29}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FirewallMonitor", "FirewallMonitor\FirewallMonitor.vcxproj", "{44A7C3BA-BAD5-40F3-AB70-442D44539053}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -39,6 +41,14 @@ Global
 		{AF008176-46A6-4EFB-8061-D1EF9B9CEC29}.Release|Win32.Build.0 = Release|Win32
 		{AF008176-46A6-4EFB-8061-D1EF9B9CEC29}.Release|x64.ActiveCfg = Release|x64
 		{AF008176-46A6-4EFB-8061-D1EF9B9CEC29}.Release|x64.Build.0 = Release|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|Win32.ActiveCfg = Debug|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|Win32.Build.0 = Debug|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|x64.ActiveCfg = Debug|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Debug|x64.Build.0 = Debug|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|Win32.ActiveCfg = Release|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|Win32.Build.0 = Release|Win32
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|x64.ActiveCfg = Release|x64
+		{44A7C3BA-BAD5-40F3-AB70-442D44539053}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
