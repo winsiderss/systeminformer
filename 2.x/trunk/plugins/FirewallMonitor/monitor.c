@@ -22,10 +22,7 @@
 
 #include "fwmon.h"
 #include <Winsock2.h>
-#ifndef INCLUDED_FWPMU
-#define INCLUDED_FWPMU
 #include <fwpmu.h>
-#endif
 
 PH_CALLBACK_DECLARE(FwItemAddedEvent);
 PH_CALLBACK_DECLARE(FwItemModifiedEvent);
@@ -35,7 +32,7 @@ PH_CALLBACK_DECLARE(FwItemsUpdatedEvent);
 HANDLE EngineHandle;
 HANDLE EventHandle;
 
-VOID CALLBACK DropEventCallback(__inout VOID* pContext, __in const FWPM_NET_EVENT* pEvent)
+VOID CALLBACK DropEventCallback(__inout PVOID pContext, __in const FWPM_NET_EVENT* pEvent)
 {
     SYSTEMTIME st;
     FILETIME ft;
@@ -311,8 +308,6 @@ VOID StopFwMonitor(
     VOID
     )
 {
-    FWP_VALUE0 value = { 0 };
-
     if (EventHandle)
     {
         FwpmNetEventUnsubscribe(
@@ -325,13 +320,17 @@ VOID StopFwMonitor(
 
     if (EngineHandle)
     {
+        FWP_VALUE0 value = { 0 };
+
         value.type = FWP_UINT32;
         value.uint32 = 0;
 
         // Disable collection of NetEvents
-        FwpmEngineSetOption(EngineHandle,
+        FwpmEngineSetOption(
+            EngineHandle,
             FWPM_ENGINE_COLLECT_NET_EVENTS,
-            &value);
+            &value
+            );
 
         FwpmEngineClose(EngineHandle);
 

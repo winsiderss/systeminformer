@@ -170,12 +170,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="fwdialog.c" />
     <ClCompile Include="fwtab.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="monitor.c" />
+    <ClCompile Include="fw.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
+    <None Include="resources\firewall.ico" />
+    <None Include="resources\home.ico" />
+    <None Include="resources\home2.ico" />
+    <None Include="resources\inbound.ico" />
+    <None Include="resources\monitor.ico" />
+    <None Include="resources\outbound.ico" />
+    <None Include="resources\public.ico" />
+    <None Include="resources\wfirewall.ico" />
+    <None Include="resources\work.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FirewallMonitor.rc" />
@@ -184,6 +195,7 @@
     <ClInclude Include="fwtabp.h" />
     <ClInclude Include="fwmon.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="wf.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
