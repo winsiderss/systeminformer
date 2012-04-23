@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object search
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2012 wj32
  *
  * This file is part of Process Hacker.
  *

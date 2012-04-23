@@ -2,7 +2,7 @@
  * Process Hacker -
  *   process properties
  *
- * Copyright (C) 2009-2011 wj32
+ * Copyright (C) 2009-2012 wj32
  *
  * This file is part of Process Hacker.
  *
