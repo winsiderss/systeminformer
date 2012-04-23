@@ -657,7 +657,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_COPY, 0);
                 break;
             case 'A':
-                TreeNew_SelectRange(ServiceTreeListHandle, 0, -1);
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(ServiceTreeListHandle, 0, -1);
                 break;
             case VK_DELETE:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_DELETE, 0);
