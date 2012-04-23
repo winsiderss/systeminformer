@@ -815,6 +815,15 @@ VOID PhHandleListViewNotifyForCopy(
     __in HWND ListViewHandle
     )
 {
+    PhHandleListViewNotifyBehaviors(lParam, ListViewHandle, PH_LIST_VIEW_CTRL_C_BEHAVIOR);
+}
+
+VOID PhHandleListViewNotifyBehaviors(
+    __in LPARAM lParam,
+    __in HWND ListViewHandle,
+    __in ULONG Behaviors
+    )
+{
     if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle)
     {
         LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)lParam;
@@ -822,8 +831,18 @@ VOID PhHandleListViewNotifyForCopy(
         switch (keyDown->wVKey)
         {
         case 'C':
-            if (GetKeyState(VK_CONTROL) < 0)
-                PhCopyListView(ListViewHandle);
+            if (Behaviors & PH_LIST_VIEW_CTRL_C_BEHAVIOR)
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                    PhCopyListView(ListViewHandle);
+            }
+            break;
+        case 'A':
+            if (Behaviors & PH_LIST_VIEW_CTRL_A_BEHAVIOR)
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                    PhSetStateAllListViewItems(ListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
+            }
             break;
         }
     }

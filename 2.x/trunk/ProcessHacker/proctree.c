@@ -2807,7 +2807,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_COPY, 0);
                 break;
             case 'A':
-                TreeNew_SelectRange(ProcessTreeListHandle, 0, -1);
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(ProcessTreeListHandle, 0, -1);
                 break;
             case VK_DELETE:
                 if (GetKeyState(VK_SHIFT) >= 0)

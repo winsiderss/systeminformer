@@ -337,7 +337,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            PhHandleListViewNotifyForCopy(lParam, lvHandle);
+            PhHandleListViewNotifyBehaviors(lParam, lvHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
 
             switch (header->code)
             {

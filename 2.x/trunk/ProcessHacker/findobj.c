@@ -481,6 +481,10 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                             if (GetKeyState(VK_CONTROL) < 0)
                                 SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_COPY, 0);
                             break;
+                        case 'A':
+                            if (GetKeyState(VK_CONTROL) < 0)
+                                PhSetStateAllListViewItems(PhFindObjectsListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
+                            break;
                         case VK_DELETE:
                             SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_CLOSE, 0);
                             break;
