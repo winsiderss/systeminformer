@@ -409,7 +409,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            PhHandleListViewNotifyForCopy(lParam, PhHiddenProcessesListViewHandle);
+            PhHandleListViewNotifyBehaviors(lParam, PhHiddenProcessesListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
 
             switch (header->code)
             {

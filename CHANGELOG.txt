@@ -3,6 +3,8 @@ Process Hacker
 2.28
  * NEW/IMPROVED:
    * peview now resolves .lnk targets
+   * Fixed Ctrl+A for processes, services and network connections and
+     added Ctrl+A for other windows
    * Updated ExtendedTools plugin:
      * Fixed network graph scaling
    * Updated ToolStatus plugin:

@@ -1025,8 +1025,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 break;
             }
 
-            PhHandleListViewNotifyForCopy(lParam, tokenPageContext->GroupsListViewHandle);
-            PhHandleListViewNotifyForCopy(lParam, tokenPageContext->PrivilegesListViewHandle);
+            PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->GroupsListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+            PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->PrivilegesListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
         }
         break;
     case WM_CONTEXTMENU:
@@ -1540,7 +1540,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
         break;
     case WM_NOTIFY:
         {
-            PhHandleListViewNotifyForCopy(lParam, lvHandle);
+            PhHandleListViewNotifyBehaviors(lParam, lvHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
         }
         break;
     }
