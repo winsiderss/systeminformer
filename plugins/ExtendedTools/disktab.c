@@ -597,7 +597,8 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     EtHandleDiskCommand(ID_DISK_COPY);
                 break;
             case 'A':
-                TreeNew_SelectRange(DiskTreeNewHandle, 0, -1);
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(DiskTreeNewHandle, 0, -1);
                 break;
             case VK_RETURN:
                 EtHandleDiskCommand(ID_DISK_OPENFILELOCATION);
