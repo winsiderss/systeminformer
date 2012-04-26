@@ -1517,7 +1517,7 @@ VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
 
     context = Item->Context;
     PhDereferenceObject(context->MenuItemText);
-    PhFree(Item->Context);
+    PhFree(context);
 }
 
 BOOLEAN PhInsertCopyCellEMenuItem(
@@ -1552,6 +1552,7 @@ BOOLEAN PhInsertCopyCellEMenuItem(
     menuItemText = PhFormatString(L"Copy \"%s\"", escapedText->Buffer);
     PhDereferenceObject(escapedText);
     copyCellItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
+    copyCellItem->DeleteFunction = PhpCopyCellEMenuItemDeleteFunction;
     context->MenuItemText = menuItemText;
 
     if (Column->CustomDraw)
