@@ -3,6 +3,7 @@
  *   output dialog
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2012 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -31,6 +32,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
 {
     ULONG Action;
     PH_IP_ADDRESS Address;
+    PH_LAYOUT_MANAGER LayoutManager;
     HWND WindowHandle;
     PH_QUEUED_LOCK WindowHandleLock;
 
@@ -54,18 +56,17 @@ VOID PerformNetworkAction(
     __in PPH_IP_ADDRESS Address
     )
 {
-    NETWORK_OUTPUT_CONTEXT context;
-
-    memset(&context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+    NETWORK_OUTPUT_CONTEXT context = { 0 };
     context.Action = Action;
     context.Address = *Address;
+
     PhInitializeQueuedLock(&context.WindowHandleLock);
     PhInitializeStringBuilder(&context.ReceivedString, PAGE_SIZE);
 
     DialogBoxParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OUTPUT),
-        hWnd,
+        NULL,
         NetworkOutputDlgProc,
         (LPARAM)&context
         );
@@ -163,6 +164,11 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             context->WindowHandle = hwndDlg;
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+
             if (context->Address.Type == PH_IPV4_NETWORK_TYPE)
                 RtlIpv4AddressToString(&context->Address.InAddr, addressString);
             else
@@ -174,12 +180,12 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             case NETWORK_ACTION_TRACEROUTE:
                 if (context->Action == NETWORK_ACTION_PING)
                 {
-                    SetDlgItemText(hwndDlg, IDC_MESSAGE,
+                    SetWindowText(hwndDlg, 
                         PhaFormatString(L"Pinging %s...", addressString)->Buffer);
                 }
                 else
                 {
-                    SetDlgItemText(hwndDlg, IDC_MESSAGE,
+                    SetWindowText(hwndDlg, 
                         PhaFormatString(L"Tracing route to %s...", addressString)->Buffer);
                 }
 
@@ -276,9 +282,15 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             }
         }
         break;
+    case WM_SIZE:
+        PhLayoutManagerLayout(&context->LayoutManager);
+        break;
     case NTM_DONE:
         {
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Finished.");
+            WCHAR szWindowText[MAX_PATH];
+
+            GetWindowText(hwndDlg, szWindowText, _countof(szWindowText));
+            SetWindowText(hwndDlg, PhaFormatString(L"%s Finished.", szWindowText)->Buffer);
         }
         break;
     case NTM_RECEIVED:
