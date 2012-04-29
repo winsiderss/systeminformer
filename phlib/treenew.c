@@ -1628,10 +1628,6 @@ ULONG_PTR PhTnpOnUserMessage(
             PhTnpRestructureNodes(Context);
             PhTnpLayout(Context);
             InvalidateRect(Context->Handle, NULL, FALSE);
-
-            // Nodes have changed - do another hit test.
-            PhTnpGetMessagePos(hwnd, &point);
-            PhTnpProcessMoveMouse(Context, point.x, point.y);
         }
         return TRUE;
     case TNM_ADDCOLUMN:
