@@ -1615,8 +1615,6 @@ ULONG_PTR PhTnpOnUserMessage(
         return TRUE;
     case TNM_NODESSTRUCTURED:
         {
-            POINT point;
-
             if (Context->EnableRedraw <= 0)
             {
                 Context->SuspendUpdateStructure = TRUE;
