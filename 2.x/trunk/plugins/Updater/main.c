@@ -22,6 +22,10 @@
 
 #include "updater.h"
 
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+
 LOGICAL DllMain(
     __in HINSTANCE Instance,
     __in ULONG Reason,

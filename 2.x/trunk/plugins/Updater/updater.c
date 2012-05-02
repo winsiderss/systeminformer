@@ -31,7 +31,6 @@ static HWND UpdateDialogHandle = NULL;
 static HANDLE UpdaterThreadHandle = NULL;
 static HANDLE DownloadThreadHandle = NULL;
 static HFONT FontHandle = NULL;
-
 static BOOLEAN EnableCache = TRUE;
 static time_t TimeStart = 0;
 static time_t TimeTransferred = 0;
@@ -39,6 +38,138 @@ static DWORD dwContentLen = 0;
 static DWORD dwTotalReadSize = 0;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
+
+
+static BOOL ConnectionAvailable(
+    VOID
+    )
+{
+    if (WindowsVersion > WINDOWS_XP)
+    {
+        INetworkListManager *pNetworkListManager; 
+
+        // Create an instance of the INetworkListManger COM object.
+        if (SUCCEEDED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_INPROC, &IID_INetworkListManager, &pNetworkListManager)))
+        {
+            VARIANT_BOOL vIsConnected = VARIANT_FALSE;
+            VARIANT_BOOL vIsConnectedInternet = VARIANT_FALSE;
+
+            INetworkListManager_get_IsConnected(pNetworkListManager, &vIsConnected);
+            INetworkListManager_get_IsConnectedToInternet(pNetworkListManager, &vIsConnectedInternet);
+
+            INetworkListManager_Release(pNetworkListManager);
+            pNetworkListManager = NULL;
+
+            if (vIsConnected == VARIANT_TRUE && vIsConnectedInternet == VARIANT_TRUE)
+            {
+                return TRUE;
+            }
+        }
+        else
+        {
+            goto NOT_SUPPORTED;
+        }
+    }
+    else  
+NOT_SUPPORTED:
+    {
+        DWORD dwType;
+
+        if (InternetGetConnectedState(&dwType, 0))
+        {
+            return TRUE;
+        }
+        else
+        {
+            LogEvent(NULL, PhFormatString(L"Updater: (ConnectionAvailable) InternetGetConnectedState failed to detect an active Internet connection (%d)", GetLastError()));
+        }
+
+        //if (!InternetCheckConnection(NULL, FLAG_ICC_FORCE_CONNECTION, 0))
+        //{
+        //  LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetCheckConnection failed connection to Sourceforge.net (%d)", GetLastError()));
+        //  return FALSE;
+        //}
+    }
+
+    return FALSE;
+}
+
+static BOOL ReadRequestString(
+    __in HINTERNET Handle,
+    __out PSTR *Data,
+    __out_opt PULONG DataLength
+    )
+{
+    CHAR buffer[BUFFER_LEN];
+    PSTR data;
+    ULONG allocatedLength;
+    ULONG dataLength;
+    ULONG returnLength;
+
+    allocatedLength = sizeof(buffer);
+    data = PhAllocate(allocatedLength);
+    dataLength = 0;
+
+    while (InternetReadFile(Handle, buffer, BUFFER_LEN, &returnLength))
+    {
+        if (returnLength == 0)
+            break;
+
+        if (allocatedLength < dataLength + returnLength)
+        {
+            allocatedLength *= 2;
+            data = PhReAllocate(data, allocatedLength);
+        }
+
+        RtlCopyMemory(data + dataLength, buffer, returnLength);
+        dataLength += returnLength;
+    }
+
+    if (allocatedLength < dataLength + 1)
+    {
+        allocatedLength++;
+        data = PhReAllocate(data, allocatedLength);
+    }
+
+    // Ensure that the buffer is null-terminated.
+    data[dataLength] = 0;
+
+    *Data = data;
+
+    if (DataLength)
+        *DataLength = dataLength;
+
+    return TRUE;
+}
+
+
+static BOOL PhInstalledUsingSetup(
+    VOID
+    )
+{
+    PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
+
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    // Check uninstall entries for the 'Process_Hacker2_is1' registry key.
+    if (NT_SUCCESS(status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        NtClose(keyHandle);
+        return TRUE;
+    }
+
+    LogEvent(NULL, PhFormatString(L"Updater: (PhInstalledUsingSetup) PhOpenKey failed (0x%x)", status));
+    return FALSE;
+}
+
+
 
 static NTSTATUS SilentUpdateCheckThreadStart(
     __in PVOID Parameter
@@ -554,7 +685,68 @@ CleanupAndExit:
     return STATUS_SUCCESS;
 }
 
-static INT_PTR CALLBACK UpdaterWndProc(
+static NTSTATUS ShowUpdateDialogThreadStart(
+    __in PVOID Parameter
+    )
+{
+    BOOL result;
+    MSG message;
+    PH_AUTO_POOL autoPool;
+
+    PhInitializeAutoPool(&autoPool);
+
+    UpdateDialogHandle = CreateDialog( 
+        (HINSTANCE)PluginInstance->DllBase, 
+        MAKEINTRESOURCE(IDD_UPDATE), 
+        PhMainWndHandle, 
+        UpdaterWndProc
+        ); 
+
+    PhSetEvent(&InitializedEvent);
+
+    while (result = GetMessage(&message, NULL, 0, 0)) 
+    { 
+        if (result == -1)
+            break;
+
+        if (!IsWindow(UpdateDialogHandle) || !IsDialogMessage(UpdateDialogHandle, &message))
+        { 
+            TranslateMessage(&message); 
+            DispatchMessage(&message); 
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    PhResetEvent(&InitializedEvent);
+
+    // Ensure objects are reset when window closes.
+
+    if (SetupFilePath)
+    {
+        PhDereferenceObject(SetupFilePath);
+        SetupFilePath = NULL;
+    }
+
+    NtClose(DownloadThreadHandle);
+    DownloadThreadHandle = NULL;
+
+    NtClose(UpdaterThreadHandle);
+    UpdaterThreadHandle = NULL;
+
+    DeleteObject(FontHandle);
+    FontHandle = NULL;
+
+    DestroyWindow(UpdateDialogHandle);
+    UpdateDialogHandle = NULL;
+
+    return STATUS_SUCCESS;
+}
+
+
+
+INT_PTR CALLBACK UpdaterWndProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -771,59 +963,6 @@ LONG CompareVersions(
     return result;
 }
 
-BOOL ConnectionAvailable(
-    VOID
-    )
-{
-    if (WindowsVersion > WINDOWS_XP)
-    {
-        INetworkListManager *pNetworkListManager; 
-
-        // Create an instance of the INetworkListManger COM object.
-        if (SUCCEEDED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_INPROC, &IID_INetworkListManager, &pNetworkListManager)))
-        {
-            VARIANT_BOOL vIsConnected = VARIANT_FALSE;
-            VARIANT_BOOL vIsConnectedInternet = VARIANT_FALSE;
-
-            INetworkListManager_get_IsConnected(pNetworkListManager, &vIsConnected);
-            INetworkListManager_get_IsConnectedToInternet(pNetworkListManager, &vIsConnectedInternet);
-
-            if (vIsConnected == VARIANT_TRUE && vIsConnectedInternet == VARIANT_TRUE)
-            {
-                return TRUE;
-            }
-
-            INetworkListManager_Release(pNetworkListManager);
-            pNetworkListManager = NULL;
-        }
-        else
-        {
-            goto NOT_SUPPORTED;
-        }
-    }
-    else  
-NOT_SUPPORTED:
-    {
-        DWORD dwType;
-
-        if (InternetGetConnectedState(&dwType, 0))
-        {
-            return TRUE;
-        }
-        else
-        {
-            LogEvent(NULL, PhFormatString(L"Updater: (ConnectionAvailable) InternetGetConnectedState failed to detect an active Internet connection (%d)", GetLastError()));
-        }
-    }
-
-    //if (!InternetCheckConnection(NULL, FLAG_ICC_FORCE_CONNECTION, 0))
-    //{
-    //  LogEvent(PhFormatString(L"Updater: (ConnectionAvailable) InternetCheckConnection failed connection to Sourceforge.net (%d)", GetLastError()));
-    //  return FALSE;
-    //}
-
-    return FALSE;
-}
 
 VOID LogEvent(
     __in_opt HWND hwndDlg,
@@ -867,31 +1006,6 @@ BOOL ParseVersionString(
     return FALSE;
 }
 
-BOOL PhInstalledUsingSetup(
-    VOID
-    )
-{
-    PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
-
-    NTSTATUS status;
-    HANDLE keyHandle;
-
-    // Check uninstall entries for the 'Process_Hacker2_is1' registry key.
-    if (NT_SUCCESS(status = PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName,
-        0
-        )))
-    {
-        NtClose(keyHandle);
-        return TRUE;
-    }
-
-    LogEvent(NULL, PhFormatString(L"Updater: (PhInstalledUsingSetup) PhOpenKey failed (0x%x)", status));
-    return FALSE;
-}
 
 BOOL QueryXmlData(
     __out PUPDATER_XML_DATA XmlData
@@ -901,18 +1015,27 @@ BOOL QueryXmlData(
     BOOL result = FALSE;
     HINTERNET netInitialize = NULL, netConnection = NULL, netRequest = NULL;
     mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
-
-    // Initialize the wininet library.
-    if (!(netInitialize = InternetOpen(
-        L"PHUpdater",
-        INTERNET_OPEN_TYPE_PRECONFIG,
-        NULL,
-        NULL,
-        0
-        )))
+  
     {
-        LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
-        goto CleanupAndExit;
+        // Create a user agent string.
+        PPH_STRING phVersion = PhGetPhVersion();
+        PPH_STRING userAgent = PhConcatStrings2(L"PH Updater v", phVersion->Buffer);
+        
+        // Initialize the wininet library.
+        if (!(netInitialize = InternetOpen(
+            userAgent->Buffer,
+            INTERNET_OPEN_TYPE_PRECONFIG,
+            NULL,
+            NULL,
+            0
+            )))
+        {
+            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
+            goto CleanupAndExit;
+        }
+
+        PhDereferenceObject(userAgent);
+        PhDereferenceObject(phVersion);
     }
 
     // Connect to the server.
@@ -961,7 +1084,7 @@ BOOL QueryXmlData(
     }
 
     // Load our XML.
-    xmlDoc = mxmlLoadString(NULL, (char*)data, QueryXmlDataCallback);
+    xmlDoc = mxmlLoadString(NULL, (PCHAR)data, QueryXmlDataCallback);
     // Check our XML.
     if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
     {
@@ -1075,112 +1198,8 @@ mxml_type_t QueryXmlDataCallback(
     return MXML_OPAQUE;
 }
 
-BOOL ReadRequestString(
-    __in HINTERNET Handle,
-    __out PSTR *Data,
-    __out_opt PULONG DataLength
-    )
-{
-    CHAR buffer[BUFFER_LEN];
-    PSTR data;
-    ULONG allocatedLength;
-    ULONG dataLength;
-    ULONG returnLength;
 
-    allocatedLength = sizeof(buffer);
-    data = PhAllocate(allocatedLength);
-    dataLength = 0;
 
-    while (InternetReadFile(Handle, buffer, BUFFER_LEN, &returnLength))
-    {
-        if (returnLength == 0)
-            break;
-
-        if (allocatedLength < dataLength + returnLength)
-        {
-            allocatedLength *= 2;
-            data = PhReAllocate(data, allocatedLength);
-        }
-
-        RtlCopyMemory(data + dataLength, buffer, returnLength);
-        dataLength += returnLength;
-    }
-
-    if (allocatedLength < dataLength + 1)
-    {
-        allocatedLength++;
-        data = PhReAllocate(data, allocatedLength);
-    }
-
-    // Ensure that the buffer is null-terminated.
-    data[dataLength] = 0;
-
-    *Data = data;
-
-    if (DataLength)
-        *DataLength = dataLength;
-
-    return TRUE;
-}
-
-NTSTATUS ShowUpdateDialogThreadStart(
-    __in PVOID Parameter
-    )
-{
-    BOOL result;
-    MSG message;
-    PH_AUTO_POOL autoPool;
-
-    PhInitializeAutoPool(&autoPool);
-
-    UpdateDialogHandle = CreateDialog( 
-        (HINSTANCE)PluginInstance->DllBase, 
-        MAKEINTRESOURCE(IDD_UPDATE), 
-        PhMainWndHandle, 
-        UpdaterWndProc
-        ); 
-
-    PhSetEvent(&InitializedEvent);
-
-    while (result = GetMessage(&message, NULL, 0, 0)) 
-    { 
-        if (result == -1)
-            break;
-
-        if (!IsWindow(UpdateDialogHandle) || !IsDialogMessage(UpdateDialogHandle, &message))
-        { 
-            TranslateMessage(&message); 
-            DispatchMessage(&message); 
-        }
-
-        PhDrainAutoPool(&autoPool);
-    }
-
-    PhDeleteAutoPool(&autoPool);
-    PhResetEvent(&InitializedEvent);
-
-    // Ensure objects are reset when window closes.
-
-    if (SetupFilePath)
-    {
-        PhDereferenceObject(SetupFilePath);
-        SetupFilePath = NULL;
-    }
-
-    NtClose(DownloadThreadHandle);
-    DownloadThreadHandle = NULL;
-
-    NtClose(UpdaterThreadHandle);
-    UpdaterThreadHandle = NULL;
-
-    DeleteObject(FontHandle);
-    FontHandle = NULL;
-
-    DestroyWindow(UpdateDialogHandle);
-    UpdateDialogHandle = NULL;
-
-    return STATUS_SUCCESS;
-}
 
 VOID ShowDialog(
     VOID
