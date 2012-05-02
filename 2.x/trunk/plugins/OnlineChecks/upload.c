@@ -3,6 +3,7 @@
  *   uploader
  *
  * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2012 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -20,55 +21,44 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#include <wininet.h>
 #include "onlnchk.h"
-#include "sha256.h"
-#include "resource.h"
 
-#define HASH_SHA1 1
-#define HASH_SHA256 2
+static time_t TimeStart = 0;
+static time_t TimeTransferred = 0;
+static DWORD TotalReadSize = 0;
+static DWORD TotalWriteSize = 0;
+static DWORD TotalContentSize = 0;
 
-#define UM_LAUNCH_COMMAND (WM_APP + 1)
-#define UM_ERROR (WM_APP + 2)
-
-typedef struct _UPLOAD_CONTEXT
+static SERVICE_INFO UploadServiceInfo[] =
 {
-    LONG RefCount;
-
-    PPH_STRING FileName;
-    ULONG Service;
-    HWND WindowHandle;
-    PH_QUEUED_LOCK Lock;
-    HANDLE ThreadHandle;
-
-    PPH_STRING LaunchCommand;
-    PPH_STRING ErrorMessage;
-} UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
-
-typedef struct _SERVICE_INFO
-{
-    ULONG Id;
-    PWSTR HostName;
-    ULONG HostPort;
-    ULONG HostFlags;
-    PWSTR UploadObjectName;
-    PSTR FileNameFieldName;
-} SERVICE_INFO, *PSERVICE_INFO;
-
-INT_PTR CALLBACK UploadDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
-
-SERVICE_INFO UploadServiceInfo[] =
-{
-    { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, INTERNET_FLAG_SECURE, L"???", "file" },
-    { UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTP_PORT, 0, L"/processupload.php", "scanfile" },
-    { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", "file" }
+    { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
+    { UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTP_PORT, 0, L"/processupload.php", L"scanfile" },
+    { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
+
+VOID InitializeFont(
+    __in HWND hwndDlg
+    )
+{
+    LOGFONT lFont = { 0 };
+
+    // TODO: Cache font handle, it doesn't need to be recreated for each page.
+    HFONT fHandle = NULL;
+
+    lFont.lfHeight = 20;
+    lFont.lfWeight = FW_MEDIUM;
+    lFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+
+    wcscat_s(
+        lFont.lfFaceName, 
+        _countof(lFont.lfFaceName), 
+        L"Segoe UI"
+        );
+
+    fHandle = CreateFontIndirectW(&lFont);
+
+    SendMessageW(hwndDlg, WM_SETFONT, (WPARAM)fHandle, FALSE);
+}
 
 PUPLOAD_CONTEXT CreateUploadContext(
     VOID
@@ -83,12 +73,6 @@ PUPLOAD_CONTEXT CreateUploadContext(
     return context;
 }
 
-VOID ReferenceUploadContext(
-    __inout PUPLOAD_CONTEXT Context
-    )
-{
-    _InterlockedIncrement(&Context->RefCount);
-}
 
 VOID DereferenceUploadContext(
     __inout PUPLOAD_CONTEXT Context
@@ -119,8 +103,8 @@ VOID UploadToOnlineService(
 
     DialogBoxParam(
         PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_PROGRESS),
-        hWnd,
+        MAKEINTRESOURCE(IDD_PROGRESSDIALOG),
+        NULL,
         UploadDlgProc,
         (LPARAM)context
         );
@@ -151,24 +135,8 @@ static VOID RaiseUploadError(
 
     PhSwapReference(&errorMessage, NULL);
 
-    PhAcquireQueuedLockExclusive(&Context->Lock);
-
     if (Context->WindowHandle)
         PostMessage(Context->WindowHandle, UM_ERROR, 0, 0);
-
-    PhReleaseQueuedLockExclusive(&Context->Lock);
-}
-
-static VOID SendLaunchCommand(
-    __in PUPLOAD_CONTEXT Context
-    )
-{
-    PhAcquireQueuedLockExclusive(&Context->Lock);
-
-    if (Context->WindowHandle)
-        PostMessage(Context->WindowHandle, UM_LAUNCH_COMMAND, 0, 0);
-
-    PhReleaseQueuedLockExclusive(&Context->Lock);
 }
 
 static PSERVICE_INFO GetUploadServiceInfo(
@@ -177,7 +145,7 @@ static PSERVICE_INFO GetUploadServiceInfo(
 {
     ULONG i;
 
-    for (i = 0; i < sizeof(UploadServiceInfo) / sizeof(SERVICE_INFO); i++)
+    for (i = 0; i < _countof(UploadServiceInfo); i++)
     {
         if (UploadServiceInfo[i].Id == Id)
             return &UploadServiceInfo[i];
@@ -186,13 +154,13 @@ static PSERVICE_INFO GetUploadServiceInfo(
     return NULL;
 }
 
+
 static BOOLEAN PerformSubRequest(
     __in PUPLOAD_CONTEXT Context,
     __in PWSTR HostName,
     __in PWSTR ObjectName,
-    __out_bcount(BufferLength) PVOID Buffer,
-    __in ULONG BufferLength,
-    __out PULONG ReturnLength
+    __out_bcount(DataLength) PSTR *Data,
+    __out_opt PULONG DataLength
     )
 {
     BOOLEAN result = FALSE;
@@ -201,104 +169,134 @@ static BOOLEAN PerformSubRequest(
     HINTERNET connectHandle = NULL;
     HINTERNET requestHandle = NULL;
 
+    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxycfg = { 0 };
     // Create a user agent string.
     {
-        PPH_STRING phVersion;
-
-        phVersion = PhGetPhVersion();
+        PPH_STRING phVersion = PhGetPhVersion();
         userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer);
         PhDereferenceObject(phVersion);
     }
 
+    if (!WinHttpGetIEProxyConfigForCurrentUser(&proxycfg))
+    {
+        RaiseUploadError(Context, L"WinHttpGetIEProxyConfigForCurrentUser Failure", GetLastError());
+        goto ExitCleanup;
+    }
+
     // Create the internet handle.
-
-    internetHandle = InternetOpen(userAgent->Buffer, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-    PhDereferenceObject(userAgent);
-
-    if (!internetHandle)
+    if (!(internetHandle = WinHttpOpen(
+        userAgent->Buffer, 
+        proxycfg.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        proxycfg.lpszProxy, 
+        proxycfg.lpszProxyBypass, 
+        0
+        )))
     {
         RaiseUploadError(Context, L"Unable to initialize internet access", GetLastError());
         goto ExitCleanup;
     }
 
-    // Set the timeouts.
-    {
-        ULONG timeout = 5 * 60 * 1000; // 5 minutes
-
-        InternetSetOption(internetHandle, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_SEND_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_DATA_SEND_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_DATA_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
-    }
+    PhDereferenceObject(userAgent);
 
     // Connect to the online service.
-
-    connectHandle = InternetConnect(
+    if (!(connectHandle = WinHttpConnect(
         internetHandle,
         HostName,
-        80,
-        NULL,
-        NULL,
-        INTERNET_SERVICE_HTTP,
-        0,
+        INTERNET_DEFAULT_HTTP_PORT,
         0
-        );
-
-    if (!connectHandle)
+        )))
     {
         RaiseUploadError(Context, L"Unable to connect to the service", GetLastError());
         goto ExitCleanup;
     }
 
     // Create the request.
-
-    {
-        static PWSTR acceptTypes[2] = { L"*/*", NULL };
-
-        requestHandle = HttpOpenRequest(
-            connectHandle,
-            L"GET",
-            ObjectName,
-            L"HTTP/1.1",
-            L"",
-            acceptTypes,
-            INTERNET_FLAG_RELOAD,
-            0
-            );
-    }
-
-    if (!requestHandle)
+    if (!(requestHandle = WinHttpOpenRequest(
+        connectHandle,
+        NULL, // GET
+        ObjectName,
+        NULL,// HTTP/1.1
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_REFRESH
+        )))
     {
         RaiseUploadError(Context, L"Unable to create the request", GetLastError());
         goto ExitCleanup;
     }
 
     // Send the request.
-
-    if (!HttpSendRequest(requestHandle, NULL, 0, NULL, 0))
+    if (!WinHttpSendRequest(requestHandle, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0))
     {
         RaiseUploadError(Context, L"Unable to send the request", GetLastError());
         goto ExitCleanup;
     }
 
-    // Handle service-specific actions.
-
-    if (!InternetReadFile(requestHandle, Buffer, BufferLength, ReturnLength))
+    // Wait for the send request to complete and recieve the response.
+    if (!WinHttpReceiveResponse(requestHandle, NULL))
     {
-        RaiseUploadError(Context, L"Unable to complete the request", GetLastError());
+        RaiseUploadError(Context, L"Unable to receive the response", GetLastError());
         goto ExitCleanup;
+    }
+
+    // Handle service-specific actions.
+    //if (!WinHttpReadData(requestHandle, Buffer, BufferLength, ReturnLength))
+    //{
+    //    RaiseUploadError(Context, L"Unable to complete the request", GetLastError());
+    //    goto ExitCleanup;
+    //}
+
+    {
+        CHAR buffer[512];
+        PSTR data;
+        ULONG allocatedLength;
+        ULONG dataLength;
+        ULONG returnLength;
+
+        allocatedLength = sizeof(buffer);
+        data = PhAllocate(allocatedLength);
+        dataLength = 0;
+
+        while (WinHttpReadData(requestHandle, buffer, 512, &returnLength))
+        {
+            if (returnLength == 0)
+                break;
+
+            if (allocatedLength < dataLength + returnLength)
+            {
+                allocatedLength *= 2;
+                data = PhReAllocate(data, allocatedLength);
+            }
+
+            RtlCopyMemory(data + dataLength, buffer, returnLength);
+            dataLength += returnLength;
+        }
+
+        if (allocatedLength < dataLength + 1)
+        {
+            allocatedLength++;
+            data = PhReAllocate(data, allocatedLength);
+        }
+
+        // Ensure that the buffer is null-terminated.
+        data[dataLength] = 0;
+
+        *Data = data;
+
+        if (DataLength)
+            *DataLength = dataLength;
+
     }
 
     result = TRUE;
 
 ExitCleanup:
     if (requestHandle)
-        InternetCloseHandle(requestHandle);
+        WinHttpCloseHandle(requestHandle);
     if (connectHandle)
-        InternetCloseHandle(connectHandle);
+        WinHttpCloseHandle(connectHandle);
     if (internetHandle)
-        InternetCloseHandle(internetHandle);
+        WinHttpCloseHandle(internetHandle);
 
     return result;
 }
@@ -386,37 +384,31 @@ static NTSTATUS UploadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
+    static ULONG seed = 0;
     NTSTATUS status;
-    PUPLOAD_CONTEXT context = Parameter;
-    PSERVICE_INFO serviceInfo;
-    PPH_STRING userAgent;
-    HANDLE fileHandle = NULL;
     LARGE_INTEGER fileSize64;
-    ULONG fileSize;
-    PPH_STRING objectName = NULL;
-    HINTERNET internetHandle = NULL;
-    HINTERNET connectHandle = NULL;
-    HINTERNET requestHandle = NULL;
-    PPH_STRING boundary = NULL;
-    PPH_ANSI_STRING boundaryAnsi = NULL;
-    PH_STRING_BUILDER headers = { 0 };
-    PPH_ANSI_STRING baseFileNameAnsi = NULL;
-    PUCHAR data = NULL;
-    ULONG dataLength = 0;
-    ULONG dataCursor = 0;
-    UCHAR buffer[PAGE_SIZE];
-    ULONG bufferSize;
 
-    serviceInfo = GetUploadServiceInfo(context->Service);
+    HANDLE fileHandle = NULL;
+    HINTERNET internetHandle = NULL, connectHandle = NULL, requestHandle = NULL;
+    PUPLOAD_CONTEXT context = Parameter;
+    PSERVICE_INFO serviceInfo = NULL;
 
-    if (!serviceInfo)
+    PPH_STRING userAgent = NULL, objectName = NULL;
+    PPH_STRING baseFileName = PhGetBaseName(context->FileName);
+   
+    // Reset our variables
+    TimeStart = 0;
+    TimeTransferred = 0;
+    TotalContentSize = 0;
+    TotalReadSize = 0; 
+
+    if (!(serviceInfo = GetUploadServiceInfo(context->Service)))
     {
         RaiseUploadError(context, L"The service type is invalid", 0);
         goto ExitCleanup;
     }
 
     // Open the file and check its size.
-
     status = PhCreateFileWin32(
         &fileHandle,
         context->FileName->Buffer,
@@ -437,10 +429,9 @@ static NTSTATUS UploadWorkerThreadStart(
                 goto ExitCleanup;
             }
 
-            fileSize = fileSize64.LowPart;
+            TotalContentSize = fileSize64.LowPart;
         }
     }
-
     if (!NT_SUCCESS(status))
     {
         RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
@@ -456,6 +447,8 @@ static NTSTATUS UploadWorkerThreadStart(
             PPH_STRING subObjectName;
             PSTR uploadUrl;
             PSTR quote;
+            PSTR data;
+            DWORD length;
 
             status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA256, hash);
 
@@ -468,29 +461,26 @@ static NTSTATUS UploadWorkerThreadStart(
             hashString = PhBufferToHexString(hash, 32);
             subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
 
-            if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, buffer, sizeof(buffer) - 1, &bufferSize))
+            if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, &data, &length))
             {
                 PhDereferenceObject(hashString);
                 PhDereferenceObject(subObjectName);
                 goto ExitCleanup;
             }
 
-            PhDereferenceObject(subObjectName);
-
-            buffer[bufferSize] = 0;
-
-            if (strstr(buffer, "\"file_exists\": true"))
-            {
-                // No upload needed; show the results immediately.
-                context->LaunchCommand = PhFormatString(L"http://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
-                PhDereferenceObject(hashString);
-                SendLaunchCommand(context);
-                goto ExitCleanup;
-            }
+            //if (strstr(buffer, "\"file_exists\": true"))
+            //{
+            //    // No upload needed; show the results immediately.
+            //    context->LaunchCommand = PhFormatString(L"http://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
+            //    PhDereferenceObject(hashString);
+            //    SendLaunchCommand(context);
+            //    goto ExitCleanup;
+            //}
 
             PhDereferenceObject(hashString);
+            PhDereferenceObject(subObjectName);
 
-            uploadUrl = strstr(buffer, "\"upload_url\": \"https://www.virustotal.com");
+            uploadUrl = strstr(data, "\"upload_url\": \"https://www.virustotal.com");
 
             if (!uploadUrl)
             {
@@ -515,8 +505,8 @@ static NTSTATUS UploadWorkerThreadStart(
             UCHAR hash[20];
             PPH_STRING hashString;
             PPH_STRING subObjectName;
-            PSTR id;
-            PSTR quote;
+            PSTR data;
+            DWORD length;
 
             status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA1, hash);
 
@@ -529,7 +519,7 @@ static NTSTATUS UploadWorkerThreadStart(
             hashString = PhBufferToHexString(hash, 20);
             subObjectName = PhConcatStrings2(L"/nestor/getfileforhash.php?hash=", hashString->Buffer);
 
-            if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, buffer, sizeof(buffer) - 1, &bufferSize))
+            if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, &data, &length))
             {
                 PhDereferenceObject(hashString);
                 PhDereferenceObject(subObjectName);
@@ -539,21 +529,19 @@ static NTSTATUS UploadWorkerThreadStart(
             PhDereferenceObject(hashString);
             PhDereferenceObject(subObjectName);
 
-            buffer[bufferSize] = 0;
+            //if (id = strstr(data, "\"id\":"))
+            //{
+            //    id += 6;
+            //    quote = strchr(id, '"');
 
-            if (id = strstr(buffer, "\"id\":"))
-            {
-                id += 6;
-                quote = strchr(id, '"');
-
-                if (quote)
-                {
-                    // No upload needed; show the results immediately.
-                    context->LaunchCommand = PhFormatString(L"http://virusscan.jotti.org/en/scanresult/%.*S", quote - id, id);
-                    SendLaunchCommand(context);
-                    goto ExitCleanup;
-                }
-            }
+            //    if (quote)
+            //    {
+            //        // No upload needed; show the results immediately.
+            //        context->LaunchCommand = PhFormatString(L"http://virusscan.jotti.org/en/scanresult/%.*S", quote - id, id);
+            //        SendLaunchCommand(context);
+            //        goto ExitCleanup;
+            //    }
+            //}
 
             objectName = PhCreateString(serviceInfo->UploadObjectName);
         }
@@ -567,358 +555,489 @@ static NTSTATUS UploadWorkerThreadStart(
 
     // Create a user agent string.
     {
-        PPH_STRING phVersion;
-
-        phVersion = PhGetPhVersion();
+        PPH_STRING phVersion = PhGetPhVersion();
         userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer);
         PhDereferenceObject(phVersion);
     }
-
-    // Create the internet handle.
-
-    internetHandle = InternetOpen(userAgent->Buffer, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-    PhDereferenceObject(userAgent);
-
-    if (!internetHandle)
+    
+    // Get proxy configuration and create winhttp handle. 
     {
-        RaiseUploadError(context, L"Unable to initialize internet access", GetLastError());
-        goto ExitCleanup;
-    }
+        WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxycfg = { 0 };
 
-    // Set the timeouts.
-    {
-        ULONG timeout = 5 * 60 * 1000; // 5 minutes
+        if (!WinHttpGetIEProxyConfigForCurrentUser(&proxycfg))
+        {
+            RaiseUploadError(context, L"WinHttpGetIEProxyConfigForCurrentUser Failure", GetLastError());
+            goto ExitCleanup;
+        }
 
-        InternetSetOption(internetHandle, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_SEND_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_DATA_SEND_TIMEOUT, &timeout, sizeof(ULONG));
-        InternetSetOption(internetHandle, INTERNET_OPTION_DATA_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
+        // Create the internet handle.
+        if (!(internetHandle = WinHttpOpen(
+            userAgent->Buffer, 
+            proxycfg.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
+            proxycfg.lpszProxy, 
+            proxycfg.lpszProxyBypass, 
+            0
+            )))
+        {
+            RaiseUploadError(context, L"Unable to initialize internet access", GetLastError());
+            goto ExitCleanup;
+        }
     }
 
     // Connect to the online service.
-
-    connectHandle = InternetConnect(
+    if (!(connectHandle = WinHttpConnect(
         internetHandle,
         serviceInfo->HostName,
-        (INTERNET_PORT)serviceInfo->HostPort,
-        NULL,
-        NULL,
-        INTERNET_SERVICE_HTTP,
-        0,
+        serviceInfo->HostPort,
         0
-        );
-
-    if (!connectHandle)
+        )))
     {
         RaiseUploadError(context, L"Unable to connect to the service", GetLastError());
         goto ExitCleanup;
     }
 
     // Create the request.
-
-    {
-        static PWSTR acceptTypes[2] = { L"*/*", NULL };
-
-        requestHandle = HttpOpenRequest(
-            connectHandle,
-            L"POST",
-            objectName->Buffer,
-            L"HTTP/1.1",
-            L"",
-            acceptTypes,
-            INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_AUTO_REDIRECT | serviceInfo->HostFlags,
-            0
-            );
-    }
-
-    if (!requestHandle)
+    if (!(requestHandle = WinHttpOpenRequest(
+        connectHandle,
+        L"POST",
+        objectName->Buffer,
+        NULL, // HTTP/1.1
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_REFRESH | serviceInfo->HostFlags
+        )))
     {
         RaiseUploadError(context, L"Unable to create the request", GetLastError());
         goto ExitCleanup;
     }
 
-    // Create the boundary.
-
+    // Set timeouts and disable http redirection.
     {
-        static ULONG seed = 0;
+        DWORD disable = WINHTTP_DISABLE_REDIRECTS;
+        ULONG timeout = 5 * 60 * 1000; // 5 minutes
 
-        boundary = PhFormatString(
+        WinHttpSetOption(requestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &disable, sizeof(ULONG));
+        WinHttpSetOption(requestHandle, WINHTTP_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(ULONG));
+        WinHttpSetOption(requestHandle, WINHTTP_OPTION_SEND_TIMEOUT, &timeout, sizeof(ULONG));
+        WinHttpSetOption(requestHandle, WINHTTP_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
+    }
+    
+    // Create and POST data.
+    {
+        PH_STRING_BUILDER sbRequestHeaders = { 0 };
+        PH_STRING_BUILDER sbPostHeader = { 0 };
+        PH_STRING_BUILDER sbPostFooter = { 0 };
+
+        PPH_STRING postBoundary = PhFormatString(
             L"------------------------%I64u",
             (ULONG64)RtlRandomEx(&seed) | ((ULONG64)RtlRandomEx(&seed) << 31)
             );
-        boundaryAnsi = PhCreateAnsiStringFromUnicodeEx(boundary->Buffer, boundary->Length);
-    }
 
-    // Create the data.
-
-    {
-        PSTR contentDispositionPart1 = "Content-Disposition: form-data; name=\"";
-        PSTR fileNameFieldName;
-        PSTR contentDispositionPart2 = "\"; filename=\"";
-        PSTR contentType = "Content-Type: application/octet-stream\r\n\r\n";
-        PPH_STRING baseFileName;
-        IO_STATUS_BLOCK isb;
-
-        baseFileName = PhGetBaseName(context->FileName);
-        baseFileNameAnsi = PhCreateAnsiStringFromUnicodeEx(baseFileName->Buffer, baseFileName->Length);
-        PhDereferenceObject(baseFileName);
-
-        fileNameFieldName = serviceInfo->FileNameFieldName;
-
-        dataLength = 2; // --
-        dataLength += boundaryAnsi->Length;
-        dataLength += 2; // \r\n
-        dataLength += (ULONG)strlen(contentDispositionPart1);
-        dataLength += (ULONG)strlen(fileNameFieldName);
-        dataLength += (ULONG)strlen(contentDispositionPart2);
-        dataLength += baseFileNameAnsi->Length;
-        dataLength += 3; // \"\r\n
-        dataLength += (ULONG)strlen(contentType);
-        dataLength += fileSize;
-        dataLength += 4; // \r\n--
-        dataLength += boundaryAnsi->Length;
-        dataLength += 6; // --\r\n\r\n
-
-        data = PhAllocatePage(dataLength, NULL);
-
-        if (!data)
-        {
-            RaiseUploadError(context, L"Unable to allocate memory", 0);
-            goto ExitCleanup;
-        }
-
-        // Boundary
-        memcpy(&data[dataCursor], "--", 2);
-        dataCursor += 2;
-        memcpy(&data[dataCursor], boundaryAnsi->Buffer, boundaryAnsi->Length);
-        dataCursor += boundaryAnsi->Length;
-        memcpy(&data[dataCursor], "\r\n", 2);
-        dataCursor += 2;
-
-        // Content Disposition
-        memcpy(&data[dataCursor], contentDispositionPart1, strlen(contentDispositionPart1));
-        dataCursor += (ULONG)strlen(contentDispositionPart1);
-        memcpy(&data[dataCursor], fileNameFieldName, strlen(fileNameFieldName));
-        dataCursor += (ULONG)strlen(fileNameFieldName);
-        memcpy(&data[dataCursor], contentDispositionPart2, strlen(contentDispositionPart2));
-        dataCursor += (ULONG)strlen(contentDispositionPart2);
-        memcpy(&data[dataCursor], baseFileNameAnsi->Buffer, baseFileNameAnsi->Length);
-        dataCursor += baseFileNameAnsi->Length;
-        memcpy(&data[dataCursor], "\"\r\n", 3);
-        dataCursor += 3;
-
-        // Content Type
-        memcpy(&data[dataCursor], contentType, strlen(contentType));
-        dataCursor += (ULONG)strlen(contentType);
-
-        // File contents
-        status = NtReadFile(fileHandle, NULL, NULL, NULL, &isb, &data[dataCursor], fileSize, NULL, NULL);
-        dataCursor += fileSize;
-
-        if (!NT_SUCCESS(status))
-        {
-            RaiseUploadError(context, L"Unable to read the file", RtlNtStatusToDosError(status));
-            goto ExitCleanup;
-        }
-
-        // Boundary
-        memcpy(&data[dataCursor], "\r\n--", 4);
-        dataCursor += 4;
-        memcpy(&data[dataCursor], boundaryAnsi->Buffer, boundaryAnsi->Length);
-        dataCursor += boundaryAnsi->Length;
-        memcpy(&data[dataCursor], "--\r\n\r\n", 6);
-        dataCursor += 6;
-
-        assert(dataCursor == dataLength);
-    }
-
-    // Create and add the header.
-
-    {
-        PhInitializeStringBuilder(&headers, 100);
-
-        PhAppendStringBuilder2(
-            &headers,
-            L"Content-Type: multipart/form-data; boundary="
+        PhInitializeStringBuilder(&sbRequestHeaders, MAX_PATH);
+        PhInitializeStringBuilder(&sbPostHeader, MAX_PATH);
+        PhInitializeStringBuilder(&sbPostFooter, MAX_PATH);
+  
+        // build request header string
+        PhAppendFormatStringBuilder(
+            &sbRequestHeaders,
+            L"Content-Type: multipart/form-data; boundary=%s\r\n",
+            postBoundary->Buffer
             );
-        PhAppendStringBuilder(&headers, boundary);
-        PhAppendStringBuilder2(&headers, L"\r\n");
-        PhAppendFormatStringBuilder(&headers, L"Content-Length: %u\r\n", dataLength);
-
-        HttpAddRequestHeaders(
+        // POST boundary header
+        PhAppendFormatStringBuilder(
+            &sbPostHeader,
+            L"--%s\r\n",
+            postBoundary->Buffer
+            );
+        PhAppendFormatStringBuilder(
+            &sbPostHeader,
+            L"Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n",
+            serviceInfo->FileNameFieldName,
+            baseFileName->Buffer
+            );
+        PhAppendFormatStringBuilder(
+            &sbPostHeader, 
+            L"Content-Type: application/octet-stream\r\n\r\n"
+            );
+        // POST boundary footer  
+        PhAppendFormatStringBuilder(
+            &sbPostFooter,
+            L"\r\n--%s--\r\n\r\n",
+            postBoundary->Buffer
+            );
+  
+        // add headers
+        if (!WinHttpAddRequestHeaders(
             requestHandle,
-            headers.String->Buffer,
-            (ULONG)headers.String->Length,
-            HTTP_ADDREQ_FLAG_REPLACE | HTTP_ADDREQ_FLAG_ADD
-            );
+            sbRequestHeaders.String->Buffer,
+            -1,
+            WINHTTP_ADDREQ_FLAG_REPLACE | WINHTTP_ADDREQ_FLAG_ADD
+            ))
+        {
+            RaiseUploadError(context, L"Unable to add request headers", GetLastError());
+            goto ExitCleanup;
+        }
+
+        {
+            // All until now has been just for this; Calculate the total request length.
+            ULONG total_length = 
+                (ULONG)wcsnlen(sbPostHeader.String->Buffer, sbPostHeader.String->Length) 
+                + TotalContentSize 
+                + (ULONG)wcsnlen(sbPostFooter.String->Buffer, sbPostFooter.String->Length);
+
+            // Send the request.
+            if (!WinHttpSendRequest(
+                requestHandle,
+                WINHTTP_NO_ADDITIONAL_HEADERS, 
+                0, 
+                WINHTTP_NO_REQUEST_DATA, 
+                0, 
+                total_length, 
+                0
+                ))
+            {
+                RaiseUploadError(context, L"Unable to send the request", GetLastError());
+                goto ExitCleanup;
+            }
+        }
+
+        {
+            DWORD bytesRead = 0;
+            DWORD bytesWritten = 0;
+            IO_STATUS_BLOCK isb;
+            BYTE buffer[512];
+
+            // Convert to ANSI
+            PPH_ANSI_STRING ansiPostData = PhCreateAnsiStringFromUnicode(sbPostHeader.String->Buffer);
+            PPH_ANSI_STRING ansiFooterData = PhCreateAnsiStringFromUnicode(sbPostFooter.String->Buffer);
+ 
+            // start the clock.
+            TimeStart = time(NULL);
+            TimeTransferred = TimeStart;
+
+            // Start our download status timer                                          
+            SetTimer(context->WindowHandle, 0, 500, NULL);
+
+            // Write the header bytes
+            WinHttpWriteData(
+                requestHandle, 
+                ansiPostData->Buffer, 
+                ansiPostData->Length, 
+                &bytesWritten
+                );
+
+            assert(ansiPostData->Length == bytesWritten);
+
+            // Write the file bytes
+            while (NT_SUCCESS(NtReadFile(
+                fileHandle, 
+                NULL, 
+                NULL, 
+                NULL, 
+                &isb, 
+                &buffer, 
+                512, 
+                NULL, 
+                NULL
+                )))
+            {
+                // Check bytes read.
+                if (isb.Information == 0) 
+                    break;
+
+                WinHttpWriteData(
+                    requestHandle, 
+                    buffer, 
+                    (DWORD)isb.Information, 
+                    &bytesWritten
+                    );
+
+                TotalReadSize += bytesWritten;
+                ZeroMemory(buffer, 512);
+
+                // Update the GUI progress.
+                {
+                    WCHAR szDownloaded[1024] = L"";
+                    WCHAR *rtext = L"second";
+                    time_t time_taken = (time(NULL) - TimeTransferred);
+                    time_t bps = TotalReadSize / (time_taken ? time_taken : 1);
+                    time_t remain = (MulDiv((INT)time_taken, TotalContentSize, TotalReadSize) - time_taken);
+
+                    PPH_STRING dlRemaningBytes = PhFormatSize(TotalReadSize, -1);
+                    PPH_STRING dlLength = PhFormatSize(TotalContentSize, -1);
+                    PPH_STRING dlSpeed = PhFormatSize(bps, -1); 
+
+                    if (remain < 0) 
+                        remain = 0;
+                    if (remain >= 60)
+                    {
+                        remain /= 60;
+                        rtext = L"minute";
+                        if (remain >= 60)
+                        {
+                            remain /= 60;
+                            rtext = L"hour";
+                        }
+                    }
+
+                    wsprintfW(
+                        szDownloaded,
+                        L"%s (%d%%) of %s @ %s/s",
+                        dlRemaningBytes->Buffer,
+                        MulDiv(100, TotalReadSize, TotalContentSize),
+                        dlLength->Buffer,
+                        dlSpeed->Buffer
+                        );
+
+                    if (remain) 
+                    {
+                        wsprintfW(
+                            szDownloaded + lstrlenW(szDownloaded),
+                            L" (%d %s%s remaining)",
+                            (DWORD)remain, // Cast and silence code analysis.
+                            rtext,
+                            remain == 1? L"": L"s"
+                            );
+                    }
+
+                    SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS), szDownloaded);
+
+                    PhDereferenceObject(dlSpeed);
+                    PhDereferenceObject(dlLength);
+                    PhDereferenceObject(dlRemaningBytes);
+
+                    // Update the progress bar position
+                    SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, MulDiv(100, TotalReadSize, TotalContentSize), 0);  
+                }
+            }
+
+            assert(TotalReadSize == TotalContentSize);
+
+            // Write the footer bytes
+            WinHttpWriteData(
+                requestHandle, 
+                ansiFooterData->Buffer, 
+                ansiFooterData->Length, 
+                &bytesWritten
+                );
+
+            assert(ansiFooterData->Length == bytesWritten);
+
+            PhReferenceObject(ansiFooterData);
+            PhReferenceObject(ansiPostData);
+        }
+
+        PhDereferenceObject(postBoundary);
+        PhDeleteStringBuilder(&sbPostHeader);
+        PhDeleteStringBuilder(&sbPostFooter);
     }
 
-    // Send the request.
-
-    if (!HttpSendRequest(requestHandle, NULL, 0, data, dataLength))
+    // Wait for the send request to complete and recieve the response.
+    if (!WinHttpReceiveResponse(requestHandle, NULL))
     {
-        RaiseUploadError(context, L"Unable to send the request", GetLastError());
+        RaiseUploadError(context, L"Unable to receive the response", GetLastError());
         goto ExitCleanup;
     }
 
     // Handle service-specific actions.
-
     {
-        ULONG index;
+        DWORD dwStatusCode = 0;
+        DWORD dwTemp = sizeof(dwStatusCode);
 
-        bufferSize = sizeof(buffer);
-        index = 0;
+        WinHttpQueryHeaders(
+            requestHandle, 
+            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+            NULL, 
+            &dwStatusCode, 
+            &dwTemp, 
+            NULL
+            );
 
-        switch (context->Service)
-        {
-        case UPLOAD_SERVICE_VIRUSTOTAL:
+        if (dwStatusCode == HTTP_STATUS_OK || dwStatusCode == HTTP_STATUS_REDIRECT)
+        {           
+            switch (context->Service)
             {
-                //HttpQueryInfo(requestHandle, HTTP_QUERY_RAW_HEADERS_CRLF, buffer, &bufferSize, &index);
-                //PhShowInformation(NULL, L"%.*s", bufferSize, buffer);
-
-                if (!HttpQueryInfo(requestHandle, HTTP_QUERY_LOCATION, buffer, &bufferSize, &index))
+            case UPLOAD_SERVICE_VIRUSTOTAL:
                 {
-                    RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", GetLastError());
-                    goto ExitCleanup;
-                }
+                    ULONG index = 0;
+                    PBYTE buffer = NULL;
+                    ULONG bufferSize = 0;
 
-                if (bufferSize != 0 && *(PWCHAR)buffer == '/')
-                    context->LaunchCommand = PhConcatStrings2(L"http://www.virustotal.com", (PWSTR)buffer);
-                else
-                    context->LaunchCommand = PhCreateString((PWSTR)buffer);
-            }
-            break;
-        case UPLOAD_SERVICE_JOTTI:
-            {
-                PSTR hrefEquals;
-                PSTR quote;
+                    WinHttpQueryHeaders(
+                        requestHandle, 
+                        WINHTTP_QUERY_LOCATION, 
+                        WINHTTP_HEADER_NAME_BY_INDEX, 
+                        NULL, 
+                        &bufferSize, 
+                        &index
+                        );
 
-                // This service returns some JavaScript that redirects the user to the new location.
-
-                if (!InternetReadFile(requestHandle, buffer, sizeof(buffer) - 1, &bufferSize))
-                {
-                    RaiseUploadError(context, L"Unable to complete the request", GetLastError());
-                    goto ExitCleanup;
-                }
-
-                // Make sure the buffer is null-terminated.
-                buffer[bufferSize] = 0;
-
-                // The JavaScript looks like this:
-                // top.location.href="...";
-                hrefEquals = strstr(buffer, "href=\"");
-
-                if (hrefEquals)
-                {
-                    hrefEquals += 6;
-                    quote = strchr(hrefEquals, '"');
-
-                    if (quote)
+                    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
                     {
-                        context->LaunchCommand = PhFormatString(
-                            L"http://virusscan.jotti.org%.*S",
-                            quote - hrefEquals,
-                            hrefEquals
-                            );
+                        buffer = malloc(bufferSize);
+
+                        // Now, use WinHttpQueryHeaders to retrieve the header.
+                        if (!WinHttpQueryHeaders( 
+                            requestHandle,
+                            WINHTTP_QUERY_LOCATION,
+                            WINHTTP_HEADER_NAME_BY_INDEX,
+                            buffer, 
+                            &bufferSize,
+                            &index
+                            ))
+                        {
+                            RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", GetLastError());
+                            goto ExitCleanup;
+                        }
+                    }
+
+                    if (bufferSize != 0 && buffer && *(PWCHAR)buffer == '/')
+                    {
+                        context->LaunchCommand = PhConcatStrings2(L"http://www.virustotal.com", (PWSTR)buffer);
+                    }
+                    else
+                    {
+                        context->LaunchCommand = PhCreateString((PWSTR)buffer);
+                    }
+
+                    if (buffer)
+                    {
+                        free(buffer);
                     }
                 }
-                else
+                break;
+            case UPLOAD_SERVICE_JOTTI:
                 {
-                    PSTR tooManyFiles;
-
-                    tooManyFiles = strstr(buffer, "Too many files");
-
-                    if (tooManyFiles)
+                    PSTR hrefEquals;
+                    PSTR quote;
+                    DWORD bytesRead = 0;
+                    BYTE buffer[512];
+  
+                    //This service returns some JavaScript that redirects the user to the new location.
+                    if (!WinHttpReadData(requestHandle, buffer, 512, &bytesRead))
                     {
-                        RaiseUploadError(
-                            context,
-                            L"Unable to scan the file:\n\n"
-                            L"Too many files have been scanned from this IP in a short period. "
-                            L"Please try again later",
-                            0
-                            );
+                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                        goto ExitCleanup;
+                    }
+
+                    //Make sure the buffer is null-terminated.
+                    buffer[bytesRead] = 0;
+                    /*             
+                    The JavaScript looks like this:
+                    top.location.href="...";*/
+                    hrefEquals = strstr(buffer, "href=\"");
+
+                    if (hrefEquals)
+                    {
+                        hrefEquals += 6;
+                        quote = strchr(hrefEquals, '"');
+
+                        if (quote)
+                        {
+                            context->LaunchCommand = PhFormatString(
+                                L"http://virusscan.jotti.org%.*S",
+                                quote - hrefEquals,
+                                hrefEquals
+                                );
+                        }
+                    }
+                    else
+                    {
+                        PSTR tooManyFiles = strstr(buffer, "Too many files");
+
+                        if (tooManyFiles)
+                        {
+                            RaiseUploadError(
+                                context,
+                                L"Unable to scan the file:\n\n"
+                                L"Too many files have been scanned from this IP in a short period. "
+                                L"Please try again later",
+                                0
+                                );
+
+                            goto ExitCleanup;
+                        }
+                    }
+
+                    if (!context->LaunchCommand)
+                    {
+                        RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", 0);
                         goto ExitCleanup;
                     }
                 }
+                break;
+            case UPLOAD_SERVICE_CIMA:
+                {              
+                    BYTE buffer[512];
+                    DWORD bytesRead = 0;
+                    PSTR urlEquals;
+                    PSTR quote;
 
-                if (!context->LaunchCommand)
-                {
-                    RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", 0);
-                    goto ExitCleanup;
-                }
-            }
-            break;
-        case UPLOAD_SERVICE_CIMA:
-            {
-                PSTR urlEquals;
-                PSTR quote;
+                    // This service returns some HTML that redirects the user to the new location.
 
-                // This service returns some HTML that redirects the user to the new location.
-
-                if (!InternetReadFile(requestHandle, buffer, sizeof(buffer) - 1, &bufferSize))
-                {
-                    RaiseUploadError(context, L"Unable to complete the request", GetLastError());
-                    goto ExitCleanup;
-                }
-
-                // Make sure the buffer is null-terminated.
-                buffer[bufferSize] = 0;
-
-                // The HTML looks like this:
-                // <META http-equiv="Refresh" content="0; url=...">
-                urlEquals = strstr(buffer, "url=");
-
-                if (urlEquals)
-                {
-                    urlEquals += 4;
-                    quote = strchr(urlEquals, '"');
-
-                    if (quote)
+                    if (!WinHttpReadData(requestHandle, buffer, 512, &bytesRead))
                     {
-                        context->LaunchCommand = PhFormatString(
-                            L"http://camas.comodo.com%.*S",
-                            quote - urlEquals,
-                            urlEquals
-                            );
+                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                        goto ExitCleanup;
+                    }
+
+                    // Make sure the buffer is null-terminated.
+                    buffer[bytesRead] = 0;
+
+                    // The HTML looks like this:
+                    // <META http-equiv="Refresh" content="0; url=...">
+                    urlEquals = strstr(buffer, "url=");
+
+                    if (urlEquals)
+                    {
+                        urlEquals += 4;
+                        quote = strchr(urlEquals, '"');
+
+                        if (quote)
+                        {
+                            context->LaunchCommand = PhFormatString(
+                                L"http://camas.comodo.com%.*S",
+                                quote - urlEquals,
+                                urlEquals
+                                );
+                        }
+                    }
+
+                    if (!context->LaunchCommand)
+                    {
+                        RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", 0);
+                        goto ExitCleanup;
                     }
                 }
-
-                if (!context->LaunchCommand)
+                break;
+            default:
                 {
-                    RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", 0);
+                    RaiseUploadError(context, L"Unable to complete the request", 0);
                     goto ExitCleanup;
                 }
+                break;
             }
-            break;
-        default:
-            {
-                RaiseUploadError(context, L"Unable to complete the request", 0);
-                goto ExitCleanup;
-            }
-            break;
-        }
 
-        SendLaunchCommand(context);
+            if (context->WindowHandle)
+            {
+                PostMessage(context->WindowHandle, UM_LAUNCH_COMMAND, 0, 0);
+            }
+        }
+        else
+        {
+            RaiseUploadError(context, L"Unable to complete the request", 0);
+            goto ExitCleanup;
+        }
     }
 
 ExitCleanup:
-    if (data)
-        PhFreePage(data);
-    if (baseFileNameAnsi)
-        PhDereferenceObject(baseFileNameAnsi);
-    if (headers.String)
-        PhDeleteStringBuilder(&headers);
-    if (boundaryAnsi)
-        PhDereferenceObject(boundaryAnsi);
-    if (boundary)
-        PhDereferenceObject(boundary);
+
     if (requestHandle)
-        InternetCloseHandle(requestHandle);
+        WinHttpCloseHandle(requestHandle);
     if (connectHandle)
-        InternetCloseHandle(connectHandle);
+        WinHttpCloseHandle(connectHandle);
     if (internetHandle)
-        InternetCloseHandle(internetHandle);
+        WinHttpCloseHandle(internetHandle);
     if (objectName)
         PhDereferenceObject(objectName);
     if (fileHandle)
@@ -958,20 +1077,37 @@ INT_PTR CALLBACK UploadDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Uploading...");
+            _InterlockedIncrement(&context->RefCount);
 
             context->WindowHandle = hwndDlg;
 
-            ReferenceUploadContext(context);
-            context->ThreadHandle = PhCreateThread(0, UploadWorkerThreadStart, context);
+            // Center the update window on PH if visible and not mimimized else center on desktop.
+            PhCenterWindow(hwndDlg, (IsWindowVisible(GetParent(hwndDlg)) && !IsIconic(GetParent(hwndDlg))) ? GetParent(hwndDlg) : NULL);
+
+            InitializeFont(GetDlgItem(hwndDlg, IDC_MESSAGE));
+
+
+            if (context->FileName)
+            {
+                WCHAR szWindowText[MAX_PATH];
+                PPH_STRING baseFileName = PhGetBaseName(context->FileName);
+                swprintf_s(
+                    szWindowText, 
+                    _countof(szWindowText), 
+                    L"Uploading: %s", 
+                    baseFileName->Buffer
+                    );
+
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, szWindowText);
+                PhDereferenceObject(baseFileName);
+
+                context->ThreadHandle = PhCreateThread(0, UploadWorkerThreadStart, context);
+            }
         }
         break;
     case WM_DESTROY:
         {
-            PhAcquireQueuedLockExclusive(&context->Lock);
             context->WindowHandle = NULL;
-            PhReleaseQueuedLockExclusive(&context->Lock);
         }
         break;
     case WM_COMMAND:
@@ -984,6 +1120,25 @@ INT_PTR CALLBACK UploadDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {    
+            HDC hDC = (HDC)wParam;
+            HWND hwndChild = (HWND)lParam;
+
+            // Check for our static label and change the color.
+            if (GetDlgCtrlID(hwndChild) == IDC_MESSAGE)
+            {
+                SetTextColor(hDC, RGB(19, 112, 171));
+            }
+
+            // Set a transparent background for the control backcolor.
+            SetBkMode(hDC, TRANSPARENT);
+
+            // set window background color.
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);;
+        }
     case UM_LAUNCH_COMMAND:
         {
             PhShellExecute(hwndDlg, context->LaunchCommand->Buffer, NULL);
