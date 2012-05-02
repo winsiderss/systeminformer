@@ -7,11 +7,10 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 #define COBJMACROS
-// Fix for intellisense in C projects, VS uses C++ intellisense unless this is defined.
 #undef __cplusplus
 
 #include "phdk.h"
-#include <phappresource.h>
+#include "phappresource.h"
 #include "mxml.h"
 
 #include <wininet.h>
@@ -33,13 +32,12 @@
 #define UPDATE_FILE L"/update.php"
 #define DOWNLOAD_SERVER L"sourceforge.net"
 
-#define Edit_Visible(hWnd, visible) \
-	ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE)
-
 PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+
+typedef struct _UPDATE_CONTEXT
+{
+    HINSTANCE DllBase;
+} UPDATE_CONTEXT, *PUPDATE_CONTEXT;
 
 typedef struct _UPDATER_XML_DATA
 {
@@ -64,14 +62,6 @@ VOID StartInitialCheck(
     VOID
     );
 
-BOOL PhInstalledUsingSetup(
-    VOID
-    );
-
-BOOL ConnectionAvailable(
-    VOID
-    );
-
 BOOL ParseVersionString(
     __in PWSTR String,
     __out PULONG MajorVersion,
@@ -83,12 +73,6 @@ LONG CompareVersions(
     __in ULONG MinorVersion1,
     __in ULONG MajorVersion2,
     __in ULONG MinorVersion2
-    );
-
-BOOL ReadRequestString(
-    __in HINTERNET Handle,
-    __out PSTR *Data,
-    __out_opt PULONG DataLength
     );
 
 BOOL QueryXmlData(
@@ -122,6 +106,13 @@ VOID NTAPI MainWindowShowingCallback(
 VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
+    );
+
+INT_PTR CALLBACK UpdaterWndProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
     );
 
 INT_PTR CALLBACK OptionsDlgProc(
