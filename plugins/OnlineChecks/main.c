@@ -65,7 +65,7 @@ PPH_EMENU_ITEM CreateSendToMenu(
     ULONG insertIndex;
 
     // Create the Send To menu.
-    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Online Analysis", NULL);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_VIRUSTOTAL, L"Virustotal", FileName), -1);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_JOTTI, L"Jotti", FileName), -1);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_CIMA, L"Comodo", FileName), -1);
@@ -81,7 +81,6 @@ PPH_EMENU_ITEM CreateSendToMenu(
 
     return sendToMenu;
 }
-
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -218,7 +217,6 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
     ULONG flags;
-    PPH_EMENU_ITEM miscMenu;
     PPH_EMENU_ITEM sendToMenu;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
@@ -232,12 +230,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     if (!processItem || !processItem->FileName)
         flags = PH_EMENU_DISABLED;
 
-    miscMenu = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0);
-
-    if (miscMenu)
-    {
-        sendToMenu = CreateSendToMenu(miscMenu, L"Search Online", processItem ? processItem->FileName : NULL);
-    }
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", processItem ? processItem->FileName : NULL);  
 }
 
 VOID NTAPI ModuleMenuInitializingCallback(
