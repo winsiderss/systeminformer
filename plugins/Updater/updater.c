@@ -781,7 +781,7 @@ INT_PTR CALLBACK UpdaterWndProc(
             lHeaderFont.lfWeight = FW_MEDIUM;
             lHeaderFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
             // We don't check if Segoe exists, CreateFontIndirect does this for us.
-            wcscat_s(lHeaderFont.lfFaceName, _countof(lHeaderFont.lfFaceName), L"Segoe UI");
+            wcscpy_s(lHeaderFont.lfFaceName, _countof(lHeaderFont.lfFaceName), L"Segoe UI");
 
             // Create the font handle.
             FontHandle = CreateFontIndirectW(&lHeaderFont);
