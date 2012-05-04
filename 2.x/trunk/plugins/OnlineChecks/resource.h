@@ -2,15 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by OnlineChecks.rc
 //
-#define ID_SENDTO_SERVICE1              101
 #define IDD_PROGRESSDIALOG              101
-#define ID_SENDTO_SERVICE2              102
-#define ID_SENDTO_SERVICE3              103
-#define ID_SENDTO_SERVICE4              104
-#define ID_SENDTO_SERVICE5              105
-#define ID_SENDTO_SERVICE6              106
-#define ID_SENDTO_SERVICE7              107
-#define ID_SENDTO_SERVICE8              108
 #define IDC_MESSAGE                     1002
 #define IDC_UPLOADPROGRESS              1003
 #define IDC_STATUS                      1004

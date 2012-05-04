@@ -246,7 +246,5 @@ VOID NTAPI ModuleMenuInitializingCallback(
     sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", moduleItem ? moduleItem->FileName : NULL);
 
     if (!moduleItem || !moduleItem->FileName)
-    {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
-    }
 }
