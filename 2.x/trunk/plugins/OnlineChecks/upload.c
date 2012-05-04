@@ -23,11 +23,7 @@
 
 #include "onlnchk.h"
 
-static time_t TimeStart = 0;
-static time_t TimeTransferred = 0;
-static DWORD TotalReadSize = 0;
-static DWORD TotalWriteSize = 0;
-static DWORD TotalContentSize = 0;
+
 
 static SERVICE_INFO UploadServiceInfo[] =
 {
@@ -49,7 +45,7 @@ VOID InitializeFont(
     lFont.lfWeight = FW_MEDIUM;
     lFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
-    wcscat_s(
+    wcscpy_s(
         lFont.lfFaceName, 
         _countof(lFont.lfFaceName), 
         L"Segoe UI"
@@ -67,12 +63,11 @@ PUPLOAD_CONTEXT CreateUploadContext(
     PUPLOAD_CONTEXT context;
 
     context = PhAllocate(sizeof(UPLOAD_CONTEXT));
-    memset(context, 0, sizeof(UPLOAD_CONTEXT));
+    ZeroMemory(context, sizeof(UPLOAD_CONTEXT));
     context->RefCount = 1;
 
     return context;
 }
-
 
 VOID DereferenceUploadContext(
     __inout PUPLOAD_CONTEXT Context
@@ -384,9 +379,15 @@ static NTSTATUS UploadWorkerThreadStart(
     __in PVOID Parameter
     )
 {
-    static ULONG seed = 0;
+    ULONG seed = 0;
     NTSTATUS status;
     LARGE_INTEGER fileSize64;
+
+    time_t TimeStart = 0;
+    time_t TimeTransferred = 0;
+
+    DWORD totalFileLength = 0;
+    DWORD totalFileReadLength = 0;
 
     HANDLE fileHandle = NULL;
     HINTERNET internetHandle = NULL, connectHandle = NULL, requestHandle = NULL;
@@ -396,12 +397,6 @@ static NTSTATUS UploadWorkerThreadStart(
     PPH_STRING userAgent = NULL, objectName = NULL;
     PPH_STRING baseFileName = PhGetBaseName(context->FileName);
    
-    // Reset our variables
-    TimeStart = 0;
-    TimeTransferred = 0;
-    TotalContentSize = 0;
-    TotalReadSize = 0; 
-
     if (!(serviceInfo = GetUploadServiceInfo(context->Service)))
     {
         RaiseUploadError(context, L"The service type is invalid", 0);
@@ -429,9 +424,10 @@ static NTSTATUS UploadWorkerThreadStart(
                 goto ExitCleanup;
             }
 
-            TotalContentSize = fileSize64.LowPart;
+            totalFileLength = fileSize64.LowPart;
         }
     }
+
     if (!NT_SUCCESS(status))
     {
         RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
@@ -682,7 +678,7 @@ static NTSTATUS UploadWorkerThreadStart(
             // All until now has been just for this; Calculate the total request length.
             ULONG total_length = 
                 (ULONG)wcsnlen(sbPostHeader.String->Buffer, sbPostHeader.String->Length) 
-                + TotalContentSize 
+                + totalFileLength 
                 + (ULONG)wcsnlen(sbPostFooter.String->Buffer, sbPostFooter.String->Length);
 
             // Send the request.
@@ -719,52 +715,65 @@ static NTSTATUS UploadWorkerThreadStart(
             SetTimer(context->WindowHandle, 0, 500, NULL);
 
             // Write the header bytes
-            WinHttpWriteData(
+            if (!WinHttpWriteData(
                 requestHandle, 
                 ansiPostData->Buffer, 
                 ansiPostData->Length, 
                 &bytesWritten
-                );
+                ))
+            {       
+                RaiseUploadError(context, L"Unable to write the post header", GetLastError());
+                goto ExitCleanup;
+            }
 
             assert(ansiPostData->Length == bytesWritten);
 
             // Write the file bytes
-            while (NT_SUCCESS(NtReadFile(
-                fileHandle, 
-                NULL, 
-                NULL, 
-                NULL, 
-                &isb, 
-                &buffer, 
-                512, 
-                NULL, 
-                NULL
-                )))
+            while (TRUE)
             {
+                status = NtReadFile(
+                    fileHandle, 
+                    NULL, 
+                    NULL, 
+                    NULL, 
+                    &isb, 
+                    &buffer, 
+                    512, 
+                    NULL, 
+                    NULL
+                    );
+
+                if (!NT_SUCCESS(status))
+                    break;
+
                 // Check bytes read.
                 if (isb.Information == 0) 
                     break;
 
-                WinHttpWriteData(
+                if (!WinHttpWriteData(
                     requestHandle, 
                     buffer, 
                     (DWORD)isb.Information, 
                     &bytesWritten
-                    );
+                    ))
+                {       
+                    RaiseUploadError(context, L"Unable to upload the file data", GetLastError());
+                    goto ExitCleanup;
+                }
 
-                TotalReadSize += bytesWritten;
+                totalFileReadLength += bytesWritten;
                 ZeroMemory(buffer, 512);
 
-                // Update the GUI progress.
+                //Update the GUI progress.
                 {
                     WCHAR szDownloaded[1024] = L"";
                     WCHAR *rtext = L"second";
                     time_t time_taken = (time(NULL) - TimeTransferred);
-                    time_t bps = TotalReadSize / (time_taken ? time_taken : 1);
-                    time_t remain = (MulDiv((INT)time_taken, TotalContentSize, TotalReadSize) - time_taken);
+                    time_t bps = totalFileReadLength / (time_taken ? time_taken : 1);
+                    time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
 
-                    PPH_STRING dlRemaningBytes = PhFormatSize(TotalReadSize, -1);
-                    PPH_STRING dlLength = PhFormatSize(TotalContentSize, -1);
+                    PPH_STRING dlRemaningBytes = PhFormatSize(totalFileReadLength, -1);
+                    PPH_STRING dlLength = PhFormatSize(totalFileLength, -1);
                     PPH_STRING dlSpeed = PhFormatSize(bps, -1); 
 
                     if (remain < 0) 
@@ -784,7 +793,7 @@ static NTSTATUS UploadWorkerThreadStart(
                         szDownloaded,
                         L"%s (%d%%) of %s @ %s/s",
                         dlRemaningBytes->Buffer,
-                        MulDiv(100, TotalReadSize, TotalContentSize),
+                        MulDiv(100, totalFileReadLength, totalFileLength),
                         dlLength->Buffer,
                         dlSpeed->Buffer
                         );
@@ -807,19 +816,23 @@ static NTSTATUS UploadWorkerThreadStart(
                     PhDereferenceObject(dlRemaningBytes);
 
                     // Update the progress bar position
-                    SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, MulDiv(100, TotalReadSize, TotalContentSize), 0);  
+                    SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, MulDiv(100, totalFileReadLength, totalFileLength), 0);  
                 }
             }
 
-            assert(TotalReadSize == TotalContentSize);
+            assert(totalFileReadLength == totalFileLength);
 
             // Write the footer bytes
-            WinHttpWriteData(
+            if (!WinHttpWriteData(
                 requestHandle, 
                 ansiFooterData->Buffer, 
                 ansiFooterData->Length, 
                 &bytesWritten
-                );
+                ))
+            {       
+                RaiseUploadError(context, L"Unable to write the post footer", GetLastError());
+                goto ExitCleanup;
+            }
 
             assert(ansiFooterData->Length == bytesWritten);
 
@@ -874,7 +887,7 @@ static NTSTATUS UploadWorkerThreadStart(
 
                     if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
                     {
-                        buffer = malloc(bufferSize);
+                        buffer = PhAllocate(bufferSize);
 
                         // Now, use WinHttpQueryHeaders to retrieve the header.
                         if (!WinHttpQueryHeaders( 
@@ -902,7 +915,7 @@ static NTSTATUS UploadWorkerThreadStart(
 
                     if (buffer)
                     {
-                        free(buffer);
+                        PhFree(buffer);
                     }
                 }
                 break;
@@ -1025,7 +1038,7 @@ static NTSTATUS UploadWorkerThreadStart(
         }
         else
         {
-            RaiseUploadError(context, L"Unable to complete the request", 0);
+            RaiseUploadError(context, L"Unable to complete the request", dwStatusCode);
             goto ExitCleanup;
         }
     }
