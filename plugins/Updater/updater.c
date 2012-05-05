@@ -49,7 +49,7 @@ static BOOL ConnectionAvailable(
         INetworkListManager *pNetworkListManager; 
 
         // Create an instance of the INetworkListManger COM object.
-        if (SUCCEEDED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_INPROC, &IID_INetworkListManager, &pNetworkListManager)))
+        if (SUCCEEDED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_ALL, &IID_INetworkListManager, &pNetworkListManager)))
         {
             VARIANT_BOOL vIsConnected = VARIANT_FALSE;
             VARIANT_BOOL vIsConnectedInternet = VARIANT_FALSE;
@@ -177,7 +177,6 @@ static NTSTATUS SilentUpdateCheckThreadStart(
 {
     ULONG localMajorVersion = 0;
     ULONG localMinorVersion = 0;
-    PPH_STRING localVersion = NULL;
     UPDATER_XML_DATA xmlData = { 0 };
    
     if (!ConnectionAvailable())
@@ -186,19 +185,13 @@ static NTSTATUS SilentUpdateCheckThreadStart(
     if (!QueryXmlData(&xmlData))
         return STATUS_UNSUCCESSFUL;
 
-    localVersion = PhGetPhVersion();
-
-#ifndef TEST_MODE
-    if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
     {
+        PPH_STRING localVersion = PhGetPhVersion();
+
+        ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion);
+
         PhDereferenceObject(localVersion);
     }
-#else
-    localMajorVersion = 0;
-    localMinorVersion = 0;
-#endif
-
-    PhDereferenceObject(localVersion);
 
     if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
     {
@@ -218,7 +211,6 @@ static NTSTATUS CheckUpdateThreadStart(
     INT result = 0;
     ULONG localMajorVersion = 0;
     ULONG localMinorVersion = 0;
-    PPH_STRING localVersion;
     UPDATER_XML_DATA xmlData;
 
     HWND hwndDlg = (HWND)Parameter;
@@ -229,65 +221,49 @@ static NTSTATUS CheckUpdateThreadStart(
     if (!QueryXmlData(&xmlData))
         return STATUS_UNSUCCESSFUL;
 
-    localVersion = PhGetPhVersion();
-
-#ifndef TEST_MODE
-    if (!ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
     {
+        PPH_STRING localVersion = PhGetPhVersion();
+
+        ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion);
+
         PhDereferenceObject(localVersion);
     }
-#else
-    localMajorVersion = 0;
-    localMinorVersion = 0;
-#endif
 
     result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
 
     if (result > 0)
     {
-        UINT dwRetVal = 0;
-        WCHAR szSummaryText[MAX_PATH]; 
-        WCHAR szReleaseText[MAX_PATH];
-        WCHAR szSizeText[MAX_PATH]; 
-        WCHAR szFileName[MAX_PATH];
-
-        // Set the header text
-        swprintf_s(
-            szSummaryText, 
-            _countof(szSummaryText), 
+        // Summary text
+        PPH_STRING summaryText = PhFormatString(
             L"Process Hacker %u.%u", 
             xmlData.MajorVersion, 
             xmlData.MinorVersion
             );
 
-        //Release text
-        swprintf_s(
-            szReleaseText, 
-            _countof(szReleaseText), 
+        // Release text   
+        PPH_STRING releaseDateText = PhFormatString(
             L"Released: %s", 
-            xmlData.RelDate
+            xmlData.RelDate->Buffer
             );
 
-        //Size text
-        swprintf_s(
-            szSizeText, 
-            _countof(szSizeText), 
+        // Size text
+        PPH_STRING releaseSizeText = PhFormatString(
             L"Size: %s", 
-            xmlData.Size
+            xmlData.Size->Buffer
             );
 
         // setup download filename
-        swprintf_s(
-            szFileName, 
-            _countof(szFileName), 
-            L"processhacker-%u.%u-setup.exe", 
-            xmlData.MajorVersion, 
-            xmlData.MinorVersion
-            );
+        //swprintf_s(
+        //    szFileName, 
+        //    _countof(szFileName), 
+        //    L"processhacker-%u.%u-setup.exe", 
+        //    xmlData.MajorVersion, 
+        //    xmlData.MinorVersion
+        //    );
 
-        SetDlgItemText(hwndDlg, IDC_MESSAGE, szSummaryText);
-        SetDlgItemText(hwndDlg, IDC_RELDATE, szReleaseText);
-        SetDlgItemText(hwndDlg, IDC_STATUS, szSizeText);
+        SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+        SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
+        SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
 
         // Enable the download button.
         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
@@ -296,55 +272,48 @@ static NTSTATUS CheckUpdateThreadStart(
         ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
         ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
 
+        PhDereferenceObject(releaseSizeText);
+        PhDereferenceObject(releaseDateText);
+        PhDereferenceObject(summaryText);
+
+        // Set the state for the button click event.
         PhUpdaterState = Download;
     }
     else if (result == 0)
     {
-        WCHAR szSummaryText[MAX_PATH];
-        WCHAR szStableText[MAX_PATH];
-        //WCHAR szReleaseText[MAX_PATH];
-
-        swprintf_s(
-            szSummaryText, 
-            _countof(szSummaryText), 
+        PPH_STRING summaryText = PhCreateString(
             L"No updates available"
             );
-
-        swprintf_s(
-            szStableText, 
-            _countof(szStableText), 
+       
+        PPH_STRING versionText = PhFormatString(
             L"You're running the latest stable version: %u.%u", 
-            xmlData.MajorVersion, 
+            xmlData.MajorVersion,
             xmlData.MinorVersion
             );
 
         //swprintf_s(
         //    szReleaseText, 
         //    _countof(szReleaseText), 
-        //    L"",//L"Released: %s", 
-        //    NULL//xmlData.RelDate
+        //    L"Released: %s", 
+        //    xmlData.RelDate
         //    );
             
-        SetDlgItemText(hwndDlg, IDC_MESSAGE, szSummaryText);
-        SetDlgItemText(hwndDlg, IDC_RELDATE, szStableText);
-        //SetDlgItemText(hwndDlg, IDC_DLSIZE, szReleaseText);
+        SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+        SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+
+        PhDereferenceObject(versionText);
+        PhDereferenceObject(summaryText);
     }
     else if (result < 0)
     {
-        WCHAR szSummaryText[MAX_PATH];
-        WCHAR szStableText[MAX_PATH];
-        //WCHAR szReleaseText[MAX_PATH];
+        PPH_STRING localVersion = PhGetPhVersion();
 
-        swprintf_s(
-            szSummaryText, 
-            _countof(szSummaryText), 
+        PPH_STRING summaryText = PhCreateString(
             L"No updates available"
             );
 
-        swprintf_s(
-            szStableText, 
-            _countof(szStableText), 
-            L"You're running SVN build: v%s", 
+        PPH_STRING versionText = PhFormatString(
+            L"You're running SVN build: v%s",
             localVersion->Buffer
             );
 
@@ -355,12 +324,13 @@ static NTSTATUS CheckUpdateThreadStart(
         //    xmlData.RelDate
         //    );
             
-        SetDlgItemText(hwndDlg, IDC_MESSAGE, szSummaryText);
-        SetDlgItemText(hwndDlg, IDC_RELDATE, szStableText);
-        //Edit_SetText(GetDlgItem(hwndDlg, IDC_DLSIZE), szReleaseText);
+        SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+        SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+        
+        PhDereferenceObject(versionText);
+        PhDereferenceObject(summaryText);
+        PhDereferenceObject(localVersion);
     }
-
-    PhDereferenceObject(localVersion);
 
     return STATUS_SUCCESS;
 }
@@ -369,7 +339,7 @@ static NTSTATUS DownloadUpdateThreadStart(
     __in PVOID Parameter
     )
 {
-    WCHAR szDownloadPath[MAX_PATH];
+    PPH_STRING downloadPath;
     DWORD dwBytesRead = 0;
     DWORD dwBytesWritten = 0;
     DWORD dwBufLen = sizeof(dwContentLen);
@@ -404,35 +374,32 @@ static NTSTATUS DownloadUpdateThreadStart(
         return STATUS_UNSUCCESSFUL;
                         
     // create the download path string.
-    swprintf_s(
-        szDownloadPath, 
-        _countof(szDownloadPath), 
+    downloadPath = PhFormatString(
         L"/projects/processhacker/files/processhacker2/processhacker-%u.%u-setup.exe/download?use_mirror=autoselect", /* ?use_mirror=waix" */
         xmlData.MajorVersion, 
         xmlData.MinorVersion
         );
+
     {
         // Get temp dir.   
         WCHAR szTempDir[MAX_PATH]; 
-        WCHAR szTempPathFileName[MAX_PATH];
 
         if (GetTempPath(_countof(szTempDir), szTempDir) == 0)   
             goto CleanupAndExit;   
 
         // Append the tempath to our string: %TEMP%processhacker-%u.%u-setup.exe
         // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-%u.%u-setup.exe
-        swprintf_s(
-            szTempPathFileName, 
-            _countof(szTempPathFileName), 
-            L"%sprocesshacker-%u.%u-setup.exe",
-            szTempDir,
+
+        SetupFilePath = PhFormatString(
+            L"%sprocesshacker-%u.%u-setup.exe", 
+            szTempDir, 
             xmlData.MajorVersion, 
             xmlData.MinorVersion
             );
 
         // Create output file 
         if ((tempFileHandle = CreateFile(
-            szTempPathFileName,   
+            SetupFilePath->Buffer,   
             GENERIC_READ | GENERIC_WRITE,   
             FILE_SHARE_READ | FILE_SHARE_WRITE,         
             NULL,
@@ -444,8 +411,6 @@ static NTSTATUS DownloadUpdateThreadStart(
             LogEvent(NULL, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
             goto CleanupAndExit;
         }
-    
-        SetupFilePath = PhCreateString(szTempPathFileName);
     }
 
     // Initialize the wininet library.
@@ -480,8 +445,8 @@ static NTSTATUS DownloadUpdateThreadStart(
     if (!(hRequest = HttpOpenRequest(
         hConnection,
         NULL,
-        szDownloadPath,
-        L"HTTP/1.1",
+        downloadPath->Buffer,
+        NULL,
         NULL,
         NULL,
         EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
@@ -595,7 +560,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                 }
 
                 // Zero the buffer.
-                ZeroMemory(buffer, dwBytesRead);
+                ZeroMemory(buffer, BUFFER_LEN);
 
                 // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
                 if (dwBytesRead != dwBytesWritten)
@@ -625,7 +590,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                 // Allocate our hash string, hex the final hash result in our hashBuffer.
                 PPH_STRING hexString = PhBufferToHexString(hashBuffer, hashLength);
 
-                if (!_wcsicmp(hexString->Buffer, xmlData.Hash))
+                if (!_wcsicmp(hexString->Buffer, xmlData.Hash->Buffer))
                 {
                     // If PH is not elevated, set the UAC sheild for the installer.
                     if (!PhElevated)
@@ -680,6 +645,11 @@ CleanupAndExit:
 
     if (tempFileHandle)
         NtClose(tempFileHandle);
+
+    if (downloadPath)
+    {
+        PhDereferenceObject(downloadPath);
+    }
 
     //return STATUS_UNSUCCESSFUL;
     return STATUS_SUCCESS;
@@ -823,7 +793,7 @@ INT_PTR CALLBACK UpdaterWndProc(
             SetBkMode(hDC, TRANSPARENT);
 
             // set window background color.
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);;
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
     case WM_COMMAND:
         {
@@ -1059,7 +1029,7 @@ BOOL QueryXmlData(
         netConnection,
         L"GET",
         UPDATE_FILE,
-        L"HTTP/1.1",
+        NULL,
         NULL,
         NULL,
         EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
@@ -1122,41 +1092,26 @@ BOOL QueryXmlData(
         goto CleanupAndExit;
     }
 
-    {
-        WCHAR szTempString[20];
+    XmlData->Version = PhFormatString(
+        L"%hs", 
+        xmlNodeVer->child->value.opaque
+        );
 
-        // Convert into unicode string.
-        swprintf_s(
-            szTempString, 
-            _countof(szTempString), 
-            L"%hs", 
-            xmlNodeVer->child->value.opaque
-            );
-
-        // parse and check string
-        result = ParseVersionString(szTempString, &XmlData->MajorVersion, &XmlData->MinorVersion);
-    }
-
-    if (!result)
+    // parse and check string
+    if (!ParseVersionString(XmlData->Version->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion))
         goto CleanupAndExit;
 
-    swprintf_s(
-        XmlData->RelDate, 
-        _countof(XmlData->RelDate), 
+    XmlData->RelDate = PhFormatString(
         L"%hs", 
         xmlNodeRelDate->child->value.opaque
         );
 
-    swprintf_s(
-        XmlData->Size, 
-        _countof(XmlData->Size), 
+    XmlData->Size = PhFormatString(
         L"%hs", 
         xmlNodeSize->child->value.opaque
         );
 
-    swprintf_s(
-        XmlData->Hash, 
-        _countof(XmlData->RelDate), 
+    XmlData->Hash = PhFormatString(
         L"%hs", 
         xmlNodeHash->child->value.opaque
         );
