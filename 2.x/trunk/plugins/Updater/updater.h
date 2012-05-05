@@ -19,9 +19,6 @@
 
 #include "resource.h"
 
-// Always consider the remote version newer
-//#define TEST_MODE
-
 #define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
 #define SETTING_ENABLE_CACHE L"ProcessHacker.Updater.EnableCache"
 
@@ -43,9 +40,10 @@ typedef struct _UPDATER_XML_DATA
 {
     ULONG MinorVersion;
     ULONG MajorVersion;
-    WCHAR RelDate[MAX_PATH];
-    WCHAR Size[MAX_PATH];
-    WCHAR Hash[MAX_PATH];
+    PPH_STRING Version;
+    PPH_STRING RelDate;
+    PPH_STRING Size;
+    PPH_STRING Hash;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 typedef enum _PH_UPDATER_STATE
