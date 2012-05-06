@@ -22,7 +22,7 @@
 */
 
 #include "updater.h"
-#include <time.h>
+
 
 #define WM_SHOWDIALOG (WM_APP + 150)
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
@@ -31,11 +31,6 @@ static HWND UpdateDialogHandle = NULL;
 static HANDLE UpdaterThreadHandle = NULL;
 static HANDLE DownloadThreadHandle = NULL;
 static HFONT FontHandle = NULL;
-static BOOLEAN EnableCache = TRUE;
-static time_t TimeStart = 0;
-static time_t TimeTransferred = 0;
-static DWORD dwContentLen = 0;
-static DWORD dwTotalReadSize = 0;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
 
@@ -94,13 +89,21 @@ NOT_SUPPORTED:
     return FALSE;
 }
 
+static BOOL SendRequest(
+    VOID
+    )
+{
+
+    return FALSE;
+}
+
 static BOOL ReadRequestString(
     __in HINTERNET Handle,
     __out PSTR *Data,
     __out_opt PULONG DataLength
     )
 {
-    CHAR buffer[BUFFER_LEN];
+    BYTE buffer[BUFFER_LEN];
     PSTR data;
     ULONG allocatedLength;
     ULONG dataLength;
@@ -178,7 +181,7 @@ static NTSTATUS SilentUpdateCheckThreadStart(
     ULONG localMajorVersion = 0;
     ULONG localMinorVersion = 0;
     UPDATER_XML_DATA xmlData = { 0 };
-   
+
     if (!ConnectionAvailable())
         return STATUS_UNSUCCESSFUL;
 
@@ -188,17 +191,18 @@ static NTSTATUS SilentUpdateCheckThreadStart(
     {
         PPH_STRING localVersion = PhGetPhVersion();
 
-        ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion);
+        if (ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+        {
+            if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
+            {
+                // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
+                Sleep(3 * 1000);
+
+                ShowUpdateDialog();
+            }
+        }
 
         PhDereferenceObject(localVersion);
-    }
-
-    if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion) > 0)
-    {
-        // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-        Sleep(3 * 1000);
-
-        ShowDialog();
     }
 
     return STATUS_SUCCESS;
@@ -211,7 +215,7 @@ static NTSTATUS CheckUpdateThreadStart(
     INT result = 0;
     ULONG localMajorVersion = 0;
     ULONG localMinorVersion = 0;
-    UPDATER_XML_DATA xmlData;
+    UPDATER_XML_DATA xmlData = { 0 };
 
     HWND hwndDlg = (HWND)Parameter;
 
@@ -224,111 +228,100 @@ static NTSTATUS CheckUpdateThreadStart(
     {
         PPH_STRING localVersion = PhGetPhVersion();
 
-        ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion);
+        if (ParseVersionString(localVersion->Buffer, &localMajorVersion, &localMinorVersion))
+        {
+            result = 1;//CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
 
-        PhDereferenceObject(localVersion);
-    }
+            if (result > 0)
+            {
+                PPH_STRING summaryText = PhFormatString(
+                    L"Process Hacker %u.%u", 
+                    xmlData.MajorVersion, 
+                    xmlData.MinorVersion
+                    );
 
-    result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, localMajorVersion, localMinorVersion);
+                PPH_STRING releaseDateText = PhFormatString(
+                    L"Released: %s", 
+                    xmlData.RelDate->Buffer
+                    );
 
-    if (result > 0)
-    {
-        // Summary text
-        PPH_STRING summaryText = PhFormatString(
-            L"Process Hacker %u.%u", 
-            xmlData.MajorVersion, 
-            xmlData.MinorVersion
-            );
+                PPH_STRING releaseSizeText = PhFormatString(
+                    L"Size: %s", 
+                    xmlData.Size->Buffer
+                    );
 
-        // Release text   
-        PPH_STRING releaseDateText = PhFormatString(
-            L"Released: %s", 
-            xmlData.RelDate->Buffer
-            );
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
 
-        // Size text
-        PPH_STRING releaseSizeText = PhFormatString(
-            L"Size: %s", 
-            xmlData.Size->Buffer
-            );
+                // Enable the download button.
+                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+                // Use the Scrollbar macro to enable the other controls.
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
 
-        // setup download filename
-        //swprintf_s(
-        //    szFileName, 
-        //    _countof(szFileName), 
-        //    L"processhacker-%u.%u-setup.exe", 
-        //    xmlData.MajorVersion, 
-        //    xmlData.MinorVersion
-        //    );
+                PhDereferenceObject(releaseSizeText);
+                PhDereferenceObject(releaseDateText);
+                PhDereferenceObject(summaryText);
 
-        SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-        SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
-        SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
+                // Set the state for the next button.
+                PhUpdaterState = Download;
+            }
+            else if (result == 0)
+            {
+                PPH_STRING summaryText = PhCreateString(
+                    L"No updates available"
+                    );
 
-        // Enable the download button.
-        Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-        // Use the Scrollbar macro to enable the other controls.
-        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
-        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-        ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
+                PPH_STRING versionText = PhFormatString(
+                    L"You're running the latest stable version: %u.%u", 
+                    xmlData.MajorVersion,
+                    xmlData.MinorVersion
+                    );
 
-        PhDereferenceObject(releaseSizeText);
-        PhDereferenceObject(releaseDateText);
-        PhDereferenceObject(summaryText);
+                //swprintf_s(
+                //    szReleaseText, 
+                //    _countof(szReleaseText), 
+                //    L"Released: %s", 
+                //    xmlData.RelDate
+                //    );
 
-        // Set the state for the button click event.
-        PhUpdaterState = Download;
-    }
-    else if (result == 0)
-    {
-        PPH_STRING summaryText = PhCreateString(
-            L"No updates available"
-            );
-       
-        PPH_STRING versionText = PhFormatString(
-            L"You're running the latest stable version: %u.%u", 
-            xmlData.MajorVersion,
-            xmlData.MinorVersion
-            );
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
 
-        //swprintf_s(
-        //    szReleaseText, 
-        //    _countof(szReleaseText), 
-        //    L"Released: %s", 
-        //    xmlData.RelDate
-        //    );
-            
-        SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-        SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+                PhDereferenceObject(versionText);
+                PhDereferenceObject(summaryText);
+            }
+            else if (result < 0)
+            {
+                PPH_STRING localVersion = PhGetPhVersion();
 
-        PhDereferenceObject(versionText);
-        PhDereferenceObject(summaryText);
-    }
-    else if (result < 0)
-    {
-        PPH_STRING localVersion = PhGetPhVersion();
+                PPH_STRING summaryText = PhCreateString(
+                    L"No updates available"
+                    );
 
-        PPH_STRING summaryText = PhCreateString(
-            L"No updates available"
-            );
+                PPH_STRING versionText = PhFormatString(
+                    L"You're running SVN build: v%s",
+                    localVersion->Buffer
+                    );
 
-        PPH_STRING versionText = PhFormatString(
-            L"You're running SVN build: v%s",
-            localVersion->Buffer
-            );
+                //swprintf_s(
+                //    szReleaseText, 
+                //    _countof(szReleaseText), 
+                //    L"Released: %s", 
+                //    xmlData.RelDate
+                //    );
 
-        //swprintf_s(
-        //    szReleaseText, 
-        //    _countof(szReleaseText), 
-        //    L"Released: %s", 
-        //    xmlData.RelDate
-        //    );
-            
-        SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-        SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-        
-        PhDereferenceObject(versionText);
-        PhDereferenceObject(summaryText);
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+
+                PhDereferenceObject(versionText);
+                PhDereferenceObject(summaryText);
+                PhDereferenceObject(localVersion);
+            }
+        }
+
         PhDereferenceObject(localVersion);
     }
 
@@ -342,7 +335,10 @@ static NTSTATUS DownloadUpdateThreadStart(
     PPH_STRING downloadPath;
     DWORD dwBytesRead = 0;
     DWORD dwBytesWritten = 0;
-    DWORD dwBufLen = sizeof(dwContentLen);
+    time_t TimeStart = 0;
+    time_t TimeTransferred = 0;
+    DWORD totalContentLength = 0;
+    DWORD totalDownloaded = 0;
 
     HANDLE tempFileHandle = NULL;
     HINTERNET hInitialize = NULL;
@@ -360,12 +356,6 @@ static NTSTATUS DownloadUpdateThreadStart(
     // Reset the progress state on Vista and above.
     if (WindowsVersion > WINDOWS_XP)
         SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0L);
-
-    // Reset our variables
-    TimeStart = 0;
-    TimeTransferred = 0;
-    dwContentLen = 0;
-    dwTotalReadSize = 0; 
 
     if (!ConnectionAvailable())
         return STATUS_UNSUCCESSFUL;
@@ -388,25 +378,28 @@ static NTSTATUS DownloadUpdateThreadStart(
             goto CleanupAndExit;   
 
         // Append the tempath to our string: %TEMP%processhacker-%u.%u-setup.exe
-        // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-%u.%u-setup.exe
-
+        // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-2.10-setup.exe
         SetupFilePath = PhFormatString(
             L"%sprocesshacker-%u.%u-setup.exe", 
             szTempDir, 
             xmlData.MajorVersion, 
             xmlData.MinorVersion
             );
+    }
 
-        // Create output file 
-        if ((tempFileHandle = CreateFile(
-            SetupFilePath->Buffer,   
-            GENERIC_READ | GENERIC_WRITE,   
-            FILE_SHARE_READ | FILE_SHARE_WRITE,         
-            NULL,
-            CREATE_ALWAYS,      
-            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,   
-            NULL
-            )) == INVALID_HANDLE_VALUE)
+    // Create output file 
+    {
+        NTSTATUS status = PhCreateFileWin32(
+            &tempFileHandle,
+            SetupFilePath->Buffer,
+            FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OVERWRITE_IF,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (!NT_SUCCESS(status))
         {
             LogEvent(NULL, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
             goto CleanupAndExit;
@@ -449,7 +442,7 @@ static NTSTATUS DownloadUpdateThreadStart(
         NULL,
         NULL,
         NULL,
-        EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
+        PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1 ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
         0
         )))
     {
@@ -473,69 +466,31 @@ static NTSTATUS DownloadUpdateThreadStart(
     }
     else
     { 
-        CHAR buffer[BUFFER_LEN];
+        DWORD contentLengthSize = sizeof(DWORD);
         BOOL nReadFile = FALSE;
-
-        // Zero the buffer.
-        ZeroMemory(buffer, BUFFER_LEN);
 
         // Initialize hash algorithm.
         PhInitializeHash(&hashContext, Sha1HashAlgorithm);
  
-        if (!HttpQueryInfoW(hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &dwContentLen, &dwBufLen, 0))
+        if (!HttpQueryInfoW(hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &totalContentLength, &contentLengthSize, 0))
         {
-            // No content length...impossible to calculate % complete so just read until we are done.
+            // No content length...impossible to calculate % complete... 
+            // we can read the data, BUT in this instance Sourceforge always returns the content length
+            // so instead we'll exit here instead of downloading the file.
+            LogEvent(hwndDlg, PhFormatString(L"HttpQueryInfo failed (%d)", GetLastError()));
 
-            // Log the event, passing NULL as dialog handle as we need the status but also need to log the message.
-            LogEvent(NULL, PhFormatString(L"Updater: (DownloadWorkerThreadStart) HttpQueryInfo failed (%d)", GetLastError()));
-
-            SetDlgItemText(hwndDlg, IDC_STATUS, L"Downloading...");
-
-            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75L);
-
-            while ((nReadFile = InternetReadFile(hRequest, buffer, BUFFER_LEN, &dwBytesRead)))
-            {
-                // If we get zero bytes or the download thread was closed.
-                if (dwBytesRead == 0 || !DownloadThreadHandle)
-                    break;
-
-                if (!nReadFile)
-                {
-                    LogEvent(hwndDlg, PhFormatString(L"InternetReadFile failed (%d)", GetLastError()));
-                    break;
-                }
-
-                PhUpdateHash(&hashContext, buffer, dwBytesRead);
-
-                if (!WriteFile(tempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
-                {
-                    LogEvent(hwndDlg, PhFormatString(L"WriteFile failed (%d)", GetLastError()));
-                    break;
-                }
-
-                // Reset the buffer.
-                ZeroMemory(buffer, BUFFER_LEN);
-
-                if (dwBytesRead != dwBytesWritten)
-                {
-                    LogEvent(hwndDlg, PhFormatString(L"WriteFile failed (%d)", GetLastError()));
-                    break;
-                }
-            }
-
-            // Reset the marguee progress style. 
-            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, FALSE, 0L);
-            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_SMOOTH, PBS_SMOOTH);
+            goto CleanupAndExit;
         }
         else
         {
+            BYTE buffer[BUFFER_LEN];
+
+            // Zero the buffer.
+            ZeroMemory(buffer, BUFFER_LEN);
+
             // start the clock.
             TimeStart = time(NULL);
             TimeTransferred = TimeStart;
-
-            // Start our download status timer                                          
-            SetTimer(hwndDlg, 0, 500, NULL);
 
             while ((nReadFile = InternetReadFile(hRequest, buffer, BUFFER_LEN, &dwBytesRead)))
             {
@@ -570,25 +525,79 @@ static NTSTATUS DownloadUpdateThreadStart(
                 }
 
                 // Update our total bytes downloaded
-                dwTotalReadSize += dwBytesRead;                     
-            }
-        
-            // Dispose timer
-            KillTimer(hwndDlg, 0);
+                totalDownloaded += dwBytesRead;
 
-            // Invoke the timer handler to update our final download status.
-            SendMessage(hwndDlg, WM_TIMER, 0L, 0L);
+                // Update the GUI progress.
+                {
+                    WCHAR szDownloaded[1024];
+                    WCHAR *rtext = L"second";
+                    time_t time_taken = (time(NULL) - TimeTransferred);
+                    time_t bps = totalDownloaded / (time_taken ? time_taken : 1);
+                    time_t remain = (MulDiv((INT)time_taken, totalContentLength, totalDownloaded) - time_taken);
+
+                    INT percent = MulDiv(100, totalDownloaded, totalContentLength);
+
+                    PPH_STRING dlRemaningBytes = PhFormatSize(totalDownloaded, -1);
+                    PPH_STRING dlLength = PhFormatSize(totalContentLength, -1);
+                    PPH_STRING dlSpeed = PhFormatSize(bps, -1); 
+
+                    if (remain < 0) 
+                        remain = 0;
+                    if (remain >= 60)
+                    {
+                        remain /= 60;
+                        rtext = L"minute";
+                        if (remain >= 60)
+                        {
+                            remain /= 60;
+                            rtext = L"hour";
+                        }
+                    }
+
+                    wsprintfW(
+                        szDownloaded,
+                        L"%s (%d%%) of %s @ %s/s",
+                        dlRemaningBytes->Buffer,
+                        percent,
+                        dlLength->Buffer,
+                        dlSpeed->Buffer
+                        );
+
+                    if (remain) 
+                    {
+                        wsprintfW(
+                            szDownloaded + lstrlenW(szDownloaded),
+                            L" (%d %s%s remaining)",
+                            (DWORD)remain, // Cast and silence code analysis.
+                            rtext,
+                            remain == 1? L"": L"s"
+                            );
+                    }
+
+                    Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), szDownloaded);
+
+                    PhDereferenceObject(dlSpeed);
+                    PhDereferenceObject(dlLength);
+                    PhDereferenceObject(dlRemaningBytes);
+
+                    // Update the progress bar position
+                    SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, percent, 0);  
+                }
+            }
         }
+
+        // Check if we downloaded the entire file.
+        assert(totalContentLength == totalDownloaded);
 
         {        
             UCHAR hashBuffer[20];
             ULONG hashLength = 0;
 
             // Compute our hash result.
-            if (PhFinalHash(&hashContext, hashBuffer, 20, &hashLength))
+            if (PhFinalHash(&hashContext, &hashBuffer, 20, &hashLength))
             {
                 // Allocate our hash string, hex the final hash result in our hashBuffer.
-                PPH_STRING hexString = PhBufferToHexString(hashBuffer, hashLength);
+                PPH_STRING hexString = PhBufferToHexString(&hashBuffer, hashLength);
 
                 if (!_wcsicmp(hexString->Buffer, xmlData.Hash->Buffer))
                 {
@@ -597,7 +606,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                         SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
                     // Set the download result, don't include hash status since it succeeded.
-                    Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), L"Download Complete");
+                    //Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), L"Download Complete");
                     // Set button text for next action
                     Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
                     // Enable the Install button
@@ -745,8 +754,6 @@ INT_PTR CALLBACK UpdaterWndProc(
             // Set the window icon.
             SendMessageW(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)hPhIcon);
         
-            EnableCache = (PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1 ? TRUE : FALSE);
-
             lHeaderFont.lfHeight = -15;
             lHeaderFont.lfWeight = FW_MEDIUM;
             lHeaderFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
@@ -854,61 +861,6 @@ INT_PTR CALLBACK UpdaterWndProc(
                 break;
             }
             break;  
-        }
-        break;
-    case WM_TIMER:
-        {
-            WCHAR szDownloaded[1024] = L"";
-            WCHAR *rtext = L"second";
-            time_t time_taken = (time(NULL) - TimeTransferred);
-            time_t bps = dwTotalReadSize / (time_taken ? time_taken : 1);
-            time_t remain = (MulDiv((INT)time_taken, dwContentLen, dwTotalReadSize) - time_taken);
-                   
-            PPH_STRING dlRemaningBytes = PhFormatSize(dwTotalReadSize, -1);
-            PPH_STRING dlLength = PhFormatSize(dwContentLen, -1);
-            PPH_STRING dlSpeed = PhFormatSize(bps, -1); 
-
-            if (remain < 0) 
-                remain = 0;
-            if (remain >= 60)
-            {
-                remain /= 60;
-                rtext = L"minute";
-                if (remain >= 60)
-                {
-                    remain /= 60;
-                    rtext = L"hour";
-                }
-            }
-
-            wsprintfW(
-                szDownloaded,
-                L"%s (%d%%) of %s @ %s/s",
-                dlRemaningBytes->Buffer,
-                MulDiv(100, dwTotalReadSize, dwContentLen),
-                dlLength->Buffer,
-                dlSpeed->Buffer
-                );
-
-            if (remain) 
-            {
-                wsprintfW(
-                    szDownloaded + lstrlenW(szDownloaded),
-                    L" (%d %s%s remaining)",
-                    (DWORD)remain, // Cast and silence code analysis.
-                    rtext,
-                    remain == 1? L"": L"s"
-                    );
-            }
-
-            Edit_SetText(GetDlgItem(hwndDlg, IDC_STATUS), szDownloaded);
-
-            PhDereferenceObject(dlSpeed);
-            PhDereferenceObject(dlLength);
-            PhDereferenceObject(dlRemaningBytes);
-
-            // Update the progress bar position
-            SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, MulDiv(100, dwTotalReadSize, dwContentLen), 0);  
         }
         break;
     }
@@ -1032,7 +984,7 @@ BOOL QueryXmlData(
         NULL,
         NULL,
         NULL,
-        EnableCache ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
+        PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1 ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
         0
         )))
     {
@@ -1054,7 +1006,7 @@ BOOL QueryXmlData(
     }
 
     // Load our XML.
-    xmlDoc = mxmlLoadString(NULL, (PCHAR)data, QueryXmlDataCallback);
+    xmlDoc = mxmlLoadString(NULL, data, QueryXmlDataCallback);
     // Check our XML.
     if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
     {
@@ -1156,7 +1108,7 @@ mxml_type_t QueryXmlDataCallback(
 
 
 
-VOID ShowDialog(
+VOID ShowUpdateDialog(
     VOID
     )
 {
