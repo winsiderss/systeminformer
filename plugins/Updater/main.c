@@ -22,6 +22,7 @@
 
 #include "updater.h"
 
+PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -111,7 +112,7 @@ VOID NTAPI MenuItemCallback(
         {
         case UPDATE_MENUITEM:
             {
-                ShowDialog();
+                ShowUpdateDialog();
             }
             break;
         }

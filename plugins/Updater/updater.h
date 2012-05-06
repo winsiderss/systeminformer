@@ -3,17 +3,15 @@
 
 #pragma comment(lib, "Wininet.lib")
 
-#define STRICT
-#define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 #define COBJMACROS
-#undef __cplusplus
 
 #include "phdk.h"
 #include "phappresource.h"
 #include "mxml.h"
 
-#include <wininet.h>
+#include <time.h>
+#include <WinInet.h>
 #include <windowsx.h>
 #include <Netlistmgr.h>
 
@@ -22,18 +20,26 @@
 #define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
 #define SETTING_ENABLE_CACHE L"ProcessHacker.Updater.EnableCache"
 
-#define BUFFER_LEN 512
-#define UPDATE_MENUITEM 1
+#define BUFFER_LEN 0x1000
+#define UPDATE_MENUITEM 101
 
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
 #define DOWNLOAD_SERVER L"sourceforge.net"
 
-PPH_PLUGIN PluginInstance;
+extern PPH_PLUGIN PluginInstance;
+
+typedef enum _PH_UPDATER_STATE
+{
+    Download,
+    Install
+} PH_UPDATER_STATE;
+
 
 typedef struct _UPDATE_CONTEXT
 {
     HINSTANCE DllBase;
+    PH_UPDATER_STATE UpdaterState;
 } UPDATE_CONTEXT, *PUPDATE_CONTEXT;
 
 typedef struct _UPDATER_XML_DATA
@@ -46,13 +52,8 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING Hash;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
-typedef enum _PH_UPDATER_STATE
-{
-    Download,
-    Install
-} PH_UPDATER_STATE;
 
-VOID ShowDialog(
+VOID ShowUpdateDialog(
     VOID
     );
 
