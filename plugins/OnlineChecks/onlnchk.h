@@ -21,6 +21,8 @@
 #define UM_LAUNCH_COMMAND (WM_APP + 1)
 #define UM_ERROR (WM_APP + 2)
 
+#define BUFFER_LEN 0x1000
+
 typedef struct _UPLOAD_CONTEXT
 {
     LONG RefCount;
