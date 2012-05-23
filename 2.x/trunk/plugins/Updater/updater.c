@@ -23,17 +23,14 @@
 
 #include "updater.h"
 
-
 #define WM_SHOWDIALOG (WM_APP + 150)
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
-
 static HWND UpdateDialogHandle = NULL;
 static HANDLE UpdaterThreadHandle = NULL;
 static HANDLE DownloadThreadHandle = NULL;
 static HFONT FontHandle = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
-
 
 static BOOL ConnectionAvailable(
     VOID
@@ -89,14 +86,6 @@ NOT_SUPPORTED:
     return FALSE;
 }
 
-static BOOL SendRequest(
-    VOID
-    )
-{
-
-    return FALSE;
-}
-
 static BOOL ReadRequestString(
     __in HINTERNET Handle,
     __out PSTR *Data,
@@ -145,12 +134,11 @@ static BOOL ReadRequestString(
     return TRUE;
 }
 
-
 static BOOL PhInstalledUsingSetup(
     VOID
     )
 {
-    PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
 
     NTSTATUS status;
     HANDLE keyHandle;
@@ -172,14 +160,11 @@ static BOOL PhInstalledUsingSetup(
     return FALSE;
 }
 
-
-
 static NTSTATUS SilentUpdateCheckThreadStart(
     __in PVOID Parameter
     )
 {
-    ULONG localMajorVersion = 0;
-    ULONG localMinorVersion = 0;
+    ULONG localMajorVersion = 0,  localMinorVersion = 0;
     UPDATER_XML_DATA xmlData = { 0 };
 
     if (!ConnectionAvailable())
@@ -332,20 +317,12 @@ static NTSTATUS DownloadUpdateThreadStart(
     __in PVOID Parameter
     )
 {
+    NTSTATUS status;
     PPH_STRING downloadPath;
-    DWORD dwBytesRead = 0;
-    DWORD dwBytesWritten = 0;
-    time_t TimeStart = 0;
-    time_t TimeTransferred = 0;
-    DWORD totalContentLength = 0;
-    DWORD totalDownloaded = 0;
-
     HANDLE tempFileHandle = NULL;
-    HINTERNET hInitialize = NULL;
-    HINTERNET hConnection = NULL;
-    HINTERNET hRequest = NULL;
+    HINTERNET hInitialize = NULL, hConnection = NULL, hRequest = NULL;
+    DWORD totalContentLength = 0;
 
-    PH_HASH_CONTEXT hashContext = { 0 };
     UPDATER_XML_DATA xmlData = { 0 };
 
     HWND hwndDlg = (HWND)Parameter;
@@ -388,35 +365,42 @@ static NTSTATUS DownloadUpdateThreadStart(
     }
 
     // Create output file 
-    {
-        NTSTATUS status = PhCreateFileWin32(
-            &tempFileHandle,
-            SetupFilePath->Buffer,
-            FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OVERWRITE_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            );
+    status = PhCreateFileWin32(
+        &tempFileHandle,
+        SetupFilePath->Buffer,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
 
-        if (!NT_SUCCESS(status))
-        {
-            LogEvent(NULL, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
-            goto CleanupAndExit;
-        }
+    if (!NT_SUCCESS(status))
+    {
+        LogEvent(NULL, PhFormatString(L"CreateFile failed (%d)", GetLastError()));
+        goto CleanupAndExit;
     }
 
-    // Initialize the wininet library.
-    if (!(hInitialize = InternetOpenW(
-        L"PHUpdater",
-        INTERNET_OPEN_TYPE_PRECONFIG,
-        NULL, 
-        NULL, 
-        0
-        )))
     {
-        LogEvent(hwndDlg, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
-        goto CleanupAndExit;
+        // Create a user agent string.
+        PPH_STRING phVersion = PhGetPhVersion();
+        PPH_STRING userAgent = PhConcatStrings2(L"PH Updater v", phVersion->Buffer);
+        
+        // Initialize the wininet library.
+        if (!(hInitialize = InternetOpen(
+            userAgent->Buffer,
+            INTERNET_OPEN_TYPE_PRECONFIG,
+            NULL,
+            NULL,
+            0
+            )))
+        {
+            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
+            goto CleanupAndExit;
+        }
+
+        PhDereferenceObject(userAgent);
+        PhDereferenceObject(phVersion);
     }
 
     // Connect to the server.
@@ -442,7 +426,7 @@ static NTSTATUS DownloadUpdateThreadStart(
         NULL,
         NULL,
         NULL,
-        PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1 ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
+        INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
         0
         )))
     {
@@ -466,12 +450,16 @@ static NTSTATUS DownloadUpdateThreadStart(
     }
     else
     { 
+        PH_HASH_CONTEXT hashContext;
+        UCHAR hashBuffer[20];
+        ULONG hashLength = 0;
+
         DWORD contentLengthSize = sizeof(DWORD);
         BOOL nReadFile = FALSE;
 
         // Initialize hash algorithm.
         PhInitializeHash(&hashContext, Sha1HashAlgorithm);
- 
+
         if (!HttpQueryInfoW(hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &totalContentLength, &contentLengthSize, 0))
         {
             // No content length...impossible to calculate % complete... 
@@ -484,33 +472,55 @@ static NTSTATUS DownloadUpdateThreadStart(
         else
         {
             BYTE buffer[BUFFER_LEN];
+            DWORD bytesRead = 0,  bytesDownloaded = 0;
+            time_t TimeStart = 0, TimeTransferred = 0;
+            IO_STATUS_BLOCK isb;
 
             // Zero the buffer.
             ZeroMemory(buffer, BUFFER_LEN);
 
-            // start the clock.
+            // Start the clock.
             TimeStart = time(NULL);
             TimeTransferred = TimeStart;
-
-            while ((nReadFile = InternetReadFile(hRequest, buffer, BUFFER_LEN, &dwBytesRead)))
+     
+            // Download the data.
+            while (TRUE)
             {
-                // If we get zero bytes or the download thread was closed.
-                if (dwBytesRead == 0 || !DownloadThreadHandle)
+                if (!InternetReadFile(
+                    hRequest, 
+                    buffer, 
+                    BUFFER_LEN, 
+                    &bytesRead
+                    ))
                     break;
 
-                if (!nReadFile)
-                {
-                    LogEvent(hwndDlg, PhFormatString(L"InternetReadFile failed (%d)", GetLastError()));
+                // If we get zero bytes, the file was uploaded or there was an error.
+                if (bytesRead == 0) 
                     break;
-                }
+
+                // HACK: Exit loop if thread handle closed.
+                if (!DownloadThreadHandle)
+                    goto CleanupAndExit;
 
                 // Update the hash of bytes we downloaded.
-                PhUpdateHash(&hashContext, buffer, dwBytesRead);
+                PhUpdateHash(&hashContext, buffer, bytesRead);
 
                 // Write the downloaded bytes to disk.
-                if (!WriteFile(tempFileHandle, buffer, dwBytesRead, &dwBytesWritten, NULL))
+                status = NtWriteFile(
+                    tempFileHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &isb,
+                    buffer,
+                    bytesRead,
+                    NULL,
+                    NULL
+                    );
+
+                if (!NT_SUCCESS(status))
                 {
-                    LogEvent(hwndDlg, PhFormatString(L"WriteFile failed (%d)", GetLastError()));
+                    LogEvent(hwndDlg, PhFormatString(L"NtWriteFile failed (%s)", PhGetNtMessage(status)->Buffer));
                     break;
                 }
 
@@ -518,26 +528,26 @@ static NTSTATUS DownloadUpdateThreadStart(
                 ZeroMemory(buffer, BUFFER_LEN);
 
                 // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
-                if (dwBytesRead != dwBytesWritten)
+                if (bytesRead != isb.Information)
                 {
-                    LogEvent(hwndDlg, PhFormatString(L"WriteFile failed (%d)", GetLastError()));
+                    LogEvent(hwndDlg, PhFormatString(L"NtWriteFile failed (%s)", PhGetNtMessage(status)->Buffer));
                     break;
                 }
 
                 // Update our total bytes downloaded
-                totalDownloaded += dwBytesRead;
+                bytesDownloaded += isb.Information;
 
                 // Update the GUI progress.
                 {
                     WCHAR szDownloaded[1024];
                     WCHAR *rtext = L"second";
                     time_t time_taken = (time(NULL) - TimeTransferred);
-                    time_t bps = totalDownloaded / (time_taken ? time_taken : 1);
-                    time_t remain = (MulDiv((INT)time_taken, totalContentLength, totalDownloaded) - time_taken);
+                    time_t bps = bytesDownloaded / (time_taken ? time_taken : 1);
+                    time_t remain = (MulDiv((INT)time_taken, totalContentLength, bytesDownloaded) - time_taken);
 
-                    INT percent = MulDiv(100, totalDownloaded, totalContentLength);
+                    INT percent = MulDiv(100, bytesDownloaded, totalContentLength);
 
-                    PPH_STRING dlRemaningBytes = PhFormatSize(totalDownloaded, -1);
+                    PPH_STRING dlRemaningBytes = PhFormatSize(bytesDownloaded, -1);
                     PPH_STRING dlLength = PhFormatSize(totalContentLength, -1);
                     PPH_STRING dlSpeed = PhFormatSize(bps, -1); 
 
@@ -584,20 +594,15 @@ static NTSTATUS DownloadUpdateThreadStart(
                     SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, percent, 0);  
                 }
             }
-        }
 
-        // Check if we downloaded the entire file.
-        assert(totalContentLength == totalDownloaded);
-
-        {        
-            UCHAR hashBuffer[20];
-            ULONG hashLength = 0;
+            // Check if we downloaded the entire file.
+            assert(totalContentLength == bytesDownloaded);
 
             // Compute our hash result.
             if (PhFinalHash(&hashContext, &hashBuffer, 20, &hashLength))
             {
                 // Allocate our hash string, hex the final hash result in our hashBuffer.
-                PPH_STRING hexString = PhBufferToHexString(&hashBuffer, hashLength);
+                PPH_STRING hexString = PhBufferToHexString(hashBuffer, hashLength);
 
                 if (!_wcsicmp(hexString->Buffer, xmlData.Hash->Buffer))
                 {
@@ -769,6 +774,7 @@ INT_PTR CALLBACK UpdaterWndProc(
             // Center the update window on PH if visible and not mimimized else center on desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(GetParent(hwndDlg)) && !IsIconic(GetParent(hwndDlg))) ? GetParent(hwndDlg) : NULL);
 
+            // TODO: dispose thread handle.
             // Create our update check thread.
             PhCreateThread(0, CheckUpdateThreadStart, hwndDlg);
         }
@@ -984,7 +990,7 @@ BOOL QueryXmlData(
         NULL,
         NULL,
         NULL,
-        PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1 ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
+        0,//PhGetIntegerSetting(L"ProcessHacker.Updater.EnableCache") == 1 ? 0 : INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RESYNCHRONIZE,
         0
         )))
     {
@@ -1044,29 +1050,27 @@ BOOL QueryXmlData(
         goto CleanupAndExit;
     }
 
+    // Format strings into unicode
     XmlData->Version = PhFormatString(
         L"%hs", 
         xmlNodeVer->child->value.opaque
+        );
+    XmlData->RelDate = PhFormatString(
+        L"%hs", 
+        xmlNodeRelDate->child->value.opaque
+        );
+    XmlData->Size = PhFormatString(
+        L"%hs", 
+        xmlNodeSize->child->value.opaque
+        );
+    XmlData->Hash = PhFormatString(
+        L"%hs", 
+        xmlNodeHash->child->value.opaque
         );
 
     // parse and check string
     if (!ParseVersionString(XmlData->Version->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion))
         goto CleanupAndExit;
-
-    XmlData->RelDate = PhFormatString(
-        L"%hs", 
-        xmlNodeRelDate->child->value.opaque
-        );
-
-    XmlData->Size = PhFormatString(
-        L"%hs", 
-        xmlNodeSize->child->value.opaque
-        );
-
-    XmlData->Hash = PhFormatString(
-        L"%hs", 
-        xmlNodeHash->child->value.opaque
-        );
 
     result = TRUE;
 
@@ -1104,9 +1108,6 @@ mxml_type_t QueryXmlDataCallback(
 {
     return MXML_OPAQUE;
 }
-
-
-
 
 VOID ShowUpdateDialog(
     VOID

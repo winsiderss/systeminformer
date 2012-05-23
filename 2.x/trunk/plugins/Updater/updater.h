@@ -35,13 +35,6 @@ typedef enum _PH_UPDATER_STATE
     Install
 } PH_UPDATER_STATE;
 
-
-typedef struct _UPDATE_CONTEXT
-{
-    HINSTANCE DllBase;
-    PH_UPDATER_STATE UpdaterState;
-} UPDATE_CONTEXT, *PUPDATE_CONTEXT;
-
 typedef struct _UPDATER_XML_DATA
 {
     ULONG MinorVersion;
