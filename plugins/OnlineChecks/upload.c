@@ -23,8 +23,6 @@
 
 #include "onlnchk.h"
 
-
-
 static SERVICE_INFO UploadServiceInfo[] =
 {
     { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
@@ -97,7 +95,7 @@ VOID UploadToOnlineService(
     context->Service = Service;
 
     DialogBoxParam(
-        PluginInstance->DllBase,
+        (HINSTANCE)PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PROGRESSDIALOG),
         NULL,
         UploadDlgProc,
@@ -242,7 +240,7 @@ static BOOLEAN PerformSubRequest(
     //}
 
     {
-        CHAR buffer[512];
+        BYTE buffer[BUFFER_LEN];
         PSTR data;
         ULONG allocatedLength;
         ULONG dataLength;
@@ -252,7 +250,7 @@ static BOOLEAN PerformSubRequest(
         data = PhAllocate(allocatedLength);
         dataLength = 0;
 
-        while (WinHttpReadData(requestHandle, buffer, 512, &returnLength))
+        while (WinHttpReadData(requestHandle, buffer, BUFFER_LEN, &returnLength))
         {
             if (returnLength == 0)
                 break;
@@ -383,19 +381,15 @@ static NTSTATUS UploadWorkerThreadStart(
     NTSTATUS status;
     LARGE_INTEGER fileSize64;
 
-    time_t TimeStart = 0;
-    time_t TimeTransferred = 0;
-
-    DWORD totalFileLength = 0;
-    DWORD totalFileReadLength = 0;
+    time_t TimeStart = 0, TimeTransferred = 0;
+    DWORD totalFileLength = 0, totalFileReadLength = 0;
 
     HANDLE fileHandle = NULL;
     HINTERNET internetHandle = NULL, connectHandle = NULL, requestHandle = NULL;
-    PUPLOAD_CONTEXT context = Parameter;
+    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
     PSERVICE_INFO serviceInfo = NULL;
 
-    PPH_STRING userAgent = NULL, objectName = NULL;
-    PPH_STRING baseFileName = PhGetBaseName(context->FileName);
+    PPH_STRING userAgent = NULL, objectName = NULL, baseFileName = PhGetBaseName(context->FileName);
    
     if (!(serviceInfo = GetUploadServiceInfo(context->Service)))
     {
@@ -698,10 +692,9 @@ static NTSTATUS UploadWorkerThreadStart(
         }
 
         {
-            DWORD bytesRead = 0;
-            DWORD bytesWritten = 0;
+            DWORD bytesRead = 0, bytesWritten = 0;
             IO_STATUS_BLOCK isb;
-            BYTE buffer[512];
+            BYTE buffer[BUFFER_LEN];
 
             // Convert to ANSI
             PPH_ANSI_STRING ansiPostData = PhCreateAnsiStringFromUnicode(sbPostHeader.String->Buffer);
@@ -710,9 +703,6 @@ static NTSTATUS UploadWorkerThreadStart(
             // start the clock.
             TimeStart = time(NULL);
             TimeTransferred = TimeStart;
-
-            // Start our download status timer                                          
-            SetTimer(context->WindowHandle, 0, 500, NULL);
 
             // Write the header bytes
             if (!WinHttpWriteData(
@@ -738,7 +728,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     NULL, 
                     &isb, 
                     &buffer, 
-                    512, 
+                    BUFFER_LEN, 
                     NULL, 
                     NULL
                     );
@@ -762,7 +752,9 @@ static NTSTATUS UploadWorkerThreadStart(
                 }
 
                 totalFileReadLength += bytesWritten;
-                ZeroMemory(buffer, 512);
+
+                // Zero our upload buffer.
+                ZeroMemory(buffer, BUFFER_LEN);
 
                 //Update the GUI progress.
                 {
