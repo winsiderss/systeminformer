@@ -6,6 +6,10 @@
 #define IDC_MESSAGE                     1002
 #define IDC_UPLOADPROGRESS              1003
 #define IDC_STATUS                      1004
+#define IDC_STATUS2                     1005
+#define IDC_STATUS3                     1006
+#define IDC_STATUS4                     1007
+#define IDC_STATUS5                     1008
 
 // Next default values for new objects
 // 
