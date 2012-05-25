@@ -87,9 +87,7 @@ VOID UploadToOnlineService(
     __in ULONG Service
     )
 {
-    PUPLOAD_CONTEXT context;
-
-    context = CreateUploadContext();
+    PUPLOAD_CONTEXT context = CreateUploadContext();
 
     PhSwapReference(&context->FileName, FileName);
     context->Service = Service;
@@ -602,16 +600,9 @@ static NTSTATUS UploadWorkerThreadStart(
     }
 
     // Set timeouts and disable http redirection.
-    {
-        DWORD disable = WINHTTP_DISABLE_REDIRECTS;
-        ULONG timeout = 5 * 60 * 1000; // 5 minutes
+    //ULONG timeout = 5 * 60 * 1000; // 5 minutes
+    // WinHttpSetTimeouts(requestHandle, timeout, timeout, timeout, timeout);
 
-        WinHttpSetOption(requestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &disable, sizeof(ULONG));
-        WinHttpSetOption(requestHandle, WINHTTP_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(ULONG));
-        WinHttpSetOption(requestHandle, WINHTTP_OPTION_SEND_TIMEOUT, &timeout, sizeof(ULONG));
-        WinHttpSetOption(requestHandle, WINHTTP_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(ULONG));
-    }
-    
     // Create and POST data.
     {
         PH_STRING_BUILDER sbRequestHeaders = { 0 };
@@ -758,54 +749,77 @@ static NTSTATUS UploadWorkerThreadStart(
 
                 //Update the GUI progress.
                 {
-                    WCHAR szDownloaded[1024] = L"";
-                    WCHAR *rtext = L"second";
                     time_t time_taken = (time(NULL) - TimeTransferred);
                     time_t bps = totalFileReadLength / (time_taken ? time_taken : 1);
                     time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
 
-                    PPH_STRING dlRemaningBytes = PhFormatSize(totalFileReadLength, -1);
-                    PPH_STRING dlLength = PhFormatSize(totalFileLength, -1);
-                    PPH_STRING dlSpeed = PhFormatSize(bps, -1); 
+                    PPH_STRING TotalLength = PhFormatSize(totalFileLength, -1);
+                    PPH_STRING TotalDownloadedLength = PhFormatSize(totalFileReadLength, -1);
+                    PPH_STRING TotalSpeed = PhFormatSize(bps, -1); 
+                     
+                    PPH_STRING dlLengthString = PhFormatString(L"Total upload: %s", TotalLength->Buffer);
+                    PPH_STRING dlDownloadedBytesString = PhFormatString(L"Total uploaded: %s", TotalDownloadedLength->Buffer);
+                    PPH_STRING dlSpeedString = PhFormatString(L"Total upload speed: %s/s", TotalSpeed->Buffer); 
 
+                    //WCHAR szDownloaded[1024] = L"";
+         
+                    SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS3), dlLengthString->Buffer);
+                    SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS4), dlDownloadedBytesString->Buffer);
+                    SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS5), dlSpeedString->Buffer);
+                    
+                    PhDereferenceObject(dlSpeedString);
+                    PhDereferenceObject(dlDownloadedBytesString);
+                    PhDereferenceObject(dlLengthString);            
+                    PhDereferenceObject(TotalSpeed);
+                    PhDereferenceObject(TotalDownloadedLength);
+                    PhDereferenceObject(TotalLength);
+
+                    //wsprintfW(
+                    //szDownloaded,
+                    //L"%s (%d%%) of %s @ %s/s",
+                    //dlRemaningBytes->Buffer,
+                    //MulDiv(100, totalFileReadLength, totalFileLength),
+                    //dlLength->Buffer,
+                    //dlSpeed->Buffer
+                    //);
+                  
                     if (remain < 0) 
                         remain = 0;
-                    if (remain >= 60)
-                    {
-                        remain /= 60;
-                        rtext = L"minute";
-                        if (remain >= 60)
-                        {
-                            remain /= 60;
-                            rtext = L"hour";
-                        }
-                    }
-
-                    wsprintfW(
-                        szDownloaded,
-                        L"%s (%d%%) of %s @ %s/s",
-                        dlRemaningBytes->Buffer,
-                        MulDiv(100, totalFileReadLength, totalFileLength),
-                        dlLength->Buffer,
-                        dlSpeed->Buffer
-                        );
-
                     if (remain) 
                     {
-                        wsprintfW(
-                            szDownloaded + lstrlenW(szDownloaded),
-                            L" (%d %s%s remaining)",
-                            (DWORD)remain, // Cast and silence code analysis.
-                            rtext,
-                            remain == 1? L"": L"s"
-                            );
+                        //PH_STRING_BUILDER dlRemainString;
+                        //PPH_STRING dlRemainString2;
+
+                        //PhInitializeStringBuilder(&dlRemainString, MAX_PATH);
+
+                        //if (remain >= 60)
+                        //{
+                        //    remain /= 60;
+                        //    PhAppendFormatStringBuilder(&dlRemainString, L"minute");
+
+                        //    if (remain >= 60)
+                        //    {
+                        //        remain /= 60;
+                        //        PhAppendFormatStringBuilder(&dlRemainString, L"rtext");
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    PhAppendFormatStringBuilder(&dlRemainString, L"second");
+                        //}
+
+                        //dlRemainString2 = PhFormatString(
+                        //    L"%d %s%s remaining", 
+                        //    (DWORD)remain, // Cast and silence code analysis.
+                        //    dlRemainString.String->Buffer,
+                        //    remain == 1? L"": L"s");
+
+                        //SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS), dlRemainString2->Buffer);
+
+                        //PhDeleteStringBuilder(&dlRemainString);
+
+                        //PhDereferenceObject(dlRemainString2);
                     }
-
-                    SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS), szDownloaded);
-
-                    PhDereferenceObject(dlSpeed);
-                    PhDereferenceObject(dlLength);
-                    PhDereferenceObject(dlRemaningBytes);
 
                     // Update the progress bar position
                     SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, MulDiv(100, totalFileReadLength, totalFileLength), 0);  
@@ -1160,4 +1174,3 @@ INT_PTR CALLBACK UploadDlgProc(
 
     return FALSE;
 }
-
