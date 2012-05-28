@@ -879,7 +879,7 @@ static NTSTATUS UploadWorkerThreadStart(
             case UPLOAD_SERVICE_VIRUSTOTAL:
                 {
                     ULONG index = 0;
-                    PBYTE buffer = NULL;
+                    PVOID buffer = NULL;
                     ULONG bufferSize = 0;
 
                     WinHttpQueryHeaders(
@@ -910,17 +910,17 @@ static NTSTATUS UploadWorkerThreadStart(
                         }
                     }
 
-                    if (bufferSize != 0 && buffer && *(PWCHAR)buffer == '/')
-                    {
-                        context->LaunchCommand = PhConcatStrings2(L"http://www.virustotal.com", (PWSTR)buffer);
-                    }
-                    else
-                    {
-                        context->LaunchCommand = PhCreateString((PWSTR)buffer);
-                    }
-
                     if (buffer)
                     {
+                        if (bufferSize != 0 && buffer && *(PWCHAR)buffer == '/')
+                        {
+                            context->LaunchCommand = PhConcatStrings2(L"http://www.virustotal.com", (PWSTR)buffer);
+                        }
+                        else
+                        {
+                            context->LaunchCommand = PhCreateString((PWSTR)buffer);
+                        }
+
                         PhFree(buffer);
                     }
                 }
