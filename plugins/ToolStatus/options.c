@@ -49,6 +49,11 @@ INT_PTR CALLBACK OptionsDlgProc(
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
+            case IDC_CUSTOMIZE:
+                {
+                    PostMessage(ToolBarHandle, TB_CUSTOMIZE, 0, 0);
+                }
+                break;
             }
         }
         break;

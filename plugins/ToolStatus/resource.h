@@ -2,6 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by ToolStatus.rc
 //
+#define IDC_CUSTOMIZE                   3
 #define IDB_APPLICATION                 101
 #define IDB_APPLICATION_GO              102
 #define IDB_ARROW_REFRESH               103
