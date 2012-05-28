@@ -41,15 +41,15 @@ PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 
 TBBUTTON buttonArray[] =
 {
-    { 0, IDB_ARROW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Refresh" },
-    { 1, IDB_COG_EDIT, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Options" },
+    { 0, TIDC_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Refresh" },
+    { 1, TIDC_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Options" },
     { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, NULL },
-    { 2, IDB_FIND, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Find Handles or DLLs" },
-    { 3, IDB_CHART_LINE, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"System Information" },
+    { 2, TIDC_FINDOBJ, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Find Handles or DLLs" },
+    { 3, TIDC_SYSINFO, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"System Information" },
     { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, NULL },
-    { 4, IDB_APPLICATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window" },
-    { 5, IDB_APPLICATION_GO, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Thread" },
-    { 6, IDB_CROSS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Kill" }
+    { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window" },
+    { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Thread" },
+    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Kill" }
 };
 
 HWND ReBarHandle = NULL;
@@ -638,11 +638,21 @@ LRESULT CALLBACK MainWndSubclassProc(
                 }
             } 
 
-            if (id >= ToolBarIdRangeBase && id < ToolBarIdRangeEnd)
+            // If we're targeting and the user presses the Esc key, cancel the targeting.
+            // We also make sure the window doesn't get closed by filtering out the message.
+            if (LOWORD(wParam) == PHAPP_ID_ESC_EXIT && TargetingWindow)
             {
-                toolbarId = id - ToolBarIdRangeBase;
+                TargetingWindow = FALSE;
+                ReleaseCapture();
 
-                switch (toolbarId)
+                goto DefaultWndProc;
+            }
+           
+            //if (id >= ToolBarIdRangeBase && id < ToolBarIdRangeEnd)
+            {
+                //toolbarId = id - ToolBarIdRangeBase;
+
+                switch (LOWORD(wParam))
                 {
                 case TIDC_REFRESH:
                     SendMessage(hWnd, WM_COMMAND, PHAPP_ID_VIEW_REFRESH, 0);
@@ -658,17 +668,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     break;
                 }
 
-                goto DefaultWndProc;
-            }
-
-            // If we're targeting and the user presses the Esc key, cancel the targeting.
-            // We also make sure the window doesn't get closed by filtering out the message.
-            if (LOWORD(wParam) == PHAPP_ID_ESC_EXIT && TargetingWindow)
-            {
-                TargetingWindow = FALSE;
-                ReleaseCapture();
-
-                goto DefaultWndProc;
+                //goto DefaultWndProc;
             }
         }
         break;
@@ -718,9 +718,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                 case TBN_BEGINDRAG:
                     {
                         LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
-                        ULONG id;
-
-                        id = (ULONG)toolbar->iItem - ToolBarIdRangeBase;
+                        
+                        ULONG id = (ULONG)toolbar->iItem;
 
                         if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD || id == TIDC_FINDWINDOWKILL)
                         {
