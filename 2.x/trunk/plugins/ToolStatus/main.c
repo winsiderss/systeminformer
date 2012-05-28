@@ -39,26 +39,38 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 
+TBBUTTON buttonArray[] =
+{
+    { 0, IDB_ARROW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Refresh" },
+    { 1, IDB_COG_EDIT, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Options" },
+    { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, NULL },
+    { 2, IDB_FIND, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Find Handles or DLLs" },
+    { 3, IDB_CHART_LINE, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"System Information" },
+    { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, NULL },
+    { 4, IDB_APPLICATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window" },
+    { 5, IDB_APPLICATION_GO, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Thread" },
+    { 6, IDB_CROSS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Kill" }
+};
+
 HWND ReBarHandle = NULL;
 HWND TextboxHandle = NULL;
-HWND ToolBarHandle = NULL;
 HWND StatusBarHandle = NULL;
 HWND TargetingCurrentWindow = NULL;
 
 RECT ReBarRect = { 0 };
 RECT StatusBarRect = { 0 };
 
-ULONG StatusMask = 0;
-ULONG IdRangeBase = 0;
-ULONG TargetingMode = 0;
-ULONG ToolBarIdRangeBase = 0;
-ULONG ToolBarIdRangeEnd = 0;
+static ULONG StatusMask = 0;
+static ULONG IdRangeBase = 0;
+static ULONG TargetingMode = 0;
+static ULONG ToolBarIdRangeBase = 0;
+static ULONG ToolBarIdRangeEnd = 0;
 ULONG ProcessesUpdatedCount = 0;
 ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
 
-BOOLEAN TargetingWindow = FALSE;
-BOOLEAN TargetingCurrentWindowDraw = FALSE;
-BOOLEAN TargetingCompleted = FALSE;
+static BOOLEAN TargetingWindow = FALSE;
+static BOOLEAN TargetingCurrentWindowDraw = FALSE;
+static BOOLEAN TargetingCompleted = FALSE;
 
 HIMAGELIST ToolBarImageList;
 
@@ -393,19 +405,6 @@ VOID NTAPI MainWindowShowingCallback(
   
     // Create and configure the toolbar
     {
-        TBBUTTON buttonArray[] =
-        {
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
-        };
-
         // Create the toolbar
         ToolBarHandle = CreateWindowExW(
             0,
@@ -694,13 +693,28 @@ LRESULT CALLBACK MainWndSubclassProc(
                 case TBN_GETBUTTONINFO:
                     {
                         LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
+
+                        if (toolbar->iItem >= 0 && toolbar->iItem < _countof(buttonArray))
+                        {
+                            toolbar->tbButton = buttonArray[toolbar->iItem];
+                            return TRUE;
+                        }
+
                         return FALSE;
                     }
                     break;
+                case TBN_ENDADJUST:
+                    {
+                        ApplyToolbarSettings();
+                        break;
+                    }
+                case TBN_INITCUSTOMIZE:
+                        // suppress the Help button.
+                        return TBNRF_HIDEHELP;
                 case TBN_QUERYINSERT:
-                    return TRUE;
+                        return TRUE;
                 case TBN_QUERYDELETE:
-                    return TRUE;
+                        return TRUE;
                 case TBN_BEGINDRAG:
                     {
                         LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
@@ -964,17 +978,20 @@ VOID ApplyToolbarSettings(
 {
     BOOLEAN buttonHasText[NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS] = { TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE };
     ULONG i;
+    ULONG buttonCount = 0;;
 
     if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
         ShowWindow(ToolBarHandle, SW_SHOW);
-
     if (EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
         ShowWindow(StatusBarHandle, SW_SHOW);
 
-    for (i = 0; i < NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS; i++)
+     // Get the current number of visible buttons
+    buttonCount = SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+    for (i = 0; i < buttonCount; i++)
     {
         TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-        button.dwMask = TBIF_BYINDEX | TBIF_STYLE;
+        button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_LPARAM;
 
         // Get settings for first button.
         SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
@@ -990,7 +1007,7 @@ VOID ApplyToolbarSettings(
             case SelectiveText:
                 button.fsStyle = BTNS_AUTOSIZE;
 
-                if (buttonHasText[i])
+                if (button.lParam == TRUE)
                     button.fsStyle = BTNS_SHOWTEXT;
 
                 break;
