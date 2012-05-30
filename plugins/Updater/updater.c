@@ -23,7 +23,11 @@
 
 #include "updater.h"
 
-#define WM_SHOWDIALOG (WM_APP + 150)
+static PPH_PLUGIN PluginInstance;
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static HWND UpdateDialogHandle = NULL;
 static HANDLE UpdaterThreadHandle = NULL;
@@ -31,6 +35,112 @@ static HANDLE DownloadThreadHandle = NULL;
 static HFONT FontHandle = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
+
+
+LOGICAL DllMain(
+    __in HINSTANCE Instance,
+    __in ULONG Reason,
+    __reserved PVOID Reserved
+    )
+{
+    switch (Reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        {
+            PPH_PLUGIN_INFORMATION info;
+
+            PluginInstance = PhRegisterPlugin(L"ProcessHacker.UpdateChecker", Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->DisplayName = L"Update Checker";
+            info->Author = L"dmex";
+            info->Description = L"Plugin for checking new Process Hacker releases via the Help menu.";
+            info->HasOptions = TRUE;
+    
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
+                );
+             PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+             PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+
+             {
+                 PH_SETTING_CREATE settings[] =
+                 {
+                     { IntegerSettingType, SETTING_ENABLE_CACHE, L"1" },
+                     { IntegerSettingType, SETTING_AUTO_CHECK, L"1" },
+                 };
+
+                 PhAddSettings(settings, _countof(settings));
+             }
+        }
+        break;
+    }
+
+    return TRUE;
+}
+
+VOID NTAPI MainWindowShowingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    // Add our menu item, 4 = Help menu.
+    PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
+
+    if (PhGetIntegerSetting(SETTING_AUTO_CHECK))
+    {
+        // Queue up our initial update check.
+        StartInitialCheck();
+    }
+}
+
+VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+
+    if (menuItem != NULL)
+    {
+        switch (menuItem->Id)
+        {
+        case UPDATE_MENUITEM:
+            {
+                ShowUpdateDialog();
+            }
+            break;
+        }
+    }
+}
+
+VOID NTAPI ShowOptionsCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    DialogBox(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        (HWND)Parameter,
+        OptionsDlgProc
+        );
+}
 
 static BOOL ConnectionAvailable(
     VOID

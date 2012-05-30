@@ -126,7 +126,7 @@ VOID NTAPI MenuItemCallback(
     __in_opt PVOID Context
     )
 {
-    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
     PPH_NETWORK_ITEM networkItem;
 
     switch (menuItem->Id)
@@ -156,7 +156,7 @@ VOID NTAPI NetworkMenuInitializingCallback(
     __in_opt PVOID Context
     )
 {
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
     PPH_NETWORK_ITEM networkItem;
     PPH_EMENU_ITEM toolsMenu;
 
