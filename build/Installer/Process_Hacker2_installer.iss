@@ -23,11 +23,10 @@
 ; *Inno Setup: http://www.jrsoftware.org/isdl.php
 
 
-#if VER < EncodeVer(5,4,3)
-  #error Update your Inno Setup version (5.4.3 or newer)
+#if VER < EncodeVer(5,5,0)
+  #error Update your Inno Setup version (5.5.0 or newer)
 #endif
 
-#define ISPP_IS_BUGGY
 #include "..\..\ProcessHacker\include\phappres.h"
 
 ; Include the custom messages and services
@@ -73,7 +72,7 @@ VersionInfoProductTextVersion={#app_version_full}
 VersionInfoProductVersion={#app_version_long}
 VersionInfoTextVersion={#app_version_full}
 VersionInfoVersion={#app_version_long}
-MinVersion=0,5.01.2600sp2
+MinVersion=5.01.2600sp2
 LicenseFile=..\..\LICENSE.txt
 SetupIconFile=..\..\ProcessHacker\ProcessHacker.ico
 UninstallDisplayIcon={app}\ProcessHacker.exe
@@ -119,7 +118,7 @@ Name: plugins;                       Description: Plugins;                 Types
 Name: plugins\dotnettools;           Description: .NET Tools;              Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\extendednotifications; Description: Extended Notifications;  Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\extendedservices;      Description: Extended Services;       Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\extendedtools;         Description: Extended Tools;          Types: full custom;         Flags: disablenouninstallwarning;       MinVersion: 0,6.00
+Name: plugins\extendedtools;         Description: Extended Tools;          Types: full custom;         Flags: disablenouninstallwarning;       MinVersion: 6.00
 Name: plugins\networktools;          Description: Network Tools;           Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\onlinechecks;          Description: Online Checks;           Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\sbiesupport;           Description: Sandboxie Support;       Types: full custom;         Flags: disablenouninstallwarning
@@ -133,7 +132,7 @@ Name: plugins\windowexplorer;        Description: Window Explorer;         Types
 Name: desktopicon;         Description: {cm:CreateDesktopIcon};     GroupDescription: {cm:AdditionalIcons}
 Name: desktopicon\user;    Description: {cm:tsk_CurrentUser};       GroupDescription: {cm:AdditionalIcons};                                    Flags: exclusive
 Name: desktopicon\common;  Description: {cm:tsk_AllUsers};          GroupDescription: {cm:AdditionalIcons};                                    Flags: unchecked exclusive
-Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01;          Flags: unchecked
+Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 6.01;            Flags: unchecked
 
 Name: startup;             Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup};     Check: not StartupCheck();         Flags: unchecked checkablealone
 Name: startup\minimized;   Description: {cm:tsk_StartupDescrMin};   GroupDescription: {cm:tsk_Startup};     Check: not StartupCheck();         Flags: unchecked
@@ -204,7 +203,7 @@ Name: {#quick_launch}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Worki
 [InstallDelete]
 Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Check: not IsTaskSelected('desktopicon\user')   and IsUpgrade()
 Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Check: not IsTaskSelected('desktopicon\common') and IsUpgrade()
-Type: files;      Name: {#quick_launch}\Process Hacker 2.lnk;        Check: not IsTaskSelected('quicklaunchicon')    and IsUpgrade(); OnlyBelowVersion: 0,6.01
+Type: files;      Name: {#quick_launch}\Process Hacker 2.lnk;        Check: not IsTaskSelected('quicklaunchicon')    and IsUpgrade(); OnlyBelowVersion: 6.01
 Type: files;      Name: {group}\Help and Support\Process Hacker Help.lnk; Check: IsUpgrade()
 
 Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
