@@ -1,6 +1,6 @@
 ;* Process Hacker 2 - Installer custom messages
 ;*
-;* Copyright (C) 2010-2011 XhmikosR
+;* Copyright (C) 2010-2012 XhmikosR
 ;*
 ;* This file is part of Process Hacker.
 ;*
@@ -19,25 +19,42 @@
 
 
 [CustomMessages]
-;sm=Start Menu, tsk=Task, com=Comment, msg=Message
+;sm=Start Menu, tsk=Task, com=Comment, msg=Message, comp=Component
 ;English
-en.msg_SetupIsRunningWarning =Process Hacker Setup is already running!
-en.msg_DeleteLogSettings     =Do you also want to delete Process Hacker's settings?%n%nIf you plan on reinstalling Process Hacker you do not have to delete them.
-en.msg_ServiceManager        =The service manager is not available.
-en.tsk_AllUsers              =For all users
-en.tsk_CreateKPHService      =Install KProcessHacker as a service
-en.tsk_CurrentUser           =For the current user only
-en.tsk_DeleteKPHService      =Delete KProcessHacker service
-en.tsk_Other                 =Other tasks:
-en.tsk_RemoveStartup         =Remove Process Hacker from Windows startup
-en.tsk_ResetSettings         =Reset Process Hacker settings
-en.tsk_RestoreTaskmgr        =Restore Windows task manager
-en.tsk_SetDefaultTaskmgr     =Set Process Hacker as the default task manager for Windows
-en.tsk_StartupDescr          =Start Process Hacker on system startup
-en.tsk_StartupDescrMin       =Minimized on system tray
-en.tsk_Startup               =Startup options:
-en.run_ViewChangelog         =View Changelog
-en.run_VisitWebsite          =Visit Process Hacker Website
-en.sm_Changelog              =Changelog
-en.sm_com_Changelog          =Process Hacker Changelog
-en.sm_Help                   =Help and Support
+en.comp_Main_App              =Main application
+en.comp_PE_Viewer             =PE Viewer
+en.comp_Plugins               =Plugins
+en.comp_DotNetTools           =.NET Tools
+en.comp_ExtendedNotifications =Extended Notifications
+en.comp_ExtendedServices      =Extended Services
+en.comp_ExtendedTools         =Extended Tools
+en.comp_NetworkTools          =Network Tools
+en.comp_OnlineChecks          =Online Checks
+en.comp_SbieSupport           =Sandboxie Support
+en.comp_ToolStatus            =Toolbar and Status Bar
+en.comp_Updater               =Updater
+en.comp_UserNotes             =User Notes
+en.comp_WindowExplorer        =Window Explorer
+en.msg_SetupIsRunningWarning  =Process Hacker Setup is already running!
+en.msg_DeleteLogSettings      =Do you also want to delete Process Hacker's settings?%n%nIf you plan on reinstalling Process Hacker you do not have to delete them.
+en.msg_ServiceManager         =The service manager is not available.
+en.tsk_AllUsers               =For all users
+en.tsk_CreateKPHService       =Install KProcessHacker as a service
+en.tsk_CurrentUser            =For the current user only
+en.tsk_DeleteKPHService       =Delete KProcessHacker service
+en.tsk_Other                  =Other tasks:
+en.tsk_RemoveStartup          =Remove Process Hacker from Windows startup
+en.tsk_ResetSettings          =Reset Process Hacker settings
+en.tsk_RestoreTaskmgr         =Restore Windows task manager
+en.tsk_SetDefaultTaskmgr      =Set Process Hacker as the default task manager for Windows
+en.tsk_StartupDescr           =Start Process Hacker on system startup
+en.tsk_StartupDescrMin        =Minimized on system tray
+en.tsk_Startup                =Startup options:
+en.tsk_full                   =Full installation
+en.tsk_minimal                =Minimal installation
+en.tsk_custom                 =Custom installation
+en.run_ViewChangelog          =View Changelog
+en.run_VisitWebsite           =Visit Process Hacker Website
+en.sm_Changelog               =Changelog
+en.sm_com_Changelog           =Process Hacker Changelog
+en.sm_Help                    =Help and Support

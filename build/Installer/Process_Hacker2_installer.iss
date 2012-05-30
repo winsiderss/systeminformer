@@ -106,26 +106,26 @@ SetupWindowTitle=Setup - Process Hacker
 
 
 [Types]
-Name: full;                          Description: Full installation
-Name: minimal;                       Description: Minimal installation
-Name: custom;                        Description: Custom installation;                                 Flags: iscustom
+Name: full;                          Description: {cm:tsk_full}
+Name: minimal;                       Description: {cm:tsk_minimal}
+Name: custom;                        Description: {cm:tsk_custom};                 Flags: iscustom
 
 
 [Components]
-Name: main;                          Description: Main application;        Types: full minimal custom; Flags: fixed
-Name: peview;                        Description: PE Viewer;               Types: full minimal custom; Flags: disablenouninstallwarning
-Name: plugins;                       Description: Plugins;                 Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\dotnettools;           Description: .NET Tools;              Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\extendednotifications; Description: Extended Notifications;  Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\extendedservices;      Description: Extended Services;       Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\extendedtools;         Description: Extended Tools;          Types: full custom;         Flags: disablenouninstallwarning;       MinVersion: 6.00
-Name: plugins\networktools;          Description: Network Tools;           Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\onlinechecks;          Description: Online Checks;           Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\sbiesupport;           Description: Sandboxie Support;       Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\toolstatus;            Description: Toolbar and Status Bar;  Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\updater;               Description: Updater;                 Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\usernotes;             Description: User Notes;              Types: full custom;         Flags: disablenouninstallwarning
-Name: plugins\windowexplorer;        Description: Window Explorer;         Types: full custom;         Flags: disablenouninstallwarning
+Name: main;                          Description: {cm:comp_Main_App};              Types: full minimal custom; Flags: fixed
+Name: peview;                        Description: {cm:comp_PE_Viewer};             Types: full minimal custom; Flags: disablenouninstallwarning
+Name: plugins;                       Description: {cm:comp_Plugins};               Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\dotnettools;           Description: {cm:comp_DotNetTools};           Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\extendednotifications; Description: {cm:comp_ExtendedNotifications}; Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\extendedservices;      Description: {cm:comp_ExtendedServices};      Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\extendedtools;         Description: {cm:comp_ExtendedTools};         Types: full custom;         Flags: disablenouninstallwarning; MinVersion: 6.0
+Name: plugins\networktools;          Description: {cm:comp_NetworkTools};          Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\onlinechecks;          Description: {cm:comp_OnlineChecks};          Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\sbiesupport;           Description: {cm:comp_SbieSupport};           Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\toolstatus;            Description: {cm:comp_ToolStatus};            Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\updater;               Description: {cm:comp_Updater};               Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\usernotes;             Description: {cm:comp_UserNotes};             Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\windowexplorer;        Description: {cm:comp_WindowExplorer};        Types: full custom;         Flags: disablenouninstallwarning
 
 
 [Tasks]
