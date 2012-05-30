@@ -39,10 +39,10 @@ static TBBUTTON buttonArray[] =
 {
     { 0, TIDC_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Refresh" },
     { 1, TIDC_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Options" },
-    { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, NULL },
+    { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, 0 },
     { 2, TIDC_FINDOBJ, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"Find Handles or DLLs" },
     { 3, TIDC_SYSINFO, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, TRUE, (INT_PTR)L"System Information" },
-    { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, NULL },
+    { 0, 0, 0, BTNS_SEP, { 0 }, FALSE, 0 },
     { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window" },
     { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Thread" },
     { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, FALSE, (INT_PTR)L"Find Window and Kill" }
@@ -603,7 +603,6 @@ LRESULT CALLBACK MainWndSubclassProc(
     case WM_COMMAND:
         {
             ULONG id = (ULONG)(USHORT)LOWORD(wParam);
-            ULONG toolbarId;
 
             switch (HIWORD(wParam)) 
             { 
@@ -629,7 +628,7 @@ LRESULT CALLBACK MainWndSubclassProc(
            
             //if (id >= ToolBarIdRangeBase && id < ToolBarIdRangeEnd)
             {
-                //toolbarId = id - ToolBarIdRangeBase;
+                //ULONG toolbarId = id - ToolBarIdRangeBase;
 
                 switch (LOWORD(wParam))
                 {
@@ -964,7 +963,7 @@ VOID ApplyToolbarSettings(
         ShowWindow(StatusBarHandle, SW_SHOW);
 
     // Get the number of buttons and loop each one
-    for (i = 0; i < SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0); i++)
+    for (i = 0; i < (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0); i++)
     {
         TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
         button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_LPARAM;
