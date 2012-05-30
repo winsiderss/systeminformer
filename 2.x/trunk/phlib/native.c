@@ -75,7 +75,7 @@ NTSTATUS PhOpenProcess(
     __in HANDLE ProcessId
     )
 {
-    OBJECT_ATTRIBUTES objectAttributes = { 0 };
+    OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
     clientId.UniqueProcess = ProcessId;
@@ -91,6 +91,7 @@ NTSTATUS PhOpenProcess(
     }
     else
     {
+        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
 
         return NtOpenProcess(
             ProcessHandle,
@@ -114,7 +115,7 @@ NTSTATUS PhOpenThread(
     __in HANDLE ThreadId
     )
 {
-    OBJECT_ATTRIBUTES objectAttributes = { 0 };
+    OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
     clientId.UniqueProcess = NULL;
@@ -130,6 +131,8 @@ NTSTATUS PhOpenThread(
     }
     else
     {
+        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+
         return NtOpenThread(
             ThreadHandle,
             DesiredAccess,
