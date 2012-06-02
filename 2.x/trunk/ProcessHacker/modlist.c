@@ -625,7 +625,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_VERIFICATIONSTATUS:
                 if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
-                    moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                    moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE || moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
                 {
                     PhInitializeStringRef(&getCellText->Text,
                         moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not Trusted");
