@@ -1032,6 +1032,21 @@ PPH_STRING PhGetPhVersion(
     return PhFormat(format, 3, 16);
 }
 
+VOID PhGetPhVersionNumbers(
+    __out_opt PULONG MajorVersion,
+    __out_opt PULONG MinorVersion,
+    __reserved PULONG Reserved,
+    __out_opt PULONG RevisionNumber
+    )
+{
+    if (MajorVersion)
+        *MajorVersion = PHAPP_VERSION_MAJOR;
+    if (MinorVersion)
+        *MinorVersion = PHAPP_VERSION_MINOR;
+    if (RevisionNumber)
+        *RevisionNumber = PHAPP_VERSION_REVISION;
+}
+
 VOID PhWritePhTextHeader(
     __inout PPH_FILE_STREAM FileStream
     )

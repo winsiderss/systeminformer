@@ -294,6 +294,14 @@ PPH_STRING PhGetPhVersion(
     );
 
 PHAPPAPI
+VOID PhGetPhVersionNumbers(
+    __out_opt PULONG MajorVersion,
+    __out_opt PULONG MinorVersion,
+    __reserved PULONG Reserved,
+    __out_opt PULONG RevisionNumber
+    );
+
+PHAPPAPI
 VOID PhWritePhTextHeader(
     __inout PPH_FILE_STREAM FileStream
     );
