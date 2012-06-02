@@ -5,6 +5,7 @@ Process Hacker
    * peview now resolves .lnk targets
    * Fixed Ctrl+A for processes, services and network connections and
      added Ctrl+A for other windows
+   * Fixed Verification Status column sorting bug in module list
    * Updated ExtendedTools plugin:
      * Fixed network graph scaling
    * Updated ToolStatus plugin:
