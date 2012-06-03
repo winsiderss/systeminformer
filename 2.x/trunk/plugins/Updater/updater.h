@@ -6,35 +6,20 @@
 #define CINTERFACE
 #define COBJMACROS
 
-#define BUFFER_LEN 4096
+#define UPDATE_MENUITEM 101
+#define BUFFER_LEN 0x1000
 #define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
 #define WM_SHOWDIALOG (WM_APP + 150)
 
 #define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
-#define SETTING_ENABLE_CACHE L"ProcessHacker.Updater.EnableCache"
-
-#define UPDATE_MENUITEM 101
 
 #define UPDATE_URL L"processhacker.sourceforge.net"
 #define UPDATE_FILE L"/update.php"
-#define DOWNLOAD_SERVER L"sourceforge.net"
-
-#define ASYNC_ASSERT(x) \
-    do                  \
-    {                   \
-        if (x)          \
-        {               \
-            break;      \
-        }               \
-        DebugBreak();   \
-    }                   \
-    while (FALSE, FALSE)
 
 #include "phdk.h"
 #include "phappresource.h"
 #include "mxml.h"
 
-#include <time.h>
 #include <WinInet.h>
 #include <windowsx.h>
 #include <Netlistmgr.h>
@@ -57,40 +42,12 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING Hash;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
-// Structure to store configuration in that was gathered from
-// passed in arguments
-typedef struct _CONFIGURATION
-{
-    DWORD Method;                 // Method, GET or POST
-    LPWSTR HostName;              // Host to connect to
-    LPWSTR ResourceOnServer;      // Resource to get from the server
-    LPWSTR InputFileName;         // File containing data to post
-    LPWSTR OutputFileName;        // File to write the data received from the server
-    BOOL UseProxy;                // Flag to indicate the use of a proxy
-    LPWSTR ProxyName;             // Name of the proxy to use
-    BOOL IsSecureConnection;      // Flag to indicate the use of SSL
-    DWORD UserTimeout;            // Timeout for the async operations
-} CONFIGURATION, *PCONFIGURATION;
-
 VOID ShowUpdateDialog(
     VOID
     );
 
 VOID StartInitialCheck(
     VOID
-    );
-
-BOOL ParseVersionString(
-    __in PWSTR String,
-    __out PULONG MajorVersion,
-    __out PULONG MinorVersion
-    );
-
-LONG CompareVersions(
-    __in ULONG MajorVersion1,
-    __in ULONG MinorVersion1,
-    __in ULONG MajorVersion2,
-    __in ULONG MinorVersion2
     );
 
 BOOL QueryXmlData(
