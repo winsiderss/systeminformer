@@ -1,6 +1,6 @@
 1.2
- * Updated UI
- * Implemented more reliable connectivity check for Vista and above (INetworkListManager)
+ * Improved UI
+ * Improved internet connectivity check for Vista and above (INetworkListManager)
  * Improved download speed calculation
  * Improved time remaining calculation
  * Fixed auto-update prompt location if PH minimized
