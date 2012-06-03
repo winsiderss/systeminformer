@@ -33,9 +33,6 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            if (PhGetIntegerSetting(SETTING_ENABLE_CACHE))
-                Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE), BST_CHECKED);
-
             if (PhGetIntegerSetting(SETTING_AUTO_CHECK))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
         }
@@ -49,10 +46,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PhSetIntegerSetting(SETTING_ENABLE_CACHE,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLECACHE)) == BST_CHECKED);
-
-                    PhSetIntegerSetting(SETTING_AUTO_CHECK,
+                    PhSetIntegerSetting(
+                        SETTING_AUTO_CHECK,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
 
                     EndDialog(hwndDlg, IDOK);
