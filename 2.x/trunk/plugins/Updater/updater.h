@@ -54,6 +54,10 @@ BOOL QueryXmlData(
     __out PUPDATER_XML_DATA XmlData
     );
 
+BOOL FreeXmlData(
+    __in PUPDATER_XML_DATA XmlData
+    );
+
 mxml_type_t QueryXmlDataCallback(
     __in mxml_node_t *node
     );
