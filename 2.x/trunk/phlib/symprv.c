@@ -312,7 +312,7 @@ BOOLEAN PhGetLineFromAddress(
     __in ULONG64 Address,
     __out PPH_STRING *FileName,
     __out_opt PULONG Displacement,
-    __out_opt PPH_SYMBOL_LINE_IINFORMATION Information
+    __out_opt PPH_SYMBOL_LINE_INFORMATION Information
     )
 {
     IMAGEHLP_LINEW64 line;
