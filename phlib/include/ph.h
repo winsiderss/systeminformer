@@ -1739,7 +1739,7 @@ typedef struct _PH_SYMBOL_LINE_INFORMATION
 {
     ULONG LineNumber;
     ULONG64 Address;
-} PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_IINFORMATION;
+} PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_INFORMATION;
 
 BOOLEAN PhSymbolProviderInitialization(
     VOID
@@ -1760,7 +1760,7 @@ BOOLEAN PhGetLineFromAddress(
     __in ULONG64 Address,
     __out PPH_STRING *FileName,
     __out_opt PULONG Displacement,
-    __out_opt PPH_SYMBOL_LINE_IINFORMATION Information
+    __out_opt PPH_SYMBOL_LINE_INFORMATION Information
     );
 
 PHLIBAPI
