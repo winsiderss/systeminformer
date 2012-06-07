@@ -29,13 +29,10 @@ static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
-
 static HWND UpdateDialogHandle = NULL;
 static HANDLE UpdaterDialogThreadHandle = NULL;
-
 static HANDLE UpdateCheckThreadHandle = NULL;
 static HANDLE DownloadThreadHandle = NULL;
-
 static HFONT FontHandle = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
@@ -144,7 +141,6 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
-
 static LONG CompareVersions(
     __in ULONG MajorVersion1,
     __in ULONG MinorVersion1,
@@ -244,7 +240,9 @@ static BOOL ReadRequestString(
             data = (PSTR)PhReAllocate(data, allocatedLength);
         }
 
+        // Copy the returned buffer into our pointer
         RtlCopyMemory(data + dataLength, buffer, returnLength);
+        // Zero the returned buffer for the next loop
         RtlZeroMemory(buffer, BUFFER_LEN);
 
         dataLength += returnLength;
@@ -292,7 +290,6 @@ static BOOL PhInstalledUsingSetup(
     return FALSE;
 }
 
-
 static NTSTATUS SilentUpdateCheckThreadStart(
     __in PVOID Parameter
     )
@@ -305,7 +302,10 @@ static NTSTATUS SilentUpdateCheckThreadStart(
         return STATUS_UNSUCCESSFUL;
 
     if (!QueryXmlData(&xmlData))
+    {
+        FreeXmlData(&xmlData);
         return STATUS_UNSUCCESSFUL;
+    }
 
     // Get the current Process Hacker version
     PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, NULL); 
@@ -318,6 +318,8 @@ static NTSTATUS SilentUpdateCheckThreadStart(
 
         ShowUpdateDialog();
     }
+
+    FreeXmlData(&xmlData);
 
     return STATUS_SUCCESS;
 }
@@ -335,7 +337,10 @@ static NTSTATUS CheckUpdateThreadStart(
         return STATUS_UNSUCCESSFUL;
 
     if (!QueryXmlData(&xmlData))
+    {
+        FreeXmlData(&xmlData);
         return STATUS_UNSUCCESSFUL;
+    }
 
     {
         ULONG majorVersion = 0;
@@ -436,6 +441,8 @@ static NTSTATUS CheckUpdateThreadStart(
         }
     }
 
+    FreeXmlData(&xmlData);
+
     return STATUS_SUCCESS;
 }
 
@@ -446,6 +453,7 @@ static NTSTATUS DownloadUpdateThreadStart(
     PPH_STRING downloadUrlPath = NULL;
     HANDLE tempFileHandle = NULL;
     HINTERNET hInitialize = NULL, hConnection = NULL, hRequest = NULL;
+
     NTSTATUS status = STATUS_UNSUCCESSFUL;
 
     UPDATER_XML_DATA xmlData = { 0 };
@@ -460,10 +468,13 @@ static NTSTATUS DownloadUpdateThreadStart(
         SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0L);
 
     if (!ConnectionAvailable())
-        return STATUS_UNSUCCESSFUL;
+        return status;
 
     if (!QueryXmlData(&xmlData))
-        return STATUS_UNSUCCESSFUL;
+    {
+        FreeXmlData(&xmlData);
+        return status;
+    }
 
     __try
     {
@@ -506,7 +517,7 @@ static NTSTATUS DownloadUpdateThreadStart(
 
         if (!NT_SUCCESS(status))
         {
-            LogEvent(hwndDlg, PhFormatString(L"PhCreateFileWin32 failed (%s)", PhGetNtMessage(status)->Buffer));
+            LogEvent(hwndDlg, PhFormatString(L"PhCreateFileWin32 failed (%s)", ((PPH_STRING)PHA_DEREFERENCE(PhGetNtMessage(status)))->Buffer));
             __leave;
         }
 
@@ -670,7 +681,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                     // Update the GUI progress.
                     // TODO: COMPLETE REWRITE.
                     {
-                        WCHAR *rtext;
+                        WCHAR *rtext = NULL;
 
                         DWORD time_taken = (GetTickCount() - timeTransferred);
                         DWORD time_remain = (MulDiv(time_taken, contentLength, bytesDownloaded) - time_taken);
@@ -819,6 +830,8 @@ static NTSTATUS DownloadUpdateThreadStart(
 
         if (downloadUrlPath)
             PhDereferenceObject(downloadUrlPath);
+
+        FreeXmlData(&xmlData);
     }
 
     return status;
@@ -1044,12 +1057,9 @@ INT_PTR CALLBACK UpdaterWndProc(
     return FALSE;
 }
 
-
-
-
 VOID LogEvent(
     __in_opt HWND hwndDlg,
-    __in PPH_STRING str
+    __in __post_invalid PPH_STRING str
     )
 {
     if (hwndDlg)
@@ -1240,6 +1250,37 @@ BOOL QueryXmlData(
     }
 
     return isSuccess;
+}
+
+BOOL FreeXmlData(
+    __in PUPDATER_XML_DATA XmlData
+    )
+{
+    if (!XmlData)
+        return FALSE;
+
+    if (XmlData->Version)
+    {
+        PhDereferenceObject(XmlData->Version);
+        XmlData->Version = NULL;
+    }
+    if (XmlData->RelDate)
+    {
+        PhDereferenceObject(XmlData->RelDate);
+        XmlData->RelDate = NULL;
+    }
+    if (XmlData->Size)
+    {
+        PhDereferenceObject(XmlData->Size);
+        XmlData->Size = NULL;
+    }
+    if (XmlData->Hash)
+    {
+        PhDereferenceObject(XmlData->Hash);
+        XmlData->Hash = NULL;
+    }
+
+    return TRUE;
 }
 
 mxml_type_t QueryXmlDataCallback(
