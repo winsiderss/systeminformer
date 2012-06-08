@@ -7,7 +7,6 @@
 #define COBJMACROS
 
 #define UPDATE_MENUITEM 101
-#define BUFFER_LEN 0x1000
 #define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
 #define WM_SHOWDIALOG (WM_APP + 150)
 
