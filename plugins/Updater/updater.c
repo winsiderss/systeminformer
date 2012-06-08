@@ -301,26 +301,26 @@ static NTSTATUS SilentUpdateCheckThreadStart(
     ULONG minorVersion = 0;
     UPDATER_XML_DATA xmlData = { 0 };
 
-    if (!ConnectionAvailable())
-        return STATUS_UNSUCCESSFUL;
-
-    if (QueryXmlData(&xmlData))
+    if (ConnectionAvailable())
     {
-        // Get the current Process Hacker version
-        PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, NULL); 
-
-        // Compare the current version against the latest available version
-        if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion) > 0)
+        if (QueryXmlData(&xmlData))
         {
-            // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-            Sleep(3 * 1000);
+            // Get the current Process Hacker version
+            PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, NULL); 
 
-            // Show the dialog asynchronously on a new thread.
-            ShowUpdateDialog();
+            // Compare the current version against the latest available version
+            if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion) > 0)
+            {
+                // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
+                Sleep(3 * 1000);
+
+                // Show the dialog asynchronously on a new thread.
+                ShowUpdateDialog();
+            }
         }
-    }
 
-    FreeXmlData(&xmlData);
+        FreeXmlData(&xmlData);
+    }
 
     return STATUS_SUCCESS;
 }
@@ -332,111 +332,111 @@ static NTSTATUS CheckUpdateThreadStart(
     UPDATER_XML_DATA xmlData = { 0 };
     HWND hwndDlg = (HWND)Parameter;
 
-    if (!ConnectionAvailable())
-        return STATUS_UNSUCCESSFUL;
-
-    if (QueryXmlData(&xmlData))
+    if (ConnectionAvailable())
     {
-        ULONG majorVersion = 0;
-        ULONG minorVersion = 0;
-        ULONG revisionNumber = 0;
-        INT result = 0;
-
-        PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionNumber); 
-
-        result = 1;//CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
-
-        if (result > 0)
+        if (QueryXmlData(&xmlData))
         {
-            PPH_STRING summaryText = PhFormatString(
-                L"Process Hacker %u.%u",
-                xmlData.MajorVersion,
-                xmlData.MinorVersion
-                );
+            ULONG majorVersion = 0;
+            ULONG minorVersion = 0;
+            ULONG revisionNumber = 0;
+            INT result = 0;
 
-            PPH_STRING releaseDateText = PhFormatString(
-                L"Released: %s",
-                xmlData.RelDate->Buffer
-                );
+            PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionNumber); 
 
-            PPH_STRING releaseSizeText = PhFormatString(
-                L"Size: %s",
-                xmlData.Size->Buffer
-                );
+            result = 0;//CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
+            if (result > 0)
+            {
+                PPH_STRING summaryText = PhFormatString(
+                    L"Process Hacker %u.%u",
+                    xmlData.MajorVersion,
+                    xmlData.MinorVersion
+                    );
 
-            // Enable the download button.
-            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-            // Use the Scrollbar macro to enable the other controls.
-            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
-            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
+                PPH_STRING releaseDateText = PhFormatString(
+                    L"Released: %s",
+                    xmlData.RelDate->Buffer
+                    );
 
-            PhDereferenceObject(releaseSizeText);
-            PhDereferenceObject(releaseDateText);
-            PhDereferenceObject(summaryText);
+                PPH_STRING releaseSizeText = PhFormatString(
+                    L"Size: %s",
+                    xmlData.Size->Buffer
+                    );
 
-            // Set the state for the next button.
-            PhUpdaterState = Download;
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
+
+                // Enable the download button.
+                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+                // Use the Scrollbar macro to enable the other controls.
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
+
+                PhDereferenceObject(releaseSizeText);
+                PhDereferenceObject(releaseDateText);
+                PhDereferenceObject(summaryText);
+
+                // Set the state for the next button.
+                PhUpdaterState = Download;
+            }
+            else if (result == 0)
+            {
+                PPH_STRING summaryText = PhCreateString(
+                    L"No updates available"
+                    );
+
+                PPH_STRING versionText = PhFormatString(
+                    L"You're running the latest stable version: v%u.%u (r%u)",
+                    xmlData.MajorVersion,
+                    xmlData.MinorVersion,
+                    revisionNumber
+                    );
+
+                //swprintf_s(
+                // szReleaseText,
+                // _countof(szReleaseText),
+                // L"Released: %s",
+                // xmlData.RelDate
+                // );
+
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+
+                PhDereferenceObject(versionText);
+                PhDereferenceObject(summaryText);
+            }
+            else if (result < 0)
+            {
+                PPH_STRING summaryText = PhCreateString(
+                    L"No updates available"
+                    );
+
+                PPH_STRING versionText = PhFormatString(
+                    L"You're running SVN build: v%u.%u (r%u)",
+                    majorVersion,
+                    minorVersion,
+                    revisionNumber
+                    );
+
+                //swprintf_s(
+                // szReleaseText,
+                // _countof(szReleaseText),
+                // L"Released: %s",
+                // xmlData.RelDate
+                // );
+
+                SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+                PhDereferenceObject(versionText);
+                PhDereferenceObject(summaryText);
+            }
         }
-        else if (result == 0)
-        {
-            PPH_STRING summaryText = PhCreateString(
-                L"No updates available"
-                );
 
-            PPH_STRING versionText = PhFormatString(
-                L"You're running the latest stable version: %u.%u (r%u)",
-                xmlData.MajorVersion,
-                xmlData.MinorVersion,
-                revisionNumber
-                );
-
-            //swprintf_s(
-            // szReleaseText,
-            // _countof(szReleaseText),
-            // L"Released: %s",
-            // xmlData.RelDate
-            // );
-
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-
-            PhDereferenceObject(versionText);
-            PhDereferenceObject(summaryText);
-        }
-        else if (result < 0)
-        {
-            PPH_STRING summaryText = PhCreateString(
-                L"No updates available"
-                );
-
-            PPH_STRING versionText = PhFormatString(
-                L"You're running SVN build: %u.%u (r%u)",
-                majorVersion,
-                minorVersion,
-                revisionNumber
-                );
-
-            //swprintf_s(
-            // szReleaseText,
-            // _countof(szReleaseText),
-            // L"Released: %s",
-            // xmlData.RelDate
-            // );
-
-            SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-            PhDereferenceObject(versionText);
-            PhDereferenceObject(summaryText);
-        }
+        FreeXmlData(&xmlData);
     }
-
-    FreeXmlData(&xmlData);
 
     return STATUS_SUCCESS;
 }
@@ -1082,6 +1082,20 @@ VOID LogEvent(
     }
 }
 
+PPH_STRING PhGetOpaqueXmlNodeText(
+    __in mxml_node_t *xmlNode
+    )
+{
+    if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
+    {
+        return PhCreateStringFromAnsi(xmlNode->child->value.opaque);
+    }
+    else
+    {
+        return PhReferenceEmptyString();
+    }
+}
+
 BOOL QueryXmlData(
     __out PUPDATER_XML_DATA XmlData
     )
@@ -1175,49 +1189,16 @@ BOOL QueryXmlData(
         // Find the hash node.
         xmlNodeHash = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
 
-        if (xmlNodeVer == NULL || xmlNodeVer->child == NULL || xmlNodeVer->child->value.opaque == NULL || xmlNodeVer->type != MXML_ELEMENT)
-        {
-            LogEvent(NULL, PhCreateString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeVer failed."));
-            __leave;
-        }
-        if (xmlNodeRelDate == NULL || xmlNodeRelDate->child == NULL || xmlNodeRelDate->child->value.opaque == NULL || xmlNodeRelDate->type != MXML_ELEMENT)
-        {
-            LogEvent(NULL, PhCreateString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeRelDate failed."));
-            __leave;
-        }
-        if (xmlNodeSize == NULL || xmlNodeSize->child == NULL || xmlNodeSize->child->value.opaque == NULL || xmlNodeSize->type != MXML_ELEMENT)
-        {
-            LogEvent(NULL, PhCreateString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeSize failed."));
-            __leave;
-        }
-        if (xmlNodeHash == NULL || xmlNodeHash->child == NULL || xmlNodeHash->child->value.opaque == NULL || xmlNodeHash->type != MXML_ELEMENT)
-        {
-            LogEvent(NULL, PhCreateString(L"Updater: (WorkerThreadStart) mxmlLoadString xmlNodeHash failed."));
-            __leave;
-        }
-
-        // Format strings into unicode
-        XmlData->Version = PhFormatString(
-            L"%hs",
-            xmlNodeVer->child->value.opaque
-            );
-        XmlData->RelDate = PhFormatString(
-            L"%hs",
-            xmlNodeRelDate->child->value.opaque
-            );
-        XmlData->Size = PhFormatString(
-            L"%hs",
-            xmlNodeSize->child->value.opaque
-            );
-        XmlData->Hash = PhFormatString(
-            L"%hs",
-            xmlNodeHash->child->value.opaque
-            );
+        // Format strings into unicode PPH_STRING's
+        XmlData->Version = PhGetOpaqueXmlNodeText(xmlNodeVer);
+        XmlData->RelDate = PhGetOpaqueXmlNodeText(xmlNodeRelDate);
+        XmlData->Size = PhGetOpaqueXmlNodeText(xmlNodeSize);
+        XmlData->Hash = PhGetOpaqueXmlNodeText(xmlNodeHash);
 
         // parse and check string
         //if (!ParseVersionString(XmlData->Version->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion))
         //    __leave;
-        if (XmlData->Version)
+        if (!PhIsNullOrEmptyString(XmlData->Version))
         {
             PH_STRINGREF sr, majorPart, minorPart;
             ULONG64 majorInteger = 0, minorInteger = 0;
