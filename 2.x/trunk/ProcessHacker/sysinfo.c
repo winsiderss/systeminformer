@@ -789,20 +789,23 @@ VOID PhSipOnUserMessage(
             ULONG i;
             PPH_SYSINFO_SECTION section;
 
-            for (i = 0; i < SectionList->Count; i++)
+            if (SectionList)
             {
-                section = SectionList->Items[i];
+                for (i = 0; i < SectionList->Count; i++)
+                {
+                    section = SectionList->Items[i];
 
-                section->Callback(section, SysInfoTick, NULL, NULL);
+                    section->Callback(section, SysInfoTick, NULL, NULL);
 
-                section->GraphState.Valid = FALSE;
-                section->GraphState.TooltipIndex = -1;
-                Graph_MoveGrid(section->GraphHandle, 1);
-                Graph_Draw(section->GraphHandle);
-                Graph_UpdateTooltip(section->GraphHandle);
-                InvalidateRect(section->GraphHandle, NULL, FALSE);
+                    section->GraphState.Valid = FALSE;
+                    section->GraphState.TooltipIndex = -1;
+                    Graph_MoveGrid(section->GraphHandle, 1);
+                    Graph_Draw(section->GraphHandle);
+                    Graph_UpdateTooltip(section->GraphHandle);
+                    InvalidateRect(section->GraphHandle, NULL, FALSE);
 
-                InvalidateRect(section->PanelHandle, NULL, FALSE);
+                    InvalidateRect(section->PanelHandle, NULL, FALSE);
+                }
             }
         }
         break;
