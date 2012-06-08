@@ -1228,7 +1228,7 @@ VOID PhTnpOnContextMenu(
     PH_TREENEW_HIT_TEST hitTest;
     PH_TREENEW_CONTEXT_MENU contextMenu;
 
-    if (CursorScreenX == -1 && CursorScreenX == -1)
+    if (CursorScreenX == -1 && CursorScreenY == -1)
     {
         ULONG i;
         BOOLEAN found;
