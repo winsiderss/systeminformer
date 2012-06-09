@@ -142,14 +142,14 @@ static VOID NTAPI ShowOptionsCallback(
         );
 }
 
-static LONG CompareVersions(
+static INT CompareVersions(
     __in ULONG MajorVersion1,
     __in ULONG MinorVersion1,
     __in ULONG MajorVersion2,
     __in ULONG MinorVersion2
     )
 {
-    LONG result = intcmp(MajorVersion1, MajorVersion2);
+    INT result = intcmp(MajorVersion1, MajorVersion2);
 
     if (result == 0)
         result = intcmp(MinorVersion1, MinorVersion2);
@@ -343,7 +343,7 @@ static NTSTATUS CheckUpdateThreadStart(
 
             PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionNumber); 
 
-            result = 0;//CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
+            result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
 
             if (result > 0)
             {
