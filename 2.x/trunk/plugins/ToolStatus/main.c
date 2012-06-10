@@ -56,7 +56,6 @@ ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
 BOOLEAN TargetingWindow = FALSE;
 BOOLEAN TargetingCurrentWindowDraw = FALSE;
 BOOLEAN TargetingCompleted = FALSE;
-HIMAGELIST ToolBarImageList;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -121,7 +120,7 @@ LOGICAL DllMain(
                     { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
                 };
 
-                PhAddSettings(settings, ARRAYSIZE(settings));
+                PhAddSettings(settings, _countof(settings));
             }
         }
         break;
@@ -418,7 +417,7 @@ VOID NTAPI MainWindowShowingCallback(
     // Add the rebar controls and attach our windows.
     {
         REBARINFO ri = { sizeof(REBARINFO) };
-        REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
+        REBARBANDINFO rBandInfo = { sizeof(REBARBANDINFO) };
 
         rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
         rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
@@ -448,6 +447,8 @@ VOID NTAPI MainWindowShowingCallback(
     Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
  
     {
+        HIMAGELIST ToolBarImageList;
+
         TBBUTTON tbButtonArray[] =
         {
             { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
@@ -476,7 +477,7 @@ VOID NTAPI MainWindowShowingCallback(
         // Configure the toolbar imagelist
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, ARRAYSIZE(tbButtonArray), (LPARAM)tbButtonArray);
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
     }
 
     SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
@@ -522,24 +523,16 @@ VOID NTAPI TabPageUpdatedCallback(
         switch (tabIndex)
         {
         case 0:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
-            }
+            Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
             break;
         case 1:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Services");
-            }
+            Edit_SetCueBannerText(TextboxHandle, L"Search Services");
             break;
         case 2:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Network");
-            }
+            Edit_SetCueBannerText(TextboxHandle, L"Search Network");
             break;
         default:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
-            }
+            Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
             break;
         }
     }
@@ -621,7 +614,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             { 
             case EN_CHANGE: 
                 {
-                    // Invoke search callbacks.
+                    // Invoke search callbacks - we do this for all tabs so the user can switch between them and see results.
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
@@ -746,7 +739,6 @@ LRESULT CALLBACK MainWndSubclassProc(
                 POINT cursorPos;
                 HWND windowOverMouse;
                 ULONG processId;
-                ULONG threadId;
 
                 GetCursorPos(&cursorPos);
                 windowOverMouse = WindowFromPoint(cursorPos);
@@ -761,7 +753,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                     if (windowOverMouse)
                     {
-                        threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
+                        ULONG threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
 
                         // Draw a rectangle over the current window (but not if it's one of our own).
                         if (UlongToHandle(processId) != NtCurrentProcessId())
