@@ -42,7 +42,6 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 BOOLEAN EnableToolBar;
 BOOLEAN EnableStatusBar;
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
-HWND ToolBarHandle;
 
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,

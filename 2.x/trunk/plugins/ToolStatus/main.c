@@ -56,6 +56,7 @@ ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
 BOOLEAN TargetingWindow = FALSE;
 BOOLEAN TargetingCurrentWindowDraw = FALSE;
 BOOLEAN TargetingCompleted = FALSE;
+HIMAGELIST ToolBarImageList;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -120,7 +121,7 @@ LOGICAL DllMain(
                     { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
                 };
 
-                PhAddSettings(settings, _countof(settings));
+                PhAddSettings(settings, ARRAYSIZE(settings));
             }
         }
         break;
@@ -282,7 +283,6 @@ BOOLEAN NetworkTreeFilterCallback(
             PhDereferenceObject(localAddress);
         }
   
-        // Search local port.
         if (networkNode->NetworkItem->LocalPortString)
         {
             PPH_STRING localPort = PhCreateString(networkNode->NetworkItem->LocalPortString);
@@ -294,8 +294,8 @@ BOOLEAN NetworkTreeFilterCallback(
 
             PhDereferenceObject(localPort);
         }
-       
-        // Search connection remote IP address.
+
+              
         if (networkNode->NetworkItem->RemoteAddressString)
         {
             PPH_STRING remoteAddress = PhCreateString(networkNode->NetworkItem->RemoteAddressString);
@@ -308,32 +308,9 @@ BOOLEAN NetworkTreeFilterCallback(
             PhDereferenceObject(remoteAddress);
         }
 
-        // Search connection remote hostname.
         if (networkNode->NetworkItem->RemoteHostString)
         {
             if (PhFindStringInStringRef(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE) != -1)
-            {
-                itemFound = TRUE; 
-            }
-        }
-
-        // Search connection remote port.        
-        if (networkNode->NetworkItem->RemotePortString)
-        {
-            PPH_STRING remotePort = PhCreateString(networkNode->NetworkItem->RemotePortString);
-
-            if (PhFindStringInStringRef(&remotePort->sr, &textboxText->sr, TRUE) != -1)
-            {
-                itemFound = TRUE; 
-            }
-
-            PhDereferenceObject(remotePort);
-        }
-
-        // Search connection owner name.
-        if (networkNode->NetworkItem->OwnerName)
-        {
-            if (PhFindStringInStringRef(&networkNode->NetworkItem->OwnerName->sr, &textboxText->sr, TRUE) != -1)
             {
                 itemFound = TRUE; 
             }
@@ -372,7 +349,6 @@ VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
-    // Create the toolbar.
     ToolBarHandle = CreateWindowExW(
         0,
         TOOLBARCLASSNAME,
@@ -384,7 +360,6 @@ VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
-    // Create the searchbox
     TextboxHandle = CreateWindowExW(
         0,
         WC_EDIT,
@@ -396,8 +371,7 @@ VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
-    // Create the statusbar.
-    StatusBarHandle = CreateWindowExW(
+    StatusBarHandle = CreateWindowEx(
         0,
         STATUSCLASSNAME,
         NULL,
@@ -413,11 +387,16 @@ VOID NTAPI MainWindowShowingCallback(
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     // Set the extended toolbar styles.
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
+    // Set Searchbox control font.
+    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);   
+    // Limit the amount of chars.
+    SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
 
-    // Add the rebar controls and attach our windows.
+    Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
+
     {
         REBARINFO ri = { sizeof(REBARINFO) };
-        REBARBANDINFO rBandInfo = { sizeof(REBARBANDINFO) };
+        REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
 
         rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
         rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
@@ -438,28 +417,19 @@ VOID NTAPI MainWindowShowingCallback(
         rBandInfo.hwndChild = TextboxHandle;
         SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
     }
-
-    // Set Searchbox control font.
-    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);   
-    // Limit the amount of chars.
-    SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
-
-    Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
  
     {
-        HIMAGELIST ToolBarImageList;
-
         TBBUTTON tbButtonArray[] =
         {
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Refresh" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Options" },
+            { 0, 0, 0, BTNS_SEP, { 0 }, 0, NULL },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Handles or DLLs" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"System Information" },
+            { 0, 0, 0, BTNS_SEP, { 0 }, 0, NULL },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window and Thread" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window and Kill" }
         };
 
         // Create the toolbar imagelist.
@@ -477,7 +447,7 @@ VOID NTAPI MainWindowShowingCallback(
         // Configure the toolbar imagelist
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, ARRAYSIZE(tbButtonArray), (LPARAM)tbButtonArray);
     }
 
     SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
@@ -515,24 +485,39 @@ VOID NTAPI TabPageUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
-{    
+{
+    INT index = Parameter;
+    
+    // This callback is invoked before our Textbox has actually been created.
+    // GeneralCallbackMainWindowTabChanged is invoked before GeneralCallbackMainWindowShowing (where our controls are created).
     if (TextboxHandle)
     {
-        INT tabIndex = (INT)Parameter;
+        // Enable the textbox.
+        Edit_Enable(TextboxHandle, TRUE);
 
-        switch (tabIndex)
+        switch (index)
         {
         case 0:
-            Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
+            {
+                Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
+            }
             break;
         case 1:
-            Edit_SetCueBannerText(TextboxHandle, L"Search Services");
+            {
+                Edit_SetCueBannerText(TextboxHandle, L"Search Services");
+            }
             break;
         case 2:
-            Edit_SetCueBannerText(TextboxHandle, L"Search Network");
+            {
+                Edit_SetCueBannerText(TextboxHandle, L"Search Network");
+            }
             break;
         default:
-            Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
+            {
+                // Disable the textbox if 
+                //Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
+                Edit_Enable(TextboxHandle, FALSE);
+            }
             break;
         }
     }
@@ -545,14 +530,13 @@ VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA data = Parameter;
 
-    if (data)
+    if (EnableToolBar)
     {
-        if (EnableToolBar)
-            data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
-
-        if (EnableStatusBar)
-            data->Padding.bottom += StatusBarRect.bottom;
+        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
     }
+
+    if (EnableStatusBar)
+        data->Padding.bottom += StatusBarRect.bottom;
 }
 
 VOID DrawWindowBorderForTargeting(
@@ -612,9 +596,11 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             switch (HIWORD(wParam)) 
             { 
+            //case EN_UPDATE: 
+                //return 0; 
             case EN_CHANGE: 
                 {
-                    // Invoke search callbacks - we do this for all tabs so the user can switch between them and see results.
+                    // TODO: change.
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
@@ -739,6 +725,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 POINT cursorPos;
                 HWND windowOverMouse;
                 ULONG processId;
+                ULONG threadId;
 
                 GetCursorPos(&cursorPos);
                 windowOverMouse = WindowFromPoint(cursorPos);
@@ -753,7 +740,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                     if (windowOverMouse)
                     {
-                        ULONG threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
+                        threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
 
                         // Draw a rectangle over the current window (but not if it's one of our own).
                         if (UlongToHandle(processId) != NtCurrentProcessId())
