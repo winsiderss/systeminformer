@@ -100,7 +100,7 @@ PPH_STRING PhGetProcessTooltipText(
     {
         tempString = PhEllipsisString(Process->CommandLine, 100 * 10);
 
-        // This is necessary because the tooltip control seems to use some kind of O(n^9999) word-wrapping 
+        // This is necessary because the tooltip control seems to use some kind of O(n^9999) word-wrapping
         // algorithm.
         PhpAppendStringWithLineBreaks(&stringBuilder, &tempString->sr, 100, NULL);
         PhAppendCharStringBuilder(&stringBuilder, '\n');
