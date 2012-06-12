@@ -290,7 +290,7 @@ VOID FASTCALL PhxpfFillMemoryUlongFallback(
 /**
  * Fills a memory block with a ULONG pattern.
  *
- * \param Memory The memory block. The block must be 
+ * \param Memory The memory block. The block must be
  * 4 byte aligned.
  * \param Value The ULONG pattern.
  * \param Count The number of elements.

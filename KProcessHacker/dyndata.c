@@ -142,7 +142,7 @@ NTSTATUS KphDynamicDataInitialization(
 #ifdef _X86_
     KphpX86DataInitialization();
 #else
-    // AMD64 data is read from the registry, but we use the fallback 
+    // AMD64 data is read from the registry, but we use the fallback
     // function here if needed.
     if (KphDynNtVersion == 0)
         KphpAmd64DataInitialization();

@@ -3971,12 +3971,12 @@ VOID PhSetFileDialogOptions(
 }
 
 /**
- * Gets the index of the currently selected file type filter for a 
+ * Gets the index of the currently selected file type filter for a
  * file dialog.
  *
  * \param FileDialog The file dialog.
  *
- * \return The one-based index of the selected file type, or 0 if an 
+ * \return The one-based index of the selected file type, or 0 if an
  * error occurred.
  */
 ULONG PhGetFileDialogFilterIndex(

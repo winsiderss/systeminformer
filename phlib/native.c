@@ -1068,7 +1068,7 @@ NTSTATUS PhGetProcessPosixCommandLine(
  * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ
  * access.
  * \param Flags A combination of flags.
- * \li \c PH_GET_PROCESS_ENVIRONMENT_WOW64 Retrieve the 
+ * \li \c PH_GET_PROCESS_ENVIRONMENT_WOW64 Retrieve the
  * environment block from the WOW64 PEB.
  * \param Environment A variable which will receive a pointer
  * to the environment block copied from the process. You must
@@ -4989,16 +4989,16 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
  * Determines if a process is managed.
  *
  * \param ProcessId The ID of the process.
- * \param ProcessHandle An optional handle to the process. The handle 
- * must have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ 
+ * \param ProcessHandle An optional handle to the process. The handle
+ * must have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ
  * access.
  * \param InFlags A combination of flags.
- * \li \c PH_CLR_USE_SECTION_CHECK Checks for the existence of related 
+ * \li \c PH_CLR_USE_SECTION_CHECK Checks for the existence of related
  * section objects to determine whether the process is managed.
- * \li \c PH_CLR_NO_WOW64_CHECK Instead of a separate query, uses the 
- * presence of the \c PH_CLR_KNOWN_IS_WOW64 flag to determine whether 
+ * \li \c PH_CLR_NO_WOW64_CHECK Instead of a separate query, uses the
+ * presence of the \c PH_CLR_KNOWN_IS_WOW64 flag to determine whether
  * the process is running under WOW64.
- * \li \c PH_CLR_KNOWN_IS_WOW64 When \c PH_CLR_NO_WOW64_CHECK is specified, 
+ * \li \c PH_CLR_KNOWN_IS_WOW64 When \c PH_CLR_NO_WOW64_CHECK is specified,
  * indicates that the process is managed.
  * \param IsDotNet A variable which receives a boolean indicating
  * whether the process is managed.
@@ -5853,7 +5853,7 @@ VOID PhpRtlModulesToGenericModules(
             PH_STRINGREF systemRoot;
             PPH_STRING newFileName;
 
-            // We only have the file name, without a path. The driver must be in the 
+            // We only have the file name, without a path. The driver must be in the
             // default drivers directory.
             PhGetSystemRoot(&systemRoot);
             newFileName = PhConcatStringRef3(&systemRoot, &driversString, &moduleInfo.Name->sr);

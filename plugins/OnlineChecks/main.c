@@ -81,7 +81,7 @@ LOGICAL DllMain(
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
-                );      
+                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
                 MainWindowShowingCallback,
@@ -146,8 +146,8 @@ VOID NTAPI MenuItemCallback(
             if (menuItem->Context)
             {
                 UploadToOnlineService(
-                    menuItem->OwnerWindow, 
-                    menuItem->Context ? menuItem->Context : NULL, 
+                    menuItem->OwnerWindow,
+                    menuItem->Context ? menuItem->Context : NULL,
                     UPLOAD_SERVICE_VIRUSTOTAL
                     );
             }
@@ -158,8 +158,8 @@ VOID NTAPI MenuItemCallback(
             if (menuItem->Context)
             {
                 UploadToOnlineService(
-                    menuItem->OwnerWindow, 
-                    menuItem->Context ? menuItem->Context : NULL, 
+                    menuItem->OwnerWindow,
+                    menuItem->Context ? menuItem->Context : NULL,
                     UPLOAD_SERVICE_JOTTI
                     );
             }
@@ -170,8 +170,8 @@ VOID NTAPI MenuItemCallback(
             if (menuItem->Context)
             {
                 UploadToOnlineService(
-                    menuItem->OwnerWindow, 
-                    menuItem->Context ? menuItem->Context : NULL, 
+                    menuItem->OwnerWindow,
+                    menuItem->Context ? menuItem->Context : NULL,
                     UPLOAD_SERVICE_CIMA
                     );
             }
@@ -222,7 +222,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     else
         processItem = NULL;
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", processItem ? processItem->FileName : NULL);  
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", processItem ? processItem->FileName : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
     if (!processItem || !processItem->FileName)

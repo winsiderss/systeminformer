@@ -180,12 +180,12 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             case NETWORK_ACTION_TRACEROUTE:
                 if (context->Action == NETWORK_ACTION_PING)
                 {
-                    SetWindowText(hwndDlg, 
+                    SetWindowText(hwndDlg,
                         PhaFormatString(L"Pinging %s...", addressString)->Buffer);
                 }
                 else
                 {
-                    SetWindowText(hwndDlg, 
+                    SetWindowText(hwndDlg,
                         PhaFormatString(L"Tracing route to %s...", addressString)->Buffer);
                 }
 

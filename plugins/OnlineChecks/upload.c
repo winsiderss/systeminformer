@@ -44,8 +44,8 @@ VOID InitializeFont(
     lFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
     wcscpy_s(
-        lFont.lfFaceName, 
-        _countof(lFont.lfFaceName), 
+        lFont.lfFaceName,
+        _countof(lFont.lfFaceName),
         L"Segoe UI"
         );
 
@@ -176,10 +176,10 @@ static BOOLEAN PerformSubRequest(
 
     // Create the internet handle.
     if (!(internetHandle = WinHttpOpen(
-        userAgent->Buffer, 
+        userAgent->Buffer,
         proxycfg.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        proxycfg.lpszProxy, 
-        proxycfg.lpszProxyBypass, 
+        proxycfg.lpszProxy,
+        proxycfg.lpszProxyBypass,
         0
         )))
     {
@@ -388,7 +388,7 @@ static NTSTATUS UploadWorkerThreadStart(
     PSERVICE_INFO serviceInfo = NULL;
 
     PPH_STRING userAgent = NULL, objectName = NULL, baseFileName = PhGetBaseName(context->FileName);
-   
+
     if (!(serviceInfo = GetUploadServiceInfo(context->Service)))
     {
         RaiseUploadError(context, L"The service type is invalid", 0);
@@ -547,8 +547,8 @@ static NTSTATUS UploadWorkerThreadStart(
         userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer);
         PhDereferenceObject(phVersion);
     }
-    
-    // Get proxy configuration and create winhttp handle. 
+
+    // Get proxy configuration and create winhttp handle.
     {
         WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxycfg = { 0 };
 
@@ -560,10 +560,10 @@ static NTSTATUS UploadWorkerThreadStart(
 
         // Create the internet handle.
         if (!(internetHandle = WinHttpOpen(
-            userAgent->Buffer, 
-            proxycfg.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
-            proxycfg.lpszProxy, 
-            proxycfg.lpszProxyBypass, 
+            userAgent->Buffer,
+            proxycfg.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+            proxycfg.lpszProxy,
+            proxycfg.lpszProxyBypass,
             0
             )))
         {
@@ -617,7 +617,7 @@ static NTSTATUS UploadWorkerThreadStart(
         PhInitializeStringBuilder(&sbRequestHeaders, MAX_PATH);
         PhInitializeStringBuilder(&sbPostHeader, MAX_PATH);
         PhInitializeStringBuilder(&sbPostFooter, MAX_PATH);
-  
+
         // build request header string
         PhAppendFormatStringBuilder(
             &sbRequestHeaders,
@@ -637,16 +637,16 @@ static NTSTATUS UploadWorkerThreadStart(
             baseFileName->Buffer
             );
         PhAppendFormatStringBuilder(
-            &sbPostHeader, 
+            &sbPostHeader,
             L"Content-Type: application/octet-stream\r\n\r\n"
             );
-        // POST boundary footer  
+        // POST boundary footer
         PhAppendFormatStringBuilder(
             &sbPostFooter,
             L"\r\n--%s--\r\n\r\n",
             postBoundary->Buffer
             );
-  
+
         // add headers
         if (!WinHttpAddRequestHeaders(
             requestHandle,
@@ -661,19 +661,19 @@ static NTSTATUS UploadWorkerThreadStart(
 
         {
             // All until now has been just for this; Calculate the total request length.
-            ULONG total_length = 
-                (ULONG)wcsnlen(sbPostHeader.String->Buffer, sbPostHeader.String->Length) 
-                + totalFileLength 
+            ULONG total_length =
+                (ULONG)wcsnlen(sbPostHeader.String->Buffer, sbPostHeader.String->Length)
+                + totalFileLength
                 + (ULONG)wcsnlen(sbPostFooter.String->Buffer, sbPostFooter.String->Length);
 
             // Send the request.
             if (!WinHttpSendRequest(
                 requestHandle,
-                WINHTTP_NO_ADDITIONAL_HEADERS, 
-                0, 
-                WINHTTP_NO_REQUEST_DATA, 
-                0, 
-                total_length, 
+                WINHTTP_NO_ADDITIONAL_HEADERS,
+                0,
+                WINHTTP_NO_REQUEST_DATA,
+                0,
+                total_length,
                 0
                 ))
             {
@@ -690,19 +690,19 @@ static NTSTATUS UploadWorkerThreadStart(
             // Convert to ANSI
             PPH_ANSI_STRING ansiPostData = PhCreateAnsiStringFromUnicode(sbPostHeader.String->Buffer);
             PPH_ANSI_STRING ansiFooterData = PhCreateAnsiStringFromUnicode(sbPostFooter.String->Buffer);
- 
+
             // start the clock.
             TimeStart = time(NULL);
             TimeTransferred = TimeStart;
 
             // Write the header bytes
             if (!WinHttpWriteData(
-                requestHandle, 
-                ansiPostData->Buffer, 
-                ansiPostData->Length, 
+                requestHandle,
+                ansiPostData->Buffer,
+                ansiPostData->Length,
                 &bytesWritten
                 ))
-            {       
+            {
                 RaiseUploadError(context, L"Unable to write the post header", GetLastError());
                 goto ExitCleanup;
             }
@@ -713,14 +713,14 @@ static NTSTATUS UploadWorkerThreadStart(
             while (TRUE)
             {
                 status = NtReadFile(
-                    fileHandle, 
-                    NULL, 
-                    NULL, 
-                    NULL, 
-                    &isb, 
-                    &buffer, 
-                    BUFFER_LEN, 
-                    NULL, 
+                    fileHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &isb,
+                    &buffer,
+                    BUFFER_LEN,
+                    NULL,
                     NULL
                     );
 
@@ -728,16 +728,16 @@ static NTSTATUS UploadWorkerThreadStart(
                     break;
 
                 // Check bytes read.
-                if (isb.Information == 0) 
+                if (isb.Information == 0)
                     break;
 
                 if (!WinHttpWriteData(
-                    requestHandle, 
-                    buffer, 
-                    (DWORD)isb.Information, 
+                    requestHandle,
+                    buffer,
+                    (DWORD)isb.Information,
                     &bytesWritten
                     ))
-                {       
+                {
                     RaiseUploadError(context, L"Unable to upload the file data", GetLastError());
                     goto ExitCleanup;
                 }
@@ -755,21 +755,21 @@ static NTSTATUS UploadWorkerThreadStart(
 
                     PPH_STRING TotalLength = PhFormatSize(totalFileLength, -1);
                     PPH_STRING TotalDownloadedLength = PhFormatSize(totalFileReadLength, -1);
-                    PPH_STRING TotalSpeed = PhFormatSize(bps, -1); 
-                     
+                    PPH_STRING TotalSpeed = PhFormatSize(bps, -1);
+
                     PPH_STRING dlLengthString = PhFormatString(L"Total upload: %s", TotalLength->Buffer);
                     PPH_STRING dlDownloadedBytesString = PhFormatString(L"Total uploaded: %s", TotalDownloadedLength->Buffer);
-                    PPH_STRING dlSpeedString = PhFormatString(L"Total upload speed: %s/s", TotalSpeed->Buffer); 
+                    PPH_STRING dlSpeedString = PhFormatString(L"Total upload speed: %s/s", TotalSpeed->Buffer);
 
                     //WCHAR szDownloaded[1024] = L"";
-         
+
                     SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS3), dlLengthString->Buffer);
                     SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS4), dlDownloadedBytesString->Buffer);
                     SetWindowText(GetDlgItem(context->WindowHandle, IDC_STATUS5), dlSpeedString->Buffer);
-                    
+
                     PhDereferenceObject(dlSpeedString);
                     PhDereferenceObject(dlDownloadedBytesString);
-                    PhDereferenceObject(dlLengthString);            
+                    PhDereferenceObject(dlLengthString);
                     PhDereferenceObject(TotalSpeed);
                     PhDereferenceObject(TotalDownloadedLength);
                     PhDereferenceObject(TotalLength);
@@ -782,10 +782,10 @@ static NTSTATUS UploadWorkerThreadStart(
                     //dlLength->Buffer,
                     //dlSpeed->Buffer
                     //);
-                  
-                    if (remain < 0) 
+
+                    if (remain < 0)
                         remain = 0;
-                    if (remain) 
+                    if (remain)
                     {
                         //PH_STRING_BUILDER dlRemainString;
                         //PPH_STRING dlRemainString2;
@@ -809,7 +809,7 @@ static NTSTATUS UploadWorkerThreadStart(
                         //}
 
                         //dlRemainString2 = PhFormatString(
-                        //    L"%d %s%s remaining", 
+                        //    L"%d %s%s remaining",
                         //    (DWORD)remain, // Cast and silence code analysis.
                         //    dlRemainString.String->Buffer,
                         //    remain == 1? L"": L"s");
@@ -822,7 +822,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     }
 
                     // Update the progress bar position
-                    SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, MulDiv(100, totalFileReadLength, totalFileLength), 0);  
+                    SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, MulDiv(100, totalFileReadLength, totalFileLength), 0);
                 }
             }
 
@@ -830,12 +830,12 @@ static NTSTATUS UploadWorkerThreadStart(
 
             // Write the footer bytes
             if (!WinHttpWriteData(
-                requestHandle, 
-                ansiFooterData->Buffer, 
-                ansiFooterData->Length, 
+                requestHandle,
+                ansiFooterData->Buffer,
+                ansiFooterData->Length,
                 &bytesWritten
                 ))
-            {       
+            {
                 RaiseUploadError(context, L"Unable to write the post footer", GetLastError());
                 goto ExitCleanup;
             }
@@ -864,16 +864,16 @@ static NTSTATUS UploadWorkerThreadStart(
         DWORD dwTemp = sizeof(dwStatusCode);
 
         WinHttpQueryHeaders(
-            requestHandle, 
+            requestHandle,
             WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-            NULL, 
-            &dwStatusCode, 
-            &dwTemp, 
+            NULL,
+            &dwStatusCode,
+            &dwTemp,
             NULL
             );
 
         if (dwStatusCode == HTTP_STATUS_OK || dwStatusCode == HTTP_STATUS_REDIRECT)
-        {           
+        {
             switch (context->Service)
             {
             case UPLOAD_SERVICE_VIRUSTOTAL:
@@ -883,11 +883,11 @@ static NTSTATUS UploadWorkerThreadStart(
                     ULONG bufferSize = 0;
 
                     WinHttpQueryHeaders(
-                        requestHandle, 
-                        WINHTTP_QUERY_LOCATION, 
-                        WINHTTP_HEADER_NAME_BY_INDEX, 
-                        NULL, 
-                        &bufferSize, 
+                        requestHandle,
+                        WINHTTP_QUERY_LOCATION,
+                        WINHTTP_HEADER_NAME_BY_INDEX,
+                        NULL,
+                        &bufferSize,
                         &index
                         );
 
@@ -896,11 +896,11 @@ static NTSTATUS UploadWorkerThreadStart(
                         buffer = PhAllocate(bufferSize);
 
                         // Now, use WinHttpQueryHeaders to retrieve the header.
-                        if (!WinHttpQueryHeaders( 
+                        if (!WinHttpQueryHeaders(
                             requestHandle,
                             WINHTTP_QUERY_LOCATION,
                             WINHTTP_HEADER_NAME_BY_INDEX,
-                            buffer, 
+                            buffer,
                             &bufferSize,
                             &index
                             ))
@@ -931,7 +931,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     PSTR quote;
                     DWORD bytesRead = 0;
                     BYTE buffer[512];
-  
+
                     //This service returns some JavaScript that redirects the user to the new location.
                     if (!WinHttpReadData(requestHandle, buffer, 512, &bytesRead))
                     {
@@ -941,7 +941,7 @@ static NTSTATUS UploadWorkerThreadStart(
 
                     //Make sure the buffer is null-terminated.
                     buffer[bytesRead] = 0;
-                    /*             
+                    /*
                     The JavaScript looks like this:
                     top.location.href="...";*/
                     hrefEquals = strstr(buffer, "href=\"");
@@ -986,7 +986,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 }
                 break;
             case UPLOAD_SERVICE_CIMA:
-                {              
+                {
                     BYTE buffer[512];
                     DWORD bytesRead = 0;
                     PSTR urlEquals;
@@ -1111,9 +1111,9 @@ INT_PTR CALLBACK UploadDlgProc(
                 WCHAR szWindowText[MAX_PATH];
                 PPH_STRING baseFileName = PhGetBaseName(context->FileName);
                 swprintf_s(
-                    szWindowText, 
-                    _countof(szWindowText), 
-                    L"Uploading: %s", 
+                    szWindowText,
+                    _countof(szWindowText),
+                    L"Uploading: %s",
                     baseFileName->Buffer
                     );
 
@@ -1142,7 +1142,7 @@ INT_PTR CALLBACK UploadDlgProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
-        {    
+        {
             HDC hDC = (HDC)wParam;
             HWND hwndChild = (HWND)lParam;
 

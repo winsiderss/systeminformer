@@ -225,8 +225,8 @@ static VOID NTAPI ProcessesUpdatedCallback(
     ULONG64 maxNetworkValue = 0;
     PET_PROCESS_BLOCK maxNetworkBlock = NULL;
 
-    // Since Windows 8, we no longer get the correct process/thread IDs in the 
-    // event headers for disk events. We need to update our process information since 
+    // Since Windows 8, we no longer get the correct process/thread IDs in the
+    // event headers for disk events. We need to update our process information since
     // etwmon uses our EtThreadIdToProcessId function.
     if (WindowsVersion >= WINDOWS_8)
         EtpUpdateProcessInformation();
