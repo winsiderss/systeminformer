@@ -192,9 +192,9 @@ PPH_EMENU_ITEM PhFindEMenuItem(
  * is ignored.
  * \param Id The identifier of the menu item to find. If 0, the
  * identifier is ignored.
- * \param FoundParent A variable which receives the parent of the 
+ * \param FoundParent A variable which receives the parent of the
  * found menu item.
- * \param FoundIndex A variable which receives the index of the 
+ * \param FoundIndex A variable which receives the index of the
  * found menu item.
  *
  * \return The found menu item, or NULL if the menu item could not
@@ -497,7 +497,7 @@ HMENU PhEMenuToHMenu(
  * Converts an EMENU to a Windows menu object.
  *
  * \param MenuHandle A handle to a Windows menu object.
- * \param Menu The menu item to convert. The items are appended to 
+ * \param Menu The menu item to convert. The items are appended to
  * \a MenuHandle.
  * \param Flags A combination of the following:
  * \li \c PH_EMENU_CONVERT_ID Automatically assigns a unique

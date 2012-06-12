@@ -1,11 +1,11 @@
 /*
- * Process Hacker - 
+ * Process Hacker -
  *   notification icon manager
- * 
+ *
  * Copyright (C) 2011 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -542,7 +542,7 @@ VOID PhNfpProcessesUpdatedHandler(
 {
     ULONG registeredIconMask;
 
-    // We do icon updating on the provider thread so we don't block the main GUI when 
+    // We do icon updating on the provider thread so we don't block the main GUI when
     // explorer is not responding.
 
     if (PhNfIconMask & PH_ICON_CPU_HISTORY)

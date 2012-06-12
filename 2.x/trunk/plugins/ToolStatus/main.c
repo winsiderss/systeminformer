@@ -103,7 +103,7 @@ LOGICAL DllMain(
                 ProcessesUpdatedCallback,
                 NULL,
                 &ProcessesUpdatedCallbackRegistration
-                );       
+                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged),
                 TabPageUpdatedCallback,
@@ -163,19 +163,19 @@ BOOLEAN ProcessTreeFilterCallback(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    // Check if the textbox actually contains anything. 
+    // Check if the textbox actually contains anything.
     if (GetWindowTextLengthW(TextboxHandle) > 0)
     {
         BOOL itemFound = FALSE;
         PPH_STRING textboxText = PhGetWindowText(TextboxHandle);
         PPH_STRING pidText = PhCreateString(processNode->ProcessItem->ProcessIdString);
-        
+
         // Search process names.
         if (processNode->ProcessItem->ProcessName)
         {
             if (PhFindStringInStringRef(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
         }
 
@@ -202,7 +202,7 @@ BOOLEAN ServiceTreeFilterCallback(
 {
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
 
-     // Check if the textbox actually contains anything. 
+     // Check if the textbox actually contains anything.
     if (GetWindowTextLengthW(TextboxHandle) > 0)
     {
         BOOL itemFound = FALSE;
@@ -213,19 +213,19 @@ BOOLEAN ServiceTreeFilterCallback(
         {
             if (PhFindStringInStringRef(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
         }
-  
+
         // Search service display name.
         if (serviceNode->ServiceItem->DisplayName)
         {
             if (PhFindStringInStringRef(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
         }
-    
+
         // Search process PIDs.
         if (serviceNode->ServiceItem->ProcessIdString)
         {
@@ -255,7 +255,7 @@ BOOLEAN NetworkTreeFilterCallback(
 {
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
 
-     // Check if the textbox actually contains anything. 
+     // Check if the textbox actually contains anything.
     if (GetWindowTextLengthW(TextboxHandle) > 0)
     {
         BOOL itemFound = FALSE;
@@ -266,10 +266,10 @@ BOOLEAN NetworkTreeFilterCallback(
         {
             if (PhFindStringInStringRef(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
         }
-  
+
         // Search connection local IP address.
         if (networkNode->NetworkItem->LocalAddressString)
         {
@@ -277,32 +277,32 @@ BOOLEAN NetworkTreeFilterCallback(
 
             if (PhFindStringInStringRef(&localAddress->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
 
             PhDereferenceObject(localAddress);
         }
-  
+
         if (networkNode->NetworkItem->LocalPortString)
         {
             PPH_STRING localPort = PhCreateString(networkNode->NetworkItem->LocalPortString);
 
             if (PhFindStringInStringRef(&localPort->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
 
             PhDereferenceObject(localPort);
         }
 
-              
+
         if (networkNode->NetworkItem->RemoteAddressString)
         {
             PPH_STRING remoteAddress = PhCreateString(networkNode->NetworkItem->RemoteAddressString);
 
             if (PhFindStringInStringRef(&remoteAddress->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
 
             PhDereferenceObject(remoteAddress);
@@ -312,7 +312,7 @@ BOOLEAN NetworkTreeFilterCallback(
         {
             if (PhFindStringInStringRef(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE) != -1)
             {
-                itemFound = TRUE; 
+                itemFound = TRUE;
             }
         }
 
@@ -388,7 +388,7 @@ VOID NTAPI MainWindowShowingCallback(
     // Set the extended toolbar styles.
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
     // Set Searchbox control font.
-    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);   
+    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
     // Limit the amount of chars.
     SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
 
@@ -417,7 +417,7 @@ VOID NTAPI MainWindowShowingCallback(
         rBandInfo.hwndChild = TextboxHandle;
         SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
     }
- 
+
     {
         TBBUTTON tbButtonArray[] =
         {
@@ -433,7 +433,7 @@ VOID NTAPI MainWindowShowingCallback(
         };
 
         // Create the toolbar imagelist.
-        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);    
+        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images.
         ImageList_SetImageCount(ToolBarImageList, ARRAYSIZE(tbButtonArray));
         // Add the images to the imagelist.
@@ -454,7 +454,7 @@ VOID NTAPI MainWindowShowingCallback(
     // Ensure the toolbar recalculates its size based on its content.
     SendMessage(ToolBarHandle, TB_AUTOSIZE, 0L, 0L);
     SendMessage(ToolBarHandle, WM_SIZE, 0L, 0L);
- 
+
     //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
     //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
@@ -487,7 +487,7 @@ VOID NTAPI TabPageUpdatedCallback(
     )
 {
     INT index = Parameter;
-    
+
     // This callback is invoked before our Textbox has actually been created.
     // GeneralCallbackMainWindowTabChanged is invoked before GeneralCallbackMainWindowShowing (where our controls are created).
     if (TextboxHandle)
@@ -514,7 +514,7 @@ VOID NTAPI TabPageUpdatedCallback(
             break;
         default:
             {
-                // Disable the textbox if 
+                // Disable the textbox if
                 //Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
                 Edit_Enable(TextboxHandle, FALSE);
             }
@@ -594,11 +594,11 @@ LRESULT CALLBACK MainWndSubclassProc(
             ULONG id = (ULONG)(USHORT)LOWORD(wParam);
             ULONG toolbarId;
 
-            switch (HIWORD(wParam)) 
-            { 
-            //case EN_UPDATE: 
-                //return 0; 
-            case EN_CHANGE: 
+            switch (HIWORD(wParam))
+            {
+            //case EN_UPDATE:
+                //return 0;
+            case EN_CHANGE:
                 {
                     // TODO: change.
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
@@ -606,7 +606,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
                     goto DefaultWndProc;
                 }
-            } 
+            }
 
             if (id >= ToolBarIdRangeBase && id < ToolBarIdRangeEnd)
             {
@@ -897,8 +897,8 @@ LRESULT CALLBACK MainWndSubclassProc(
         {
             if (EnableToolBar)
             {
-                SendMessage(ReBarHandle, WM_SIZE, 0, 0);       
-                GetClientRect(ReBarHandle, &ReBarRect);  
+                SendMessage(ReBarHandle, WM_SIZE, 0, 0);
+                GetClientRect(ReBarHandle, &ReBarRect);
             }
 
             if (EnableStatusBar)

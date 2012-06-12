@@ -27,7 +27,7 @@ typedef BOOL (WINAPI *_SetupDiGetDeviceInterfaceDetailW)(
     __in PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
     __out_bcount_opt(DeviceInterfaceDetailDataSize) PSP_DEVICE_INTERFACE_DETAIL_DATA_W DeviceInterfaceDetailData,
     __in DWORD DeviceInterfaceDetailDataSize,
-    __out_opt PDWORD RequiredSize, 
+    __out_opt PDWORD RequiredSize,
     __out_opt PSP_DEVINFO_DATA DeviceInfoData
     );
 

@@ -185,7 +185,7 @@ static BOOL ConnectionAvailable(
                 // We're online and connected to the internet.
                 return TRUE;
             }
-       
+
             // We're not connected to anything.
             return FALSE;
         }
@@ -280,7 +280,7 @@ static BOOL PhInstalledUsingSetup(
     // Check uninstall entries for the 'Process_Hacker2_is1' registry key.
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
-        KEY_READ, 
+        KEY_READ,
         PH_KEY_LOCAL_MACHINE,
         &keyName,
         0
@@ -296,7 +296,7 @@ static BOOL PhInstalledUsingSetup(
 static NTSTATUS SilentUpdateCheckThreadStart(
     __in PVOID Parameter
     )
-{  
+{
     ULONG majorVersion = 0;
     ULONG minorVersion = 0;
     UPDATER_XML_DATA xmlData = { 0 };
@@ -306,7 +306,7 @@ static NTSTATUS SilentUpdateCheckThreadStart(
         if (QueryXmlData(&xmlData))
         {
             // Get the current Process Hacker version
-            PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, NULL); 
+            PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, NULL);
 
             // Compare the current version against the latest available version
             if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion) > 0)
@@ -341,7 +341,7 @@ static NTSTATUS CheckUpdateThreadStart(
             ULONG revisionNumber = 0;
             INT result = 0;
 
-            PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionNumber); 
+            PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionNumber);
 
             result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
 
@@ -531,7 +531,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                 )))
             {
                 LogEvent(hwndDlg, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
-                
+
                 PhDereferenceObject(userAgent);
                 PhDereferenceObject(phVersion);
 
@@ -629,7 +629,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                     if (bytesRead == 0)
                         break;
 
-                    // HACK: If window closed and thread handle closed, 
+                    // HACK: If window closed and thread handle closed,
                     // just cleanup and exit if we we're downloading.
                     if (!DownloadThreadHandle)
                         __leave;
@@ -712,7 +712,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                         //}
 
                         //if (time_remain)
-                        //{               
+                        //{
                         //    PPH_STRING statusText = PhFormatString(
                         //        L"%s (%d%%) of %s @ %s/s (%d %s%s remaining)",
                         //        dlRemaningBytes->Buffer,
@@ -758,7 +758,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                 {
                     // Allocate our hash string, hex the final hash result in our hashBuffer.
                     PPH_STRING hexString = PhBufferToHexString(hashBuffer, 20);
-                    
+
                     if (PhEqualString(hexString, xmlData.Hash, TRUE))
                     {
                         // If PH is not elevated, set the UAC shield for the install button as the setup requires elevation.
@@ -1149,7 +1149,7 @@ BOOL QueryXmlData(
             NULL,
             NULL,
             // Always cache the update xml, it can be cleared by deleting IE history, we configured the file to cache locally for two days.
-            0, 
+            0,
             0
             )))
         {
