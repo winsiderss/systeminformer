@@ -77,7 +77,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Toolbar and Status Bar";
             info->Author = L"dmex & wj32";
-            info->Description = L"Adds a Toolbar and a Status Bar.";
+            info->Description = L"Adds a toolbar and a status bar.";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(
