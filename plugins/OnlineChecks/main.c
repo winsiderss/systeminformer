@@ -192,9 +192,9 @@ PPH_EMENU_ITEM CreateSendToMenu(
 
     // Create the Send To menu.
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_VIRUSTOTAL, L"Virustotal", FileName), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_JOTTI, L"Jotti", FileName), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_CIMA, L"Comodo", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_VIRUSTOTAL, L"virustotal.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_CIMA, L"camas.comodo.com", FileName), -1);
 
     menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, InsertAfter, 0);
 
