@@ -37,6 +37,9 @@ static HFONT FontHandle = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
 
+#define UPDATER_ENABLECONTROLS (WM_APP + 1)
+#define UPDATER_SET_TEXT (WM_APP + 2)
+
 LOGICAL DllMain(
     __in HINSTANCE Instance,
     __in ULONG Reason,
@@ -293,6 +296,219 @@ static BOOL PhInstalledUsingSetup(
     return FALSE;
 }
 
+static PPH_STRING PhGetOpaqueXmlNodeText(
+    __in mxml_node_t *xmlNode
+    )
+{
+    if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
+    {
+        return PhCreateStringFromAnsi(xmlNode->child->value.opaque);
+    }
+    else
+    {
+        return PhReferenceEmptyString();
+    }
+}
+
+static BOOL QueryXmlData(
+    __out PUPDATER_XML_DATA XmlData
+    )
+{
+    PCHAR data = NULL;
+    BOOL isSuccess = FALSE;
+    HINTERNET netInitialize = NULL, netConnection = NULL, netRequest = NULL;
+    mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
+
+    // Create a user agent string.
+    PPH_STRING phVersion = PhGetPhVersion();
+    PPH_STRING userAgent = PhConcatStrings2(L"PH Updater v", phVersion->Buffer);
+
+    __try
+    {
+        // Initialize the wininet library.
+        if (!(netInitialize = InternetOpen(
+            userAgent->Buffer,
+            INTERNET_OPEN_TYPE_PRECONFIG,
+            NULL,
+            NULL,
+            0
+            )))
+        {
+            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
+            __leave;
+        }
+
+        // Connect to the server.
+        if (!(netConnection = InternetConnect(
+            netInitialize,
+            UPDATE_URL,
+            INTERNET_DEFAULT_HTTP_PORT,
+            NULL,
+            NULL,
+            INTERNET_SERVICE_HTTP,
+            0,
+            0
+            )))
+        {
+            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
+            __leave;
+        }
+
+        // Open the HTTP request.
+        if (!(netRequest = HttpOpenRequest(
+            netConnection,
+            L"GET",
+            UPDATE_FILE,
+            NULL,
+            NULL,
+            NULL,
+            // Always cache the update xml, it can be cleared by deleting IE history, we configured the file to cache locally for two days.
+            0,
+            0
+            )))
+        {
+            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
+            __leave;
+        }
+
+        // Send the HTTP request.
+        if (!HttpSendRequest(netRequest, NULL, 0, NULL, 0))
+        {
+            LogEvent(NULL, PhFormatString(L"HttpSendRequest failed (%d)", GetLastError()));
+            __leave;
+        }
+
+        // Read the resulting xml into our buffer.
+        if (!ReadRequestString(netRequest, &data, NULL))
+        {
+            // We don't need to log this.
+            __leave;
+        }
+
+        // Load our XML.
+        xmlDoc = mxmlLoadString(NULL, data, QueryXmlDataCallback);
+        // Check our XML.
+        if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
+        {
+            LogEvent(NULL, PhCreateString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
+            __leave;
+        }
+
+        // Find the ver node.
+        xmlNodeVer = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
+        // Find the reldate node.
+        xmlNodeRelDate = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
+        // Find the size node.
+        xmlNodeSize = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
+        // Find the hash node.
+        xmlNodeHash = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
+
+        // Format strings into unicode PPH_STRING's
+        XmlData->Version = PhGetOpaqueXmlNodeText(xmlNodeVer);
+        XmlData->RelDate = PhGetOpaqueXmlNodeText(xmlNodeRelDate);
+        XmlData->Size = PhGetOpaqueXmlNodeText(xmlNodeSize);
+        XmlData->Hash = PhGetOpaqueXmlNodeText(xmlNodeHash);
+
+        // parse and check string
+        //if (!ParseVersionString(XmlData->Version->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion))
+        //    __leave;
+        if (!PhIsNullOrEmptyString(XmlData->Version))
+        {
+            PH_STRINGREF sr, majorPart, minorPart;
+            ULONG64 majorInteger = 0, minorInteger = 0;
+
+            PhInitializeStringRef(&sr, XmlData->Version->Buffer);
+
+            if (PhSplitStringRefAtChar(&sr, '.', &majorPart, &minorPart))
+            {
+                PhStringToInteger64(&majorPart, 10, &majorInteger);
+                PhStringToInteger64(&minorPart, 10, &minorInteger);
+
+                XmlData->MajorVersion = (ULONG)majorInteger;
+                XmlData->MinorVersion = (ULONG)minorInteger;
+
+                isSuccess = TRUE;
+            }
+        }
+    }
+    __finally
+    {
+        if (xmlDoc)
+        {
+            mxmlDelete(xmlDoc);
+            xmlDoc = NULL;
+        }
+
+        if (netInitialize)
+        {
+            InternetCloseHandle(netInitialize);
+            netInitialize = NULL;
+        }
+
+        if (netConnection)
+        {
+            InternetCloseHandle(netConnection);
+            netConnection = NULL;
+        }
+
+        if (netRequest)
+        {
+            InternetCloseHandle(netRequest);
+            netRequest = NULL;
+        }
+
+        if (userAgent)
+        {
+            PhDereferenceObject(userAgent);
+            userAgent = NULL;
+        }
+
+        if (phVersion)
+        {
+            PhDereferenceObject(phVersion);
+            phVersion = NULL;
+        }
+    }
+
+    return isSuccess;
+}
+
+static BOOL FreeXmlData(
+    __in PUPDATER_XML_DATA XmlData
+    )
+{
+    if (!XmlData)
+        return FALSE;
+
+    if (XmlData->Version)
+    {
+        PhDereferenceObject(XmlData->Version);
+        XmlData->Version = NULL;
+    }
+    
+    if (XmlData->RelDate)
+    {
+        PhDereferenceObject(XmlData->RelDate);
+        XmlData->RelDate = NULL;
+    }
+    
+    if (XmlData->Size)
+    {
+        PhDereferenceObject(XmlData->Size);
+        XmlData->Size = NULL;
+    }
+    
+    if (XmlData->Hash)
+    {
+        PhDereferenceObject(XmlData->Hash);
+        XmlData->Hash = NULL;
+    }
+
+    return TRUE;
+}
+
+
+
 static NTSTATUS SilentUpdateCheckThreadStart(
     __in PVOID Parameter
     )
@@ -343,7 +559,7 @@ static NTSTATUS CheckUpdateThreadStart(
 
             PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionNumber);
 
-            result = CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
+            result = 3;//CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
 
             if (result > 0)
             {
@@ -363,23 +579,14 @@ static NTSTATUS CheckUpdateThreadStart(
                     xmlData.Size->Buffer
                     );
 
-                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-                SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
-                SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
-
-                // Enable the download button.
-                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-                // Use the Scrollbar macro to enable the other controls.
-                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
-                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
-
-                PhDereferenceObject(releaseSizeText);
-                PhDereferenceObject(releaseDateText);
-                PhDereferenceObject(summaryText);
+                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_MESSAGE, (LPARAM)summaryText);
+                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_RELDATE, (LPARAM)releaseDateText);
+                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, (LPARAM)releaseSizeText);
 
                 // Set the state for the next button.
                 PhUpdaterState = Download;
+
+                PostMessage(hwndDlg, UPDATER_ENABLECONTROLS, 0L, 0L);
             }
             else if (result == 0)
             {
@@ -401,11 +608,8 @@ static NTSTATUS CheckUpdateThreadStart(
                 // xmlData.RelDate
                 // );
 
-                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-                SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-
-                PhDereferenceObject(versionText);
-                PhDereferenceObject(summaryText);
+                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_MESSAGE, (LPARAM)summaryText);
+                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_RELDATE, (LPARAM)versionText);
             }
             else if (result < 0)
             {
@@ -427,11 +631,8 @@ static NTSTATUS CheckUpdateThreadStart(
                 // xmlData.RelDate
                 // );
 
-                SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-
-                PhDereferenceObject(versionText);
-                PhDereferenceObject(summaryText);
+                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_RELDATE, (LPARAM)versionText);
+                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_MESSAGE, (LPARAM)summaryText);
             }
         }
 
@@ -456,7 +657,7 @@ static NTSTATUS DownloadUpdateThreadStart(
     HWND hwndDlg = (HWND)Parameter;
 
     Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-    SetDlgItemText(hwndDlg, IDC_STATUS, L"Initializing");
+    PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, PhCreateString(L"Initializing"));
 
     // Reset the progress state on Vista and above.
     if (WindowsVersion > WINDOWS_XP)
@@ -573,7 +774,7 @@ static NTSTATUS DownloadUpdateThreadStart(
             __leave;
         }
 
-        SetDlgItemText(hwndDlg, IDC_STATUS, L"Connecting");
+        PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, L"Connecting");
 
         // Send the HTTP request.
         if (!HttpSendRequest(hRequest, NULL, 0, NULL, 0))
@@ -737,8 +938,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                                 dlSpeed->Buffer
                                 );
 
-                            SetDlgItemText(hwndDlg, IDC_STATUS, statusText->Buffer);
-                            PhDereferenceObject(statusText);
+                            PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, statusText);
                         }
 
                         PhDereferenceObject(dlSpeed);
@@ -768,7 +968,9 @@ static NTSTATUS DownloadUpdateThreadStart(
                         // Set the download result, don't include hash status since it succeeded.
                         //SetDlgItemText(hwndDlg, IDC_STATUS, L"Download Complete");
                         // Set button text for next action
-                        Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
+                        PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_DOWNLOAD, PhCreateString(L"Install"));
+
+                        //Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
                         // Enable the Install button
                         Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
                         // Hash succeeded, set state as ready to install.
@@ -779,12 +981,12 @@ static NTSTATUS DownloadUpdateThreadStart(
                         if (WindowsVersion > WINDOWS_XP)
                             SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0L);
 
-                        SetDlgItemText(hwndDlg, IDC_STATUS, L"Download complete, SHA1 Hash failed.");
+                        //SetDlgItemText(hwndDlg, IDC_STATUS, L"Download complete, SHA1 Hash failed.");
 
                         // Set button text for next action
-                        Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+                        //Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
                         // Enable the Install button
-                        Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+                        //Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
                         // Hash failed, reset state to downloading so user can redownload the file.
                         PhUpdaterState = Download;
                     }
@@ -793,7 +995,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                 }
                 else
                 {
-                    SetDlgItemText(hwndDlg, IDC_STATUS, L"PhFinalHash failed");
+                    //SetDlgItemText(hwndDlg, IDC_STATUS, L"PhFinalHash failed");
 
                     // Show fancy Red progressbar if hash failed on Vista and above.
                     if (WindowsVersion > WINDOWS_XP)
@@ -977,6 +1179,28 @@ INT_PTR CALLBACK UpdaterWndProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
+    case UPDATER_ENABLECONTROLS:
+        {
+            // Enable the download button.
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+            // Use the Scrollbar macro to enable the other controls.
+            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
+            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
+        }
+        break;
+    case UPDATER_SET_TEXT:
+        {
+            PPH_STRING receivedString = (PPH_STRING)lParam;
+
+            if (receivedString)
+            {
+                SetDlgItemText(hwndDlg, MAKEINTRESOURCE(wParam), receivedString->Buffer);
+     
+                PhDereferenceObject(receivedString);
+            }
+        }
+        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
@@ -1082,213 +1306,8 @@ VOID LogEvent(
     }
 }
 
-PPH_STRING PhGetOpaqueXmlNodeText(
-    __in mxml_node_t *xmlNode
-    )
-{
-    if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
-    {
-        return PhCreateStringFromAnsi(xmlNode->child->value.opaque);
-    }
-    else
-    {
-        return PhReferenceEmptyString();
-    }
-}
 
-BOOL QueryXmlData(
-    __out PUPDATER_XML_DATA XmlData
-    )
-{
-    PCHAR data = NULL;
-    BOOL isSuccess = FALSE;
-    HINTERNET netInitialize = NULL, netConnection = NULL, netRequest = NULL;
-    mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
 
-    // Create a user agent string.
-    PPH_STRING phVersion = PhGetPhVersion();
-    PPH_STRING userAgent = PhConcatStrings2(L"PH Updater v", phVersion->Buffer);
-
-    __try
-    {
-        // Initialize the wininet library.
-        if (!(netInitialize = InternetOpen(
-            userAgent->Buffer,
-            INTERNET_OPEN_TYPE_PRECONFIG,
-            NULL,
-            NULL,
-            0
-            )))
-        {
-            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetOpen failed (%d)", GetLastError()));
-            __leave;
-        }
-
-        // Connect to the server.
-        if (!(netConnection = InternetConnect(
-            netInitialize,
-            UPDATE_URL,
-            INTERNET_DEFAULT_HTTP_PORT,
-            NULL,
-            NULL,
-            INTERNET_SERVICE_HTTP,
-            0,
-            0
-            )))
-        {
-            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) InternetConnect failed (%d)", GetLastError()));
-            __leave;
-        }
-
-        // Open the HTTP request.
-        if (!(netRequest = HttpOpenRequest(
-            netConnection,
-            L"GET",
-            UPDATE_FILE,
-            NULL,
-            NULL,
-            NULL,
-            // Always cache the update xml, it can be cleared by deleting IE history, we configured the file to cache locally for two days.
-            0,
-            0
-            )))
-        {
-            LogEvent(NULL, PhFormatString(L"Updater: (InitializeConnection) HttpOpenRequest failed (%d)", GetLastError()));
-            __leave;
-        }
-
-        // Send the HTTP request.
-        if (!HttpSendRequest(netRequest, NULL, 0, NULL, 0))
-        {
-            LogEvent(NULL, PhFormatString(L"HttpSendRequest failed (%d)", GetLastError()));
-            __leave;
-        }
-
-        // Read the resulting xml into our buffer.
-        if (!ReadRequestString(netRequest, &data, NULL))
-        {
-            // We don't need to log this.
-            __leave;
-        }
-
-        // Load our XML.
-        xmlDoc = mxmlLoadString(NULL, data, QueryXmlDataCallback);
-        // Check our XML.
-        if (xmlDoc == NULL || xmlDoc->type != MXML_ELEMENT)
-        {
-            LogEvent(NULL, PhCreateString(L"Updater: (WorkerThreadStart) mxmlLoadString failed."));
-            __leave;
-        }
-
-        // Find the ver node.
-        xmlNodeVer = mxmlFindElement(xmlDoc, xmlDoc, "ver", NULL, NULL, MXML_DESCEND);
-        // Find the reldate node.
-        xmlNodeRelDate = mxmlFindElement(xmlDoc, xmlDoc, "reldate", NULL, NULL, MXML_DESCEND);
-        // Find the size node.
-        xmlNodeSize = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
-        // Find the hash node.
-        xmlNodeHash = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
-
-        // Format strings into unicode PPH_STRING's
-        XmlData->Version = PhGetOpaqueXmlNodeText(xmlNodeVer);
-        XmlData->RelDate = PhGetOpaqueXmlNodeText(xmlNodeRelDate);
-        XmlData->Size = PhGetOpaqueXmlNodeText(xmlNodeSize);
-        XmlData->Hash = PhGetOpaqueXmlNodeText(xmlNodeHash);
-
-        // parse and check string
-        //if (!ParseVersionString(XmlData->Version->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion))
-        //    __leave;
-        if (!PhIsNullOrEmptyString(XmlData->Version))
-        {
-            PH_STRINGREF sr, majorPart, minorPart;
-            ULONG64 majorInteger = 0, minorInteger = 0;
-
-            PhInitializeStringRef(&sr, XmlData->Version->Buffer);
-
-            if (PhSplitStringRefAtChar(&sr, '.', &majorPart, &minorPart))
-            {
-                PhStringToInteger64(&majorPart, 10, &majorInteger);
-                PhStringToInteger64(&minorPart, 10, &minorInteger);
-
-                XmlData->MajorVersion = (ULONG)majorInteger;
-                XmlData->MinorVersion = (ULONG)minorInteger;
-
-                isSuccess = TRUE;
-            }
-        }
-    }
-    __finally
-    {
-        if (xmlDoc)
-        {
-            mxmlDelete(xmlDoc);
-            xmlDoc = NULL;
-        }
-
-        if (netInitialize)
-        {
-            InternetCloseHandle(netInitialize);
-            netInitialize = NULL;
-        }
-
-        if (netConnection)
-        {
-            InternetCloseHandle(netConnection);
-            netConnection = NULL;
-        }
-
-        if (netRequest)
-        {
-            InternetCloseHandle(netRequest);
-            netRequest = NULL;
-        }
-
-        if (userAgent)
-        {
-            PhDereferenceObject(userAgent);
-            userAgent = NULL;
-        }
-
-        if (phVersion)
-        {
-            PhDereferenceObject(phVersion);
-            phVersion = NULL;
-        }
-    }
-
-    return isSuccess;
-}
-
-BOOL FreeXmlData(
-    __in PUPDATER_XML_DATA XmlData
-    )
-{
-    if (!XmlData)
-        return FALSE;
-
-    if (XmlData->Version)
-    {
-        PhDereferenceObject(XmlData->Version);
-        XmlData->Version = NULL;
-    }
-    if (XmlData->RelDate)
-    {
-        PhDereferenceObject(XmlData->RelDate);
-        XmlData->RelDate = NULL;
-    }
-    if (XmlData->Size)
-    {
-        PhDereferenceObject(XmlData->Size);
-        XmlData->Size = NULL;
-    }
-    if (XmlData->Hash)
-    {
-        PhDereferenceObject(XmlData->Hash);
-        XmlData->Hash = NULL;
-    }
-
-    return TRUE;
-}
 
 mxml_type_t QueryXmlDataCallback(
     __in mxml_node_t *node
