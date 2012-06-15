@@ -287,10 +287,14 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
         break;
     case NTM_DONE:
         {
-            WCHAR szWindowText[MAX_PATH];
+            PPH_STRING windowText = PhGetWindowText(hwndDlg);
 
-            GetWindowText(hwndDlg, szWindowText, _countof(szWindowText));
-            SetWindowText(hwndDlg, PhaFormatString(L"%s Finished.", szWindowText)->Buffer);
+            if (windowText)
+            {
+                SetWindowText(hwndDlg, PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
+
+                PhDereferenceObject(windowText);
+            }
         }
         break;
     case NTM_RECEIVED:
