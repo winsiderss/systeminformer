@@ -37,8 +37,11 @@ static HFONT FontHandle = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
 
-#define UPDATER_ENABLECONTROLS (WM_APP + 1)
+static UPDATER_XML_DATA xmlData;
+
 #define UPDATER_SET_TEXT (WM_APP + 2)
+
+#define WM_UPDATER_CHECKRESULT (WM_APP + 3)
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -545,98 +548,20 @@ static NTSTATUS CheckUpdateThreadStart(
     __in PVOID Parameter
     )
 {
-    UPDATER_XML_DATA xmlData = { 0 };
     HWND hwndDlg = (HWND)Parameter;
 
     if (ConnectionAvailable())
     {
         if (QueryXmlData(&xmlData))
         {
-            ULONG majorVersion = 0;
-            ULONG minorVersion = 0;
-            ULONG revisionNumber = 0;
             INT result = 0;
 
-            PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionNumber);
+            PhGetPhVersionNumbers(&xmlData.PhMajorVersion, &xmlData.PhMinorVersion, NULL, &xmlData.PhRevisionVersion);
 
             result = 3;//CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion);
 
-            if (result > 0)
-            {
-                PPH_STRING summaryText = PhFormatString(
-                    L"Process Hacker %u.%u",
-                    xmlData.MajorVersion,
-                    xmlData.MinorVersion
-                    );
-
-                PPH_STRING releaseDateText = PhFormatString(
-                    L"Released: %s",
-                    xmlData.RelDate->Buffer
-                    );
-
-                PPH_STRING releaseSizeText = PhFormatString(
-                    L"Size: %s",
-                    xmlData.Size->Buffer
-                    );
-
-                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_MESSAGE, (LPARAM)summaryText);
-                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_RELDATE, (LPARAM)releaseDateText);
-                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, (LPARAM)releaseSizeText);
-
-                // Set the state for the next button.
-                PhUpdaterState = Download;
-
-                PostMessage(hwndDlg, UPDATER_ENABLECONTROLS, 0L, 0L);
-            }
-            else if (result == 0)
-            {
-                PPH_STRING summaryText = PhCreateString(
-                    L"No updates available"
-                    );
-
-                PPH_STRING versionText = PhFormatString(
-                    L"You're running the latest stable version: v%u.%u (r%u)",
-                    xmlData.MajorVersion,
-                    xmlData.MinorVersion,
-                    revisionNumber
-                    );
-
-                //swprintf_s(
-                // szReleaseText,
-                // _countof(szReleaseText),
-                // L"Released: %s",
-                // xmlData.RelDate
-                // );
-
-                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_MESSAGE, (LPARAM)summaryText);
-                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_RELDATE, (LPARAM)versionText);
-            }
-            else if (result < 0)
-            {
-                PPH_STRING summaryText = PhCreateString(
-                    L"No updates available"
-                    );
-
-                PPH_STRING versionText = PhFormatString(
-                    L"You're running SVN build: v%u.%u (r%u)",
-                    majorVersion,
-                    minorVersion,
-                    revisionNumber
-                    );
-
-                //swprintf_s(
-                // szReleaseText,
-                // _countof(szReleaseText),
-                // L"Released: %s",
-                // xmlData.RelDate
-                // );
-
-                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_RELDATE, (LPARAM)versionText);
-                PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_MESSAGE, (LPARAM)summaryText);
-            }
+            PostMessage(hwndDlg, WM_UPDATER_CHECKRESULT, 0L, result);
         }
-
-        FreeXmlData(&xmlData);
     }
 
     return STATUS_SUCCESS;
@@ -652,12 +577,10 @@ static NTSTATUS DownloadUpdateThreadStart(
 
     NTSTATUS status = STATUS_UNSUCCESSFUL;
 
-    UPDATER_XML_DATA xmlData = { 0 };
-
     HWND hwndDlg = (HWND)Parameter;
 
     Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-    PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, PhCreateString(L"Initializing"));
+    //PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, PhCreateString(L"Initializing"));
 
     // Reset the progress state on Vista and above.
     if (WindowsVersion > WINDOWS_XP)
@@ -665,12 +588,6 @@ static NTSTATUS DownloadUpdateThreadStart(
 
     if (!ConnectionAvailable())
         return status;
-
-    if (!QueryXmlData(&xmlData))
-    {
-        FreeXmlData(&xmlData);
-        return status;
-    }
 
     __try
     {
@@ -830,8 +747,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                     if (bytesRead == 0)
                         break;
 
-                    // HACK: If window closed and thread handle closed,
-                    // just cleanup and exit if we we're downloading.
+                    // HACK: If window closed and thread handle was closed, just dispose and exit.
                     if (!DownloadThreadHandle)
                         __leave;
 
@@ -885,50 +801,6 @@ static NTSTATUS DownloadUpdateThreadStart(
                         PPH_STRING dlLength = PhFormatSize(contentLength, -1);
                         PPH_STRING dlSpeed = PhFormatSize(download_speed * 1024, -1);
 
-                        //if (time_remain < 0)
-                        //    time_remain = 0;
-
-                        //if (time_remain >= 60)
-                        //{
-                        //    time_remain /= 60;
-                        //    rtext = L"milisecond";
-
-                        //    if (time_remain >= 60)
-                        //    {
-                        //        time_remain /= 60;
-                        //        rtext = L"second";
-
-                        //        if (time_remain >= 60)
-                        //        {
-                        //            time_remain /= 60;
-                        //            rtext = L"minute";
-
-                        //            if (time_remain >= 60)
-                        //            {
-                        //                time_remain /= 60;
-                        //                rtext = L"hour";
-                        //            }
-                        //        }
-                        //    }
-                        //}
-
-                        //if (time_remain)
-                        //{
-                        //    PPH_STRING statusText = PhFormatString(
-                        //        L"%s (%d%%) of %s @ %s/s (%d %s%s remaining)",
-                        //        dlRemaningBytes->Buffer,
-                        //        percent,
-                        //        dlLength->Buffer,
-                        //        dlSpeed->Buffer,
-                        //        time_remain,
-                        //        rtext,
-                        //        time_remain == 1? L"": L"s"
-                        //        );
-
-                        //    SetDlgItemText(hwndDlg, IDC_STATUS, statusText->Buffer);
-                        //    PhDereferenceObject(statusText);
-                        //}
-                        //else
                         {
                             PPH_STRING statusText = PhFormatString(
                                 L"%s (%d%%) of %s @ %s/s",
@@ -938,7 +810,7 @@ static NTSTATUS DownloadUpdateThreadStart(
                                 dlSpeed->Buffer
                                 );
 
-                            PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, statusText);
+                            //PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, statusText);
                         }
 
                         PhDereferenceObject(dlSpeed);
@@ -1037,8 +909,6 @@ static NTSTATUS DownloadUpdateThreadStart(
             PhDereferenceObject(downloadUrlPath);
             downloadUrlPath = NULL;
         }
-
-        FreeXmlData(&xmlData);
     }
 
     return status;
@@ -1068,7 +938,7 @@ static NTSTATUS ShowUpdateDialogThreadStart(
         if (result == -1)
             break;
 
-        if (!IsWindow(UpdateDialogHandle) || !IsDialogMessage(UpdateDialogHandle, &message))
+        if (!IsDialogMessage(UpdateDialogHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -1111,6 +981,8 @@ static NTSTATUS ShowUpdateDialogThreadStart(
         DeleteObject(FontHandle);
         FontHandle = NULL;
     }
+
+    FreeXmlData(&xmlData);
 
     if (UpdateDialogHandle)
     {
@@ -1179,28 +1051,149 @@ INT_PTR CALLBACK UpdaterWndProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case UPDATER_ENABLECONTROLS:
+    case WM_UPDATER_CHECKRESULT:
         {
-            // Enable the download button.
-            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-            // Use the Scrollbar macro to enable the other controls.
-            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
-            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
-            ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
-        }
-        break;
-    case UPDATER_SET_TEXT:
-        {
-            PPH_STRING receivedString = (PPH_STRING)lParam;
+            INT result = lParam;
 
-            if (receivedString)
+            if (result > 0)
             {
-                SetDlgItemText(hwndDlg, MAKEINTRESOURCE(wParam), receivedString->Buffer);
-     
-                PhDereferenceObject(receivedString);
+                PPH_STRING summaryText = PhFormatString(
+                    L"Process Hacker %u.%u",
+                    xmlData.MajorVersion,
+                    xmlData.MinorVersion
+                    );
+
+                PPH_STRING releaseDateText = PhFormatString(
+                    L"Released: %s",
+                    xmlData.RelDate->Buffer
+                    );
+
+                PPH_STRING releaseSizeText = PhFormatString(
+                    L"Size: %s",
+                    xmlData.Size->Buffer
+                    );
+
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
+
+                // Set the state for the button to know it can preform the download action.
+                PhUpdaterState = Download;
+
+                // Enable the download button.
+                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+                // Use the Scrollbar macro to enable the other controls.
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_RELDATE), TRUE);
+                ScrollBar_Show(GetDlgItem(hwndDlg, IDC_STATUS), TRUE);
+
+                PhDereferenceObject(releaseSizeText);
+                PhDereferenceObject(releaseDateText);
+                PhDereferenceObject(summaryText);
+            }
+            else if (result == 0)
+            {
+                PPH_STRING summaryText = PhCreateString(
+                    L"No updates available"
+                    );
+
+                PPH_STRING versionText = PhFormatString(
+                    L"You're running the latest stable version: v%u.%u (r%u)",
+                    xmlData.MajorVersion,
+                    xmlData.MinorVersion,
+                    xmlData.PhRevisionVersion
+                    );
+
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+  
+                PhDereferenceObject(versionText);
+                PhDereferenceObject(summaryText);
+            }
+            else if (result < 0)
+            {
+                PPH_STRING summaryText = PhCreateString(
+                    L"No updates available"
+                    );
+
+                //PPH_STRING versionText = PhFormatString(
+                //    L"You're running SVN build: v%u.%u (r%u)",
+                //    majorVersion,
+                //    minorVersion,
+                //    revisionNumber
+                //    );
+
+                //swprintf_s(
+                // szReleaseText,
+                // _countof(szReleaseText),
+                // L"Released: %s",
+                // xmlData.RelDate
+                // );
+
+                //SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
             }
         }
         break;
+    //case UPDATER_SET_TEXT:
+    //    {
+    //        switch (wParam)
+    //        {
+    //        case IDC_MESSAGE:
+    //            {
+    //                PPH_STRING summaryText = PhFormatString(
+    //                    L"Process Hacker %u.%u",
+    //                    LOWORD(lParam),
+    //                    HIWORD(lParam)
+    //                    );
+
+    //                SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+
+    //                PhDereferenceObject(summaryText);
+    //            }
+    //            break;
+    //        case IDC_RELDATE:
+    //            {
+    //                PPH_STRING releaseDateText = PhFormatString(
+    //                    L"Released: %s",
+    //                    lParam
+    //                    );
+
+    //                SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
+
+    //                PhDereferenceObject(releaseDateText);
+    //            }
+    //            break;
+    //        case IDC_STATUS:
+    //            {       
+    //                PPH_STRING releaseSizeText = PhFormatString(
+    //                    L"Size: %s",
+    //                    xmlData.Size->Buffer
+    //                    );
+
+    //                SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
+
+    //                PhDereferenceObject(releaseSizeText);
+    //            }
+    //            break;
+
+
+
+    //            //PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_MESSAGE, (LPARAM)summaryText);
+    //            //PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_RELDATE, (LPARAM)releaseDateText);
+    //            //PostMessage(hwndDlg, UPDATER_SET_TEXT, IDC_STATUS, (LPARAM)releaseSizeText);
+    //        }
+
+    //       /* PPH_STRING receivedString = (PPH_STRING)lParam;
+
+    //        if (receivedString)
+    //        {
+    //            SetDlgItemText(hwndDlg, MAKEINTRESOURCE(wParam), receivedString->Buffer);
+    // 
+    //            PhDereferenceObject(receivedString);
+    //        }*/
+    //    }
+    //    break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
