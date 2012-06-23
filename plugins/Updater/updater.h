@@ -35,6 +35,9 @@ typedef struct _UPDATER_XML_DATA
 {
     ULONG MinorVersion;
     ULONG MajorVersion;
+    ULONG PhMinorVersion;
+    ULONG PhMajorVersion;
+    ULONG PhRevisionVersion;
     PPH_STRING Version;
     PPH_STRING RelDate;
     PPH_STRING Size;
