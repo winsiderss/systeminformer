@@ -651,7 +651,7 @@ static NTSTATUS UploadWorkerThreadStart(
         if (!WinHttpAddRequestHeaders(
             requestHandle,
             sbRequestHeaders.String->Buffer,
-            -1,
+            -1L,
             WINHTTP_ADDREQ_FLAG_REPLACE | WINHTTP_ADDREQ_FLAG_ADD
             ))
         {
