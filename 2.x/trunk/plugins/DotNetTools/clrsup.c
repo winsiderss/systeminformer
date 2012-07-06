@@ -1,8 +1,8 @@
 /*
  * Process Hacker .NET Tools -
- *   CLR debugging functions
+ *   CLR data access functions
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2012 wj32
  *
  * This file is part of Process Hacker.
  *
