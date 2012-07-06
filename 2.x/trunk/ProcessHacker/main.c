@@ -81,6 +81,7 @@ PH_PROVIDER_THREAD PhSecondaryProviderThread;
 COLORREF PhSysWindowColor;
 
 static PPH_LIST DialogList = NULL;
+static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
 
 INT WINAPI WinMain(
@@ -275,23 +276,40 @@ LONG PhMainMessageLoop(
         if (result == -1)
             return 1;
 
-        if (
-            message.hwnd == PhMainWndHandle ||
-            IsChild(PhMainWndHandle, message.hwnd)
-            )
+        if (FilterList)
         {
-            if (TranslateAccelerator(PhMainWndHandle, acceleratorTable, &message))
-                processed = TRUE;
-        }
-
-        if (DialogList)
-        {
-            for (i = 0; i < DialogList->Count; i++)
+            for (i = 0; i < FilterList->Count; i++)
             {
-                if (IsDialogMessage((HWND)DialogList->Items[i], &message))
+                PPH_MESSAGE_LOOP_FILTER_ENTRY entry = FilterList->Items[i];
+
+                if (entry->Filter(&message, entry->Context))
                 {
                     processed = TRUE;
                     break;
+                }
+            }
+        }
+
+        if (!processed)
+        {
+            if (
+                message.hwnd == PhMainWndHandle ||
+                IsChild(PhMainWndHandle, message.hwnd)
+                )
+            {
+                if (TranslateAccelerator(PhMainWndHandle, acceleratorTable, &message))
+                    processed = TRUE;
+            }
+
+            if (DialogList)
+            {
+                for (i = 0; i < DialogList->Count; i++)
+                {
+                    if (IsDialogMessage((HWND)DialogList->Items[i], &message))
+                    {
+                        processed = TRUE;
+                        break;
+                    }
                 }
             }
         }
@@ -331,6 +349,41 @@ VOID PhUnregisterDialog(
 
     if (indexOfDialog != -1)
         PhRemoveItemList(DialogList, indexOfDialog);
+}
+
+struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
+    __in PPH_MESSAGE_LOOP_FILTER Filter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_MESSAGE_LOOP_FILTER_ENTRY entry;
+
+    if (!FilterList)
+        FilterList = PhCreateList(2);
+
+    entry = PhAllocate(sizeof(PH_MESSAGE_LOOP_FILTER_ENTRY));
+    entry->Filter = Filter;
+    entry->Context = Context;
+    PhAddItemList(FilterList, entry);
+
+    return entry;
+}
+
+VOID PhUnregisterMessageLoopFilter(
+    __in struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
+    )
+{
+    ULONG indexOfFilter;
+
+    if (!FilterList)
+        return;
+
+    indexOfFilter = PhFindItemList(FilterList, FilterEntry);
+
+    if (indexOfFilter != -1)
+        PhRemoveItemList(FilterList, indexOfFilter);
+
+    PhFree(FilterEntry);
 }
 
 VOID PhApplyUpdateInterval(

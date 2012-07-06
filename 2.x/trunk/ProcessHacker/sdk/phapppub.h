@@ -25,6 +25,22 @@ PhUnregisterDialog(
     __in HWND DialogWindowHandle
     );
 
+typedef BOOLEAN (NTAPI *PPH_MESSAGE_LOOP_FILTER)(
+    __in PMSG Message,
+    __in PVOID Context
+    );
+
+PHAPPAPI
+struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
+    __in PPH_MESSAGE_LOOP_FILTER Filter,
+    __in_opt PVOID Context
+    );
+
+PHAPPAPI
+VOID PhUnregisterMessageLoopFilter(
+    __in struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
+    );
+
 // Common state highlighting support
 
 typedef struct _PH_SH_STATE
