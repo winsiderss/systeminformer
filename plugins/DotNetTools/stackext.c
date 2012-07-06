@@ -26,7 +26,23 @@
 typedef struct _THREAD_STACK_CONTEXT
 {
     PCLR_PROCESS_SUPPORT Support;
+    HANDLE ThreadId;
+    HANDLE ThreadHandle;
+
+#ifndef _M_X64
+    PVOID PredictedEip;
+    PVOID PredictedEbp;
+    PVOID PredictedEsp;
+#endif
 } THREAD_STACK_CONTEXT, *PTHREAD_STACK_CONTEXT;
+
+VOID PredictAddressesFromClrData(
+    __in PTHREAD_STACK_CONTEXT Context,
+    __in PPH_THREAD_STACK_FRAME Frame,
+    __out PVOID *PredictedEip,
+    __out PVOID *PredictedEbp,
+    __out PVOID *PredictedEsp
+    );
 
 static PPH_HASHTABLE ContextHashtable;
 static PH_QUEUED_LOCK ContextHashtableLock = PH_QUEUED_LOCK_INIT;
@@ -53,7 +69,10 @@ VOID ProcessThreadStackControl(
                 return;
 
             context = PhAllocate(sizeof(THREAD_STACK_CONTEXT));
+            memset(context, 0, sizeof(THREAD_STACK_CONTEXT));
             context->Support = CreateClrProcessSupport(Control->u.Initializing.ProcessId);
+            context->ThreadId = Control->u.Initializing.ThreadId;
+            context->ThreadHandle = Control->u.Initializing.ThreadHandle;
 
             PhAcquireQueuedLockExclusive(&ContextHashtableLock);
             PhAddItemSimpleHashtable(ContextHashtable, Control->UniqueKey, context);
@@ -112,6 +131,31 @@ VOID ProcessThreadStackControl(
 
             if (context->Support)
             {
+#ifndef _M_X64
+                PVOID predictedEip;
+                PVOID predictedEbp;
+                PVOID predictedEsp;
+
+                predictedEip = context->PredictedEip;
+                predictedEbp = context->PredictedEbp;
+                predictedEsp = context->PredictedEsp;
+
+                PredictAddressesFromClrData(
+                    context,
+                    Control->u.ResolveSymbol.StackFrame,
+                    &context->PredictedEip,
+                    &context->PredictedEbp,
+                    &context->PredictedEsp
+                    );
+
+                // Fix up dbghelp EBP with real EBP given by the CLR data routines.
+                if (Control->u.ResolveSymbol.StackFrame->PcAddress == predictedEip)
+                {
+                    Control->u.ResolveSymbol.StackFrame->FrameAddress = predictedEbp;
+                    Control->u.ResolveSymbol.StackFrame->StackAddress = predictedEsp;
+                }
+#endif
+
                 managedSymbol = GetRuntimeNameByAddressClrProcess(
                     context->Support,
                     (ULONG64)Control->u.ResolveSymbol.StackFrame->PcAddress,
@@ -134,4 +178,64 @@ VOID ProcessThreadStackControl(
         }
         break;
     }
+}
+
+VOID PredictAddressesFromClrData(
+    __in PTHREAD_STACK_CONTEXT Context,
+    __in PPH_THREAD_STACK_FRAME Frame,
+    __out PVOID *PredictedEip,
+    __out PVOID *PredictedEbp,
+    __out PVOID *PredictedEsp
+    )
+{
+#ifdef _M_X64
+    *PredictedEip = NULL;
+    *PredictedEbp = NULL;
+    *PredictedEsp = NULL;
+#else
+    IXCLRDataTask *task;
+
+    *PredictedEip = NULL;
+    *PredictedEbp = NULL;
+    *PredictedEsp = NULL;
+
+    if (SUCCEEDED(IXCLRDataProcess_GetTaskByOSThreadID(
+        Context->Support->DataProcess,
+        (ULONG)Context->ThreadId,
+        &task
+        )))
+    {
+        IXCLRDataStackWalk *stackWalk;
+
+        if (SUCCEEDED(IXCLRDataTask_CreateStackWalk(task, 0xf, &stackWalk)))
+        {
+            HRESULT result;
+            BOOLEAN firstTime = TRUE;
+            CONTEXT context;
+            ULONG contextSize;
+
+            memset(&context, 0, sizeof(CONTEXT));
+            context.ContextFlags = CONTEXT_CONTROL;
+            context.Eip = PtrToUlong(Frame->PcAddress);
+            context.Ebp = PtrToUlong(Frame->FrameAddress);
+            context.Esp = PtrToUlong(Frame->StackAddress);
+
+            result = IXCLRDataStackWalk_SetContext2(stackWalk, CLRDATA_STACK_SET_CURRENT_CONTEXT, sizeof(CONTEXT), (BYTE *)&context);
+
+            if (SUCCEEDED(result = IXCLRDataStackWalk_Next(stackWalk)) && result != S_FALSE)
+            {
+                if (SUCCEEDED(IXCLRDataStackWalk_GetContext(stackWalk, CONTEXT_CONTROL, sizeof(CONTEXT), &contextSize, (BYTE *)&context)))
+                {
+                    *PredictedEip = UlongToPtr(context.Eip);
+                    *PredictedEbp = UlongToPtr(context.Ebp);
+                    *PredictedEsp = UlongToPtr(context.Esp);
+                }
+            }
+
+            IXCLRDataStackWalk_Release(stackWalk);
+        }
+
+        IXCLRDataTask_Release(task);
+    }
+#endif
 }

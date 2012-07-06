@@ -2258,6 +2258,14 @@ SkipAmd64Stack:
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
+
+            // (x86 only) Allow the user to change Eip, Esp and Ebp.
+            context.Eip = PtrToUlong(threadStackFrame.PcAddress);
+            stackFrame.AddrPC.Offset = PtrToUlong(threadStackFrame.PcAddress);
+            context.Ebp = PtrToUlong(threadStackFrame.FrameAddress);
+            stackFrame.AddrFrame.Offset = PtrToUlong(threadStackFrame.FrameAddress);
+            context.Esp = PtrToUlong(threadStackFrame.StackAddress);
+            stackFrame.AddrStack.Offset = PtrToUlong(threadStackFrame.StackAddress);
         }
     }
 
