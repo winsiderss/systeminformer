@@ -22,7 +22,6 @@
     <ProjectGuid>{79D24223-1122-40A9-BC8F-46A2089FE089}</ProjectGuid>
     <RootNamespace>OnlineChecks</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>OnlineChecks</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
