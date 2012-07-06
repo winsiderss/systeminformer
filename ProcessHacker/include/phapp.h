@@ -96,6 +96,28 @@ VOID PhUnregisterDialog(
     __in HWND DialogWindowHandle
     );
 
+typedef BOOLEAN (NTAPI *PPH_MESSAGE_LOOP_FILTER)(
+    __in PMSG Message,
+    __in PVOID Context
+    );
+
+typedef struct _PH_MESSAGE_LOOP_FILTER_ENTRY
+{
+    PPH_MESSAGE_LOOP_FILTER Filter;
+    PVOID Context;
+} PH_MESSAGE_LOOP_FILTER_ENTRY, *PPH_MESSAGE_LOOP_FILTER_ENTRY;
+
+PHAPPAPI
+struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
+    __in PPH_MESSAGE_LOOP_FILTER Filter,
+    __in_opt PVOID Context
+    );
+
+PHAPPAPI
+VOID PhUnregisterMessageLoopFilter(
+    __in struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
+    );
+
 VOID PhApplyUpdateInterval(
     __in ULONG Interval
     );

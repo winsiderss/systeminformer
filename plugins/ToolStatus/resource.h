@@ -12,6 +12,7 @@
 #define IDR_STATUS                      108
 #define IDD_OPTIONS                     109
 #define IDB_CROSS                       110
+#define IDR_MAINWND_ACCEL               111
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_ENABLESTATUSBAR             1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
@@ -27,13 +28,14 @@
 #define ID_STATUS_IO_W                  40011
 #define ID_STATUS_MAX_CPU_PROCESS       40014
 #define ID_STATUS_MAX_IO_PROCESS        40015
+#define ID_SEARCH                       40016
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
-#define _APS_NEXT_COMMAND_VALUE         40016
+#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_COMMAND_VALUE         40018
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           103
 #endif

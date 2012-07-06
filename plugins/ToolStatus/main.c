@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   main program
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2012 wj32
  * Copyright (C) 2011-2012 dmex
  *
  * This file is part of Process Hacker.
@@ -57,6 +57,7 @@ BOOLEAN TargetingWindow = FALSE;
 BOOLEAN TargetingCurrentWindowDraw = FALSE;
 BOOLEAN TargetingCompleted = FALSE;
 HIMAGELIST ToolBarImageList;
+HACCEL AcceleratorTable;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -156,6 +157,31 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+BOOLEAN WordMatch(
+    __in PPH_STRINGREF Text,
+    __in PPH_STRINGREF Search,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = *Search;
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remainingPart, ' ', &part, &remainingPart);
+
+        if (part.Length != 0)
+        {
+            if (PhFindStringInStringRef(Text, &part, IgnoreCase) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 BOOLEAN ProcessTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
@@ -173,14 +199,32 @@ BOOLEAN ProcessTreeFilterCallback(
         // Search process names.
         if (processNode->ProcessItem->ProcessName)
         {
-            if (PhFindStringInStringRef(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE))
+            {
+                itemFound = TRUE;
+            }
+        }
+
+        // Search process company.
+        if (processNode->ProcessItem->VersionInfo.CompanyName)
+        {
+            if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &textboxText->sr, TRUE))
+            {
+                itemFound = TRUE;
+            }
+        }
+
+        // Search process descriptions.
+        if (processNode->ProcessItem->VersionInfo.FileDescription)
+        {
+            if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
         }
 
         // Search process PIDs.
-        if (PhFindStringInStringRef(&pidText->sr, &textboxText->sr, TRUE) != -1)
+        if (WordMatch(&pidText->sr, &textboxText->sr, TRUE))
         {
             itemFound = TRUE;
         }
@@ -211,7 +255,7 @@ BOOLEAN ServiceTreeFilterCallback(
         // Search service name.
         if (serviceNode->ServiceItem->Name)
         {
-            if (PhFindStringInStringRef(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -220,7 +264,7 @@ BOOLEAN ServiceTreeFilterCallback(
         // Search service display name.
         if (serviceNode->ServiceItem->DisplayName)
         {
-            if (PhFindStringInStringRef(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -231,7 +275,7 @@ BOOLEAN ServiceTreeFilterCallback(
         {
             PPH_STRING pidText = PhCreateString(serviceNode->ServiceItem->ProcessIdString);
 
-            if (PhFindStringInStringRef(&pidText->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&pidText->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -264,7 +308,7 @@ BOOLEAN NetworkTreeFilterCallback(
         // Search connection process name.
         if (networkNode->NetworkItem->ProcessName)
         {
-            if (PhFindStringInStringRef(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -275,7 +319,7 @@ BOOLEAN NetworkTreeFilterCallback(
         {
             PPH_STRING localAddress = PhCreateString(networkNode->NetworkItem->LocalAddressString);
 
-            if (PhFindStringInStringRef(&localAddress->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&localAddress->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -287,7 +331,7 @@ BOOLEAN NetworkTreeFilterCallback(
         {
             PPH_STRING localPort = PhCreateString(networkNode->NetworkItem->LocalPortString);
 
-            if (PhFindStringInStringRef(&localPort->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&localPort->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -300,7 +344,7 @@ BOOLEAN NetworkTreeFilterCallback(
         {
             PPH_STRING remoteAddress = PhCreateString(networkNode->NetworkItem->RemoteAddressString);
 
-            if (PhFindStringInStringRef(&remoteAddress->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&remoteAddress->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -310,7 +354,7 @@ BOOLEAN NetworkTreeFilterCallback(
 
         if (networkNode->NetworkItem->RemoteHostString)
         {
-            if (PhFindStringInStringRef(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE) != -1)
+            if (WordMatch(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
@@ -392,7 +436,7 @@ VOID NTAPI MainWindowShowingCallback(
     // Limit the amount of chars.
     SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
 
-    Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
+    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
 
     {
         REBARINFO ri = { sizeof(REBARINFO) };
@@ -468,6 +512,9 @@ VOID NTAPI MainWindowShowingCallback(
 
     PhRegisterCallback(ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), LayoutPaddingCallback, NULL, &LayoutPaddingCallbackRegistration);
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+
+    AcceleratorTable = LoadAccelerators(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
+    PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
@@ -499,17 +546,17 @@ VOID NTAPI TabPageUpdatedCallback(
         {
         case 0:
             {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Processes");
+                Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
             }
             break;
         case 1:
             {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Services");
+                Edit_SetCueBannerText(TextboxHandle, L"Search Services (Ctrl+K)");
             }
             break;
         case 2:
             {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Network");
+                Edit_SetCueBannerText(TextboxHandle, L"Search Network (Ctrl+K)");
             }
             break;
         default:
@@ -578,6 +625,23 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
+BOOLEAN NTAPI MessageLoopFilter(
+    __in PMSG Message,
+    __in PVOID Context
+    )
+{
+    if (
+        Message->hwnd == PhMainWndHandle ||
+        IsChild(PhMainWndHandle, Message->hwnd)
+        )
+    {
+        if (TranslateAccelerator(PhMainWndHandle, AcceleratorTable, Message))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 LRESULT CALLBACK MainWndSubclassProc(
     __in HWND hWnd,
     __in UINT uMsg,
@@ -608,6 +672,12 @@ LRESULT CALLBACK MainWndSubclassProc(
                 }
             }
 
+            if (id == ID_SEARCH)
+            {
+                SetFocus(TextboxHandle);
+                Edit_SetSel(TextboxHandle, 0, -1);
+            }
+
             if (id >= ToolBarIdRangeBase && id < ToolBarIdRangeEnd)
             {
                 toolbarId = id - ToolBarIdRangeBase;
@@ -632,8 +702,8 @@ LRESULT CALLBACK MainWndSubclassProc(
             }
 
             // If we're targeting and the user presses the Esc key, cancel the targeting.
-            // We also make sure the window doesn't get closed by filtering out the message.
-            if (LOWORD(wParam) == PHAPP_ID_ESC_EXIT && TargetingWindow)
+            // We also make sure the window doesn't get closed, by filtering out the message.
+            if (id == PHAPP_ID_ESC_EXIT && TargetingWindow)
             {
                 TargetingWindow = FALSE;
                 ReleaseCapture();

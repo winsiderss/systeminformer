@@ -160,6 +160,17 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINWND_ACCEL ACCELERATORS
+BEGIN
+    "K",            ID_SEARCH,              VIRTKEY, CONTROL, NOINVERT
+END
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

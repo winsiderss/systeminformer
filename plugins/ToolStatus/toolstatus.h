@@ -81,6 +81,11 @@ VOID NTAPI LayoutPaddingCallback(
     __in_opt PVOID Context
     );
 
+BOOLEAN NTAPI MessageLoopFilter(
+    __in PMSG Message,
+    __in PVOID Context
+    );
+
 LRESULT CALLBACK MainWndSubclassProc(
     __in HWND hWnd,
     __in UINT uMsg,
