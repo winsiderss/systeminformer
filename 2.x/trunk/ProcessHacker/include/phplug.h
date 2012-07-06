@@ -167,6 +167,7 @@ typedef enum _PH_PLUGIN_THREAD_STACK_CONTROL_TYPE
     PluginThreadStackUninitializing,
     PluginThreadStackResolveSymbol,
     PluginThreadStackGetTooltip,
+    PluginThreadStackWalkStack,
     PluginThreadStackMaximum
 } PH_PLUGIN_THREAD_STACK_CONTROL_TYPE;
 
@@ -183,6 +184,7 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
             HANDLE ThreadId;
             HANDLE ThreadHandle;
             PPH_SYMBOL_PROVIDER SymbolProvider;
+            BOOLEAN CustomWalk;
         } Initializing;
         struct
         {
@@ -194,6 +196,16 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
             PPH_THREAD_STACK_FRAME StackFrame;
             PPH_STRING_BUILDER StringBuilder;
         } GetTooltip;
+        struct
+        {
+            NTSTATUS Status;
+            HANDLE ThreadHandle;
+            HANDLE ProcessHandle;
+            PCLIENT_ID ClientId;
+            ULONG Flags;
+            PPH_WALK_THREAD_STACK_CALLBACK Callback;
+            PVOID CallbackContext;
+        } WalkStack;
     } u;
 } PH_PLUGIN_THREAD_STACK_CONTROL, *PPH_PLUGIN_THREAD_STACK_CONTROL;
 

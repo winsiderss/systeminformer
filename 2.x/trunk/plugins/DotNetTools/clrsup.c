@@ -524,7 +524,32 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     __out BYTE *context
     )
 {
-    return E_NOTIMPL;
+    NTSTATUS status;
+    HANDLE threadHandle;
+    CONTEXT buffer;
+
+    if (contextSize < sizeof(CONTEXT))
+        return E_INVALIDARG;
+
+    memset(&buffer, 0, sizeof(CONTEXT));
+    buffer.ContextFlags = contextFlags;
+
+    if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, ULongToHandle(threadID))))
+    {
+        status = PhGetThreadContext(threadHandle, &buffer);
+        NtClose(threadHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(context, &buffer, sizeof(CONTEXT));
+
+        return S_OK;
+    }
+    else
+    {
+        return HRESULT_FROM_WIN32(RtlNtStatusToDosError(status));
+    }
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
