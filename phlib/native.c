@@ -2049,6 +2049,7 @@ NTSTATUS PhWalkThreadStack(
     BOOLEAN suspended = FALSE;
     BOOLEAN processOpened = FALSE;
     BOOLEAN isCurrentThread = FALSE;
+    BOOLEAN isSystemProcess = FALSE;
 
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
@@ -2079,9 +2080,9 @@ NTSTATUS PhWalkThreadStack(
     if (ClientId)
     {
         if (ClientId->UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
-        {
             isCurrentThread = TRUE;
-        }
+        if (ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
+            isSystemProcess = TRUE;
     }
     else
     {
@@ -2094,15 +2095,15 @@ NTSTATUS PhWalkThreadStack(
         else if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         {
             if (basicInfo.ClientId.UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
-            {
                 isCurrentThread = TRUE;
-            }
+            if (basicInfo.ClientId.UniqueProcess == SYSTEM_PROCESS_ID)
+                isSystemProcess = TRUE;
         }
     }
 
     // Suspend the thread to avoid inaccurate results. Don't suspend if we're walking
-    // the stack of the current thread.
-    if (!isCurrentThread)
+    // the stack of the current thread or this is the System process.
+    if (!isCurrentThread && !isSystemProcess)
     {
         if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
             suspended = TRUE;
