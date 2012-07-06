@@ -13,6 +13,7 @@ Process Hacker
    * Fixed Verification Status column sorting bug in module list
    * Fixed rare System Information crash
    * Fixed bug in opening process handles
+   * Fixed freezing when viewing stack traces of certain system threads
 
 2.27
  * NEW/IMPROVED:
