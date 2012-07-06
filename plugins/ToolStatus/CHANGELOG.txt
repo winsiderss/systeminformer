@@ -1,5 +1,5 @@
 1.8
- * Added Searchbox
+ * Added search box
 
 1.7
  * Added option to configure Toolbar display style.
