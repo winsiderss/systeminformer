@@ -358,8 +358,8 @@ static BOOL QueryXmlData(
             NULL,
             NULL,
             NULL,
-            // Always cache the update xml, it can be cleared by deleting IE history, we configured the file to cache locally for two days.
-            0,
+            // wj32: do NOT cache --------------------------- Old - "Always cache the update xml, it can be cleared by deleting IE history, we configured the file to cache locally for two days."
+            INTERNET_FLAG_RELOAD,
             0
             )))
         {
@@ -620,7 +620,7 @@ static NTSTATUS CheckUpdateThreadStart(
                 PPH_STRING versionText = PhFormatString(
                     L"You're running SVN build: v%u.%u (r%u)",
                     UpdateData.PhMajorVersion,
-                    UpdateData.MinorVersion,
+                    UpdateData.PhMinorVersion,
                     UpdateData.PhRevisionVersion
                     );
 
