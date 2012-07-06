@@ -553,7 +553,7 @@ BOOLEAN PhShowConfirmMessage(
 
         config.cButtons = 2;
         config.pButtons = buttons;
-        config.nDefaultButton = IDNO;
+        config.nDefaultButton = IDYES;
 
         if (TaskDialogIndirect_I(
             &config,
