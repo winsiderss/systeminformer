@@ -504,19 +504,18 @@ static NTSTATUS SilentUpdateCheckThreadStart(
     __in PVOID Parameter
     )
 {
-    ULONG majorVersion = 0;
-    ULONG minorVersion = 0;
-    UPDATER_XML_DATA xmlData = { 0 };
-
     if (ConnectionAvailable())
     {
         if (QueryXmlData())
         {
+            ULONG majorVersion = 0;
+            ULONG minorVersion = 0;
+
             // Get the current Process Hacker version
             PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, NULL);
 
             // Compare the current version against the latest available version
-            if (CompareVersions(xmlData.MajorVersion, xmlData.MinorVersion, majorVersion, minorVersion) > 0)
+            if (CompareVersions(UpdateData.MajorVersion, UpdateData.MinorVersion, majorVersion, minorVersion) > 0)
             {
                 // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
                 Sleep(3 * 1000);
