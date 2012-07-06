@@ -388,9 +388,17 @@ typedef struct IXCLRDataStackWalkVtbl
         __out PVOID *frame
         );
 
-    PVOID Request;
+    HRESULT (STDMETHODCALLTYPE *Request)(
+        __in IXCLRDataStackWalk *This,
+        __in ULONG32 reqCode,
+        __in ULONG32 inBufferSize,
+        __in BYTE *inBuffer,
+        __in ULONG32 outBufferSize,
+        __out BYTE *outBuffer
+        );
 
     HRESULT (STDMETHODCALLTYPE *SetContext2)(
+        __in IXCLRDataStackWalk *This,
         __in ULONG32 flags,
         __in ULONG32 contextSize,
         __in BYTE *context
@@ -425,6 +433,9 @@ typedef struct IXCLRDataStackWalk
 
 #define IXCLRDataStackWalk_GetFrame(This, frame) \
     ((This)->lpVtbl->GetFrame(This, frame))
+
+#define IXCLRDataStackWalk_Request(This, reqCode, inBufferSize, inBuffer, outBufferSize, outBuffer) \
+    ((This)->lpVtbl->SetContext2(This, reqCode, inBufferSize, inBuffer, outBufferSize, outBuffer))
 
 #define IXCLRDataStackWalk_SetContext2(This, flags, contextSize, context) \
     ((This)->lpVtbl->SetContext2(This, flags, contextSize, context))

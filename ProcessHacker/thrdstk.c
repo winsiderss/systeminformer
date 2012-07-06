@@ -389,7 +389,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
 
         control.Type = PluginThreadStackResolveSymbol;
         control.UniqueKey = threadStackContext;
-        control.u.ResolveSymbol.StackFrame = stackFrame;
+        control.u.ResolveSymbol.StackFrame = StackFrame;
         control.u.ResolveSymbol.Symbol = symbol;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
 

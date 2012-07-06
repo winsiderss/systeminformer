@@ -14,6 +14,7 @@ Process Hacker
    * Fixed rare System Information crash
    * Fixed bug in opening process handles
    * Fixed freezing when viewing stack traces of certain system threads
+   * Fixed inaccurate stack traces for certain .NET programs
 
 2.27
  * NEW/IMPROVED:
