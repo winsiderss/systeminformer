@@ -121,7 +121,7 @@ LOGICAL DllMain(
                     { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
                 };
 
-                PhAddSettings(settings, ARRAYSIZE(settings));
+                PhAddSettings(settings, _countof(settings));
             }
         }
         break;
@@ -435,7 +435,7 @@ VOID NTAPI MainWindowShowingCallback(
         // Create the toolbar imagelist.
         ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images.
-        ImageList_SetImageCount(ToolBarImageList, ARRAYSIZE(tbButtonArray));
+        ImageList_SetImageCount(ToolBarImageList, _countof(tbButtonArray));
         // Add the images to the imagelist.
         PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
         PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
@@ -447,7 +447,7 @@ VOID NTAPI MainWindowShowingCallback(
         // Configure the toolbar imagelist
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, ARRAYSIZE(tbButtonArray), (LPARAM)tbButtonArray);
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
     }
 
     SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
@@ -493,7 +493,7 @@ VOID NTAPI TabPageUpdatedCallback(
     if (TextboxHandle)
     {
         // Enable the textbox.
-        Edit_Enable(TextboxHandle, TRUE);
+        //Edit_Enable(TextboxHandle, TRUE);
 
         switch (index)
         {
@@ -514,9 +514,9 @@ VOID NTAPI TabPageUpdatedCallback(
             break;
         default:
             {
-                // Disable the textbox if
-                //Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
-                Edit_Enable(TextboxHandle, FALSE);
+                // Disable the textbox if we're on an unsupported tab.
+                Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
+                //Edit_Enable(TextboxHandle, FALSE);
             }
             break;
         }
