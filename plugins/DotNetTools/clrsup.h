@@ -49,6 +49,8 @@ typedef ULONG64 CLRDATA_ENUM;
 typedef struct IXCLRDataProcess IXCLRDataProcess;
 typedef struct IXCLRDataAppDomain IXCLRDataAppDomain;
 typedef struct IXCLRDataTask IXCLRDataTask;
+typedef struct IXCLRDataStackWalk IXCLRDataStackWalk;
+typedef struct IXCLRDataFrame IXCLRDataFrame;
 
 typedef struct IXCLRDataProcessVtbl
 {
@@ -244,7 +246,12 @@ typedef struct IXCLRDataTaskVtbl
     PVOID GetManagedObject;
     PVOID GetDesiredExecutionState;
     PVOID SetDesiredExecutionState;
-    PVOID CreateStackWalk;
+
+    HRESULT (STDMETHODCALLTYPE *CreateStackWalk)(
+        __in IXCLRDataTask *This,
+        __in ULONG32 flags,
+        __out IXCLRDataStackWalk **stackWalk
+        );
 
     HRESULT (STDMETHODCALLTYPE *GetOSThreadID)(
         __in IXCLRDataTask *This,
@@ -292,11 +299,203 @@ typedef struct IXCLRDataTask
 #define IXCLRDataTask_GetFlags(This, flags) \
     ((This)->lpVtbl->GetFlags(This, flags))
 
+#define IXCLRDataTask_CreateStackWalk(This, flags, stackWalk) \
+    ((This)->lpVtbl->CreateStackWalk(This, flags, stackWalk))
+
 #define IXCLRDataTask_GetOSThreadID(This, id) \
     ((This)->lpVtbl->GetOSThreadID(This, id))
 
 #define IXCLRDataTask_GetName(This, bufLen, nameLen, name) \
     ((This)->lpVtbl->GetName(This, bufLen, nameLen, name))
+
+typedef enum
+{
+    CLRDATA_SIMPFRAME_UNRECOGNIZED = 0x1,
+    CLRDATA_SIMPFRAME_MANAGED_METHOD = 0x2,
+    CLRDATA_SIMPFRAME_RUNTIME_MANAGED_CODE = 0x4,
+    CLRDATA_SIMPFRAME_RUNTIME_UNMANAGED_CODE = 0x8
+} CLRDataSimpleFrameType;
+
+typedef enum
+{
+    CLRDATA_DETFRAME_UNRECOGNIZED,
+    CLRDATA_DETFRAME_UNKNOWN_STUB,
+    CLRDATA_DETFRAME_CLASS_INIT,
+    CLRDATA_DETFRAME_EXCEPTION_FILTER,
+    CLRDATA_DETFRAME_SECURITY,
+    CLRDATA_DETFRAME_CONTEXT_POLICY,
+    CLRDATA_DETFRAME_INTERCEPTION, 
+    CLRDATA_DETFRAME_PROCESS_START,
+    CLRDATA_DETFRAME_THREAD_START,
+    CLRDATA_DETFRAME_TRANSITION_TO_MANAGED,
+    CLRDATA_DETFRAME_TRANSITION_TO_UNMANAGED,
+    CLRDATA_DETFRAME_COM_INTEROP_STUB,
+    CLRDATA_DETFRAME_DEBUGGER_EVAL,
+    CLRDATA_DETFRAME_CONTEXT_SWITCH,
+    CLRDATA_DETFRAME_FUNC_EVAL,
+    CLRDATA_DETFRAME_FINALLY
+} CLRDataDetailedFrameType;
+
+typedef enum
+{
+    CLRDATA_STACK_SET_UNWIND_CONTEXT  = 0x00000000,
+    CLRDATA_STACK_SET_CURRENT_CONTEXT = 0x00000001
+} CLRDataStackSetContextFlag;
+
+typedef struct IXCLRDataStackWalkVtbl
+{
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+        __in IXCLRDataStackWalk *This,
+        __in REFIID riid,
+        __deref_out void **ppvObject
+        );
+
+    ULONG (STDMETHODCALLTYPE *AddRef)(
+        __in IXCLRDataStackWalk *This
+        );
+
+    ULONG (STDMETHODCALLTYPE *Release)(
+        __in IXCLRDataStackWalk *This
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetContext)(
+        __in IXCLRDataStackWalk *This,
+        __in ULONG32 contextFlags,
+        __in ULONG32 contextBufSize,
+        __out ULONG32 *contextSize,
+        __out BYTE *contextBuf
+        );
+
+    PVOID SetContext;
+
+    HRESULT (STDMETHODCALLTYPE *Next)(
+        __in IXCLRDataStackWalk *This
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetStackSizeSkipped)(
+        __in IXCLRDataStackWalk *This,
+        __out ULONG64 *stackSizeSkipped
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetFrameType)(
+        __in IXCLRDataStackWalk *This,
+        __out CLRDataSimpleFrameType *simpleType,
+        __out CLRDataDetailedFrameType *detailedType
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetFrame)(
+        __in IXCLRDataStackWalk *This,
+        __out PVOID *frame
+        );
+
+    PVOID Request;
+
+    HRESULT (STDMETHODCALLTYPE *SetContext2)(
+        __in ULONG32 flags,
+        __in ULONG32 contextSize,
+        __in BYTE *context
+        );
+} IXCLRDataStackWalkVtbl;
+
+typedef struct IXCLRDataStackWalk
+{
+    struct IXCLRDataStackWalkVtbl *lpVtbl;
+} IXCLRDataStackWalk;
+
+#define IXCLRDataStackWalk_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+
+#define IXCLRDataStackWalk_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+
+#define IXCLRDataStackWalk_Release(This) \
+    ((This)->lpVtbl->Release(This))
+
+#define IXCLRDataStackWalk_GetContext(This, contextFlags, contextBufSize, contextSize, contextBuf) \
+    ((This)->lpVtbl->GetContext(This, contextFlags, contextBufSize, contextSize, contextBuf))
+
+#define IXCLRDataStackWalk_Next(This) \
+    ((This)->lpVtbl->Next(This))
+
+#define IXCLRDataStackWalk_GetStackSizeSkipped(This, stackSizeSkipped) \
+    ((This)->lpVtbl->GetStackSizeSkipped(This, stackSizeSkipped))
+
+#define IXCLRDataStackWalk_GetFrameType(This, simpleType, detailedType) \
+    ((This)->lpVtbl->GetFrameType(This, simpleType, detailedType))
+
+#define IXCLRDataStackWalk_GetFrame(This, frame) \
+    ((This)->lpVtbl->GetFrame(This, frame))
+
+#define IXCLRDataStackWalk_SetContext2(This, flags, contextSize, context) \
+    ((This)->lpVtbl->SetContext2(This, flags, contextSize, context))
+
+typedef struct IXCLRDataFrameVtbl
+{
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+        __in IXCLRDataFrame *This,
+        __in REFIID riid,
+        __deref_out void **ppvObject
+        );
+
+    ULONG (STDMETHODCALLTYPE *AddRef)(
+        __in IXCLRDataFrame *This
+        );
+
+    ULONG (STDMETHODCALLTYPE *Release)(
+        __in IXCLRDataFrame *This
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetFrameType)(
+        __in IXCLRDataFrame *This,
+        __out CLRDataSimpleFrameType *simpleType,
+        __out CLRDataDetailedFrameType *detailedType
+        );
+
+    HRESULT (STDMETHODCALLTYPE *GetContext)(
+        __in IXCLRDataFrame *This,
+        __in ULONG32 contextFlags,
+        __in ULONG32 contextBufSize,
+        __out ULONG32 *contextSize,
+        __out BYTE *contextBuf
+        );
+
+    PVOID GetAppDomain;
+    PVOID GetNumArguments;
+    PVOID GetArgumentByIndex;
+    PVOID GetNumLocalVariables;
+    PVOID GetLocalVariableByIndex;
+
+    HRESULT (STDMETHODCALLTYPE *GetCodeName)(
+        __in IXCLRDataFrame *This,
+        __in ULONG32 *flags,
+        __in ULONG32 *bufLen,
+        __out ULONG32 *nameLen,
+        __out WCHAR *nameBuf
+        );
+} IXCLRDataFrameVtbl;
+
+typedef struct IXCLRDataFrame
+{
+    IXCLRDataFrameVtbl *lpVtbl;
+} IXCLRDataFrame;
+
+#define IXCLRDataFrame_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+
+#define IXCLRDataFrame_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+
+#define IXCLRDataFrame_Release(This) \
+    ((This)->lpVtbl->Release(This))
+
+#define IXCLRDataFrame_GetFrameType(This, simpleType, detailedType) \
+    ((This)->lpVtbl->GetFrameType(This, simpleType, detailedType))
+
+#define IXCLRDataFrame_GetContext(This, contextFlags, contextBufSize, contextSize, contextBuf) \
+    ((This)->lpVtbl->GetContext(This, contextFlags, contextBufSize, contextSize, contextBuf))
+
+#define IXCLRDataFrame_GetCodeName(This, flags, bufLen, nameLen, nameBuf) \
+    ((This)->lpVtbl->GetCodeName(This, flags, bufLen, nameLen, nameBuf))
 
 // DnCLRDataTarget
 

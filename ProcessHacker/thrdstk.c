@@ -32,6 +32,7 @@ typedef struct THREAD_STACK_CONTEXT
     HANDLE ThreadHandle;
     HWND ListViewHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
+    BOOLEAN CustomWalk;
 
     ULONG Index;
     PPH_LIST List;
@@ -72,6 +73,7 @@ VOID PhShowThreadStackDialog(
     threadStackContext.ProcessId = ProcessId;
     threadStackContext.ThreadId = ThreadId;
     threadStackContext.SymbolProvider = SymbolProvider;
+    threadStackContext.CustomWalk = FALSE;
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
@@ -183,7 +185,10 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 control.u.Initializing.ThreadId = threadStackContext->ThreadId;
                 control.u.Initializing.ThreadHandle = threadStackContext->ThreadHandle;
                 control.u.Initializing.SymbolProvider = threadStackContext->SymbolProvider;
+                control.u.Initializing.CustomWalk = FALSE;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+                threadStackContext->CustomWalk = control.u.Initializing.CustomWalk;
             }
 
             PhpRefreshThreadStack(threadStackContext);
@@ -413,6 +418,7 @@ static NTSTATUS PhpRefreshThreadStack(
     NTSTATUS status;
     ULONG i;
     CLIENT_ID clientId;
+    BOOLEAN defaultWalk;
 
     clientId.UniqueProcess = ThreadStackContext->ProcessId;
     clientId.UniqueThread = ThreadStackContext->ThreadId;
@@ -426,14 +432,40 @@ static NTSTATUS PhpRefreshThreadStack(
 
     SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, FALSE, 0);
     ThreadStackContext->Index = 0;
-    status = PhWalkThreadStack(
-        ThreadStackContext->ThreadHandle,
-        ThreadStackContext->SymbolProvider->ProcessHandle,
-        &clientId,
-        PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK,
-        PhpWalkThreadStackCallback,
-        ThreadStackContext
-        );
+    defaultWalk = TRUE;
+
+    if (ThreadStackContext->CustomWalk)
+    {
+        PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+        control.Type = PluginThreadStackWalkStack;
+        control.UniqueKey = ThreadStackContext;
+        control.u.WalkStack.Status = STATUS_UNSUCCESSFUL;
+        control.u.WalkStack.ThreadHandle = ThreadStackContext->ThreadHandle;
+        control.u.WalkStack.ProcessHandle = ThreadStackContext->SymbolProvider->ProcessHandle;
+        control.u.WalkStack.ClientId = &clientId;
+        control.u.WalkStack.Flags = PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK;
+        control.u.WalkStack.Callback = PhpWalkThreadStackCallback;
+        control.u.WalkStack.CallbackContext = ThreadStackContext;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+        status = control.u.WalkStack.Status;
+
+        if (NT_SUCCESS(status))
+            defaultWalk = FALSE;
+    }
+
+    if (defaultWalk)
+    {
+        status = PhWalkThreadStack(
+            ThreadStackContext->ThreadHandle,
+            ThreadStackContext->SymbolProvider->ProcessHandle,
+            &clientId,
+            PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK,
+            PhpWalkThreadStackCallback,
+            ThreadStackContext
+            );
+    }
+
     SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, TRUE, 0);
     InvalidateRect(ThreadStackContext->ListViewHandle, NULL, FALSE);
 
