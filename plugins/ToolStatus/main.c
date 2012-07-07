@@ -31,33 +31,34 @@
 #define NUMBER_OF_BUTTONS 7
 #define NUMBER_OF_SEPARATORS 2
 
-PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
-PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
-PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
+static PPH_PLUGIN PluginInstance;
+static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 
-HWND ReBarHandle = NULL;
-HWND TextboxHandle = NULL;
-HWND ToolBarHandle = NULL;
-HWND StatusBarHandle = NULL;
-HWND TargetingCurrentWindow = NULL;
-RECT ReBarRect = { 0 };
-RECT StatusBarRect = { 0 };
-ULONG StatusMask = 0;
-ULONG IdRangeBase = 0;
-ULONG TargetingMode = 0;
-ULONG ToolBarIdRangeBase = 0;
-ULONG ToolBarIdRangeEnd = 0;
-ULONG ProcessesUpdatedCount = 0;
-ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
-BOOLEAN TargetingWindow = FALSE;
-BOOLEAN TargetingCurrentWindowDraw = FALSE;
-BOOLEAN TargetingCompleted = FALSE;
-HIMAGELIST ToolBarImageList;
-HACCEL AcceleratorTable;
+static HWND ReBarHandle = NULL;
+static HWND TextboxHandle = NULL;
+static HWND ToolBarHandle = NULL;
+static HWND StatusBarHandle = NULL;
+static HWND TargetingCurrentWindow = NULL;
+static HFONT FontHandle = NULL;
+static RECT ReBarRect = { 0 };
+static RECT StatusBarRect = { 0 };
+static ULONG StatusMask = 0;
+static ULONG IdRangeBase = 0;
+static ULONG TargetingMode = 0;
+static ULONG ToolBarIdRangeBase = 0;
+static ULONG ToolBarIdRangeEnd = 0;
+static ULONG ProcessesUpdatedCount = 0;
+static ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
+static BOOLEAN TargetingWindow = FALSE;
+static BOOLEAN TargetingCurrentWindowDraw = FALSE;
+static BOOLEAN TargetingCompleted = FALSE;
+static HIMAGELIST ToolBarImageList;
+static HACCEL AcceleratorTable;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -136,12 +137,25 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     )
 {
-    INITCOMMONCONTROLSEX icex;
+    LOGFONT logFont = { 0 };
+    INITCOMMONCONTROLSEX icex = { sizeof(INITCOMMONCONTROLSEX) };
 
-    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
     icex.dwICC = ICC_COOL_CLASSES | ICC_BAR_CLASSES;
 
     InitCommonControlsEx(&icex);
+
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_NORMAL;
+
+    // We don't check if the font exists, CreateFontIndirect does this for us.
+    wcscpy_s(
+        logFont.lfFaceName, 
+        _countof(logFont.lfFaceName), 
+        L"Microsoft Sans Serif"
+        );
+
+    // Create the font handle.
+    FontHandle = CreateFontIndirect(&logFont);
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -432,7 +446,7 @@ VOID NTAPI MainWindowShowingCallback(
     // Set the extended toolbar styles.
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
     // Set Searchbox control font.
-    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
+    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
     // Limit the amount of chars.
     SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
 
