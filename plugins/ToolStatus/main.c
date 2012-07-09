@@ -479,15 +479,15 @@ VOID NTAPI MainWindowShowingCallback(
     {
         TBBUTTON tbButtonArray[] =
         {
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Refresh" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Options" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, NULL },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Handles or DLLs" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"System Information" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, NULL },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window and Thread" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, L"Find Window and Kill" }
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
+            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
+            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
         };
 
         // Create the toolbar imagelist.
@@ -547,15 +547,12 @@ VOID NTAPI TabPageUpdatedCallback(
     __in_opt PVOID Context
     )
 {
-    INT index = Parameter;
+    INT index = (INT)Parameter;
 
     // This callback is invoked before our Textbox has actually been created.
     // GeneralCallbackMainWindowTabChanged is invoked before GeneralCallbackMainWindowShowing (where our controls are created).
     if (TextboxHandle)
     {
-        // Enable the textbox.
-        //Edit_Enable(TextboxHandle, TRUE);
-
         switch (index)
         {
         case 0:
@@ -577,7 +574,6 @@ VOID NTAPI TabPageUpdatedCallback(
             {
                 // Disable the textbox if we're on an unsupported tab.
                 Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
-                //Edit_Enable(TextboxHandle, FALSE);
             }
             break;
         }
