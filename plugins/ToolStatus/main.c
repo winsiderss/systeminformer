@@ -686,7 +686,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 }
             }
 
-            if (id == ID_SEARCH)
+            if (id == ID_SEARCH && EnableToolBar)
             {
                 SetFocus(TextboxHandle);
                 Edit_SetSel(TextboxHandle, 0, -1);
