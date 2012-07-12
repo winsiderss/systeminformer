@@ -1,3 +1,6 @@
+1.9
+ * Fixed controls not being properly hidden/removed from the window when disabled
+
 1.8
  * Added search box
 
