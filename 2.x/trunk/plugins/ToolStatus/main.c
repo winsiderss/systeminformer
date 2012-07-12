@@ -1005,9 +1005,24 @@ VOID ApplyToolbarSettings(
     ULONG i;
 
     if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
+    {
         ShowWindow(ToolBarHandle, SW_SHOW);
+        ShowWindow(ReBarHandle, SW_SHOW);
+    }
+    else
+    {
+        ShowWindow(ToolBarHandle, SW_HIDE);
+        ShowWindow(ReBarHandle, SW_HIDE);  
+    }
+
     if (EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
+    {
         ShowWindow(StatusBarHandle, SW_SHOW);
+    }
+    else
+    {
+        ShowWindow(StatusBarHandle, SW_HIDE);
+    }
 
     for (i = 0; i < NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS; i++)
     {
