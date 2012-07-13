@@ -589,7 +589,7 @@ BEGIN
     LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,193,8
     LTEXT           "Copyright (c) 2008-2012 wj32",IDC_STATIC,15,40,97,8
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,174,50,14
-    CONTROL         "<a href=""http://sourceforge.net/projects/processhacker"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
+    CONTROL         "<a href=""http://processhacker.sourceforge.net"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
                     "SysLink",WS_TABSTOP,7,177,130,11
     CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,55,248,115
 END
