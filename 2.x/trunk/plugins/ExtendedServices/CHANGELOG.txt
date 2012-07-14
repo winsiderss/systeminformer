@@ -1,3 +1,6 @@
+1.7
+ * Fixed bug when restarting services
+
 1.6
  * Disabled editing of required privileges for drivers
 

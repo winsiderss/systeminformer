@@ -1,5 +1,11 @@
 Process Hacker
 
+2.29
+ * NEW/IMPROVED:
+   * Updated ExtendedServices plugin:
+     * Fixed bug when restarting services
+ * FIXED:
+
 2.28
  * NEW/IMPROVED:
    * peview now resolves .lnk targets
