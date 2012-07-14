@@ -30,6 +30,7 @@ typedef struct _RESTART_SERVICE_CONTEXT
     PPH_SERVICE_ITEM ServiceItem;
     SC_HANDLE ServiceHandle;
     BOOLEAN Starting;
+    BOOLEAN DisableTimer;
 } RESTART_SERVICE_CONTEXT, *PRESTART_SERVICE_CONTEXT;
 
 INT_PTR CALLBACK EspRestartServiceDlgProc(
@@ -50,6 +51,7 @@ VOID EsRestartServiceWithProgress(
     context.ServiceItem = ServiceItem;
     context.ServiceHandle = ServiceHandle;
     context.Starting = FALSE;
+    context.DisableTimer = FALSE;
 
     DialogBoxParam(
         PluginInstance->DllBase,
@@ -121,7 +123,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
         break;
     case WM_TIMER:
         {
-            if (wParam == 1)
+            if (wParam == 1 && !context->DisableTimer)
             {
                 SERVICE_STATUS serviceStatus;
 
@@ -133,9 +135,11 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
 
                         SetDlgItemText(hwndDlg, IDC_MESSAGE,
                             PhaFormatString(L"Attempting to start %s...", context->ServiceItem->Name->Buffer)->Buffer);
+                        context->DisableTimer = TRUE;
 
                         if (PhUiStartService(hwndDlg, context->ServiceItem))
                         {
+                            context->DisableTimer = FALSE;
                             context->Starting = TRUE;
                         }
                         else
