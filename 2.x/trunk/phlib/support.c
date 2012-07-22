@@ -573,7 +573,7 @@ BOOLEAN PhShowConfirmMessage(
     {
         return PhShowMessage(
             hWnd,
-            MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
+            MB_YESNO | MB_ICONWARNING,
             L"Are you sure you want to %s?",
             action->Buffer
             ) == IDYES;
