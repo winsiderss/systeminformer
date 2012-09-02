@@ -23,6 +23,8 @@
 
 #include "updater.h"
 
+#define WM_UPDATE (WM_APP + 1)
+
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
@@ -37,6 +39,11 @@ static HFONT FontHandle = NULL;
 static PH_UPDATER_STATE PhUpdaterState = Download;
 static PPH_STRING SetupFilePath = NULL;
 static UPDATER_XML_DATA UpdateData;
+static PH_QUEUED_LOCK Lock = PH_QUEUED_LOCK_INIT;
+
+static DWORD contentLength = 0;
+static DWORD bytesDownloaded = 0, timeTransferred = 0, LastUpdateTime = 0;
+static BOOLEAN IsUpdating = FALSE;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -92,6 +99,21 @@ LOGICAL DllMain(
     }
 
     return TRUE;
+}
+
+static VOID AsyncUpdate(
+    VOID
+    )
+{
+    if (!IsUpdating)
+    {
+        IsUpdating = TRUE;
+
+        if (!PostMessage(UpdateDialogHandle, WM_UPDATE, 0, 0))
+        {
+            IsUpdating = FALSE;
+        }
+    }
 }
 
 static VOID NTAPI MainWindowShowingCallback(
@@ -550,12 +572,12 @@ static NTSTATUS CheckUpdateThreadStart(
                 &UpdateData.PhRevisionVersion
                 );
 
-            result = CompareVersions(
+            result = 1;/*CompareVersions(
                 UpdateData.MajorVersion, 
                 UpdateData.MinorVersion, 
                 UpdateData.PhMajorVersion, 
                 UpdateData.PhMinorVersion
-                );
+                );*/
 
             if (result > 0)
             {
@@ -650,9 +672,7 @@ static NTSTATUS DownloadUpdateThreadStart(
     PPH_STRING downloadUrlPath = NULL;
     HANDLE tempFileHandle = NULL;
     HINTERNET hInitialize = NULL, hConnection = NULL, hRequest = NULL;
-
     NTSTATUS status = STATUS_UNSUCCESSFUL;
-
     HWND hwndDlg = (HWND)Parameter;
 
     Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
@@ -783,11 +803,9 @@ static NTSTATUS DownloadUpdateThreadStart(
         }
         else
         {
-            PH_HASH_CONTEXT hashContext;
-            BYTE hashBuffer[20];
-
-            DWORD contentLength = 0;
+            BYTE hashBuffer[20]; 
             DWORD contentLengthSize = sizeof(DWORD);
+            PH_HASH_CONTEXT hashContext;
 
             // Initialize hash algorithm.
             PhInitializeHash(&hashContext, Sha1HashAlgorithm);
@@ -803,27 +821,29 @@ static NTSTATUS DownloadUpdateThreadStart(
             else
             {
                 BYTE buffer[PAGE_SIZE];
-                DWORD bytesRead = 0, bytesDownloaded = 0, startTick = 0, timeTransferred = 0;
+                DWORD bytesRead = 0, startTick = 0;
                 IO_STATUS_BLOCK isb;
 
                 // Zero the buffer.
                 ZeroMemory(buffer, PAGE_SIZE);
+
+                // Reset the counters.
+                bytesDownloaded = 0, timeTransferred = 0, LastUpdateTime = 0;
+                IsUpdating = FALSE;
 
                 // Start the clock.
                 startTick = GetTickCount();
                 timeTransferred = startTick;
 
                 // Download the data.
-                while (TRUE)
+                while (InternetReadFile(hRequest, buffer, PAGE_SIZE, &bytesRead))
                 {
-                    if (!InternetReadFile(hRequest, buffer, PAGE_SIZE, &bytesRead))
-                        break;
-
                     // If we get zero bytes, the file was uploaded or there was an error.
                     if (bytesRead == 0)
                         break;
 
-                    // HACK: If window closed and thread handle was closed, just dispose and exit.
+                    // If window closed and thread handle was closed, just dispose and exit.
+                    // (This also skips error checking/prompts and updating the disposed UI)
                     if (!DownloadThreadHandle)
                         __leave;
 
@@ -845,57 +865,31 @@ static NTSTATUS DownloadUpdateThreadStart(
 
                     if (!NT_SUCCESS(status))
                     {
-                        LogEvent(hwndDlg, PhFormatString(L"NtWriteFile failed (%s)", PhGetNtMessage(status)->Buffer));
+                        PPH_STRING message = PhGetNtMessage(status);
+
+                        LogEvent(hwndDlg, PhFormatString(L"NtWriteFile failed (%s)", message->Buffer));
+
+                        PhDereferenceObject(message);
                         break;
                     }
-
-                    // Zero the buffer.
-                    ZeroMemory(buffer, PAGE_SIZE);
 
                     // Check dwBytesRead are the same dwBytesWritten length returned by WriteFile.
                     if (bytesRead != isb.Information)
                     {
-                        LogEvent(hwndDlg, PhFormatString(L"NtWriteFile failed (%s)", PhGetNtMessage(status)->Buffer));
+                        PPH_STRING message = PhGetNtMessage(status);
+
+                        LogEvent(hwndDlg, PhFormatString(L"NtWriteFile failed (%s)", message->Buffer));
+
+                        PhDereferenceObject(message);
                         break;
                     }
-
+                                        
                     // Update our total bytes downloaded
+                    PhAcquireQueuedLockExclusive(&Lock);
                     bytesDownloaded += (DWORD)isb.Information;
+                    PhReleaseQueuedLockExclusive(&Lock);
 
-                    // Update the GUI progress.
-                    // TODO: COMPLETE REWRITE.
-                    {
-                        DWORD time_taken = (GetTickCount() - timeTransferred);
-                        //DWORD time_remain = (MulDiv(time_taken, contentLength, bytesDownloaded) - time_taken);
-                        DWORD download_speed = (bytesDownloaded / (time_taken != 0 ? time_taken : 1));
-
-                        INT percent = MulDiv(100, bytesDownloaded, contentLength);
-
-                        PPH_STRING dlRemaningBytes = PhFormatSize(bytesDownloaded, -1);
-                        PPH_STRING dlLength = PhFormatSize(contentLength, -1);
-                        PPH_STRING dlSpeed = PhFormatSize(download_speed * 1024, -1);
-
-                        {
-                            PPH_STRING statusText = PhFormatString(
-                                L"%s (%d%%) of %s @ %s/s",
-                                dlRemaningBytes->Buffer,
-                                percent,
-                                dlLength->Buffer,
-                                dlSpeed->Buffer
-                                );
-
-                            SetDlgItemText(hwndDlg, IDC_STATUS, statusText->Buffer);
-
-                            PhDereferenceObject(statusText);
-                        }
-
-                        PhDereferenceObject(dlSpeed);
-                        PhDereferenceObject(dlLength);
-                        PhDereferenceObject(dlRemaningBytes);
-
-                        // Update the progress bar position
-                        SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, percent, 0);
-                    }
+                    AsyncUpdate();
                 }
 
                 // Check if we downloaded the entire file.
@@ -1117,7 +1111,7 @@ INT_PTR CALLBACK UpdaterWndProc(
             PhCenterWindow(hwndDlg, (IsWindowVisible(GetParent(hwndDlg)) && !IsIconic(GetParent(hwndDlg))) ? GetParent(hwndDlg) : NULL);
 
             // Create our update check thread.
-            UpdateCheckThreadHandle = PhCreateThread(0, CheckUpdateThreadStart, hwndDlg);
+            UpdateCheckThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)CheckUpdateThreadStart, hwndDlg);
         }
         break;
     case WM_SHOWDIALOG:
@@ -1168,7 +1162,7 @@ INT_PTR CALLBACK UpdaterWndProc(
                             if (PhInstalledUsingSetup())
                             {
                                 // Start our Downloader thread
-                                DownloadThreadHandle = PhCreateThread(0, DownloadUpdateThreadStart, hwndDlg);
+                                DownloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DownloadUpdateThreadStart, hwndDlg);
                             }
                             else
                             {
@@ -1210,6 +1204,54 @@ INT_PTR CALLBACK UpdaterWndProc(
             break;
         }
         break;
+    case WM_UPDATE:
+        {
+            if (IsUpdating)
+            {
+                DWORD time_taken;
+                DWORD download_speed;        
+                //DWORD time_remain = (MulDiv(time_taken, contentLength, bytesDownloaded) - time_taken);
+                int percent;
+                PPH_STRING dlRemaningBytes;
+                PPH_STRING dlLength;
+                PPH_STRING dlSpeed;
+                PPH_STRING statusText;
+
+                PhAcquireQueuedLockExclusive(&Lock);
+
+                time_taken = (GetTickCount() - timeTransferred);
+                download_speed = (bytesDownloaded / max(time_taken, 1));  
+                percent = MulDiv(100, bytesDownloaded, contentLength);
+
+                dlRemaningBytes = PhFormatSize(bytesDownloaded, -1);
+                dlLength = PhFormatSize(contentLength, -1);
+                dlSpeed = PhFormatSize(download_speed * 1024, -1);
+
+                LastUpdateTime = GetTickCount();
+
+                PhReleaseQueuedLockExclusive(&Lock);
+
+                statusText = PhFormatString(
+                    L"%s (%d%%) of %s @ %s/s",
+                    dlRemaningBytes->Buffer,
+                    percent,
+                    dlLength->Buffer,
+                    dlSpeed->Buffer
+                    );
+
+                SetDlgItemText(hwndDlg, IDC_STATUS, statusText->Buffer);
+                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, percent, 0);
+
+                PhDereferenceObject(statusText);
+                PhDereferenceObject(dlSpeed);
+                PhDereferenceObject(dlLength);
+                PhDereferenceObject(dlRemaningBytes);
+
+                
+                IsUpdating = FALSE; 
+            }  
+        }
+        break;
     }
 
     return FALSE;
@@ -1248,7 +1290,7 @@ VOID ShowUpdateDialog(
 {
     if (!UpdaterDialogThreadHandle)
     {
-        if (!(UpdaterDialogThreadHandle = PhCreateThread(0, ShowUpdateDialogThreadStart, NULL)))
+        if (!(UpdaterDialogThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)ShowUpdateDialogThreadStart, NULL)))
         {
             PhShowStatus(PhMainWndHandle, L"Unable to create the updater window.", 0, GetLastError());
             return;
