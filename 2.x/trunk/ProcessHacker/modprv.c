@@ -474,6 +474,14 @@ VOID PhModuleProviderUpdate(
 
             moduleItem->IsFirst = i == 0;
 
+            // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
+            if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
+                moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE &&
+                moduleItem->Type != PH_MODULE_TYPE_KERNEL_MODULE)
+            {
+                moduleItem->LoadCount = 0;
+            }
+
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
