@@ -5,6 +5,7 @@ Process Hacker
    * Updated ExtendedServices plugin:
      * Fixed bug when restarting services
  * FIXED:
+   * Fixed Load Count column sorting bug
 
 2.28
  * NEW/IMPROVED:
