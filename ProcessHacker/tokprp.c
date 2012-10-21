@@ -24,108 +24,6 @@
 #include <emenu.h>
 #include <cpysave.h>
 
-// ---- TODO: Remove after Windows 8 SDK ----
-
-#define SECURITY_APP_PACKAGE_AUTHORITY              {0,0,0,0,0,15}
-
-#define SECURITY_APP_PACKAGE_BASE_RID               (0x00000002L)
-#define SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT      (2L)
-#define SECURITY_APP_PACKAGE_RID_COUNT              (8L)
-#define SECURITY_CAPABILITY_BASE_RID                (0x00000003L)
-#define SECURITY_BUILTIN_CAPABILITY_RID_COUNT       (2L)
-#define SECURITY_CAPABILITY_RID_COUNT               (5L)
-
-#define SECURITY_CAPABILITY_INTERNET_CLIENT                     (0x00000001L)
-#define SECURITY_CAPABILITY_INTERNET_CLIENT_SERVER              (0x00000002L)
-#define SECURITY_CAPABILITY_PRIVATE_NETWORK_CLIENT_SERVER       (0x00000003L)
-#define SECURITY_CAPABILITY_PICTURES_LIBRARY                    (0x00000004L)
-#define SECURITY_CAPABILITY_VIDEOS_LIBRARY                      (0x00000005L)
-#define SECURITY_CAPABILITY_MUSIC_LIBRARY                       (0x00000006L)
-#define SECURITY_CAPABILITY_DOCUMENTS_LIBRARY                   (0x00000007L)
-#define SECURITY_CAPABILITY_DEFAULT_WINDOWS_CREDENTIALS         (0x00000008L)
-#define SECURITY_CAPABILITY_SHARED_USER_CERTIFICATES            (0x00000009L)
-#define SECURITY_CAPABILITY_REMOVABLE_STORAGE                   (0x0000000AL)
-
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_INVALID   0x00
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64     0x01
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_UINT64    0x02
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING    0x03
-
-typedef struct _CLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE {
-    DWORD64             Version;
-    PWSTR               Name;
-} CLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE, *PCLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE;
-
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN      0x04
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_SID       0x05
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_BOOLEAN   0x06
-
-typedef struct _CLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE {
-    PVOID   pValue;         //  Pointer is BYTE aligned.
-    DWORD   ValueLength;    //  In bytes
-} CLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE,
-    *PCLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE;
-
-#define CLAIM_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING  0x10
-#define CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE      0x0001
-#define CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE         0x0002
-#define CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY 0x0004
-#define CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT 0x0008
-#define CLAIM_SECURITY_ATTRIBUTE_DISABLED 0x0010
-#define CLAIM_SECURITY_ATTRIBUTE_MANDATORY 0x0020
-
-#define CLAIM_SECURITY_ATTRIBUTE_VALID_FLAGS   (    \
-                        CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE       |  \
-                        CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE  |  \
-                        CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY     |  \
-                        CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT   |  \
-                        CLAIM_SECURITY_ATTRIBUTE_DISABLED              |  \
-                        CLAIM_SECURITY_ATTRIBUTE_MANDATORY )
-
-#define CLAIM_SECURITY_ATTRIBUTE_CUSTOM_FLAGS   0xFFFF0000
-
-typedef struct _CLAIM_SECURITY_ATTRIBUTE_V1 {
-    PWSTR   Name;
-    WORD    ValueType;
-    WORD    Reserved;
-    DWORD   Flags;
-    DWORD   ValueCount;
-
-    union {
-        PLONG64                                         pInt64;
-        PDWORD64                                        pUint64;
-        PWSTR                                           *ppString;
-        PCLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE            pFqbn;
-        PCLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE    pOctetString;
-    } Values;
-} CLAIM_SECURITY_ATTRIBUTE_V1, *PCLAIM_SECURITY_ATTRIBUTE_V1;
-
-#define CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1    1
-#define CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION       \
-    CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1
-
-typedef struct _CLAIM_SECURITY_ATTRIBUTES_INFORMATION {
-    WORD    Version;
-    WORD    Reserved;
-    DWORD   AttributeCount;
-    union {
-        PCLAIM_SECURITY_ATTRIBUTE_V1    pAttributeV1;
-    } Attribute;
-} CLAIM_SECURITY_ATTRIBUTES_INFORMATION, *PCLAIM_SECURITY_ATTRIBUTES_INFORMATION;
-
-#define TokenCapabilities 30
-#define TokenAppContainerSid 31
-#define TokenUserClaimAttributes 33
-#define TokenDeviceClaimAttributes 34
-#define TokenAttributes 39
-
-typedef struct _TOKEN_APPCONTAINER_INFORMATION
-{
-    PSID TokenAppContainer;
-} TOKEN_APPCONTAINER_INFORMATION, *PTOKEN_APPCONTAINER_INFORMATION;
-
-// ---- ----
-
 typedef struct _ATTRIBUTE_NODE
 {
     PH_TREENEW_NODE Node;
@@ -453,7 +351,7 @@ PWSTR PhGetBuiltinCapabilityString(
             return L"Music Library";
         case SECURITY_CAPABILITY_DOCUMENTS_LIBRARY:
             return L"Documents Library";
-        case SECURITY_CAPABILITY_DEFAULT_WINDOWS_CREDENTIALS:
+        case SECURITY_CAPABILITY_ENTERPRISE_AUTHENTICATION:
             return L"Default Windows Credentials";
         case SECURITY_CAPABILITY_SHARED_USER_CERTIFICATES:
             return L"Shared User Certificates";
@@ -1976,7 +1874,7 @@ BOOLEAN PhpAddTokenAttributes(
         )))
         return FALSE;
 
-    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAttributes, &info)))
+    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
     {
         for (i = 0; i < info->AttributeCount; i++)
         {
