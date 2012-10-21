@@ -1490,23 +1490,12 @@ typedef struct _SYSTEM_PROCESS_ID_INFORMATION
     UNICODE_STRING ImageName;
 } SYSTEM_PROCESS_ID_INFORMATION, *PSYSTEM_PROCESS_ID_INFORMATION;
 
-// begin_private
-
-typedef enum _FIRMWARE_TYPE
-{
-    FirmwareTypeUnknown,
-    FirmwareTypeBios,
-    FirmwareTypeEfi,
-    FirmwareTypeMax
-} FIRMWARE_TYPE;
-
+// private
 typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
 {
     GUID BootIdentifier;
     FIRMWARE_TYPE FirmwareType;
 } SYSTEM_BOOT_ENVIRONMENT_INFORMATION, PSYSTEM_BOOT_ENVIRONMENT_INFORMATION;
-
-// end_private
 
 // private
 typedef struct _SYSTEM_IMAGE_FILE_EXECUTION_OPTIONS_INFORMATION

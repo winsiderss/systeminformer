@@ -492,49 +492,6 @@ typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
     PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
 
-// TODO: Remove these after Windows 8 SDK
-
-typedef enum _PROCESS_MITIGATION_POLICY
-{
-    ProcessDEPPolicy,
-    ProcessASLRPolicy,
-    ProcessStackCheckPolicy,
-    ProcessStrictHandleCheckPolicy,
-    ProcessSystemCallDisablePolicy,
-    MaxProcessMitigationPolicy
-} PROCESS_MITIGATION_POLICY, *PPROCESS_MITIGATION_POLICY;
-
-typedef struct _PROCESS_MITIGATION_ASLR_POLICY
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG EnableStackRandomization : 1;
-            ULONG EnableForceRelocateImages : 1;
-            ULONG EnableHighEntropy : 1; // only available at creation time
-            ULONG DisallowStrippedImages : 1;
-            ULONG ReservedFlags : 28;
-        };
-    };
-} PROCESS_MITIGATION_ASLR_POLICY, *PPROCESS_MITIGATION_ASLR_POLICY;
-
-typedef struct _PROCESS_MITIGATION_DEP_POLICY
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG Enable : 1;
-            ULONG DisableAtlThunkEmulation : 1;
-            ULONG ReservedFlags : 30;
-        };
-    };
-    BOOLEAN Permanent;
-} PROCESS_MITIGATION_DEP_POLICY, *PPROCESS_MITIGATION_DEP_POLICY;
-
 typedef struct _PROCESS_MITIGATION_STACKCHECK_POLICY
 {
     union
@@ -547,33 +504,6 @@ typedef struct _PROCESS_MITIGATION_STACKCHECK_POLICY
         };
     };
 } PROCESS_MITIGATION_STACKCHECK_POLICY, *PPROCESS_MITIGATION_STACKCHECK_POLICY;
-
-typedef struct _PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG RaiseExceptionOnInvalidHandleReference : 1;
-            ULONG HandleExceptionsPermanentlyEnabled : 1;
-            ULONG ReservedFlags : 30;
-        };
-    };
-} PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY, *PPROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY;
-
-typedef struct _PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG DisallowWin32kSystemCalls : 1;
-            ULONG ReservedFlags : 31;
-        };
-    };
-} PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY, *PPROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY;
 
 // private
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
