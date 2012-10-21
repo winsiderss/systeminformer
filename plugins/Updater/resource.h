@@ -5,7 +5,6 @@
 #define IDD_UPDATE                      101
 #define IDB_BITMAP1                     105
 #define IDD_OPTIONS                     109
-#define IDC_ENABLECACHE                 1001
 #define IDC_MESSAGE                     1002
 #define IDC_AUTOCHECKBOX                1003
 #define IDC_PROGRESS                    1003
@@ -13,6 +12,7 @@
 #define IDC_STATUS                      1007
 #define IDC_DOWNLOAD                    1010
 #define IDC_UPDATEICON                  1017
+#define IDC_INFOSYSLINK                 1020
 
 // Next default values for new objects
 // 
@@ -20,7 +20,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        108
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif
