@@ -249,19 +249,6 @@ FORCEINLINE int wcsicmp2(
 
 #ifdef _M_IX86
 
-FORCEINLINE void *_InterlockedCompareExchangePointer(
-    void *volatile *Destination,
-    void *Exchange,
-    void *Comparand
-    )
-{
-    return (PVOID)_InterlockedCompareExchange(
-        (PLONG_PTR)Destination,
-        (LONG_PTR)Exchange,
-        (LONG_PTR)Comparand
-        );
-}
-
 FORCEINLINE void *_InterlockedExchangePointer(
     void *volatile *Destination,
     void *Exchange

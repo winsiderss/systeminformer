@@ -1130,16 +1130,6 @@ RtlWakeAllConditionVariable(
 
 #endif
 
-// private
-typedef struct _RTL_BARRIER
-{
-    volatile ULONG Barrier;
-    ULONG LeftBarrier;
-    HANDLE WaitEvent[2];
-    ULONG TotalProcessors;
-    ULONG Spins;
-} RTL_BARRIER, *PRTL_BARRIER;
-
 // begin_rev
 #define RTL_BARRIER_SPIN_ONLY 0x00000001 // never block on event - always spin
 #define RTL_BARRIER_NEVER_SPIN 0x00000002 // always block on event - never spin
