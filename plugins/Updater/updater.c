@@ -335,7 +335,7 @@ static BOOL QueryXmlData(
     PCHAR data = NULL;
     BOOL isSuccess = FALSE;
     HINTERNET netInitialize = NULL, netConnection = NULL, netRequest = NULL;
-    mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL;
+    mxml_node_t *xmlDoc = NULL, *xmlNodeVer = NULL, *xmlNodeRelDate = NULL, *xmlNodeSize = NULL, *xmlNodeHash = NULL, *xmlReleaseNotesUrl = NULL;
 
     // Create a user agent string.
     PPH_STRING phVersion = PhGetPhVersion();
@@ -420,13 +420,15 @@ static BOOL QueryXmlData(
         xmlNodeSize = mxmlFindElement(xmlDoc, xmlDoc, "size", NULL, NULL, MXML_DESCEND);
         // Find the hash node.
         xmlNodeHash = mxmlFindElement(xmlDoc, xmlDoc, "sha1", NULL, NULL, MXML_DESCEND);
+        // Find the release notes URL.
+        xmlReleaseNotesUrl = mxmlFindElement(xmlDoc, xmlDoc, "releasenotes", NULL, NULL, MXML_DESCEND);
 
         // Format strings into unicode PPH_STRING's
         UpdateData.Version = PhGetOpaqueXmlNodeText(xmlNodeVer);
         UpdateData.RelDate = PhGetOpaqueXmlNodeText(xmlNodeRelDate);
         UpdateData.Size = PhGetOpaqueXmlNodeText(xmlNodeSize);
         UpdateData.Hash = PhGetOpaqueXmlNodeText(xmlNodeHash);
-
+        UpdateData.ReleaseNotesUrl = PhGetOpaqueXmlNodeText(xmlReleaseNotesUrl);
         // parse and check string
         //if (!ParseVersionString(XmlData->Version->Buffer, &XmlData->MajorVersion, &XmlData->MinorVersion))
         //    __leave;
@@ -517,6 +519,12 @@ static BOOL FreeXmlData(
     {
         PhDereferenceObject(UpdateData.Hash);
         UpdateData.Hash = NULL;
+    }
+
+    if (UpdateData.ReleaseNotesUrl)
+    {
+        PhDereferenceObject(UpdateData.ReleaseNotesUrl);
+        UpdateData.ReleaseNotesUrl = NULL;
     }
 
     return TRUE;
@@ -1247,9 +1255,27 @@ INT_PTR CALLBACK UpdaterWndProc(
                 PhDereferenceObject(dlLength);
                 PhDereferenceObject(dlRemaningBytes);
 
-                
                 IsUpdating = FALSE; 
             }  
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            switch (((LPNMHDR)lParam)->code)
+            {
+            case NM_CLICK: // Mouse
+            case NM_RETURN: // Keyboard 
+                {
+                    //PNMLINK pNMLink = (PNMLINK)lParam;
+                    //LITEM item = pNMLink->item;
+
+                    if (UpdateData.ReleaseNotesUrl)
+                    {
+                        PhShellExecute(hwndDlg, UpdateData.ReleaseNotesUrl->Buffer, NULL);
+                    }
+                }
+                break;
+            }
         }
         break;
     }
