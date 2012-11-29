@@ -2,7 +2,7 @@
  * Process Hacker Extended Services -
  *   trigger editor
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -107,6 +107,8 @@ static GUID FirewallPortOpenGuid = { 0xb7569e07, 0x8421, 0x4ee0, { 0xad, 0x10, 0
 static GUID FirewallPortCloseGuid = { 0xa144ed38, 0x8e12, 0x4de4, { 0x9d, 0x96, 0xe6, 0x47, 0x40, 0xb1, 0xa5, 0x24 } };
 static GUID MachinePolicyPresentGuid = { 0x659fcae6, 0x5bdb, 0x4da9, { 0xb1, 0xff, 0xca, 0x2a, 0x17, 0x8d, 0x46, 0xe0 } };
 static GUID UserPolicyPresentGuid = { 0x54fb46c8, 0xf089, 0x464c, { 0xb1, 0xfd, 0x59, 0xd1, 0xb6, 0x2c, 0x3b, 0x50 } };
+static GUID RpcInterfaceEventGuid = { 0xbc90d167, 0x9470, 0x4139, { 0xa9, 0xba, 0xbe, 0x0b, 0xbb, 0xf5, 0xb7, 0x4d } };
+static GUID NamedPipeEventGuid = { 0x1f81d131, 0x3fac, 0x4537, { 0x9e, 0x0c, 0x7e, 0x7b, 0x0c, 0x2f, 0x4b, 0x55 } };
 static GUID SubTypeUnknownGuid; // dummy
 
 static TYPE_ENTRY TypeEntries[] =
@@ -116,6 +118,8 @@ static TYPE_ENTRY TypeEntries[] =
     { SERVICE_TRIGGER_TYPE_DOMAIN_JOIN, L"Domain join" },
     { SERVICE_TRIGGER_TYPE_FIREWALL_PORT_EVENT, L"Firewall port event" },
     { SERVICE_TRIGGER_TYPE_GROUP_POLICY, L"Group policy" },
+    { SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, L"Network endpoint" },
+    { SERVICE_TRIGGER_TYPE_CUSTOM_SYSTEM_STATE_CHANGE, L"Custom system state change" },
     { SERVICE_TRIGGER_TYPE_CUSTOM, L"Custom" }
 };
 
@@ -136,7 +140,11 @@ static SUBTYPE_ENTRY SubTypeEntries[] =
     { SERVICE_TRIGGER_TYPE_GROUP_POLICY, NULL, L"Group policy change" },
     { SERVICE_TRIGGER_TYPE_GROUP_POLICY, &MachinePolicyPresentGuid, L"Group policy change: Machine" },
     { SERVICE_TRIGGER_TYPE_GROUP_POLICY, &UserPolicyPresentGuid, L"Group policy change: User" },
-    { SERVICE_TRIGGER_TYPE_GROUP_POLICY, &SubTypeUnknownGuid, L"Group policy change: Unknown" }
+    { SERVICE_TRIGGER_TYPE_GROUP_POLICY, &SubTypeUnknownGuid, L"Group policy change: Unknown" },
+    { SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, NULL, L"Network endpoint" },
+    { SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, &RpcInterfaceEventGuid, L"Network endpoint: RPC interface" },
+    { SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, &NamedPipeEventGuid, L"Network endpoint: Named pipe" },
+    { SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, &SubTypeUnknownGuid, L"Network endpoint: Unknown" }
 };
 
 static PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
@@ -235,7 +243,8 @@ PES_TRIGGER_INFO EspCreateTriggerInfo(
         if (
             info->Type == SERVICE_TRIGGER_TYPE_CUSTOM ||
             info->Type == SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL ||
-            info->Type == SERVICE_TRIGGER_TYPE_FIREWALL_PORT_EVENT
+            info->Type == SERVICE_TRIGGER_TYPE_FIREWALL_PORT_EVENT ||
+            info->Type == SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT
             )
         {
             ULONG i;
@@ -996,6 +1005,11 @@ static VOID EspFixServiceTriggerControls(
                 ComboBox_AddString(subTypeComboBox, L"Custom");
             }
             break;
+        case SERVICE_TRIGGER_TYPE_CUSTOM_SYSTEM_STATE_CHANGE:
+            {
+                ComboBox_AddString(subTypeComboBox, L"Custom");
+            }
+            break;
         case SERVICE_TRIGGER_TYPE_CUSTOM:
             {
                 PETW_PUBLISHER_ENTRY entries;
@@ -1502,6 +1516,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         context->EditingInfo->DataList->Count != 0 &&
                         context->EditingInfo->Type != SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL &&
                         context->EditingInfo->Type != SERVICE_TRIGGER_TYPE_FIREWALL_PORT_EVENT &&
+                        context->EditingInfo->Type != SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT &&
                         context->EditingInfo->Type != SERVICE_TRIGGER_TYPE_CUSTOM
                         )
                     {

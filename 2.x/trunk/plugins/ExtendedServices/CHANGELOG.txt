@@ -1,4 +1,5 @@
 1.7
+ * Added new triggers for Windows 8
  * Fixed bug when restarting services
 
 1.6

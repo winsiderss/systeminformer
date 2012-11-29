@@ -154,6 +154,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleCheckingMode,
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
+    ProcessWorkingSetControl,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -196,7 +197,6 @@ typedef enum _THREADINFOCLASS
     ThreadCounterProfiling,
     ThreadIdealProcessorEx, // q: PROCESSOR_NUMBER
     ThreadCpuAccountingInformation, // since WIN8
-    ThreadSwitchStackCheck,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -236,7 +236,10 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
             ULONG IsWow64Process : 1;
             ULONG IsProcessDeleting : 1;
             ULONG IsCrossSessionCreate : 1;
-            ULONG SpareBits : 28;
+            ULONG IsFrozen : 1;
+            ULONG IsBackground : 1;
+            ULONG IsStronglyNamed : 1;
+            ULONG SpareBits : 25;
         };
     };
 } PROCESS_EXTENDED_BASIC_INFORMATION, *PPROCESS_EXTENDED_BASIC_INFORMATION;
@@ -492,30 +495,17 @@ typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
     PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
 
-typedef struct _PROCESS_MITIGATION_STACKCHECK_POLICY
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG Permanent : 1;
-            ULONG ReservedFlags : 31;
-        };
-    };
-} PROCESS_MITIGATION_STACKCHECK_POLICY, *PPROCESS_MITIGATION_STACKCHECK_POLICY;
-
 // private
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 {
     PROCESS_MITIGATION_POLICY Policy;
     union
     {
+        //PROCESS_MITIGATION_DEP_POLICY DEPPolicy;
         PROCESS_MITIGATION_ASLR_POLICY ASLRPolicy;
-        PROCESS_MITIGATION_DEP_POLICY DEPPolicy;
-        PROCESS_MITIGATION_STACKCHECK_POLICY StackCheckPolicy;
         PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY StrictHandleCheckPolicy;
         PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY SystemCallDisablePolicy;
+        PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY ExtensionPointDisablePolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 

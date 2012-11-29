@@ -902,7 +902,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         NULL
                         )))
                     {
-                        SetDlgItemText(hwndDlg, IDC_PROTECTION, protectionInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
+                        SetDlgItemText(hwndDlg, IDC_PROTECTION, protectionInfo.IsProtectedProcess ? L"Yes" : L"No");
                         EnableWindow(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), TRUE);
                     }
                 }
@@ -916,7 +916,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         )))
                     {
                         SetDlgItemText(hwndDlg, IDC_PROTECTION,
-                            extendedBasicInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
+                            extendedBasicInfo.IsProtectedProcess ? L"Yes" : L"No");
                     }
                 }
             }
@@ -927,6 +927,59 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (processHandle)
                 NtClose(processHandle);
+
+            if (WindowsVersion >= WINDOWS_8)
+            {
+                PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+                SetDlgItemText(hwndDlg, IDC_ASLR, L"N/A");
+
+                policyInfo.Policy = ProcessASLRPolicy;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_INFORMATION,
+                    processItem->ProcessId                    )))
+                {
+                    if (NT_SUCCESS(NtQueryInformationProcess(
+                        processHandle,
+                        ProcessMitigationPolicy,
+                        &policyInfo,
+                        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+                        NULL
+                        )))
+                    {
+                        PH_STRING_BUILDER sb;
+
+                        PhInitializeStringBuilder(&sb, 40);
+
+                        if (policyInfo.ASLRPolicy.EnableBottomUpRandomization)
+                            PhAppendStringBuilder2(&sb, L"Bottom up randomization, ");
+                        if (policyInfo.ASLRPolicy.EnableForceRelocateImages)
+                            PhAppendStringBuilder2(&sb, L"Force relocate images, ");
+                        if (policyInfo.ASLRPolicy.EnableHighEntropy)
+                            PhAppendStringBuilder2(&sb, L"High entropy, ");
+                        if (policyInfo.ASLRPolicy.DisallowStrippedImages)
+                            PhAppendStringBuilder2(&sb, L"Disallow stripped images, ");
+                        if (sb.String->Length != 0)
+                            PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+
+                        if (sb.String->Length == 0)
+                            SetDlgItemText(hwndDlg, IDC_ASLR, L"Disabled");
+                        else
+                            SetDlgItemText(hwndDlg, IDC_ASLR, sb.String->Buffer);
+
+                        PhDeleteStringBuilder(&sb);
+                    }
+
+                    NtClose(processHandle);
+                }
+            }
+            else
+            {
+                ShowWindow(GetDlgItem(hwndDlg, IDC_ASLRLABEL), SW_HIDE);
+                ShowWindow(GetDlgItem(hwndDlg, IDC_ASLR), SW_HIDE);
+            }
 
 #ifdef _M_X64
             if (processItem->IsWow64Valid)
@@ -987,10 +1040,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITDEP),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROTECTION),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ASLR),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITPROTECTION),
-                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
@@ -1035,36 +1086,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (PhUiSetDepStatusProcess(hwndDlg, processItem))
                         PhpUpdateProcessDep(hwndDlg, processItem);
-                }
-                break;
-            case IDC_EDITPROTECTION:
-                {
-                    if (PhUiSetProtectionProcess(hwndDlg, processItem))
-                    {
-                        HANDLE processHandle;
-                        KPH_PROCESS_PROTECTION_INFORMATION protectionInfo;
-
-                        if (NT_SUCCESS(PhOpenProcess(
-                            &processHandle,
-                            ProcessQueryAccess,
-                            processItem->ProcessId
-                            )))
-                        {
-                            if (NT_SUCCESS(KphQueryInformationProcess(
-                                processHandle,
-                                KphProcessProtectionInformation,
-                                &protectionInfo,
-                                sizeof(KPH_PROCESS_PROTECTION_INFORMATION),
-                                NULL
-                                )))
-                            {
-                                SetDlgItemText(hwndDlg, IDC_PROTECTION,
-                                    protectionInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
-                            }
-
-                            NtClose(processHandle);
-                        }
-                    }
                 }
                 break;
             case IDC_TERMINATE:

@@ -24,7 +24,9 @@
 #include <verifyp.h>
 
 _CryptCATAdminCalcHashFromFileHandle CryptCATAdminCalcHashFromFileHandle;
+_CryptCATAdminCalcHashFromFileHandle2 CryptCATAdminCalcHashFromFileHandle2;
 _CryptCATAdminAcquireContext CryptCATAdminAcquireContext;
+_CryptCATAdminAcquireContext2 CryptCATAdminAcquireContext2;
 _CryptCATAdminEnumCatalogFromHash CryptCATAdminEnumCatalogFromHash;
 _CryptCATCatalogInfoFromContext CryptCATCatalogInfoFromContext;
 _CryptCATAdminReleaseCatalogContext CryptCATAdminReleaseCatalogContext;
@@ -46,7 +48,9 @@ static VOID PhpVerifyInitialization(
     crypt32 = LoadLibrary(L"crypt32.dll");
 
     CryptCATAdminCalcHashFromFileHandle = (PVOID)GetProcAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle");
+    CryptCATAdminCalcHashFromFileHandle2 = (PVOID)GetProcAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle2");
     CryptCATAdminAcquireContext = (PVOID)GetProcAddress(wintrust, "CryptCATAdminAcquireContext");
+    CryptCATAdminAcquireContext2 = (PVOID)GetProcAddress(wintrust, "CryptCATAdminAcquireContext2");
     CryptCATAdminEnumCatalogFromHash = (PVOID)GetProcAddress(wintrust, "CryptCATAdminEnumCatalogFromHash");
     CryptCATCatalogInfoFromContext = (PVOID)GetProcAddress(wintrust, "CryptCATCatalogInfoFromContext");
     CryptCATAdminReleaseCatalogContext = (PVOID)GetProcAddress(wintrust, "CryptCATAdminReleaseCatalogContext");
@@ -75,6 +79,8 @@ VERIFY_RESULT PhpStatusToVerifyResult(
         return VrDistrust;
     case CRYPT_E_SECURITY_SETTINGS:
         return VrSecuritySettings;
+    case TRUST_E_BAD_DIGEST:
+        return VrBadSignature;
     default:
         return VrSecuritySettings;
     }
@@ -279,6 +285,7 @@ VERIFY_RESULT PhpVerifyFileBasic(
 
 VERIFY_RESULT PhpVerifyFileFromCatalog(
     __in PWSTR FileName,
+    __in_opt PWSTR HashAlgorithm,
     __out_opt PPH_STRING *SignerName
     )
 {
@@ -314,29 +321,60 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         return VrNoSignature;
     }
 
-    fileHashLength = 256;
-    fileHash = PhAllocate(fileHashLength);
-
-    if (!CryptCATAdminCalcHashFromFileHandle(fileHandle, &fileHashLength, fileHash, 0))
+    if (CryptCATAdminAcquireContext2)
     {
-        PhFree(fileHash);
-        fileHash = PhAllocate(fileHashLength);
-
-        if (!CryptCATAdminCalcHashFromFileHandle(fileHandle, &fileHashLength, fileHash, 0))
+        if (!CryptCATAdminAcquireContext2(&catAdminHandle, &driverActionVerify, HashAlgorithm, NULL, 0))
         {
             NtClose(fileHandle);
-            PhFree(fileHash);
+            return VrNoSignature;
+        }
+    }
+    else
+    {
+        if (!CryptCATAdminAcquireContext(&catAdminHandle, &driverActionVerify, 0))
+        {
+            NtClose(fileHandle);
             return VrNoSignature;
         }
     }
 
-    NtClose(fileHandle);
+    fileHashLength = 16;
+    fileHash = PhAllocate(fileHashLength);
 
-    if (!CryptCATAdminAcquireContext(&catAdminHandle, &driverActionVerify, 0))
+    if (CryptCATAdminCalcHashFromFileHandle2)
     {
-        PhFree(fileHash);
-        return VrNoSignature;
+        if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, fileHandle, &fileHashLength, fileHash, 0))
+        {
+            PhFree(fileHash);
+            fileHash = PhAllocate(fileHashLength);
+
+            if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, fileHandle, &fileHashLength, fileHash, 0))
+            {
+                CryptCATAdminReleaseContext(catAdminHandle, 0);
+                NtClose(fileHandle);
+                PhFree(fileHash);
+                return VrNoSignature;
+            }
+        }
     }
+    else
+    {
+        if (!CryptCATAdminCalcHashFromFileHandle(fileHandle, &fileHashLength, fileHash, 0))
+        {
+            PhFree(fileHash);
+            fileHash = PhAllocate(fileHashLength);
+
+            if (!CryptCATAdminCalcHashFromFileHandle(fileHandle, &fileHashLength, fileHash, 0))
+            {
+                CryptCATAdminReleaseContext(catAdminHandle, 0);
+                NtClose(fileHandle);
+                PhFree(fileHash);
+                return VrNoSignature;
+            }
+        }
+    }
+
+    NtClose(fileHandle);
 
     fileHashTag = PhAllocate((fileHashLength * 2 + 1) * sizeof(WCHAR));
 
@@ -368,6 +406,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
             catalogInfo.pcwszMemberFilePath = FileName;
             catalogInfo.pcwszMemberTag = fileHashTag;
+            catalogInfo.hCatAdmin = catAdminHandle;
 
             trustData.cbStruct = sizeof(trustData);
             trustData.dwUIChoice = WTD_UI_NONE;
@@ -449,7 +488,12 @@ VERIFY_RESULT PhVerifyFile(
     result = PhpVerifyFileBasic(FileName, SignerName);
 
     if (result == VrNoSignature)
-        result = PhpVerifyFileFromCatalog(FileName, SignerName);
+    {
+        result = PhpVerifyFileFromCatalog(FileName, L"SHA256", SignerName); // for Windows 8
+
+        if (result != VrTrusted)
+            result = PhpVerifyFileFromCatalog(FileName, NULL, SignerName);
+    }
 
     return result;
 }

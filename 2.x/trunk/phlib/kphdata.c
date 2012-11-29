@@ -2,7 +2,7 @@
  * Process Hacker -
  *   KProcessHacker dynamic data definitions
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -100,17 +100,17 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.OtName = 0x10;
         Package->StructData.OtIndex = 0x28; // now only a UCHAR, not a ULONG
     }
-    // Windows Developer Preview
-    else if (majorVersion == 6 && minorVersion == 2 && buildNumber == 8102)
+    // Windows 8
+    else if (majorVersion == 6 && minorVersion == 2 && buildNumber == 9200)
     {
-        Package->BuildNumber = 8102;
+        Package->BuildNumber = 9200;
         Package->ResultingNtVersion = PHNT_WIN8;
 
         Package->StructData.EgeGuid = 0x14;
-        Package->StructData.EpObjectTable = 0x2f0;
+        Package->StructData.EpObjectTable = 0x408;
         Package->StructData.EpProtectedProcessOff = -1; // now SE_SIGNING_LEVEL, no longer relevant
         Package->StructData.EpProtectedProcessBit = -1;
-        Package->StructData.EpRundownProtect = 0x1c8;
+        Package->StructData.EpRundownProtect = 0x2d8;
         Package->StructData.EreGuidEntry = 0x10;
         Package->StructData.HtHandleContentionEvent = 0x30;
         Package->StructData.OtName = 0x10;
