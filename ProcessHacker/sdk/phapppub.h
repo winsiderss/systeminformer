@@ -1171,14 +1171,6 @@ PhUiSetDepStatusProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhUiSetProtectionProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
 PhUiStartService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service

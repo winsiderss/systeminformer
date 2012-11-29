@@ -151,6 +151,7 @@
 #define IDC_PAUSE                       1027
 #define IDC_PROTECTION                  1027
 #define IDC_START                       1028
+#define IDC_ASLR                        1028
 #define IDC_DESCRIPTION                 1029
 #define IDC_TYPE                        1032
 #define IDC_STARTTYPE                   1033
@@ -517,6 +518,7 @@
 #define IDC_CHECK2                      1361
 #define IDC_SAMPLECOUNTAUTOMATIC        1361
 #define IDC_SHOWCOMMITINSUMMARY         1361
+#define IDC_ASLRLABEL                   1363
 #define IDC_ZLISTSTANDBY4_V             1364
 #define IDC_ZLISTSTANDBY5_V             1365
 #define IDC_ZLISTSTANDBY6_V             1366
@@ -775,7 +777,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        206
 #define _APS_NEXT_COMMAND_VALUE         40278
-#define _APS_NEXT_CONTROL_VALUE         1362
+#define _APS_NEXT_CONTROL_VALUE         1364
 #define _APS_NEXT_SYMED_VALUE           137
 #endif
 #endif
