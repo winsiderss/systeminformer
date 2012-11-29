@@ -920,10 +920,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                 }
             }
-            else
-            {
-                EnableWindow(GetDlgItem(hwndDlg, IDC_PROTECTION), FALSE);
-            }
 
             if (processHandle)
                 NtClose(processHandle);
