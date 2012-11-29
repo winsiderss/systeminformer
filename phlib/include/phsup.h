@@ -249,6 +249,14 @@ FORCEINLINE int wcsicmp2(
 
 #ifdef _M_IX86
 
+#ifndef _InterlockedCompareExchangePointer
+void *_InterlockedCompareExchangePointer(
+    void *volatile *Destination,
+    void *Exchange,
+    void *Comparand
+    );
+#endif
+
 FORCEINLINE void *_InterlockedExchangePointer(
     void *volatile *Destination,
     void *Exchange

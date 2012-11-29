@@ -282,7 +282,8 @@ PPH_STRING PhGetProcessTooltipText(
     // Tasks
     if (WindowsVersion >= WINDOWS_VISTA && (
         PhEqualString2(Process->ProcessName, L"taskeng.exe", TRUE) ||
-        PhEqualString2(Process->ProcessName, L"taskhost.exe", TRUE)
+        PhEqualString2(Process->ProcessName, L"taskhost.exe", TRUE) ||
+        PhEqualString2(Process->ProcessName, L"taskhostex.exe", TRUE)
         ))
     {
         PH_STRING_BUILDER tasks;
