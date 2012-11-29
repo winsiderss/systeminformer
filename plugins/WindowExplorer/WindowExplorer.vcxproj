@@ -96,6 +96,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <DelayLoadDLLs>ProcessHacker.exe;comctl32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalOptions>/SUBSYSTEM:WINDOWS,5.01 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -117,6 +118,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <DelayLoadDLLs>ProcessHacker.exe;comctl32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalOptions>/SUBSYSTEM:WINDOWS,5.02 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -142,6 +144,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <DelayLoadDLLs>ProcessHacker.exe;comctl32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <SetChecksum>true</SetChecksum>
+      <AdditionalOptions>/SUBSYSTEM:WINDOWS,5.01 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -167,6 +170,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <DelayLoadDLLs>ProcessHacker.exe;comctl32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <SetChecksum>true</SetChecksum>
+      <AdditionalOptions>/SUBSYSTEM:WINDOWS,5.02 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
