@@ -1579,7 +1579,8 @@ typedef enum _VERIFY_RESULT
     VrExpired,
     VrRevoked,
     VrDistrust,
-    VrSecuritySettings
+    VrSecuritySettings,
+    VrBadSignature
 } VERIFY_RESULT, *PVERIFY_RESULT;
 
 PHLIBAPI

@@ -17,9 +17,25 @@ typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle)(
     DWORD dwFlags
     );
 
+typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle2)(
+    HCATADMIN hCatAdmin,
+    HANDLE hFile,
+    DWORD *pcbHash,
+    BYTE *pbHash,
+    DWORD dwFlags
+    );
+
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext)(
     HANDLE *phCatAdmin,
     GUID *pgSubsystem,
+    DWORD dwFlags
+    );
+
+typedef BOOL (WINAPI *_CryptCATAdminAcquireContext2)(
+    HCATADMIN *phCatAdmin,
+    const GUID *pgSubsystem,
+    PCWSTR pwszHashAlgorithm,
+    PCCERT_STRONG_SIGN_PARA pStrongHashPolicy,
     DWORD dwFlags
     );
 
