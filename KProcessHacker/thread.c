@@ -1068,7 +1068,7 @@ NTSTATUS KpiSetInformationThread(
     {
     case KphThreadImpersonationToken:
         {
-            HANDLE tokenHandle;
+            HANDLE tokenHandle = NULL;
             PACCESS_TOKEN token;
             HANDLE newTokenHandle;
 

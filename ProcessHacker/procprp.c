@@ -939,7 +939,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 if (NT_SUCCESS(PhOpenProcess(
                     &processHandle,
                     PROCESS_QUERY_INFORMATION,
-                    processItem->ProcessId                    )))
+                    processItem->ProcessId
+                    )))
                 {
                     if (NT_SUCCESS(NtQueryInformationProcess(
                         processHandle,

@@ -231,7 +231,7 @@ NTSTATUS KpiOpenProcessJob(
     NTSTATUS status;
     PEPROCESS process;
     PEJOB job;
-    HANDLE jobHandle;
+    HANDLE jobHandle = NULL;
 
     PAGED_CODE();
 
