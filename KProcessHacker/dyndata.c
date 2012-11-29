@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -139,14 +139,16 @@ NTSTATUS KphDynamicDataInitialization(
     if (!NT_SUCCESS(status))
         return status;
 
-#ifdef _X86_
-    KphpX86DataInitialization();
-#else
-    // AMD64 data is read from the registry, but we use the fallback
+    // Dynamic data should be read from the registry, but we use the fallback
     // function here if needed.
     if (KphDynNtVersion == 0)
+    {
+#ifdef _X86_
+        KphpX86DataInitialization();
+#else
         KphpAmd64DataInitialization();
 #endif
+    }
 
     return status;
 }

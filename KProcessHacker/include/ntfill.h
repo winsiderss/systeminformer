@@ -21,13 +21,15 @@ typedef VOID (NTAPI *PKNORMAL_ROUTINE)(
     __in PVOID SystemArgument2
     );
 
-typedef VOID (NTAPI *PKKERNEL_ROUTINE)(
+typedef VOID KKERNEL_ROUTINE(
     __in PRKAPC Apc,
     __inout PKNORMAL_ROUTINE *NormalRoutine,
     __inout PVOID *NormalContext,
     __inout PVOID *SystemArgument1,
     __inout PVOID *SystemArgument2
     );
+
+typedef KKERNEL_ROUTINE (NTAPI *PKKERNEL_ROUTINE);
 
 typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(
     __in PRKAPC Apc

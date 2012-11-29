@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{FD3C278D
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phlib-test", "tests\phlib-test\phlib-test.vcxproj", "{0C21014E-BC90-4AE5-AA32-398445C13B28}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KProcessHacker", "KProcessHacker\KProcessHacker.vcxproj", "{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -67,6 +69,14 @@ Global
 		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Release|Win32.ActiveCfg = Release|Win32
 		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Release|Win32.Build.0 = Release|Win32
 		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Release|x64.ActiveCfg = Release|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|Win32.ActiveCfg = Win8 Debug|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|Win32.Build.0 = Win8 Debug|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|x64.ActiveCfg = Win8 Debug|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|x64.Build.0 = Win8 Debug|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|Win32.ActiveCfg = Win8 Release|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|Win32.Build.0 = Win8 Release|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|x64.ActiveCfg = Win8 Release|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|x64.Build.0 = Win8 Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
