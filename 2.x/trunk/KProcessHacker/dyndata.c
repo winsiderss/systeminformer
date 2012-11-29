@@ -655,7 +655,7 @@ PVOID KphGetDynamicProcedureScan(
         {
             for (address = ProcedureScan->StartAddress; address < endAddress; address++)
             {
-                if (memcmp((PVOID)address, bytes, length) == 0)
+                if (RtlCompareMemory((PVOID)address, bytes, length) == length)
                 {
                     ProcedureScan->ProcedureAddress = (PVOID)(address + ProcedureScan->Displacement);
                     break;
