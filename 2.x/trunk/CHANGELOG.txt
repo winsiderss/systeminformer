@@ -9,6 +9,7 @@ Process Hacker
  * FIXED:
    * Fixed Load Count column sorting bug
    * Fixed signature verification on Windows 8
+   * Fixed task scheduler information on Windows 8
 
 2.28
  * NEW/IMPROVED:
