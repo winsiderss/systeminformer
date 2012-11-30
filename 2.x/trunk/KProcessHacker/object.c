@@ -812,11 +812,16 @@ NTSTATUS KpiQueryInformationObject(
             POBJECT_TYPE_INFORMATION typeInfo;
 
             returnLength = sizeof(OBJECT_TYPE_INFORMATION);
-
             allocateSize = ObjectInformationLength;
 
-            if (allocateSize < sizeof(OBJECT_TYPE_INFORMATION)) // make sure we never try to allocate 0 bytes
+            if (allocateSize < sizeof(OBJECT_TYPE_INFORMATION))
                 allocateSize = sizeof(OBJECT_TYPE_INFORMATION);
+
+            // ObQueryTypeInfo uses ObjectType->Name.MaximumLength instead of ObjectType->Name.Length + sizeof(WCHAR)
+            // to calculate the required buffer size. In Windows 8, certain object types (e.g. TmTx) do NOT include
+            // the null terminator in MaximumLength, which causes ObQueryTypeInfo to overrun the given buffer.
+            // To work around this bug, we add some (generous) padding to our allocation.
+            allocateSize += sizeof(ULONGLONG);
 
             typeInfo = ExAllocatePoolWithQuotaTag(PagedPool, allocateSize, 'QhpK');
 
