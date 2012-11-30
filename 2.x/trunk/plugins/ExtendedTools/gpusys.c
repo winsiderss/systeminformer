@@ -689,23 +689,36 @@ PPH_STRING EtpGetGpuNameString(
     VOID
     )
 {
-    PPH_STRING description;
+    ULONG i;
+    ULONG count;
+    PH_STRING_BUILDER sb;
 
-    if (EtGetGpuAdapterCount() == 1)
-    {
-        description = EtGetGpuAdapterDescription(0);
+    count = EtGetGpuAdapterCount();
+    PhInitializeStringBuilder(&sb, 100);
 
-        if (!description)
-            description = PhReferenceEmptyString();
-    }
-    else if (EtGetGpuAdapterCount() > 1)
+    for (i = 0; i < count; i++)
     {
-        description = PhCreateString(L"Multiple GPUs");
-    }
-    else
-    {
-        description = PhReferenceEmptyString();
+        PPH_STRING description;
+
+        description = EtGetGpuAdapterDescription(i);
+
+        if (!PhIsNullOrEmptyString(description))
+        {
+            // Ignore "Microsoft Basic Render Driver" unless we don't have any other adapters.
+            // This does not take into account localization.
+            if (count == 1 || !PhEqualString2(description, L"Microsoft Basic Render Driver", TRUE))
+            {
+                PhAppendStringBuilder(&sb, description);
+                PhAppendStringBuilder2(&sb, L", ");
+            }
+        }
+
+        if (description)
+            PhDereferenceObject(description);
     }
 
-    return description;
+    if (sb.String->Length != 0)
+        PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+
+    return PhFinalStringBuilderString(&sb);
 }
