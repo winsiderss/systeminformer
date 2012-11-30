@@ -221,7 +221,7 @@ IDR_MODULE MENU
 BEGIN
     POPUP "Module"
     BEGIN
-        MENUITEM "&Unload",                     ID_MODULE_UNLOAD
+        MENUITEM "&Unload\aDel",                ID_MODULE_UNLOAD
         MENUITEM SEPARATOR
         MENUITEM "&Inspect",                    ID_MODULE_INSPECT
         MENUITEM "&Search Online",              ID_MODULE_SEARCHONLINE

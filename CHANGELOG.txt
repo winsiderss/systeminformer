@@ -5,6 +5,8 @@ Process Hacker
    * Added new ASLR information for Windows 8
    * Added Restart to Boot Options and Hybrid Shutdown menu items for
      Windows 8
+   * Added ability to specify processes by their names and inject and
+     unload DLLs in command line
    * Updated ExtendedServices plugin:
      * Added new triggers for Windows 8
      * Fixed bug when restarting services

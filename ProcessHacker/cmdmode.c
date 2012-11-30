@@ -22,6 +22,12 @@
 
 #include <phapp.h>
 
+NTSTATUS PhpGetDllBaseRemote(
+    __in HANDLE ProcessHandle,
+    __in PPH_STRINGREF BaseDllName,
+    __out PVOID *DllBase
+    );
+
 static HWND CommandModeWindowHandle;
 
 #define PH_COMMAND_OPTION_HWND 1
@@ -72,17 +78,48 @@ NTSTATUS PhCommandModeStart(
 
     if (PhEqualString2(PhStartupParameters.CommandType, L"process", TRUE))
     {
-        ULONG64 processId64;
+        SIZE_T i;
+        SIZE_T processIdLength;
         HANDLE processId;
         HANDLE processHandle;
 
         if (!PhStartupParameters.CommandObject)
             return STATUS_INVALID_PARAMETER;
 
-        if (!PhStringToInteger64(&PhStartupParameters.CommandObject->sr, 10, &processId64))
-            return STATUS_INVALID_PARAMETER;
+        processIdLength = PhStartupParameters.CommandObject->Length / 2;
 
-        processId = (HANDLE)processId64;
+        for (i = 0; i < processIdLength; i++)
+        {
+            if (!PhIsDigitCharacter(PhStartupParameters.CommandObject->Buffer[i]))
+                break;
+        }
+
+        if (i == processIdLength)
+        {
+            ULONG64 processId64;
+
+            if (!PhStringToInteger64(&PhStartupParameters.CommandObject->sr, 10, &processId64))
+                return STATUS_INVALID_PARAMETER;
+
+            processId = (HANDLE)processId64;
+        }
+        else
+        {
+            PVOID processes;
+            PSYSTEM_PROCESS_INFORMATION process;
+
+            if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+                return status;
+
+            if (!(process = PhFindProcessInformationByImageName(processes, &PhStartupParameters.CommandObject->sr)))
+            {
+                PhFree(processes);
+                return STATUS_NOT_FOUND;
+            }
+
+            processId = process->UniqueProcessId;
+            PhFree(processes);
+        }
 
         if (PhEqualString2(PhStartupParameters.CommandAction, L"terminate", TRUE))
         {
@@ -182,6 +219,60 @@ NTSTATUS PhCommandModeStart(
                     &pagePriority,
                     sizeof(ULONG)
                     );
+                NtClose(processHandle);
+            }
+        }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"injectdll", TRUE))
+        {
+            if (!PhStartupParameters.CommandValue)
+                return STATUS_INVALID_PARAMETER;
+
+            if (NT_SUCCESS(status = PhOpenProcess(
+                &processHandle,
+                ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
+                processId
+                )))
+            {
+                LARGE_INTEGER timeout;
+
+                timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+                status = PhInjectDllProcess(
+                    processHandle,
+                    PhStartupParameters.CommandValue->Buffer,
+                    &timeout
+                    );
+                NtClose(processHandle);
+            }
+        }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"unloaddll", TRUE))
+        {
+            if (!PhStartupParameters.CommandValue)
+                return STATUS_INVALID_PARAMETER;
+
+            if (NT_SUCCESS(status = PhOpenProcess(
+                &processHandle,
+                ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
+                processId
+                )))
+            {
+                PVOID baseAddress;
+
+                if (NT_SUCCESS(status = PhpGetDllBaseRemote(
+                    processHandle,
+                    &PhStartupParameters.CommandValue->sr,
+                    &baseAddress
+                    )))
+                {
+                    LARGE_INTEGER timeout;
+
+                    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+                    status = PhUnloadDllProcess(
+                        processHandle,
+                        baseAddress,
+                        &timeout
+                        );
+                }
+
                 NtClose(processHandle);
             }
         }
@@ -299,6 +390,61 @@ NTSTATUS PhCommandModeStart(
             }
         }
     }
+
+    return status;
+}
+
+typedef struct _GET_DLL_BASE_REMOTE_CONTEXT
+{
+    PH_STRINGREF BaseDllName;
+    PVOID DllBase;
+} GET_DLL_BASE_REMOTE_CONTEXT, *PGET_DLL_BASE_REMOTE_CONTEXT;
+
+static BOOLEAN PhpGetDllBaseRemoteCallback(
+    __in PLDR_DATA_TABLE_ENTRY Module,
+    __in_opt PVOID Context
+    )
+{
+    PGET_DLL_BASE_REMOTE_CONTEXT context = Context;
+    PH_STRINGREF baseDllName;
+
+    PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
+
+    if (PhEqualStringRef(&baseDllName, &context->BaseDllName, TRUE))
+    {
+        context->DllBase = Module->DllBase;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+NTSTATUS PhpGetDllBaseRemote(
+    __in HANDLE ProcessHandle,
+    __in PPH_STRINGREF BaseDllName,
+    __out PVOID *DllBase
+    )
+{
+    NTSTATUS status;
+    GET_DLL_BASE_REMOTE_CONTEXT context;
+#ifdef _M_X64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    context.BaseDllName = *BaseDllName;
+    context.DllBase = NULL;
+
+#ifdef _M_X64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+        status = PhEnumProcessModules32(ProcessHandle, PhpGetDllBaseRemoteCallback, &context);
+    if (!context.DllBase)
+#endif
+        status = PhEnumProcessModules(ProcessHandle, PhpGetDllBaseRemoteCallback, &context);
+
+    if (NT_SUCCESS(status))
+        *DllBase = context.DllBase;
 
     return status;
 }
