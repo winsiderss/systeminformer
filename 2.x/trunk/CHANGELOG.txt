@@ -18,6 +18,7 @@ Process Hacker
    * Fixed task scheduler information on Windows 8
    * Fixed drag bug in tree list
    * Fixed KProcessHacker bug affecting TmTx objects
+   * Fixed Run As feature on Windows 8
 
 2.28
  * NEW/IMPROVED:

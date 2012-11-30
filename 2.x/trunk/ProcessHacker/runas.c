@@ -740,13 +740,25 @@ VOID PhSetDesktopWinStaAccess(
 {
     HWINSTA wsHandle;
     HDESK desktopHandle;
-    SECURITY_DESCRIPTOR securityDescriptor;
+    ULONG allocationLength;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    PACL dacl;
 
     // TODO: Set security on the correct window station and desktop.
 
-    // Create a security descriptor with a NULL DACL,
-    // thereby allowing everyone to access the object.
-    RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    // We create a DACL that allows everyone to access everything.
+
+    allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
+        (ULONG)sizeof(ACL) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&PhSeEveryoneSid);
+    securityDescriptor = PhAllocate(allocationLength);
+    dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+
+    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    RtlCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, &PhSeEveryoneSid);
+    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     if (wsHandle = OpenWindowStation(
         L"WinSta0",
@@ -754,7 +766,7 @@ VOID PhSetDesktopWinStaAccess(
         WRITE_DAC
         ))
     {
-        PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, &securityDescriptor);
+        PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
         CloseWindowStation(wsHandle);
     }
 
@@ -765,9 +777,11 @@ VOID PhSetDesktopWinStaAccess(
         WRITE_DAC | DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS
         ))
     {
-        PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &securityDescriptor);
+        PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
         CloseDesktop(desktopHandle);
     }
+
+    PhFree(securityDescriptor);
 }
 
 /**
