@@ -1993,10 +1993,10 @@ VOID PhpInitializeThreadMenu(
     }
 
 #ifndef _M_X64
-    if (!KphIsConnected())
+    if (!KphIsConnected() || WindowsVersion >= WINDOWS_8)
     {
 #endif
-        // Remove Force Terminate (this is always done on x64).
+        // Remove Force Terminate (this is always done on x64 and Windows 8 and above).
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
             PhDestroyEMenuItem(item);
 #ifndef _M_X64

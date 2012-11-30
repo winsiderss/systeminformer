@@ -1825,29 +1825,34 @@ NTSTATUS PhUnloadDllProcess(
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 #endif
 
-    status = PhSetProcessModuleLoadCount(
-        ProcessHandle,
-        BaseAddress,
-        1
-        );
-
-#ifdef _M_X64
-    if (isWow64 && status == STATUS_DLL_NOT_FOUND)
+    // No point trying to set the load count on Windows 8 and higher, because
+    // NT now uses a DAG of loader nodes.
+    if (WindowsVersion < WINDOWS_8)
     {
-        // The DLL might be 32-bit.
-        status = PhSetProcessModuleLoadCount32(
+        status = PhSetProcessModuleLoadCount(
             ProcessHandle,
             BaseAddress,
             1
             );
 
-        if (NT_SUCCESS(status))
-            isModule32 = TRUE;
-    }
+#ifdef _M_X64
+        if (isWow64 && status == STATUS_DLL_NOT_FOUND)
+        {
+            // The DLL might be 32-bit.
+            status = PhSetProcessModuleLoadCount32(
+                ProcessHandle,
+                BaseAddress,
+                1
+                );
+
+            if (NT_SUCCESS(status))
+                isModule32 = TRUE;
+        }
 #endif
 
-    if (!NT_SUCCESS(status))
-        return status;
+        if (!NT_SUCCESS(status))
+            return status;
+    }
 
 #ifdef _M_X64
     if (!isModule32)
