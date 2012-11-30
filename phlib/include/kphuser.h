@@ -257,7 +257,7 @@ NTAPI
 KphQueryInformationThread(
     __in HANDLE ThreadHandle,
     __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __out_bcount(ProcessInformationLength) PVOID ThreadInformation,
+    __out_bcount(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength,
     __out_opt PULONG ReturnLength
     );

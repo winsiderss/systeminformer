@@ -286,7 +286,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
  * attempt failed.
  */
 BOOLEAN PhUiConnectToPhSvc(
-    __in_opt HWND hWnd,
+    __in HWND hWnd,
     __in BOOLEAN ConnectOnly
     )
 {

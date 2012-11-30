@@ -450,7 +450,7 @@ BOOLEAN PhInsertCopyCellEMenuItem(
     );
 
 BOOLEAN PhHandleCopyCellEMenuItem(
-    struct _PH_EMENU_ITEM *SelectedItem
+    __in struct _PH_EMENU_ITEM *SelectedItem
     );
 
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)

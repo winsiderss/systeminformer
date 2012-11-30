@@ -916,7 +916,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     __in ULONG64 Address,
     __out_opt PDYNAMIC_FUNCTION_TABLE *FunctionTableAddress,
     __out_opt PDYNAMIC_FUNCTION_TABLE FunctionTable,
-    __out_bcount_opt(OutOfProcessCallbackDllSize) PWCHAR OutOfProcessCallbackDllBuffer,
+    __out_bcount_opt(OutOfProcessCallbackDllBufferSize) PWCHAR OutOfProcessCallbackDllBuffer,
     __in ULONG OutOfProcessCallbackDllBufferSize,
     __out_opt PUNICODE_STRING OutOfProcessCallbackDllString
     )
