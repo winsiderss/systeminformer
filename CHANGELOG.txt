@@ -11,6 +11,7 @@ Process Hacker
    * Fixed signature verification on Windows 8
    * Fixed task scheduler information on Windows 8
    * Fixed drag bug in tree list
+   * Fixed KProcessHacker bug affecting TmTx objects
 
 2.28
  * NEW/IMPROVED:

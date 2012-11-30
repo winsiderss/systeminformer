@@ -2781,6 +2781,10 @@ BOOLEAN PhUiUnloadModule(
         case PH_MODULE_TYPE_WOW64_MODULE:
             verb = L"unload";
             message = L"Unloading a module may cause the process to crash.";
+
+            if (WindowsVersion >= WINDOWS_8)
+                message = L"Unloading a module may cause the process to crash. NOTE: This feature may not work correctly on your version of Windows.";
+
             break;
         case PH_MODULE_TYPE_KERNEL_MODULE:
             verb = L"unload";
