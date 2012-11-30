@@ -6099,40 +6099,42 @@ BOOLEAN PhTnpDetectDrag(
     {
         // It seems that GetMessage dispatches nonqueued messages directly from kernel-mode, so
         // we have to use PeekMessage and WaitMessage in order to process WM_CAPTURECHANGED messages.
-        if (!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            switch (msg.message)
+            {
+            case WM_LBUTTONDOWN:
+            case WM_LBUTTONUP:
+            case WM_RBUTTONDOWN:
+            case WM_RBUTTONUP:
+                ReleaseCapture();
+
+                if (CancelledByMessage)
+                    *CancelledByMessage = msg.message;
+
+                break;
+            case WM_MOUSEMOVE:
+                if (msg.pt.x < dragRect.left || msg.pt.x >= dragRect.right ||
+                    msg.pt.y < dragRect.top || msg.pt.y >= dragRect.bottom)
+                {
+                    if (IsWindow(Context->Handle))
+                        return TRUE;
+                    else
+                        return FALSE;
+                }
+                break;
+            default:
+                if (DispatchMessages)
+                {
+                    TranslateMessage(&msg);
+                    DispatchMessage(&msg);
+                }
+                break;
+            }
+        }
+        else
         {
             WaitMessage();
-        }
-
-        switch (msg.message)
-        {
-        case WM_LBUTTONDOWN:
-        case WM_LBUTTONUP:
-        case WM_RBUTTONDOWN:
-        case WM_RBUTTONUP:
-            ReleaseCapture();
-
-            if (CancelledByMessage)
-                *CancelledByMessage = msg.message;
-
-            break;
-        case WM_MOUSEMOVE:
-            if (msg.pt.x < dragRect.left || msg.pt.x >= dragRect.right ||
-                msg.pt.y < dragRect.top || msg.pt.y >= dragRect.bottom)
-            {
-                if (IsWindow(Context->Handle))
-                    return TRUE;
-                else
-                    return FALSE;
-            }
-            break;
-        default:
-            if (DispatchMessages)
-            {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
-            break;
         }
     } while (IsWindow(Context->Handle) && GetCapture() == Context->Handle);
 
