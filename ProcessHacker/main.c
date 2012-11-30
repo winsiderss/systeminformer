@@ -506,11 +506,7 @@ VOID PhInitializeKph(
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
 
     parameters.SecurityLevel = KphSecurityPrivilegeCheck;
-#ifdef _M_X64
     parameters.CreateDynamicConfiguration = TRUE;
-#else
-    parameters.CreateDynamicConfiguration = FALSE;
-#endif
 
     KphConnect2Ex(L"KProcessHacker2", kprocesshackerFileName->Buffer, &parameters);
     PhDereferenceObject(kprocesshackerFileName);
