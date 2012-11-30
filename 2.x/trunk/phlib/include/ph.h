@@ -667,6 +667,12 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
     );
 
 PHLIBAPI
+PSYSTEM_PROCESS_INFORMATION PhFindProcessInformationByImageName(
+    __in PVOID Processes,
+    __in PPH_STRINGREF ImageName
+    );
+
+PHLIBAPI
 NTSTATUS PhEnumHandles(
     __out PSYSTEM_HANDLE_INFORMATION *Handles
     );
