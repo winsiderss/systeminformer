@@ -247,7 +247,7 @@ NTSTATUS
 NTAPI
 NtQueryDirectoryObject(
     __in HANDLE DirectoryHandle,
-    __out_bcount_opt(BufferLength) PVOID Buffer,
+    __out_bcount_opt(Length) PVOID Buffer,
     __in ULONG Length,
     __in BOOLEAN ReturnSingleEntry,
     __in BOOLEAN RestartScan,

@@ -53,7 +53,7 @@ VOID PhpCreateHexEditContext(
     );
 
 VOID PhpFreeHexEditContext(
-    __inout __post_invalid PPHP_HEXEDIT_CONTEXT Context
+    __in __post_invalid PPHP_HEXEDIT_CONTEXT Context
     );
 
 LRESULT CALLBACK PhpHexEditWndProc(
