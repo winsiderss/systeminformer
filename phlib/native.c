@@ -4676,6 +4676,39 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
 }
 
 /**
+ * Finds the process information structure for a
+ * specific process.
+ *
+ * \param Processes A pointer to a buffer returned
+ * by PhEnumProcesses().
+ * \param ImageName The image name to search for.
+ *
+ * \return A pointer to the process information
+ * structure for the specified process, or NULL if
+ * the structure could not be found.
+ */
+PSYSTEM_PROCESS_INFORMATION PhFindProcessInformationByImageName(
+    __in PVOID Processes,
+    __in PPH_STRINGREF ImageName
+    )
+{
+    PSYSTEM_PROCESS_INFORMATION process;
+    PH_STRINGREF processImageName;
+
+    process = PH_FIRST_PROCESS(Processes);
+
+    do
+    {
+        PhUnicodeStringToStringRef(&process->ImageName, &processImageName);
+
+        if (PhEqualStringRef(&processImageName, ImageName, TRUE))
+            return process;
+    } while (process = PH_NEXT_PROCESS(process));
+
+    return NULL;
+}
+
+/**
  * Enumerates all open handles.
  *
  * \param Handles A variable which receives a pointer
