@@ -449,7 +449,8 @@ BOOLEAN PhUiHibernateComputer(
 }
 
 BOOLEAN PhUiRestartComputer(
-    __in HWND hWnd
+    __in HWND hWnd,
+    __in ULONG Flags
     )
 {
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
@@ -460,7 +461,7 @@ BOOLEAN PhUiRestartComputer(
         FALSE
         ))
     {
-        if (ExitWindowsEx(EWX_REBOOT, 0))
+        if (ExitWindowsEx(EWX_REBOOT | Flags, 0))
             return TRUE;
         else
             PhShowStatus(hWnd, L"Unable to restart the computer", 0, GetLastError());
@@ -470,7 +471,8 @@ BOOLEAN PhUiRestartComputer(
 }
 
 BOOLEAN PhUiShutdownComputer(
-    __in HWND hWnd
+    __in HWND hWnd,
+    __in ULONG Flags
     )
 {
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
@@ -481,31 +483,18 @@ BOOLEAN PhUiShutdownComputer(
         FALSE
         ))
     {
-        if (ExitWindowsEx(EWX_SHUTDOWN, 0))
+        if (ExitWindowsEx(EWX_POWEROFF | Flags, 0))
+        {
             return TRUE;
+        }
+        else if (ExitWindowsEx(EWX_SHUTDOWN | Flags, 0))
+        {
+            return TRUE;
+        }
         else
+        {
             PhShowStatus(hWnd, L"Unable to shutdown the computer", 0, GetLastError());
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PhUiPoweroffComputer(
-    __in HWND hWnd
-    )
-{
-    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-        hWnd,
-        L"poweroff",
-        L"the computer",
-        NULL,
-        FALSE
-        ))
-    {
-        if (ExitWindowsEx(EWX_POWEROFF, 0))
-            return TRUE;
-        else
-            PhShowStatus(hWnd, L"Unable to poweroff the computer", 0, GetLastError());
+        }
     }
 
     return FALSE;

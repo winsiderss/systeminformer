@@ -1007,21 +1007,16 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiRestartComputer(
-    __in HWND hWnd
+    __in HWND hWnd,
+    __in ULONG Flags
     );
 
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiShutdownComputer(
-    __in HWND hWnd
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
-PhUiPoweroffComputer(
-    __in HWND hWnd
+    __in HWND hWnd,
+    __in ULONG Flags
     );
 
 PHAPPAPI

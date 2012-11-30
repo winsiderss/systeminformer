@@ -90,8 +90,9 @@ BEGIN
             MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
             MENUITEM SEPARATOR
             MENUITEM "R&estart",                    ID_COMPUTER_RESTART
+            MENUITEM "Restart to Boot Options",     ID_COMPUTER_RESTARTBOOTOPTIONS
             MENUITEM "Shu&tdown",                   ID_COMPUTER_SHUTDOWN
-            MENUITEM "&Poweroff",                   ID_COMPUTER_POWEROFF
+            MENUITEM "H&ybrid Shutdown",            ID_COMPUTER_SHUTDOWNHYBRID
         END
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
@@ -241,8 +242,9 @@ BEGIN
         MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
         MENUITEM SEPARATOR
         MENUITEM "R&estart",                    ID_COMPUTER_RESTART
+        MENUITEM "Restart to Boot Options",     ID_COMPUTER_RESTARTBOOTOPTIONS
         MENUITEM "Shu&tdown",                   ID_COMPUTER_SHUTDOWN
-        MENUITEM "&Poweroff",                   ID_COMPUTER_POWEROFF
+        MENUITEM "H&ybrid Shutdown",            ID_COMPUTER_SHUTDOWNHYBRID
     END
 END
 
@@ -410,8 +412,9 @@ BEGIN
             MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
             MENUITEM SEPARATOR
             MENUITEM "R&estart",                    ID_COMPUTER_RESTART
+            MENUITEM "Restart to Boot Options",     ID_COMPUTER_RESTARTBOOTOPTIONS
             MENUITEM "Shu&tdown",                   ID_COMPUTER_SHUTDOWN
-            MENUITEM "&Poweroff",                   ID_COMPUTER_POWEROFF
+            MENUITEM "H&ybrid Shutdown",            ID_COMPUTER_SHUTDOWNHYBRID
         END
         MENUITEM "E&xit",                       ID_ICON_EXIT
     END

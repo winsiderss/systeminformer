@@ -1110,17 +1110,14 @@ BOOLEAN PhUiHibernateComputer(
 
 PHAPPAPI
 BOOLEAN PhUiRestartComputer(
-    __in HWND hWnd
+    __in HWND hWnd,
+    __in ULONG Flags
     );
 
 PHAPPAPI
 BOOLEAN PhUiShutdownComputer(
-    __in HWND hWnd
-    );
-
-PHAPPAPI
-BOOLEAN PhUiPoweroffComputer(
-    __in HWND hWnd
+    __in HWND hWnd,
+    __in ULONG Flags
     );
 
 PHAPPAPI

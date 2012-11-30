@@ -3,6 +3,8 @@ Process Hacker
 2.29
  * NEW/IMPROVED:
    * Added new ASLR information for Windows 8
+   * Added Restart to Boot Options and Hybrid Shutdown menu items for
+     Windows 8
    * Updated ExtendedServices plugin:
      * Added new triggers for Windows 8
      * Fixed bug when restarting services

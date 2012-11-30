@@ -200,6 +200,10 @@ VOID PhMwpSetWindowOpacity(
     __in ULONG Opacity
     );
 
+VOID PhMwpSetupComputerMenu(
+    __in PPH_EMENU_ITEM Root
+    );
+
 BOOLEAN PhMwpExecuteComputerCommand(
     __in ULONG Id
     );
