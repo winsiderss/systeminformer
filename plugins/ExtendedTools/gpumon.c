@@ -149,6 +149,44 @@ VOID EtGpuMonitorInitialization(
         }
 
         PhDereferenceObject(bitmapString);
+
+        // Fix up the node bitmap.
+        // If "Microsoft Basic Render Driver" is the only adapter selected, try to select other adapters.
+        if (EtGpuNodeBitMapBitsSet == 1 && EtpGpuAdapterList->Count > 1)
+        {
+            BOOLEAN basicDriverSelected = FALSE;
+
+            for (i = 0; i < EtpGpuAdapterList->Count; i++)
+            {
+                PETP_GPU_ADAPTER gpuAdapter = EtpGpuAdapterList->Items[i];
+
+                if (PhEqualString2(gpuAdapter->Description, L"Microsoft Basic Render Driver", TRUE))
+                {
+                    if (RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex))
+                        basicDriverSelected = TRUE;
+
+                    break;
+                }
+            }
+
+            if (basicDriverSelected)
+            {
+                RtlClearAllBits(&EtGpuNodeBitMap);
+                EtGpuNodeBitMapBitsSet = 0;
+
+                // Select the first node of every other adapter.
+                for (i = 0; i < EtpGpuAdapterList->Count; i++)
+                {
+                    PETP_GPU_ADAPTER gpuAdapter = EtpGpuAdapterList->Items[i];
+
+                    if (!PhEqualString2(gpuAdapter->Description, L"Microsoft Basic Render Driver", TRUE))
+                    {
+                        RtlSetBits(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex, 1);
+                        EtGpuNodeBitMapBitsSet++;
+                    }
+                }
+            }
+        }
     }
 }
 

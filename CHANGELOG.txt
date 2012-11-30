@@ -10,6 +10,8 @@ Process Hacker
    * Updated ExtendedServices plugin:
      * Added new triggers for Windows 8
      * Fixed bug when restarting services
+   * Updated ExtendedTools plugin:
+     * Improved support of multiple GPUs (again)
  * FIXED:
    * Fixed Load Count column sorting bug
    * Fixed signature verification on Windows 8
