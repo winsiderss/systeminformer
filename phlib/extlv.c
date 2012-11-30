@@ -102,8 +102,8 @@ INT PhpExtendedListViewCompareFastFunc(
 
 INT PhpCompareListViewItems(
     __in PPH_EXTLV_CONTEXT Context,
-    __in_opt INT X,
-    __in_opt INT Y,
+    __in INT X,
+    __in INT Y,
     __in PVOID XParam,
     __in PVOID YParam,
     __in ULONG Column,
