@@ -805,8 +805,9 @@ VOID PhMwpOnCommand(
     case ID_COMPUTER_SLEEP:
     case ID_COMPUTER_HIBERNATE:
     case ID_COMPUTER_RESTART:
+    case ID_COMPUTER_RESTARTBOOTOPTIONS:
     case ID_COMPUTER_SHUTDOWN:
-    case ID_COMPUTER_POWEROFF:
+    case ID_COMPUTER_SHUTDOWNHYBRID:
         PhMwpExecuteComputerCommand(Id);
         break;
     case ID_HACKER_EXIT:
@@ -2634,6 +2635,21 @@ VOID PhMwpSetWindowOpacity(
         );
 }
 
+VOID PhMwpSetupComputerMenu(
+    __in PPH_EMENU_ITEM Root
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+
+    if (WindowsVersion < WINDOWS_8)
+    {
+        if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_RESTARTBOOTOPTIONS))
+            PhDestroyEMenuItem(menuItem);
+        if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_SHUTDOWNHYBRID))
+            PhDestroyEMenuItem(menuItem);
+    }
+}
+
 BOOLEAN PhMwpExecuteComputerCommand(
     __in ULONG Id
     )
@@ -2653,13 +2669,16 @@ BOOLEAN PhMwpExecuteComputerCommand(
         PhUiHibernateComputer(PhMainWndHandle);
         return TRUE;
     case ID_COMPUTER_RESTART:
-        PhUiRestartComputer(PhMainWndHandle);
+        PhUiRestartComputer(PhMainWndHandle, 0);
+        return TRUE;
+    case ID_COMPUTER_RESTARTBOOTOPTIONS:
+        PhUiRestartComputer(PhMainWndHandle, EWX_BOOTOPTIONS);
         return TRUE;
     case ID_COMPUTER_SHUTDOWN:
-        PhUiShutdownComputer(PhMainWndHandle);
+        PhUiShutdownComputer(PhMainWndHandle, 0);
         return TRUE;
-    case ID_COMPUTER_POWEROFF:
-        PhUiPoweroffComputer(PhMainWndHandle);
+    case ID_COMPUTER_SHUTDOWNHYBRID:
+        PhUiShutdownComputer(PhMainWndHandle, EWX_HYBRID_SHUTDOWN);
         return TRUE;
     }
 
@@ -2808,6 +2827,9 @@ VOID PhMwpInitializeSubMenu(
                     menuItem->Bitmap = shieldBitmap;
             }
         }
+
+        // Fix up the Computer menu.
+        PhMwpSetupComputerMenu(Menu);
     }
     else if (Index == 1) // View
     {
@@ -3503,6 +3525,9 @@ VOID PhShowIconContextMenu(
 
     if (item)
         PhMwpAddIconProcesses(item, numberOfProcesses);
+
+    // Fix up the Computer menu.
+    PhMwpSetupComputerMenu(menu);
 
     // Give plugins a chance to modify the menu.
 
