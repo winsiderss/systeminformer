@@ -2938,6 +2938,13 @@ VOID PhMwpInitializeSubMenu(
         if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_HIDDENPROCESSES))
             PhDestroyEMenuItem(menuItem);
 #endif
+
+        // Windows 8 Task Manager requires elevation.
+        if (WindowsVersion >= WINDOWS_8 && !PhElevated)
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
+                PhDestroyEMenuItem(menuItem);
+        }
     }
 
     if (LegacyAddMenuItemList)
