@@ -2655,7 +2655,7 @@ ZwQueryVolumeInformationFile(
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __out_bcount(Length) PVOID FsInformation,
     __in ULONG Length,
-    __in FS_INFORMATION_CLASS FsInformationClass
+    __in FSINFOCLASS FsInformationClass
     );
 
 NTSYSCALLAPI
@@ -3478,7 +3478,7 @@ ZwSetVolumeInformationFile(
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __in_bcount(Length) PVOID FsInformation,
     __in ULONG Length,
-    __in FS_INFORMATION_CLASS FsInformationClass
+    __in FSINFOCLASS FsInformationClass
     );
 
 NTSYSCALLAPI

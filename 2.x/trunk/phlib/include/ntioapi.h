@@ -573,6 +573,13 @@ typedef struct _FILE_INTEGRITY_STREAM_INFORMATION
     ULONG Flags;
 } FILE_INTEGRITY_STREAM_INFORMATION, *PFILE_INTEGRITY_STREAM_INFORMATION;
 
+// private
+typedef struct _FILE_VOLUME_NAME_INFORMATION
+{
+    ULONG DeviceNameLength;
+    WCHAR DeviceName[1];
+} FILE_VOLUME_NAME_INFORMATION, *PFILE_VOLUME_NAME_INFORMATION;
+
 // NtQueryDirectoryFile types
 
 typedef struct _FILE_DIRECTORY_INFORMATION
@@ -758,7 +765,7 @@ typedef enum _FSINFOCLASS
     FileFsVolumeFlagsInformation,
     FileFsSectorSizeInformation, // since WIN8
     FileFsMaximumInformation
-} FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
+} FSINFOCLASS, *PFSINFOCLASS;
 
 // NtQueryVolumeInformation/NtSetVolumeInformation types
 
@@ -1045,7 +1052,7 @@ NtQueryVolumeInformationFile(
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __out_bcount(Length) PVOID FsInformation,
     __in ULONG Length,
-    __in FS_INFORMATION_CLASS FsInformationClass
+    __in FSINFOCLASS FsInformationClass
     );
 
 NTSYSCALLAPI
@@ -1056,7 +1063,7 @@ NtSetVolumeInformationFile(
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __in_bcount(Length) PVOID FsInformation,
     __in ULONG Length,
-    __in FS_INFORMATION_CLASS FsInformationClass
+    __in FSINFOCLASS FsInformationClass
     );
 
 NTSYSCALLAPI

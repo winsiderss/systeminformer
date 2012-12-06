@@ -547,25 +547,6 @@ RtlIsGenericTableEmpty(
 
 // RB trees
 
-typedef struct _RTL_BALANCED_NODE
-{
-    union
-    {
-        struct _RTL_BALANCED_NODE *Children[2];
-        struct
-        {
-            struct _RTL_BALANCED_NODE *Left;
-            struct _RTL_BALANCED_NODE *Right;
-        };
-    };
-    union
-    {
-        ULONG_PTR Red : 1;
-        ULONG_PTR Balance : 2;
-        ULONG_PTR ParentValue;
-    };
-} RTL_BALANCED_NODE, *PRTL_BALANCED_NODE;
-
 typedef struct _RTL_RB_TREE
 {
     PRTL_BALANCED_NODE Root;
@@ -1131,9 +1112,9 @@ RtlWakeAllConditionVariable(
 #endif
 
 // begin_rev
-#define RTL_BARRIER_SPIN_ONLY 0x00000001 // never block on event - always spin
-#define RTL_BARRIER_NEVER_SPIN 0x00000002 // always block on event - never spin
-#define RTL_BARRIER_INCREMENT_MAXIMUM_COUNT 0x00010000 // ?
+#define RTL_BARRIER_FLAGS_SPIN_ONLY 0x00000001 // never block on event - always spin
+#define RTL_BARRIER_FLAGS_BLOCK_ONLY 0x00000002 // always block on event - never spin
+#define RTL_BARRIER_FLAGS_NO_DELETE 0x00000004 // use if barrier will never be deleted
 // end_rev
 
 // begin_private
@@ -2334,6 +2315,9 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 
     ULONG EnvironmentSize;
     ULONG EnvironmentVersion;
+    UNICODE_STRING PackageMoniker;
+    PVOID PackageDependencyData;
+    ULONG ProcessGroupId;
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
 #define RTL_USER_PROC_PARAMS_NORMALIZED 0x00000001
