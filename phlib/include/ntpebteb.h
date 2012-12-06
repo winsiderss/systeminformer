@@ -136,9 +136,11 @@ typedef struct _PEB
         {
             ULONG HeapTracingEnabled : 1;
             ULONG CritSecTracingEnabled : 1;
-            ULONG SpareTracingBits : 30;
+            ULONG LibLoaderTracingEnabled : 1;
+            ULONG SpareTracingBits : 29;
         };
     };
+    ULONGLONG CsrServerReadOnlySharedMemoryBase;
 } PEB, *PPEB;
 
 #define GDI_BATCH_BUFFER_SIZE 310
@@ -294,7 +296,9 @@ typedef struct _TEB
             USHORT DisableUserStackWalk : 1;
             USHORT RtlExceptionAttached : 1;
             USHORT InitialThread : 1;
-            USHORT SpareSameTebBits : 1;
+            USHORT SessionAware : 1;
+            USHORT DisabledStackCheck : 1;
+            USHORT SpareSameTebBits : 3;
         };
     };
 
@@ -304,6 +308,7 @@ typedef struct _TEB
     ULONG LockCount;
     ULONG SpareUlong0;
     PVOID ResourceRetValue;
+    PVOID ReservedForWdf;
 } TEB, *PTEB;
 
 #endif

@@ -161,7 +161,7 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     ServiceHostProcessType, // svchost
     RunDllAsAppProcessType, // rundll32
     ComSurrogateProcessType, // dllhost
-    TaskHostProcessType, // taskeng, taskhost
+    TaskHostProcessType, // taskeng, taskhost, taskhostex
     ExplorerProcessType, // explorer
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,

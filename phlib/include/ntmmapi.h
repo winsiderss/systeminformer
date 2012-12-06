@@ -201,7 +201,8 @@ typedef struct _SECTION_IMAGE_INFORMATION
             UCHAR ComPlusILOnly : 1;
             UCHAR ImageDynamicallyRelocated : 1;
             UCHAR ImageMappedFlat : 1;
-            UCHAR Reserved : 4;
+            UCHAR BaseBelow4gb : 1;
+            UCHAR Reserved : 3;
         };
     };
     ULONG LoaderFlags;

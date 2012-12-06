@@ -318,6 +318,8 @@ NTSTATUS PhGetProcessKnownType(
                 knownProcessType = TaskHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\taskhost.exe", TRUE))
                 knownProcessType = TaskHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\taskhostex.exe", TRUE))
+                knownProcessType = TaskHostProcessType;
         }
     }
 
