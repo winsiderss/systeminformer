@@ -1,5 +1,5 @@
 1.12
- * Improved support of multiple GPUs (again)
+ * Improved support for multiple GPUs (again)
 
 1.11
  * Fixed network graph scaling
