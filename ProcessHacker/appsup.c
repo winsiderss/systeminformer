@@ -1116,10 +1116,15 @@ BOOLEAN PhShellProcessHacker(
         {
             PhAppendStringBuilder2(&sb, L" -nosettings");
         }
-        else if (PhStartupParameters.SettingsFileName && PhSettingsFileName)
+        else if (PhStartupParameters.SettingsFileName && (PhSettingsFileName || (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS)))
         {
             PhAppendStringBuilder2(&sb, L" -settings \"");
-            temp = PhEscapeCommandLinePart(&PhSettingsFileName->sr);
+
+            if (PhSettingsFileName)
+                temp = PhEscapeCommandLinePart(&PhSettingsFileName->sr);
+            else
+                temp = PhEscapeCommandLinePart(&PhStartupParameters.SettingsFileName->sr);
+
             PhAppendStringBuilder(&sb, temp);
             PhDereferenceObject(temp);
             PhAppendCharStringBuilder(&sb, '\"');

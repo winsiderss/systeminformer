@@ -928,7 +928,7 @@ VOID PhpProcessStartupParameters(
             NULL,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
-            PH_SHELL_APP_PROPAGATE_PARAMETERS,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS,
             0,
             NULL
             );
