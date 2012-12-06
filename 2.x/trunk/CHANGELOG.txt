@@ -19,6 +19,7 @@ Process Hacker
    * Fixed drag bug in tree list
    * Fixed KProcessHacker bug affecting TmTx objects
    * Fixed Run As feature on Windows 8
+   * Fixed bug where -settings parameter is not propagated
 
 2.28
  * NEW/IMPROVED:
