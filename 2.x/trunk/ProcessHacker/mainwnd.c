@@ -1657,7 +1657,6 @@ VOID PhMwpOnCommand(
                 selectedIndex = 0;
 
             PhMwpSelectTabPage(selectedIndex);
-            SetFocus(TabControlHandle);
         }
         break;
     case ID_TAB_PREV:
@@ -1670,7 +1669,6 @@ VOID PhMwpOnCommand(
                 selectedIndex = MaxTabIndex;
 
             PhMwpSelectTabPage(selectedIndex);
-            SetFocus(TabControlHandle);
         }
         break;
     }
