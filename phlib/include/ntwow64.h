@@ -164,6 +164,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
     WOW64_POINTER(ULONG_PTR) OriginalBase;
     LARGE_INTEGER LoadTime;
     ULONG BaseNameHashValue;
+    LDR_DLL_LOAD_REASON LoadReason;
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
 
 typedef struct _CURDIR32
@@ -218,7 +219,6 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS32
 
     ULONG EnvironmentSize;
     ULONG EnvironmentVersion;
-    UNICODE_STRING32 PackageMoniker;
     WOW64_POINTER(PVOID) PackageDependencyData;
     ULONG ProcessGroupId;
 } RTL_USER_PROCESS_PARAMETERS32, *PRTL_USER_PROCESS_PARAMETERS32;
@@ -238,7 +238,9 @@ typedef struct _PEB32
             BOOLEAN IsLegacyProcess : 1;
             BOOLEAN IsImageDynamicallyRelocated : 1;
             BOOLEAN SkipPatchingUser32Forwarders : 1;
-            BOOLEAN SpareBits : 3;
+            BOOLEAN IsPackagedProcess : 1;
+            BOOLEAN IsAppContainer : 1;
+            BOOLEAN SpareBits : 1;
         };
     };
     WOW64_POINTER(HANDLE) Mutant;

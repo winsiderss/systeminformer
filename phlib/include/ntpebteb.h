@@ -24,7 +24,9 @@ typedef struct _PEB
             BOOLEAN IsLegacyProcess : 1;
             BOOLEAN IsImageDynamicallyRelocated : 1;
             BOOLEAN SkipPatchingUser32Forwarders : 1;
-            BOOLEAN SpareBits : 3;
+            BOOLEAN IsPackagedProcess : 1;
+            BOOLEAN IsAppContainer : 1;
+            BOOLEAN SpareBits : 1;
         };
     };
     HANDLE Mutant;
@@ -297,8 +299,7 @@ typedef struct _TEB
             USHORT RtlExceptionAttached : 1;
             USHORT InitialThread : 1;
             USHORT SessionAware : 1;
-            USHORT DisabledStackCheck : 1;
-            USHORT SpareSameTebBits : 3;
+            USHORT SpareSameTebBits : 4;
         };
     };
 

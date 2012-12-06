@@ -230,6 +230,8 @@ typedef enum _FILE_INFORMATION_CLASS
     FileLinkInformationBypassAccessCheck, // (kernel-mode only)
     FileIntegrityStreamInformation,
     FileVolumeNameInformation,
+    FileIdInformation,
+    FileIdExtdDirectoryInformation,
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -764,6 +766,7 @@ typedef enum _FSINFOCLASS
     FileFsDriverPathInformation,
     FileFsVolumeFlagsInformation,
     FileFsSectorSizeInformation, // since WIN8
+    FileFsDataCopyInformation,
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 
