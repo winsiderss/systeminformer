@@ -67,6 +67,19 @@ typedef struct _LDR_DEPENDENCY_RECORD
     PLDR_DDAG_NODE IncomingDependencyNode;
 } LDR_DEPENDENCY_RECORD, *PLDR_DEPENDENCY_RECORD;
 
+// symbols
+typedef enum _LDR_DLL_LOAD_REASON
+{
+    LoadReasonStaticDependency,
+    LoadReasonStaticForwarderDependency,
+    LoadReasonDynamicForwarderDependency,
+    LoadReasonDelayloadDependency,
+    LoadReasonDynamicLoad,
+    LoadReasonAsImageLoad,
+    LoadReasonAsDataLoad,
+    LoadReasonUnknown = -1
+} LDR_DLL_LOAD_REASON, *PLDR_DLL_LOAD_REASON;
+
 #define LDRP_STATIC_LINK 0x00000002
 #define LDRP_IMAGE_DLL 0x00000004
 #define LDRP_LOAD_IN_PROGRESS 0x00001000
@@ -158,6 +171,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     ULONG_PTR OriginalBase;
     LARGE_INTEGER LoadTime;
     ULONG BaseNameHashValue;
+    LDR_DLL_LOAD_REASON LoadReason;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(

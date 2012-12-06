@@ -2315,7 +2315,6 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 
     ULONG EnvironmentSize;
     ULONG EnvironmentVersion;
-    UNICODE_STRING PackageMoniker;
     PVOID PackageDependencyData;
     ULONG ProcessGroupId;
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
