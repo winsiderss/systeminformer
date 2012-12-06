@@ -22,7 +22,9 @@ typedef enum _WOW64_SHARED_INFORMATION
     SharedNtdll32pQueryProcessDebugInformationRemote = 9,
     SharedNtdll32EtwpNotificationThread = 10,
     SharedNtdll32BaseAddress = 11,
-    Wow64SharedPageEntriesCount = 12
+    SharedNtdll32RtlpWnfNotificationThread = 12,
+    SharedNtdll32LdrSystemDllInitBlock = 13,
+    Wow64SharedPageEntriesCount = 14
 } WOW64_SHARED_INFORMATION;
 
 // 32-bit definitions
@@ -42,8 +44,8 @@ typedef struct _RTL_BALANCED_NODE32
     };
     union
     {
-        WOW64_POINTER(ULONG_PTR) Red : 1;
-        WOW64_POINTER(ULONG_PTR) Balance : 2;
+        WOW64_POINTER(UCHAR) Red : 1;
+        WOW64_POINTER(UCHAR) Balance : 2;
         WOW64_POINTER(ULONG_PTR) ParentValue;
     };
 } RTL_BALANCED_NODE32, *PRTL_BALANCED_NODE32;
@@ -216,6 +218,9 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS32
 
     ULONG EnvironmentSize;
     ULONG EnvironmentVersion;
+    UNICODE_STRING32 PackageMoniker;
+    WOW64_POINTER(PVOID) PackageDependencyData;
+    ULONG ProcessGroupId;
 } RTL_USER_PROCESS_PARAMETERS32, *PRTL_USER_PROCESS_PARAMETERS32;
 
 typedef struct _PEB32
@@ -345,9 +350,11 @@ typedef struct _PEB32
         {
             ULONG HeapTracingEnabled : 1;
             ULONG CritSecTracingEnabled : 1;
-            ULONG SpareTracingBits : 30;
+            ULONG LibLoaderTracingEnabled : 1;
+            ULONG SpareTracingBits : 29;
         };
     };
+    ULONGLONG CsrServerReadOnlySharedMemoryBase;
 } PEB32, *PPEB32;
 
 #define GDI_BATCH_BUFFER_SIZE 310

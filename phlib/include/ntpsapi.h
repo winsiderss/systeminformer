@@ -929,6 +929,7 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER
     PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
     PsAttributeMitigationOptions, // in UCHAR
+    PsAttributeSecurityCapabilities,
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 

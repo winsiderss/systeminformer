@@ -115,6 +115,31 @@ typedef const UNICODE_STRING *PCUNICODE_STRING;
 
 #define RTL_CONSTANT_STRING(s) { sizeof(s) - sizeof((s)[0]), sizeof(s), s }
 
+// Balanced tree node
+
+#define RTL_BALANCED_NODE_RESERVED_PARENT_MASK 3
+
+typedef struct _RTL_BALANCED_NODE
+{
+    union
+    {
+        struct _RTL_BALANCED_NODE *Children[2];
+        struct
+        {
+            struct _RTL_BALANCED_NODE *Left;
+            struct _RTL_BALANCED_NODE *Right;
+        };
+    };
+    union
+    {
+        UCHAR Red : 1;
+        UCHAR Balance : 2;
+        ULONG_PTR ParentValue;
+    };
+} RTL_BALANCED_NODE, *PRTL_BALANCED_NODE;
+
+#define RTL_BALANCED_NODE_GET_PARENT_POINTER(Node) ((PRTL_BALANCED_NODE)((Node)->ParentValue & ~RTL_BALANCED_NODE_RESERVED_PARENT_MASK))
+
 // Portability
 
 typedef struct _SINGLE_LIST_ENTRY32
@@ -231,6 +256,7 @@ typedef enum _SUITE_TYPE
     StorageServer,
     ComputeServer,
     WHServer,
+    PhoneNT,
     MaxSuiteType
 } SUITE_TYPE;
 

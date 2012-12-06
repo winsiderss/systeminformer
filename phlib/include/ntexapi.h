@@ -869,6 +869,22 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemAcpiAuditInformation, // q: SYSTEM_ACPI_AUDIT_INFORMATION // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
     SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION // since WIN7 SP1
+    SystemSessionBigPoolInformation, // since WIN8
+    SystemBootGraphicsInformation,
+    SystemScrubPhysicalMemoryInformation,
+    SystemBadPageInformation,
+    SystemProcessorProfileControlArea,
+    SystemCombinePhysicalMemoryInformation,
+    SystemEntropyInterruptTimingCallback,
+    SystemConsoleInformation,
+    SystemPlatformBinaryInformation,
+    SystemThrottleNotificationInformation,
+    SystemHypervisorProcessorCountInformation,
+    SystemDeviceDataInformation,
+    SystemDeviceDataEnumerationInformation,
+    SystemMemoryTopologyInformation,
+    SystemMemoryChannelInformation,
+    SystemBootLogoInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
