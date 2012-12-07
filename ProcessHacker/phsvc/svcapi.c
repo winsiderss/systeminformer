@@ -829,11 +829,11 @@ NTSTATUS PhSvcApiAddAccountRight(
     LSA_HANDLE policyHandle;
     UNICODE_STRING userRightUs;
 
-    if (NT_SUCCESS(PhSvcCaptureSid(&Message->u.AddAccountRight.i.AccountSid, FALSE, &accountSid)))
+    if (NT_SUCCESS(status = PhSvcCaptureSid(&Message->u.AddAccountRight.i.AccountSid, FALSE, &accountSid)))
     {
-        if (NT_SUCCESS(PhSvcCaptureString(&Message->u.AddAccountRight.i.UserRight, FALSE, &userRight)))
+        if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.AddAccountRight.i.UserRight, FALSE, &userRight)))
         {
-            if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, NULL)))
+            if (NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, NULL)))
             {
                 PhStringRefToUnicodeString(&userRight->sr, &userRightUs);
                 status = LsaAddAccountRights(policyHandle, accountSid, &userRightUs, 1);
