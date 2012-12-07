@@ -172,6 +172,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="updater.c" />
   </ItemGroup>
