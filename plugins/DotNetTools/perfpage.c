@@ -139,7 +139,7 @@ HRESULT GetCorPublishProcess(
     HRESULT result;
     ICorPublish *publish;
 
-    if (SUCCEEDED(CreateCorpubPublish(ProcessId, &publish)))
+    if (SUCCEEDED(result = CreateCorpubPublish(ProcessId, &publish)))
     {
         result = ICorPublish_GetProcess(publish, (ULONG)ProcessId, PublishProcess);
         ICorPublish_Release(publish);
