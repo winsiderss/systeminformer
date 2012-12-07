@@ -1,44 +1,50 @@
 #ifndef __UPDATER_H__
 #define __UPDATER_H__
 
-#pragma comment(lib, "Wininet.lib")
+#pragma comment(lib, "Winhttp.lib")
 
+#include <phdk.h>
+#include <phappresource.h>
+#include <mxml.h>
 #define CINTERFACE
 #define COBJMACROS
-
-#define UPDATE_MENUITEM 101
-#define DEFAULT_TIMEOUT 2 * 60 * 1000 // Two minutes
-#define WM_SHOWDIALOG (WM_APP + 150)
-
-#define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
-
-#define UPDATE_URL L"processhacker.sourceforge.net"
-#define UPDATE_FILE L"/update.php"
-
-#include "phdk.h"
-#include "phappresource.h"
-#include "mxml.h"
-
-#include <WinInet.h>
 #include <windowsx.h>
-#include <Netlistmgr.h>
+#include <netlistmgr.h>
+#include <winhttp.h>
 
 #include "resource.h"
 
+#define Control_Visible(hWnd, visible) ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
+#define UPDATE_MENUITEM 101
+#define WM_SHOWDIALOG (WM_APP + 150)
+#define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
+
+#define MAKEDLLVERULL(major, minor, build, sp) \
+    (((ULONGLONG)(major) << 48) | \
+    ((ULONGLONG)(minor) << 32) | \
+    ((ULONGLONG)(build) << 16) | \
+    ((ULONGLONG)(sp) <<  0))
+
+extern PPH_PLUGIN PluginInstance;
+
 typedef enum _PH_UPDATER_STATE
 {
-    Download,
-    Install
+    Default = 0,
+    Download = 1,
+    Install = 2
 } PH_UPDATER_STATE;
 
 typedef struct _UPDATER_XML_DATA
 {
+    BOOLEAN HaveData;
     ULONG MinorVersion;
     ULONG MajorVersion;
-    ULONG PhMinorVersion;
-    ULONG PhMajorVersion;
-    ULONG PhRevisionVersion;
+    ULONG RevisionVersion;
+    ULONG CurrentMinorVersion;
+    ULONG CurrentMajorVersion;
+    ULONG CurrentRevisionVersion;
     PPH_STRING Version;
+    PPH_STRING RevVersion;
     PPH_STRING RelDate;
     PPH_STRING Size;
     PPH_STRING Hash;
@@ -46,40 +52,23 @@ typedef struct _UPDATER_XML_DATA
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 VOID ShowUpdateDialog(
-    VOID
+    __in PUPDATER_XML_DATA Context
     );
 
 VOID StartInitialCheck(
     VOID
     );
 
-mxml_type_t QueryXmlDataCallback(
-    __in mxml_node_t *node
+
+PPH_STRING PhGetOpaqueXmlNodeText(
+    __in mxml_node_t *xmlNode
     );
 
-VOID LogEvent(
-    __in_opt HWND hwndDlg,
-    __in PPH_STRING str
+BOOL PhInstalledUsingSetup(
+    VOID
     );
-
-VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+BOOL ConnectionAvailable(
+    VOID
     );
 
 INT_PTR CALLBACK UpdaterWndProc(
