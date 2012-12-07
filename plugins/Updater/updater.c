@@ -122,7 +122,7 @@ static BOOL ReadRequestString(
     data = (PSTR)PhAllocate(allocatedLength);
     dataLength = 0;
 
-    // Zero the returned buffer for the next loop
+    // Zero the buffer
     RtlZeroMemory(buffer, PAGE_SIZE);
 
     while (WinHttpReadData(Handle, buffer, PAGE_SIZE, &returnLength))
@@ -226,9 +226,6 @@ static BOOLEAN QueryUpdateData(
     HINTERNET requestHandle = NULL;
 
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-
-    if (!UpdateData)
-        return;
 
     // Create a user agent string.
     phVersion = PhGetPhVersion();
@@ -516,8 +513,6 @@ static NTSTATUS UpdateDownloadThread(
 
     PPH_STRING tempPath;
     //PPH_STRING SetupFilePath;
-    DWORD tempPathLength;
-
     //BOOLEAN isSuccess = FALSE;
 
     //HINTERNET sessionHandle = NULL;
@@ -546,7 +541,7 @@ static NTSTATUS UpdateDownloadThread(
             __leave;
 
         // Get the temp path
-        if (GetTempPath(tempPath->Length / sizeof(WCHAR), tempPath->Buffer) == 0)
+        if (GetTempPath((DWORD)tempPath->Length / sizeof(WCHAR), tempPath->Buffer) == 0)
             __leave;
 
         // Append the tempath to our string: %TEMP%processhacker-%u.%u-setup.exe
