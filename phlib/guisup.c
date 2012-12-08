@@ -2,7 +2,7 @@
  * Process Hacker -
  *   GUI support functions
  *
- * Copyright (C) 2009-2011 wj32
+ * Copyright (C) 2009-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -733,55 +733,6 @@ VOID PhSetImageListBitmap(
         ImageList_Replace(ImageList, Index, bitmap, NULL);
         DeleteObject(bitmap);
     }
-}
-
-VOID PhInitializeImageListWrapper(
-    __out PPH_IMAGE_LIST_WRAPPER Wrapper,
-    __in ULONG Width,
-    __in ULONG Height,
-    __in ULONG Flags
-    )
-{
-    Wrapper->Handle = ImageList_Create(Width, Height, Flags, 0, 10);
-    Wrapper->FreeList = PhCreateList(10);
-}
-
-VOID PhDeleteImageListWrapper(
-    __inout PPH_IMAGE_LIST_WRAPPER Wrapper
-    )
-{
-    ImageList_Destroy(Wrapper->Handle);
-    PhDereferenceObject(Wrapper->FreeList);
-}
-
-INT PhImageListWrapperAddIcon(
-    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
-    __in HICON Icon
-    )
-{
-    INT index;
-
-    if (Wrapper->FreeList->Count != 0)
-    {
-        index = (INT)Wrapper->FreeList->Items[Wrapper->FreeList->Count - 1];
-        PhRemoveItemList(Wrapper->FreeList, Wrapper->FreeList->Count - 1);
-    }
-    else
-    {
-        index = -1;
-    }
-
-    return ImageList_ReplaceIcon(Wrapper->Handle, index, Icon);
-}
-
-VOID PhImageListWrapperRemove(
-    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
-    __in INT Index
-    )
-{
-    // We don't actually remove the icon; this is to keep the indicies
-    // stable.
-    PhAddItemList(Wrapper->FreeList, (PVOID)Index);
 }
 
 /**
