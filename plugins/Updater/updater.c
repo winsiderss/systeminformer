@@ -172,42 +172,13 @@ static VOID FreeUpdateData(
     Context->CurrentMajorVersion = 0;
     Context->CurrentRevisionVersion = 0;
 
-    if (Context->Version)
-    {
-        PhDereferenceObject(Context->Version);
-        Context->Version = NULL;
-    }
+    PhSwapReference(&Context->Version, NULL);
+    PhSwapReference(&Context->RevVersion, NULL);
+    PhSwapReference(&Context->RelDate, NULL);
+    PhSwapReference(&Context->Size, NULL);
+    PhSwapReference(&Context->Hash, NULL);
+    PhSwapReference(&Context->ReleaseNotesUrl, NULL);
 
-    if (Context->RevVersion)
-    {
-        PhDereferenceObject(Context->RevVersion);
-        Context->RevVersion = NULL;
-    }
-    
-    if (Context->RelDate)
-    {
-        PhDereferenceObject(Context->RelDate);
-        Context->RelDate = NULL;
-    }
-    
-    if (Context->Size)
-    {
-        PhDereferenceObject(Context->Size);
-        Context->Size = NULL;
-    }
-    
-    if (Context->Hash)
-    {
-        PhDereferenceObject(Context->Hash);
-        Context->Hash = NULL;
-    }
-
-    if (Context->ReleaseNotesUrl)
-    {
-        PhDereferenceObject(Context->ReleaseNotesUrl);
-        Context->ReleaseNotesUrl = NULL;
-    }
-   
     PhFree(Context);
 }
 
@@ -967,9 +938,10 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case PH_UPDATEAVAILABLE:
         {
             PPH_STRING summaryText = PhFormatString(
-                L"Process Hacker %u.%u",
+                L"Process Hacker %u.%u (r%u)",
                 context->MajorVersion,
-                context->MinorVersion
+                context->MinorVersion,
+                context->RevisionVersion
                 );
             PPH_STRING releaseDateText = PhFormatString(
                 L"Released: %s",
