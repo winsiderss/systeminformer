@@ -199,14 +199,13 @@ static VOID PhpPrintObjectInfo(
     {
         wprintf(
             L"\t%.28s (%Id)",
-            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessName->Buffer,
+            ((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessName->Buffer,
             (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessId
             );
     }
     else if (ObjectHeader->Type == PhServiceItemType)
     {
-        wprintf(L"\t%s",
-            (ULONG)((PPH_SERVICE_ITEM)PhObjectHeaderToObject(ObjectHeader))->Name->Buffer);
+        wprintf(L"\t%s", ((PPH_SERVICE_ITEM)PhObjectHeaderToObject(ObjectHeader))->Name->Buffer);
     }
     else if (ObjectHeader->Type == PhThreadItemType)
     {
