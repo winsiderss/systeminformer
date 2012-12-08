@@ -446,16 +446,59 @@ VOID PhaMapDisplayIndexListView(
     *NumberOfColumns = count;
 }
 
+PPH_STRING PhaGetListViewItemText(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT SubItemIndex
+    )
+{
+    PPH_STRING buffer;
+    SIZE_T allocatedCount;
+    SIZE_T count;
+    LVITEM lvItem;
+
+    // Unfortunately LVM_GETITEMTEXT doesn't want to return the actual length of the text.
+    // Keep doubling the buffer size until we get a return count that is strictly less than
+    // the amount we allocated.
+
+    buffer = NULL;
+    allocatedCount = 16;
+    count = allocatedCount;
+
+    while (count >= allocatedCount)
+    {
+        if (buffer)
+            PhDereferenceObject(buffer);
+
+        allocatedCount *= 2;
+        buffer = PhCreateStringEx(NULL, allocatedCount * sizeof(WCHAR));
+        buffer->Buffer[0] = 0;
+
+        lvItem.iSubItem = SubItemIndex;
+        lvItem.cchTextMax = (INT)allocatedCount + 1;
+        lvItem.pszText = buffer->Buffer;
+        count = SendMessage(ListViewHandle, LVM_GETITEMTEXT, Index, (LPARAM)&lvItem);
+    }
+
+    PhTrimToNullTerminatorString(buffer);
+    PhaDereferenceObject(buffer);
+
+    return buffer;
+}
+
 PPH_STRING PhGetListViewText(
     __in HWND ListViewHandle
     )
 {
+    PH_AUTO_POOL autoPool;
     PH_STRING_BUILDER stringBuilder;
     ULONG displayToId[100];
     ULONG rows;
     ULONG columns;
     ULONG i;
     ULONG j;
+
+    PhInitializeAutoPool(&autoPool);
 
     PhaMapDisplayIndexListView(ListViewHandle, displayToId, NULL, 100, &columns);
     rows = ListView_GetItemCount(ListViewHandle);
@@ -469,12 +512,7 @@ PPH_STRING PhGetListViewText(
 
         for (j = 0; j < columns; j++)
         {
-            WCHAR buffer[512];
-
-            buffer[0] = 0;
-            ListView_GetItemText(ListViewHandle, i, j, buffer, sizeof(buffer) / sizeof(WCHAR));
-            PhAppendStringBuilder2(&stringBuilder, buffer);
-
+            PhAppendStringBuilder(&stringBuilder, PhaGetListViewItemText(ListViewHandle, i, j));
             PhAppendStringBuilder2(&stringBuilder, L", ");
         }
 
@@ -484,6 +522,8 @@ PPH_STRING PhGetListViewText(
 
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
+
+    PhDeleteAutoPool(&autoPool);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
@@ -521,13 +561,9 @@ PPH_LIST PhGetListViewLines(
     {
         for (j = 0; j < columns; j++)
         {
-            WCHAR buffer[512];
-
             // Important: use this to bypass extlv's hooking.
             // extlv only hooks LVM_GETITEM, not LVM_GETITEMTEXT.
-            buffer[0] = 0;
-            ListView_GetItemText(ListViewHandle, i - 1, j, buffer, sizeof(buffer) / sizeof(WCHAR));
-            table[i][j] = PhaCreateString(buffer);
+            table[i][j] = PhaGetListViewItemText(ListViewHandle, i - 1, j);
         }
     }
 
