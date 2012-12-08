@@ -13,6 +13,8 @@ Process Hacker
      * Fixed bug when restarting services
    * Updated ExtendedTools plugin:
      * Improved support for multiple GPUs (again)
+   * Updated ToolStatus plugin:
+     * Fixed controls not being properly hidden/removed from the window when disabled
  * FIXED:
    * Fixed Load Count column sorting bug
    * Fixed signature verification on Windows 8
