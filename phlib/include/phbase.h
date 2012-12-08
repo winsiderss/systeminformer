@@ -2074,15 +2074,6 @@ typedef LONG (NTAPI *PPH_COMPARE_FUNCTION)(
     __in_opt PVOID Context
     );
 
-PHLIBAPI
-VOID
-NTAPI
-PhSortList(
-    __in PPH_LIST List,
-    __in PPH_COMPARE_FUNCTION CompareFunction,
-    __in_opt PVOID Context
-    );
-
 // pointer list
 
 extern PPH_OBJECT_TYPE PhPointerListType;

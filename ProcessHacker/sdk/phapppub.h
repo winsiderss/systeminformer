@@ -429,13 +429,6 @@ PhLoadSymbolProviderOptions(
 PHAPPAPI
 VOID
 NTAPI
-PhSetExtendedListViewWithSettings(
-    __in HWND hWnd
-    );
-
-PHAPPAPI
-VOID
-NTAPI
 PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,
     __in PPH_STRINGREF Tip
