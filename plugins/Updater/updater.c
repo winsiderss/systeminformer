@@ -23,6 +23,9 @@
 
 #include "updater.h"
 
+// Force update checks to succeed
+#define DEBUG_UPDATE
+
 #define PH_UPDATEISERRORED (WM_APP + 101)
 #define PH_UPDATEAVAILABLE (WM_APP + 102)
 #define PH_UPDATEISCURRENT (WM_APP + 103)
@@ -35,7 +38,6 @@ static HFONT FontHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PH_UPDATER_STATE PhUpdaterState = Default;
 //static PPH_STRING SetupFilePath = NULL;
-
 
 static mxml_type_t QueryXmlDataCallback(
     __in mxml_node_t *node
@@ -178,6 +180,8 @@ static VOID FreeUpdateData(
     PhSwapReference(&Context->Size, NULL);
     PhSwapReference(&Context->Hash, NULL);
     PhSwapReference(&Context->ReleaseNotesUrl, NULL);
+
+    Context->HaveData = FALSE;
 
     PhFree(Context);
 }
@@ -377,7 +381,7 @@ static NTSTATUS UpdateCheckSilentThread(
 
         if (QueryUpdateData(context))
         {
-            ULONGLONG currentVersion = 10;
+            ULONGLONG currentVersion = 0;
             ULONGLONG latestVersion = 0;
 
             currentVersion = MAKEDLLVERULL(
@@ -386,28 +390,42 @@ static NTSTATUS UpdateCheckSilentThread(
                 0, 
                 context->CurrentRevisionVersion
                 );
-            latestVersion = MAKEDLLVERULL(
-                2,//updateData->MajorVersion,
-                29,//updateData->MinorVersion,
-                0, 
-                5122//updateData->RevisionVersion
-                );
 
-            context->HaveData = TRUE;
+#ifdef DEBUG_UPDATE
+            latestVersion = MAKEDLLVERULL(
+                9999,
+                9999,
+                0, 
+                9999
+                );
+#else
+            latestVersion = MAKEDLLVERULL(
+                context->MajorVersion,
+                context->MinorVersion,
+                0, 
+                context->RevisionVersion
+                );
+#endif
 
             // Compare the current version against the latest available version
             if (currentVersion < latestVersion)
             {
-                // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-                Sleep(3 * 1000);
+                // We have data we're going to cache and pass into the dialog
+                context->HaveData = TRUE;
 
+                // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
+                Sleep(3000);
+                
                 // Show the dialog asynchronously on a new thread.
                 ShowUpdateDialog(context);
             }
-            else
-            {
-                FreeUpdateData(context);
-            }
+        }
+
+        // Check we didn't pass the data to the dialog
+        if (!context->HaveData)
+        {
+            // Free the data
+            FreeUpdateData(context);
         }
     }
 
@@ -422,27 +440,37 @@ static NTSTATUS UpdateCheckThread(
     {
         PUPDATER_XML_DATA context = (PUPDATER_XML_DATA)Parameter;
 
-        // Check if we already have the update data
+        // Check if we have cached update data
         if (!context->HaveData)
             context->HaveData = QueryUpdateData(context);
 
         if (context->HaveData)
         {
-            ULONGLONG currentVersion;
-            ULONGLONG latestVersion;
+            ULONGLONG currentVersion = 0;
+            ULONGLONG latestVersion = 0;
 
             currentVersion = MAKEDLLVERULL(
-                context->CurrentMajorVersion, // 2
-                context->CurrentMinorVersion, // 29
+                context->CurrentMajorVersion,
+                context->CurrentMinorVersion,
                 0, 
-                context->CurrentRevisionVersion // 5121
+                context->CurrentRevisionVersion
                 );
+
+#ifdef DEBUG_UPDATE
             latestVersion = MAKEDLLVERULL(
-                2,//UpdateData->MajorVersion, // 2
-                29,//UpdateData->MinorVersion, // 28
+                9999,
+                9999,
                 0, 
-                5122//UpdateData->RevisionVersion // 5073
+                9999
                 );
+#else
+            latestVersion = MAKEDLLVERULL(
+                context->MajorVersion,
+                context->MinorVersion,
+                0, 
+                context->RevisionVersion
+                );
+#endif
 
             if (currentVersion == latestVersion)
             {
@@ -1136,19 +1164,3 @@ VOID StartInitialCheck(
         NtClose(silentCheckThread);
     }
 }
-
-//static VOID AsyncUpdate(
-//    VOID
-//    )
-//{
-//    if (!IsUpdating)
-//    {
-//        IsUpdating = TRUE;
-//
-//        if (!PostMessage(UpdateDialogHandle, WM_UPDATE, 0, 0))
-//        {
-//            IsUpdating = FALSE;
-//        }
-//    }
-//}
-
