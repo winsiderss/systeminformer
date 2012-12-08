@@ -462,7 +462,7 @@ PPH_STRING PhaGetListViewItemText(
     // the amount we allocated.
 
     buffer = NULL;
-    allocatedCount = 16;
+    allocatedCount = 256;
     count = allocatedCount;
 
     while (count >= allocatedCount)
