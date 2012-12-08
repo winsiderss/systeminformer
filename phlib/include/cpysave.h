@@ -45,6 +45,12 @@ VOID PhaMapDisplayIndexListView(
     __out PULONG NumberOfColumns
     );
 
+PPH_STRING PhaGetListViewItemText(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT SubItemIndex
+    );
+
 PPH_STRING PhGetListViewText(
     __in HWND ListViewHandle
     );
