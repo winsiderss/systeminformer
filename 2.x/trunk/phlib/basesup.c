@@ -2,7 +2,7 @@
  * Process Hacker -
  *   base support functions
  *
- * Copyright (C) 2009-2011 wj32
+ * Copyright (C) 2009-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -3067,58 +3067,6 @@ VOID PhRemoveItemsList(
         );
 
     List->Count -= Count;
-}
-
-typedef struct _PH_LIST_QSORT_CONTEXT
-{
-    PPH_COMPARE_FUNCTION CompareFunction;
-    PVOID Context;
-} PH_LIST_QSORT_CONTEXT, *PPH_LIST_QSORT_CONTEXT;
-
-static int __cdecl PhpListQSortCompare(
-    __in void *context,
-    __in const void *elem1,
-    __in const void *elem2
-    )
-{
-    PPH_LIST_QSORT_CONTEXT qsortContext = (PPH_LIST_QSORT_CONTEXT)context;
-
-    return qsortContext->CompareFunction(
-        *(PPVOID)elem1,
-        *(PPVOID)elem2,
-        qsortContext->Context
-        );
-}
-
-/**
- * Sorts a list.
- *
- * \param List A list object.
- * \param CompareFunction A comparison function to
- * compare two list items.
- * \param Context A user-defined value to pass to the
- * comparison function.
- *
- * \remarks Do not use this function; use qsort instead.
- */
-VOID PhSortList(
-    __in PPH_LIST List,
-    __in PPH_COMPARE_FUNCTION CompareFunction,
-    __in_opt PVOID Context
-    )
-{
-    PH_LIST_QSORT_CONTEXT qsortContext;
-
-    qsortContext.CompareFunction = CompareFunction;
-    qsortContext.Context = Context;
-
-    qsort_s(
-        List->Items,
-        List->Count,
-        sizeof(PVOID),
-        PhpListQSortCompare,
-        &qsortContext
-        );
 }
 
 /**

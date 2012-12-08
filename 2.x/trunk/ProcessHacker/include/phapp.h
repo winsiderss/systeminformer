@@ -237,11 +237,6 @@ VOID PhLoadSymbolProviderOptions(
     __inout PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
-PHAPPAPI
-VOID PhSetExtendedListViewWithSettings(
-    __in HWND hWnd
-    );
-
 PWSTR PhMakeContextAtom(
     VOID
     );

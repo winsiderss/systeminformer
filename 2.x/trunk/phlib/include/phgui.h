@@ -448,37 +448,6 @@ VOID PhSetImageListBitmap(
     __in LPCWSTR BitmapName
     );
 
-typedef struct _PH_IMAGE_LIST_WRAPPER
-{
-    HIMAGELIST Handle;
-    PPH_LIST FreeList;
-} PH_IMAGE_LIST_WRAPPER, *PPH_IMAGE_LIST_WRAPPER;
-
-PHLIBAPI
-VOID PhInitializeImageListWrapper(
-    __out PPH_IMAGE_LIST_WRAPPER Wrapper,
-    __in ULONG Width,
-    __in ULONG Height,
-    __in ULONG Flags
-    );
-
-PHLIBAPI
-VOID PhDeleteImageListWrapper(
-    __inout PPH_IMAGE_LIST_WRAPPER Wrapper
-    );
-
-PHLIBAPI
-INT PhImageListWrapperAddIcon(
-    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
-    __in HICON Icon
-    );
-
-PHLIBAPI
-VOID PhImageListWrapperRemove(
-    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
-    __in INT Index
-    );
-
 PHLIBAPI
 VOID PhGetStockApplicationIcon(
     __out_opt HICON *SmallIcon,
@@ -636,33 +605,6 @@ PhIconToBitmap(
 #define PH_ALIGN_TOP 0x4
 #define PH_ALIGN_BOTTOM 0x8
 
-FORCEINLINE ULONG PhToListViewColumnAlign(
-    __in ULONG Align
-    )
-{
-    switch (Align)
-    {
-    case PH_ALIGN_LEFT:
-        return LVCFMT_LEFT;
-    case PH_ALIGN_RIGHT:
-        return LVCFMT_RIGHT;
-    default:
-        return LVCFMT_CENTER;
-    }
-}
-
-FORCEINLINE ULONG PhFromListViewColumnAlign(
-    __in ULONG Format
-    )
-{
-    if (Format == LVCFMT_LEFT)
-        return PH_ALIGN_LEFT;
-    else if (Format == LVCFMT_RIGHT)
-        return PH_ALIGN_RIGHT;
-    else
-        return PH_ALIGN_CENTER;
-}
-
 typedef enum _PH_ITEM_STATE
 {
     // The item is normal. Use the ItemColorFunction
@@ -710,32 +652,30 @@ PhSetHeaderSortIcon(
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
-#define ELVM_ENABLESTATE (WM_APP + 1120)
+#define ELVM_RESERVED5 (WM_APP + 1120)
 #define ELVM_INIT (WM_APP + 1102)
 #define ELVM_SETCOLUMNWIDTH (WM_APP + 1121)
 #define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
 #define ELVM_SETCONTEXT (WM_APP + 1103)
 #define ELVM_SETCURSOR (WM_APP + 1114)
-#define ELVM_SETHIGHLIGHTINGDURATION (WM_APP + 1118)
+#define ELVM_RESERVED4 (WM_APP + 1118)
 #define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
 #define ELVM_SETITEMFONTFUNCTION (WM_APP + 1117)
-#define ELVM_SETNEWCOLOR (WM_APP + 1112)
+#define ELVM_RESERVED1 (WM_APP + 1112)
 #define ELVM_SETREDRAW (WM_APP + 1116)
-#define ELVM_SETREMOVINGCOLOR (WM_APP + 1113)
+#define ELVM_RESERVED2 (WM_APP + 1113)
 #define ELVM_SETSORT (WM_APP + 1108)
 #define ELVM_SETSORTFAST (WM_APP + 1119)
-#define ELVM_SETSTATEHIGHLIGHTING (WM_APP + 1110)
+#define ELVM_RESERVED0 (WM_APP + 1110)
 #define ELVM_SETTRISTATE (WM_APP + 1107)
 #define ELVM_SETTRISTATECOMPAREFUNCTION (WM_APP + 1105)
 #define ELVM_SORTITEMS (WM_APP + 1101)
-#define ELVM_TICK (WM_APP + 1115)
+#define ELVM_RESERVED3 (WM_APP + 1115)
 
 #define ExtendedListView_AddFallbackColumn(hWnd, Column) \
     SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMN, (WPARAM)(Column), 0)
 #define ExtendedListView_AddFallbackColumns(hWnd, NumberOfColumns, Columns) \
     SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMNS, (WPARAM)(NumberOfColumns), (LPARAM)(Columns))
-#define ExtendedListView_EnableState(hWnd, Enable) \
-    SendMessage((hWnd), ELVM_ENABLESTATE, (WPARAM)(Enable), 0)
 #define ExtendedListView_Init(hWnd) \
     SendMessage((hWnd), ELVM_INIT, 0, 0)
 #define ExtendedListView_SetColumnWidth(hWnd, Column, Width) \
@@ -746,32 +686,22 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SETCONTEXT, 0, (LPARAM)(Context))
 #define ExtendedListView_SetCursor(hWnd, Cursor) \
     SendMessage((hWnd), ELVM_SETCURSOR, 0, (LPARAM)(Cursor))
-#define ExtendedListView_SetHighlightingDuration(hWnd, Duration) \
-    SendMessage((hWnd), ELVM_SETHIGHLIGHTINGDURATION, (WPARAM)(Duration), 0)
 #define ExtendedListView_SetItemColorFunction(hWnd, ItemColorFunction) \
     SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
 #define ExtendedListView_SetItemFontFunction(hWnd, ItemFontFunction) \
     SendMessage((hWnd), ELVM_SETITEMFONTFUNCTION, 0, (LPARAM)(ItemFontFunction))
-#define ExtendedListView_SetNewColor(hWnd, NewColor) \
-    SendMessage((hWnd), ELVM_SETNEWCOLOR, (WPARAM)(NewColor), 0)
 #define ExtendedListView_SetRedraw(hWnd, Redraw) \
     SendMessage((hWnd), ELVM_SETREDRAW, (WPARAM)(Redraw), 0)
-#define ExtendedListView_SetRemovingColor(hWnd, RemovingColor) \
-    SendMessage((hWnd), ELVM_SETREMOVINGCOLOR, (WPARAM)(RemovingColor), 0)
 #define ExtendedListView_SetSort(hWnd, Column, Order) \
     SendMessage((hWnd), ELVM_SETSORT, (WPARAM)(Column), (LPARAM)(Order))
 #define ExtendedListView_SetSortFast(hWnd, Fast) \
     SendMessage((hWnd), ELVM_SETSORTFAST, (WPARAM)(Fast), 0)
-#define ExtendedListView_SetStateHighlighting(hWnd, StateHighlighting) \
-    SendMessage((hWnd), ELVM_SETSTATEHIGHLIGHTING, (WPARAM)(StateHighlighting), 0)
 #define ExtendedListView_SetTriState(hWnd, TriState) \
     SendMessage((hWnd), ELVM_SETTRISTATE, (WPARAM)(TriState), 0)
 #define ExtendedListView_SetTriStateCompareFunction(hWnd, CompareFunction) \
     SendMessage((hWnd), ELVM_SETTRISTATECOMPAREFUNCTION, 0, (LPARAM)(CompareFunction))
 #define ExtendedListView_SortItems(hWnd) \
     SendMessage((hWnd), ELVM_SORTITEMS, 0, 0)
-#define ExtendedListView_Tick(hWnd) \
-    SendMessage((hWnd), ELVM_TICK, 0, 0)
 
 #define ELVSCW_AUTOSIZE (-1)
 #define ELVSCW_AUTOSIZE_USEHEADER (-2)

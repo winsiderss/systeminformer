@@ -2,7 +2,7 @@
  * Process Hacker -
  *   extended list view
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2012 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -22,23 +22,14 @@
 
 /*
  * The extended list view adds some functionality to the default list view control, such
- * as sorting, (state) highlighting, better redraw disabling, and the ability to change
- * the cursor. This is currently implemented by hooking the window procedure.
+ * as sorting, item colors and fonts, better redraw disabling, and the ability to change the
+ * cursor. This is currently implemented by hooking the window procedure.
  */
 
 #include <phgui.h>
 #include <windowsx.h>
 
-#define PH_DURATION_MULT 100
 #define PH_MAX_COMPARE_FUNCTIONS 16
-
-// We have nowhere else to store state highlighting
-// information except for the state image index
-// value. This is conveniently 4 bits wide.
-
-#define PH_GET_ITEM_STATE(State) (((State) & LVIS_STATEIMAGEMASK) >> 12)
-
-#define PH_STATE_TIMER 3
 
 typedef struct _PH_EXTLV_CONTEXT
 {
@@ -58,28 +49,15 @@ typedef struct _PH_EXTLV_CONTEXT
     ULONG FallbackColumns[PH_MAX_COMPARE_FUNCTIONS];
     ULONG NumberOfFallbackColumns;
 
-    // State Highlighting
-
-    BOOLEAN EnableState;
-    LONG EnableStateHighlighting;
-    ULONG HighlightingDuration;
-    COLORREF NewColor;
-    COLORREF RemovingColor;
+    // Color and Font
     PPH_EXTLV_GET_ITEM_COLOR ItemColorFunction;
     PPH_EXTLV_GET_ITEM_FONT ItemFontFunction;
-    PPH_HASHTABLE TickHashtable;
 
     // Misc.
 
     LONG EnableRedraw;
     HCURSOR Cursor;
 } PH_EXTLV_CONTEXT, *PPH_EXTLV_CONTEXT;
-
-typedef struct _PH_TICK_ENTRY
-{
-    ULONG Id;
-    ULONG TickCount;
-} PH_TICK_ENTRY, *PPH_TICK_ENTRY;
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
     __in HWND hwnd,
@@ -117,10 +95,6 @@ INT PhpDefaultCompareListViewItems(
     __in ULONG Column
     );
 
-VOID PhListTick(
-    __in PPH_EXTLV_CONTEXT Context
-    );
-
 static PWSTR PhpMakeExtLvContextAtom(
     VOID
     )
@@ -156,14 +130,8 @@ VOID PhSetExtendedListView(
     memset(context->CompareFunctions, 0, sizeof(context->CompareFunctions));
     context->NumberOfFallbackColumns = 0;
 
-    context->EnableState = FALSE;
-    context->EnableStateHighlighting = 0;
-    context->HighlightingDuration = 1000;
-    context->NewColor = RGB(0x00, 0xff, 0x00);
-    context->RemovingColor = RGB(0xff, 0x00, 0x00);
     context->ItemColorFunction = NULL;
     context->ItemFontFunction = NULL;
-    context->TickHashtable = NULL;
 
     context->EnableRedraw = 1;
     context->Cursor = NULL;
@@ -171,36 +139,6 @@ VOID PhSetExtendedListView(
     SetProp(hWnd, PhpMakeExtLvContextAtom(), (HANDLE)context);
 
     ExtendedListView_Init(hWnd);
-}
-
-static BOOLEAN NTAPI PhpTickHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
-    )
-{
-    return ((PPH_TICK_ENTRY)Entry1)->Id == ((PPH_TICK_ENTRY)Entry2)->Id;
-}
-
-static ULONG NTAPI PhpTickHashtableHashFunction(
-    __in PVOID Entry
-    )
-{
-    return ((PPH_TICK_ENTRY)Entry)->Id;
-}
-
-FORCEINLINE VOID PhpEnsureTickHashtableCreated(
-    __in PPH_EXTLV_CONTEXT Context
-    )
-{
-    if (!Context->TickHashtable)
-    {
-        Context->TickHashtable = PhCreateHashtable(
-            sizeof(PH_TICK_ENTRY),
-            PhpTickHashtableCompareFunction,
-            PhpTickHashtableHashFunction,
-            20
-            );
-    }
 }
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
@@ -221,10 +159,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     case WM_DESTROY:
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-
-            if (context->TickHashtable)
-                PhDereferenceObject(context->TickHashtable);
-
             PhFree(context);
             RemoveProp(hwnd, PhpMakeExtLvContextAtom());
         }
@@ -296,52 +230,30 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             return CDRF_NOTIFYITEMDRAW;
                         case CDDS_ITEMPREPAINT:
                             {
-                                LVITEM item;
-                                PH_ITEM_STATE itemState;
                                 BOOLEAN colorChanged = FALSE;
                                 HFONT newFont = NULL;
 
-                                item.mask = LVIF_STATE;
-                                item.iItem = (INT)customDraw->nmcd.dwItemSpec;
-                                item.iSubItem = 0;
-                                item.stateMask = LVIS_STATEIMAGEMASK;
-                                CallWindowProc(oldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item);
-                                itemState = PH_GET_ITEM_STATE(item.state);
-
-                                if (!context->EnableState || itemState == NormalItemState)
+                                if (context->ItemColorFunction)
                                 {
-                                    if (context->ItemColorFunction)
-                                    {
-                                        customDraw->clrTextBk = context->ItemColorFunction(
-                                            (INT)customDraw->nmcd.dwItemSpec,
-                                            (PVOID)customDraw->nmcd.lItemlParam,
-                                            context->Context
-                                            );
-                                        colorChanged = TRUE;
-                                    }
-
-                                    if (context->ItemFontFunction)
-                                    {
-                                        newFont = context->ItemFontFunction(
-                                            (INT)customDraw->nmcd.dwItemSpec,
-                                            (PVOID)customDraw->nmcd.lItemlParam,
-                                            context->Context
-                                            );
-                                    }
-
-                                    if (newFont)
-                                        SelectObject(customDraw->nmcd.hdc, newFont);
-                                }
-                                else if (itemState == NewItemState)
-                                {
-                                    customDraw->clrTextBk = context->NewColor;
+                                    customDraw->clrTextBk = context->ItemColorFunction(
+                                        (INT)customDraw->nmcd.dwItemSpec,
+                                        (PVOID)customDraw->nmcd.lItemlParam,
+                                        context->Context
+                                        );
                                     colorChanged = TRUE;
                                 }
-                                else if (itemState == RemovingItemState)
+
+                                if (context->ItemFontFunction)
                                 {
-                                    customDraw->clrTextBk = context->RemovingColor;
-                                    colorChanged = TRUE;
+                                    newFont = context->ItemFontFunction(
+                                        (INT)customDraw->nmcd.dwItemSpec,
+                                        (PVOID)customDraw->nmcd.lItemlParam,
+                                        context->Context
+                                        );
                                 }
+
+                                if (newFont)
+                                    SelectObject(customDraw->nmcd.hdc, newFont);
 
                                 if (colorChanged)
                                 {
@@ -388,151 +300,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
         }
         break;
-    case LVM_INSERTITEM:
-        {
-            LPLVITEM item = (LPLVITEM)lParam;
-            INT index;
-
-            if (!context->EnableState)
-                break; // pass through
-
-            if (!(item->mask & LVIF_STATE))
-            {
-                item->mask |= LVIF_STATE;
-                item->stateMask = LVIS_STATEIMAGEMASK;
-                item->state = 0;
-            }
-            else
-            {
-                item->stateMask |= LVIS_STATEIMAGEMASK;
-                item->state &= ~LVIS_STATEIMAGEMASK;
-            }
-
-            if (context->EnableStateHighlighting > 0)
-            {
-                item->state |= INDEXTOSTATEIMAGEMASK(NewItemState);
-            }
-            else
-            {
-                item->state = NormalItemState;
-            }
-
-            if ((index = (INT)CallWindowProc(oldWndProc, hwnd, LVM_INSERTITEM, 0, (LPARAM)item)) == -1)
-                return -1;
-
-            if (context->EnableStateHighlighting > 0)
-            {
-                PH_TICK_ENTRY entry;
-
-                PhpEnsureTickHashtableCreated(context);
-
-                entry.Id = ListView_MapIndexToID(hwnd, index);
-                entry.TickCount = GetTickCount();
-
-                PhAddEntryHashtable(context->TickHashtable, &entry);
-            }
-
-            return index;
-        }
-    case LVM_DELETEITEM:
-        {
-            if (!context->EnableState)
-                break; // pass through
-
-            if (context->EnableStateHighlighting > 0)
-            {
-                LVITEM item;
-
-                item.mask = LVIF_STATE | LVIF_PARAM;
-                item.iItem = (INT)wParam;
-                item.iSubItem = 0;
-                item.stateMask = LVIS_STATEIMAGEMASK;
-                item.state = INDEXTOSTATEIMAGEMASK(RemovingItemState);
-
-                // IMPORTANT:
-                // We need to null the param. This is important because the user
-                // will most likely be storing pointers to heap allocations in
-                // here, and free the allocation after it has deleted the
-                // item. The user may allocate sometime in the future and receive
-                // the same pointer as is stored here. The user may call
-                // LVM_FINDITEM or LVM_GETNEXTITEM and find this item, which
-                // is supposed to be deleted. It may then attempt to delete
-                // this item *twice*, which leads to bad things happening,
-                // including *not* deleting the item that the user wanted to delete.
-                item.lParam = (LPARAM)NULL;
-
-                CallWindowProc(context->OldWndProc, hwnd, LVM_SETITEM, 0, (LPARAM)&item);
-
-                {
-                    PH_TICK_ENTRY localEntry;
-                    PPH_TICK_ENTRY entry;
-
-                    PhpEnsureTickHashtableCreated(context);
-
-                    localEntry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
-                    entry = PhAddEntryHashtableEx(context->TickHashtable, &localEntry, NULL);
-
-                    entry->TickCount = GetTickCount();
-                }
-
-                return TRUE;
-            }
-            else
-            {
-                // The item may still be under state highlighting.
-                if (context->TickHashtable)
-                {
-                    PH_TICK_ENTRY entry;
-
-                    entry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
-                    PhRemoveEntryHashtable(context->TickHashtable, &entry);
-                }
-            }
-        }
-        break;
-    case LVM_GETITEM:
-        {
-            LVITEM item;
-            ULONG itemState;
-            ULONG oldMask;
-            ULONG oldStateMask;
-
-            if (!context->EnableState)
-                break; // pass through
-
-            memcpy(&item, (LPLVITEM)lParam, sizeof(LVITEM));
-
-            oldMask = item.mask;
-            oldStateMask = item.stateMask;
-
-            if (!(item.mask & LVIF_STATE))
-            {
-                item.mask |= LVIF_STATE;
-                item.stateMask = LVIS_STATEIMAGEMASK;
-            }
-            else
-            {
-                item.stateMask |= LVIS_STATEIMAGEMASK;
-            }
-
-            if (!CallWindowProc(oldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item))
-                return FALSE;
-
-            // Check if the item is being deleted. If so, pretend it doesn't
-            // exist.
-
-            itemState = PH_GET_ITEM_STATE(item.state);
-
-            if (itemState == RemovingItemState)
-                return FALSE;
-
-            item.mask = oldMask;
-            item.stateMask = oldStateMask;
-            item.state &= item.stateMask;
-
-            memcpy((LPLVITEM)lParam, &item, sizeof(LVITEM));
-        }
-        return TRUE;
     case ELVM_ADDFALLBACKCOLUMN:
         {
             if (context->NumberOfFallbackColumns < PH_MAX_COMPARE_FUNCTIONS)
@@ -559,11 +326,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
                 return FALSE;
             }
-        }
-        return TRUE;
-    case ELVM_ENABLESTATE:
-        {
-            context->EnableState = !!wParam;
         }
         return TRUE;
     case ELVM_INIT:
@@ -640,11 +402,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             context->Cursor = (HCURSOR)lParam;
         }
         return TRUE;
-    case ELVM_SETHIGHLIGHTINGDURATION:
-        {
-            context->HighlightingDuration = (ULONG)wParam;
-        }
-        return TRUE;
     case ELVM_SETITEMCOLORFUNCTION:
         {
             context->ItemColorFunction = (PPH_EXTLV_GET_ITEM_COLOR)lParam;
@@ -653,11 +410,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     case ELVM_SETITEMFONTFUNCTION:
         {
             context->ItemFontFunction = (PPH_EXTLV_GET_ITEM_FONT)lParam;
-        }
-        return TRUE;
-    case ELVM_SETNEWCOLOR:
-        {
-            context->NewColor = (COLORREF)wParam;
         }
         return TRUE;
     case ELVM_SETREDRAW:
@@ -678,11 +430,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
         }
         return TRUE;
-    case ELVM_SETREMOVINGCOLOR:
-        {
-            context->RemovingColor = (COLORREF)wParam;
-        }
-        return TRUE;
     case ELVM_SETSORT:
         {
             context->SortColumn = (ULONG)wParam;
@@ -694,14 +441,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     case ELVM_SETSORTFAST:
         {
             context->SortFast = !!wParam;
-        }
-        return TRUE;
-    case ELVM_SETSTATEHIGHLIGHTING:
-        {
-            if (wParam)
-                context->EnableStateHighlighting++;
-            else
-                context->EnableStateHighlighting--;
         }
         return TRUE;
     case ELVM_SETTRISTATE:
@@ -736,18 +475,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     PhpExtendedListViewCompareFunc,
                     (LPARAM)context
                     );
-            }
-        }
-        return TRUE;
-    case ELVM_TICK:
-        {
-            if (
-                context->EnableStateHighlighting > 0 &&
-                context->TickHashtable &&
-                context->TickHashtable->Count != 0
-                )
-            {
-                PhListTick(context);
             }
         }
         return TRUE;
@@ -838,10 +565,6 @@ static INT PhpExtendedListViewCompareFunc(
     if (!CallWindowProc(context->OldWndProc, context->Handle, LVM_GETITEM, 0, (LPARAM)&xItem))
         return 0;
     if (!CallWindowProc(context->OldWndProc, context->Handle, LVM_GETITEM, 0, (LPARAM)&yItem))
-        return 0;
-    if (PH_GET_ITEM_STATE(xItem.state) == RemovingItemState)
-        return 0;
-    if (PH_GET_ITEM_STATE(yItem.state) == RemovingItemState)
         return 0;
 
     // First, do tri-state sorting.
@@ -1021,120 +744,4 @@ static INT PhpDefaultCompareListViewItems(
 #else
     return wcsicmp(xText, yText);
 #endif
-}
-
-static VOID PhListTick(
-    __in PPH_EXTLV_CONTEXT Context
-    )
-{
-    HWND hwnd = Context->Handle;
-    ULONG tickCount;
-    BOOLEAN redrawDisabled = FALSE;
-    PPH_LIST itemsToRemove = NULL;
-    PH_HASHTABLE_ENUM_CONTEXT enumContext;
-    PPH_TICK_ENTRY entry;
-
-    if (!Context->TickHashtable)
-        return;
-
-    tickCount = GetTickCount();
-
-    // First pass
-
-    PhBeginEnumHashtable(Context->TickHashtable, &enumContext);
-
-    while (entry = PhNextEnumHashtable(&enumContext))
-    {
-        LVITEM item;
-        PH_ITEM_STATE itemState;
-
-        if (PhRoundNumber(tickCount - entry->TickCount, PH_DURATION_MULT) < Context->HighlightingDuration)
-            continue;
-
-        item.mask = LVIF_STATE;
-        item.iItem = ListView_MapIDToIndex(hwnd, entry->Id);
-        item.iSubItem = 0;
-        item.stateMask = LVIS_STATEIMAGEMASK;
-        CallWindowProc(Context->OldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item);
-        itemState = PH_GET_ITEM_STATE(item.state);
-
-        if (itemState == NewItemState)
-        {
-            item.state = INDEXTOSTATEIMAGEMASK(NormalItemState);
-            CallWindowProc(Context->OldWndProc, hwnd, LVM_SETITEM, 0, (LPARAM)&item);
-
-            if (!itemsToRemove)
-                itemsToRemove = PhCreateList(2);
-
-            PhAddItemList(itemsToRemove, (PVOID)entry->Id);
-
-            entry->TickCount = tickCount;
-        }
-    }
-
-    // Second pass
-    // This pass is specifically for deleting items.
-
-    PhBeginEnumHashtable(Context->TickHashtable, &enumContext);
-
-    while (entry = PhNextEnumHashtable(&enumContext))
-    {
-        LVITEM item;
-        PH_ITEM_STATE itemState;
-
-        if (itemsToRemove)
-        {
-            if (PhFindItemList(itemsToRemove, (PVOID)entry->Id) != -1)
-                continue;
-        }
-
-        if (PhRoundNumber(tickCount - entry->TickCount, PH_DURATION_MULT) < Context->HighlightingDuration)
-            continue;
-
-        item.mask = LVIF_STATE;
-        item.iItem = ListView_MapIDToIndex(hwnd, entry->Id);
-        item.iSubItem = 0;
-        item.stateMask = LVIS_STATEIMAGEMASK;
-        CallWindowProc(Context->OldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item);
-        itemState = PH_GET_ITEM_STATE(item.state);
-
-        if (itemState == RemovingItemState)
-        {
-            if (!redrawDisabled)
-            {
-                ExtendedListView_SetRedraw(hwnd, FALSE);
-                redrawDisabled = TRUE;
-            }
-
-            CallWindowProc(Context->OldWndProc, hwnd, LVM_DELETEITEM, item.iItem, 0);
-
-            if (!itemsToRemove)
-                itemsToRemove = PhCreateList(2);
-
-            PhAddItemList(itemsToRemove, (PVOID)entry->Id);
-
-            entry->TickCount = tickCount;
-        }
-    }
-
-    if (redrawDisabled)
-    {
-        ExtendedListView_SetRedraw(hwnd, TRUE);
-    }
-
-    if (itemsToRemove)
-    {
-        ULONG i;
-
-        for (i = 0; i < itemsToRemove->Count; i++)
-        {
-            PH_TICK_ENTRY removeEntry;
-
-            removeEntry.Id = (ULONG)itemsToRemove->Items[i];
-
-            PhRemoveEntryHashtable(Context->TickHashtable, &removeEntry);
-        }
-
-        PhDereferenceObject(itemsToRemove);
-    }
 }
