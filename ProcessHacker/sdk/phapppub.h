@@ -63,6 +63,9 @@ typedef struct _PH_PROCESS_NODE
     HANDLE ProcessId;
     PPH_PROCESS_ITEM ProcessItem;
 
+    struct _PH_PROCESS_NODE *Parent;
+    PPH_LIST Children;
+
     // ...
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 

@@ -46,6 +46,7 @@ VOID PhCmInitializeManager(
     Manager->NextId = MinId;
     Manager->PostSortFunction = PostSortFunction;
     InitializeListHead(&Manager->ColumnListHead);
+    Manager->NotifyList = NULL;
 }
 
 VOID PhCmDeleteManager(
@@ -64,6 +65,9 @@ VOID PhCmDeleteManager(
 
         PhFree(column);
     }
+
+    if (Manager->NotifyList)
+        PhDereferenceObject(Manager->NotifyList);
 }
 
 PPH_CM_COLUMN PhCmCreateColumn(
@@ -127,6 +131,24 @@ PPH_CM_COLUMN PhCmFindColumn(
     return NULL;
 }
 
+VOID PhCmSetNotifyPlugin(
+    __in PPH_CM_MANAGER Manager,
+    __in struct _PH_PLUGIN *Plugin
+    )
+{
+    if (!Manager->NotifyList)
+    {
+        Manager->NotifyList = PhCreateList(8);
+    }
+    else
+    {
+        if (PhFindItemList(Manager->NotifyList, Plugin) != -1)
+            return;
+    }
+
+    PhAddItemList(Manager->NotifyList, Plugin);
+}
+
 BOOLEAN PhCmForwardMessage(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -187,6 +209,27 @@ BOOLEAN PhCmForwardMessage(
         }
         break;
     default:
+        {
+            // Some plugins want to be notified about all messages.
+            if (Manager->NotifyList)
+            {
+                ULONG i;
+
+                for (i = 0; i < Manager->NotifyList->Count; i++)
+                {
+                    plugin = Manager->NotifyList->Items[i];
+
+                    pluginMessage.TreeNewHandle = hwnd;
+                    pluginMessage.Message = Message;
+                    pluginMessage.Parameter1 = Parameter1;
+                    pluginMessage.Parameter2 = Parameter2;
+                    pluginMessage.SubId = 0;
+                    pluginMessage.Context = NULL;
+
+                    PhInvokeCallback(PhGetPluginCallback(plugin, PluginCallbackTreeNewMessage), &pluginMessage);
+                }
+            }
+        }
         return FALSE;
     }
 
