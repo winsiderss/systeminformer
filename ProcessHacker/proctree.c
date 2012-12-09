@@ -194,6 +194,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVATEBYTESDELTA, FALSE, L"Private Bytes Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SUBSYSTEM, FALSE, L"Subsystem", 110, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PACKAGENAME, FALSE, L"Package Name", 160, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_APPID, FALSE, L"App ID", 160, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -514,6 +515,7 @@ VOID PhpRemoveProcessNode(
     PhDereferenceObject(ProcessNode->Children);
 
     if (ProcessNode->WindowText) PhDereferenceObject(ProcessNode->WindowText);
+    if (ProcessNode->AppIdText) PhDereferenceObject(ProcessNode->AppIdText);
 
     if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
 
@@ -1023,6 +1025,50 @@ static VOID PhpUpdateProcessNodeImage(
         }
 
         ProcessNode->ValidMask |= PHPN_IMAGE;
+    }
+}
+
+static VOID PhpUpdateProcessNodeAppId(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_APPID))
+    {
+        HANDLE processHandle;
+        ULONG windowFlags;
+        PPH_STRING windowTitle;
+
+        PhSwapReference(&ProcessNode->AppIdText, NULL);
+
+        if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+        {
+            if (WindowsVersion >= WINDOWS_7)
+            {
+                if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessNode->ProcessId)))
+                    goto Done;
+            }
+            else
+            {
+                goto Done;
+            }
+        }
+
+        if (NT_SUCCESS(PhGetProcessWindowTitle(
+            processHandle,
+            &windowFlags,
+            &windowTitle
+            )))
+        {
+            if (windowFlags & STARTF_TITLEISAPPID)
+                ProcessNode->AppIdText = windowTitle;
+            else
+                PhDereferenceObject(windowTitle);
+        }
+
+        NtClose(processHandle);
+
+Done:
+        ProcessNode->ValidMask |= PHPN_APPID;
     }
 }
 
@@ -1684,6 +1730,14 @@ BEGIN_SORT_FUNCTION(PackageName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(AppId)
+{
+    PhpUpdateProcessNodeAppId(node1);
+    PhpUpdateProcessNodeAppId(node2);
+    sortResult = PhCompareStringWithNull(node1->AppIdText, node2->AppIdText, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1796,7 +1850,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(MaximumWorkingSet),
                         SORT_FUNCTION(PrivateBytesDelta),
                         SORT_FUNCTION(Subsystem),
-                        SORT_FUNCTION(PackageName)
+                        SORT_FUNCTION(PackageName),
+                        SORT_FUNCTION(AppId)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2455,6 +2510,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_PACKAGENAME:
                 getCellText->Text = PhGetStringRef(processItem->PackageFullName);
+                break;
+            case PHPRTLC_APPID:
+                PhpUpdateProcessNodeAppId(node);
+                getCellText->Text = PhGetStringRef(node->AppIdText);
                 break;
             default:
                 return FALSE;
