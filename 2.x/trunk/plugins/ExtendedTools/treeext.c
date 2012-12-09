@@ -49,6 +49,9 @@ typedef struct _COLUMN_INFO
     BOOLEAN SortDescending;
 } COLUMN_INFO, *PCOLUMN_INFO;
 
+static ULONG ProcessTreeListSortColumn;
+static PH_SORT_ORDER ProcessTreeListSortOrder;
+
 static GUID IID_INetFwMgr_I = { 0xf7898af5, 0xcac4, 0x4632, { 0xa2, 0xec, 0xda, 0x06, 0xe5, 0x11, 0x1a, 0xf2 } };
 static GUID CLSID_NetFwMgr_I = { 0x304ce942, 0x6e39, 0x40d8, { 0x94, 0x3a, 0xb9, 0x13, 0xc4, 0x0c, 0x9c, 0xd4 } };
 
@@ -130,6 +133,25 @@ VOID EtProcessTreeNewInitializing(
         EtpAddTreeNewColumn(treeNewInfo, columns[i].SubId, columns[i].Text, columns[i].Width, columns[i].Alignment,
             columns[i].TextFlags, columns[i].SortDescending, EtpProcessTreeNewSortFunction);
     }
+
+    PhPluginEnableTreeNewNotify(PluginInstance, treeNewInfo->CmData);
+}
+
+static FLOAT EtpCalculateInclusiveGpuUsage(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
+    FLOAT gpuUsage;
+    ULONG i;
+
+    gpuUsage = EtGetProcessBlock(ProcessNode->ProcessItem)->GpuNodeUsage;
+
+    for (i = 0; i < ProcessNode->Children->Count; i++)
+    {
+        gpuUsage += EtpCalculateInclusiveGpuUsage(ProcessNode->Children->Items[i]);
+    }
+
+    return gpuUsage;
 }
 
 VOID EtProcessTreeNewMessage(
@@ -137,14 +159,15 @@ VOID EtProcessTreeNewMessage(
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
+    PPH_PROCESS_NODE processNode;
+    PET_PROCESS_BLOCK block;
 
     if (message->Message == TreeNewGetCellText)
     {
         PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
-        PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)getCellText->Node;
-        PET_PROCESS_BLOCK block;
         PPH_STRING text;
 
+        processNode = (PPH_PROCESS_NODE)getCellText->Node;
         block = EtGetProcessBlock(processNode->ProcessItem);
 
         PhAcquireQueuedLockExclusive(&block->TextCacheLock);
@@ -251,12 +274,25 @@ VOID EtProcessTreeNewMessage(
                 text = PhFormatUInt64(block->ProcessItem->PeakNumberOfThreads, TRUE);
                 break;
             case ETPRTNC_GPU:
-                if (block->GpuNodeUsage >= 0.0001)
                 {
-                    PH_FORMAT format;
+                    FLOAT gpuUsage;
 
-                    PhInitFormatF(&format, block->GpuNodeUsage * 100, 2);
-                    text = PhFormat(&format, 1, 0);
+                    if (!PhGetIntegerSetting(L"PropagateCpuUsage") || processNode->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
+                    {
+                        gpuUsage = block->GpuNodeUsage * 100;
+                    }
+                    else
+                    {
+                        gpuUsage = EtpCalculateInclusiveGpuUsage(processNode) * 100;
+                    }
+
+                    if (gpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+
+                        PhInitFormatF(&format, gpuUsage, 2);
+                        text = PhFormat(&format, 1, 0);
+                    }
                 }
                 break;
             case ETPRTNC_GPUDEDICATEDBYTES:
@@ -303,6 +339,18 @@ VOID EtProcessTreeNewMessage(
         }
 
         PhReleaseQueuedLockExclusive(&block->TextCacheLock);
+    }
+    else if (message->Message == TreeNewSortChanged)
+    {
+        TreeNew_GetSort(message->TreeNewHandle, &ProcessTreeListSortColumn, &ProcessTreeListSortOrder);
+    }
+    else if (message->Message == TreeNewNodeExpanding)
+    {
+        processNode = message->Parameter1;
+        block = EtGetProcessBlock(processNode->ProcessItem);
+
+        if (PhGetIntegerSetting(L"PropagateCpuUsage"))
+            block->TextCacheValid[ETPRTNC_GPU] = FALSE;
     }
 }
 

@@ -472,6 +472,14 @@ PhPluginRegisterIcon(
     __in struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
     );
 
+PHAPPAPI
+VOID
+NTAPI
+PhPluginEnableTreeNewNotify(
+    __in PPH_PLUGIN Plugin,
+    __in PVOID CmData
+    );
+
 #ifdef __cplusplus
 }
 #endif

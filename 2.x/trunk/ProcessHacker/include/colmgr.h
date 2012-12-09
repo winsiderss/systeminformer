@@ -17,6 +17,7 @@ typedef struct _PH_CM_MANAGER
     ULONG NextId;
     PPH_CM_POST_SORT_FUNCTION PostSortFunction;
     LIST_ENTRY ColumnListHead;
+    PPH_LIST NotifyList;
 } PH_CM_MANAGER, *PPH_CM_MANAGER;
 
 typedef struct _PH_CM_COLUMN
@@ -53,6 +54,11 @@ PPH_CM_COLUMN PhCmFindColumn(
     __in PPH_CM_MANAGER Manager,
     __in PPH_STRINGREF PluginName,
     __in ULONG SubId
+    );
+
+VOID PhCmSetNotifyPlugin(
+    __in PPH_CM_MANAGER Manager,
+    __in struct _PH_PLUGIN *Plugin
     );
 
 BOOLEAN PhCmForwardMessage(
