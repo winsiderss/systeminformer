@@ -1051,3 +1051,18 @@ struct _PH_NF_ICON *PhPluginRegisterIcon(
         RegistrationData->MessageCallback
         );
 }
+
+/**
+ * Allows a plugin to receive all treenew messages, not just column-related ones.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param CmData The CmData value from the \ref PH_PLUGIN_TREENEW_INFORMATION
+ * structure.
+ */
+VOID PhPluginEnableTreeNewNotify(
+    __in PPH_PLUGIN Plugin,
+    __in PVOID CmData
+    )
+{
+    PhCmSetNotifyPlugin(CmData, Plugin);
+}

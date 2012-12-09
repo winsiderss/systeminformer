@@ -13,6 +13,7 @@ Process Hacker
      * Fixed bug when restarting services
    * Updated ExtendedTools plugin:
      * Improved support for multiple GPUs (again)
+     * GPU column now respects "Include CPU usage of children" option
    * Updated ToolStatus plugin:
      * Fixed controls not being properly hidden/removed from the window when disabled
  * FIXED:
