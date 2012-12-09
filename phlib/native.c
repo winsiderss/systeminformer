@@ -919,7 +919,11 @@ NTSTATUS PhGetProcessWindowTitle(
     }
 #endif
 
+#ifdef _M_X64
     status = PhGetProcessPebString(ProcessHandle, PhpoWindowTitle | (isWow64 ? PhpoWow64 : 0), WindowTitle);
+#else
+    status = PhGetProcessPebString(ProcessHandle, PhpoWindowTitle, WindowTitle);
+#endif
 
     if (NT_SUCCESS(status))
         *WindowFlags = windowFlags;
