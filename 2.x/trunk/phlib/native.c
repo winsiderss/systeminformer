@@ -814,6 +814,120 @@ NTSTATUS PhGetProcessPebString(
 }
 
 /**
+ * Gets the window flags and window title of a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle
+ * must have PROCESS_QUERY_LIMITED_INFORMATION. Before
+ * Windows 7 SP1, the handle must also have PROCESS_VM_READ access.
+ * \param WindowFlags A variable which receives the window
+ * flags.
+ * \param WindowTitle A variable which receives a pointer to the
+ * window title. You must free the string using
+ * PhDereferenceObject() when you no longer need it.
+ */
+NTSTATUS PhGetProcessWindowTitle(
+    __in HANDLE ProcessHandle,
+    __out PULONG WindowFlags,
+    __out PPH_STRING *WindowTitle
+    )
+{
+    NTSTATUS status;
+#ifdef _M_X64
+    BOOLEAN isWow64 = FALSE;
+#endif
+    ULONG windowFlags;
+
+    if (WindowsVersion >= WINDOWS_7)
+    {
+        PPROCESS_WINDOW_INFORMATION windowInfo;
+
+        status = PhpQueryProcessVariableSize(
+            ProcessHandle,
+            ProcessWindowInformation,
+            &windowInfo
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *WindowFlags = windowInfo->WindowFlags;
+            *WindowTitle = PhCreateStringEx(windowInfo->WindowTitle, windowInfo->WindowTitleLength);
+            PhFree(windowInfo);
+
+            return status;
+        }
+    }
+
+#ifdef _M_X64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (!isWow64)
+#endif
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID processParameters;
+
+        // Get the PEB address.
+        if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+            return status;
+
+        // Read the address of the process parameters.
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+            &processParameters,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
+
+        // Read the window flags.
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, WindowFlags)),
+            &windowFlags,
+            sizeof(ULONG),
+            NULL
+            )))
+            return status;
+    }
+#ifdef _M_X64
+    else
+    {
+        PVOID peb32;
+        ULONG processParameters32;
+
+        if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &peb32)))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+            &processParameters32,
+            sizeof(ULONG),
+            NULL
+            )))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters32, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, WindowFlags)),
+            &windowFlags,
+            sizeof(ULONG),
+            NULL
+            )))
+            return status;
+    }
+#endif
+
+    status = PhGetProcessPebString(ProcessHandle, PhpoWindowTitle | (isWow64 ? PhpoWow64 : 0), WindowTitle);
+
+    if (NT_SUCCESS(status))
+        *WindowFlags = windowFlags;
+
+    return status;
+}
+
+/**
  * Gets whether the process is running under the POSIX
  * subsystem.
  *

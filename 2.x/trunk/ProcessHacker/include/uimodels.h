@@ -187,8 +187,9 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_PRIVATEBYTESDELTA 70
 #define PHPRTLC_SUBSYSTEM 71
 #define PHPRTLC_PACKAGENAME 72
+#define PHPRTLC_APPID 73
 
-#define PHPRTLC_MAXIMUM 73
+#define PHPRTLC_MAXIMUM 74
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -200,6 +201,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPN_OSCONTEXT 0x40
 #define PHPN_QUOTALIMITS 0x80
 #define PHPN_IMAGE 0x100
+#define PHPN_APPID 0x200
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -251,6 +253,8 @@ typedef struct _PH_PROCESS_NODE
     USHORT ImageReserved;
     USHORT ImageSubsystem;
     USHORT ImageDllCharacteristics;
+    // App ID
+    PPH_STRING AppIdText;
     // Cycles (Vista only)
     PH_UINT64_DELTA CyclesDelta;
 

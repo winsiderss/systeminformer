@@ -2,6 +2,7 @@ Process Hacker
 
 2.29
  * NEW/IMPROVED:
+   * Added App ID column for processes
    * Added new ASLR information for Windows 8
    * Added Restart to Boot Options and Hybrid Shutdown menu items for
      Windows 8

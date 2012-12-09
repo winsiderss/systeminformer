@@ -184,6 +184,13 @@ NTSTATUS PhGetProcessPebString(
     PhGetProcessPebString(ProcessHandle, PhpoCommandLine, String)
 
 PHLIBAPI
+NTSTATUS PhGetProcessWindowTitle(
+    __in HANDLE ProcessHandle,
+    __out PULONG WindowFlags,
+    __out PPH_STRING *WindowTitle
+    );
+
+PHLIBAPI
 NTSTATUS PhGetProcessIsPosix(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsPosix
