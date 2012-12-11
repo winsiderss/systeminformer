@@ -129,21 +129,12 @@ BOOLEAN PhMainWndInitialization(
 
         // Try to set up the dbghelp path automatically if this is the first run.
 
-        autoDbghelpPath = PHA_DEREFERENCE(PhGetKnownLocation(
-            CSIDL_PROGRAM_FILES,
-#ifdef _M_IX86
-            L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
-#else
-            L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
-#endif
-            ));
+        autoDbghelpPath = PhMwpFindDbghelpPath();
 
         if (autoDbghelpPath)
         {
-            if (RtlDoesFileExists_U(autoDbghelpPath->Buffer))
-            {
-                PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
-            }
+            PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
+            PhDereferenceObject(autoDbghelpPath);
         }
 
         PhSetIntegerSetting(L"FirstRun", FALSE);
@@ -571,6 +562,47 @@ NTSTATUS PhMwpDelayedLoadFunction(
     //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
 
     return STATUS_SUCCESS;
+}
+
+PPH_STRING PhMwpFindDbghelpPath(
+    VOID
+    )
+{
+    PPH_STRING path;
+
+    path = PhGetKnownLocation(
+        CSIDL_PROGRAM_FILES,
+#ifdef _M_IX86
+        L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
+#else
+        L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
+#endif
+        );
+
+    if (path && RtlDoesFileExists_U(path->Buffer))
+        return path;
+    if (path)
+        PhDereferenceObject(path);
+
+    path = PhGetKnownLocation(
+#ifdef _M_IX86
+        CSIDL_PROGRAM_FILES,
+#else
+        CSIDL_PROGRAM_FILESX86,
+#endif
+#ifdef _M_IX86
+        L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll"
+#else
+        L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll"
+#endif
+        );
+
+    if (path && RtlDoesFileExists_U(path->Buffer))
+        return path;
+    if (path)
+        PhDereferenceObject(path);
+
+    return NULL;
 }
 
 VOID PhMwpOnDestroy(
@@ -3943,17 +3975,11 @@ static BOOL CALLBACK EnumProcessWindowsProc(
     )
 {
     ULONG processId;
-    HWND parentWindow;
-
-    if (!IsWindowVisible(hwnd))
-        return TRUE;
 
     GetWindowThreadProcessId(hwnd, &processId);
 
     if (
-        processId == (ULONG)lParam &&
-        !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        GetWindowTextLength(hwnd) != 0
+        processId == (ULONG)lParam
         )
     {
         SelectedProcessWindowHandle = hwnd;
