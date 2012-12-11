@@ -196,7 +196,7 @@ VOID WepAddDesktopWindows(
 
     if (desktopHandle = OpenDesktop(DesktopName, 0, FALSE, DESKTOP_ENUMERATE))
     {
-        EnumDesktopWindows(desktopHandle, WepEnumDesktopWindowsProc, Context);
+        EnumDesktopWindows(desktopHandle, WepEnumDesktopWindowsProc, (LPARAM)Context);
         CloseDesktop(desktopHandle);
     }
 }
