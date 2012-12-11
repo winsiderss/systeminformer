@@ -49,6 +49,7 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING Size;
     PPH_STRING Hash;
     PPH_STRING ReleaseNotesUrl;
+    PPH_STRING SetupFilePath;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 VOID ShowUpdateDialog(
