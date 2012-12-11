@@ -36,14 +36,6 @@ typedef struct _WINDOWS_CONTEXT
     ULONG HighlightingWindowCount;
 } WINDOWS_CONTEXT, *PWINDOWS_CONTEXT;
 
-typedef struct _ADD_CHILD_WINDOWS_CONTEXT
-{
-    PWINDOWS_CONTEXT Context;
-    PWE_WINDOW_NODE Node;
-    HANDLE FilterProcessId;
-    BOOLEAN TopLevelWindows;
-} ADD_CHILD_WINDOWS_CONTEXT, *PADD_CHILD_WINDOWS_CONTEXT;
-
 VOID WepShowWindowsDialogCallback(
     __in PVOID Parameter
     );
@@ -100,18 +92,6 @@ VOID WepDeleteWindowSelector(
     }
 }
 
-BOOL CALLBACK WepHasChildrenEnumWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
-    )
-{
-    PWE_WINDOW_NODE node = (PWE_WINDOW_NODE)lParam;
-
-    node->HasChildren = TRUE;
-
-    return FALSE;
-}
-
 VOID WepFillWindowInfo(
     __in PWE_WINDOW_NODE Node
     )
@@ -133,100 +113,78 @@ VOID WepFillWindowInfo(
     Node->ClientId.UniqueThread = UlongToHandle(threadId);
 
     Node->WindowVisible = !!IsWindowVisible(hwnd);
-
-    // Determine if the window has children.
-    EnumChildWindows(hwnd, WepHasChildrenEnumWindowsProc, (LPARAM)Node);
+    Node->HasChildren = !!FindWindowEx(hwnd, NULL, NULL, NULL);
 }
 
-BOOL CALLBACK WepEnumChildWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+VOID WepAddChildWindowNode(
+    __in PWE_WINDOW_TREE_CONTEXT Context,
+    __in_opt PWE_WINDOW_NODE ParentNode,
+    __in HWND hwnd
     )
 {
-    PADD_CHILD_WINDOWS_CONTEXT context = (PADD_CHILD_WINDOWS_CONTEXT)lParam;
     PWE_WINDOW_NODE childNode;
 
-    // EnumChildWindows gives you all the child windows, even if they are
-    // indirect descendants. We only want the direct descendants.
-    if (!context->TopLevelWindows && context->Node && GetParent(hwnd) != context->Node->WindowHandle)
-        return TRUE;
-
-    if (context->FilterProcessId)
-    {
-        ULONG processId;
-
-        GetWindowThreadProcessId(hwnd, &processId);
-
-        if (context->FilterProcessId != UlongToHandle(processId))
-            return TRUE;
-    }
-
-    childNode = WeAddWindowNode(&context->Context->TreeContext);
+    childNode = WeAddWindowNode(Context);
     childNode->WindowHandle = hwnd;
     WepFillWindowInfo(childNode);
 
     childNode->Node.Expanded = FALSE;
 
-    if (context->Node)
+    if (ParentNode)
     {
         // This is a child node.
-        childNode->Parent = context->Node;
-        PhAddItemList(context->Node->Children, childNode);
+        childNode->Parent = ParentNode;
+        PhAddItemList(ParentNode->Children, childNode);
     }
     else
     {
         // This is a root node.
-        PhAddItemList(context->Context->TreeContext.NodeRootList, childNode);
+        PhAddItemList(Context->NodeRootList, childNode);
     }
-
-    return TRUE;
 }
 
 VOID WepAddChildWindows(
     __in PWINDOWS_CONTEXT Context,
-    __in PWE_WINDOW_NODE Node
+    __in_opt PWE_WINDOW_NODE ParentNode,
+    __in HWND hwnd,
+    __in_opt HANDLE FilterProcessId,
+    __in_opt HANDLE FilterThreadId
     )
 {
-    ADD_CHILD_WINDOWS_CONTEXT context;
+    HWND childWindow = NULL;
+    ULONG i = 0;
 
-    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
-    context.Context = Context;
-    context.Node = Node;
-    context.TopLevelWindows = FALSE;
+    // We use FindWindowEx because EnumWindows doesn't return Metro app windows.
+    // Set a reasonable limit to prevent infinite loops.
+    while (i < 0x800 && (childWindow = FindWindowEx(hwnd, childWindow, NULL, NULL)))
+    {
+        ULONG processId;
+        ULONG threadId;
 
-    EnumChildWindows(Node->WindowHandle, WepEnumChildWindowsProc, (LPARAM)&context);
+        threadId = GetWindowThreadProcessId(childWindow, &processId);
+
+        if (
+            (!FilterProcessId || UlongToHandle(processId) == FilterProcessId) &&
+            (!FilterThreadId || UlongToHandle(threadId) == FilterThreadId)
+            )
+        {
+            WepAddChildWindowNode(&Context->TreeContext, ParentNode, childWindow);
+        }
+
+        i++;
+    }
 }
 
-VOID WepAddTopLevelWindows(
-    __in PWINDOWS_CONTEXT Context,
-    __in PWE_WINDOW_NODE DesktopNode,
-    __in_opt HANDLE FilterProcessId
+BOOL CALLBACK WepEnumDesktopWindowsProc(
+    __in HWND hwnd,
+    __in LPARAM lParam
     )
 {
-    ADD_CHILD_WINDOWS_CONTEXT context;
+    PWINDOWS_CONTEXT context = (PWINDOWS_CONTEXT)lParam;
 
-    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
-    context.Context = Context;
-    context.Node = DesktopNode;
-    context.FilterProcessId = FilterProcessId;
-    context.TopLevelWindows = TRUE;
+    WepAddChildWindowNode(&context->TreeContext, NULL, hwnd);
 
-    EnumWindows(WepEnumChildWindowsProc, (LPARAM)&context);
-}
-
-VOID WepAddThreadWindows(
-    __in PWINDOWS_CONTEXT Context,
-    __in HANDLE ThreadId
-    )
-{
-    ADD_CHILD_WINDOWS_CONTEXT context;
-
-    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
-    context.Context = Context;
-    context.Node = NULL;
-    context.TopLevelWindows = TRUE;
-
-    EnumThreadWindows((ULONG)ThreadId, WepEnumChildWindowsProc, (LPARAM)&context);
+    return TRUE;
 }
 
 VOID WepAddDesktopWindows(
@@ -234,17 +192,11 @@ VOID WepAddDesktopWindows(
     __in PWSTR DesktopName
     )
 {
-    ADD_CHILD_WINDOWS_CONTEXT context;
     HDESK desktopHandle;
-
-    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
-    context.Context = Context;
-    context.Node = NULL;
-    context.TopLevelWindows = TRUE;
 
     if (desktopHandle = OpenDesktop(DesktopName, 0, FALSE, DESKTOP_ENUMERATE))
     {
-        EnumDesktopWindows(desktopHandle, WepEnumChildWindowsProc, (LPARAM)&context);
+        EnumDesktopWindows(desktopHandle, WepEnumDesktopWindowsProc, Context);
         CloseDesktop(desktopHandle);
     }
 }
@@ -269,7 +221,7 @@ VOID WepRefreshWindows(
 
             PhAddItemList(Context->TreeContext.NodeRootList, desktopNode);
 
-            WepAddTopLevelWindows(Context, desktopNode, NULL);
+            WepAddChildWindows(Context, desktopNode, desktopNode->WindowHandle, NULL, NULL);
 
             desktopNode->HasChildren = TRUE;
             desktopNode->Opened = TRUE;
@@ -277,12 +229,12 @@ VOID WepRefreshWindows(
         break;
     case WeWindowSelectorThread:
         {
-            WepAddThreadWindows(Context, Context->Selector.Thread.ThreadId);
+            WepAddChildWindows(Context, NULL, GetDesktopWindow(), NULL, Context->Selector.Thread.ThreadId);
         }
         break;
     case WeWindowSelectorProcess:
         {
-            WepAddTopLevelWindows(Context, NULL, Context->Selector.Process.ProcessId);
+            WepAddChildWindows(Context, NULL, GetDesktopWindow(), Context->Selector.Process.ProcessId, NULL);
         }
         break;
     case WeWindowSelectorDesktop:
@@ -780,7 +732,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             if (!node->Opened)
             {
                 TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
-                WepAddChildWindows(context, node);
+                WepAddChildWindows(context, node, node->WindowHandle, NULL, NULL);
                 node->Opened = TRUE;
                 TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
             }
