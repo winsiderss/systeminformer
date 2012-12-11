@@ -147,6 +147,13 @@ PPH_STRING PhGetProcessPackageFullName(
     __in HANDLE ProcessHandle
     );
 
+VOID PhEnumChildWindows(
+    __in_opt HWND hWnd,
+    __in ULONG Limit,
+    __in WNDENUMPROC Callback,
+    __in LPARAM lParam
+    );
+
 typedef enum _PH_KNOWN_PROCESS_TYPE
 {
     UnknownProcessType,

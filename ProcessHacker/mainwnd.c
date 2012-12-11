@@ -4114,7 +4114,7 @@ VOID PhMwpInitializeProcessMenu(
 
             // Get a handle to the process' top-level window (if any).
             SelectedProcessWindowHandle = NULL;
-            EnumWindows(EnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
+            PhEnumChildWindows(NULL, 0x800, EnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
 
             if (!SelectedProcessWindowHandle)
                 item->Flags |= PH_EMENU_DISABLED;

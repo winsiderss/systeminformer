@@ -217,6 +217,25 @@ PPH_STRING PhGetProcessPackageFullName(
     }
 }
 
+VOID PhEnumChildWindows(
+    __in_opt HWND hWnd,
+    __in ULONG Limit,
+    __in WNDENUMPROC Callback,
+    __in LPARAM lParam
+    )
+{
+    HWND childWindow = NULL;
+    ULONG i = 0;
+
+    while (i < Limit && (childWindow = FindWindowEx(hWnd, childWindow, NULL, NULL)))
+    {
+        if (!Callback(childWindow, lParam))
+            return;
+
+        i++;
+    }
+}
+
 /**
  * Determines the type of a process based on its image file name.
  *
