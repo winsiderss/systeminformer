@@ -828,7 +828,7 @@ static VOID PhpUpdateProcessNodeWindow(
     if (!(ProcessNode->ValidMask & PHPN_WINDOW))
     {
         ProcessNode->WindowHandle = NULL;
-        EnumWindows(PhpEnumProcessNodeWindowsProc, (LPARAM)ProcessNode);
+        PhEnumChildWindows(NULL, 0x800, PhpEnumProcessNodeWindowsProc, (LPARAM)ProcessNode);
 
         PhSwapReference(&ProcessNode->WindowText, NULL);
 
