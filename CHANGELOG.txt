@@ -18,6 +18,8 @@ Process Hacker
      * GPU column now respects "Include CPU usage of children" option
    * Updated ToolStatus plugin:
      * Fixed controls not being properly hidden/removed from the window when disabled
+   * Updated WindowExplorer plugin:
+     * Fixed window list not displaying Modern UI windows
  * FIXED:
    * Fixed Load Count column sorting bug
    * Fixed signature verification on Windows 8

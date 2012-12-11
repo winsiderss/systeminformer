@@ -1,3 +1,6 @@
+1.5
+ * Fixed window list not displaying Modern UI windows
+
 1.4
  * Fixed hook support for low integrity processes
 
