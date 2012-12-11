@@ -22,10 +22,11 @@
  */
 
 #include "updater.h"
-#include <time.h>
 
-// Force update checks to succeed
+#ifdef _DEBUG
+// Force update checks to succeed with debug builds
 #define DEBUG_UPDATE
+#endif
 
 #define PH_UPDATEISERRORED (WM_APP + 101)
 #define PH_UPDATEAVAILABLE (WM_APP + 102)
@@ -655,8 +656,8 @@ static NTSTATUS UpdateDownloadThread(
             ULONG downloadedBytes = 0;    
             ULONG contentLengthSize = sizeof(ULONG);
             ULONG contentLength = 0;
-            time_t TimeStart = 0;
-            time_t TimeTransferred = 0;
+            ULONG timeStart = 0;
+            ULONG timeTransferred = 0;
 
             IO_STATUS_BLOCK isb;
           
@@ -674,7 +675,7 @@ static NTSTATUS UpdateDownloadThread(
 
             // Start the clock.
             startTick = GetTickCount();
-            //timeTransferred = startTick;
+            timeTransferred = startTick;
 
             // Reset the counters.
             bytesDownloaded = 0;
@@ -723,8 +724,8 @@ static NTSTATUS UpdateDownloadThread(
 
                  //Update the GUI progress.
                 {
-                    time_t time_taken = (time(NULL) - TimeTransferred);
-                    time_t bps = downloadedBytes / (time_taken ? time_taken : 1);
+                    ULONG time_taken = (GetTickCount() - timeTransferred);
+                    ULONG bps = downloadedBytes / (time_taken ? time_taken : 1);
                     //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
                     int percent = MulDiv(100, downloadedBytes, contentLength);
 
