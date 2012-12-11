@@ -29,6 +29,7 @@ Process Hacker
    * Fixed Run As feature on Windows 8
    * Fixed bug where -settings parameter is not propagated
    * Fixed tab key behavior on main window
+   * Fixed recognition of Modern UI windows
 
 2.28
  * NEW/IMPROVED:
