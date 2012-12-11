@@ -22,6 +22,7 @@
  */
 
 #include "updater.h"
+#include <time.h>
 
 // Force update checks to succeed
 #define DEBUG_UPDATE
@@ -30,6 +31,9 @@
 #define PH_UPDATEAVAILABLE (WM_APP + 102)
 #define PH_UPDATEISCURRENT (WM_APP + 103)
 #define PH_UPDATENEWER     (WM_APP + 104)
+
+#define PH_HASHSUCCESS     (WM_APP + 105)
+#define PH_HASHFAILURE     (WM_APP + 106)
 
 static HANDLE UpdateDialogThreadHandle = NULL;
 static HWND UpdateDialogHandle = NULL;
@@ -160,7 +164,20 @@ static BOOL ReadRequestString(
     return TRUE;
 }
 
-static VOID FreeUpdateData(
+static PUPDATER_XML_DATA CreateUpdateContext(
+    VOID
+    )
+{
+    PUPDATER_XML_DATA context = (PUPDATER_XML_DATA)PhAllocate(
+        sizeof(UPDATER_XML_DATA)
+        );
+
+    memset(context, 0, sizeof(UPDATER_XML_DATA));
+
+    return context;
+}
+
+static VOID FreeUpdateContext(
     __inout PUPDATER_XML_DATA Context
     )
 {
@@ -180,6 +197,7 @@ static VOID FreeUpdateData(
     PhSwapReference(&Context->Size, NULL);
     PhSwapReference(&Context->Hash, NULL);
     PhSwapReference(&Context->ReleaseNotesUrl, NULL);
+    PhSwapReference(&Context->SetupFilePath, NULL);
 
     Context->HaveData = FALSE;
 
@@ -275,7 +293,7 @@ static BOOLEAN QueryUpdateData(
             __leave;
 
         // Check the buffer for any data
-        if (xmlStringBuffer == NULL || xmlStringBuffer[0] == 0 || strlen(xmlStringBuffer) == 0)
+        if (xmlStringBuffer == NULL || xmlStringBuffer[0] == 0)
             __leave;
 
         // Load our XML
@@ -373,11 +391,7 @@ static NTSTATUS UpdateCheckSilentThread(
 {
     if (ConnectionAvailable())
     {
-        PUPDATER_XML_DATA context = (PUPDATER_XML_DATA)PhAllocate(
-            sizeof(UPDATER_XML_DATA)
-            );
-
-        memset(context, 0, sizeof(UPDATER_XML_DATA));
+        PUPDATER_XML_DATA context = CreateUpdateContext();
 
         if (QueryUpdateData(context))
         {
@@ -425,7 +439,7 @@ static NTSTATUS UpdateCheckSilentThread(
         if (!context->HaveData)
         {
             // Free the data
-            FreeUpdateData(context);
+            FreeUpdateContext(context);
         }
     }
 
@@ -507,291 +521,300 @@ static NTSTATUS UpdateDownloadThread(
     __in PVOID Parameter
     )
 {
-    //PPH_STRING downloadUrlPath = NULL;
-    //HANDLE tempFileHandle = NULL;
-
-    PPH_STRING tempPath;
-    //PPH_STRING SetupFilePath;
-    //BOOLEAN isSuccess = FALSE;
-
-    //HINTERNET sessionHandle = NULL;
-    //HINTERNET connectionHandle = NULL;
-    //HINTERNET requestHandle = NULL;
-
-    //WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
+    PUPDATER_XML_DATA context;
+    PPH_STRING setupTempPath = NULL;
+    PPH_STRING phVersion = NULL;
+    PPH_STRING userAgent = NULL;
+    PPH_STRING downloadUrlPath = NULL;
+    HINTERNET sessionHandle = NULL;
+    HINTERNET connectionHandle = NULL;
+    HINTERNET requestHandle = NULL;
+    HANDLE tempFileHandle = NULL;
+    BOOLEAN isSuccess = FALSE;
 
     // Create a user agent string.
-    //PPH_STRING phVersion = PhGetPhVersion();
-    //PPH_STRING userAgent = PhConcatStrings2(L"PH_", phVersion->Buffer);
+    phVersion = PhGetPhVersion();
+    userAgent = PhConcatStrings2(L"PH_", phVersion->Buffer);
 
-    PUPDATER_XML_DATA updateData = (PUPDATER_XML_DATA)Parameter;
-
-    // create the download path string.
-    //downloadUrlPath = PhFormatString(
-    //    L"/projects/processhacker/files/processhacker2/processhacker-%lu.%lu-setup.exe/download?use_mirror=autoselect", /* ?use_mirror=waix" */
-    //    updateData->MajorVersion,
-    //    updateData->MinorVersion
-    //    );
+    context = (PUPDATER_XML_DATA)Parameter;
 
     __try
     {
-        // Allocate the GetTempPath buffer
-        if (!(tempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR))))
+        WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
+        
+        if (context == NULL)
             __leave;
 
+        // create the download path string.
+        downloadUrlPath = PhFormatString(
+            L"/projects/processhacker/files/processhacker2/processhacker-%lu.%lu-setup.exe/download?use_mirror=autoselect", /* ?use_mirror=waix" */
+            context->MajorVersion,
+            context->MinorVersion
+            );       
+        if (PhIsNullOrEmptyString(downloadUrlPath))
+            __leave;
+
+        // Allocate the GetTempPath buffer
+        setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
+        if (PhIsNullOrEmptyString(setupTempPath))
+            __leave;            
         // Get the temp path
-        if (GetTempPath((DWORD)tempPath->Length / sizeof(WCHAR), tempPath->Buffer) == 0)
+        if (GetTempPath((DWORD)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
+            __leave;
+        if (PhIsNullOrEmptyString(setupTempPath))
             __leave;
 
         // Append the tempath to our string: %TEMP%processhacker-%u.%u-setup.exe
-        // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-2.10-setup.exe
-        //SetupFilePath = PhFormatString(
-        //    L"%sprocesshacker-%lu.%lu-setup.exe",
-        //    tempPath->Buffer,
-        //    updateData->MajorVersion,
-        //    updateData->MinorVersion
-        //    );
+        // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-2.90-setup.exe
+        context->SetupFilePath = PhFormatString(
+            L"%sprocesshacker-%lu.%lu-setup.exe",
+            setupTempPath->Buffer,
+            context->MajorVersion,
+            context->MinorVersion
+            );
+
+        if (PhIsNullOrEmptyString(context->SetupFilePath))
+            __leave;
 
         //// Create output file
-        //if (!NT_SUCCESS(PhCreateFileWin32(
-        //    &tempFileHandle,
-        //    SetupFilePath->Buffer,
-        //    FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        //    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
-        //    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        //    FILE_OVERWRITE_IF,
-        //    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        //    )))
-        //{
-        //    __leave;
-        //}
+        if (!NT_SUCCESS(PhCreateFileWin32(
+            &tempFileHandle,
+            context->SetupFilePath->Buffer,
+            FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OVERWRITE_IF,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            __leave;
+        }
 
         //// Query the current system proxy
-        //WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+        WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
         //// Open the HTTP session with the system proxy configuration if available
-        //if (!(sessionHandle = WinHttpOpen(
-        //    userAgent->Buffer,                 
-        //    proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        //    proxyConfig.lpszProxy, 
-        //    proxyConfig.lpszProxyBypass, 
-        //    0
-        //    )))
-        //{
-        //    __leave;
-        //}
+        if (!(sessionHandle = WinHttpOpen(
+            userAgent->Buffer,                 
+            proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+            proxyConfig.lpszProxy, 
+            proxyConfig.lpszProxyBypass, 
+            0
+            )))
+        {
+            __leave;
+        }
 
-        //if (!(connectionHandle = WinHttpConnect(
-        //    sessionHandle, 
-        //    L"sourceforge.net",
-        //    INTERNET_DEFAULT_HTTP_PORT,
-        //    0
-        //    )))
-        //{
-        //    __leave;
-        //}
+        if (!(connectionHandle = WinHttpConnect(
+            sessionHandle, 
+            L"sourceforge.net",
+            INTERNET_DEFAULT_HTTP_PORT,
+            0
+            )))
+        {
+            __leave;
+        }
 
-        //if (!(requestHandle = WinHttpOpenRequest(
-        //    connectionHandle, 
-        //    L"GET", 
-        //    downloadUrlPath->Buffer, 
-        //    NULL, 
-        //    WINHTTP_NO_REFERER, 
-        //    WINHTTP_DEFAULT_ACCEPT_TYPES, 
-        //    0 // WINHTTP_FLAG_REFRESH
-        //    )))
-        //{
-        //    __leave;
-        //}
+        if (!(requestHandle = WinHttpOpenRequest(
+            connectionHandle, 
+            L"GET", 
+            downloadUrlPath->Buffer, 
+            NULL, 
+            WINHTTP_NO_REFERER, 
+            WINHTTP_DEFAULT_ACCEPT_TYPES, 
+            0 // WINHTTP_FLAG_REFRESH
+            )))
+        {
+            __leave;
+        }
 
         ////SetDlgItemText(hwndDlg, IDC_STATUS, L"Connecting");
 
-        //if (!WinHttpSendRequest(
-        //    requestHandle, 
-        //    WINHTTP_NO_ADDITIONAL_HEADERS, 
-        //    0, 
-        //    WINHTTP_NO_REQUEST_DATA, 
-        //    0, 
-        //    WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-        //    0
-        //    ))
-        //{
-        //    __leave;
-        //}
+        if (!WinHttpSendRequest(
+            requestHandle, 
+            WINHTTP_NO_ADDITIONAL_HEADERS, 
+            0, 
+            WINHTTP_NO_REQUEST_DATA, 
+            0, 
+            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
+            0
+            ))
+        {
+            __leave;
+        }
 
-        //if (!WinHttpReceiveResponse(requestHandle, NULL))
-        //    __leave;
+        if (WinHttpReceiveResponse(requestHandle, NULL))
+        {
+            BYTE hashBuffer[20]; 
+            BYTE buffer[PAGE_SIZE];
 
-        //{
-        //    BYTE hashBuffer[20]; 
-        //    PH_HASH_CONTEXT hashContext;
-        //    BYTE buffer[PAGE_SIZE];
-        //    DWORD bytesDownloaded = 0, startTick = 0;
-        //    IO_STATUS_BLOCK isb;
+            PH_HASH_CONTEXT hashContext;
+             
+            ULONG bytesDownloaded = 0;
+            ULONG startTick = 0;
+            ULONG downloadedBytes = 0;    
+            ULONG contentLengthSize = sizeof(ULONG);
+            ULONG contentLength = 0;
+            time_t TimeStart = 0;
+            time_t TimeTransferred = 0;
 
-        //    DWORD contentLengthSize = sizeof(DWORD);
-        //    DWORD contentLength = 0;
+            IO_STATUS_BLOCK isb;
+          
+            if (!WinHttpQueryHeaders(
+                requestHandle, 
+                WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER, 
+                WINHTTP_HEADER_NAME_BY_INDEX,
+                &contentLength, 
+                &contentLengthSize, 
+                0
+                ))
+            {
+                __leave;
+            }
 
-        //    // Initialize hash algorithm.
-        //    PhInitializeHash(&hashContext, Sha1HashAlgorithm);
+            // Start the clock.
+            startTick = GetTickCount();
+            //timeTransferred = startTick;
 
-        //    if (!WinHttpQueryHeaders(
-        //        requestHandle, 
-        //        WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER, 
-        //        WINHTTP_HEADER_NAME_BY_INDEX,
-        //        &contentLength, 
-        //        &contentLengthSize, 
-        //        0
-        //        ))
-        //    {
-        //        __leave;
-        //    }
+            // Reset the counters.
+            bytesDownloaded = 0;
 
-        //    // Zero the buffer.
-        //    ZeroMemory(buffer, PAGE_SIZE);
+            // Initialize hash algorithm.
+            PhInitializeHash(&hashContext, Sha1HashAlgorithm);
 
-        //    //        // Reset the counters.
-        //    //        bytesDownloaded = 0, timeTransferred = 0, LastUpdateTime = 0;
-        //    //        IsUpdating = FALSE;
+            // Zero the buffer.
+            ZeroMemory(buffer, PAGE_SIZE);
 
-        //    //        // Start the clock.
-        //    //        startTick = GetTickCount();
-        //    //        timeTransferred = startTick;
+            // Download the data.
+            while (WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
+            {
+                // If we get zero bytes, the file was uploaded or there was an error
+                if (bytesDownloaded == 0)
+                    break;
 
-        //    // Download the data.
-        //    while (WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
-        //    {
-        //        // If we get zero bytes, the file was uploaded or there was an error.
-        //        if (bytesDownloaded == 0)
-        //            break;
+                // If the dialog was closed, just cleanup and exit
+                if (!UpdateDialogThreadHandle)
+                    __leave;
 
-        //        // If the dialog was closed, just dispose and exit.
-        //        if (!UpdateDialogThreadHandle)
-        //            __leave;
+                // Update the hash of bytes we downloaded.
+                PhUpdateHash(&hashContext, buffer, bytesDownloaded);
 
-        //        // Update the hash of bytes we downloaded.
-        //        PhUpdateHash(&hashContext, buffer, bytesDownloaded);
+                // Write the downloaded bytes to disk.
+                if (!NT_SUCCESS(NtWriteFile(
+                    tempFileHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &isb,
+                    buffer,
+                    bytesDownloaded,
+                    NULL,
+                    NULL
+                    )))
+                {
+                    __leave;
+                }        
+                //PhAcquireQueuedLockExclusive(&Lock);
+                downloadedBytes += (DWORD)isb.Information;
 
-        //        // Write the downloaded bytes to disk.
-        //        if (!NT_SUCCESS(NtWriteFile(
-        //            tempFileHandle,
-        //            NULL,
-        //            NULL,
-        //            NULL,
-        //            &isb,
-        //            buffer,
-        //            bytesDownloaded,
-        //            NULL,
-        //            NULL
-        //            )))
-        //        {
-        //            __leave;
-        //        }
+                // Check the number of bytes written are the same we downloaded.
+                if (bytesDownloaded != isb.Information)
+                    __leave;
 
-        //        // Check the number of bytes written are the same we downloaded.
-        //        if (bytesDownloaded != isb.Information)
-        //            __leave;
+                 //Update the GUI progress.
+                {
+                    time_t time_taken = (time(NULL) - TimeTransferred);
+                    time_t bps = downloadedBytes / (time_taken ? time_taken : 1);
+                    //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
+                    int percent = MulDiv(100, downloadedBytes, contentLength);
 
-        //        //// Update our total bytes downloaded
-        //        //PhAcquireQueuedLockExclusive(&Lock);
-        //        //bytesDownloaded += (DWORD)isb.Information;
-        //        //PhReleaseQueuedLockExclusive(&Lock);
-        //        //AsyncUpdate();
-        //        {
-        //            //DWORD time_taken;
-        //            //DWORD download_speed;        
-        //            ////DWORD time_remain = (MulDiv(time_taken, contentLength, bytesDownloaded) - time_taken);
-        //            //int percent;
-        //            //PPH_STRING dlRemaningBytes;
-        //            //PPH_STRING dlLength;
-        //            ////PPH_STRING dlSpeed;
-        //            //PPH_STRING statusText;
+                    PPH_STRING TotalLength = PhFormatSize(contentLength, -1);
+                    PPH_STRING TotalDownloadedLength = PhFormatSize(downloadedBytes, -1);
+                    PPH_STRING TotalSpeed = PhFormatSize(bps, -1);
 
-        //            ////PhAcquireQueuedLockExclusive(&Lock);
+                    PPH_STRING dlLengthString = PhFormatString(
+                        L"%s of %s @ %s/s", 
+                        TotalDownloadedLength->Buffer, 
+                        TotalLength->Buffer,
+                        TotalSpeed->Buffer
+                        );
 
-        //            ////time_taken = (GetTickCount() - timeTransferred);
-        //            ////download_speed = (bytesDownloaded / max(time_taken, 1));  
-        //            //percent = MulDiv(100, bytesDownloaded, contentLength);
+                    SetWindowText(GetDlgItem(UpdateDialogHandle, IDC_STATUS), dlLengthString->Buffer);
 
-        //            //dlRemaningBytes = PhFormatSize(bytesDownloaded, -1);
-        //            //dlLength = PhFormatSize(contentLength, -1);
-        //            ////dlSpeed = PhFormatSize(download_speed * 1024, -1);
+                    PhDereferenceObject(dlLengthString);
+                    PhDereferenceObject(TotalSpeed);
+                    PhDereferenceObject(TotalLength);
+                    PhDereferenceObject(TotalDownloadedLength);
 
-        //            ////LastUpdateTime = GetTickCount();
+                    // Update the progress bar position
+                    SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETPOS, percent, 0);
+                }
+            }
+             
+            // Check if we downloaded the entire file.
+            assert(downloadedBytes == contentLength);
 
-        //            ////PhReleaseQueuedLockExclusive(&Lock);
+            // Compute our hash result.
+            if (PhFinalHash(&hashContext, &hashBuffer, 20, NULL))
+            {
+                // Allocate our hash string, hex the final hash result in our hashBuffer.
+                PPH_STRING hexString = PhBufferToHexString(hashBuffer, 20);
 
-        //            //statusText = PhFormatString(
-        //            //    L"%s (%d%%) of %s",
-        //            //    dlRemaningBytes->Buffer,
-        //            //    percent,
-        //            //    dlLength->Buffer
-        //            //    );
+                if (PhEqualString(hexString, context->Hash, TRUE))
+                {
+                    isSuccess = TRUE;
+                    // Hash succeeded, set state as ready to install.
+                    PhUpdaterState = Install;
 
-        //            //SetDlgItemText(hwndDlg, IDC_STATUS, statusText->Buffer);
-        //            //SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, percent, 0);
+                    PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0L, 0L);  
+                }
+                else
+                {
+                    // This isn't a success - disable the error page and show PH_HASHFAILURE instead
+                    isSuccess = TRUE;
+                    // Hash Failed, set state as retry download.
+                    PhUpdaterState = Download;
 
-        //            //PhDereferenceObject(statusText);
-        //            //PhDereferenceObject(dlLength);
-        //            //PhDereferenceObject(dlRemaningBytes);
-        //        }
+                    PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0L, 0L); 
+                }
 
-        //    }
+                PhDereferenceObject(hexString);
+            }
+            else
+            {
+                // This isn't a success - disable the error page and show PH_HASHFAILURE instead
+                isSuccess = TRUE;
+                // Hash Failed, set state as retry download.
+                PhUpdaterState = Download;
 
-        //    // Check if we downloaded the entire file.
-        //    //assert(bytesDownloaded == contentLength);
-
-        //    // Compute our hash result.
-        //    if (PhFinalHash(&hashContext, &hashBuffer, 20, NULL))
-        //    {
-        //        // Allocate our hash string, hex the final hash result in our hashBuffer.
-        //        PPH_STRING hexString = PhBufferToHexString(hashBuffer, 20);
-
-        //        if (PhEqualString(hexString, updateData->Hash, TRUE))
-        //        {
-        //            // If PH is not elevated, set the UAC shield for the install button as the setup requires elevation.
-        //            if (!PhElevated)
-        //                SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
-
-        //            // Set the download result, don't include hash status since it succeeded.
-        //            //SetDlgItemText(hwndDlg, IDC_STATUS, L"Download Complete");
-        //            // Set button text for next action
-        //            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
-        //            // Enable the Install button
-        //            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-        //            // Hash succeeded, set state as ready to install.
-        //            PhUpdaterState = Install;
-        //        }
-        //        else
-        //        {
-        //            if (WindowsVersion > WINDOWS_XP)
-        //                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0L);
-
-        //            SetDlgItemText(hwndDlg, IDC_STATUS, L"Download complete, SHA1 Hash failed.");
-
-        //            // Set button text for next action
-        //            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
-        //            // Enable the Install button
-        //            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
-        //            // Hash failed, reset state to downloading so user can redownload the file.
-        //            PhUpdaterState = Download;
-        //        }
-
-        //        PhDereferenceObject(hexString);
-        //    }
-        //    else
-        //    {
-        //        SetDlgItemText(hwndDlg, IDC_STATUS, L"PhFinalHash failed");
-
-        //        // Show fancy Red progressbar if hash failed on Vista and above.
-        //        if (WindowsVersion > WINDOWS_XP)
-        //            SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0L);
-        //    }
-        //}
+                PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0L, 0L); 
+            }
+        }
     }
     __finally
-    {
+    {     
+        if (tempFileHandle)
+            NtClose(tempFileHandle);
 
+        if (requestHandle)
+            WinHttpCloseHandle(requestHandle);
+
+        if (connectionHandle)
+            WinHttpCloseHandle(connectionHandle);
+
+        if (sessionHandle)
+            WinHttpCloseHandle(sessionHandle);
+
+        PhSwapReference(&setupTempPath, NULL);
+        PhSwapReference(&phVersion, NULL);
+        PhSwapReference(&userAgent, NULL);
+        PhSwapReference(&downloadUrlPath, NULL);
+    }
+
+    if (!isSuccess)
+    {
+        // Display error information if the update checked failed
+        PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0L, 0L);
     }
 
     return STATUS_SUCCESS;
@@ -900,46 +923,61 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 break;
             case IDC_DOWNLOAD:
                 {
-                    if (PhInstalledUsingSetup())
+                    switch (PhUpdaterState)
                     {
-                        HANDLE downloadThreadHandle = NULL;
-
-                        // Start our Downloader thread
-                        if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
+                    case Install:
                         {
-                            NtClose(downloadThreadHandle);
+                            SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
+
+                            if (PhIsNullOrEmptyString(context->SetupFilePath))
+                                break;
+
+                            info.lpFile = context->SetupFilePath->Buffer;
+                            info.lpVerb = L"runas";
+                            info.nShow = SW_SHOW;
+                            info.hwnd = hwndDlg;
+
+                            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+
+                            if (!ShellExecuteEx(&info))
+                            {
+                                // Install failed, cancel the shutdown.
+                                ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+
+                                // Set button text for next action
+                                Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+                            }
+                            else
+                            {
+                                ProcessHacker_Destroy(PhMainWndHandle);
+                            }
                         }
+                        break;
+                    case Default:
+                    case Download:
+                        {
+                            if (PhInstalledUsingSetup())
+                            {
+                                HANDLE downloadThreadHandle = NULL;
+
+                                // Disable the download button
+                                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+
+                                // Start our Downloader thread
+                                if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
+                                {
+                                    NtClose(downloadThreadHandle);
+                                }
+                            }
+                            else
+                            {
+                                // Let the user handle non-setup installation, show the homepage and close this dialog.
+                                PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
+                                PostQuitMessage(0);
+                            }
+                        }
+                        break;
                     }
-                    else
-                    {
-                        // Let the user handle non-setup installation, show the homepage and close this dialog.
-                        PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
-                        PostQuitMessage(0);
-                    }
-
-                    break;
-            //case Install:
-            //    {
-            //        SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
-            //        info.lpFile = SetupFilePath->Buffer;
-            //        info.lpVerb = L"runas";
-            //        info.nShow = SW_SHOW;
-            //        info.hwnd = hwndDlg;
-
-            //        ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-
-            //        if (!ShellExecuteEx(&info))
-            //        {
-            //            // Install failed, cancel the shutdown.
-            //            ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
-
-            //            // Set button text for next action
-            //            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
-            //        }
-            //        else
-            //        {
-            //            ProcessHacker_Destroy(PhMainWndHandle);
-            //        }
                 }
                 break;
             }
@@ -1034,6 +1072,43 @@ static INT_PTR CALLBACK UpdaterWndProc(
             PhDereferenceObject(summaryText);
         }
         break;
+    case PH_HASHSUCCESS:
+        {
+            // Don't change if state hasn't changed
+            if (PhUpdaterState != Install)
+                break;
+
+            // If PH is not elevated, set the UAC shield for the install button as the setup requires elevation.
+            if (!PhElevated)
+                SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
+
+            // Set the download result, don't include hash status since it succeeded.
+            SetDlgItemText(hwndDlg, IDC_STATUS, L"Download Complete - Install update?");
+
+            // Set button text for next action
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
+            // Enable the Download/Install button so the user can install the update
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+        }
+        break;
+    case PH_HASHFAILURE:
+        {
+            // Don't change if state hasn't changed
+            if (PhUpdaterState != Download)
+                break;
+
+            if (WindowsVersion > WINDOWS_XP)
+                SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0L);
+
+            SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Download complete, SHA1 Hash failed.");
+
+            // Set button text for next action
+            Button_SetText(GetDlgItem(UpdateDialogHandle, IDC_DOWNLOAD), L"Retry");
+            // Enable the Install button
+            Button_Enable(GetDlgItem(UpdateDialogHandle, IDC_DOWNLOAD), TRUE);
+            // Hash failed, reset state to downloading so user can redownload the file.
+        }
+        break;
     case WM_NOTIFY:
         {
             switch (((LPNMHDR)lParam)->code)
@@ -1066,14 +1141,9 @@ static NTSTATUS ShowUpdateDialogThread(
     PUPDATER_XML_DATA context;
 
     if (Parameter != NULL)
-    {
         context = (PUPDATER_XML_DATA)Parameter;
-    }
     else
-    {
-        context = (PUPDATER_XML_DATA)PhAllocate(sizeof(UPDATER_XML_DATA));
-        memset(context, 0, sizeof(UPDATER_XML_DATA));
-    }
+        context = CreateUpdateContext();
 
     PhInitializeAutoPool(&autoPool);
 
@@ -1105,7 +1175,7 @@ static NTSTATUS ShowUpdateDialogThread(
     PhResetEvent(&InitializedEvent);
 
     // Ensure global objects are disposed and reset when window closes.
-    FreeUpdateData(context);
+    FreeUpdateContext(context);
 
     if (IconHandle)
     {
