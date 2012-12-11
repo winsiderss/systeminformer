@@ -175,6 +175,7 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
+                    { IntegerSettingType, SETTING_NAME_SHOW_DESKTOP_WINDOWS, L"0" },
                     { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
                     { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
                     { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"690,540" }
@@ -307,7 +308,9 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_WINDOWS, L"Windows", NULL);
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"Windows", ID_VIEW_DESKTOPWINDOWS, L"Desktop Windows...", NULL);
+
+    if (PhGetIntegerSetting(SETTING_NAME_SHOW_DESKTOP_WINDOWS))
+        PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"Windows", ID_VIEW_DESKTOPWINDOWS, L"Desktop Windows...", NULL);
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
