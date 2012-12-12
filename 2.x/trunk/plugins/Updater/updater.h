@@ -50,6 +50,7 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING Hash;
     PPH_STRING ReleaseNotesUrl;
     PPH_STRING SetupFilePath;
+    PH_UPDATER_STATE UpdaterState;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 VOID ShowUpdateDialog(
