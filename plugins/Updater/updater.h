@@ -14,11 +14,11 @@
 
 #include "resource.h"
 
-#define Control_Visible(hWnd, visible) ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
-#define UPDATE_MENUITEM 101
-#define WM_SHOWDIALOG (WM_APP + 150)
-#define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
+#define Control_Visible(hWnd, visible) \
+    ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
 
+#define UPDATE_MENUITEM 101
+#define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
 #define MAKEDLLVERULL(major, minor, build, sp) \
     (((ULONGLONG)(major) << 48) | \
     ((ULONGLONG)(minor) << 32) | \
