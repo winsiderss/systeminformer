@@ -34,6 +34,7 @@
 #define PH_UPDATENEWER     (WM_APP + 104)
 #define PH_HASHSUCCESS     (WM_APP + 105)
 #define PH_HASHFAILURE     (WM_APP + 106)
+#define WM_SHOWDIALOG      (WM_APP + 150)
 
 static HANDLE UpdateDialogThreadHandle = NULL;
 static HWND UpdateDialogHandle = NULL;

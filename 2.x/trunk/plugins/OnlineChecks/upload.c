@@ -23,6 +23,14 @@
 
 #include "onlnchk.h"
 
+#define WM_SHOWDIALOG      (WM_APP + 150)
+
+static HANDLE UploadDialogThreadHandle = NULL;
+static HWND UploadDialogHandle = NULL;
+static PH_EVENT InitializedEvent = PH_EVENT_INIT;
+
+static HFONT FontHandle = NULL;
+
 static SERVICE_INFO UploadServiceInfo[] =
 {
     { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
@@ -30,28 +38,109 @@ static SERVICE_INFO UploadServiceInfo[] =
     { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
 
-VOID InitializeFont(
-    __in HWND hwndDlg
+static NTSTATUS ShowUpdateDialogThread(
+    __in PVOID Parameter
     )
 {
-    LOGFONT lFont = { 0 };
+    BOOL result;
+    MSG message;
+    PH_AUTO_POOL autoPool;
+    PUPLOAD_CONTEXT context;
 
-    // TODO: Cache font handle, it doesn't need to be recreated for each page.
-    HFONT fHandle = NULL;
+    context = (PUPLOAD_CONTEXT)Parameter;
 
-    lFont.lfHeight = 20;
-    lFont.lfWeight = FW_MEDIUM;
-    lFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    PhInitializeAutoPool(&autoPool);
 
+    UploadDialogHandle = CreateDialogParam(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_PROGRESSDIALOG),
+        PhMainWndHandle,
+        UploadDlgProc,
+        (LPARAM)context
+        );
+
+    PhSetEvent(&InitializedEvent);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(UploadDialogHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    PhResetEvent(&InitializedEvent);
+
+    // Ensure global objects are disposed and reset when window closes.
+    //FreeUpdateContext(context);
+
+    //if (IconHandle)
+    //{
+    //    DestroyIcon(IconHandle);
+    //    IconHandle = NULL;
+    //}
+
+    if (FontHandle)
+    {
+        DeleteObject(FontHandle);
+        FontHandle = NULL;
+    }
+
+    if (UploadDialogThreadHandle)
+    {
+        NtClose(UploadDialogThreadHandle);
+        UploadDialogThreadHandle = NULL;
+    }
+
+    if (UploadDialogHandle)
+    {
+        DestroyWindow(UploadDialogHandle);
+        UploadDialogHandle = NULL;
+    }
+
+    PhFree(context);
+
+    return STATUS_SUCCESS;
+}
+
+
+static VOID SetControlFont(
+    __in HWND ControlHandle,
+    __in INT ControlID
+    )
+{
+    LOGFONT headerFont;
+
+    memset(&headerFont, 0, sizeof(LOGFONT));
+
+    headerFont.lfHeight = -15;
+    headerFont.lfWeight = FW_MEDIUM;
+    headerFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+
+    // We don't check if Segoe exists, CreateFontIndirect does this for us.
     wcscpy_s(
-        lFont.lfFaceName,
-        _countof(lFont.lfFaceName),
+        headerFont.lfFaceName, 
+        _countof(headerFont.lfFaceName), 
         L"Segoe UI"
         );
 
-    fHandle = CreateFontIndirectW(&lFont);
+    // Create the font handle
+    FontHandle = CreateFontIndirect(&headerFont);
 
-    SendMessageW(hwndDlg, WM_SETFONT, (WPARAM)fHandle, FALSE);
+    // Set the font
+    SendMessage(
+        GetDlgItem(ControlHandle, ControlID), 
+        WM_SETFONT, 
+        (WPARAM)FontHandle, 
+        FALSE
+        );
 }
 
 VOID UploadToOnlineService(
@@ -60,20 +149,26 @@ VOID UploadToOnlineService(
     __in ULONG Service
     )
 {
-    UPLOAD_CONTEXT context = { 0 };
-    INT_PTR windowhandle;
-
-    context.Service = Service;
-
-    PhSwapReference(&context.FileName, (PVOID)FileName);
-
-    windowhandle = DialogBoxParam(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_PROGRESSDIALOG),
-        NULL,
-        UploadDlgProc,
-        (LPARAM)&context
+    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)PhAllocate(
+        sizeof(UPLOAD_CONTEXT)
         );
+    memset(context, 0, sizeof(UPLOAD_CONTEXT));
+
+    PhSwapReference(&context->FileName, (PVOID)FileName);
+    context->Service = Service;
+
+    if (!UploadDialogThreadHandle)
+    {
+        if (!(UploadDialogThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)ShowUpdateDialogThread, context)))
+        {
+            PhShowStatus(PhMainWndHandle, L"Unable to create the updater window.", 0, GetLastError());
+            return;
+        }
+
+        PhWaitForEvent(&InitializedEvent, NULL);
+    }
+
+    SendMessage(UploadDialogHandle, WM_SHOWDIALOG, 0, 0);
 }
 
 static VOID RaiseUploadError(
@@ -724,6 +819,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     time_t time_taken = (time(NULL) - TimeTransferred);
                     time_t bps = totalFileReadLength / (time_taken ? time_taken : 1);
                     //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
+                    int percent = MulDiv(100, totalFileReadLength, totalFileLength);
 
                     PPH_STRING TotalLength = PhFormatSize(totalFileLength, -1);
                     PPH_STRING TotalDownloadedLength = PhFormatSize(totalFileReadLength, -1);
@@ -744,7 +840,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     PhDereferenceObject(TotalDownloadedLength);
 
                     // Update the progress bar position
-                    //SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, MulDiv(100, totalFileReadLength, totalFileLength), 0);
+                    SendDlgItemMessage(context->WindowHandle, IDC_UPLOADPROGRESS, PBM_SETPOS, percent, 0);
                 }
             }
 
@@ -800,32 +896,36 @@ static NTSTATUS UploadWorkerThreadStart(
             {
             case UPLOAD_SERVICE_VIRUSTOTAL:
                 {
-                    PWSTR pwszURL;
-                    DWORD dwSize;
+                    PPH_STRING redirectUrl;
+                    DWORD redirectLength;
 
                     // Use WinHttpQueryOption to obtain a buffer size.
                     WinHttpQueryOption( 
                         requestHandle,
                         WINHTTP_OPTION_URL, 
                         NULL,
-                        &dwSize 
+                        &redirectLength 
                         );
 
-                    pwszURL = (PWSTR)PhAllocate(dwSize / sizeof(WCHAR));
+                    redirectUrl = PhCreateStringEx(NULL, redirectLength);
 
                     // Use WinHttpQueryOption again, this time to retrieve 
                     // the URL in the new buffer
                     if (WinHttpQueryOption( 
                         requestHandle,
                         WINHTTP_OPTION_URL, 
-                        (void*)pwszURL,
-                        &dwSize
+                        redirectUrl->Buffer,
+                        &redirectLength
                         ))
                     {
-                        if (*pwszURL != 0)
+                        if (!PhIsNullOrEmptyString(redirectUrl))
                         {
                             // Display the retrieved URL
-                            context->LaunchCommand = PhCreateString(pwszURL);
+                            context->LaunchCommand = redirectUrl;
+                        }
+                        else
+                        {
+                            PhDereferenceObject(redirectUrl);
                         }
                     }
                 }
@@ -956,16 +1056,16 @@ static NTSTATUS UploadWorkerThreadStart(
 
 ExitCleanup:
 
-    //if (requestHandle)
-    //    WinHttpCloseHandle(requestHandle);
-    //if (connectHandle)
-    //    WinHttpCloseHandle(connectHandle);
-    //if (internetHandle)
-    //    WinHttpCloseHandle(internetHandle);
-   /* if (objectName)
+    if (requestHandle)
+        WinHttpCloseHandle(requestHandle);
+    if (connectHandle)
+        WinHttpCloseHandle(connectHandle);
+    if (internetHandle)
+        WinHttpCloseHandle(internetHandle);
+    if (objectName)
         PhDereferenceObject(objectName);
     if (fileHandle)
-        NtClose(fileHandle);*/
+        NtClose(fileHandle);
 
     return STATUS_SUCCESS;
 }
@@ -982,50 +1082,72 @@ INT_PTR CALLBACK UploadDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PUPLOAD_CONTEXT)lParam;
-        context->WindowHandle = hwndDlg;
-
-        InitializeFont(GetDlgItem(context->WindowHandle, IDC_MESSAGE));
-        // Center the update window on PH if visible and not mimimized else center on desktop.
-        PhCenterWindow(
-            context->WindowHandle, 
-            (IsWindowVisible(GetParent(context->WindowHandle)) && !IsIconic(GetParent(context->WindowHandle))) ? GetParent(context->WindowHandle) : NULL
-            );
-
-        if (context->FileName)
-        {
-            PPH_STRING baseFileName = PhGetBaseName(
-                context->FileName
-                );
-            PPH_STRING szWindowText = PhFormatString(
-                L"Uploading: %s",
-                baseFileName->Buffer
-                );
-
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, szWindowText->Buffer);
-
-            //PhDereferenceObject(szWindowText);
-            //PhDereferenceObject(baseFileName);
-
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
-
-            context->ThreadHandle = PhCreateThread(
-                0, 
-                (PUSER_THREAD_START_ROUTINE)UploadWorkerThreadStart, 
-                context
-                );
-        }
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
-     
-    context = (PUPLOAD_CONTEXT)GetProp(hwndDlg, L"Context");
+    else
+    {
+        context = (PUPLOAD_CONTEXT)GetProp(hwndDlg, L"Context");
 
+        if (uMsg == WM_DESTROY)
+            RemoveProp(hwndDlg, L"Context");
+    }
+
+    if (!context)
+        return FALSE;
+     
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+            context->WindowHandle = hwndDlg;
+
+            SetControlFont(context->WindowHandle, IDC_MESSAGE);
+
+            // Center the update window on PH if visible and not mimimized else center on desktop.
+            PhCenterWindow(
+                context->WindowHandle, 
+                (IsWindowVisible(GetParent(context->WindowHandle)) && !IsIconic(GetParent(context->WindowHandle))) ? GetParent(context->WindowHandle) : NULL
+                );
+
+            if (context->FileName)
+            {
+                PPH_STRING baseFileName = PhGetBaseName(
+                    context->FileName
+                    );
+                PPH_STRING messageText = PhFormatString(
+                    L"Uploading: %s",
+                    baseFileName->Buffer
+                    );
+
+                SetDlgItemText(hwndDlg, IDC_MESSAGE, messageText->Buffer);
+
+                PhDereferenceObject(messageText);
+                PhDereferenceObject(baseFileName);
+
+                context->ThreadHandle = PhCreateThread(
+                    0, 
+                    (PUSER_THREAD_START_ROUTINE)UploadWorkerThreadStart, 
+                    context
+                    );
+            }
+        }
+        break;
+    case WM_SHOWDIALOG:
+        {
+            if (IsIconic(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
+                PostQuitMessage(IDCANCEL);
                 break;
             }
         }
@@ -1056,14 +1178,14 @@ INT_PTR CALLBACK UploadDlgProc(
                 PhShellExecute(hwndDlg, context->LaunchCommand->Buffer, NULL);
             }
 
-            EndDialog(hwndDlg, IDOK);
+            PostQuitMessage(IDOK);
         }
         break;
     case UM_ERROR:
         {
             PhShowError(hwndDlg, L"%s", context->ErrorMessage->Buffer);
 
-            EndDialog(hwndDlg, IDCANCEL);
+            PostQuitMessage(IDCANCEL);
         }
         break;
     }
