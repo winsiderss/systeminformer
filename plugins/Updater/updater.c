@@ -32,7 +32,6 @@
 #define PH_UPDATEAVAILABLE (WM_APP + 102)
 #define PH_UPDATEISCURRENT (WM_APP + 103)
 #define PH_UPDATENEWER     (WM_APP + 104)
-
 #define PH_HASHSUCCESS     (WM_APP + 105)
 #define PH_HASHFAILURE     (WM_APP + 106)
 
@@ -41,8 +40,6 @@ static HWND UpdateDialogHandle = NULL;
 static HICON IconHandle = NULL;
 static HFONT FontHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
-static PH_UPDATER_STATE PhUpdaterState = Default;
-//static PPH_STRING SetupFilePath = NULL;
 
 static mxml_type_t QueryXmlDataCallback(
     __in mxml_node_t *node
@@ -175,6 +172,9 @@ static PUPDATER_XML_DATA CreateUpdateContext(
 
     memset(context, 0, sizeof(UPDATER_XML_DATA));
 
+    // Set the default Updater state        
+    context->UpdaterState = Default;
+
     return context;
 }
 
@@ -199,7 +199,9 @@ static VOID FreeUpdateContext(
     PhSwapReference(&Context->Hash, NULL);
     PhSwapReference(&Context->ReleaseNotesUrl, NULL);
     PhSwapReference(&Context->SetupFilePath, NULL);
-
+           
+    // Set the default Updater state 
+    Context->UpdaterState = Default;
     Context->HaveData = FALSE;
 
     PhFree(Context);
@@ -594,6 +596,8 @@ static NTSTATUS UpdateDownloadThread(
         //// Query the current system proxy
         WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
+        SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Initializing...");
+
         //// Open the HTTP session with the system proxy configuration if available
         if (!(sessionHandle = WinHttpOpen(
             userAgent->Buffer,                 
@@ -605,6 +609,8 @@ static NTSTATUS UpdateDownloadThread(
         {
             __leave;
         }
+
+        SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Connecting...");
 
         if (!(connectionHandle = WinHttpConnect(
             sessionHandle, 
@@ -629,7 +635,7 @@ static NTSTATUS UpdateDownloadThread(
             __leave;
         }
 
-        ////SetDlgItemText(hwndDlg, IDC_STATUS, L"Connecting");
+        SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Sending request...");
 
         if (!WinHttpSendRequest(
             requestHandle, 
@@ -644,21 +650,18 @@ static NTSTATUS UpdateDownloadThread(
             __leave;
         }
 
+        SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Waiting for response...");
+
         if (WinHttpReceiveResponse(requestHandle, NULL))
         {
-            BYTE hashBuffer[20]; 
             BYTE buffer[PAGE_SIZE];
-
-            PH_HASH_CONTEXT hashContext;
-             
+            BYTE hashBuffer[20]; 
             ULONG bytesDownloaded = 0;
-            ULONG startTick = 0;
             ULONG downloadedBytes = 0;    
             ULONG contentLengthSize = sizeof(ULONG);
             ULONG contentLength = 0;
-            ULONG timeStart = 0;
-            ULONG timeTransferred = 0;
-
+                       
+            PH_HASH_CONTEXT hashContext;
             IO_STATUS_BLOCK isb;
           
             if (!WinHttpQueryHeaders(
@@ -672,13 +675,6 @@ static NTSTATUS UpdateDownloadThread(
             {
                 __leave;
             }
-
-            // Start the clock.
-            startTick = GetTickCount();
-            timeTransferred = startTick;
-
-            // Reset the counters.
-            bytesDownloaded = 0;
 
             // Initialize hash algorithm.
             PhInitializeHash(&hashContext, Sha1HashAlgorithm);
@@ -714,41 +710,35 @@ static NTSTATUS UpdateDownloadThread(
                     )))
                 {
                     __leave;
-                }        
-                //PhAcquireQueuedLockExclusive(&Lock);
+                }
+
                 downloadedBytes += (DWORD)isb.Information;
 
                 // Check the number of bytes written are the same we downloaded.
                 if (bytesDownloaded != isb.Information)
                     __leave;
 
-                 //Update the GUI progress.
+                //Update the GUI progress.
                 {
-                    ULONG time_taken = (GetTickCount() - timeTransferred);
-                    ULONG bps = downloadedBytes / (time_taken ? time_taken : 1);
-                    //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
                     int percent = MulDiv(100, downloadedBytes, contentLength);
 
-                    PPH_STRING TotalLength = PhFormatSize(contentLength, -1);
-                    PPH_STRING TotalDownloadedLength = PhFormatSize(downloadedBytes, -1);
-                    PPH_STRING TotalSpeed = PhFormatSize(bps, -1);
+                    PPH_STRING totalLength = PhFormatSize(contentLength, -1);
+                    PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, -1);
 
                     PPH_STRING dlLengthString = PhFormatString(
-                        L"%s of %s @ %s/s", 
-                        TotalDownloadedLength->Buffer, 
-                        TotalLength->Buffer,
-                        TotalSpeed->Buffer
+                        L"%s of %s (%d%%)", 
+                        totalDownloaded->Buffer, 
+                        totalLength->Buffer,
+                        percent
                         );
-
+                    
+                    // Update the progress bar position
+                    PostMessage(GetDlgItem(UpdateDialogHandle, IDC_PROGRESS), PBM_SETPOS, percent, 0);
                     SetWindowText(GetDlgItem(UpdateDialogHandle, IDC_STATUS), dlLengthString->Buffer);
 
                     PhDereferenceObject(dlLengthString);
-                    PhDereferenceObject(TotalSpeed);
-                    PhDereferenceObject(TotalLength);
-                    PhDereferenceObject(TotalDownloadedLength);
-
-                    // Update the progress bar position
-                    SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETPOS, percent, 0);
+                    PhDereferenceObject(totalDownloaded);
+                    PhDereferenceObject(totalLength);
                 }
             }
              
@@ -765,7 +755,7 @@ static NTSTATUS UpdateDownloadThread(
                 {
                     isSuccess = TRUE;
                     // Hash succeeded, set state as ready to install.
-                    PhUpdaterState = Install;
+                    context->UpdaterState = Install;
 
                     PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0L, 0L);  
                 }
@@ -774,7 +764,7 @@ static NTSTATUS UpdateDownloadThread(
                     // This isn't a success - disable the error page and show PH_HASHFAILURE instead
                     isSuccess = TRUE;
                     // Hash Failed, set state as retry download.
-                    PhUpdaterState = Download;
+                    context->UpdaterState = Download;
 
                     PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0L, 0L); 
                 }
@@ -786,7 +776,7 @@ static NTSTATUS UpdateDownloadThread(
                 // This isn't a success - disable the error page and show PH_HASHFAILURE instead
                 isSuccess = TRUE;
                 // Hash Failed, set state as retry download.
-                PhUpdaterState = Download;
+                context->UpdaterState = Download;
 
                 PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0L, 0L); 
             }
@@ -924,7 +914,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 break;
             case IDC_DOWNLOAD:
                 {
-                    switch (PhUpdaterState)
+                    switch (context->UpdaterState)
                     {
                     case Install:
                         {
@@ -963,6 +953,10 @@ static INT_PTR CALLBACK UpdaterWndProc(
 
                                 // Disable the download button
                                 Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+                                // Reset the progress bar (might be a download retry)
+                                SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETPOS, 0, 0);
+                                if (WindowsVersion > WINDOWS_XP)
+                                    SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0L);
 
                                 // Start our Downloader thread
                                 if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
@@ -1076,7 +1070,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case PH_HASHSUCCESS:
         {
             // Don't change if state hasn't changed
-            if (PhUpdaterState != Install)
+            if (context->UpdaterState != Install)
                 break;
 
             // If PH is not elevated, set the UAC shield for the install button as the setup requires elevation.
@@ -1084,7 +1078,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
             // Set the download result, don't include hash status since it succeeded.
-            SetDlgItemText(hwndDlg, IDC_STATUS, L"Download Complete - Install update?");
+            SetDlgItemText(hwndDlg, IDC_STATUS, L"Click Install to continue");
 
             // Set button text for next action
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
@@ -1095,7 +1089,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case PH_HASHFAILURE:
         {
             // Don't change if state hasn't changed
-            if (PhUpdaterState != Download)
+            if (context->UpdaterState != Download)
                 break;
 
             if (WindowsVersion > WINDOWS_XP)
