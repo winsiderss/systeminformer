@@ -26,6 +26,7 @@ typedef struct _UPLOAD_CONTEXT
     PPH_STRING FileName;
     ULONG Service;
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HANDLE ThreadHandle;
 
     PPH_STRING LaunchCommand;
