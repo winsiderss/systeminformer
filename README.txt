@@ -27,15 +27,6 @@ directory as ProcessHacker.exe. You can do this using Windows Explorer:
 
 == Plugins ==
 
-To use plugins, follow these steps:
-
-1. Create a directory called "plugins" in the same directory as
-   ProcessHacker.exe.
-2. Copy the plugin DLL files into the "plugins" directory.
-3. Open Process Hacker and make sure "Enable plugins" in Options
-   is ticked.
-4. Restart Process Hacker if necessary.
-
 Plugins can be configured from Hacker > Plugins.
 
 If you experience any crashes involving plugins, make sure they
