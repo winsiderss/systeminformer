@@ -160,6 +160,9 @@ BOOLEAN PhCmForwardMessage(
     PH_PLUGIN_TREENEW_MESSAGE pluginMessage;
     PPH_PLUGIN plugin;
 
+    if (Message == TreeNewDestroying)
+        return FALSE;
+
     switch (Message)
     {
     case TreeNewGetCellText:
