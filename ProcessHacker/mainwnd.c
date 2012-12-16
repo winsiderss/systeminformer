@@ -1266,20 +1266,6 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_PROCESS_TERMINATOR:
-        {
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
-
-            if (processItem)
-            {
-                // The object relies on the list view reference, which could
-                // disappear if we don't reference the object here.
-                PhReferenceObject(processItem);
-                PhShowProcessTerminatorDialog(PhMainWndHandle, processItem);
-                PhDereferenceObject(processItem);
-            }
-        }
-        break;
     case ID_MISCELLANEOUS_DETACHFROMDEBUGGER:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
@@ -1428,6 +1414,20 @@ VOID PhMwpOnCommand(
             if (processItem)
             {
                 PhShowRunAsDialog(PhMainWndHandle, processItem->ProcessId);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_TERMINATOR:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                // The object relies on the list view reference, which could
+                // disappear if we don't reference the object here.
+                PhReferenceObject(processItem);
+                PhShowProcessTerminatorDialog(PhMainWndHandle, processItem);
+                PhDereferenceObject(processItem);
             }
         }
         break;

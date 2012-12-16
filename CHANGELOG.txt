@@ -9,6 +9,7 @@ Process Hacker
    * Added ability to specify processes by their names and inject and
      unload DLLs in command line
    * Removed 512 character limit when copying text
+   * Moved Terminator to Miscellaneous menu
    * Updated default dbghelp.dll path for Windows SDK v8
    * Updated ExtendedServices plugin:
      * Added new triggers for Windows 8
