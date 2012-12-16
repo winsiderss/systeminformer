@@ -263,7 +263,6 @@ BEGIN
         MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
         MENUITEM "&Affinity",                   ID_PROCESS_AFFINITY
-        MENUITEM "Terminator",                  ID_PROCESS_TERMINATOR
         POPUP "&Miscellaneous"
         BEGIN
             MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
@@ -288,6 +287,7 @@ BEGIN
             MENUITEM "Reduce Working Set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
             MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
             MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
+            MENUITEM "Terminator",                  ID_MISCELLANEOUS_TERMINATOR
         END
         POPUP "&Priority"
         BEGIN

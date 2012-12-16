@@ -770,6 +770,7 @@
 #define ID_COMPUTER_SHUTDOWNHYBRID      40278
 #define ID_COMPUTER_SHUTDOWN40279       40279
 #define ID_COMPUTER_RESTARTBOOTOPTIONS  40280
+#define ID_MISCELLANEOUS_TERMINATOR     40281
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -779,7 +780,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        206
-#define _APS_NEXT_COMMAND_VALUE         40281
+#define _APS_NEXT_COMMAND_VALUE         40282
 #define _APS_NEXT_CONTROL_VALUE         1364
 #define _APS_NEXT_SYMED_VALUE           137
 #endif
