@@ -275,6 +275,9 @@ static VOID PhpPageInit(
             );
         SendMessage(resetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
 
+        if (PhStartupParameters.ShowOptions)
+            ShowWindow(resetButton, SW_HIDE);
+
         // Set the location of the options window.
         if (StartLocation.x == MINLONG)
         {
