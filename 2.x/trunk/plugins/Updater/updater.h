@@ -2,6 +2,7 @@
 #define __UPDATER_H__
 
 #pragma comment(lib, "Winhttp.lib")
+#pragma comment(lib, "wininet.lib")
 
 #include <phdk.h>
 #include <phappresource.h>
