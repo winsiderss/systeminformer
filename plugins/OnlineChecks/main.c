@@ -3,7 +3,6 @@
  *   main program
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2012 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -25,34 +24,37 @@
 #include "onlnchk.h"
 #include "resource.h"
 
-PPH_PLUGIN PluginInstance;
-static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+VOID NTAPI LoadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
 
 VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
+
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
+
 VOID NTAPI ProcessMenuInitializingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
+
 VOID NTAPI ModuleMenuInitializingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
+
+PPH_PLUGIN PluginInstance;
+PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -72,10 +74,16 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Online Checks";
-            info->Author = L"dmex";
+            info->Author = L"wj32";
             info->Description = L"Allows files to be checked with online services.";
             info->HasOptions = FALSE;
 
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
                 ShowOptionsCallback,
@@ -83,18 +91,12 @@ LOGICAL DllMain(
                 &PluginShowOptionsCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
-                NULL,
-                &MainWindowShowingCallbackRegistration
-                );
-
-            PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
+
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
                 ProcessMenuInitializingCallback,
@@ -114,6 +116,14 @@ LOGICAL DllMain(
     return TRUE;
 }
 
+VOID NTAPI LoadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    // Nothing
+}
+
 VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -122,60 +132,27 @@ VOID NTAPI ShowOptionsCallback(
     // Nothing
 }
 
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    //PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, NULL, UPLOAD_SERVICE_VIRUSTOTAL, L"Upload file to VirusTotal", NULL);
-    //PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, NULL, UPLOAD_SERVICE_JOTTI, L"Upload file to JOTTI", NULL);
-    //PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, NULL, UPLOAD_SERVICE_CIMA, L"Upload file to Comodo", NULL);
-}
-
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+    PPH_STRING fileName;
 
     switch (menuItem->Id)
     {
-    case UPLOAD_SERVICE_VIRUSTOTAL:
-        {
-            if (menuItem->Context)
-            {
-                UploadToOnlineService(
-                    menuItem->OwnerWindow,
-                    menuItem->Context ? menuItem->Context : NULL,
-                    UPLOAD_SERVICE_VIRUSTOTAL
-                    );
-            }
-        }
+    case ID_SENDTO_SERVICE1:
+        fileName = menuItem->Context;
+        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_VIRUSTOTAL);
         break;
-    case UPLOAD_SERVICE_JOTTI:
-        {
-            if (menuItem->Context)
-            {
-                UploadToOnlineService(
-                    menuItem->OwnerWindow,
-                    menuItem->Context ? menuItem->Context : NULL,
-                    UPLOAD_SERVICE_JOTTI
-                    );
-            }
-        }
+    case ID_SENDTO_SERVICE2:
+        fileName = menuItem->Context;
+        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_JOTTI);
         break;
-    case UPLOAD_SERVICE_CIMA:
-        {
-            if (menuItem->Context)
-            {
-                UploadToOnlineService(
-                    menuItem->OwnerWindow,
-                    menuItem->Context ? menuItem->Context : NULL,
-                    UPLOAD_SERVICE_CIMA
-                    );
-            }
-        }
+    case ID_SENDTO_SERVICE3:
+        fileName = menuItem->Context;
+        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_CIMA);
         break;
     }
 }
@@ -192,9 +169,9 @@ PPH_EMENU_ITEM CreateSendToMenu(
 
     // Create the Send To menu.
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_VIRUSTOTAL, L"virustotal.com", FileName), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", FileName), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, UPLOAD_SERVICE_CIMA, L"camas.comodo.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"virustotal.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE2, L"virusscan.jotti.org", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE3, L"camas.comodo.com", FileName), -1);
 
     menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, InsertAfter, 0);
 
@@ -225,8 +202,11 @@ VOID NTAPI ProcessMenuInitializingCallback(
     sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", processItem ? processItem->FileName : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
+
     if (!processItem || !processItem->FileName)
+    {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
+    }
 }
 
 VOID NTAPI ModuleMenuInitializingCallback(
@@ -245,6 +225,8 @@ VOID NTAPI ModuleMenuInitializingCallback(
 
     sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", moduleItem ? moduleItem->FileName : NULL);
 
-    if (!moduleItem || !moduleItem->FileName)
+    if (!moduleItem)
+    {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
+    }
 }
