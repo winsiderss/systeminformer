@@ -2,7 +2,6 @@
  * Process Hacker Update Checker -
  *   Update Window
  *
- * Copyright (C) 2011-2012 wj32
  * Copyright (C) 2011-2012 dmex
  *
  * This file is part of Process Hacker.
@@ -925,7 +924,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                                 break;
 
                             info.lpFile = context->SetupFilePath->Buffer;
-                            info.lpVerb = L"runas";
+                            info.lpVerb = PhElevated ? NULL : L"runas";
                             info.nShow = SW_SHOW;
                             info.hwnd = hwndDlg;
 
