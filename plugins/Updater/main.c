@@ -222,13 +222,8 @@ BOOL ConnectionAvailable(
     }
     else
     {
-        DWORD dwType;
-
-NOT_SUPPORTED:
-        if (InternetGetConnectedState(&dwType, 0))
-        {
-            return TRUE;
-        }
+        return TRUE; // according to dmex
     }
+NOT_SUPPORTED:
     return FALSE;
 }
