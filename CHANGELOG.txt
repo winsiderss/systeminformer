@@ -18,6 +18,7 @@ Process Hacker
      * Improved support for multiple GPUs (again)
      * GPU column now respects "Include CPU usage of children" option
    * Updated ToolStatus plugin:
+     * Fixed search box fonts
      * Fixed controls not being properly hidden/removed from the window when disabled
    * Updated WindowExplorer plugin:
      * Fixed window list not displaying Modern UI windows
