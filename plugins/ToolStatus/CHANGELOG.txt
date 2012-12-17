@@ -1,5 +1,5 @@
 1.9
- * Fixed searchbox fonts
+ * Fixed search box fonts
  * Fixed controls not being properly hidden/removed from the window when disabled
 
 1.8
