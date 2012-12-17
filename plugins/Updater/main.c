@@ -2,7 +2,6 @@
  * Process Hacker Update Checker -
  *   Main program
  *
- * Copyright (C) 2010-2012 wj32
  * Copyright (C) 2012 dmex
  *
  * This file is part of Process Hacker.
@@ -22,6 +21,11 @@
  */
 
 #include "updater.h"
+
+BOOLAPI InternetGetConnectedState(
+    __out LPDWORD lpdwFlags,
+    __in DWORD dwReserved
+    );
 
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
@@ -218,15 +222,13 @@ BOOL ConnectionAvailable(
     }
     else
     {
-        // DWORD dwType;   
-        // Import WinInet for InternetGetConnectedState
-        //#include <WinInet.h>
+        DWORD dwType;
 
-        //if (InternetGetConnectedState(&dwType, 0))
-        //{
-        //    return TRUE;
-        //}
-    }
 NOT_SUPPORTED:
+        if (InternetGetConnectedState(&dwType, 0))
+        {
+            return TRUE;
+        }
+    }
     return FALSE;
 }
