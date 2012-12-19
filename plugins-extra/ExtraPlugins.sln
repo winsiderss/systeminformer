@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HexPidPlugin", "HexPidPlugin\HexPidPlugin.vcxproj", "{50691784-4EB0-4B5E-B428-BD37E52F8D2E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AvgCpuPlugin", "AvgCpuPlugin\AvgCpuPlugin.vcxproj", "{A68DC3E8-5E2E-4883-A2A4-81F921458A9C}"
