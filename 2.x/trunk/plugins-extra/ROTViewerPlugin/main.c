@@ -161,7 +161,6 @@ static VOID EnumRunningObjectTable(
     IBindCtx* ctx;
     IMalloc* iMalloc;
 
-    ULARGE_INTEGER objSize;
     ULONG count = 0;
     ULONG index = 0;
 
@@ -324,7 +323,6 @@ VOID ShowStatusMenu(
         {
             IMoniker* pmkObjectName;
             INT lvItemIndex;
-            ULONG index;
 
             lvItemIndex = ListView_GetNextItem(GetDlgItem(hwndDlg, IDC_LIST1), -1, LVNI_SELECTED);
 
