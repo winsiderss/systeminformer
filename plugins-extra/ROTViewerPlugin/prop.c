@@ -15,7 +15,6 @@ INT_PTR CALLBACK PropDialogProc(
             IBindCtx* ctx;
             IMalloc* iMalloc;
 
-            ULARGE_INTEGER objSize;
             ULONG count = 0;
             ULONG index = 0;
 
