@@ -55,8 +55,7 @@ assist with certain functionality. This includes:
 * Setting handle attributes
 
 The feature(s) marked with an asterisk (*) are NOT available on 64-bit
-versions of Windows, and are NOT available on all versions starting
-with Windows 8.
+versions of Windows.
 
 Certain features such as modifying process protection are disabled
 in the released driver binary due to legal reasons. You can enable
