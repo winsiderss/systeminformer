@@ -202,7 +202,7 @@ ULONG KphpReadIntegerParameter(
 
     if (!NT_SUCCESS(status))
     {
-        dprintf("Unable to query parameter %.*S: 0x%x", ValueName->Length / sizeof(WCHAR), ValueName->Buffer, status);
+        dprintf("Unable to query parameter %.*S: 0x%x\n", ValueName->Length / sizeof(WCHAR), ValueName->Buffer, status);
         return DefaultValue;
     }
 
