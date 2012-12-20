@@ -144,23 +144,7 @@ NTSTATUS KphInitializeDynamicPackage(
     Package->ServicePackMajor = (USHORT)servicePack;
     Package->BuildNumber = -1;
 
-    // Windows 8
-    if (majorVersion == 6 && minorVersion == 2 && buildNumber == 9200)
-    {
-        Package->BuildNumber = 9200;
-        Package->ResultingNtVersion = PHNT_WIN8;
-
-        Package->StructData.EgeGuid = 0xc;
-        Package->StructData.EpObjectTable = 0x150;
-        Package->StructData.EpProtectedProcessOff = -1; // now SE_SIGNING_LEVEL, no longer relevant
-        Package->StructData.EpProtectedProcessBit = -1;
-        Package->StructData.EpRundownProtect = 0xb0;
-        Package->StructData.EreGuidEntry = 0x8;
-        Package->StructData.HtHandleContentionEvent = 0x20;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14;
-    }
-    else
+    // Nothing here yet
     {
         return STATUS_NOT_SUPPORTED;
     }

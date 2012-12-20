@@ -408,10 +408,14 @@ NTSTATUS KphTerminateProcessInternal(
 
     if (
         KphDynNtVersion == PHNT_WINXP ||
-        KphDynNtVersion == PHNT_WS03
+        KphDynNtVersion == PHNT_WS03 ||
+        KphDynNtVersion == PHNT_WIN8
         )
     {
+        dprintf("Calling XP/03/8-style PsTerminateProcess\n");
+        
         // PspTerminateProcess on XP and Server 2003 is normal.
+        // PsTerminateProcess on 8 is also normal.
         status = PsTerminateProcess_I(Process, ExitStatus);
     }
     else if (
@@ -419,7 +423,9 @@ NTSTATUS KphTerminateProcessInternal(
         KphDynNtVersion == PHNT_WIN7
         )
     {
-        // PsTerminateProcess on Vista and above has its first argument
+        dprintf("Calling Vista/7-style PsTerminateProcess\n");
+        
+        // PsTerminateProcess on Vista and 7 has its first argument
         // in ecx.
         __asm
         {
@@ -476,6 +482,7 @@ NTSTATUS KpiTerminateProcess(
 
     if (process != PsGetCurrentProcess())
     {
+        dprintf("Calling KphTerminateProcessInternal from KpiTerminateProcess\n");
         status = KphTerminateProcessInternal(process, ExitStatus);
 
         if (status == STATUS_NOT_SUPPORTED)

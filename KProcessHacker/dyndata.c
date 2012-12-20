@@ -96,6 +96,12 @@ static UCHAR PsTerminateProcess61Bytes[] =
 }; // a lot of functions seem to share the first
    // 16 bytes of the Windows 7 PsTerminateProcess,
    // and a few even share the first 24 bytes.
+static UCHAR PsTerminateProcess62Bytes[] =
+{
+    0x8b, 0xff, 0x55, 0x8b, 0xec, 0x51, 0x53, 0x64,
+    0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00, 0x56, 0x8d,
+    0xb3, 0x3c, 0x01, 0x00, 0x00, 0x66, 0xff, 0x0e
+};
 
 // PspTerminateThreadByPointer
 static UCHAR PspTerminateThreadByPointer51Bytes[] =
@@ -119,6 +125,11 @@ static UCHAR PspTerminateThreadByPointer61Bytes[] =
     0x8b, 0xff, 0x55, 0x8b, 0xec, 0x83, 0xe4, 0xf8,
     0x51, 0x53, 0x56, 0x8b, 0x75, 0x08, 0x57, 0x8d,
     0xbe, 0x80, 0x02, 0x00, 0x00, 0xf6, 0x07, 0x40
+};
+static UCHAR PspTerminateThreadByPointer62Bytes[] =
+{
+    0x8b, 0xff, 0x55, 0x8b, 0xec, 0x8d, 0x87, 0x68,
+    0x02, 0x00, 0x00, 0xf6, 0x00, 0x20, 0x53, 0x8a
 };
 
 #endif
@@ -492,7 +503,52 @@ static NTSTATUS KphpX86DataInitialization(
 
         dprintf("Initialized version-specific data for Windows 7 SP%d\n", servicePack);
     }
-    else if (majorVersion == 6 && minorVersion > 1 || majorVersion > 6)
+    // Windows 8, Windows Server 2012
+    else if (majorVersion == 6 && minorVersion == 2)
+    {
+        ULONG_PTR searchOffset1 = (ULONG_PTR)KphGetSystemRoutineAddress(L"IoSetIoCompletion");
+        ULONG_PTR searchOffset2 = searchOffset1;
+
+        KphDynNtVersion = PHNT_WIN8;
+
+        if (servicePack == 0)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        KphDynEgeGuid = 0xc;
+        KphDynEpObjectTable = 0x150;
+        KphDynEpRundownProtect = 0xb0;
+        KphDynEreGuidEntry = 0x8;
+        KphDynOtName = 0x8;
+        KphDynOtIndex = 0x14;
+
+        if (searchOffset1)
+        {
+            INIT_SCAN(
+                &KphDynPsTerminateProcessScan,
+                PsTerminateProcess62Bytes,
+                sizeof(PsTerminateProcess62Bytes),
+                searchOffset1, 0x8000, 0
+                );
+        }
+
+        if (searchOffset2)
+        {
+            INIT_SCAN(
+                &KphDynPspTerminateThreadByPointerScan,
+                PspTerminateThreadByPointer62Bytes,
+                sizeof(PspTerminateThreadByPointer62Bytes),
+                searchOffset2, 0x8000, 0
+                );
+        }
+
+        dprintf("Initialized version-specific data for Windows 8 SP%d\n", servicePack);
+    }
+    else if (majorVersion == 6 && minorVersion > 2 || majorVersion > 6)
     {
         KphDynNtVersion = 0xffffffff;
         return STATUS_NOT_SUPPORTED;
@@ -602,7 +658,7 @@ static NTSTATUS KphpAmd64DataInitialization(
             return STATUS_NOT_SUPPORTED;
         }
     }
-    // Windows 8
+    // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2)
     {
         KphDynNtVersion = PHNT_WIN8;
