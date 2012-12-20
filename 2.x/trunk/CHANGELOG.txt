@@ -1,5 +1,9 @@
 Process Hacker
 
+2.30
+ * NEW/IMPROVED:
+   * Re-enabled powerful process termination on 32-bit Windows 8
+
 2.29
  * NEW/IMPROVED:
    * Added App ID column for processes

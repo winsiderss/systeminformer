@@ -276,6 +276,7 @@ NTSTATUS KphTerminateThreadByPointerInternal(
 
     if (KphDynNtVersion == PHNT_WINXP)
     {
+        dprintf("Calling XP-style PspTerminateThreadByPointer\n");
         return ((_PspTerminateThreadByPointer51)PspTerminateThreadByPointer_I)(
             Thread,
             ExitStatus
@@ -287,11 +288,33 @@ NTSTATUS KphTerminateThreadByPointerInternal(
         KphDynNtVersion == PHNT_WIN7
         )
     {
+        dprintf("Calling 03/Vista/7-style PspTerminateThreadByPointer\n");
         return ((_PspTerminateThreadByPointer52)PspTerminateThreadByPointer_I)(
             Thread,
             ExitStatus,
             Thread == PsGetCurrentThread()
             );
+    }
+    else if (KphDynNtVersion == PHNT_WIN8)
+    {
+        NTSTATUS status;
+        ULONG directTerminate;
+        
+        dprintf("Calling 8-style PspTerminateThreadByPointer\n");
+        directTerminate = Thread == PsGetCurrentThread();
+        
+        // PspTerminateThreadByPointer on 8 has its first argument
+        // in edi.
+        __asm
+        {
+            push    [directTerminate]
+            push    [ExitStatus]
+            mov     edi, [Thread]
+            call    [PspTerminateThreadByPointer_I]
+            mov     [status], eax
+        }
+        
+        return status;
     }
     else
     {
