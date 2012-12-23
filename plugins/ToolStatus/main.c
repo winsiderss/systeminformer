@@ -59,6 +59,7 @@ static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
 static HIMAGELIST ToolBarImageList;
 static HACCEL AcceleratorTable;
+static WNDPROC SearchBtnWndProc;
 
 #define ID_SEARCH_CLEAR (WM_USER + 1)
 
@@ -193,7 +194,6 @@ typedef struct _InsBut
     BOOLEAN fButtonDown;  // is the button up/down?
     BOOLEAN fMouseDown;   // is the mouse activating the button?
     BOOLEAN fMouseActive;
-    WNDPROC oldproc;   // need to remember the old window procedure
 } InsBut;
 
 BOOLEAN InsertButton(
@@ -212,7 +212,7 @@ BOOLEAN InsertButton(
     context->nButSize = nSize;
 
     // replace the old window procedure with our new one
-    context->oldproc = SubclassWindow(WindowHandle, InsButProc);
+    SearchBtnWndProc = SubclassWindow(WindowHandle, InsButProc);
 
     // associate our button state structure with the window
     SetProp(WindowHandle, L"Context", (HANDLE)context);
@@ -299,20 +299,35 @@ LRESULT CALLBACK InsButProc(
 {
     RECT rect, oldrect;
     RECT* prect;
-    InsBut* pbut;
     POINT pt;
     BOOL oldstate;
 
-    pbut = (InsBut*)GetProp(hwndDlg, L"Context");
+    InsBut* context ;
+
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (InsBut*)GetProp(hwndDlg, L"Context");
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (InsBut*)GetProp(hwndDlg, L"Context");
+
+        if (uMsg == WM_DESTROY)
+        {
+            RemoveProp(hwndDlg, L"Context");     
+            PhFree(context);
+
+            context = NULL;
+        }
+    }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
-        {
-            RemoveProp(hwndDlg, L"Context");
-            PhFree(pbut);
-        }
-        break;
     case WM_NCCALCSIZE:
         {
             prect = (RECT*)lParam;
@@ -323,15 +338,15 @@ LRESULT CALLBACK InsButProc(
 
             // calculate what the size of each window border is,
             // we need to know where the button is going to live.
-            pbut->cxLeftEdge   = prect->left     - oldrect.left; 
-            pbut->cxRightEdge  = oldrect.right   - prect->right;
-            pbut->cyTopEdge    = prect->top      - oldrect.top;
-            pbut->cyBottomEdge = oldrect.bottom  - prect->bottom;   
+            context->cxLeftEdge   = prect->left     - oldrect.left; 
+            context->cxRightEdge  = oldrect.right   - prect->right;
+            context->cyTopEdge    = prect->top      - oldrect.top;
+            context->cyBottomEdge = oldrect.bottom  - prect->bottom;   
 
             // now we can allocate additional space by deflating the
             // rectangle even further. Our button will go on the right-hand side,
             // and will be the same width as a scrollbar button
-            prect->right -= pbut->nButSize;
+            prect->right -= context->nButSize;
         }
         return FALSE;
     case WM_NCPAINT:
@@ -345,9 +360,9 @@ LRESULT CALLBACK InsButProc(
             OffsetRect(&rect, -rect.left, -rect.top);
 
             // work out where to draw the button
-            GetButtonRect(pbut, &rect);
+            GetButtonRect(context, &rect);
 
-            DrawInsertedButton(hwndDlg, pbut, &rect);
+            DrawInsertedButton(hwndDlg, context, &rect);
         }
         return FALSE;
     case WM_NCHITTEST:
@@ -358,7 +373,7 @@ LRESULT CALLBACK InsButProc(
 
             // get the position of the inserted button
             GetWindowRect(hwndDlg, &rect);
-            GetButtonRect(pbut, &rect);
+            GetButtonRect(context, &rect);
 
             // check that the mouse is within the inserted button
             if (PtInRect(&rect, pt))
@@ -378,29 +393,30 @@ LRESULT CALLBACK InsButProc(
             pt.x -= rect.left;
             pt.y -= rect.top;
             OffsetRect(&rect, -rect.left, -rect.top);
-            GetButtonRect(pbut, &rect);
+            GetButtonRect(context, &rect);
 
             // check that the mouse is within the inserted button
             if (PtInRect(&rect, pt))
             {
                 SetCapture(hwndDlg);
 
-                pbut->fButtonDown = TRUE;
-                pbut->fMouseDown  = TRUE;
+                context->fButtonDown = TRUE;
+                context->fMouseDown  = TRUE;
 
                 //redraw the non-client area to reflect the change
-                DrawInsertedButton(hwndDlg, pbut, &rect);
+                DrawInsertedButton(hwndDlg, context, &rect);
             }
         }
         break;
     case WM_MOUSEMOVE:
         {
-            if (pbut->fMouseDown == FALSE)
+            if (context->fMouseDown == FALSE)
                 break;
 
             // get the SCREEN coordinates of the mouse
             pt.x = GET_X_LPARAM(lParam);
             pt.y = GET_Y_LPARAM(lParam);
+
             ClientToScreen(hwndDlg, &pt);
 
             // get the position of the inserted button
@@ -410,25 +426,25 @@ LRESULT CALLBACK InsButProc(
             pt.y -= rect.top;
             OffsetRect(&rect, -rect.left, -rect.top);
 
-            GetButtonRect(pbut, &rect);
+            GetButtonRect(context, &rect);
 
-            oldstate = pbut->fButtonDown;
+            oldstate = context->fButtonDown;
 
             // check that the mouse is within the inserted button
             if (PtInRect(&rect, pt))
-                pbut->fButtonDown = 1;
+                context->fButtonDown = 1;
             else
-                pbut->fButtonDown = 0;
+                context->fButtonDown = 0;
 
             // redraw the non-client area to reflect the change.
             // to prevent flicker, we only redraw the button if its state has changed
-            if (oldstate != pbut->fButtonDown)
-                DrawInsertedButton(hwndDlg, pbut, &rect);
+            if (oldstate != context->fButtonDown)
+                DrawInsertedButton(hwndDlg, context, &rect);
         }
         break;
     case WM_LBUTTONUP:
         {
-            if (pbut->fMouseDown != TRUE)
+            if (context->fMouseDown != TRUE)
                 break;
 
             // get the SCREEN coordinates of the mouse
@@ -443,26 +459,26 @@ LRESULT CALLBACK InsButProc(
             pt.y -= rect.top;
             OffsetRect(&rect, -rect.left, -rect.top);
 
-            GetButtonRect(pbut, &rect);
+            GetButtonRect(context, &rect);
 
             // check that the mouse is within the inserted button
             if (PtInRect(&rect, pt))
             {
-                PostMessage(GetParent(hwndDlg), WM_COMMAND, MAKEWPARAM(pbut->uCmdId, BN_CLICKED), 0);
+                PostMessage(GetParent(hwndDlg), WM_COMMAND, MAKEWPARAM(context->uCmdId, BN_CLICKED), 0);
             }
 
             ReleaseCapture();
 
-            pbut->fButtonDown  = FALSE;
-            pbut->fMouseDown   = FALSE;
+            context->fButtonDown  = FALSE;
+            context->fMouseDown   = FALSE;
 
             // redraw the non-client area to reflect the change.
-            DrawInsertedButton(hwndDlg, pbut, &rect);
+            DrawInsertedButton(hwndDlg, context, &rect);
         }
         break;
     }
 
-    return CallWindowProc(pbut->oldproc, hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(SearchBtnWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 static BOOLEAN WordMatch(
