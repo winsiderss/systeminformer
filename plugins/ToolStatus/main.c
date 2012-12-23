@@ -60,6 +60,15 @@ static BOOLEAN TargetingCompleted = FALSE;
 static HIMAGELIST ToolBarImageList;
 static HACCEL AcceleratorTable;
 
+#define ID_SEARCH_CLEAR (WM_USER + 1)
+
+LRESULT CALLBACK InsButProc(   
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 LOGICAL DllMain(
     __in HINSTANCE Instance,
     __in ULONG Reason,
@@ -171,7 +180,292 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
-BOOLEAN WordMatch(
+typedef struct _InsBut
+{
+    int nButSize; // horizontal size of button   
+    // size of the current window borders.
+    // given these, we know where to insert our button 
+    int cxLeftEdge, cxRightEdge; 
+    int cyTopEdge,  cyBottomEdge;
+
+    UINT uCmdId;       // sent in a WM_COMMAND message
+    UINT uState;
+    BOOLEAN fButtonDown;  // is the button up/down?
+    BOOLEAN fMouseDown;   // is the mouse activating the button?
+    BOOLEAN fMouseActive;
+    WNDPROC oldproc;   // need to remember the old window procedure
+} InsBut;
+
+BOOLEAN InsertButton(
+    __in HWND WindowHandle, 
+    __in UINT uCmdId, 
+    __in int nSize
+    )
+{
+    InsBut* context;
+    
+    context = (InsBut*)PhAllocate(sizeof(InsBut));
+    memset(context, 0, sizeof(InsBut));
+
+    context->uCmdId = uCmdId;
+    context->fButtonDown = FALSE;
+    context->nButSize = nSize;
+
+    // replace the old window procedure with our new one
+    context->oldproc = SubclassWindow(WindowHandle, InsButProc);
+
+    // associate our button state structure with the window
+    SetProp(WindowHandle, L"Context", (HANDLE)context);
+
+    // force the edit control to update its non-client area
+    SetWindowPos(
+        WindowHandle,
+        0, 0, 0, 0, 0,
+        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+
+    return TRUE;
+}
+
+VOID GetButtonRect(
+    InsBut* pbut,
+    RECT* rect
+    )
+{
+    // retrieve the coordinates of an inserted button, given the specified window rectangle. 
+    rect->right  -= pbut->cxRightEdge;
+    rect->top    += pbut->cyTopEdge;
+    rect->bottom -= pbut->cyBottomEdge;
+    rect->left    = rect->right - pbut->nButSize;
+
+    if (pbut->cxRightEdge > pbut->cxLeftEdge)
+        OffsetRect(rect, pbut->cxRightEdge - pbut->cxLeftEdge, 0);
+}   
+
+
+VOID RedrawNC(
+    __in HWND hwnd
+    )
+{
+    SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_NOZORDER);
+}
+
+VOID DrawInsertedButton(
+    __in HWND hwnd, 
+    InsBut* pbut, 
+    RECT* prect
+    )
+{
+    HDC hdc;
+
+    hdc = GetWindowDC(hwnd);
+
+    // now draw our inserted button:
+    if (pbut->fButtonDown == TRUE)
+    {
+        // draw a 3d-edge around the button. 
+        //DrawEdge(hdc, prect, EDGE_SUNKEN, BF_RECT | BF_FLAT | BF_ADJUST);
+
+        // fill the inside of the button
+        FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
+
+        OffsetRect(prect, 1, 1);
+        
+        SetBkMode(hdc, TRANSPARENT);
+
+        DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    }
+    else
+    {
+        //DrawEdge(hdc, prect, EDGE_RAISED, BF_RECT | BF_ADJUST);
+
+        // fill the inside of the button
+        FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
+
+        SetBkMode(hdc, TRANSPARENT);
+
+        DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    }
+        
+    ReleaseDC(hwnd, hdc);
+}
+
+LRESULT CALLBACK InsButProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    RECT rect, oldrect;
+    RECT* prect;
+    InsBut* pbut;
+    POINT pt;
+    BOOL oldstate;
+
+    pbut = (InsBut*)GetProp(hwndDlg, L"Context");
+
+    switch (uMsg)
+    {
+    case WM_NCDESTROY:
+        {
+            RemoveProp(hwndDlg, L"Context");
+            PhFree(pbut);
+        }
+        break;
+    case WM_NCCALCSIZE:
+        {
+            prect = (RECT*)lParam;
+            oldrect = *prect;
+
+            // let the old wndproc allocate space for the borders, or any other non-client space.
+            //CallWindowProc(pbut->oldproc, hwndDlg, uMsg, wParam, lParam);
+
+            // calculate what the size of each window border is,
+            // we need to know where the button is going to live.
+            pbut->cxLeftEdge   = prect->left     - oldrect.left; 
+            pbut->cxRightEdge  = oldrect.right   - prect->right;
+            pbut->cyTopEdge    = prect->top      - oldrect.top;
+            pbut->cyBottomEdge = oldrect.bottom  - prect->bottom;   
+
+            // now we can allocate additional space by deflating the
+            // rectangle even further. Our button will go on the right-hand side,
+            // and will be the same width as a scrollbar button
+            prect->right -= pbut->nButSize;
+        }
+        return FALSE;
+    case WM_NCPAINT:
+        {
+            // let the old window procedure draw the borders other non-client bits-and-pieces for us.
+            //CallWindowProc(pbut->oldproc, hwndDlg, uMsg, wParam, lParam);
+
+            // get the screen coordinates of the window.
+            // adjust the coordinates so they start from 0,0
+            GetWindowRect(hwndDlg, &rect);
+            OffsetRect(&rect, -rect.left, -rect.top);
+
+            // work out where to draw the button
+            GetButtonRect(pbut, &rect);
+
+            DrawInsertedButton(hwndDlg, pbut, &rect);
+        }
+        return FALSE;
+    case WM_NCHITTEST:
+        {
+            // get the screen coordinates of the mouse
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
+
+            // get the position of the inserted button
+            GetWindowRect(hwndDlg, &rect);
+            GetButtonRect(pbut, &rect);
+
+            // check that the mouse is within the inserted button
+            if (PtInRect(&rect, pt))
+                return HTBORDER;
+        }
+        break;
+    case WM_NCLBUTTONDBLCLK:
+    case WM_NCLBUTTONDOWN:
+        {
+            // get the screen coordinates of the mouse
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
+
+            // get the position of the inserted button
+            GetWindowRect(hwndDlg, &rect);
+            
+            pt.x -= rect.left;
+            pt.y -= rect.top;
+            OffsetRect(&rect, -rect.left, -rect.top);
+            GetButtonRect(pbut, &rect);
+
+            // check that the mouse is within the inserted button
+            if (PtInRect(&rect, pt))
+            {
+                SetCapture(hwndDlg);
+
+                pbut->fButtonDown = TRUE;
+                pbut->fMouseDown  = TRUE;
+
+                //redraw the non-client area to reflect the change
+                DrawInsertedButton(hwndDlg, pbut, &rect);
+            }
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            if (pbut->fMouseDown == FALSE)
+                break;
+
+            // get the SCREEN coordinates of the mouse
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
+            ClientToScreen(hwndDlg, &pt);
+
+            // get the position of the inserted button
+            GetWindowRect(hwndDlg, &rect);
+
+            pt.x -= rect.left;
+            pt.y -= rect.top;
+            OffsetRect(&rect, -rect.left, -rect.top);
+
+            GetButtonRect(pbut, &rect);
+
+            oldstate = pbut->fButtonDown;
+
+            // check that the mouse is within the inserted button
+            if (PtInRect(&rect, pt))
+                pbut->fButtonDown = 1;
+            else
+                pbut->fButtonDown = 0;
+
+            // redraw the non-client area to reflect the change.
+            // to prevent flicker, we only redraw the button if its state has changed
+            if (oldstate != pbut->fButtonDown)
+                DrawInsertedButton(hwndDlg, pbut, &rect);
+        }
+        break;
+    case WM_LBUTTONUP:
+        {
+            if (pbut->fMouseDown != TRUE)
+                break;
+
+            // get the SCREEN coordinates of the mouse
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
+            ClientToScreen(hwndDlg, &pt);
+
+            // get the position of the inserted button
+            GetWindowRect(hwndDlg, &rect);
+
+            pt.x -= rect.left;
+            pt.y -= rect.top;
+            OffsetRect(&rect, -rect.left, -rect.top);
+
+            GetButtonRect(pbut, &rect);
+
+            // check that the mouse is within the inserted button
+            if (PtInRect(&rect, pt))
+            {
+                PostMessage(GetParent(hwndDlg), WM_COMMAND, MAKEWPARAM(pbut->uCmdId, BN_CLICKED), 0);
+            }
+
+            ReleaseCapture();
+
+            pbut->fButtonDown  = FALSE;
+            pbut->fMouseDown   = FALSE;
+
+            // redraw the non-client area to reflect the change.
+            DrawInsertedButton(hwndDlg, pbut, &rect);
+        }
+        break;
+    }
+
+    return CallWindowProc(pbut->oldproc, hwndDlg, uMsg, wParam, lParam);
+}
+
+static BOOLEAN WordMatch(
     __in PPH_STRINGREF Text,
     __in PPH_STRINGREF Search,
     __in BOOLEAN IgnoreCase
@@ -196,7 +490,7 @@ BOOLEAN WordMatch(
     return FALSE;
 }
 
-BOOLEAN ProcessTreeFilterCallback(
+static BOOLEAN ProcessTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     )
@@ -253,7 +547,7 @@ BOOLEAN ProcessTreeFilterCallback(
     return TRUE;
 }
 
-BOOLEAN ServiceTreeFilterCallback(
+static BOOLEAN ServiceTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     )
@@ -306,7 +600,7 @@ BOOLEAN ServiceTreeFilterCallback(
     return TRUE;
 }
 
-BOOLEAN NetworkTreeFilterCallback(
+static BOOLEAN NetworkTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     )
@@ -383,7 +677,7 @@ BOOLEAN NetworkTreeFilterCallback(
     return TRUE;
 }
 
-VOID NTAPI MainWindowShowingCallback(
+static VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
@@ -445,6 +739,9 @@ VOID NTAPI MainWindowShowingCallback(
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     // Set the extended toolbar styles.
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
+    
+    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 20);
+    
     // Set Searchbox control font.
     SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
     // Limit the amount of chars.
@@ -457,7 +754,7 @@ VOID NTAPI MainWindowShowingCallback(
         REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
 
         rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-        rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+        rBandInfo.fStyle = RBBS_HIDETITLE;// | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
 
         //no imagelist to attach to rebar
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&ri);
@@ -531,7 +828,7 @@ VOID NTAPI MainWindowShowingCallback(
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
 }
 
-VOID NTAPI ProcessesUpdatedCallback(
+static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
@@ -542,7 +839,7 @@ VOID NTAPI ProcessesUpdatedCallback(
         UpdateStatusBar();
 }
 
-VOID NTAPI TabPageUpdatedCallback(
+static VOID NTAPI TabPageUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
@@ -580,7 +877,7 @@ VOID NTAPI TabPageUpdatedCallback(
     }
 }
 
-VOID NTAPI LayoutPaddingCallback(
+static VOID NTAPI LayoutPaddingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
@@ -589,14 +886,14 @@ VOID NTAPI LayoutPaddingCallback(
 
     if (EnableToolBar)
     {
-        data->Padding.top += (ReBarRect.bottom - ReBarRect.top); // Width
+        data->Padding.top += ReBarRect.bottom; // Width
     }
 
     if (EnableStatusBar)
         data->Padding.bottom += StatusBarRect.bottom;
 }
 
-VOID DrawWindowBorderForTargeting(
+static VOID DrawWindowBorderForTargeting(
     __in HWND hWnd
     )
 {
@@ -635,7 +932,7 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
-BOOLEAN NTAPI MessageLoopFilter(
+static BOOLEAN NTAPI MessageLoopFilter(
     __in PMSG Message,
     __in PVOID Context
     )
@@ -652,7 +949,7 @@ BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
-LRESULT CALLBACK MainWndSubclassProc(
+static LRESULT CALLBACK MainWndSubclassProc(
     __in HWND hWnd,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -667,14 +964,23 @@ LRESULT CALLBACK MainWndSubclassProc(
         {
             ULONG id = (ULONG)(USHORT)LOWORD(wParam);
             ULONG toolbarId;
-
+     
             switch (HIWORD(wParam))
             {
-            //case EN_UPDATE:
-                //return 0;
+            case BN_CLICKED:
+                {
+                    if (id != ID_SEARCH_CLEAR)
+                        break;
+
+                    SetFocus(TextboxHandle);
+                    Edit_SetSel(TextboxHandle, 0, -1);
+                    SetWindowText(TextboxHandle, L"");
+
+                    goto DefaultWndProc;
+                }
+                break;
             case EN_CHANGE:
                 {
-                    // TODO: change.
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
@@ -993,6 +1299,7 @@ LRESULT CALLBACK MainWndSubclassProc(
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+
 DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
@@ -1010,7 +1317,11 @@ VOID ApplyToolbarSettings(
         ShowWindow(ReBarHandle, SW_SHOW);
     }
     else
-    {
+    {    
+        // Clear searchbox
+        Edit_SetSel(TextboxHandle, 0, -1);
+        SetWindowText(TextboxHandle, L"");
+
         ShowWindow(ToolBarHandle, SW_HIDE);
         ShowWindow(ReBarHandle, SW_HIDE);  
     }
@@ -1319,6 +1630,7 @@ VOID ShowStatusMenu(
         PhMainWndHandle,
         NULL
         );
+
     DestroyMenu(menu);
 
     switch (id)
