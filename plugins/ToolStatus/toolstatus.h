@@ -4,6 +4,7 @@
 #include <phdk.h>
 
 #include "resource.h"
+#include "btncontrol.h"
 
 #include <phapppub.h>
 #include <phplug.h>
@@ -43,65 +44,7 @@ BOOLEAN EnableToolBar;
 BOOLEAN EnableStatusBar;
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
-VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
 
-VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID ApplyToolbarSettings(
-    VOID
-    );
-
-VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI TabPageUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID DrawWindowBorderForTargeting(
-    __in HWND hWnd
-    );
-
-VOID NTAPI LayoutPaddingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-BOOLEAN NTAPI MessageLoopFilter(
-    __in PMSG Message,
-    __in PVOID Context
-    );
-
-LRESULT CALLBACK MainWndSubclassProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in UINT_PTR uIdSubclass,
-    __in DWORD_PTR dwRefData
-    );
-
-VOID UpdateStatusBar(
-    VOID
-    );
-
-VOID ShowStatusMenu(
-    __in PPOINT Point
-    );
 
 INT_PTR CALLBACK OptionsDlgProc(
     __in HWND hwndDlg,
@@ -109,7 +52,5 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
-
-
 
 #endif

@@ -163,9 +163,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
+    <ClCompile Include="btncontrol.c" />
     <ClCompile Include="options.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="btncontrol.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="toolstatus.h" />
   </ItemGroup>
@@ -182,6 +184,10 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ToolStatus.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\active_search.ico" />
+    <Image Include="resources\inactive_search.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
