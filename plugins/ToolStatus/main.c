@@ -59,7 +59,6 @@ static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
 static HIMAGELIST ToolBarImageList;
 static HACCEL AcceleratorTable;
-static WNDPROC SearchBtnWndProc;
 
 #define ID_SEARCH_CLEAR (WM_USER + 1)
 
@@ -191,12 +190,19 @@ typedef struct _InsBut
 
     UINT uCmdId;       // sent in a WM_COMMAND message
     UINT uState;
-    BOOLEAN fButtonDown;  // is the button up/down?
-    BOOLEAN fMouseDown;   // is the mouse activating the button?
-    BOOLEAN fMouseActive;
+    BOOLEAN IsButtonDown;  // is the button up/down?
+    BOOLEAN IsMouseDown;   // is the mouse activating the button?
+    BOOLEAN IsMouseActive;
+    BOOLEAN oldstate;
+
+    RECT rect;
+    RECT oldrect;
+    POINT pt;
+    RECT* prect;
+    WNDPROC SearchBtnWndProc;
 } InsBut;
 
-BOOLEAN InsertButton(
+static BOOLEAN InsertButton(
     __in HWND WindowHandle, 
     __in UINT uCmdId, 
     __in int nSize
@@ -208,11 +214,11 @@ BOOLEAN InsertButton(
     memset(context, 0, sizeof(InsBut));
 
     context->uCmdId = uCmdId;
-    context->fButtonDown = FALSE;
+    context->IsButtonDown = FALSE;
     context->nButSize = nSize;
 
     // replace the old window procedure with our new one
-    SearchBtnWndProc = SubclassWindow(WindowHandle, InsButProc);
+    context->SearchBtnWndProc = SubclassWindow(WindowHandle, InsButProc);
 
     // associate our button state structure with the window
     SetProp(WindowHandle, L"Context", (HANDLE)context);
@@ -227,62 +233,100 @@ BOOLEAN InsertButton(
     return TRUE;
 }
 
-VOID GetButtonRect(
-    InsBut* pbut,
-    RECT* rect
+static VOID GetButtonRect(
+    __inout InsBut* pbut,
+    __in RECT* rect
     )
 {
     // retrieve the coordinates of an inserted button, given the specified window rectangle. 
-    rect->right  -= pbut->cxRightEdge;
-    rect->top    += pbut->cyTopEdge;
+    rect->right -= pbut->cxRightEdge;
+    rect->top += pbut->cyTopEdge;
     rect->bottom -= pbut->cyBottomEdge;
-    rect->left    = rect->right - pbut->nButSize;
+    rect->left = rect->right - pbut->nButSize;
 
     if (pbut->cxRightEdge > pbut->cxLeftEdge)
         OffsetRect(rect, pbut->cxRightEdge - pbut->cxLeftEdge, 0);
 }   
 
-
-VOID RedrawNC(
+static VOID RedrawNC(
     __in HWND hwnd
     )
 {
     SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_NOZORDER);
 }
 
-VOID DrawInsertedButton(
+void DrawInsertedButtonBitmap(HDC hdcDest, int x, int y)
+{
+    HBITMAP image;
+    BITMAP bm;
+    HDC hdcMem;
+
+    //load the bitmap image
+    image = (HBITMAP)LoadImage(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDB_CROSS),
+        IMAGE_BITMAP,
+        0, 0,
+        LR_COPYFROMRESOURCE
+        );
+
+    //read the bitmap's properties
+    GetObject(image, sizeof(BITMAP), &bm);
+
+    //create a device context for the bitmap
+    hdcMem = CreateCompatibleDC(hdcDest);
+    SelectObject(hdcMem, image);
+
+    //draw the bitmap to the window (bit block transfer)
+    BitBlt( 
+        hdcDest, //destination device context
+        x, y, //x,y location on destination
+        bm.bmWidth, bm.bmHeight, //width,height of source bitmap
+        hdcMem, //source bitmap device context
+        0, 0, //start x,y on source bitmap
+        SRCCOPY
+        );
+
+    //delete the device context and bitmap
+    DeleteDC(hdcMem);
+    DeleteObject((HBITMAP)image);
+} 
+
+static VOID DrawInsertedButton(
     __in HWND hwnd, 
-    InsBut* pbut, 
-    RECT* prect
+    __inout InsBut* pbut, 
+    __in RECT* prect
     )
 {
     HDC hdc;
 
     hdc = GetWindowDC(hwnd);
 
+    SetBkMode(hdc, TRANSPARENT);
+
     // now draw our inserted button:
-    if (pbut->fButtonDown == TRUE)
+    if (pbut->IsMouseDown)
     {
-        // draw a 3d-edge around the button. 
+        // draw a 3d-edge around the control. 
         //DrawEdge(hdc, prect, EDGE_SUNKEN, BF_RECT | BF_FLAT | BF_ADJUST);
 
         // fill the inside of the button
         FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
 
+        // offset the rect since there is no border
         OffsetRect(prect, 1, 1);
-        
-        SetBkMode(hdc, TRANSPARENT);
 
-        DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        //DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);  
+
+        DrawInsertedButtonBitmap(hdc, prect->left, prect->top);
     }
     else
     {
-        //DrawEdge(hdc, prect, EDGE_RAISED, BF_RECT | BF_ADJUST);
+        // draw a 3d-edge around the control. 
+        //DrawEdge(hdc, prect, EDGE_SUNKEN, BF_RECT | BF_FLAT | BF_ADJUST);
 
         // fill the inside of the button
         FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
-
-        SetBkMode(hdc, TRANSPARENT);
 
         DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
@@ -297,13 +341,7 @@ LRESULT CALLBACK InsButProc(
     __in LPARAM lParam
     )
 {
-    RECT rect, oldrect;
-    RECT* prect;
-    POINT pt;
-    BOOL oldstate;
-
-    InsBut* context ;
-
+    InsBut* context;
 
     if (uMsg == WM_INITDIALOG)
     {
@@ -323,60 +361,59 @@ LRESULT CALLBACK InsButProc(
         }
     }
 
-    if (!context)
+    if (!context || !context->SearchBtnWndProc)
         return FALSE;
 
     switch (uMsg)
     {
     case WM_NCCALCSIZE:
         {
-            prect = (RECT*)lParam;
-            oldrect = *prect;
+            context->prect = (RECT*)lParam;
+            context->oldrect = *context->prect;
 
             // let the old wndproc allocate space for the borders, or any other non-client space.
             //CallWindowProc(pbut->oldproc, hwndDlg, uMsg, wParam, lParam);
 
             // calculate what the size of each window border is,
             // we need to know where the button is going to live.
-            context->cxLeftEdge   = prect->left     - oldrect.left; 
-            context->cxRightEdge  = oldrect.right   - prect->right;
-            context->cyTopEdge    = prect->top      - oldrect.top;
-            context->cyBottomEdge = oldrect.bottom  - prect->bottom;   
+            context->cxLeftEdge = context->prect->left - context->oldrect.left; 
+            context->cxRightEdge = context->oldrect.right - context->prect->right;
+            context->cyTopEdge = context->prect->top - context->oldrect.top;
+            context->cyBottomEdge = context->oldrect.bottom - context->prect->bottom;   
 
             // now we can allocate additional space by deflating the
             // rectangle even further. Our button will go on the right-hand side,
             // and will be the same width as a scrollbar button
-            prect->right -= context->nButSize;
+            context->prect->right -= context->nButSize;
         }
         return FALSE;
     case WM_NCPAINT:
-        {
+        {  
             // let the old window procedure draw the borders other non-client bits-and-pieces for us.
-            //CallWindowProc(pbut->oldproc, hwndDlg, uMsg, wParam, lParam);
+            //CallWindowProc(SearchBtnWndProc, hwndDlg, uMsg, wParam, lParam);
 
             // get the screen coordinates of the window.
+            GetWindowRect(hwndDlg, &context->rect);
             // adjust the coordinates so they start from 0,0
-            GetWindowRect(hwndDlg, &rect);
-            OffsetRect(&rect, -rect.left, -rect.top);
-
+            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
             // work out where to draw the button
-            GetButtonRect(context, &rect);
+            GetButtonRect(context, &context->rect);
 
-            DrawInsertedButton(hwndDlg, context, &rect);
+            DrawInsertedButton(hwndDlg, context, &context->rect);
         }
         return FALSE;
     case WM_NCHITTEST:
         {
             // get the screen coordinates of the mouse
-            pt.x = GET_X_LPARAM(lParam);
-            pt.y = GET_Y_LPARAM(lParam);
+            context->pt.x = GET_X_LPARAM(lParam);
+            context->pt.y = GET_Y_LPARAM(lParam);
 
             // get the position of the inserted button
-            GetWindowRect(hwndDlg, &rect);
-            GetButtonRect(context, &rect);
+            GetWindowRect(hwndDlg, &context->rect);
+            GetButtonRect(context, &context->rect);
 
             // check that the mouse is within the inserted button
-            if (PtInRect(&rect, pt))
+            if (PtInRect(&context->rect, context->pt))
                 return HTBORDER;
         }
         break;
@@ -384,101 +421,119 @@ LRESULT CALLBACK InsButProc(
     case WM_NCLBUTTONDOWN:
         {
             // get the screen coordinates of the mouse
-            pt.x = GET_X_LPARAM(lParam);
-            pt.y = GET_Y_LPARAM(lParam);
+            context->pt.x = GET_X_LPARAM(lParam);
+            context->pt.y = GET_Y_LPARAM(lParam);
 
             // get the position of the inserted button
-            GetWindowRect(hwndDlg, &rect);
+            GetWindowRect(hwndDlg, &context->rect);
             
-            pt.x -= rect.left;
-            pt.y -= rect.top;
-            OffsetRect(&rect, -rect.left, -rect.top);
-            GetButtonRect(context, &rect);
+            context->pt.x -= context->rect.left;
+            context->pt.y -= context->rect.top;
+
+            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
+
+            GetButtonRect(context, &context->rect);
 
             // check that the mouse is within the inserted button
-            if (PtInRect(&rect, pt))
+            if (PtInRect(&context->rect, context->pt))
             {
                 SetCapture(hwndDlg);
 
-                context->fButtonDown = TRUE;
-                context->fMouseDown  = TRUE;
+                context->IsButtonDown = TRUE;
+                context->IsMouseDown = TRUE;
 
                 //redraw the non-client area to reflect the change
-                DrawInsertedButton(hwndDlg, context, &rect);
+                DrawInsertedButton(hwndDlg, context, &context->rect);
             }
         }
         break;
     case WM_MOUSEMOVE:
         {
-            if (context->fMouseDown == FALSE)
+            if (!context->IsMouseDown)
                 break;
 
             // get the SCREEN coordinates of the mouse
-            pt.x = GET_X_LPARAM(lParam);
-            pt.y = GET_Y_LPARAM(lParam);
+            context->pt.x = GET_X_LPARAM(lParam);
+            context->pt.y = GET_Y_LPARAM(lParam);
 
-            ClientToScreen(hwndDlg, &pt);
+            ClientToScreen(hwndDlg, &context->pt);
 
             // get the position of the inserted button
-            GetWindowRect(hwndDlg, &rect);
+            GetWindowRect(hwndDlg, &context->rect);
 
-            pt.x -= rect.left;
-            pt.y -= rect.top;
-            OffsetRect(&rect, -rect.left, -rect.top);
+            context->pt.x -= context->rect.left;
+            context->pt.y -= context->rect.top;
 
-            GetButtonRect(context, &rect);
+            OffsetRect(
+                &context->rect, 
+                -context->rect.left, 
+                -context->rect.top
+                );
 
-            oldstate = context->fButtonDown;
+            GetButtonRect(context, &context->rect);
+
+            context->oldstate = context->IsButtonDown;
 
             // check that the mouse is within the inserted button
-            if (PtInRect(&rect, pt))
-                context->fButtonDown = 1;
+            if (PtInRect(&context->rect, context->pt))
+                context->IsButtonDown = TRUE;
             else
-                context->fButtonDown = 0;
+                context->IsButtonDown = FALSE;
 
             // redraw the non-client area to reflect the change.
             // to prevent flicker, we only redraw the button if its state has changed
-            if (oldstate != context->fButtonDown)
-                DrawInsertedButton(hwndDlg, context, &rect);
+            if (context->oldstate != context->IsButtonDown)
+                DrawInsertedButton(hwndDlg, context, &context->rect);
         }
         break;
     case WM_LBUTTONUP:
         {
-            if (context->fMouseDown != TRUE)
+            if (!context->IsMouseDown)
                 break;
 
             // get the SCREEN coordinates of the mouse
-            pt.x = GET_X_LPARAM(lParam);
-            pt.y = GET_Y_LPARAM(lParam);
-            ClientToScreen(hwndDlg, &pt);
+            context->pt.x = GET_X_LPARAM(lParam);
+            context->pt.y = GET_Y_LPARAM(lParam);
+            
+            ClientToScreen(hwndDlg, &context->pt);
 
             // get the position of the inserted button
-            GetWindowRect(hwndDlg, &rect);
+            GetWindowRect(hwndDlg, &context->rect);
 
-            pt.x -= rect.left;
-            pt.y -= rect.top;
-            OffsetRect(&rect, -rect.left, -rect.top);
+            context->pt.x -= context->rect.left;
+            context->pt.y -= context->rect.top;
 
-            GetButtonRect(context, &rect);
+            OffsetRect(
+                &context->rect, 
+                -context->rect.left, 
+                -context->rect.top
+                );
+
+            GetButtonRect(context, &context->rect);
 
             // check that the mouse is within the inserted button
-            if (PtInRect(&rect, pt))
+            if (PtInRect(&context->rect, context->pt))
             {
-                PostMessage(GetParent(hwndDlg), WM_COMMAND, MAKEWPARAM(context->uCmdId, BN_CLICKED), 0);
+                PostMessage(
+                    GetParent(hwndDlg), 
+                    WM_COMMAND, 
+                    MAKEWPARAM(context->uCmdId, BN_CLICKED), 
+                    0
+                    );
             }
 
             ReleaseCapture();
 
-            context->fButtonDown  = FALSE;
-            context->fMouseDown   = FALSE;
+            context->IsButtonDown = FALSE;
+            context->IsMouseDown = FALSE;
 
             // redraw the non-client area to reflect the change.
-            DrawInsertedButton(hwndDlg, context, &rect);
+            DrawInsertedButton(hwndDlg, context, &context->rect);
         }
         break;
     }
 
-    return CallWindowProc(SearchBtnWndProc, hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(context->SearchBtnWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 static BOOLEAN WordMatch(
@@ -706,7 +761,7 @@ static VOID NTAPI MainWindowShowingCallback(
     ToolBarIdRangeEnd = ToolBarIdRangeBase + NUMBER_OF_BUTTONS;
 
     // Create the rebar.
-    ReBarHandle = CreateWindowExW(
+    ReBarHandle = CreateWindowEx(
         WS_EX_TOOLWINDOW,
         REBARCLASSNAME,
         NULL,
@@ -717,7 +772,7 @@ static VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
-    ToolBarHandle = CreateWindowExW(
+    ToolBarHandle = CreateWindowEx(
         0,
         TOOLBARCLASSNAME,
         NULL,
@@ -728,7 +783,7 @@ static VOID NTAPI MainWindowShowingCallback(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
-    TextboxHandle = CreateWindowExW(
+    TextboxHandle = CreateWindowEx(
         0,
         WC_EDIT,
         NULL,
@@ -1388,7 +1443,7 @@ VOID ApplyToolbarSettings(
     InvalidateRect(ToolBarHandle, NULL, TRUE);
 }
 
-VOID UpdateStatusBar(
+static VOID UpdateStatusBar(
     VOID
     )
 {
@@ -1581,7 +1636,7 @@ VOID UpdateStatusBar(
     }
 }
 
-VOID ShowStatusMenu(
+static VOID ShowStatusMenu(
     __in PPOINT Point
     )
 {
