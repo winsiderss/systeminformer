@@ -23,6 +23,49 @@
 
 #include "toolstatus.h"
 
+VOID NTAPI MainWindowShowingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+VOID NTAPI ProcessesUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+VOID NTAPI TabPageUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+VOID NTAPI LayoutPaddingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+BOOLEAN NTAPI MessageLoopFilter(
+    __in PMSG Message,
+    __in PVOID Context
+    );
+
+LRESULT CALLBACK MainWndSubclassProc(
+    __in HWND hWnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam,
+    __in UINT_PTR uIdSubclass,
+    __in DWORD_PTR dwRefData
+    );
+
+VOID ApplyToolbarSettings(
+    VOID
+    );
+VOID DrawWindowBorderForTargeting(
+    __in HWND hWnd
+    );
+VOID UpdateStatusBar(
+    VOID
+    );
+VOID ShowStatusMenu(
+    __in PPOINT Point
+    );
+
 #define TARGETING_MODE_NORMAL 0 // select process
 #define TARGETING_MODE_THREAD 1 // select process and thread
 #define TARGETING_MODE_KILL 2 // Find Window and Kill
@@ -57,17 +100,70 @@ static ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
 static BOOLEAN TargetingWindow = FALSE;
 static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
-static HIMAGELIST ToolBarImageList;
-static HACCEL AcceleratorTable;
+static HIMAGELIST ToolBarImageList = NULL;
+static HACCEL AcceleratorTable = NULL;
 
 #define ID_SEARCH_CLEAR (WM_USER + 1)
 
-LRESULT CALLBACK InsButProc(   
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
+static BOOLEAN WordMatch(
+    __in PPH_STRINGREF Text,
+    __in PPH_STRINGREF Search,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = *Search;
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remainingPart, ' ', &part, &remainingPart);
+
+        if (part.Length != 0)
+        {
+            if (PhFindStringInStringRef(Text, &part, IgnoreCase) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static VOID NTAPI LoadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    LOGFONT logFont;
+   
+    memset(&logFont, 0, sizeof(LOGFONT));
+
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_NORMAL;
+
+    wcscpy_s(
+        logFont.lfFaceName, 
+        _countof(logFont.lfFaceName), 
+        L"MS Shell Dlg 2"
+        );
+
+    // Create the font handle
+    FontHandle = CreateFontIndirect(&logFont);
+}
+
+static VOID NTAPI ShowOptionsCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    DialogBox(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        (HWND)Parameter,
+        OptionsDlgProc
+        );
+}
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -141,426 +237,6 @@ LOGICAL DllMain(
     return TRUE;
 }
 
-VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    LOGFONT logFont = { 0 };
-    INITCOMMONCONTROLSEX icex = { sizeof(INITCOMMONCONTROLSEX) };
-
-    icex.dwICC = ICC_COOL_CLASSES | ICC_BAR_CLASSES;
-
-    InitCommonControlsEx(&icex);
-
-    logFont.lfHeight = 14;
-    logFont.lfWeight = FW_NORMAL;
-
-    // We don't check if the font exists, CreateFontIndirect does this for us.
-    wcscpy_s(
-        logFont.lfFaceName, 
-        _countof(logFont.lfFaceName), 
-        L"Microsoft Sans Serif"
-        );
-
-    // Create the font handle.
-    FontHandle = CreateFontIndirect(&logFont);
-}
-
-VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    DialogBox(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parameter,
-        OptionsDlgProc
-        );
-}
-
-typedef struct _InsBut
-{
-    int nButSize; // horizontal size of button   
-    // size of the current window borders.
-    // given these, we know where to insert our button 
-    int cxLeftEdge, cxRightEdge; 
-    int cyTopEdge,  cyBottomEdge;
-
-    UINT uCmdId;       // sent in a WM_COMMAND message
-    UINT uState;
-    BOOLEAN IsButtonDown;  // is the button up/down?
-    BOOLEAN IsMouseDown;   // is the mouse activating the button?
-    BOOLEAN IsMouseActive;
-    BOOLEAN oldstate;
-
-    RECT rect;
-    RECT oldrect;
-    POINT pt;
-    RECT* prect;
-    WNDPROC SearchBtnWndProc;
-} InsBut;
-
-static BOOLEAN InsertButton(
-    __in HWND WindowHandle, 
-    __in UINT uCmdId, 
-    __in int nSize
-    )
-{
-    InsBut* context;
-    
-    context = (InsBut*)PhAllocate(sizeof(InsBut));
-    memset(context, 0, sizeof(InsBut));
-
-    context->uCmdId = uCmdId;
-    context->IsButtonDown = FALSE;
-    context->nButSize = nSize;
-
-    // replace the old window procedure with our new one
-    context->SearchBtnWndProc = SubclassWindow(WindowHandle, InsButProc);
-
-    // associate our button state structure with the window
-    SetProp(WindowHandle, L"Context", (HANDLE)context);
-
-    // force the edit control to update its non-client area
-    SetWindowPos(
-        WindowHandle,
-        0, 0, 0, 0, 0,
-        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
-        );
-
-    return TRUE;
-}
-
-static VOID GetButtonRect(
-    __inout InsBut* pbut,
-    __in RECT* rect
-    )
-{
-    // retrieve the coordinates of an inserted button, given the specified window rectangle. 
-    rect->right -= pbut->cxRightEdge;
-    rect->top += pbut->cyTopEdge;
-    rect->bottom -= pbut->cyBottomEdge;
-    rect->left = rect->right - pbut->nButSize;
-
-    if (pbut->cxRightEdge > pbut->cxLeftEdge)
-        OffsetRect(rect, pbut->cxRightEdge - pbut->cxLeftEdge, 0);
-}   
-
-static VOID RedrawNC(
-    __in HWND hwnd
-    )
-{
-    SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_NOZORDER);
-}
-
-void DrawInsertedButtonBitmap(HDC hdcDest, int x, int y)
-{
-    HBITMAP image;
-    BITMAP bm;
-    HDC hdcMem;
-
-    //load the bitmap image
-    image = (HBITMAP)LoadImage(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDB_CROSS),
-        IMAGE_BITMAP,
-        0, 0,
-        LR_COPYFROMRESOURCE
-        );
-
-    //read the bitmap's properties
-    GetObject(image, sizeof(BITMAP), &bm);
-
-    //create a device context for the bitmap
-    hdcMem = CreateCompatibleDC(hdcDest);
-    SelectObject(hdcMem, image);
-
-    //draw the bitmap to the window (bit block transfer)
-    BitBlt( 
-        hdcDest, //destination device context
-        x, y, //x,y location on destination
-        bm.bmWidth, bm.bmHeight, //width,height of source bitmap
-        hdcMem, //source bitmap device context
-        0, 0, //start x,y on source bitmap
-        SRCCOPY
-        );
-
-    //delete the device context and bitmap
-    DeleteDC(hdcMem);
-    DeleteObject((HBITMAP)image);
-} 
-
-static VOID DrawInsertedButton(
-    __in HWND hwnd, 
-    __inout InsBut* pbut, 
-    __in RECT* prect
-    )
-{
-    HDC hdc;
-
-    hdc = GetWindowDC(hwnd);
-
-    SetBkMode(hdc, TRANSPARENT);
-
-    // now draw our inserted button:
-    if (pbut->IsMouseDown)
-    {
-        // draw a 3d-edge around the control. 
-        //DrawEdge(hdc, prect, EDGE_SUNKEN, BF_RECT | BF_FLAT | BF_ADJUST);
-
-        // fill the inside of the button
-        FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
-
-        // offset the rect since there is no border
-        OffsetRect(prect, 1, 1);
-
-        //DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);  
-
-        DrawInsertedButtonBitmap(hdc, prect->left, prect->top);
-    }
-    else
-    {
-        // draw a 3d-edge around the control. 
-        //DrawEdge(hdc, prect, EDGE_SUNKEN, BF_RECT | BF_FLAT | BF_ADJUST);
-
-        // fill the inside of the button
-        FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
-
-        DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-    }
-        
-    ReleaseDC(hwnd, hdc);
-}
-
-LRESULT CALLBACK InsButProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    )
-{
-    InsBut* context;
-
-    if (uMsg == WM_INITDIALOG)
-    {
-        context = (InsBut*)GetProp(hwndDlg, L"Context");
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
-    }
-    else
-    {
-        context = (InsBut*)GetProp(hwndDlg, L"Context");
-
-        if (uMsg == WM_DESTROY)
-        {
-            RemoveProp(hwndDlg, L"Context");     
-            PhFree(context);
-
-            context = NULL;
-        }
-    }
-
-    if (!context || !context->SearchBtnWndProc)
-        return FALSE;
-
-    switch (uMsg)
-    {
-    case WM_NCCALCSIZE:
-        {
-            context->prect = (RECT*)lParam;
-            context->oldrect = *context->prect;
-
-            // let the old wndproc allocate space for the borders, or any other non-client space.
-            //CallWindowProc(pbut->oldproc, hwndDlg, uMsg, wParam, lParam);
-
-            // calculate what the size of each window border is,
-            // we need to know where the button is going to live.
-            context->cxLeftEdge = context->prect->left - context->oldrect.left; 
-            context->cxRightEdge = context->oldrect.right - context->prect->right;
-            context->cyTopEdge = context->prect->top - context->oldrect.top;
-            context->cyBottomEdge = context->oldrect.bottom - context->prect->bottom;   
-
-            // now we can allocate additional space by deflating the
-            // rectangle even further. Our button will go on the right-hand side,
-            // and will be the same width as a scrollbar button
-            context->prect->right -= context->nButSize;
-        }
-        return FALSE;
-    case WM_NCPAINT:
-        {  
-            // let the old window procedure draw the borders other non-client bits-and-pieces for us.
-            //CallWindowProc(SearchBtnWndProc, hwndDlg, uMsg, wParam, lParam);
-
-            // get the screen coordinates of the window.
-            GetWindowRect(hwndDlg, &context->rect);
-            // adjust the coordinates so they start from 0,0
-            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
-            // work out where to draw the button
-            GetButtonRect(context, &context->rect);
-
-            DrawInsertedButton(hwndDlg, context, &context->rect);
-        }
-        return FALSE;
-    case WM_NCHITTEST:
-        {
-            // get the screen coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
-
-            // get the position of the inserted button
-            GetWindowRect(hwndDlg, &context->rect);
-            GetButtonRect(context, &context->rect);
-
-            // check that the mouse is within the inserted button
-            if (PtInRect(&context->rect, context->pt))
-                return HTBORDER;
-        }
-        break;
-    case WM_NCLBUTTONDBLCLK:
-    case WM_NCLBUTTONDOWN:
-        {
-            // get the screen coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
-
-            // get the position of the inserted button
-            GetWindowRect(hwndDlg, &context->rect);
-            
-            context->pt.x -= context->rect.left;
-            context->pt.y -= context->rect.top;
-
-            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
-
-            GetButtonRect(context, &context->rect);
-
-            // check that the mouse is within the inserted button
-            if (PtInRect(&context->rect, context->pt))
-            {
-                SetCapture(hwndDlg);
-
-                context->IsButtonDown = TRUE;
-                context->IsMouseDown = TRUE;
-
-                //redraw the non-client area to reflect the change
-                DrawInsertedButton(hwndDlg, context, &context->rect);
-            }
-        }
-        break;
-    case WM_MOUSEMOVE:
-        {
-            if (!context->IsMouseDown)
-                break;
-
-            // get the SCREEN coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
-
-            ClientToScreen(hwndDlg, &context->pt);
-
-            // get the position of the inserted button
-            GetWindowRect(hwndDlg, &context->rect);
-
-            context->pt.x -= context->rect.left;
-            context->pt.y -= context->rect.top;
-
-            OffsetRect(
-                &context->rect, 
-                -context->rect.left, 
-                -context->rect.top
-                );
-
-            GetButtonRect(context, &context->rect);
-
-            context->oldstate = context->IsButtonDown;
-
-            // check that the mouse is within the inserted button
-            if (PtInRect(&context->rect, context->pt))
-                context->IsButtonDown = TRUE;
-            else
-                context->IsButtonDown = FALSE;
-
-            // redraw the non-client area to reflect the change.
-            // to prevent flicker, we only redraw the button if its state has changed
-            if (context->oldstate != context->IsButtonDown)
-                DrawInsertedButton(hwndDlg, context, &context->rect);
-        }
-        break;
-    case WM_LBUTTONUP:
-        {
-            if (!context->IsMouseDown)
-                break;
-
-            // get the SCREEN coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
-            
-            ClientToScreen(hwndDlg, &context->pt);
-
-            // get the position of the inserted button
-            GetWindowRect(hwndDlg, &context->rect);
-
-            context->pt.x -= context->rect.left;
-            context->pt.y -= context->rect.top;
-
-            OffsetRect(
-                &context->rect, 
-                -context->rect.left, 
-                -context->rect.top
-                );
-
-            GetButtonRect(context, &context->rect);
-
-            // check that the mouse is within the inserted button
-            if (PtInRect(&context->rect, context->pt))
-            {
-                PostMessage(
-                    GetParent(hwndDlg), 
-                    WM_COMMAND, 
-                    MAKEWPARAM(context->uCmdId, BN_CLICKED), 
-                    0
-                    );
-            }
-
-            ReleaseCapture();
-
-            context->IsButtonDown = FALSE;
-            context->IsMouseDown = FALSE;
-
-            // redraw the non-client area to reflect the change.
-            DrawInsertedButton(hwndDlg, context, &context->rect);
-        }
-        break;
-    }
-
-    return CallWindowProc(context->SearchBtnWndProc, hwndDlg, uMsg, wParam, lParam);
-}
-
-static BOOLEAN WordMatch(
-    __in PPH_STRINGREF Text,
-    __in PPH_STRINGREF Search,
-    __in BOOLEAN IgnoreCase
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = *Search;
-
-    while (remainingPart.Length != 0)
-    {
-        PhSplitStringRefAtChar(&remainingPart, ' ', &part, &remainingPart);
-
-        if (part.Length != 0)
-        {
-            if (PhFindStringInStringRef(Text, &part, IgnoreCase) != -1)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
 static BOOLEAN ProcessTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
@@ -569,52 +245,58 @@ static BOOLEAN ProcessTreeFilterCallback(
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
     // Check if the textbox actually contains anything.
-    if (GetWindowTextLengthW(TextboxHandle) > 0)
+    if (GetWindowTextLength(TextboxHandle) > 0)
     {
-        BOOL itemFound = FALSE;
-        PPH_STRING textboxText = PhGetWindowText(TextboxHandle);
-        PPH_STRING pidText = PhCreateString(processNode->ProcessItem->ProcessIdString);
+        BOOLEAN itemFound = FALSE;
+        PH_STRINGREF pidStringRef;
+        PPH_STRING textboxText;
 
-        // Search process names.
-        if (processNode->ProcessItem->ProcessName)
+        textboxText = PhGetWindowText(TextboxHandle);
+
+        if (textboxText)
         {
-            if (WordMatch(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE))
+            PhInitializeStringRef(&pidStringRef, processNode->ProcessItem->ProcessIdString);
+
+            // Search process names
+            if (processNode->ProcessItem->ProcessName)
+            {
+                if (WordMatch(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+
+            // Search process company
+            if (processNode->ProcessItem->VersionInfo.CompanyName)
+            {
+                if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+
+            // Search process descriptions
+            if (processNode->ProcessItem->VersionInfo.FileDescription)
+            {
+                if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+
+            // Search process PIDs
+            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
-        }
 
-        // Search process company.
-        if (processNode->ProcessItem->VersionInfo.CompanyName)
-        {
-            if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
+            PhDereferenceObject(textboxText);
         }
-
-        // Search process descriptions.
-        if (processNode->ProcessItem->VersionInfo.FileDescription)
-        {
-            if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-        }
-
-        // Search process PIDs.
-        if (WordMatch(&pidText->sr, &textboxText->sr, TRUE))
-        {
-            itemFound = TRUE;
-        }
-
-        PhDereferenceObject(pidText);
-        PhDereferenceObject(textboxText);
 
         return itemFound;
     }
 
-    // Textbox empty, allow all items to be shown.
+    // show all items
     return TRUE;
 }
 
@@ -625,49 +307,50 @@ static BOOLEAN ServiceTreeFilterCallback(
 {
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
 
-     // Check if the textbox actually contains anything.
-    if (GetWindowTextLengthW(TextboxHandle) > 0)
+    // Check if the textbox actually contains anything.
+    if (GetWindowTextLength(TextboxHandle) > 0)
     {
-        BOOL itemFound = FALSE;
-        PPH_STRING textboxText = PhGetWindowText(TextboxHandle);
+        BOOLEAN itemFound = FALSE;
+        PH_STRINGREF pidStringRef;
+        PPH_STRING textboxText;
 
-        // Search service name.
-        if (serviceNode->ServiceItem->Name)
+        textboxText = PhGetWindowText(TextboxHandle);
+
+        if (textboxText)
         {
-            if (WordMatch(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE))
+            PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
+
+            // Search service name.
+            if (serviceNode->ServiceItem->Name)
+            {
+                if (WordMatch(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+
+            // Search service display name.
+            if (serviceNode->ServiceItem->DisplayName)
+            {
+                if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+
+            // Search process PIDs.
+            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
+
+            PhDereferenceObject(textboxText);
         }
-
-        // Search service display name.
-        if (serviceNode->ServiceItem->DisplayName)
-        {
-            if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-        }
-
-        // Search process PIDs.
-        if (serviceNode->ServiceItem->ProcessIdString)
-        {
-            PPH_STRING pidText = PhCreateString(serviceNode->ServiceItem->ProcessIdString);
-
-            if (WordMatch(&pidText->sr, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-
-            PhDereferenceObject(pidText);
-        }
-
-        PhDereferenceObject(textboxText);
 
         return itemFound;
     }
 
-    // Textbox empty, allow all items to be shown.
+    // show all items
     return TRUE;
 }
 
@@ -679,68 +362,96 @@ static BOOLEAN NetworkTreeFilterCallback(
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
 
      // Check if the textbox actually contains anything.
-    if (GetWindowTextLengthW(TextboxHandle) > 0)
+    if (GetWindowTextLength(TextboxHandle) > 0)
     {
-        BOOL itemFound = FALSE;
-        PPH_STRING textboxText = PhGetWindowText(TextboxHandle);
+        PH_STRINGREF pidStringRef;
+        BOOLEAN itemFound = FALSE;
+        PPH_STRING textboxText;
+        WCHAR pidString[32];
 
-        // Search connection process name.
-        if (networkNode->NetworkItem->ProcessName)
+        textboxText = PhGetWindowText(TextboxHandle);
+
+        if (textboxText)
         {
-            if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-        }
+            // Search PID
+            PhPrintUInt32(pidString, (ULONG)networkNode->NetworkItem->ProcessId);
+            PhInitializeStringRef(&pidStringRef, pidString);
 
-        // Search connection local IP address.
-        if (networkNode->NetworkItem->LocalAddressString)
-        {
-            PPH_STRING localAddress = PhCreateString(networkNode->NetworkItem->LocalAddressString);
-
-            if (WordMatch(&localAddress->sr, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-
-            PhDereferenceObject(localAddress);
-        }
-
-        if (networkNode->NetworkItem->LocalPortString)
-        {
-            PPH_STRING localPort = PhCreateString(networkNode->NetworkItem->LocalPortString);
-
-            if (WordMatch(&localPort->sr, &textboxText->sr, TRUE))
+            // Search network process PIDs
+            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
             {
                 itemFound = TRUE;
             }
 
-            PhDereferenceObject(localPort);
-        }
-
-
-        if (networkNode->NetworkItem->RemoteAddressString)
-        {
-            PPH_STRING remoteAddress = PhCreateString(networkNode->NetworkItem->RemoteAddressString);
-
-            if (WordMatch(&remoteAddress->sr, &textboxText->sr, TRUE))
+            // Search connection process name
+            if (networkNode->NetworkItem->ProcessName)
             {
-                itemFound = TRUE;
+                if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
             }
 
-            PhDereferenceObject(remoteAddress);
-        }
-
-        if (networkNode->NetworkItem->RemoteHostString)
-        {
-            if (WordMatch(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE))
+            // Search connection local IP address
+            if (networkNode->NetworkItem->LocalAddressString)
             {
-                itemFound = TRUE;
+                PH_STRINGREF localAddressRef;
+
+                PhInitializeStringRef(&localAddressRef, networkNode->NetworkItem->LocalAddressString);
+
+                if (WordMatch(&localAddressRef, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
             }
+
+            if (networkNode->NetworkItem->LocalPortString)
+            {
+                PH_STRINGREF localPortRef;
+
+                PhInitializeStringRef(&localPortRef, networkNode->NetworkItem->LocalPortString);
+
+                if (WordMatch(&localPortRef, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+
+            if (networkNode->NetworkItem->RemoteAddressString)
+            {
+                PH_STRINGREF remoteAddressRef;
+
+                PhInitializeStringRef(&remoteAddressRef, networkNode->NetworkItem->RemoteAddressString);
+
+                if (WordMatch(&remoteAddressRef, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+                        
+            if (networkNode->NetworkItem->RemotePortString)
+            {
+                PH_STRINGREF remotePortRef;
+
+                PhInitializeStringRef(&remotePortRef, networkNode->NetworkItem->RemotePortString);
+
+                if (WordMatch(&remotePortRef, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+
+            if (networkNode->NetworkItem->RemoteHostString)
+            {
+                if (WordMatch(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE))
+                {
+                    itemFound = TRUE;
+                }
+            }
+          
+            PhDereferenceObject(textboxText);
         }
-
-        PhDereferenceObject(textboxText);
-
+        
         return itemFound;
     }
 
@@ -752,116 +463,84 @@ static VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
-{
-    ULONG idIndex = 0;
-    ULONG imageIndex = 0;
+{   
+    EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
+    EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"); 
+    StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
+    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");    
 
     IdRangeBase = PhPluginReserveIds(NUMBER_OF_CONTROLS + NUMBER_OF_BUTTONS);
     ToolBarIdRangeBase = IdRangeBase + NUMBER_OF_CONTROLS;
     ToolBarIdRangeEnd = ToolBarIdRangeBase + NUMBER_OF_BUTTONS;
 
-    // Create the rebar.
-    ReBarHandle = CreateWindowEx(
-        WS_EX_TOOLWINDOW,
-        REBARCLASSNAME,
-        NULL,
-        WS_CHILD | WS_BORDER | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT,
-        0, 0, 0, 0,
-        PhMainWndHandle,
-        NULL,
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
-    ToolBarHandle = CreateWindowEx(
-        0,
-        TOOLBARCLASSNAME,
-        NULL,
-        WS_CHILD | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT,
-        0, 0, 0, 0,
-        ReBarHandle,
-        (HMENU)(IdRangeBase),
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
-    TextboxHandle = CreateWindowEx(
-        0,
-        WC_EDIT,
-        NULL,
-        WS_CHILD | WS_VISIBLE | WS_BORDER,
-        0, 0, 0, 0,
-        ReBarHandle,
-        (HMENU)(IdRangeBase + 1),
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
-    StatusBarHandle = CreateWindowEx(
-        0,
-        STATUSCLASSNAME,
-        NULL,
-        WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
-        0, 0, 0, 0,
-        PhMainWndHandle,
-        (HMENU)(IdRangeBase + 2),
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
-
-    // Set the toolbar struct size.
-    SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    // Set the extended toolbar styles.
-    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-    
-    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 20);
-    
-    // Set Searchbox control font.
-    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
-    // Limit the amount of chars.
-    SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
-
-    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
-
+    if (EnableStatusBar)
     {
-        REBARINFO ri = { sizeof(REBARINFO) };
-        REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE };
-
-        rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-        rBandInfo.fStyle = RBBS_HIDETITLE;// | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
-
-        //no imagelist to attach to rebar
-        SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&ri);
-
-        // Get the toolbar size and add the toolbar.
-        rBandInfo.wID = (IdRangeBase + 1);
-        rBandInfo.cyMinChild = HIWORD(SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0)) + 2; // Height
-        rBandInfo.hwndChild = ToolBarHandle;
-        SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
-
-        // Add the textbox, slightly smaller than the toolbar.
-        rBandInfo.wID = (IdRangeBase + 2);
-        rBandInfo.cxMinChild = 180;
-        rBandInfo.cyMinChild -= 5;
-        rBandInfo.hwndChild = TextboxHandle;
-        SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
+        StatusBarHandle = CreateWindowEx(
+            0,
+            STATUSCLASSNAME,
+            NULL,
+            WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            PhMainWndHandle,
+            (HMENU)IdRangeBase,
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
     }
 
+    if (EnableToolBar)
     {
-        TBBUTTON tbButtonArray[] =
-        {
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
-            { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-            { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
-        };
+        // Create the rebar.
+        ReBarHandle = CreateWindowEx(
+            WS_EX_TOOLWINDOW,
+            REBARCLASSNAME,
+            NULL,
+            WS_CHILD | WS_BORDER | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            PhMainWndHandle,
+            NULL,
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
+        ToolBarHandle = CreateWindowEx(
+            0,
+            TOOLBARCLASSNAME,
+            NULL,
+            WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT | TBSTYLE_DROPDOWN,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            ReBarHandle,
+            (HMENU)(IdRangeBase + 1),
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
+        TextboxHandle = CreateWindowEx(
+            0,
+            WC_EDIT,
+            NULL,
+            WS_CHILD | WS_VISIBLE | WS_BORDER,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            ReBarHandle,
+            (HMENU)(IdRangeBase + 2),
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
+
+        InsertButton((HINSTANCE)PluginInstance->DllBase, TextboxHandle, ID_SEARCH_CLEAR, 25);
+        // Set Searchbox control font.
+        SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
+        // Limit the amount of chars.
+        //SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
+        Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
+
+        // Set the toolbar struct size.
+        SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), NULL);
+        // Set the extended toolbar styles.
+        SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
 
         // Create the toolbar imagelist.
         ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images.
-        ImageList_SetImageCount(ToolBarImageList, _countof(tbButtonArray));
+        ImageList_SetImageCount(ToolBarImageList, 7);
         // Add the images to the imagelist.
         PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
         PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
@@ -872,30 +551,77 @@ static VOID NTAPI MainWindowShowingCallback(
         PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
         // Configure the toolbar imagelist
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
-        // Add the buttons to the toolbar.
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
+
+        {
+            REBARINFO ri = { sizeof(REBARINFO) };
+            REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE }; 
+
+            //no imagelist to attach to rebar
+            SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&ri);
+
+            rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
+            rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_CHILDEDGE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+
+            rBandInfo.hwndChild = ToolBarHandle;
+            rBandInfo.cxMinChild = 0;
+            rBandInfo.cyMinChild = 22;
+            SendMessage(ReBarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rBandInfo);
+
+            // Add the textbox, slightly smaller than the toolbar.
+            rBandInfo.wID = (IdRangeBase + 2);
+            rBandInfo.cxMinChild = 200;
+            rBandInfo.cyMinChild = 20;
+            rBandInfo.hwndChild = TextboxHandle;
+            SendMessage(ReBarHandle, RB_INSERTBAND, -1, (LPARAM)&rBandInfo);
+        }
+
+        {  
+            ULONG imageIndex = 0;
+            ULONG idIndex = 0;
+
+            TBBUTTON tbButtonArray[] =
+            {
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Refresh" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Options" },
+                { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"System Information" },
+                { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Window" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
+            };
+       
+            // Add the buttons to the toolbar.
+            SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
+        }
+
+        SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
+        // Ensure the toolbar recalculates its size based on its content.
+        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0L, 0L);
+        SendMessage(ToolBarHandle, WM_SIZE, 0L, 0L);
+
+        ApplyToolbarSettings();
+
+        PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
+        PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
+        PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
     }
 
-    SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
-    // Ensure the toolbar recalculates its size based on its content.
-    SendMessage(ToolBarHandle, TB_AUTOSIZE, 0L, 0L);
-    SendMessage(ToolBarHandle, WM_SIZE, 0L, 0L);
+    PhRegisterCallback(
+        ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), 
+        LayoutPaddingCallback, 
+        NULL, 
+        &LayoutPaddingCallbackRegistration
+        );
 
-    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
-    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
-
-    StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
-    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");
-    ApplyToolbarSettings();
-
-    PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
-    PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
-    PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
-
-    PhRegisterCallback(ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), LayoutPaddingCallback, NULL, &LayoutPaddingCallbackRegistration);
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 
-    AcceleratorTable = LoadAccelerators(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
+    AcceleratorTable = LoadAccelerators(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDR_MAINWND_ACCEL)
+        );
+   
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
 }
 
@@ -917,8 +643,6 @@ static VOID NTAPI TabPageUpdatedCallback(
 {
     INT index = (INT)Parameter;
 
-    // This callback is invoked before our Textbox has actually been created.
-    // GeneralCallbackMainWindowTabChanged is invoked before GeneralCallbackMainWindowShowing (where our controls are created).
     if (TextboxHandle)
     {
         switch (index)
@@ -953,7 +677,7 @@ static VOID NTAPI LayoutPaddingCallback(
     __in_opt PVOID Context
     )
 {
-    PPH_LAYOUT_PADDING_DATA data = Parameter;
+    PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
 
     if (EnableToolBar)
     {
@@ -961,7 +685,9 @@ static VOID NTAPI LayoutPaddingCallback(
     }
 
     if (EnableStatusBar)
+    {
         data->Padding.bottom += StatusBarRect.bottom;
+    }
 }
 
 static VOID DrawWindowBorderForTargeting(
@@ -1059,7 +785,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 }
             }
 
-            if (id == ID_SEARCH && EnableToolBar)
+            if (EnableToolBar && id == ID_SEARCH)
             {
                 SetFocus(TextboxHandle);
                 Edit_SetSel(TextboxHandle, 0, -1);
@@ -1109,6 +835,18 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 {
                     // HACK: Invoke LayoutPaddingCallback and adjust rebar for multiple rows.
                     PostMessage(PhMainWndHandle, WM_SIZE, 0L, 0L);
+
+                    if (EnableToolBar)
+                    {
+                        PostMessage(ReBarHandle, WM_SIZE, 0, 0);
+                        GetClientRect(ReBarHandle, &ReBarRect);
+                    }
+
+                    if (EnableStatusBar)
+                    {
+                        PostMessage(StatusBarHandle, WM_SIZE, 0, 0);
+                        GetClientRect(StatusBarHandle, &StatusBarRect);
+                    }
                 }
 
                 goto DefaultWndProc;
@@ -1354,13 +1092,13 @@ static LRESULT CALLBACK MainWndSubclassProc(
         {
             if (EnableToolBar)
             {
-                SendMessage(ReBarHandle, WM_SIZE, 0, 0);
+                PostMessage(ReBarHandle, WM_SIZE, 0, 0);
                 GetClientRect(ReBarHandle, &ReBarRect);
             }
 
             if (EnableStatusBar)
             {
-                SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
+                PostMessage(StatusBarHandle, WM_SIZE, 0, 0);
                 GetClientRect(StatusBarHandle, &StatusBarRect);
             }
 
@@ -1382,31 +1120,40 @@ VOID ApplyToolbarSettings(
     BOOLEAN buttonHasText[NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS] = { TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE };
     ULONG i;
 
-    if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
+    if (EnableToolBar = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
     {
-        ShowWindow(ToolBarHandle, SW_SHOW);
-        ShowWindow(ReBarHandle, SW_SHOW);
+        if (ToolBarHandle)
+            ShowWindow(ToolBarHandle, SW_SHOW);
+        if (ReBarHandle)
+            ShowWindow(ReBarHandle, SW_SHOW);
     }
     else
-    {    
+    {         
         // Clear searchbox
-        Edit_SetSel(TextboxHandle, 0, -1);
-        SetWindowText(TextboxHandle, L"");
+        if (TextboxHandle)
+        {
+            Edit_SetSel(TextboxHandle, 0, -1);         
+            SetWindowText(TextboxHandle, L"");
+        }
 
-        ShowWindow(ToolBarHandle, SW_HIDE);
-        ShowWindow(ReBarHandle, SW_HIDE);  
+        if (ToolBarHandle)
+            ShowWindow(ToolBarHandle, SW_HIDE);
+        if (ReBarHandle)
+            ShowWindow(ReBarHandle, SW_HIDE);  
     }
 
     if (EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
-    {
-        ShowWindow(StatusBarHandle, SW_SHOW);
+    {    
+        if (StatusBarHandle)
+            ShowWindow(StatusBarHandle, SW_SHOW);
     }
     else
     {
-        ShowWindow(StatusBarHandle, SW_HIDE);
+        if (StatusBarHandle)
+            ShowWindow(StatusBarHandle, SW_HIDE);
     }
 
-    for (i = 0; i < NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS; i++)
+    for (i = 0; i < SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L); i++) // NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS
     {
         TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
         button.dwMask = TBIF_BYINDEX | TBIF_STYLE;
@@ -1420,17 +1167,17 @@ VOID ApplyToolbarSettings(
             switch (DisplayStyle)
             {
             case ImageOnly:
-                button.fsStyle = BTNS_AUTOSIZE;
+                button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
                 break;
             case SelectiveText:
-                button.fsStyle = BTNS_AUTOSIZE;
+                button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
 
                 if (buttonHasText[i])
                     button.fsStyle = BTNS_SHOWTEXT;
 
                 break;
-            case AllText:
-                button.fsStyle = BTNS_SHOWTEXT;
+            default://case AllText:
+                button.fsStyle = BTNS_SHOWTEXT | BTNS_DROPDOWN;
                 break;
             }
 
@@ -1646,7 +1393,11 @@ static VOID ShowStatusMenu(
     ULONG id;
     ULONG bit;
 
-    menu = LoadMenu(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_STATUS));
+    menu = LoadMenu(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDR_STATUS)
+        );
+
     subMenu = GetSubMenu(menu, 0);
 
     // Check the enabled items.

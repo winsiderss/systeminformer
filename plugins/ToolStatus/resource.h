@@ -13,6 +13,8 @@
 #define IDD_OPTIONS                     109
 #define IDB_CROSS                       110
 #define IDR_MAINWND_ACCEL               111
+#define IDI_ICON1                       114
+#define IDI_ICON2                       115
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_ENABLESTATUSBAR             1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
@@ -34,7 +36,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        114
+#define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40018
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           103
