@@ -3,6 +3,7 @@
 
 #define FILE_TAG 1
 #define SERVICE_TAG 2
+#define COMMAND_LINE_TAG 3
 
 typedef struct _DB_OBJECT
 {
@@ -11,9 +12,14 @@ typedef struct _DB_OBJECT
 
     PPH_STRING Name;
     PPH_STRING Comment;
+    ULONG PriorityClass;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(
+    VOID
+    );
+
+ULONG GetNumberOfDbObjects(
     VOID
     );
 
@@ -33,7 +39,7 @@ PDB_OBJECT FindDbObject(
 PDB_OBJECT CreateDbObject(
     __in ULONG Tag,
     __in PPH_STRINGREF Name,
-    __in PPH_STRING Comment
+    __in_opt PPH_STRING Comment
     );
 
 VOID DeleteDbObject(
