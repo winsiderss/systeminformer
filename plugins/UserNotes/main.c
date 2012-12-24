@@ -1,12 +1,21 @@
 #include <phdk.h>
+#include <phappresource.h>
+#include <windowsx.h>
 #include "db.h"
 #include "resource.h"
+
+#define INTENT_PROCESS_COMMENT 1
+#define INTENT_PROCESS_PRIORITY_CLASS 2
+
+#define PROCESS_SAVE_ID 1
+#define PROCESS_SAVE_FOR_THIS_COMMAND_LINE_ID 2
 
 #define COMMENT_COLUMN_ID 1
 
 typedef struct _PROCESS_EXTENSION
 {
     LIST_ENTRY ListEntry;
+    PPH_PROCESS_ITEM ProcessItem;
     BOOLEAN Valid;
     PPH_STRING Comment;
 } PROCESS_EXTENSION, *PPROCESS_EXTENSION;
@@ -50,14 +59,28 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
     __in LPARAM lParam
     );
 
+LRESULT CALLBACK MainWndSubclassProc(
+    __in HWND hWnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam,
+    __in UINT_PTR uIdSubclass,
+    __in DWORD_PTR dwRefData
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessModifiedCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 HWND ProcessTreeNewHandle;
 LIST_ENTRY ProcessListHead = { &ProcessListHead, &ProcessListHead };
@@ -67,6 +90,44 @@ HWND ServiceTreeNewHandle;
 LIST_ENTRY ServiceListHead = { &ServiceListHead, &ServiceListHead };
 PH_QUEUED_LOCK ServiceListLock = PH_QUEUED_LOCK_INIT;
 
+BOOLEAN MatchDbObjectIntent(
+    __in PDB_OBJECT Object,
+    __in ULONG Intent
+    )
+{
+    return (!(Intent & INTENT_PROCESS_COMMENT) || Object->Comment->Length != 0) &&
+        (!(Intent & INTENT_PROCESS_PRIORITY_CLASS) || Object->PriorityClass != 0);
+}
+
+PDB_OBJECT FindDbObjectForProcess(
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG Intent
+    )
+{
+    PDB_OBJECT object;
+
+    if (
+        ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) &&
+        MatchDbObjectIntent(object, Intent)
+        )
+        return object;
+
+    if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && MatchDbObjectIntent(object, Intent))
+        return object;
+
+    return NULL;
+}
+
+VOID DeleteDbObjectForProcessIfUnused(
+    __in PDB_OBJECT Object
+    )
+{
+    if (Object->Comment->Length == 0 && Object->PriorityClass == 0)
+    {
+        DeleteDbObject(Object);
+    }
+}
+
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -74,8 +135,6 @@ VOID NTAPI LoadCallback(
 {
     PPH_STRING path;
     PPH_STRING realPath;
-
-    InitializeDb();
 
     path = PhGetStringSetting(L"ProcessHacker.UserNotes.DatabasePath");
     realPath = PhExpandEnvironmentStrings(&path->sr);
@@ -110,6 +169,62 @@ VOID NTAPI ShowOptionsCallback(
         (HWND)Parameter,
         OptionsDlgProc
         );
+}
+
+VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+    PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+    PDB_OBJECT object;
+
+    if (!processItem)
+        return;
+
+    switch (menuItem->Id)
+    {
+    case PROCESS_SAVE_ID:
+        {
+            LockDb();
+
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->PriorityClass != 0)
+            {
+                object->PriorityClass = 0;
+                DeleteDbObjectForProcessIfUnused(object);
+            }
+            else
+            {
+                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                object->PriorityClass = processItem->PriorityClass;
+            }
+
+            UnlockDb();
+        }
+        break;
+    case PROCESS_SAVE_FOR_THIS_COMMAND_LINE_ID:
+        {
+            if (processItem->CommandLine)
+            {
+                LockDb();
+
+                if ((object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->PriorityClass != 0)
+                {
+                    object->PriorityClass = 0;
+                    DeleteDbObjectForProcessIfUnused(object);
+                }
+                else
+                {
+                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+                    object->PriorityClass = processItem->PriorityClass;
+                }
+
+                UnlockDb();
+            }
+        }
+        break;
+    }
 }
 
 VOID InvalidateProcessComments(
@@ -147,7 +262,7 @@ VOID UpdateProcessComment(
 
         LockDb();
 
-        if (object = FindDbObject(FILE_TAG, &Node->ProcessItem->ProcessName->sr))
+        if (object = FindDbObjectForProcess(Node->ProcessItem, INTENT_PROCESS_COMMENT))
         {
             PhSwapReference(&Extension->Comment, object->Comment);
         }
@@ -268,6 +383,62 @@ VOID TreeNewMessageCallback(
     }
 }
 
+VOID MainWindowShowingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+}
+
+VOID ProcessPropertiesInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
+
+    PhAddProcessPropPage(
+        propContext->PropContext,
+        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCCOMMENT), ProcessCommentPageDlgProc, NULL)
+        );
+}
+
+VOID ProcessMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_PROCESS_ITEM processItem;
+    PPH_EMENU_ITEM priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Priority", 0);
+    PPH_EMENU_ITEM saveMenuItem;
+    PPH_EMENU_ITEM saveForCommandLineMenuItem;
+    PDB_OBJECT object;
+
+    if (!priorityMenuItem)
+        return;
+    if (menuInfo->u.Process.NumberOfProcesses != 1)
+        return;
+
+    processItem = menuInfo->u.Process.Processes[0];
+    PhInsertEMenuItem(priorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, L"", NULL), -1);
+    PhInsertEMenuItem(priorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_SAVE_ID, PhaFormatString(L"Save for %s", processItem->ProcessName->Buffer)->Buffer, NULL), -1);
+    PhInsertEMenuItem(priorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save for this command line", NULL), -1);
+
+    if (!processItem->CommandLine)
+        saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
+
+    LockDb();
+
+    if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->PriorityClass != 0)
+        saveMenuItem->Flags |= PH_EMENU_CHECKED;
+    if (processItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->PriorityClass != 0)
+        saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
+
+    UnlockDb();
+}
+
 LONG NTAPI ProcessCommentSortFunction(
     __in PVOID Node1,
     __in PVOID Node2,
@@ -286,19 +457,6 @@ LONG NTAPI ProcessCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
-VOID ProcessPropertiesInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
-
-    PhAddProcessPropPage(
-        propContext->PropContext,
-        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCCOMMENT), ProcessCommentPageDlgProc, NULL)
-        );
-}
-
 VOID ProcessTreeNewInitializingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -315,24 +473,6 @@ VOID ProcessTreeNewInitializingCallback(
     column.Alignment = PH_ALIGN_LEFT;
 
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ProcessCommentSortFunction);
-}
-
-LONG NTAPI ServiceCommentSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
-    )
-{
-    PPH_SERVICE_NODE node1 = Node1;
-    PPH_SERVICE_NODE node2 = Node2;
-    PSERVICE_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
-    PSERVICE_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
-
-    UpdateServiceComment(node1, extension1);
-    UpdateServiceComment(node2, extension2);
-
-    return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
 VOID ServicePropertiesInitializingCallback(
@@ -357,6 +497,24 @@ VOID ServicePropertiesInitializingCallback(
     }
 }
 
+LONG NTAPI ServiceCommentSortFunction(
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in ULONG SubId,
+    __in PVOID Context
+    )
+{
+    PPH_SERVICE_NODE node1 = Node1;
+    PPH_SERVICE_NODE node2 = Node2;
+    PSERVICE_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
+    PSERVICE_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
+
+    UpdateServiceComment(node1, extension1);
+    UpdateServiceComment(node2, extension2);
+
+    return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
+}
+
 VOID ServiceTreeNewInitializingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -375,6 +533,67 @@ VOID ServiceTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ServiceCommentSortFunction);
 }
 
+VOID ProcessModifiedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = Parameter;
+    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, processItem, EmProcessItemType);
+
+    extension->Valid = FALSE;
+}
+
+VOID ProcessesUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PLIST_ENTRY listEntry;
+
+    PhAcquireQueuedLockExclusive(&ProcessListLock);
+    LockDb();
+
+    listEntry = ProcessListHead.Flink;
+
+    while (listEntry != &ProcessListHead)
+    {
+        PPROCESS_EXTENSION extension;
+        PPH_PROCESS_ITEM processItem;
+        PDB_OBJECT object;
+
+        extension = CONTAINING_RECORD(listEntry, PROCESS_EXTENSION, ListEntry);
+        processItem = extension->ProcessItem;
+
+        if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_PRIORITY_CLASS))
+        {
+            if (processItem->PriorityClass != object->PriorityClass)
+            {
+                HANDLE processHandle;
+                PROCESS_PRIORITY_CLASS priorityClass;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_SET_INFORMATION,
+                    processItem->ProcessId
+                    )))
+                {
+                    priorityClass.Foreground = FALSE;
+                    priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
+                    NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+
+                    NtClose(processHandle);
+                }
+            }
+        }
+
+        listEntry = listEntry->Flink;
+    }
+
+    UnlockDb();
+    PhReleaseQueuedLockExclusive(&ProcessListLock);
+}
+
 VOID ProcessItemCreateCallback(
     __in PVOID Object,
     __in PH_EM_OBJECT_TYPE ObjectType,
@@ -385,6 +604,8 @@ VOID ProcessItemCreateCallback(
     PPROCESS_EXTENSION extension = Extension;
 
     memset(extension, 0, sizeof(PROCESS_EXTENSION));
+    extension->ProcessItem = processItem;
+
     PhAcquireQueuedLockExclusive(&ProcessListLock);
     InsertTailList(&ProcessListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ProcessListLock);
@@ -451,24 +672,36 @@ LOGICAL DllMain(
             return FALSE;
 
         info->DisplayName = L"User Notes";
-        info->Description = L"Allows the user to add comments for processes and services.";
+        info->Description = L"Allows the user to add comments for processes and services. Also allows the user to save process priority.";
         info->Author = L"wj32";
         info->HasOptions = TRUE;
+
+        InitializeDb();
 
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
             LoadCallback, NULL, &PluginLoadCallbackRegistration);
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
             ShowOptionsCallback, NULL, &PluginShowOptionsCallbackRegistration);
+        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+            MenuItemCallback, NULL, &PluginMenuItemCallbackRegistration);
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
             TreeNewMessageCallback, NULL, &TreeNewMessageCallbackRegistration);
+        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+            MainWindowShowingCallback, NULL, &MainWindowShowingCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
             ProcessPropertiesInitializingCallback, NULL, &ProcessPropertiesInitializingCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
             ServicePropertiesInitializingCallback, NULL, &ServicePropertiesInitializingCallbackRegistration);
+        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
+            ProcessMenuInitializingCallback, NULL, &ProcessMenuInitializingCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
             ProcessTreeNewInitializingCallback, NULL, &ProcessTreeNewInitializingCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
             ServiceTreeNewInitializingCallback, NULL, &ServiceTreeNewInitializingCallbackRegistration);
+        PhRegisterCallback(&PhProcessModifiedEvent,
+            ProcessModifiedCallback, NULL, &ProcessModifiedCallbackRegistration);
+        PhRegisterCallback(&PhProcessesUpdatedEvent,
+            ProcessesUpdatedCallback, NULL, &ProcessesUpdatedCallbackRegistration);
 
         PhPluginSetObjectExtension(PluginInstance, EmProcessItemType, sizeof(PROCESS_EXTENSION),
             ProcessItemCreateCallback, ProcessItemDeleteCallback);
@@ -593,10 +826,15 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
             LockDb();
 
-            if (object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr))
+            if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_COMMENT))
             {
                 comment = object->Comment;
                 PhReferenceObject(comment);
+
+                if (processItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->Comment->Length != 0)
+                {
+                    Button_SetCheck(GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE), BST_CHECKED);
+                }
             }
             else
             {
@@ -607,25 +845,81 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
             context->OriginalComment = comment;
+
+            if (!processItem->CommandLine)
+                EnableWindow(GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE), FALSE);
         }
         break;
     case WM_DESTROY:
         {
             PDB_OBJECT object;
             PPH_STRING comment;
+            BOOLEAN matchCommandLine;
+            BOOLEAN done = FALSE;
 
             comment = PhGetWindowText(GetDlgItem(hwndDlg, IDC_COMMENT));
+            matchCommandLine = Button_GetCheck(GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE)) == BST_CHECKED;
+
+            if (!processItem->CommandLine)
+                matchCommandLine = FALSE;
 
             LockDb();
 
-            if (comment->Length != 0)
+            if (processItem->CommandLine && !matchCommandLine)
             {
-                CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, comment);
+                PDB_OBJECT objectForProcessName;
+
+                object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr);
+                objectForProcessName = FindDbObject(FILE_TAG, &processItem->ProcessName->sr);
+
+                if (object && objectForProcessName && object->Comment->Length != 0 && objectForProcessName->Comment->Length != 0 &&
+                    !PhEqualString(comment, objectForProcessName->Comment, FALSE))
+                {
+                    PPH_STRING message;
+
+                    message = PhFormatString(
+                        L"Do you want to replace the comment for %s which is currently\n    \"%s\"\n"
+                        L"with\n    \"%s\"?",
+                        processItem->ProcessName->Buffer,
+                        objectForProcessName->Comment->Buffer,
+                        comment->Buffer
+                        );
+
+                    if (MessageBox(hwndDlg, message->Buffer, L"Comment", MB_ICONQUESTION | MB_YESNO) == IDNO)
+                    {
+                        done = TRUE;
+                    }
+
+                    PhDereferenceObject(message);
+                }
+
+                if (object)
+                {
+                    PhSwapReference2(&object->Comment, PhReferenceEmptyString());
+                    DeleteDbObjectForProcessIfUnused(object);
+                }
             }
-            else
+
+            if (!done)
             {
-                if (object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr))
-                    DeleteDbObject(object);
+                if (comment->Length != 0)
+                {
+                    if (matchCommandLine)
+                        CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, comment);
+                    else
+                        CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, comment);
+                }
+                else
+                {
+                    if (
+                        (!matchCommandLine && (object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr))) ||
+                        (matchCommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)))
+                        )
+                    {
+                        PhSwapReference2(&object->Comment, PhReferenceEmptyString());
+                        DeleteDbObjectForProcessIfUnused(object);
+                    }
+                }
             }
 
             UnlockDb();
@@ -649,6 +943,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             {
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMMENT), dialogItem, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REVERT), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
@@ -812,4 +1107,76 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
     }
 
     return FALSE;
+}
+
+ULONG GetPriorityClassFromId(
+    __in ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case PHAPP_ID_PRIORITY_REALTIME:
+        return PROCESS_PRIORITY_CLASS_REALTIME;
+    case PHAPP_ID_PRIORITY_HIGH:
+        return PROCESS_PRIORITY_CLASS_HIGH;
+    case PHAPP_ID_PRIORITY_ABOVENORMAL:
+        return PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
+    case PHAPP_ID_PRIORITY_NORMAL:
+        return PROCESS_PRIORITY_CLASS_NORMAL;
+    case PHAPP_ID_PRIORITY_BELOWNORMAL:
+        return PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
+    case PHAPP_ID_PRIORITY_IDLE:
+        return PROCESS_PRIORITY_CLASS_IDLE;
+    }
+
+    return 0;
+}
+
+LRESULT CALLBACK MainWndSubclassProc(
+    __in HWND hWnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam,
+    __in UINT_PTR uIdSubclass,
+    __in DWORD_PTR dwRefData
+    )
+{
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case PHAPP_ID_PRIORITY_REALTIME:
+            case PHAPP_ID_PRIORITY_HIGH:
+            case PHAPP_ID_PRIORITY_ABOVENORMAL:
+            case PHAPP_ID_PRIORITY_NORMAL:
+            case PHAPP_ID_PRIORITY_BELOWNORMAL:
+            case PHAPP_ID_PRIORITY_IDLE:
+                {
+                    PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+                    if (processItem)
+                    {
+                        PDB_OBJECT object;
+
+                        LockDb();
+
+                        if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_PRIORITY_CLASS))
+                        {
+                            object->PriorityClass = GetPriorityClassFromId(LOWORD(wParam));
+                        }
+
+                        UnlockDb();
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+//DefaultWndProc:
+//    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }

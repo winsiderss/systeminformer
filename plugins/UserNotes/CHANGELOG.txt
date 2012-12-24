@@ -1,2 +1,6 @@
+1.1
+ * Added ability to save process priority
+ * Added "Only for processes with the same command line" option for process comments
+
 1.0
  * Initial release

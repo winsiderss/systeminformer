@@ -74,6 +74,13 @@ ULONG NTAPI ObjectDbHashFunction(
     return object->Tag + HashStringIgnoreCase(object->Key.Buffer, object->Key.Length / sizeof(WCHAR));
 }
 
+ULONG GetNumberOfDbObjects(
+    VOID
+    )
+{
+    return ObjectDb->Count;
+}
+
 VOID LockDb(
     VOID
     )
@@ -112,7 +119,7 @@ PDB_OBJECT FindDbObject(
 PDB_OBJECT CreateDbObject(
     __in ULONG Tag,
     __in PPH_STRINGREF Name,
-    __in PPH_STRING Comment
+    __in_opt PPH_STRING Comment
     )
 {
     PDB_OBJECT object;
@@ -120,6 +127,7 @@ PDB_OBJECT CreateDbObject(
     PDB_OBJECT *realObject;
 
     object = PhAllocate(sizeof(DB_OBJECT));
+    memset(object, 0, sizeof(DB_OBJECT));
     object->Tag = Tag;
     object->Key = *Name;
 
@@ -129,15 +137,24 @@ PDB_OBJECT CreateDbObject(
     {
         object->Name = PhCreateStringEx(Name->Buffer, Name->Length);
         object->Key = object->Name->sr;
-        object->Comment = Comment;
-        PhReferenceObject(Comment);
+
+        if (Comment)
+        {
+            object->Comment = Comment;
+            PhReferenceObject(Comment);
+        }
+        else
+        {
+            object->Comment = PhReferenceEmptyString();
+        }
     }
     else
     {
         PhFree(object);
         object = *realObject;
 
-        PhSwapReference(&object->Comment, Comment);
+        if (Comment)
+            PhSwapReference(&object->Comment, Comment);
     }
 
     return object;
@@ -232,6 +249,7 @@ NTSTATUS LoadDb(
     {
         PPH_STRING tag = NULL;
         PPH_STRING name = NULL;
+        PPH_STRING priorityClass = NULL;
         PPH_STRING comment = NULL;
 
         if (currentNode->type == MXML_ELEMENT &&
@@ -245,6 +263,8 @@ NTSTATUS LoadDb(
                     PhSwapReference2(&tag, PhCreateStringFromAnsi(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
                     PhSwapReference2(&name, PhCreateStringFromAnsi(currentNode->value.element.attrs[i].value));
+                else if (stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
+                    PhSwapReference2(&priorityClass, PhCreateStringFromAnsi(currentNode->value.element.attrs[i].value));
             }
         }
 
@@ -252,14 +272,22 @@ NTSTATUS LoadDb(
 
         if (tag && name && comment)
         {
+            PDB_OBJECT object;
             ULONG64 tagInteger;
+            ULONG64 priorityClassInteger = 0;
 
             PhStringToInteger64(&tag->sr, 10, &tagInteger);
-            CreateDbObject((ULONG)tagInteger, &name->sr, comment);
+
+            if (priorityClass)
+                PhStringToInteger64(&priorityClass->sr, 10, &priorityClassInteger);
+
+            object = CreateDbObject((ULONG)tagInteger, &name->sr, comment);
+            object->PriorityClass = (ULONG)priorityClassInteger;
         }
 
         PhSwapReference(&tag, NULL);
         PhSwapReference(&name, NULL);
+        PhSwapReference(&priorityClass, NULL);
         PhSwapReference(&comment, NULL);
 
         currentNode = currentNode->next;
@@ -297,6 +325,7 @@ mxml_node_t *CreateObjectElement(
     __inout mxml_node_t *ParentNode,
     __in PPH_STRINGREF Tag,
     __in PPH_STRINGREF Name,
+    __in PPH_STRINGREF PriorityClass,
     __in PPH_STRINGREF Comment
     )
 {
@@ -304,6 +333,7 @@ mxml_node_t *CreateObjectElement(
     mxml_node_t *textNode;
     PPH_ANSI_STRING tagAnsi;
     PPH_ANSI_STRING nameAnsi;
+    PPH_ANSI_STRING priorityClassAnsi;
     PPH_ANSI_STRING valueAnsi;
 
     // Create the setting element.
@@ -317,6 +347,10 @@ mxml_node_t *CreateObjectElement(
     nameAnsi = PhCreateAnsiStringFromUnicodeEx(Name->Buffer, Name->Length);
     mxmlElementSetAttr(objectNode, "name", nameAnsi->Buffer);
     PhDereferenceObject(nameAnsi);
+
+    priorityClassAnsi = PhCreateAnsiStringFromUnicodeEx(PriorityClass->Buffer, PriorityClass->Length);
+    mxmlElementSetAttr(objectNode, "priorityclass", priorityClassAnsi->Buffer);
+    PhDereferenceObject(priorityClassAnsi);
 
     // Set the value.
 
@@ -344,10 +378,15 @@ NTSTATUS SaveDb(
     while (PhEnumHashtable(ObjectDb, (PVOID *)&object, &enumerationKey))
     {
         PPH_STRING tagString;
+        PPH_STRING priorityClassString;
 
         tagString = PhIntegerToString64((*object)->Tag, 10, FALSE);
-        CreateObjectElement(topNode, &tagString->sr, &(*object)->Name->sr, &(*object)->Comment->sr);
+        priorityClassString = PhIntegerToString64((*object)->PriorityClass, 10, FALSE);
+
+        CreateObjectElement(topNode, &tagString->sr, &(*object)->Name->sr, &priorityClassString->sr, &(*object)->Comment->sr);
+
         PhDereferenceObject(tagString);
+        PhDereferenceObject(priorityClassString);
     }
 
     UnlockDb();
