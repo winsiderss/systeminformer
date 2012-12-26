@@ -97,6 +97,8 @@ IDB_COG_EDIT            BITMAP                  "resources\\cog_edit.bmp"
 IDB_FIND                BITMAP                  "resources\\find.bmp"
 IDB_LIGHTBULB_OFF       BITMAP                  "resources\\lightbulb_off.bmp"
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
+IDB_SEARCH1             BITMAP                  "resources\\active_search.bmp"
+IDB_SEARCH2             BITMAP                  "resources\\inactive_search.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -171,16 +173,6 @@ BEGIN
     "K",            ID_SEARCH,              VIRTKEY, CONTROL, NOINVERT
 END
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Icon
-//
-
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
-IDI_ICON1               ICON                    "resources\\active_search.ico"
-IDI_ICON2               ICON                    "resources\\inactive_search.ico"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

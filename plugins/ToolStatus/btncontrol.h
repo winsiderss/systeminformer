@@ -22,6 +22,7 @@ typedef struct _NC_CONTROL
     RECT rect;
     RECT oldrect;
     RECT* prect;
+    HIMAGELIST ImageList;
     HINSTANCE DllBase;
     WNDPROC NCAreaWndProc;
 } NC_CONTROL;

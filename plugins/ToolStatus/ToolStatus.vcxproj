@@ -186,8 +186,8 @@
     <ResourceCompile Include="ToolStatus.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\active_search.ico" />
-    <Image Include="resources\inactive_search.ico" />
+    <Image Include="resources\active_search.bmp" />
+    <Image Include="resources\inactive_search.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

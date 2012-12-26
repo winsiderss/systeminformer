@@ -44,7 +44,13 @@ BOOLEAN EnableToolBar;
 BOOLEAN EnableStatusBar;
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
-
+PPH_PLUGIN PluginInstance;
+PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
+PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 
 INT_PTR CALLBACK OptionsDlgProc(
     __in HWND hwndDlg,
