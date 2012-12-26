@@ -43,7 +43,6 @@ BOOLEAN NTAPI MessageLoopFilter(
     __in PMSG Message,
     __in PVOID Context
     );
-
 LRESULT CALLBACK MainWndSubclassProc(
     __in HWND hWnd,
     __in UINT uMsg,
@@ -52,7 +51,6 @@ LRESULT CALLBACK MainWndSubclassProc(
     __in UINT_PTR uIdSubclass,
     __in DWORD_PTR dwRefData
     );
-
 VOID ApplyToolbarSettings(
     VOID
     );
@@ -86,9 +84,10 @@ static ULONG StatusMask = 0;
 static ULONG IdRangeBase = 0;
 static ULONG TargetingMode = 0;
 static ULONG ToolBarIdRangeBase = 0;
-static ULONG ToolBarIdRangeEnd = 0;
 static ULONG ProcessesUpdatedCount = 0;
+
 static ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
+
 static BOOLEAN TargetingWindow = FALSE;
 static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
@@ -152,7 +151,6 @@ static VOID NTAPI LoadCallback(
 
     IdRangeBase = PhPluginReserveIds(NUMBER_OF_CONTROLS + NUMBER_OF_BUTTONS);
     ToolBarIdRangeBase = IdRangeBase + NUMBER_OF_CONTROLS;
-    ToolBarIdRangeEnd = ToolBarIdRangeBase + NUMBER_OF_BUTTONS;
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -485,7 +483,7 @@ static VOID RebarCreate(
         );
 
     // no imagelist to attach to rebar
-    SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
+    PostMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 }
 
 static VOID RebarAddMenuItem(
@@ -496,16 +494,40 @@ static VOID RebarAddMenuItem(
     __in UINT cxMinChild
     )
 {
-    REBARBANDINFO rBandInfo = { REBARBANDINFO_V6_SIZE }; 
-    rBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-    rBandInfo.fStyle = RBBS_HIDETITLE | RBBS_CHILDEDGE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
-    
-    rBandInfo.wID = ID;
-    rBandInfo.hwndChild = ChildHandle;
-    rBandInfo.cyMinChild = cyMinChild;
-    rBandInfo.cxMinChild = cxMinChild;
+    REBARBANDINFO rebarBandInfo = { 0 }; 
 
-    SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rBandInfo);
+    rebarBandInfo.cbSize = REBARBANDINFO_V6_SIZE;
+    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
+    rebarBandInfo.fStyle = RBBS_HIDETITLE | RBBS_CHILDEDGE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+    
+    rebarBandInfo.wID = ID;
+    rebarBandInfo.hwndChild = ChildHandle;
+    rebarBandInfo.cyMinChild = cyMinChild;
+    rebarBandInfo.cxMinChild = cxMinChild;
+
+    SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+}
+
+static VOID ToolBarCreate(
+    __in HWND ParentHandle
+    )
+{
+    ToolBarHandle = CreateWindowEx(
+        0,
+        TOOLBARCLASSNAME,
+        NULL,
+        WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        ParentHandle,
+        NULL,
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
+
+    // Set the toolbar struct size.
+    SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    // Set the extended toolbar styles.
+    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
 }
 
 VOID ToolBarCreateImageList(
@@ -526,7 +548,7 @@ VOID ToolBarCreateImageList(
     PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
 
     // Configure the toolbar imagelist
-    SendMessage(WindowHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
+    PostMessage(WindowHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
 }
 
 VOID ToolbarAddMenuItems(
@@ -535,11 +557,11 @@ VOID ToolbarAddMenuItems(
 {
     TBBUTTON tbButtonArray[] =
     {
-        { 0, ToolBarIdRangeBase + 0, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
-        { 1, ToolBarIdRangeBase + 1, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
+        { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
+        { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
         { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 2, ToolBarIdRangeBase + 2, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-        { 3, ToolBarIdRangeBase + 3, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
+        { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+        { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
         { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
         { 4, ToolBarIdRangeBase + 4, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
         { 5, ToolBarIdRangeBase + 5, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
@@ -550,79 +572,64 @@ VOID ToolbarAddMenuItems(
     SendMessage(WindowHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
 }
 
+VOID ToolbarCreateSearch(
+    __in HWND ParentHandle
+    )
+{
+    TextboxHandle = CreateWindowEx(
+        WS_EX_STATICEDGE,
+        WC_EDIT,
+        NULL,
+        WS_CHILD | WS_VISIBLE,// | WS_BORDER,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        ParentHandle,
+        NULL,
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
+
+    // Set Searchbox control font
+    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
+
+    if (WindowsVersion < WINDOWS_VISTA)
+    {
+        // recalculate the margins
+        SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, 0);
+    }
+
+    // Set initial text
+    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
+
+    // inset a paint region into the edit control NC window area       
+    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 25);
+
+    PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
+    PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
+    PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);  
+}
+
 static VOID NTAPI MainWindowShowingCallback(
      __in_opt PVOID Parameter,
      __in_opt PVOID Context
     )
 {       
-    RebarCreate(PhMainWndHandle);
-
     if (EnableToolBar)
     {
-        ToolBarHandle = CreateWindowEx(
-            0,
-            TOOLBARCLASSNAME,
-            NULL,
-            WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT | TBSTYLE_DROPDOWN,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            ReBarHandle,
-            (HMENU)(IdRangeBase + 1),
-            (HINSTANCE)PluginInstance->DllBase,
-            NULL
-            );
+        RebarCreate(PhMainWndHandle);
 
-        // Set the toolbar struct size.
-        SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-        // Set the extended toolbar styles.
-        SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-        
+        ToolBarCreate(PhMainWndHandle);       
         ToolBarCreateImageList(ToolBarHandle);
         ToolbarAddMenuItems(ToolBarHandle);
- 
+
         // inset the toolbar into the rebar control
         RebarAddMenuItem(ReBarHandle, ToolBarHandle, IdRangeBase + 1, 22, 0);
-    }
 
-    if (EnableSearch)
-    {
-        TextboxHandle = CreateWindowEx(
-            0,//WS_EX_STATICEDGE,
-            WC_EDIT,
-            NULL,
-            WS_CHILD | WS_VISIBLE,// | WS_BORDER,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            PhMainWndHandle,
-            (HMENU)(IdRangeBase + 2),
-            (HINSTANCE)PluginInstance->DllBase,
-            NULL
-            );
-
-        // Set Searchbox control font
-        SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
-
-        if (WindowsVersion < WINDOWS_VISTA)
+        if (EnableSearch)
         {
-            // recalculate the margins
-            SendMessage(
-                TextboxHandle, 
-                EM_SETMARGINS, 
-                EC_LEFTMARGIN | EC_RIGHTMARGIN, 
-                0
-                );
+            ToolbarCreateSearch(PhMainWndHandle);
+            // inset the edit control into the rebar control
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, IdRangeBase + 2, 20, 200);
         }
-              
-        // Set initial text
-        Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
-
-        // inset a paint region into the edit control NC window area       
-        InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 25);
-
-        // inset the search (edit) control into the rebar control
-        RebarAddMenuItem(ReBarHandle, TextboxHandle, IdRangeBase + 2, 20, 200);
-
-        PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
-        PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
-        PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
         ApplyToolbarSettings();
     }
@@ -633,7 +640,7 @@ static VOID NTAPI MainWindowShowingCallback(
             0,
             STATUSCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+            WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_TOOLTIPS,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             (HMENU)IdRangeBase,
@@ -664,6 +671,9 @@ static VOID NTAPI ProcessesUpdatedCallback(
         UpdateStatusBar();
 }
 
+EXTERN_C HWND TabControlHandle;
+#define __CrtImageBase ((HWND)&TabControlHandle)
+
 static VOID NTAPI TabPageUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -676,19 +686,13 @@ static VOID NTAPI TabPageUpdatedCallback(
         switch (index)
         {
         case 0:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
-            }
+            Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
             break;
         case 1:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Services (Ctrl+K)");
-            }
+            Edit_SetCueBannerText(TextboxHandle, L"Search Services (Ctrl+K)");
             break;
         case 2:
-            {
-                Edit_SetCueBannerText(TextboxHandle, L"Search Network (Ctrl+K)");
-            }
+            Edit_SetCueBannerText(TextboxHandle, L"Search Network (Ctrl+K)");
             break;
         default:
             {
@@ -819,29 +823,6 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 Edit_SetSel(TextboxHandle, 0, -1);
             }
 
-            if (id >= ToolBarIdRangeBase && id < ToolBarIdRangeEnd)
-            {
-                toolbarId = id - ToolBarIdRangeBase;
-
-                switch (toolbarId)
-                {
-                case TIDC_REFRESH:
-                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_VIEW_REFRESH, 0);
-                    break;
-                case TIDC_OPTIONS:
-                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_HACKER_OPTIONS, 0);
-                    break;
-                case TIDC_FINDOBJ:
-                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_HACKER_FINDHANDLESORDLLS, 0);
-                    break;
-                case TIDC_SYSINFO:
-                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_VIEW_SYSTEMINFORMATION, 0);
-                    break;
-                }
-
-                goto DefaultWndProc;
-            }
-
             // If we're targeting and the user presses the Esc key, cancel the targeting.
             // We also make sure the window doesn't get closed, by filtering out the message.
             if (id == PHAPP_ID_ESC_EXIT && TargetingWindow)
@@ -894,6 +875,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         {
                             // Direct all mouse events to this window.
                             SetCapture(hWnd);
+
                             // Send the window to the bottom.
                             SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
@@ -932,6 +914,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         POINT cursorPos;
 
                         GetCursorPos(&cursorPos);
+
                         ShowStatusMenu(&cursorPos);
                     }
                     break;
@@ -1120,14 +1103,14 @@ static LRESULT CALLBACK MainWndSubclassProc(
         {
             if (EnableToolBar)
             {
-                PostMessage(ReBarHandle, WM_SIZE, 0, 0);
                 GetClientRect(ReBarHandle, &ReBarRect);
+                PostMessage(ReBarHandle, WM_SIZE, 0, 0);
             }
 
             if (EnableStatusBar)
             {
-                PostMessage(StatusBarHandle, WM_SIZE, 0, 0);
                 GetClientRect(StatusBarHandle, &StatusBarRect);
+                PostMessage(StatusBarHandle, WM_SIZE, 0, 0);
             }
 
             ProcessHacker_InvalidateLayoutPadding(hWnd);
