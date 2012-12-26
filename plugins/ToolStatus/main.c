@@ -74,14 +74,6 @@ VOID ShowStatusMenu(
 #define NUMBER_OF_BUTTONS 7
 #define NUMBER_OF_SEPARATORS 2
 
-static PPH_PLUGIN PluginInstance;
-static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
-static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
-
 static HWND ReBarHandle = NULL;
 static HWND TextboxHandle = NULL;
 static HWND ToolBarHandle = NULL;
@@ -524,8 +516,7 @@ static VOID NTAPI MainWindowShowingCallback(
             (HINSTANCE)PluginInstance->DllBase,
             NULL
             );
-
-        InsertButton((HINSTANCE)PluginInstance->DllBase, TextboxHandle, ID_SEARCH_CLEAR, 25);
+   
         // Set Searchbox control font.
         SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
         // Limit the amount of chars.
@@ -540,7 +531,7 @@ static VOID NTAPI MainWindowShowingCallback(
         // Create the toolbar imagelist.
         ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images.
-        ImageList_SetImageCount(ToolBarImageList, 7);
+        ImageList_SetImageCount(ToolBarImageList, 9);
         // Add the images to the imagelist.
         PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
         PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
@@ -549,8 +540,16 @@ static VOID NTAPI MainWindowShowingCallback(
         PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
         PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
         PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
+
         // Configure the toolbar imagelist
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+
+        InsertButton(
+            (HINSTANCE)PluginInstance->DllBase,
+            TextboxHandle, 
+            ID_SEARCH_CLEAR, 
+            25
+            );
 
         {
             REBARINFO ri = { sizeof(REBARINFO) };
@@ -596,10 +595,10 @@ static VOID NTAPI MainWindowShowingCallback(
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
         }
 
-        SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
         // Ensure the toolbar recalculates its size based on its content.
-        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0L, 0L);
-        SendMessage(ToolBarHandle, WM_SIZE, 0L, 0L);
+        SendMessage(ReBarHandle, WM_SIZE, 0L, 0L);
+        //SendMessage(ToolBarHandle, TB_AUTOSIZE, 0L, 0L);
+        //SendMessage(ToolBarHandle, WM_SIZE, 0L, 0L);
 
         ApplyToolbarSettings();
 

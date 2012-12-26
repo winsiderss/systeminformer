@@ -69,10 +69,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\active_search.ico">
+    <Image Include="resources\active_search.bmp">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\inactive_search.ico">
+    <Image Include="resources\inactive_search.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
