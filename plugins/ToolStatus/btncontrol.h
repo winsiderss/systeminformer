@@ -28,7 +28,6 @@ typedef struct _NC_CONTROL
 } NC_CONTROL;
 
 BOOLEAN InsertButton(
-    __in HINSTANCE DllBase,
     __in HWND WindowHandle, 
     __in UINT uCmdId, 
     __in INT nSize
