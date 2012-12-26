@@ -509,7 +509,7 @@ static VOID NTAPI MainWindowShowingCallback(
             0,
             WC_EDIT,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_BORDER,
+            WS_CHILD | WS_VISIBLE,// | WS_BORDER,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             ReBarHandle,
             (HMENU)(IdRangeBase + 2),
@@ -523,6 +523,17 @@ static VOID NTAPI MainWindowShowingCallback(
         //SendMessage(TextboxHandle, EM_LIMITTEXT, 100, 0);
         Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
 
+        if (WindowsVersion < WINDOWS_VISTA)
+        {
+            // Windows XP has an issue with clipping the first char of the cue banner; recalculate the margins
+            SendMessage(
+                TextboxHandle, 
+                EM_SETMARGINS, 
+                EC_LEFTMARGIN | EC_RIGHTMARGIN, 
+                0
+                );
+        }
+
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), NULL);
         // Set the extended toolbar styles.
@@ -531,7 +542,7 @@ static VOID NTAPI MainWindowShowingCallback(
         // Create the toolbar imagelist.
         ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images.
-        ImageList_SetImageCount(ToolBarImageList, 9);
+        ImageList_SetImageCount(ToolBarImageList, 7);
         // Add the images to the imagelist.
         PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
         PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
@@ -580,15 +591,15 @@ static VOID NTAPI MainWindowShowingCallback(
 
             TBBUTTON tbButtonArray[] =
             {
-                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Refresh" },
-                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Options" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
                 { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"System Information" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
                 { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Window" },
-                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_DROPDOWN, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+                { imageIndex++, ToolBarIdRangeBase + (idIndex++), TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
             };
        
             // Add the buttons to the toolbar.
