@@ -2,7 +2,6 @@
 #include "btncontrol.h"
 
 BOOLEAN InsertButton(
-    __in HINSTANCE DllBase,
     __in HWND WindowHandle, 
     __in UINT uCmdId, 
     __in INT nSize
@@ -16,14 +15,14 @@ BOOLEAN InsertButton(
     context->uCmdId = uCmdId;
     context->IsButtonDown = FALSE;
     context->nButSize = nSize;
-    context->DllBase = DllBase;
+    context->DllBase = (HINSTANCE)PluginInstance->DllBase;
     context->ImageList = ImageList_Create(22, 22, ILC_COLOR32 | ILC_MASK, 0, 0);
     
     // Set the number of images.
     ImageList_SetImageCount(context->ImageList, 2);
 
-    PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
-    PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
+    PhSetImageListBitmap(context->ImageList, 0, context->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
+    PhSetImageListBitmap(context->ImageList, 1, context->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
 
     // replace the old window procedure with our new one
     context->NCAreaWndProc = SubclassWindow(WindowHandle, InsButProc);
@@ -60,7 +59,11 @@ VOID RedrawNC(
     __in HWND hwnd
     )
 {
-    SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_NOZORDER);
+    SetWindowPos(
+        hwnd, 
+        0, 0, 0, 0, 0, 
+        SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
 }
 
 VOID DrawInsertedButton(
@@ -70,38 +73,50 @@ VOID DrawInsertedButton(
     )
 {
     HDC hdc;
-
+    HBRUSH brush;
+  
     hdc = GetWindowDC(hwnd);
-    
+    brush = CreateSolidBrush(RGB(0xFF, 0xFF, 0xFF));
+
     SetBkMode(hdc, TRANSPARENT);
-    FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
+    
+    FillRect(hdc, prect, brush);
 
     if (nc->ImageList)
     {
         if (nc->IsMouseDown)
         {
-            ImageList_Draw(
+            ImageList_DrawEx(
                 nc->ImageList, 
-                0, 
+                0,     
                 hdc, 
                 prect->left, 
-                prect->top, 
-                ILD_NORMAL | ILD_TRANSPARENT
+                prect->top,
+                0,
+                0,
+                CLR_NONE,
+                CLR_DEFAULT,
+                ILD_SELECTED | ILD_TRANSPARENT
                 );
         }
         else
         {
-            ImageList_Draw(
+            ImageList_DrawEx(
                 nc->ImageList, 
                 1, 
                 hdc, 
                 prect->left, 
-                prect->top, 
+                prect->top,
+                0,
+                0,
+                CLR_NONE,
+                CLR_DEFAULT,
                 ILD_NORMAL | ILD_TRANSPARENT
                 );
         }
     }
         
+    DeleteObject(brush);
     ReleaseDC(hwnd, hdc);
 }
 
@@ -135,7 +150,7 @@ LRESULT CALLBACK InsButProc(
             context->oldrect = *context->prect;
 
             // let the old wndproc allocate space for the borders, or any other non-client space.
-            //CallWindowProc(context->NCAreaWndProc, hwndDlg, uMsg, wParam, lParam);
+            CallWindowProc(context->NCAreaWndProc, hwndDlg, uMsg, wParam, lParam);
 
             // calculate what the size of each window border is,
             // we need to know where the button is going to live.
@@ -153,12 +168,28 @@ LRESULT CALLBACK InsButProc(
     case WM_NCPAINT:
         {  
             // let the old window procedure draw the borders other non-client bits-and-pieces for us.
-            //CallWindowProc(context->NCAreaWndProc, hwndDlg, uMsg, wParam, lParam);
+            CallWindowProc(context->NCAreaWndProc, hwndDlg, uMsg, wParam, lParam);
 
             // get the screen coordinates of the window.
             GetWindowRect(hwndDlg, &context->rect);
             // adjust the coordinates so they start from 0,0
             OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
+            
+            // border - requires the edit control have the WS_EX_STATICEDGE style
+            //{
+            //    HDC hdc;
+            //    HBRUSH brush;
+
+            //    hdc = GetWindowDC(hwndDlg);
+            //    brush = CreateSolidBrush(RGB(0, 0, 0));
+
+            //    // Draw a single line around the outside
+            //    FrameRect(hdc, &context->rect, brush);
+
+            //    DeleteObject(brush);
+            //    ReleaseDC(hwndDlg, hdc);
+            //}
+
             // work out where to draw the button
             GetButtonRect(context, &context->rect);
 
@@ -239,9 +270,13 @@ LRESULT CALLBACK InsButProc(
 
             // check that the mouse is within the inserted button
             if (PtInRect(&context->rect, context->pt))
+            {
                 context->IsButtonDown = TRUE;
+            }
             else
+            {
                 context->IsButtonDown = FALSE;
+            }
 
             // redraw the non-client area to reflect the change.
             // to prevent flicker, we only redraw the button if its state has changed

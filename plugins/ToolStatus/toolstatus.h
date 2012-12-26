@@ -42,6 +42,8 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 
 BOOLEAN EnableToolBar;
 BOOLEAN EnableStatusBar;
+BOOLEAN EnableSearch;
+
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
 PPH_PLUGIN PluginInstance;
