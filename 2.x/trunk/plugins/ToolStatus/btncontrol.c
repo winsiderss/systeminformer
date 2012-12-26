@@ -17,6 +17,13 @@ BOOLEAN InsertButton(
     context->IsButtonDown = FALSE;
     context->nButSize = nSize;
     context->DllBase = DllBase;
+    context->ImageList = ImageList_Create(22, 22, ILC_COLOR32 | ILC_MASK, 0, 0);
+    
+    // Set the number of images.
+    ImageList_SetImageCount(context->ImageList, 2);
+
+    PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
+    PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
 
     // replace the old window procedure with our new one
     context->NCAreaWndProc = SubclassWindow(WindowHandle, InsButProc);
@@ -56,47 +63,6 @@ VOID RedrawNC(
     SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_NOZORDER);
 }
 
-VOID DrawInsertedButtonBitmap(
-    __in HDC hdcDest, 
-    __inout NC_CONTROL* nc,
-    __in INT x, 
-    __in INT y
-    )
-{
-    HBITMAP image;
-    BITMAP bm;
-    HDC hdcMem;
-
-    //load the bitmap image
-    image = (HICON)LoadIcon(
-        nc->DllBase,
-        MAKEINTRESOURCE(IDI_ICON2)
-        );
-
-    //read the bitmap's properties
-    GetObject(image, sizeof(BITMAP), &bm);
-
-    //create a device context for the bitmap
-    hdcMem = CreateCompatibleDC(hdcDest);
-    SelectObject(hdcMem, image);
-
-    //draw the bitmap to the window (bit block transfer)
-    BitBlt( 
-        hdcDest, //destination device context
-        x, y, //x,y location on destination
-        bm.bmWidth, 
-        bm.bmHeight, //width,height of source bitmap
-        hdcMem, //source bitmap device context
-        0,
-        0, //start x,y on source bitmap
-        SRCCOPY
-        );
-
-    //delete the device context and bitmap
-    DeleteDC(hdcMem);
-    DeleteObject((HBITMAP)image);
-} 
-
 VOID DrawInsertedButton(
     __in HWND hwnd, 
     __inout NC_CONTROL* nc, 
@@ -104,37 +70,36 @@ VOID DrawInsertedButton(
     )
 {
     HDC hdc;
+
     hdc = GetWindowDC(hwnd);
+    
+    SetBkMode(hdc, TRANSPARENT);
+    FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
 
-    // now draw our inserted button:
-    if (nc->IsMouseDown)
+    if (nc->ImageList)
     {
-        // draw a 3d-edge around the control. 
-        //DrawEdge(hdc, prect, EDGE_SUNKEN, BF_RECT | BF_FLAT | BF_ADJUST);
-        SetBkMode(hdc, TRANSPARENT);
-
-        // fill the inside of the button
-        //FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
-        
-        // offset the rect since there is no border
-        OffsetRect(prect, 1, 1);
-
-        DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);  
-
-        DrawInsertedButtonBitmap(hdc, nc, prect->left, prect->top);
-    }
-    else
-    {
-        SetBkMode(hdc, TRANSPARENT);
-        // draw a 3d-edge around the control. 
-        //DrawEdge(hdc, prect, EDGE_SUNKEN, BF_RECT | BF_FLAT | BF_ADJUST);
-
-        // fill the inside of the button
-        FillRect(hdc, prect, GetSysColorBrush(COLOR_BTNFACE));    
-
-        //DrawText(hdc, L"X", 1, prect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-        DrawInsertedButtonBitmap(hdc, nc, prect->left, prect->top);
+        if (nc->IsMouseDown)
+        {
+            ImageList_Draw(
+                nc->ImageList, 
+                0, 
+                hdc, 
+                prect->left, 
+                prect->top, 
+                ILD_NORMAL | ILD_TRANSPARENT
+                );
+        }
+        else
+        {
+            ImageList_Draw(
+                nc->ImageList, 
+                1, 
+                hdc, 
+                prect->left, 
+                prect->top, 
+                ILD_NORMAL | ILD_TRANSPARENT
+                );
+        }
     }
         
     ReleaseDC(hwnd, hdc);
@@ -333,4 +298,3 @@ LRESULT CALLBACK InsButProc(
 
     return CallWindowProc(context->NCAreaWndProc, hwndDlg, uMsg, wParam, lParam);
 }
-
