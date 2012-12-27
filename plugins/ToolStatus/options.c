@@ -42,8 +42,6 @@ INT_PTR CALLBACK OptionsDlgProc(
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows",
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 
-                    ApplyToolbarSettings();
-
                     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 
                     EndDialog(hwndDlg, IDOK);

@@ -17,7 +17,7 @@ BOOLEAN InsertButton(
     context->IsButtonDown = FALSE;
     context->ParentWindow = GetParent(WindowHandle);
     context->DllBase = (HINSTANCE)PluginInstance->DllBase;
-    context->ImageList = ImageList_Create(22, 22, ILC_COLOR32 | ILC_MASK, 0, 0);
+    context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
     
     // Set the number of images.
     ImageList_SetImageCount(context->ImageList, 2);
@@ -56,18 +56,18 @@ VOID GetButtonRect(
 }   
 
 VOID RedrawNC(
-    __in HWND hwnd
+    __in HWND WindowHandle
     )
 {
     SetWindowPos(
-        hwnd, 
+        WindowHandle, 
         0, 0, 0, 0, 0, 
         SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
 }
 
 VOID DrawInsertedButton(
-    __in HWND hwnd, 
+    __in HWND WindowHandle, 
     __inout NC_CONTROL* nc, 
     __in RECT* prect
     )
@@ -75,12 +75,12 @@ VOID DrawInsertedButton(
     HDC hdc;
     HBRUSH brush;
   
-    hdc = GetWindowDC(hwnd);
-    brush = CreateSolidBrush(RGB(0xFF, 0xFF, 0xFF));
+    hdc = GetWindowDC(WindowHandle);
+    brush = CreateSolidBrush(RGB(0, 0, 0));
 
-    SetBkMode(hdc, TRANSPARENT);
+    //SetBkMode(hdc, TRANSPARENT);
     
-    FillRect(hdc, prect, brush);
+    FillRect(hdc, prect, (HBRUSH)(COLOR_WINDOW+1));
 
     if (nc->ImageList)
     {
@@ -91,38 +91,30 @@ VOID DrawInsertedButton(
 
         if (nc->IsMouseDown)
         {
-            ImageList_DrawEx(
+            ImageList_Draw(
                 nc->ImageList, 
                 0,     
                 hdc, 
                 prect->left, 
-                prect->top,
-                18,
-                18,
-                CLR_NONE,
-                CLR_DEFAULT,
+                prect->top - 3,
                 ILD_NORMAL | ILD_TRANSPARENT
                 );
         }
         else
         {
-            ImageList_DrawEx(
+            ImageList_Draw(
                 nc->ImageList, 
                 1, 
                 hdc, 
                 prect->left, 
-                prect->top,
-                18,
-                18,
-                CLR_NONE,
-                CLR_DEFAULT,
+                prect->top - 2,
                 ILD_NORMAL | ILD_TRANSPARENT
                 );
         }
     }
-        
+
     DeleteObject(brush);
-    ReleaseDC(hwnd, hdc);
+    ReleaseDC(WindowHandle, hdc);
 }
 
 LRESULT CALLBACK InsButProc(
@@ -139,9 +131,16 @@ LRESULT CALLBACK InsButProc(
 
     if (uMsg == WM_DESTROY)
     {
+        if (context->ImageList)
+        {
+            ImageList_Destroy(context->ImageList);
+            context->ImageList = NULL;
+        }
+
         RemoveProp(WindowHandle, L"Context");     
         PhFree(context);
-        context = NULL;
+
+        return FALSE;
     }
     
     if (!context || !context->NCAreaWndProc)
@@ -151,8 +150,13 @@ LRESULT CALLBACK InsButProc(
     {
     case WM_NCCALCSIZE:
         {
+            NCCALCSIZE_PARAMS* nccsp = (NCCALCSIZE_PARAMS*)lParam;
+
             context->prect = (RECT*)lParam;
             context->oldrect = *context->prect;
+
+            // Adjust (shrink) the client rectangle to accommodate the border:
+            nccsp->rgrc[0].top += 3;
 
             // let the old wndproc allocate space for the borders, or any other non-client space.
             CallWindowProc(context->NCAreaWndProc, WindowHandle, uMsg, wParam, lParam);
@@ -167,7 +171,7 @@ LRESULT CALLBACK InsButProc(
             // now we can allocate additional space by deflating the
             // rectangle even further. Our button will go on the right-hand side,
             // and will be the same width as a scrollbar button
-            context->prect->right -= context->nButSize;
+            context->prect->right -= context->nButSize; 
         }
         return FALSE;
     case WM_NCPAINT:
@@ -187,6 +191,8 @@ LRESULT CALLBACK InsButProc(
 
                 hdc = GetWindowDC(WindowHandle);
                 brush = CreateSolidBrush(RGB(0, 0, 0));
+
+                FillRect(hdc, &context->rect, (HBRUSH)(COLOR_WINDOW+1));
 
                 // Draw a single line around the outside
                 FrameRect(hdc, &context->rect, brush);
