@@ -24,6 +24,12 @@
     <ClCompile Include="btncontrol.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="searchfilter.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="statusbar.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
