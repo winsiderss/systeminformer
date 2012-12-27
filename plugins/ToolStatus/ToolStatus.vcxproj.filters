@@ -30,6 +30,12 @@
     <ClCompile Include="statusbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rebar.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="toolbar.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
