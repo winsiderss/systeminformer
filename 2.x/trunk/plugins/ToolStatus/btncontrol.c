@@ -14,13 +14,13 @@ BOOLEAN InsertButton(
 
     context->uCmdId = uCmdId;
     context->nButSize = nSize;
-    context->IsButtonDown = FALSE;
-    context->ParentWindow = GetParent(WindowHandle);
+    context->IsButtonDown = FALSE;    
     context->DllBase = (HINSTANCE)PluginInstance->DllBase;
-    context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
-    
+    context->ParentWindow = GetParent(WindowHandle);
+
     context->WhiteBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
-    context->BlackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    context->BlackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);  
+    context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
 
     // Set the number of images.
     ImageList_SetImageCount(context->ImageList, 2);
@@ -78,7 +78,6 @@ VOID DrawInsertedButton(
     HDC hdc;
 
     hdc = GetWindowDC(WindowHandle);
-
     FillRect(hdc, prect, nc->WhiteBrush);
 
     if (nc->ImageList)
@@ -141,9 +140,6 @@ LRESULT CALLBACK InsButProc(
         return FALSE;
     }
     
-    if (!context || !context->NCAreaWndProc)
-        return FALSE;
-
     switch (uMsg)
     {
     case WM_NCCALCSIZE:
@@ -173,7 +169,7 @@ LRESULT CALLBACK InsButProc(
         }
         return FALSE;
     case WM_NCPAINT:
-        {                         
+        {        
             // let the old window procedure draw the borders other non-client bits-and-pieces for us.
             CallWindowProc(context->NCAreaWndProc, WindowHandle, uMsg, wParam, lParam);
 
@@ -181,20 +177,20 @@ LRESULT CALLBACK InsButProc(
             GetWindowRect(WindowHandle, &context->rect);
             // adjust the coordinates so they start from 0,0
             OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
-     
-            // Draw border
+
+            // Draw border - the edit control needs the WS_EX_STATICEDGE style 
             {
                 HDC hdc = GetWindowDC(WindowHandle);
-
+                
+                // - this flickers on XP
                 FillRect(hdc, &context->rect, context->WhiteBrush);
                 FrameRect(hdc, &context->rect, context->BlackBrush);
-               
+
                 ReleaseDC(WindowHandle, hdc);
             }
-                
+
             // work out where to draw the button
             GetButtonRect(context, &context->rect);
-
             DrawInsertedButton(WindowHandle, context, &context->rect);   
         }
         return FALSE;
@@ -243,49 +239,43 @@ LRESULT CALLBACK InsButProc(
             }
         }
         break;
-    case WM_MOUSEMOVE:
-        {
-            if (!context->IsMouseDown)
-                break;
+    //case WM_MOUSEMOVE:
+    //    {
+    //        //if (!context->IsButtonDown)
+    //        //    break;
 
-            // get the SCREEN coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
+    //        // get the SCREEN coordinates of the mouse
+    //        context->pt.x = GET_X_LPARAM(lParam);
+    //        context->pt.y = GET_Y_LPARAM(lParam);
 
-            ClientToScreen(WindowHandle, &context->pt);
+    //        ClientToScreen(WindowHandle, &context->pt);
+    //        // get the position of the inserted button
+    //        GetWindowRect(WindowHandle, &context->rect);
 
-            // get the position of the inserted button
-            GetWindowRect(WindowHandle, &context->rect);
+    //        context->pt.x -= context->rect.left;
+    //        context->pt.y -= context->rect.top;
 
-            context->pt.x -= context->rect.left;
-            context->pt.y -= context->rect.top;
+    //        OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
+    //        GetButtonRect(context, &context->rect);
 
-            OffsetRect(
-                &context->rect, 
-                -context->rect.left, 
-                -context->rect.top
-                );
+    //        context->oldstate = context->IsButtonDown;
 
-            GetButtonRect(context, &context->rect);
+    //        // check that the mouse is within the inserted button
+    //        if (PtInRect(&context->rect, context->pt))
+    //        {
+    //            context->IsButtonDown = TRUE;
+    //        }
+    //        else
+    //        {
+    //            context->IsButtonDown = FALSE;
+    //        }
 
-            context->oldstate = context->IsButtonDown;
-
-            // check that the mouse is within the inserted button
-            if (PtInRect(&context->rect, context->pt))
-            {
-                context->IsButtonDown = TRUE;
-            }
-            else
-            {
-                context->IsButtonDown = FALSE;
-            }
-
-            // redraw the non-client area to reflect the change.
-            // to prevent flicker, we only redraw the button if its state has changed
-            if (context->oldstate != context->IsButtonDown)
-                DrawInsertedButton(WindowHandle, context, &context->rect);
-        }
-        break;
+    //        // redraw the non-client area to reflect the change.
+    //        // to prevent flicker, we only redraw the button if its state has changed
+    //        if (context->oldstate != context->IsButtonDown)
+    //            DrawInsertedButton(WindowHandle, context, &context->rect);
+    //    }
+    //    break;
     case WM_LBUTTONUP:
         {
             if (!context->IsMouseDown)
