@@ -48,7 +48,19 @@ VOID ToolBarCreate(
 VOID ToolbarCreateSearch(
     __in HWND ParentHandle
     )
-{
+{ 
+    LOGFONT logFont;
+    memset(&logFont, 0, sizeof(LOGFONT));
+        
+    logFont.lfHeight = WindowsVersion > WINDOWS_XP ? -11 : -12;
+    logFont.lfWeight = FW_NORMAL;   
+
+    wcscpy_s(
+        logFont.lfFaceName, 
+        _countof(logFont.lfFaceName), 
+        WindowsVersion > WINDOWS_XP ? L"MS Shell Dlg 2" : L"MS Shell Dlg"
+        );
+
     TextboxHandle = CreateWindowEx(
         WS_EX_STATICEDGE,
         WC_EDIT,
@@ -61,11 +73,17 @@ VOID ToolbarCreateSearch(
         NULL
         );
 
+    // Create the font handle
+    TextboxFontHandle = CreateFontIndirect(&logFont);
+
     // Set Searchbox control font
     SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
 
     // Set initial text
     Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
+    
+    // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
+    SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
 
     // insert a paint region into the edit control NC window area       
     InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 25);

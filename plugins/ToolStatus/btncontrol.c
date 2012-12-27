@@ -151,6 +151,8 @@ LRESULT CALLBACK InsButProc(
 
             // Adjust (shrink) the client rectangle to accommodate the border:
             nccsp->rgrc[0].top += 3;
+            // Fixup the cue banner region
+            nccsp->rgrc[0].left += 3;
 
             // let the old wndproc allocate space for the borders, or any other non-client space.
             CallWindowProc(context->NCAreaWndProc, WindowHandle, uMsg, wParam, lParam);
