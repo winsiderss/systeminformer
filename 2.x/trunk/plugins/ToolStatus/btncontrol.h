@@ -5,6 +5,13 @@
 
 typedef struct _NC_CONTROL
 {
+    HWND ParentWindow;
+    HINSTANCE DllBase;
+    WNDPROC NCAreaWndProc;
+    HIMAGELIST ImageList;
+    HBRUSH WhiteBrush;
+    HBRUSH BlackBrush;
+
     UINT uCmdId; // sent in a WM_COMMAND message
     UINT uState;
     BOOLEAN IsButtonDown; // is the button up/down?
@@ -22,10 +29,6 @@ typedef struct _NC_CONTROL
     RECT rect;
     RECT oldrect;
     RECT* prect;
-    HWND ParentWindow;
-    HIMAGELIST ImageList;
-    HINSTANCE DllBase;
-    WNDPROC NCAreaWndProc;
 } NC_CONTROL;
 
 BOOLEAN InsertButton(
