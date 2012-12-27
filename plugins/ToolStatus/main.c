@@ -538,13 +538,13 @@ static LRESULT CALLBACK MainWndSubclassProc(
             if (EnableToolBar)
             {
                 GetClientRect(ReBarHandle, &ReBarRect);
-                PostMessage(ReBarHandle, WM_SIZE, 0, 0);
+                SendMessage(ReBarHandle, WM_SIZE, 0, 0);
             }
 
             if (EnableStatusBar)
             {
                 GetClientRect(StatusBarHandle, &StatusBarRect);
-                PostMessage(StatusBarHandle, WM_SIZE, 0, 0);
+                SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
             }
 
             ProcessHacker_InvalidateLayoutPadding(hWnd);
