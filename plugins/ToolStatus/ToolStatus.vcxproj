@@ -165,8 +165,10 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="btncontrol.c" />
     <ClCompile Include="options.c" />
+    <ClCompile Include="rebar.c" />
     <ClCompile Include="searchfilter.c" />
     <ClCompile Include="statusbar.c" />
+    <ClCompile Include="toolbar.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="btncontrol.h" />

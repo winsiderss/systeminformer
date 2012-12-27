@@ -23,6 +23,23 @@
 
 #include "toolstatus.h"
 
+VOID StatusBarCreate(
+    __in HWND ParentHandle
+    )
+{
+    StatusBarHandle = CreateWindowEx(
+        0,
+        STATUSCLASSNAME,
+        NULL,
+        WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        ParentHandle,
+        NULL,
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
+}
+
 VOID ShowStatusMenu(
     __in PPOINT Point
     )

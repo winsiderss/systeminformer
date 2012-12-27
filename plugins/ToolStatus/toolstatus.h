@@ -62,21 +62,8 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 BOOLEAN EnableToolBar;
 BOOLEAN EnableStatusBar;
 BOOLEAN EnableSearch;
-
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
-
-RECT StatusBarRect;
-ULONG StatusMask;
-ULONG ProcessesUpdatedCount;
-ULONG StatusBarMaxWidths[STATUS_COUNT];
-HWND StatusBarHandle;
-
-VOID UpdateStatusBar(
-    VOID
-    );
-VOID ShowStatusMenu(
-    __in PPOINT Point
-    );
+HACCEL AcceleratorTable;
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -93,7 +80,60 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in LPARAM lParam
     );
 
+// Statusbar.c
+HWND StatusBarHandle;
+RECT StatusBarRect;
+ULONG StatusMask;
+ULONG ProcessesUpdatedCount;
+ULONG StatusBarMaxWidths[STATUS_COUNT];
 
+VOID StatusBarCreate(
+    __in HWND ParentHandle
+    );
+VOID UpdateStatusBar(
+    VOID
+    );
+VOID ShowStatusMenu(
+    __in PPOINT Point
+    );
+
+// Rebar.c
+HWND ReBarHandle;
+RECT ReBarRect;
+
+VOID RebarCreate(
+    __in HWND ParentHandle
+    );
+VOID RebarAddMenuItem(
+    __in HWND WindowHandle,
+    __in HWND ChildHandle,
+    __in UINT ID,
+    __in UINT cyMinChild,
+    __in UINT cxMinChild
+    );
+
+// Toolbar.c
+#define ID_SEARCH_CLEAR (WM_USER + 1)
+
+HWND ToolBarHandle;
+HIMAGELIST ToolBarImageList;
+HWND TextboxHandle;
+HFONT TextboxFontHandle;
+
+VOID ToolBarCreate(
+    __in HWND ParentHandle
+    );
+VOID ToolbarCreateSearch(
+    __in HWND ParentHandle
+    );
+VOID ToolBarCreateImageList(
+    __in HWND WindowHandle
+    );
+VOID ToolbarAddMenuItems(
+    __in HWND WindowHandle
+    );
+
+// searchfilter.c
 BOOLEAN WordMatch(
     __in PPH_STRINGREF Text,
     __in PPH_STRINGREF Search,
