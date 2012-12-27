@@ -1,3 +1,26 @@
+/*
+ * Process Hacker ToolStatus -
+ *   toolstatus header
+ *
+ * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2011-2012 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef TOOLSTATUS_H
 #define TOOLSTATUS_H
 
@@ -11,13 +34,9 @@
 #include <phappresource.h>
 #include <windowsx.h>
 
-#define TIDC_REFRESH 0
-#define TIDC_OPTIONS 1
-#define TIDC_FINDOBJ 2
-#define TIDC_SYSINFO 3
-#define TIDC_FINDWINDOW 4
-#define TIDC_FINDWINDOWTHREAD 5
-#define TIDC_FINDWINDOWKILL 6
+#define TIDC_FINDWINDOW (WM_USER + 1)
+#define TIDC_FINDWINDOWTHREAD (WM_USER + 2)
+#define TIDC_FINDWINDOWKILL (WM_USER + 3)
 
 #define STATUS_COUNT 10
 #define STATUS_MINIMUM 0x1
@@ -46,6 +65,19 @@ BOOLEAN EnableSearch;
 
 TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
+RECT StatusBarRect;
+ULONG StatusMask;
+ULONG ProcessesUpdatedCount;
+ULONG StatusBarMaxWidths[STATUS_COUNT];
+HWND StatusBarHandle;
+
+VOID UpdateStatusBar(
+    VOID
+    );
+VOID ShowStatusMenu(
+    __in PPOINT Point
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -61,4 +93,22 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in LPARAM lParam
     );
 
+
+BOOLEAN WordMatch(
+    __in PPH_STRINGREF Text,
+    __in PPH_STRINGREF Search,
+    __in BOOLEAN IgnoreCase
+    );
+BOOLEAN ProcessTreeFilterCallback(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    );
+BOOLEAN ServiceTreeFilterCallback(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    );
+BOOLEAN NetworkTreeFilterCallback(
+    __in PPH_TREENEW_NODE Node,
+    __in_opt PVOID Context
+    );
 #endif

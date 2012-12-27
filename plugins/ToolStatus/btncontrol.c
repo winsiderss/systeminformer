@@ -19,6 +19,9 @@ BOOLEAN InsertButton(
     context->DllBase = (HINSTANCE)PluginInstance->DllBase;
     context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
     
+    context->WhiteBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
+    context->BlackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+
     // Set the number of images.
     ImageList_SetImageCount(context->ImageList, 2);
     PhSetImageListBitmap(context->ImageList, 0, context->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
@@ -73,14 +76,10 @@ VOID DrawInsertedButton(
     )
 {
     HDC hdc;
-    HBRUSH brush;
-  
-    hdc = GetWindowDC(WindowHandle);
-    brush = CreateSolidBrush(RGB(0, 0, 0));
 
-    //SetBkMode(hdc, TRANSPARENT);
-    
-    FillRect(hdc, prect, (HBRUSH)(COLOR_WINDOW+1));
+    hdc = GetWindowDC(WindowHandle);
+
+    FillRect(hdc, prect, nc->WhiteBrush);
 
     if (nc->ImageList)
     {
@@ -113,7 +112,6 @@ VOID DrawInsertedButton(
         }
     }
 
-    DeleteObject(brush);
     ReleaseDC(WindowHandle, hdc);
 }
 
@@ -175,7 +173,7 @@ LRESULT CALLBACK InsButProc(
         }
         return FALSE;
     case WM_NCPAINT:
-        {  
+        {                         
             // let the old window procedure draw the borders other non-client bits-and-pieces for us.
             CallWindowProc(context->NCAreaWndProc, WindowHandle, uMsg, wParam, lParam);
 
@@ -183,28 +181,21 @@ LRESULT CALLBACK InsButProc(
             GetWindowRect(WindowHandle, &context->rect);
             // adjust the coordinates so they start from 0,0
             OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
-            
-            // border - requires the edit control have the WS_EX_STATICEDGE style
+     
+            // Draw border
             {
-                HDC hdc;
-                HBRUSH brush;
+                HDC hdc = GetWindowDC(WindowHandle);
 
-                hdc = GetWindowDC(WindowHandle);
-                brush = CreateSolidBrush(RGB(0, 0, 0));
-
-                FillRect(hdc, &context->rect, (HBRUSH)(COLOR_WINDOW+1));
-
-                // Draw a single line around the outside
-                FrameRect(hdc, &context->rect, brush);
-
-                DeleteObject(brush);
+                FillRect(hdc, &context->rect, context->WhiteBrush);
+                FrameRect(hdc, &context->rect, context->BlackBrush);
+               
                 ReleaseDC(WindowHandle, hdc);
             }
-
+                
             // work out where to draw the button
             GetButtonRect(context, &context->rect);
 
-            DrawInsertedButton(WindowHandle, context, &context->rect);
+            DrawInsertedButton(WindowHandle, context, &context->rect);   
         }
         return FALSE;
     case WM_NCHITTEST:

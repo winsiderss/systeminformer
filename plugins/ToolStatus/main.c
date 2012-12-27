@@ -23,443 +23,21 @@
 
 #include "toolstatus.h"
 
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-VOID NTAPI TabPageUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-VOID NTAPI LayoutPaddingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-BOOLEAN NTAPI MessageLoopFilter(
-    __in PMSG Message,
-    __in PVOID Context
-    );
-LRESULT CALLBACK MainWndSubclassProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in UINT_PTR uIdSubclass,
-    __in DWORD_PTR dwRefData
-    );
-VOID ApplyToolbarSettings(
-    VOID
-    );
-VOID DrawWindowBorderForTargeting(
-    __in HWND hWnd
-    );
-VOID UpdateStatusBar(
-    VOID
-    );
-VOID ShowStatusMenu(
-    __in PPOINT Point
-    );
-
-#define TARGETING_MODE_NORMAL 0 // select process
-#define TARGETING_MODE_THREAD 1 // select process and thread
-#define TARGETING_MODE_KILL 2 // Find Window and Kill
-
-#define NUMBER_OF_CONTROLS 3
-#define NUMBER_OF_BUTTONS 7
-#define NUMBER_OF_SEPARATORS 2
-
 static HWND ReBarHandle = NULL;
 static HWND TextboxHandle = NULL;
 static HWND ToolBarHandle = NULL;
-static HWND StatusBarHandle = NULL;
-static HWND TargetingCurrentWindow = NULL;
-
-static BOOLEAN TargetingWindow = FALSE;
-static BOOLEAN TargetingCurrentWindowDraw = FALSE;
-static BOOLEAN TargetingCompleted = FALSE;
+static HFONT FontHandle = NULL;
 static HIMAGELIST ToolBarImageList = NULL;
 static HACCEL AcceleratorTable = NULL;
 
-static HFONT FontHandle = NULL;
 static RECT ReBarRect = { 0 };
-static RECT StatusBarRect = { 0 };
-static ULONG StatusMask = 0;
-static ULONG IdRangeBase = 0;
 static ULONG TargetingMode = 0;
-static ULONG ProcessesUpdatedCount = 0;
-static ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
+static HWND TargetingCurrentWindow = NULL;
+static BOOLEAN TargetingWindow = FALSE;
+static BOOLEAN TargetingCurrentWindowDraw = FALSE;
+static BOOLEAN TargetingCompleted = FALSE;
 
 #define ID_SEARCH_CLEAR (WM_USER + 1)
-
-static BOOLEAN WordMatch(
-    __in PPH_STRINGREF Text,
-    __in PPH_STRINGREF Search,
-    __in BOOLEAN IgnoreCase
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = *Search;
-
-    while (remainingPart.Length != 0)
-    {
-        PhSplitStringRefAtChar(&remainingPart, ' ', &part, &remainingPart);
-
-        if (part.Length != 0)
-        {
-            if (PhFindStringInStringRef(Text, &part, IgnoreCase) != -1)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    LOGFONT logFont;
-
-    memset(&logFont, 0, sizeof(LOGFONT));
-
-    logFont.lfHeight = 14;
-    logFont.lfWeight = FW_NORMAL;
-
-    wcscpy_s(
-        logFont.lfFaceName, 
-        _countof(logFont.lfFaceName), 
-        L"MS Shell Dlg 2"
-        );
-
-    // Create the font handle
-    FontHandle = CreateFontIndirect(&logFont);
-
-    EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
-    EnableSearch = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch"); 
-    EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"); 
-
-    StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
-    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");    
-
-    IdRangeBase = PhPluginReserveIds(NUMBER_OF_CONTROLS + NUMBER_OF_BUTTONS) + NUMBER_OF_CONTROLS;
-}
-
-static VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    DialogBox(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parameter,
-        OptionsDlgProc
-        );
-}
-
-LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-            PH_SETTING_CREATE settings[] =
-            {
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableToolBar", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableStatusBar", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableSearch", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.ResolveGhostWindows", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
-            };
-
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.ToolStatus", Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->DisplayName = L"Toolbar and Status Bar";
-            info->Author = L"dmex & wj32";
-            info->Description = L"Adds a toolbar and a status bar.";
-            info->HasOptions = TRUE;
-
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
-                NULL,
-                &MainWindowShowingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
-                ProcessesUpdatedCallback,
-                NULL,
-                &ProcessesUpdatedCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged),
-                TabPageUpdatedCallback,
-                NULL,
-                &TabPageCallbackRegistration
-                );
-            
-            PhAddSettings(settings, _countof(settings));
-
-            AcceleratorTable = LoadAccelerators(
-                Instance,
-                MAKEINTRESOURCE(IDR_MAINWND_ACCEL)
-                );
-        }
-        break;
-    }
-
-    return TRUE;
-}
-
-static BOOLEAN ProcessTreeFilterCallback(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
-
-    // Check if the textbox actually contains anything.
-    if (GetWindowTextLength(TextboxHandle) > 0)
-    {
-        BOOLEAN itemFound = FALSE;
-        PH_STRINGREF pidStringRef;
-        PPH_STRING textboxText;
-
-        textboxText = PhGetWindowText(TextboxHandle);
-
-        if (textboxText)
-        {
-            PhInitializeStringRef(&pidStringRef, processNode->ProcessItem->ProcessIdString);
-
-            // Search process names
-            if (processNode->ProcessItem->ProcessName)
-            {
-                if (WordMatch(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search process company
-            if (processNode->ProcessItem->VersionInfo.CompanyName)
-            {
-                if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search process descriptions
-            if (processNode->ProcessItem->VersionInfo.FileDescription)
-            {
-                if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search process PIDs
-            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-
-            PhDereferenceObject(textboxText);
-        }
-
-        return itemFound;
-    }
-
-    // show all items
-    return TRUE;
-}
-
-static BOOLEAN ServiceTreeFilterCallback(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
-    )
-{
-    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
-
-    // Check if the textbox actually contains anything.
-    if (GetWindowTextLength(TextboxHandle) > 0)
-    {
-        BOOLEAN itemFound = FALSE;
-        PH_STRINGREF pidStringRef;
-        PPH_STRING textboxText;
-
-        textboxText = PhGetWindowText(TextboxHandle);
-
-        if (textboxText)
-        {
-            PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
-
-            // Search service name.
-            if (serviceNode->ServiceItem->Name)
-            {
-                if (WordMatch(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search service display name.
-            if (serviceNode->ServiceItem->DisplayName)
-            {
-                if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search process PIDs.
-            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-
-            PhDereferenceObject(textboxText);
-        }
-
-        return itemFound;
-    }
-
-    // show all items
-    return TRUE;
-}
-
-static BOOLEAN NetworkTreeFilterCallback(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
-    )
-{
-    PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
-
-     // Check if the textbox actually contains anything.
-    if (GetWindowTextLength(TextboxHandle) > 0)
-    {
-        PH_STRINGREF pidStringRef;
-        BOOLEAN itemFound = FALSE;
-        PPH_STRING textboxText;
-        WCHAR pidString[32];
-
-        textboxText = PhGetWindowText(TextboxHandle);
-
-        if (textboxText)
-        {
-            // Search PID
-            PhPrintUInt32(pidString, (ULONG)networkNode->NetworkItem->ProcessId);
-            PhInitializeStringRef(&pidStringRef, pidString);
-
-            // Search network process PIDs
-            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
-            }
-
-            // Search connection process name
-            if (networkNode->NetworkItem->ProcessName)
-            {
-                if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search connection local IP address
-            if (networkNode->NetworkItem->LocalAddressString)
-            {
-                PH_STRINGREF localAddressRef;
-
-                PhInitializeStringRef(&localAddressRef, networkNode->NetworkItem->LocalAddressString);
-
-                if (WordMatch(&localAddressRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            if (networkNode->NetworkItem->LocalPortString)
-            {
-                PH_STRINGREF localPortRef;
-
-                PhInitializeStringRef(&localPortRef, networkNode->NetworkItem->LocalPortString);
-
-                if (WordMatch(&localPortRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            if (networkNode->NetworkItem->RemoteAddressString)
-            {
-                PH_STRINGREF remoteAddressRef;
-
-                PhInitializeStringRef(&remoteAddressRef, networkNode->NetworkItem->RemoteAddressString);
-
-                if (WordMatch(&remoteAddressRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-                        
-            if (networkNode->NetworkItem->RemotePortString)
-            {
-                PH_STRINGREF remotePortRef;
-
-                PhInitializeStringRef(&remotePortRef, networkNode->NetworkItem->RemotePortString);
-
-                if (WordMatch(&remotePortRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            if (networkNode->NetworkItem->RemoteHostString)
-            {
-                if (WordMatch(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-          
-            PhDereferenceObject(textboxText);
-        }
-        
-        return itemFound;
-    }
-
-    // Textbox empty, allow all items to be shown.
-    return TRUE;
-}
 
 static VOID RebarCreate(
     __in HWND ParentHandle
@@ -472,7 +50,7 @@ static VOID RebarCreate(
         WS_EX_TOOLWINDOW,
         REBARCLASSNAME,
         NULL,
-        WS_CHILD | WS_BORDER | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT,
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         ParentHandle,
         NULL,
@@ -484,26 +62,21 @@ static VOID RebarCreate(
     PostMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 }
 
-static VOID RebarAddMenuItem(
-    __in HWND WindowHandle,
-    __in HWND ChildHandle,
-    __in UINT ID,
-    __in UINT cyMinChild,
-    __in UINT cxMinChild
+static VOID StatusBarCreate(
+    __in HWND ParentHandle
     )
 {
-    REBARBANDINFO rebarBandInfo = { 0 }; 
-
-    rebarBandInfo.cbSize = REBARBANDINFO_V6_SIZE;
-    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-    rebarBandInfo.fStyle = RBBS_HIDETITLE | RBBS_CHILDEDGE | RBBS_NOGRIPPER;
-    
-    rebarBandInfo.wID = ID;
-    rebarBandInfo.hwndChild = ChildHandle;
-    rebarBandInfo.cyMinChild = cyMinChild;
-    rebarBandInfo.cxMinChild = cxMinChild;
-
-    SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+    StatusBarHandle = CreateWindowEx(
+        0,
+        STATUSCLASSNAME,
+        NULL,
+        WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        ParentHandle,
+        NULL,
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
 }
 
 static VOID ToolBarCreate(
@@ -528,6 +101,36 @@ static VOID ToolBarCreate(
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
 }
 
+static VOID ToolbarCreateSearch(
+    __in HWND ParentHandle
+    )
+{
+    TextboxHandle = CreateWindowEx(
+        WS_EX_STATICEDGE,
+        WC_EDIT,
+        NULL,
+        WS_CHILD | ES_LEFT,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        ParentHandle,
+        NULL,
+        (HINSTANCE)PluginInstance->DllBase,
+        NULL
+        );
+
+    // Set Searchbox control font
+    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
+
+    // Set initial text
+    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
+
+    // insert a paint region into the edit control NC window area       
+    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 25);
+
+    PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
+    PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
+    PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle);  
+}
+
 static VOID ToolBarCreateImageList(
     __in HWND WindowHandle
     )
@@ -549,6 +152,28 @@ static VOID ToolBarCreateImageList(
     PostMessage(WindowHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
 }
 
+static VOID RebarAddMenuItem(
+    __in HWND WindowHandle,
+    __in HWND ChildHandle,
+    __in UINT ID,
+    __in UINT cyMinChild,
+    __in UINT cxMinChild
+    )
+{
+    REBARBANDINFO rebarBandInfo = { 0 }; 
+
+    rebarBandInfo.cbSize = REBARBANDINFO_V6_SIZE;
+    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
+    rebarBandInfo.fStyle = RBBS_HIDETITLE | RBBS_CHILDEDGE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+    
+    rebarBandInfo.wID = ID;
+    rebarBandInfo.hwndChild = ChildHandle;
+    rebarBandInfo.cyMinChild = cyMinChild;
+    rebarBandInfo.cxMinChild = cxMinChild;
+
+    SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+}
+
 static VOID ToolbarAddMenuItems(
     __in HWND WindowHandle
     )
@@ -561,101 +186,13 @@ static VOID ToolbarAddMenuItems(
         { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
         { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
         { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 4, IdRangeBase + 4, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
-        { 5, IdRangeBase + 5, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-        { 6, IdRangeBase + 6, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
+        { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
+        { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+        { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
     };
 
     // Add the buttons to the toolbar
     SendMessage(WindowHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
-}
-
-VOID ToolbarCreateSearch(
-    __in HWND ParentHandle
-    )
-{
-    TextboxHandle = CreateWindowEx(
-        WS_EX_STATICEDGE,
-        WC_EDIT,
-        NULL,
-        WS_CHILD | WS_VISIBLE | ES_LEFT,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        ParentHandle,
-        NULL,
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
-
-    // Set Searchbox control font
-    SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)FontHandle, MAKELPARAM(TRUE, 0));
-
-    if (WindowsVersion < WINDOWS_VISTA)
-    {
-        // recalculate the margins
-        SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, 0);
-    }
-
-    // Set initial text
-    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
-
-    // insert a paint region into the edit control NC window area       
-    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 25);
-
-    PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
-    PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
-    PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);  
-}
-
-static VOID NTAPI MainWindowShowingCallback(
-     __in_opt PVOID Parameter,
-     __in_opt PVOID Context
-    )
-{       
-    if (EnableToolBar)
-    {
-        RebarCreate(PhMainWndHandle);
-
-        ToolBarCreate(PhMainWndHandle);       
-        ToolBarCreateImageList(ToolBarHandle);
-        ToolbarAddMenuItems(ToolBarHandle);
-
-        // inset the toolbar into the rebar control
-        RebarAddMenuItem(ReBarHandle, ToolBarHandle, IdRangeBase + 1, 22, 0);
-
-        if (EnableSearch)
-        {
-            ToolbarCreateSearch(PhMainWndHandle);
-            // inset the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, IdRangeBase + 2, 22, 200);
-        }
-
-        ApplyToolbarSettings();
-    }
-
-    if (EnableStatusBar)
-    {
-        StatusBarHandle = CreateWindowEx(
-            0,
-            STATUSCLASSNAME,
-            NULL,
-            WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_TOOLTIPS,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            PhMainWndHandle,
-            (HMENU)IdRangeBase,
-            (HINSTANCE)PluginInstance->DllBase,
-            NULL
-            );
-    }
-
-    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
-    
-    PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
-    PhRegisterCallback(
-        ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), 
-        LayoutPaddingCallback, 
-        NULL, 
-        &LayoutPaddingCallbackRegistration
-        );  
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(
@@ -717,6 +254,111 @@ static VOID NTAPI LayoutPaddingCallback(
     }
 }
 
+static BOOLEAN NTAPI MessageLoopFilter(
+    __in PMSG Message,
+    __in PVOID Context
+    )
+{
+    if (
+        Message->hwnd == PhMainWndHandle ||
+        IsChild(PhMainWndHandle, Message->hwnd)
+        )
+    {
+        if (TranslateAccelerator(PhMainWndHandle, AcceleratorTable, Message))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static VOID ApplyToolbarSettings(
+    VOID
+    )
+{
+    if (StatusBarHandle)
+    {
+        if (EnableStatusBar)
+            ShowWindow(StatusBarHandle, SW_SHOW);          
+        else
+            ShowWindow(StatusBarHandle, SW_HIDE);
+    }
+
+    if (ToolBarHandle)
+    {        
+        if (ReBarHandle)
+            ShowWindow(ReBarHandle, SW_SHOW);
+        else
+            ShowWindow(ReBarHandle, SW_HIDE);
+
+        if (EnableToolBar)
+            ShowWindow(ToolBarHandle, SW_SHOW);
+        else
+            ShowWindow(ToolBarHandle, SW_HIDE);
+    }
+
+    if (TextboxHandle)
+    {
+        if (EnableSearch)
+            ShowWindow(TextboxHandle, SW_SHOW);
+        else
+        {
+            ShowWindow(TextboxHandle, SW_HIDE);
+
+            // Clear searchbox
+            Edit_SetSel(TextboxHandle, 0, -1);    
+            SetWindowText(TextboxHandle, L"");
+        }
+    }
+
+    {
+        ULONG i = 0;
+        ULONG buttonCount = 0;
+
+        buttonCount = SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L);
+
+        for (i = 0; i < buttonCount; i++)
+        {
+            TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
+            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND;
+
+            // Get settings for first button
+            SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
+
+            // Skip separator buttons
+            if (button.fsStyle != BTNS_SEP)
+            {
+                switch (DisplayStyle)
+                {
+                case ImageOnly:
+                    button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
+                    break;
+                case SelectiveText:
+                    {
+                        button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
+
+                        switch (button.idCommand)
+                        {
+                        case PHAPP_ID_VIEW_REFRESH:
+                        case PHAPP_ID_HACKER_OPTIONS: 
+                        case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+                        case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+                            button.fsStyle = BTNS_SHOWTEXT;
+                            break;
+                        }
+                    }
+                    break;
+                default:
+                    button.fsStyle = BTNS_SHOWTEXT;
+                    break;
+                }
+
+                // Set updated button info
+                SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
+            }
+        }
+    }
+}
+
 static VOID DrawWindowBorderForTargeting(
     __in HWND hWnd
     )
@@ -754,23 +396,6 @@ static VOID DrawWindowBorderForTargeting(
         RestoreDC(hdc, oldDc);
         ReleaseDC(hWnd, hdc);
     }
-}
-
-static BOOLEAN NTAPI MessageLoopFilter(
-    __in PMSG Message,
-    __in PVOID Context
-    )
-{
-    if (
-        Message->hwnd == PhMainWndHandle ||
-        IsChild(PhMainWndHandle, Message->hwnd)
-        )
-    {
-        if (TranslateAccelerator(PhMainWndHandle, AcceleratorTable, Message))
-            return TRUE;
-    }
-
-    return FALSE;
 }
 
 static LRESULT CALLBACK MainWndSubclassProc(
@@ -851,7 +476,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
                         ULONG id;
 
-                        id = (ULONG)toolbar->iItem - IdRangeBase;
+                        id = (ULONG)toolbar->iItem;
 
                         if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD || id == TIDC_FINDWINDOWKILL)
                         {
@@ -865,19 +490,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             TargetingCurrentWindow = NULL;
                             TargetingCurrentWindowDraw = FALSE;
                             TargetingCompleted = FALSE;
-
-                            switch (id)
-                            {
-                            case TIDC_FINDWINDOW:
-                                TargetingMode = TARGETING_MODE_NORMAL;
-                                break;
-                            case TIDC_FINDWINDOWTHREAD:
-                                TargetingMode = TARGETING_MODE_THREAD;
-                                break;
-                            case TIDC_FINDWINDOWKILL:
-                                TargetingMode = TARGETING_MODE_KILL;
-                                break;
-                            }
+                            TargetingMode = id;
 
                             SendMessage(hWnd, WM_MOUSEMOVE, 0, 0);
                         }
@@ -1013,7 +626,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         switch (TargetingMode)
                         {
-                        case TARGETING_MODE_THREAD:
+                        case TIDC_FINDWINDOWTHREAD:
                             {
                                 PPH_PROCESS_PROPCONTEXT propContext;
                                 PPH_PROCESS_ITEM processItem;
@@ -1035,7 +648,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                 }
                             }
                             break;
-                        case TARGETING_MODE_KILL:
+                        case TIDC_FINDWINDOWKILL:
                             {
                                 PPH_PROCESS_ITEM processItem;
 
@@ -1085,14 +698,16 @@ static LRESULT CALLBACK MainWndSubclassProc(
         {
             if (EnableToolBar)
             {
+                SendMessage(ReBarHandle, WM_SIZE, 0, 0);
                 GetClientRect(ReBarHandle, &ReBarRect);
-                PostMessage(ReBarHandle, WM_SIZE, 0, 0);
+                
             }
 
             if (EnableStatusBar)
             {
+                SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
                 GetClientRect(StatusBarHandle, &StatusBarRect);
-                PostMessage(StatusBarHandle, WM_SIZE, 0, 0);
+                
             }
 
             ProcessHacker_InvalidateLayoutPadding(hWnd);
@@ -1106,393 +721,161 @@ DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-VOID ApplyToolbarSettings(
-    VOID
+static VOID NTAPI MainWindowShowingCallback(
+     __in_opt PVOID Parameter,
+     __in_opt PVOID Context
     )
-{
-    BOOLEAN buttonHasText[NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS] = { TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE };
-    ULONG i;
-
+{       
     if (EnableToolBar)
     {
-        if (ToolBarHandle)
-            ShowWindow(ToolBarHandle, SW_SHOW);
-        if (ReBarHandle)
-            ShowWindow(ReBarHandle, SW_SHOW);
-    }
-    else
-    {         
-        // Clear searchbox
-        if (TextboxHandle)
-        {
-            Edit_SetSel(TextboxHandle, 0, -1);         
-            SetWindowText(TextboxHandle, L"");
-        }
+        RebarCreate(PhMainWndHandle);
 
-        if (ToolBarHandle)
-            ShowWindow(ToolBarHandle, SW_HIDE);
-        if (ReBarHandle)
-            ShowWindow(ReBarHandle, SW_HIDE);  
+        ToolBarCreate(PhMainWndHandle);       
+        ToolBarCreateImageList(ToolBarHandle);
+        ToolbarAddMenuItems(ToolBarHandle);
+
+        // inset the toolbar into the rebar control
+        RebarAddMenuItem(ReBarHandle, ToolBarHandle, 0, 22, 0);
+
+        if (EnableSearch)
+        {
+            ToolbarCreateSearch(ToolBarHandle);
+            // inset the edit control into the rebar control
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 22, 200);
+        }
     }
 
     if (EnableStatusBar)
-    {    
-        if (StatusBarHandle)
-            ShowWindow(StatusBarHandle, SW_SHOW);
-    }
-    else
     {
-        if (StatusBarHandle)
-            ShowWindow(StatusBarHandle, SW_HIDE);
+        StatusBarCreate(PhMainWndHandle);
     }
 
-    for (i = 0; i < SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L); i++) // NUMBER_OF_BUTTONS + NUMBER_OF_SEPARATORS
-    {
-        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-        button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND;
+    ApplyToolbarSettings();
 
-        // Get settings for first button.
-        SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
+    PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
+    PhRegisterCallback(
+        ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), 
+        LayoutPaddingCallback, 
+        NULL, 
+        &LayoutPaddingCallbackRegistration
+        );
 
-        // Skip separator buttons.
-        if (button.fsStyle != BTNS_SEP)
-        {
-            switch (DisplayStyle)
-            {
-            case ImageOnly:
-                {
-                    button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
-                }
-                break;
-            case SelectiveText:
-                {
-                    button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
-
-                    if (buttonHasText[i])
-                    {
-                        button.fsStyle = BTNS_SHOWTEXT;
-                    }
-                }
-                break;
-            default: //case AllText:
-                {
-                    button.fsStyle = BTNS_SHOWTEXT;
-                }
-                break;
-            }
-
-            // Set updated button info.
-            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
-        }
-    }
-
-    // Repaint the toolbar.
-    InvalidateRect(ToolBarHandle, NULL, TRUE);
+    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 }
 
-static VOID UpdateStatusBar(
-    VOID
+static VOID NTAPI LoadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
-    static ULONG lastTickCount = 0;
+    LOGFONT logFont;
 
-    PPH_STRING text[STATUS_COUNT];
-    ULONG widths[STATUS_COUNT];
-    ULONG i;
-    ULONG index;
-    ULONG count;
-    HDC hdc;
-    PH_PLUGIN_SYSTEM_STATISTICS statistics;
-    BOOLEAN resetMaxWidths = FALSE;
+    memset(&logFont, 0, sizeof(LOGFONT));
 
-    if (ProcessesUpdatedCount < 2)
-        return;
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_NORMAL;
 
-    if (!(StatusMask & (STATUS_MAXIMUM - 1)))
-    {
-        // The status bar doesn't cope well with 0 parts.
-        widths[0] = -1;
-        SendMessage(StatusBarHandle, SB_SETPARTS, 1, (LPARAM)widths);
-        SendMessage(StatusBarHandle, SB_SETTEXT, 0, (LPARAM)L"");
-        return;
-    }
+    wcscpy_s(
+        logFont.lfFaceName, 
+        _countof(logFont.lfFaceName), 
+        L"MS Shell Dlg 2"
+        );
 
-    PhPluginGetSystemStatistics(&statistics);
+    // Create the font handle
+    FontHandle = CreateFontIndirect(&logFont);
 
-    hdc = GetDC(StatusBarHandle);
-    SelectObject(hdc, (HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
+    EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
+    EnableSearch = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch"); 
+    EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"); 
 
-    // Reset max. widths for Max. CPU Process and Max. I/O Process parts once in a while.
-    {
-        ULONG tickCount;
-
-        tickCount = GetTickCount();
-
-        if (tickCount - lastTickCount >= 10000)
-        {
-            resetMaxWidths = TRUE;
-            lastTickCount = tickCount;
-        }
-    }
-
-    count = 0;
-    index = 0;
-
-    for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
-    {
-        if (StatusMask & i)
-        {
-            SIZE size;
-            PPH_PROCESS_ITEM processItem;
-            ULONG width;
-
-            switch (i)
-            {
-            case STATUS_CPUUSAGE:
-                text[count] = PhFormatString(L"CPU Usage: %.2f%%", (statistics.CpuKernelUsage + statistics.CpuUserUsage) * 100);
-                break;
-            case STATUS_COMMIT:
-                text[count] = PhFormatString(L"Commit Charge: %.2f%%",
-                    (FLOAT)statistics.CommitPages * 100 / statistics.Performance->CommitLimit);
-                break;
-            case STATUS_PHYSICAL:
-                text[count] = PhFormatString(L"Physical Memory: %.2f%%",
-                    (FLOAT)statistics.PhysicalPages * 100 / PhSystemBasicInformation.NumberOfPhysicalPages);
-                break;
-            case STATUS_NUMBEROFPROCESSES:
-                text[count] = PhConcatStrings2(L"Processes: ",
-                    PhaFormatUInt64(statistics.NumberOfProcesses, TRUE)->Buffer);
-                break;
-            case STATUS_NUMBEROFTHREADS:
-                text[count] = PhConcatStrings2(L"Threads: ",
-                    PhaFormatUInt64(statistics.NumberOfThreads, TRUE)->Buffer);
-                break;
-            case STATUS_NUMBEROFHANDLES:
-                text[count] = PhConcatStrings2(L"Handles: ",
-                    PhaFormatUInt64(statistics.NumberOfHandles, TRUE)->Buffer);
-                break;
-            case STATUS_IOREADOTHER:
-                text[count] = PhConcatStrings2(L"I/O R+O: ", PhaFormatSize(
-                    statistics.IoReadDelta.Delta + statistics.IoOtherDelta.Delta, -1)->Buffer);
-                break;
-            case STATUS_IOWRITE:
-                text[count] = PhConcatStrings2(L"I/O W: ", PhaFormatSize(
-                    statistics.IoWriteDelta.Delta, -1)->Buffer);
-                break;
-            case STATUS_MAXCPUPROCESS:
-                if (statistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(statistics.MaxCpuProcessId)))
-                {
-                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
-                    {
-                        text[count] = PhFormatString(
-                            L"%s (%u): %.2f%%",
-                            processItem->ProcessName->Buffer,
-                            (ULONG)processItem->ProcessId,
-                            processItem->CpuUsage * 100
-                            );
-                    }
-                    else
-                    {
-                        text[count] = PhFormatString(
-                            L"%s: %.2f%%",
-                            processItem->ProcessName->Buffer,
-                            processItem->CpuUsage * 100
-                            );
-                    }
-
-                    PhDereferenceObject(processItem);
-                }
-                else
-                {
-                    text[count] = PhCreateString(L"-");
-                }
-
-                if (resetMaxWidths)
-                    StatusBarMaxWidths[index] = 0;
-
-                break;
-            case STATUS_MAXIOPROCESS:
-                if (statistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(statistics.MaxIoProcessId)))
-                {
-                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
-                    {
-                        text[count] = PhFormatString(
-                            L"%s (%u): %s",
-                            processItem->ProcessName->Buffer,
-                            (ULONG)processItem->ProcessId,
-                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
-                            );
-                    }
-                    else
-                    {
-                        text[count] = PhFormatString(
-                            L"%s: %s",
-                            processItem->ProcessName->Buffer,
-                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
-                            );
-                    }
-
-                    PhDereferenceObject(processItem);
-                }
-                else
-                {
-                    text[count] = PhCreateString(L"-");
-                }
-
-                if (resetMaxWidths)
-                    StatusBarMaxWidths[index] = 0;
-
-                break;
-            }
-
-            if (!GetTextExtentPoint32(hdc, text[count]->Buffer, (ULONG)text[count]->Length / 2, &size))
-                size.cx = 200;
-
-            if (count != 0)
-                widths[count] = widths[count - 1];
-            else
-                widths[count] = 0;
-
-            width = size.cx + 10;
-
-            if (width <= StatusBarMaxWidths[index])
-                width = StatusBarMaxWidths[index];
-            else
-                StatusBarMaxWidths[index] = width;
-
-            widths[count] += width;
-
-            count++;
-        }
-        else
-        {
-            StatusBarMaxWidths[index] = 0;
-        }
-
-        index++;
-    }
-
-    ReleaseDC(StatusBarHandle, hdc);
-
-    SendMessage(StatusBarHandle, SB_SETPARTS, count, (LPARAM)widths);
-
-    for (i = 0; i < count; i++)
-    {
-        SendMessage(StatusBarHandle, SB_SETTEXT, i, (LPARAM)text[i]->Buffer);
-        PhDereferenceObject(text[i]);
-    }
+    StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
+    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");     
 }
 
-static VOID ShowStatusMenu(
-    __in PPOINT Point
+static VOID NTAPI ShowOptionsCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
-    HMENU menu;
-    HMENU subMenu;
-    ULONG i;
-    ULONG id;
-    ULONG bit;
-
-    menu = LoadMenu(
+    DialogBox(
         (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDR_STATUS)
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        (HWND)Parameter,
+        OptionsDlgProc
         );
+}
 
-    subMenu = GetSubMenu(menu, 0);
-
-    // Check the enabled items.
-    for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
+LOGICAL DllMain(
+    __in HINSTANCE Instance,
+    __in ULONG Reason,
+    __reserved PVOID Reserved
+    )
+{
+    switch (Reason)
     {
-        if (StatusMask & i)
+    case DLL_PROCESS_ATTACH:
         {
-            switch (i)
+            PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
             {
-            case STATUS_CPUUSAGE:
-                id = ID_STATUS_CPUUSAGE;
-                break;
-            case STATUS_COMMIT:
-                id = ID_STATUS_COMMITCHARGE;
-                break;
-            case STATUS_PHYSICAL:
-                id = ID_STATUS_PHYSICALMEMORY;
-                break;
-            case STATUS_NUMBEROFPROCESSES:
-                id = ID_STATUS_NUMBEROFPROCESSES;
-                break;
-            case STATUS_NUMBEROFTHREADS:
-                id = ID_STATUS_NUMBEROFTHREADS;
-                break;
-            case STATUS_NUMBEROFHANDLES:
-                id = ID_STATUS_NUMBEROFHANDLES;
-                break;
-            case STATUS_IOREADOTHER:
-                id = ID_STATUS_IO_RO;
-                break;
-            case STATUS_IOWRITE:
-                id = ID_STATUS_IO_W;
-                break;
-            case STATUS_MAXCPUPROCESS:
-                id = ID_STATUS_MAX_CPU_PROCESS;
-                break;
-            case STATUS_MAXIOPROCESS:
-                id = ID_STATUS_MAX_IO_PROCESS;
-                break;
-            }
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableToolBar", L"1" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableStatusBar", L"1" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableSearch", L"1" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.ResolveGhostWindows", L"1" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
+            };
 
-            CheckMenuItem(subMenu, id, MF_CHECKED);
+            PluginInstance = PhRegisterPlugin(L"ProcessHacker.ToolStatus", Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->DisplayName = L"Toolbar and Status Bar";
+            info->Author = L"dmex & wj32";
+            info->Description = L"Adds a toolbar and a status bar.";
+            info->HasOptions = TRUE;
+
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged),
+                TabPageUpdatedCallback,
+                NULL,
+                &TabPageCallbackRegistration
+                );
+            
+            PhAddSettings(settings, _countof(settings));
+
+            AcceleratorTable = LoadAccelerators(
+                Instance,
+                MAKEINTRESOURCE(IDR_MAINWND_ACCEL)
+                );
         }
+        break;
     }
 
-    id = (ULONG)TrackPopupMenu(
-        subMenu,
-        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
-        Point->x,
-        Point->y,
-        0,
-        PhMainWndHandle,
-        NULL
-        );
-
-    DestroyMenu(menu);
-
-    switch (id)
-    {
-    case ID_STATUS_CPUUSAGE:
-        bit = STATUS_CPUUSAGE;
-        break;
-    case ID_STATUS_COMMITCHARGE:
-        bit = STATUS_COMMIT;
-        break;
-    case ID_STATUS_PHYSICALMEMORY:
-        bit = STATUS_PHYSICAL;
-        break;
-    case ID_STATUS_NUMBEROFPROCESSES:
-        bit = STATUS_NUMBEROFPROCESSES;
-        break;
-    case ID_STATUS_NUMBEROFTHREADS:
-        bit = STATUS_NUMBEROFTHREADS;
-        break;
-    case ID_STATUS_NUMBEROFHANDLES:
-        bit = STATUS_NUMBEROFHANDLES;
-        break;
-    case ID_STATUS_IO_RO:
-        bit = STATUS_IOREADOTHER;
-        break;
-    case ID_STATUS_IO_W:
-        bit = STATUS_IOWRITE;
-        break;
-    case ID_STATUS_MAX_CPU_PROCESS:
-        bit = STATUS_MAXCPUPROCESS;
-        break;
-    case ID_STATUS_MAX_IO_PROCESS:
-        bit = STATUS_MAXIOPROCESS;
-        break;
-    default:
-        return;
-    }
-
-    StatusMask ^= bit;
-    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask", StatusMask);
-
-    UpdateStatusBar();
+    return TRUE;
 }
