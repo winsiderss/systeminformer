@@ -600,22 +600,6 @@ static VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     )
 {
-    LOGFONT logFont;
-
-    memset(&logFont, 0, sizeof(LOGFONT));
-
-    logFont.lfHeight = -12;
-    logFont.lfWeight = FW_NORMAL;
-
-    wcscpy_s(
-        logFont.lfFaceName, 
-        _countof(logFont.lfFaceName), 
-        L"MS Shell Dlg 2"
-        );
-
-    // Create the font handle
-    TextboxFontHandle = CreateFontIndirect(&logFont);
-
     EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
     EnableSearch = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch"); 
     EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"); 
