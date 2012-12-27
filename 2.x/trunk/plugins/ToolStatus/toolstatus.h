@@ -134,11 +134,6 @@ VOID ToolbarAddMenuItems(
     );
 
 // searchfilter.c
-BOOLEAN WordMatch(
-    __in PPH_STRINGREF Text,
-    __in PPH_STRINGREF Search,
-    __in BOOLEAN IgnoreCase
-    );
 BOOLEAN ProcessTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
