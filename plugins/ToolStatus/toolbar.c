@@ -43,6 +43,9 @@ VOID ToolBarCreate(
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     // Set the extended toolbar styles.
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
+
+    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 }
 
 VOID ToolbarCreateSearch(
@@ -80,7 +83,7 @@ VOID ToolbarCreateSearch(
     SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
 
     // Set initial text
-    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
+    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+ K)");
     
     // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
     SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
@@ -111,7 +114,7 @@ VOID ToolBarCreateImageList(
     PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
 
     // Configure the toolbar imagelist
-    PostMessage(WindowHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
+    SendMessage(WindowHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
 }
 
 VOID ToolbarAddMenuItems(

@@ -244,23 +244,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
     switch (uMsg)
     {
     case WM_COMMAND:
-        {
-            ULONG id = (ULONG)(USHORT)LOWORD(wParam);
-     
+        {            
             switch (HIWORD(wParam))
             {
-            case BN_CLICKED:
-                {
-                    if (id != ID_SEARCH_CLEAR)
-                        break;
-
-                    SetFocus(TextboxHandle);
-                    Edit_SetSel(TextboxHandle, 0, -1);
-                    SetWindowText(TextboxHandle, L"");
-
-                    goto DefaultWndProc;
-                }
-                break;
             case EN_CHANGE:
                 {
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
@@ -270,20 +256,39 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 }
             }
 
-            if (EnableToolBar && id == ID_SEARCH)
+            switch (LOWORD(wParam))
             {
-                SetFocus(TextboxHandle);
-                Edit_SetSel(TextboxHandle, 0, -1);
-            }
+            case PHAPP_ID_ESC_EXIT:
+                {
+                    // If we're targeting and the user presses the Esc key, cancel the targeting.
+                    // We also make sure the window doesn't get closed, by filtering out the message.
+                    if (TargetingWindow)
+                    {
+                        TargetingWindow = FALSE;
+                        ReleaseCapture();
 
-            // If we're targeting and the user presses the Esc key, cancel the targeting.
-            // We also make sure the window doesn't get closed, by filtering out the message.
-            if (id == PHAPP_ID_ESC_EXIT && TargetingWindow)
-            {
-                TargetingWindow = FALSE;
-                ReleaseCapture();
+                        goto DefaultWndProc;
+                    }
+                }
+                break;
+            case ID_SEARCH:
+                {
+                    // handle keybind Ctrl + K 
+                    if (EnableToolBar)
+                        SetFocus(TextboxHandle);
 
-                goto DefaultWndProc;
+                    goto DefaultWndProc;
+                }
+                break;
+            case ID_SEARCH_CLEAR:
+                {
+                    SetFocus(TextboxHandle);
+                    Edit_SetSel(TextboxHandle, 0, -1);
+                    SetWindowText(TextboxHandle, L"");
+
+                    goto DefaultWndProc;
+                }
+                break;
             }
         }
         break;

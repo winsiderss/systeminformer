@@ -23,7 +23,7 @@
 
 #include "toolstatus.h"
 
-BOOLEAN WordMatch(
+static BOOLEAN WordMatch(
     __in PPH_STRINGREF Text,
     __in PPH_STRINGREF Search,
     __in BOOLEAN IgnoreCase
