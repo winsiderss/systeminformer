@@ -20,7 +20,7 @@ BOOLEAN InsertButton(
 
     context->WhiteBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
     context->BlackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);  
-    context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
+    context->ImageList = ImageList_Create(22, 22, ILC_COLOR32 | ILC_MASK, 0, 0);
 
     // Set the number of images.
     ImageList_SetImageCount(context->ImageList, 2);
@@ -71,45 +71,54 @@ VOID RedrawNC(
 
 VOID DrawInsertedButton(
     __in HWND WindowHandle, 
-    __inout NC_CONTROL* nc, 
+    __inout NC_CONTROL* context, 
     __in RECT* prect
     )
 {
     HDC hdc;
 
     hdc = GetWindowDC(WindowHandle);
-    FillRect(hdc, prect, nc->WhiteBrush);
+    FillRect(hdc, prect, context->WhiteBrush);
 
-    if (nc->ImageList)
+    // Draw the image - with some bad offsets..
+    // Move the draw region 3 right and up 3
+    OffsetRect(prect, 3, -3);
+
+    //if (context->IsMouseActive)
+    //{
+    //    ImageList_Draw(
+    //        context->ImageList, 
+    //        0,     
+    //        hdc, 
+    //        prect->left, 
+    //        prect->top, 
+    //        ILD_NORMAL | ILD_TRANSPARENT
+    //        );
+    //}
+    //else 
+    if (context->IsMouseDown)
     {
-        // Draw the image - with some bad offsets..
-
-        // Move the rect right
-        OffsetRect(prect, 3, 0);
-
-        if (nc->IsMouseDown)
-        {
-            ImageList_Draw(
-                nc->ImageList, 
-                0,     
-                hdc, 
-                prect->left, 
-                prect->top - 3,
-                ILD_NORMAL | ILD_TRANSPARENT
-                );
-        }
-        else
-        {
-            ImageList_Draw(
-                nc->ImageList, 
-                1, 
-                hdc, 
-                prect->left, 
-                prect->top - 2,
-                ILD_NORMAL | ILD_TRANSPARENT
-                );
-        }
+        ImageList_Draw(
+            context->ImageList, 
+            0,     
+            hdc, 
+            prect->left, 
+            prect->top,
+            ILD_NORMAL | ILD_TRANSPARENT
+            );
     }
+    else
+    {
+        ImageList_Draw(
+            context->ImageList, 
+            1, 
+            hdc, 
+            prect->left, 
+            prect->top,
+            ILD_NORMAL | ILD_TRANSPARENT
+            );
+    }
+
 
     ReleaseDC(WindowHandle, hdc);
 }
@@ -181,10 +190,11 @@ LRESULT CALLBACK InsButProc(
             OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
 
             // Draw border - the edit control needs the WS_EX_STATICEDGE style 
+            // - this flickers on XP
+            //if (WindowsVersion > WINDOWS_XP)
             {
                 HDC hdc = GetWindowDC(WindowHandle);
                 
-                // - this flickers on XP
                 FillRect(hdc, &context->rect, context->WhiteBrush);
                 FrameRect(hdc, &context->rect, context->BlackBrush);
 
@@ -224,6 +234,7 @@ LRESULT CALLBACK InsButProc(
             context->pt.x -= context->rect.left;
             context->pt.y -= context->rect.top;
 
+            // adjust the coordinates so they start from 0,0
             OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
 
             GetButtonRect(context, &context->rect);
@@ -241,43 +252,40 @@ LRESULT CALLBACK InsButProc(
             }
         }
         break;
-    //case WM_MOUSEMOVE:
-    //    {
-    //        //if (!context->IsButtonDown)
-    //        //    break;
+    case WM_NCMOUSEMOVE:
+    case WM_NCMOUSELEAVE:
+        {
+            // get the screen coordinates of the mouse
+            context->pt.x = GET_X_LPARAM(lParam);
+            context->pt.y = GET_Y_LPARAM(lParam);
 
-    //        // get the SCREEN coordinates of the mouse
-    //        context->pt.x = GET_X_LPARAM(lParam);
-    //        context->pt.y = GET_Y_LPARAM(lParam);
+            // get the position of the inserted button
+            GetWindowRect(WindowHandle, &context->rect);
 
-    //        ClientToScreen(WindowHandle, &context->pt);
-    //        // get the position of the inserted button
-    //        GetWindowRect(WindowHandle, &context->rect);
+            context->pt.x -= context->rect.left;
+            context->pt.y -= context->rect.top;
 
-    //        context->pt.x -= context->rect.left;
-    //        context->pt.y -= context->rect.top;
+            // adjust the coordinates so they start from 0,0
+            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
+            GetButtonRect(context, &context->rect);
 
-    //        OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
-    //        GetButtonRect(context, &context->rect);
+            context->oldstate = context->IsMouseActive;
 
-    //        context->oldstate = context->IsButtonDown;
+            //check that the mouse is within the inserted button
+            if (PtInRect(&context->rect, context->pt))
+            {
+                context->IsMouseActive = TRUE;
+            }
+            else
+            {
+                context->IsMouseActive = FALSE;
+            }
 
-    //        // check that the mouse is within the inserted button
-    //        if (PtInRect(&context->rect, context->pt))
-    //        {
-    //            context->IsButtonDown = TRUE;
-    //        }
-    //        else
-    //        {
-    //            context->IsButtonDown = FALSE;
-    //        }
-
-    //        // redraw the non-client area to reflect the change.
-    //        // to prevent flicker, we only redraw the button if its state has changed
-    //        if (context->oldstate != context->IsButtonDown)
-    //            DrawInsertedButton(WindowHandle, context, &context->rect);
-    //    }
-    //    break;
+            // to prevent flicker, we only redraw the button if its state has changed    
+            if (context->oldstate != context->IsMouseActive)      
+                DrawInsertedButton(WindowHandle, context, &context->rect);
+        }
+        break;
     case WM_LBUTTONUP:
         {
             if (!context->IsMouseDown)

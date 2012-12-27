@@ -17,6 +17,7 @@ typedef struct _NC_CONTROL
     BOOLEAN IsButtonDown; // is the button up/down?
     BOOLEAN IsMouseDown; // is the mouse activating the button?
     BOOLEAN IsMouseActive;
+    BOOLEAN HasText;
     BOOLEAN oldstate;
 
     INT nButSize; // horizontal size of button   
