@@ -8,16 +8,15 @@ typedef struct _NC_CONTROL
     HWND ParentWindow;
     HINSTANCE DllBase;
     WNDPROC NCAreaWndProc;
+
     HIMAGELIST ImageList;
     HBRUSH BorderBrush;
     HBRUSH DcBrush;
-    UINT uCmdId; // sent in a WM_COMMAND message
+
+    UINT CommandID; // sent in a WM_COMMAND message
     UINT uState;
-    BOOLEAN IsButtonDown; // is the button up/down?
+    BOOLEAN ShowSearchIcon; // is the button up/down?
     BOOLEAN IsMouseDown; // is the mouse activating the button?
-    BOOLEAN IsMouseActive;
-    BOOLEAN HasText;
-    BOOLEAN oldstate;
 
     INT nButSize; // horizontal size of button   
     INT cxLeftEdge; // size of the current window borders.
