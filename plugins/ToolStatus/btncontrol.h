@@ -9,9 +9,8 @@ typedef struct _NC_CONTROL
     HINSTANCE DllBase;
     WNDPROC NCAreaWndProc;
     HIMAGELIST ImageList;
-    HBRUSH WhiteBrush;
-    HBRUSH BlackBrush;
-
+    HBRUSH BorderBrush;
+    HBRUSH DcBrush;
     UINT uCmdId; // sent in a WM_COMMAND message
     UINT uState;
     BOOLEAN IsButtonDown; // is the button up/down?
