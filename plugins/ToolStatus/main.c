@@ -148,7 +148,7 @@ static VOID ApplyToolbarSettings(
         ULONG i = 0;
         ULONG buttonCount = 0;
 
-        buttonCount = SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L);
+        buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L);
 
         for (i = 0; i < buttonCount; i++)
         {
