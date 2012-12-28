@@ -3,7 +3,7 @@
 
 BOOLEAN InsertButton(
     __in HWND WindowHandle, 
-    __in UINT uCmdId, 
+    __in UINT CommandID, 
     __in INT nSize
     )
 {
@@ -12,9 +12,8 @@ BOOLEAN InsertButton(
     context = (NC_CONTROL*)PhAllocate(sizeof(NC_CONTROL));
     memset(context, 0, sizeof(NC_CONTROL));
 
-    context->uCmdId = uCmdId;
+    context->CommandID = CommandID;
     context->nButSize = nSize;
-    context->IsButtonDown = FALSE;    
     context->DllBase = (HINSTANCE)PluginInstance->DllBase;
     context->ParentWindow = GetParent(WindowHandle);
 
@@ -22,7 +21,7 @@ BOOLEAN InsertButton(
     context->BorderBrush = (HBRUSH)CreateSolidBrush(RGB(0x8f, 0x8f, 0x8f));
     context->ImageList = ImageList_Create(22, 22, ILC_COLOR32 | ILC_MASK, 0, 0);
 
-    // Set the number of images.
+    // Set the number of images
     ImageList_SetImageCount(context->ImageList, 2);
     PhSetImageListBitmap(context->ImageList, 0, context->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
     PhSetImageListBitmap(context->ImageList, 1, context->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
@@ -80,7 +79,7 @@ VOID DrawInsertedButton(
     // Move the draw region 3 right and up 3
     OffsetRect(prect, 3, -3);
 
-    if (context->IsMouseDown)
+    if (context->ShowSearchIcon)
     {
         ImageList_DrawEx(
             context->ImageList, 
@@ -92,7 +91,7 @@ VOID DrawInsertedButton(
             18,
             CLR_NONE,
             CLR_NONE,
-            ILD_NORMAL | ILD_TRANSPARENT
+            ILD_NORMAL | ILD_TRANSPARENT   
             );
     }
     else
@@ -140,8 +139,6 @@ LRESULT CALLBACK InsButProc(
     
     switch (uMsg)
     {
-    case WM_ERASEBKGND:
-        return 1;
     case WM_NCCALCSIZE:
         {
             NCCALCSIZE_PARAMS* nccsp = (NCCALCSIZE_PARAMS*)lParam;
@@ -244,14 +241,12 @@ LRESULT CALLBACK InsButProc(
             {
                 HDC hdc;
 
+                context->IsMouseDown = TRUE;
                 SetCapture(WindowHandle);
 
-                context->IsButtonDown = TRUE;
-                context->IsMouseDown = TRUE;
-
                 if (hdc = GetDCEx(WindowHandle, NULL, DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000))
-                {
-                    //redraw the non-client area to reflect the change
+                {         
+                    // redraw the non-client area to reflect the change
                     DrawInsertedButton(WindowHandle, context, hdc, &context->rect);
                     // cleanup
                     ReleaseDC(WindowHandle, hdc);
@@ -289,13 +284,13 @@ LRESULT CALLBACK InsButProc(
     //    break;
     case WM_LBUTTONUP:
         {
-            if (!context->IsMouseDown)
-                break;
-
             // get the SCREEN coordinates of the mouse
             context->pt.x = GET_X_LPARAM(lParam);
             context->pt.y = GET_Y_LPARAM(lParam);
-            
+        
+            context->IsMouseDown = FALSE;
+            ReleaseCapture();
+
             ClientToScreen(WindowHandle, &context->pt);
             // get the position of the inserted button
             GetWindowRect(WindowHandle, &context->rect);
@@ -305,31 +300,46 @@ LRESULT CALLBACK InsButProc(
 
             OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
             GetButtonRect(context, &context->rect);
-                  
-            context->IsButtonDown = FALSE;
-            context->IsMouseDown = FALSE;
-
-            ReleaseCapture();
 
             // check that the mouse is within the region
             if (PtInRect(&context->rect, context->pt))
             {
                 HDC hdc;
 
-                PostMessage(
-                    context->ParentWindow, 
-                    WM_COMMAND, 
-                    MAKEWPARAM(context->uCmdId, BN_CLICKED), 
-                    0
-                    );
+                // Send the click notification to the parent window
+                PostMessage(context->ParentWindow, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), NULL);
 
-                if (hdc = GetWindowDC(WindowHandle))
+                context->ShowSearchIcon = FALSE;
+
+                if (hdc = GetDCEx(WindowHandle, NULL, DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000))
                 {
                     //redraw the non-client area to reflect the change
                     DrawInsertedButton(WindowHandle, context, hdc, &context->rect);
                     // cleanup
                     ReleaseDC(WindowHandle, hdc);
                 }
+            }
+        }
+        break;
+    case WM_KEYUP:
+    case WM_KILLFOCUS:
+        {            
+            HDC hdc;
+
+            context->ShowSearchIcon = Edit_GetTextLength(WindowHandle) > 0;
+
+            if (hdc = GetDCEx(WindowHandle, NULL, DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000))
+            {                  
+                // get the screen coordinates of the window
+                GetWindowRect(WindowHandle, &context->rect);
+                // adjust the coordinates so they start from 0,0
+                OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
+                // work out where to draw the button
+                GetButtonRect(context, &context->rect);
+                //redraw the non-client area to reflect the change
+                DrawInsertedButton(WindowHandle, context, hdc, &context->rect);
+                // cleanup
+                ReleaseDC(WindowHandle, hdc);
             }
         }
         break;
