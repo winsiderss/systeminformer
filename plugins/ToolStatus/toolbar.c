@@ -65,7 +65,7 @@ VOID ToolbarCreateSearch(
         );
 
     TextboxHandle = CreateWindowEx(
-        WS_EX_STATICEDGE,
+        0,
         WC_EDIT,
         NULL,
         WS_CHILD | ES_LEFT,
