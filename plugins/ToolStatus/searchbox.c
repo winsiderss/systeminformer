@@ -307,7 +307,7 @@ LRESULT CALLBACK InsButProc(
                 HDC hdc;
 
                 // Send the click notification to the parent window
-                PostMessage(context->ParentWindow, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), NULL);
+                PostMessage(context->ParentWindow, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
 
                 context->ShowSearchIcon = FALSE;
 
