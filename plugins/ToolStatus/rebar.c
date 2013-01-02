@@ -47,7 +47,8 @@ VOID RebarCreate(
         );
 
     // no imagelist to attach to rebar
-    PostMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
+    SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
+    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 }
 
 VOID RebarDestroy(
@@ -66,11 +67,9 @@ VOID RebarAddMenuItem(
     __in UINT cxMinChild
     )
 {
-    REBARBANDINFO rebarBandInfo = { 0 }; 
-
-    rebarBandInfo.cbSize = REBARBANDINFO_V6_SIZE;
-    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-    rebarBandInfo.fStyle = RBBS_HIDETITLE | RBBS_CHILDEDGE | RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+    REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
+    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
+    rebarBandInfo.fStyle = RBBS_NOGRIPPER;
     
     rebarBandInfo.wID = ID;
     rebarBandInfo.hwndChild = ChildHandle;
