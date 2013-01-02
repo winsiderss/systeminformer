@@ -33,6 +33,10 @@ VOID ToolBarCreate(
     __in HWND ParentHandle
     );
 
+VOID ToolBarDestroy(
+    VOID
+    );
+
 VOID ToolbarCreateSearch(
     __in HWND ParentHandle
     );

@@ -47,6 +47,17 @@ VOID StatusBarCreate(
         );
 }
 
+VOID StatusBarDestroy(
+    VOID
+    )
+{     
+    if (StatusBarHandle)
+    {
+        DestroyWindow(StatusBarHandle);
+        StatusBarHandle = NULL;
+    }
+}
+
 VOID ShowStatusMenu(
     __in PPOINT Point
     )

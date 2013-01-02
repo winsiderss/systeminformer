@@ -30,6 +30,9 @@ extern RECT ReBarRect;
 VOID RebarCreate(
     __in HWND ParentHandle
     );
+VOID RebarDestroy(
+    VOID
+    );
 VOID RebarAddMenuItem(
     __in HWND WindowHandle,
     __in HWND ChildHandle,
