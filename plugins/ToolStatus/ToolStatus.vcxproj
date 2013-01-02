@@ -170,8 +170,11 @@
     <ClCompile Include="toolbar.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="btncontrol.h" />
+    <ClInclude Include="rebar.h" />
+    <ClInclude Include="searchbox.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="statusbar.h" />
+    <ClInclude Include="toolbar.h" />
     <ClInclude Include="toolstatus.h" />
   </ItemGroup>
   <ItemGroup>

@@ -25,14 +25,20 @@
 #define TOOLSTATUS_H
 
 #include <phdk.h>
-
-#include "resource.h"
-#include "btncontrol.h"
-
 #include <phapppub.h>
 #include <phplug.h>
 #include <phappresource.h>
 #include <windowsx.h>
+
+#include "resource.h"
+#include "searchbox.h"
+
+typedef enum _TOOLBAR_DISPLAY_STYLE
+{
+    ImageOnly = 0,
+    SelectiveText = 1,
+    AllText = 2
+} TOOLBAR_DISPLAY_STYLE;
 
 #define TIDC_FINDWINDOW (WM_USER + 1)
 #define TIDC_FINDWINDOWTHREAD (WM_USER + 2)
@@ -52,85 +58,20 @@
 #define STATUS_MAXIOPROCESS 0x200
 #define STATUS_MAXIMUM 0x400
 
-typedef enum _TOOLBAR_DISPLAY_STYLE
-{
-    ImageOnly = 0,
-    SelectiveText = 1,
-    AllText = 2
-} TOOLBAR_DISPLAY_STYLE;
+extern PPH_PLUGIN PluginInstance;
+extern BOOLEAN EnableToolBar;
+extern BOOLEAN EnableStatusBar;
+extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
-BOOLEAN EnableToolBar;
-BOOLEAN EnableStatusBar;
-BOOLEAN EnableSearch;
-TOOLBAR_DISPLAY_STYLE DisplayStyle;
-HACCEL AcceleratorTable;
-
-PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
-PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
-PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
+VOID ApplyToolbarSettings(
+    VOID
+    );
 
 INT_PTR CALLBACK OptionsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
-    );
-
-// Statusbar.c
-HWND StatusBarHandle;
-RECT StatusBarRect;
-ULONG StatusMask;
-ULONG ProcessesUpdatedCount;
-ULONG StatusBarMaxWidths[STATUS_COUNT];
-
-VOID StatusBarCreate(
-    __in HWND ParentHandle
-    );
-VOID UpdateStatusBar(
-    VOID
-    );
-VOID ShowStatusMenu(
-    __in PPOINT Point
-    );
-
-// Rebar.c
-HWND ReBarHandle;
-RECT ReBarRect;
-
-VOID RebarCreate(
-    __in HWND ParentHandle
-    );
-VOID RebarAddMenuItem(
-    __in HWND WindowHandle,
-    __in HWND ChildHandle,
-    __in UINT ID,
-    __in UINT cyMinChild,
-    __in UINT cxMinChild
-    );
-
-// Toolbar.c
-#define ID_SEARCH_CLEAR (WM_USER + 1)
-
-HWND ToolBarHandle;
-HIMAGELIST ToolBarImageList;
-HWND TextboxHandle;
-HFONT TextboxFontHandle;
-
-VOID ToolBarCreate(
-    __in HWND ParentHandle
-    );
-VOID ToolbarCreateSearch(
-    __in HWND ParentHandle
-    );
-VOID ToolBarCreateImageList(
-    __in HWND WindowHandle
-    );
-VOID ToolbarAddMenuItems(
-    __in HWND WindowHandle
     );
 
 // searchfilter.c
@@ -146,4 +87,5 @@ BOOLEAN NetworkTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     );
+
 #endif
