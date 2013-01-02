@@ -175,8 +175,6 @@ VOID SetRebarMenuLayout(
     }
 }
 
-
-
 VOID ApplyToolbarSettings(
     VOID
     )
@@ -193,7 +191,7 @@ VOID ApplyToolbarSettings(
             ToolbarAddMenuItems(ToolBarHandle);
 
             // inset the toolbar into the rebar control
-            RebarAddMenuItem(ReBarHandle, ToolBarHandle, 0, 22, 0);
+            RebarAddMenuItem(ReBarHandle, ToolBarHandle, 0, 23, 0);
         }
         
         SetRebarMenuLayout();
@@ -211,7 +209,7 @@ VOID ApplyToolbarSettings(
 
         if (TextboxHandle)
         { 
-            // Clear searchbox
+            // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
             Edit_SetSel(TextboxHandle, 0, -1);    
             SetWindowText(TextboxHandle, L"");
 
@@ -228,7 +226,7 @@ VOID ApplyToolbarSettings(
         {
             ToolbarCreateSearch(ToolBarHandle);
             // inset the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 22, 200);
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 20, 200);
         }
  
         ShowWindow(TextboxHandle, SW_SHOW);

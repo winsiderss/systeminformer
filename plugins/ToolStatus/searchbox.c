@@ -76,7 +76,7 @@ static VOID DrawInsertedButton(
 {
     // Draw the image - with some bad offsets..
     // Move the draw region 3 right and up 3
-    OffsetRect(prect, 5, -3);
+    OffsetRect(prect, 3, -3);
 
     if (context->ShowSearchIcon)
     {
@@ -86,8 +86,7 @@ static VOID DrawInsertedButton(
             HdcHandle, 
             prect->left, 
             prect->top,
-            18,
-            18,
+            0, 0,
             CLR_NONE,
             CLR_NONE,
             ILD_NORMAL | ILD_TRANSPARENT   
@@ -101,8 +100,7 @@ static VOID DrawInsertedButton(
             HdcHandle, 
             prect->left, 
             prect->top,
-            18,
-            18,
+            0, 0,
             CLR_NONE,
             CLR_NONE,
             ILD_NORMAL | ILD_TRANSPARENT
@@ -374,7 +372,7 @@ BOOLEAN InsertButton(
 
     context->DcBrush = (HBRUSH)GetStockObject(DC_BRUSH);
     context->BorderBrush = (HBRUSH)CreateSolidBrush(RGB(0x8f, 0x8f, 0x8f));
-    context->ImageList = ImageList_Create(22, 22, ILC_COLOR32 | ILC_MASK, 0, 0);
+    context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
 
     // Set the number of images
     ImageList_SetImageCount(context->ImageList, 2);
