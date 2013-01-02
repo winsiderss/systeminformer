@@ -69,7 +69,7 @@ VOID RebarAddMenuItem(
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle = RBBS_NOGRIPPER;
+    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
     
     rebarBandInfo.wID = ID;
     rebarBandInfo.hwndChild = ChildHandle;
