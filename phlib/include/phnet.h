@@ -50,7 +50,7 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
         return
             *(PULONG)(Address1->Ipv6) == *(PULONG)(Address2->Ipv6) &&
             *(PULONG)(Address1->Ipv6 + 4) == *(PULONG)(Address2->Ipv6 + 4) &&
-            *(PULONG)(Address1->Ipv6 + 8) == *(PULONG)(Address2->Ipv6+ 8) &&
+            *(PULONG)(Address1->Ipv6 + 8) == *(PULONG)(Address2->Ipv6 + 8) &&
             *(PULONG)(Address1->Ipv6 + 12) == *(PULONG)(Address2->Ipv6 + 12);
 #else
         return

@@ -2,8 +2,8 @@
  * Process Hacker ToolStatus -
  *   search filter callbacks
  *
+ * Copyright (C) 2011-2013 dmex
  * Copyright (C) 2010-2012 wj32
- * Copyright (C) 2011-2012 dmex
  *
  * This file is part of Process Hacker.
  *
