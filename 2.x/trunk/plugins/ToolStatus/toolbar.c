@@ -51,9 +51,7 @@ VOID ToolBarCreate(
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     // Set the extended toolbar styles.
     SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
-
-    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 }
 
 VOID ToolBarDestroy(
@@ -112,15 +110,13 @@ VOID ToolbarCreateSearch(
 
     // Set Searchbox control font
     SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
-
     // Set initial text
-    Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+ K)");
-    
+    SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
     // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
-    SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
+    //SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
 
     // insert a paint region into the edit control NC window area       
-    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 25);
+    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 22);
 
     PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
     PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
