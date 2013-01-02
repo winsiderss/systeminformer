@@ -22,12 +22,31 @@
  */
 
 #include "toolstatus.h"
+#include "rebar.h"
+#include "toolbar.h"
+#include "statusbar.h"
 
+#define ID_SEARCH_CLEAR (WM_USER + 1)
+
+static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
+
+static HACCEL AcceleratorTable = NULL;
 static ULONG TargetingMode = 0;
 static HWND TargetingCurrentWindow = NULL;
 static BOOLEAN TargetingWindow = FALSE;
 static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
+
+BOOLEAN EnableToolBar = FALSE;
+BOOLEAN EnableStatusBar = FALSE;
+BOOLEAN EnableSearch = FALSE;
+TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
+PPH_PLUGIN PluginInstance = NULL;
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -105,7 +124,7 @@ static BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
-static VOID ApplyToolbarSettings(
+VOID ApplyToolbarSettings(
     VOID
     )
 {

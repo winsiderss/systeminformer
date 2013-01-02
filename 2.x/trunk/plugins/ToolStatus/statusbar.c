@@ -22,6 +22,13 @@
  */
 
 #include "toolstatus.h"
+#include "statusbar.h"
+
+HWND StatusBarHandle;
+RECT StatusBarRect;
+ULONG StatusMask;
+ULONG ProcessesUpdatedCount;
+ULONG StatusBarMaxWidths[STATUS_COUNT];
 
 VOID StatusBarCreate(
     __in HWND ParentHandle

@@ -22,6 +22,10 @@
  */
 
 #include "toolstatus.h"
+#include "rebar.h"
+
+HWND ReBarHandle = NULL;
+RECT ReBarRect = { 0, 0, 0, 0 };
 
 VOID RebarCreate(
     __in HWND ParentHandle

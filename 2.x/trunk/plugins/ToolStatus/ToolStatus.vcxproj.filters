@@ -44,7 +44,16 @@
     <ClInclude Include="toolstatus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="btncontrol.h">
+    <ClInclude Include="toolbar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="searchbox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="statusbar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rebar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

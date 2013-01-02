@@ -22,6 +22,14 @@
  */
 
 #include "toolstatus.h"
+#include "toolbar.h"
+
+#define ID_SEARCH_CLEAR (WM_USER + 1)
+
+HWND ToolBarHandle;
+HIMAGELIST ToolBarImageList;
+HWND TextboxHandle;
+HFONT TextboxFontHandle;
 
 VOID ToolBarCreate(
     __in HWND ParentHandle
