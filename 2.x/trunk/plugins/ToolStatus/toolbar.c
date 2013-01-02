@@ -56,6 +56,29 @@ VOID ToolBarCreate(
     //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 }
 
+VOID ToolBarDestroy(
+    VOID
+    )
+{
+    if (TextboxHandle)
+    {
+        DestroyWindow(TextboxHandle);
+        TextboxHandle = NULL;
+    }
+        
+    if (ToolBarHandle)
+    {
+        DestroyWindow(ToolBarHandle);
+        ToolBarHandle = NULL;
+    }
+
+    if (ToolBarImageList)
+    {
+        ImageList_Destroy(ToolBarImageList);
+        ToolBarImageList = NULL;
+    }
+}
+
 VOID ToolbarCreateSearch(
     __in HWND ParentHandle
     )

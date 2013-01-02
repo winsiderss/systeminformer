@@ -39,5 +39,7 @@ VOID UpdateStatusBar(
 VOID ShowStatusMenu(
     __in PPOINT Point
     );
-
+VOID StatusBarDestroy(
+    VOID
+    );
 #endif

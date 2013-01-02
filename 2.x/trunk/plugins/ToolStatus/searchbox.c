@@ -138,6 +138,8 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     
     switch (uMsg)
     {
+    case WM_ERASEBKGND:
+        return 1;
     case WM_NCCALCSIZE:
         {
             NCCALCSIZE_PARAMS* nccsp = (NCCALCSIZE_PARAMS*)lParam;
