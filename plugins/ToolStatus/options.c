@@ -68,8 +68,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                     
                     ApplyToolbarSettings();
 
-                    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
-
+                    PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+       
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;

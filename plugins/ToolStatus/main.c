@@ -124,91 +124,129 @@ static BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
+VOID SetRebarMenuLayout(
+    VOID
+    )
+{
+    ULONG i = 0;
+    ULONG buttonCount = 0;
+
+    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L);
+
+    for (i = 0; i < buttonCount; i++)
+    {
+        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
+        button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND;
+
+        // Get settings for first button
+        SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
+
+        // Skip separator buttons
+        if (button.fsStyle != BTNS_SEP)
+        {
+            switch (DisplayStyle)
+            {
+            case ImageOnly:
+                button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
+                break;
+            case SelectiveText:
+                {
+                    button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
+
+                    switch (button.idCommand)
+                    {
+                    case PHAPP_ID_VIEW_REFRESH:
+                    case PHAPP_ID_HACKER_OPTIONS: 
+                    case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+                    case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+                        button.fsStyle = BTNS_SHOWTEXT;
+                        break;
+                    }
+                }
+                break;
+            default:
+                button.fsStyle = BTNS_SHOWTEXT;
+                break;
+            }
+
+            // Set updated button info
+            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
+        }
+    }
+}
+
+
+
 VOID ApplyToolbarSettings(
     VOID
     )
 {
-    if (StatusBarHandle)
+    if (EnableToolBar)
     {
-        if (EnableStatusBar)
-            ShowWindow(StatusBarHandle, SW_SHOW);          
-        else
-            ShowWindow(StatusBarHandle, SW_HIDE);
-    }
+        if (!ReBarHandle)
+            RebarCreate(PhMainWndHandle);
 
-    if (ToolBarHandle)
-    {        
-        if (ReBarHandle)
-            ShowWindow(ReBarHandle, SW_SHOW);
-        else
-            ShowWindow(ReBarHandle, SW_HIDE);
-
-        if (EnableToolBar)
-            ShowWindow(ToolBarHandle, SW_SHOW);
-        else
-            ShowWindow(ToolBarHandle, SW_HIDE);
-    }
-
-    if (TextboxHandle)
-    {
-        if (EnableSearch)
-            ShowWindow(TextboxHandle, SW_SHOW);
-        else
+        if (!ToolBarHandle)
         {
-            ShowWindow(TextboxHandle, SW_HIDE);
+            ToolBarCreate(PhMainWndHandle);       
+            ToolBarCreateImageList(ToolBarHandle);
+            ToolbarAddMenuItems(ToolBarHandle);
 
+            // inset the toolbar into the rebar control
+            RebarAddMenuItem(ReBarHandle, ToolBarHandle, 0, 22, 0);
+        }
+        
+        SetRebarMenuLayout();
+
+        ShowWindow(ReBarHandle, SW_SHOW); 
+        ShowWindow(ToolBarHandle, SW_SHOW);
+    }
+    else
+    {
+        if (ToolBarHandle)
+            ShowWindow(ToolBarHandle, SW_HIDE);
+
+        if (ReBarHandle)
+            ShowWindow(ReBarHandle, SW_HIDE); 
+
+        if (TextboxHandle)
+        { 
             // Clear searchbox
             Edit_SetSel(TextboxHandle, 0, -1);    
             SetWindowText(TextboxHandle, L"");
+
+            ShowWindow(TextboxHandle, SW_HIDE);
         }
+
+        ToolBarDestroy();
+        RebarDestroy();
     }
 
+    if (EnableSearch)
     {
-        ULONG i = 0;
-        ULONG buttonCount = 0;
-
-        buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L);
-
-        for (i = 0; i < buttonCount; i++)
+        if (!TextboxHandle)
         {
-            TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND;
-
-            // Get settings for first button
-            SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
-
-            // Skip separator buttons
-            if (button.fsStyle != BTNS_SEP)
-            {
-                switch (DisplayStyle)
-                {
-                case ImageOnly:
-                    button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
-                    break;
-                case SelectiveText:
-                    {
-                        button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
-
-                        switch (button.idCommand)
-                        {
-                        case PHAPP_ID_VIEW_REFRESH:
-                        case PHAPP_ID_HACKER_OPTIONS: 
-                        case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
-                        case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-                            button.fsStyle = BTNS_SHOWTEXT;
-                            break;
-                        }
-                    }
-                    break;
-                default:
-                    button.fsStyle = BTNS_SHOWTEXT;
-                    break;
-                }
-
-                // Set updated button info
-                SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
-            }
+            ToolbarCreateSearch(ToolBarHandle);
+            // inset the edit control into the rebar control
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 22, 200);
         }
+ 
+        ShowWindow(TextboxHandle, SW_SHOW);
+    }
+
+    if (EnableStatusBar)
+    {
+        if (!StatusBarHandle)
+            StatusBarCreate(PhMainWndHandle);
+
+        ShowWindow(StatusBarHandle, SW_SHOW);  
+    }
+    else
+    {
+        if (StatusBarHandle)
+            ShowWindow(StatusBarHandle, SW_HIDE);
+
+        StatusBarDestroy();
     }
 }
 
@@ -582,30 +620,6 @@ static VOID NTAPI MainWindowShowingCallback(
      __in_opt PVOID Context
     )
 {       
-    if (EnableToolBar)
-    {
-        RebarCreate(PhMainWndHandle);
-
-        ToolBarCreate(PhMainWndHandle);       
-        ToolBarCreateImageList(ToolBarHandle);
-        ToolbarAddMenuItems(ToolBarHandle);
-
-        // inset the toolbar into the rebar control
-        RebarAddMenuItem(ReBarHandle, ToolBarHandle, 0, 22, 0);
-
-        if (EnableSearch)
-        {
-            ToolbarCreateSearch(ToolBarHandle);
-            // inset the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 22, 200);
-        }
-    }
-
-    if (EnableStatusBar)
-    {
-        StatusBarCreate(PhMainWndHandle);
-    }
-
     ApplyToolbarSettings();
 
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);

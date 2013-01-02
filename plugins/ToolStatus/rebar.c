@@ -50,6 +50,14 @@ VOID RebarCreate(
     PostMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 }
 
+VOID RebarDestroy(
+    VOID
+    )
+{
+    DestroyWindow(ReBarHandle);
+    ReBarHandle = NULL;
+}
+
 VOID RebarAddMenuItem(
     __in HWND WindowHandle,
     __in HWND ChildHandle,
