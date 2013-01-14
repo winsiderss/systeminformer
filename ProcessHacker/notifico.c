@@ -247,13 +247,13 @@ VOID PhNfForwardMessage(
     case WM_LBUTTONDOWN:
         {
             if (PhGetIntegerSetting(L"IconSingleClick"))
-                ProcessHacker_ToggleVisible(PhMainWndHandle);
+                ProcessHacker_IconClick(PhMainWndHandle);
         }
         break;
     case WM_LBUTTONDBLCLK:
         {
             if (!PhGetIntegerSetting(L"IconSingleClick"))
-                ProcessHacker_ToggleVisible(PhMainWndHandle);
+                ProcessHacker_IconClick(PhMainWndHandle);
         }
         break;
     case WM_RBUTTONUP:
