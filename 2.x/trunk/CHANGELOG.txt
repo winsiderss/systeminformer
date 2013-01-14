@@ -7,6 +7,8 @@ Process Hacker
    * Updated UserNotes plugin:
      * Added ability to save process priority
      * Added "Only for processes with the same command line" option for process comments
+ * FIXED:
+   * Fixed crash on CPUs without SSE2
 
 2.29
  * NEW/IMPROVED:
