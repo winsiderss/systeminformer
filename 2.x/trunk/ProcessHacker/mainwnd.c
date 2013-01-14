@@ -2053,20 +2053,7 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_TOGGLE_VISIBLE:
         {
-            if (IsIconic(PhMainWndHandle))
-            {
-                ShowWindow(PhMainWndHandle, SW_RESTORE);
-                SetForegroundWindow(PhMainWndHandle);
-            }
-            else if (IsWindowVisible(PhMainWndHandle))
-            {
-                ShowWindow(PhMainWndHandle, SW_HIDE);
-            }
-            else
-            {
-                ShowWindow(PhMainWndHandle, SW_SHOW);
-                SetForegroundWindow(PhMainWndHandle);
-            }
+            PhMwpActivateWindow(TRUE);
         }
         break;
     case WM_PH_SHOW_MEMORY_EDITOR:
@@ -2239,6 +2226,11 @@ ULONG_PTR PhMwpOnUserMessage(
             {
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_UPDATEAUTOMATICALLY, 0);
             }
+        }
+        break;
+    case WM_PH_ICON_CLICK:
+        {
+            PhMwpActivateWindow(!!PhGetIntegerSetting(L"IconTogglesVisibility"));
         }
         break;
     case WM_PH_PROCESS_ADDED:
@@ -2713,6 +2705,29 @@ BOOLEAN PhMwpExecuteComputerCommand(
     }
 
     return FALSE;
+}
+
+VOID PhMwpActivateWindow(
+    __in BOOLEAN Toggle
+    )
+{
+    if (IsIconic(PhMainWndHandle))
+    {
+        ShowWindow(PhMainWndHandle, SW_RESTORE);
+        SetForegroundWindow(PhMainWndHandle);
+    }
+    else if (IsWindowVisible(PhMainWndHandle))
+    {
+        if (Toggle)
+            ShowWindow(PhMainWndHandle, SW_HIDE);
+        else
+            SetForegroundWindow(PhMainWndHandle);
+    }
+    else
+    {
+        ShowWindow(PhMainWndHandle, SW_SHOW);
+        SetForegroundWindow(PhMainWndHandle);
+    }
 }
 
 VOID PhMwpInitializeMainMenu(
