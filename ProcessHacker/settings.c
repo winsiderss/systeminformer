@@ -111,6 +111,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"a"); // 10
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
+    PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");

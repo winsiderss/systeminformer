@@ -212,6 +212,10 @@ BOOLEAN PhMwpExecuteComputerCommand(
     __in ULONG Id
     );
 
+VOID PhMwpActivateWindow(
+    __in BOOLEAN Toggle
+    );
+
 // Main menu
 
 VOID PhMwpInitializeMainMenu(

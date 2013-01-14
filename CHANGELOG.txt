@@ -2,6 +2,7 @@ Process Hacker
 
 2.30
  * NEW/IMPROVED:
+   * Added "Icon click toggles visibility" option
    * Re-enabled powerful process termination on 32-bit Windows 8
    * Updated UserNotes plugin:
      * Added ability to save process priority

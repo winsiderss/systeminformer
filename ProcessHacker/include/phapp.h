@@ -546,7 +546,8 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_REFRESH (WM_APP + 141)
 #define WM_PH_GET_UPDATE_AUTOMATICALLY (WM_APP + 142)
 #define WM_PH_SET_UPDATE_AUTOMATICALLY (WM_APP + 143)
-#define WM_PH_LAST (WM_APP + 143)
+#define WM_PH_ICON_CLICK (WM_APP + 144)
+#define WM_PH_LAST (WM_APP + 144)
 
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
@@ -588,6 +589,8 @@ extern BOOLEAN PhMainWndExiting;
     ((BOOLEAN)SendMessage(hWnd, WM_PH_GET_UPDATE_AUTOMATICALLY, 0, 0))
 #define ProcessHacker_SetUpdateAutomatically(hWnd, Value) \
     SendMessage(hWnd, WM_PH_SET_UPDATE_AUTOMATICALLY, (WPARAM)(Value), 0)
+#define ProcessHacker_IconClick(hWnd) \
+    SendMessage(hWnd, WM_PH_ICON_CLICK, 0, 0)
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {
