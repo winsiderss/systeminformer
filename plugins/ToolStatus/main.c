@@ -330,7 +330,10 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 {
                     // handle keybind Ctrl + K 
                     if (EnableToolBar)
+                    {
                         SetFocus(TextboxHandle);
+                        Edit_SetSel(TextboxHandle, 0, -1);
+                    }
 
                     goto DefaultWndProc;
                 }
@@ -338,7 +341,6 @@ static LRESULT CALLBACK MainWndSubclassProc(
             case ID_SEARCH_CLEAR:
                 {
                     SetFocus(TextboxHandle);
-                    Edit_SetSel(TextboxHandle, 0, -1);
                     SetWindowText(TextboxHandle, L"");
 
                     goto DefaultWndProc;
