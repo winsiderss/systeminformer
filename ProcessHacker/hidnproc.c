@@ -2,7 +2,7 @@
  * Process Hacker -
  *   hidden processes detection
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -163,7 +163,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Brute Force");
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR Handles");
-            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_METHOD), -1, L"CSR Handles");
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR Handles", FALSE);
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
         }

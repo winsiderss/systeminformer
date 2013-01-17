@@ -2,7 +2,7 @@
  * Process Hacker -
  *   send message window
  *
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -79,7 +79,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
             ComboBox_AddString(iconComboBox, L"Warning");
             ComboBox_AddString(iconComboBox, L"Error");
             ComboBox_AddString(iconComboBox, L"Question");
-            ComboBox_SelectString(iconComboBox, -1, L"None");
+            PhSelectComboBoxString(iconComboBox, L"None", FALSE);
 
             if (PhCurrentUserName)
             {

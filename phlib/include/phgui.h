@@ -372,6 +372,13 @@ PPH_STRING PhGetComboBoxString(
     );
 
 PHLIBAPI
+INT PhSelectComboBoxString(
+    __in HWND hwnd,
+    __in PWSTR String,
+    __in BOOLEAN Partial
+    );
+
+PHLIBAPI
 PPH_STRING PhGetListBoxString(
     __in HWND hwnd,
     __in INT Index

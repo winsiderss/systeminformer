@@ -2,7 +2,7 @@
  * Process Hacker -
  *   GUI support functions
  *
- * Copyright (C) 2009-2012 wj32
+ * Copyright (C) 2009-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -489,6 +489,31 @@ PPH_STRING PhGetComboBoxString(
     {
         PhDereferenceObject(string);
         return NULL;
+    }
+}
+
+INT PhSelectComboBoxString(
+    __in HWND hwnd,
+    __in PWSTR String,
+    __in BOOLEAN Partial
+    )
+{
+    if (Partial)
+    {
+        return ComboBox_SelectString(hwnd, -1, String);
+    }
+    else
+    {
+        INT index;
+
+        index = ComboBox_FindStringExact(hwnd, -1, String);
+
+        if (index == CB_ERR)
+            return CB_ERR;
+
+        ComboBox_SetCurSel(hwnd, index);
+
+        return index;
     }
 }
 

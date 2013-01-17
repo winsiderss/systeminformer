@@ -2,7 +2,7 @@
  * Process Hacker -
  *   choice dialog
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -203,8 +203,8 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             {
                 // If we failed to choose a default choice based on what was specified,
                 // select the first one if possible, or set the text directly.
-                if (!(*context->SelectedChoice) || ComboBox_SelectString(
-                    comboBoxHandle, -1, (*context->SelectedChoice)->Buffer) == CB_ERR)
+                if (!(*context->SelectedChoice) || PhSelectComboBoxString(
+                    comboBoxHandle, (*context->SelectedChoice)->Buffer, FALSE) == CB_ERR)
                 {
                     if (type == PH_CHOICE_DIALOG_USER_CHOICE && *context->SelectedChoice)
                     {
@@ -212,7 +212,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     }
                     else if (type == PH_CHOICE_DIALOG_CHOICE && context->NumberOfChoices != 0)
                     {
-                        ComboBox_SelectString(comboBoxHandle, -1, context->Choices[0]);
+                        ComboBox_SetCurSel(comboBoxHandle, 0);
                     }
                 }
 

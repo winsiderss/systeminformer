@@ -2,7 +2,7 @@
  * Process Hacker -
  *   service properties
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -179,12 +179,12 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 sizeof(PhServiceErrorControlStrings) / sizeof(WCHAR *));
 
             SetDlgItemText(hwndDlg, IDC_DESCRIPTION, serviceItem->DisplayName->Buffer);
-            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1,
-                PhGetServiceTypeString(serviceItem->Type));
-            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_STARTTYPE), -1,
-                PhGetServiceStartTypeString(serviceItem->StartType));
-            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), -1,
-                PhGetServiceErrorControlString(serviceItem->ErrorControl));
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE),
+                PhGetServiceTypeString(serviceItem->Type), FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE),
+                PhGetServiceStartTypeString(serviceItem->StartType), FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL),
+                PhGetServiceErrorControlString(serviceItem->ErrorControl), FALSE);
 
             serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG);
 
