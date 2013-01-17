@@ -2,7 +2,7 @@
  * Process Hacker -
  *   session shadow configuration
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -159,7 +159,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                 }
             }
 
-            ComboBox_SelectString(virtualKeyComboBox, -1, stringToSelect);
+            PhSelectComboBoxString(virtualKeyComboBox, stringToSelect, FALSE);
 
             // Set up the modifiers.
 

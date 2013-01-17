@@ -2,7 +2,7 @@
  * Process Hacker -
  *   service creation dialog
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -63,9 +63,9 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings,
                 sizeof(PhServiceErrorControlStrings) / sizeof(WCHAR *));
 
-            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"Own Process");
-            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_STARTTYPE), -1, L"Demand Start");
-            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), -1, L"Ignore");
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Own Process", FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), L"Demand Start", FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), L"Ignore", FALSE);
 
             if (!PhElevated)
             {
