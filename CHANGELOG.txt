@@ -1,5 +1,10 @@
 Process Hacker
 
+2.31
+ * NEW/IMPROVED:
+   * Updated ExtendedServices plugin:
+     * Fixed some bugs relating to Windows 8
+
 2.30
  * NEW/IMPROVED:
    * Added "Icon click toggles visibility" option
