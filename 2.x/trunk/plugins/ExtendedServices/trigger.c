@@ -593,6 +593,22 @@ VOID EspFormatTriggerInfo(
             }
         }
         break;
+    case SERVICE_TRIGGER_TYPE_CUSTOM_SYSTEM_STATE_CHANGE:
+        {
+            PPH_STRING guidString;
+
+            if (!Info->Subtype)
+            {
+                triggerString = L"Custom system state change";
+            }
+            else
+            {
+                guidString = PhFormatGuid(Info->Subtype);
+                stringUsed = PhConcatStrings2(L"Custom system state change: ", guidString->Buffer);
+                triggerString = stringUsed->Buffer;
+            }
+        }
+        break;
     case SERVICE_TRIGGER_TYPE_CUSTOM:
         {
             if (Info->Subtype)
@@ -1230,7 +1246,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                 if (TypeEntries[i].Type == context->EditingInfo->Type)
                 {
-                    ComboBox_SelectString(typeComboBox, -1, TypeEntries[i].Name);
+                    PhSelectComboBoxString(typeComboBox, TypeEntries[i].Name, FALSE);
                 }
             }
 
@@ -1251,7 +1267,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         memcmp(SubTypeEntries[i].Guid, context->EditingInfo->Subtype, sizeof(GUID)) == 0
                         )
                     {
-                        ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_SUBTYPE), -1, SubTypeEntries[i].Name);
+                        PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_SUBTYPE), SubTypeEntries[i].Name, FALSE);
                         break;
                     }
                 }
@@ -1264,7 +1280,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                     // Try to select the publisher name in the subtype list.
                     publisherName = EspLookupEtwPublisherName(context->EditingInfo->Subtype);
-                    ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_SUBTYPE), -1, publisherName->Buffer);
+                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_SUBTYPE), publisherName->Buffer, FALSE);
                     PhDereferenceObject(publisherName);
                 }
             }

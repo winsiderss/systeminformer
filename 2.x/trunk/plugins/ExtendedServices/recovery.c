@@ -64,7 +64,7 @@ VOID EspAddServiceActionStrings(
     for (i = 0; i < sizeof(ServiceActionPairs) / sizeof(PH_KEY_VALUE_PAIR); i++)
         ComboBox_AddString(ComboBoxHandle, (PWSTR)ServiceActionPairs[i].Key);
 
-    ComboBox_SelectString(ComboBoxHandle, -1, (PWSTR)ServiceActionPairs[0].Key);
+    PhSelectComboBoxString(ComboBoxHandle, (PWSTR)ServiceActionPairs[0].Key, FALSE);
 }
 
 SC_ACTION_TYPE EspStringToServiceAction(
@@ -117,9 +117,9 @@ static VOID ServiceActionToComboBox(
     PWSTR string;
 
     if (string = EspServiceActionToString(ActionType))
-        ComboBox_SelectString(ComboBoxHandle, -1, string);
+        PhSelectComboBoxString(ComboBoxHandle, string, FALSE);
     else
-        ComboBox_SelectString(ComboBoxHandle, -1, (PWSTR)ServiceActionPairs[0].Key);
+        PhSelectComboBoxString(ComboBoxHandle, (PWSTR)ServiceActionPairs[0].Key, FALSE);
 }
 
 static VOID EspFixControls(
