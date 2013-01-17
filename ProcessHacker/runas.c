@@ -2,7 +2,7 @@
  * Process Hacker -
  *   run as dialog
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -276,7 +276,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             ComboBox_AddString(typeComboBoxHandle, L"Network");
             ComboBox_AddString(typeComboBoxHandle, L"New credentials");
             ComboBox_AddString(typeComboBoxHandle, L"Service");
-            ComboBox_SelectString(typeComboBoxHandle, -1, L"Interactive");
+            PhSelectComboBoxString(typeComboBoxHandle, L"Interactive", FALSE);
 
             ComboBox_AddString(userNameComboBoxHandle, L"NT AUTHORITY\\SYSTEM");
             ComboBox_AddString(userNameComboBoxHandle, L"NT AUTHORITY\\LOCAL SERVICE");
@@ -555,17 +555,17 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 WindowsVersion <= WINDOWS_XP
                                 )
                             {
-                                ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"New credentials");
+                                PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"New credentials", FALSE);
                             }
                             else
                             {
-                                ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"Service");
+                                PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Service", FALSE);
                             }
                         }
                         else
                         {
                             EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), TRUE);
-                            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"Interactive");
+                            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Interactive", FALSE);
                         }
                     }
                 }
