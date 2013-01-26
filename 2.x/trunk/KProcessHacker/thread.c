@@ -302,7 +302,9 @@ NTSTATUS KphTerminateThreadByPointerInternal(
         
         dprintf("Calling 8-style PspTerminateThreadByPointer\n");
         directTerminate = Thread == PsGetCurrentThread();
-        
+
+#ifdef _X86_
+
         // PspTerminateThreadByPointer on 8 has its first argument
         // in edi.
         __asm
@@ -313,7 +315,17 @@ NTSTATUS KphTerminateThreadByPointerInternal(
             call    [PspTerminateThreadByPointer_I]
             mov     [status], eax
         }
-        
+
+#else
+
+        status = ((_PspTerminateThreadByPointer52)PspTerminateThreadByPointer_I)(
+            Thread,
+            ExitStatus,
+            Thread == PsGetCurrentThread()
+            );
+
+#endif
+
         return status;
     }
     else
