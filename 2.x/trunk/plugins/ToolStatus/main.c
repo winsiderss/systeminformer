@@ -675,6 +675,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableToolBar", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableStatusBar", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableSearch", L"1" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableTheme", L"0" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.ResolveGhostWindows", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }

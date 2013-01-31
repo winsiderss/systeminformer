@@ -3,8 +3,7 @@
 
 BOOLEAN InsertButton(
     __in HWND WindowHandle, 
-    __in UINT uCmdId, 
-    __in INT nSize
+    __in UINT uCmdId
     );
 
 #endif

@@ -112,11 +112,15 @@ VOID ToolbarCreateSearch(
     SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
     // Set initial text
     SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
-    // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
-    //SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
+
+    if (WindowsVersion < WINDOWS_VISTA)
+    {
+        // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
+        SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
+    }
 
     // insert a paint region into the edit control NC window area       
-    InsertButton(TextboxHandle, ID_SEARCH_CLEAR, 22);
+    InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
 
     PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
     PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
