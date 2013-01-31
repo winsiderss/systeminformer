@@ -22,10 +22,8 @@
 
 #include "updater.h"
 
-#ifdef _DEBUG
 // Force update checks to succeed with debug builds
-#define DEBUG_UPDATE
-#endif
+//#define DEBUG_UPDATE
 
 #define PH_UPDATEISERRORED (WM_APP + 101)
 #define PH_UPDATEAVAILABLE (WM_APP + 102)
@@ -492,29 +490,29 @@ static NTSTATUS UpdateCheckThread(
             if (currentVersion == latestVersion)
             {
                 // User is running the latest version
-                PostMessage(UpdateDialogHandle, PH_UPDATEISCURRENT, 0L, 0L);
+                PostMessage(UpdateDialogHandle, PH_UPDATEISCURRENT, 0, 0);
             }
             else if (currentVersion > latestVersion)
             {
                 // User is running a newer version
-                PostMessage(UpdateDialogHandle, PH_UPDATENEWER, 0L, 0L);
+                PostMessage(UpdateDialogHandle, PH_UPDATENEWER, 0, 0);
             }
             else
             {
                 // User is running an older version
-                PostMessage(UpdateDialogHandle, PH_UPDATEAVAILABLE, 0L, 0L);
+                PostMessage(UpdateDialogHandle, PH_UPDATEAVAILABLE, 0, 0);
             }
         }
         else
         {
             // Display error information if the update checked failed
-            PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0L, 0L);
+            PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
         }
     }
     else
     {
         // Display error information if the update checked failed
-        PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0L, 0L);
+        PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
     }
 
     return STATUS_SUCCESS;
@@ -757,7 +755,7 @@ static NTSTATUS UpdateDownloadThread(
                     // Hash succeeded, set state as ready to install.
                     context->UpdaterState = Install;
 
-                    PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0L, 0L);  
+                    PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0, 0);  
                 }
                 else
                 {
@@ -766,7 +764,7 @@ static NTSTATUS UpdateDownloadThread(
                     // Hash Failed, set state as retry download.
                     context->UpdaterState = Download;
 
-                    PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0L, 0L); 
+                    PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
                 }
 
                 PhDereferenceObject(hexString);
@@ -778,7 +776,7 @@ static NTSTATUS UpdateDownloadThread(
                 // Hash Failed, set state as retry download.
                 context->UpdaterState = Download;
 
-                PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0L, 0L); 
+                PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
             }
         }
     }
@@ -805,7 +803,7 @@ static NTSTATUS UpdateDownloadThread(
     if (!isSuccess)
     {
         // Display error information if the update checked failed
-        PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0L, 0L);
+        PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
     }
 
     return STATUS_SUCCESS;
@@ -956,7 +954,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                                 // Reset the progress bar (might be a download retry)
                                 SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETPOS, 0, 0);
                                 if (WindowsVersion > WINDOWS_XP)
-                                    SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0L);
+                                    SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
 
                                 // Start our Downloader thread
                                 if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
@@ -1093,7 +1091,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 break;
 
             if (WindowsVersion > WINDOWS_XP)
-                SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0L);
+                SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
 
             SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Download complete, SHA1 Hash failed.");
 
@@ -1113,9 +1111,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 {
                     // Launch the ReleaseNotes URL (if it exists) with the default browser
                     if (!PhIsNullOrEmptyString(context->ReleaseNotesUrl))
-                    {
                         PhShellExecute(hwndDlg, context->ReleaseNotesUrl->Buffer, NULL);
-                    }
                 }
                 break;
             }
