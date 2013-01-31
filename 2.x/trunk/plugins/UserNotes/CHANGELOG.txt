@@ -1,3 +1,6 @@
+1.2
+ * Fixed bug where process priorities were not actually saved
+
 1.1
  * Added ability to save process priority
  * Added "Only for processes with the same command line" option for process comments
