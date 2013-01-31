@@ -70,6 +70,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
@@ -158,6 +159,14 @@ VOID NTAPI LoadCallback(
     LoadDb();
 }
 
+VOID NTAPI UnloadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    SaveDb();
+}
+
 VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -201,6 +210,7 @@ VOID NTAPI MenuItemCallback(
             }
 
             UnlockDb();
+            SaveDb();
         }
         break;
     case PROCESS_SAVE_FOR_THIS_COMMAND_LINE_ID:
@@ -221,6 +231,7 @@ VOID NTAPI MenuItemCallback(
                 }
 
                 UnlockDb();
+                SaveDb();
             }
         }
         break;
@@ -680,6 +691,8 @@ LOGICAL DllMain(
 
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
             LoadCallback, NULL, &PluginLoadCallbackRegistration);
+        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+            UnloadCallback, NULL, &PluginUnloadCallbackRegistration);
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
             ShowOptionsCallback, NULL, &PluginShowOptionsCallbackRegistration);
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
