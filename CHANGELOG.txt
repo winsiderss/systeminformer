@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Updated ExtendedServices plugin:
      * Fixed some bugs relating to Windows 8
+   * Updated UserNotes plugin:
+     * Fixed bug where process priorities were not actually saved
 
 2.30
  * NEW/IMPROVED:
