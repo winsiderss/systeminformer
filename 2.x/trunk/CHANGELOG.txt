@@ -6,6 +6,8 @@ Process Hacker
      * Fixed some bugs relating to Windows 8
    * Updated UserNotes plugin:
      * Fixed bug where process priorities were not actually saved
+ * FIXED:
+   * Fixed module list not updating properly
 
 2.30
  * NEW/IMPROVED:

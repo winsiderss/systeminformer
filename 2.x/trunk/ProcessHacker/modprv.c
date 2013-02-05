@@ -385,7 +385,7 @@ VOID PhModuleProviderUpdate(
             {
                 PPH_MODULE_INFO module = modules->Items[i];
 
-                if ((*moduleItem)->BaseAddress == module->BaseAddress)
+                if ((*moduleItem)->BaseAddress == module->BaseAddress && PhEqualString((*moduleItem)->FileName, module->FileName, TRUE))
                 {
                     found = TRUE;
                     break;
