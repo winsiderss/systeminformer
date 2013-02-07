@@ -510,11 +510,6 @@ VOID PhInitializeKph(
 
     KphConnect2Ex(L"KProcessHacker2", kprocesshackerFileName->Buffer, &parameters);
     PhDereferenceObject(kprocesshackerFileName);
-
-    if (KphIsConnected())
-    {
-        KphGetFeatures(&PhKphFeatures);
-    }
 }
 
 BOOLEAN PhInitializeAppSystem(
