@@ -1376,6 +1376,12 @@ NTSTATUS PhCreateFileWin32Ex(
     );
 
 PHLIBAPI
+NTSTATUS PhQueryFullAttributesFileWin32(
+    __in PWSTR FileName,
+    __out PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    );
+
+PHLIBAPI
 NTSTATUS PhDeleteFileWin32(
     __in PWSTR FileName
     );
