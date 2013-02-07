@@ -190,6 +190,43 @@ NTSTATUS PhCreateFileWin32Ex(
 }
 
 /**
+ * Queries file attributes.
+ *
+ * \param FileName The Win32 file name.
+ * \param FileInformation A variable that receives the file information.
+ */
+NTSTATUS PhQueryFullAttributesFileWin32(
+    __in PWSTR FileName,
+    __out PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES oa;
+
+    if (!RtlDosPathNameToNtPathName_U(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        ))
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+
+    InitializeObjectAttributes(
+        &oa,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtQueryFullAttributesFile(&oa, FileInformation);
+    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
+
+    return status;
+}
+
+/**
  * Deletes a file.
  *
  * \param FileName The Win32 file name.
