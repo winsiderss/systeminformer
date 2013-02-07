@@ -1172,15 +1172,25 @@ LRESULT CALLBACK MainWndSubclassProc(
                     if (processItem)
                     {
                         PDB_OBJECT object;
+                        BOOLEAN changed = FALSE;
 
                         LockDb();
 
                         if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_PRIORITY_CLASS))
                         {
-                            object->PriorityClass = GetPriorityClassFromId(LOWORD(wParam));
+                            ULONG newPriorityClass = GetPriorityClassFromId(LOWORD(wParam));
+
+                            if (object->PriorityClass != newPriorityClass)
+                            {
+                                object->PriorityClass = newPriorityClass;
+                                changed = TRUE;
+                            }
                         }
 
                         UnlockDb();
+
+                        if (changed)
+                            SaveDb();
                     }
                 }
                 break;
