@@ -2006,6 +2006,9 @@ VOID PhProcessProviderUpdate(
             // Open a handle to the process for later usage.
             PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
 
+            if (WINDOWS_HAS_LIMITED_ACCESS && !processItem->QueryHandle)
+                PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId);
+
             PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 
