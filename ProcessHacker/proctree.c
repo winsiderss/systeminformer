@@ -2983,6 +2983,28 @@ VOID PhDeselectAllProcessNodes(
     TreeNew_DeselectRange(ProcessTreeListHandle, 0, -1);
 }
 
+VOID PhExpandAllProcessNodes(
+    __in BOOLEAN Expand
+    )
+{
+    ULONG i;
+    BOOLEAN needsRestructure = FALSE;
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        if (node->Children->Count != 0 && node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(ProcessTreeListHandle);
+}
+
 VOID PhInvalidateAllProcessNodes(
     VOID
     )
