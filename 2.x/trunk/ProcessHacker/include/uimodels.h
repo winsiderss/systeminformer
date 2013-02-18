@@ -372,6 +372,11 @@ VOID PhDeselectAllProcessNodes(
     );
 
 PHAPPAPI
+VOID PhExpandAllProcessNodes(
+    __in BOOLEAN Expand
+    );
+
+PHAPPAPI
 VOID PhInvalidateAllProcessNodes(
     VOID
     );
