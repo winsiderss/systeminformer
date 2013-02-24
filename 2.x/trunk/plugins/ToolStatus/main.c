@@ -306,7 +306,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             switch (HIWORD(wParam))
             {
             case EN_CHANGE:
-                {
+                {            
                     // Expand the nodes so we can search them
                     PhExpandAllProcessNodes(TRUE);
                     PhDeselectAllProcessNodes();
