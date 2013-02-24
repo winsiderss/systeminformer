@@ -196,8 +196,11 @@ VOID ApplyToolbarSettings(
         
         SetRebarMenuLayout();
 
-        ShowWindow(ReBarHandle, SW_SHOW); 
-        ShowWindow(ToolBarHandle, SW_SHOW);
+        if (ReBarHandle)
+            ShowWindow(ReBarHandle, SW_SHOW);
+
+        if (ToolBarHandle)
+            ShowWindow(ToolBarHandle, SW_SHOW);
     }
     else
     {
@@ -304,6 +307,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
             case EN_CHANGE:
                 {
+                    PhExpandAllProcessNodes(TRUE);
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
