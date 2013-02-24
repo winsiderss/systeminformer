@@ -26,6 +26,10 @@
 #include "toolstatus.h"
 #include "searchbox.h"
 
+#include <uxtheme.h>
+#include <vsstyle.h>
+#pragma comment(lib, "uxtheme.lib")
+
 typedef struct _NC_CONTROL
 {
     UINT CommandID; // sent in a WM_COMMAND message
@@ -42,14 +46,15 @@ typedef struct _NC_CONTROL
     RECT rect;
     RECT oldrect;
     RECT* prect;
-      
-    HIMAGELIST ImageList;
+         
     HBRUSH BorderBrush;
     HBRUSH DcBrush;
+    HTHEME WndHTheme;
+    HIMAGELIST ImageList;
     HWND ParentWindow;
     WNDPROC NCAreaWndProc;
 } NC_CONTROL;
-
+            
 static VOID GetButtonRect(
     __inout NC_CONTROL* nc,
     __in RECT* rect
@@ -87,7 +92,7 @@ static VOID DrawInsertedButton(
             0, 0,
             CLR_NONE,
             CLR_NONE,
-            ILD_NORMAL | ILD_TRANSPARENT   
+            ILD_NORMAL | ILD_TRANSPARENT | ILD_SCALE
             );
     }
     else
@@ -101,7 +106,7 @@ static VOID DrawInsertedButton(
             0, 0,
             CLR_NONE,
             CLR_NONE,
-            ILD_NORMAL | ILD_TRANSPARENT
+            ILD_NORMAL | ILD_TRANSPARENT | ILD_SCALE
             );
     }
 }
@@ -134,6 +139,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     
     switch (uMsg)
     {  
+    case WM_NCACTIVATE:
     case WM_ERASEBKGND:
         return TRUE;
     case WM_NCCALCSIZE:
@@ -168,18 +174,32 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_NCPAINT:
         {      
             HDC hdc;
-
+     
             if (hdc = GetWindowDC(hwndDlg))
             {
                 // get the screen coordinates of the window
                 GetWindowRect(hwndDlg, &context->rect);
                 // adjust the coordinates - start from 0,0
                 OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
-
-                // Clear the draw region 
-                FillRect(hdc, &context->rect, context->DcBrush);
-                // Set border color
-                FrameRect(hdc, &context->rect, context->BorderBrush);
+   
+                if (context->WndHTheme)
+                {
+                    DrawThemeBackground(
+                        context->WndHTheme, 
+                        hdc, 
+                        EP_BACKGROUNDWITHBORDER, 
+                        EBWBS_NORMAL, 
+                        &context->rect, 
+                        0
+                        );
+                }
+                else
+                {
+                    // Clear the draw region 
+                    FillRect(hdc, &context->rect, context->DcBrush);
+                    // Set border color
+                    FrameRect(hdc, &context->rect, context->BorderBrush);
+                }
 
                 // work out where to draw the button
                 GetButtonRect(context, &context->rect);
@@ -237,11 +257,11 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
                     );
 
                 // invalidate the nonclient area
-                RedrawWindow(
-                    hwndDlg, 
-                    NULL, NULL, 
-                    RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_NOCHILDREN
-                    );
+                //RedrawWindow(
+                //    hwndDlg, 
+                //    NULL, NULL, 
+                //    RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_NOCHILDREN
+                //    );
             }
         }
         return FALSE;
@@ -279,6 +299,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             context->pt.x = GET_X_LPARAM(lParam);
             context->pt.y = GET_Y_LPARAM(lParam);
 
+            // Always release
             ReleaseCapture();
 
             ClientToScreen(hwndDlg, &context->pt);
@@ -296,16 +317,15 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             {
                 context->TextLength = Edit_GetTextLength(hwndDlg) > 0;
 
-                RedrawWindow(
-                    hwndDlg, 
-                    NULL, NULL, 
-                    RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_NOCHILDREN
-                    );
+                //RedrawWindow(
+                //    hwndDlg, 
+                //    NULL, NULL, 
+                //    RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_NOCHILDREN
+                //    );
             }
         }
         return FALSE;
     case WM_KEYUP:
-    case WM_KILLFOCUS:
         {   
             context->TextLength = Edit_GetTextLength(hwndDlg) > 0;
 
@@ -327,24 +347,35 @@ BOOLEAN InsertButton(
     __in UINT CommandID
     )
 {
-    NC_CONTROL* context = (NC_CONTROL*)PhAllocate(sizeof(NC_CONTROL));
+    NC_CONTROL* context = (NC_CONTROL*)PhAllocate(
+        sizeof(NC_CONTROL)
+        );
 
     memset(context, 0, sizeof(NC_CONTROL));
-   
-    
+       
     context->CommandID = CommandID;
     context->ParentWindow = GetParent(hwndDlg);
-
-    context->DcBrush = (HBRUSH)GetStockObject(DC_BRUSH);
     context->BorderBrush = (HBRUSH)CreateSolidBrush(RGB(0x8f, 0x8f, 0x8f));
+    context->DcBrush = (HBRUSH)GetStockObject(DC_BRUSH);
     // search image sizes are 23x20
-    context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
     context->nButSize = 21;
+    context->ImageList = ImageList_Create(18, 18, ILC_COLOR32 | ILC_MASK, 0, 0);
 
     // Set the number of images
     ImageList_SetImageCount(context->ImageList, 2);
     PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
     PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
+
+    context->WndHTheme = OpenThemeData(hwndDlg, VSCLASS_EDIT); // SearchBox, SearchEditBox, Edit::SearchBox, Edit::SearchEditBox
+    //We can also SetWindowTheme:
+    //    InactiveSearchBoxEdit
+    //    InactiveSearchBoxEditComposited
+    //    MaxInactiveSearchBoxEdit
+    //    MaxInactiveSearchBoxEditComposited
+    //    MaxSearchBoxEdit
+    //    MaxSearchBoxEditComposited
+    //    SearchBoxEdit
+    //    SearchBoxEditComposited
 
     // associate our button state structure with the window before subclassing the WndProc
     SetProp(hwndDlg, L"Context", (HANDLE)context);
@@ -352,12 +383,15 @@ BOOLEAN InsertButton(
     // replace the old window procedure with our new one
     context->NCAreaWndProc = SubclassWindow(hwndDlg, NcAreaWndSubclassProc);
 
-    // force the edit control to update its non-client area
-    SetWindowPos(
-        hwndDlg,
-        0, 0, 0, 0, 0,
-        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
-        );
+    if (!context->WndHTheme)
+    {
+        //force the edit control to update its non-client area
+        SetWindowPos(
+            hwndDlg,
+            0, 0, 0, 0, 0,
+            SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+            );
+    }
 
     return TRUE;
 }
