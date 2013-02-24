@@ -45,8 +45,6 @@ static BOOLEAN WordMatch(
         }
     }
 
-    //PhStringToInteger64(
-
     return FALSE;
 }
 
@@ -57,60 +55,51 @@ BOOLEAN ProcessTreeFilterCallback(
 {
     HWND textboxHandle = (HWND)Context;
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
+    PPH_STRING textboxText;
 
-    // Check if the textbox actually contains anything.
-    if (GetWindowTextLength(textboxHandle) > 0)
+    textboxText = PhGetWindowText(textboxHandle);
+
+    if (textboxText)
     {
-        BOOLEAN itemFound = FALSE;
-        PH_STRINGREF pidStringRef;
-        PPH_STRING textboxText;
-
-        textboxText = PhGetWindowText(textboxHandle);
-
-        if (textboxText)
+        if (textboxText->Length > 0)
         {
+            BOOLEAN showItem = FALSE;
+            PH_STRINGREF pidStringRef;
+
             PhInitializeStringRef(&pidStringRef, processNode->ProcessItem->ProcessIdString);
+      
+            // Search process PIDs
+            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
+                showItem = TRUE;
 
             // Search process names
             if (processNode->ProcessItem->ProcessName)
             {
                 if (WordMatch(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
 
             // Search process company
             if (processNode->ProcessItem->VersionInfo.CompanyName)
             {
                 if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
 
             // Search process descriptions
             if (processNode->ProcessItem->VersionInfo.FileDescription)
             {
                 if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search process PIDs
-            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
+                    showItem = TRUE;
             }
 
             PhDereferenceObject(textboxText);
+            return showItem;
         }
 
-        return itemFound;
+        PhDereferenceObject(textboxText);
     }
 
-    // show all items
     return TRUE;
 }
 
@@ -120,52 +109,45 @@ BOOLEAN ServiceTreeFilterCallback(
     )
 {
     HWND textboxHandle = (HWND)Context;
-    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
+    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node; 
+    PPH_STRING textboxText;
 
-    // Check if the textbox actually contains anything.
-    if (GetWindowTextLength(textboxHandle) > 0)
+    textboxText = PhGetWindowText(textboxHandle);
+
+    if (textboxText)
     {
-        BOOLEAN itemFound = FALSE;
-        PH_STRINGREF pidStringRef;
-        PPH_STRING textboxText;
-
-        textboxText = PhGetWindowText(textboxHandle);
-
-        if (textboxText)
+        if (textboxText->Length > 0)
         {
+            BOOLEAN showItem = FALSE;
+            PH_STRINGREF pidStringRef;
+
             PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
 
-            // Search service name.
+            // Search process PIDs
+            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
+                showItem = TRUE;
+
+            // Search service name
             if (serviceNode->ServiceItem->Name)
             {
                 if (WordMatch(&serviceNode->ServiceItem->Name->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
 
-            // Search service display name.
+            // Search service display name
             if (serviceNode->ServiceItem->DisplayName)
             {
                 if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
-            }
-
-            // Search process PIDs.
-            if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
-            {
-                itemFound = TRUE;
+                    showItem = TRUE;
             }
 
             PhDereferenceObject(textboxText);
+            return showItem;
         }
 
-        return itemFound;
+        PhDereferenceObject(textboxText);
     }
 
-    // show all items
     return TRUE;
 }
 
@@ -176,19 +158,18 @@ BOOLEAN NetworkTreeFilterCallback(
 {
     HWND textboxHandle = (HWND)Context;
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
+    PPH_STRING textboxText;
 
-     // Check if the textbox actually contains anything.
-    if (GetWindowTextLength(textboxHandle) > 0)
+    textboxText = PhGetWindowText(textboxHandle);
+
+    if (textboxText)
     {
-        PH_STRINGREF pidStringRef;
-        BOOLEAN itemFound = FALSE;
-        PPH_STRING textboxText;
-        WCHAR pidString[32];
-
-        textboxText = PhGetWindowText(textboxHandle);
-
-        if (textboxText)
+        if (textboxText->Length > 0)
         {
+            BOOLEAN showItem = FALSE;
+            PH_STRINGREF pidStringRef;
+            WCHAR pidString[32];
+
             // Search PID
             PhPrintUInt32(pidString, (ULONG)networkNode->NetworkItem->ProcessId);
             PhInitializeStringRef(&pidStringRef, pidString);
@@ -196,7 +177,7 @@ BOOLEAN NetworkTreeFilterCallback(
             // Search network process PIDs
             if (WordMatch(&pidStringRef, &textboxText->sr, TRUE))
             {
-                itemFound = TRUE;
+                showItem = TRUE;
             }
 
             // Search connection process name
@@ -204,7 +185,7 @@ BOOLEAN NetworkTreeFilterCallback(
             {
                 if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr, TRUE))
                 {
-                    itemFound = TRUE;
+                    showItem = TRUE;
                 }
             }
 
@@ -212,37 +193,28 @@ BOOLEAN NetworkTreeFilterCallback(
             if (networkNode->NetworkItem->LocalAddressString)
             {
                 PH_STRINGREF localAddressRef;
-
                 PhInitializeStringRef(&localAddressRef, networkNode->NetworkItem->LocalAddressString);
 
                 if (WordMatch(&localAddressRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
 
             if (networkNode->NetworkItem->LocalPortString)
             {
                 PH_STRINGREF localPortRef;
-
                 PhInitializeStringRef(&localPortRef, networkNode->NetworkItem->LocalPortString);
 
                 if (WordMatch(&localPortRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
 
             if (networkNode->NetworkItem->RemoteAddressString)
             {
                 PH_STRINGREF remoteAddressRef;
-
                 PhInitializeStringRef(&remoteAddressRef, networkNode->NetworkItem->RemoteAddressString);
 
                 if (WordMatch(&remoteAddressRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
                         
             if (networkNode->NetworkItem->RemotePortString)
@@ -252,25 +224,21 @@ BOOLEAN NetworkTreeFilterCallback(
                 PhInitializeStringRef(&remotePortRef, networkNode->NetworkItem->RemotePortString);
 
                 if (WordMatch(&remotePortRef, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
 
             if (networkNode->NetworkItem->RemoteHostString)
             {
                 if (WordMatch(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr, TRUE))
-                {
-                    itemFound = TRUE;
-                }
+                    showItem = TRUE;
             }
-          
+
             PhDereferenceObject(textboxText);
+            return showItem;
         }
-        
-        return itemFound;
+
+        PhDereferenceObject(textboxText);
     }
 
-    // Textbox empty, allow all items to be shown.
     return TRUE;
 }
