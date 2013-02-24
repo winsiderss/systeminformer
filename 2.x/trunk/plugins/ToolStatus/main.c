@@ -307,7 +307,11 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
             case EN_CHANGE:
                 {
+                    // Expand the nodes so we can search them
                     PhExpandAllProcessNodes(TRUE);
+                    PhDeselectAllProcessNodes();
+                    PhDeselectAllServiceNodes();
+
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
