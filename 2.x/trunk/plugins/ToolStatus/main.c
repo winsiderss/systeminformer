@@ -22,7 +22,6 @@
  */
 
 #include "toolstatus.h"
-#include "toolbar.h"
 #include "statusbar.h"
 
 #define ID_SEARCH_CLEAR (WM_USER + 1)
@@ -46,7 +45,12 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN EnableSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
+
 static HWND ReBarHandle = NULL;
+static HWND ToolBarHandle;
+static HIMAGELIST ToolBarImageList;
+static HWND TextboxHandle;
+static HFONT TextboxFontHandle;
 static RECT ReBarRect = { 0, 0, 0, 0 };
 
 static VOID NTAPI ProcessesUpdatedCallback(
@@ -288,6 +292,10 @@ VOID ApplyToolbarSettings(
     {
         if (TextboxHandle)
         {
+            // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
+            Edit_SetSel(TextboxHandle, 0, -1);    
+            SetWindowText(TextboxHandle, L"");   
+
             DestroyWindow(TextboxHandle);
             TextboxHandle = NULL;
         }
@@ -315,15 +323,69 @@ VOID ApplyToolbarSettings(
     {
         if (!TextboxHandle)
         {
-            ToolbarCreateSearch(ToolBarHandle);
-            // inset the edit control into the rebar control
+            LOGFONT logFont;
+            memset(&logFont, 0, sizeof(LOGFONT));
+
+            logFont.lfHeight = WindowsVersion > WINDOWS_XP ? -11 : -12;
+            logFont.lfWeight = FW_NORMAL;   
+
+            wcscpy_s(
+                logFont.lfFaceName, 
+                _countof(logFont.lfFaceName), 
+                WindowsVersion > WINDOWS_XP ? L"MS Shell Dlg 2" : L"MS Shell Dlg"
+                );
+
+            TextboxHandle = CreateWindowEx(
+                0,
+                WC_EDIT,
+                NULL,
+                WS_CHILD | WS_VISIBLE | ES_LEFT,
+                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                ToolBarHandle,
+                NULL,
+                (HINSTANCE)PluginInstance->DllBase,
+                NULL
+                );
+
+            // Create the font handle
+            TextboxFontHandle = CreateFontIndirect(&logFont);
+
+            // Set Searchbox control font
+            SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
+            // Set initial text
+            SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
+
+            if (WindowsVersion < WINDOWS_VISTA)
+            {
+                // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
+                SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
+            }
+
+            // insert a paint region into the edit control NC window area       
+            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+
+            PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
+            PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
+            PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle);  
+
+            // insert the edit control into the rebar control
             RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 20, 200);
         }
     }
     else
     {
-        if (TextboxHandle)
+        if (TextboxFontHandle)
         {
+            DeleteObject(TextboxFontHandle);
+            TextboxFontHandle = NULL;
+        }
+
+        if (TextboxHandle)
+        {        
+            // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
+            Edit_SetSel(TextboxHandle, 0, -1);    
+            SetWindowText(TextboxHandle, L"");  
+
             DestroyWindow(TextboxHandle);
             TextboxHandle = NULL;
         }
@@ -416,7 +478,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     PhExpandAllProcessNodes(TRUE);
                     PhDeselectAllProcessNodes();
                     PhDeselectAllServiceNodes();
-
+                   
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
