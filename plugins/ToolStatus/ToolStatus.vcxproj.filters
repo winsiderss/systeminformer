@@ -24,9 +24,6 @@
     <ClCompile Include="statusbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="toolbar.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="filter.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,9 +36,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="toolstatus.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="toolbar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="searchbox.h">

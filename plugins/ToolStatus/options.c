@@ -22,7 +22,6 @@
  */
 
 #include "toolstatus.h"
-#include "toolbar.h"
 
 INT_PTR CALLBACK OptionsDlgProc(
     __in HWND hwndDlg,
@@ -60,7 +59,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDOK:
                 {
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle",
-                        (DisplayStyle = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
+                        (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch",
                         (EnableSearch = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESEARCH)) == BST_CHECKED));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar",
