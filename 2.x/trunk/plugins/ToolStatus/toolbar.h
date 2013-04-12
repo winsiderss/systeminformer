@@ -29,24 +29,8 @@ extern HIMAGELIST ToolBarImageList;
 extern HWND TextboxHandle;
 extern HFONT TextboxFontHandle;
 
-VOID ToolBarCreate(
-    __in HWND ParentHandle
-    );
-
-VOID ToolBarDestroy(
-    VOID
-    );
-
 VOID ToolbarCreateSearch(
     __in HWND ParentHandle
-    );
-
-VOID ToolBarCreateImageList(
-    __in HWND WindowHandle
-    );
-
-VOID ToolbarAddMenuItems(
-    __in HWND WindowHandle
     );
 
 #endif

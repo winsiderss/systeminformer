@@ -22,12 +22,12 @@
  */
 
 #include "toolstatus.h"
-#include "rebar.h"
 #include "toolbar.h"
 #include "statusbar.h"
 
 #define ID_SEARCH_CLEAR (WM_USER + 1)
 
+PPH_PLUGIN PluginInstance = NULL;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
@@ -46,7 +46,8 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN EnableSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
-PPH_PLUGIN PluginInstance = NULL;
+static HWND ReBarHandle = NULL;
+static RECT ReBarRect = { 0, 0, 0, 0 };
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -124,6 +125,26 @@ static BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
+VOID RebarAddMenuItem(
+    __in HWND WindowHandle,
+    __in HWND ChildHandle,
+    __in UINT ID,
+    __in UINT cyMinChild,
+    __in UINT cxMinChild
+    )
+{
+    REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
+    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
+    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+    
+    rebarBandInfo.wID = ID;
+    rebarBandInfo.hwndChild = ChildHandle;
+    rebarBandInfo.cyMinChild = cyMinChild;
+    rebarBandInfo.cxMinChild = cxMinChild;
+
+    SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+}
+
 VOID SetRebarMenuLayout(
     VOID
     )
@@ -178,49 +199,116 @@ VOID SetRebarMenuLayout(
 VOID ApplyToolbarSettings(
     VOID
     )
-{
+{                
+    static TBBUTTON tbButtonArray[] =
+    {
+        { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
+        { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
+        { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+        { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+        { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
+        { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+        { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
+        { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+        { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
+    };
+
     if (EnableToolBar)
     {
         if (!ReBarHandle)
-            RebarCreate(PhMainWndHandle);
+        {
+            REBARINFO rebarInfo = { sizeof(REBARINFO) };
+
+            // Create the rebar
+            ReBarHandle = CreateWindowEx(
+                WS_EX_TOOLWINDOW,
+                REBARCLASSNAME,
+                NULL,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT,
+                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                PhMainWndHandle,
+                NULL,
+                (HINSTANCE)PluginInstance->DllBase,
+                NULL
+                );
+
+            // no imagelist to attach to rebar
+            SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
+            //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+        }
 
         if (!ToolBarHandle)
         {
-            ToolBarCreate(PhMainWndHandle);       
-            ToolBarCreateImageList(ToolBarHandle);
-            ToolbarAddMenuItems(ToolBarHandle);
+            // Create the toolbar window
+            ToolBarHandle = CreateWindowEx(
+                0,
+                TOOLBARCLASSNAME,
+                NULL,
+                WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT,
+                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                PhMainWndHandle,
+                NULL,
+                (HINSTANCE)PluginInstance->DllBase,
+                NULL
+                );
 
+            // Set the toolbar struct size
+            SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+            // Set the extended toolbar styles
+            SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
+            // Set the window theme
+            //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+
+            // Create the toolbar imagelist
+            ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
+            // Set the number of images
+            ImageList_SetImageCount(ToolBarImageList, 7);
+            // Add the images to the imagelist - same index as the first tbButtonArray field
+            PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
+            PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
+            PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
+            PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
+            PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
+            PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
+            PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
+
+            // Configure the toolbar imagelist
+            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
+
+            // Add the buttons to the toolbar 
+            SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
+           
             // inset the toolbar into the rebar control
             RebarAddMenuItem(ReBarHandle, ToolBarHandle, 0, 23, 0);
         }
         
         SetRebarMenuLayout();
-
-        if (ReBarHandle)
-            ShowWindow(ReBarHandle, SW_SHOW);
-
-        if (ToolBarHandle)
-            ShowWindow(ToolBarHandle, SW_SHOW);
     }
     else
     {
-        if (ToolBarHandle)
-            ShowWindow(ToolBarHandle, SW_HIDE);
-
-        if (ReBarHandle)
-            ShowWindow(ReBarHandle, SW_HIDE); 
-
         if (TextboxHandle)
-        { 
-            // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
-            Edit_SetSel(TextboxHandle, 0, -1);    
-            SetWindowText(TextboxHandle, L"");
-
-            ShowWindow(TextboxHandle, SW_HIDE);
+        {
+            DestroyWindow(TextboxHandle);
+            TextboxHandle = NULL;
         }
 
-        ToolBarDestroy();
-        RebarDestroy();
+        if (ToolBarHandle)
+        {
+            DestroyWindow(ToolBarHandle);
+            ToolBarHandle = NULL;
+        }
+
+        if (ToolBarImageList)
+        {
+            ImageList_Destroy(ToolBarImageList);
+            ToolBarImageList = NULL;
+        }
+
+        if (ReBarHandle)
+        {
+            DestroyWindow(ReBarHandle);
+            ReBarHandle = NULL;
+        }
     }
 
     if (EnableSearch)
@@ -231,23 +319,40 @@ VOID ApplyToolbarSettings(
             // inset the edit control into the rebar control
             RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 20, 200);
         }
- 
-        ShowWindow(TextboxHandle, SW_SHOW);
+    }
+    else
+    {
+        if (TextboxHandle)
+        {
+            DestroyWindow(TextboxHandle);
+            TextboxHandle = NULL;
+        }
     }
 
     if (EnableStatusBar)
     {
         if (!StatusBarHandle)
-            StatusBarCreate(PhMainWndHandle);
-
-        ShowWindow(StatusBarHandle, SW_SHOW);  
+        {
+            StatusBarHandle = CreateWindowEx(
+                0,
+                STATUSCLASSNAME,
+                NULL,
+                WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                PhMainWndHandle,
+                NULL,
+                (HINSTANCE)PluginInstance->DllBase,
+                NULL
+                );
+        }
     }
     else
     {
         if (StatusBarHandle)
-            ShowWindow(StatusBarHandle, SW_HIDE);
-
-        StatusBarDestroy();
+        {
+            DestroyWindow(StatusBarHandle);
+            StatusBarHandle = NULL;
+        }
     }
 }
 

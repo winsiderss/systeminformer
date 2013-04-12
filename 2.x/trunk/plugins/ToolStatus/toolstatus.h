@@ -61,6 +61,7 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableStatusBar;
+extern BOOLEAN EnableSearch;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 
 VOID ApplyToolbarSettings(

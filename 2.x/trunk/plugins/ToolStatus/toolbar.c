@@ -31,57 +31,12 @@ HIMAGELIST ToolBarImageList;
 HWND TextboxHandle;
 HFONT TextboxFontHandle;
 
-VOID ToolBarCreate(
-    __in HWND ParentHandle
-    )
-{
-    ToolBarHandle = CreateWindowEx(
-        0,
-        TOOLBARCLASSNAME,
-        NULL,
-        WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        ParentHandle,
-        NULL,
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
-
-    // Set the toolbar struct size.
-    SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    // Set the extended toolbar styles.
-    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
-    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
-}
-
-VOID ToolBarDestroy(
-    VOID
-    )
-{
-    if (TextboxHandle)
-    {
-        DestroyWindow(TextboxHandle);
-        TextboxHandle = NULL;
-    }
-        
-    if (ToolBarHandle)
-    {
-        DestroyWindow(ToolBarHandle);
-        ToolBarHandle = NULL;
-    }
-
-    if (ToolBarImageList)
-    {
-        ImageList_Destroy(ToolBarImageList);
-        ToolBarImageList = NULL;
-    }
-}
-
 VOID ToolbarCreateSearch(
     __in HWND ParentHandle
     )
 { 
     LOGFONT logFont;
+
     memset(&logFont, 0, sizeof(LOGFONT));
         
     logFont.lfHeight = WindowsVersion > WINDOWS_XP ? -11 : -12;
@@ -97,7 +52,7 @@ VOID ToolbarCreateSearch(
         0,
         WC_EDIT,
         NULL,
-        WS_CHILD | ES_LEFT,
+        WS_CHILD | WS_VISIBLE | ES_LEFT,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         ParentHandle,
         NULL,
@@ -125,46 +80,4 @@ VOID ToolbarCreateSearch(
     PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
     PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
     PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle);  
-}
-
-VOID ToolBarCreateImageList(
-    __in HWND WindowHandle
-    )
-{
-    // Create the toolbar imagelist
-    ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
-    // Set the number of images
-    ImageList_SetImageCount(ToolBarImageList, 7);
-    // Add the images to the imagelist - same index as the first tbButtonArray field
-    PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
-    PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
-    PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
-    PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
-    PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
-    PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
-    PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
-
-    // Configure the toolbar imagelist
-    SendMessage(WindowHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
-}
-
-VOID ToolbarAddMenuItems(
-    __in HWND WindowHandle
-    )
-{
-    TBBUTTON tbButtonArray[] =
-    {
-        { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
-        { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
-        { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-        { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
-        { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
-        { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-        { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
-    };
-
-    // Add the buttons to the toolbar
-    SendMessage(WindowHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
 }
