@@ -24,9 +24,6 @@
     <ClCompile Include="statusbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rebar.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="toolbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -51,9 +48,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="statusbar.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="rebar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

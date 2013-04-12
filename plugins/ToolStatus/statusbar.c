@@ -30,34 +30,6 @@ ULONG StatusMask;
 ULONG ProcessesUpdatedCount;
 ULONG StatusBarMaxWidths[STATUS_COUNT];
 
-VOID StatusBarCreate(
-    __in HWND ParentHandle
-    )
-{
-    StatusBarHandle = CreateWindowEx(
-        0,
-        STATUSCLASSNAME,
-        NULL,
-        WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        ParentHandle,
-        NULL,
-        (HINSTANCE)PluginInstance->DllBase,
-        NULL
-        );
-}
-
-VOID StatusBarDestroy(
-    VOID
-    )
-{     
-    if (StatusBarHandle)
-    {
-        DestroyWindow(StatusBarHandle);
-        StatusBarHandle = NULL;
-    }
-}
-
 VOID ShowStatusMenu(
     __in PPOINT Point
     )
