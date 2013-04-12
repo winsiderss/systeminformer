@@ -29,9 +29,16 @@
 #include <uxtheme.h>
 #include <vsstyle.h>
 #include <vssym32.h>
-#pragma comment(lib, "uxtheme.lib")
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
+
+_IsThemeActive IsThemeActive_I;
+_OpenThemeData OpenThemeData_I;
+_CloseThemeData CloseThemeData_I;
+_IsThemePartDefined IsThemePartDefined_I;
+_DrawThemeBackground DrawThemeBackground_I;
+_DrawThemeText DrawThemeText_I;
+_GetThemeInt GetThemeInt_I;
 
 typedef struct _NC_CONTROL
 {
@@ -53,6 +60,7 @@ typedef struct _NC_CONTROL
     HBRUSH BorderBrush;
     HBRUSH DcBrush;
     HTHEME WndHTheme;
+    HMODULE uxthemeHandle;
     HIMAGELIST ImageList;
     HWND ParentWindow;
 } NC_CONTROL;
@@ -140,10 +148,10 @@ VOID PhTnpDrawThemedBorder(
     //ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
     // Draw the themed border.
-    DrawThemeBackground(Context->WndHTheme, hdc, 0, 0, &windowRect, NULL);
+    DrawThemeBackground_I(Context->WndHTheme, hdc, 0, 0, &windowRect, NULL);
 
     // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't fully paint the region.
-    if (SUCCEEDED(GetThemeInt(Context->WndHTheme, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
+    if (SUCCEEDED(GetThemeInt_I(Context->WndHTheme, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
     {
         borderX = sizingBorderWidth;
         borderY = sizingBorderWidth;
@@ -224,13 +232,39 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
 
     if (uMsg == WM_DESTROY)
     {
+        if (context->BorderBrush)
+        {
+            DeleteObject(context->BorderBrush);
+            context->BorderBrush = NULL;
+        }
+
+        if (context->DcBrush)
+        {
+            DeleteObject(context->DcBrush);
+            context->DcBrush = NULL;
+        }
+
         if (context->ImageList)
         {
             ImageList_Destroy(context->ImageList);
             context->ImageList = NULL;
         }
 
-        RemoveProp(hwndDlg, L"Context");     
+        if (CloseThemeData_I && context->WndHTheme)
+        {
+            CloseThemeData_I(context->WndHTheme);
+            context->WndHTheme = NULL;
+        }
+
+        if (context->uxthemeHandle)
+        {
+            FreeLibrary(context->uxthemeHandle);
+            context->uxthemeHandle = NULL;
+        }
+
+        RemoveProp(hwndDlg, L"Context");
+        RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
+
         PhFree(context);
         return FALSE;
     }
@@ -272,7 +306,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_NCPAINT:
         {
             if (!PhTnpOnNcPaint(hwndDlg, context, (HRGN)wParam))
-                return 0;
+                return FALSE;
         }
         break;
         //case WM_NCPAINT:
@@ -451,7 +485,7 @@ BOOLEAN InsertButton(
     )
 {
     NC_CONTROL* context = (NC_CONTROL*)PhAllocate(sizeof(NC_CONTROL));
-
+    
     memset(context, 0, sizeof(NC_CONTROL));
 
     context->CommandID = CommandID;
@@ -467,7 +501,16 @@ BOOLEAN InsertButton(
     PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
     PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
 
-    context->WndHTheme = OpenThemeData(hwndDlg, VSCLASS_EDIT); // SearchBox, SearchEditBox, Edit::SearchBox, Edit::SearchEditBox
+    context->uxthemeHandle = LoadLibrary(L"uxtheme.dll");
+    IsThemeActive_I = (_IsThemeActive)GetProcAddress(context->uxthemeHandle, "IsThemeActive");
+    OpenThemeData_I = (_OpenThemeData)GetProcAddress(context->uxthemeHandle, "OpenThemeData");
+    CloseThemeData_I = (_CloseThemeData)GetProcAddress(context->uxthemeHandle, "CloseThemeData");
+    IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(context->uxthemeHandle, "IsThemePartDefined");
+    DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(context->uxthemeHandle, "DrawThemeBackground");
+    DrawThemeText_I = (_DrawThemeText)GetProcAddress(context->uxthemeHandle, "DrawThemeText");
+    GetThemeInt_I = (_GetThemeInt)GetProcAddress(context->uxthemeHandle, "GetThemeInt");
+  
+    context->WndHTheme = OpenThemeData_I(hwndDlg, VSCLASS_EDIT); // SearchBox, SearchEditBox, Edit::SearchBox, Edit::SearchEditBox
     //We can also SetWindowTheme:
     //    InactiveSearchBoxEdit
     //    InactiveSearchBoxEditComposited

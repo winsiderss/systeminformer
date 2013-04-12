@@ -30,16 +30,11 @@ extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG StatusBarMaxWidths[STATUS_COUNT];
 
-VOID StatusBarCreate(
-    __in HWND ParentHandle
-    );
 VOID UpdateStatusBar(
     VOID
     );
 VOID ShowStatusMenu(
     __in PPOINT Point
     );
-VOID StatusBarDestroy(
-    VOID
-    );
+
 #endif

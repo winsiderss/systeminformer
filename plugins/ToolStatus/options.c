@@ -42,7 +42,9 @@ INT_PTR CALLBACK OptionsDlgProc(
             ComboBox_AddString(comboHandle, L"All text");
             ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"));
 
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR), EnableToolBar ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR), EnableToolBar ? BST_CHECKED : BST_UNCHECKED);     
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESEARCH),
+                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch") ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR), EnableStatusBar ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
                 PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows") ? BST_CHECKED : BST_UNCHECKED);
@@ -59,6 +61,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                 {
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle",
                         (DisplayStyle = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
+                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch",
+                        (EnableSearch = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESEARCH)) == BST_CHECKED));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar",
                         (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR)) == BST_CHECKED));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar",

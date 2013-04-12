@@ -14,13 +14,13 @@
 #define IDB_CROSS                       110
 #define IDR_MAINWND_ACCEL               111
 #define IDB_SEARCH1                     116
-#define IDB_BITMAP2                     117
 #define IDB_SEARCH2                     117
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_ENABLESTATUSBAR             1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
 #define IDC_DISPLAYSTYLECOMBO           1004
 #define IDC_DISPLAYSTYLETEXT            1005
+#define IDC_ENABLESEARCH                1006
 #define ID_STATUS_CPUUSAGE              40001
 #define ID_STATUS_COMMITCHARGE          40002
 #define ID_STATUS_PHYSICALMEMORY        40003
