@@ -67,7 +67,6 @@ BOOLEAN ProcessTreeFilterCallback(
             // PH_HASH_ENTRY HashEntry;
             // ULONG State;
             // PPH_PROCESS_RECORD Record;
-            // HANDLE ParentProcessId;
 
             // PPH_STRING ProcessName;
             if (processNode->ProcessItem->ProcessName)
@@ -166,29 +165,77 @@ BOOLEAN ProcessTreeFilterCallback(
             // ULONG ImportFunctions;
             // ULONG ImportModules;
 
-            //union
-            //{
-            //    ULONG Flags;
-            //    struct
-            //    {
-            //        ULONG UpdateIsDotNet : 1;
-            //        ULONG IsBeingDebugged : 1;
-            //        ULONG IsDotNet : 1;
-            //        ULONG IsElevated : 1;
-            //        ULONG IsInJob : 1;
-            //        ULONG IsInSignificantJob : 1;
-            //        ULONG IsPacked : 1;
-            //        ULONG IsPosix : 1;
-            //        ULONG IsSuspended : 1;
-            //        ULONG IsWow64 : 1;
-            //        ULONG IsImmersive : 1;
-            //        ULONG IsWow64Valid : 1;
-            //        ULONG Spare : 20;
-            //    };
-            //};
+            // ULONG UpdateIsDotNet : 1;      
+            if (WSTR_IEQUAL(textboxText->Buffer, L"UpdateIsDotNet"))
+            {
+                showItem = processNode->ProcessItem->UpdateIsDotNet == TRUE;
+            }
 
-            // BOOLEAN JustProcessed;
-            // PH_EVENT Stage1Event;
+            // ULONG IsBeingDebugged : 1;
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsBeingDebugged"))
+            {
+                showItem = processNode->ProcessItem->IsBeingDebugged == TRUE;
+            }
+
+            // ULONG IsDotNet : 1;    
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsDotNet"))
+            {
+                showItem = processNode->ProcessItem->IsDotNet == TRUE;
+            }
+
+            // ULONG IsElevated : 1;         
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsElevated"))
+            {
+                showItem = processNode->ProcessItem->IsElevated == TRUE;
+            }
+
+            // ULONG IsInJob : 1;           
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsInJob"))
+            {
+                showItem = processNode->ProcessItem->IsInJob == TRUE;
+            }
+
+            // ULONG IsInSignificantJob : 1;      
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsInSignificantJob"))
+            {
+                showItem = processNode->ProcessItem->IsInSignificantJob == TRUE;
+            }
+
+            // ULONG IsPacked : 1;
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsPacked"))
+            {
+                showItem = processNode->ProcessItem->IsPacked == TRUE;
+            }
+
+            // ULONG IsPosix : 1;
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsPosix"))
+            {
+                showItem = processNode->ProcessItem->IsPosix == TRUE;
+            }
+
+            // ULONG IsSuspended : 1;
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsSuspended"))
+            {
+                showItem = processNode->ProcessItem->IsSuspended == TRUE;
+            }
+
+            // ULONG IsWow64 : 1;
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow64"))
+            {
+                showItem = processNode->ProcessItem->IsWow64 == TRUE;
+            }
+
+            // ULONG IsImmersive : 1;       
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsImmersive"))
+            {
+                showItem = processNode->ProcessItem->IsImmersive == TRUE;
+            }
+
+            // ULONG IsWow64Valid : 1;     
+            if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow64Valid"))
+            {
+                showItem = processNode->ProcessItem->IsWow64Valid == TRUE;
+            }
 
             // PPH_POINTER_LIST ServiceList;
             // PH_QUEUED_LOCK ServiceListLock;
@@ -295,6 +342,27 @@ BOOLEAN ServiceTreeFilterCallback(
         {
             BOOLEAN showItem = FALSE;
             PH_STRINGREF pidStringRef;
+
+            //PH_STRINGREF Key; // points to Name
+            //PPH_STRING Name;
+            //PPH_STRING DisplayName;
+
+            //// State
+            //ULONG Type;
+            //ULONG State;
+            //ULONG ControlsAccepted;
+            //ULONG Flags; // e.g. SERVICE_RUNS_IN_SYSTEM_PROCESS
+            //HANDLE ProcessId;
+
+            //// Config
+            //ULONG StartType;
+            //ULONG ErrorControl;
+
+            //BOOLEAN PendingProcess;
+            //BOOLEAN NeedsConfigUpdate;
+
+            //WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
+
 
             PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
 
