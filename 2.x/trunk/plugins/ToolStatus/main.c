@@ -149,6 +149,16 @@ VOID RebarAddMenuItem(
     SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
 
+VOID RebarRemoveMenuItem(
+    __in HWND WindowHandle,
+    __in UINT ID
+    )
+{
+    INT bandId = (INT)SendMessage(WindowHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
+
+    SendMessage(WindowHandle, RB_DELETEBAND, (WPARAM)bandId, 0);
+}
+
 VOID SetRebarMenuLayout(
     VOID
     )
@@ -283,27 +293,21 @@ VOID ApplyToolbarSettings(
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
            
             // inset the toolbar into the rebar control
-            RebarAddMenuItem(ReBarHandle, ToolBarHandle, 0, 23, 0);
+            RebarAddMenuItem(ReBarHandle, ToolBarHandle, 55400, 23, 0);
         }
         
         SetRebarMenuLayout();
     }
     else
     {
-        if (TextboxHandle)
-        {
-            // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
-            Edit_SetSel(TextboxHandle, 0, -1);    
-            SetWindowText(TextboxHandle, L"");   
-
-            DestroyWindow(TextboxHandle);
-            TextboxHandle = NULL;
-        }
+        EnableSearch = FALSE;
 
         if (ToolBarHandle)
         {
             DestroyWindow(ToolBarHandle);
             ToolBarHandle = NULL;
+
+            RebarRemoveMenuItem(ReBarHandle, 55400);
         }
 
         if (ToolBarImageList)
@@ -322,44 +326,45 @@ VOID ApplyToolbarSettings(
     if (EnableSearch)
     {
         if (!TextboxHandle)
-        {
-            LOGFONT logFont;
-            memset(&logFont, 0, sizeof(LOGFONT));
+        {             
+            if (!TextboxFontHandle)
+            {
+                LOGFONT logFont;
+                memset(&logFont, 0, sizeof(LOGFONT));
 
-            logFont.lfHeight = WindowsVersion > WINDOWS_XP ? -11 : -12;
-            logFont.lfWeight = FW_NORMAL;   
+                logFont.lfHeight = WindowsVersion > WINDOWS_XP ? -11 : -12;
+                logFont.lfWeight = FW_NORMAL;   
 
-            wcscpy_s(
-                logFont.lfFaceName, 
-                _countof(logFont.lfFaceName), 
-                WindowsVersion > WINDOWS_XP ? L"MS Shell Dlg 2" : L"MS Shell Dlg"
-                );
+                wcscpy_s(
+                    logFont.lfFaceName, 
+                    _countof(logFont.lfFaceName), 
+                    WindowsVersion > WINDOWS_XP ? L"MS Shell Dlg 2" : L"MS Shell Dlg"
+                    );
 
-            TextboxHandle = CreateWindowEx(
-                0,
-                WC_EDIT,
-                NULL,
-                WS_CHILD | WS_VISIBLE | ES_LEFT,
-                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                ToolBarHandle,
-                NULL,
-                (HINSTANCE)PluginInstance->DllBase,
-                NULL
-                );
+                TextboxHandle = CreateWindowEx(
+                    0,
+                    WC_EDIT,
+                    NULL,
+                    WS_CHILD | WS_VISIBLE | ES_LEFT,
+                    CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                    ToolBarHandle,
+                    NULL,
+                    (HINSTANCE)PluginInstance->DllBase,
+                    NULL
+                    );
 
-            // Create the font handle
-            TextboxFontHandle = CreateFontIndirect(&logFont);
+                // Create the font handle
+                TextboxFontHandle = CreateFontIndirect(&logFont);
+            }
 
             // Set Searchbox control font
             SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
             // Set initial text
             SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
 
+            // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
             if (WindowsVersion < WINDOWS_VISTA)
-            {
-                // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
-                SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
-            }
+                SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
 
             // insert a paint region into the edit control NC window area       
             InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
@@ -369,7 +374,7 @@ VOID ApplyToolbarSettings(
             PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle);  
 
             // insert the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, 0, 20, 200);
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, 55401, 20, 200);
         }
     }
     else
@@ -381,13 +386,15 @@ VOID ApplyToolbarSettings(
         }
 
         if (TextboxHandle)
-        {        
+        {
             // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
             Edit_SetSel(TextboxHandle, 0, -1);    
             SetWindowText(TextboxHandle, L"");  
 
             DestroyWindow(TextboxHandle);
             TextboxHandle = NULL;
+
+            RebarRemoveMenuItem(ReBarHandle, 55401);
         }
     }
 
