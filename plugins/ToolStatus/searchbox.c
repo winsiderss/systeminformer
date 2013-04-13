@@ -306,6 +306,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         return FALSE;  
     case WM_NCPAINT:
         {
+            context->TextLength = Edit_GetTextLength(hwndDlg);
+
             if (!PhTnpOnNcPaint(hwndDlg, context, (HRGN)wParam))
                 return FALSE;
         }
@@ -319,7 +321,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         //            GetWindowRect(hwndDlg, &context->rect);
         //            // adjust the coordinates - start from 0,0
         //            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
-
         //            if (context->WndHTheme)
         //            {
         //                DrawThemeBackground(
@@ -338,11 +339,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         //                // Set border color
         //                FrameRect(hdc, &context->rect, context->BorderBrush);
         //            }
-
         //            // work out where to draw the button
         //            GetButtonRect(context, &context->rect);
         //            DrawInsertedButton(hwndDlg, context, hdc, &context->rect);   
-
         //            // cleanup
         //            ReleaseDC(hwndDlg, hdc);
         //        }
@@ -453,7 +452,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             // check that the mouse is within the region
             if (PtInRect(&context->rect, context->pt))
             {
-                context->TextLength = Edit_GetTextLength(hwndDlg) > 0;
+                context->TextLength = Edit_GetTextLength(hwndDlg);
 
                 SetWindowPos(
                     hwndDlg,
@@ -463,9 +462,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             }
         }
         return FALSE;
-    case WM_KEYUP:
+    case WM_KILLFOCUS: 
+    case WM_KEYUP:  
         {   
-            context->TextLength = Edit_GetTextLength(hwndDlg) > 0;
+            context->TextLength = Edit_GetTextLength(hwndDlg);
 
             // invalidate the nonclient area
             SetWindowPos(
