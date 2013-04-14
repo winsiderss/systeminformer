@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SetCriticalPlugin", "SetCri
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ROTViewerPlugin", "ROTViewerPlugin\ROTViewerPlugin.vcxproj", "{4C581739-03D9-4E73-B453-0536DFB34C91}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DnsCachePlugin", "DnsCachePlugin\DnsCachePlugin.vcxproj", "{34E39D39-7148-45BF-9B36-DEF53E534A11}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -49,6 +51,14 @@ Global
 		{4C581739-03D9-4E73-B453-0536DFB34C91}.Release|Win32.Build.0 = Release|Win32
 		{4C581739-03D9-4E73-B453-0536DFB34C91}.Release|x64.ActiveCfg = Release|x64
 		{4C581739-03D9-4E73-B453-0536DFB34C91}.Release|x64.Build.0 = Release|x64
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Debug|Win32.ActiveCfg = Debug|Win32
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Debug|Win32.Build.0 = Debug|Win32
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Debug|x64.ActiveCfg = Debug|x64
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Debug|x64.Build.0 = Debug|x64
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Release|Win32.ActiveCfg = Release|Win32
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Release|Win32.Build.0 = Release|Win32
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Release|x64.ActiveCfg = Release|x64
+		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
