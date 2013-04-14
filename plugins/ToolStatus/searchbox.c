@@ -170,7 +170,7 @@ static VOID PhTnpDrawThemedBorder(
         windowRect.right -= GetSystemMetrics(SM_CXEDGE) - borderX;
         windowRect.bottom -= GetSystemMetrics(SM_CYEDGE) - borderY;
 
-        FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+        //FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
     }
 
     //IntersectClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
@@ -271,9 +271,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     }
 
     switch (uMsg)
-    {  
-    case WM_ERASEBKGND:
-        return TRUE;
+    {
     case WM_NCCALCSIZE:
         {
             NCCALCSIZE_PARAMS* nccsp = (NCCALCSIZE_PARAMS*)lParam;
@@ -289,7 +287,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
             // let the old wndproc allocate space for the borders, or any other non-client space.
             //CallWindowProc(context->NCAreaWndProc, hwndDlg, uMsg, wParam, lParam);
-            DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+            //DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 
             // calculate what the size of each window border is,
             // we need to know where the button is going to live.
@@ -303,7 +301,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             // and will be the same width as a scrollbar button
             context->prect->right -= context->nButSize; 
         }
-        return FALSE;  
+        break;  
     case WM_NCPAINT:
         {
             context->TextLength = Edit_GetTextLength(hwndDlg);
@@ -394,42 +392,21 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     );
 
                 // invalidate the nonclient area
+                //SetWindowPos(
+                //    hwndDlg,
+                //    0, 0, 0, 0, 0,
+                //    SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+                //    );
+                // RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
                 SetWindowPos(
                     hwndDlg,
                     0, 0, 0, 0, 0,
-                    SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+                    SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
                     );
             }
         }
         return FALSE;
-        //case WM_NCMOUSEMOVE:
-        //case WM_NCMOUSELEAVE:
-        //    {
-        //        // get the screen coordinates of the mouse
-        //        context->pt.x = GET_X_LPARAM(lParam);
-        //        context->pt.y = GET_Y_LPARAM(lParam);
-        //        // get the position of the inserted button
-        //        GetWindowRect(hwndDlg, &context->rect);
-        //        context->pt.x -= context->rect.left;
-        //        context->pt.y -= context->rect.top;
-        //        // adjust the coordinates so they start from 0,0
-        //        OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
-        //        GetButtonRect(context, &context->rect);
-        //        context->oldstate = context->IsMouseActive;
-        //        //check that the mouse is within the inserted button
-        //        if (PtInRect(&context->rect, context->pt))
-        //        {
-        //            context->IsMouseActive = TRUE;
-        //        }
-        //        else
-        //        {
-        //            context->IsMouseActive = FALSE;
-        //        }
-        //        // to prevent flicker, we only redraw the button if its state has changed    
-        //        if (context->oldstate != context->IsMouseActive)      
-        //            DrawInsertedButton(hwndDlg, context, NULL, &context->rect);
-        //    }
-        //    break;
     case WM_LBUTTONUP:
         {
             // get the SCREEN coordinates of the mouse
@@ -453,16 +430,15 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             if (PtInRect(&context->rect, context->pt))
             {
                 context->TextLength = Edit_GetTextLength(hwndDlg);
-
+                
                 SetWindowPos(
                     hwndDlg,
                     0, 0, 0, 0, 0,
-                    SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+                    SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
                     );
             }
         }
         return FALSE;
-    case WM_KILLFOCUS: 
     case WM_KEYUP:  
         {   
             context->TextLength = Edit_GetTextLength(hwndDlg);
@@ -471,7 +447,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             SetWindowPos(
                 hwndDlg,
                 0, 0, 0, 0, 0,
-                SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+                SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
                 );
         }
         break;
@@ -537,7 +513,7 @@ BOOLEAN InsertButton(
     SetWindowPos(
         hwndDlg,
         0, 0, 0, 0, 0,
-        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE | SWP_NOZORDER
         );
 
     return TRUE;

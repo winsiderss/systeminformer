@@ -51,7 +51,6 @@ static HWND ToolBarHandle;
 static HIMAGELIST ToolBarImageList;
 static HWND TextboxHandle;
 static HFONT TextboxFontHandle;
-static RECT ReBarRect = { 0, 0, 0, 0 };
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -100,15 +99,21 @@ static VOID NTAPI LayoutPaddingCallback(
     )
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
-
-    if (EnableToolBar)
+               
+    if (ReBarHandle)  
     {
-        data->Padding.top += ReBarRect.bottom; // Width
+        RECT reBarRect = { 0, 0, 0, 0 };
+        GetClientRect(ReBarHandle, &reBarRect);
+
+        data->Padding.top += reBarRect.bottom; // Width
     }
 
-    if (EnableStatusBar)
+    if (StatusBarHandle)
     {
-        data->Padding.bottom += StatusBarRect.bottom;
+        RECT statusBarRect = { 0, 0, 0, 0 };
+        GetClientRect(StatusBarHandle, &statusBarRect);
+
+        data->Padding.bottom += statusBarRect.bottom;
     }
 }
 
@@ -774,17 +779,11 @@ static LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SIZE:
         {
-            if (EnableToolBar)
-            {
-                GetClientRect(ReBarHandle, &ReBarRect);
+            if (ReBarHandle)  
                 SendMessage(ReBarHandle, WM_SIZE, 0, 0);
-            }
 
-            if (EnableStatusBar)
-            {
-                GetClientRect(StatusBarHandle, &StatusBarRect);
+            if (StatusBarHandle)
                 SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
-            }
 
             ProcessHacker_InvalidateLayoutPadding(hWnd);
         }
