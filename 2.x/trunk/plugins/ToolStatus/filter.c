@@ -341,46 +341,46 @@ BOOLEAN ServiceTreeFilterCallback(
         if (textboxText->Length > 0)
         {
             BOOLEAN showItem = FALSE;
-            PH_STRINGREF pidStringRef;
 
-            //PH_STRINGREF Key; // points to Name
-            //PPH_STRING Name;
-            //PPH_STRING DisplayName;
-
-            //// State
-            //ULONG Type;
-            //ULONG State;
-            //ULONG ControlsAccepted;
-            //ULONG Flags; // e.g. SERVICE_RUNS_IN_SYSTEM_PROCESS
-            //HANDLE ProcessId;
-
-            //// Config
-            //ULONG StartType;
-            //ULONG ErrorControl;
-
-            //BOOLEAN PendingProcess;
-            //BOOLEAN NeedsConfigUpdate;
-
-            //WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
-
-
-            PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
-
-            // Search process PIDs
-            if (WordMatch(&pidStringRef, &textboxText->sr))
-                showItem = TRUE;
-
-            // Search service name
+            // PH_STRINGREF Key; // points to Name
+            
+            // PPH_STRING Name;      
             if (serviceNode->ServiceItem->Name)
             {
                 if (WordMatch(&serviceNode->ServiceItem->Name->sr, &textboxText->sr))
+                {
                     showItem = TRUE;
+                }
             }
 
-            // Search service display name
+            // PPH_STRING DisplayName;
             if (serviceNode->ServiceItem->DisplayName)
             {
                 if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr))
+                {
+                    showItem = TRUE;
+                }
+            }
+
+            // ULONG Type;
+            // ULONG State;
+            // ULONG ControlsAccepted;
+            // ULONG Flags; // e.g. SERVICE_RUNS_IN_SYSTEM_PROCESS
+            // HANDLE ProcessId;
+            // ULONG StartType;
+            // ULONG ErrorControl;
+            // BOOLEAN PendingProcess;
+            // BOOLEAN NeedsConfigUpdate;
+
+            // WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
+            if (serviceNode->ServiceItem->ProcessIdString)
+            {
+                PH_STRINGREF pidStringRef;
+
+                PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
+
+                // Search process PIDs
+                if (WordMatch(&pidStringRef, &textboxText->sr))
                     showItem = TRUE;
             }
 
@@ -413,17 +413,20 @@ BOOLEAN NetworkTreeFilterCallback(
             PH_STRINGREF pidStringRef;
             WCHAR pidString[32];
 
-            // Search PID
+            //ULONG ProtocolType;
+            //PH_IP_ENDPOINT LocalEndpoint;
+            //PH_IP_ENDPOINT RemoteEndpoint;
+            //ULONG State;
+            
+            // HANDLE ProcessId;          
             PhPrintUInt32(pidString, (ULONG)networkNode->NetworkItem->ProcessId);
             PhInitializeStringRef(&pidStringRef, pidString);
-
-            // Search network process PIDs
             if (WordMatch(&pidStringRef, &textboxText->sr))
             {
                 showItem = TRUE;
             }
 
-            // Search connection process name
+            // PPH_STRING ProcessName;          
             if (networkNode->NetworkItem->ProcessName)
             {
                 if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr))
@@ -432,15 +435,35 @@ BOOLEAN NetworkTreeFilterCallback(
                 }
             }
 
-            // Search connection local IP address
+            //HICON ProcessIcon;
+            //BOOLEAN ProcessIconValid;
+            //PPH_STRING OwnerName;
+
+            // WCHAR LocalAddressString[65];      
             if (networkNode->NetworkItem->LocalAddressString)
             {
                 PH_STRINGREF localAddressRef;
+
                 PhInitializeStringRef(&localAddressRef, networkNode->NetworkItem->LocalAddressString);
 
                 if (WordMatch(&localAddressRef, &textboxText->sr))
+                {
                     showItem = TRUE;
+                }
             }
+
+            //WCHAR LocalPortString[PH_INT32_STR_LEN_1];
+            //WCHAR RemoteAddressString[65];
+            //WCHAR RemotePortString[PH_INT32_STR_LEN_1];
+            //PPH_STRING LocalHostString;
+            //PPH_STRING RemoteHostString;
+
+            //LARGE_INTEGER CreateTime;
+            //ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
+
+
+            // Search connection local IP address
+   
 
             if (networkNode->NetworkItem->LocalPortString)
             {

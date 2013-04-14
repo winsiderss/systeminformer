@@ -25,7 +25,6 @@
 #define TOOLSTATUSBAR_H
 
 extern HWND StatusBarHandle;
-extern RECT StatusBarRect;
 extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG StatusBarMaxWidths[STATUS_COUNT];
