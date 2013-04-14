@@ -92,22 +92,6 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Menu
-//
-
-IDR_CONTEXTMENU MENU
-BEGIN
-    POPUP "Menu"
-    BEGIN
-        MENUITEM "Revoke",                      ID_MENU_REVOKE
-        MENUITEM SEPARATOR
-        MENUITEM "Properties",                  ID_MENU_PROPERTIES, INACTIVE
-    END
-END
-
 #endif    // English resources
 /////////////////////////////////////////////////////////////////////////////
 

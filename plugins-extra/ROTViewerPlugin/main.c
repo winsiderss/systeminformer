@@ -35,11 +35,6 @@ INT_PTR CALLBACK RotViewDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
-VOID ShowStatusMenu(
-    __in HWND hwndDlg,
-    __in PPOINT Point,
-    __in LPNMITEMACTIVATE lpnmitem
-    );
 
 static HWND ListViewWndHandle;
 static PH_LAYOUT_MANAGER LayoutManager;
@@ -67,7 +62,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"RunningObjectTable Viewer";
             info->Author = L"dmex";
-            info->Description = L"Plugin for viewing the ROT (RunningObjectTable) via the Tools > Running Object Table";
+            info->Description = L"Plugin for viewing the RunningObjectTable via the Tools menu";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(
@@ -94,7 +89,6 @@ static VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    // Add our menu item, 4 = Help menu.
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ROT_TABLE_MENUITEM, L"Running Object Table", NULL);
 }
 
@@ -105,66 +99,31 @@ static VOID NTAPI MenuItemCallback(
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
 
-    if (menuItem != NULL)
+    switch (menuItem->Id)
     {
-        switch (menuItem->Id)
+    case ROT_TABLE_MENUITEM:
         {
-        case ROT_TABLE_MENUITEM:
-            {
-                DialogBox(
-                    (HINSTANCE)PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDD_ROTVIEW),
-                    NULL,
-                    RotViewDlgProc
-                    );
-            }
-            break;
+            DialogBox(
+                (HINSTANCE)PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_ROTVIEW),
+                NULL,
+                RotViewDlgProc
+                );
         }
+        break;
     }
-}
-
-static PVOID ListViewGetlParam(
-    __in HWND hwndDlg, 
-    __in INT Index
-    )
-{
-    INT itemIndex;
-    LVITEM item;
-
-    if (Index == -1)
-    {
-        itemIndex = ListView_GetNextItem(hwndDlg, -1, LVNI_VISIBLEONLY);
-        if (itemIndex == -1)
-            return NULL;
-    }
-    else
-    {
-        itemIndex = Index;
-    }
-
-    memset(&item, 0, sizeof(LVITEM));
-
-    item.mask = LVIF_PARAM;
-    item.iItem = itemIndex;
-
-    if (!ListView_GetItem(hwndDlg, &item))
-        return NULL;
-
-    return (PVOID)item.lParam;
 }
 
 static VOID EnumRunningObjectTable(
     __in HWND hwndDlg
     )
 {
-    IRunningObjectTable* table;
-    IEnumMoniker* moniker;
-    IMoniker* pmkObjectNames;
-    IBindCtx* ctx;
-    IMalloc* iMalloc;
-
+    IRunningObjectTable* table = NULL;
+    IEnumMoniker* moniker = NULL;
+    IMoniker* pmkObjectNames = NULL;
+    IBindCtx* ctx = NULL;
+    IMalloc* iMalloc = NULL;
     ULONG count = 0;
-    ULONG index = 0;
 
     CoGetMalloc(1, &iMalloc);
 
@@ -176,15 +135,6 @@ static VOID EnumRunningObjectTable(
         {
             while (IEnumMoniker_Next(moniker, 1, &pmkObjectNames, &count) == S_OK)
             {
-                INT itemIndex = 0;
-                PPH_STRING indexString = NULL;
-
-                indexString = PhIntegerToString64(index, 0, FALSE);
-
-                // Add the item to the listview (it might be nameless) 
-                //  - pass the object to the listview so we never have to enumerate the ROT to find it again...
-                itemIndex = PhAddListViewItem(hwndDlg, MAXINT, indexString->Buffer, pmkObjectNames);
-
                 if (SUCCEEDED(CreateBindCtx(0, &ctx)))
                 {
                     OLECHAR* name = NULL;
@@ -193,16 +143,18 @@ static VOID EnumRunningObjectTable(
                     if (SUCCEEDED(IMoniker_GetDisplayName(pmkObjectNames, ctx, NULL, &name)))
                     {
                         // Set the items name column
-                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, name);
+                        PhAddListViewItem(hwndDlg, MAXINT, name, NULL);
 
                         // Free the object name
                         IMalloc_Free(iMalloc, name);
                     }
-                }    
 
-                PhDereferenceObject(indexString);
+                    IBindCtx_Release(ctx);
+                    ctx = NULL;
+                }
 
-                index++;
+                IEnumMoniker_Release(pmkObjectNames);
+                pmkObjectNames = NULL;
             }
 
             IEnumMoniker_Release(moniker);
@@ -212,6 +164,9 @@ static VOID EnumRunningObjectTable(
         IRunningObjectTable_Release(table);
         table = NULL;
     }
+
+    IMalloc_Release(iMalloc);
+    iMalloc = NULL;
 }
 
 INT_PTR CALLBACK RotViewDlgProc(
@@ -231,8 +186,7 @@ INT_PTR CALLBACK RotViewDlgProc(
 
             PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
             PhSetControlTheme(ListViewWndHandle, L"explorer");
-            PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"Index");
-            PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 400, L"Display Name");
+            PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 420, L"Display Name");
             PhSetExtendedListView(ListViewWndHandle);
          
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
@@ -244,28 +198,10 @@ INT_PTR CALLBACK RotViewDlgProc(
         }
         break;    
     case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
-        }
+        PhLayoutManagerLayout(&LayoutManager);
         break;
     case WM_DESTROY:
-        {
-            // We added a param for each listview item - we must free them all
-            INT itemCount = ListView_GetItemCount(ListViewWndHandle) - 1;
-            IMoniker* pmkObjectNames;
-
-            while (itemCount >= 0)
-            {
-                pmkObjectNames = (IMoniker*)ListViewGetlParam(ListViewWndHandle, itemCount);
-
-                if (pmkObjectNames)
-                    IEnumMoniker_Release(pmkObjectNames);
-
-                itemCount--;
-            }
-
-            PhDeleteLayoutManager(&LayoutManager);
-        }
+        PhDeleteLayoutManager(&LayoutManager);
         break;
     case WM_COMMAND:
         {
@@ -284,64 +220,7 @@ INT_PTR CALLBACK RotViewDlgProc(
             }
         }
         break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR hdr = (LPNMHDR)lParam;
-
-            switch (hdr->code)
-            {
-            case NM_RCLICK:
-                {
-                    POINT cursorPos = { 0 };
-
-                    GetCursorPos(&cursorPos);
-
-                    ShowStatusMenu(hwndDlg, &cursorPos, (LPNMITEMACTIVATE)lParam);
-                }
-                break;
-            }
-        }
-        break;
     }
 
     return FALSE;
-}
-
-VOID ShowStatusMenu(
-    __in HWND hwndDlg,
-    __in PPOINT Point,
-    __in LPNMITEMACTIVATE lpnmitem
-    )
-{
-    HMENU menu;
-    HMENU subMenu;
-    ULONG id;
-
-    menu = LoadMenu(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDR_CONTEXTMENU)
-        );
-
-    subMenu = GetSubMenu(menu, 0);
-
-    id = (ULONG)TrackPopupMenu(
-        subMenu,
-        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
-        Point->x,
-        Point->y,
-        0,
-        hwndDlg,
-        NULL
-        );
-
-    DestroyMenu(menu);
-
-    switch (id)
-    {
-    case ID_MENU_PROPERTIES:
-        {
-
-        }
-        break;
-    }
 }
