@@ -41,6 +41,8 @@ VOID ShowStatusMenu(
     __in LPNMITEMACTIVATE lpnmitem
     );
 
+static HWND ListViewWndHandle;
+static PH_LAYOUT_MANAGER LayoutManager;
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
@@ -93,7 +95,7 @@ static VOID NTAPI MainWindowShowingCallback(
     )
 {
     // Add our menu item, 4 = Help menu.
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", UPDATE_MENUITEM, L"Running Object Table", NULL);
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ROT_TABLE_MENUITEM, L"Running Object Table", NULL);
 }
 
 static VOID NTAPI MenuItemCallback(
@@ -107,12 +109,12 @@ static VOID NTAPI MenuItemCallback(
     {
         switch (menuItem->Id)
         {
-        case UPDATE_MENUITEM:
+        case ROT_TABLE_MENUITEM:
             {
                 DialogBox(
                     (HINSTANCE)PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDD_ROT),
-                    PhMainWndHandle,
+                    MAKEINTRESOURCE(IDD_ROTVIEW),
+                    NULL,
                     RotViewDlgProc
                     );
             }
@@ -223,41 +225,58 @@ INT_PTR CALLBACK RotViewDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND listView = GetDlgItem(hwndDlg, IDC_LIST1);
+            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_LIST1);
 
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-            PhSetListViewStyle(listView, FALSE, TRUE);
-            PhSetControlTheme(listView, L"explorer");
-            PhAddListViewColumn(listView, 0, 0, 0, LVCFMT_LEFT, 40, L"Index");
-            PhAddListViewColumn(listView, 1, 1, 1, LVCFMT_LEFT, 400, L"Display Name");
-            PhSetExtendedListView(listView);
-
-            EnumRunningObjectTable(listView);
+            PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
+            PhSetControlTheme(ListViewWndHandle, L"explorer");
+            PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"Index");
+            PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 400, L"Display Name");
+            PhSetExtendedListView(ListViewWndHandle);
+         
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ROTREFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+                       
+            EnumRunningObjectTable(ListViewWndHandle);
+        }
+        break;    
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_DESTROY:
         {
-            // We added a param for each listview item - we must free them
-            HWND listView = GetDlgItem(hwndDlg, IDC_LIST1);
-            INT itemCount = ListView_GetItemCount(listView) - 1;
+            // We added a param for each listview item - we must free them all
+            INT itemCount = ListView_GetItemCount(ListViewWndHandle) - 1;
             IMoniker* pmkObjectNames;
 
             while (itemCount >= 0)
             {
-                pmkObjectNames = (IMoniker*)ListViewGetlParam(listView, itemCount);
+                pmkObjectNames = (IMoniker*)ListViewGetlParam(ListViewWndHandle, itemCount);
 
                 if (pmkObjectNames)
                     IEnumMoniker_Release(pmkObjectNames);
 
                 itemCount--;
             }
+
+            PhDeleteLayoutManager(&LayoutManager);
         }
         break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
             {
+            case IDC_ROTREFRESH:
+                {
+                    ListView_DeleteAllItems(ListViewWndHandle);
+                    EnumRunningObjectTable(ListViewWndHandle);
+                }
+                break;
             case IDCANCEL:
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
@@ -321,21 +340,7 @@ VOID ShowStatusMenu(
     {
     case ID_MENU_PROPERTIES:
         {
-            IMoniker* pmkObjectName;
-            INT lvItemIndex;
 
-            lvItemIndex = ListView_GetNextItem(GetDlgItem(hwndDlg, IDC_LIST1), -1, LVNI_SELECTED);
-
-            if (lvItemIndex != -1 && PhGetListViewItemParam(GetDlgItem(hwndDlg, IDC_LIST1), lvItemIndex, &pmkObjectName))
-            {
-                DialogBoxParam(
-                    (HINSTANCE)PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDD_DIALOG1),
-                    hwndDlg,
-                    PropDialogProc,
-                    (LPARAM)pmkObjectName
-                    );
-            }
         }
         break;
     }
