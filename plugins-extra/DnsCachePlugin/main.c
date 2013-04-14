@@ -39,7 +39,7 @@ typedef struct _DNS_CACHE_ENTRY
     ULONG dwFlags; // DNS Record Flags
 } DNS_CACHE_ENTRY, *PDNS_CACHE_ENTRY;
 
-typedef DNS_STATUS (WINAPI* _DnsGetCacheDataTable)(PDNS_CACHE_ENTRY);
+typedef DNS_STATUS (WINAPI* _DnsGetCacheDataTable)(__inout PDNS_CACHE_ENTRY DnsCacheEntry);
 typedef BOOL (WINAPI* _DnsFlushResolverCache)(VOID);
 typedef BOOL (WINAPI* _DnsFlushResolverCacheEntry)(__in PCWSTR pszName); // , WORD type, DWORD options, PVOID servers, PDNS_RECORDW *result, PVOID *reserved 
 
@@ -146,7 +146,12 @@ static VOID EnumDnsCacheTable(
     )
 {
     PDNS_CACHE_ENTRY pEntryInfoPtr;
+    WSADATA wsaData;
+
     pEntryInfoPtr = (PDNS_CACHE_ENTRY)PhAllocate(sizeof(DNS_CACHE_ENTRY));
+    memset(pEntryInfoPtr, 0, sizeof(DNS_CACHE_ENTRY));
+
+    WSAStartup(WINSOCK_VERSION, &wsaData);
 
     if (DnsGetCacheDataTable_I(pEntryInfoPtr))
     {
@@ -161,13 +166,13 @@ static VOID EnumDnsCacheTable(
                 hwndDlg, 
                 MAXINT,
                 (PWSTR)pEntryInfoPtr->pszName, 
-                pEntryInfoPtr
+                NULL
                 );
 
             DNS_STATUS hrstatus = DnsQuery(
                 pEntryInfoPtr->pszName, 
                 pEntryInfoPtr->wType, 
-                DNS_QUERY_NO_WIRE_QUERY | 32768, 
+                DNS_QUERY_NO_WIRE_QUERY | 32768, // Oh?? 
                 NULL,
                 &pQueryResultsSet, 
                 NULL
@@ -195,14 +200,43 @@ static VOID EnumDnsCacheTable(
             }
 
             pEntryInfoPtr = pEntryInfoPtr->pNext;
-
-            // We need to free these...
-            //DnsFree(pEntryInfoPtr->pszName, DnsFreeFlat);  
-            //DnsFree(pEntryInfoPtr, DnsFreeFlat);   
         }
 
-        PhFree(pEntryInfoPtr);
+        DnsRecordListFree(pEntryInfoPtr, DnsFreeRecordList); 
     }
+
+    WSACleanup();
+    PhFree(pEntryInfoPtr);
+}
+
+PPH_STRING PhGetSelectedListViewItemText(
+    __in HWND hWnd
+    )
+{
+    INT index = PhFindListViewItemByFlags(
+        hWnd,
+        -1,
+        LVNI_SELECTED
+        );
+
+    if (index != -1)
+    {
+        LOGICAL result;
+        LVITEM item;
+        TCHAR szBuffer[1024];
+
+        item.mask = LVIF_TEXT;
+        item.iItem = index;
+        item.iSubItem = 0;
+        item.pszText = szBuffer;
+        item.cchTextMax = _countof(szBuffer);
+
+        result = ListView_GetItem(hWnd, &item);
+
+        return PhCreateString(szBuffer);
+    }
+
+    return NULL;
 }
 
 VOID ShowStatusMenu(
@@ -212,55 +246,64 @@ VOID ShowStatusMenu(
     HMENU menu;
     HMENU subMenu;
     ULONG id;
-    POINT cursorPos = { 0 };
+    POINT cursorPos = { 0, 0 };
 
-    PDNS_CACHE_ENTRY dnsCacheEntry = (PDNS_CACHE_ENTRY)PhGetSelectedListViewItemParam(ListViewWndHandle);
+    PPH_STRING dnsCacheEntry = PhGetSelectedListViewItemText(ListViewWndHandle);
 
-    GetCursorPos(&cursorPos);
-
-    menu = LoadMenu(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDR_MENU1)
-        );
-
-    subMenu = GetSubMenu(menu, 0);
-
-    id = (ULONG)TrackPopupMenu(
-        subMenu,
-        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
-        cursorPos.x,
-        cursorPos.y,
-        0,
-        hwndDlg,
-        NULL
-        );
-
-    DestroyMenu(menu);
-
-    switch (id)
+    if (dnsCacheEntry)
     {
-    case ID_DNSENTRY_FLUSH:
-        {
-            INT lvItemIndex = ListView_GetNextItem(ListViewWndHandle, -1, LVNI_SELECTED);
+        GetCursorPos(&cursorPos);
 
-            if (lvItemIndex != -1)
+        menu = LoadMenu(
+            (HINSTANCE)PluginInstance->DllBase,
+            MAKEINTRESOURCE(IDR_MENU1)
+            );
+
+        subMenu = GetSubMenu(menu, 0);
+
+        id = (ULONG)TrackPopupMenu(
+            subMenu,
+            TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
+            cursorPos.x,
+            cursorPos.y,
+            0,
+            hwndDlg,
+            NULL
+            );
+
+        DestroyMenu(menu);
+
+        switch (id)
+        {
+        case ID_DNSENTRY_FLUSH:
             {
-                if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-                    hwndDlg,
-                    L"remove",
-                    (PWSTR)dnsCacheEntry->pszName,
-                    NULL,
-                    FALSE
-                    ))
+                INT lvItemIndex = PhFindListViewItemByFlags(
+                    ListViewWndHandle,
+                    -1,
+                    LVNI_SELECTED
+                    );
+
+                if (lvItemIndex != -1)
                 {
-                    if (DnsFlushResolverCacheEntry_I(dnsCacheEntry->pszName))
+                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                        hwndDlg,
+                        L"remove",
+                        (PWSTR)dnsCacheEntry->Buffer,
+                        NULL,
+                        FALSE
+                        ))
                     {
-                        ListView_DeleteItem(ListViewWndHandle, lvItemIndex);
+                        if (DnsFlushResolverCacheEntry_I(dnsCacheEntry->Buffer))
+                        {
+                            ListView_DeleteItem(ListViewWndHandle, lvItemIndex);
+                        }
                     }
                 }
             }
+            break;
         }
-        break;
+
+        PhDereferenceObject(dnsCacheEntry);
     }
 }
 
@@ -291,7 +334,7 @@ INT_PTR CALLBACK DnsCacheDlgProc(
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNSREFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNSCLEAR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-                       
+
             DnsApiHandle = LoadLibrary(TEXT("dnsapi.dll"));
             DnsGetCacheDataTable_I = (_DnsGetCacheDataTable)GetProcAddress(DnsApiHandle, "DnsGetCacheDataTable");
             DnsFlushResolverCache_I = (_DnsFlushResolverCache)GetProcAddress(DnsApiHandle, "DnsFlushResolverCache");
@@ -360,9 +403,7 @@ INT_PTR CALLBACK DnsCacheDlgProc(
             case NM_RCLICK:
                 {
                     if (hdr->hwndFrom == ListViewWndHandle)
-                    {
                         ShowStatusMenu(hwndDlg);
-                    }
                 }
                 break;
             }
