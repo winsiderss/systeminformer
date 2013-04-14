@@ -173,7 +173,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
-    <ClCompile Include="prop.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h" />

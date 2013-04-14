@@ -63,22 +63,14 @@ END
 //
 
 IDD_ROTVIEW DIALOGEX 0, 0, 325, 181
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Running Object Table"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "Close",IDOK,269,160,50,14
     CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,5,312,152
-END
-
-IDD_ENTRYVIEW DIALOGEX 0, 0, 247, 176
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,190,155,50,14
-    LTEXT           "Static",IDC_NAME,7,7,226,8
+    PUSHBUTTON      "Refresh",IDC_ROTREFRESH,7,160,50,14
 END
 
 
@@ -97,16 +89,24 @@ BEGIN
         TOPMARGIN, 5
         BOTTOMMARGIN, 174
     END
-
-    IDD_ENTRYVIEW, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 240
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 169
-    END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_CONTEXTMENU MENU
+BEGIN
+    POPUP "Menu"
+    BEGIN
+        MENUITEM "Revoke",                      ID_MENU_REVOKE
+        MENUITEM SEPARATOR
+        MENUITEM "Properties",                  ID_MENU_PROPERTIES, INACTIVE
+    END
+END
 
 #endif    // English resources
 /////////////////////////////////////////////////////////////////////////////
@@ -141,22 +141,6 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Menu
-//
-
-IDR_CONTEXTMENU MENU
-BEGIN
-    POPUP "Menu"
-    BEGIN
-        MENUITEM "Revoke",                      ID_MENU_REVOKE
-        MENUITEM SEPARATOR
-        MENUITEM "Properties",                  ID_MENU_PROPERTIES
-    END
-END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
