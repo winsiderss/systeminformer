@@ -2,13 +2,11 @@
 // Microsoft Visual C++ generated include file.
 // Used by ROTViewerPlugin.rc
 //
-#define IDD_ROT                         101
 #define IDD_ROTVIEW                     101
-#define IDD_DIALOG1                     108
-#define IDD_ENTRYVIEW                   108
 #define IDR_CONTEXTMENU                 110
 #define IDC_LIST1                       1021
-#define IDC_NAME                        1022
+#define IDC_DNSREFRESH                  4356
+#define IDC_ROTREFRESH                  4356
 #define ID_MENU_REVOKE                  40002
 #define ID_MENU_PROPERTIES              40003
 

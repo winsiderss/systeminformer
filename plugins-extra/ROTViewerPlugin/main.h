@@ -25,7 +25,7 @@
 #define CINTERFACE
 #define COBJMACROS
 
-#define UPDATE_MENUITEM 1000
+#define ROT_TABLE_MENUITEM 1000
 
 #include "phdk.h"
 #include "phappresource.h"
