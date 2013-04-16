@@ -182,37 +182,39 @@ VOID SetRebarMenuLayout(
         SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
 
         // Skip separator buttons
-        if (button.fsStyle != BTNS_SEP)
+        if (button.fsStyle == BTNS_SEP)
+            continue;
+
+        switch (DisplayStyle)
         {
-            switch (DisplayStyle)
+        case ImageOnly:
+            button.fsStyle = BTNS_AUTOSIZE;
+            break;
+        case SelectiveText:
             {
-            case ImageOnly:
-                button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
-                break;
-            case SelectiveText:
+                button.fsStyle = BTNS_AUTOSIZE;
+
+                switch (button.idCommand)
                 {
-                    button.fsStyle = button.fsStyle | BTNS_AUTOSIZE;
-
-                    switch (button.idCommand)
-                    {
-                    case PHAPP_ID_VIEW_REFRESH:
-                    case PHAPP_ID_HACKER_OPTIONS: 
-                    case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
-                    case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-                        button.fsStyle = BTNS_SHOWTEXT;
-                        break;
-                    }
+                case PHAPP_ID_VIEW_REFRESH:
+                case PHAPP_ID_HACKER_OPTIONS: 
+                case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+                case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+                    button.fsStyle = BTNS_SHOWTEXT;
+                    break;
                 }
-                break;
-            default:
-                button.fsStyle = BTNS_SHOWTEXT;
-                break;
             }
-
-            // Set updated button info
-            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
+            break;
+        default:
+            button.fsStyle = BTNS_SHOWTEXT;
+            break;
         }
+
+        // Set updated button info
+        SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
     }
+
+    InvalidateRect(ToolBarHandle, NULL, TRUE);
 }
 
 VOID ApplyToolbarSettings(
