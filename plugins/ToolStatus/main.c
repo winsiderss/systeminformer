@@ -24,6 +24,9 @@
 #include "toolstatus.h"
 #include "statusbar.h"
 
+#define IDC_MENU_REBAR 55400
+#define IDC_MENU_REBAR_TOOLBAR 55401
+#define IDC_MENU_REBAR_SEARCH 55402
 #define ID_SEARCH_CLEAR (WM_USER + 1)
 
 PPH_PLUGIN PluginInstance = NULL;
@@ -51,6 +54,10 @@ static HWND ToolBarHandle;
 static HIMAGELIST ToolBarImageList;
 static HWND TextboxHandle;
 static HFONT TextboxFontHandle;
+
+static PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
+static PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
+static PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -102,18 +109,59 @@ static VOID NTAPI LayoutPaddingCallback(
                
     if (ReBarHandle)  
     {
-        RECT reBarRect = { 0, 0, 0, 0 };
-        GetClientRect(ReBarHandle, &reBarRect);
+        static BOOLEAN isDirtyState = FALSE;
+        static RECT rebarRect = { 0, 0, 0, 0 };
 
-        data->Padding.top += reBarRect.bottom; // Width
+        GetClientRect(ReBarHandle, &rebarRect);
+
+        // Move contents for ReBar Width
+        data->Padding.top += rebarRect.bottom; 
+
+        // Resize the Rebar control and it's child items.
+        SendMessage(ReBarHandle, WM_SIZE, 0, 0);
+
+        // Hide the band if the window size is too small...
+        if (rebarRect.right > 700)
+        {
+            if (isDirtyState)
+            {
+                INT bandId = (INT)SendMessage(
+                    ReBarHandle, 
+                    RB_IDTOINDEX, 
+                    (WPARAM)IDC_MENU_REBAR_SEARCH,
+                    0
+                    );
+
+                SendMessage(ReBarHandle, RB_SHOWBAND, (WPARAM)bandId, (LPARAM)TRUE);
+                isDirtyState = FALSE;
+            }
+        }
+        else
+        {     
+            if (!isDirtyState)
+            {
+                INT bandId = (INT)SendMessage(
+                    ReBarHandle, 
+                    RB_IDTOINDEX, 
+                    (WPARAM)IDC_MENU_REBAR_SEARCH, 
+                    (LPARAM)FALSE
+                    );
+
+                SendMessage(ReBarHandle, RB_SHOWBAND, (WPARAM)bandId, 0);
+                isDirtyState = TRUE;
+            }
+        }
     }
 
     if (StatusBarHandle)
     {
         RECT statusBarRect = { 0, 0, 0, 0 };
+
         GetClientRect(StatusBarHandle, &statusBarRect);
 
-        data->Padding.bottom += statusBarRect.bottom;
+        data->Padding.bottom += statusBarRect.bottom;  // StatusBar Width
+
+        SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
     }
 }
 
@@ -138,13 +186,13 @@ VOID RebarAddMenuItem(
     __in HWND WindowHandle,
     __in HWND ChildHandle,
     __in UINT ID,
-    __in UINT cyMinChild,
+    __in UINT cyMinChild,   
     __in UINT cxMinChild
     )
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+    rebarBandInfo.fStyle = RBBS_NOGRIPPER;// | RBBS_FIXEDSIZE;
     
     rebarBandInfo.wID = ID;
     rebarBandInfo.hwndChild = ChildHandle;
@@ -245,10 +293,10 @@ VOID ApplyToolbarSettings(
                 WS_EX_TOOLWINDOW,
                 REBARCLASSNAME,
                 NULL,
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT ,
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 PhMainWndHandle,
-                NULL,
+                (HMENU)IDC_MENU_REBAR,
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
@@ -268,7 +316,7 @@ VOID ApplyToolbarSettings(
                 WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT,
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 PhMainWndHandle,
-                NULL,
+                (HMENU)IDC_MENU_REBAR_TOOLBAR,
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
@@ -300,13 +348,14 @@ VOID ApplyToolbarSettings(
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
            
             // inset the toolbar into the rebar control
-            RebarAddMenuItem(ReBarHandle, ToolBarHandle, 55400, 23, 0);
+            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0);
         }
         
         SetRebarMenuLayout();
     }
     else
     {
+        // temp HACK
         EnableSearch = FALSE;
 
         if (ToolBarHandle)
@@ -314,7 +363,7 @@ VOID ApplyToolbarSettings(
             DestroyWindow(ToolBarHandle);
             ToolBarHandle = NULL;
 
-            RebarRemoveMenuItem(ReBarHandle, 55400);
+            RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_TOOLBAR);
         }
 
         if (ToolBarImageList)
@@ -348,44 +397,64 @@ VOID ApplyToolbarSettings(
                     WindowsVersion > WINDOWS_XP ? L"MS Shell Dlg 2" : L"MS Shell Dlg"
                     );
 
-                TextboxHandle = CreateWindowEx(
-                    0,
-                    WC_EDIT,
-                    NULL,
-                    WS_CHILD | WS_VISIBLE | ES_LEFT,
-                    CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                    ToolBarHandle,
-                    NULL,
-                    (HINSTANCE)PluginInstance->DllBase,
-                    NULL
-                    );
-
                 // Create the font handle
                 TextboxFontHandle = CreateFontIndirect(&logFont);
             }
+
+            TextboxHandle = CreateWindowEx(
+                WS_EX_CLIENTEDGE,
+                WC_EDIT,
+                NULL,
+                WS_CHILD | WS_VISIBLE | ES_LEFT,
+                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                ToolBarHandle,
+                NULL,
+                (HINSTANCE)PluginInstance->DllBase,
+                NULL
+                );
 
             // Set Searchbox control font
             SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
             // Set initial text
             SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
 
-            // Fixup the cue banner region - recalculate margins using WM_NCCALCSIZE
+            // EM_SETCUEBANNER causes text clipping on XP... sending a EM_SETMARGINS message fixes it.
             if (WindowsVersion < WINDOWS_VISTA)
+            {
                 SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
+            }
 
-            // insert a paint region into the edit control NC window area       
-            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+            // insert a paint region into the edit control NC window area        
+            //InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+                             
+            // insert the edit control into the rebar control 
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 200);
 
-            PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
-            PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
-            PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle);  
-
-            // insert the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, 55401, 20, 200);
+            ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
+            ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
+            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle); 
         }
     }
     else
-    {
+    {    
+        if (NetworkTreeFilterEntry)
+        {
+            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), NetworkTreeFilterEntry);
+            NetworkTreeFilterEntry = NULL;
+        }
+
+        if (ServiceTreeFilterEntry) 
+        { 
+            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ServiceTreeFilterEntry); 
+            ServiceTreeFilterEntry = NULL; 
+        }
+
+        if (ProcessTreeFilterEntry) 
+        { 
+            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
+            ProcessTreeFilterEntry = NULL;
+        }
+
         if (TextboxFontHandle)
         {
             DeleteObject(TextboxFontHandle);
@@ -401,7 +470,7 @@ VOID ApplyToolbarSettings(
             DestroyWindow(TextboxHandle);
             TextboxHandle = NULL;
 
-            RebarRemoveMenuItem(ReBarHandle, 55401);
+            RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_SEARCH);
         }
     }
 
@@ -546,8 +615,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
                 if (hdr->code == RBN_HEIGHTCHANGE)
                 {
-                    // HACK: Invoke LayoutPaddingCallback and adjust rebar for multiple rows.
-                    PostMessage(PhMainWndHandle, WM_SIZE, 0L, 0L);
+                    // HACK: Invoke LayoutPaddingCallback and adjust rebar hright for multiple toolbar rows.
+                    PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
                 }
 
                 goto DefaultWndProc;
@@ -780,15 +849,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
         }
         break;
     case WM_SIZE:
-        {
-            if (ReBarHandle)  
-                SendMessage(ReBarHandle, WM_SIZE, 0, 0);
-
-            if (StatusBarHandle)
-                SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
-
-            ProcessHacker_InvalidateLayoutPadding(hWnd);
-        }
+        ProcessHacker_InvalidateLayoutPadding(hWnd);
         break;
     }
 
@@ -802,9 +863,7 @@ static VOID NTAPI MainWindowShowingCallback(
      __in_opt PVOID Parameter,
      __in_opt PVOID Context
     )
-{       
-    ApplyToolbarSettings();
-
+{
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
     PhRegisterCallback(
         ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), 
@@ -812,8 +871,9 @@ static VOID NTAPI MainWindowShowingCallback(
         NULL, 
         &LayoutPaddingCallbackRegistration
         );
-
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+
+    ApplyToolbarSettings();
 }
 
 static VOID NTAPI LoadCallback(
@@ -826,7 +886,7 @@ static VOID NTAPI LoadCallback(
     EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"); 
 
     StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
-    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");     
+    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"); 
 }
 
 static VOID NTAPI ShowOptionsCallback(
