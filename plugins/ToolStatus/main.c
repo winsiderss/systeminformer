@@ -106,10 +106,9 @@ static VOID NTAPI LayoutPaddingCallback(
     )
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
-               
+
     if (ReBarHandle)  
     {
-        static BOOLEAN isDirtyState = FALSE;
         static RECT rebarRect = { 0, 0, 0, 0 };
 
         GetClientRect(ReBarHandle, &rebarRect);
@@ -119,43 +118,11 @@ static VOID NTAPI LayoutPaddingCallback(
 
         // Resize the Rebar control and it's child items.
         SendMessage(ReBarHandle, WM_SIZE, 0, 0);
-
-        // Hide the band if the window size is too small...
-        if (rebarRect.right > 700)
-        {
-            if (isDirtyState)
-            {
-                INT bandId = (INT)SendMessage(
-                    ReBarHandle, 
-                    RB_IDTOINDEX, 
-                    (WPARAM)IDC_MENU_REBAR_SEARCH,
-                    0
-                    );
-
-                SendMessage(ReBarHandle, RB_SHOWBAND, (WPARAM)bandId, (LPARAM)TRUE);
-                isDirtyState = FALSE;
-            }
-        }
-        else
-        {     
-            if (!isDirtyState)
-            {
-                INT bandId = (INT)SendMessage(
-                    ReBarHandle, 
-                    RB_IDTOINDEX, 
-                    (WPARAM)IDC_MENU_REBAR_SEARCH, 
-                    (LPARAM)FALSE
-                    );
-
-                SendMessage(ReBarHandle, RB_SHOWBAND, (WPARAM)bandId, 0);
-                isDirtyState = TRUE;
-            }
-        }
     }
 
     if (StatusBarHandle)
     {
-        RECT statusBarRect = { 0, 0, 0, 0 };
+        static RECT statusBarRect = { 0, 0, 0, 0 };
 
         GetClientRect(StatusBarHandle, &statusBarRect);
 
@@ -192,7 +159,7 @@ VOID RebarAddMenuItem(
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle = RBBS_NOGRIPPER;// | RBBS_FIXEDSIZE;
+    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
     
     rebarBandInfo.wID = ID;
     rebarBandInfo.hwndChild = ChildHandle;
@@ -268,8 +235,10 @@ VOID SetRebarMenuLayout(
 VOID ApplyToolbarSettings(
     VOID
     )
-{                
-    static TBBUTTON tbButtonArray[] =
+{
+    // The toolbar control on x64 Windows will somtimes crash because iString was not allocated by TB_ADDSTRING...
+    // TODO: Rewrite this button array as to not pass a hard-coded string.
+    static TBBUTTON tbButtonArray[9] =
     {
         { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
         { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
@@ -324,7 +293,7 @@ VOID ApplyToolbarSettings(
             // Set the toolbar struct size
             SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
             // Set the extended toolbar styles
-            SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
+            SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
             // Set the window theme
             //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
@@ -343,10 +312,11 @@ VOID ApplyToolbarSettings(
 
             // Configure the toolbar imagelist
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
-
             // Add the buttons to the toolbar 
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
-           
+            // Resize the toolbar now the buttons have been added
+            SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+
             // inset the toolbar into the rebar control
             RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0);
         }
