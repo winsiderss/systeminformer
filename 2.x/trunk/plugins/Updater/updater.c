@@ -47,51 +47,15 @@ static mxml_type_t QueryXmlDataCallback(
     return MXML_OPAQUE;
 }
 
-static VOID SetControlFont(
-    __in HWND ControlHandle,
-    __in INT ControlID
-    )
-{
-    LOGFONT headerFont;
-
-    memset(&headerFont, 0, sizeof(LOGFONT));
-
-    headerFont.lfHeight = -15;
-    headerFont.lfWeight = FW_MEDIUM;
-    headerFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-
-    // We don't check if Segoe exists, CreateFontIndirect does this for us.
-    wcscpy_s(
-        headerFont.lfFaceName, 
-        _countof(headerFont.lfFaceName), 
-        L"Segoe UI"
-        );
-
-    // Create the font handle
-    FontHandle = CreateFontIndirect(&headerFont);
-
-    // Set the font
-    SendMessage(
-        GetDlgItem(ControlHandle, ControlID), 
-        WM_SETFONT, 
-        (WPARAM)FontHandle, 
-        FALSE
-        );
-}
-
 static BOOL ParseVersionString(
-    __in PPH_STRING String,
-    __in PPH_STRING RevString,
-    __out PULONG MajorVersion,
-    __out PULONG MinorVersion,
-    __out PULONG RevisionVersion
+    __inout PUPDATER_XML_DATA Context
     )
 {
     PH_STRINGREF sr, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger;
 
-    PhInitializeStringRef(&sr, String->Buffer);
-    PhInitializeStringRef(&revisionPart, RevString->Buffer);
+    PhInitializeStringRef(&sr, Context->Version->Buffer);
+    PhInitializeStringRef(&revisionPart, Context->RevVersion->Buffer);
 
     if (PhSplitStringRefAtChar(&sr, '.', &majorPart, &minorPart))
     {
@@ -100,9 +64,9 @@ static BOOL ParseVersionString(
 
         PhStringToInteger64(&revisionPart, 10, &revisionInteger);
 
-        *MajorVersion = (ULONG)majorInteger;
-        *MinorVersion = (ULONG)minorInteger;
-        *RevisionVersion = (ULONG)revisionInteger;
+        Context->MajorVersion = (ULONG)majorInteger;
+        Context->MinorVersion = (ULONG)minorInteger;
+        Context->RevisionVersion = (ULONG)revisionInteger;
 
         return TRUE;
     }
@@ -184,6 +148,9 @@ static VOID FreeUpdateContext(
     if (!Context)
         return;
 
+    Context->HaveData = FALSE;
+    Context->UpdaterState = PhUpdateMaximum;
+
     Context->MinorVersion = 0;
     Context->MajorVersion = 0;
     Context->RevisionVersion = 0;
@@ -198,60 +165,68 @@ static VOID FreeUpdateContext(
     PhSwapReference(&Context->Hash, NULL);
     PhSwapReference(&Context->ReleaseNotesUrl, NULL);
     PhSwapReference(&Context->SetupFilePath, NULL);
-           
-    // Set the default Updater state 
-    Context->UpdaterState = PhUpdateDefault;
-    Context->HaveData = FALSE;
+       
+    if (Context->HttpSessionHandle)
+    {
+        WinHttpCloseHandle(Context->HttpSessionHandle);
+        Context->HttpSessionHandle = NULL;
+    }
 
     PhFree(Context);
 }
 
 static BOOLEAN QueryUpdateData(
-    __inout PUPDATER_XML_DATA UpdateData
+    __inout PUPDATER_XML_DATA Context
     )
 {
     PSTR xmlStringBuffer = NULL;
     mxml_node_t* xmlNode = NULL;
     BOOLEAN isSuccess = FALSE;
-
-    PPH_STRING phVersion;
-    PPH_STRING userAgent;
-    HINTERNET sessionHandle = NULL;
     HINTERNET connectionHandle = NULL;
     HINTERNET requestHandle = NULL;
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-
-    // Create a user agent string.
-    phVersion = PhGetPhVersion();
-    userAgent = PhConcatStrings2(L"PH_", phVersion->Buffer);
 
     // Get the current Process Hacker version
     PhGetPhVersionNumbers(
-        &UpdateData->CurrentMajorVersion, 
-        &UpdateData->CurrentMinorVersion, 
+        &Context->CurrentMajorVersion, 
+        &Context->CurrentMinorVersion, 
         NULL, 
-        &UpdateData->CurrentRevisionVersion
+        &Context->CurrentRevisionVersion
         );
 
     __try
     {
-        // Query the current system proxy  (we check the result calling WinHttpOpen)
-        WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-
-        // Open the HTTP session with the system proxy configuration if available
-        if (!(sessionHandle = WinHttpOpen(
-            userAgent->Buffer,                 
-            proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-            proxyConfig.lpszProxy, 
-            proxyConfig.lpszProxyBypass, 
-            0
-            )))
+        // Reuse existing session?
+        if (!Context->HttpSessionHandle)
         {
-            __leave;
+            PPH_STRING phVersion = NULL;
+            PPH_STRING userAgent = NULL;
+            WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
+
+            // Create a user agent string.
+            phVersion = PhGetPhVersion();
+            userAgent = PhConcatStrings2(L"PH_", phVersion->Buffer);
+
+            // Query the current system proxy
+            WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+            
+            // Open the HTTP session with the system proxy configuration if available
+            Context->HttpSessionHandle = WinHttpOpen(
+                userAgent->Buffer,                 
+                proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                proxyConfig.lpszProxy, 
+                proxyConfig.lpszProxyBypass, 
+                0
+                );
+               
+            PhSwapReference(&phVersion, NULL);
+            PhSwapReference(&userAgent, NULL);
+
+            if (!Context->HttpSessionHandle)
+                __leave;
         }
 
         if (!(connectionHandle = WinHttpConnect(
-            sessionHandle, 
+            Context->HttpSessionHandle, 
             L"processhacker.sourceforge.net",
             INTERNET_DEFAULT_HTTP_PORT,
             0
@@ -299,57 +274,49 @@ static BOOLEAN QueryUpdateData(
             __leave;
 
         // Find the version node
-        UpdateData->Version = PhGetOpaqueXmlNodeText(
+        Context->Version = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND)
             );
-        if (PhIsNullOrEmptyString(UpdateData->Version))
+        if (PhIsNullOrEmptyString(Context->Version))
             __leave;
 
         // Find the revision node
-        UpdateData->RevVersion = PhGetOpaqueXmlNodeText(
+        Context->RevVersion = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "rev", NULL, NULL, MXML_DESCEND)
             );
-        if (PhIsNullOrEmptyString(UpdateData->RevVersion))
+        if (PhIsNullOrEmptyString(Context->RevVersion))
             __leave;
 
         // Find the release date node
-        UpdateData->RelDate = PhGetOpaqueXmlNodeText(
+        Context->RelDate = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "reldate", NULL, NULL, MXML_DESCEND)
             );
-        if (PhIsNullOrEmptyString(UpdateData->RelDate))
+        if (PhIsNullOrEmptyString(Context->RelDate))
             __leave;
 
         // Find the size node
-        UpdateData->Size = PhGetOpaqueXmlNodeText(
+        Context->Size = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "size", NULL, NULL, MXML_DESCEND)
             );
-        if (PhIsNullOrEmptyString(UpdateData->Size))
+        if (PhIsNullOrEmptyString(Context->Size))
             __leave;
 
         //Find the hash node
-        UpdateData->Hash = PhGetOpaqueXmlNodeText(
+        Context->Hash = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "sha1", NULL, NULL, MXML_DESCEND)
             );
-        if (PhIsNullOrEmptyString(UpdateData->Hash))
+        if (PhIsNullOrEmptyString(Context->Hash))
             __leave;
 
         // Find the release notes URL
-        UpdateData->ReleaseNotesUrl = PhGetOpaqueXmlNodeText(
+        Context->ReleaseNotesUrl = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "relnotes", NULL, NULL, MXML_DESCEND)
             );
-        if (PhIsNullOrEmptyString(UpdateData->ReleaseNotesUrl))
+        if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
             __leave;
 
-        if (!ParseVersionString(
-            UpdateData->Version, 
-            UpdateData->RevVersion,  
-            &UpdateData->MajorVersion, 
-            &UpdateData->MinorVersion, 
-            &UpdateData->RevisionVersion
-            ))
-        {
+        if (!ParseVersionString(Context))
             __leave;
-        }
 
         isSuccess = TRUE;
     }
@@ -361,20 +328,11 @@ static BOOLEAN QueryUpdateData(
         if (connectionHandle)
             WinHttpCloseHandle(connectionHandle);
 
-        if (sessionHandle)
-            WinHttpCloseHandle(sessionHandle);
-
         if (xmlNode)
             mxmlDelete(xmlNode);
 
         if (xmlStringBuffer)
             PhFree(xmlStringBuffer);
-
-        if (userAgent)
-            PhDereferenceObject(userAgent);
-
-        if (phVersion)
-            PhDereferenceObject(phVersion);
     }
 
     return isSuccess;
@@ -427,7 +385,8 @@ static NTSTATUS UpdateCheckSilentThread(
             context->HaveData = TRUE;
 
             // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-            Sleep(3000);
+            // TODO: Causes a mem leak if user opens dialog while we're sleeping...
+            //Sleep(3000);
 
             // Show the dialog asynchronously on a new thread.
             ShowUpdateDialog(context);
@@ -435,7 +394,7 @@ static NTSTATUS UpdateCheckSilentThread(
     }
     __finally
     {  
-        // Check the dialog doesn't own the context
+        // Check the dialog doesn't own the window context...
         if (!context->HaveData) 
         {
             FreeUpdateContext(context);
@@ -520,19 +479,11 @@ static NTSTATUS UpdateDownloadThread(
 {
     PUPDATER_XML_DATA context;
     PPH_STRING setupTempPath = NULL;
-    PPH_STRING phVersion = NULL;
-    PPH_STRING userAgent = NULL;
     PPH_STRING downloadUrlPath = NULL;
-    HINTERNET sessionHandle = NULL;
     HINTERNET connectionHandle = NULL;
     HINTERNET requestHandle = NULL;
     HANDLE tempFileHandle = NULL;
     BOOLEAN isSuccess = FALSE;
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-
-    // Create a user agent string.
-    phVersion = PhGetPhVersion();
-    userAgent = PhConcatStrings2(L"PH_", phVersion->Buffer);
 
     context = (PUPDATER_XML_DATA)Parameter;
  
@@ -587,27 +538,10 @@ static NTSTATUS UpdateDownloadThread(
             __leave;
         }
 
-        // Query the current system proxy
-        WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-
-        SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Initializing...");
-
-        // Open the HTTP session with the system proxy configuration if available
-        if (!(sessionHandle = WinHttpOpen(
-            userAgent->Buffer,                 
-            proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-            proxyConfig.lpszProxy, 
-            proxyConfig.lpszProxyBypass, 
-            0
-            )))
-        {
-            __leave;
-        }
-
         SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Connecting...");
 
         if (!(connectionHandle = WinHttpConnect(
-            sessionHandle, 
+            context->HttpSessionHandle, 
             L"sourceforge.net",
             INTERNET_DEFAULT_HTTP_PORT,
             0
@@ -677,13 +611,17 @@ static NTSTATUS UpdateDownloadThread(
             ZeroMemory(buffer, PAGE_SIZE);
 
             // Download the data.
-            while (WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
+            while (TRUE)
             {
+                if (!WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
+                    break;
+                        
                 // If we get zero bytes, the file was uploaded or there was an error
                 if (bytesDownloaded == 0)
                     break;
 
                 // If the dialog was closed, just cleanup and exit
+                //if (context->UpdaterState == PhUpdateMaximum)
                 if (!UpdateDialogThreadHandle)
                     __leave;
 
@@ -737,7 +675,8 @@ static NTSTATUS UpdateDownloadThread(
             }
              
             // Check if we downloaded the entire file.
-            assert(downloadedBytes == contentLength);
+            //assert(downloadedBytes == contentLength);
+            isSuccess = TRUE;
 
             // Compute our hash result.
             if (PhFinalHash(&hashContext, &hashBuffer, 20, NULL))
@@ -747,13 +686,10 @@ static NTSTATUS UpdateDownloadThread(
 
                 if (PhEqualString(hexString, context->Hash, TRUE))
                 {
-                    isSuccess = TRUE;
                     PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0, 0);  
                 }
                 else
                 {
-                    // This isn't a success - show PH_HASHFAILURE instead
-                    isSuccess = TRUE;
                     PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
                 }
 
@@ -761,8 +697,6 @@ static NTSTATUS UpdateDownloadThread(
             }
             else
             {
-                // This isn't a success - show PH_HASHFAILURE instead
-                isSuccess = TRUE;
                 PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
             }
         }
@@ -778,12 +712,7 @@ static NTSTATUS UpdateDownloadThread(
         if (connectionHandle)
             WinHttpCloseHandle(connectionHandle);
 
-        if (sessionHandle)
-            WinHttpCloseHandle(sessionHandle);
-
         PhSwapReference(&setupTempPath, NULL);
-        PhSwapReference(&phVersion, NULL);
-        PhSwapReference(&userAgent, NULL);
         PhSwapReference(&downloadUrlPath, NULL);
     }
 
@@ -812,7 +741,22 @@ static INT_PTR CALLBACK UpdaterWndProc(
         context = (PUPDATER_XML_DATA)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
+        {
+            if (IconHandle)
+            {
+                DestroyIcon(IconHandle);
+                IconHandle = NULL;
+            }
+
+            if (FontHandle)
+            {
+                DeleteObject(FontHandle);
+                FontHandle = NULL;
+            }
+
+            FreeUpdateContext(context);
             RemoveProp(hwndDlg, L"Context");
+        }
     }
 
     if (!context)
@@ -822,9 +766,19 @@ static INT_PTR CALLBACK UpdaterWndProc(
     {
     case WM_INITDIALOG:
         {
+            LOGFONT headerFont;
             HWND parentWindow = GetParent(hwndDlg);
-                        
-            SetControlFont(hwndDlg, IDC_MESSAGE);
+
+            memset(&headerFont, 0, sizeof(LOGFONT));
+
+            headerFont.lfHeight = -15;
+            headerFont.lfWeight = FW_MEDIUM;
+            headerFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+            // We don't check if Segoe exists, CreateFontIndirect does this for us.
+            wcscpy_s(headerFont.lfFaceName, _countof(headerFont.lfFaceName), L"Segoe UI");
+
+            // Create the font handle
+            FontHandle = CreateFontIndirect(&headerFont);
 
             // Load the Process Hacker icon.
             IconHandle = (HICON)LoadImage(
@@ -836,10 +790,13 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 LR_SHARED
                 );
 
-            // Set the window icon.
+            // Set the text font
+            if (FontHandle)      
+                SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)FontHandle, FALSE);
+            // Set the window icon
             if (IconHandle)
                 SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)IconHandle);
-      
+
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
 
@@ -1141,7 +1098,7 @@ static NTSTATUS ShowUpdateDialogThread(
     BOOL result;
     MSG message;
     PH_AUTO_POOL autoPool;
-    PUPDATER_XML_DATA context;
+    PUPDATER_XML_DATA context = NULL;
 
     if (Parameter != NULL)
         context = (PUPDATER_XML_DATA)Parameter;
@@ -1176,21 +1133,6 @@ static NTSTATUS ShowUpdateDialogThread(
 
     PhDeleteAutoPool(&autoPool);
     PhResetEvent(&InitializedEvent);
-
-    // Ensure global objects are disposed and reset when window closes.
-    FreeUpdateContext(context);
-
-    if (IconHandle)
-    {
-        DestroyIcon(IconHandle);
-        IconHandle = NULL;
-    }
-
-    if (FontHandle)
-    {
-        DeleteObject(FontHandle);
-        FontHandle = NULL;
-    }
 
     if (UpdateDialogThreadHandle)
     {
