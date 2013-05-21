@@ -57,48 +57,46 @@ typedef struct _NC_CONTROL
     RECT oldrect;
     RECT* prect;
 
-    HBRUSH BorderBrush;
-    HBRUSH DcBrush;
-    HTHEME WndHTheme;
-    HMODULE uxthemeHandle;
+    BOOL IsThemeActive;
+    BOOL IsThemeBackgroundActive;
+    HTHEME UxThemeData;
+    HMODULE UxThemeModule;
+
     HIMAGELIST ImageList;
     HWND ParentWindow;
-} NC_CONTROL;
+} NC_CONTROL, *PNCA_CONTROL;
 
 static VOID GetButtonRect(
-    __inout NC_CONTROL* nc,
+    __inout PNCA_CONTROL Context,
     __in RECT* rect
     )
 {
     // retrieve the coordinates of an inserted button, given the specified window rectangle. 
-    rect->right -= nc->cxRightEdge;
-    rect->top += nc->cyTopEdge;
-    rect->bottom -= nc->cyBottomEdge;
-    rect->left = rect->right - nc->nButSize;
+    rect->right -= Context->cxRightEdge;
+    rect->top += Context->cyTopEdge;
+    rect->bottom -= Context->cyBottomEdge;
+    rect->left = rect->right - Context->nButSize;
 
-    if (nc->cxRightEdge > nc->cxLeftEdge)
-        OffsetRect(rect, nc->cxRightEdge - nc->cxLeftEdge, 0);
+    if (Context->cxRightEdge > Context->cxLeftEdge)
+        OffsetRect(rect, Context->cxRightEdge - Context->cxLeftEdge, 0);
 }   
 
 static VOID DrawInsertedButton(
     __in HWND hwndDlg, 
-    __inout NC_CONTROL* context, 
+    __inout NC_CONTROL* Context, 
     __in HDC HdcHandle,
     __in RECT* prect
     )
 {
-    // Draw the image - with some bad offsets..
-    // Move the draw region +3 right and up -2
-    OffsetRect(prect, 0, -2);
-
-    if (context->TextLength > 0)
+    // Draw the search image...
+    if (Context->TextLength > 0)
     {
         ImageList_DrawEx(
-            context->ImageList, 
+            Context->ImageList, 
             0,     
             HdcHandle, 
-            prect->left, 
-            prect->top,
+            prect->left + 1,
+            prect->top + 1, 
             0, 0,
             CLR_NONE,
             CLR_NONE,
@@ -108,11 +106,11 @@ static VOID DrawInsertedButton(
     else
     {
         ImageList_DrawEx(
-            context->ImageList, 
-            1, 
+            Context->ImageList, 
+            1,
             HdcHandle, 
-            prect->left, 
-            prect->top,
+            prect->left + 1, 
+            prect->top + 1, 
             0, 0,
             CLR_NONE,
             CLR_NONE,
@@ -127,64 +125,35 @@ static VOID PhTnpDrawThemedBorder(
     __in HDC hdc
     )
 {
-    RECT windowRect;
-    RECT clientRect;
-    LONG sizingBorderWidth;
-    LONG borderX;
-    LONG borderY;
+    static RECT clientRect = { 0, 0, 0, 0 };
+    static RECT windowRect = { 0, 0, 0, 0 };
 
+    // get the screen coordinates of the client area
+    GetClientRect(hwnd, &clientRect);        
+    // Exclude the client area
+    ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+
+    // get the screen coordinates of the Window area
     GetWindowRect(hwnd, &windowRect);
-    windowRect.right -= windowRect.left;
-    windowRect.bottom -= windowRect.top;
-    windowRect.left = 0;
-    windowRect.top = 0;
+    // adjust the coordinates - start from 0,0
+    OffsetRect(&windowRect, -windowRect.left, -windowRect.top);   
 
-    clientRect.left = windowRect.left + GetSystemMetrics(SM_CXEDGE);
-    clientRect.top = windowRect.top + GetSystemMetrics(SM_CYEDGE);
-    clientRect.right = windowRect.right - GetSystemMetrics(SM_CXEDGE);
-    clientRect.bottom = windowRect.bottom - GetSystemMetrics(SM_CYEDGE);
-
-    // Make sure we don't paint in the client area.
-    //ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
-
-    // Draw the themed border.
-    if (DrawThemeBackground_I)
-        DrawThemeBackground_I(Context->WndHTheme, hdc, 0, 0, &windowRect, NULL);
-
-    // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't fully paint the region.
-    if (GetThemeInt_I && SUCCEEDED(GetThemeInt_I(Context->WndHTheme, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
+    // Draw the themed background
+    if (DrawThemeBackground_I && Context->IsThemeBackgroundActive)
     {
-        borderX = sizingBorderWidth;
-        borderY = sizingBorderWidth;
+        DrawThemeBackground_I(Context->UxThemeData, hdc, EP_EDITBORDER_NOSCROLL, 0, &windowRect, NULL);
     }
     else
     {
-        borderX = GetSystemMetrics(SM_CXBORDER);
-        borderY = GetSystemMetrics(SM_CYBORDER);
+        FillRect(hdc, &windowRect, (HBRUSH)GetStockObject(DC_BRUSH)); //GetSysColorBrush(COLOR_WINDOW)
     }
 
-    if (borderX < GetSystemMetrics(SM_CXEDGE) || borderY < GetSystemMetrics(SM_CYEDGE))
-    {
-        windowRect.left += GetSystemMetrics(SM_CXEDGE) - borderX;
-        windowRect.top += GetSystemMetrics(SM_CYEDGE) - borderY;
-        windowRect.right -= GetSystemMetrics(SM_CXEDGE) - borderX;
-        windowRect.bottom -= GetSystemMetrics(SM_CYEDGE) - borderY;
+    // work out where to draw the button
+    GetButtonRect(Context, &windowRect);
+    DrawInsertedButton(hwnd, Context, hdc, &windowRect);
 
-        //FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
-    }
-
-    //IntersectClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
-
-    {
-        // get the screen coordinates of the window
-        GetWindowRect(hwnd, &Context->rect);
-        // adjust the coordinates - start from 0,0
-        OffsetRect(&Context->rect, -Context->rect.left, -Context->rect.top);    
-
-        // work out where to draw the button
-        GetButtonRect(Context, &Context->rect);
-        DrawInsertedButton(hwnd, Context, hdc, &Context->rect);   
-    }
+    // Restore the the client area
+    IntersectClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 }
 
 static BOOLEAN PhTnpOnNcPaint(
@@ -193,8 +162,6 @@ static BOOLEAN PhTnpOnNcPaint(
     __in_opt HRGN UpdateRegion
     )
 {
-    // Themed border
-    //if ((Context->ExtendedStyle & WS_EX_CLIENTEDGE) && Context->ThemeData)
     HDC hdc;
     ULONG flags;
 
@@ -233,40 +200,31 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
     if (uMsg == WM_DESTROY)
     {
-        if (context->BorderBrush)
-        {
-            DeleteObject(context->BorderBrush);
-            context->BorderBrush = NULL;
-        }
-
-        if (context->DcBrush)
-        {
-            DeleteObject(context->DcBrush);
-            context->DcBrush = NULL;
-        }
-
         if (context->ImageList)
         {
             ImageList_Destroy(context->ImageList);
             context->ImageList = NULL;
         }
 
-        if (CloseThemeData_I && context->WndHTheme)
+        if (context->UxThemeData)
         {
-            CloseThemeData_I(context->WndHTheme);
-            context->WndHTheme = NULL;
+            if (CloseThemeData_I)
+            {
+                CloseThemeData_I(context->UxThemeData);
+                context->UxThemeData = NULL;
+            }
         }
 
-        if (context->uxthemeHandle)
+        if (context->UxThemeModule)
         {
-            FreeLibrary(context->uxthemeHandle);
-            context->uxthemeHandle = NULL;
+            FreeLibrary(context->UxThemeModule);
+            context->UxThemeModule = NULL;
         }
 
-        RemoveProp(hwndDlg, L"Context");
         RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
-
+        RemoveProp(hwndDlg, L"Context");
         PhFree(context);
+
         return FALSE;
     }
 
@@ -279,18 +237,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             context->prect = (RECT*)lParam;
             context->oldrect = *context->prect;
 
-            // Adjust (shrink) the edit control client rectangle to accommodate the border:
-            nccsp->rgrc[0].left += 1;
-            //nccsp->rgrc[0].right -= 1;
-            nccsp->rgrc[0].top += 3;
-            nccsp->rgrc[0].bottom -= 1;
-
-            // let the old wndproc allocate space for the borders, or any other non-client space.
-            //CallWindowProc(context->NCAreaWndProc, hwndDlg, uMsg, wParam, lParam);
-            //DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
-
-            // calculate what the size of each window border is,
-            // we need to know where the button is going to live.
+            // calculate what the size of each window border is, so we can position the button...
             context->cxLeftEdge = context->prect->left - context->oldrect.left; 
             context->cxRightEdge = context->oldrect.right - context->prect->right;
             context->cyTopEdge = context->prect->top - context->oldrect.top;
@@ -301,7 +248,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             // and will be the same width as a scrollbar button
             context->prect->right -= context->nButSize; 
         }
-        break;  
+        break;
     case WM_NCPAINT:
         {
             context->TextLength = Edit_GetTextLength(hwndDlg);
@@ -310,41 +257,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 return FALSE;
         }
         break;
-        //case WM_NCPAINT:
-        //    {      
-        //        HDC hdc;
-        //        if (hdc = GetWindowDC(hwndDlg))
-        //        {
-        //            // get the screen coordinates of the window
-        //            GetWindowRect(hwndDlg, &context->rect);
-        //            // adjust the coordinates - start from 0,0
-        //            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);    
-        //            if (context->WndHTheme)
-        //            {
-        //                DrawThemeBackground(
-        //                    context->WndHTheme, 
-        //                    hdc, 
-        //                    EP_BACKGROUNDWITHBORDER, 
-        //                    EBWBS_NORMAL, 
-        //                    &context->rect, 
-        //                    0
-        //                    );
-        //            }
-        //            else
-        //            {
-        //                // Clear the draw region 
-        //                FillRect(hdc, &context->rect, context->DcBrush);
-        //                // Set border color
-        //                FrameRect(hdc, &context->rect, context->BorderBrush);
-        //            }
-        //            // work out where to draw the button
-        //            GetButtonRect(context, &context->rect);
-        //            DrawInsertedButton(hwndDlg, context, hdc, &context->rect);   
-        //            // cleanup
-        //            ReleaseDC(hwndDlg, hdc);
-        //        }
-        //    }
-        //    return FALSE;
     case WM_NCHITTEST:
         {
             // get the screen coordinates of the mouse
@@ -360,7 +272,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 return HTBORDER;
         }
         break;
-    case WM_NCLBUTTONDBLCLK:
     case WM_NCLBUTTONDOWN:
         {
             // get the screen coordinates of the mouse
@@ -391,18 +302,11 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     0
                     );
 
-                // invalidate the nonclient area
-                //SetWindowPos(
-                //    hwndDlg,
-                //    0, 0, 0, 0, 0,
-                //    SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
-                //    );
-                // RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-
-                SetWindowPos(
-                    hwndDlg,
-                    0, 0, 0, 0, 0,
-                    SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+                // Invalidate the nonclient area...
+                RedrawWindow(
+                    hwndDlg, 
+                    NULL, NULL,
+                    RDW_FRAME | RDW_INVALIDATE | RDW_ERASENOW | RDW_NOCHILDREN
                     );
             }
         }
@@ -417,7 +321,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             ReleaseCapture();
 
             ClientToScreen(hwndDlg, &context->pt);
-            // get the position of the inserted button
             GetWindowRect(hwndDlg, &context->rect);
 
             context->pt.x -= context->rect.left;
@@ -430,11 +333,12 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             if (PtInRect(&context->rect, context->pt))
             {
                 context->TextLength = Edit_GetTextLength(hwndDlg);
-                
-                SetWindowPos(
-                    hwndDlg,
-                    0, 0, 0, 0, 0,
-                    SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+
+                // Invalidate the nonclient area...
+                RedrawWindow(
+                    hwndDlg, 
+                    NULL, NULL, 
+                    RDW_FRAME | RDW_INVALIDATE | RDW_ERASENOW | RDW_NOCHILDREN
                     );
             }
         }
@@ -443,11 +347,11 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         {   
             context->TextLength = Edit_GetTextLength(hwndDlg);
 
-            // invalidate the nonclient area
-            SetWindowPos(
-                hwndDlg,
-                0, 0, 0, 0, 0,
-                SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+            // Invalidate the nonclient area...
+            RedrawWindow(
+                hwndDlg, 
+                NULL, NULL, 
+                RDW_FRAME | RDW_INVALIDATE | RDW_ERASENOW | RDW_NOCHILDREN
                 );
         }
         break;
@@ -462,58 +366,88 @@ BOOLEAN InsertButton(
     )
 {
     NC_CONTROL* context = (NC_CONTROL*)PhAllocate(sizeof(NC_CONTROL));
-    
     memset(context, 0, sizeof(NC_CONTROL));
 
     context->CommandID = CommandID;
     context->ParentWindow = GetParent(hwndDlg);
-    context->BorderBrush = (HBRUSH)CreateSolidBrush(RGB(0x8f, 0x8f, 0x8f));
-    context->DcBrush = (HBRUSH)GetStockObject(DC_BRUSH);
     // search image sizes are 23x20
     context->nButSize = 22;
     context->ImageList = ImageList_Create(17, 17, ILC_COLOR32 | ILC_MASK, 0, 0);
-
     // Set the number of images
     ImageList_SetImageCount(context->ImageList, 2);
     PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
     PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
 
-    context->uxthemeHandle = LoadLibrary(L"uxtheme.dll");
-    IsThemeActive_I = (_IsThemeActive)GetProcAddress(context->uxthemeHandle, "IsThemeActive");
-    OpenThemeData_I = (_OpenThemeData)GetProcAddress(context->uxthemeHandle, "OpenThemeData");
-    CloseThemeData_I = (_CloseThemeData)GetProcAddress(context->uxthemeHandle, "CloseThemeData");
-    IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(context->uxthemeHandle, "IsThemePartDefined");
-    DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(context->uxthemeHandle, "DrawThemeBackground");
-    DrawThemeText_I = (_DrawThemeText)GetProcAddress(context->uxthemeHandle, "DrawThemeText");
-    GetThemeInt_I = (_GetThemeInt)GetProcAddress(context->uxthemeHandle, "GetThemeInt");
-  
-    if (OpenThemeData_I)
+    if ((context->UxThemeModule = LoadLibrary(L"uxtheme.dll")) != NULL)
     {
-        context->WndHTheme = OpenThemeData_I(hwndDlg, VSCLASS_EDIT); 
+        IsThemeActive_I = (_IsThemeActive)GetProcAddress(context->UxThemeModule, "IsThemeActive");
+        OpenThemeData_I = (_OpenThemeData)GetProcAddress(context->UxThemeModule, "OpenThemeData");
+        CloseThemeData_I = (_CloseThemeData)GetProcAddress(context->UxThemeModule, "CloseThemeData");
+        IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(context->UxThemeModule, "IsThemePartDefined");
+        DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(context->UxThemeModule, "DrawThemeBackground");
+        DrawThemeText_I = (_DrawThemeText)GetProcAddress(context->UxThemeModule, "DrawThemeText");
+        GetThemeInt_I = (_GetThemeInt)GetProcAddress(context->UxThemeModule, "GetThemeInt");
     }
 
-    // OpenThemeData_I: SearchBox, SearchEditBox, Edit::SearchBox, Edit::SearchEditBox
-    // We can also SetWindowTheme:  
-    //    InactiveSearchBoxEdit
-    //    InactiveSearchBoxEditComposited
-    //    MaxInactiveSearchBoxEdit
-    //    MaxInactiveSearchBoxEditComposited
-    //    MaxSearchBoxEdit
-    //    MaxSearchBoxEditComposited
-    //    SearchBoxEdit
-    //    SearchBoxEditComposited
+    if (IsThemeActive_I && 
+        OpenThemeData_I && 
+        CloseThemeData_I && 
+        IsThemePartDefined_I && 
+        DrawThemeBackground_I && 
+        GetThemeInt_I)
+    {
+        context->IsThemeActive = IsThemeActive_I();
+        context->UxThemeData = OpenThemeData_I(
+            hwndDlg,
+            VSCLASS_EDIT
+            );
 
-    // associate our button state structure with the window before subclassing the WndProc
+        // OpenThemeData_I: 
+        //    SearchBox
+        //    SearchEditBox, 
+        //    Edit::SearchBox
+        //    Edit::SearchEditBox
+        // SetWindowTheme themes:  
+        //    InactiveSearchBoxEdit
+        //    InactiveSearchBoxEditComposited
+        //    MaxInactiveSearchBoxEdit
+        //    MaxInactiveSearchBoxEditComposited
+        //    MaxSearchBoxEdit
+        //    MaxSearchBoxEditComposited
+        //    SearchBoxEdit
+        //    SearchBoxEditComposited
+
+        if (context->UxThemeData)
+        {
+            context->IsThemeBackgroundActive = IsThemePartDefined_I(
+                context->UxThemeData, 
+                EP_EDITBORDER_NOSCROLL, 
+                0
+                );
+        }
+        else
+        {
+            context->IsThemeBackgroundActive = FALSE;
+        }
+    }
+    else
+    {
+        context->UxThemeData = NULL;
+        context->IsThemeActive = FALSE;
+        context->IsThemeBackgroundActive = FALSE;
+    }
+
+    // Set our window context data
     SetProp(hwndDlg, L"Context", (HANDLE)context);
 
-    // replace the old window procedure with our new one
+    // Subclass the Edit control window procedure...
     SetWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0, 0);
 
-    //force the edit control to update its non-client area
-    SetWindowPos(
-        hwndDlg,
-        0, 0, 0, 0, 0,
-        SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE | SWP_NOZORDER
+    // force the edit control to update its non-client area...
+    RedrawWindow(
+        hwndDlg, 
+        NULL, NULL, 
+        RDW_FRAME | RDW_INVALIDATE | RDW_ERASENOW | RDW_NOCHILDREN
         );
 
     return TRUE;

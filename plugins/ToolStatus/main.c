@@ -395,7 +395,7 @@ VOID ApplyToolbarSettings(
             }
 
             // insert a paint region into the edit control NC window area        
-            //InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
                              
             // insert the edit control into the rebar control 
             RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 200);
