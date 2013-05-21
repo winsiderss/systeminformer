@@ -32,28 +32,39 @@
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
 
-static _IsThemeActive IsThemeActive_I;
-static _OpenThemeData OpenThemeData_I;
-static _CloseThemeData CloseThemeData_I;
-static _IsThemePartDefined IsThemePartDefined_I;
-static _DrawThemeBackground DrawThemeBackground_I;
-static _DrawThemeText DrawThemeText_I;
-static _GetThemeInt GetThemeInt_I;
+typedef HRESULT (WINAPI *_GetThemeColor)(
+    __in HTHEME hTheme,
+    __in INT iPartId,
+    __in INT iStateId,
+    __in INT iPropId,
+    __out COLORREF *pColor
+    );
+typedef HRESULT (WINAPI *_SetWindowTheme)(
+    __in HWND hwnd,
+    __in LPCWSTR pszSubAppName,
+    __in LPCWSTR pszSubIdList
+    );
+
+typedef HRESULT (WINAPI *_GetThemeFont)(
+    HTHEME hTheme,
+    HDC hdc,
+    int iPartId,
+    int iStateId,
+    int iPropId,
+    _Out_ LOGFONTW *pFont
+    );
 
 typedef struct _NC_CONTROL
 {
     UINT CommandID; // sent in a WM_COMMAND message
     UINT uState;
 
-    INT nButSize; // 22 horizontal size of button   
     INT cxLeftEdge; // size of the current window borders.
     INT cxRightEdge;  // size of the current window borders.
     INT cyTopEdge; 
-    INT cyBottomEdge; 
-    INT TextLength;
+    INT cyBottomEdge;
 
-    POINT pt;
-    RECT rect;
+    SIZE ImgSize;
     RECT oldrect;
     RECT* prect;
 
@@ -64,120 +75,230 @@ typedef struct _NC_CONTROL
 
     HIMAGELIST ImageList;
     HWND ParentWindow;
-} NC_CONTROL, *PNCA_CONTROL;
+} *NC_CONTROL;
 
-static VOID GetButtonRect(
-    __inout PNCA_CONTROL Context,
+static _IsThemeActive IsThemeActive_I;
+static _OpenThemeData OpenThemeData_I;
+static _SetWindowTheme SetWindowTheme_I;
+static _CloseThemeData CloseThemeData_I;
+static _IsThemePartDefined IsThemePartDefined_I;
+static _DrawThemeBackground DrawThemeBackground_I;
+static _DrawThemeText DrawThemeText_I;
+static _GetThemeInt GetThemeInt_I;
+static _GetThemeColor GetThemeColor_I;
+static _GetThemeFont GetThemeFont_I;
+
+static VOID NcAreaInitializeUxTheme(
+    __inout NC_CONTROL Context,
+    __in HWND hwndDlg
+    )
+{
+    if (!Context->UxThemeModule)
+    {
+        if ((Context->UxThemeModule = LoadLibrary(L"uxtheme.dll")) != NULL)
+        {
+            IsThemeActive_I = (_IsThemeActive)GetProcAddress(Context->UxThemeModule, "IsThemeActive");
+            OpenThemeData_I = (_OpenThemeData)GetProcAddress(Context->UxThemeModule, "OpenThemeData");
+            SetWindowTheme_I = (_SetWindowTheme)GetProcAddress(Context->UxThemeModule, "SetWindowTheme");
+            CloseThemeData_I = (_CloseThemeData)GetProcAddress(Context->UxThemeModule, "CloseThemeData");
+            IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(Context->UxThemeModule, "IsThemePartDefined");
+            DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(Context->UxThemeModule, "DrawThemeBackground");
+            DrawThemeText_I = (_DrawThemeText)GetProcAddress(Context->UxThemeModule, "DrawThemeText");
+            GetThemeInt_I = (_GetThemeInt)GetProcAddress(Context->UxThemeModule, "GetThemeInt");
+            GetThemeColor_I = (_GetThemeColor)GetProcAddress(Context->UxThemeModule, "GetThemeColor");
+            GetThemeFont_I = (_GetThemeFont)GetProcAddress(Context->UxThemeModule, "GetThemeFont");
+        }
+    }
+
+    if (IsThemeActive_I && 
+        OpenThemeData_I && 
+        CloseThemeData_I && 
+        IsThemePartDefined_I && 
+        DrawThemeBackground_I && 
+        GetThemeInt_I)
+    {
+        Context->IsThemeActive = IsThemeActive_I();
+ 
+        if (Context->UxThemeData)
+        {
+            CloseThemeData_I(Context->UxThemeData);
+            Context->UxThemeData = NULL;
+        }
+
+        // UxTheme classes and themes:
+        // OpenThemeData_I: 
+        //    SearchBox
+        //    SearchEditBox, 
+        //    Edit::SearchBox
+        //    Edit::SearchEditBox
+        Context->UxThemeData = OpenThemeData_I(hwndDlg, VSCLASS_EDIT);
+
+        // SetWindowTheme_I:  
+        //    InactiveSearchBoxEdit
+        //    InactiveSearchBoxEditComposited
+        //    MaxInactiveSearchBoxEdit
+        //    MaxInactiveSearchBoxEditComposited
+        //    MaxSearchBoxEdit
+        //    MaxSearchBoxEditComposited
+        //    SearchBoxEdit
+        //    SearchBoxEditComposited
+        // SetWindowTheme_I(hwndDlg, L"SearchBoxEdit", NULL);
+
+        if (Context->UxThemeData)
+        {            
+            Context->IsThemeBackgroundActive = IsThemePartDefined_I(
+                Context->UxThemeData, 
+                EP_BACKGROUND, 
+                0
+                );
+
+            //COLORREF clrBackgroundRef;
+            //HFONT hFont = NULL;
+            //LOGFONT lf = { 0 };
+
+            //if (SUCCEEDED(GetThemeFont_I(
+            //    Context->UxThemeData,
+            //    NULL,
+            //    EP_EDITTEXT, 
+            //    3,
+            //    TMT_FONT,
+            //    &lf
+            //    )))
+            //{
+            //    hFont = CreateFontIndirect(&lf);
+            //}
+
+            //GetThemeColor_I(
+            //    Context->UxThemeData, 
+            //    EP_BACKGROUND,
+            //    EBS_NORMAL, 
+            //    TMT_BORDERCOLOR, 
+            //    &clrBackgroundRef
+            //    );
+        }
+        else
+        {
+            Context->IsThemeBackgroundActive = FALSE;
+        }
+    }
+    else
+    {
+        Context->UxThemeData = NULL;
+        Context->IsThemeActive = FALSE;
+        Context->IsThemeBackgroundActive = FALSE;
+    }
+}
+
+static VOID NcAreaGetButtonRect(
+    __inout NC_CONTROL Context,
     __in RECT* rect
     )
 {
     // retrieve the coordinates of an inserted button, given the specified window rectangle. 
     rect->right -= Context->cxRightEdge;
-    rect->top += Context->cyTopEdge;
+    rect->top += Context->cyTopEdge; // GetSystemMetrics(SM_CYBORDER);
     rect->bottom -= Context->cyBottomEdge;
-    rect->left = rect->right - Context->nButSize;
+    rect->left = rect->right - Context->ImgSize.cx; // GetSystemMetrics(SM_CXBORDER)
 
     if (Context->cxRightEdge > Context->cxLeftEdge)
         OffsetRect(rect, Context->cxRightEdge - Context->cxLeftEdge, 0);
-}   
-
-static VOID DrawInsertedButton(
-    __in HWND hwndDlg, 
-    __inout NC_CONTROL* Context, 
-    __in HDC HdcHandle,
-    __in RECT* prect
-    )
-{
-    // Draw the search image...
-    if (Context->TextLength > 0)
-    {
-        ImageList_DrawEx(
-            Context->ImageList, 
-            0,     
-            HdcHandle, 
-            prect->left + 1,
-            prect->top + 1, 
-            0, 0,
-            CLR_NONE,
-            CLR_NONE,
-            ILD_NORMAL | ILD_SCALE
-            );
-    }
-    else
-    {
-        ImageList_DrawEx(
-            Context->ImageList, 
-            1,
-            HdcHandle, 
-            prect->left + 1, 
-            prect->top + 1, 
-            0, 0,
-            CLR_NONE,
-            CLR_NONE,
-            ILD_NORMAL | ILD_SCALE
-            );
-    }
 }
 
-static VOID PhTnpDrawThemedBorder(
-    __in HWND hwnd,
-    __in NC_CONTROL* Context,
-    __in HDC hdc
-    )
-{
-    static RECT clientRect = { 0, 0, 0, 0 };
-    static RECT windowRect = { 0, 0, 0, 0 };
-
-    // get the screen coordinates of the client area
-    GetClientRect(hwnd, &clientRect);        
-    // Exclude the client area
-    ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
-
-    // get the screen coordinates of the Window area
-    GetWindowRect(hwnd, &windowRect);
-    // adjust the coordinates - start from 0,0
-    OffsetRect(&windowRect, -windowRect.left, -windowRect.top);   
-
-    // Draw the themed background
-    if (DrawThemeBackground_I && Context->IsThemeBackgroundActive)
-    {
-        DrawThemeBackground_I(Context->UxThemeData, hdc, EP_EDITBORDER_NOSCROLL, 0, &windowRect, NULL);
-    }
-    else
-    {
-        FillRect(hdc, &windowRect, (HBRUSH)GetStockObject(DC_BRUSH)); //GetSysColorBrush(COLOR_WINDOW)
-    }
-
-    // work out where to draw the button
-    GetButtonRect(Context, &windowRect);
-    DrawInsertedButton(hwnd, Context, hdc, &windowRect);
-
-    // Restore the the client area
-    IntersectClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
-}
-
-static BOOLEAN PhTnpOnNcPaint(
-    __in HWND hwnd,
-    __in NC_CONTROL* Context,
+static BOOLEAN NcAreaOnNcPaint(
+    __in HWND hwndDlg,
+    __in NC_CONTROL Context,
     __in_opt HRGN UpdateRegion
     )
 {
-    HDC hdc;
-    ULONG flags;
+    HDC hdc; 
+    static RECT clientRect = { 0, 0, 0, 0 };
+    static RECT windowRect = { 0, 0, 0, 0 };
+    
+    // Note the use of undocumented flags below. GetDCEx doesn't work without these.
+    ULONG flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
 
     if (UpdateRegion == HRGN_FULL)
         UpdateRegion = NULL;
 
-    // Note the use of undocumented flags below. GetDCEx doesn't work without these.
-    flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
-
     if (UpdateRegion)
         flags |= DCX_INTERSECTRGN | 0x40000;
 
-    if (hdc = GetDCEx(hwnd, UpdateRegion, flags))
+    if (hdc = GetDCEx(hwndDlg, UpdateRegion, flags))
     {
-        PhTnpDrawThemedBorder(hwnd, Context, hdc);
-        ReleaseDC(hwnd, hdc);
+        // Get the screen coordinates of the client window
+        GetClientRect(hwndDlg, &clientRect); 
+
+        // Exclude the client area...
+        ExcludeClipRect(
+            hdc, 
+            clientRect.left, 
+            clientRect.top,
+            clientRect.right,
+            clientRect.bottom
+            );
+
+        // Get the screen coordinates of the window
+        GetWindowRect(hwndDlg, &windowRect);
+        // Adjust the coordinates - start from 0,0 
+        OffsetRect(&windowRect, -windowRect.left, -windowRect.top); 
+
+        // Draw the themed background.
+        if (Context->IsThemeActive && Context->IsThemeBackgroundActive)
+        {
+            // Works better without??
+            //DrawThemeBackground_I(
+            //    Context->UxThemeData, 
+            //    hdc, 
+            //    EP_BACKGROUND, 
+            //    EBS_NORMAL, 
+            //    &windowRect, 
+            //    NULL
+            //    );
+        }
+        else
+        {   
+            FillRect(hdc, &windowRect, (HBRUSH)GetStockObject(DC_BRUSH));
+        }
+
+        SelectClipRgn(hdc, UpdateRegion);
+
+        // get the position of the inserted button
+        NcAreaGetButtonRect(Context, &windowRect);
+
+        // Draw the button
+        if (Edit_GetTextLength(hwndDlg) > 0)
+        {
+            ImageList_Draw(
+                Context->ImageList, 
+                0,     
+                hdc, 
+                windowRect.left,
+                windowRect.top, 
+                0
+                );
+        }
+        else
+        {
+            ImageList_Draw(
+                Context->ImageList, 
+                1,
+                hdc, 
+                windowRect.left, 
+                windowRect.top, 
+                0
+                );
+        }
+
+        // Restore the the client area...
+        IntersectClipRect(
+            hdc, 
+            clientRect.left, 
+            clientRect.top,
+            clientRect.right, 
+            clientRect.bottom
+            );
+
+        ReleaseDC(hwndDlg, hdc);
         return TRUE;
     }
 
@@ -192,10 +313,13 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     __in UINT_PTR uIdSubclass, 
     __in DWORD_PTR dwRefData
     )
-{
-    NC_CONTROL* context = (NC_CONTROL*)GetProp(hwndDlg, L"Context");
+{             
+    NC_CONTROL context = (NC_CONTROL)GetProp(hwndDlg, L"Context");
+              
+    static POINT pt;   
+    static RECT windowRect = { 0, 0, 0, 0 };
 
-    if (!context)
+    if (context == NULL)
         return FALSE;
 
     if (uMsg == WM_DESTROY)
@@ -224,7 +348,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
         RemoveProp(hwndDlg, L"Context");
         PhFree(context);
-
         return FALSE;
     }
 
@@ -243,61 +366,50 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             context->cyTopEdge = context->prect->top - context->oldrect.top;
             context->cyBottomEdge = context->oldrect.bottom - context->prect->bottom;   
 
-            // now we can allocate additional space by deflating the
-            // rectangle even further. Our button will go on the right-hand side,
-            // and will be the same width as a scrollbar button
-            context->prect->right -= context->nButSize; 
+            // allocate space for the image by deflating the client window rectangle.
+            context->prect->right -= context->ImgSize.cx; 
         }
         break;
     case WM_NCPAINT:
         {
-            context->TextLength = Edit_GetTextLength(hwndDlg);
-
-            if (!PhTnpOnNcPaint(hwndDlg, context, (HRGN)wParam))
+            if (!NcAreaOnNcPaint(hwndDlg, context, (HRGN)wParam))
                 return FALSE;
         }
         break;
     case WM_NCHITTEST:
         {
             // get the screen coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
 
             // get the position of the inserted button
-            GetWindowRect(hwndDlg, &context->rect);
-            GetButtonRect(context, &context->rect);
+            GetWindowRect(hwndDlg, &windowRect);
+            NcAreaGetButtonRect(context, &windowRect);
 
             // check that the mouse is within the inserted button
-            if (PtInRect(&context->rect, context->pt))
+            if (PtInRect(&windowRect, pt))
                 return HTBORDER;
         }
         break;
     case WM_NCLBUTTONDOWN:
         {
             // get the screen coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
 
             // get the position of the inserted button
-            GetWindowRect(hwndDlg, &context->rect);
-
-            context->pt.x -= context->rect.left;
-            context->pt.y -= context->rect.top;
-
-            // adjust the coordinates so they start from 0,0
-            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
-
-            GetButtonRect(context, &context->rect);
+            GetWindowRect(hwndDlg, &windowRect);
+            NcAreaGetButtonRect(context, &windowRect);
 
             // check that the mouse is within the inserted button
-            if (PtInRect(&context->rect, context->pt))
+            if (PtInRect(&windowRect, pt))
             {
                 SetCapture(hwndDlg);
 
-                // Send the click notification to the parent window
+                // Send the click notification to the parent window..
                 PostMessage(
-                    context->ParentWindow,
-                    WM_COMMAND, 
+                    context->ParentWindow, 
+                    WM_COMMAND,
                     MAKEWPARAM(context->CommandID, BN_CLICKED), 
                     0
                     );
@@ -314,39 +426,37 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_LBUTTONUP:
         {
             // get the SCREEN coordinates of the mouse
-            context->pt.x = GET_X_LPARAM(lParam);
-            context->pt.y = GET_Y_LPARAM(lParam);
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
 
             // Always release
             ReleaseCapture();
 
-            ClientToScreen(hwndDlg, &context->pt);
-            GetWindowRect(hwndDlg, &context->rect);
-
-            context->pt.x -= context->rect.left;
-            context->pt.y -= context->rect.top;
-
-            OffsetRect(&context->rect, -context->rect.left, -context->rect.top);
-            GetButtonRect(context, &context->rect);
-
-            // check that the mouse is within the region
-            if (PtInRect(&context->rect, context->pt))
+            // XP compat fix??
+            //if (WindowsVersion < WINDOWS_VISTA)
             {
-                context->TextLength = Edit_GetTextLength(hwndDlg);
+                ClientToScreen(hwndDlg, &pt);
 
-                // Invalidate the nonclient area...
-                RedrawWindow(
-                    hwndDlg, 
-                    NULL, NULL, 
-                    RDW_FRAME | RDW_INVALIDATE | RDW_ERASENOW | RDW_NOCHILDREN
-                    );
+                // get the position of the inserted button
+                GetWindowRect(hwndDlg, &windowRect);
+                NcAreaGetButtonRect(context, &windowRect);
+
+                // check that the mouse is within the region
+                if (PtInRect(&windowRect, pt))
+                {
+                    // Invalidate the nonclient area...
+                    RedrawWindow(
+                        hwndDlg, 
+                        NULL, NULL, 
+                        RDW_FRAME | RDW_INVALIDATE | RDW_ERASENOW | RDW_NOCHILDREN
+                        );
+
+                }
             }
         }
         return FALSE;
     case WM_KEYUP:  
         {   
-            context->TextLength = Edit_GetTextLength(hwndDlg);
-
             // Invalidate the nonclient area...
             RedrawWindow(
                 hwndDlg, 
@@ -354,6 +464,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 RDW_FRAME | RDW_INVALIDATE | RDW_ERASENOW | RDW_NOCHILDREN
                 );
         }
+        break;
+    case WM_STYLECHANGED: 
+    case WM_THEMECHANGED:
+        NcAreaInitializeUxTheme(context, hwndDlg);
         break;
     }
 
@@ -365,83 +479,26 @@ BOOLEAN InsertButton(
     __in UINT CommandID
     )
 {
-    NC_CONTROL* context = (NC_CONTROL*)PhAllocate(sizeof(NC_CONTROL));
-    memset(context, 0, sizeof(NC_CONTROL));
-
+    NC_CONTROL context = (NC_CONTROL)PhAllocate(sizeof(struct _NC_CONTROL));
+    memset(context, 0, sizeof(struct _NC_CONTROL));
+     
     context->CommandID = CommandID;
+    context->ImgSize.cx = 23;
+    context->ImgSize.cy = 20;
+    context->ImageList = ImageList_Create(24, 24, ILC_COLOR32 | ILC_MASK, 0, 0);
     context->ParentWindow = GetParent(hwndDlg);
-    // search image sizes are 23x20
-    context->nButSize = 22;
-    context->ImageList = ImageList_Create(17, 17, ILC_COLOR32 | ILC_MASK, 0, 0);
-    // Set the number of images
+
     ImageList_SetImageCount(context->ImageList, 2);
     PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH1));
     PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH2));;
 
-    if ((context->UxThemeModule = LoadLibrary(L"uxtheme.dll")) != NULL)
-    {
-        IsThemeActive_I = (_IsThemeActive)GetProcAddress(context->UxThemeModule, "IsThemeActive");
-        OpenThemeData_I = (_OpenThemeData)GetProcAddress(context->UxThemeModule, "OpenThemeData");
-        CloseThemeData_I = (_CloseThemeData)GetProcAddress(context->UxThemeModule, "CloseThemeData");
-        IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(context->UxThemeModule, "IsThemePartDefined");
-        DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(context->UxThemeModule, "DrawThemeBackground");
-        DrawThemeText_I = (_DrawThemeText)GetProcAddress(context->UxThemeModule, "DrawThemeText");
-        GetThemeInt_I = (_GetThemeInt)GetProcAddress(context->UxThemeModule, "GetThemeInt");
-    }
-
-    if (IsThemeActive_I && 
-        OpenThemeData_I && 
-        CloseThemeData_I && 
-        IsThemePartDefined_I && 
-        DrawThemeBackground_I && 
-        GetThemeInt_I)
-    {
-        context->IsThemeActive = IsThemeActive_I();
-        context->UxThemeData = OpenThemeData_I(
-            hwndDlg,
-            VSCLASS_EDIT
-            );
-
-        // OpenThemeData_I: 
-        //    SearchBox
-        //    SearchEditBox, 
-        //    Edit::SearchBox
-        //    Edit::SearchEditBox
-        // SetWindowTheme themes:  
-        //    InactiveSearchBoxEdit
-        //    InactiveSearchBoxEditComposited
-        //    MaxInactiveSearchBoxEdit
-        //    MaxInactiveSearchBoxEditComposited
-        //    MaxSearchBoxEdit
-        //    MaxSearchBoxEditComposited
-        //    SearchBoxEdit
-        //    SearchBoxEditComposited
-
-        if (context->UxThemeData)
-        {
-            context->IsThemeBackgroundActive = IsThemePartDefined_I(
-                context->UxThemeData, 
-                EP_EDITBORDER_NOSCROLL, 
-                0
-                );
-        }
-        else
-        {
-            context->IsThemeBackgroundActive = FALSE;
-        }
-    }
-    else
-    {
-        context->UxThemeData = NULL;
-        context->IsThemeActive = FALSE;
-        context->IsThemeBackgroundActive = FALSE;
-    }
+    NcAreaInitializeUxTheme(context, hwndDlg);
 
     // Set our window context data
     SetProp(hwndDlg, L"Context", (HANDLE)context);
 
     // Subclass the Edit control window procedure...
-    SetWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0, 0);
+    SetWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0, (DWORD_PTR)context);
 
     // force the edit control to update its non-client area...
     RedrawWindow(
