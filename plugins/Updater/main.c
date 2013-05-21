@@ -183,9 +183,42 @@ BOOL ConnectionAvailable(
     VOID
     )
 {
-    if (WindowsVersion > WINDOWS_XP)
+    if (WindowsVersion < WINDOWS_VISTA)
     {
-        INetworkListManager *pNetworkListManager;
+        BOOLEAN isSuccess = FALSE;
+        DWORD wininetState = 0;
+        HMODULE wininetHandle = NULL;
+        _InternetGetConnectedState InternetGetConnectedState_I = NULL;
+
+NOT_SUPPORTED_OS:
+
+        __try
+        {
+            wininetHandle = LoadLibrary(L"wininet.dll");
+            if (!wininetHandle)
+                __leave;
+
+            InternetGetConnectedState_I = (_InternetGetConnectedState)GetProcAddress(wininetHandle, "InternetGetConnectedState");
+            if (!InternetGetConnectedState_I)
+                __leave;
+
+            if (InternetGetConnectedState_I(&wininetState, 0))
+                isSuccess = TRUE;
+        }
+        __finally
+        {
+            if (wininetHandle)
+            {
+                FreeLibrary(wininetHandle);
+                wininetHandle = NULL;
+            }
+        }
+
+        return isSuccess; 
+    }
+    else
+    {
+        INetworkListManager* pNetworkListManager = NULL;
 
         // Create an instance of the INetworkListManger COM object.
         if (SUCCEEDED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_ALL, &IID_INetworkListManager, &pNetworkListManager)))
@@ -197,28 +230,19 @@ BOOL ConnectionAvailable(
             INetworkListManager_get_IsConnected(pNetworkListManager, &isConnected);
             INetworkListManager_get_IsConnectedToInternet(pNetworkListManager, &isConnectedInternet);
 
-            // Cleanup the INetworkListManger COM object.
+            // Cleanup the INetworkListManger COM objects.
             INetworkListManager_Release(pNetworkListManager);
             pNetworkListManager = NULL;
 
             // Check if Windows is connected to a network and it's connected to the internet.
             if (isConnected == VARIANT_TRUE && isConnectedInternet == VARIANT_TRUE)
-            {
-                // We're online and connected to the internet.
                 return TRUE;
-            }
 
-            // We're not connected to anything.
+            // We're not connected to anything
             return FALSE;
         }
 
-        // If we reached here, we were unable to init the INetworkListManager, fall back to InternetGetConnectedState.
-        goto NOT_SUPPORTED;
+        // fall back to InternetGetConnectedState...
+        goto NOT_SUPPORTED_OS;
     }
-    else
-    {
-        return TRUE; // according to dmex
-    }
-NOT_SUPPORTED:
-    return FALSE;
 }

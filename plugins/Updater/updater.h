@@ -52,6 +52,7 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING ReleaseNotesUrl;
     PPH_STRING SetupFilePath;
     PH_UPDATER_STATE UpdaterState;
+    HINTERNET HttpSessionHandle;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 VOID ShowUpdateDialog(
@@ -62,7 +63,6 @@ VOID StartInitialCheck(
     VOID
     );
 
-
 PPH_STRING PhGetOpaqueXmlNodeText(
     __in mxml_node_t *xmlNode
     );
@@ -70,6 +70,7 @@ PPH_STRING PhGetOpaqueXmlNodeText(
 BOOL PhInstalledUsingSetup(
     VOID
     );
+
 BOOL ConnectionAvailable(
     VOID
     );
@@ -86,6 +87,11 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
+    );
+
+typedef BOOL (WINAPI *_InternetGetConnectedState)(
+    __out LPDWORD lpdwFlags,
+    __reserved DWORD dwReserved
     );
 
 #endif
