@@ -31,6 +31,7 @@
 #define PH_UPDATENEWER     (WM_APP + 104)
 #define PH_HASHSUCCESS     (WM_APP + 105)
 #define PH_HASHFAILURE     (WM_APP + 106)
+#define PH_INETFAILURE     (WM_APP + 107)
 #define WM_SHOWDIALOG      (WM_APP + 150)
 
 static HANDLE UpdateDialogThreadHandle = NULL;
@@ -171,7 +172,7 @@ static PUPDATER_XML_DATA CreateUpdateContext(
     memset(context, 0, sizeof(UPDATER_XML_DATA));
 
     // Set the default Updater state        
-    context->UpdaterState = Default;
+    context->UpdaterState = PhUpdateDefault;
 
     return context;
 }
@@ -199,7 +200,7 @@ static VOID FreeUpdateContext(
     PhSwapReference(&Context->SetupFilePath, NULL);
            
     // Set the default Updater state 
-    Context->UpdaterState = Default;
+    Context->UpdaterState = PhUpdateDefault;
     Context->HaveData = FALSE;
 
     PhFree(Context);
@@ -218,7 +219,6 @@ static BOOLEAN QueryUpdateData(
     HINTERNET sessionHandle = NULL;
     HINTERNET connectionHandle = NULL;
     HINTERNET requestHandle = NULL;
-
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     // Create a user agent string.
@@ -235,7 +235,7 @@ static BOOLEAN QueryUpdateData(
 
     __try
     {
-        // Query the current system proxy
+        // Query the current system proxy  (we check the result calling WinHttpOpen)
         WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
         // Open the HTTP session with the system proxy configuration if available
@@ -275,12 +275,9 @@ static BOOLEAN QueryUpdateData(
 
         if (!WinHttpSendRequest(
             requestHandle, 
-            WINHTTP_NO_ADDITIONAL_HEADERS, 
-            0, 
-            WINHTTP_NO_REQUEST_DATA, 
-            0, 
-            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-            0
+            WINHTTP_NO_ADDITIONAL_HEADERS, 0, 
+            WINHTTP_NO_REQUEST_DATA, 0, 
+            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH, 0
             ))
         {
             __leave;
@@ -292,15 +289,12 @@ static BOOLEAN QueryUpdateData(
         // Read the resulting xml into our buffer.
         if (!ReadRequestString(requestHandle, &xmlStringBuffer))
             __leave;
-
         // Check the buffer for any data
-        if (xmlStringBuffer == NULL || xmlStringBuffer[0] == 0)
+        if (xmlStringBuffer == NULL || xmlStringBuffer[0] == '\0')
             __leave;
 
         // Load our XML
         xmlNode = mxmlLoadString(NULL, xmlStringBuffer, QueryXmlDataCallback);
-
-        // Check our XML
         if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
             __leave;
 
@@ -390,56 +384,60 @@ static NTSTATUS UpdateCheckSilentThread(
     __in PVOID Parameter
     )
 {
-    if (ConnectionAvailable())
+    PUPDATER_XML_DATA context = NULL;
+    ULONGLONG currentVersion = 0;
+    ULONGLONG latestVersion = 0;
+
+    __try
     {
-        PUPDATER_XML_DATA context = CreateUpdateContext();
+        if (!ConnectionAvailable())
+            __leave;
 
-        if (QueryUpdateData(context))
-        {
-            ULONGLONG currentVersion = 0;
-            ULONGLONG latestVersion = 0;
+        context = CreateUpdateContext();
+        if (!QueryUpdateData(context))
+            __leave;
 
-            currentVersion = MAKEDLLVERULL(
-                context->CurrentMajorVersion,
-                context->CurrentMinorVersion,
-                0, 
-                context->CurrentRevisionVersion
-                );
+        currentVersion = MAKEDLLVERULL(
+            context->CurrentMajorVersion,
+            context->CurrentMinorVersion,
+            0, 
+            context->CurrentRevisionVersion
+            );
 
 #ifdef DEBUG_UPDATE
-            latestVersion = MAKEDLLVERULL(
-                9999,
-                9999,
-                0, 
-                9999
-                );
+        latestVersion = MAKEDLLVERULL(
+            9999,
+            9999,
+            0, 
+            9999
+            );
 #else
-            latestVersion = MAKEDLLVERULL(
-                context->MajorVersion,
-                context->MinorVersion,
-                0, 
-                context->RevisionVersion
-                );
+        latestVersion = MAKEDLLVERULL(
+            context->MajorVersion,
+            context->MinorVersion,
+            0, 
+            context->RevisionVersion
+            );
 #endif
 
-            // Compare the current version against the latest available version
-            if (currentVersion < latestVersion)
-            {
-                // We have data we're going to cache and pass into the dialog
-                context->HaveData = TRUE;
-
-                // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-                Sleep(3000);
-                
-                // Show the dialog asynchronously on a new thread.
-                ShowUpdateDialog(context);
-            }
-        }
-
-        // Check we didn't pass the data to the dialog
-        if (!context->HaveData)
+        // Compare the current version against the latest available version
+        if (currentVersion < latestVersion)
         {
-            // Free the data
+            // We have data we're going to cache and pass into the dialog
+            context->HaveData = TRUE;
+
+            // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
+            Sleep(3000);
+
+            // Show the dialog asynchronously on a new thread.
+            ShowUpdateDialog(context);
+        }
+    }
+    __finally
+    {  
+        // Check the dialog doesn't own the context
+        if (!context->HaveData) 
+        {
             FreeUpdateContext(context);
         }
     }
@@ -451,68 +449,66 @@ static NTSTATUS UpdateCheckThread(
     __in PVOID Parameter
     )
 {
-    if (ConnectionAvailable())
+    PUPDATER_XML_DATA context = NULL;     
+    ULONGLONG currentVersion = 0;
+    ULONGLONG latestVersion = 0;
+
+    if (!ConnectionAvailable())     
     {
-        PUPDATER_XML_DATA context = (PUPDATER_XML_DATA)Parameter;
+        PostMessage(UpdateDialogHandle, PH_INETFAILURE, 0, 0);
+        return STATUS_SUCCESS;
+    }
 
-        // Check if we have cached update data
-        if (!context->HaveData)
-            context->HaveData = QueryUpdateData(context);
+    context = (PUPDATER_XML_DATA)Parameter;
 
-        if (context->HaveData)
-        {
-            ULONGLONG currentVersion = 0;
-            ULONGLONG latestVersion = 0;
+    // Check if we have cached update data
+    if (!context->HaveData)
+        context->HaveData = QueryUpdateData(context);
 
-            currentVersion = MAKEDLLVERULL(
-                context->CurrentMajorVersion,
-                context->CurrentMinorVersion,
-                0, 
-                context->CurrentRevisionVersion
-                );
+    // sanity check
+    if (!context->HaveData)
+    {
+        PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
+        return STATUS_SUCCESS;
+    }
+
+    currentVersion = MAKEDLLVERULL(
+        context->CurrentMajorVersion,
+        context->CurrentMinorVersion,
+        0, 
+        context->CurrentRevisionVersion
+        );
 
 #ifdef DEBUG_UPDATE
-            latestVersion = MAKEDLLVERULL(
-                9999,
-                9999,
-                0, 
-                9999
-                );
+    latestVersion = MAKEDLLVERULL(
+        9999,
+        9999,
+        0, 
+        9999
+        );
 #else
-            latestVersion = MAKEDLLVERULL(
-                context->MajorVersion,
-                context->MinorVersion,
-                0, 
-                context->RevisionVersion
-                );
+    latestVersion = MAKEDLLVERULL(
+        context->MajorVersion,
+        context->MinorVersion,
+        0, 
+        context->RevisionVersion
+        );
 #endif
 
-            if (currentVersion == latestVersion)
-            {
-                // User is running the latest version
-                PostMessage(UpdateDialogHandle, PH_UPDATEISCURRENT, 0, 0);
-            }
-            else if (currentVersion > latestVersion)
-            {
-                // User is running a newer version
-                PostMessage(UpdateDialogHandle, PH_UPDATENEWER, 0, 0);
-            }
-            else
-            {
-                // User is running an older version
-                PostMessage(UpdateDialogHandle, PH_UPDATEAVAILABLE, 0, 0);
-            }
-        }
-        else
-        {
-            // Display error information if the update checked failed
-            PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
-        }
+    if (currentVersion == latestVersion)
+    {
+        // User is running the latest version
+        PostMessage(UpdateDialogHandle, PH_UPDATEISCURRENT, 0, 0);
+    }
+    else if (currentVersion > latestVersion)
+    {
+        // User is running a newer version
+        PostMessage(UpdateDialogHandle, PH_UPDATENEWER, 0, 0);
     }
     else
     {
-        // Display error information if the update checked failed
-        PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
+        // User is running an older version
+        PostMessage(UpdateDialogHandle, PH_UPDATEAVAILABLE, 0, 0);
     }
 
     return STATUS_SUCCESS;
@@ -532,17 +528,16 @@ static NTSTATUS UpdateDownloadThread(
     HINTERNET requestHandle = NULL;
     HANDLE tempFileHandle = NULL;
     BOOLEAN isSuccess = FALSE;
+    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     // Create a user agent string.
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"PH_", phVersion->Buffer);
 
     context = (PUPDATER_XML_DATA)Parameter;
-
+ 
     __try
     {
-        WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-        
         if (context == NULL)
             __leave;
 
@@ -558,7 +553,8 @@ static NTSTATUS UpdateDownloadThread(
         // Allocate the GetTempPath buffer
         setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
         if (PhIsNullOrEmptyString(setupTempPath))
-            __leave;            
+            __leave;
+
         // Get the temp path
         if (GetTempPath((DWORD)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
             __leave;
@@ -577,7 +573,7 @@ static NTSTATUS UpdateDownloadThread(
         if (PhIsNullOrEmptyString(context->SetupFilePath))
             __leave;
 
-        //// Create output file
+        // Create output file
         if (!NT_SUCCESS(PhCreateFileWin32(
             &tempFileHandle,
             context->SetupFilePath->Buffer,
@@ -591,12 +587,12 @@ static NTSTATUS UpdateDownloadThread(
             __leave;
         }
 
-        //// Query the current system proxy
+        // Query the current system proxy
         WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
         SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Initializing...");
 
-        //// Open the HTTP session with the system proxy configuration if available
+        // Open the HTTP session with the system proxy configuration if available
         if (!(sessionHandle = WinHttpOpen(
             userAgent->Buffer,                 
             proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
@@ -752,18 +748,12 @@ static NTSTATUS UpdateDownloadThread(
                 if (PhEqualString(hexString, context->Hash, TRUE))
                 {
                     isSuccess = TRUE;
-                    // Hash succeeded, set state as ready to install.
-                    context->UpdaterState = Install;
-
                     PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0, 0);  
                 }
                 else
                 {
-                    // This isn't a success - disable the error page and show PH_HASHFAILURE instead
+                    // This isn't a success - show PH_HASHFAILURE instead
                     isSuccess = TRUE;
-                    // Hash Failed, set state as retry download.
-                    context->UpdaterState = Download;
-
                     PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
                 }
 
@@ -771,11 +761,8 @@ static NTSTATUS UpdateDownloadThread(
             }
             else
             {
-                // This isn't a success - disable the error page and show PH_HASHFAILURE instead
+                // This isn't a success - show PH_HASHFAILURE instead
                 isSuccess = TRUE;
-                // Hash Failed, set state as retry download.
-                context->UpdaterState = Download;
-
                 PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
             }
         }
@@ -800,11 +787,8 @@ static NTSTATUS UpdateDownloadThread(
         PhSwapReference(&downloadUrlPath, NULL);
     }
 
-    if (!isSuccess)
-    {
-        // Display error information if the update checked failed
+    if (!isSuccess) // Display error info        
         PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
-    }
 
     return STATUS_SUCCESS;
 }
@@ -842,7 +826,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                         
             SetControlFont(hwndDlg, IDC_MESSAGE);
 
-            // load the Process Hacker icon
+            // Load the Process Hacker icon.
             IconHandle = (HICON)LoadImage(
                 GetModuleHandle(NULL),
                 MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
@@ -852,15 +836,17 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 LR_SHARED
                 );
 
-            // Set the window icon
+            // Set the window icon.
             if (IconHandle)
                 SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)IconHandle);
-                      
-            // Center the update window on PH if it's visible else we center on the desktop
+      
+            // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
 
-            // Create the update check thread
+            // Show new version info (from the background update check)
+            if (context->HaveData)
             {
+                // Create the update check thread.
                 HANDLE updateCheckThread = NULL;
 
                 if (updateCheckThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateCheckThread, context))
@@ -914,7 +900,50 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 {
                     switch (context->UpdaterState)
                     {
-                    case Install:
+                    case PhUpdateDefault:
+                        {
+                            // Create the update check thread
+                            HANDLE updateCheckThread = NULL;
+
+                            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Checking for updates...");
+                            SetDlgItemText(hwndDlg, IDC_RELDATE, L"");
+                            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+
+                            if (updateCheckThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateCheckThread, context))
+                            {
+                                // Close the thread handle, we don't use it.
+                                NtClose(updateCheckThread);
+                            }
+                        }
+                        break;
+                    case PhUpdateDownload:
+                        {
+                            if (PhInstalledUsingSetup())
+                            {
+                                HANDLE downloadThreadHandle = NULL;
+
+                                // Disable the download button
+                                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+                                // Reset the progress bar (might be a download retry)
+                                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, 0, 0);
+                                if (WindowsVersion > WINDOWS_XP)
+                                    SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
+
+                                // Start our Downloader thread
+                                if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
+                                {
+                                    NtClose(downloadThreadHandle);
+                                }
+                            }
+                            else
+                            {
+                                // Let the user handle non-setup installation, show the homepage and close this dialog.
+                                PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
+                                PostQuitMessage(0);
+                            }
+                        }
+                        break;                
+                    case PhUpdateInstall:
                         {
                             SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
 
@@ -942,34 +971,6 @@ static INT_PTR CALLBACK UpdaterWndProc(
                             }
                         }
                         break;
-                    case Default:
-                    case Download:
-                        {
-                            if (PhInstalledUsingSetup())
-                            {
-                                HANDLE downloadThreadHandle = NULL;
-
-                                // Disable the download button
-                                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-                                // Reset the progress bar (might be a download retry)
-                                SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETPOS, 0, 0);
-                                if (WindowsVersion > WINDOWS_XP)
-                                    SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
-
-                                // Start our Downloader thread
-                                if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
-                                {
-                                    NtClose(downloadThreadHandle);
-                                }
-                            }
-                            else
-                            {
-                                // Let the user handle non-setup installation, show the homepage and close this dialog.
-                                PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
-                                PostQuitMessage(0);
-                            }
-                        }
-                        break;
                     }
                 }
                 break;
@@ -979,19 +980,13 @@ static INT_PTR CALLBACK UpdaterWndProc(
         break;
     case PH_UPDATEISERRORED:
         {
-            PPH_STRING summaryText = PhCreateString(
-                L"Please check for updates again..."
-                );
+            context->UpdaterState = PhUpdateDefault;
 
-            PPH_STRING versionText = PhFormatString(
-                L"An error was encountered while checking for updates."
-                );
-
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-
-            PhDereferenceObject(versionText);
-            PhDereferenceObject(summaryText);
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");            
+            
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
     case PH_UPDATEAVAILABLE:
@@ -1011,15 +1006,21 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 context->Size->Buffer
                 );
 
+            // Set updater state
+            context->UpdaterState = PhUpdateDownload;
+
+            // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
             SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
             SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Download");
 
-            // Enable the download button.
+            // Enable the controls
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
             Control_Visible(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
             Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
 
+            // free text
             PhDereferenceObject(releaseSizeText);
             PhDereferenceObject(releaseDateText);
             PhDereferenceObject(summaryText);
@@ -1027,10 +1028,6 @@ static INT_PTR CALLBACK UpdaterWndProc(
         break;
     case PH_UPDATEISCURRENT:
         {
-            PPH_STRING summaryText = PhCreateString(
-                L"You're running the latest version."
-                );
-
             PPH_STRING versionText = PhFormatString(
                 L"Stable release build: v%u.%u (r%u)",
                 context->CurrentMajorVersion,
@@ -1038,19 +1035,21 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 context->CurrentRevisionVersion
                 );
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
+            // Set updater state
+            context->UpdaterState = PhUpdateMaximum;
+
+            // Set the UI text
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running the latest version.");
             SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+            
+            // Disable the download button
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
 
             PhDereferenceObject(versionText);
-            PhDereferenceObject(summaryText);
         }
         break;
     case PH_UPDATENEWER:
         {
-            PPH_STRING summaryText = PhCreateString(
-                L"You're running a newer version."
-                );
-
             PPH_STRING versionText = PhFormatString(
                 L"SVN release build: v%u.%u (r%u)",
                 context->CurrentMajorVersion,
@@ -1058,18 +1057,22 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 context->CurrentRevisionVersion
                 );
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+            context->UpdaterState = PhUpdateMaximum;
 
+            // Set the UI text
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running a newer version!");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+           
+            // Disable the download button
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+            
+            // free text
             PhDereferenceObject(versionText);
-            PhDereferenceObject(summaryText);
         }
         break;
     case PH_HASHSUCCESS:
         {
-            // Don't change if state hasn't changed
-            if (context->UpdaterState != Install)
-                break;
+            context->UpdaterState = PhUpdateInstall;
 
             // If PH is not elevated, set the UAC shield for the install button as the setup requires elevation.
             if (!PhElevated)
@@ -1086,20 +1089,29 @@ static INT_PTR CALLBACK UpdaterWndProc(
         break;
     case PH_HASHFAILURE:
         {
-            // Don't change if state hasn't changed
-            if (context->UpdaterState != Download)
-                break;
+            context->UpdaterState = PhUpdateDefault;
 
             if (WindowsVersion > WINDOWS_XP)
-                SendDlgItemMessage(UpdateDialogHandle, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
+                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
 
-            SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Download complete, SHA1 Hash failed.");
+            SetDlgItemText(hwndDlg, IDC_STATUS, L"SHA1 Hash failed.");
 
             // Set button text for next action
-            Button_SetText(GetDlgItem(UpdateDialogHandle, IDC_DOWNLOAD), L"Retry");
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
             // Enable the Install button
-            Button_Enable(GetDlgItem(UpdateDialogHandle, IDC_DOWNLOAD), TRUE);
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
             // Hash failed, reset state to downloading so user can redownload the file.
+        }
+        break;
+    case PH_INETFAILURE:
+        {
+            context->UpdaterState = PhUpdateDefault;
+
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"PH_INETFAILURE");
+
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
     case WM_NOTIFY:
