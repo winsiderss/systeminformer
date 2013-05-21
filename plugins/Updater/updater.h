@@ -29,9 +29,10 @@ extern PPH_PLUGIN PluginInstance;
 
 typedef enum _PH_UPDATER_STATE
 {
-    Default = 0,
-    Download = 1,
-    Install = 2
+    PhUpdateDefault = 0,
+    PhUpdateDownload = 1,
+    PhUpdateInstall = 2,
+    PhUpdateMaximum = 3
 } PH_UPDATER_STATE;
 
 typedef struct _UPDATER_XML_DATA
