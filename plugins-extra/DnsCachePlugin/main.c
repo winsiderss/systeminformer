@@ -25,7 +25,6 @@
 #include "phappresource.h"
 #include "resource.h"
 
-#pragma comment(lib, "Dnsapi.lib")
 #pragma comment(lib, "Ws2_32.lib")
 #include <windns.h>
 #include <Winsock2.h>
@@ -39,14 +38,27 @@ typedef struct _DNS_CACHE_ENTRY
     ULONG dwFlags; // DNS Record Flags
 } DNS_CACHE_ENTRY, *PDNS_CACHE_ENTRY;
 
-typedef DNS_STATUS (WINAPI* _DnsGetCacheDataTable)(__inout PDNS_CACHE_ENTRY DnsCacheEntry);
-typedef BOOL (WINAPI* _DnsFlushResolverCache)(VOID);
-typedef BOOL (WINAPI* _DnsFlushResolverCacheEntry)(__in PCWSTR pszName); // , WORD type, DWORD options, PVOID servers, PDNS_RECORDW *result, PVOID *reserved 
-
-static HINSTANCE DnsApiHandle;
-static _DnsGetCacheDataTable DnsGetCacheDataTable_I;
-static _DnsFlushResolverCache DnsFlushResolverCache_I;
-static _DnsFlushResolverCacheEntry DnsFlushResolverCacheEntry_I;
+typedef DNS_STATUS (WINAPI* _DnsGetCacheDataTable)(
+    __inout PDNS_CACHE_ENTRY DnsCacheEntry
+    );
+typedef BOOL (WINAPI* _DnsFlushResolverCache)(
+    VOID
+    );
+typedef BOOL (WINAPI* _DnsFlushResolverCacheEntry)(
+    __in PCWSTR pszName // , WORD type, DWORD options, PVOID servers, PDNS_RECORDW *result, PVOID *reserved 
+    ); 
+typedef DNS_STATUS (WINAPI* _DnsQuery_W)(
+    __in PCWSTR pszName,
+    __in WORD wType,
+    __in DWORD Options,
+    __inout_opt PVOID pExtra,
+    __out __maybenull PDNS_RECORD* ppQueryResults,
+    __out_opt __maybenull PVOID* pReserved
+    );
+typedef VOID (WINAPI* _DnsFree)(
+    __inout PVOID pData,
+    __in DNS_FREE_TYPE FreeType
+    );
 
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
@@ -62,6 +74,13 @@ INT_PTR CALLBACK DnsCacheDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+static HINSTANCE DnsApiHandle;
+static _DnsQuery_W DnsQuery_I;
+static _DnsFree DnsFree_I;
+static _DnsGetCacheDataTable DnsGetCacheDataTable_I;
+static _DnsFlushResolverCache DnsFlushResolverCache_I;
+static _DnsFlushResolverCacheEntry DnsFlushResolverCacheEntry_I;
 
 static HWND ListViewWndHandle;
 static PH_LAYOUT_MANAGER LayoutManager;
@@ -169,7 +188,7 @@ static VOID EnumDnsCacheTable(
                 NULL
                 );
 
-            DNS_STATUS hrstatus = DnsQuery(
+            DNS_STATUS hrstatus = DnsQuery_I(
                 pEntryInfoPtr->pszName, 
                 pEntryInfoPtr->wType, 
                 DNS_QUERY_NO_WIRE_QUERY | 32768, // Oh?? 
@@ -196,13 +215,13 @@ static VOID EnumDnsCacheTable(
                 PhDereferenceObject(ipTtlString);
                 PhDereferenceObject(ipAddressString);
 
-                DnsRecordListFree(pQueryResultsSet, DnsFreeRecordList);
+                DnsFree_I(pQueryResultsSet, DnsFreeRecordList);
             }
 
             pEntryInfoPtr = pEntryInfoPtr->pNext;
         }
 
-        DnsRecordListFree(pEntryInfoPtr, DnsFreeRecordList); 
+        DnsFree_I(pEntryInfoPtr, DnsFreeRecordList); 
     }
 
     WSACleanup();
@@ -336,10 +355,12 @@ INT_PTR CALLBACK DnsCacheDlgProc(
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             DnsApiHandle = LoadLibrary(TEXT("dnsapi.dll"));
+            DnsQuery_I = (_DnsQuery_W)GetProcAddress(DnsApiHandle, "DnsQuery_W");
+            DnsFree_I = (_DnsFree)GetProcAddress(DnsApiHandle, "DnsFree");
             DnsGetCacheDataTable_I = (_DnsGetCacheDataTable)GetProcAddress(DnsApiHandle, "DnsGetCacheDataTable");
             DnsFlushResolverCache_I = (_DnsFlushResolverCache)GetProcAddress(DnsApiHandle, "DnsFlushResolverCache");
             DnsFlushResolverCacheEntry_I = (_DnsFlushResolverCacheEntry)GetProcAddress(DnsApiHandle, "DnsFlushResolverCacheEntry_W");
-
+    
             EnumDnsCacheTable(ListViewWndHandle);
         }
         break;
