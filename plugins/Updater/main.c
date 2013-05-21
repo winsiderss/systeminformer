@@ -154,7 +154,6 @@ PPH_STRING PhGetOpaqueXmlNodeText(
     return PhReferenceEmptyString();
 }
 
-
 BOOL PhInstalledUsingSetup(
     VOID
     )
