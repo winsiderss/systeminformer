@@ -22,11 +22,6 @@
 
 #include "updater.h"
 
-BOOLAPI InternetGetConnectedState(
-    __out LPDWORD lpdwFlags,
-    __in DWORD dwReserved
-    );
-
 VOID NTAPI LoadCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
