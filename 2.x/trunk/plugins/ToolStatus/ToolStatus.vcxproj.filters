@@ -46,31 +46,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\application.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="resources\application_go.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="resources\arrow_refresh.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="resources\chart_line.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="resources\cog_edit.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="resources\find.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="resources\lightbulb_off.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="CHANGELOG.txt" />
-    <None Include="resources\cross.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ToolStatus.rc">
@@ -78,10 +54,34 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\active_search.bmp">
+    <Image Include="resources\active_search.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\inactive_search.bmp">
+    <Image Include="resources\inactive_search.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\application.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\application_go.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\arrow_refresh.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\chart_line.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cog_edit.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cross.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\find.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lightbulb_off.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

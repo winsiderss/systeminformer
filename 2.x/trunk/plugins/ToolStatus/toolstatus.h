@@ -75,7 +75,6 @@ INT_PTR CALLBACK OptionsDlgProc(
     __in LPARAM lParam
     );
 
-// searchfilter.c
 BOOLEAN ProcessTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
@@ -88,5 +87,82 @@ BOOLEAN NetworkTreeFilterCallback(
     __in PPH_TREENEW_NODE Node,
     __in_opt PVOID Context
     );
+
+HBITMAP LoadImageFromResources(
+    __in LPCTSTR lpName, 
+    __in LPCTSTR lpType
+    );
+
+typedef HRESULT (WINAPI *_GetThemeColor)(
+    __in HTHEME hTheme,
+    __in INT iPartId,
+    __in INT iStateId,
+    __in INT iPropId,
+    __out COLORREF *pColor
+    );
+typedef HRESULT (WINAPI *_SetWindowTheme)(
+    __in HWND hwnd,
+    __in LPCWSTR pszSubAppName,
+    __in LPCWSTR pszSubIdList
+    );
+
+typedef HRESULT (WINAPI *_GetThemeFont)(
+    __in HTHEME hTheme,
+    __in HDC hdc,
+    __in INT iPartId,
+    __in INT iStateId,
+    __in INT iPropId,
+    __out LOGFONTW *pFont
+    );
+
+typedef HRESULT (WINAPI *_GetThemeSysFont)(
+    __in HTHEME hTheme,
+    __in INT iFontId,
+    __out LOGFONTW *plf
+    );
+
+typedef BOOL (WINAPI *_IsThemeBackgroundPartiallyTransparent)(
+    __in HTHEME hTheme,
+    __in INT iPartId,
+    __in INT iStateId
+    );
+
+typedef HRESULT (WINAPI *_GetThemeBackgroundContentRect)(
+    __in HTHEME hTheme,
+    __in HDC hdc,
+    __in INT iPartId,
+    __in INT iStateId,
+    __inout LPCRECT pBoundingRect,
+    __out LPRECT pContentRect
+    );
+
+typedef struct _NC_CONTROL
+{
+    UINT CommandID; // sent in a WM_COMMAND message
+    UINT uState;
+
+    INT cxLeftEdge; // size of the current window borders.
+    INT cxRightEdge;  // size of the current window borders.
+    INT cyTopEdge; 
+    INT cyBottomEdge;
+
+    SIZE ImgSize;
+    RECT oldrect;
+    RECT* prect;
+    POINT pt;
+    RECT windowRect;
+    BOOLEAN hasCapture;
+
+    BOOL IsThemeActive;
+    BOOL IsThemeBackgroundActive;
+    HTHEME UxThemeData;
+    HMODULE UxThemeModule;    
+    COLORREF clrUxThemeFillRef; 
+    COLORREF clrUxThemeBackgroundRef;
+
+    HIMAGELIST ImageList;
+    HWND ParentWindow;
+    HWND HwndWindow;
+} *NC_CONTROL;
 
 #endif
