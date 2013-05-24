@@ -2,19 +2,19 @@
 // Microsoft Visual C++ generated include file.
 // Used by ToolStatus.rc
 //
-#define IDB_APPLICATION                 101
-#define IDB_APPLICATION_GO              102
-#define IDB_ARROW_REFRESH               103
-#define IDB_CHART_LINE                  104
-#define IDB_COG_EDIT                    105
-#define IDB_FIND                        106
-#define IDB_LIGHTBULB_OFF               107
 #define IDR_STATUS                      108
 #define IDD_OPTIONS                     109
-#define IDB_CROSS                       110
 #define IDR_MAINWND_ACCEL               111
-#define IDB_SEARCH1                     116
-#define IDB_SEARCH2                     117
+#define IDB_SEARCH1                     118
+#define IDB_SEARCH2                     119
+#define IDB_APPLICATION                 120
+#define IDB_APPLICATION_GO              121
+#define IDB_ARROW_REFRESH               122
+#define IDB_CHART_LINE                  123
+#define IDB_COG_EDIT                    124
+#define IDB_CROSS                       125
+#define IDB_FIND                        126
+#define IDB_LIGHTBULB_OFF               127
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_ENABLESTATUSBAR             1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
@@ -37,7 +37,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        118
+#define _APS_NEXT_RESOURCE_VALUE        128
 #define _APS_NEXT_COMMAND_VALUE         40018
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           103
