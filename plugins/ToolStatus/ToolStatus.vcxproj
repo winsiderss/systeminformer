@@ -174,22 +174,22 @@
     <ClInclude Include="toolstatus.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\application.bmp" />
-    <None Include="resources\application_go.bmp" />
-    <None Include="resources\arrow_refresh.bmp" />
-    <None Include="resources\chart_line.bmp" />
-    <None Include="resources\cog_edit.bmp" />
-    <None Include="resources\cross.bmp" />
-    <None Include="resources\find.bmp" />
-    <None Include="resources\lightbulb_off.bmp" />
     <None Include="CHANGELOG.txt" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ToolStatus.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\active_search.bmp" />
-    <Image Include="resources\inactive_search.bmp" />
+    <Image Include="resources\active_search.png" />
+    <Image Include="resources\application.png" />
+    <Image Include="resources\application_go.png" />
+    <Image Include="resources\arrow_refresh.png" />
+    <Image Include="resources\chart_line.png" />
+    <Image Include="resources\cog_edit.png" />
+    <Image Include="resources\cross.png" />
+    <Image Include="resources\find.png" />
+    <Image Include="resources\inactive_search.png" />
+    <Image Include="resources\lightbulb_off.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

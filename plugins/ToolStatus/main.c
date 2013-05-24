@@ -53,7 +53,8 @@ static HWND ReBarHandle = NULL;
 static HWND ToolBarHandle;
 static HIMAGELIST ToolBarImageList;
 static HWND TextboxHandle;
-static HFONT TextboxFontHandle;
+static RECT statusBarRect = { 0, 0, 0, 0 };
+static RECT rebarRect = { 0, 0, 0, 0 };
 
 static PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
 static PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
@@ -109,8 +110,6 @@ static VOID NTAPI LayoutPaddingCallback(
 
     if (ReBarHandle)  
     {
-        static RECT rebarRect = { 0, 0, 0, 0 };
-
         GetClientRect(ReBarHandle, &rebarRect);
 
         // Move contents for ReBar Width
@@ -122,8 +121,6 @@ static VOID NTAPI LayoutPaddingCallback(
 
     if (StatusBarHandle)
     {
-        static RECT statusBarRect = { 0, 0, 0, 0 };
-
         GetClientRect(StatusBarHandle, &statusBarRect);
 
         data->Padding.bottom += statusBarRect.bottom;  // StatusBar Width
@@ -151,20 +148,20 @@ static BOOLEAN NTAPI MessageLoopFilter(
 
 VOID RebarAddMenuItem(
     __in HWND WindowHandle,
-    __in HWND ChildHandle,
-    __in UINT ID,
+    __in HWND HwndHandle,
+    __in UINT BandID,
     __in UINT cyMinChild,   
     __in UINT cxMinChild
     )
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+    rebarBandInfo.fStyle =  RBBS_NOGRIPPER | RBBS_FIXEDSIZE | RBBS_TOPALIGN;
     
-    rebarBandInfo.wID = ID;
-    rebarBandInfo.hwndChild = ChildHandle;
+    rebarBandInfo.wID = BandID;
+    rebarBandInfo.hwndChild = HwndHandle;
     rebarBandInfo.cyMinChild = cyMinChild;
-    rebarBandInfo.cxMinChild = cxMinChild;
+    rebarBandInfo.cxMinChild = cxMinChild;    
 
     SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
@@ -236,19 +233,17 @@ VOID ApplyToolbarSettings(
     VOID
     )
 {
-    // The toolbar control on x64 Windows will somtimes crash because iString was not allocated by TB_ADDSTRING...
-    // TODO: Rewrite this button array as to not pass a hard-coded string.
     static TBBUTTON tbButtonArray[9] =
     {
-        { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Refresh" },
-        { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Options" },
+        { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+        { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
         { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-        { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"System Information" },
+        { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+        { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
         { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window" },
-        { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-        { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, (INT_PTR)L"Find Window and Kill" }
+        { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+        { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+        { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 }
     };
 
     if (EnableToolBar)
@@ -262,7 +257,7 @@ VOID ApplyToolbarSettings(
                 WS_EX_TOOLWINDOW,
                 REBARCLASSNAME,
                 NULL,
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT ,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT | RBS_FIXEDORDER,
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 PhMainWndHandle,
                 (HMENU)IDC_MENU_REBAR,
@@ -282,7 +277,7 @@ VOID ApplyToolbarSettings(
                 0,
                 TOOLBARCLASSNAME,
                 NULL,
-                WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | TBSTYLE_TRANSPARENT,
+                WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT,
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 PhMainWndHandle,
                 (HMENU)IDC_MENU_REBAR_TOOLBAR,
@@ -302,23 +297,30 @@ VOID ApplyToolbarSettings(
             // Set the number of images
             ImageList_SetImageCount(ToolBarImageList, 7);
             // Add the images to the imagelist - same index as the first tbButtonArray field
-            PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
-            PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
-            PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
-            PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
-            PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
-            PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
-            PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
-
+            ImageList_Replace(ToolBarImageList, 0, LoadImageFromResources(MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 1, LoadImageFromResources(MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 2, LoadImageFromResources(MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 3, LoadImageFromResources(MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 4, LoadImageFromResources(MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 5, LoadImageFromResources(MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
             // Configure the toolbar imagelist
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
+                  
+            tbButtonArray[0].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Refresh");
+            tbButtonArray[1].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Options");
+            tbButtonArray[3].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Handles or DLLs");
+            tbButtonArray[4].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"System Information");
+            tbButtonArray[6].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window");
+            tbButtonArray[7].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Thread");
+            tbButtonArray[8].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Kill");
             // Add the buttons to the toolbar 
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
             // Resize the toolbar now the buttons have been added
             SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
 
             // inset the toolbar into the rebar control
-            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0);
+            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 22, 0); // Toolbar width 400
         }
         
         SetRebarMenuLayout();
@@ -352,30 +354,12 @@ VOID ApplyToolbarSettings(
     if (EnableSearch)
     {
         if (!TextboxHandle)
-        {             
-            if (!TextboxFontHandle)
-            {
-                LOGFONT logFont;
-                memset(&logFont, 0, sizeof(LOGFONT));
-
-                logFont.lfHeight = WindowsVersion > WINDOWS_XP ? -11 : -12;
-                logFont.lfWeight = FW_NORMAL;   
-
-                wcscpy_s(
-                    logFont.lfFaceName, 
-                    _countof(logFont.lfFaceName), 
-                    WindowsVersion > WINDOWS_XP ? L"MS Shell Dlg 2" : L"MS Shell Dlg"
-                    );
-
-                // Create the font handle
-                TextboxFontHandle = CreateFontIndirect(&logFont);
-            }
-
+        {
             TextboxHandle = CreateWindowEx(
                 WS_EX_CLIENTEDGE,
                 WC_EDIT,
                 NULL,
-                WS_CHILD | WS_VISIBLE | ES_LEFT,
+                WS_CHILD | WS_VISIBLE | ES_LEFT, // WS_BORDER
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 ToolBarHandle,
                 NULL,
@@ -384,21 +368,17 @@ VOID ApplyToolbarSettings(
                 );
 
             // Set Searchbox control font
-            SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)TextboxFontHandle, MAKELPARAM(TRUE, 0));
+            SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
             // Set initial text
             SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
-
-            // EM_SETCUEBANNER causes text clipping on XP... sending a EM_SETMARGINS message fixes it.
-            if (WindowsVersion < WINDOWS_VISTA)
-            {
-                SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
-            }
-
+            //if (WindowsVersion < WINDOWS_VISTA)
+            // EM_SETCUEBANNER causes text clipping on XP. Reset the client area margins.
+            //SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
             // insert a paint region into the edit control NC window area        
             InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
                              
             // insert the edit control into the rebar control 
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 200);
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
 
             ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
             ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
@@ -423,12 +403,6 @@ VOID ApplyToolbarSettings(
         { 
             PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
             ProcessTreeFilterEntry = NULL;
-        }
-
-        if (TextboxFontHandle)
-        {
-            DeleteObject(TextboxFontHandle);
-            TextboxFontHandle = NULL;
         }
 
         if (TextboxHandle)
