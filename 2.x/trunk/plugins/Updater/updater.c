@@ -856,6 +856,12 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 FontHandle = NULL;
             }
 
+            if (context->SourceforgeBitmap)
+            {
+                DeleteObject(context->SourceforgeBitmap);
+                context->SourceforgeBitmap = NULL;
+            }
+
             FreeUpdateContext(context);
             RemoveProp(hwndDlg, L"Context");
         }
@@ -900,11 +906,13 @@ static INT_PTR CALLBACK UpdaterWndProc(
             if (IconHandle)
                 SendMessage(hwndDlg, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)IconHandle);
 
+            context->SourceforgeBitmap = LoadImageFromResources(MAKEINTRESOURCE(IDB_SF_PNG), L"PNG");
+            
             SendMessage(
                 GetDlgItem(hwndDlg, IDC_UPDATEICON),
                 STM_SETIMAGE, 
                 IMAGE_BITMAP, 
-                (LPARAM)LoadImageFromResources(MAKEINTRESOURCE(IDB_SF_PNG), L"PNG")
+                (LPARAM)context->SourceforgeBitmap 
                 );
 
             // Center the update window on PH if it's visible else we center on the desktop.
@@ -972,7 +980,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                             // Create the update check thread
                             HANDLE updateCheckThread = NULL;
 
-                            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Checking for updates...");
+                            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Checking for new releases...");
                             SetDlgItemText(hwndDlg, IDC_RELDATE, L"");
                             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
 
@@ -1146,7 +1154,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
             // Set the download result, don't include hash status since it succeeded.
-            SetDlgItemText(hwndDlg, IDC_STATUS, L"Click Install to continue");
+            SetDlgItemText(hwndDlg, IDC_STATUS, L"Click Install to continue update...");
 
             // Set button text for next action
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
@@ -1161,7 +1169,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             if (WindowsVersion > WINDOWS_XP)
                 SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
 
-            SetDlgItemText(hwndDlg, IDC_STATUS, L"SHA1 Hash failed.");
+            SetDlgItemText(hwndDlg, IDC_STATUS, L"SHA1 Hash failed...");
 
             // Set button text for next action
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
