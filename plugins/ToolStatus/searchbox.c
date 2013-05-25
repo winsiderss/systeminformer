@@ -143,42 +143,6 @@ static VOID NcAreaInitializeUxTheme(
     }
 }
 
-static void PaintSinglePart(
-    __inout NC_CONTROL Context, 
-    HDC hdc, 
-    RECT rc, 
-    LPCWSTR wszClass, 
-    int iPart, 
-    int iState
-    )
-{
-    //HRESULT hr = S_OK;
-    //LOGFONTW lf;
-    //HFONT hfont;
-
-    //ZeroMemory(&lf, sizeof(LOGFONTW));
-
-    //InflateRect(&rc, 1, 0);
-
-    DrawThemeBackground_I(Context->UxThemeData, hdc, iPart, iState, &rc, NULL);
-    GetThemeBackgroundContentRect_I(Context->UxThemeData, hdc, iPart, iState, &rc, &rc);
-
-    //hr = GetThemeFont_I(Context->UxThemeData, hdc, iPart, iState, TMT_FONT, &lf);
-    //
-    //if (FAILED(hr))
-    //    hr = GetThemeSysFont_I(Context->UxThemeData, DEFAULT_GUI_FONT, &lf);
-    //if (SUCCEEDED(hr))
-    //{
-    //   hfont = CreateFontIndirect(&lf);
-    //} 
-    //else 
-    //{
-    //    hfont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
-    //}
-
-    //DeleteObject((HGDIOBJ)hfont);
-}
-
 static VOID NcAreaGetButtonRect(
     __inout NC_CONTROL Context,
     __in RECT* rect
@@ -446,8 +410,6 @@ HBITMAP LoadImageFromResources(
     UINT nFrameCount = 0;
     UINT width = 0;
     UINT height = 0;
-    UINT cbStride = 0;
-    UINT cbImage = 0;
     DWORD dwResourceSize = 0;
     BITMAPINFO bminfo = { 0 };
 
@@ -462,20 +424,13 @@ HBITMAP LoadImageFromResources(
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
     IWICImagingFactory* wicFactory = NULL;
+    IWICBitmapScaler* wicScaler = NULL;
     WICInProcPointer pvSourceResourceData = NULL;
 
-    const IID clsidFactory = WindowsVersion > WINDOWS_7 ? CLSID_WICImagingFactory : CLSID_WICImagingFactory1;
-    const IID clsidPngDecoder = WindowsVersion > WINDOWS_7 ? CLSID_WICPngDecoder : CLSID_WICPngDecoder1;
-    
     HDC hdcScreen = GetDC(NULL);
 
     __try
     {   
-        if (FAILED(CoCreateInstance(&clsidFactory, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
-            __leave;
-        if (FAILED(CoCreateInstance(&clsidPngDecoder, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (void**)&wicDecoder)))
-            __leave;
-
         if ((resHandleRef = FindResource((HINSTANCE)PluginInstance->DllBase, lpName, lpType)) == NULL)
             __leave;
         if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleRef)) == NULL)
@@ -484,6 +439,11 @@ HBITMAP LoadImageFromResources(
             __leave;
 
         dwResourceSize = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleRef);
+
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
+            __leave;
+        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (void**)&wicDecoder)))
+            __leave;
 
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
@@ -496,8 +456,8 @@ HBITMAP LoadImageFromResources(
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
 
-        WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap);
-
+        if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap)))
+            __leave;
         if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
             __leave;
 
@@ -508,15 +468,26 @@ HBITMAP LoadImageFromResources(
         bminfo.bmiHeader.biBitCount = 32;
         bminfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0)) == NULL)
-            __leave;
+        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0)) != NULL)
+        {  
+            WICRect rect = { 0, 0, width, height };          
+            //UINT cbImage = 0;
+            //UINT cbStride = 0;
+            //cbStride = width * 4;
+            //cbImage = cbStride * height;
+            //if (SUCCEEDED(IWICBitmapSource_CopyPixels(wicBitmap, NULL, cbStride, cbImage, (BYTE*)pvImageBits)))
+            //    __leave;
 
-        cbStride = width * 4;
-        cbImage = cbStride * height;
+            if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
+                __leave;
 
-        if (SUCCEEDED(IWICBitmapSource_CopyPixels(wicBitmap, NULL, cbStride, cbImage, (BYTE*)pvImageBits)))
-            __leave;
+            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, width, height, WICBitmapInterpolationModeFant)))
+                __leave;
 
+            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, width * 4, width * height * 4, (BYTE*)pvImageBits)))
+                __leave;
+        }
+   
         DeleteObject(bitmapHandle);
         bitmapHandle = NULL;
     }
@@ -524,10 +495,11 @@ HBITMAP LoadImageFromResources(
     {
         ReleaseDC(NULL, hdcScreen);
 
+        IWICBitmapDecoder_Release(wicDecoder);
+        IWICBitmapScaler_Release(wicScaler);
         IWICBitmapSource_Release(wicBitmap);
         IWICBitmapFrameDecode_Release(wicFrame);
         IWICStream_Release(wicStream);
-        IWICBitmapDecoder_Release(wicDecoder);
         IWICImagingFactory_Release(wicFactory);
     }
 
