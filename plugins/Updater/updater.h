@@ -53,6 +53,7 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING SetupFilePath;
     PH_UPDATER_STATE UpdaterState;
     HINTERNET HttpSessionHandle;
+    HBITMAP SourceforgeBitmap;
 } UPDATER_XML_DATA, *PUPDATER_XML_DATA;
 
 VOID ShowUpdateDialog(
