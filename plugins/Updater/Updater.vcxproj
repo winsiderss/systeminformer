@@ -177,7 +177,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
-    <None Include="resources\sflogo.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\sf_logo.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
