@@ -12,23 +12,6 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
-#pragma code_page(1252)
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_BITMAP1             BITMAP                  "resources\\sflogo.bmp"
-#endif    // Neutral resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
 // English resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
@@ -79,20 +62,20 @@ END
 // Dialog
 //
 
-IDD_UPDATE DIALOGEX 0, 0, 259, 98
+IDD_UPDATE DIALOGEX 0, 0, 259, 89
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Process Hacker Updater"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "Close",IDOK,203,77,50,14
-    CONTROL         "Start update check?",IDC_MESSAGE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,8,6,169,12,WS_EX_TRANSPARENT
-    CONTROL         "",IDC_RELDATE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,9,23,244,9,WS_EX_TRANSPARENT
-    PUSHBUTTON      "Start",IDC_DOWNLOAD,149,77,50,14
-    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | NOT WS_VISIBLE,7,60,245,11
-    CONTROL         105,IDC_UPDATEICON,"Static",SS_BITMAP | SS_CENTERIMAGE | SS_REALSIZEIMAGE,176,3,80,18,WS_EX_TRANSPARENT
-    CONTROL         "",IDC_STATUS,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,8,48,244,9,WS_EX_TRANSPARENT
-    CONTROL         "<a>View Changelog</a>",IDC_INFOSYSLINK,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,7,80,110,10
+    DEFPUSHBUTTON   "Close",IDOK,203,68,50,14
+    CONTROL         "Start update check?",IDC_MESSAGE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,60,6,192,18,WS_EX_TRANSPARENT
+    CONTROL         "",IDC_RELDATE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,60,23,192,9,WS_EX_TRANSPARENT
+    PUSHBUTTON      "Start",IDC_DOWNLOAD,149,68,50,14
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | NOT WS_VISIBLE,7,54,245,11
+    CONTROL         "",IDC_UPDATEICON,"Static",SS_BITMAP | SS_CENTERIMAGE,8,5,40,45,WS_EX_TRANSPARENT
+    CONTROL         "",IDC_STATUS,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,7,72,135,8,WS_EX_TRANSPARENT
+    CONTROL         "<a>View Changelog</a>",IDC_INFOSYSLINK,"SysLink",LWS_USEVISUALSTYLE | NOT WS_VISIBLE | WS_TABSTOP,60,36,72,10
 END
 
 IDD_OPTIONS DIALOGEX 0, 0, 215, 54
@@ -119,8 +102,8 @@ BEGIN
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 252
-        TOPMARGIN, 5
-        BOTTOMMARGIN, 91
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 82
     END
 
     IDD_OPTIONS, DIALOG
@@ -167,6 +150,13 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_SF_PNG              PNG                     "resources\\sf_logo.png"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
