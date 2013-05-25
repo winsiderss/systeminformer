@@ -22,8 +22,10 @@
 
 #include "updater.h"
 
+#include <Wincodec.h>
+#pragma comment(lib, "windowscodecs.lib")
 // Force update checks to succeed with debug builds
-//#define DEBUG_UPDATE
+#define DEBUG_UPDATE
 
 #define PH_UPDATEISERRORED (WM_APP + 101)
 #define PH_UPDATEAVAILABLE (WM_APP + 102)
@@ -39,6 +41,103 @@ static HWND UpdateDialogHandle = NULL;
 static HICON IconHandle = NULL;
 static HFONT FontHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
+
+HBITMAP LoadImageFromResources(
+    __in LPCTSTR lpName, 
+    __in LPCTSTR lpType
+    )
+{
+    UINT nFrameCount = 0;
+    UINT width = 0;
+    UINT height = 0;
+    DWORD dwResourceSize = 0;
+    BITMAPINFO bminfo = { 0 };
+
+    HRSRC resHandleRef = NULL;
+    HGLOBAL resHandle = NULL;
+
+    HBITMAP bitmapHandle = NULL;
+    PVOID pvImageBits = NULL; 
+
+    IWICStream* wicStream = NULL;
+    IWICBitmapSource* wicBitmap = NULL;
+    IWICBitmapDecoder* wicDecoder = NULL;
+    IWICBitmapFrameDecode* wicFrame = NULL;
+    IWICImagingFactory* wicFactory = NULL;
+    IWICBitmapScaler* wicScaler = NULL;
+    WICInProcPointer pvSourceResourceData = NULL;
+
+    HDC hdcScreen = GetDC(NULL);
+
+    __try
+    {   
+        if ((resHandleRef = FindResource((HINSTANCE)PluginInstance->DllBase, lpName, lpType)) == NULL)
+            __leave;
+        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleRef)) == NULL)
+            __leave;
+        if ((pvSourceResourceData = (WICInProcPointer)LockResource(resHandle)) == NULL)
+            __leave;
+
+        dwResourceSize = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleRef);
+
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
+            __leave;
+        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (void**)&wicDecoder)))
+            __leave;
+        if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
+            __leave;
+        if (FAILED(IWICStream_InitializeFromMemory(wicStream, pvSourceResourceData, dwResourceSize)))
+            __leave;
+        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
+            __leave;
+        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &nFrameCount)) || nFrameCount != 1)
+            __leave;
+        if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
+            __leave;
+
+        if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap)))
+            __leave;
+        if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
+            __leave;
+
+        bminfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bminfo.bmiHeader.biWidth = 64;
+        bminfo.bmiHeader.biHeight = -((LONG)64);
+        bminfo.bmiHeader.biPlanes = 1;
+        bminfo.bmiHeader.biBitCount = 32;
+        bminfo.bmiHeader.biCompression = BI_RGB;
+
+        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0)) != NULL)
+        {  
+            WICRect rect = { 0, 0, 64, 64 };          
+
+            if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
+                __leave;
+
+            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, 64, 64, WICBitmapInterpolationModeFant)))
+                __leave;
+            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, 64 * 4, 64 * 64 * 4, (BYTE*)pvImageBits)))
+                __leave;
+        }
+   
+        DeleteObject(bitmapHandle);
+        bitmapHandle = NULL;
+    }
+    __finally
+    {
+        ReleaseDC(NULL, hdcScreen);
+
+        IWICBitmapScaler_Release(wicScaler);
+        IWICBitmapSource_Release(wicBitmap);
+        IWICBitmapFrameDecode_Release(wicFrame);
+        IWICStream_Release(wicStream);
+        IWICBitmapDecoder_Release(wicDecoder);
+        IWICImagingFactory_Release(wicFactory);
+    }
+
+    return bitmapHandle;
+}
+
 
 static mxml_type_t QueryXmlDataCallback(
     __in mxml_node_t *node
@@ -76,7 +175,8 @@ static BOOL ParseVersionString(
 
 static BOOL ReadRequestString(
     __in HINTERNET Handle,
-    __out_z PSTR* Data
+    __out_z PSTR* Data,
+    __out ULONG* DataLength
     )
 {
     BYTE buffer[PAGE_SIZE];
@@ -119,7 +219,8 @@ static BOOL ReadRequestString(
 
     // Ensure that the buffer is null-terminated.
     data[dataLength] = 0;
-
+    
+    *DataLength = dataLength;
     *Data = data;
 
     return TRUE;
@@ -179,9 +280,10 @@ static BOOLEAN QueryUpdateData(
     __inout PUPDATER_XML_DATA Context
     )
 {
-    PSTR xmlStringBuffer = NULL;
-    mxml_node_t* xmlNode = NULL;
     BOOLEAN isSuccess = FALSE;
+    mxml_node_t* xmlNode = NULL;
+    ULONG xmlStringBufferLength = 0;
+    PSTR xmlStringBuffer = NULL;
     HINTERNET connectionHandle = NULL;
     HINTERNET requestHandle = NULL;
 
@@ -262,7 +364,7 @@ static BOOLEAN QueryUpdateData(
             __leave;
 
         // Read the resulting xml into our buffer.
-        if (!ReadRequestString(requestHandle, &xmlStringBuffer))
+        if (!ReadRequestString(requestHandle, &xmlStringBuffer, &xmlStringBufferLength))
             __leave;
         // Check the buffer for any data
         if (xmlStringBuffer == NULL || xmlStringBuffer[0] == '\0')
@@ -793,9 +895,17 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the text font
             if (FontHandle)      
                 SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)FontHandle, FALSE);
-            // Set the window icon
+            
+            // Set the window icons
             if (IconHandle)
-                SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)IconHandle);
+                SendMessage(hwndDlg, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)IconHandle);
+
+            SendMessage(
+                GetDlgItem(hwndDlg, IDC_UPDATEICON),
+                STM_SETIMAGE, 
+                IMAGE_BITMAP, 
+                (LPARAM)LoadImageFromResources(MAKEINTRESOURCE(IDB_SF_PNG), L"PNG")
+                );
 
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);

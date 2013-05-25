@@ -40,8 +40,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
-    <None Include="resources\sflogo.bmp">
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\sf_logo.png">
       <Filter>Resource Files</Filter>
-    </None>
+    </Image>
   </ItemGroup>
 </Project>
