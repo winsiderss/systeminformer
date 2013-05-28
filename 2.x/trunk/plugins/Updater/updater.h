@@ -2,6 +2,7 @@
 #define __UPDATER_H__
 
 #pragma comment(lib, "Winhttp.lib")
+#pragma comment(lib, "WindowsCodecs.lib")
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -11,6 +12,7 @@
 #include <windowsx.h>
 #include <netlistmgr.h>
 #include <winhttp.h>
+#include <Wincodec.h>
 
 #include "resource.h"
 
