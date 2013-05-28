@@ -22,10 +22,8 @@
 
 #include "updater.h"
 
-#include <Wincodec.h>
-#pragma comment(lib, "windowscodecs.lib")
 // Force update checks to succeed with debug builds
-#define DEBUG_UPDATE
+//#define DEBUG_UPDATE
 
 #define PH_UPDATEISERRORED (WM_APP + 101)
 #define PH_UPDATEAVAILABLE (WM_APP + 102)
@@ -42,7 +40,7 @@ static HICON IconHandle = NULL;
 static HFONT FontHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
-HBITMAP LoadImageFromResources(
+static HBITMAP LoadImageFromResources(
     __in LPCTSTR lpName, 
     __in LPCTSTR lpType
     )
@@ -137,7 +135,6 @@ HBITMAP LoadImageFromResources(
 
     return bitmapHandle;
 }
-
 
 static mxml_type_t QueryXmlDataCallback(
     __in mxml_node_t *node
@@ -713,11 +710,8 @@ static NTSTATUS UpdateDownloadThread(
             ZeroMemory(buffer, PAGE_SIZE);
 
             // Download the data.
-            while (TRUE)
-            {
-                if (!WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
-                    break;
-                        
+            while (WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
+            {                        
                 // If we get zero bytes, the file was uploaded or there was an error
                 if (bytesDownloaded == 0)
                     break;
@@ -898,22 +892,28 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 LR_SHARED
                 );
 
+            // Set the window icons
+            if (IconHandle)
+                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)IconHandle);
+            
             // Set the text font
             if (FontHandle)      
                 SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)FontHandle, FALSE);
-            
-            // Set the window icons
-            if (IconHandle)
-                SendMessage(hwndDlg, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)IconHandle);
 
-            context->SourceforgeBitmap = LoadImageFromResources(MAKEINTRESOURCE(IDB_SF_PNG), L"PNG");
-            
-            SendMessage(
-                GetDlgItem(hwndDlg, IDC_UPDATEICON),
-                STM_SETIMAGE, 
-                IMAGE_BITMAP, 
-                (LPARAM)context->SourceforgeBitmap 
+            context->SourceforgeBitmap = LoadImageFromResources(
+                MAKEINTRESOURCE(IDB_SF_PNG), 
+                L"PNG"
                 );
+         
+            if (context->SourceforgeBitmap)
+            {
+                SendMessage(
+                    GetDlgItem(hwndDlg, IDC_UPDATEICON),
+                    STM_SETIMAGE, 
+                    IMAGE_BITMAP, 
+                    (LPARAM)context->SourceforgeBitmap 
+                    );
+            }
 
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
@@ -999,16 +999,16 @@ static INT_PTR CALLBACK UpdaterWndProc(
 
                                 // Disable the download button
                                 Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+                                
                                 // Reset the progress bar (might be a download retry)
                                 SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, 0, 0);
+                                
                                 if (WindowsVersion > WINDOWS_XP)
                                     SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
 
                                 // Start our Downloader thread
                                 if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
-                                {
                                     NtClose(downloadThreadHandle);
-                                }
                             }
                             else
                             {
@@ -1116,7 +1116,8 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running the latest version.");
             SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-            
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
+
             // Disable the download button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
 
@@ -1140,7 +1141,8 @@ static INT_PTR CALLBACK UpdaterWndProc(
            
             // Disable the download button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-            
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
+
             // free text
             PhDereferenceObject(versionText);
         }
