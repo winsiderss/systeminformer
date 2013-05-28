@@ -186,15 +186,14 @@ BOOL ConnectionAvailable(
     {
         BOOLEAN isSuccess = FALSE;
         DWORD wininetState = 0;
-        HMODULE wininetHandle = NULL;
         _InternetGetConnectedState InternetGetConnectedState_I = NULL;
+        static HMODULE wininetHandle = NULL;
 
 NOT_SUPPORTED_OS:
 
         __try
         {
-            wininetHandle = LoadLibrary(L"wininet.dll");
-            if (!wininetHandle)
+            if (!(wininetHandle = LoadLibrary(L"wininet.dll")))
                 __leave;
 
             InternetGetConnectedState_I = (_InternetGetConnectedState)GetProcAddress(wininetHandle, "InternetGetConnectedState");
