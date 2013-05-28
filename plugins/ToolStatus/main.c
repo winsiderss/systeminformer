@@ -188,7 +188,7 @@ VOID SetRebarMenuLayout(
     for (i = 0; i < buttonCount; i++)
     {
         TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-        button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND;
+        button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
 
         // Get settings for first button
         SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
@@ -196,6 +196,31 @@ VOID SetRebarMenuLayout(
         // Skip separator buttons
         if (button.fsStyle == BTNS_SEP)
             continue;
+
+        switch (button.idCommand)
+        {
+        case PHAPP_ID_VIEW_REFRESH:
+            button.pszText = L"Refresh";
+            break;
+        case PHAPP_ID_HACKER_OPTIONS: 
+            button.pszText = L"Options";
+            break;
+        case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+            button.pszText = L"Find Handles or DLLs";
+            break;
+        case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+            button.pszText = L"System Information";
+            break;
+        case TIDC_FINDWINDOW:
+            button.pszText = L"Find Window";
+            break;
+        case TIDC_FINDWINDOWTHREAD:
+            button.pszText = L"Find Window and Thread";
+            break;
+        case TIDC_FINDWINDOWKILL:
+            button.pszText = L"Find Window and Kill";
+            break;
+        }
 
         switch (DisplayStyle)
         {
@@ -225,8 +250,9 @@ VOID SetRebarMenuLayout(
         // Set updated button info
         SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
     }
-
-    InvalidateRect(ToolBarHandle, NULL, TRUE);
+         
+    // Resize the toolbar  
+    SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
 }
 
 VOID ApplyToolbarSettings(
@@ -306,18 +332,8 @@ VOID ApplyToolbarSettings(
             ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
             // Configure the toolbar imagelist
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
-                  
-            tbButtonArray[0].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Refresh");
-            tbButtonArray[1].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Options");
-            tbButtonArray[3].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Handles or DLLs");
-            tbButtonArray[4].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"System Information");
-            tbButtonArray[6].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window");
-            tbButtonArray[7].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Thread");
-            tbButtonArray[8].iString = (INT_PTR)SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Kill");
             // Add the buttons to the toolbar 
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
-            // Resize the toolbar now the buttons have been added
-            SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
 
             // inset the toolbar into the rebar control
             RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 22, 0); // Toolbar width 400
