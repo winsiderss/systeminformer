@@ -1,6 +1,9 @@
 1.9
  * Fixed search box fonts
- * Fixed controls not being properly hidden/removed from the window when disabled
+ * Fixed plugin settings state (disable/enable)
+ * Updated Searchbox UI
+ * Updated Searchbox commands
+ * Updated plugin settings
 
 1.8
  * Added search box
