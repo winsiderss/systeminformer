@@ -37,9 +37,10 @@ typedef enum _PH_UPDATER_STATE
     PhUpdateMaximum = 3
 } PH_UPDATER_STATE;
 
-typedef struct _UPDATER_XML_DATA
+typedef struct _PH_UPDATER_CONTEXT
 {
     BOOLEAN HaveData;
+
     ULONG MinorVersion;
     ULONG MajorVersion;
     ULONG RevisionVersion;
@@ -53,13 +54,16 @@ typedef struct _UPDATER_XML_DATA
     PPH_STRING Hash;
     PPH_STRING ReleaseNotesUrl;
     PPH_STRING SetupFilePath;
+
     PH_UPDATER_STATE UpdaterState;
     HINTERNET HttpSessionHandle;
     HBITMAP SourceforgeBitmap;
-} UPDATER_XML_DATA, *PUPDATER_XML_DATA;
+    HICON IconHandle;
+    HFONT FontHandle;
+} PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID ShowUpdateDialog(
-    __in PUPDATER_XML_DATA Context
+    __in PPH_UPDATER_CONTEXT Context
     );
 
 VOID StartInitialCheck(
