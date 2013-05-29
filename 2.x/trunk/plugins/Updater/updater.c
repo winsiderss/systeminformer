@@ -1243,16 +1243,16 @@ static NTSTATUS ShowUpdateDialogThread(
     PhDeleteAutoPool(&autoPool);
     PhResetEvent(&InitializedEvent);
 
-    if (UpdateDialogThreadHandle)
-    {
-        NtClose(UpdateDialogThreadHandle);
-        UpdateDialogThreadHandle = NULL;
-    }
-
     if (UpdateDialogHandle)
     {
         DestroyWindow(UpdateDialogHandle);
         UpdateDialogHandle = NULL;
+    }
+
+    if (UpdateDialogThreadHandle)
+    {
+        NtClose(UpdateDialogThreadHandle);
+        UpdateDialogThreadHandle = NULL;
     }
 
     return STATUS_SUCCESS;
