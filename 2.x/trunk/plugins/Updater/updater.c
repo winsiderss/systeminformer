@@ -36,8 +36,6 @@
 
 static HANDLE UpdateDialogThreadHandle = NULL;
 static HWND UpdateDialogHandle = NULL;
-static HICON IconHandle = NULL;
-static HFONT FontHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
 static HBITMAP LoadImageFromResources(
@@ -144,7 +142,7 @@ static mxml_type_t QueryXmlDataCallback(
 }
 
 static BOOL ParseVersionString(
-    __inout PUPDATER_XML_DATA Context
+    __inout PPH_UPDATER_CONTEXT Context
     )
 {
     PH_STRINGREF sr, majorPart, minorPart, revisionPart;
@@ -223,24 +221,21 @@ static BOOL ReadRequestString(
     return TRUE;
 }
 
-static PUPDATER_XML_DATA CreateUpdateContext(
+static PPH_UPDATER_CONTEXT CreateUpdateContext(
     VOID
     )
 {
-    PUPDATER_XML_DATA context = (PUPDATER_XML_DATA)PhAllocate(
-        sizeof(UPDATER_XML_DATA)
+    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)PhAllocate(
+        sizeof(PH_UPDATER_CONTEXT)
         );
 
-    memset(context, 0, sizeof(UPDATER_XML_DATA));
-
-    // Set the default Updater state        
-    context->UpdaterState = PhUpdateDefault;
+    memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
     return context;
 }
 
 static VOID FreeUpdateContext(
-    __inout PUPDATER_XML_DATA Context
+    __inout PPH_UPDATER_CONTEXT Context
     )
 {
     if (!Context)
@@ -263,18 +258,36 @@ static VOID FreeUpdateContext(
     PhSwapReference(&Context->Hash, NULL);
     PhSwapReference(&Context->ReleaseNotesUrl, NULL);
     PhSwapReference(&Context->SetupFilePath, NULL);
-       
+
     if (Context->HttpSessionHandle)
     {
         WinHttpCloseHandle(Context->HttpSessionHandle);
         Context->HttpSessionHandle = NULL;
     }
 
+    if (Context->IconHandle)
+    {
+        DestroyIcon(Context->IconHandle);
+        Context->IconHandle = NULL;
+    }
+
+    if (Context->FontHandle)
+    {
+        DeleteObject(Context->FontHandle);
+        Context->FontHandle = NULL;
+    }
+
+    if (Context->SourceforgeBitmap)
+    {
+        DeleteObject(Context->SourceforgeBitmap);
+        Context->SourceforgeBitmap = NULL;
+    }
+
     PhFree(Context);
 }
 
 static BOOLEAN QueryUpdateData(
-    __inout PUPDATER_XML_DATA Context
+    __inout PPH_UPDATER_CONTEXT Context
     )
 {
     BOOLEAN isSuccess = FALSE;
@@ -441,7 +454,7 @@ static NTSTATUS UpdateCheckSilentThread(
     __in PVOID Parameter
     )
 {
-    PUPDATER_XML_DATA context = NULL;
+    PPH_UPDATER_CONTEXT context = NULL;
     ULONGLONG currentVersion = 0;
     ULONGLONG latestVersion = 0;
 
@@ -480,24 +493,24 @@ static NTSTATUS UpdateCheckSilentThread(
         // Compare the current version against the latest available version
         if (currentVersion < latestVersion)
         {
-            // We have data we're going to cache and pass into the dialog
-            context->HaveData = TRUE;
-
             // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-            // TODO: Causes a mem leak if user opens dialog while we're sleeping...
-            //Sleep(3000);
+            Sleep(3000);
 
-            // Show the dialog asynchronously on a new thread.
-            ShowUpdateDialog(context);
+            if (!UpdateDialogHandle)
+            {   
+                // We have data we're going to cache and pass into the dialog
+                context->HaveData = TRUE;
+
+                // Show the dialog asynchronously on a new thread.
+                ShowUpdateDialog(context);
+            }
         }
     }
     __finally
     {  
         // Check the dialog doesn't own the window context...
         if (!context->HaveData) 
-        {
             FreeUpdateContext(context);
-        }
     }
 
     return STATUS_SUCCESS;
@@ -507,7 +520,7 @@ static NTSTATUS UpdateCheckThread(
     __in PVOID Parameter
     )
 {
-    PUPDATER_XML_DATA context = NULL;     
+    PPH_UPDATER_CONTEXT context = NULL;     
     ULONGLONG currentVersion = 0;
     ULONGLONG latestVersion = 0;
 
@@ -517,7 +530,7 @@ static NTSTATUS UpdateCheckThread(
         return STATUS_SUCCESS;
     }
 
-    context = (PUPDATER_XML_DATA)Parameter;
+    context = (PPH_UPDATER_CONTEXT)Parameter;
 
     // Check if we have cached update data
     if (!context->HaveData)
@@ -576,7 +589,7 @@ static NTSTATUS UpdateDownloadThread(
     __in PVOID Parameter
     )
 {
-    PUPDATER_XML_DATA context;
+    PPH_UPDATER_CONTEXT context;
     PPH_STRING setupTempPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     HINTERNET connectionHandle = NULL;
@@ -584,7 +597,7 @@ static NTSTATUS UpdateDownloadThread(
     HANDLE tempFileHandle = NULL;
     BOOLEAN isSuccess = FALSE;
 
-    context = (PUPDATER_XML_DATA)Parameter;
+    context = (PPH_UPDATER_CONTEXT)Parameter;
  
     __try
     {
@@ -825,37 +838,19 @@ static INT_PTR CALLBACK UpdaterWndProc(
     __in LPARAM lParam
     )
 {
-    PUPDATER_XML_DATA context;
+    PPH_UPDATER_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PUPDATER_XML_DATA)lParam;
+        context = (PPH_UPDATER_CONTEXT)lParam;
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PUPDATER_XML_DATA)GetProp(hwndDlg, L"Context");
+        context = (PPH_UPDATER_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
         {
-            if (IconHandle)
-            {
-                DestroyIcon(IconHandle);
-                IconHandle = NULL;
-            }
-
-            if (FontHandle)
-            {
-                DeleteObject(FontHandle);
-                FontHandle = NULL;
-            }
-
-            if (context->SourceforgeBitmap)
-            {
-                DeleteObject(context->SourceforgeBitmap);
-                context->SourceforgeBitmap = NULL;
-            }
-
             FreeUpdateContext(context);
             RemoveProp(hwndDlg, L"Context");
         }
@@ -869,21 +864,19 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case WM_INITDIALOG:
         {
             LOGFONT headerFont;
+                  
             HWND parentWindow = GetParent(hwndDlg);
 
             memset(&headerFont, 0, sizeof(LOGFONT));
-
             headerFont.lfHeight = -15;
             headerFont.lfWeight = FW_MEDIUM;
             headerFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-            // We don't check if Segoe exists, CreateFontIndirect does this for us.
-            wcscpy_s(headerFont.lfFaceName, _countof(headerFont.lfFaceName), L"Segoe UI");
 
             // Create the font handle
-            FontHandle = CreateFontIndirect(&headerFont);
+            context->FontHandle = CreateFontIndirect(&headerFont);
 
             // Load the Process Hacker icon.
-            IconHandle = (HICON)LoadImage(
+            context->IconHandle = (HICON)LoadImage(
                 GetModuleHandle(NULL),
                 MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
                 IMAGE_ICON,
@@ -891,20 +884,20 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 GetSystemMetrics(SM_CYICON),
                 LR_SHARED
                 );
-
-            // Set the window icons
-            if (IconHandle)
-                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)IconHandle);
-            
-            // Set the text font
-            if (FontHandle)      
-                SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)FontHandle, FALSE);
-
+                      
             context->SourceforgeBitmap = LoadImageFromResources(
                 MAKEINTRESOURCE(IDB_SF_PNG), 
                 L"PNG"
                 );
          
+            // Set the window icons
+            if (context->IconHandle)
+                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
+                      
+            // Set the text font
+            if (context->FontHandle)      
+                SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)context->FontHandle, FALSE);
+
             if (context->SourceforgeBitmap)
             {
                 SendMessage(
@@ -977,7 +970,6 @@ static INT_PTR CALLBACK UpdaterWndProc(
                     {
                     case PhUpdateDefault:
                         {
-                            // Create the update check thread
                             HANDLE updateCheckThread = NULL;
 
                             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Checking for new releases...");
@@ -985,10 +977,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
 
                             if (updateCheckThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateCheckThread, context))
-                            {
-                                // Close the thread handle, we don't use it.
                                 NtClose(updateCheckThread);
-                            }
                         }
                         break;
                     case PhUpdateDownload:
@@ -1218,10 +1207,10 @@ static NTSTATUS ShowUpdateDialogThread(
     BOOL result;
     MSG message;
     PH_AUTO_POOL autoPool;
-    PUPDATER_XML_DATA context = NULL;
+    PPH_UPDATER_CONTEXT context = NULL;
 
     if (Parameter != NULL)
-        context = (PUPDATER_XML_DATA)Parameter;
+        context = (PPH_UPDATER_CONTEXT)Parameter;
     else
         context = CreateUpdateContext();
 
@@ -1270,7 +1259,7 @@ static NTSTATUS ShowUpdateDialogThread(
 }
 
 VOID ShowUpdateDialog(
-    __in PUPDATER_XML_DATA Context
+    __in PPH_UPDATER_CONTEXT Context
     )
 {
     if (!UpdateDialogThreadHandle)
