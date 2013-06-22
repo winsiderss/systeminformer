@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ROTViewerPlugin", "ROTViewe
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DnsCachePlugin", "DnsCachePlugin\DnsCachePlugin.vcxproj", "{34E39D39-7148-45BF-9B36-DEF53E534A11}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AtomTablePlugin", "AtomTablePlugin\AtomTablePlugin.vcxproj", "{12390643-F40D-411F-A2E8-BF85F90223DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -59,6 +61,18 @@ Global
 		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Release|Win32.Build.0 = Release|Win32
 		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Release|x64.ActiveCfg = Release|x64
 		{34E39D39-7148-45BF-9B36-DEF53E534A11}.Release|x64.Build.0 = Release|x64
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Debug|Win32.Build.0 = Debug|Win32
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Debug|Win32.Deploy.0 = Debug|Win32
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Debug|x64.ActiveCfg = Debug|x64
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Debug|x64.Build.0 = Debug|x64
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Debug|x64.Deploy.0 = Debug|x64
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|Win32.ActiveCfg = Release|Win32
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|Win32.Build.0 = Release|Win32
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|Win32.Deploy.0 = Release|Win32
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|x64.ActiveCfg = Release|x64
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|x64.Build.0 = Release|x64
+		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
