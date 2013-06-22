@@ -147,10 +147,6 @@ typedef struct _NC_CONTROL
     INT cyBottomEdge;
 
     SIZE ImgSize;
-    RECT oldrect;
-    RECT* prect;
-    POINT pt;
-    RECT windowRect;
     BOOLEAN hasCapture;
 
     BOOL IsThemeActive;

@@ -37,28 +37,25 @@ static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 
+static PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
+static PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
+static PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
+
 static HACCEL AcceleratorTable = NULL;
 static ULONG TargetingMode = 0;
 static HWND TargetingCurrentWindow = NULL;
 static BOOLEAN TargetingWindow = FALSE;
 static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
+static HWND ReBarHandle = NULL;
+static HWND ToolBarHandle = NULL;
+static HIMAGELIST ToolBarImageList = NULL;
+static HWND TextboxHandle = NULL;
 
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN EnableSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
-
-static HWND ReBarHandle = NULL;
-static HWND ToolBarHandle;
-static HIMAGELIST ToolBarImageList;
-static HWND TextboxHandle;
-static RECT statusBarRect = { 0, 0, 0, 0 };
-static RECT rebarRect = { 0, 0, 0, 0 };
-
-static PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
-static PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
-static PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -76,11 +73,11 @@ static VOID NTAPI TabPageUpdatedCallback(
     __in_opt PVOID Context
     )
 {
-    INT index = (INT)Parameter;
+    INT tabIndex = (INT)Parameter;
 
     if (TextboxHandle)
     {
-        switch (index)
+        switch (tabIndex)
         {
         case 0:
             Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
@@ -92,10 +89,8 @@ static VOID NTAPI TabPageUpdatedCallback(
             Edit_SetCueBannerText(TextboxHandle, L"Search Network (Ctrl+K)");
             break;
         default:
-            {
-                // Disable the textbox if we're on an unsupported tab.
-                Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
-            }
+            // Disable the textbox if we're on an unsupported tab.
+            Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
             break;
         }
     }
@@ -110,20 +105,24 @@ static VOID NTAPI LayoutPaddingCallback(
 
     if (ReBarHandle)  
     {
+        RECT rebarRect = { 0, 0, 0, 0 };
         GetClientRect(ReBarHandle, &rebarRect);
 
-        // Move contents for ReBar Width
+        // Move PH main window contents down for ReBar menu width...
         data->Padding.top += rebarRect.bottom; 
 
-        // Resize the Rebar control and it's child items.
         SendMessage(ReBarHandle, WM_SIZE, 0, 0);
-    }
+        // Autosize the toolbar
+        //SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+    }    
 
     if (StatusBarHandle)
     {
+        RECT statusBarRect = { 0, 0, 0, 0 };
         GetClientRect(StatusBarHandle, &statusBarRect);
-
-        data->Padding.bottom += statusBarRect.bottom;  // StatusBar Width
+         
+        // Move PH main window contents up for status menu width...
+        data->Padding.bottom += statusBarRect.bottom;
 
         SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
     }
@@ -146,7 +145,7 @@ static BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
-VOID RebarAddMenuItem(
+static VOID RebarAddMenuItem(
     __in HWND WindowHandle,
     __in HWND HwndHandle,
     __in UINT BandID,
@@ -156,7 +155,7 @@ VOID RebarAddMenuItem(
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle =  RBBS_NOGRIPPER | RBBS_FIXEDSIZE | RBBS_TOPALIGN;
+    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
     
     rebarBandInfo.wID = BandID;
     rebarBandInfo.hwndChild = HwndHandle;
@@ -166,7 +165,7 @@ VOID RebarAddMenuItem(
     SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
 
-VOID RebarRemoveMenuItem(
+static VOID RebarRemoveMenuItem(
     __in HWND WindowHandle,
     __in UINT ID
     )
@@ -176,22 +175,22 @@ VOID RebarRemoveMenuItem(
     SendMessage(WindowHandle, RB_DELETEBAND, (WPARAM)bandId, 0);
 }
 
-VOID SetRebarMenuLayout(
+static VOID SetRebarMenuLayout(
     VOID
     )
 {
-    ULONG i = 0;
+    ULONG index = 0;
     ULONG buttonCount = 0;
 
-    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0L, 0L);
+    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
-    for (i = 0; i < buttonCount; i++)
+    for (index = 0; index < buttonCount; index++)
     {
         TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
         button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
 
         // Get settings for first button
-        SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
+        SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button);
 
         // Skip separator buttons
         if (button.fsStyle == BTNS_SEP)
@@ -248,7 +247,7 @@ VOID SetRebarMenuLayout(
         }
 
         // Set updated button info
-        SendMessage(ToolBarHandle, TB_SETBUTTONINFO, i, (LPARAM)&button);
+        SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&button);
     }
          
     // Resize the toolbar  
@@ -336,7 +335,7 @@ VOID ApplyToolbarSettings(
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
 
             // inset the toolbar into the rebar control
-            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 22, 0); // Toolbar width 400
+            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
         }
         
         SetRebarMenuLayout();
@@ -387,9 +386,13 @@ VOID ApplyToolbarSettings(
             SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
             // Set initial text
             SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
-            //if (WindowsVersion < WINDOWS_VISTA)
-            // EM_SETCUEBANNER causes text clipping on XP. Reset the client area margins.
-            //SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
+            
+            if (WindowsVersion < WINDOWS_VISTA)
+            {
+                // EM_SETCUEBANNER causes text clipping on XP. Reset the client area margins.
+                SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
+            }
+
             // insert a paint region into the edit control NC window area        
             InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
                              
