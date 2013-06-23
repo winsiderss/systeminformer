@@ -61,50 +61,6 @@ BOOLEAN ProcessTreeFilterCallback(
         if (textboxText->Length > 0)
         {
             BOOLEAN showItem = FALSE;
-            
-            // TODO: Unimplemented fields
-            // PH_HASH_ENTRY HashEntry;
-            // ULONG State;
-            // PPH_PROCESS_RECORD Record;      
-            // LARGE_INTEGER CreateTime;
-            // HANDLE QueryHandle;
-            // PH_IMAGE_VERSION_INFO VersionInfo;
-            // HANDLE ConsoleHostProcessId;      
-            // ULONG ImportFunctions;
-            // ULONG ImportModules; 
-            // KPRIORITY BasePriority; 
-            // LARGE_INTEGER KernelTime;
-            // LARGE_INTEGER UserTime;
-            // ULONG NumberOfHandles;
-            // ULONG NumberOfThreads;
-            // FLOAT CpuUsage; // Below Windows 7, sum of kernel and user CPU usage; above Windows 7, cycle-based CPU usage.
-            // FLOAT CpuKernelUsage;
-            // FLOAT CpuUserUsage;
-            // PH_UINT64_DELTA CpuKernelDelta;
-            // PH_UINT64_DELTA CpuUserDelta;
-            // PH_UINT64_DELTA IoReadDelta;
-            // PH_UINT64_DELTA IoWriteDelta;
-            // PH_UINT64_DELTA IoOtherDelta;
-            // PH_UINT64_DELTA IoReadCountDelta;
-            // PH_UINT64_DELTA IoWriteCountDelta;
-            // PH_UINT64_DELTA IoOtherCountDelta;
-            // PH_UINT32_DELTA ContextSwitchesDelta;
-            // PH_UINT32_DELTA PageFaultsDelta;
-            // PH_UINT64_DELTA CycleTimeDelta; // since WIN7
-            // VM_COUNTERS_EX VmCounters;
-            // IO_COUNTERS IoCounters;
-            // SIZE_T WorkingSetPrivateSize; // since VISTA
-            // ULONG PeakNumberOfThreads; // since WIN7
-            // ULONG HardFaultCount; // since WIN7
-            // ULONG SequenceNumber;
-            // PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;
-            // PH_CIRCULAR_BUFFER_FLOAT CpuUserHistory;
-            // PH_CIRCULAR_BUFFER_ULONG64 IoReadHistory;
-            // PH_CIRCULAR_BUFFER_ULONG64 IoWriteHistory;
-            // PH_CIRCULAR_BUFFER_ULONG64 IoOtherHistory;
-            // PH_CIRCULAR_BUFFER_SIZE_T PrivateBytesHistory;
-            // PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory;
-            // PH_UINTPTR_DELTA PrivateBytesDelta;
 
             if (WINDOWS_HAS_UAC)
             {
@@ -368,10 +324,6 @@ BOOLEAN ServiceTreeFilterCallback(
             PH_STRINGREF startTypeStringRef;
             PH_STRINGREF errorControlStringRef;
 
-            // TODO: Unimplemented fields
-            // ULONG ControlsAccepted;
-            // ULONG Flags; // e.g. SERVICE_RUNS_IN_SYSTEM_PROCESS
-           
             PhInitializeStringRef(&typeStringRef, PhGetServiceTypeString(serviceNode->ServiceItem->Type));
             PhInitializeStringRef(&stateStringRef, PhGetServiceStateString(serviceNode->ServiceItem->State));
             PhInitializeStringRef(&startTypeStringRef, PhGetServiceStartTypeString(serviceNode->ServiceItem->StartType));
@@ -408,7 +360,6 @@ BOOLEAN ServiceTreeFilterCallback(
 
                 PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
 
-                // Search process PIDs
                 if (WordMatch(&pidStringRef, &textboxText->sr))
                     showItem = TRUE;
             }
@@ -439,18 +390,6 @@ BOOLEAN NetworkTreeFilterCallback(
             BOOLEAN showItem = FALSE;
             PH_STRINGREF pidStringRef;
             WCHAR pidString[32];
-
-            //ULONG ProtocolType;
-            //PH_IP_ENDPOINT LocalEndpoint;
-            //PH_IP_ENDPOINT RemoteEndpoint;
-            //ULONG State;
-            //WCHAR LocalPortString[PH_INT32_STR_LEN_1];
-            //WCHAR RemoteAddressString[65];
-            //WCHAR RemotePortString[PH_INT32_STR_LEN_1];
-            //PPH_STRING LocalHostString;
-            //PPH_STRING RemoteHostString;
-            //LARGE_INTEGER CreateTime;
-            //ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
 
             PhPrintUInt32(pidString, (ULONG)networkNode->NetworkItem->ProcessId);
             PhInitializeStringRef(&pidStringRef, pidString);
@@ -495,6 +434,12 @@ BOOLEAN NetworkTreeFilterCallback(
                 PhInitializeStringRef(&localPortRef, networkNode->NetworkItem->LocalPortString);
 
                 if (WordMatch(&localPortRef, &textboxText->sr))
+                    showItem = TRUE;
+            }
+                       
+            if (networkNode->NetworkItem->LocalHostString)
+            {
+                if (WordMatch(&networkNode->NetworkItem->LocalHostString->sr, &textboxText->sr))
                     showItem = TRUE;
             }
 
