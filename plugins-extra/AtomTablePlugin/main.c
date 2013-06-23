@@ -257,7 +257,6 @@ static PPH_STRING PhGetSelectedListViewItemText(
 
     if (index != -1)
     {
-        LOGICAL result;
         WCHAR textBuffer[MAX_PATH + 1];
 
         LVITEM item;
