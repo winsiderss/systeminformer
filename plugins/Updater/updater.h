@@ -60,6 +60,8 @@ typedef struct _PH_UPDATER_CONTEXT
     HBITMAP SourceforgeBitmap;
     HICON IconHandle;
     HFONT FontHandle;
+    HWND StatusHandle;
+    HWND ProgressHandle;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID ShowUpdateDialog(
