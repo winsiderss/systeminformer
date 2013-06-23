@@ -3,10 +3,8 @@
 // Used by AtomTablePlugin.rc
 //
 #define IDD_ATOMDIALOG                  101
-#define IDR_MENU1                       111
 #define IDR_MAIN_MENU                   111
 #define IDC_ATOMLIST                    1021
-#define ID_ATOMMENU                     40004
 #define ID_ATOMMENU_REMOVE              40005
 
 // Next default values for new objects
