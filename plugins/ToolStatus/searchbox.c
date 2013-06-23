@@ -53,7 +53,7 @@ static _GetThemeFont GetThemeFont_I;
 static _GetThemeSysFont GetThemeSysFont_I;
 
 static VOID NcAreaInitializeUxTheme(
-    __inout NC_CONTROL Context,
+    __inout NC_CONTEXT* Context,
     __in HWND hwndDlg
     )
 {
@@ -88,11 +88,11 @@ static VOID NcAreaInitializeUxTheme(
         //    SearchEditBox, 
         //    Edit::SearchBox
         //    Edit::SearchEditBox
-        if (Context->UxThemeData)
-            CloseThemeData_I(Context->UxThemeData);
+        if (Context->UxThemeHandle)
+            CloseThemeData_I(Context->UxThemeHandle);
 
         Context->IsThemeActive = IsThemeActive_I();
-        Context->UxThemeData = OpenThemeData_I(hwndDlg, VSCLASS_EDIT);
+        Context->UxThemeHandle = OpenThemeData_I(hwndDlg, VSCLASS_EDIT);
 
         // Edit control classes and themes (not all listed):
         // SetWindowTheme_I:  
@@ -106,16 +106,16 @@ static VOID NcAreaInitializeUxTheme(
         //    SearchBoxEditComposited
         //SetWindowTheme_I(hwndDlg, L"SearchBoxEdit", NULL);
 
-        if (Context->UxThemeData)
+        if (Context->UxThemeHandle)
         {
             Context->IsThemeBackgroundActive = IsThemePartDefined_I(
-                Context->UxThemeData, 
+                Context->UxThemeHandle, 
                 EP_EDITBORDER_NOSCROLL, 
                 0
                 );
 
             GetThemeColor_I(
-                Context->UxThemeData, 
+                Context->UxThemeHandle, 
                 EP_EDITBORDER_NOSCROLL,
                 EPSN_NORMAL, 
                 TMT_FILLCOLOR, 
@@ -123,7 +123,7 @@ static VOID NcAreaInitializeUxTheme(
                 );
 
             GetThemeColor_I(
-                Context->UxThemeData, 
+                Context->UxThemeHandle, 
                 EP_EDITBORDER_NOSCROLL,
                 EPSN_NORMAL, 
                 TMT_BORDERCOLOR, 
@@ -137,14 +137,14 @@ static VOID NcAreaInitializeUxTheme(
     }
     else
     {
-        Context->UxThemeData = NULL;
+        Context->UxThemeHandle = NULL;
         Context->IsThemeActive = FALSE;
         Context->IsThemeBackgroundActive = FALSE;
     }
 }
 
 static VOID NcAreaGetButtonRect(
-    __inout NC_CONTROL Context,
+    __inout NC_CONTEXT* Context,
     __in RECT* rect
     )
 {
@@ -167,7 +167,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     __in DWORD_PTR dwRefData
     )
 {
-    NC_CONTROL context = (NC_CONTROL)GetProp(hwndDlg, L"Context");
+    NC_CONTEXT* context = (NC_CONTEXT*)GetProp(hwndDlg, L"Context");
 
     if (context == NULL)
         return FALSE;
@@ -182,12 +182,12 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             context->ImageList = NULL;
         }
 
-        if (context->UxThemeData)
+        if (context->UxThemeHandle)
         {
             if (CloseThemeData_I)
             {
-                CloseThemeData_I(context->UxThemeData);
-                context->UxThemeData = NULL;
+                CloseThemeData_I(context->UxThemeHandle);
+                context->UxThemeHandle = NULL;
             }
         }
 
@@ -274,7 +274,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 if (isFocused)
                 {
                     DrawThemeBackground_I(
-                        context->UxThemeData, 
+                        context->UxThemeHandle, 
                         hdc, 
                         EP_EDITBORDER_NOSCROLL, 
                         EPSN_FOCUSED,
@@ -285,7 +285,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 else
                 {
                     DrawThemeBackground_I(
-                        context->UxThemeData, 
+                        context->UxThemeHandle, 
                         hdc, 
                         EP_EDITBORDER_NOSCROLL, 
                         EPSN_NORMAL,
@@ -372,7 +372,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             // Check that the mouse is within the button rect.
             if (PtInRect(&windowRect, windowPoint))
             {
-                context->hasCapture = TRUE;
+                context->HasCapture = TRUE;
                 SetCapture(hwndDlg);
 
                 // Send the click notification to the parent window.
@@ -391,10 +391,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         break;
     case WM_LBUTTONUP:
         {
-            if (context->hasCapture)
+            if (context->HasCapture)
             {
                 ReleaseCapture();
-                context->hasCapture = FALSE;
+                context->HasCapture = FALSE;
 
                 // Invalidate the nonclient area.
                 RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -518,8 +518,8 @@ BOOLEAN InsertButton(
     __in UINT CommandID
     )
 {
-    NC_CONTROL context = (NC_CONTROL)PhAllocate(sizeof(struct _NC_CONTROL));
-    memset(context, 0, sizeof(struct _NC_CONTROL));
+    NC_CONTEXT* context = (NC_CONTEXT*)PhAllocate(sizeof(NC_CONTEXT));
+    memset(context, 0, sizeof(NC_CONTEXT));
 
     context->CommandID = CommandID;
     context->ImgSize.cx = 22;

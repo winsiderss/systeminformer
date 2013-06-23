@@ -136,10 +136,9 @@ typedef HRESULT (WINAPI *_GetThemeBackgroundContentRect)(
     __out LPRECT pContentRect
     );
 
-typedef struct _NC_CONTROL
+typedef struct _NC_CONTEXT
 {
     UINT CommandID; // sent in a WM_COMMAND message
-    UINT uState;
 
     INT cxLeftEdge; // size of the current window borders.
     INT cxRightEdge;  // size of the current window borders.
@@ -147,11 +146,10 @@ typedef struct _NC_CONTROL
     INT cyBottomEdge;
 
     SIZE ImgSize;
-    BOOLEAN hasCapture;
-
+    BOOLEAN HasCapture;
     BOOL IsThemeActive;
     BOOL IsThemeBackgroundActive;
-    HTHEME UxThemeData;
+    HTHEME UxThemeHandle;
     HMODULE UxThemeModule;    
     COLORREF clrUxThemeFillRef; 
     COLORREF clrUxThemeBackgroundRef;
@@ -159,6 +157,6 @@ typedef struct _NC_CONTROL
     HIMAGELIST ImageList;
     HWND ParentWindow;
     HWND HwndWindow;
-} *NC_CONTROL;
+} NC_CONTEXT;
 
 #endif
