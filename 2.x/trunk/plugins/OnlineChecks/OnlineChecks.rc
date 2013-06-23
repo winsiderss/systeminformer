@@ -16,10 +16,8 @@
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -91,13 +89,15 @@ END
 // Dialog
 //
 
-IDD_PROGRESS DIALOGEX 0, 0, 189, 41
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Uploading"
+IDD_PROGRESS DIALOGEX 0, 0, 241, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Uploading To"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "Cancel",IDCANCEL,132,20,50,14
-    LTEXT           "Message",IDC_MESSAGE,7,7,175,8
+    DEFPUSHBUTTON   "Cancel",IDCANCEL,185,41,50,14
+    LTEXT           "Message",IDC_MESSAGE,7,7,227,15
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",0x0,7,27,227,8
+    LTEXT           "Connecting...",IDC_STATUS,8,44,151,8
 END
 
 
@@ -107,14 +107,14 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_PROGRESS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 182
+        RIGHTMARGIN, 234
         TOPMARGIN, 7
-        BOTTOMMARGIN, 34
+        BOTTOMMARGIN, 55
     END
 END
 #endif    // APSTUDIO_INVOKED

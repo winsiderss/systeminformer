@@ -2,7 +2,8 @@
  * Process Hacker Online Checks -
  *   main program
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2013 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -74,7 +75,7 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Online Checks";
-            info->Author = L"wj32";
+            info->Author = L"dmex & wj32";
             info->Description = L"Allows files to be checked with online services.";
             info->HasOptions = FALSE;
 
@@ -144,15 +145,15 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_SENDTO_SERVICE1:
         fileName = menuItem->Context;
-        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_VIRUSTOTAL);
+        UploadToOnlineService(fileName, UPLOAD_SERVICE_VIRUSTOTAL);
         break;
     case ID_SENDTO_SERVICE2:
         fileName = menuItem->Context;
-        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_JOTTI);
+        UploadToOnlineService(fileName, UPLOAD_SERVICE_JOTTI);
         break;
     case ID_SENDTO_SERVICE3:
         fileName = menuItem->Context;
-        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_CIMA);
+        UploadToOnlineService(fileName, UPLOAD_SERVICE_CIMA);
         break;
     }
 }
