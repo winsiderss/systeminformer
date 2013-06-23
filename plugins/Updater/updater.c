@@ -185,7 +185,7 @@ static BOOL ReadRequestString(
     dataLength = 0;
 
     // Zero the buffer
-    RtlZeroMemory(buffer, PAGE_SIZE);
+    memset(buffer, 0, PAGE_SIZE);
 
     while (WinHttpReadData(Handle, buffer, PAGE_SIZE, &returnLength))
     {
@@ -199,9 +199,9 @@ static BOOL ReadRequestString(
         }
 
         // Copy the returned buffer into our pointer
-        RtlCopyMemory(data + dataLength, buffer, returnLength);
+        memcpy(data + dataLength, buffer, returnLength);
         // Zero the returned buffer for the next loop
-        //RtlZeroMemory(buffer, PAGE_SIZE);
+        //memset(buffer, 0, returnLength);
 
         dataLength += returnLength;
     }
@@ -774,8 +774,8 @@ static NTSTATUS UpdateDownloadThread(
                         );
                     
                     // Update the progress bar position
-                    PostMessage(GetDlgItem(UpdateDialogHandle, IDC_PROGRESS), PBM_SETPOS, percent, 0);
-                    SetWindowText(GetDlgItem(UpdateDialogHandle, IDC_STATUS), dlLengthString->Buffer);
+                    SendMessage(context->ProgressHandle, PBM_SETPOS, percent, 0);
+                    SetWindowText(context->StatusHandle, dlLengthString->Buffer);
 
                     PhDereferenceObject(dlLengthString);
                     PhDereferenceObject(totalDownloaded);
@@ -864,13 +864,15 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case WM_INITDIALOG:
         {
             LOGFONT headerFont;
-                  
             HWND parentWindow = GetParent(hwndDlg);
 
             memset(&headerFont, 0, sizeof(LOGFONT));
             headerFont.lfHeight = -15;
             headerFont.lfWeight = FW_MEDIUM;
             headerFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+  
+            context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
+            context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS);
 
             // Create the font handle
             context->FontHandle = CreateFontIndirect(&headerFont);
@@ -884,7 +886,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 GetSystemMetrics(SM_CYICON),
                 LR_SHARED
                 );
-                      
+
             context->SourceforgeBitmap = LoadImageFromResources(
                 MAKEINTRESOURCE(IDB_SF_PNG), 
                 L"PNG"
@@ -892,21 +894,12 @@ static INT_PTR CALLBACK UpdaterWndProc(
          
             // Set the window icons
             if (context->IconHandle)
-                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
-                      
+                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);                 
             // Set the text font
             if (context->FontHandle)      
                 SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)context->FontHandle, FALSE);
-
             if (context->SourceforgeBitmap)
-            {
-                SendMessage(
-                    GetDlgItem(hwndDlg, IDC_UPDATEICON),
-                    STM_SETIMAGE, 
-                    IMAGE_BITMAP, 
-                    (LPARAM)context->SourceforgeBitmap 
-                    );
-            }
+                SendMessage(GetDlgItem(hwndDlg, IDC_UPDATEICON), STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)context->SourceforgeBitmap);
 
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);

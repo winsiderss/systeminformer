@@ -23,6 +23,9 @@
 
 #include "onlnchk.h"
 
+// Disable all hash-checking and always upload the file for analysis.
+//#define DEBUG_UPLOAD
+
 static SERVICE_INFO UploadServiceInfo[] =
 {
     { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
@@ -520,6 +523,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     __leave;
                 }
 
+#ifndef DEBUG_UPLOAD
                 if (strstr(subRequestBuffer, "\"file_exists\": true"))
                 {
                     // No upload needed; show the results immediately.
@@ -539,7 +543,7 @@ static NTSTATUS UploadWorkerThreadStart(
                         __leave;
                     }
                 }
-
+#endif
                 PhDereferenceObject(hashString);
                 PhDereferenceObject(subObjectName);
 
@@ -589,7 +593,7 @@ static NTSTATUS UploadWorkerThreadStart(
 
                 PhDereferenceObject(hashString);
                 PhDereferenceObject(subObjectName);
-
+#ifndef DEBUG_UPLOAD
                 if (uploadId = strstr(subRequestBuffer, "\"id\":"))
                 {
                     uploadId += 6;
@@ -612,7 +616,7 @@ static NTSTATUS UploadWorkerThreadStart(
                         }
                     }
                 }
-
+#endif
                 objectName = PhCreateString(serviceInfo->UploadObjectName);
             }
             break;
@@ -839,7 +843,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 NULL
                 );
 
-            if (status == HTTP_STATUS_OK || status == HTTP_STATUS_REDIRECT)
+            if (status == HTTP_STATUS_OK || status == HTTP_STATUS_REDIRECT_METHOD || status == HTTP_STATUS_REDIRECT)
             {
                 switch (context->Service)
                 {
@@ -859,8 +863,8 @@ static NTSTATUS UploadWorkerThreadStart(
                                 if (buffer)// && ((PWSTR)buffer)[0]) 
                                 {
                                     // Display the retrieved URL...
-                                    //context->LaunchCommand = PhFormatString(L"%s", (PWSTR)buffer);
-                                    //PhFree(buffer);
+                                    context->LaunchCommand = PhFormatString(L"%s", (PWSTR)buffer);
+                                    PhFree(buffer);
 
                                     if (context->DialogHandle && context->LaunchCommand)
                                     {
@@ -1089,8 +1093,8 @@ INT_PTR CALLBACK UploadDlgProc(
 
             if (!PhIsNullOrEmptyString(context->ErrorMessage))
             {      
-                PhDereferenceObject(context->LaunchCommand);
-                context->LaunchCommand = NULL;
+                PhDereferenceObject(context->ErrorMessage);
+                context->ErrorMessage = NULL;
             }
 
             RemoveProp(hwndDlg, L"Context");
