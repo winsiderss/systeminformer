@@ -1117,7 +1117,7 @@ INT_PTR CALLBACK UploadDlgProc(
             switch (context->Service)
             {
             case UPLOAD_SERVICE_VIRUSTOTAL:
-                SetWindowText(hwndDlg, L"Uploading to VirtualTotal...");
+                SetWindowText(hwndDlg, L"Uploading to VirusTotal...");
                 break;
             case UPLOAD_SERVICE_JOTTI:
                 SetWindowText(hwndDlg, L"Uploading to Jotti...");
