@@ -19,7 +19,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define UPDATE_MENUITEM 1000
+#define UPDATE_MENUITEM     1000
+#define INET_ADDRSTRLEN     22
+#define INET6_ADDRSTRLEN    65
 
 #include "phdk.h"
 #include "phappresource.h"
@@ -180,7 +182,7 @@ static VOID EnumDnsCacheTable(
 
     __try
     {
-        // Start Winsock (inet_ntoa)
+        // Start Winsock (required for WSAAddressToString)
         WSAStartup(WINSOCK_VERSION, &wsaData);
 
         if (!DnsGetCacheDataTable_I(&dnsCacheRecordPtr))
@@ -189,14 +191,6 @@ static VOID EnumDnsCacheTable(
         while (dnsCacheRecordPtr) 
         {  
             PDNS_RECORD dnsQueryResultPtr = NULL;
-
-            // Add the item to the listview (it might be nameless)...
-            INT itemIndex = PhAddListViewItem(
-                hwndDlg, 
-                MAXINT, 
-                (PWSTR)dnsCacheRecordPtr->Name, 
-                NULL
-                );
 
             DNS_STATUS dnsStatus = DnsQuery_I(
                 dnsCacheRecordPtr->Name, 
@@ -209,28 +203,50 @@ static VOID EnumDnsCacheTable(
 
             if (dnsStatus == ERROR_SUCCESS)
             {
+                ULONG dnsRecordCount = 0;
                 PDNS_RECORD dnsRecordPtr = dnsQueryResultPtr;
-
+                
                 while (dnsRecordPtr)
                 {
-                    PPH_STRING ipAddressString = NULL;
-                    PPH_STRING ipTtlString = NULL;
+                    INT itemIndex = 0;
+                    SOCKADDR_IN sockaddr;
+                    TCHAR ipAddrString[INET6_ADDRSTRLEN];
+                    ULONG ipAddrStringLength = INET6_ADDRSTRLEN;
 
-                    struct in_addr ipaddr;
+                    // Convert the Internet network address into a string in Internet standard dotted format.
+                    sockaddr.sin_family = AF_INET;
+                    sockaddr.sin_addr.s_addr = dnsRecordPtr->Data.A.IpAddress;
+                    sockaddr.sin_port = 0;
 
-                    //if (pDnsRecord->wDataLength > DNS_NULL_RECORD_LENGTH(0))
-                    //convert the Internet network address into a string in Internet standard dotted format.
-                    ipaddr.S_un.S_addr = dnsRecordPtr->Data.A.IpAddress;
+                    // Add the item to the listview (it might be nameless)...
+                    if (dnsRecordCount)
+                    {
+                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT, 
+                            PhaFormatString(L"%s [%d]", dnsCacheRecordPtr->Name, dnsRecordCount)->Buffer, 
+                            NULL
+                            );
+                    }
+                    else
+                    {
+                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT, 
+                            PhaFormatString(L"%s", dnsCacheRecordPtr->Name)->Buffer, 
+                            NULL
+                            );
+                    }
 
-                    ipAddressString = PhFormatString(L"%hs", inet_ntoa(ipaddr));
-                    ipTtlString = PhFormatString(L"%d", dnsRecordPtr->dwTtl);
+                    PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%d", dnsRecordPtr->dwTtl)->Buffer);
 
-                    PhSetListViewSubItem(hwndDlg, itemIndex, 1, ipAddressString->Buffer);
-                    PhSetListViewSubItem(hwndDlg, itemIndex, 2, ipTtlString->Buffer);
+                    if (WSAAddressToString((SOCKADDR*)&sockaddr, sizeof(SOCKADDR_IN), NULL, ipAddrString, &ipAddrStringLength) != SOCKET_ERROR)
+                    {
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"%s", ipAddrString)->Buffer);
+                    }
+                    else
+                    {
+                        //inet_ntoa(ipaddr));
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"Error %d", WSAGetLastError())->Buffer);
+                    }
 
-                    PhDereferenceObject(ipTtlString);
-                    PhDereferenceObject(ipAddressString);
-
+                    dnsRecordCount++;
                     dnsRecordPtr = dnsRecordPtr->pNext;
                 }
 

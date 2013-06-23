@@ -102,9 +102,7 @@ IDR_MAIN_MENU MENU
 BEGIN
     POPUP "DnsEntry"
     BEGIN
-        MENUITEM "Remove",                      ID_DNSENTRY_FLUSH
-        MENUITEM SEPARATOR
-        MENUITEM "Properties",                  ID_DNSENTRY_PROPERTIES, INACTIVE
+        MENUITEM "Remove",                      ID_DNSENTRY_FLUSH, INACTIVE
     END
 END
 
