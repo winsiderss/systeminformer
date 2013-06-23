@@ -39,7 +39,7 @@ typedef struct _DNS_CACHE_ENTRY
 } DNS_CACHE_ENTRY, *PDNS_CACHE_ENTRY;
 
 typedef DNS_STATUS (WINAPI* _DnsGetCacheDataTable)(
-    __inout PDNS_CACHE_ENTRY DnsCacheEntry
+    __inout PDNS_CACHE_ENTRY* DnsCacheEntry
     );
 typedef BOOL (WINAPI* _DnsFlushResolverCache)(
     VOID
@@ -180,16 +180,11 @@ static VOID EnumDnsCacheTable(
 
     __try
     {
+        // Start Winsock (inet_ntoa)
         WSAStartup(WINSOCK_VERSION, &wsaData);
 
-        dnsCacheRecordPtr = (PDNS_CACHE_ENTRY)PhAllocate(sizeof(DNS_CACHE_ENTRY));
-        memset(dnsCacheRecordPtr, 0, sizeof(DNS_CACHE_ENTRY));
-
-        if (!DnsGetCacheDataTable_I(dnsCacheRecordPtr))
+        if (!DnsGetCacheDataTable_I(&dnsCacheRecordPtr))
             __leave;
-
-        // We need to skip the first entry...
-        dnsCacheRecordPtr = dnsCacheRecordPtr->Next;
 
         while (dnsCacheRecordPtr) 
         {  
@@ -249,8 +244,7 @@ static VOID EnumDnsCacheTable(
     {
         if (dnsCacheRecordPtr)
         {
-            DnsFree_I(dnsCacheRecordPtr, DnsFreeRecordList); 
-            PhFree(dnsCacheRecordPtr);
+            DnsFree_I(dnsCacheRecordPtr, DnsFreeRecordList);
         }
 
         WSACleanup();
