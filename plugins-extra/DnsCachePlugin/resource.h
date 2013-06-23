@@ -3,12 +3,9 @@
 // Used by DnsCachePlugin.rc
 //
 #define IDD_DNSVIEW                     101
-#define IDR_MENU1                       111
 #define IDR_MAIN_MENU                   111
 #define IDC_LIST1                       1021
 #define IDC_DNSCLEAR                    4355
-#define IDC_DNSCLEAR2                   4356
-#define IDC_DNSREFRESH                  4356
 #define ID_DNSENTRY_FLUSH               40004
 #define ID_DNSENTRY_PROPERTIES          40005
 
