@@ -62,7 +62,7 @@ END
 // Dialog
 //
 
-IDD_ATOMDIALOG DIALOGEX 0, 0, 325, 181
+IDD_ATOMDIALOG DIALOGEX 0, 0, 325, 180
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Global Atom Table"
@@ -124,6 +124,20 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAIN_MENU MENU
+BEGIN
+    POPUP "AtomMenu"
+    BEGIN
+        MENUITEM "Remove",                      ID_ATOMMENU_REMOVE
+    END
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
