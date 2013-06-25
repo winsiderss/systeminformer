@@ -406,12 +406,11 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_PASTE:
     case EN_CHANGE: // Same value as WM_CUT...
     case WM_CLEAR:
+        RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        break;
     case WM_KEYUP:
-        {
-            // Invalidate the nonclient area.
-            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-        }
-        break;  
+        RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        return FALSE;  
     }
 
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);

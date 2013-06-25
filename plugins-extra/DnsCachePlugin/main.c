@@ -148,7 +148,7 @@ static VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", UPDATE_MENUITEM, L"DNS Cache", NULL);
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", UPDATE_MENUITEM, L"Resolver Cache", NULL);
 }
 
 static VOID NTAPI MenuItemCallback(
@@ -216,7 +216,7 @@ static VOID EnumDnsCacheTable(
                     // Convert the Internet network address into a string in Internet standard dotted format.
                     sockaddr.sin_family = AF_INET;
                     sockaddr.sin_addr.s_addr = dnsRecordPtr->Data.A.IpAddress;
-                    sockaddr.sin_port = 0;
+                    sockaddr.sin_port = htons(0);
 
                     // Add the item to the listview (it might be nameless)...
                     if (dnsRecordCount)

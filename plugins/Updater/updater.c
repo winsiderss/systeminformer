@@ -782,10 +782,9 @@ static NTSTATUS UpdateDownloadThread(
                     PhDereferenceObject(totalLength);
                 }
             }
-             
+
             // Check if we downloaded the entire file.
             //assert(downloadedBytes == contentLength);
-            isSuccess = TRUE;
 
             // Compute our hash result.
             if (PhFinalHash(&hashContext, &hashBuffer, 20, NULL))
@@ -809,6 +808,8 @@ static NTSTATUS UpdateDownloadThread(
                 PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
             }
         }
+
+        isSuccess = TRUE;
     }
     __finally
     {     
