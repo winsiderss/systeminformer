@@ -269,7 +269,7 @@ void sha256_finish( sha256_context *ctx, uint8 digest[32] )
  * those are the standard FIPS-180-2 test vectors
  */
 
-static char *msg[] = 
+static char *msg[] =
 {
     "abc",
     "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
