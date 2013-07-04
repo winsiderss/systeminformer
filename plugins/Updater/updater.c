@@ -39,7 +39,7 @@ static HWND UpdateDialogHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
 static HBITMAP LoadImageFromResources(
-    __in LPCTSTR lpName, 
+    __in LPCTSTR lpName,
     __in LPCTSTR lpType
     )
 {
@@ -53,7 +53,7 @@ static HBITMAP LoadImageFromResources(
     HGLOBAL resHandle = NULL;
 
     HBITMAP bitmapHandle = NULL;
-    PVOID pvImageBits = NULL; 
+    PVOID pvImageBits = NULL;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
@@ -66,7 +66,7 @@ static HBITMAP LoadImageFromResources(
     HDC hdcScreen = GetDC(NULL);
 
     __try
-    {   
+    {
         if ((resHandleRef = FindResource((HINSTANCE)PluginInstance->DllBase, lpName, lpType)) == NULL)
             __leave;
         if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleRef)) == NULL)
@@ -104,8 +104,8 @@ static HBITMAP LoadImageFromResources(
         bminfo.bmiHeader.biCompression = BI_RGB;
 
         if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0)) != NULL)
-        {  
-            WICRect rect = { 0, 0, 64, 64 };          
+        {
+            WICRect rect = { 0, 0, 64, 64 };
 
             if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
                 __leave;
@@ -115,7 +115,7 @@ static HBITMAP LoadImageFromResources(
             if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, 64 * 4, 64 * 64 * 4, (BYTE*)pvImageBits)))
                 __leave;
         }
-   
+
         DeleteObject(bitmapHandle);
         bitmapHandle = NULL;
     }
@@ -214,7 +214,7 @@ static BOOL ReadRequestString(
 
     // Ensure that the buffer is null-terminated.
     data[dataLength] = 0;
-    
+
     *DataLength = dataLength;
     *Data = data;
 
@@ -299,9 +299,9 @@ static BOOLEAN QueryUpdateData(
 
     // Get the current Process Hacker version
     PhGetPhVersionNumbers(
-        &Context->CurrentMajorVersion, 
-        &Context->CurrentMinorVersion, 
-        NULL, 
+        &Context->CurrentMajorVersion,
+        &Context->CurrentMinorVersion,
+        NULL,
         &Context->CurrentRevisionVersion
         );
 
@@ -320,16 +320,16 @@ static BOOLEAN QueryUpdateData(
 
             // Query the current system proxy
             WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-            
+
             // Open the HTTP session with the system proxy configuration if available
             Context->HttpSessionHandle = WinHttpOpen(
-                userAgent->Buffer,                 
+                userAgent->Buffer,
                 proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-                proxyConfig.lpszProxy, 
-                proxyConfig.lpszProxyBypass, 
+                proxyConfig.lpszProxy,
+                proxyConfig.lpszProxyBypass,
                 0
                 );
-               
+
             PhSwapReference(&phVersion, NULL);
             PhSwapReference(&userAgent, NULL);
 
@@ -338,7 +338,7 @@ static BOOLEAN QueryUpdateData(
         }
 
         if (!(connectionHandle = WinHttpConnect(
-            Context->HttpSessionHandle, 
+            Context->HttpSessionHandle,
             L"processhacker.sourceforge.net",
             INTERNET_DEFAULT_HTTP_PORT,
             0
@@ -348,12 +348,12 @@ static BOOLEAN QueryUpdateData(
         }
 
         if (!(requestHandle = WinHttpOpenRequest(
-            connectionHandle, 
-            L"GET", 
-            L"/update.php", 
-            NULL, 
-            WINHTTP_NO_REFERER, 
-            WINHTTP_DEFAULT_ACCEPT_TYPES, 
+            connectionHandle,
+            L"GET",
+            L"/update.php",
+            NULL,
+            WINHTTP_NO_REFERER,
+            WINHTTP_DEFAULT_ACCEPT_TYPES,
             0 // WINHTTP_FLAG_REFRESH
             )))
         {
@@ -361,9 +361,9 @@ static BOOLEAN QueryUpdateData(
         }
 
         if (!WinHttpSendRequest(
-            requestHandle, 
-            WINHTTP_NO_ADDITIONAL_HEADERS, 0, 
-            WINHTTP_NO_REQUEST_DATA, 0, 
+            requestHandle,
+            WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+            WINHTTP_NO_REQUEST_DATA, 0,
             WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH, 0
             ))
         {
@@ -470,7 +470,7 @@ static NTSTATUS UpdateCheckSilentThread(
         currentVersion = MAKEDLLVERULL(
             context->CurrentMajorVersion,
             context->CurrentMinorVersion,
-            0, 
+            0,
             context->CurrentRevisionVersion
             );
 
@@ -478,14 +478,14 @@ static NTSTATUS UpdateCheckSilentThread(
         latestVersion = MAKEDLLVERULL(
             9999,
             9999,
-            0, 
+            0,
             9999
             );
 #else
         latestVersion = MAKEDLLVERULL(
             context->MajorVersion,
             context->MinorVersion,
-            0, 
+            0,
             context->RevisionVersion
             );
 #endif
@@ -497,7 +497,7 @@ static NTSTATUS UpdateCheckSilentThread(
             Sleep(3000);
 
             if (!UpdateDialogHandle)
-            {   
+            {
                 // We have data we're going to cache and pass into the dialog
                 context->HaveData = TRUE;
 
@@ -507,9 +507,9 @@ static NTSTATUS UpdateCheckSilentThread(
         }
     }
     __finally
-    {  
+    {
         // Check the dialog doesn't own the window context...
-        if (!context->HaveData) 
+        if (!context->HaveData)
             FreeUpdateContext(context);
     }
 
@@ -520,11 +520,11 @@ static NTSTATUS UpdateCheckThread(
     __in PVOID Parameter
     )
 {
-    PPH_UPDATER_CONTEXT context = NULL;     
+    PPH_UPDATER_CONTEXT context = NULL;
     ULONGLONG currentVersion = 0;
     ULONGLONG latestVersion = 0;
 
-    if (!ConnectionAvailable())     
+    if (!ConnectionAvailable())
     {
         PostMessage(UpdateDialogHandle, PH_INETFAILURE, 0, 0);
         return STATUS_SUCCESS;
@@ -546,7 +546,7 @@ static NTSTATUS UpdateCheckThread(
     currentVersion = MAKEDLLVERULL(
         context->CurrentMajorVersion,
         context->CurrentMinorVersion,
-        0, 
+        0,
         context->CurrentRevisionVersion
         );
 
@@ -554,14 +554,14 @@ static NTSTATUS UpdateCheckThread(
     latestVersion = MAKEDLLVERULL(
         9999,
         9999,
-        0, 
+        0,
         9999
         );
 #else
     latestVersion = MAKEDLLVERULL(
         context->MajorVersion,
         context->MinorVersion,
-        0, 
+        0,
         context->RevisionVersion
         );
 #endif
@@ -598,7 +598,7 @@ static NTSTATUS UpdateDownloadThread(
     BOOLEAN isSuccess = FALSE;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
- 
+
     __try
     {
         if (context == NULL)
@@ -609,7 +609,7 @@ static NTSTATUS UpdateDownloadThread(
             L"/projects/processhacker/files/processhacker2/processhacker-%lu.%lu-setup.exe/download?use_mirror=autoselect", /* ?use_mirror=waix" */
             context->MajorVersion,
             context->MinorVersion
-            );       
+            );
         if (PhIsNullOrEmptyString(downloadUrlPath))
             __leave;
 
@@ -653,7 +653,7 @@ static NTSTATUS UpdateDownloadThread(
         SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Connecting...");
 
         if (!(connectionHandle = WinHttpConnect(
-            context->HttpSessionHandle, 
+            context->HttpSessionHandle,
             L"sourceforge.net",
             INTERNET_DEFAULT_HTTP_PORT,
             0
@@ -663,12 +663,12 @@ static NTSTATUS UpdateDownloadThread(
         }
 
         if (!(requestHandle = WinHttpOpenRequest(
-            connectionHandle, 
-            L"GET", 
-            downloadUrlPath->Buffer, 
-            NULL, 
-            WINHTTP_NO_REFERER, 
-            WINHTTP_DEFAULT_ACCEPT_TYPES, 
+            connectionHandle,
+            L"GET",
+            downloadUrlPath->Buffer,
+            NULL,
+            WINHTTP_NO_REFERER,
+            WINHTTP_DEFAULT_ACCEPT_TYPES,
             0 // WINHTTP_FLAG_REFRESH
             )))
         {
@@ -678,11 +678,11 @@ static NTSTATUS UpdateDownloadThread(
         SetDlgItemText(UpdateDialogHandle, IDC_STATUS, L"Sending request...");
 
         if (!WinHttpSendRequest(
-            requestHandle, 
-            WINHTTP_NO_ADDITIONAL_HEADERS, 
-            0, 
-            WINHTTP_NO_REQUEST_DATA, 
-            0, 
+            requestHandle,
+            WINHTTP_NO_ADDITIONAL_HEADERS,
+            0,
+            WINHTTP_NO_REQUEST_DATA,
+            0,
             WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
             0
             ))
@@ -695,21 +695,21 @@ static NTSTATUS UpdateDownloadThread(
         if (WinHttpReceiveResponse(requestHandle, NULL))
         {
             BYTE buffer[PAGE_SIZE];
-            BYTE hashBuffer[20]; 
+            BYTE hashBuffer[20];
             ULONG bytesDownloaded = 0;
-            ULONG downloadedBytes = 0;    
+            ULONG downloadedBytes = 0;
             ULONG contentLengthSize = sizeof(ULONG);
             ULONG contentLength = 0;
-                       
+
             PH_HASH_CONTEXT hashContext;
             IO_STATUS_BLOCK isb;
-          
+
             if (!WinHttpQueryHeaders(
-                requestHandle, 
-                WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER, 
+                requestHandle,
+                WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
                 WINHTTP_HEADER_NAME_BY_INDEX,
-                &contentLength, 
-                &contentLengthSize, 
+                &contentLength,
+                &contentLengthSize,
                 0
                 ))
             {
@@ -724,7 +724,7 @@ static NTSTATUS UpdateDownloadThread(
 
             // Download the data.
             while (WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
-            {                        
+            {
                 // If we get zero bytes, the file was uploaded or there was an error
                 if (bytesDownloaded == 0)
                     break;
@@ -767,12 +767,12 @@ static NTSTATUS UpdateDownloadThread(
                     PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, -1);
 
                     PPH_STRING dlLengthString = PhFormatString(
-                        L"%s of %s (%d%%)", 
-                        totalDownloaded->Buffer, 
+                        L"%s of %s (%d%%)",
+                        totalDownloaded->Buffer,
                         totalLength->Buffer,
                         percent
                         );
-                    
+
                     // Update the progress bar position
                     SendMessage(context->ProgressHandle, PBM_SETPOS, percent, 0);
                     SetWindowText(context->StatusHandle, dlLengthString->Buffer);
@@ -794,25 +794,25 @@ static NTSTATUS UpdateDownloadThread(
 
                 if (PhEqualString(hexString, context->Hash, TRUE))
                 {
-                    PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0, 0);  
+                    PostMessage(UpdateDialogHandle, PH_HASHSUCCESS, 0, 0);
                 }
                 else
                 {
-                    PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
+                    PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0);
                 }
 
                 PhDereferenceObject(hexString);
             }
             else
             {
-                PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0); 
+                PostMessage(UpdateDialogHandle, PH_HASHFAILURE, 0, 0);
             }
         }
 
         isSuccess = TRUE;
     }
     __finally
-    {     
+    {
         if (tempFileHandle)
             NtClose(tempFileHandle);
 
@@ -826,7 +826,7 @@ static NTSTATUS UpdateDownloadThread(
         PhSwapReference(&downloadUrlPath, NULL);
     }
 
-    if (!isSuccess) // Display error info        
+    if (!isSuccess) // Display error info
         PostMessage(UpdateDialogHandle, PH_UPDATEISERRORED, 0, 0);
 
     return STATUS_SUCCESS;
@@ -871,7 +871,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             headerFont.lfHeight = -15;
             headerFont.lfWeight = FW_MEDIUM;
             headerFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-  
+
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS);
 
@@ -889,15 +889,15 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 );
 
             context->SourceforgeBitmap = LoadImageFromResources(
-                MAKEINTRESOURCE(IDB_SF_PNG), 
+                MAKEINTRESOURCE(IDB_SF_PNG),
                 L"PNG"
                 );
-         
+
             // Set the window icons
             if (context->IconHandle)
-                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);                 
+                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
             // Set the text font
-            if (context->FontHandle)      
+            if (context->FontHandle)
                 SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)context->FontHandle, FALSE);
             if (context->SourceforgeBitmap)
                 SendMessage(GetDlgItem(hwndDlg, IDC_UPDATEICON), STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)context->SourceforgeBitmap);
@@ -982,10 +982,10 @@ static INT_PTR CALLBACK UpdaterWndProc(
 
                                 // Disable the download button
                                 Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-                                
+
                                 // Reset the progress bar (might be a download retry)
                                 SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, 0, 0);
-                                
+
                                 if (WindowsVersion > WINDOWS_XP)
                                     SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
 
@@ -1000,7 +1000,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                                 PostQuitMessage(0);
                             }
                         }
-                        break;                
+                        break;
                     case PhUpdateInstall:
                         {
                             SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
@@ -1041,8 +1041,8 @@ static INT_PTR CALLBACK UpdaterWndProc(
             context->UpdaterState = PhUpdateDefault;
 
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
-            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");            
-            
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");
+
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
@@ -1121,7 +1121,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running a newer version!");
             SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
-           
+
             // Disable the download button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
             Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
@@ -1179,7 +1179,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             switch (((LPNMHDR)lParam)->code)
             {
             case NM_CLICK: // Mouse
-            case NM_RETURN: // Keyboard 
+            case NM_RETURN: // Keyboard
                 {
                     // Launch the ReleaseNotes URL (if it exists) with the default browser
                     if (!PhIsNullOrEmptyString(context->ReleaseNotesUrl))

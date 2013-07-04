@@ -103,24 +103,24 @@ static VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
 
-    if (ReBarHandle)  
+    if (ReBarHandle)
     {
         RECT rebarRect = { 0, 0, 0, 0 };
         GetClientRect(ReBarHandle, &rebarRect);
 
         // Move PH main window contents down for ReBar menu width...
-        data->Padding.top += rebarRect.bottom; 
+        data->Padding.top += rebarRect.bottom;
 
         SendMessage(ReBarHandle, WM_SIZE, 0, 0);
         // Autosize the toolbar
         //SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
-    }    
+    }
 
     if (StatusBarHandle)
     {
         RECT statusBarRect = { 0, 0, 0, 0 };
         GetClientRect(StatusBarHandle, &statusBarRect);
-         
+
         // Move PH main window contents up for status menu width...
         data->Padding.bottom += statusBarRect.bottom;
 
@@ -149,18 +149,18 @@ static VOID RebarAddMenuItem(
     __in HWND WindowHandle,
     __in HWND HwndHandle,
     __in UINT BandID,
-    __in UINT cyMinChild,   
+    __in UINT cyMinChild,
     __in UINT cxMinChild
     )
 {
-    REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE }; 
+    REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
     rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
-    
+
     rebarBandInfo.wID = BandID;
     rebarBandInfo.hwndChild = HwndHandle;
     rebarBandInfo.cyMinChild = cyMinChild;
-    rebarBandInfo.cxMinChild = cxMinChild;    
+    rebarBandInfo.cxMinChild = cxMinChild;
 
     SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
@@ -201,7 +201,7 @@ static VOID SetRebarMenuLayout(
         case PHAPP_ID_VIEW_REFRESH:
             button.pszText = L"Refresh";
             break;
-        case PHAPP_ID_HACKER_OPTIONS: 
+        case PHAPP_ID_HACKER_OPTIONS:
             button.pszText = L"Options";
             break;
         case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
@@ -233,7 +233,7 @@ static VOID SetRebarMenuLayout(
                 switch (button.idCommand)
                 {
                 case PHAPP_ID_VIEW_REFRESH:
-                case PHAPP_ID_HACKER_OPTIONS: 
+                case PHAPP_ID_HACKER_OPTIONS:
                 case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
                 case PHAPP_ID_VIEW_SYSTEMINFORMATION:
                     button.fsStyle = BTNS_SHOWTEXT;
@@ -249,8 +249,8 @@ static VOID SetRebarMenuLayout(
         // Set updated button info
         SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&button);
     }
-         
-    // Resize the toolbar  
+
+    // Resize the toolbar
     SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
 }
 
@@ -330,14 +330,14 @@ VOID ApplyToolbarSettings(
             ImageList_Replace(ToolBarImageList, 5, LoadImageFromResources(MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
             ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
             // Configure the toolbar imagelist
-            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList); 
-            // Add the buttons to the toolbar 
+            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+            // Add the buttons to the toolbar
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
 
             // inset the toolbar into the rebar control
             RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
         }
-        
+
         SetRebarMenuLayout();
     }
     else
@@ -386,40 +386,40 @@ VOID ApplyToolbarSettings(
             SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
             // Set initial text
             SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
-            
+
             if (WindowsVersion < WINDOWS_VISTA)
             {
                 // EM_SETCUEBANNER causes text clipping on XP. Reset the client area margins.
                 SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
             }
 
-            // insert a paint region into the edit control NC window area        
+            // insert a paint region into the edit control NC window area
             InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
-                             
-            // insert the edit control into the rebar control 
+
+            // insert the edit control into the rebar control
             RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
 
             ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
             ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
-            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle); 
+            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle);
         }
     }
     else
-    {    
+    {
         if (NetworkTreeFilterEntry)
         {
             PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), NetworkTreeFilterEntry);
             NetworkTreeFilterEntry = NULL;
         }
 
-        if (ServiceTreeFilterEntry) 
-        { 
-            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ServiceTreeFilterEntry); 
-            ServiceTreeFilterEntry = NULL; 
+        if (ServiceTreeFilterEntry)
+        {
+            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ServiceTreeFilterEntry);
+            ServiceTreeFilterEntry = NULL;
         }
 
-        if (ProcessTreeFilterEntry) 
-        { 
+        if (ProcessTreeFilterEntry)
+        {
             PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
             ProcessTreeFilterEntry = NULL;
         }
@@ -427,8 +427,8 @@ VOID ApplyToolbarSettings(
         if (TextboxHandle)
         {
             // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
-            Edit_SetSel(TextboxHandle, 0, -1);    
-            SetWindowText(TextboxHandle, L"");  
+            Edit_SetSel(TextboxHandle, 0, -1);
+            SetWindowText(TextboxHandle, L"");
 
             DestroyWindow(TextboxHandle);
             TextboxHandle = NULL;
@@ -515,16 +515,16 @@ static LRESULT CALLBACK MainWndSubclassProc(
     switch (uMsg)
     {
     case WM_COMMAND:
-        {            
+        {
             switch (HIWORD(wParam))
             {
             case EN_CHANGE:
-                {            
+                {
                     // Expand the nodes so we can search them
                     PhExpandAllProcessNodes(TRUE);
                     PhDeselectAllProcessNodes();
                     PhDeselectAllServiceNodes();
-                   
+
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
@@ -549,7 +549,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case ID_SEARCH:
                 {
-                    // handle keybind Ctrl + K 
+                    // handle keybind Ctrl + K
                     if (EnableToolBar)
                     {
                         SetFocus(TextboxHandle);
@@ -829,9 +829,9 @@ static VOID NTAPI MainWindowShowingCallback(
 {
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
     PhRegisterCallback(
-        ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle), 
-        LayoutPaddingCallback, 
-        NULL, 
+        ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle),
+        LayoutPaddingCallback,
+        NULL,
         &LayoutPaddingCallbackRegistration
         );
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
@@ -845,11 +845,11 @@ static VOID NTAPI LoadCallback(
     )
 {
     EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
-    EnableSearch = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch"); 
-    EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"); 
+    EnableSearch = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch");
+    EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar");
 
     StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
-    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"); 
+    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -927,7 +927,7 @@ LOGICAL DllMain(
                 NULL,
                 &TabPageCallbackRegistration
                 );
-            
+
             PhAddSettings(settings, _countof(settings));
 
             AcceleratorTable = LoadAccelerators(

@@ -73,7 +73,7 @@ BOOLEAN ProcessTreeFilterCallback(
                     break;
                 case TokenElevationTypeFull:
                     PhInitializeStringRef(&elevationTypeStringRef, L"Full");
-                    break;           
+                    break;
                 default:
                 case TokenElevationTypeDefault:
                     PhInitializeStringRef(&elevationTypeStringRef, L"N/A");
@@ -84,7 +84,7 @@ BOOLEAN ProcessTreeFilterCallback(
                     showItem = TRUE;
             }
 
-            {  
+            {
                 PH_STRINGREF verifyResultStringRef;
 
                 switch (processNode->ProcessItem->VerifyResult)
@@ -109,7 +109,7 @@ BOOLEAN ProcessTreeFilterCallback(
                     break;
                 case VrBadSignature:
                     PhInitializeStringRef(&verifyResultStringRef, L"BadSignature");
-                    break;  
+                    break;
                 default:
                 case VrUnknown:
                     PhInitializeStringRef(&verifyResultStringRef, L"Unknown");
@@ -181,12 +181,12 @@ BOOLEAN ProcessTreeFilterCallback(
             {
                 PH_STRINGREF stringRef;
 
-                PhInitializeStringRef(&stringRef, processNode->ProcessItem->IntegrityString);    
+                PhInitializeStringRef(&stringRef, processNode->ProcessItem->IntegrityString);
 
                 if (WordMatch(&stringRef, &textboxText->sr))
                     showItem = TRUE;
             }
-     
+
             if (processNode->ProcessItem->JobName)
             {
                 if (WordMatch(&processNode->ProcessItem->JobName->sr, &textboxText->sr))
@@ -208,7 +208,7 @@ BOOLEAN ProcessTreeFilterCallback(
                 if (WordMatch(&pidStringRef, &textboxText->sr))
                     showItem = TRUE;
             }
-  
+
             if (processNode->ProcessItem->ParentProcessIdString)
             {
                 PH_STRINGREF stringRef;
@@ -218,12 +218,12 @@ BOOLEAN ProcessTreeFilterCallback(
                 if (WordMatch(&stringRef, &textboxText->sr))
                     showItem = TRUE;
             }
-         
+
             if (processNode->ProcessItem->SessionIdString)
             {
                 PH_STRINGREF stringRef;
 
-                PhInitializeStringRef(&stringRef, processNode->ProcessItem->SessionIdString);    
+                PhInitializeStringRef(&stringRef, processNode->ProcessItem->SessionIdString);
 
                 if (WordMatch(&stringRef, &textboxText->sr))
                     showItem = TRUE;
@@ -234,7 +234,7 @@ BOOLEAN ProcessTreeFilterCallback(
                 if (WordMatch(&processNode->ProcessItem->PackageFullName->sr, &textboxText->sr))
                     showItem = TRUE;
             }
-       
+
             if (WSTR_IEQUAL(textboxText->Buffer, L"UpdateIsDotNet"))
             {
                 showItem = processNode->ProcessItem->UpdateIsDotNet == TRUE;
@@ -244,22 +244,22 @@ BOOLEAN ProcessTreeFilterCallback(
             {
                 showItem = processNode->ProcessItem->IsBeingDebugged == TRUE;
             }
- 
+
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsDotNet"))
             {
                 showItem = processNode->ProcessItem->IsDotNet == TRUE;
             }
-       
+
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsElevated"))
             {
                 showItem = processNode->ProcessItem->IsElevated == TRUE;
             }
-          
+
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsInJob"))
             {
                 showItem = processNode->ProcessItem->IsInJob == TRUE;
             }
- 
+
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsInSignificantJob"))
             {
                 showItem = processNode->ProcessItem->IsInSignificantJob == TRUE;
@@ -274,7 +274,7 @@ BOOLEAN ProcessTreeFilterCallback(
             {
                 showItem = processNode->ProcessItem->IsPosix == TRUE;
             }
-        
+
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsSuspended"))
             {
                 showItem = processNode->ProcessItem->IsSuspended == TRUE;
@@ -284,7 +284,7 @@ BOOLEAN ProcessTreeFilterCallback(
             {
                 showItem = processNode->ProcessItem->IsWow64 == TRUE;
             }
-    
+
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsImmersive"))
             {
                 showItem = processNode->ProcessItem->IsImmersive == TRUE;
@@ -311,7 +311,7 @@ BOOLEAN ServiceTreeFilterCallback(
     )
 {
     HWND textboxHandle = (HWND)Context;
-    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node; 
+    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
     PPH_STRING textboxText = PhGetWindowText(textboxHandle);
 
     if (textboxText)
@@ -398,7 +398,7 @@ BOOLEAN NetworkTreeFilterCallback(
             {
                 showItem = TRUE;
             }
-      
+
             if (networkNode->NetworkItem->ProcessName)
             {
                 if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr))
@@ -406,7 +406,7 @@ BOOLEAN NetworkTreeFilterCallback(
                     showItem = TRUE;
                 }
             }
-                        
+
             if (networkNode->NetworkItem->OwnerName)
             {
                 if (WordMatch(&networkNode->NetworkItem->OwnerName->sr, &textboxText->sr))
@@ -436,7 +436,7 @@ BOOLEAN NetworkTreeFilterCallback(
                 if (WordMatch(&localPortRef, &textboxText->sr))
                     showItem = TRUE;
             }
-                       
+
             if (networkNode->NetworkItem->LocalHostString)
             {
                 if (WordMatch(&networkNode->NetworkItem->LocalHostString->sr, &textboxText->sr))
@@ -452,7 +452,7 @@ BOOLEAN NetworkTreeFilterCallback(
                 if (WordMatch(&remoteAddressRef, &textboxText->sr))
                     showItem = TRUE;
             }
-                        
+
             if (networkNode->NetworkItem->RemotePortString)
             {
                 PH_STRINGREF remotePortRef;

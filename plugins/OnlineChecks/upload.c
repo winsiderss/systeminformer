@@ -39,7 +39,7 @@ static NTSTATUS PhUploadToDialogThreadStart(
 {
     BOOL result;
     MSG message;
-    PH_AUTO_POOL autoPool;    
+    PH_AUTO_POOL autoPool;
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
     PhInitializeAutoPool(&autoPool);
@@ -51,7 +51,7 @@ static NTSTATUS PhUploadToDialogThreadStart(
         UploadDlgProc,
         (LPARAM)Parameter
         );
-            
+
     ShowWindow(context->DialogHandle, SW_SHOW);
     SetForegroundWindow(context->DialogHandle);
 
@@ -147,7 +147,7 @@ static BOOL ReadRequestString(
 
     // Ensure that the buffer is null-terminated.
     data[dataLength] = 0;
-    
+
     *DataLength = dataLength;
     *Data = data;
 
@@ -389,9 +389,9 @@ static NTSTATUS HashFileAndResetPosition(
 static NTSTATUS UploadWorkerThreadStart(
     __in PUPLOAD_CONTEXT context
     )
-{ 
+{
     time_t timeStart = 0;
-    time_t timeTransferred = 0;  
+    time_t timeTransferred = 0;
     ULONG totalFileLength = 0;
     ULONG totalPostHeaderWritten = 0;
     ULONG totalPostFooterWritten = 0;
@@ -528,7 +528,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 {
                     // No upload needed; show the results immediately.
                     context->LaunchCommand = PhFormatString(L"http://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
-                    
+
                     PhDereferenceObject(hashString);
                     PhDereferenceObject(subObjectName);
 
@@ -568,7 +568,7 @@ static NTSTATUS UploadWorkerThreadStart(
         case UPLOAD_SERVICE_JOTTI:
             {
                 PPH_STRING hashString = NULL;
-                PPH_STRING subObjectName = NULL;                     
+                PPH_STRING subObjectName = NULL;
                 PSTR uploadId = NULL;
                 PSTR quote = NULL;
                 ULONG bufferLength = 0;
@@ -620,7 +620,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 objectName = PhCreateString(serviceInfo->UploadObjectName);
             }
             break;
-        case UPLOAD_SERVICE_CIMA: 
+        case UPLOAD_SERVICE_CIMA:
             objectName = PhCreateString(serviceInfo->UploadObjectName);
             break;
         default:
@@ -659,7 +659,7 @@ static NTSTATUS UploadWorkerThreadStart(
         //ULONG timeout = 5 * 60 * 1000; // 5 minutes
         //WinHttpSetTimeouts(requestHandle, timeout, timeout, timeout, timeout);
 
-        // Create and POST data.   
+        // Create and POST data.
         PhInitializeStringBuilder(&httpRequestHeaders, MAX_PATH);
         PhInitializeStringBuilder(&httpPostHeader, MAX_PATH);
         PhInitializeStringBuilder(&httpPostFooter, MAX_PATH);
@@ -787,8 +787,8 @@ static NTSTATUS UploadWorkerThreadStart(
                     PPH_STRING TotalSpeed = PhFormatSize(bps, -1);
 
                     PPH_STRING dlLengthString = PhFormatString(
-                        L"%s of %s @ %s/s", 
-                        TotalDownloadedLength->Buffer, 
+                        L"%s of %s @ %s/s",
+                        TotalDownloadedLength->Buffer,
                         TotalLength->Buffer,
                         TotalSpeed->Buffer
                         );
@@ -860,7 +860,7 @@ static NTSTATUS UploadWorkerThreadStart(
                             // Use WinHttpQueryOption again, this time to retrieve the URL in the new buffer
                             if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer, &bufferLength))
                             {
-                                if (buffer)// && ((PWSTR)buffer)[0]) 
+                                if (buffer)// && ((PWSTR)buffer)[0])
                                 {
                                     // Display the retrieved URL...
                                     context->LaunchCommand = PhFormatString(L"%s", (PWSTR)buffer);
@@ -940,7 +940,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     }
                     break;
                 case UPLOAD_SERVICE_CIMA:
-                    {               
+                    {
                         PSTR urlEquals = NULL;
                         PSTR quote = NULL;
                         PSTR buffer = NULL;
@@ -990,10 +990,10 @@ static NTSTATUS UploadWorkerThreadStart(
                 RaiseUploadError(context, L"Unable to complete the request", 0);
                 __leave;
             }
-        }    
+        }
     }
     __finally
-    {      
+    {
         if (requestHandle)
         {
             WinHttpCloseHandle(requestHandle);
@@ -1003,13 +1003,13 @@ static NTSTATUS UploadWorkerThreadStart(
         {
             WinHttpCloseHandle(connectHandle);
         }
-               
+
         if (httpPostFooter.String)
         {
             PhDeleteStringBuilder(&httpPostFooter);
         }
 
-        if (httpPostHeader.String) 
+        if (httpPostHeader.String)
         {
             PhDeleteStringBuilder(&httpPostHeader);
         }
@@ -1055,8 +1055,8 @@ INT_PTR CALLBACK UploadDlgProc(
     __in LPARAM lParam
     )
 {
-    PUPLOAD_CONTEXT context = NULL;    
-    
+    PUPLOAD_CONTEXT context = NULL;
+
     if (uMsg == WM_INITDIALOG)
     {
         context = (PUPLOAD_CONTEXT)lParam;
@@ -1086,13 +1086,13 @@ INT_PTR CALLBACK UploadDlgProc(
             }
 
             if (!PhIsNullOrEmptyString(context->LaunchCommand))
-            {      
+            {
                 PhDereferenceObject(context->LaunchCommand);
                 context->LaunchCommand = NULL;
             }
 
             if (!PhIsNullOrEmptyString(context->ErrorMessage))
-            {      
+            {
                 PhDereferenceObject(context->ErrorMessage);
                 context->ErrorMessage = NULL;
             }
@@ -1111,13 +1111,13 @@ INT_PTR CALLBACK UploadDlgProc(
             HWND parentWindow = GetParent(hwndDlg);
 
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
-            
+
             context = (PUPLOAD_CONTEXT)lParam;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS1);
             context->MessageHandle = GetDlgItem(hwndDlg, IDC_MESSAGE);
             context->MessageFont = InitializeFont(context->MessageHandle);
-            
+
             switch (context->Service)
             {
             case UPLOAD_SERVICE_VIRUSTOTAL:
@@ -1126,12 +1126,12 @@ INT_PTR CALLBACK UploadDlgProc(
             case UPLOAD_SERVICE_JOTTI:
                 SetWindowText(hwndDlg, L"Uploading to Jotti...");
                 break;
-            case UPLOAD_SERVICE_CIMA: 
+            case UPLOAD_SERVICE_CIMA:
                 SetWindowText(hwndDlg, L"Uploading to Comodo...");
                 break;
             }
 
-            PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)UploadWorkerThreadStart, context);     
+            PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)UploadWorkerThreadStart, context);
         }
         break;
     case WM_COMMAND:

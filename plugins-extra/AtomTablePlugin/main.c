@@ -82,7 +82,7 @@ LOGICAL DllMain(
                 MenuItemCallback,
                 NULL,
                 &PluginMenuItemCallbackRegistration
-                );        
+                );
 
             {
                 static PH_SETTING_CREATE settings[] =
@@ -211,30 +211,30 @@ static VOID LoadAtomTable(
         if ((atomInfo->Flags & RTL_ATOM_PINNED) == RTL_ATOM_PINNED)
         {
             INT index = PhAddListViewItem(
-                ListViewWndHandle, 
-                MAXINT, 
-                PhaFormatString(L"#%u (Pinned)", atomInfo->Name)->Buffer, 
+                ListViewWndHandle,
+                MAXINT,
+                PhaFormatString(L"#%u (Pinned)", atomInfo->Name)->Buffer,
                 NULL
                 );
             PhSetListViewSubItem(
-                ListViewWndHandle, 
-                index, 
-                1, 
+                ListViewWndHandle,
+                index,
+                1,
                 PhaFormatString(L"%u", atomInfo->UsageCount)->Buffer
                 );
         }
         else
         {
             INT index = PhAddListViewItem(
-                ListViewWndHandle, 
-                MAXINT, 
-                atomInfo->Name, 
+                ListViewWndHandle,
+                MAXINT,
+                atomInfo->Name,
                 NULL
-                );    
+                );
             PhSetListViewSubItem(
-                ListViewWndHandle, 
-                index, 
-                1, 
+                ListViewWndHandle,
+                index,
+                1,
                 PhaFormatString(L"%u", atomInfo->UsageCount)->Buffer
                 );
         }
@@ -388,13 +388,13 @@ INT_PTR CALLBACK MainWindowDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, PhMainWndHandle);   
-            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_ATOMLIST);  
-            
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_ATOMLIST);
+
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-               
+
             PhRegisterDialog(hwndDlg);
             PhLoadWindowPlacementFromSetting(L"AtomTableWindowPosition", L"AtomTableWindowSize", hwndDlg);
 
@@ -407,11 +407,11 @@ INT_PTR CALLBACK MainWindowDlgProc(
 
             LoadAtomTable();
         }
-        break;    
+        break;
     case WM_SIZE:
         PhLayoutManagerLayout(&LayoutManager);
         break;
-    case WM_DESTROY: 
+    case WM_DESTROY:
         PhSaveWindowPlacementToSetting(L"AtomTableWindowPosition", L"AtomTableWindowSize", hwndDlg);
         PhSaveListViewColumnsToSetting(L"AtomTableListViewColumns", ListViewWndHandle);
         PhDeleteLayoutManager(&LayoutManager);
@@ -427,7 +427,7 @@ INT_PTR CALLBACK MainWindowDlgProc(
                 break;
             }
         }
-        break;    
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR hdr = (LPNMHDR)lParam;
