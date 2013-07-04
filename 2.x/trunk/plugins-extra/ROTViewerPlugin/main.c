@@ -188,15 +188,15 @@ INT_PTR CALLBACK RotViewDlgProc(
             PhSetControlTheme(ListViewWndHandle, L"explorer");
             PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 420, L"Display Name");
             PhSetExtendedListView(ListViewWndHandle);
-         
+
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ROTREFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-                       
+
             EnumRunningObjectTable(ListViewWndHandle);
         }
-        break;    
+        break;
     case WM_SIZE:
         PhLayoutManagerLayout(&LayoutManager);
         break;

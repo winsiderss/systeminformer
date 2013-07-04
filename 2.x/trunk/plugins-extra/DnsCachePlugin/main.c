@@ -31,7 +31,7 @@
 #include <windns.h>
 #include <Winsock2.h>
 
-typedef struct _DNS_CACHE_ENTRY 
+typedef struct _DNS_CACHE_ENTRY
 {
     struct _DNS_CACHE_ENTRY* Next;  // Pointer to next entry
     LPCWSTR Name;                   // DNS Record Name
@@ -48,7 +48,7 @@ typedef BOOL (WINAPI* _DnsFlushResolverCache)(
     );
 typedef BOOL (WINAPI* _DnsFlushResolverCacheEntry)(
     __in LPCWSTR Name
-    ); 
+    );
 typedef DNS_STATUS (WINAPI* _DnsQuery_W)(
     __in LPCWSTR Name,
     __in WORD Type,
@@ -125,7 +125,7 @@ LOGICAL DllMain(
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
-      
+
             {
                 static PH_SETTING_CREATE settings[] =
                 {
@@ -188,16 +188,16 @@ static VOID EnumDnsCacheTable(
         if (!DnsGetCacheDataTable_I(&dnsCacheRecordPtr))
             __leave;
 
-        while (dnsCacheRecordPtr) 
-        {  
+        while (dnsCacheRecordPtr)
+        {
             PDNS_RECORD dnsQueryResultPtr = NULL;
 
             DNS_STATUS dnsStatus = DnsQuery_I(
-                dnsCacheRecordPtr->Name, 
-                dnsCacheRecordPtr->Type, 
+                dnsCacheRecordPtr->Name,
+                dnsCacheRecordPtr->Type,
                 DNS_QUERY_NO_WIRE_QUERY | 32768, // Undocumented flags
                 NULL,
-                &dnsQueryResultPtr, 
+                &dnsQueryResultPtr,
                 NULL
                 );
 
@@ -205,7 +205,7 @@ static VOID EnumDnsCacheTable(
             {
                 ULONG dnsRecordCount = 0;
                 PDNS_RECORD dnsRecordPtr = dnsQueryResultPtr;
-                
+
                 while (dnsRecordPtr)
                 {
                     INT itemIndex = 0;
@@ -221,15 +221,15 @@ static VOID EnumDnsCacheTable(
                     // Add the item to the listview (it might be nameless)...
                     if (dnsRecordCount)
                     {
-                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT, 
-                            PhaFormatString(L"%s [%d]", dnsCacheRecordPtr->Name, dnsRecordCount)->Buffer, 
+                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT,
+                            PhaFormatString(L"%s [%d]", dnsCacheRecordPtr->Name, dnsRecordCount)->Buffer,
                             NULL
                             );
                     }
                     else
                     {
-                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT, 
-                            PhaFormatString(L"%s", dnsCacheRecordPtr->Name)->Buffer, 
+                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT,
+                            PhaFormatString(L"%s", dnsCacheRecordPtr->Name)->Buffer,
                             NULL
                             );
                     }
@@ -373,15 +373,15 @@ INT_PTR CALLBACK DnsCacheDlgProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        {   
-            PhCenterWindow(hwndDlg, PhMainWndHandle);   
-            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_LIST1);  
-            
+        {
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_LIST1);
+
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNSCLEAR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-               
+
             PhRegisterDialog(hwndDlg);
             PhLoadWindowPlacementFromSetting(L"DnsCacheWindowPosition", L"DnsCacheWindowSize", hwndDlg);
 
@@ -418,7 +418,7 @@ INT_PTR CALLBACK DnsCacheDlgProc(
             PhSaveListViewColumnsToSetting(L"DnsCacheListViewColumns", ListViewWndHandle);
             PhDeleteLayoutManager(&LayoutManager);
         }
-        break;   
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
@@ -452,7 +452,7 @@ INT_PTR CALLBACK DnsCacheDlgProc(
                 break;
             }
         }
-        break;    
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR hdr = (LPNMHDR)lParam;

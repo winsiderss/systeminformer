@@ -89,7 +89,7 @@ BOOLEAN NetworkTreeFilterCallback(
     );
 
 HBITMAP LoadImageFromResources(
-    __in LPCTSTR lpName, 
+    __in LPCTSTR lpName,
     __in LPCTSTR lpType
     );
 
@@ -142,7 +142,7 @@ typedef struct _NC_CONTEXT
 
     INT cxLeftEdge; // size of the current window borders.
     INT cxRightEdge;  // size of the current window borders.
-    INT cyTopEdge; 
+    INT cyTopEdge;
     INT cyBottomEdge;
 
     SIZE ImgSize;
@@ -150,8 +150,8 @@ typedef struct _NC_CONTEXT
     BOOL IsThemeActive;
     BOOL IsThemeBackgroundActive;
     HTHEME UxThemeHandle;
-    HMODULE UxThemeModule;    
-    COLORREF clrUxThemeFillRef; 
+    HMODULE UxThemeModule;
+    COLORREF clrUxThemeFillRef;
     COLORREF clrUxThemeBackgroundRef;
 
     HIMAGELIST ImageList;

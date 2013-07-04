@@ -150,7 +150,7 @@ PPH_STRING PhGetOpaqueXmlNodeText(
     {
         return PhCreateStringFromAnsi(xmlNode->child->value.opaque);
     }
-    
+
     return PhReferenceEmptyString();
 }
 
@@ -212,7 +212,7 @@ NOT_SUPPORTED_OS:
             }
         }
 
-        return isSuccess; 
+        return isSuccess;
     }
     else
     {
