@@ -126,7 +126,7 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
-                    { IntegerSettingType, SETTING_NAME_ENABLE_SERVICES_MENU, L"0" }
+                    { IntegerSettingType, SETTING_NAME_ENABLE_SERVICES_MENU, L"1" }
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
