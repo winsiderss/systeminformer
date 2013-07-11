@@ -3814,17 +3814,22 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         fullDllNameOriginal = Entry->FullDllName.Buffer;
         fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + 2);
+        Entry->FullDllName.Buffer = fullDllNameBuffer;
 
         if (NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
-            Entry->FullDllName.Buffer,
+            fullDllNameOriginal,
             fullDllNameBuffer,
             Entry->FullDllName.Length,
             NULL
             )))
         {
             fullDllNameBuffer[Entry->FullDllName.Length / 2] = 0;
-            Entry->FullDllName.Buffer = fullDllNameBuffer;
+        }
+        else
+        {
+            fullDllNameBuffer[0] = 0;
+            Entry->FullDllName.Length = 0;
         }
 
         baseDllNameOriginal = Entry->BaseDllName.Buffer;
@@ -3847,17 +3852,22 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             // Read the base DLL name string and add a null terminator.
 
             baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + 2);
+            Entry->BaseDllName.Buffer = baseDllNameBuffer;
 
             if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
-                Entry->BaseDllName.Buffer,
+                baseDllNameOriginal,
                 baseDllNameBuffer,
                 Entry->BaseDllName.Length,
                 NULL
                 )))
             {
                 baseDllNameBuffer[Entry->BaseDllName.Length / 2] = 0;
-                Entry->BaseDllName.Buffer = baseDllNameBuffer;
+            }
+            else
+            {
+                baseDllNameBuffer[0] = 0;
+                Entry->BaseDllName.Length = 0;
             }
         }
     }
@@ -4170,8 +4180,14 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
             )))
         {
             baseDllNameBuffer[nativeEntry.BaseDllName.Length / 2] = 0;
-            nativeEntry.BaseDllName.Buffer = baseDllNameBuffer;
         }
+        else
+        {
+            baseDllNameBuffer[0] = 0;
+            nativeEntry.BaseDllName.Length = 0;
+        }
+
+        nativeEntry.BaseDllName.Buffer = baseDllNameBuffer;
 
         // Read the full DLL name string and add a null terminator.
 
@@ -4186,7 +4202,6 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
             )))
         {
             fullDllNameBuffer[nativeEntry.FullDllName.Length / 2] = 0;
-            nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
 
             if (!(parameters->Flags & PH_ENUM_PROCESS_MODULES_DONT_RESOLVE_WOW64_FS))
             {
@@ -4216,6 +4231,13 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
                 }
             }
         }
+        else
+        {
+            fullDllNameBuffer[0] = 0;
+            nativeEntry.FullDllName.Length = 0;
+        }
+
+        nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
     }
 
     // Execute the callback.
