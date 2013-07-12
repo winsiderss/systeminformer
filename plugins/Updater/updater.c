@@ -509,7 +509,7 @@ static NTSTATUS UpdateCheckSilentThread(
     __finally
     {
         // Check the dialog doesn't own the window context...
-        if (!context->HaveData)
+        if (context && !context->HaveData)
             FreeUpdateContext(context);
     }
 
