@@ -151,6 +151,7 @@ int growl_tcp_parse_hostname( const char *const server , int default_port , stru
 
 int growl_tcp_datagram( const char *server , const unsigned char *data , const int data_length )
 {
+    int result;
     struct sockaddr_in serv_addr;
     SOCKET sock = 0;
 
@@ -167,10 +168,13 @@ int growl_tcp_datagram( const char *server , const unsigned char *data , const i
     
     if( sendto(sock, (char*)data , data_length , 0 , (struct sockaddr*)&serv_addr , sizeof(serv_addr) ) > 0 )
     {
-        return 0;
+        result = 0;
     }
     else
     {
-        return 1;
+        result = 1;
     }
+
+    closesocket(sock);
+    return result;
 }
