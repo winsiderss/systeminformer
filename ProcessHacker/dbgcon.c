@@ -1403,30 +1403,10 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             if (filterString)
             {
-                SIZE_T length;
-
                 PhInitializeStringRef(&filterRef, filterString);
 
-                // Never interpret the filter string as a process ID if it isn't
-                // base 10, to reduce FPs (since PhStringToInteger64 never actually fails
-                // regardless of what characters are in the input).
-
-                length = filterRef.Length / 2;
-
-                for (i = 0; i < length; i++)
-                {
-                    if (!PhIsDigitCharacter(filterRef.Buffer[i]))
-                        break;
-                }
-
-                if (i == filterRef.Length / 2)
-                {
-                    if (PhStringToInteger64(&filterRef, 10, &filter64))
-                        processIdFilter = (LONG_PTR)filter64;
-                }
-
-                // Always try to interpret the filter string as an address or image name,
-                // because these have very few false positives.
+                if (PhStringToInteger64(&filterRef, 10, &filter64))
+                    processIdFilter = (LONG_PTR)filter64;
                 if (PhStringToInteger64(&filterRef, 16, &filter64))
                     processAddressFilter = (ULONG_PTR)filter64;
 
