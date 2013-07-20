@@ -4409,30 +4409,32 @@ PPH_STRING PhBufferToHexString(
 BOOLEAN PhpStringToInteger64(
     __in PPH_STRINGREF String,
     __in ULONG Base,
-    __out PLONG64 Integer
+    __out PULONG64 Integer
     )
 {
-    LONG64 result;
-    ULONG64 place;
+    BOOLEAN valid = TRUE;
+    ULONG64 result;
     SIZE_T length;
     SIZE_T i;
 
     length = String->Length / sizeof(WCHAR);
     result = 0;
-    place = 1;
 
     for (i = 0; i < length; i++)
     {
-        WCHAR c;
+        ULONG value;
 
-        c = String->Buffer[length - i - 1];
-        result += PhCharToInteger[(UCHAR)c] * place;
-        place *= Base;
+        value = PhCharToInteger[(UCHAR)String->Buffer[i]];
+
+        if (value < Base)
+            result = result * Base + value;
+        else
+            valid = FALSE;
     }
 
     *Integer = result;
 
-    return TRUE;
+    return valid;
 }
 
 /**
@@ -4462,23 +4464,25 @@ BOOLEAN PhpStringToInteger64(
 BOOLEAN PhStringToInteger64(
     __in PPH_STRINGREF String,
     __in_opt ULONG Base,
-    __out PLONG64 Integer
+    __out_opt PLONG64 Integer
     )
 {
-    LONG64 result;
+    BOOLEAN valid;
+    ULONG64 result;
     PH_STRINGREF string;
-    LONG64 sign = 1;
+    BOOLEAN negative;
     ULONG base;
 
     if (Base > 69)
         return FALSE;
 
     string = *String;
+    negative = FALSE;
 
     if (string.Length != 0 && (string.Buffer[0] == '-' || string.Buffer[0] == '+'))
     {
         if (string.Buffer[0] == '-')
-            sign = -1;
+            negative = TRUE;
 
         string.Buffer += 1;
         string.Length -= sizeof(WCHAR);
@@ -4537,12 +4541,12 @@ BOOLEAN PhStringToInteger64(
         }
     }
 
-    if (!PhpStringToInteger64(&string, base, &result))
-        return FALSE;
+    valid = PhpStringToInteger64(&string, base, &result);
 
-    *Integer = sign * result;
+    if (Integer)
+        *Integer = negative ? -(LONG64)result : result;
 
-    return TRUE;
+    return valid;
 }
 
 /**

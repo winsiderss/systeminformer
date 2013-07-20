@@ -2896,7 +2896,7 @@ NTAPI
 PhStringToInteger64(
     __in PPH_STRINGREF String,
     __in_opt ULONG Base,
-    __out PLONG64 Integer
+    __out_opt PLONG64 Integer
     );
 
 PHLIBAPI
