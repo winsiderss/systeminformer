@@ -562,7 +562,7 @@ static NTSTATUS UploadWorkerThreadStart(
                     __leave;
                 }
 
-                objectName = PhCreateStringFromAnsiEx(uploadUrl, (quote - uploadUrl) * sizeof(WCHAR));
+                objectName = PhCreateStringFromAnsiEx(uploadUrl, quote - uploadUrl);
             }
             break;
         case UPLOAD_SERVICE_JOTTI:
