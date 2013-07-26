@@ -39,21 +39,19 @@ static HWND UpdateDialogHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
 static HBITMAP LoadImageFromResources(
-    __in LPCTSTR lpName,
-    __in LPCTSTR lpType
+    __in LPCTSTR Name,
+    __in LPCTSTR Type
     )
 {
-    UINT nFrameCount = 0;
     UINT width = 0;
     UINT height = 0;
-    DWORD dwResourceSize = 0;
-    BITMAPINFO bminfo = { 0 };
-
-    HRSRC resHandleRef = NULL;
+    UINT frameCount = 0;
+    ULONG resLength = 0;
+    HRSRC resHandleSrc = NULL;
     HGLOBAL resHandle = NULL;
-
+    BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
-    PVOID pvImageBits = NULL;
+    BYTE* bitmapBuffer = NULL;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
@@ -67,14 +65,14 @@ static HBITMAP LoadImageFromResources(
 
     __try
     {
-        if ((resHandleRef = FindResource((HINSTANCE)PluginInstance->DllBase, lpName, lpType)) == NULL)
+        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, Type)) == NULL)
             __leave;
-        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleRef)) == NULL)
+        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
             __leave;
         if ((pvSourceResourceData = (WICInProcPointer)LockResource(resHandle)) == NULL)
             __leave;
 
-        dwResourceSize = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleRef);
+        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
 
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
             __leave;
@@ -82,53 +80,71 @@ static HBITMAP LoadImageFromResources(
             __leave;
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
-        if (FAILED(IWICStream_InitializeFromMemory(wicStream, pvSourceResourceData, dwResourceSize)))
+        if (FAILED(IWICStream_InitializeFromMemory(wicStream, pvSourceResourceData, resLength)))
             __leave;
         if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
             __leave;
-        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &nFrameCount)) || nFrameCount != 1)
+        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount != 1)
             __leave;
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
-
         if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap)))
             __leave;
         if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
             __leave;
 
-        bminfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bminfo.bmiHeader.biWidth = 64;
-        bminfo.bmiHeader.biHeight = -((LONG)64);
-        bminfo.bmiHeader.biPlanes = 1;
-        bminfo.bmiHeader.biBitCount = 32;
-        bminfo.bmiHeader.biCompression = BI_RGB;
+        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bitmapInfo.bmiHeader.biWidth = 64;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)64);
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biBitCount = 32;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0)) != NULL)
+        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (void**)&bitmapBuffer, NULL, 0)) != NULL)
         {
             WICRect rect = { 0, 0, 64, 64 };
 
             if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
                 __leave;
-
             if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, 64, 64, WICBitmapInterpolationModeFant)))
                 __leave;
-            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, 64 * 4, 64 * 64 * 4, (BYTE*)pvImageBits)))
+            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, 64 * 4, 64 * 64 * 4, bitmapBuffer)))
                 __leave;
         }
-
-        DeleteObject(bitmapHandle);
-        bitmapHandle = NULL;
     }
     __finally
     {
         ReleaseDC(NULL, hdcScreen);
 
-        IWICBitmapScaler_Release(wicScaler);
-        IWICBitmapSource_Release(wicBitmap);
-        IWICBitmapFrameDecode_Release(wicFrame);
-        IWICStream_Release(wicStream);
-        IWICBitmapDecoder_Release(wicDecoder);
-        IWICImagingFactory_Release(wicFactory);
+        if (wicScaler)
+        {
+            IWICBitmapScaler_Release(wicScaler);
+        }
+
+        if (wicBitmap)
+        {
+            IWICBitmapSource_Release(wicBitmap);
+        }
+
+        if (wicFrame)
+        {
+            IWICBitmapFrameDecode_Release(wicFrame);
+        }
+
+        if (wicStream)
+        {
+            IWICStream_Release(wicStream);
+        }
+
+        if (wicDecoder)
+        {
+            IWICBitmapDecoder_Release(wicDecoder);
+        }
+
+        if (wicFactory)
+        {
+            IWICImagingFactory_Release(wicFactory);
+        }
     }
 
     return bitmapHandle;
