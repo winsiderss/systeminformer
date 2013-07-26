@@ -417,40 +417,40 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 }
 
 HBITMAP LoadImageFromResources(
-    __in LPCTSTR lpName,
-    __in LPCTSTR lpType
+    __in LPCTSTR Name,
+    __in LPCTSTR Type
     )
 {
     UINT width = 0;
     UINT height = 0;
+    UINT frameCount = 0;
     ULONG resLength = 0;
-    HRSRC resHandleRef = NULL;
+    HRSRC resHandleSrc = NULL;
     HGLOBAL resHandle = NULL;
-     
-    UINT bitmapframeCount = 0;
+    BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     BYTE* bitmapBuffer = NULL;
-    BITMAPINFO bminfo = { 0 };
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
     IWICImagingFactory* wicFactory = NULL;
+    IWICBitmapScaler* wicScaler = NULL;
     WICInProcPointer pvSourceResourceData = NULL;
 
     HDC hdcScreen = GetDC(NULL);
 
     __try
     {
-        if ((resHandleRef = FindResource((HINSTANCE)PluginInstance->DllBase, lpName, lpType)) == NULL)
+        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, Type)) == NULL)
             __leave;
-        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleRef)) == NULL)
+        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
             __leave;
         if ((pvSourceResourceData = (WICInProcPointer)LockResource(resHandle)) == NULL)
             __leave;
 
-        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleRef);
+        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
 
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
             __leave;
@@ -462,7 +462,7 @@ HBITMAP LoadImageFromResources(
             __leave;
         if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
             __leave;
-        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &bitmapframeCount)) || bitmapframeCount != 1)
+        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount != 1)
             __leave;
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
@@ -471,14 +471,14 @@ HBITMAP LoadImageFromResources(
         if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
            __leave;
 
-        bminfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bminfo.bmiHeader.biWidth = width;
-        bminfo.bmiHeader.biHeight = -((LONG)height);
-        bminfo.bmiHeader.biPlanes = 1;
-        bminfo.bmiHeader.biBitCount = 32;
-        bminfo.bmiHeader.biCompression = BI_RGB;
+        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bitmapInfo.bmiHeader.biWidth = width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)height);
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biBitCount = 32;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, (void**)&bitmapBuffer, NULL, 0)) != NULL)
+        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (void**)&bitmapBuffer, NULL, 0)) != NULL)
         {
             const UINT cbStride = width * 4;  
             const UINT cbImage = cbStride * height;  
