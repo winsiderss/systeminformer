@@ -1,3 +1,7 @@
+1.4
+ * 2013-07-16: Added upload progress
+ * 2012-07-16: Updated UI
+
 1.3
  * 2012-01-16: Updated VirusTotal uploader and added hash checking
 
