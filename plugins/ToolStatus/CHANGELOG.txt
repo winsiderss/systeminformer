@@ -1,9 +1,11 @@
 1.9
+ * Added PNG images
  * Fixed search box fonts
  * Fixed plugin settings state (disable/enable)
  * Updated Searchbox UI
  * Updated Searchbox commands
  * Updated plugin settings
+ * Removed BMP images
 
 1.8
  * Added search box
