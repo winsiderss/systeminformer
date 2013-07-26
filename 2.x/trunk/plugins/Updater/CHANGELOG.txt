@@ -1,7 +1,14 @@
+1.4
+ * Added PNG images
+ * Fixed offline crash
+ * Improved background update check
+ * Removed BMP images
+
 1.3
  * Added revision checking
  * Fixed invalid xml crash
  * Fixed GDI handle leak
+ * Fixed caching
 
 1.2
  * Improved UI
