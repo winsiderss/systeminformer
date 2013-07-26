@@ -421,24 +421,22 @@ HBITMAP LoadImageFromResources(
     __in LPCTSTR lpType
     )
 {
-    UINT nFrameCount = 0;
     UINT width = 0;
     UINT height = 0;
-    DWORD dwResourceSize = 0;
-    BITMAPINFO bminfo = { 0 };
-
+    ULONG resLength = 0;
     HRSRC resHandleRef = NULL;
     HGLOBAL resHandle = NULL;
-
+     
+    UINT bitmapframeCount = 0;
     HBITMAP bitmapHandle = NULL;
-    PVOID pvImageBits = NULL;
+    BYTE* bitmapBuffer = NULL;
+    BITMAPINFO bminfo = { 0 };
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
     IWICImagingFactory* wicFactory = NULL;
-    IWICBitmapScaler* wicScaler = NULL;
     WICInProcPointer pvSourceResourceData = NULL;
 
     HDC hdcScreen = GetDC(NULL);
@@ -452,7 +450,7 @@ HBITMAP LoadImageFromResources(
         if ((pvSourceResourceData = (WICInProcPointer)LockResource(resHandle)) == NULL)
             __leave;
 
-        dwResourceSize = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleRef);
+        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleRef);
 
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
             __leave;
@@ -460,19 +458,18 @@ HBITMAP LoadImageFromResources(
             __leave;
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
-        if (FAILED(IWICStream_InitializeFromMemory(wicStream, pvSourceResourceData, dwResourceSize)))
+        if (FAILED(IWICStream_InitializeFromMemory(wicStream, pvSourceResourceData, resLength)))
             __leave;
         if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
             __leave;
-        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &nFrameCount)) || nFrameCount != 1)
+        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &bitmapframeCount)) || bitmapframeCount != 1)
             __leave;
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
-
         if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap)))
             __leave;
         if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
-            __leave;
+           __leave;
 
         bminfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         bminfo.bmiHeader.biWidth = width;
@@ -481,32 +478,43 @@ HBITMAP LoadImageFromResources(
         bminfo.bmiHeader.biBitCount = 32;
         bminfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0)) != NULL)
+        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, (void**)&bitmapBuffer, NULL, 0)) != NULL)
         {
-            WICRect rect = { 0, 0, width, height };
+            const UINT cbStride = width * 4;  
+            const UINT cbImage = cbStride * height;  
 
-            if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
-                __leave;
-
-            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, width, height, WICBitmapInterpolationModeFant)))
-                __leave;
-            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, width * 4, width * height * 4, (BYTE*)pvImageBits)))
+            if (FAILED(IWICBitmapSource_CopyPixels(wicBitmap, NULL, cbStride, cbImage, bitmapBuffer)))
                 __leave;
         }
-
-        DeleteObject(bitmapHandle);
-        bitmapHandle = NULL;
     }
     __finally
     {
         ReleaseDC(NULL, hdcScreen);
 
-        IWICBitmapScaler_Release(wicScaler);
-        IWICBitmapSource_Release(wicBitmap);
-        IWICBitmapFrameDecode_Release(wicFrame);
-        IWICStream_Release(wicStream);
-        IWICBitmapDecoder_Release(wicDecoder);
-        IWICImagingFactory_Release(wicFactory);
+        if (wicBitmap)
+        {
+            IWICBitmapSource_Release(wicBitmap);
+        }
+
+        if (wicFrame)
+        {
+            IWICBitmapFrameDecode_Release(wicFrame);
+        }
+        
+        if (wicStream)
+        {
+            IWICStream_Release(wicStream);
+        }
+
+        if (wicDecoder)
+        {
+            IWICBitmapDecoder_Release(wicDecoder);
+        }
+
+        if (wicFactory)
+        {
+            IWICImagingFactory_Release(wicFactory);
+        }
     }
 
     return bitmapHandle;
