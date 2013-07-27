@@ -172,7 +172,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     if (context == NULL)
         return FALSE;
 
-    if (uMsg == WM_DESTROY)
+    if (uMsg == WM_NCDESTROY)
     {
         // Cleanup the subclass data...
 
