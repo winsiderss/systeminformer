@@ -71,7 +71,7 @@ VOID PhSettingsInitialization(
         );
     PhIgnoredSettings = PhCreateList(4);
 
-    PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"0");
+    PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
     PhpAddIntegerSetting(L"CollapseServicesOnStart", L"0");
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
