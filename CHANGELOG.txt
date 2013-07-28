@@ -1,5 +1,9 @@
 Process Hacker
 
+2.32
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.31
  * NEW/IMPROVED:
    * Updated ExtendedServices plugin:
