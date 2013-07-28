@@ -311,7 +311,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     hdc,
                     windowRect.left,
                     windowRect.top,
-                    0
+                    ILD_TRANSPARENT
                     );
             }
             else
@@ -322,7 +322,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     hdc,
                     windowRect.left,
                     windowRect.top + 1,
-                    0
+                    ILD_TRANSPARENT
                     );
             }
 
