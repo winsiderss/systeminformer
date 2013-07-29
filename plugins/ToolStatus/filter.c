@@ -3,7 +3,7 @@
  *   search filter callbacks
  *
  * Copyright (C) 2011-2013 dmex
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -61,73 +61,6 @@ BOOLEAN ProcessTreeFilterCallback(
         if (textboxText->Length > 0)
         {
             BOOLEAN showItem = FALSE;
-
-            if (WINDOWS_HAS_UAC)
-            {
-                PH_STRINGREF elevationTypeStringRef;
-
-                switch (processNode->ProcessItem->ElevationType)
-                {
-                case TokenElevationTypeLimited:
-                    PhInitializeStringRef(&elevationTypeStringRef, L"Limited");
-                    break;
-                case TokenElevationTypeFull:
-                    PhInitializeStringRef(&elevationTypeStringRef, L"Full");
-                    break;
-                default:
-                case TokenElevationTypeDefault:
-                    PhInitializeStringRef(&elevationTypeStringRef, L"N/A");
-                    break;
-                }
-
-                if (WordMatch(&elevationTypeStringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            {
-                PH_STRINGREF verifyResultStringRef;
-
-                switch (processNode->ProcessItem->VerifyResult)
-                {
-                case VrNoSignature:
-                    PhInitializeStringRef(&verifyResultStringRef, L"NoSignature");
-                    break;
-                case VrTrusted:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Trusted");
-                    break;
-                case VrExpired:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Expired");
-                    break;
-                case VrRevoked:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Revoked");
-                    break;
-                case VrDistrust:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Distrust");
-                    break;
-                case VrSecuritySettings:
-                    PhInitializeStringRef(&verifyResultStringRef, L"SecuritySettings");
-                    break;
-                case VrBadSignature:
-                    PhInitializeStringRef(&verifyResultStringRef, L"BadSignature");
-                    break;
-                default:
-                case VrUnknown:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Unknown");
-                    break;
-                }
-
-                if (WordMatch(&verifyResultStringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            {
-                PH_STRINGREF stringRef;
-
-                PhInitializeStringRef(&stringRef, PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass));
-
-                if (WordMatch(&stringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
 
             if (processNode->ProcessItem->ProcessName)
             {
@@ -232,6 +165,73 @@ BOOLEAN ProcessTreeFilterCallback(
             if (processNode->ProcessItem->PackageFullName)
             {
                 if (WordMatch(&processNode->ProcessItem->PackageFullName->sr, &textboxText->sr))
+                    showItem = TRUE;
+            }
+   
+            if (WINDOWS_HAS_UAC)
+            {
+                PH_STRINGREF elevationTypeStringRef;
+
+                switch (processNode->ProcessItem->ElevationType)
+                {
+                case TokenElevationTypeLimited:
+                    PhInitializeStringRef(&elevationTypeStringRef, L"Limited");
+                    break;
+                case TokenElevationTypeFull:
+                    PhInitializeStringRef(&elevationTypeStringRef, L"Full");
+                    break;
+                default:
+                case TokenElevationTypeDefault:
+                    PhInitializeStringRef(&elevationTypeStringRef, L"N/A");
+                    break;
+                }
+
+                if (WordMatch(&elevationTypeStringRef, &textboxText->sr))
+                    showItem = TRUE;
+            }
+
+            {
+                PH_STRINGREF verifyResultStringRef;
+
+                switch (processNode->ProcessItem->VerifyResult)
+                {
+                case VrNoSignature:
+                    PhInitializeStringRef(&verifyResultStringRef, L"NoSignature");
+                    break;
+                case VrTrusted:
+                    PhInitializeStringRef(&verifyResultStringRef, L"Trusted");
+                    break;
+                case VrExpired:
+                    PhInitializeStringRef(&verifyResultStringRef, L"Expired");
+                    break;
+                case VrRevoked:
+                    PhInitializeStringRef(&verifyResultStringRef, L"Revoked");
+                    break;
+                case VrDistrust:
+                    PhInitializeStringRef(&verifyResultStringRef, L"Distrust");
+                    break;
+                case VrSecuritySettings:
+                    PhInitializeStringRef(&verifyResultStringRef, L"SecuritySettings");
+                    break;
+                case VrBadSignature:
+                    PhInitializeStringRef(&verifyResultStringRef, L"BadSignature");
+                    break;
+                default:
+                case VrUnknown:
+                    PhInitializeStringRef(&verifyResultStringRef, L"Unknown");
+                    break;
+                }
+
+                if (WordMatch(&verifyResultStringRef, &textboxText->sr))
+                    showItem = TRUE;
+            }
+
+            {
+                PH_STRINGREF stringRef;
+
+                PhInitializeStringRef(&stringRef, PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass));
+
+                if (WordMatch(&stringRef, &textboxText->sr))
                     showItem = TRUE;
             }
 
