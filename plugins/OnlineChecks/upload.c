@@ -387,7 +387,7 @@ static NTSTATUS HashFileAndResetPosition(
 }
 
 static NTSTATUS UploadWorkerThreadStart(
-    __in PUPLOAD_CONTEXT context
+    __in PVOID Parameter
     )
 {
     time_t timeStart = 0;
@@ -416,8 +416,13 @@ static NTSTATUS UploadWorkerThreadStart(
     PPH_STRING userAgent = NULL;
     PPH_STRING objectName = NULL;
     PPH_STRING postBoundary = NULL;
-    PPH_STRING baseFileName = PhGetBaseName(context->FileName);
-    PPH_STRING windowStatus = PhFormatString(
+    PPH_STRING baseFileName = NULL;
+    PPH_STRING windowStatus = NULL;
+
+    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
+
+    baseFileName = PhGetBaseName(context->FileName);
+    windowStatus = PhFormatString(
         L"Uploading: %s",
         baseFileName->Buffer
         );
@@ -1108,6 +1113,7 @@ INT_PTR CALLBACK UploadDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HANDLE dialogThread = NULL;
             HWND parentWindow = GetParent(hwndDlg);
 
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
@@ -1131,7 +1137,8 @@ INT_PTR CALLBACK UploadDlgProc(
                 break;
             }
 
-            PhQueueItemGlobalWorkQueue((PTHREAD_START_ROUTINE)UploadWorkerThreadStart, context);
+            if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UploadWorkerThreadStart, (PVOID)context))
+                NtClose(dialogThread);
         }
         break;
     case WM_COMMAND:
@@ -1193,11 +1200,13 @@ VOID UploadToOnlineService(
     __in ULONG Service
     )
 {
+    HANDLE dialogThread = NULL;
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)PhAllocate(sizeof(UPLOAD_CONTEXT));
     memset(context, 0, sizeof(UPLOAD_CONTEXT));
 
     context->Service = Service;
     context->FileName = PhFormatString(L"%s", FileName->Buffer);
 
-    PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhUploadToDialogThreadStart, (PVOID)context);
+    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhUploadToDialogThreadStart, (PVOID)context))
+        NtClose(dialogThread);
 }
