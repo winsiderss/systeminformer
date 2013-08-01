@@ -30,9 +30,6 @@
     <ClCompile Include="searchbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="menubar.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -45,9 +42,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="statusbar.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="menubar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
