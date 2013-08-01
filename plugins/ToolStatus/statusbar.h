@@ -27,7 +27,6 @@
 extern HWND StatusBarHandle;
 extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
-extern ULONG StatusBarMaxWidths[STATUS_COUNT];
 
 VOID UpdateStatusBar(
     VOID
