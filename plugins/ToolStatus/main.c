@@ -330,7 +330,7 @@ VOID ApplyToolbarSettings(
                 WS_EX_TOOLWINDOW,
                 REBARCLASSNAME,
                 NULL,
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT | RBS_FIXEDORDER,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT, // | RBS_FIXEDORDER,
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 PhMainWndHandle,
                 (HMENU)IDC_MENU_REBAR,
@@ -340,7 +340,7 @@ VOID ApplyToolbarSettings(
 
             // no imagelist to attach to rebar
             SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
-            //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+            SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
         }
 
         {
@@ -358,6 +358,8 @@ VOID ApplyToolbarSettings(
             //band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
             //band.fStyle = RBBS_GRIPPERALWAYS | RBBS_TOPALIGN | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
             //dwBtnSize = (DWORD)SendMessage(MenuBarHandle, TB_GETBUTTONSIZE, 0,0);
+           
+            SendMessage(MenuBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
             // inset the toolbar into the rebar control
             RebarAddMenuItem(ReBarHandle, MenuBarHandle, 55888, 22, 210);
@@ -382,7 +384,7 @@ VOID ApplyToolbarSettings(
             // Set the extended toolbar styles
             SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
             // Set the window theme
-            //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+            SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
             // Create the toolbar imagelist
             ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
