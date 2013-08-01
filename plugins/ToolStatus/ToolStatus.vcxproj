@@ -159,14 +159,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
-    <ClCompile Include="menubar.c" />
     <ClCompile Include="searchbox.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="filter.c" />
     <ClCompile Include="statusbar.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="menubar.h" />
     <ClInclude Include="searchbox.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="statusbar.h" />
