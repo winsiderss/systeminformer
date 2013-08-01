@@ -27,7 +27,7 @@
 HWND StatusBarHandle;
 ULONG StatusMask;
 ULONG ProcessesUpdatedCount;
-ULONG StatusBarMaxWidths[STATUS_COUNT];
+static ULONG StatusBarMaxWidths[STATUS_COUNT];
 
 VOID ShowStatusMenu(
     __in PPOINT Point

@@ -248,6 +248,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 return FALSE;
 
             //SelectClipRgn(hdc, updateRegion);
+            SetBkMode(hdc, TRANSPARENT);
 
             // Get the screen coordinates of the client window.
             GetClientRect(hwndDlg, &clientRect);
@@ -296,6 +297,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             }
             else
             {
+                // Fill in the text box.
+                SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
                 FillRect(hdc, &windowRect, (HBRUSH)GetStockObject(DC_BRUSH));
             }
 

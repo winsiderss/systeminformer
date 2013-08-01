@@ -49,9 +49,9 @@ static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
 static HWND ReBarHandle = NULL;
 static HWND ToolBarHandle = NULL;
-static HIMAGELIST ToolBarImageList = NULL;
 static HWND TextboxHandle = NULL;
-
+static HFONT TextboxFontHandle = NULL;
+static HIMAGELIST ToolBarImageList = NULL;
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN EnableSearch = FALSE;
@@ -143,6 +143,29 @@ static BOOLEAN NTAPI MessageLoopFilter(
     }
 
     return FALSE;
+}
+
+static HFONT InitializeFont(
+    __in HWND hwndDlg
+    )
+{
+    LOGFONT logFont = { 0 };
+    HFONT fontHandle = NULL;
+
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_MEDIUM;
+    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    
+    // GDI uses the first font that matches the above attributes.
+    fontHandle = CreateFontIndirect(&logFont);
+
+    if (fontHandle)
+    {
+        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
+        return fontHandle;
+    }
+
+    return NULL;
 }
 
 static VOID RebarAddMenuItem(
@@ -383,15 +406,11 @@ VOID ApplyToolbarSettings(
                 );
 
             // Set Searchbox control font
-            SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
+            TextboxFontHandle = InitializeFont(TextboxHandle);
             // Set initial text
-            SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+ K)");
-
-            if (WindowsVersion < WINDOWS_VISTA)
-            {
-                // EM_SETCUEBANNER causes text clipping on XP. Reset the client area margins.
-                SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
-            }
+            SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
+            // Reset the client area margins.
+            SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
 
             // insert a paint region into the edit control NC window area
             InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
@@ -434,6 +453,12 @@ VOID ApplyToolbarSettings(
             TextboxHandle = NULL;
 
             RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_SEARCH);
+        }
+
+        if (TextboxFontHandle)
+        {
+            DeleteObject(TextboxFontHandle);
+            TextboxFontHandle = NULL;
         }
     }
 
