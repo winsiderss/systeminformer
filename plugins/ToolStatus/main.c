@@ -23,6 +23,7 @@
 
 #include "toolstatus.h"
 #include "statusbar.h"
+#include "menubar.h"
 
 #define IDC_MENU_REBAR 55400
 #define IDC_MENU_REBAR_TOOLBAR 55401
@@ -36,6 +37,7 @@ static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainMenuCallbackRegistration;
 
 static PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
 static PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
@@ -48,6 +50,7 @@ static BOOLEAN TargetingWindow = FALSE;
 static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
 static HWND ReBarHandle = NULL;
+static HWND MenuBarHandle = NULL;
 static HWND ToolBarHandle = NULL;
 static HIMAGELIST ToolBarImageList = NULL;
 static HWND TextboxHandle = NULL;
@@ -56,6 +59,51 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN EnableSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
+
+static VOID NTAPI MainMenuUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
+    //POINT cursorPos;
+    //PH_EMENU_DATA data;
+    //HMENU popupMenu;
+    //INT i;
+    //INT btn_state;
+    //TPMPARAMS pmparams = { sizeof(TPMPARAMS) };
+
+    //PhInitializeEMenuData(&data);
+    //popupMenu = PhEMenuToHMenu(menuInfo->Menu, 0, &data);
+
+    //GetCursorPos(&cursorPos);
+    //WindowFromPoint(cursorPos);
+
+    //ScreenToClient(MenuBarHandle, &cursorPos);
+    //i = (INT)SendMessage(MenuBarHandle, TB_HITTEST, 0, (LPARAM)(LPPOINT)&cursorPos);
+
+    //btn_state = (INT)SendMessage(MenuBarHandle, TB_GETSTATE, i, 0);
+    //SendMessage(MenuBarHandle, TB_SETSTATE, i, MAKELONG(btn_state | TBSTATE_PRESSED, 0));
+    //SendMessage(MenuBarHandle, TB_GETITEMRECT, i, (LPARAM)&pmparams.rcExclude);
+    //MapWindowRect(MenuBarHandle, HWND_DESKTOP, &pmparams.rcExclude);
+
+    //GetMenuItemCount(GetMenu(PhMainWndHandle))
+    //PhEMenuToHMenu2(GetMenu(PhMainWndHandle), menuInfo->Menu, 0, NULL);
+    //PhShowEMenu(menuInfo->Menu, PhMainWndHandle, 
+
+    //SetForegroundWindow(MenuBarHandle);
+    //TrackPopupMenu(
+    //    popupMenu,
+    //    TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+    //    pmparams.rcExclude.left,
+    //    pmparams.rcExclude.bottom,
+    //    0,
+    //    MenuBarHandle,
+    //    NULL
+    //    );
+
+    //PhDeleteEMenuData(&data);
+}
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -153,9 +201,9 @@ static VOID RebarAddMenuItem(
     __in UINT cxMinChild
     )
 {
-    REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
+    REBARBANDINFO rebarBandInfo = { sizeof(REBARBANDINFO) };
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
+    //rebarBandInfo.fStyle = RBBS_NOGRIPPER;// | RBBS_FIXEDSIZE;
 
     rebarBandInfo.wID = BandID;
     rebarBandInfo.hwndChild = HwndHandle;
@@ -292,7 +340,27 @@ VOID ApplyToolbarSettings(
 
             // no imagelist to attach to rebar
             SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
-            //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+            //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+        }
+
+        {
+            menubar_init_module();
+            
+            /* Create the menubar control */
+            MenuBarHandle = CreateWindow(L"PH_WC_MENUBAR", L"", WS_CHILD | WS_VISIBLE |
+                WS_CLIPCHILDREN | WS_CLIPSIBLINGS | CCS_NORESIZE | CCS_NOPARENTALIGN,
+                0, 0, 0, 0, ReBarHandle, (HMENU)1001, (HINSTANCE)PluginInstance->DllBase,             
+                NULL
+                );
+
+            /* Embed the menubar in the ReBar */
+            //band.cbSize = sizeof(REBARBANDINFO);
+            //band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
+            //band.fStyle = RBBS_GRIPPERALWAYS | RBBS_TOPALIGN | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
+            //dwBtnSize = (DWORD)SendMessage(MenuBarHandle, TB_GETBUTTONSIZE, 0,0);
+
+            // inset the toolbar into the rebar control
+            RebarAddMenuItem(ReBarHandle, MenuBarHandle, 55888, 22, 210);
         }
 
         if (!ToolBarHandle)
@@ -309,13 +377,12 @@ VOID ApplyToolbarSettings(
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
-
             // Set the toolbar struct size
             SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
             // Set the extended toolbar styles
             SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
             // Set the window theme
-            //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+            //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
             // Create the toolbar imagelist
             ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
@@ -331,11 +398,11 @@ VOID ApplyToolbarSettings(
             ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
             // Configure the toolbar imagelist
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+
             // Add the buttons to the toolbar
             SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
 
-            // inset the toolbar into the rebar control
-            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
+            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 570); // Toolbar width 400
         }
 
         SetRebarMenuLayout();
@@ -578,7 +645,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
                 if (hdr->code == RBN_HEIGHTCHANGE)
                 {
-                    // HACK: Invoke LayoutPaddingCallback and adjust rebar hright for multiple toolbar rows.
+                    // HACK: Invoke LayoutPaddingCallback and adjust rebar height for multiple toolbar rows.
                     PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
                 }
 
@@ -926,6 +993,12 @@ LOGICAL DllMain(
                 TabPageUpdatedCallback,
                 NULL,
                 &TabPageCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
+                MainMenuUpdatedCallback,
+                NULL,
+                &MainMenuCallbackRegistration
                 );
 
             PhAddSettings(settings, _countof(settings));
