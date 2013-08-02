@@ -39,6 +39,8 @@ static HWND UpdateDialogHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
 static HBITMAP LoadImageFromResources(
+    __in UINT Width,
+    __in UINT Height,
     __in LPCTSTR Name,
     __in LPCTSTR Type
     )
@@ -94,21 +96,21 @@ static HBITMAP LoadImageFromResources(
             __leave;
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biWidth = 64;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)64);
+        bitmapInfo.bmiHeader.biWidth = Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
         bitmapInfo.bmiHeader.biPlanes = 1;
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (void**)&bitmapBuffer, NULL, 0)) != NULL)
+        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
         {
-            WICRect rect = { 0, 0, 64, 64 };
+            WICRect rect = { 0, 0, Width, Height };
 
             if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
                 __leave;
-            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, 64, 64, WICBitmapInterpolationModeFant)))
+            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, Width, Height, WICBitmapInterpolationModeFant)))
                 __leave;
-            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, 64 * 4, 64 * 64 * 4, bitmapBuffer)))
+            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
                 __leave;
         }
     }
@@ -736,7 +738,7 @@ static NTSTATUS UpdateDownloadThread(
             PhInitializeHash(&hashContext, Sha1HashAlgorithm);
 
             // Zero the buffer.
-            ZeroMemory(buffer, PAGE_SIZE);
+            memset(buffer, 0, PAGE_SIZE);
 
             // Download the data.
             while (WinHttpReadData(requestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
@@ -905,6 +907,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 );
 
             context->SourceforgeBitmap = LoadImageFromResources(
+                48, 48,
                 MAKEINTRESOURCE(IDB_SF_PNG),
                 L"PNG"
                 );
