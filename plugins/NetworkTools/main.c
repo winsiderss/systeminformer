@@ -20,30 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#define MAIN_PRIVATE
 #include "nettools.h"
-#include "resource.h"
-
-VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI NetworkMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -51,74 +28,17 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkMenuInitializingCallbackRegistration;
 
-LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.NetworkTools", Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->DisplayName = L"Network Tools";
-            info->Author = L"wj32";
-            info->Description = L"Provides ping, traceroute and whois for network connections.";
-            info->HasOptions = FALSE;
-
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackNetworkMenuInitializing),
-                NetworkMenuInitializingCallback,
-                NULL,
-                &NetworkMenuInitializingCallbackRegistration
-                );
-        }
-        break;
-    }
-
-    return TRUE;
-}
-
-VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    // Nothing
-}
-
 VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
 {
-    // Nothing
+    DialogBox(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        (HWND)Parameter,
+        OptionsDlgProc
+        );
 }
 
 VOID NTAPI MenuItemCallback(
@@ -133,20 +53,15 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_TOOLS_PING:
         networkItem = menuItem->Context;
-        PerformNetworkAction(PhMainWndHandle, NETWORK_ACTION_PING, &networkItem->RemoteEndpoint.Address);
+        PerformNetworkAction(NETWORK_ACTION_PING, networkItem);
         break;
     case ID_TOOLS_TRACEROUTE:
         networkItem = menuItem->Context;
-        PerformNetworkAction(PhMainWndHandle, NETWORK_ACTION_TRACEROUTE, &networkItem->RemoteEndpoint.Address);
+        PerformNetworkAction(NETWORK_ACTION_TRACEROUTE, networkItem);
         break;
     case ID_TOOLS_WHOIS:
         networkItem = menuItem->Context;
-        // TODO: Integrate WHOIS with the GUI.
-        PhShellExecute(
-            PhMainWndHandle,
-            PhaConcatStrings2(L"http://wq.apnic.net/apnic-bin/whois.pl?searchtext=", networkItem->RemoteAddressString)->Buffer,
-            NULL
-            );
+        PerformNetworkAction(NETWORK_ACTION_WHOIS, networkItem);
         break;
     }
 }
@@ -184,3 +99,64 @@ VOID NTAPI NetworkMenuInitializingCallback(
         }
     }
 }
+
+LOGICAL DllMain(
+    __in HINSTANCE Instance,
+    __in ULONG Reason,
+    __reserved PVOID Reserved
+    )
+{
+    switch (Reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        {
+            PPH_PLUGIN_INFORMATION info;        
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerPairSettingType, L"ProcessHacker.NetTools.NetToolsWindowPosition", L"0,0" },
+                { IntegerPairSettingType, L"ProcessHacker.NetTools.NetToolsWindowSize", L"600,365" },
+                { IntegerSettingType, L"ProcessHacker.NetTools.MaxPingCount", L"4" },
+                { IntegerSettingType, L"ProcessHacker.NetTools.MaxPingTimeout", L"1000" },
+                { IntegerSettingType, L"ProcessHacker.NetTools.EnableHostnameLookup", L"1" },
+            };
+
+            PluginInstance = PhRegisterPlugin(L"ProcessHacker.NetworkTools", Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->DisplayName = L"Network Tools";
+            info->Author = L"dmex & wj32";
+            info->Description = L"Provides ping, traceroute and whois for network connections.";
+            info->HasOptions = TRUE;
+
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackNetworkMenuInitializing),
+                NetworkMenuInitializingCallback,
+                NULL,
+                &NetworkMenuInitializingCallbackRegistration
+                );
+
+            PhAddSettings(settings, _countof(settings));
+        }
+        break;
+    }
+
+    return TRUE;
+}
+
+
+
