@@ -21,112 +21,91 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
 #include "nettools.h"
-#include "resource.h"
 
-#define NTM_DONE (WM_APP + 1)
-#define NTM_RECEIVED (WM_APP + 2)
+static RECT MinimumSize = { -1, -1, -1, -1 };
 
-typedef struct _NETWORK_OUTPUT_CONTEXT
-{
-    ULONG Action;
-    PH_IP_ADDRESS Address;
-    PH_LAYOUT_MANAGER LayoutManager;
-    HWND WindowHandle;
-    PH_QUEUED_LOCK WindowHandleLock;
-
-    HANDLE ThreadHandle;
-    HANDLE PipeReadHandle;
-    HANDLE ProcessHandle;
-
-    PH_STRING_BUILDER ReceivedString;
-} NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
-
-INT_PTR CALLBACK NetworkOutputDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
-
-VOID PerformNetworkAction(
-    __in HWND hWnd,
-    __in ULONG Action,
-    __in PPH_IP_ADDRESS Address
-    )
-{
-    NETWORK_OUTPUT_CONTEXT context = { 0 };
-    context.Action = Action;
-    context.Address = *Address;
-
-    PhInitializeQueuedLock(&context.WindowHandleLock);
-    PhInitializeStringBuilder(&context.ReceivedString, PAGE_SIZE);
-
-    DialogBoxParam(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OUTPUT),
-        NULL,
-        NetworkOutputDlgProc,
-        (LPARAM)&context
-        );
-
-    if (context.ThreadHandle)
-    {
-        // Wait for our thread to exit since it uses the context structure.
-        NtWaitForSingleObject(context.ThreadHandle, FALSE, NULL);
-        NtClose(context.ThreadHandle);
-    }
-
-    PhDeleteStringBuilder(&context.ReceivedString);
-}
-
-static NTSTATUS NetworkWorkerThreadStart(
+static NTSTATUS PhNetworkOutputDialogThreadStart(
     __in PVOID Parameter
     )
 {
-    NTSTATUS status;
-    PNETWORK_OUTPUT_CONTEXT context = Parameter;
-    IO_STATUS_BLOCK isb;
-    UCHAR buffer[4096];
+    BOOL result;
+    MSG message;
+    PH_AUTO_POOL autoPool;
+    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
 
-    while (TRUE)
+    PhInitializeAutoPool(&autoPool);
+
+    context->WindowHandle = CreateDialogParam(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OUTPUT),
+        PhMainWndHandle,
+        NetworkOutputDlgProc,
+        (LPARAM)Parameter
+        );
+
+    ShowWindow(context->WindowHandle, SW_SHOW);
+    SetForegroundWindow(context->WindowHandle);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
     {
-        status = NtReadFile(
-            context->PipeReadHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
-            buffer,
-            sizeof(buffer),
-            NULL,
-            NULL
-            );
+        if (result == -1)
+            break;
 
-        PhAcquireQueuedLockExclusive(&context->WindowHandleLock);
-
-        if (!context->WindowHandle)
+        if (!IsDialogMessage(context->WindowHandle, &message))
         {
-            PhReleaseQueuedLockExclusive(&context->WindowHandleLock);
-            goto ExitCleanup;
+            TranslateMessage(&message);
+            DispatchMessage(&message);
         }
 
-        if (!NT_SUCCESS(status))
-        {
-            SendMessage(context->WindowHandle, NTM_DONE, 0, 0);
-            PhReleaseQueuedLockExclusive(&context->WindowHandleLock);
-            goto ExitCleanup;
-        }
-
-        SendMessage(context->WindowHandle, NTM_RECEIVED, (WPARAM)isb.Information, (LPARAM)buffer);
-        PhReleaseQueuedLockExclusive(&context->WindowHandleLock);
+        PhDrainAutoPool(&autoPool);
     }
 
-ExitCleanup:
-    NtClose(context->PipeReadHandle);
-
+    PhDeleteAutoPool(&autoPool);
+    DestroyWindow(context->WindowHandle);
+    PhFree(context);
     return STATUS_SUCCESS;
+}
+
+static HFONT InitializeFont(
+    __in HWND hwndDlg
+    )
+{
+    LOGFONT logFont = { 0 };
+    HFONT fontHandle = NULL;
+
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_NORMAL;//FW_MEDIUM;
+    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    
+    // GDI uses the first font that matches the above attributes.
+    fontHandle = CreateFontIndirect(&logFont);
+
+    if (fontHandle)
+    {
+        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
+        return fontHandle;
+    }
+
+    return NULL;
+}
+
+VOID PerformNetworkAction(
+    __in ULONG Action,
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{ 
+    HANDLE dialogThread = INVALID_HANDLE_VALUE;
+    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(
+        sizeof(NETWORK_OUTPUT_CONTEXT)
+        );
+    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+
+    context->Action = Action;
+    context->NetworkItem = NetworkItem;
+     
+    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkOutputDialogThreadStart, (PVOID)context))
+        NtClose(dialogThread);
 }
 
 INT_PTR CALLBACK NetworkOutputDlgProc(
@@ -147,8 +126,25 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
         context = (PNETWORK_OUTPUT_CONTEXT)GetProp(hwndDlg, L"Context");
 
-        if (uMsg == WM_DESTROY)
+        if (uMsg == WM_NCDESTROY)
+        {
+            PhSaveWindowPlacementToSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", L"ProcessHacker.NetTools.NetToolsWindowSize", hwndDlg); 
+
+            if (context->ProcessHandle)
+            {
+                NtClose(context->ProcessHandle);
+                context->ProcessHandle = NULL;
+            }
+
+            if (context->ThreadHandle)
+            {
+                NtClose(context->ThreadHandle);
+                context->ThreadHandle = NULL;
+            }
+         
+            PhDeleteStringBuilder(&context->ReceivedString);
             RemoveProp(hwndDlg, L"Context");
+        }
     }
 
     if (!context)
@@ -158,116 +154,97 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
     case WM_INITDIALOG:
         {
-            WCHAR addressString[65];
-            HANDLE pipeWriteHandle;
+            PH_INTEGER_PAIR rectForAdjust;
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            context->WindowHandle = hwndDlg;
+            PhInitializeQueuedLock(&context->TextBufferLock);
+            PhInitializeStringBuilder(&context->ReceivedString, PAGE_SIZE);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COMBOCMD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+                   
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
 
-            if (context->Address.Type == PH_IPV4_NETWORK_TYPE)
-                RtlIpv4AddressToString(&context->Address.InAddr, addressString);
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 190;
+                rect.bottom = 120;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
+
+            // Implement cascading by saving an offsetted rectangle.
+            {
+                PH_RECTANGLE windowRectangle;
+                windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition");
+                windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize");
+
+                PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
+                MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top, windowRectangle.Width, windowRectangle.Height, FALSE);
+    
+                windowRectangle.Left += 20;
+                windowRectangle.Top += 20;
+
+                PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", windowRectangle.Position);
+                PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize", windowRectangle.Size);
+            }
+
+            rectForAdjust = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition");
+            if (rectForAdjust.X == 0 || rectForAdjust.Y == 0)
+            {
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            }
             else
-                RtlIpv6AddressToString(&context->Address.In6Addr, addressString);
+            {
+                PhLoadWindowPlacementFromSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", L"ProcessHacker.NetTools.NetToolsWindowSize", hwndDlg);
+            }
+
+            if (context->NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+            {
+                RtlIpv4AddressToString(&context->NetworkItem->RemoteEndpoint.Address.InAddr, context->addressString);
+            }
+            else
+            {
+                RtlIpv6AddressToString(&context->NetworkItem->RemoteEndpoint.Address.In6Addr, context->addressString);
+            }
 
             switch (context->Action)
             {
             case NETWORK_ACTION_PING:
-            case NETWORK_ACTION_TRACEROUTE:
-                if (context->Action == NETWORK_ACTION_PING)
                 {
-                    SetWindowText(hwndDlg,
-                        PhaFormatString(L"Pinging %s...", addressString)->Buffer);
+                    HANDLE dialogThread = INVALID_HANDLE_VALUE;
+
+                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
+
+                    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkPingThreadStart, (PVOID)context))
+                        NtClose(dialogThread);
                 }
-                else
-                {
-                    SetWindowText(hwndDlg,
-                        PhaFormatString(L"Tracing route to %s...", addressString)->Buffer);
-                }
-
-                // Doing this properly would be too complex, so we'll just
-                // execute ping.exe/traceroute.exe and display its output.
-
-                if (CreatePipe(&context->PipeReadHandle, &pipeWriteHandle, NULL, 0))
-                {
-                    STARTUPINFO startupInfo = { sizeof(startupInfo) };
-                    PPH_STRING command;
-                    OBJECT_HANDLE_FLAG_INFORMATION flagInfo;
-
-                    startupInfo.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-                    startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-                    startupInfo.hStdOutput = pipeWriteHandle;
-                    startupInfo.hStdError = pipeWriteHandle;
-                    startupInfo.wShowWindow = SW_HIDE;
-
-                    if (context->Action == NETWORK_ACTION_PING)
-                    {
-                        command = PhaFormatString(
-                            L"%s\\system32\\ping.exe %s",
-                            USER_SHARED_DATA->NtSystemRoot,
-                            addressString
-                            );
-                    }
-                    else
-                    {
-                        command = PhaFormatString(
-                            L"%s\\system32\\tracert.exe %s",
-                            USER_SHARED_DATA->NtSystemRoot,
-                            addressString
-                            );
-                    }
-
-                    // Allow the write handle to be inherited.
-
-                    flagInfo.Inherit = TRUE;
-                    flagInfo.ProtectFromClose = FALSE;
-
-                    NtSetInformationObject(
-                        pipeWriteHandle,
-                        ObjectHandleFlagInformation,
-                        &flagInfo,
-                        sizeof(OBJECT_HANDLE_FLAG_INFORMATION)
-                        );
-
-                    PhCreateProcessWin32Ex(
-                        NULL,
-                        command->Buffer,
-                        NULL,
-                        NULL,
-                        &startupInfo,
-                        PH_CREATE_PROCESS_INHERIT_HANDLES,
-                        NULL,
-                        NULL,
-                        &context->ProcessHandle,
-                        NULL
-                        );
-
-                    // Essential; when the process exits, the last instance of the pipe
-                    // will be disconnected and our thread will exit.
-                    NtClose(pipeWriteHandle);
-
-                    // Create a thread which will wait for output and display it.
-                    context->ThreadHandle = PhCreateThread(0, NetworkWorkerThreadStart, context);
-                }
-
                 break;
-            }
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhAcquireQueuedLockExclusive(&context->WindowHandleLock);
-            context->WindowHandle = NULL;
-            PhReleaseQueuedLockExclusive(&context->WindowHandleLock);
+            case NETWORK_ACTION_TRACEROUTE:
+                {
+                    HANDLE dialogThread = INVALID_HANDLE_VALUE;
+                    
+                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
 
-            if (context->ProcessHandle)
-            {
-                NtTerminateProcess(context->ProcessHandle, STATUS_SUCCESS);
-                NtClose(context->ProcessHandle);
+                    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkTracertThreadStart, (PVOID)context))
+                        NtClose(dialogThread);
+                }
+                break;
+            case NETWORK_ACTION_WHOIS:
+                {                
+                    HANDLE dialogThread = INVALID_HANDLE_VALUE;
+
+                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
+
+                    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkWhoisThreadStart, (PVOID)context))
+                        NtClose(dialogThread);
+                }
+                break;
             }
         }
         break;
@@ -275,15 +252,54 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
         {
             switch (LOWORD(wParam))
             {
+            case IDC_NETRETRY:
+                {
+                    HANDLE dialogThread = NULL;
+
+                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
+
+                    if (context->Action == NETWORK_ACTION_PING)
+                    {
+                        if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkPingThreadStart, (PVOID)context))
+                            NtClose(dialogThread);
+                    }
+                }
+                break;
             case IDCANCEL:
             case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                PostQuitMessage(0);
                 break;
             }
         }
         break;
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
+        break;   
+    case WM_SIZING:
+        PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
+        break;
+    case WM_CTLCOLORDLG: 
+    case WM_CTLCOLORSTATIC:    
+        {
+            HDC hDC = (HDC)wParam;
+            HWND hwndChild = (HWND)lParam;
+            DWORD controlID = GetDlgCtrlID(hwndChild);
+            
+            // Set a transparent background for the control backcolor.
+            SetBkMode(hDC, TRANSPARENT);
+
+            // Check for our static label and change the color.
+            //if (controlID == IDC_MESSAGE)
+            //{
+            //    SetTextColor(hDC, RGB(19, 112, 171));
+            //}
+            if (controlID == IDC_NETOUTPUTEDIT)
+            {
+                // Set a Vista style text color.
+                SetTextColor(hDC, RGB(124, 252, 0));
+                return (INT_PTR)GetStockBrush(BLACK_BRUSH);
+            }
+        }
         break;
     case NTM_DONE:
         {
@@ -291,12 +307,11 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
             if (windowText)
             {
-                SetWindowText(hwndDlg, PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
-
+                Static_SetText(hwndDlg, PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
                 PhDereferenceObject(windowText);
             }
         }
-        break;
+        return TRUE;
     case NTM_RECEIVED:
         {
             OEM_STRING inputString;
@@ -321,15 +336,37 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                         PhRemoveStringBuilder(&context->ReceivedString, 0, 2);
                     }
 
-                    SetDlgItemText(hwndDlg, IDC_TEXT, context->ReceivedString.String->Buffer);
+                    SetDlgItemText(hwndDlg, IDC_NETOUTPUTEDIT, context->ReceivedString.String->Buffer);
                     SendMessage(
-                        GetDlgItem(hwndDlg, IDC_TEXT),
+                        GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT),
                         EM_SETSEL,
                         context->ReceivedString.String->Length / 2 - 1,
                         context->ReceivedString.String->Length / 2 - 1
                         );
-                    SendMessage(GetDlgItem(hwndDlg, IDC_TEXT), WM_VSCROLL, SB_BOTTOM, 0);
+                    SendMessage(GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), WM_VSCROLL, SB_BOTTOM, 0);
+                    return TRUE;
                 }
+            }
+        }
+        break;
+    case NTM_RECEIVEDPING:
+        {
+            if (wParam != 0)
+            {
+                PPH_STRING inputString = (PPH_STRING)wParam;
+
+                PhAppendStringBuilderEx(&context->ReceivedString, inputString->Buffer, inputString->Length);
+                PhDereferenceObject(inputString);
+
+                SetDlgItemText(hwndDlg, IDC_NETOUTPUTEDIT, context->ReceivedString.String->Buffer);
+                SendMessage(
+                    GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT),
+                    EM_SETSEL,
+                    context->ReceivedString.String->Length / 2 - 1,
+                    context->ReceivedString.String->Length / 2 - 1
+                    );
+                SendMessage(GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), WM_VSCROLL, SB_BOTTOM, 0);
+                return TRUE;
             }
         }
         break;
