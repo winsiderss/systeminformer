@@ -299,7 +299,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             {
                 // Fill in the text box.
                 SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-                FillRect(hdc, &windowRect, (HBRUSH)GetStockObject(DC_BRUSH));
+                FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
             }
 
             // Get the position of the inserted button.
@@ -432,17 +432,17 @@ HBITMAP LoadImageFromResources(
     HGLOBAL resHandle = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
+    HDC bitmapHdc = NULL; 
     BYTE* bitmapBuffer = NULL;
-
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
-    IWICImagingFactory* wicFactory = NULL;
     IWICBitmapScaler* wicScaler = NULL;
     WICInProcPointer pvSourceResourceData = NULL;
 
-    HDC hdcScreen = GetDC(NULL);
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static IWICImagingFactory* wicFactory = NULL;
 
     __try
     {
@@ -455,9 +455,18 @@ HBITMAP LoadImageFromResources(
 
         resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
 
-        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
-            __leave;
-        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (void**)&wicDecoder)))
+        if (PhBeginInitOnce(&initOnce))
+        {
+            if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+            {
+                PhEndInitOnce(&initOnce);
+                __leave;
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
@@ -481,18 +490,23 @@ HBITMAP LoadImageFromResources(
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (void**)&bitmapBuffer, NULL, 0)) != NULL)
+        bitmapHdc = GetDC(NULL);
+
+        if ((bitmapHandle = CreateDIBSection(bitmapHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
         {
             const UINT cbStride = width * 4;  
             const UINT cbImage = cbStride * height;  
 
             if (FAILED(IWICBitmapSource_CopyPixels(wicBitmap, NULL, cbStride, cbImage, bitmapBuffer)))
                 __leave;
-        }
+        }        
     }
     __finally
     {
-        ReleaseDC(NULL, hdcScreen);
+        if (bitmapHdc)
+        {
+            ReleaseDC(NULL, bitmapHdc);
+        }
 
         if (wicBitmap)
         {
@@ -514,10 +528,8 @@ HBITMAP LoadImageFromResources(
             IWICBitmapDecoder_Release(wicDecoder);
         }
 
-        if (wicFactory)
-        {
-            IWICImagingFactory_Release(wicFactory);
-        }
+        //if (wicFactory)
+        //IWICImagingFactory_Release(wicFactory);
     }
 
     return bitmapHandle;
