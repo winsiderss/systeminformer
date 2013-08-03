@@ -39,14 +39,12 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             if (maxPingCount)
             {
-                //Static_SetText(GetDlgItem(hwndDlg, IDC_MAXPINGTEXT), maxPingCountText->Buffer); 
-                //PhDereferenceObject(maxPingCountText);
+                Static_SetText(GetDlgItem(hwndDlg, IDC_MAXPINGTEXT), PhaFormatString(L"%d", maxPingCount)->Buffer); 
             }
 
             if (maxPingTimeout)
             {
-                //Static_SetText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT), maxPingTimeoutText->Buffer); 
-                //PhDereferenceObject(maxPingTimeoutText);
+                Static_SetText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT), PhaFormatString(L"%d", maxPingTimeout)->Buffer); 
             }
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_NETRESOLVECHECK),
@@ -65,16 +63,19 @@ INT_PTR CALLBACK OptionsDlgProc(
                 {
                     PPH_STRING maxPingCountText = NULL;
                     PPH_STRING maxPingTimeoutText = NULL;
+                    ULONG64 integer = 0;
 
                     if (maxPingCountText = PhGetWindowText(GetDlgItem(hwndDlg, IDC_MAXPINGTEXT)))
                     {
-                        PhSetStringSetting(L"ProcessHacker.NetTools.MaxPingCount", maxPingCountText->Buffer);
+                        PhStringToInteger64(&maxPingCountText->sr, 10, &integer);
+                        PhSetIntegerSetting(L"ProcessHacker.NetTools.MaxPingCount", (ULONG)integer);
                         PhDereferenceObject(maxPingCountText);
                     }
 
                     if (maxPingTimeoutText = PhGetWindowText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT)))
                     {
-                        PhSetStringSetting(L"ProcessHacker.NetTools.MaxPingTimeout", maxPingTimeoutText->Buffer); 
+                        PhStringToInteger64(&maxPingTimeoutText->sr, 10, &integer);
+                        PhSetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout", (ULONG)integer);
                         PhDereferenceObject(maxPingTimeoutText);
                     }
 
