@@ -30,6 +30,13 @@ static SERVICE_INFO UploadServiceInfo[] =
     { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
 
+static PPH_STRING PhGetWinHttpMessage(
+    __in ULONG Result
+    )
+{
+    return PhGetMessage(GetModuleHandle(L"winhttp.dll"), 0xb, GetUserDefaultLangID(), Result);
+}
+
 static NTSTATUS PhUploadToDialogThreadStart(
     __in PVOID Parameter
     )
@@ -157,25 +164,16 @@ static VOID RaiseUploadError(
     __in_opt ULONG ErrorCode
     )
 {
-    PPH_STRING errorMessage = NULL;
-
     if (ErrorCode)
     {
-        errorMessage = PhGetWin32Message(ErrorCode);
+        PhSwapReference(&Context->ErrorMessage, PhFormatString(L"Error: [%u] %s", ErrorCode, Error));
+        PhSwapReference(&Context->ErrorStatusMessage, PhGetWinHttpMessage(ErrorCode));
 
-        if (!errorMessage)
-            errorMessage = PhFormatString(L"Error %u", ErrorCode);
+        if (Context->DialogHandle)
+        {
+            PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
+        }
     }
-
-    if (errorMessage)
-        Context->ErrorMessage = PhConcatStrings(3, Error, L": ", errorMessage->Buffer);
-    else
-        Context->ErrorMessage = PhConcatStrings2(Error, L".");
-
-    PhSwapReference(&errorMessage, NULL);
-
-    if (Context->DialogHandle)
-        PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
 }
 
 static PSERVICE_INFO GetUploadServiceInfo(
@@ -382,7 +380,6 @@ static NTSTATUS HashFileAndResetPosition(
 
     return status;
 }
-
 
 static NTSTATUS UploadFileThreadStart(
     __in PVOID Parameter
@@ -756,7 +753,6 @@ static NTSTATUS UploadFileThreadStart(
             }
         }
 
-
         if (!PhIsNullOrEmptyString(context->LaunchCommand))
         {
             PostMessage(context->DialogHandle, UM_LAUNCH, 0, 0);
@@ -807,12 +803,15 @@ static NTSTATUS UploadCheckThreadStart(
     __in PVOID Parameter
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN fileExists = FALSE;
     LARGE_INTEGER fileSize64;
     PSTR subRequestBuffer = NULL;
     HINTERNET connectHandle = NULL;
     HINTERNET requestHandle = NULL;
-    PSERVICE_INFO serviceInfo = NULL; 
+    PSERVICE_INFO serviceInfo = NULL;           
+    PPH_STRING hashString = NULL;     
+    PPH_STRING subObjectName = NULL;
 
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
@@ -888,8 +887,6 @@ static NTSTATUS UploadCheckThreadStart(
         {
         case UPLOAD_SERVICE_VIRUSTOTAL:
             {
-                PPH_STRING hashString = NULL;
-                PPH_STRING subObjectName = NULL;
                 PSTR uploadUrl = NULL;
                 PSTR quote = NULL;
                 ULONG bufferLength = 0;
@@ -907,18 +904,11 @@ static NTSTATUS UploadCheckThreadStart(
                 context->LaunchCommand = PhFormatString(L"http://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
 
                 if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, &subRequestBuffer, &bufferLength))
-                {
-                    PhDereferenceObject(subObjectName);
-                    PhDereferenceObject(hashString);
                     __leave;
-                }
-
-                PhDereferenceObject(subObjectName);
-                PhDereferenceObject(hashString);
 
                 if (strstr(subRequestBuffer, "\"file_exists\": true"))
                 {
-                    context->UploadServiceState = PhUploadServiceViewReport;
+                    fileExists = TRUE;
                 }
 
                 uploadUrl = strstr(subRequestBuffer, "\"upload_url\": \"https://www.virustotal.com");
@@ -938,17 +928,13 @@ static NTSTATUS UploadCheckThreadStart(
 
                 context->ObjectName = PhCreateStringFromAnsiEx(uploadUrl, quote - uploadUrl);
 
+                // Create the default upload URL
                 if (!context->ObjectName)
-                {
-                    // Create the default upload URL
                     context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
-                }
             }
             break;
         case UPLOAD_SERVICE_JOTTI:
             {
-                PPH_STRING hashString = NULL;
-                PPH_STRING subObjectName = NULL;
                 PSTR uploadId = NULL;
                 PSTR quote = NULL;
                 ULONG bufferLength = 0;
@@ -965,14 +951,7 @@ static NTSTATUS UploadCheckThreadStart(
                 subObjectName = PhConcatStrings2(L"/nestor/getfileforhash.php?hash=", hashString->Buffer);
 
                 if (!PerformSubRequest(context, serviceInfo->HostName, subObjectName->Buffer, &subRequestBuffer, &bufferLength))
-                {
-                    PhDereferenceObject(hashString);
-                    PhDereferenceObject(subObjectName);
                     __leave;
-                }
-
-                PhDereferenceObject(hashString);
-                PhDereferenceObject(subObjectName);
 
                 if (uploadId = strstr(subRequestBuffer, "\"id\":"))
                 {
@@ -981,22 +960,18 @@ static NTSTATUS UploadCheckThreadStart(
 
                     if (quote)
                     {
-                        context->UploadServiceState = PhUploadServiceViewReport;
+                        fileExists = TRUE;
                         context->LaunchCommand = PhFormatString(L"http://virusscan.jotti.org/en/scanresult/%.*S", quote - uploadId, uploadId);
                     }
                 }
 
+                // Create the default upload URL
                 if (!context->ObjectName)
-                {
-                    // Create the default upload URL
                     context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
-                }
             }
             break;
         case UPLOAD_SERVICE_CIMA:
             {
-                PPH_STRING hashString = NULL;
-                PPH_STRING subObjectName = NULL;
                 PSTR quote = NULL;
                 ULONG bufferLength = 0;
                 UCHAR hash[32];
@@ -1011,7 +986,8 @@ static NTSTATUS UploadCheckThreadStart(
                 }
 
                 hashString = PhBufferToHexString(hash, 32);
-                subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);
+                subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);        
+                context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
 
                 // Connect to the CIMA online service.
                 if (!(connectHandle = WinHttpConnect(
@@ -1065,13 +1041,9 @@ static NTSTATUS UploadCheckThreadStart(
 
                 if (status == HTTP_STATUS_OK)
                 {
-                    context->UploadServiceState = PhUploadServiceViewReport;
-                    context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
+                    fileExists = TRUE;
                 }
 
-                PhDereferenceObject(hashString);
-                PhDereferenceObject(subObjectName);
-         
                 if (!context->ObjectName)
                 {
                     // Create the default upload URL
@@ -1082,25 +1054,30 @@ static NTSTATUS UploadCheckThreadStart(
         }
 
         // Do we need to prompt the user?
-        if (context->UploadServiceState == PhUploadServiceViewReport)
+        if (fileExists && !PhIsNullOrEmptyString(context->LaunchCommand))
         {
-            if (!PhIsNullOrEmptyString(context->LaunchCommand))
-            {
-                PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
-                __leave;
-            }
-            else
-            {
-                RaiseUploadError(context, L"LaunchCommand (please try again after a few minutes)", 0);
-                __leave;
-            }
-        }
-          
-        if (!NT_SUCCESS(UploadFileThreadStart(context)))
+            PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
             __leave;
+        }
+        else
+        {
+            // No existing file found... Start the upload.
+            if (!NT_SUCCESS(UploadFileThreadStart(context)))
+                __leave;
+        }
     }
     __finally
     {
+        if (hashString)
+        {
+            PhDereferenceObject(hashString);
+        }
+
+        if (subObjectName)
+        {
+            PhDereferenceObject(subObjectName);
+        }
+
         if (requestHandle)
         {
             WinHttpCloseHandle(requestHandle);
@@ -1114,7 +1091,6 @@ static NTSTATUS UploadCheckThreadStart(
 
     return status;
 }
-
 
 INT_PTR CALLBACK UploadDlgProc(
     __in HWND hwndDlg,
@@ -1284,13 +1260,14 @@ INT_PTR CALLBACK UploadDlgProc(
     case UM_EXISTS:
         {
             context->UploadServiceState = PhUploadServiceViewReport;
+       
+            Control_Visible(GetDlgItem(hwndDlg, IDOK), TRUE);
+            Static_SetText(GetDlgItem(hwndDlg, IDCANCEL), L"No");
 
             if (!PhIsNullOrEmptyString(context->LaunchCommand))
             {
                 Static_SetText(context->MessageHandle, L"File already analysed.");
                 Static_SetText(context->StatusHandle, L"View existing report?");
-                Control_Visible(GetDlgItem(hwndDlg, IDOK), TRUE);
-                Static_SetText(GetDlgItem(hwndDlg, IDCANCEL), L"No");
             }
         }
         break;
@@ -1310,13 +1287,12 @@ INT_PTR CALLBACK UploadDlgProc(
         {
             context->UploadServiceState = PhUploadServiceMaximum;
 
+            Static_SetText(GetDlgItem(hwndDlg, IDCANCEL), L"Close");
+
             if (!PhIsNullOrEmptyString(context->ErrorMessage))
             {
                 Static_SetText(context->MessageHandle, context->ErrorMessage->Buffer);
-            }
-            else
-            {
-                Static_SetText(context->MessageHandle, L"Unknown error.");
+                Static_SetText(context->StatusHandle, context->ErrorStatusMessage->Buffer);
             }
         }
         break;

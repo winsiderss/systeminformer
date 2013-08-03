@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,0,0
- PRODUCTVERSION 1,4,0,0
+ FILEVERSION 1,5,0,0
+ PRODUCTVERSION 1,5,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,14 +67,14 @@ BEGIN
     BEGIN
         BLOCK "0c0904b0"
         BEGIN
-            VALUE "CompanyName", "wj32"
+            VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Online Checks plugin for Process Hacker"
-            VALUE "FileVersion", "1.4.0.0"
+            VALUE "FileVersion", "1.5.0.0"
             VALUE "InternalName", "OnlineChecks"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "OnlineChecks.dll"
             VALUE "ProductName", "Online Checks plugin for Process Hacker"
-            VALUE "ProductVersion", "1.4.0.0"
+            VALUE "ProductVersion", "1.5.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -89,16 +89,16 @@ END
 // Dialog
 //
 
-IDD_PROGRESS DIALOGEX 0, 0, 241, 69
+IDD_PROGRESS DIALOGEX 0, 0, 241, 58
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "Uploading To"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Message",IDC_MESSAGE,7,5,227,15
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",0x0,8,36,226,8
-    LTEXT           "Connecting...",IDC_STATUS,8,22,226,11
-    PUSHBUTTON      "Yes",IDOK,132,48,50,14,NOT WS_VISIBLE
-    DEFPUSHBUTTON   "Cancel",IDCANCEL,185,48,50,14
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",0x0,7,24,227,8
+    LTEXT           "Connecting...",IDC_STATUS,7,39,173,11
+    PUSHBUTTON      "Yes",IDOK,132,37,50,14,NOT WS_VISIBLE
+    DEFPUSHBUTTON   "Cancel",IDCANCEL,185,37,50,14
 END
 
 
@@ -115,7 +115,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 234
         TOPMARGIN, 5
-        BOTTOMMARGIN, 62
+        BOTTOMMARGIN, 51
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -4,6 +4,7 @@
 #pragma comment(lib, "OleAut32.lib")
 #pragma comment(lib, "Winhttp.lib")
 
+#define CINTERFACE
 #define COBJMACROS
 #include <windowsx.h>
 #include <time.h>
@@ -57,15 +58,18 @@ typedef struct _UPLOAD_CONTEXT
     HWND StatusHandle;
     HWND ProgressHandle;
     HFONT MessageFont;
-    HINTERNET HttpHandle;
-    PPH_STRING LaunchCommand;
+    HINTERNET HttpHandle;  
+    
+    ULONG ErrorCode;
     PPH_STRING ErrorMessage;
+    PPH_STRING ErrorStatusMessage;
 
     PH_UPLOAD_SERVICE_STATE UploadServiceState;
     HANDLE FileHandle;
     ULONG TotalFileLength;
     PPH_STRING BaseFileName;
     PPH_STRING ObjectName;
+    PPH_STRING LaunchCommand;
 } UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
 
 // main
