@@ -41,7 +41,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PPH_NETWORK_ITEM NetworkItem;
     PH_LAYOUT_MANAGER LayoutManager;
     HWND WindowHandle;
-
+    BOOLEAN UseOldColors;
     PH_QUEUED_LOCK TextBufferLock;
 
     HANDLE ThreadHandle;
