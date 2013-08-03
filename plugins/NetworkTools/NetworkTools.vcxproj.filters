@@ -21,6 +21,18 @@
     <ClCompile Include="output.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ping.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="options.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tracert.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="whois.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nettools.h">
