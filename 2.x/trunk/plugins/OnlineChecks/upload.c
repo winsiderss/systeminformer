@@ -122,7 +122,7 @@ static BOOL ReadRequestString(
     dataLength = 0;
 
     // Zero the buffer
-    RtlZeroMemory(buffer, PAGE_SIZE);
+    memset(buffer, 0, PAGE_SIZE);
 
     while (WinHttpReadData(Handle, buffer, PAGE_SIZE, &returnLength))
     {
@@ -164,10 +164,13 @@ static VOID RaiseUploadError(
     __in ULONG ErrorCode
     )
 {
+    PhSwapReference(&Context->ErrorMessage, NULL);
+    PhSwapReference(&Context->ErrorStatusMessage, NULL);
+
     if (ErrorCode)
     {
-        PhSwapReference(&Context->ErrorMessage, PhFormatString(L"Error: [%u] %s", ErrorCode, Error));
-        PhSwapReference(&Context->ErrorStatusMessage, PhGetWinHttpMessage(ErrorCode));
+        Context->ErrorMessage = PhFormatString(L"Error: [%u] %s", ErrorCode, Error);
+        Context->ErrorStatusMessage = PhGetWinHttpMessage(ErrorCode);
 
         if (Context->DialogHandle)
         {
@@ -398,7 +401,9 @@ static NTSTATUS UploadFileThreadStart(
     IO_STATUS_BLOCK isb;
     NTSTATUS status = STATUS_SUCCESS;
     PSERVICE_INFO serviceInfo = NULL;
-
+               
+    ULONG httpStatus = 0;
+    ULONG httpStatusLength = sizeof(ULONG);
     HINTERNET connectHandle = NULL;
     HINTERNET requestHandle = NULL;
     PPH_STRING postBoundary = NULL;   
@@ -602,135 +607,130 @@ static NTSTATUS UploadFileThreadStart(
             RaiseUploadError(context, L"Unable to receive the response", GetLastError());
             __leave;
         }
+
+        // Handle service-specific actions.
+        WinHttpQueryHeaders(
+            requestHandle,
+            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+            NULL,
+            &httpStatus,
+            &httpStatusLength,
+            NULL
+            );
+
+        if (httpStatus == HTTP_STATUS_OK || httpStatus == HTTP_STATUS_REDIRECT_METHOD || httpStatus == HTTP_STATUS_REDIRECT)
+        {
+            switch (context->Service)
+            {
+            case UPLOAD_SERVICE_VIRUSTOTAL:
+                {
+                    ULONG bufferLength = 0;
+
+                    // Use WinHttpQueryOption to obtain a buffer size.
+                    if (!WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, NULL, &bufferLength))
+                    {
+                        PPH_STRING buffer = PhCreateStringEx(NULL, bufferLength);
+
+                        // Use WinHttpQueryOption again, this time to retrieve the URL in the new buffer
+                        if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Data, &bufferLength))
+                        {
+                            // Format the retrieved URL...
+                            context->LaunchCommand = PhFormatString(L"%s", buffer->Buffer);
+                        }
+
+                        PhDereferenceObject(buffer);
+                    }
+                }
+                break;
+            case UPLOAD_SERVICE_JOTTI:
+                {
+                    PSTR hrefEquals = NULL;
+                    PSTR quote = NULL;
+                    PSTR buffer = NULL;
+                    ULONG bufferLength = 0;
+
+                    //This service returns some JavaScript that redirects the user to the new location.
+                    if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
+                    {
+                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                        __leave;
+                    }
+
+                    // The JavaScript looks like this: top.location.href="...";
+                    hrefEquals = strstr(buffer, "href=\"");
+                    if (hrefEquals)
+                    {
+                        hrefEquals += 6;
+                        quote = strchr(hrefEquals, '"');
+
+                        if (quote)
+                        {
+                            context->LaunchCommand = PhFormatString(
+                                L"http://virusscan.jotti.org%.*S",
+                                quote - hrefEquals,
+                                hrefEquals
+                                );
+                        }
+                    }
+                    else
+                    {
+                        PSTR tooManyFiles = strstr(buffer, "Too many files");
+
+                        if (tooManyFiles)
+                        {
+                            RaiseUploadError(
+                                context,
+                                L"Unable to scan the file:\n\n"
+                                L"Too many files have been scanned from this IP in a short period. "
+                                L"Please try again later",
+                                0
+                                );
+
+                            __leave;
+                        }
+                    }
+                }
+                break;
+            case UPLOAD_SERVICE_CIMA:
+                {
+                    PSTR urlEquals = NULL;
+                    PSTR quote = NULL;
+                    PSTR buffer = NULL;
+                    ULONG bufferLength = 0;
+
+                    // This service returns some HTML that redirects the user to the new location.
+                    if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
+                    {
+                        RaiseUploadError(context, L"Unable to complete the CIMA request", GetLastError());
+                        __leave;
+                    }
+
+                    // The HTML looks like this:
+                    // <META http-equiv="Refresh" content="0; url=...">
+                    urlEquals = strstr(buffer, "url=");
+
+                    if (urlEquals)
+                    {
+                        urlEquals += 4;
+                        quote = strchr(urlEquals, '"');
+
+                        if (quote)
+                        {
+                            context->LaunchCommand = PhFormatString(
+                                L"http://camas.comodo.com%.*S",
+                                quote - urlEquals,
+                                urlEquals
+                                );
+                        }
+                    }
+                }
+                break;
+            }
+        }
         else
         {
-            // Handle service-specific actions.
-            ULONG status = 0;
-            ULONG statusLength = sizeof(statusLength);
-
-            WinHttpQueryHeaders(
-                requestHandle,
-                WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-                NULL,
-                &status,
-                &statusLength,
-                NULL
-                );
-
-            if (status == HTTP_STATUS_OK || status == HTTP_STATUS_REDIRECT_METHOD || status == HTTP_STATUS_REDIRECT)
-            {
-                switch (context->Service)
-                {
-                case UPLOAD_SERVICE_VIRUSTOTAL:
-                    {
-                        ULONG bufferLength = 0;
-
-                        // Use WinHttpQueryOption to obtain a buffer size.
-                        if (!WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, NULL, &bufferLength))
-                        {
-                            PPH_STRING buffer = PhCreateStringEx(NULL, bufferLength);
-
-                            // Use WinHttpQueryOption again, this time to retrieve the URL in the new buffer
-                            if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Data, &bufferLength))
-                            {
-                                // Format the retrieved URL...
-                                context->LaunchCommand = PhFormatString(L"%s", buffer->Buffer);
-                            }
- 
-                            PhDereferenceObject(buffer);
-                        }
-                    }
-                    break;
-                case UPLOAD_SERVICE_JOTTI:
-                    {
-                        PSTR hrefEquals = NULL;
-                        PSTR quote = NULL;
-                        PSTR buffer = NULL;
-                        ULONG bufferLength = 0;
-
-                        //This service returns some JavaScript that redirects the user to the new location.
-                        if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
-                        {
-                            RaiseUploadError(context, L"Unable to complete the request", GetLastError());
-                            __leave;
-                        }
-
-                        // The JavaScript looks like this: top.location.href="...";
-                        hrefEquals = strstr(buffer, "href=\"");
-                        if (hrefEquals)
-                        {
-                            hrefEquals += 6;
-                            quote = strchr(hrefEquals, '"');
-
-                            if (quote)
-                            {
-                                context->LaunchCommand = PhFormatString(
-                                    L"http://virusscan.jotti.org%.*S",
-                                    quote - hrefEquals,
-                                    hrefEquals
-                                    );
-                            }
-                        }
-                        else
-                        {
-                            PSTR tooManyFiles = strstr(buffer, "Too many files");
-
-                            if (tooManyFiles)
-                            {
-                                RaiseUploadError(
-                                    context,
-                                    L"Unable to scan the file:\n\n"
-                                    L"Too many files have been scanned from this IP in a short period. "
-                                    L"Please try again later",
-                                    0
-                                    );
-
-                                __leave;
-                            }
-                        }
-                    }
-                    break;
-                case UPLOAD_SERVICE_CIMA:
-                    {
-                        PSTR urlEquals = NULL;
-                        PSTR quote = NULL;
-                        PSTR buffer = NULL;
-                        ULONG bufferLength = 0;
-
-                        // This service returns some HTML that redirects the user to the new location.
-                        if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
-                        {
-                            RaiseUploadError(context, L"Unable to complete the CIMA request", GetLastError());
-                            __leave;
-                        }
-
-                        // The HTML looks like this:
-                        // <META http-equiv="Refresh" content="0; url=...">
-                        urlEquals = strstr(buffer, "url=");
-
-                        if (urlEquals)
-                        {
-                            urlEquals += 4;
-                            quote = strchr(urlEquals, '"');
-
-                            if (quote)
-                            {
-                                context->LaunchCommand = PhFormatString(
-                                    L"http://camas.comodo.com%.*S",
-                                    quote - urlEquals,
-                                    urlEquals
-                                    );
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-            else
-            {
-                RaiseUploadError(context, L"Unable to complete the request", 0);
-                __leave;
-            }
+            RaiseUploadError(context, L"Unable to complete the request", STATUS_FVE_PARTIAL_METADATA);
+            __leave;
         }
 
         if (!PhIsNullOrEmptyString(context->LaunchCommand))
