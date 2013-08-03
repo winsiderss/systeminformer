@@ -389,10 +389,11 @@ static NTSTATUS UploadFileThreadStart(
     time_t timeTransferred = 0;
     ULONG httpPostSeed = 0;
     ULONG totalUploadLength = 0;
+    ULONG totalUploadedLength = 0;
     ULONG totalPostHeaderWritten = 0;
     ULONG totalPostFooterWritten = 0;
-    ULONG totalReadLength = 0;
-       
+    ULONG totalWriteLength = 0;
+    
     IO_STATUS_BLOCK isb;
     NTSTATUS status = STATUS_SUCCESS;
     PSERVICE_INFO serviceInfo = NULL;
@@ -405,7 +406,9 @@ static NTSTATUS UploadFileThreadStart(
     PH_STRING_BUILDER httpRequestHeaders = { 0 };
     PH_STRING_BUILDER httpPostHeader = { 0 };
     PH_STRING_BUILDER httpPostFooter = { 0 };
-
+                
+    
+    BYTE buffer[PAGE_SIZE];
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
     __try
@@ -526,79 +529,65 @@ static NTSTATUS UploadFileThreadStart(
             __leave;
         }
 
-#ifdef _DEBUG
-        assert(ansiPostData->Length == totalPostHeaderWritten);
-#endif
-
+        // Upload the file...
+        while (TRUE)
         {
-            ULONG uploadLength = 0;
-            BYTE buffer[PAGE_SIZE];
+            status = NtReadFile(
+                context->FileHandle,
+                NULL,
+                NULL,
+                NULL,
+                &isb,
+                &buffer,
+                PAGE_SIZE,
+                NULL,
+                NULL
+                );
 
-            // Upload the file...
-            while (TRUE)
+            if (!NT_SUCCESS(status))
+                break;
+
+            // Check bytes read.
+            if (isb.Information == 0)
+                break;
+
+            if (!WinHttpWriteData(requestHandle, buffer, (ULONG)isb.Information, &totalWriteLength))
             {
-                status = NtReadFile(
-                    context->FileHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
-                    &buffer,
-                    PAGE_SIZE,
-                    NULL,
-                    NULL
+                RaiseUploadError(context, L"Unable to upload the file data", GetLastError());
+                __leave;
+            }
+
+            // Zero our uploaded file buffer.
+            memset(buffer, 0, PAGE_SIZE);
+
+            totalUploadedLength += totalWriteLength;
+            {
+                time_t time_taken = (time(NULL) - timeTransferred);
+                time_t bps = totalUploadedLength / (time_taken ? time_taken : 1);
+                //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
+
+                PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, -1);
+                PPH_STRING totalDownloadedLength = PhFormatSize(totalUploadedLength, -1);
+                PPH_STRING totalSpeed = PhFormatSize(bps, -1);
+
+                PPH_STRING dlLengthString = PhFormatString(
+                    L"%s of %s @ %s/s",
+                    totalDownloadedLength->Buffer,
+                    totalLength->Buffer,
+                    totalSpeed->Buffer
                     );
 
-                if (!NT_SUCCESS(status))
-                    break;
+                Static_SetText(context->StatusHandle, dlLengthString->Buffer);
 
-                // Check bytes read.
-                if (isb.Information == 0)
-                    break;
+                PhDereferenceObject(dlLengthString);
+                PhDereferenceObject(totalSpeed);
+                PhDereferenceObject(totalLength);
+                PhDereferenceObject(totalDownloadedLength);
 
-                if (!WinHttpWriteData(requestHandle, buffer, (ULONG)isb.Information, &uploadLength))
-                {
-                    RaiseUploadError(context, L"Unable to upload the file data", GetLastError());
-                    __leave;
-                }
-
-                // Zero our uploaded file buffer.
-                //memset(buffer, 0, PAGE_SIZE);
-
-                // TODO: Remove from loop and replace with callback code...
-                totalReadLength += uploadLength;
-                {
-                    time_t time_taken = (time(NULL) - timeTransferred);
-                    time_t bps = totalReadLength / (time_taken ? time_taken : 1);
-                    //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
-
-                    PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, -1);
-                    PPH_STRING totalDownloadedLength = PhFormatSize(totalReadLength, -1);
-                    PPH_STRING totalSpeed = PhFormatSize(bps, -1);
-
-                    PPH_STRING dlLengthString = PhFormatString(
-                        L"%s of %s @ %s/s",
-                        totalDownloadedLength->Buffer,
-                        totalLength->Buffer,
-                        totalSpeed->Buffer
-                        );
-
-                    Static_SetText(context->StatusHandle, dlLengthString->Buffer);
-
-                    PhDereferenceObject(dlLengthString);
-                    PhDereferenceObject(totalSpeed);
-                    PhDereferenceObject(totalLength);
-                    PhDereferenceObject(totalDownloadedLength);
-
-                    // Update the progress bar position
-                    PostMessage(context->ProgressHandle, PBM_SETPOS, MulDiv(100, totalReadLength, context->TotalFileLength), 0);
-                }
+                // Update the progress bar position
+                PostMessage(context->ProgressHandle, PBM_SETPOS, MulDiv(100, totalUploadedLength, context->TotalFileLength), 0);
             }
         }
-
-#ifdef _DEBUG
-        assert(totalReadLength == context->TotalFileLength);
-#endif
 
         // Write the footer bytes
         if (!WinHttpWriteData(
@@ -611,10 +600,6 @@ static NTSTATUS UploadFileThreadStart(
             RaiseUploadError(context, L"Unable to write the post footer", GetLastError());
             __leave;
         }
-
-#ifdef _DEBUG
-        assert(ansiFooterData->Length == totalPostFooterWritten);    
-#endif
 
         // Wait for the send request to complete and recieve the response.
         if (!WinHttpReceiveResponse(requestHandle, NULL))
@@ -764,7 +749,11 @@ static NTSTATUS UploadFileThreadStart(
         }
     }
     __finally
-    {     
+    {
+        //assert(ansiFooterData->Length == totalPostFooterWritten); 
+        //assert(ansiPostData->Length == totalPostHeaderWritten);
+        //assert(totalUploadedLength == context->TotalFileLength);
+
         if (postBoundary)
         {
             PhDereferenceObject(postBoundary);
@@ -1059,12 +1048,10 @@ static NTSTATUS UploadCheckThreadStart(
             PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
             __leave;
         }
-        else
-        {
-            // No existing file found... Start the upload.
-            if (!NT_SUCCESS(UploadFileThreadStart(context)))
-                __leave;
-        }
+
+        // No existing file found... Start the upload.
+        if (!NT_SUCCESS(UploadFileThreadStart(context)))
+            __leave;
     }
     __finally
     {
@@ -1198,7 +1185,7 @@ INT_PTR CALLBACK UploadDlgProc(
         {
             switch (LOWORD(wParam))
             {
-            case IDOK:
+            case IDYES:
                 {
                     context->UploadServiceState = PhUploadServiceMaximum;
 
@@ -1210,7 +1197,7 @@ INT_PTR CALLBACK UploadDlgProc(
                     PostQuitMessage(0);
                 }
                 break;
-            case IDCANCEL:
+            case IDNO:
                 {
                     if (context->UploadServiceState == PhUploadServiceViewReport)
                     {
@@ -1218,11 +1205,11 @@ INT_PTR CALLBACK UploadDlgProc(
 
                         // Set state to uploading...
                         context->UploadServiceState = PhUploadServiceUploading;
-                        
+
                         // Reset the window status...
                         Static_SetText(context->MessageHandle, context->WindowFileName->Buffer);
-                        Static_SetText(GetDlgItem(hwndDlg, IDCANCEL), L"Cancel");
-                        Control_Visible(GetDlgItem(hwndDlg, IDOK), FALSE);
+                        Static_SetText(GetDlgItem(hwndDlg, IDNO), L"Cancel");
+                        Control_Visible(GetDlgItem(hwndDlg, IDYES), FALSE);
 
                         // Start the upload thread...
                         if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UploadFileThreadStart, (PVOID)context))
@@ -1235,7 +1222,13 @@ INT_PTR CALLBACK UploadDlgProc(
                     }
                 }
                 break;
+            case IDCANCEL:
+                {
+                    context->UploadServiceState = PhUploadServiceMaximum;
+                    PostQuitMessage(0);
+                }
             }
+            break;
         }
         break;
     case WM_CTLCOLORBTN:
@@ -1260,9 +1253,9 @@ INT_PTR CALLBACK UploadDlgProc(
     case UM_EXISTS:
         {
             context->UploadServiceState = PhUploadServiceViewReport;
-       
-            Control_Visible(GetDlgItem(hwndDlg, IDOK), TRUE);
-            Static_SetText(GetDlgItem(hwndDlg, IDCANCEL), L"No");
+      
+            Static_SetText(GetDlgItem(hwndDlg, IDNO), L"No");
+            Control_Visible(GetDlgItem(hwndDlg, IDYES), TRUE);
 
             if (!PhIsNullOrEmptyString(context->LaunchCommand))
             {
@@ -1287,7 +1280,7 @@ INT_PTR CALLBACK UploadDlgProc(
         {
             context->UploadServiceState = PhUploadServiceMaximum;
 
-            Static_SetText(GetDlgItem(hwndDlg, IDCANCEL), L"Close");
+            Static_SetText(GetDlgItem(hwndDlg, IDNO), L"Close");
 
             if (!PhIsNullOrEmptyString(context->ErrorMessage))
             {
