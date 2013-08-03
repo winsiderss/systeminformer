@@ -660,7 +660,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 // Create the request.
                 if (!(requestHandle = WinHttpOpenRequest(
                     connectHandle,
-                    L"HEAD",
+                    NULL, // Get
                     subObjectName->Buffer,
                     NULL,// HTTP/1.1
                     WINHTTP_NO_REFERER,
