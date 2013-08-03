@@ -159,7 +159,7 @@ static mxml_type_t QueryXmlDataCallback(
     return MXML_OPAQUE;
 }
 
-static BOOL ParseVersionString(
+static BOOLEAN ParseVersionString(
     __inout PPH_UPDATER_CONTEXT Context
     )
 {
@@ -186,7 +186,7 @@ static BOOL ParseVersionString(
     return FALSE;
 }
 
-static BOOL ReadRequestString(
+static BOOLEAN ReadRequestString(
     __in HINTERNET Handle,
     __out_z PSTR* Data,
     __out ULONG* DataLength
@@ -793,7 +793,7 @@ static NTSTATUS UpdateDownloadThread(
 
                     // Update the progress bar position
                     SendMessage(context->ProgressHandle, PBM_SETPOS, percent, 0);
-                    SetWindowText(context->StatusHandle, dlLengthString->Buffer);
+                    Static_SetText(context->StatusHandle, dlLengthString->Buffer);
 
                     PhDereferenceObject(dlLengthString);
                     PhDereferenceObject(totalDownloaded);
