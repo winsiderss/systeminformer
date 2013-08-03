@@ -154,7 +154,8 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PH_INTEGER_PAIR rectForAdjust;
+            PH_RECTANGLE windowRectangle;
+            HANDLE dialogThread = INVALID_HANDLE_VALUE;
 
             PhInitializeQueuedLock(&context->TextBufferLock);
             PhInitializeStringBuilder(&context->ReceivedString, PAGE_SIZE);
@@ -163,7 +164,11 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-                   
+             
+            context->UseOldColors = !!PhGetIntegerSetting(L"GraphColorMode");
+            windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition");
+            windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize");
+
             if (MinimumSize.left == -1)
             {
                 RECT rect;
@@ -178,23 +183,17 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             }
 
             // Implement cascading by saving an offsetted rectangle.
-            {
-                PH_RECTANGLE windowRectangle;
-                windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition");
-                windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize");
+            PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
+            MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top, windowRectangle.Width, windowRectangle.Height, FALSE);
 
-                PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
-                MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top, windowRectangle.Width, windowRectangle.Height, FALSE);
-    
-                windowRectangle.Left += 20;
-                windowRectangle.Top += 20;
+            windowRectangle.Left += 20;
+            windowRectangle.Top += 20;
 
-                PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", windowRectangle.Position);
-                PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize", windowRectangle.Size);
-            }
+            PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", windowRectangle.Position);
+            PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize", windowRectangle.Size);
 
-            rectForAdjust = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition");
-            if (rectForAdjust.X == 0 || rectForAdjust.Y == 0)
+            // Check for first-run default position.
+            if (windowRectangle.Position.X == 20 || windowRectangle.Position.Y == 20)
             {
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             }
@@ -216,30 +215,18 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             {
             case NETWORK_ACTION_PING:
                 {
-                    HANDLE dialogThread = INVALID_HANDLE_VALUE;
-
-                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
-
                     if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkPingThreadStart, (PVOID)context))
                         NtClose(dialogThread);
                 }
                 break;
             case NETWORK_ACTION_TRACEROUTE:
                 {
-                    HANDLE dialogThread = INVALID_HANDLE_VALUE;
-                    
-                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
-
                     if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkTracertThreadStart, (PVOID)context))
                         NtClose(dialogThread);
                 }
                 break;
             case NETWORK_ACTION_WHOIS:
-                {                
-                    HANDLE dialogThread = INVALID_HANDLE_VALUE;
-
-                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
-
+                {
                     if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkWhoisThreadStart, (PVOID)context))
                         NtClose(dialogThread);
                 }
@@ -282,20 +269,25 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
         {
             HDC hDC = (HDC)wParam;
             HWND hwndChild = (HWND)lParam;
-            DWORD controlID = GetDlgCtrlID(hwndChild);
+            ULONG hwndChildID = 0;
             
+            // Check if OldColors are enabled.
+            if (!context->UseOldColors)
+                break;
+
+            // Get the control ID.
+            hwndChildID = GetDlgCtrlID(hwndChild);
+
             // Set a transparent background for the control backcolor.
             SetBkMode(hDC, TRANSPARENT);
 
-            // Check for our static label and change the color.
-            //if (controlID == IDC_MESSAGE)
-            //{
-            //    SetTextColor(hDC, RGB(19, 112, 171));
-            //}
-            if (controlID == IDC_NETOUTPUTEDIT)
+            // Check for our edit control and change the color.
+            if (hwndChildID == IDC_NETOUTPUTEDIT)
             {
                 // Set a Vista style text color.
                 SetTextColor(hDC, RGB(124, 252, 0));
+                
+                // Set a black control backcolor.
                 return (INT_PTR)GetStockBrush(BLACK_BRUSH);
             }
         }
