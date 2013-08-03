@@ -2,7 +2,7 @@
  * Process Hacker Extended Services -
  *   trigger editor
  *
- * Copyright (C) 2011-2012 wj32
+ * Copyright (C) 2011-2013 wj32
  *
  * This file is part of Process Hacker.
  *

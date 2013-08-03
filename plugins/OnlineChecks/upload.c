@@ -161,7 +161,7 @@ static BOOL ReadRequestString(
 static VOID RaiseUploadError(
     __in PUPLOAD_CONTEXT Context,
     __in PWSTR Error,
-    __in_opt ULONG ErrorCode
+    __in ULONG ErrorCode
     )
 {
     if (ErrorCode)
@@ -216,7 +216,7 @@ static BOOLEAN PerformSubRequest(
             RaiseUploadError(Context, L"Unable to connect to the service", GetLastError());
             __leave;
         }
-
+        
         // Create the request.
         if (!(requestHandle = WinHttpOpenRequest(
             connectHandle,
@@ -393,7 +393,8 @@ static NTSTATUS UploadFileThreadStart(
     ULONG totalPostHeaderWritten = 0;
     ULONG totalPostFooterWritten = 0;
     ULONG totalWriteLength = 0;
-    
+    BYTE buffer[PAGE_SIZE];
+
     IO_STATUS_BLOCK isb;
     NTSTATUS status = STATUS_SUCCESS;
     PSERVICE_INFO serviceInfo = NULL;
@@ -406,19 +407,13 @@ static NTSTATUS UploadFileThreadStart(
     PH_STRING_BUILDER httpRequestHeaders = { 0 };
     PH_STRING_BUILDER httpPostHeader = { 0 };
     PH_STRING_BUILDER httpPostFooter = { 0 };
-                
-    
-    BYTE buffer[PAGE_SIZE];
+
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
-    __try
-    {          
-        if (!(serviceInfo = GetUploadServiceInfo(context->Service)))
-        {
-            RaiseUploadError(context, L"The service type is invalid", 0);
-            __leave;
-        }
+    serviceInfo = GetUploadServiceInfo(context->Service);
 
+    __try
+    {
         // Connect to the online service.
         if (!(connectHandle = WinHttpConnect(
             context->HttpHandle,
@@ -804,14 +799,10 @@ static NTSTATUS UploadCheckThreadStart(
 
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
+    serviceInfo = GetUploadServiceInfo(context->Service);
+
     __try
     {
-        if (!(serviceInfo = GetUploadServiceInfo(context->Service)))
-        {
-            RaiseUploadError(context, L"The service type is invalid", 0);
-            __leave;
-        }
-
         // Open the file and check its size.
         status = PhCreateFileWin32(
             &context->FileHandle,
@@ -829,7 +820,7 @@ static NTSTATUS UploadCheckThreadStart(
             {
                 if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
                 {
-                    RaiseUploadError(context, L"The file is too large (over 20 MB)", 0);
+                    RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
                     __leave;
                 }
 
@@ -1153,7 +1144,8 @@ INT_PTR CALLBACK UploadDlgProc(
             HWND parentWindow = GetParent(hwndDlg);
 
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
-
+            
+            context->DialogHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS1);
             context->MessageHandle = GetDlgItem(hwndDlg, IDC_MESSAGE);
@@ -1285,7 +1277,15 @@ INT_PTR CALLBACK UploadDlgProc(
             if (!PhIsNullOrEmptyString(context->ErrorMessage))
             {
                 Static_SetText(context->MessageHandle, context->ErrorMessage->Buffer);
+            }
+
+            if (!PhIsNullOrEmptyString(context->ErrorStatusMessage))
+            {
                 Static_SetText(context->StatusHandle, context->ErrorStatusMessage->Buffer);
+            }
+            else
+            {
+                Static_SetText(context->StatusHandle, L"");
             }
         }
         break;
