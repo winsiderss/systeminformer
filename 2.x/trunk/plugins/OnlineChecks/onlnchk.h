@@ -5,6 +5,7 @@
 #pragma comment(lib, "Winhttp.lib")
 
 #define COBJMACROS
+#include <windowsx.h>
 #include <time.h>
 #include <phdk.h>
 #include <OleCtl.h>
@@ -18,22 +19,23 @@
 #define HASH_SHA1 1
 #define HASH_SHA256 2
 
-#define UM_LAUNCH_COMMAND (WM_APP + 1)
-#define UM_ERROR (WM_APP + 2)
+#define UM_EXISTS (WM_APP + 1)
+#define UM_LAUNCH (WM_APP + 2)
+#define UM_ERROR (WM_APP + 3)
 
-typedef struct _UPLOAD_CONTEXT
+#define Control_Visible(hWnd, visible) \
+    ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
+
+typedef enum _PH_UPLOAD_SERVICE_STATE
 {
-    PPH_STRING FileName;
-    ULONG Service;
-    HWND DialogHandle;
-    HWND MessageHandle;
-    HWND StatusHandle;
-    HWND ProgressHandle;
-    HFONT MessageFont;
-    HINTERNET HttpHandle;
-    PPH_STRING LaunchCommand;
-    PPH_STRING ErrorMessage;
-} UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
+    PhUploadServiceDefault = 0,
+
+    PhUploadServiceChecking,
+    PhUploadServiceViewReport,
+    PhUploadServiceUploading,
+    PhUploadServiceLaunching,
+    PhUploadServiceMaximum
+} PH_UPLOAD_SERVICE_STATE;
 
 typedef struct _SERVICE_INFO
 {
@@ -45,6 +47,26 @@ typedef struct _SERVICE_INFO
     PWSTR FileNameFieldName;
 } SERVICE_INFO, *PSERVICE_INFO;
 
+typedef struct _UPLOAD_CONTEXT
+{
+    PPH_STRING FileName;
+    PPH_STRING WindowFileName;
+    ULONG Service;
+    HWND DialogHandle;
+    HWND MessageHandle;
+    HWND StatusHandle;
+    HWND ProgressHandle;
+    HFONT MessageFont;
+    HINTERNET HttpHandle;
+    PPH_STRING LaunchCommand;
+    PPH_STRING ErrorMessage;
+
+    PH_UPLOAD_SERVICE_STATE UploadServiceState;
+    HANDLE FileHandle;
+    ULONG TotalFileLength;
+    PPH_STRING BaseFileName;
+    PPH_STRING ObjectName;
+} UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
 
 // main
 extern PPH_PLUGIN PluginInstance;
