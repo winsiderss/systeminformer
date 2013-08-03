@@ -626,7 +626,105 @@ static NTSTATUS UploadWorkerThreadStart(
             }
             break;
         case UPLOAD_SERVICE_CIMA:
-            objectName = PhCreateString(serviceInfo->UploadObjectName);
+            {
+                PPH_STRING hashString = NULL;
+                PPH_STRING subObjectName = NULL;
+                PSTR quote = NULL;
+                ULONG bufferLength = 0;
+                UCHAR hash[32];
+                ULONG status = 0;
+                ULONG statusLength = sizeof(statusLength);
+
+                status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA256, hash);
+                if (!NT_SUCCESS(status))
+                {
+                    RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+                    __leave;
+                }
+
+                hashString = PhBufferToHexString(hash, 32);
+                subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);
+
+                // Connect to the CIMA online service.
+                if (!(connectHandle = WinHttpConnect(
+                    context->HttpHandle,
+                    serviceInfo->HostName,
+                    INTERNET_DEFAULT_HTTP_PORT,
+                    0
+                    )))
+                {
+                    RaiseUploadError(context, L"Unable to connect to the CIMA service", GetLastError());
+                    __leave;
+                }
+
+                // Create the request.
+                if (!(requestHandle = WinHttpOpenRequest(
+                    connectHandle,
+                    NULL, // GET
+                    subObjectName->Buffer,
+                    NULL,// HTTP/1.1
+                    WINHTTP_NO_REFERER,
+                    WINHTTP_DEFAULT_ACCEPT_TYPES,
+                    WINHTTP_FLAG_REFRESH
+                    )))
+                {
+                    RaiseUploadError(context, L"Unable to create the CIMA request", GetLastError());
+                    __leave;
+                }
+
+                // Send the request.
+                if (!WinHttpSendRequest(requestHandle, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0))
+                {
+                    RaiseUploadError(context, L"Unable to send the CIMA request", GetLastError());
+                    __leave;
+                }
+
+                // Wait for the send request to complete and recieve the response.
+                if (!WinHttpReceiveResponse(requestHandle, NULL))
+                {        
+                    RaiseUploadError(context, L"Unable to recieve the CIMA response", GetLastError());
+                    __leave;
+                }
+
+                WinHttpQueryHeaders(
+                    requestHandle,
+                    WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                    NULL,
+                    &status,
+                    &statusLength,
+                    NULL
+                    );
+
+                if (status == HTTP_STATUS_OK)
+                {
+                    // No upload needed; show the results immediately.
+                    context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
+                    
+                    PhDereferenceObject(hashString);
+                    PhDereferenceObject(subObjectName);
+                    WinHttpCloseHandle(requestHandle);
+                    WinHttpCloseHandle(connectHandle);
+
+                    if (context->DialogHandle && context->LaunchCommand)
+                    {
+                        PostMessage(context->DialogHandle, UM_LAUNCH_COMMAND, 0, 0);
+                        __leave;
+                    }
+                    else
+                    {
+                        RaiseUploadError(context, L"Unable to complete the LaunchCommand (please try again after a few minutes)", 0);
+                        __leave;
+                    }
+                }
+
+                WinHttpCloseHandle(requestHandle);
+                WinHttpCloseHandle(connectHandle);
+                PhDereferenceObject(hashString);
+                PhDereferenceObject(subObjectName);
+
+                // Create the default upload URL
+                objectName = PhCreateString(serviceInfo->UploadObjectName);
+            }
             break;
         default:
             {
@@ -743,8 +841,9 @@ static NTSTATUS UploadWorkerThreadStart(
             __leave;
         }
 
+#ifdef _DEBUG
         assert(ansiPostData->Length == totalPostHeaderWritten);
-
+#endif
         {
             ULONG uploadLength = 0;
             BYTE buffer[PAGE_SIZE];
@@ -811,8 +910,9 @@ static NTSTATUS UploadWorkerThreadStart(
             }
         }
 
+#ifdef _DEBUG
         assert(totalReadLength == totalFileLength);
-
+#endif
         // Write the footer bytes
         if (!WinHttpWriteData(
             requestHandle,
@@ -825,8 +925,9 @@ static NTSTATUS UploadWorkerThreadStart(
             __leave;
         }
 
-        assert(ansiFooterData->Length == totalPostFooterWritten);
-
+#ifdef _DEBUG
+        assert(ansiFooterData->Length == totalPostFooterWritten);    
+#endif
         // Wait for the send request to complete and recieve the response.
         if (!WinHttpReceiveResponse(requestHandle, NULL))
         {

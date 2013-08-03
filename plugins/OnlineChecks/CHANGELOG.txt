@@ -1,3 +1,6 @@
+1.5
+ * Added CIMA hash checking
+
 1.4
  * 2013-07-16: Added upload progress
  * 2012-07-16: Updated UI
