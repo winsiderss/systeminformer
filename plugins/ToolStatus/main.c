@@ -447,7 +447,7 @@ VOID ApplyToolbarSettings(
         {
             // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
             Edit_SetSel(TextboxHandle, 0, -1);
-            SetWindowText(TextboxHandle, L"");
+            Static_SetText(TextboxHandle, L"");
 
             DestroyWindow(TextboxHandle);
             TextboxHandle = NULL;
@@ -587,7 +587,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             case ID_SEARCH_CLEAR:
                 {
                     SetFocus(TextboxHandle);
-                    SetWindowText(TextboxHandle, L"");
+                    Static_SetText(TextboxHandle, L"");
 
                     goto DefaultWndProc;
                 }
