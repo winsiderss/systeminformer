@@ -153,7 +153,7 @@ static HFONT InitializeFont(
     HFONT fontHandle = NULL;
 
     logFont.lfHeight = 14;
-    logFont.lfWeight = FW_MEDIUM;
+    logFont.lfWeight = FW_NORMAL;
     logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
     
     // GDI uses the first font that matches the above attributes.
