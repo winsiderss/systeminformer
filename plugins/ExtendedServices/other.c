@@ -278,6 +278,8 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                         {
                             PhAddItemList(choices, PhaCreateStringEx(buffer[i].Name.Buffer, buffer[i].Name.Length)->Buffer);
                         }
+
+                        LsaFreeMemory(buffer);
                     }
 
                     LsaClose(policyHandle);
