@@ -1187,7 +1187,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             context->UpdaterState = PhUpdateDefault;
 
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
-            SetDlgItemText(hwndDlg, IDC_RELDATE, L"PH_INETFAILURE");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"No internet connection detected.");
 
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
