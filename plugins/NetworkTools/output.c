@@ -342,22 +342,46 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
         break;
     case NTM_RECEIVEDPING:
         {
+            OEM_STRING inputString;
+            UNICODE_STRING convertedString;
+            PH_STRING_BUILDER receivedString;
+
             if (wParam != 0)
             {
-                PPH_STRING inputString = (PPH_STRING)wParam;
+                inputString.Buffer = (PCHAR)lParam;
+                inputString.Length = (USHORT)wParam;
 
-                PhAppendStringBuilderEx(&context->ReceivedString, inputString->Buffer, inputString->Length);
-                PhDereferenceObject(inputString);
+                PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
 
-                SetDlgItemText(hwndDlg, IDC_NETOUTPUTEDIT, context->ReceivedString.String->Buffer);
-                SendMessage(
-                    GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT),
-                    EM_SETSEL,
-                    context->ReceivedString.String->Length / 2 - 1,
-                    context->ReceivedString.String->Length / 2 - 1
-                    );
-                SendMessage(GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), WM_VSCROLL, SB_BOTTOM, 0);
-                return TRUE;
+                if (NT_SUCCESS(RtlOemStringToUnicodeString(&convertedString, &inputString, TRUE)))
+                {
+                    SIZE_T i;
+
+                    // Remove leading newlines.
+                    for (i = 0; i < inputString.Length; i++)
+                    {
+                        if (inputString.Buffer[i] == '\n')
+                        {
+                            PhAppendStringBuilder(&receivedString, PhaCreateString(L"\r\n"));
+                        }
+                        else
+                        {
+                            PhAppendCharStringBuilder(&receivedString, inputString.Buffer[i]);
+                        }
+                    }
+
+                    SetDlgItemText(hwndDlg, IDC_NETOUTPUTEDIT, receivedString.String->Buffer);
+                    SendMessage(
+                        GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT),
+                        EM_SETSEL,
+                        receivedString.String->Length / 2 - 1,
+                        receivedString.String->Length / 2 - 1
+                        );
+                    SendMessage(GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), WM_VSCROLL, SB_BOTTOM, 0);
+
+                    PhDeleteStringBuilder(&receivedString);
+                    return TRUE;
+                }
             }
         }
         break;

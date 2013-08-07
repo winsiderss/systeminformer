@@ -86,17 +86,21 @@ NTSTATUS NetworkWhoisThreadStart(
     )
 {
     BOOLEAN isSuccess = FALSE;
-    mxml_node_t* xmlNode = NULL;
     ULONG xmlBufferLength = 0;
-    PSTR xmlStringBuffer = NULL;
+    PSTR xmlStringBuffer = NULL; 
+
+    PPH_STRING whoisHttpGetString = NULL;
     HINTERNET connectionHandle = NULL;
     HINTERNET requestHandle = NULL;
     HINTERNET sessionHandle = NULL;
+    mxml_node_t* xmlNode = NULL;
 
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
         
     Static_SetText(context->WindowHandle,   
         PhFormatString(L"Whois %s...", context->addressString)->Buffer);
+
+    whoisHttpGetString = PhFormatString(L"/rest/ip/%s.txt", context->addressString);
 
     __try
     {
@@ -140,8 +144,8 @@ NTSTATUS NetworkWhoisThreadStart(
 
         if (!(requestHandle = WinHttpOpenRequest(
             connectionHandle,
-            L"GET",
-            L"/rest/ip/203.161.102.1",
+            NULL,// GET
+            whoisHttpGetString->Buffer,
             NULL,
             WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,
@@ -166,22 +170,27 @@ NTSTATUS NetworkWhoisThreadStart(
         if (!ReadRequestString(requestHandle, &xmlStringBuffer, &xmlBufferLength))
             __leave;
 
-        {
-            PPH_STRING buffer = PhFormatString(
-                L"%hs\r\n\r\n", 
-                xmlStringBuffer
-                );
-            SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
-            isSuccess = TRUE;
-        }
+        SendMessage(
+            context->WindowHandle, 
+            NTM_RECEIVEDPING, 
+            (WPARAM)strlen(xmlStringBuffer), 
+            (LPARAM)xmlStringBuffer
+            );
+
+        isSuccess = TRUE;
     }
     __finally
     {
+        PhSwapReference(&whoisHttpGetString, NULL);
+
         if (requestHandle)
             WinHttpCloseHandle(requestHandle);
 
         if (connectionHandle)
             WinHttpCloseHandle(connectionHandle);
+
+        if (sessionHandle)
+            WinHttpCloseHandle(sessionHandle);
 
         if (xmlNode)
             mxmlDelete(xmlNode);
