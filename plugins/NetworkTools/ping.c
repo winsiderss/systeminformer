@@ -2,8 +2,7 @@
  * Process Hacker Network Tools -
  *   Ping dialog
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2013 dmex
+ * Copyright (C) 2013 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -31,6 +30,41 @@
 #include <iphlpapi.h>
 #include <icmpapi.h>
 
+ULONG64 PhGetAverage(
+    __in PULONG64 Buffer,
+    __in ULONG BufferSize,
+    __in ULONG BufferPosition,
+    __in ULONG BufferCount,
+    __in ULONG NumberToConsider
+    )
+{
+    ULONG64 sum;
+    ULONG i;
+    ULONG count;
+
+    sum = 0;
+    i = BufferPosition;
+
+    if (NumberToConsider > BufferCount)
+        NumberToConsider = BufferCount;
+
+    if (NumberToConsider == 0)
+        return 0;
+
+    count = NumberToConsider;
+
+    do
+    {
+        sum += Buffer[i];
+        i++;
+
+        if (i == BufferSize)
+            i = 0;
+    } while (--count != 0);
+
+    return sum / NumberToConsider;
+}
+
 NTSTATUS NetworkPingThreadStart(
     __in PVOID Parameter
     )
@@ -38,15 +72,18 @@ NTSTATUS NetworkPingThreadStart(
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
     
     ULONG i = 0;
-    
     WSADATA wsaData = { 0 };
     PPH_ANSI_STRING addrString;
     SOCKADDR_IN sock_in;
-   
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     PVOID replyBuffer = NULL;
     ULONG replyLength = 0;
     ULONG pingReplyCount = 0;
+    ULONG pingFirstMs = 0;
+    ULONG pingSecondMs = 0;
+    ULONG pingTotalMs = 0;
+    ULONG pingCount = 0;
+    ULONG pingSpeed = 0;
     PICMP_ECHO_REPLY icmpReplyStruct = NULL;
     IP_OPTION_INFORMATION pingOptions = { 0 };
 
@@ -55,44 +92,40 @@ NTSTATUS NetworkPingThreadStart(
 
     BOOLEAN isLookupEnabled = !!PhGetIntegerSetting(L"ProcessHacker.NetTools.EnableHostnameLookup");
     ULONG maxPingCount = max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingCount"), 1);
-   
-    addrString = PhCreateAnsiStringFromUnicode(context->addressString);
-    
+    ULONG maxPingTimeout = max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
+    ULONG maxPingReply = 0;
+
     Static_SetText(context->WindowHandle,   
         PhFormatString(L"Pinging %s...", context->addressString)->Buffer);
-   
+  
+    addrString = PhCreateAnsiStringFromUnicode(context->addressString);
     WSAStartup(WINSOCK_VERSION, &wsaData);
-    
+      
+    // This value indicates that the packet should not be fragmented.
+    //pingOptions.Flags = IP_FLAG_DF;
+    // Set the TTL field if we are doing a traceroute step.
+    pingOptions.Ttl = 128;
+
     if (context->NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
         icmpHandle = IcmpCreateFile();
 
         sock_in.sin_family = AF_INET;
         sock_in.sin_addr.s_addr = inet_addr(addrString->Buffer);
+        sock_in.sin_port = (USHORT)context->NetworkItem->RemoteEndpoint.Port;
     }
     else
-    {
+    {    
         icmpHandle = Icmp6CreateFile();
 
         sock_in.sin_family = AF_INET6;
     }
-
-    sock_in.sin_port = htons(_wtoi(context->NetworkItem->RemotePortString));
-
-    // This value indicates that the packet should not be fragmented.
-    pingOptions.Flags = IP_FLAG_DF;
-    // Set the TTL field if we are doing a traceroute step.
-    pingOptions.Ttl = 128;
-    
+  
     //Pinging 74.125.31.125 with 32 bytes of data:
     //Reply from 74.125.31.125: bytes=32 time=207ms TTL=37
     //Reply from 74.125.31.125: bytes=32 time=202ms TTL=38
     //Reply from 74.125.31.125: bytes=32 time=206ms TTL=37
     //Reply from 74.125.31.125: bytes=32 time=204ms TTL=38
-    //Ping statistics for 74.125.31.125:
-    //    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
-    //Approximate round trip times in milli-seconds:
-    //    Minimum = 202ms, Maximum = 207ms, Average = 204ms
 
     if (isLookupEnabled && GetNameInfo(
         (const PSOCKADDR)&sock_in, sizeof(SOCKADDR_IN),               
@@ -122,34 +155,29 @@ NTSTATUS NetworkPingThreadStart(
     for (i = 0; i < maxPingCount; i++)
     {  
         replyLength = sizeof(ICMP_ECHO_REPLY);
-        replyBuffer = PhAllocate(sizeof(ICMP_ECHO_REPLY));
+        replyBuffer = PhAllocate(replyLength);
 
-        memset(replyBuffer, '0xf2', replyLength);
+        memset(replyBuffer, 0, replyLength);
 
         // First ping with no data
         if ((pingReplyCount = IcmpSendEcho(
             icmpHandle,
             context->NetworkItem->RemoteEndpoint.Address.InAddr.S_un.S_addr,
-            NULL,
-            0,
+            NULL, 0,
             &pingOptions,
             replyBuffer,
             replyLength,
-            1000
+            maxPingTimeout * 1000
             )) == 0)
         {
-            PPH_STRING buffer = NULL;
-
             if (WSAGetLastError() == IP_REQ_TIMED_OUT)
             {
-                buffer = PhFormatString(L"Reply from %s: Timed out...\r\n" ,
-                    context->addressString
-                    );
+                PPH_STRING buffer = PhFormatString(L"Reply from %s: Timed out...\r\n" , context->addressString);
                 SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
             }
             else
             {         
-                buffer = PhFormatString(L"IcmpSendEcho failed: %d\r\n", WSAGetLastError());
+                PPH_STRING buffer = PhFormatString(L"IcmpSendEcho failed: %d\r\n", WSAGetLastError());
                 SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
             }
 
@@ -158,8 +186,6 @@ NTSTATUS NetworkPingThreadStart(
                 PhFree(replyBuffer);
                 replyBuffer = NULL;
             }
-
-            continue;
         }
 
         icmpReplyStruct = (PICMP_ECHO_REPLY)replyBuffer;
@@ -170,6 +196,8 @@ NTSTATUS NetworkPingThreadStart(
             // if (icmpReplyStruct->Address == context->Address.InAddr.S_un.S_addr) 
             // if (icmpReplyStruct->DataSize < max_size
             //if (!icmpReplyStruct->RoundTripTime) PPH_STRING buffer = PhFormatString(L"<1 ms  ");  
+            maxPingReply++;
+            pingFirstMs = icmpReplyStruct->RoundTripTime;
 
             switch (icmpReplyStruct->Status)
             {
@@ -185,6 +213,7 @@ NTSTATUS NetworkPingThreadStart(
                 }
                 break;
             case IP_REQ_TIMED_OUT:
+            default:
                 {
                     PPH_STRING buffer = PhFormatString(L"Reply from %s [%s]: Timed out...\r\n",
                         context->addressString,
@@ -193,17 +222,34 @@ NTSTATUS NetworkPingThreadStart(
                     SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
                 }
                 break;
-            default:
-                {
-                    PPH_STRING buffer = PhFormatString(
-                        L"icmpReplyStruct failed: %d\r\n", 
-                        icmpReplyStruct->Status
-                        );
-                    SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
-                }
-                break;
-            } 
+            }
         }
+
+        pingTotalMs += (pingSecondMs - pingFirstMs);
+        pingSecondMs = pingFirstMs;
+        pingCount++;
+    }
+
+    {
+        //Ping statistics for %s:
+        //    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+        //Approximate round trip times in milli-seconds:
+        //    Minimum = 202ms, Maximum = 207ms, Average = 204ms
+        PPH_STRING buffer = PhFormatString(
+            L"\r\nPing statistics for %s:\r\n"
+            L"    Packets: Sent = %d, Received = %d, Lost = %d (%f%% loss)\r\n", 
+            context->addressString,
+            pingCount,
+            maxPingReply,
+            pingCount - maxPingReply,
+            pingCount / maxPingCount
+            );
+        PPH_STRING buffer2 = PhFormatString(
+            L"Approximate round trip times in milli-seconds:\r\n"
+            L"    Minimum = 0ms, Maximum = 0ms, Average = 0ms\r\n"
+            );
+        SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
+        SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer2, 0);
     }
 
     if (replyBuffer)

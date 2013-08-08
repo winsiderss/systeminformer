@@ -2,8 +2,7 @@
  * Process Hacker Network Tools -
  *   Whois dialog
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2013 dmex
+ * Copyright (C) 2013 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,7 +23,6 @@
 #pragma comment(lib, "Winhttp.lib")
 
 #include "nettools.h"
-
 #include <mxml.h>
 #include <winhttp.h>
 
@@ -86,51 +84,50 @@ NTSTATUS NetworkWhoisThreadStart(
     )
 {
     BOOLEAN isSuccess = FALSE;
-    ULONG xmlBufferLength = 0;
-    PSTR xmlStringBuffer = NULL; 
-
+    ULONG xmlLength = 0;
+    PSTR xmlBuffer = NULL; 
+    PPH_STRING phVersion = NULL;
+    PPH_STRING userAgent = NULL;
     PPH_STRING whoisHttpGetString = NULL;
     HINTERNET connectionHandle = NULL;
     HINTERNET requestHandle = NULL;
     HINTERNET sessionHandle = NULL;
     mxml_node_t* xmlNode = NULL;
+    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
         
     Static_SetText(context->WindowHandle,   
         PhFormatString(L"Whois %s...", context->addressString)->Buffer);
 
+    //4.4.3. IP Addresses and Networks
+    // https://www.arin.net/resources/whoisrws/whois_api.html   
+    //TODO: use REF string from /rest/ip/ lookup for querying the IP network: "/rest/net/NET-74-125-0-0-1?showDetails=true"
+    // or use CIDR string from /rest/ip/ lookup for querying the IP network: "/rest/cidr/216.34.181.0/24?showDetails=true
+    //WinHttpAddRequestHeaders(requestHandle, L"application/arin.whoisrws-v1+xml", -1L, 0);
+
     whoisHttpGetString = PhFormatString(L"/rest/ip/%s.txt", context->addressString);
 
     __try
     {
-        // Reuse existing session?
-        //if (!Context->HttpSessionHandle)
-        PPH_STRING phVersion = NULL;
-        PPH_STRING userAgent = NULL;
-        WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-
         // Create a user agent string.
         phVersion = PhGetPhVersion();
-        userAgent = PhConcatStrings2(L"PH_", phVersion->Buffer);
+        userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer);
 
         // Query the current system proxy
         WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
         // Open the HTTP session with the system proxy configuration if available
-        sessionHandle = WinHttpOpen(
+        if (!(sessionHandle = WinHttpOpen(
             userAgent->Buffer,
             proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
             proxyConfig.lpszProxy,
             proxyConfig.lpszProxyBypass,
             0
-            );
-
-        PhSwapReference(&phVersion, NULL);
-        PhSwapReference(&userAgent, NULL);
-
-        if (!sessionHandle)
+            )))
+        {
             __leave;
+        }
 
         if (!(connectionHandle = WinHttpConnect(
             sessionHandle,
@@ -144,7 +141,7 @@ NTSTATUS NetworkWhoisThreadStart(
 
         if (!(requestHandle = WinHttpOpenRequest(
             connectionHandle,
-            NULL,// GET
+            NULL, // GET
             whoisHttpGetString->Buffer,
             NULL,
             WINHTTP_NO_REFERER,
@@ -154,6 +151,8 @@ NTSTATUS NetworkWhoisThreadStart(
         {
             __leave;
         }
+
+        //WinHttpAddRequestHeaders(requestHandle, L"Accept: text/plain", -1L, 0);
 
         if (!WinHttpSendRequest(
             requestHandle,
@@ -167,21 +166,19 @@ NTSTATUS NetworkWhoisThreadStart(
 
         if (!WinHttpReceiveResponse(requestHandle, NULL))
             __leave;
-        if (!ReadRequestString(requestHandle, &xmlStringBuffer, &xmlBufferLength))
+
+        if (!ReadRequestString(requestHandle, &xmlBuffer, &xmlLength))
             __leave;
 
-        SendMessage(
-            context->WindowHandle, 
-            NTM_RECEIVEDPING, 
-            (WPARAM)strlen(xmlStringBuffer), 
-            (LPARAM)xmlStringBuffer
-            );
+        SendMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, (WPARAM)xmlLength, (LPARAM)xmlBuffer);
 
         isSuccess = TRUE;
     }
     __finally
-    {
-        PhSwapReference(&whoisHttpGetString, NULL);
+    {    
+        PhSwapReference2(&phVersion, NULL);
+        PhSwapReference2(&userAgent, NULL);
+        PhSwapReference2(&whoisHttpGetString, NULL);
 
         if (requestHandle)
             WinHttpCloseHandle(requestHandle);
@@ -195,8 +192,8 @@ NTSTATUS NetworkWhoisThreadStart(
         if (xmlNode)
             mxmlDelete(xmlNode);
 
-        if (xmlStringBuffer)
-            PhFree(xmlStringBuffer);
+        if (xmlBuffer)
+            PhFree(xmlBuffer);
     }
 
     return STATUS_SUCCESS;
