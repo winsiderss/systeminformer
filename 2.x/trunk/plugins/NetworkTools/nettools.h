@@ -35,6 +35,16 @@
 
 #include "resource.h"
 
+// output
+#define NETWORK_ACTION_PING 1
+#define NETWORK_ACTION_TRACEROUTE 2
+#define NETWORK_ACTION_WHOIS 3
+#define NTM_RECEIVEDPING (WM_APP + NETWORK_ACTION_PING)
+#define NTM_RECEIVEDTRACE (WM_APP + NETWORK_ACTION_TRACEROUTE)
+#define NTM_RECEIVEDWHOIS (WM_APP + NETWORK_ACTION_WHOIS)
+
+extern PPH_PLUGIN PluginInstance;
+
 typedef struct _NETWORK_OUTPUT_CONTEXT
 {
     ULONG Action;
@@ -50,16 +60,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     WCHAR addressString[65];
     PH_STRING_BUILDER ReceivedString;
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
-
-// output
-#define NETWORK_ACTION_PING 1
-#define NETWORK_ACTION_TRACEROUTE 2
-#define NETWORK_ACTION_WHOIS 3
-#define NTM_DONE (WM_APP + 1)
-#define NTM_RECEIVED (WM_APP + 2)
-#define NTM_RECEIVEDPING (WM_APP + 3)
-
-extern PPH_PLUGIN PluginInstance;
 
 VOID PerformNetworkAction(
     __in ULONG Action,

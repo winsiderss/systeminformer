@@ -2,8 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2013 dmex
+ * Copyright (C) 2013 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -48,11 +47,18 @@ static NTSTATUS StdOutNetworkTracertThreadStart(
 
         if (!NT_SUCCESS(status))
         {
-            SendMessage(context->WindowHandle, NTM_DONE, 0, 0);
+            PPH_STRING windowText = PhGetWindowText(context->WindowHandle);
+
+            if (windowText)
+            {
+                Static_SetText(context->WindowHandle, PhFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
+                PhDereferenceObject(windowText);
+            }
+
             goto ExitCleanup;
         }
 
-        SendMessage(context->WindowHandle, NTM_RECEIVED, (WPARAM)isb.Information, (LPARAM)buffer);
+        SendMessage(context->WindowHandle, NTM_RECEIVEDTRACE, (WPARAM)isb.Information, (LPARAM)buffer);
     }
 
 ExitCleanup:

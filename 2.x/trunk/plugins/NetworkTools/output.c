@@ -182,18 +182,8 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                 MinimumSize.left = 0;
             }
 
-            // Implement cascading by saving an offsetted rectangle.
-            PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
-            MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top, windowRectangle.Width, windowRectangle.Height, FALSE);
-
-            windowRectangle.Left += 20;
-            windowRectangle.Top += 20;
-
-            PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", windowRectangle.Position);
-            PhSetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize", windowRectangle.Size);
-
             // Check for first-run default position.
-            if (windowRectangle.Position.X == 20 || windowRectangle.Position.Y == 20)
+            if (windowRectangle.Position.X == 0 || windowRectangle.Position.Y == 0)
             {
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             }
@@ -292,18 +282,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             }
         }
         break;
-    case NTM_DONE:
-        {
-            PPH_STRING windowText = PhGetWindowText(hwndDlg);
-
-            if (windowText)
-            {
-                Static_SetText(hwndDlg, PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
-                PhDereferenceObject(windowText);
-            }
-        }
-        return TRUE;
-    case NTM_RECEIVED:
+    case NTM_RECEIVEDTRACE:
         {
             OEM_STRING inputString;
             UNICODE_STRING convertedString;
@@ -319,10 +298,9 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                     RtlFreeUnicodeString(&convertedString);
 
                     // Remove leading newlines.
-                    if (
-                        context->ReceivedString.String->Length >= 2 * 2 &&
-                        context->ReceivedString.String->Buffer[0] == '\r' && context->ReceivedString.String->Buffer[1] == '\n'
-                        )
+                    if (context->ReceivedString.String->Length >= 2 * 2 &&
+                        context->ReceivedString.String->Buffer[0] == '\r' && 
+                        context->ReceivedString.String->Buffer[1] == '\n')
                     {
                         PhRemoveStringBuilder(&context->ReceivedString, 0, 2);
                     }
@@ -339,8 +317,40 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                 }
             }
         }
-        break;
+        break;   
     case NTM_RECEIVEDPING:
+        {
+            PPH_STRING inputString;
+
+            if (wParam != 0)
+            {
+                inputString = (PPH_STRING)wParam;
+                
+                //PhReferenceObject(inputString);
+                PhAppendStringBuilderEx(&context->ReceivedString, inputString->Buffer, inputString->Length);
+                PhDereferenceObject(inputString);
+
+                // Remove leading newlines.
+                if (context->ReceivedString.String->Length >= 2 * 2 &&
+                    context->ReceivedString.String->Buffer[0] == '\r' && 
+                    context->ReceivedString.String->Buffer[1] == '\n')
+                {
+                    PhRemoveStringBuilder(&context->ReceivedString, 0, 2);
+                }
+
+                SetDlgItemText(hwndDlg, IDC_NETOUTPUTEDIT, context->ReceivedString.String->Buffer);
+                SendMessage(
+                    GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT),
+                    EM_SETSEL,
+                    context->ReceivedString.String->Length / 2 - 1,
+                    context->ReceivedString.String->Length / 2 - 1
+                    );
+                SendMessage(GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), WM_VSCROLL, SB_BOTTOM, 0);
+                return TRUE;
+            }
+        }
+        break;
+    case NTM_RECEIVEDWHOIS:
         {
             OEM_STRING inputString;
             UNICODE_STRING convertedString;
@@ -357,17 +367,28 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                 {
                     SIZE_T i;
 
-                    // Remove leading newlines.
+                    // Remove leading newlines.                  
                     for (i = 0; i < inputString.Length; i++)
                     {
                         if (inputString.Buffer[i] == '\n')
                         {
                             PhAppendStringBuilder(&receivedString, PhaCreateString(L"\r\n"));
                         }
+                        else if (inputString.Buffer[i] == '#')
+                        {
+                            // Skip
+                        }
                         else
                         {
                             PhAppendCharStringBuilder(&receivedString, inputString.Buffer[i]);
                         }
+                    }
+
+                    if (receivedString.String->Length >= 2 * 2 &&
+                        receivedString.String->Buffer[0] == '\r' && 
+                        receivedString.String->Buffer[1] == '\n')
+                    {
+                        PhRemoveStringBuilder(&receivedString, 0, 4);
                     }
 
                     SetDlgItemText(hwndDlg, IDC_NETOUTPUTEDIT, receivedString.String->Buffer);
