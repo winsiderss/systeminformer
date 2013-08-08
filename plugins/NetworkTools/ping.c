@@ -75,14 +75,17 @@ NTSTATUS NetworkPingThreadStart(
     WSADATA wsaData = { 0 };
     PPH_ANSI_STRING addrString;
     SOCKADDR_IN sock_in;
+
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
-    PVOID replyBuffer = NULL;
-    ULONG replyLength = 0;
-    ULONG pingReplyCount = 0;
+    PVOID icmpReplyBuffer = NULL;
+    ULONG icmpReplyLength = 0;
+    ULONG icmpPingReplyCount = 0;
+
     ULONG pingFirstMs = 0;
     ULONG pingSecondMs = 0;
     ULONG pingTotalMs = 0;
-    ULONG pingCount = 0;
+    ULONG pingReplyCount = 0;
+    ULONG pingLossCount = 0;
     ULONG pingSpeed = 0;
     PICMP_ECHO_REPLY icmpReplyStruct = NULL;
     IP_OPTION_INFORMATION pingOptions = { 0 };
@@ -93,7 +96,6 @@ NTSTATUS NetworkPingThreadStart(
     BOOLEAN isLookupEnabled = !!PhGetIntegerSetting(L"ProcessHacker.NetTools.EnableHostnameLookup");
     ULONG maxPingCount = max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingCount"), 1);
     ULONG maxPingTimeout = max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
-    ULONG maxPingReply = 0;
 
     Static_SetText(context->WindowHandle,   
         PhFormatString(L"Pinging %s...", context->addressString)->Buffer);
@@ -154,22 +156,24 @@ NTSTATUS NetworkPingThreadStart(
     // Loop through the 3 sets of pings
     for (i = 0; i < maxPingCount; i++)
     {  
-        replyLength = sizeof(ICMP_ECHO_REPLY);
-        replyBuffer = PhAllocate(replyLength);
+        icmpReplyLength = sizeof(ICMP_ECHO_REPLY);
+        icmpReplyBuffer = PhAllocate(icmpReplyLength);
 
-        memset(replyBuffer, 0, replyLength);
+        memset(icmpReplyBuffer, 0, icmpReplyLength);
 
         // First ping with no data
-        if ((pingReplyCount = IcmpSendEcho(
+        if ((icmpPingReplyCount = IcmpSendEcho(
             icmpHandle,
             context->NetworkItem->RemoteEndpoint.Address.InAddr.S_un.S_addr,
             NULL, 0,
             &pingOptions,
-            replyBuffer,
-            replyLength,
+            icmpReplyBuffer,
+            icmpReplyLength,
             maxPingTimeout * 1000
             )) == 0)
         {
+            pingLossCount++;
+
             if (WSAGetLastError() == IP_REQ_TIMED_OUT)
             {
                 PPH_STRING buffer = PhFormatString(L"Reply from %s: Timed out...\r\n" , context->addressString);
@@ -181,14 +185,14 @@ NTSTATUS NetworkPingThreadStart(
                 SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
             }
 
-            if (replyBuffer)
+            if (icmpReplyBuffer)
             {
-                PhFree(replyBuffer);
-                replyBuffer = NULL;
+                PhFree(icmpReplyBuffer);
+                icmpReplyBuffer = NULL;
             }
         }
 
-        icmpReplyStruct = (PICMP_ECHO_REPLY)replyBuffer;
+        icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
         if (icmpReplyStruct)
         {
@@ -196,7 +200,6 @@ NTSTATUS NetworkPingThreadStart(
             // if (icmpReplyStruct->Address == context->Address.InAddr.S_un.S_addr) 
             // if (icmpReplyStruct->DataSize < max_size
             //if (!icmpReplyStruct->RoundTripTime) PPH_STRING buffer = PhFormatString(L"<1 ms  ");  
-            maxPingReply++;
             pingFirstMs = icmpReplyStruct->RoundTripTime;
 
             switch (icmpReplyStruct->Status)
@@ -220,6 +223,8 @@ NTSTATUS NetworkPingThreadStart(
                         hostname
                         );
                     SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
+
+                    pingLossCount++;
                 }
                 break;
             }
@@ -227,7 +232,7 @@ NTSTATUS NetworkPingThreadStart(
 
         pingTotalMs += (pingSecondMs - pingFirstMs);
         pingSecondMs = pingFirstMs;
-        pingCount++;
+        pingReplyCount++;
     }
 
     {
@@ -237,35 +242,30 @@ NTSTATUS NetworkPingThreadStart(
         //    Minimum = 202ms, Maximum = 207ms, Average = 204ms
         PPH_STRING buffer = PhFormatString(
             L"\r\nPing statistics for %s:\r\n"
-            L"    Packets: Sent = %d, Received = %d, Lost = %d (%f%% loss)\r\n", 
+            L"    Packets: Sent = %d, Received = %d, Lost = %d (%.2f%% loss)\r\n", 
             context->addressString,
-            pingCount,
-            maxPingReply,
-            pingCount - maxPingReply,
-            pingCount / maxPingCount
+            maxPingCount,
+            pingReplyCount,
+            pingReplyCount - maxPingCount,
+            (FLOAT)pingLossCount / maxPingCount
             );
         PPH_STRING buffer2 = PhFormatString(
             L"Approximate round trip times in milli-seconds:\r\n"
-            L"    Minimum = 0ms, Maximum = 0ms, Average = 0ms\r\n"
+            L"    Minimum = 0ms, Maximum = 0ms, Average = 0ms\r\n\r\n"
             );
         SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
         SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer2, 0);
     }
 
-    if (replyBuffer)
+    if (icmpReplyBuffer)
     {
-        PhFree(replyBuffer);
-        replyBuffer = NULL;
+        PhFree(icmpReplyBuffer);
+        icmpReplyBuffer = NULL;
     }
 
     IcmpCloseHandle(icmpHandle);
     WSACleanup();
 
-    {
-        PPH_STRING buffer = PhFormatString(L"\r\n");
-        SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
-        Button_Enable(GetDlgItem(context->WindowHandle, IDC_NETRETRY), TRUE);
-    }
-
+    Button_Enable(GetDlgItem(context->WindowHandle, IDC_NETRETRY), TRUE);
     return STATUS_SUCCESS;
 }
