@@ -172,23 +172,11 @@ NTSTATUS NetworkPingThreadStart(
             maxPingTimeout * 1000
             )) == 0)
         {
-            pingLossCount++;
-
-            if (WSAGetLastError() == IP_REQ_TIMED_OUT)
-            {
-                PPH_STRING buffer = PhFormatString(L"Reply from %s: Timed out...\r\n" , context->addressString);
-                SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
-            }
-            else
-            {         
+            if (WSAGetLastError() != IP_REQ_TIMED_OUT)
+            {     
                 PPH_STRING buffer = PhFormatString(L"IcmpSendEcho failed: %d\r\n", WSAGetLastError());
                 SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
-            }
-
-            if (icmpReplyBuffer)
-            {
-                PhFree(icmpReplyBuffer);
-                icmpReplyBuffer = NULL;
+                continue;
             }
         }
 
@@ -215,13 +203,9 @@ NTSTATUS NetworkPingThreadStart(
                     SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0); 
                 }
                 break;
-            case IP_REQ_TIMED_OUT:
-            default:
+            default: // case IP_REQ_TIMED_OUT:
                 {
-                    PPH_STRING buffer = PhFormatString(L"Reply from %s [%s]: Timed out...\r\n",
-                        context->addressString,
-                        hostname
-                        );
+                    PPH_STRING buffer = PhFormatString(L"Reply from %s: Timed out...\r\n" , context->addressString);
                     SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
 
                     pingLossCount++;
@@ -242,12 +226,12 @@ NTSTATUS NetworkPingThreadStart(
         //    Minimum = 202ms, Maximum = 207ms, Average = 204ms
         PPH_STRING buffer = PhFormatString(
             L"\r\nPing statistics for %s:\r\n"
-            L"    Packets: Sent = %d, Received = %d, Lost = %d (%.2f%% loss)\r\n", 
+            L"    Packets: Sent = %d, Received = %d, Lost = %d (%.0f%% loss)\r\n", 
             context->addressString,
             maxPingCount,
             pingReplyCount,
-            pingReplyCount - maxPingCount,
-            (FLOAT)pingLossCount / maxPingCount
+            pingLossCount,
+            (FLOAT)(pingLossCount / maxPingCount) * 100.0f
             );
         PPH_STRING buffer2 = PhFormatString(
             L"Approximate round trip times in milli-seconds:\r\n"
