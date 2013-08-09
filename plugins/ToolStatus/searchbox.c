@@ -535,6 +535,127 @@ HBITMAP LoadImageFromResources(
     return bitmapHandle;
 }
 
+HBITMAP LoadScaledImageFromResources(  
+    __in UINT Width,
+    __in UINT Height,
+    __in LPCTSTR Name,
+    __in LPCTSTR Type
+    )
+{
+    UINT width = 0;
+    UINT height = 0;
+    UINT frameCount = 0;
+    ULONG resLength = 0;
+    HRSRC resHandleSrc = NULL;
+    HGLOBAL resHandle = NULL;
+    BITMAPINFO bitmapInfo = { 0 };
+    HBITMAP bitmapHandle = NULL;
+    HDC bitmapHdc = NULL; 
+    BYTE* bitmapBuffer = NULL;
+    IWICStream* wicStream = NULL;
+    IWICBitmapSource* wicBitmap = NULL;
+    IWICBitmapDecoder* wicDecoder = NULL;
+    IWICBitmapFrameDecode* wicFrame = NULL;
+    IWICBitmapScaler* wicScaler = NULL;
+    WICInProcPointer pvSourceResourceData = NULL;
+
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static IWICImagingFactory* wicFactory = NULL;
+
+    __try
+    {
+        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, Type)) == NULL)
+            __leave;
+        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
+            __leave;
+        if ((pvSourceResourceData = (WICInProcPointer)LockResource(resHandle)) == NULL)
+            __leave;
+
+        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+            {
+                PhEndInitOnce(&initOnce);
+                __leave;
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
+            __leave;
+        if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
+            __leave;
+        if (FAILED(IWICStream_InitializeFromMemory(wicStream, pvSourceResourceData, resLength)))
+            __leave;
+        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
+            __leave;
+        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount != 1)
+            __leave;
+        if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
+            __leave;
+        if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap)))
+            __leave;
+        if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
+           __leave;
+
+        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bitmapInfo.bmiHeader.biWidth = Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biBitCount = 32;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+        bitmapHdc = GetDC(NULL);
+
+        if ((bitmapHandle = CreateDIBSection(bitmapHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
+        {
+            WICRect rect = { 0, 0, Width, Height };
+
+            if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
+                __leave;
+            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, Width, Height, WICBitmapInterpolationModeFant)))
+                __leave;
+            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
+                __leave;
+        }        
+    }
+    __finally
+    {
+        if (bitmapHdc)
+        {
+            ReleaseDC(NULL, bitmapHdc);
+        }
+
+        if (wicBitmap)
+        {
+            IWICBitmapSource_Release(wicBitmap);
+        }
+
+        if (wicFrame)
+        {
+            IWICBitmapFrameDecode_Release(wicFrame);
+        }
+        
+        if (wicStream)
+        {
+            IWICStream_Release(wicStream);
+        }
+
+        if (wicDecoder)
+        {
+            IWICBitmapDecoder_Release(wicDecoder);
+        }
+
+        //if (wicFactory)
+        //IWICImagingFactory_Release(wicFactory);
+    }
+
+    return bitmapHandle;
+}
+
 BOOLEAN InsertButton(
     __in HWND hwndDlg,
     __in UINT CommandID

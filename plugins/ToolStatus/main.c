@@ -345,13 +345,13 @@ VOID ApplyToolbarSettings(
             // Set the number of images
             ImageList_SetImageCount(ToolBarImageList, 7);
             // Add the images to the imagelist - same index as the first tbButtonArray field
-            ImageList_Replace(ToolBarImageList, 0, LoadImageFromResources(MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 1, LoadImageFromResources(MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 2, LoadImageFromResources(MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 3, LoadImageFromResources(MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 4, LoadImageFromResources(MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 5, LoadImageFromResources(MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 0, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 1, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 2, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 3, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 4, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 5, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
+            ImageList_Replace(ToolBarImageList, 6, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
             // Configure the toolbar imagelist
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
             // Add the buttons to the toolbar

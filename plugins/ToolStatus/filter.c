@@ -279,15 +279,10 @@ BOOLEAN ProcessTreeFilterCallback(
             {
                 showItem = processNode->ProcessItem->IsSuspended == TRUE;
             }
-            
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow32"))
-            {
-                showItem = processNode->ProcessItem->IsWow64 == TRUE;
-            }
 
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow64"))
             {
-                showItem = processNode->ProcessItem->IsWow64 == FALSE;
+                showItem = processNode->ProcessItem->IsWow64 == TRUE;
             }
 
             if (WSTR_IEQUAL(textboxText->Buffer, L"IsImmersive"))

@@ -89,8 +89,15 @@ BOOLEAN NetworkTreeFilterCallback(
     );
 
 HBITMAP LoadImageFromResources(
-    __in LPCTSTR lpName,
-    __in LPCTSTR lpType
+    __in LPCTSTR Name,
+    __in LPCTSTR Type
+    );
+
+HBITMAP LoadScaledImageFromResources(  
+    __in UINT Width,
+    __in UINT Height,
+    __in LPCTSTR Name,
+    __in LPCTSTR Type
     );
 
 typedef HRESULT (WINAPI *_GetThemeColor)(
