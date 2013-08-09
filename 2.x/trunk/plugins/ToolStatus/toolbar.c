@@ -22,6 +22,19 @@
 
 #include "toolstatus.h"
 
+static TBBUTTON ButtonArray[9] =
+{
+    { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+    { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
+    { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 }
+};
+
 static HFONT InitializeFont(
     __in HWND hwndDlg
     )
@@ -158,19 +171,6 @@ VOID ApplyToolbarSettings(
     VOID
     )
 {
-    static TBBUTTON tbButtonArray[9] =
-    {
-        { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-        { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-        { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-        { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-        { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-        { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-        { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-        { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 }
-    };
-
     if (EnableToolBar)
     {
         if (!ReBarHandle)
@@ -193,6 +193,8 @@ VOID ApplyToolbarSettings(
             // no imagelist to attach to rebar
             SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
             //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+
+            PhAddLayoutItem(&LayoutManager, ReBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
         }
 
         if (!ToolBarHandle)
@@ -232,7 +234,7 @@ VOID ApplyToolbarSettings(
             // Configure the toolbar imagelist
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
             // Add the buttons to the toolbar
-            SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(tbButtonArray), (LPARAM)tbButtonArray);
+            SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
 
             // inset the toolbar into the rebar control
             RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
@@ -354,6 +356,8 @@ VOID ApplyToolbarSettings(
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
+
+            PhAddLayoutItem(&LayoutManager, StatusBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
         }
     }
     else
