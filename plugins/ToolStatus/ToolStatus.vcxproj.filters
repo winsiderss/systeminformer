@@ -30,18 +30,15 @@
     <ClCompile Include="searchbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolbar.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="toolstatus.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="searchbox.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="statusbar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

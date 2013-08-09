@@ -22,12 +22,7 @@
 
 // dmex: The non-client area subclassing code has been modified based on the following guide:
 // http://www.catch22.net/tuts/insert-buttons-edit-control
-#define CINTERFACE
-#define COBJMACROS
-#define INITGUID
-
 #include "toolstatus.h"
-#include "searchbox.h"
 
 #include <Wincodec.h>
 #include <uxtheme.h>
@@ -432,7 +427,6 @@ HBITMAP LoadImageFromResources(
     HGLOBAL resHandle = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
-    HDC bitmapHdc = NULL; 
     BYTE* bitmapBuffer = NULL;
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
@@ -441,6 +435,7 @@ HBITMAP LoadImageFromResources(
     IWICBitmapScaler* wicScaler = NULL;
     WICInProcPointer pvSourceResourceData = NULL;
 
+    static HDC bitmapHdc = NULL; 
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static IWICImagingFactory* wicFactory = NULL;
 
@@ -463,6 +458,7 @@ HBITMAP LoadImageFromResources(
                 __leave;
             }
 
+            bitmapHdc = GetDC(NULL);
             PhEndInitOnce(&initOnce);
         }
 
@@ -490,8 +486,6 @@ HBITMAP LoadImageFromResources(
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        bitmapHdc = GetDC(NULL);
-
         if ((bitmapHandle = CreateDIBSection(bitmapHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
         {
             const UINT cbStride = width * 4;  
@@ -503,11 +497,6 @@ HBITMAP LoadImageFromResources(
     }
     __finally
     {
-        if (bitmapHdc)
-        {
-            ReleaseDC(NULL, bitmapHdc);
-        }
-
         if (wicBitmap)
         {
             IWICBitmapSource_Release(wicBitmap);
@@ -528,8 +517,8 @@ HBITMAP LoadImageFromResources(
             IWICBitmapDecoder_Release(wicDecoder);
         }
 
-        //if (wicFactory)
-        //IWICImagingFactory_Release(wicFactory);
+        // ReleaseDC(NULL, bitmapHdc);
+        // IWICImagingFactory_Release(wicFactory);
     }
 
     return bitmapHandle;
@@ -550,7 +539,6 @@ HBITMAP LoadScaledImageFromResources(
     HGLOBAL resHandle = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
-    HDC bitmapHdc = NULL; 
     BYTE* bitmapBuffer = NULL;
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
@@ -559,6 +547,7 @@ HBITMAP LoadScaledImageFromResources(
     IWICBitmapScaler* wicScaler = NULL;
     WICInProcPointer pvSourceResourceData = NULL;
 
+    static HDC bitmapHdc = NULL; 
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static IWICImagingFactory* wicFactory = NULL;
 
@@ -581,6 +570,7 @@ HBITMAP LoadScaledImageFromResources(
                 __leave;
             }
 
+            bitmapHdc = GetDC(NULL);
             PhEndInitOnce(&initOnce);
         }
 
@@ -608,8 +598,6 @@ HBITMAP LoadScaledImageFromResources(
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        bitmapHdc = GetDC(NULL);
-
         if ((bitmapHandle = CreateDIBSection(bitmapHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
         {
             WICRect rect = { 0, 0, Width, Height };
@@ -624,11 +612,6 @@ HBITMAP LoadScaledImageFromResources(
     }
     __finally
     {
-        if (bitmapHdc)
-        {
-            ReleaseDC(NULL, bitmapHdc);
-        }
-
         if (wicBitmap)
         {
             IWICBitmapSource_Release(wicBitmap);
@@ -649,8 +632,8 @@ HBITMAP LoadScaledImageFromResources(
             IWICBitmapDecoder_Release(wicDecoder);
         }
 
-        //if (wicFactory)
-        //IWICImagingFactory_Release(wicFactory);
+        // ReleaseDC(NULL, bitmapHdc);
+        // IWICImagingFactory_Release(wicFactory);
     }
 
     return bitmapHandle;

@@ -22,7 +22,6 @@
  */
 
 #include "toolstatus.h"
-#include "statusbar.h"
 
 HWND StatusBarHandle;
 ULONG StatusMask;
