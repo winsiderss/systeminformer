@@ -50,7 +50,7 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN EnableSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
-static PH_LAYOUT_MANAGER LayoutManager;   
+PH_LAYOUT_MANAGER LayoutManager;   
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -250,8 +250,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
                 if (hdr->code == RBN_HEIGHTCHANGE)
                 {
-                    // HACK: Invoke LayoutPaddingCallback and adjust rebar hright for multiple toolbar rows.
-                    PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+                    // HACK: Invoke LayoutPaddingCallback and adjust rebar height for multiple toolbar rows.
+                    PostMessage(hWnd, WM_SIZE, 0, 0);
                 }
 
                 goto DefaultWndProc;
@@ -485,7 +485,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SIZE:
         {
+            // Resize our plugin controls.
             PhLayoutManagerLayout(&LayoutManager);
+            // Resize PH main window client-area.
             ProcessHacker_InvalidateLayoutPadding(hWnd);
         }
         break;
@@ -501,7 +503,7 @@ static VOID NTAPI MainWindowShowingCallback(
      __in_opt PVOID Parameter,
      __in_opt PVOID Context
     )
-{           
+{
     PhInitializeLayoutManager(&LayoutManager, PhMainWndHandle);
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
     PhRegisterCallback(
@@ -512,10 +514,7 @@ static VOID NTAPI MainWindowShowingCallback(
         );
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 
-    ApplyToolbarSettings();   
-
-    PhAddLayoutItem(&LayoutManager, ReBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-    PhAddLayoutItem(&LayoutManager, StatusBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+    ApplyToolbarSettings();
 }
 
 static VOID NTAPI LoadCallback(
