@@ -79,6 +79,7 @@ extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableStatusBar;
 extern BOOLEAN EnableSearch;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
+extern PH_LAYOUT_MANAGER LayoutManager;  
 
 extern HWND StatusBarHandle;
 extern ULONG StatusMask;
