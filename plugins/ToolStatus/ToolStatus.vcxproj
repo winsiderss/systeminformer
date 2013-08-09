@@ -163,11 +163,10 @@
     <ClCompile Include="options.c" />
     <ClCompile Include="filter.c" />
     <ClCompile Include="statusbar.c" />
+    <ClCompile Include="toolbar.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="searchbox.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="statusbar.h" />
     <ClInclude Include="toolstatus.h" />
   </ItemGroup>
   <ItemGroup>

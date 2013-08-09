@@ -24,6 +24,9 @@
 #ifndef TOOLSTATUS_H
 #define TOOLSTATUS_H
 
+#define CINTERFACE
+#define COBJMACROS
+#define INITGUID
 #include <phdk.h>
 #include <phapppub.h>
 #include <phplug.h>
@@ -31,7 +34,6 @@
 #include <windowsx.h>
 
 #include "resource.h"
-#include "searchbox.h"
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
@@ -39,6 +41,11 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
     SelectiveText = 1,
     AllText = 2
 } TOOLBAR_DISPLAY_STYLE;
+
+#define IDC_MENU_REBAR 55400
+#define IDC_MENU_REBAR_TOOLBAR 55401
+#define IDC_MENU_REBAR_SEARCH 55402
+#define ID_SEARCH_CLEAR (WM_USER + 1)
 
 #define TIDC_FINDWINDOW (WM_USER + 1)
 #define TIDC_FINDWINDOWTHREAD (WM_USER + 2)
@@ -59,10 +66,30 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 #define STATUS_MAXIMUM 0x400
 
 extern PPH_PLUGIN PluginInstance;
+extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
+extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
+extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
+extern HACCEL AcceleratorTable;
+extern HWND ReBarHandle;
+extern HWND ToolBarHandle;
+extern HWND TextboxHandle;
+extern HFONT TextboxFontHandle;
+extern HIMAGELIST ToolBarImageList;
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableStatusBar;
 extern BOOLEAN EnableSearch;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
+
+extern HWND StatusBarHandle;
+extern ULONG StatusMask;
+extern ULONG ProcessesUpdatedCount;
+
+VOID UpdateStatusBar(
+    VOID
+    );
+VOID ShowStatusMenu(
+    __in PPOINT Point
+    );
 
 VOID ApplyToolbarSettings(
     VOID
@@ -98,6 +125,11 @@ HBITMAP LoadScaledImageFromResources(
     __in UINT Height,
     __in LPCTSTR Name,
     __in LPCTSTR Type
+    );
+
+BOOLEAN InsertButton(
+    __in HWND WindowHandle,
+    __in UINT CmdId
     );
 
 typedef HRESULT (WINAPI *_GetThemeColor)(
