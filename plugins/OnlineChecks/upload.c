@@ -167,15 +167,12 @@ static VOID RaiseUploadError(
     PhSwapReference(&Context->ErrorMessage, NULL);
     PhSwapReference(&Context->ErrorStatusMessage, NULL);
 
-    if (ErrorCode)
-    {
-        Context->ErrorMessage = PhFormatString(L"Error: [%u] %s", ErrorCode, Error);
-        Context->ErrorStatusMessage = PhGetWinHttpMessage(ErrorCode);
+    Context->ErrorMessage = PhFormatString(L"Error: [%u] %s", ErrorCode, Error);
+    Context->ErrorStatusMessage = PhGetWinHttpMessage(ErrorCode);
 
-        if (Context->DialogHandle)
-        {
-            PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
-        }
+    if (Context->DialogHandle)
+    {
+        PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
     }
 }
 
@@ -739,7 +736,7 @@ static NTSTATUS UploadFileThreadStart(
         }
         else
         {
-            RaiseUploadError(context, L"Unable to complete the Launch request (please try again after a few minutes)", 0);
+            RaiseUploadError(context, L"Unable to complete the Launch request (please try again after a few minutes)", ERROR_INVALID_DATA);
             __leave;
         }
     }
@@ -894,7 +891,7 @@ static NTSTATUS UploadCheckThreadStart(
                 uploadUrl = strstr(subRequestBuffer, "\"upload_url\": \"https://www.virustotal.com");
                 if (!uploadUrl)
                 {
-                    RaiseUploadError(context, L"Unable to complete the request (no upload URL provided)", 0);
+                    RaiseUploadError(context, L"Unable to complete the request (no upload URL provided)", ERROR_INVALID_DATA);
                     __leave;
                 }
 
@@ -902,7 +899,7 @@ static NTSTATUS UploadCheckThreadStart(
                 quote = strchr(uploadUrl, '"');
                 if (!quote)
                 {
-                    RaiseUploadError(context, L"Unable to complete the request (invalid upload URL)", 0);
+                    RaiseUploadError(context, L"Unable to complete the request (invalid upload URL)", ERROR_INVALID_DATA);
                     __leave;
                 }
 
@@ -1249,11 +1246,8 @@ INT_PTR CALLBACK UploadDlgProc(
             Static_SetText(GetDlgItem(hwndDlg, IDNO), L"No");
             Control_Visible(GetDlgItem(hwndDlg, IDYES), TRUE);
 
-            if (!PhIsNullOrEmptyString(context->LaunchCommand))
-            {
-                Static_SetText(context->MessageHandle, L"File already analysed.");
-                Static_SetText(context->StatusHandle, L"View existing report?");
-            }
+            Static_SetText(context->MessageHandle, L"File already analysed.");
+            Static_SetText(context->StatusHandle, L"View existing report?"); 
         }
         break;
     case UM_LAUNCH:
