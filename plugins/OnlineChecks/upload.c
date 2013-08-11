@@ -560,7 +560,7 @@ static NTSTATUS UploadFileThreadStart(
             totalUploadedLength += totalWriteLength;
             {
                 time_t time_taken = (time(NULL) - timeTransferred);
-                time_t bps = totalUploadedLength / (time_taken ? time_taken : 1);
+                time_t bps = totalUploadedLength / __max(time_taken, 1);
                 //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
 
                 PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, -1);
@@ -629,7 +629,7 @@ static NTSTATUS UploadFileThreadStart(
                         PPH_STRING buffer = PhCreateStringEx(NULL, bufferLength);
 
                         // Use WinHttpQueryOption again, this time to retrieve the URL in the new buffer
-                        if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Data, &bufferLength))
+                        if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Buffer, &bufferLength))
                         {
                             // Format the retrieved URL...
                             context->LaunchCommand = PhFormatString(L"%s", buffer->Buffer);
