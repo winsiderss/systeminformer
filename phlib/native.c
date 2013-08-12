@@ -5199,7 +5199,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
     __out_opt PULONG Flags
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     HANDLE processHandle;
     ULONG flags;
 #ifdef _M_X64
@@ -5256,7 +5256,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
             if (Flags)
                 *Flags = PH_CLR_VERSION_4_ABOVE;
 
-            return TRUE;
+            return STATUS_SUCCESS;
         }
 
         // Version 2 section object
@@ -5290,7 +5290,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
             if (Flags)
                 *Flags = PH_CLR_VERSION_2_0;
 
-            return TRUE;
+            return STATUS_SUCCESS;
         }
     }
 
