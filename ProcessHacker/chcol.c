@@ -125,7 +125,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             ULONG count;
             ULONG total;
             ULONG i;
-            PPH_LIST displayOrderList;
+            PPH_LIST displayOrderList = NULL;
 
             context->InactiveList = GetDlgItem(hwndDlg, IDC_INACTIVE);
             context->ActiveList = GetDlgItem(hwndDlg, IDC_ACTIVE);
@@ -173,17 +173,20 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 qsort(displayOrderList->Items, displayOrderList->Count, sizeof(PVOID), PhpColumnsCompareDisplayIndexTn);
             }
 
-            for (i = 0; i < displayOrderList->Count; i++)
+            if (displayOrderList)
             {
-                if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
+                for (i = 0; i < displayOrderList->Count; i++)
                 {
-                    PPH_TREENEW_COLUMN copy = displayOrderList->Items[i];
+                    if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
+                    {
+                        PPH_TREENEW_COLUMN copy = displayOrderList->Items[i];
 
-                    ListBox_AddString(context->ActiveList, copy->Text);
+                        ListBox_AddString(context->ActiveList, copy->Text);
+                    }
                 }
-            }
 
-            PhDereferenceObject(displayOrderList);
+                PhDereferenceObject(displayOrderList);
+            }
 
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveList);
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveList);
