@@ -4242,12 +4242,14 @@ ULONG PhGetPrimeNumber(
             if (i % j == 0)
             {
                 // Not a prime.
-                continue;
+                goto NextPrime;
             }
         }
 
         // Success.
         return i;
+NextPrime:
+        NOTHING;
     }
 
     return Minimum;
