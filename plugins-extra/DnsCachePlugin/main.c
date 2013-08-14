@@ -23,8 +23,8 @@
 #define INET_ADDRSTRLEN     22
 #define INET6_ADDRSTRLEN    65
 
-#include "phdk.h"
-#include "phappresource.h"
+#include <phdk.h>
+#include <phappresource.h>
 #include "resource.h"
 
 #pragma comment(lib, "Ws2_32.lib")
