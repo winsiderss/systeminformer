@@ -49,6 +49,7 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
 PH_LAYOUT_MANAGER LayoutManager;   
+PPH_STRING SearchText = NULL;
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -190,6 +191,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
             case EN_CHANGE:
                 {
+                    // Cache the current search text for our callback.
+                    PhSwapReference2(&SearchText, PhGetWindowText(TextboxHandle));
+
                     // Expand the nodes so we can search them
                     PhExpandAllProcessNodes(TRUE);
                     PhDeselectAllProcessNodes();
@@ -513,7 +517,6 @@ static VOID NTAPI MainWindowShowingCallback(
         );
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 
-    InitializeToolbar();
     LoadToolbarSettings();
 }
 

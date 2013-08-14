@@ -89,10 +89,11 @@ static VOID RebarRemoveMenuItem(
     SendMessage(WindowHandle, RB_DELETEBAND, (WPARAM)bandId, 0);
 }
 
-VOID InitializeToolbar(
+static VOID RebarLoadSettings(
     VOID
     )
 {
+    // Load the Rebar, Toolbar and Searchbox controls.
     if (EnableToolBar && !ReBarHandle)
     {
         REBARINFO rebarInfo = { sizeof(REBARINFO) };
@@ -148,10 +149,6 @@ VOID InitializeToolbar(
             (HINSTANCE)PluginInstance->DllBase,
             NULL
             );
- 
-        ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
-        ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
-        NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
         // Set the toolbar info with no imagelist.
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
@@ -187,8 +184,13 @@ VOID InitializeToolbar(
 
         // Insert the Rebar control into our main-window layout.
         PhAddLayoutItem(&LayoutManager, ReBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+
+        ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
+        ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
+        NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
     }
 
+    // Load the Statusbar control.
     if (EnableStatusBar && !StatusBarHandle)
     {
         // Create the StatusBar window.
@@ -206,71 +208,9 @@ VOID InitializeToolbar(
         PhAddLayoutItem(&LayoutManager, StatusBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
     }
 
-    // Enable all themes:
-    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
-    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
-
-    //if (ToolBarHandle)
-    //{
-    //    DestroyWindow(ToolBarHandle);
-    //    ToolBarHandle = NULL;
-    //    RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_TOOLBAR);
-    //}
-    //if (ToolBarImageList)
-    //{
-    //    ImageList_Destroy(ToolBarImageList);
-    //    ToolBarImageList = NULL;
-    //}
-    //if (ReBarHandle)
-    //{
-    //    DestroyWindow(ReBarHandle);
-    //    ReBarHandle = NULL;
-    //}
-    //if (TextboxHandle)
-    //{
-    //    // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
-    //    Edit_SetSel(TextboxHandle, 0, -1);
-    //    Static_SetText(TextboxHandle, L"");
-    //    DestroyWindow(TextboxHandle);
-    //    TextboxHandle = NULL;
-    //    RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_SEARCH);
-    //}
-    //if (TextboxFontHandle)
-    //{
-    //    DeleteObject(TextboxFontHandle);
-    //    TextboxFontHandle = NULL;
-    //}
-    //if (StatusBarHandle)
-    //{
-    //    DestroyWindow(StatusBarHandle);
-    //    StatusBarHandle = NULL;
-    //}
-    //if (NetworkTreeFilterEntry)
-    //{
-    //    PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), NetworkTreeFilterEntry);
-    //    NetworkTreeFilterEntry = NULL;
-    //}
-    //if (ServiceTreeFilterEntry)
-    //{
-    //    PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ServiceTreeFilterEntry);
-    //    ServiceTreeFilterEntry = NULL;
-    //}
-    //if (ProcessTreeFilterEntry)
-    //{
-    //    PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
-    //    ProcessTreeFilterEntry = NULL;
-    //}
-}
-
-VOID LoadToolbarSettings(
-    VOID
-    )
-{
+    // Hide or show controls (Note: don't unload or remove at runtime).
     if (EnableToolBar)
     {
-        if (!ReBarHandle)
-            InitializeToolbar();
-
         if (ReBarHandle)
             ShowWindow(ReBarHandle, SW_SHOW);
     }
@@ -282,9 +222,6 @@ VOID LoadToolbarSettings(
 
     if (EnableStatusBar)
     {  
-        if (!StatusBarHandle)
-            InitializeToolbar();
-
         if (StatusBarHandle)
             ShowWindow(StatusBarHandle, SW_SHOW);
     }
@@ -293,6 +230,17 @@ VOID LoadToolbarSettings(
         if (StatusBarHandle)
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
+
+    // Enable all themes:
+    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
+    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+}
+
+VOID LoadToolbarSettings(
+    VOID
+    )
+{
+    RebarLoadSettings();
 
     if (EnableToolBar && ToolBarHandle)
     {
@@ -345,8 +293,6 @@ VOID LoadToolbarSettings(
                 break;
             case SelectiveText:
                 {
-                    button.fsStyle = BTNS_AUTOSIZE;
-
                     switch (button.idCommand)
                     {
                     case PHAPP_ID_VIEW_REFRESH:
@@ -354,6 +300,9 @@ VOID LoadToolbarSettings(
                     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
                     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
                         button.fsStyle = BTNS_SHOWTEXT;
+                        break;
+                    default:
+                        button.fsStyle = BTNS_AUTOSIZE;
                         break;
                     }
                 }
