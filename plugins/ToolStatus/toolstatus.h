@@ -77,7 +77,6 @@ extern HFONT TextboxFontHandle;
 extern HIMAGELIST ToolBarImageList;
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableStatusBar;
-extern BOOLEAN EnableSearch;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern PH_LAYOUT_MANAGER LayoutManager;  
 
@@ -91,8 +90,10 @@ VOID UpdateStatusBar(
 VOID ShowStatusMenu(
     __in PPOINT Point
     );
-
-VOID ApplyToolbarSettings(
+VOID InitializeToolbar(
+    VOID
+    );
+VOID LoadToolbarSettings(
     VOID
     );
 

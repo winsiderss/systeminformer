@@ -52,257 +52,228 @@ BOOLEAN ProcessTreeFilterCallback(
     __in_opt PVOID Context
     )
 {
-    HWND textboxHandle = (HWND)Context;
+    BOOLEAN showItem = FALSE;
+    PPH_STRING textboxText = NULL;
+    PH_STRINGREF stringRef;
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
-    PPH_STRING textboxText = PhGetWindowText(textboxHandle);
 
-    if (textboxText)
+    textboxText = PhGetWindowText(TextboxHandle);
+
+    if (PhIsNullOrEmptyString(textboxText))
+        return TRUE;
+
+    if (processNode->ProcessItem->ProcessName)
     {
-        if (textboxText->Length > 0)
-        {
-            BOOLEAN showItem = FALSE;
-
-            if (processNode->ProcessItem->ProcessName)
-            {
-                if (WordMatch(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->FileName)
-            {
-                if (WordMatch(&processNode->ProcessItem->FileName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->CommandLine)
-            {
-                if (WordMatch(&processNode->ProcessItem->CommandLine->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->VersionInfo.CompanyName)
-            {
-                if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->VersionInfo.FileDescription)
-            {
-                if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->VersionInfo.FileVersion)
-            {
-                if (WordMatch(&processNode->ProcessItem->VersionInfo.FileVersion->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->VersionInfo.ProductName)
-            {
-                if (WordMatch(&processNode->ProcessItem->VersionInfo.ProductName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->UserName)
-            {
-                if (WordMatch(&processNode->ProcessItem->UserName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->IntegrityString)
-            {
-                PH_STRINGREF stringRef;
-
-                PhInitializeStringRef(&stringRef, processNode->ProcessItem->IntegrityString);
-
-                if (WordMatch(&stringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->JobName)
-            {
-                if (WordMatch(&processNode->ProcessItem->JobName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->VerifySignerName)
-            {
-                if (WordMatch(&processNode->ProcessItem->VerifySignerName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->ProcessIdString)
-            {
-                PH_STRINGREF pidStringRef;
-
-                PhInitializeStringRef(&pidStringRef, processNode->ProcessItem->ProcessIdString);
-
-                if (WordMatch(&pidStringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->ParentProcessIdString)
-            {
-                PH_STRINGREF stringRef;
-
-                PhInitializeStringRef(&stringRef, processNode->ProcessItem->ParentProcessIdString);
-
-                if (WordMatch(&stringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->SessionIdString)
-            {
-                PH_STRINGREF stringRef;
-
-                PhInitializeStringRef(&stringRef, processNode->ProcessItem->SessionIdString);
-
-                if (WordMatch(&stringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (processNode->ProcessItem->PackageFullName)
-            {
-                if (WordMatch(&processNode->ProcessItem->PackageFullName->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-   
-            if (WINDOWS_HAS_UAC)
-            {
-                PH_STRINGREF elevationTypeStringRef;
-
-                switch (processNode->ProcessItem->ElevationType)
-                {
-                case TokenElevationTypeLimited:
-                    PhInitializeStringRef(&elevationTypeStringRef, L"Limited");
-                    break;
-                case TokenElevationTypeFull:
-                    PhInitializeStringRef(&elevationTypeStringRef, L"Full");
-                    break;
-                default:
-                case TokenElevationTypeDefault:
-                    PhInitializeStringRef(&elevationTypeStringRef, L"N/A");
-                    break;
-                }
-
-                if (WordMatch(&elevationTypeStringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            {
-                PH_STRINGREF verifyResultStringRef;
-
-                switch (processNode->ProcessItem->VerifyResult)
-                {
-                case VrNoSignature:
-                    PhInitializeStringRef(&verifyResultStringRef, L"NoSignature");
-                    break;
-                case VrTrusted:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Trusted");
-                    break;
-                case VrExpired:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Expired");
-                    break;
-                case VrRevoked:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Revoked");
-                    break;
-                case VrDistrust:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Distrust");
-                    break;
-                case VrSecuritySettings:
-                    PhInitializeStringRef(&verifyResultStringRef, L"SecuritySettings");
-                    break;
-                case VrBadSignature:
-                    PhInitializeStringRef(&verifyResultStringRef, L"BadSignature");
-                    break;
-                default:
-                case VrUnknown:
-                    PhInitializeStringRef(&verifyResultStringRef, L"Unknown");
-                    break;
-                }
-
-                if (WordMatch(&verifyResultStringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            {
-                PH_STRINGREF stringRef;
-
-                PhInitializeStringRef(&stringRef, PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass));
-
-                if (WordMatch(&stringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"UpdateIsDotNet"))
-            {
-                showItem = processNode->ProcessItem->UpdateIsDotNet == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsBeingDebugged"))
-            {
-                showItem = processNode->ProcessItem->IsBeingDebugged == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsDotNet"))
-            {
-                showItem = processNode->ProcessItem->IsDotNet == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsElevated"))
-            {
-                showItem = processNode->ProcessItem->IsElevated == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsInJob"))
-            {
-                showItem = processNode->ProcessItem->IsInJob == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsInSignificantJob"))
-            {
-                showItem = processNode->ProcessItem->IsInSignificantJob == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsPacked"))
-            {
-                showItem = processNode->ProcessItem->IsPacked == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsPosix"))
-            {
-                showItem = processNode->ProcessItem->IsPosix == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsSuspended"))
-            {
-                showItem = processNode->ProcessItem->IsSuspended == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow64"))
-            {
-                showItem = processNode->ProcessItem->IsWow64 == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsImmersive"))
-            {
-                showItem = processNode->ProcessItem->IsImmersive == TRUE;
-            }
-
-            if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow64Valid"))
-            {
-                showItem = processNode->ProcessItem->IsWow64Valid == TRUE;
-            }
-
-            PhDereferenceObject(textboxText);
-            return showItem;
-        }
-
-        PhDereferenceObject(textboxText);
+        if (WordMatch(&processNode->ProcessItem->ProcessName->sr, &textboxText->sr))
+            showItem = TRUE;
     }
 
-    return TRUE;
+    if (processNode->ProcessItem->FileName)
+    {
+        if (WordMatch(&processNode->ProcessItem->FileName->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->CommandLine)
+    {
+        if (WordMatch(&processNode->ProcessItem->CommandLine->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->VersionInfo.CompanyName)
+    {
+        if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->VersionInfo.FileDescription)
+    {
+        if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->VersionInfo.FileVersion)
+    {
+        if (WordMatch(&processNode->ProcessItem->VersionInfo.FileVersion->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->VersionInfo.ProductName)
+    {
+        if (WordMatch(&processNode->ProcessItem->VersionInfo.ProductName->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->UserName)
+    {
+        if (WordMatch(&processNode->ProcessItem->UserName->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->IntegrityString)
+    {
+        PhInitializeStringRef(&stringRef, processNode->ProcessItem->IntegrityString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->JobName)
+    {
+        if (WordMatch(&processNode->ProcessItem->JobName->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->VerifySignerName)
+    {
+        if (WordMatch(&processNode->ProcessItem->VerifySignerName->sr, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->ProcessIdString)
+    {
+        PhInitializeStringRef(&stringRef, processNode->ProcessItem->ProcessIdString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->ParentProcessIdString)
+    {
+        PhInitializeStringRef(&stringRef, processNode->ProcessItem->ParentProcessIdString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->SessionIdString)
+    {
+        PhInitializeStringRef(&stringRef, processNode->ProcessItem->SessionIdString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (processNode->ProcessItem->PackageFullName)
+    {
+        PhInitializeStringRef(&stringRef, processNode->ProcessItem->PackageFullName->Buffer);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (WINDOWS_HAS_UAC)
+    {
+        switch (processNode->ProcessItem->ElevationType)
+        {
+        case TokenElevationTypeLimited:
+            PhInitializeStringRef(&stringRef, L"Limited");
+            break;
+        case TokenElevationTypeFull:
+            PhInitializeStringRef(&stringRef, L"Full");
+            break;
+        default:
+        case TokenElevationTypeDefault:
+            PhInitializeStringRef(&stringRef, L"N/A");
+            break;
+        }
+
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    switch (processNode->ProcessItem->VerifyResult)
+    {
+    case VrNoSignature:
+        PhInitializeStringRef(&stringRef, L"NoSignature");
+        break;
+    case VrTrusted:
+        PhInitializeStringRef(&stringRef, L"Trusted");
+        break;
+    case VrExpired:
+        PhInitializeStringRef(&stringRef, L"Expired");
+        break;
+    case VrRevoked:
+        PhInitializeStringRef(&stringRef, L"Revoked");
+        break;
+    case VrDistrust:
+        PhInitializeStringRef(&stringRef, L"Distrust");
+        break;
+    case VrSecuritySettings:
+        PhInitializeStringRef(&stringRef, L"SecuritySettings");
+        break;
+    case VrBadSignature:
+        PhInitializeStringRef(&stringRef, L"BadSignature");
+        break;
+    default:
+    case VrUnknown:
+        PhInitializeStringRef(&stringRef, L"Unknown");
+        break;
+    }
+    if (WordMatch(&stringRef, &textboxText->sr))
+        showItem = TRUE;
+
+    PhInitializeStringRef(&stringRef, PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass));
+    if (WordMatch(&stringRef, &textboxText->sr))
+        showItem = TRUE;
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"UpdateIsDotNet"))
+    {
+        showItem = processNode->ProcessItem->UpdateIsDotNet == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsBeingDebugged"))
+    {
+        showItem = processNode->ProcessItem->IsBeingDebugged == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsDotNet"))
+    {
+        showItem = processNode->ProcessItem->IsDotNet == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsElevated"))
+    {
+        showItem = processNode->ProcessItem->IsElevated == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsInJob"))
+    {
+        showItem = processNode->ProcessItem->IsInJob == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsInSignificantJob"))
+    {
+        showItem = processNode->ProcessItem->IsInSignificantJob == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsPacked"))
+    {
+        showItem = processNode->ProcessItem->IsPacked == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsPosix"))
+    {
+        showItem = processNode->ProcessItem->IsPosix == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsSuspended"))
+    {
+        showItem = processNode->ProcessItem->IsSuspended == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow64"))
+    {
+        showItem = processNode->ProcessItem->IsWow64 == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsImmersive"))
+    {
+        showItem = processNode->ProcessItem->IsImmersive == TRUE;
+    }
+
+    if (WSTR_IEQUAL(textboxText->Buffer, L"IsWow64Valid"))
+    {
+        showItem = processNode->ProcessItem->IsWow64Valid == TRUE;
+    }
+
+    PhDereferenceObject(textboxText);
+    return showItem;
 }
 
 BOOLEAN ServiceTreeFilterCallback(
@@ -310,68 +281,55 @@ BOOLEAN ServiceTreeFilterCallback(
     __in_opt PVOID Context
     )
 {
-    HWND textboxHandle = (HWND)Context;
+    BOOLEAN showItem = FALSE;
+    PPH_STRING textboxText = NULL;
+    PH_STRINGREF stringRef;
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
-    PPH_STRING textboxText = PhGetWindowText(textboxHandle);
 
-    if (textboxText)
+    textboxText = PhGetWindowText(TextboxHandle);
+
+    if (PhIsNullOrEmptyString(textboxText))
+        return TRUE;
+
+    PhInitializeStringRef(&stringRef, PhGetServiceTypeString(serviceNode->ServiceItem->Type));
+    if (WordMatch(&stringRef, &textboxText->sr))
+        showItem = TRUE;
+
+    PhInitializeStringRef(&stringRef, PhGetServiceStateString(serviceNode->ServiceItem->State));
+    if (WordMatch(&stringRef, &textboxText->sr))
+        showItem = TRUE;
+
+    PhInitializeStringRef(&stringRef, PhGetServiceStartTypeString(serviceNode->ServiceItem->StartType));
+    if (WordMatch(&stringRef, &textboxText->sr))
+        showItem = TRUE;
+
+    PhInitializeStringRef(&stringRef, PhGetServiceErrorControlString(serviceNode->ServiceItem->ErrorControl));
+    if (WordMatch(&stringRef, &textboxText->sr))
+        showItem = TRUE;
+
+    if (serviceNode->ServiceItem->Name)
     {
-        if (textboxText->Length > 0)
-        {
-            BOOLEAN showItem = FALSE;
-            PH_STRINGREF typeStringRef;
-            PH_STRINGREF stateStringRef;
-            PH_STRINGREF startTypeStringRef;
-            PH_STRINGREF errorControlStringRef;
-
-            PhInitializeStringRef(&typeStringRef, PhGetServiceTypeString(serviceNode->ServiceItem->Type));
-            PhInitializeStringRef(&stateStringRef, PhGetServiceStateString(serviceNode->ServiceItem->State));
-            PhInitializeStringRef(&startTypeStringRef, PhGetServiceStartTypeString(serviceNode->ServiceItem->StartType));
-            PhInitializeStringRef(&errorControlStringRef, PhGetServiceErrorControlString(serviceNode->ServiceItem->ErrorControl));
-
-            if (WordMatch(&typeStringRef, &textboxText->sr))
-                showItem = TRUE;
-            if (WordMatch(&stateStringRef, &textboxText->sr))
-                showItem = TRUE;
-            if (WordMatch(&startTypeStringRef, &textboxText->sr))
-                showItem = TRUE;
-            if (WordMatch(&errorControlStringRef, &textboxText->sr))
-                showItem = TRUE;
-
-            if (serviceNode->ServiceItem->Name)
-            {
-                if (WordMatch(&serviceNode->ServiceItem->Name->sr, &textboxText->sr))
-                {
-                    showItem = TRUE;
-                }
-            }
-
-            if (serviceNode->ServiceItem->DisplayName)
-            {
-                if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr, &textboxText->sr))
-                {
-                    showItem = TRUE;
-                }
-            }
-
-            if (serviceNode->ServiceItem->ProcessIdString)
-            {
-                PH_STRINGREF pidStringRef;
-
-                PhInitializeStringRef(&pidStringRef, serviceNode->ServiceItem->ProcessIdString);
-
-                if (WordMatch(&pidStringRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            PhDereferenceObject(textboxText);
-            return showItem;
-        }
-
-        PhDereferenceObject(textboxText);
+        PhInitializeStringRef(&stringRef, serviceNode->ServiceItem->Name->Buffer);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
     }
 
-    return TRUE;
+    if (serviceNode->ServiceItem->DisplayName)
+    {
+        PhInitializeStringRef(&stringRef, serviceNode->ServiceItem->DisplayName->Buffer);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (serviceNode->ServiceItem->ProcessIdString)
+    {
+        PhInitializeStringRef(&stringRef, serviceNode->ServiceItem->ProcessIdString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    PhDereferenceObject(textboxText);
+    return showItem;
 }
 
 BOOLEAN NetworkTreeFilterCallback(
@@ -379,102 +337,81 @@ BOOLEAN NetworkTreeFilterCallback(
     __in_opt PVOID Context
     )
 {
-    HWND textboxHandle = (HWND)Context;
+    BOOLEAN showItem = FALSE;
+    PPH_STRING textboxText = NULL;
+    PH_STRINGREF stringRef;
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
-    PPH_STRING textboxText = PhGetWindowText(textboxHandle);
 
-    if (textboxText)
+    textboxText = PhGetWindowText(TextboxHandle);
+
+    if (PhIsNullOrEmptyString(textboxText))
+        return TRUE;
+
+    if (networkNode->NetworkItem->ProcessName)
     {
-        if (textboxText->Length > 0)
-        {
-            BOOLEAN showItem = FALSE;
-            PH_STRINGREF pidStringRef;
-            WCHAR pidString[32];
-
-            PhPrintUInt32(pidString, (ULONG)networkNode->NetworkItem->ProcessId);
-            PhInitializeStringRef(&pidStringRef, pidString);
-
-            if (WordMatch(&pidStringRef, &textboxText->sr))
-            {
-                showItem = TRUE;
-            }
-
-            if (networkNode->NetworkItem->ProcessName)
-            {
-                if (WordMatch(&networkNode->NetworkItem->ProcessName->sr, &textboxText->sr))
-                {
-                    showItem = TRUE;
-                }
-            }
-
-            if (networkNode->NetworkItem->OwnerName)
-            {
-                if (WordMatch(&networkNode->NetworkItem->OwnerName->sr, &textboxText->sr))
-                {
-                    showItem = TRUE;
-                }
-            }
-
-            if (networkNode->NetworkItem->LocalAddressString)
-            {
-                PH_STRINGREF localAddressRef;
-
-                PhInitializeStringRef(&localAddressRef, networkNode->NetworkItem->LocalAddressString);
-
-                if (WordMatch(&localAddressRef, &textboxText->sr))
-                {
-                    showItem = TRUE;
-                }
-            }
-
-            if (networkNode->NetworkItem->LocalPortString)
-            {
-                PH_STRINGREF localPortRef;
-
-                PhInitializeStringRef(&localPortRef, networkNode->NetworkItem->LocalPortString);
-
-                if (WordMatch(&localPortRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (networkNode->NetworkItem->LocalHostString)
-            {
-                if (WordMatch(&networkNode->NetworkItem->LocalHostString->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (networkNode->NetworkItem->RemoteAddressString)
-            {
-                PH_STRINGREF remoteAddressRef;
-
-                PhInitializeStringRef(&remoteAddressRef, networkNode->NetworkItem->RemoteAddressString);
-
-                if (WordMatch(&remoteAddressRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (networkNode->NetworkItem->RemotePortString)
-            {
-                PH_STRINGREF remotePortRef;
-
-                PhInitializeStringRef(&remotePortRef, networkNode->NetworkItem->RemotePortString);
-
-                if (WordMatch(&remotePortRef, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            if (networkNode->NetworkItem->RemoteHostString)
-            {
-                if (WordMatch(&networkNode->NetworkItem->RemoteHostString->sr, &textboxText->sr))
-                    showItem = TRUE;
-            }
-
-            PhDereferenceObject(textboxText);
-            return showItem;
-        }
-
-        PhDereferenceObject(textboxText);
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->ProcessName->Buffer);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
     }
 
-    return TRUE;
+    if (networkNode->NetworkItem->OwnerName)
+    {
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->OwnerName->Buffer);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (networkNode->NetworkItem->LocalAddressString)
+    {
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->LocalAddressString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (networkNode->NetworkItem->LocalPortString)
+    {
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->LocalPortString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (networkNode->NetworkItem->LocalHostString)
+    {
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->LocalHostString->Buffer);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (networkNode->NetworkItem->RemoteAddressString)
+    {
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->RemoteAddressString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (networkNode->NetworkItem->RemotePortString)
+    {
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->RemotePortString);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    if (networkNode->NetworkItem->RemoteHostString)
+    {
+        PhInitializeStringRef(&stringRef, networkNode->NetworkItem->RemoteHostString->Buffer);
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    {
+        WCHAR pidString[32];
+        PhPrintUInt32(pidString, HandleToUlong(networkNode->NetworkItem->ProcessId));
+        PhInitializeStringRef(&stringRef, pidString);
+
+        if (WordMatch(&stringRef, &textboxText->sr))
+            showItem = TRUE;
+    }
+
+    PhDereferenceObject(textboxText);
+    return showItem;
 }
