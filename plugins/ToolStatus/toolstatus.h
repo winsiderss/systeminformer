@@ -79,6 +79,7 @@ extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableStatusBar;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern PH_LAYOUT_MANAGER LayoutManager;  
+extern PPH_STRING SearchText;
 
 extern HWND StatusBarHandle;
 extern ULONG StatusMask;
@@ -89,9 +90,6 @@ VOID UpdateStatusBar(
     );
 VOID ShowStatusMenu(
     __in PPOINT Point
-    );
-VOID InitializeToolbar(
-    VOID
     );
 VOID LoadToolbarSettings(
     VOID
