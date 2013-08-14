@@ -22,6 +22,7 @@
 
 #include "toolstatus.h"
 
+static HIMAGELIST ToolBarImageList;
 static TBBUTTON ButtonArray[9] =
 {
     { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
@@ -88,284 +89,288 @@ static VOID RebarRemoveMenuItem(
     SendMessage(WindowHandle, RB_DELETEBAND, (WPARAM)bandId, 0);
 }
 
-static VOID SetRebarMenuLayout(
+VOID InitializeToolbar(
     VOID
     )
 {
-    ULONG index = 0;
-    ULONG buttonCount = 0;
-
-    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-
-    for (index = 0; index < buttonCount; index++)
+    if (EnableToolBar && !ReBarHandle)
     {
-        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-        button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
+        REBARINFO rebarInfo = { sizeof(REBARINFO) };
 
-        // Get settings for first button
-        SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button);
+        // Create the toolbar imagelist
+        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
+        // Set the number of images
+        ImageList_SetImageCount(ToolBarImageList, 7);
+        // Add the images to the imagelist - same index as the first tbButtonArray field
+        ImageList_Replace(ToolBarImageList, 0, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 1, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 2, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 3, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 4, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 5, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 6, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
 
-        // Skip separator buttons
-        if (button.fsStyle == BTNS_SEP)
-            continue;
+        // Create the ReBar window.
+        ReBarHandle = CreateWindowEx(
+            WS_EX_TOOLWINDOW,
+            REBARCLASSNAME,
+            NULL,
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_FIXEDORDER, //  | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT 
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            PhMainWndHandle,
+            (HMENU)IDC_MENU_REBAR,
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
 
-        switch (button.idCommand)
-        {
-        case PHAPP_ID_VIEW_REFRESH:
-            button.pszText = L"Refresh";
-            break;
-        case PHAPP_ID_HACKER_OPTIONS:
-            button.pszText = L"Options";
-            break;
-        case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
-            button.pszText = L"Find Handles or DLLs";
-            break;
-        case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-            button.pszText = L"System Information";
-            break;
-        case TIDC_FINDWINDOW:
-            button.pszText = L"Find Window";
-            break;
-        case TIDC_FINDWINDOWTHREAD:
-            button.pszText = L"Find Window and Thread";
-            break;
-        case TIDC_FINDWINDOWKILL:
-            button.pszText = L"Find Window and Kill";
-            break;
-        }
+        // Create the ToolBar window.
+        ToolBarHandle = CreateWindowEx(
+            0,
+            TOOLBARCLASSNAME,
+            NULL,
+            WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            ReBarHandle,
+            (HMENU)IDC_MENU_REBAR_TOOLBAR,
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
 
-        switch (DisplayStyle)
-        {
-        case ImageOnly:
-            button.fsStyle = BTNS_AUTOSIZE;
-            break;
-        case SelectiveText:
-            {
-                button.fsStyle = BTNS_AUTOSIZE;
+        // Create the SearchBox window.
+        TextboxHandle = CreateWindowEx(
+            WS_EX_CLIENTEDGE,
+            WC_EDIT,
+            NULL,
+            WS_CHILD | WS_VISIBLE | ES_LEFT,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            ReBarHandle,
+            (HMENU)IDC_MENU_REBAR_SEARCH,
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
+ 
+        ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
+        ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
+        NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-                switch (button.idCommand)
-                {
-                case PHAPP_ID_VIEW_REFRESH:
-                case PHAPP_ID_HACKER_OPTIONS:
-                case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
-                case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-                    button.fsStyle = BTNS_SHOWTEXT;
-                    break;
-                }
-            }
-            break;
-        default:
-            button.fsStyle = BTNS_SHOWTEXT;
-            break;
-        }
+        // Set the toolbar info with no imagelist.
+        SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 
-        // Set updated button info
-        SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&button);
+        // Set the toolbar struct size.
+        SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+
+        // Set the toolbar extended toolbar styles.
+        SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
+
+        // Configure the toolbar imagelist.
+        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+
+        // Add the buttons to the toolbar.
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
+
+        // Set Searchbox control font
+        TextboxFontHandle = InitializeFont(TextboxHandle);
+
+        // Set initial text
+        SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
+
+        // Reset the client area margins.
+        SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
+
+        // Insert a paint region into the edit control NC window area
+        InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+
+        // Inset the toolbar into the rebar control
+        RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
+        // Insert the edit control into the rebar control
+        RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
+
+        // Insert the Rebar control into our main-window layout.
+        PhAddLayoutItem(&LayoutManager, ReBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
     }
 
-    // Resize the toolbar
-    SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+    if (EnableStatusBar && !StatusBarHandle)
+    {
+        // Create the StatusBar window.
+        StatusBarHandle = CreateWindowEx(
+            0,
+            STATUSCLASSNAME,
+            NULL,
+            WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            PhMainWndHandle,
+            NULL,
+            (HINSTANCE)PluginInstance->DllBase,
+            NULL
+            );
+        PhAddLayoutItem(&LayoutManager, StatusBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+    }
+
+    // Enable all themes:
+    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
+    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+
+    //if (ToolBarHandle)
+    //{
+    //    DestroyWindow(ToolBarHandle);
+    //    ToolBarHandle = NULL;
+    //    RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_TOOLBAR);
+    //}
+    //if (ToolBarImageList)
+    //{
+    //    ImageList_Destroy(ToolBarImageList);
+    //    ToolBarImageList = NULL;
+    //}
+    //if (ReBarHandle)
+    //{
+    //    DestroyWindow(ReBarHandle);
+    //    ReBarHandle = NULL;
+    //}
+    //if (TextboxHandle)
+    //{
+    //    // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
+    //    Edit_SetSel(TextboxHandle, 0, -1);
+    //    Static_SetText(TextboxHandle, L"");
+    //    DestroyWindow(TextboxHandle);
+    //    TextboxHandle = NULL;
+    //    RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_SEARCH);
+    //}
+    //if (TextboxFontHandle)
+    //{
+    //    DeleteObject(TextboxFontHandle);
+    //    TextboxFontHandle = NULL;
+    //}
+    //if (StatusBarHandle)
+    //{
+    //    DestroyWindow(StatusBarHandle);
+    //    StatusBarHandle = NULL;
+    //}
+    //if (NetworkTreeFilterEntry)
+    //{
+    //    PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), NetworkTreeFilterEntry);
+    //    NetworkTreeFilterEntry = NULL;
+    //}
+    //if (ServiceTreeFilterEntry)
+    //{
+    //    PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ServiceTreeFilterEntry);
+    //    ServiceTreeFilterEntry = NULL;
+    //}
+    //if (ProcessTreeFilterEntry)
+    //{
+    //    PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
+    //    ProcessTreeFilterEntry = NULL;
+    //}
 }
 
-VOID ApplyToolbarSettings(
+VOID LoadToolbarSettings(
     VOID
     )
 {
     if (EnableToolBar)
     {
         if (!ReBarHandle)
-        {
-            REBARINFO rebarInfo = { sizeof(REBARINFO) };
-
-            // Create the rebar
-            ReBarHandle = CreateWindowEx(
-                WS_EX_TOOLWINDOW,
-                REBARCLASSNAME,
-                NULL,
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT | RBS_FIXEDORDER,
-                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                PhMainWndHandle,
-                (HMENU)IDC_MENU_REBAR,
-                (HINSTANCE)PluginInstance->DllBase,
-                NULL
-                );
-
-            // no imagelist to attach to rebar
-            SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
-            //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
-
-            PhAddLayoutItem(&LayoutManager, ReBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-        }
-
-        if (!ToolBarHandle)
-        {
-            // Create the toolbar window
-            ToolBarHandle = CreateWindowEx(
-                0,
-                TOOLBARCLASSNAME,
-                NULL,
-                WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS,
-                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                PhMainWndHandle,
-                (HMENU)IDC_MENU_REBAR_TOOLBAR,
-                (HINSTANCE)PluginInstance->DllBase,
-                NULL
-                );
-
-            // Set the toolbar struct size
-            SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-            // Set the extended toolbar styles
-            SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-            // Set the window theme
-            //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
-
-            // Create the toolbar imagelist
-            ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
-            // Set the number of images
-            ImageList_SetImageCount(ToolBarImageList, 7);
-            // Add the images to the imagelist - same index as the first tbButtonArray field
-            ImageList_Replace(ToolBarImageList, 0, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 1, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 2, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 3, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 4, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 5, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
-            ImageList_Replace(ToolBarImageList, 6, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
-            // Configure the toolbar imagelist
-            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
-            // Add the buttons to the toolbar
-            SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
-
-            // inset the toolbar into the rebar control
-            RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
-        }
-
-        SetRebarMenuLayout();
-    }
-    else
-    {
-        // temp HACK
-        EnableSearch = FALSE;
-
-        if (ToolBarHandle)
-        {
-            DestroyWindow(ToolBarHandle);
-            ToolBarHandle = NULL;
-
-            RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_TOOLBAR);
-        }
-
-        if (ToolBarImageList)
-        {
-            ImageList_Destroy(ToolBarImageList);
-            ToolBarImageList = NULL;
-        }
+            InitializeToolbar();
 
         if (ReBarHandle)
-        {
-            DestroyWindow(ReBarHandle);
-            ReBarHandle = NULL;
-        }
-    }
-
-    if (EnableSearch)
-    {
-        if (!TextboxHandle)
-        {
-            TextboxHandle = CreateWindowEx(
-                WS_EX_CLIENTEDGE,
-                WC_EDIT,
-                NULL,
-                WS_CHILD | WS_VISIBLE | ES_LEFT, // WS_BORDER
-                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                ToolBarHandle,
-                NULL,
-                (HINSTANCE)PluginInstance->DllBase,
-                NULL
-                );
-
-            // Set Searchbox control font
-            TextboxFontHandle = InitializeFont(TextboxHandle);
-            // Set initial text
-            SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
-            // Reset the client area margins.
-            SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
-
-            // insert a paint region into the edit control NC window area
-            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
-
-            // insert the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
-
-            ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, TextboxHandle);
-            ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, TextboxHandle);
-            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, TextboxHandle);
-        }
+            ShowWindow(ReBarHandle, SW_SHOW);
     }
     else
     {
-        if (NetworkTreeFilterEntry)
-        {
-            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), NetworkTreeFilterEntry);
-            NetworkTreeFilterEntry = NULL;
-        }
-
-        if (ServiceTreeFilterEntry)
-        {
-            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ServiceTreeFilterEntry);
-            ServiceTreeFilterEntry = NULL;
-        }
-
-        if (ProcessTreeFilterEntry)
-        {
-            PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
-            ProcessTreeFilterEntry = NULL;
-        }
-
-        if (TextboxHandle)
-        {
-            // Clear searchbox - ensures treenew filters are inactive when the user disables the toolbar
-            Edit_SetSel(TextboxHandle, 0, -1);
-            Static_SetText(TextboxHandle, L"");
-
-            DestroyWindow(TextboxHandle);
-            TextboxHandle = NULL;
-
-            RebarRemoveMenuItem(ReBarHandle, IDC_MENU_REBAR_SEARCH);
-        }
-
-        if (TextboxFontHandle)
-        {
-            DeleteObject(TextboxFontHandle);
-            TextboxFontHandle = NULL;
-        }
+        if (ReBarHandle)
+            ShowWindow(ReBarHandle, SW_HIDE);
     }
 
     if (EnableStatusBar)
-    {
+    {  
         if (!StatusBarHandle)
-        {
-            StatusBarHandle = CreateWindowEx(
-                0,
-                STATUSCLASSNAME,
-                NULL,
-                WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
-                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                PhMainWndHandle,
-                NULL,
-                (HINSTANCE)PluginInstance->DllBase,
-                NULL
-                );
+            InitializeToolbar();
 
-            PhAddLayoutItem(&LayoutManager, StatusBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-        }
+        if (StatusBarHandle)
+            ShowWindow(StatusBarHandle, SW_SHOW);
     }
     else
-    {
+    {        
         if (StatusBarHandle)
-        {
-            DestroyWindow(StatusBarHandle);
-            StatusBarHandle = NULL;
-        }
+            ShowWindow(StatusBarHandle, SW_HIDE);
     }
+
+    if (EnableToolBar && ToolBarHandle)
+    {
+        ULONG index = 0;
+        ULONG buttonCount = 0;
+
+        buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+        for (index = 0; index < buttonCount; index++)
+        {
+            TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
+            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
+
+            // Get settings for first button
+            SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button);
+
+            // Skip separator buttons
+            if (button.fsStyle == BTNS_SEP)
+                continue;
+
+            switch (button.idCommand)
+            {
+            case PHAPP_ID_VIEW_REFRESH:
+                button.pszText = L"Refresh";
+                break;
+            case PHAPP_ID_HACKER_OPTIONS:
+                button.pszText = L"Options";
+                break;
+            case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+                button.pszText = L"Find Handles or DLLs";
+                break;
+            case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+                button.pszText = L"System Information";
+                break;
+            case TIDC_FINDWINDOW:
+                button.pszText = L"Find Window";
+                break;
+            case TIDC_FINDWINDOWTHREAD:
+                button.pszText = L"Find Window and Thread";
+                break;
+            case TIDC_FINDWINDOWKILL:
+                button.pszText = L"Find Window and Kill";
+                break;
+            }
+
+            switch (DisplayStyle)
+            {
+            case ImageOnly:
+                button.fsStyle = BTNS_AUTOSIZE;
+                break;
+            case SelectiveText:
+                {
+                    button.fsStyle = BTNS_AUTOSIZE;
+
+                    switch (button.idCommand)
+                    {
+                    case PHAPP_ID_VIEW_REFRESH:
+                    case PHAPP_ID_HACKER_OPTIONS:
+                    case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+                    case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+                        button.fsStyle = BTNS_SHOWTEXT;
+                        break;
+                    }
+                }
+                break;
+            default:
+                button.fsStyle = BTNS_SHOWTEXT;
+                break;
+            }
+
+            // Set updated button info
+            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&button);
+        }
+       
+        // Resize the toolbar
+        //SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+    }
+    
+    // Invoke the Process Hacker LayoutPaddingCallback.
+    PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 }

@@ -45,10 +45,8 @@ HWND ReBarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND TextboxHandle = NULL;
 HFONT TextboxFontHandle = NULL;
-HIMAGELIST ToolBarImageList = NULL;
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
-BOOLEAN EnableSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
 PH_LAYOUT_MANAGER LayoutManager;   
 
@@ -98,7 +96,7 @@ static VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
 
-    if (ReBarHandle)
+    if (EnableToolBar && ReBarHandle)
     {
         static RECT rbRect = { 0, 0, 0, 0 };
 
@@ -108,7 +106,7 @@ static VOID NTAPI LayoutPaddingCallback(
         data->Padding.top += rbRect.bottom;
     }
 
-    if (StatusBarHandle)
+    if (EnableStatusBar && StatusBarHandle)
     {
         static RECT sbRect = { 0, 0, 0, 0 };
 
@@ -202,6 +200,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
                     goto DefaultWndProc;
                 }
+                break;
             }
 
             switch (LOWORD(wParam))
@@ -250,8 +249,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
                 if (hdr->code == RBN_HEIGHTCHANGE)
                 {
-                    // HACK: Invoke LayoutPaddingCallback and adjust rebar height for multiple toolbar rows.
-                    PostMessage(hWnd, WM_SIZE, 0, 0);
+                    // Invoke the Process Hacker LayoutPaddingCallback.
+                    PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
                 }
 
                 goto DefaultWndProc;
@@ -514,7 +513,8 @@ static VOID NTAPI MainWindowShowingCallback(
         );
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 
-    ApplyToolbarSettings();
+    InitializeToolbar();
+    LoadToolbarSettings();
 }
 
 static VOID NTAPI LoadCallback(
@@ -523,7 +523,6 @@ static VOID NTAPI LoadCallback(
     )
 {
     EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
-    EnableSearch = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearch");
     EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar");
 
     StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
@@ -558,8 +557,6 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableToolBar", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableStatusBar", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableSearch", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableTheme", L"0" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.ResolveGhostWindows", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
