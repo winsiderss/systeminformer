@@ -184,7 +184,7 @@ NTSTATUS NetworkPingThreadStart(
 
         if (icmpReplyStruct)
         {
-            // Reply from differnt address??
+            // Reply from different address??
             // if (icmpReplyStruct->Address == context->Address.InAddr.S_un.S_addr) 
             // if (icmpReplyStruct->DataSize < max_size
             //if (!icmpReplyStruct->RoundTripTime) PPH_STRING buffer = PhFormatString(L"<1 ms  ");  
@@ -234,7 +234,7 @@ NTSTATUS NetworkPingThreadStart(
             (FLOAT)(pingLossCount / maxPingCount) * 100.0f
             );
         PPH_STRING buffer2 = PhFormatString(
-            L"Approximate round trip times in milli-seconds:\r\n"
+            L"Approximate round trip times in milliseconds:\r\n"
             L"    Minimum = 0ms, Maximum = 0ms, Average = 0ms\r\n\r\n"
             );
         SendMessage(context->WindowHandle, NTM_RECEIVEDPING, (WPARAM)buffer, 0);
