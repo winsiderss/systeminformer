@@ -61,7 +61,7 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.AtomTablePlugin", Instance, &info);
+            PluginInstance = PhRegisterPlugin(L"dmex.AtomTablePlugin", Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
