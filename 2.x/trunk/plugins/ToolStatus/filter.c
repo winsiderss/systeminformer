@@ -57,7 +57,7 @@ BOOLEAN ProcessTreeFilterCallback(
     PH_STRINGREF stringRef;
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    textboxText = PhGetWindowText(TextboxHandle);
+    textboxText = SearchText;
 
     if (PhIsNullOrEmptyString(textboxText))
         return TRUE;
@@ -272,7 +272,6 @@ BOOLEAN ProcessTreeFilterCallback(
         showItem = processNode->ProcessItem->IsWow64Valid == TRUE;
     }
 
-    PhDereferenceObject(textboxText);
     return showItem;
 }
 
@@ -286,7 +285,7 @@ BOOLEAN ServiceTreeFilterCallback(
     PH_STRINGREF stringRef;
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
 
-    textboxText = PhGetWindowText(TextboxHandle);
+    textboxText = SearchText;
 
     if (PhIsNullOrEmptyString(textboxText))
         return TRUE;
@@ -328,7 +327,6 @@ BOOLEAN ServiceTreeFilterCallback(
             showItem = TRUE;
     }
 
-    PhDereferenceObject(textboxText);
     return showItem;
 }
 
@@ -342,7 +340,7 @@ BOOLEAN NetworkTreeFilterCallback(
     PH_STRINGREF stringRef;
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
 
-    textboxText = PhGetWindowText(TextboxHandle);
+    textboxText = SearchText;
 
     if (PhIsNullOrEmptyString(textboxText))
         return TRUE;
@@ -412,6 +410,5 @@ BOOLEAN NetworkTreeFilterCallback(
             showItem = TRUE;
     }
 
-    PhDereferenceObject(textboxText);
     return showItem;
 }
