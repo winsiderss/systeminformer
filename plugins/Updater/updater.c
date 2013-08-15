@@ -253,7 +253,7 @@ static PPH_UPDATER_CONTEXT CreateUpdateContext(
 }
 
 static VOID FreeUpdateContext(
-    __inout PPH_UPDATER_CONTEXT Context
+    __in PPH_UPDATER_CONTEXT Context
     )
 {
     if (!Context)
@@ -1272,7 +1272,7 @@ static NTSTATUS ShowUpdateDialogThread(
 }
 
 VOID ShowUpdateDialog(
-    __in PPH_UPDATER_CONTEXT Context
+    __in_opt PPH_UPDATER_CONTEXT Context
     )
 {
     if (!UpdateDialogThreadHandle)
