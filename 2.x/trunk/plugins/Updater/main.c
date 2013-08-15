@@ -182,65 +182,52 @@ BOOL ConnectionAvailable(
     VOID
     )
 {
-    if (WindowsVersion < WINDOWS_VISTA)
+    BOOLEAN isSuccess = FALSE;
+    HMODULE wininetHandle = NULL;
+    INetworkListManager* pNetworkListManager = NULL;
+
+    __try
     {
-        BOOLEAN isSuccess = FALSE;
-        DWORD wininetState = 0;
-        _InternetGetConnectedState InternetGetConnectedState_I = NULL;
-        static HMODULE wininetHandle = NULL;
-
-NOT_SUPPORTED_OS:
-
-        __try
+        if (WindowsVersion < WINDOWS_VISTA)
         {
+            ULONG inetState = 0;
+            _InternetGetConnectedState inetGetConnectedState_I = NULL;
+
             if (!(wininetHandle = LoadLibrary(L"wininet.dll")))
                 __leave;
 
-            InternetGetConnectedState_I = (_InternetGetConnectedState)GetProcAddress(wininetHandle, "InternetGetConnectedState");
-            if (!InternetGetConnectedState_I)
+            if (!(inetGetConnectedState_I = (_InternetGetConnectedState)GetProcAddress(wininetHandle, "InternetGetConnectedState")))
                 __leave;
 
-            if (InternetGetConnectedState_I(&wininetState, 0))
+            if (inetGetConnectedState_I(&inetState, 0))
                 isSuccess = TRUE;
         }
-        __finally
-        {
-            if (wininetHandle)
-            {
-                FreeLibrary(wininetHandle);
-                wininetHandle = NULL;
-            }
-        }
-
-        return isSuccess;
-    }
-    else
-    {
-        INetworkListManager* pNetworkListManager = NULL;
-
-        // Create an instance of the INetworkListManger COM object.
-        if (SUCCEEDED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_ALL, &IID_INetworkListManager, &pNetworkListManager)))
-        {
+        else
+        {                
             VARIANT_BOOL isConnected = VARIANT_FALSE;
             VARIANT_BOOL isConnectedInternet = VARIANT_FALSE;
+
+            // Create an instance of the INetworkListManger COM object.
+            if (FAILED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_ALL, &IID_INetworkListManager, &pNetworkListManager)))
+                __leave;
 
             // Query the relevant properties.
             INetworkListManager_get_IsConnected(pNetworkListManager, &isConnected);
             INetworkListManager_get_IsConnectedToInternet(pNetworkListManager, &isConnectedInternet);
 
-            // Cleanup the INetworkListManger COM objects.
-            INetworkListManager_Release(pNetworkListManager);
-            pNetworkListManager = NULL;
-
             // Check if Windows is connected to a network and it's connected to the internet.
             if (isConnected == VARIANT_TRUE && isConnectedInternet == VARIANT_TRUE)
-                return TRUE;
-
-            // We're not connected to anything
-            return FALSE;
+                isSuccess = TRUE;
         }
-
-        // fall back to InternetGetConnectedState...
-        goto NOT_SUPPORTED_OS;
     }
+    __finally
+    {
+        if (wininetHandle)
+            FreeLibrary(wininetHandle);
+
+        if (pNetworkListManager)
+            INetworkListManager_Release(pNetworkListManager);
+    }
+
+    return isSuccess;
 }

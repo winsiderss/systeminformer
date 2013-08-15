@@ -65,7 +65,7 @@ typedef struct _PH_UPDATER_CONTEXT
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID ShowUpdateDialog(
-    __in PPH_UPDATER_CONTEXT Context
+    __in_opt PPH_UPDATER_CONTEXT Context
     );
 
 VOID StartInitialCheck(
@@ -99,8 +99,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     );
 
 typedef BOOL (WINAPI *_InternetGetConnectedState)(
-    __out LPDWORD lpdwFlags,
-    __reserved DWORD dwReserved
+    __out PULONG Flags,
+    __reserved ULONG Reserved
     );
 
 #endif
