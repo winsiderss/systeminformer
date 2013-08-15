@@ -183,8 +183,8 @@ BOOL ConnectionAvailable(
     )
 {
     BOOLEAN isSuccess = FALSE;
-    HMODULE wininetHandle = NULL;
-    INetworkListManager* pNetworkListManager = NULL;
+    HMODULE libraryHandle = NULL;
+    INetworkListManager* networkListPtr = NULL;
 
     __try
     {
@@ -193,10 +193,10 @@ BOOL ConnectionAvailable(
             ULONG inetState = 0;
             _InternetGetConnectedState inetGetConnectedState_I = NULL;
 
-            if (!(wininetHandle = LoadLibrary(L"wininet.dll")))
+            if (!(libraryHandle = LoadLibrary(L"wininet.dll")))
                 __leave;
 
-            if (!(inetGetConnectedState_I = (_InternetGetConnectedState)GetProcAddress(wininetHandle, "InternetGetConnectedState")))
+            if (!(inetGetConnectedState_I = (_InternetGetConnectedState)GetProcAddress(libraryHandle, "InternetGetConnectedState")))
                 __leave;
 
             if (inetGetConnectedState_I(&inetState, 0))
@@ -208,12 +208,12 @@ BOOL ConnectionAvailable(
             VARIANT_BOOL isConnectedInternet = VARIANT_FALSE;
 
             // Create an instance of the INetworkListManger COM object.
-            if (FAILED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_ALL, &IID_INetworkListManager, &pNetworkListManager)))
+            if (FAILED(CoCreateInstance(&CLSID_NetworkListManager, NULL, CLSCTX_ALL, &IID_INetworkListManager, &networkListPtr)))
                 __leave;
 
             // Query the relevant properties.
-            INetworkListManager_get_IsConnected(pNetworkListManager, &isConnected);
-            INetworkListManager_get_IsConnectedToInternet(pNetworkListManager, &isConnectedInternet);
+            INetworkListManager_get_IsConnected(networkListPtr, &isConnected);
+            INetworkListManager_get_IsConnectedToInternet(networkListPtr, &isConnectedInternet);
 
             // Check if Windows is connected to a network and it's connected to the internet.
             if (isConnected == VARIANT_TRUE && isConnectedInternet == VARIANT_TRUE)
@@ -222,11 +222,11 @@ BOOL ConnectionAvailable(
     }
     __finally
     {
-        if (wininetHandle)
-            FreeLibrary(wininetHandle);
+        if (libraryHandle)
+            FreeLibrary(libraryHandle);
 
-        if (pNetworkListManager)
-            INetworkListManager_Release(pNetworkListManager);
+        if (networkListPtr)
+            INetworkListManager_Release(networkListPtr);
     }
 
     return isSuccess;

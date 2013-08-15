@@ -253,7 +253,7 @@ static PPH_UPDATER_CONTEXT CreateUpdateContext(
 }
 
 static VOID FreeUpdateContext(
-    __in PPH_UPDATER_CONTEXT Context
+    __in __post_invalid PPH_UPDATER_CONTEXT Context
     )
 {
     if (!Context)
@@ -857,7 +857,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
     __in LPARAM lParam
     )
 {
-    PPH_UPDATER_CONTEXT context;
+    PPH_UPDATER_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
@@ -868,14 +868,15 @@ static INT_PTR CALLBACK UpdaterWndProc(
     {
         context = (PPH_UPDATER_CONTEXT)GetProp(hwndDlg, L"Context");
 
-        if (uMsg == WM_DESTROY)
+        if (uMsg == WM_NCDESTROY)
         {
-            FreeUpdateContext(context);
             RemoveProp(hwndDlg, L"Context");
+            FreeUpdateContext(context);
+            context = NULL;
         }
     }
 
-    if (!context)
+    if (context == NULL)
         return FALSE;
 
     switch (uMsg)
