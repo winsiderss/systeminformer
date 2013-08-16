@@ -7,13 +7,14 @@
 #define IDR_MAINWND_ACCEL               111
 #define IDB_SEARCH1                     118
 #define IDB_SEARCH2                     119
-#define IDB_APPLICATION                 120
-#define IDB_APPLICATION_GO              121
-#define IDB_ARROW_REFRESH               122
-#define IDB_CHART_LINE                  123
-#define IDB_COG_EDIT                    124
-#define IDB_CROSS                       125
-#define IDB_FIND                        126
+#define IDB_APPLICATION                 128
+#define IDB_APPLICATION_GO              129
+#define IDB_BITMAP3                     130
+#define IDB_ARROW_REFRESH               130
+#define IDB_CHART_LINE                  131
+#define IDB_COG_EDIT                    132
+#define IDB_CROSS                       133
+#define IDB_FIND                        134
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_ENABLESTATUSBAR             1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
@@ -36,7 +37,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        128
+#define _APS_NEXT_RESOURCE_VALUE        135
 #define _APS_NEXT_COMMAND_VALUE         40018
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           103
