@@ -120,13 +120,6 @@ HBITMAP LoadImageFromResources(
     __in LPCTSTR Type
     );
 
-HBITMAP LoadScaledImageFromResources(  
-    __in UINT Width,
-    __in UINT Height,
-    __in LPCTSTR Name,
-    __in LPCTSTR Type
-    );
-
 BOOLEAN InsertButton(
     __in HWND WindowHandle,
     __in UINT CmdId
@@ -183,8 +176,8 @@ typedef struct _NC_CONTEXT
     INT cxRightEdge;  // size of the current window borders.
     INT cyTopEdge;
     INT cyBottomEdge;
+    LONG cxImgSize;
 
-    SIZE ImgSize;
     BOOLEAN HasCapture;
     BOOL IsThemeActive;
     BOOL IsThemeBackgroundActive;
