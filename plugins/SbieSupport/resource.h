@@ -4,7 +4,6 @@
 //
 #define IDD_OPTIONS                     101
 #define IDC_SBIEDLLPATH                 1001
-#define IDC_BUTTON1                     1002
 #define IDC_BROWSE                      1002
 
 // Next default values for new objects
