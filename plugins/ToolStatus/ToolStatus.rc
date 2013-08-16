@@ -7,8 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
-
+#include "winres.h"
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -32,8 +31,7 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include ""afxres.h""\r\n"
-    "\0"
+    "#include ""winres.h""\0"
 END
 
 3 TEXTINCLUDE 
@@ -172,7 +170,6 @@ IDB_CHART_LINE          PNG                     "resources\\chart_line.png"
 IDB_COG_EDIT            PNG                     "resources\\cog_edit.png"
 IDB_CROSS               PNG                     "resources\\cross.png"
 IDB_FIND                PNG                     "resources\\find.png"
-IDB_LIGHTBULB_OFF       PNG                     "resources\\lightbulb_off.png"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

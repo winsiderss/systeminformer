@@ -185,7 +185,6 @@
     <Image Include="resources\cross.png" />
     <Image Include="resources\find.png" />
     <Image Include="resources\inactive_search.png" />
-    <Image Include="resources\lightbulb_off.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
