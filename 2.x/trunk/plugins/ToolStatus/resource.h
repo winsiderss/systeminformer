@@ -14,7 +14,6 @@
 #define IDB_COG_EDIT                    124
 #define IDB_CROSS                       125
 #define IDB_FIND                        126
-#define IDB_LIGHTBULB_OFF               127
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_ENABLESTATUSBAR             1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
@@ -34,7 +33,7 @@
 #define ID_SEARCH                       40016
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        128
