@@ -177,13 +177,13 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\active_search.png" />
-    <Image Include="resources\application.png" />
-    <Image Include="resources\application_go.png" />
-    <Image Include="resources\arrow_refresh.png" />
-    <Image Include="resources\chart_line.png" />
-    <Image Include="resources\cog_edit.png" />
-    <Image Include="resources\cross.png" />
-    <Image Include="resources\find.png" />
+    <Image Include="resources\application.bmp" />
+    <Image Include="resources\application_go.bmp" />
+    <Image Include="resources\arrow_refresh.bmp" />
+    <Image Include="resources\chart_line.bmp" />
+    <Image Include="resources\cog_edit.bmp" />
+    <Image Include="resources\cross.bmp" />
+    <Image Include="resources\find.bmp" />
     <Image Include="resources\inactive_search.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -98,19 +98,6 @@ static VOID RebarLoadSettings(
     {
         REBARINFO rebarInfo = { sizeof(REBARINFO) };
 
-        // Create the toolbar imagelist
-        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
-        // Set the number of images
-        ImageList_SetImageCount(ToolBarImageList, 7);
-        // Add the images to the imagelist - same index as the first tbButtonArray field
-        ImageList_Replace(ToolBarImageList, 0, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 1, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 2, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 3, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 4, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 5, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 6, LoadScaledImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
-
         // Create the ReBar window.
         ReBarHandle = CreateWindowEx(
             WS_EX_TOOLWINDOW,
@@ -150,30 +137,37 @@ static VOID RebarLoadSettings(
             NULL
             );
 
+        // Create the toolbar imagelist
+        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
+        // Set the number of images
+        ImageList_SetImageCount(ToolBarImageList, 7);
+        // Add the images to the imagelist - same index as the first tbButtonArray field
+        PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
+        PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
+        PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
+        PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
+        PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
+        PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
+        PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
+
         // Set the toolbar info with no imagelist.
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-
         // Set the toolbar extended toolbar styles.
         SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-
         // Configure the toolbar imagelist.
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
-
         // Add the buttons to the toolbar.
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
 
         // Set Searchbox control font
         TextboxFontHandle = InitializeFont(TextboxHandle);
-
         // Set initial text
         SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
-
         // Reset the client area margins.
         SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
-
         // Insert a paint region into the edit control NC window area
         InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
 
