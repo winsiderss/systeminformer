@@ -57,7 +57,7 @@ BOOLEAN ProcessTreeFilterCallback(
     PH_STRINGREF stringRef;
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    textboxText = SearchText;
+    textboxText = SearchboxText;
 
     if (PhIsNullOrEmptyString(textboxText))
         return TRUE;
@@ -285,7 +285,7 @@ BOOLEAN ServiceTreeFilterCallback(
     PH_STRINGREF stringRef;
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
 
-    textboxText = SearchText;
+    textboxText = SearchboxText;
 
     if (PhIsNullOrEmptyString(textboxText))
         return TRUE;
@@ -340,7 +340,7 @@ BOOLEAN NetworkTreeFilterCallback(
     PH_STRINGREF stringRef;
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
 
-    textboxText = SearchText;
+    textboxText = SearchboxText;
 
     if (PhIsNullOrEmptyString(textboxText))
         return TRUE;
