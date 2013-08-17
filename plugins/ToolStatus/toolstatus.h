@@ -65,21 +65,19 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 #define STATUS_MAXIOPROCESS 0x200
 #define STATUS_MAXIMUM 0x400
 
-extern PPH_PLUGIN PluginInstance;
-extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
-extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
-extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
-extern HACCEL AcceleratorTable;
-extern HWND ReBarHandle;
-extern HWND ToolBarHandle;
-extern HWND TextboxHandle;
-extern HFONT TextboxFontHandle;
-extern HIMAGELIST ToolBarImageList;
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableStatusBar;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
-extern PH_LAYOUT_MANAGER LayoutManager;  
-extern PPH_STRING SearchText;
+extern HWND ReBarHandle;
+extern HWND ToolBarHandle;
+extern HWND TextboxHandle;
+extern HACCEL AcceleratorTable;
+extern PPH_STRING SearchboxText;
+extern HFONT SearchboxFontHandle;
+extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
+extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
+extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
+extern PPH_PLUGIN PluginInstance;
 
 extern HWND StatusBarHandle;
 extern ULONG StatusMask;

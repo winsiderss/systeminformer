@@ -23,33 +23,31 @@
 
 #include "toolstatus.h"
 
+BOOLEAN EnableToolBar = FALSE;
+BOOLEAN EnableStatusBar = FALSE;
+TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
+HWND ReBarHandle = NULL;
+HWND ToolBarHandle = NULL;
+HWND TextboxHandle = NULL;
+HACCEL AcceleratorTable = NULL;
+PPH_STRING SearchboxText = NULL;
+HFONT SearchboxFontHandle = NULL;
+PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry = NULL;
+PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry = NULL;
+PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry = NULL;
 PPH_PLUGIN PluginInstance = NULL;
+
+static ULONG TargetingMode = 0;
+static BOOLEAN TargetingWindow = FALSE;
+static BOOLEAN TargetingCurrentWindowDraw = FALSE;
+static BOOLEAN TargetingCompleted = FALSE;
+static HWND TargetingCurrentWindow = NULL;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
-
-PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry = NULL;
-PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry = NULL;
-PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry = NULL;
-
-HACCEL AcceleratorTable = NULL;
-ULONG TargetingMode = 0;
-HWND TargetingCurrentWindow = NULL;
-BOOLEAN TargetingWindow = FALSE;
-BOOLEAN TargetingCurrentWindowDraw = FALSE;
-BOOLEAN TargetingCompleted = FALSE;
-HWND ReBarHandle = NULL;
-HWND ToolBarHandle = NULL;
-HWND TextboxHandle = NULL;
-HFONT TextboxFontHandle = NULL;
-BOOLEAN EnableToolBar = FALSE;
-BOOLEAN EnableStatusBar = FALSE;
-TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
-PH_LAYOUT_MANAGER LayoutManager;   
-PPH_STRING SearchText = NULL;
 
 static VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Parameter,
@@ -96,11 +94,13 @@ static VOID NTAPI LayoutPaddingCallback(
     )
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
+          
+    static RECT rbRect = { 0, 0, 0, 0 };
+    static RECT sbRect = { 0, 0, 0, 0 };
 
     if (EnableToolBar && ReBarHandle)
     {
-        static RECT rbRect = { 0, 0, 0, 0 };
-
+        SendMessage(ReBarHandle, WM_SIZE, 0, 0);
         GetClientRect(ReBarHandle, &rbRect);
 
         // Adjust the PH client area and exclude the rebar width.
@@ -109,8 +109,7 @@ static VOID NTAPI LayoutPaddingCallback(
 
     if (EnableStatusBar && StatusBarHandle)
     {
-        static RECT sbRect = { 0, 0, 0, 0 };
-
+        SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
         GetClientRect(StatusBarHandle, &sbRect);
 
         // Adjust the PH client area and exclude the StatusBar width.
@@ -192,7 +191,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             case EN_CHANGE:
                 {
                     // Cache the current search text for our callback.
-                    PhSwapReference2(&SearchText, PhGetWindowText(TextboxHandle));
+                    PhSwapReference2(&SearchboxText, PhGetWindowText(TextboxHandle));
 
                     // Expand the nodes so we can search them
                     PhExpandAllProcessNodes(TRUE);
@@ -253,7 +252,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
                 if (hdr->code == RBN_HEIGHTCHANGE)
                 {
-                    // Invoke the Process Hacker LayoutPaddingCallback.
+                    // Invoke the LayoutPaddingCallback.
                     PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
                 }
 
@@ -488,8 +487,6 @@ static LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SIZE:
         {
-            // Resize our plugin controls.
-            PhLayoutManagerLayout(&LayoutManager);
             // Resize PH main window client-area.
             ProcessHacker_InvalidateLayoutPadding(hWnd);
         }
@@ -507,7 +504,6 @@ static VOID NTAPI MainWindowShowingCallback(
      __in_opt PVOID Context
     )
 {
-    PhInitializeLayoutManager(&LayoutManager, PhMainWndHandle);
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
     PhRegisterCallback(
         ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle),

@@ -103,7 +103,7 @@ static VOID RebarLoadSettings(
             WS_EX_TOOLWINDOW,
             REBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_FIXEDORDER, //  | RBS_DBLCLKTOGGLE | RBS_VARHEIGHT 
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_FIXEDORDER | RBS_VARHEIGHT, // | RBS_DBLCLKTOGGLE 
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             (HMENU)IDC_MENU_REBAR,
@@ -141,7 +141,7 @@ static VOID RebarLoadSettings(
         ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images
         ImageList_SetImageCount(ToolBarImageList, 7);
-        // Add the images to the imagelist - same index as the first tbButtonArray field
+        // Add the images to the imagelist
         PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
         PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
         PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
@@ -163,21 +163,22 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
 
         // Set Searchbox control font
-        TextboxFontHandle = InitializeFont(TextboxHandle);
+        SearchboxFontHandle = InitializeFont(TextboxHandle);
+        // Insert a paint region into the edit control NC window area
+        InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
         // Set initial text
         SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
         // Reset the client area margins.
         SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
-        // Insert a paint region into the edit control NC window area
-        InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+
+        // Enable theming:
+        //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
+        //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
         // Inset the toolbar into the rebar control
         RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
         // Insert the edit control into the rebar control
         RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
-
-        // Insert the Rebar control into our main-window layout.
-        PhAddLayoutItem(&LayoutManager, ReBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
 
         ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
@@ -199,7 +200,6 @@ static VOID RebarLoadSettings(
             (HINSTANCE)PluginInstance->DllBase,
             NULL
             );
-        PhAddLayoutItem(&LayoutManager, StatusBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
     }
 
     // Hide or show controls (Note: don't unload or remove at runtime).
@@ -224,10 +224,6 @@ static VOID RebarLoadSettings(
         if (StatusBarHandle)
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
-
-    // Enable all themes:
-    //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
-    //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 }
 
 VOID LoadToolbarSettings(
@@ -311,9 +307,6 @@ VOID LoadToolbarSettings(
         }
        
         // Resize the toolbar
-        //SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
     }
-    
-    // Invoke the Process Hacker LayoutPaddingCallback.
-    PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 }
