@@ -120,14 +120,21 @@ static VOID RebarLoadSettings(
         // Set the number of images
         ImageList_SetImageCount(ToolBarImageList, 7);
         // Add the images to the imagelist
-        PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
-        PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
-        PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
-        PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
-        PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
-        PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
-        PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
-
+        ImageList_Replace(ToolBarImageList, 0, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 1, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 2, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 3, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 4, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 5, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
+        ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
+        //PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
+        //PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
+        //PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
+        //PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
+        //PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
+        //PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
+        //PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
+        
         // Set the toolbar info with no imagelist.
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 
