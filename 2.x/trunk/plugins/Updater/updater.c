@@ -76,9 +76,9 @@ static HBITMAP LoadImageFromResources(
 
         resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
 
-        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void**)&wicFactory)))
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
             __leave;
-        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (void**)&wicDecoder)))
+        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
@@ -90,7 +90,7 @@ static HBITMAP LoadImageFromResources(
             __leave;
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
-        if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap)))
+        if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGR, (IWICBitmapSource*)wicFrame, &wicBitmap)))
             __leave;
         if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
             __leave;
@@ -108,7 +108,7 @@ static HBITMAP LoadImageFromResources(
 
             if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
                 __leave;
-            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, (IWICBitmapSource*)wicFrame, Width, Height, WICBitmapInterpolationModeFant)))
+            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmap, Width, Height, WICBitmapInterpolationModeFant)))
                 __leave;
             if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
                 __leave;
