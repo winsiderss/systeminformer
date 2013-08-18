@@ -113,11 +113,6 @@ BOOLEAN NetworkTreeFilterCallback(
     __in_opt PVOID Context
     );
 
-HBITMAP LoadImageFromResources(
-    __in LPCTSTR Name,
-    __in LPCTSTR Type
-    );
-
 BOOLEAN InsertButton(
     __in HWND WindowHandle,
     __in UINT CmdId
@@ -188,5 +183,12 @@ typedef struct _NC_CONTEXT
     HWND ParentWindow;
     HWND HwndWindow;
 } NC_CONTEXT;
+
+HBITMAP LoadImageFromResources(
+    __in UINT Width,
+    __in UINT Height,
+    __in LPCTSTR Name,
+    __in LPCTSTR Type
+    );
 
 #endif

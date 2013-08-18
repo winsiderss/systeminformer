@@ -39,13 +39,8 @@ static _SetWindowTheme SetWindowTheme_I;
 static _CloseThemeData CloseThemeData_I;
 static _IsThemePartDefined IsThemePartDefined_I;
 static _DrawThemeBackground DrawThemeBackground_I;
-static _GetThemeBackgroundContentRect GetThemeBackgroundContentRect_I;
 static _IsThemeBackgroundPartiallyTransparent IsThemeBackgroundPartiallyTransparent_I;
-static _DrawThemeText DrawThemeText_I;
-static _GetThemeInt GetThemeInt_I;
 static _GetThemeColor GetThemeColor_I;
-static _GetThemeFont GetThemeFont_I;
-static _GetThemeSysFont GetThemeSysFont_I;
 
 static VOID NcAreaInitializeUxTheme(
     __inout NC_CONTEXT* Context,
@@ -61,21 +56,13 @@ static VOID NcAreaInitializeUxTheme(
         OpenThemeData_I = (_OpenThemeData)GetProcAddress(Context->UxThemeModule, "OpenThemeData");
         SetWindowTheme_I = (_SetWindowTheme)GetProcAddress(Context->UxThemeModule, "SetWindowTheme");
         CloseThemeData_I = (_CloseThemeData)GetProcAddress(Context->UxThemeModule, "CloseThemeData");
+        GetThemeColor_I = (_GetThemeColor)GetProcAddress(Context->UxThemeModule, "GetThemeColor");
         IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(Context->UxThemeModule, "IsThemePartDefined");
         DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(Context->UxThemeModule, "DrawThemeBackground");
         IsThemeBackgroundPartiallyTransparent_I = (_IsThemeBackgroundPartiallyTransparent)GetProcAddress(Context->UxThemeModule, "IsThemeBackgroundPartiallyTransparent");
-        GetThemeBackgroundContentRect_I = (_GetThemeBackgroundContentRect)GetProcAddress(Context->UxThemeModule, "GetThemeBackgroundContentRect");
-        DrawThemeText_I = (_DrawThemeText)GetProcAddress(Context->UxThemeModule, "DrawThemeText");
-        GetThemeInt_I = (_GetThemeInt)GetProcAddress(Context->UxThemeModule, "GetThemeInt");
-        GetThemeColor_I = (_GetThemeColor)GetProcAddress(Context->UxThemeModule, "GetThemeColor");
-        GetThemeFont_I = (_GetThemeFont)GetProcAddress(Context->UxThemeModule, "GetThemeFont");
-        GetThemeSysFont_I = (_GetThemeSysFont)GetProcAddress(Context->UxThemeModule, "GetThemeSysFont");
     }
 
-    if (IsThemeActive_I && OpenThemeData_I &&
-        CloseThemeData_I && IsThemePartDefined_I &&
-        DrawThemeBackground_I && GetThemeInt_I
-        )
+    if (IsThemeActive_I && OpenThemeData_I && CloseThemeData_I && IsThemePartDefined_I && DrawThemeBackground_I)
     {
         // UxTheme classes and themes (not all listed):
         // OpenThemeData_I:
@@ -414,7 +401,11 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 }
 
-HBITMAP LoadImageFromResources(
+
+
+static HBITMAP LoadImageFromResources(
+    __in UINT Width,
+    __in UINT Height,
     __in LPCTSTR Name,
     __in LPCTSTR Type
     )
@@ -428,16 +419,16 @@ HBITMAP LoadImageFromResources(
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     BYTE* bitmapBuffer = NULL;
+    WICInProcPointer resBuffer = NULL;
+
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmap = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
+    IWICImagingFactory* wicFactory = NULL;
     IWICBitmapScaler* wicScaler = NULL;
-    WICInProcPointer pvSourceResourceData = NULL;
 
-    static HDC bitmapHdc = NULL; 
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static IWICImagingFactory* wicFactory = NULL;
+    HDC hdcScreen = GetDC(NULL);
 
     __try
     {
@@ -445,28 +436,18 @@ HBITMAP LoadImageFromResources(
             __leave;
         if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
             __leave;
-        if ((pvSourceResourceData = (WICInProcPointer)LockResource(resHandle)) == NULL)
+        if ((resBuffer = (WICInProcPointer)LockResource(resHandle)) == NULL)
             __leave;
 
         resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
 
-        if (PhBeginInitOnce(&initOnce))
-        {
-            if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
-            {
-                PhEndInitOnce(&initOnce);
-                __leave;
-            }
-
-            bitmapHdc = GetDC(NULL);
-            PhEndInitOnce(&initOnce);
-        }
-
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+            __leave;
         if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
-        if (FAILED(IWICStream_InitializeFromMemory(wicStream, pvSourceResourceData, resLength)))
+        if (FAILED(IWICStream_InitializeFromMemory(wicStream, resBuffer, resLength)))
             __leave;
         if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
             __leave;
@@ -474,29 +455,39 @@ HBITMAP LoadImageFromResources(
             __leave;
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
-        if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmap)))
+        if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGR, (IWICBitmapSource*)wicFrame, &wicBitmap)))
             __leave;
         if (FAILED(IWICBitmapSource_GetSize(wicBitmap, &width, &height)) || width == 0 || height == 0)
-           __leave;
+            __leave;
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biWidth = width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)height);
+        bitmapInfo.bmiHeader.biWidth = Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
         bitmapInfo.bmiHeader.biPlanes = 1;
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(bitmapHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
+        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
         {
-            const UINT cbStride = width * 4;  
-            const UINT cbImage = cbStride * height;  
+            WICRect rect = { 0, 0, Width, Height };
 
-            if (FAILED(IWICBitmapSource_CopyPixels(wicBitmap, NULL, cbStride, cbImage, bitmapBuffer)))
+            if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
                 __leave;
-        }        
+            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmap, Width, Height, WICBitmapInterpolationModeFant)))
+                __leave;
+            if (SUCCEEDED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
+                __leave;
+        }
     }
     __finally
     {
+        ReleaseDC(NULL, hdcScreen);
+
+        if (wicScaler)
+        {
+            IWICBitmapScaler_Release(wicScaler);
+        }
+
         if (wicBitmap)
         {
             IWICBitmapSource_Release(wicBitmap);
@@ -506,7 +497,7 @@ HBITMAP LoadImageFromResources(
         {
             IWICBitmapFrameDecode_Release(wicFrame);
         }
-        
+
         if (wicStream)
         {
             IWICStream_Release(wicStream);
@@ -517,12 +508,38 @@ HBITMAP LoadImageFromResources(
             IWICBitmapDecoder_Release(wicDecoder);
         }
 
-        // ReleaseDC(NULL, bitmapHdc);
-        // IWICImagingFactory_Release(wicFactory);
+        if (wicFactory)
+        {
+            IWICImagingFactory_Release(wicFactory);
+        }
     }
 
     return bitmapHandle;
 }
+
+static HFONT InitializeFont(
+    __in HWND hwndDlg
+    )
+{
+    LOGFONT logFont = { 0 };
+    HFONT fontHandle = NULL;
+
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_NORMAL;
+    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    
+    // GDI uses the first font that matches the above attributes.
+    fontHandle = CreateFontIndirect(&logFont);
+
+    if (fontHandle)
+    {
+        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
+        return fontHandle;
+    }
+
+    return NULL;
+}
+
 
 BOOLEAN InsertButton(
     __in HWND hwndDlg,
@@ -538,11 +555,15 @@ BOOLEAN InsertButton(
     context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
 
     ImageList_SetImageCount(context->ImageList, 2);
-    ImageList_Replace(context->ImageList, 0, LoadImageFromResources(MAKEINTRESOURCE(IDB_SEARCH1), L"PNG"), NULL);
-    ImageList_Replace(context->ImageList, 1, LoadImageFromResources(MAKEINTRESOURCE(IDB_SEARCH2), L"PNG"), NULL);
+    ImageList_Replace(context->ImageList, 0, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH1), L"PNG"), NULL);
+    ImageList_Replace(context->ImageList, 1, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH2), L"PNG"), NULL);
 
     // Initialize the window UxTheme data.
     NcAreaInitializeUxTheme(context, hwndDlg);
+
+            
+    // Set Searchbox control font
+    SearchboxFontHandle = InitializeFont(hwndDlg);
 
     // Set our window context data.
     SetProp(hwndDlg, L"Context", (HANDLE)context);
