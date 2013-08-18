@@ -36,28 +36,6 @@ static TBBUTTON ButtonArray[9] =
     { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 }
 };
 
-static HFONT InitializeFont(
-    __in HWND hwndDlg
-    )
-{
-    LOGFONT logFont = { 0 };
-    HFONT fontHandle = NULL;
-
-    logFont.lfHeight = 14;
-    logFont.lfWeight = FW_NORMAL;
-    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-    
-    // GDI uses the first font that matches the above attributes.
-    fontHandle = CreateFontIndirect(&logFont);
-
-    if (fontHandle)
-    {
-        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
-        return fontHandle;
-    }
-
-    return NULL;
-}
 
 static VOID RebarAddMenuItem(
     __in HWND WindowHandle,
@@ -162,8 +140,6 @@ static VOID RebarLoadSettings(
         // Add the buttons to the toolbar.
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
 
-        // Set Searchbox control font
-        SearchboxFontHandle = InitializeFont(TextboxHandle);
         // Insert a paint region into the edit control NC window area
         InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
         // Set initial text
