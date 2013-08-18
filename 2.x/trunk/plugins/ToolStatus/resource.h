@@ -7,20 +7,18 @@
 #define IDR_MAINWND_ACCEL               111
 #define IDB_SEARCH1                     118
 #define IDB_SEARCH2                     119
-#define IDB_APPLICATION                 128
-#define IDB_APPLICATION_GO              129
-#define IDB_BITMAP3                     130
-#define IDB_ARROW_REFRESH               130
-#define IDB_CHART_LINE                  131
-#define IDB_COG_EDIT                    132
-#define IDB_CROSS                       133
-#define IDB_FIND                        134
+#define IDB_APPLICATION                 135
+#define IDB_APPLICATION_GO              136
+#define IDB_ARROW_REFRESH               137
+#define IDB_CHART_LINE                  138
+#define IDB_COG_EDIT                    139
+#define IDB_CROSS                       140
+#define IDB_FIND                        141
 #define IDC_ENABLETOOLBAR               1001
 #define IDC_ENABLESTATUSBAR             1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
 #define IDC_DISPLAYSTYLECOMBO           1004
 #define IDC_DISPLAYSTYLETEXT            1005
-#define IDC_ENABLESEARCH                1006
 #define ID_STATUS_CPUUSAGE              40001
 #define ID_STATUS_COMMITCHARGE          40002
 #define ID_STATUS_PHYSICALMEMORY        40003
@@ -37,7 +35,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        135
+#define _APS_NEXT_RESOURCE_VALUE        142
 #define _APS_NEXT_COMMAND_VALUE         40018
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           103
