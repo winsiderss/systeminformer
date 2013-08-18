@@ -57,25 +57,25 @@
     <Image Include="resources\inactive_search.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\application.bmp">
+    <Image Include="resources\application.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\application_go.bmp">
+    <Image Include="resources\application_go.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\arrow_refresh.bmp">
+    <Image Include="resources\arrow_refresh.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\chart_line.bmp">
+    <Image Include="resources\chart_line.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\cog_edit.bmp">
+    <Image Include="resources\cog_edit.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\cross.bmp">
+    <Image Include="resources\cross.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\find.bmp">
+    <Image Include="resources\find.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
