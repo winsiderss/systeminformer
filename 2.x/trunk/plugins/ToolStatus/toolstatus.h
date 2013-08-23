@@ -66,7 +66,9 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 #define STATUS_MAXIMUM 0x400
 
 extern BOOLEAN EnableToolBar;
+extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
+extern BOOLEAN EnableWicImaging;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern HWND ReBarHandle;
 extern HWND ToolBarHandle;
@@ -187,8 +189,7 @@ typedef struct _NC_CONTEXT
 HBITMAP LoadImageFromResources(
     __in UINT Width,
     __in UINT Height,
-    __in LPCTSTR Name,
-    __in LPCTSTR Type
+    __in LPCTSTR Name
     );
 
 #endif

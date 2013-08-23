@@ -24,7 +24,9 @@
 #include "toolstatus.h"
 
 BOOLEAN EnableToolBar = FALSE;
+BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
+BOOLEAN EnableWicImaging = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
 HWND ReBarHandle = NULL;
 HWND ToolBarHandle = NULL;
@@ -522,7 +524,9 @@ static VOID NTAPI LoadCallback(
     )
 {
     EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
+    EnableSearchBox = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearchBox");
     EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar");
+    EnableWicImaging = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableWicImaging");
 
     StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");
@@ -555,7 +559,9 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableToolBar", L"1" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableSearchBox", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableStatusBar", L"1" },
+                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableWicImaging", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.ResolveGhostWindows", L"1" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" },
                 { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
