@@ -41,8 +41,7 @@ static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static HBITMAP LoadImageFromResources(
     __in UINT Width,
     __in UINT Height,
-    __in LPCTSTR Name,
-    __in LPCTSTR Type
+    __in LPCTSTR Name
     )
 {
     UINT width = 0;
@@ -51,10 +50,10 @@ static HBITMAP LoadImageFromResources(
     ULONG resLength = 0;
     HRSRC resHandleSrc = NULL;
     HGLOBAL resHandle = NULL;
+    WICInProcPointer resBuffer = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     BYTE* bitmapBuffer = NULL;
-    WICInProcPointer resBuffer = NULL;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
@@ -62,12 +61,14 @@ static HBITMAP LoadImageFromResources(
     IWICBitmapFrameDecode* wicFrame = NULL;
     IWICImagingFactory* wicFactory = NULL;
     IWICBitmapScaler* wicScaler = NULL;
-    //WICPixelFormatGUID pixelFormat;  
+    WICPixelFormatGUID pixelFormat;
+
     HDC hdcScreen = GetDC(NULL);
 
     __try
     {
-        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, Type)) == NULL)
+        // Find the resource.
+        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
         // Get the resource length.
         resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);       
@@ -80,6 +81,7 @@ static HBITMAP LoadImageFromResources(
         // Create the ImagingFactory.
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
             __leave;
+        // Create the PNG decoder.
         if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
 
@@ -97,19 +99,25 @@ static HBITMAP LoadImageFromResources(
         // Get the Frame.
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
-
-        wicBitmapSource = (IWICBitmapSource*)wicFrame;
-
-        if (FAILED(IWICBitmapSource_GetSize(wicBitmapSource, &width, &height)) || width == 0 || height == 0)
+        // Get the WicFrame width and height.
+        if (FAILED(IWICBitmapSource_GetSize((IWICBitmapSource*)wicFrame, &width, &height)) || width == 0 || height == 0)
             __leave;
-        //if (FAILED(IWICBitmapSource_GetPixelFormat(wicBitmapSource, &pixelFormat)))
-        //    __leave;
-        //if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
-        //{
-        //    if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
-        //        __leave;
-        //    IWICBitmapSource_Release(wicBitmapSource);
-        //}
+        // Get the WicFrame image format.
+        if (FAILED(IWICBitmapSource_GetPixelFormat((IWICBitmapSource*)wicFrame, &pixelFormat)))
+            __leave;
+        // Check if the image format is supported:
+        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+        {
+            // Convert the image to the correct format:
+            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+                __leave;
+
+            IWICBitmapFrameDecode_Release(wicFrame);
+        }
+        else
+        {
+            wicBitmapSource = (IWICBitmapSource*)wicFrame;
+        }
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         bitmapInfo.bmiHeader.biWidth = Width;
@@ -139,9 +147,9 @@ static HBITMAP LoadImageFromResources(
             IWICBitmapScaler_Release(wicScaler);
         }
 
-        if (wicFrame)
+        if (wicBitmapSource)
         {
-            IWICBitmapFrameDecode_Release(wicFrame);
+            IWICBitmapSource_Release(wicBitmapSource);
         }
 
         if (wicStream)
@@ -918,11 +926,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 LR_SHARED
                 );
 
-            context->SourceforgeBitmap = LoadImageFromResources(
-                48, 48,
-                MAKEINTRESOURCE(IDB_SF_PNG),
-                L"PNG"
-                );
+            context->SourceforgeBitmap = LoadImageFromResources(48, 48, MAKEINTRESOURCE(IDB_SF_PNG));
 
             // Set the window icons
             if (context->IconHandle)
@@ -930,6 +934,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the text font
             if (context->FontHandle)
                 SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)context->FontHandle, FALSE);
+
             if (context->SourceforgeBitmap)
                 SendMessage(GetDlgItem(hwndDlg, IDC_UPDATEICON), STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)context->SourceforgeBitmap);
 
