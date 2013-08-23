@@ -110,19 +110,21 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 237, 86
+IDD_OPTIONS DIALOGEX 0, 0, 237, 92
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,125,65,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,180,65,50,14
-    CONTROL         "Enable Toolbar",IDC_ENABLETOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,63,10
-    CONTROL         "Enable Status Bar",IDC_ENABLESTATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,73,10
+    DEFPUSHBUTTON   "OK",IDOK,126,71,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,181,71,50,14
+    CONTROL         "Enable Toolbar",IDC_ENABLE_TOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,63,10
+    CONTROL         "Enable SearchBox",IDC_ENABLE_SEARCHBOX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,73,10
     CONTROL         "Resolve ghost windows to hung windows",IDC_RESOLVEGHOSTWINDOWS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,34,147,10
-    COMBOBOX        IDC_DISPLAYSTYLECOMBO,81,46,90,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Toolbar display style:",IDC_DISPLAYSTYLETEXT,7,48,71,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,147,10
+    COMBOBOX        IDC_DISPLAYSTYLECOMBO,140,19,90,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Toolbar display style:",IDC_DISPLAYSTYLETEXT,159,7,71,8
+    CONTROL         "Enable Status Bar",IDC_ENABLE_STATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,73,10
+    CONTROL         "Enable Windows Imaging",IDC_ENABLE_WIC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,95,10
 END
 
 
@@ -139,7 +141,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 230
         TOPMARGIN, 7
-        BOTTOMMARGIN, 79
+        BOTTOMMARGIN, 85
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -161,8 +163,8 @@ END
 // PNG
 //
 
-IDB_SEARCH1             PNG                     "resources\\active_search.png"
-IDB_SEARCH2             PNG                     "resources\\inactive_search.png"
+IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
+IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
 IDB_APPLICATION         PNG                     "resources\\application.png"
 IDB_APPLICATION_GO      PNG                     "resources\\application_go.png"
 IDB_ARROW_REFRESH       PNG                     "resources\\arrow_refresh.png"
@@ -170,6 +172,21 @@ IDB_CHART_LINE          PNG                     "resources\\chart_line.png"
 IDB_COG_EDIT            PNG                     "resources\\cog_edit.png"
 IDB_CROSS               PNG                     "resources\\cross.png"
 IDB_FIND                PNG                     "resources\\find.png"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_APPLICATION_GO_BMP  BITMAP                  "resources\\application_go.bmp"
+IDB_ARROW_REFRESH_BMP   BITMAP                  "resources\\arrow_refresh.bmp"
+IDB_CHART_LINE_BMP      BITMAP                  "resources\\chart_line.bmp"
+IDB_COG_EDIT_BMP        BITMAP                  "resources\\cog_edit.bmp"
+IDB_CROSS_BMP           BITMAP                  "resources\\cross.bmp"
+IDB_FIND_BMP            BITMAP                  "resources\\find.bmp"
+IDB_APPLICATION_BMP     BITMAP                  "resources\\application.bmp"
+IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
+IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
