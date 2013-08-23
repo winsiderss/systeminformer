@@ -404,8 +404,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 HBITMAP LoadImageFromResources(
     __in UINT Width,
     __in UINT Height,
-    __in LPCTSTR Name,
-    __in LPCTSTR Type
+    __in LPCTSTR Name
     )
 {
     UINT width = 0;
@@ -414,10 +413,10 @@ HBITMAP LoadImageFromResources(
     ULONG resLength = 0;
     HRSRC resHandleSrc = NULL;
     HGLOBAL resHandle = NULL;
+    WICInProcPointer resBuffer = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     BYTE* bitmapBuffer = NULL;
-    WICInProcPointer resBuffer = NULL;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
@@ -425,12 +424,13 @@ HBITMAP LoadImageFromResources(
     IWICBitmapFrameDecode* wicFrame = NULL;
     IWICImagingFactory* wicFactory = NULL;
     IWICBitmapScaler* wicScaler = NULL;
-    //WICPixelFormatGUID pixelFormat;  
+    WICPixelFormatGUID pixelFormat;
+
     HDC hdcScreen = GetDC(NULL);
 
     __try
     {
-        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, Type)) == NULL)
+        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
         // Get the resource length.
         resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);       
@@ -462,17 +462,22 @@ HBITMAP LoadImageFromResources(
             __leave;
 
         wicBitmapSource = (IWICBitmapSource*)wicFrame;
-
+         
+        // Get the WicFrame width and height.
         if (FAILED(IWICBitmapSource_GetSize(wicBitmapSource, &width, &height)) || width == 0 || height == 0)
             __leave;
-        //if (FAILED(IWICBitmapSource_GetPixelFormat(wicBitmapSource, &pixelFormat)))
-        //    __leave;
-        //if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
-        //{
-        //    if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
-        //        __leave;
-        //    IWICBitmapSource_Release(wicBitmapSource);
-        //}
+        // Get the WicFrame image format.
+        if (FAILED(IWICBitmapSource_GetPixelFormat(wicBitmapSource, &pixelFormat)))
+            __leave;
+        // Check if the image format is supported:
+        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+        {
+            // Convert the image to the correct format:
+            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+                __leave;
+
+            IWICBitmapFrameDecode_Release(wicFrame);
+        }
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         bitmapInfo.bmiHeader.biWidth = Width;
@@ -564,13 +569,22 @@ BOOLEAN InsertButton(
     context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
 
     ImageList_SetImageCount(context->ImageList, 2);
-    ImageList_Replace(context->ImageList, 0, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH1), L"PNG"), NULL);
-    ImageList_Replace(context->ImageList, 1, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH2), L"PNG"), NULL);
+
+    // Add the images to the imagelist
+    if (EnableWicImaging)
+    {
+        ImageList_Replace(context->ImageList, 0, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE)), NULL);
+        ImageList_Replace(context->ImageList, 1, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)), NULL);
+    }
+    else
+    {
+        PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
+        PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
+    }
 
     // Initialize the window UxTheme data.
     NcAreaInitializeUxTheme(context, hwndDlg);
-
-            
+         
     // Set Searchbox control font
     SearchboxFontHandle = InitializeFont(hwndDlg);
 

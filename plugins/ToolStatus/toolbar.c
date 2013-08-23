@@ -36,7 +36,6 @@ static TBBUTTON ButtonArray[9] =
     { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 }
 };
 
-
 static VOID RebarAddMenuItem(
     __in HWND WindowHandle,
     __in HWND HwndHandle,
@@ -71,6 +70,36 @@ static VOID RebarLoadSettings(
     VOID
     )
 {
+    if (!ToolBarImageList)
+    {
+        // Create the toolbar imagelist
+        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
+        // Set the number of images
+        ImageList_SetImageCount(ToolBarImageList, 7);
+    }
+
+    // Add the images to the imagelist
+    if (EnableWicImaging)
+    {
+        ImageList_Replace(ToolBarImageList, 0, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)), NULL);
+        ImageList_Replace(ToolBarImageList, 1, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)), NULL);
+        ImageList_Replace(ToolBarImageList, 2, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)), NULL);
+        ImageList_Replace(ToolBarImageList, 3, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)), NULL);
+        ImageList_Replace(ToolBarImageList, 4, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)), NULL);
+        ImageList_Replace(ToolBarImageList, 5, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)), NULL);
+        ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)), NULL);
+    }
+    else
+    {
+        PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
+        PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
+        PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
+        PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
+        PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
+        PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
+        PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
+    }
+
     // Load the Rebar, Toolbar and Searchbox controls.
     if (EnableToolBar && !ReBarHandle)
     {
@@ -115,26 +144,6 @@ static VOID RebarLoadSettings(
             NULL
             );
 
-        // Create the toolbar imagelist
-        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
-        // Set the number of images
-        ImageList_SetImageCount(ToolBarImageList, 7);
-        // Add the images to the imagelist
-        ImageList_Replace(ToolBarImageList, 0, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 1, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 2, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 3, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 4, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 5, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO), L"PNG"), NULL);
-        ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS), L"PNG"), NULL);
-        //PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
-        //PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
-        //PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
-        //PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
-        //PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
-        //PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
-        //PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
-        
         // Set the toolbar info with no imagelist.
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 
@@ -149,10 +158,10 @@ static VOID RebarLoadSettings(
 
         // Insert a paint region into the edit control NC window area
         InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+       // Reset the client area margins.
+        SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
         // Set initial text
         SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
-        // Reset the client area margins.
-        SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
 
         // Enable theming:
         //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
@@ -292,4 +301,7 @@ VOID LoadToolbarSettings(
         // Resize the toolbar
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
     }
+
+    // Invoke the LayoutPaddingCallback.
+    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 }
