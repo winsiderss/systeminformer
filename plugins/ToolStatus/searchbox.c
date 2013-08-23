@@ -430,6 +430,7 @@ HBITMAP LoadImageFromResources(
 
     __try
     {
+        // Find the resource.
         if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
         // Get the resource length.
@@ -443,6 +444,7 @@ HBITMAP LoadImageFromResources(
         // Create the ImagingFactory.
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
             __leave;
+        // Create the PNG decoder.
         if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
 
@@ -460,14 +462,11 @@ HBITMAP LoadImageFromResources(
         // Get the Frame.
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
-
-        wicBitmapSource = (IWICBitmapSource*)wicFrame;
-         
         // Get the WicFrame width and height.
-        if (FAILED(IWICBitmapSource_GetSize(wicBitmapSource, &width, &height)) || width == 0 || height == 0)
+        if (FAILED(IWICBitmapSource_GetSize((IWICBitmapSource*)wicFrame, &width, &height)) || width == 0 || height == 0)
             __leave;
         // Get the WicFrame image format.
-        if (FAILED(IWICBitmapSource_GetPixelFormat(wicBitmapSource, &pixelFormat)))
+        if (FAILED(IWICBitmapSource_GetPixelFormat((IWICBitmapSource*)wicFrame, &pixelFormat)))
             __leave;
         // Check if the image format is supported:
         if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
@@ -477,6 +476,10 @@ HBITMAP LoadImageFromResources(
                 __leave;
 
             IWICBitmapFrameDecode_Release(wicFrame);
+        }
+        else
+        {
+            wicBitmapSource = (IWICBitmapSource*)wicFrame;
         }
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -507,9 +510,9 @@ HBITMAP LoadImageFromResources(
             IWICBitmapScaler_Release(wicScaler);
         }
 
-        if (wicFrame)
+        if (wicBitmapSource)
         {
-            IWICBitmapFrameDecode_Release(wicFrame);
+            IWICBitmapSource_Release(wicBitmapSource);
         }
 
         if (wicStream)
