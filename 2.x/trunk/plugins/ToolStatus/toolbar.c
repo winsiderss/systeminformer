@@ -197,23 +197,23 @@ static VOID RebarLoadSettings(
     // Hide or show controls (Note: don't unload or remove at runtime).
     if (EnableToolBar)
     {
-        if (ReBarHandle)
+        if (ReBarHandle && !IsWindowVisible(ReBarHandle))
             ShowWindow(ReBarHandle, SW_SHOW);
     }
     else
     {
-        if (ReBarHandle)
+        if (ReBarHandle && IsWindowVisible(ReBarHandle))
             ShowWindow(ReBarHandle, SW_HIDE);
     }
 
     if (EnableStatusBar)
     {  
-        if (StatusBarHandle)
+        if (StatusBarHandle && !IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_SHOW);
     }
     else
     {        
-        if (StatusBarHandle)
+        if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
 }
