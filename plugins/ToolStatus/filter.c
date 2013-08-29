@@ -23,7 +23,7 @@
 
 #include "toolstatus.h"
 
-static BOOLEAN WordMatch(
+static BOOLEAN WordMatchStringRef(
     __in PPH_STRINGREF Text
     )
 {
@@ -46,7 +46,7 @@ static BOOLEAN WordMatch(
     return FALSE;
 }
 
-static BOOLEAN WordMatch2(
+static BOOLEAN WordMatchString(
     __in PWSTR Text
     )
 {
@@ -83,133 +83,133 @@ BOOLEAN ProcessTreeFilterCallback(
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
 
-    if (WordMatch2(PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass)))
-        showItem = TRUE;
-
     if (processNode->ProcessItem->ProcessName)
     {
-        if (WordMatch(&processNode->ProcessItem->ProcessName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->ProcessName->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->FileName)
     {
-        if (WordMatch(&processNode->ProcessItem->FileName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->FileName->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->CommandLine)
     {
-        if (WordMatch(&processNode->ProcessItem->CommandLine->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->CommandLine->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->VersionInfo.CompanyName)
     {
-        if (WordMatch(&processNode->ProcessItem->VersionInfo.CompanyName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.CompanyName->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->VersionInfo.FileDescription)
     {
-        if (WordMatch(&processNode->ProcessItem->VersionInfo.FileDescription->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.FileDescription->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->VersionInfo.FileVersion)
     {
-        if (WordMatch(&processNode->ProcessItem->VersionInfo.FileVersion->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.FileVersion->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->VersionInfo.ProductName)
     {
-        if (WordMatch(&processNode->ProcessItem->VersionInfo.ProductName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.ProductName->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->UserName)
     {
-        if (WordMatch(&processNode->ProcessItem->UserName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->UserName->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->IntegrityString)
     {
-        if (WordMatch2(processNode->ProcessItem->IntegrityString))
+        if (WordMatchString(processNode->ProcessItem->IntegrityString))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->JobName)
     {
-        if (WordMatch(&processNode->ProcessItem->JobName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->JobName->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->VerifySignerName)
     {
-        if (WordMatch(&processNode->ProcessItem->VerifySignerName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->VerifySignerName->sr))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->ProcessIdString)
     {
-        if (WordMatch2(processNode->ProcessItem->ProcessIdString))
+        if (WordMatchString(processNode->ProcessItem->ProcessIdString))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->ParentProcessIdString)
     {
-        if (WordMatch2(processNode->ProcessItem->ParentProcessIdString))
+        if (WordMatchString(processNode->ProcessItem->ParentProcessIdString))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->SessionIdString)
     {
-        if (WordMatch2(processNode->ProcessItem->SessionIdString))
+        if (WordMatchString(processNode->ProcessItem->SessionIdString))
             showItem = TRUE;
     }
 
     if (processNode->ProcessItem->PackageFullName)
     {
-        if (WordMatch(&processNode->ProcessItem->PackageFullName->sr))
+        if (WordMatchStringRef(&processNode->ProcessItem->PackageFullName->sr))
             showItem = TRUE;
     }
+
+    if (WordMatchString(PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass)))
+        showItem = TRUE;
 
     if (processNode->ProcessItem->VerifyResult != VrUnknown)
     {
         switch (processNode->ProcessItem->VerifyResult)
         {
         case VrNoSignature:
-            if (WordMatch2(L"NoSignature"))
+            if (WordMatchString(L"NoSignature"))
                 showItem = TRUE;
             break;
         case VrTrusted:
-            if (WordMatch2(L"Trusted"))
+            if (WordMatchString(L"Trusted"))
                 showItem = TRUE;
             break;
         case VrExpired:
-            if (WordMatch2(L"Expired"))
+            if (WordMatchString(L"Expired"))
                 showItem = TRUE;
             break;
         case VrRevoked:
-            if (WordMatch2(L"Revoked"))
+            if (WordMatchString(L"Revoked"))
                 showItem = TRUE;
             break;
         case VrDistrust:
-            if (WordMatch2(L"Distrust"))
+            if (WordMatchString(L"Distrust"))
                 showItem = TRUE;
             break;
         case VrSecuritySettings:
-            if (WordMatch2(L"SecuritySettings"))
+            if (WordMatchString(L"SecuritySettings"))
                 showItem = TRUE;
             break;
         case VrBadSignature:
-            if (WordMatch2(L"BadSignature"))
+            if (WordMatchString(L"BadSignature"))
                 showItem = TRUE;
             break;
         default:
-            if (WordMatch2(L"Unknown"))
+            if (WordMatchString(L"Unknown"))
                 showItem = TRUE;
             break;
         }
@@ -220,71 +220,71 @@ BOOLEAN ProcessTreeFilterCallback(
         switch (processNode->ProcessItem->ElevationType)
         {
         case TokenElevationTypeLimited:
-            if (WordMatch2(L"Limited"))
+            if (WordMatchString(L"Limited"))
                 showItem = TRUE;
             break;
         case TokenElevationTypeFull:
-            if (WordMatch2(L"Full"))
+            if (WordMatchString(L"Full"))
                 showItem = TRUE;
             break;
         default:
-            if (WordMatch2(L"Unknown"))
+            if (WordMatchString(L"Unknown"))
                 showItem = TRUE;
             break;
         }
     }
 
-    if (WordMatch2(L"UpdateIsDotNet") && processNode->ProcessItem->UpdateIsDotNet)
+    if (WordMatchString(L"UpdateIsDotNet") && processNode->ProcessItem->UpdateIsDotNet)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsBeingDebugged") && processNode->ProcessItem->IsBeingDebugged)
+    if (WordMatchString(L"IsBeingDebugged") && processNode->ProcessItem->IsBeingDebugged)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsDotNet") && processNode->ProcessItem->IsDotNet)
+    if (WordMatchString(L"IsDotNet") && processNode->ProcessItem->IsDotNet)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsElevated") && processNode->ProcessItem->IsElevated)
+    if (WordMatchString(L"IsElevated") && processNode->ProcessItem->IsElevated)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsInJob") && processNode->ProcessItem->IsInJob)
+    if (WordMatchString(L"IsInJob") && processNode->ProcessItem->IsInJob)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsInSignificantJob") && processNode->ProcessItem->IsInSignificantJob)
+    if (WordMatchString(L"IsInSignificantJob") && processNode->ProcessItem->IsInSignificantJob)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsPacked") && processNode->ProcessItem->IsPacked)
+    if (WordMatchString(L"IsPacked") && processNode->ProcessItem->IsPacked)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsPosix") && processNode->ProcessItem->IsPosix)
+    if (WordMatchString(L"IsPosix") && processNode->ProcessItem->IsPosix)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsSuspended") && processNode->ProcessItem->IsSuspended)
+    if (WordMatchString(L"IsSuspended") && processNode->ProcessItem->IsSuspended)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsWow64") && processNode->ProcessItem->IsWow64)
+    if (WordMatchString(L"IsWow64") && processNode->ProcessItem->IsWow64)
     {
         showItem = TRUE;
     }
 
-    if (WordMatch2(L"IsImmersive") && processNode->ProcessItem->IsImmersive)
+    if (WordMatchString(L"IsImmersive") && processNode->ProcessItem->IsImmersive)
     {
         showItem = TRUE;
     }
@@ -303,33 +303,33 @@ BOOLEAN ServiceTreeFilterCallback(
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
 
-    if (WordMatch2(PhGetServiceTypeString(serviceNode->ServiceItem->Type)))
+    if (WordMatchString(PhGetServiceTypeString(serviceNode->ServiceItem->Type)))
         showItem = TRUE;
 
-    if (WordMatch2(PhGetServiceStateString(serviceNode->ServiceItem->State)))
+    if (WordMatchString(PhGetServiceStateString(serviceNode->ServiceItem->State)))
         showItem = TRUE;
 
-    if (WordMatch2(PhGetServiceStartTypeString(serviceNode->ServiceItem->StartType)))
+    if (WordMatchString(PhGetServiceStartTypeString(serviceNode->ServiceItem->StartType)))
         showItem = TRUE;
 
-    if (WordMatch2(PhGetServiceErrorControlString(serviceNode->ServiceItem->ErrorControl)))
+    if (WordMatchString(PhGetServiceErrorControlString(serviceNode->ServiceItem->ErrorControl)))
         showItem = TRUE;
 
     if (serviceNode->ServiceItem->Name)
     {
-        if (WordMatch(&serviceNode->ServiceItem->Name->sr))
+        if (WordMatchStringRef(&serviceNode->ServiceItem->Name->sr))
             showItem = TRUE;
     }
 
     if (serviceNode->ServiceItem->DisplayName)
     {
-        if (WordMatch(&serviceNode->ServiceItem->DisplayName->sr))
+        if (WordMatchStringRef(&serviceNode->ServiceItem->DisplayName->sr))
             showItem = TRUE;
     }
 
     if (serviceNode->ServiceItem->ProcessIdString)
     {
-        if (WordMatch2(serviceNode->ServiceItem->ProcessIdString))
+        if (WordMatchString(serviceNode->ServiceItem->ProcessIdString))
             showItem = TRUE;
     }
 
@@ -349,49 +349,49 @@ BOOLEAN NetworkTreeFilterCallback(
 
     if (networkNode->NetworkItem->ProcessName)
     {
-        if (WordMatch(&networkNode->NetworkItem->ProcessName->sr))
+        if (WordMatchStringRef(&networkNode->NetworkItem->ProcessName->sr))
             showItem = TRUE;
     }
 
     if (networkNode->NetworkItem->OwnerName)
     {
-        if (WordMatch(&networkNode->NetworkItem->OwnerName->sr))
+        if (WordMatchStringRef(&networkNode->NetworkItem->OwnerName->sr))
             showItem = TRUE;
     }
 
     if (networkNode->NetworkItem->LocalAddressString)
     {
-        if (WordMatch2(networkNode->NetworkItem->LocalAddressString))
+        if (WordMatchString(networkNode->NetworkItem->LocalAddressString))
             showItem = TRUE;
     }
 
     if (networkNode->NetworkItem->LocalPortString)
     {
-        if (WordMatch2(networkNode->NetworkItem->LocalPortString))
+        if (WordMatchString(networkNode->NetworkItem->LocalPortString))
             showItem = TRUE;
     }
 
     if (networkNode->NetworkItem->LocalHostString)
     {
-        if (WordMatch(&networkNode->NetworkItem->LocalHostString->sr))
+        if (WordMatchStringRef(&networkNode->NetworkItem->LocalHostString->sr))
             showItem = TRUE;
     }
 
     if (networkNode->NetworkItem->RemoteAddressString)
     {
-        if (WordMatch2(networkNode->NetworkItem->RemoteAddressString))
+        if (WordMatchString(networkNode->NetworkItem->RemoteAddressString))
             showItem = TRUE;
     }
 
     if (networkNode->NetworkItem->RemotePortString)
     {
-        if (WordMatch2(networkNode->NetworkItem->RemotePortString))
+        if (WordMatchString(networkNode->NetworkItem->RemotePortString))
             showItem = TRUE;
     }
 
     if (networkNode->NetworkItem->RemoteHostString)
     {
-        if (WordMatch(&networkNode->NetworkItem->RemoteHostString->sr))
+        if (WordMatchStringRef(&networkNode->NetworkItem->RemoteHostString->sr))
             showItem = TRUE;
     }
 
@@ -400,7 +400,7 @@ BOOLEAN NetworkTreeFilterCallback(
 
         PhPrintUInt32(pidString, HandleToUlong(networkNode->NetworkItem->ProcessId));
 
-        if (WordMatch2(pidString))
+        if (WordMatchString(pidString))
             showItem = TRUE;
     }
 
