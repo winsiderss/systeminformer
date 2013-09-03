@@ -417,6 +417,7 @@ HBITMAP LoadImageFromResources(
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     BYTE* bitmapBuffer = NULL;
+    BOOLEAN isSuccess = FALSE;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
@@ -469,10 +470,10 @@ HBITMAP LoadImageFromResources(
         if (FAILED(IWICBitmapSource_GetPixelFormat((IWICBitmapSource*)wicFrame, &pixelFormat)))
             __leave;
         // Check if the image format is supported:
-        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppPBGRA))
         {
             // Convert the image to the correct format:
-            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
                 __leave;
 
             IWICBitmapFrameDecode_Release(wicFrame);
@@ -500,6 +501,8 @@ HBITMAP LoadImageFromResources(
             if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
                 __leave;
         }
+
+        isSuccess = TRUE;
     }
     __finally
     {
@@ -557,7 +560,6 @@ static HFONT InitializeFont(
     return NULL;
 }
 
-
 BOOLEAN InsertButton(
     __in HWND hwndDlg,
     __in UINT CommandID
@@ -570,24 +572,29 @@ BOOLEAN InsertButton(
     context->CommandID = CommandID;
     context->ParentWindow = GetParent(hwndDlg);
     context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
-
     ImageList_SetImageCount(context->ImageList, 2);
 
     // Add the images to the imagelist
-    if (EnableWicImaging)
+    if (context->ActiveBitmap = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE)))
     {
-        ImageList_Replace(context->ImageList, 0, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE)), NULL);
-        ImageList_Replace(context->ImageList, 1, LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)), NULL);
+        ImageList_Replace(context->ImageList, 0, context->ActiveBitmap, NULL);
     }
     else
     {
         PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
+    }
+    if (context->InactiveBitmap = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)))
+    {
+        ImageList_Replace(context->ImageList, 1, context->InactiveBitmap, NULL);
+    }
+    else
+    {
         PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
     }
-
+            
     // Initialize the window UxTheme data.
     NcAreaInitializeUxTheme(context, hwndDlg);
-         
+
     // Set Searchbox control font
     SearchboxFontHandle = InitializeFont(hwndDlg);
 
@@ -599,5 +606,6 @@ BOOLEAN InsertButton(
 
     // Force the edit control to update its non-client area.
     RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
     return TRUE;
 }
