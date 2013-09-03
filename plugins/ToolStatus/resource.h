@@ -29,7 +29,6 @@
 #define IDC_DISPLAYSTYLECOMBO           1004
 #define IDC_DISPLAYSTYLETEXT            1005
 #define IDC_ENABLE_STATUSBAR            1006
-#define IDC_ENABLE_WIC                  1007
 #define ID_STATUS_CPUUSAGE              40001
 #define ID_STATUS_COMMITCHARGE          40002
 #define ID_STATUS_PHYSICALMEMORY        40003

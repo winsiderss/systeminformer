@@ -72,32 +72,82 @@ static VOID RebarLoadSettings(
 {
     if (!ToolBarImageList)
     {
+        HBITMAP arrowIconBitmap = NULL;
+        HBITMAP cogIconBitmap = NULL;
+        HBITMAP findIconBitmap = NULL;
+        HBITMAP chartIconBitmap = NULL;
+        HBITMAP appIconBitmap = NULL;
+        HBITMAP goIconBitmap = NULL;
+        HBITMAP crossIconBitmap = NULL;
+
         // Create the toolbar imagelist
         ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images
         ImageList_SetImageCount(ToolBarImageList, 7);
-    }
 
-    // Add the images to the imagelist
-    if (EnableWicImaging)
-    {
-        ImageList_Replace(ToolBarImageList, 0, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)), NULL);
-        ImageList_Replace(ToolBarImageList, 1, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)), NULL);
-        ImageList_Replace(ToolBarImageList, 2, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)), NULL);
-        ImageList_Replace(ToolBarImageList, 3, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)), NULL);
-        ImageList_Replace(ToolBarImageList, 4, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)), NULL);
-        ImageList_Replace(ToolBarImageList, 5, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)), NULL);
-        ImageList_Replace(ToolBarImageList, 6, LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)), NULL);
-    }
-    else
-    {
-        PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
-        PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
-        PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
-        PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
-        PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
-        PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
-        PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
+        // Add the images to the imagelist
+        if (arrowIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
+        {
+            ImageList_Replace(ToolBarImageList, 0, arrowIconBitmap, NULL);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
+        }
+
+        if (cogIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))  
+        {
+            ImageList_Replace(ToolBarImageList, 1, cogIconBitmap, NULL);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));  
+        }
+
+        if (findIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
+        {
+            ImageList_Replace(ToolBarImageList, 2, findIconBitmap, NULL);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
+        }
+
+        if (chartIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)))
+        {
+            ImageList_Replace(ToolBarImageList, 3, chartIconBitmap, NULL);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
+        }
+
+        if (appIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)))
+        {
+            ImageList_Replace(ToolBarImageList, 4, appIconBitmap, NULL);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
+        }
+
+        if (goIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
+        {
+            ImageList_Replace(ToolBarImageList, 5, goIconBitmap, NULL);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
+        }
+
+        if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)))
+        {
+            ImageList_Replace(ToolBarImageList, 6, crossIconBitmap, NULL);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
+        }
     }
 
     // Load the Rebar, Toolbar and Searchbox controls.
