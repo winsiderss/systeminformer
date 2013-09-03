@@ -68,7 +68,6 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
-extern BOOLEAN EnableWicImaging;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern HWND ReBarHandle;
 extern HWND ToolBarHandle;
@@ -172,6 +171,8 @@ typedef struct _NC_CONTEXT
     INT cyTopEdge;
     INT cyBottomEdge;
     LONG cxImgSize;
+    HBITMAP ActiveBitmap;
+    HBITMAP InactiveBitmap;
 
     BOOLEAN HasCapture;
     BOOL IsThemeActive;

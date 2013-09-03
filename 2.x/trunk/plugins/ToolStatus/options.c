@@ -47,8 +47,6 @@ INT_PTR CALLBACK OptionsDlgProc(
                 PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearchBox") ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR), 
                 PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar") ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_WIC), 
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableWicImaging") ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
                 PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows") ? BST_CHECKED : BST_UNCHECKED);
         }
@@ -70,8 +68,6 @@ INT_PTR CALLBACK OptionsDlgProc(
                         (EnableSearchBox = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_SEARCHBOX)) == BST_CHECKED));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar",
                         (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableWicImaging",
-                        (EnableWicImaging = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_WIC)) == BST_CHECKED));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows",
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 
