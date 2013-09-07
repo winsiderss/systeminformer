@@ -66,7 +66,14 @@ static HBITMAP LoadImageFromResources(
     HDC hdcScreen = GetDC(NULL);
 
     __try
-    {
+    {  
+        // Create the ImagingFactory.
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+            __leave;
+        // Create the PNG decoder.
+        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
+            __leave;
+
         // Find the resource.
         if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
@@ -76,13 +83,6 @@ static HBITMAP LoadImageFromResources(
         if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
             __leave;
         if ((resBuffer = (WICInProcPointer)LockResource(resHandle)) == NULL)
-            __leave;
-
-        // Create the ImagingFactory.
-        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
-            __leave;
-        // Create the PNG decoder.
-        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
 
         // Create the Stream.
@@ -165,6 +165,11 @@ static HBITMAP LoadImageFromResources(
         if (wicFactory)
         {
             IWICImagingFactory_Release(wicFactory);
+        }
+       
+        if (resHandle)
+        {
+            FreeResource(resHandle);
         }
     }
 

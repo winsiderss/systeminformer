@@ -417,7 +417,6 @@ HBITMAP LoadImageFromResources(
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     BYTE* bitmapBuffer = NULL;
-    BOOLEAN isSuccess = FALSE;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
@@ -430,7 +429,14 @@ HBITMAP LoadImageFromResources(
     HDC hdcScreen = GetDC(NULL);
 
     __try
-    {
+    {  
+        // Create the ImagingFactory.
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+            __leave;
+        // Create the PNG decoder.
+        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
+            __leave;
+
         // Find the resource.
         if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
@@ -440,13 +446,6 @@ HBITMAP LoadImageFromResources(
         if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
             __leave;
         if ((resBuffer = (WICInProcPointer)LockResource(resHandle)) == NULL)
-            __leave;
-
-        // Create the ImagingFactory.
-        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
-            __leave;
-        // Create the PNG decoder.
-        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
 
         // Create the Stream.
@@ -470,10 +469,10 @@ HBITMAP LoadImageFromResources(
         if (FAILED(IWICBitmapSource_GetPixelFormat((IWICBitmapSource*)wicFrame, &pixelFormat)))
             __leave;
         // Check if the image format is supported:
-        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppPBGRA))
+        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
         {
             // Convert the image to the correct format:
-            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
                 __leave;
 
             IWICBitmapFrameDecode_Release(wicFrame);
@@ -501,8 +500,6 @@ HBITMAP LoadImageFromResources(
             if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
                 __leave;
         }
-
-        isSuccess = TRUE;
     }
     __finally
     {
@@ -531,6 +528,11 @@ HBITMAP LoadImageFromResources(
         if (wicFactory)
         {
             IWICImagingFactory_Release(wicFactory);
+        }
+       
+        if (resHandle)
+        {
+            FreeResource(resHandle);
         }
     }
 
