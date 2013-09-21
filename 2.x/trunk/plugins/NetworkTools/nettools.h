@@ -52,14 +52,28 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     HWND WindowHandle;
     BOOLEAN UseOldColors;
-    PH_QUEUED_LOCK TextBufferLock;
 
     HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
     WCHAR addressString[65];
     PH_STRING_BUILDER ReceivedString;
+
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+    ULONG CurrentPingMs;
+    ULONG PingMinMs;
+    ULONG PingMaxMs;
+    ULONG PingAvgMs;
+    ULONG PingSentCount;
+    ULONG PingRecvCount;
+    ULONG PingLossCount;
+    PH_CIRCULAR_BUFFER_ULONG PingHistory;
+    PH_GRAPH_STATE PingGraphState;
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
+
+NTSTATUS PhNetworkPingDialogThreadStart(
+    __in PVOID Parameter
+    );
 
 VOID PerformNetworkAction(
     __in ULONG Action,
