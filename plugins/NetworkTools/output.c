@@ -25,90 +25,7 @@
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
-static NTSTATUS PhNetworkOutputDialogThreadStart(
-    __in PVOID Parameter
-    )
-{
-    BOOL result;
-    MSG message;
-    PH_AUTO_POOL autoPool;
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
-
-    PhInitializeAutoPool(&autoPool);
-
-    context->WindowHandle = CreateDialogParam(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OUTPUT),
-        PhMainWndHandle,
-        NetworkOutputDlgProc,
-        (LPARAM)Parameter
-        );
-
-    ShowWindow(context->WindowHandle, SW_SHOW);
-    SetForegroundWindow(context->WindowHandle);
-
-    while (result = GetMessage(&message, NULL, 0, 0))
-    {
-        if (result == -1)
-            break;
-
-        if (!IsDialogMessage(context->WindowHandle, &message))
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-
-        PhDrainAutoPool(&autoPool);
-    }
-
-    PhDeleteAutoPool(&autoPool);
-    DestroyWindow(context->WindowHandle);
-    PhFree(context);
-    return STATUS_SUCCESS;
-}
-
-static HFONT InitializeFont(
-    __in HWND hwndDlg
-    )
-{
-    LOGFONT logFont = { 0 };
-    HFONT fontHandle = NULL;
-
-    logFont.lfHeight = 14;
-    logFont.lfWeight = FW_NORMAL;//FW_MEDIUM;
-    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-    
-    // GDI uses the first font that matches the above attributes.
-    fontHandle = CreateFontIndirect(&logFont);
-
-    if (fontHandle)
-    {
-        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
-        return fontHandle;
-    }
-
-    return NULL;
-}
-
-VOID PerformNetworkAction(
-    __in ULONG Action,
-    __in PPH_NETWORK_ITEM NetworkItem
-    )
-{ 
-    HANDLE dialogThread = INVALID_HANDLE_VALUE;
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(
-        sizeof(NETWORK_OUTPUT_CONTEXT)
-        );
-    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
-
-    context->Action = Action;
-    context->NetworkItem = NetworkItem;
-     
-    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkOutputDialogThreadStart, (PVOID)context))
-        NtClose(dialogThread);
-}
-
-INT_PTR CALLBACK NetworkOutputDlgProc(
+static INT_PTR CALLBACK NetworkOutputDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -129,19 +46,6 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
         if (uMsg == WM_NCDESTROY)
         {
             PhSaveWindowPlacementToSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", L"ProcessHacker.NetTools.NetToolsWindowSize", hwndDlg); 
-
-            if (context->ProcessHandle)
-            {
-                NtClose(context->ProcessHandle);
-                context->ProcessHandle = NULL;
-            }
-
-            if (context->ThreadHandle)
-            {
-                NtClose(context->ThreadHandle);
-                context->ThreadHandle = NULL;
-            }
-         
             PhDeleteStringBuilder(&context->ReceivedString);
             RemoveProp(hwndDlg, L"Context");
         }
@@ -157,9 +61,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PH_RECTANGLE windowRectangle;
             HANDLE dialogThread = INVALID_HANDLE_VALUE;
 
-            PhInitializeQueuedLock(&context->TextBufferLock);
             PhInitializeStringBuilder(&context->ReceivedString, PAGE_SIZE);
-
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
@@ -203,12 +105,6 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
             switch (context->Action)
             {
-            case NETWORK_ACTION_PING:
-                {
-                    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkPingThreadStart, (PVOID)context))
-                        NtClose(dialogThread);
-                }
-                break;
             case NETWORK_ACTION_TRACEROUTE:
                 {
                     if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkTracertThreadStart, (PVOID)context))
@@ -229,17 +125,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             switch (LOWORD(wParam))
             {
             case IDC_NETRETRY:
-                {
-                    HANDLE dialogThread = NULL;
-
-                    Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
-
-                    if (context->Action == NETWORK_ACTION_PING)
-                    {
-                        if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkPingThreadStart, (PVOID)context))
-                            NtClose(dialogThread);
-                    }
-                }
+                Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
                 break;
             case IDCANCEL:
             case IDOK:
@@ -409,4 +295,95 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     }
 
     return FALSE;
+}
+
+static NTSTATUS PhNetworkOutputDialogThreadStart(
+    __in PVOID Parameter
+    )
+{
+    BOOL result;
+    MSG message;
+    PH_AUTO_POOL autoPool;
+    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
+
+    PhInitializeAutoPool(&autoPool);
+
+    context->WindowHandle = CreateDialogParam(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OUTPUT),
+        PhMainWndHandle,
+        NetworkOutputDlgProc,
+        (LPARAM)Parameter
+        );
+
+    ShowWindow(context->WindowHandle, SW_SHOW);
+    SetForegroundWindow(context->WindowHandle);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(context->WindowHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    DestroyWindow(context->WindowHandle);
+    PhFree(context);
+    return STATUS_SUCCESS;
+}
+
+static HFONT InitializeFont(
+    __in HWND hwndDlg
+    )
+{
+    LOGFONT logFont = { 0 };
+    HFONT fontHandle = NULL;
+
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_NORMAL;//FW_MEDIUM;
+    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    
+    // GDI uses the first font that matches the above attributes.
+    fontHandle = CreateFontIndirect(&logFont);
+
+    if (fontHandle)
+    {
+        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
+        return fontHandle;
+    }
+
+    return NULL;
+}
+
+VOID PerformNetworkAction(
+    __in ULONG Action,
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{ 
+    HANDLE dialogThread = INVALID_HANDLE_VALUE;
+    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(
+        sizeof(NETWORK_OUTPUT_CONTEXT)
+        );
+    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+
+    context->Action = Action;
+    context->NetworkItem = NetworkItem;
+
+    if (context->Action == NETWORK_ACTION_PING)
+    {
+        if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkPingDialogThreadStart, (PVOID)context))
+            NtClose(dialogThread);
+    }
+    else
+    {
+        if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkOutputDialogThreadStart, (PVOID)context)) 
+            NtClose(dialogThread);
+    }
 }
