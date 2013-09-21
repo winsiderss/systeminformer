@@ -111,6 +111,21 @@ BEGIN
     LTEXT           "Timeout:",IDC_STATIC,67,22,29,8
 END
 
+IDD_PINGDIALOG DIALOGEX 0, 0, 351, 187
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,295,166,50,14
+    CONTROL         "Custom1",IDC_CUSTOM1,"PhGraph",WS_BORDER,7,27,337,90
+    LTEXT           "Pinging X with 32 bytes of data:",IDC_MAINTEXT,7,7,337,16
+    GROUPBOX        "Ping statistics",IDC_STATIC3,7,119,109,60
+    LTEXT           "Lost: 0",IDC_STATIC5,13,166,73,8
+    LTEXT           "Minimum: 0ms",IDC_STATIC6,13,142,73,8
+    LTEXT           "Maximum: 0ms",IDC_STATIC7,13,154,73,8
+    LTEXT           "Average: 0ms",IDC_STATIC8,13,130,73,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -134,6 +149,14 @@ BEGIN
         RIGHTMARGIN, 172
         TOPMARGIN, 7
         BOTTOMMARGIN, 69
+    END
+
+    IDD_PINGDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 344
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 180
     END
 END
 #endif    // APSTUDIO_INVOKED
