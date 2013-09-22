@@ -67,7 +67,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     ULONG icmpReplyLength = 0;       
     ULONG icmpReplyCount = 0;
-    ULONG icmpMaxPingCount = 0;
+    ULONG icmpMaxPingTimeout = 0;
     LONG64 icmpCurrentPingMs = 0;
     PVOID icmpReplyBuffer = NULL;
     PNETWORK_OUTPUT_CONTEXT context = NULL;
@@ -76,7 +76,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
         255, 0, IP_FLAG_DF, 0, NULL 
     };
     
-    icmpMaxPingCount = __max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
+    icmpMaxPingTimeout = __max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
 
     //Ping statistics for %s:
     //    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
@@ -127,7 +127,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
-                icmpMaxPingCount * 1000
+                icmpMaxPingTimeout * 1000
                 );
 
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
@@ -180,7 +180,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
-                icmpMaxPingCount * 1000
+                icmpMaxPingTimeout * 1000
                 );
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
