@@ -116,8 +116,8 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,295,157,50,14
     LTEXT           "Pinging X with 8 bytes of data:",IDC_MAINTEXT,7,7,337,16
-    GROUPBOX        "Ping statistics",IDC_STATIC3,7,108,109,60
-    LTEXT           "Lost: 0",IDC_STATIC5,13,156,73,8
+    GROUPBOX        "Ping statistics",IDC_STATIC3,7,108,125,60
+    LTEXT           "Lost: 0 (0% loss)",IDC_STATIC5,13,156,73,8
     LTEXT           "Minimum: 0ms",IDC_STATIC6,13,131,73,8
     LTEXT           "Maximum: 0ms",IDC_STATIC7,13,144,73,8
     LTEXT           "Average: 0ms",IDC_STATIC8,13,119,73,8

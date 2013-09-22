@@ -67,7 +67,6 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
              
-            context->UseOldColors = !!PhGetIntegerSetting(L"GraphColorMode");
             windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition");
             windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize");
 
@@ -94,7 +93,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                 PhLoadWindowPlacementFromSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", L"ProcessHacker.NetTools.NetToolsWindowSize", hwndDlg);
             }
 
-            if (context->NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+            if (context->RemoteAddrType == PH_IPV4_NETWORK_TYPE)
             {
                 RtlIpv4AddressToString(&context->NetworkItem->RemoteEndpoint.Address.InAddr, context->addressString);
             }
@@ -148,7 +147,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             ULONG hwndChildID = 0;
             
             // Check if OldColors are enabled.
-            if (!context->UseOldColors)
+            if (!!PhGetIntegerSetting(L"GraphColorMode"))
                 break;
 
             // Get the control ID.
@@ -343,6 +342,7 @@ VOID PerformNetworkAction(
 
     context->Action = Action;
     context->NetworkItem = NetworkItem;
+    context->RemoteAddrType = NetworkItem->RemoteEndpoint.Address.Type;
 
     if (context->Action == NETWORK_ACTION_PING)
     {

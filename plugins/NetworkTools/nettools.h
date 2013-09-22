@@ -57,8 +57,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
-    BOOLEAN UseOldColors;  
-    ULONG MaxPingTimeout;
+    ULONG RemoteAddrType;
     LONG64 CurrentPingMs;
     LONG64 PingMinMs;
     LONG64 PingMaxMs;
