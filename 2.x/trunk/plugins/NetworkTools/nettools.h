@@ -35,40 +35,44 @@
 
 #include "resource.h"
 
+extern PPH_PLUGIN PluginInstance;
+
+typedef enum _PH_NETWORK_ACTION
+{
+    NETWORK_ACTION_PING = 1,
+    NETWORK_ACTION_TRACEROUTE = 2,
+    NETWORK_ACTION_WHOIS = 3
+} PH_NETWORK_ACTION;
+
 // output
-#define NETWORK_ACTION_PING 1
-#define NETWORK_ACTION_TRACEROUTE 2
-#define NETWORK_ACTION_WHOIS 3
 #define NTM_RECEIVEDPING (WM_APP + NETWORK_ACTION_PING)
 #define NTM_RECEIVEDTRACE (WM_APP + NETWORK_ACTION_TRACEROUTE)
 #define NTM_RECEIVEDWHOIS (WM_APP + NETWORK_ACTION_WHOIS)
 
-extern PPH_PLUGIN PluginInstance;
-
 typedef struct _NETWORK_OUTPUT_CONTEXT
 {
-    ULONG Action;
-    PPH_NETWORK_ITEM NetworkItem;
-    PH_LAYOUT_MANAGER LayoutManager;
+    PH_NETWORK_ACTION Action;
     HWND WindowHandle;
-    BOOLEAN UseOldColors;
-
+    HWND PingGraphHandle;
     HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
-    WCHAR addressString[65];
-    PH_STRING_BUILDER ReceivedString;
-
-    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-    ULONG CurrentPingMs;
-    ULONG PingMinMs;
-    ULONG PingMaxMs;
-    ULONG PingAvgMs;
-    ULONG PingSentCount;
-    ULONG PingRecvCount;
-    ULONG PingLossCount;
-    PH_CIRCULAR_BUFFER_ULONG PingHistory;
+    BOOLEAN UseOldColors;  
+    ULONG MaxPingTimeout;
+    LONG64 CurrentPingMs;
+    LONG64 PingMinMs;
+    LONG64 PingMaxMs;
+    LONG64 PingAvgMs;
+    LONG64 PingSentCount;
+    LONG64 PingRecvCount;
+    LONG64 PingLossCount;
+    PPH_NETWORK_ITEM NetworkItem;
+    PH_LAYOUT_MANAGER LayoutManager;
     PH_GRAPH_STATE PingGraphState;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+    PH_CIRCULAR_BUFFER_ULONG64 PingHistory;
+    PH_STRING_BUILDER ReceivedString;
+    WCHAR addressString[65];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
 NTSTATUS PhNetworkPingDialogThreadStart(
@@ -76,7 +80,7 @@ NTSTATUS PhNetworkPingDialogThreadStart(
     );
 
 VOID PerformNetworkAction(
-    __in ULONG Action,
+    __in PH_NETWORK_ACTION Action,
     __in PPH_NETWORK_ITEM NetworkItem
     );
 

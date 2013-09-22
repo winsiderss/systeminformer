@@ -34,17 +34,13 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG maxPingCount = PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingCount");
             ULONG maxPingTimeout = PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout");
-
-            if (maxPingCount)
-            {
-                Static_SetText(GetDlgItem(hwndDlg, IDC_MAXPINGTEXT), PhaFormatString(L"%d", maxPingCount)->Buffer); 
-            }
 
             if (maxPingTimeout)
             {
-                Static_SetText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT), PhaFormatString(L"%d", maxPingTimeout)->Buffer); 
+                Static_SetText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT), 
+                    PhaFormatString(L"%d", maxPingTimeout)->Buffer
+                    ); 
             }
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_NETRESOLVECHECK),
@@ -61,16 +57,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PPH_STRING maxPingCountText = NULL;
                     PPH_STRING maxPingTimeoutText = NULL;
                     ULONG64 integer = 0;
-
-                    if (maxPingCountText = PhGetWindowText(GetDlgItem(hwndDlg, IDC_MAXPINGTEXT)))
-                    {
-                        PhStringToInteger64(&maxPingCountText->sr, 10, &integer);
-                        PhSetIntegerSetting(L"ProcessHacker.NetTools.MaxPingCount", (ULONG)integer);
-                        PhDereferenceObject(maxPingCountText);
-                    }
 
                     if (maxPingTimeoutText = PhGetWindowText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT)))
                     {

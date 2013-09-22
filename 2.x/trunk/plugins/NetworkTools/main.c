@@ -118,7 +118,6 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, L"ProcessHacker.NetTools.NetToolsWindowSize", L"600,365" },        
                 { IntegerPairSettingType, L"ProcessHacker.NetTools.NetToolsPingWindowPosition", L"0,0" },
                 { IntegerPairSettingType, L"ProcessHacker.NetTools.NetToolsPingWindowSize", L"600,365" },
-                { IntegerSettingType, L"ProcessHacker.NetTools.MaxPingCount", L"4" },
                 { IntegerSettingType, L"ProcessHacker.NetTools.MaxPingTimeout", L"5" },
                 { IntegerSettingType, L"ProcessHacker.NetTools.EnableHostnameLookup", L"1" },
             };
