@@ -67,26 +67,31 @@ static NTSTATUS PhPingNetworkPingThreadStart(
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     ULONG icmpReplyLength = 0;       
     ULONG icmpReplyCount = 0;
+    ULONG icmpMaxPingCount = 0;
+    LONG64 icmpCurrentPingMs = 0;
     PVOID icmpReplyBuffer = NULL;
+    PNETWORK_OUTPUT_CONTEXT context = NULL;
     IP_OPTION_INFORMATION pingOptions = 
     { 
         255, 0, IP_FLAG_DF, 0, NULL 
     };
+    
+    icmpMaxPingCount = __max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
 
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
+    //Ping statistics for %s:
+    //    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+    //Approximate round trip times in milli-seconds:
+    //    Minimum = 202ms, Maximum = 207ms, Average = 204ms
 
     __try
     {
-        //Ping statistics for %s:
-        //    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
-        //Approximate round trip times in milli-seconds:
-        //    Minimum = 202ms, Maximum = 207ms, Average = 204ms
+        context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
+        if (context == NULL)
+            __leave;
 
-        context->PingSentCount++;
-
-        if (context->NetworkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+        if (context->RemoteAddrType == PH_IPV6_NETWORK_TYPE)
         {          
-            SOCKADDR_IN6 icmp6SourceAddr = { 0 };
+            SOCKADDR_IN6 icmp6LocalAddr = { 0 };
             SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
             PICMPV6_ECHO_REPLY icmp6ReplyStruct = NULL;
 
@@ -95,16 +100,19 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 __leave;
 
             // Set Local IPv6 address.
-            icmp6SourceAddr.sin6_addr = in6addr_any;
-            icmp6SourceAddr.sin6_family = AF_INET6;
+            icmp6LocalAddr.sin6_addr = in6addr_any;
+            icmp6LocalAddr.sin6_family = AF_INET6;
 
             // Set Remote IPv6 address.
             icmp6RemoteAddr.sin6_addr = context->NetworkItem->RemoteEndpoint.Address.In6Addr;
+            icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 Ping buffer.
             icmpReplyLength = sizeof(ICMPV6_ECHO_REPLY);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
+
+            InterlockedIncrement64(&context->PingSentCount);
 
             // Send ICMPv6 ping...
             icmpReplyCount = Icmp6SendEcho2(            
@@ -112,20 +120,20 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 NULL,
                 NULL,
                 NULL, 
-                &icmp6SourceAddr,
+                &icmp6LocalAddr,
                 &icmp6RemoteAddr,
                 NULL, 
                 0,
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
-                context->MaxPingTimeout * 1000
+                icmpMaxPingCount * 1000
                 );
 
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmp6ReplyStruct)
             {
-                //if (icmpReplyStruct->Address == context->Address.InAddr.S_un.S_addr) 
+                //if (icmpReplyStruct->Address.sin6_addr == context->NetworkItem->RemoteEndpoint.Address.In6Addr) 
                 //if (icmpReplyStruct->DataSize < max_size)
                 //if (icmpReplyStruct->RoundTripTime < 1)
                 
@@ -134,16 +142,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                     InterlockedIncrement64(&context->PingLossCount);
                 }
 
-                context->CurrentPingMs = icmp6ReplyStruct->RoundTripTime;
-
-                if (context->CurrentPingMs < context->PingMinMs)
-                    context->PingMinMs = context->CurrentPingMs;
-                if (context->CurrentPingMs > context->PingMaxMs)
-                    context->PingMaxMs = context->CurrentPingMs;
-
-                InterlockedIncrement64(&context->PingRecvCount);
-
-                PhAddItemCircularBuffer_ULONG64(&context->PingHistory, (ULONG64)context->CurrentPingMs);
+                icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
             }
             else
             {
@@ -167,6 +166,8 @@ static NTSTATUS PhPingNetworkPingThreadStart(
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
    
+            InterlockedIncrement64(&context->PingSentCount);
+
             // Send ICMPv4 ping...
             icmpReplyCount = IcmpSendEcho2(
                 icmpHandle,
@@ -179,7 +180,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
-                context->MaxPingTimeout * 1000
+                icmpMaxPingCount * 1000
                 );
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
@@ -195,22 +196,24 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                     InterlockedIncrement64(&context->PingLossCount);
                 }
 
-                context->CurrentPingMs = icmpReplyStruct->RoundTripTime;
-
-                if (context->CurrentPingMs < context->PingMinMs)
-                    context->PingMinMs = context->CurrentPingMs;
-                if (context->CurrentPingMs > context->PingMaxMs)
-                    context->PingMaxMs = context->CurrentPingMs;
-
-                InterlockedIncrement64(&context->PingRecvCount);
-
-                PhAddItemCircularBuffer_ULONG64(&context->PingHistory, (ULONG64)context->CurrentPingMs);
+                icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
             }
             else
             {
                 InterlockedIncrement64(&context->PingLossCount);
             }
         }
+
+        InterlockedIncrement64(&context->PingRecvCount);
+
+        if (context->PingMinMs == 0 || icmpCurrentPingMs < context->PingMinMs)
+            context->PingMinMs = icmpCurrentPingMs;
+        if (icmpCurrentPingMs > context->PingMaxMs)
+            context->PingMaxMs = icmpCurrentPingMs;
+
+        context->CurrentPingMs = icmpCurrentPingMs;
+
+        PhAddItemCircularBuffer_ULONG64(&context->PingHistory, (ULONG64)icmpCurrentPingMs);                
     }
     __finally
     {
@@ -290,8 +293,6 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             PH_RECTANGLE windowRectangle;
             PPH_LAYOUT_ITEM panelItem;
 
-            context->UseOldColors = !!PhGetIntegerSetting(L"GraphColorMode");
-            context->MaxPingTimeout = __max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
             windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowPosition");
             windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowSize");
 
@@ -337,7 +338,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             }
                   
             // Convert IP Address to string format.
-            if (context->NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+            if (context->RemoteAddrType == PH_IPV4_NETWORK_TYPE)
             {
                 RtlIpv4AddressToString(
                     &context->NetworkItem->RemoteEndpoint.Address.InAddr, 
@@ -353,7 +354,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             }
 
             SetWindowText(hwndDlg, PhaFormatString(L"Ping (%s)", context->addressString)->Buffer);
-            SetWindowText(GetDlgItem(hwndDlg, IDC_MAINTEXT), PhaFormatString(L"Pinging %s with 32 bytes of data:", context->addressString)->Buffer);
+            SetWindowText(GetDlgItem(hwndDlg, IDC_MAINTEXT), PhaFormatString(L"Pinging %s with 0 bytes of data:", context->addressString)->Buffer);
                         
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
@@ -440,7 +441,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                    if (context->UseOldColors)
+                    if (!!PhGetIntegerSetting(L"GraphColorMode"))
                     {                      
                         drawInfo->BackColor = RGB(0x00, 0x00, 0x00);
                         drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
