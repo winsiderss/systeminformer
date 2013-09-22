@@ -204,38 +204,6 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             }
         }
         break;   
-    case NTM_RECEIVEDPING:
-        {
-            PPH_STRING inputString;
-
-            if (wParam != 0)
-            {
-                inputString = (PPH_STRING)wParam;
-                
-                //PhReferenceObject(inputString);
-                PhAppendStringBuilderEx(&context->ReceivedString, inputString->Buffer, inputString->Length);
-                PhDereferenceObject(inputString);
-
-                // Remove leading newlines.
-                if (context->ReceivedString.String->Length >= 2 * 2 &&
-                    context->ReceivedString.String->Buffer[0] == '\r' && 
-                    context->ReceivedString.String->Buffer[1] == '\n')
-                {
-                    PhRemoveStringBuilder(&context->ReceivedString, 0, 2);
-                }
-
-                SetDlgItemText(hwndDlg, IDC_NETOUTPUTEDIT, context->ReceivedString.String->Buffer);
-                SendMessage(
-                    GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT),
-                    EM_SETSEL,
-                    context->ReceivedString.String->Length / 2 - 1,
-                    context->ReceivedString.String->Length / 2 - 1
-                    );
-                SendMessage(GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), WM_VSCROLL, SB_BOTTOM, 0);
-                return TRUE;
-            }
-        }
-        break;
     case NTM_RECEIVEDWHOIS:
         {
             OEM_STRING inputString;
@@ -363,7 +331,7 @@ static HFONT InitializeFont(
 }
 
 VOID PerformNetworkAction(
-    __in ULONG Action,
+    __in PH_NETWORK_ACTION Action,
     __in PPH_NETWORK_ITEM NetworkItem
     )
 { 

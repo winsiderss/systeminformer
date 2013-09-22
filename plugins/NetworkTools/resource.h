@@ -13,13 +13,13 @@
 #define IDC_MAXPINGTEXT                 1007
 #define IDC_MAXTIMEOUTTEXT              1008
 #define IDC_NETOUTPUTEDIT               1008
-#define IDC_CUSTOM1                     1010
 #define IDC_STATIC3                     1012
 #define IDC_STATIC5                     1014
 #define IDC_STATIC6                     1015
 #define IDC_STATIC7                     1016
 #define IDC_STATIC8                     1017
 #define IDC_MAINTEXT                    1018
+#define IDC_PING_LAYOUT                 1076
 
 // Next default values for new objects
 // 
