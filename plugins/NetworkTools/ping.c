@@ -61,33 +61,19 @@ static HFONT InitializeFont(
     return NULL;
 }
 
-static VOID LogIcmpMessage( 
-    __in PNETWORK_OUTPUT_CONTEXT context, 
-    __in PPH_STRING Message
+VOID PhNetworkPingUpdateGraph(
+    __in PNETWORK_OUTPUT_CONTEXT Context
     )
 {
-    // get the current selection
-    ULONG startPos = 0;
-    ULONG endPos = 0;
-    ULONG textLength = 0;
-
-    SendMessage(context->EditHandle, EM_GETSEL, (WPARAM)startPos, (WPARAM)endPos);
-
-    // move the caret to the end of the text
-    textLength = GetWindowTextLength(context->EditHandle);
-
-    SendMessage(context->EditHandle, EM_SETSEL, textLength, textLength);
-
-    // insert the text at the new caret position
-    SendMessage(context->EditHandle, EM_REPLACESEL, TRUE, (LPARAM)Message->Buffer);
-
-    // restore the previous selection
-    SendMessage(context->EditHandle, EM_SETSEL, startPos, endPos);
-
-    PhDereferenceObject(Message);
+    Context->PingGraphState.Valid = FALSE;
+    Context->PingGraphState.TooltipIndex = -1;
+    Graph_MoveGrid(Context->PingGraphHandle, 1);
+    Graph_Draw(Context->PingGraphHandle);
+    Graph_UpdateTooltip(Context->PingGraphHandle);
+    InvalidateRect(Context->PingGraphHandle, NULL, FALSE);
 }
 
-static NTSTATUS PhPingNetworkPingThreadStart(
+static NTSTATUS PhNetworkPingThreadStart(
     __in PVOID Parameter
     )
 {
@@ -176,23 +162,15 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 //icmpCurrentPingTtl = icmp6ReplyStruct->Options.Ttl;
 
                 switch (icmp6ReplyStruct->Status) 
-                {               
-                case IP_SUCCESS:
-                    LogIcmpMessage(context, PhFormatString(
-                        L"Reply from %s: bytes=32 time=%ums TTL=%u\r\n", 
-                        context->addressString, 
-                        icmpCurrentPingMs, 
-                        icmpCurrentPingTtl
-                        ));
-                    break;
+                {
                 case IP_DEST_HOST_UNREACHABLE:
-                    LogIcmpMessage(context, PhFormatString(L"IcmpV6 destination host unreachable: %u\r\n", icmp6ReplyStruct->Status));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 destination host unreachable: %u", icmp6ReplyStruct->Status));
                     break;
                 case IP_DEST_NET_UNREACHABLE:
-                    LogIcmpMessage(context, PhFormatString(L"IcmpV6 destination network unreachable: %u\r\n", icmp6ReplyStruct->Status));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 destination network unreachable: %u", icmp6ReplyStruct->Status));
                     break;
                 case IP_REQ_TIMED_OUT:
-                    LogIcmpMessage(context, PhFormatString(L"IcmpV6 request timed-out: %u\r\n", icmp6ReplyStruct->Status));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 request timed-out: %u", icmp6ReplyStruct->Status));
                     break;
                 }
             }
@@ -203,13 +181,13 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 switch (GetLastError()) 
                 {
                 case IP_BUF_TOO_SMALL:
-                    LogIcmpMessage(context, PhFormatString(L"IcmpV6 reply buffer too small: %u\r\n", GetLastError()));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 reply buffer too small: %u", GetLastError()));
                     break;
                 case IP_REQ_TIMED_OUT:
-                    LogIcmpMessage(context, PhFormatString(L"IcmpV6 request timed-out: %u\r\n", GetLastError()));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 request timed-out: %u", GetLastError()));
                     break;
                 default:
-                    LogIcmpMessage(context, PhFormatString(L"IcmpV6 error: %u\r\n", GetLastError()));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 error: %u", GetLastError()));
                     break;
                 }
             }
@@ -253,7 +231,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
             if (icmpReplyCount > 0 && icmpReplyStruct)
             {
                 //IN_ADDR icmpReplyAddr;
-                //icmpReplyAddr.S_un.S_addr = icmpReplyStruct->Address;
+                //icmpReplyAddr.S_un.S_addr = icmpReplyStruct->Address.InAddr.S_un.S_addr;
                 //if (icmpReplyAddr.S_un.S_addr == context->Address.InAddr.S_un.S_addr) 
                 //if (icmpReplyStruct->DataSize < max_size)
                 //if (icmpReplyStruct->RoundTripTime < 1)
@@ -267,23 +245,15 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 icmpCurrentPingTtl = icmpReplyStruct->Options.Ttl;
 
                 switch (icmpReplyStruct->Status) 
-                {               
-                case IP_SUCCESS:
-                    LogIcmpMessage(context, PhFormatString(
-                        L"Reply from %s: bytes=32 time=%ums TTL=%u\r\n", 
-                        context->addressString, 
-                        icmpCurrentPingMs, 
-                        icmpCurrentPingTtl
-                        ));
-                    break;
+                {
                 case IP_DEST_HOST_UNREACHABLE:
-                    LogIcmpMessage(context, PhFormatString(L"Icmp destination host unreachable: %u\r\n", icmpReplyStruct->Status));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp destination host unreachable: %u", icmpReplyStruct->Status));
                     break;
                 case IP_DEST_NET_UNREACHABLE:
-                    LogIcmpMessage(context, PhFormatString(L"Icmp destination network unreachable: %u\r\n", icmpReplyStruct->Status));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp destination network unreachable: %u", icmpReplyStruct->Status));
                     break;
                 case IP_REQ_TIMED_OUT:
-                    LogIcmpMessage(context, PhFormatString(L"Icmp request timed-out: %u\r\n", icmpReplyStruct->Status));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp request timed-out: %u", icmpReplyStruct->Status));
                     break;
                 }
             }
@@ -294,13 +264,13 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 switch (GetLastError()) 
                 {
                 case IP_BUF_TOO_SMALL:
-                    LogIcmpMessage(context, PhFormatString(L"Icmp reply buffer too small: %u\r\n", GetLastError()));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp reply buffer too small: %u", GetLastError()));
                     break;
                 case IP_REQ_TIMED_OUT:
-                    LogIcmpMessage(context, PhFormatString(L"Icmp request timed-out: %u\r\n", GetLastError()));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp request timed-out: %u", GetLastError()));
                     break;
                 default:
-                    LogIcmpMessage(context, PhFormatString(L"Icmp error: %u\r\n", GetLastError()));
+                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp error: %u", GetLastError()));
                     break;
                 }
             }
@@ -345,7 +315,7 @@ static VOID NTAPI NetworkPingUpdateHandler(
 
     // Queue up the next ping...
     // This needs to be done to prevent slow-links from blocking the interval update.
-    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhPingNetworkPingThreadStart, (PVOID)context))
+    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkPingThreadStart, (PVOID)context))
         NtClose(dialogThread);
 
     PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
@@ -381,6 +351,18 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 L"ProcessHacker.NetTools.NetToolsPingWindowSize", 
                 hwndDlg
                 );
+                       
+            if (context->IconHandle)
+            {
+                DestroyIcon(context->IconHandle);
+                context->IconHandle = NULL;
+            }
+
+            if (context->FontHandle)
+            {
+                DeleteObject(context->FontHandle);
+                context->FontHandle = NULL;
+            }
 
             PhDeleteGraphState(&context->PingGraphState);
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -398,7 +380,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
         {
             PH_RECTANGLE windowRectangle;
             PPH_LAYOUT_ITEM panelItem;
-     
+
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
             // the drawing issue that arises when using WS_CLIPCHILDREN. However
             // in removing the flicker from the graphs the group boxes will now flicker.
@@ -407,13 +389,13 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
             context->ParentHandle = GetParent(hwndDlg);
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
-            context->EditHandle = GetDlgItem(hwndDlg, IDC_EDIT1);
 
             windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowPosition");
             windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowSize");
-                     
+
             // Create the font handle.
             context->FontHandle = InitializeFont(context->StatusHandle);
+
             // Load the Process Hacker icon.
             context->IconHandle = (HICON)LoadImage(
                 GetModuleHandle(NULL),
@@ -426,24 +408,23 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             // Set window icon.
             if (context->IconHandle) 
                 SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
-
+          
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhInitializeCircularBuffer_ULONG(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
-
+            
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC3), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC5), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC6), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC7), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC8), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, context->EditHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-         
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);        
+            
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);      
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
-                WS_VISIBLE | WS_CHILD | WS_BORDER,
+                WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_DRAW_PANEL, // GC_STYLE_FADEOUT
                 0,
                 0,
                 3,
@@ -452,10 +433,8 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 (HMENU)IDC_PING_GRAPH,
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
-                );   
-            PhSetWindowStyle(context->PingGraphHandle, WS_BORDER, WS_BORDER);
+                );
             Graph_SetTooltip(context->PingGraphHandle, TRUE);
-            BringWindowToTop(context->PingGraphHandle);
             PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
 
             // Load window settings.
@@ -520,7 +499,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_SIZING:
-        PhResizingMinimumSize((PRECT)lParam, wParam, 100, 100);
+        PhResizingMinimumSize((PRECT)lParam, wParam, 305, 300);
         break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
@@ -544,16 +523,10 @@ static INT_PTR CALLBACK NetworkPingWndProc(
         break;
     case WM_PING_UPDATE:
         {
-            context->PingGraphState.Valid = FALSE;
-            context->PingGraphState.TooltipIndex = -1;
-            Graph_MoveGrid(context->PingGraphHandle, 1);
-            Graph_Draw(context->PingGraphHandle);
-            Graph_UpdateTooltip(context->PingGraphHandle);
-            InvalidateRect(context->PingGraphHandle, NULL, FALSE);
+            PhNetworkPingUpdateGraph(context);
       
             //SetDlgItemText(hwndDlg, IDC_STATIC2, PhaFormatString(
             //    L"Sent: %I64u", context->PingSentCount)->Buffer);
-
             SetDlgItemText(hwndDlg, IDC_STATIC5, PhaFormatString(
                 L"Ping Loss: %u (0%%)", context->PingLossCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_STATIC6, PhaFormatString(
@@ -643,7 +616,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->PingGraphState.Data1,
-                                maxGraphHeight,
+                                maxGraphHeight + 10,
                                 drawInfo->LineDataCount
                                 );
 
@@ -703,6 +676,8 @@ NTSTATUS PhNetworkPingDialogThreadStart(
 
     ShowWindow(context->WindowHandle, SW_SHOW);
     SetForegroundWindow(context->WindowHandle);
+
+    PostMessage(context->WindowHandle, WM_SIZE, 0, 0);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
