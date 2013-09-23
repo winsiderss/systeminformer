@@ -52,12 +52,18 @@ typedef enum _PH_NETWORK_ACTION
 typedef struct _NETWORK_OUTPUT_CONTEXT
 {
     PH_NETWORK_ACTION Action;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PH_GRAPH_STATE PingGraphState;
+    PH_CIRCULAR_BUFFER_ULONG64 PingHistory;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
     HWND WindowHandle;
     HWND PingGraphHandle;
     HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
-    ULONG RemoteAddrType;
+
+
     LONG64 CurrentPingMs;
     LONG64 PingMinMs;
     LONG64 PingMaxMs;
@@ -65,11 +71,10 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     LONG64 PingSentCount;
     LONG64 PingRecvCount;
     LONG64 PingLossCount;
+
     PPH_NETWORK_ITEM NetworkItem;
-    PH_LAYOUT_MANAGER LayoutManager;
-    PH_GRAPH_STATE PingGraphState;
-    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-    PH_CIRCULAR_BUFFER_ULONG64 PingHistory;
+    PH_IP_ADDRESS IpAddress;
+    
     PH_STRING_BUILDER ReceivedString;
     WCHAR addressString[65];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
