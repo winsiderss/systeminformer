@@ -73,20 +73,66 @@ VOID PhNetworkPingUpdateGraph(
     InvalidateRect(Context->PingGraphHandle, NULL, FALSE);
 }
 
+/**
+ * Creates a Ansi string using format specifiers.
+ *
+ * \param Format The format-control string.
+ * \param ArgPtr A pointer to the list of arguments.
+ */
+PPH_ANSI_STRING PhFormatAnsiString_V(
+    __in __format_string PSTR Format,
+    __in va_list ArgPtr
+    )
+{
+    PPH_ANSI_STRING string;
+    int length;
+
+    length = _vscprintf(Format, ArgPtr);
+
+    if (length == -1)
+        return NULL;
+
+    string = PhCreateAnsiStringEx(NULL, length * sizeof(CHAR));
+    
+    _vsnprintf(
+        string->Buffer, 
+        length, 
+        Format, ArgPtr
+        );
+
+    return string;
+}
+
+/**
+ * Creates a Ansi string using format specifiers.
+ *
+ * \param Format The format-control string.
+ */
+PPH_ANSI_STRING PhFormatAnsiString(
+    __in __format_string PSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Format);
+
+    return PhFormatAnsiString_V(Format, argptr);
+}
+
 static NTSTATUS PhNetworkPingThreadStart(
     __in PVOID Parameter
     )
 {
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
-    ULONG icmpReplyLength = 0;
-    ULONG icmpReplyCount = 0;
-    ULONG icmpMaxPingTimeout = 0;
     ULONG icmpCurrentPingMs = 0;
     ULONG icmpCurrentPingTtl = 0;
+    ULONG icmpReplyCount = 0;
+    ULONG icmpReplyLength = 0;
     PVOID icmpReplyBuffer = NULL;
+    PPH_STRING phVersion = NULL;
+    PPH_ANSI_STRING icmpEchoBuffer = NULL;
     PNETWORK_OUTPUT_CONTEXT context = NULL;
-    PH_AUTO_POOL autoPool;
-    static CHAR icmpSendBuffer[] = "processhacker_v2.32_ping_32_buf";
     static IP_OPTION_INFORMATION pingOptions = 
     { 
         255,         // Time To Live
@@ -95,12 +141,14 @@ static NTSTATUS PhNetworkPingThreadStart(
         0,           // Size of options data
         NULL         // Pointer to options data
     };
-    
-    PhInitializeAutoPool(&autoPool);
-    icmpMaxPingTimeout = __max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
 
     __try
     {
+        phVersion = PhGetPhVersion();
+        icmpEchoBuffer = PhFormatAnsiString("proceshacker_v%S_0x0D06F00D_x1", phVersion->Buffer);
+        if (icmpEchoBuffer == NULL)
+            __leave;
+
         context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
         if (context == NULL)
             __leave;
@@ -124,7 +172,7 @@ static NTSTATUS PhNetworkPingThreadStart(
             icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 Ping buffer.
-            icmpReplyLength = (sizeof(ICMPV6_ECHO_REPLY) * 2) + sizeof(icmpSendBuffer);
+            icmpReplyLength = (sizeof(ICMPV6_ECHO_REPLY) * 2) + icmpEchoBuffer->MaximumLength;
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -138,12 +186,12 @@ static NTSTATUS PhNetworkPingThreadStart(
                 NULL, 
                 &icmp6LocalAddr,
                 &icmp6RemoteAddr,
-                icmpSendBuffer, 
-                sizeof(icmpSendBuffer),
+                icmpEchoBuffer->Buffer, 
+                icmpEchoBuffer->MaximumLength,
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
-                icmpMaxPingTimeout * 1000
+                context->MaxPingTimeout * 1000
                 );
 
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
@@ -164,30 +212,80 @@ static NTSTATUS PhNetworkPingThreadStart(
                 switch (icmp6ReplyStruct->Status) 
                 {
                 case IP_DEST_HOST_UNREACHABLE:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 destination host unreachable: %u", icmp6ReplyStruct->Status));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp destination host unreachable. ErrCode: %u [%s]", 
+                            icmp6ReplyStruct->Status,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 case IP_DEST_NET_UNREACHABLE:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 destination network unreachable: %u", icmp6ReplyStruct->Status));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp destination network unreachable. ErrCode: %u [%s]", 
+                            icmp6ReplyStruct->Status,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 case IP_REQ_TIMED_OUT:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 request timed-out: %u", icmp6ReplyStruct->Status));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp request timed-out. ErrCode: %u [%s]", 
+                            icmp6ReplyStruct->Status,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 }
             }
             else
             {
+                ULONG icmpErrorCode = GetLastError();
+
                 InterlockedIncrement(&context->PingLossCount);
-                               
-                switch (GetLastError()) 
+
+                switch (icmpErrorCode) 
                 {
                 case IP_BUF_TOO_SMALL:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 reply buffer too small: %u", GetLastError()));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp reply buffer too small. ErrCode: %u [%s]", 
+                            icmpErrorCode,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 case IP_REQ_TIMED_OUT:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 request timed-out: %u", GetLastError()));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp request timed-out. ErrCode: %u [%s]", 
+                            icmpErrorCode,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 default:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"IcmpV6 error: %u", GetLastError()));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp generic failure. ErrCode: %u [%s]", 
+                            icmpErrorCode,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 }
             }
@@ -205,7 +303,7 @@ static NTSTATUS PhNetworkPingThreadStart(
             icmpSourceAddr = context->IpAddress.InAddr.S_un.S_addr;
 
             // Allocate ICMPv4 Ping buffer.
-            icmpReplyLength = (sizeof(ICMP_ECHO_REPLY) * 2) + sizeof(icmpSendBuffer);
+            icmpReplyLength = (sizeof(ICMP_ECHO_REPLY) * 2) + icmpEchoBuffer->MaximumLength;
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
    
@@ -218,27 +316,41 @@ static NTSTATUS PhNetworkPingThreadStart(
                 NULL,
                 NULL, 
                 icmpSourceAddr,
-                icmpSendBuffer, 
-                sizeof(icmpSendBuffer),
+                icmpEchoBuffer->Buffer, 
+                icmpEchoBuffer->MaximumLength,
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
-                icmpMaxPingTimeout * 1000
+                context->MaxPingTimeout * 1000
                 );
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
-
             if (icmpReplyCount > 0 && icmpReplyStruct)
-            {
+            {              
                 //IN_ADDR icmpReplyAddr;
-                //icmpReplyAddr.S_un.S_addr = icmpReplyStruct->Address.InAddr.S_un.S_addr;
-                //if (icmpReplyAddr.S_un.S_addr == context->Address.InAddr.S_un.S_addr) 
+                //icmpReplyAddr.S_un.S_addr = icmpReplyStruct->Address;
                 //if (icmpReplyStruct->DataSize < max_size)
                 //if (icmpReplyStruct->RoundTripTime < 1)
-      
+
+                BOOLEAN icmpPacketSignature = (_memicmp(
+                    icmpEchoBuffer->Buffer, 
+                    icmpReplyStruct->Data, 
+                    icmpReplyStruct->DataSize
+                    ) == 0);
+
                 if (icmpReplyStruct->Status != IP_SUCCESS)
                 {
                     InterlockedIncrement(&context->PingLossCount);
+                }
+
+                if (icmpReplyStruct->Address != context->IpAddress.InAddr.S_un.S_addr)
+                {
+                    InterlockedIncrement(&context->UnknownAddrCount);
+                }
+
+                if (icmpPacketSignature != TRUE)
+                {
+                    InterlockedIncrement(&context->HashFailCount);
                 }
 
                 icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
@@ -247,30 +359,80 @@ static NTSTATUS PhNetworkPingThreadStart(
                 switch (icmpReplyStruct->Status) 
                 {
                 case IP_DEST_HOST_UNREACHABLE:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp destination host unreachable: %u", icmpReplyStruct->Status));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp destination host unreachable. ErrCode: %u [%s]", 
+                            icmpReplyStruct->Status,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 case IP_DEST_NET_UNREACHABLE:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp destination network unreachable: %u", icmpReplyStruct->Status));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp destination network unreachable. ErrCode: %u [%s]", 
+                            icmpReplyStruct->Status,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 case IP_REQ_TIMED_OUT:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp request timed-out: %u", icmpReplyStruct->Status));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp request timed-out. ErrCode: %u [%s]", 
+                            icmpReplyStruct->Status,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 }
             }
             else
             {
+                ULONG icmpErrorCode = GetLastError();
+
                 InterlockedIncrement(&context->PingLossCount);
 
-                switch (GetLastError()) 
+                switch (icmpErrorCode) 
                 {
                 case IP_BUF_TOO_SMALL:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp reply buffer too small: %u", GetLastError()));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp reply buffer too small. ErrCode: %u [%s]", 
+                            icmpErrorCode,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 case IP_REQ_TIMED_OUT:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp request timed-out: %u", GetLastError()));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp request timed-out. ErrCode: %u [%s]", 
+                            icmpErrorCode,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 default:
-                    PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, PhFormatString(L"Icmp error: %u", GetLastError()));
+                    {
+                        PPH_STRING errorMessage = PhFormatString(
+                            L"Icmp generic failure. ErrCode: %u [%s]", 
+                            icmpErrorCode,
+                            context->addressString
+                            );
+                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
                     break;
                 }
             }
@@ -288,8 +450,16 @@ static NTSTATUS PhNetworkPingThreadStart(
         PhAddItemCircularBuffer_ULONG(&context->PingHistory, icmpCurrentPingMs);                
     }
     __finally
-    {
-        PhDeleteAutoPool(&autoPool);
+    {        
+        if (phVersion);
+        {
+            PhDereferenceObject(phVersion);
+        }
+
+        if (icmpEchoBuffer);
+        {
+            PhDereferenceObject(icmpEchoBuffer);
+        }
 
         if (icmpReplyBuffer)
         {
@@ -389,12 +559,30 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
             context->ParentHandle = GetParent(hwndDlg);
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
+            context->MaxPingTimeout = __max(PhGetIntegerSetting(L"ProcessHacker.NetTools.MaxPingTimeout"), 1);
+            context->UseOldColors = !!PhGetIntegerSetting(L"GraphColorMode");
+            context->ShowGraphText = !!PhGetIntegerSetting(L"GraphShowText");
 
             windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowPosition");
             windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowSize");
 
             // Create the font handle.
             context->FontHandle = InitializeFont(context->StatusHandle);
+        
+            // Create the graph control.
+            context->PingGraphHandle = CreateWindow(
+                PH_GRAPH_CLASSNAME,
+                NULL,
+                WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_DRAW_PANEL, // GC_STYLE_FADEOUT
+                0,
+                0,
+                3,
+                3,
+                hwndDlg,
+                (HMENU)IDC_PING_GRAPH,
+                (HINSTANCE)PluginInstance->DllBase,
+                NULL
+                );
 
             // Load the Process Hacker icon.
             context->IconHandle = (HICON)LoadImage(
@@ -412,29 +600,17 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhInitializeCircularBuffer_ULONG(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
-            
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC3), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC5), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC6), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC7), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC8), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+           
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_PANEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_AVG), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_MIN), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_MAX), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_SENT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_LOST), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);        
-            
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);      
-            context->PingGraphHandle = CreateWindow(
-                PH_GRAPH_CLASSNAME,
-                NULL,
-                WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_DRAW_PANEL, // GC_STYLE_FADEOUT
-                0,
-                0,
-                3,
-                3,
-                hwndDlg,
-                (HMENU)IDC_PING_GRAPH,
-                (HINSTANCE)PluginInstance->DllBase,
-                NULL
-                );
-            Graph_SetTooltip(context->PingGraphHandle, TRUE);
             PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
 
             // Load window settings.
@@ -465,8 +641,9 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                     );
             }
 
-            SetWindowText(hwndDlg, PhaFormatString(L"Ping %s (32 bytes)", context->addressString)->Buffer);
-            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with 32 bytes", context->addressString)->Buffer);
+            SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->addressString)->Buffer);
+            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with 32 bytes of data:", context->addressString)->Buffer);
+            Graph_SetTooltip(context->PingGraphHandle, TRUE);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
@@ -499,7 +676,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_SIZING:
-        PhResizingMinimumSize((PRECT)lParam, wParam, 305, 300);
+        PhResizingMinimumSize((PRECT)lParam, wParam, 420, 250);
         break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
@@ -524,17 +701,23 @@ static INT_PTR CALLBACK NetworkPingWndProc(
     case WM_PING_UPDATE:
         {
             PhNetworkPingUpdateGraph(context);
-      
-            //SetDlgItemText(hwndDlg, IDC_STATIC2, PhaFormatString(
-            //    L"Sent: %I64u", context->PingSentCount)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_STATIC5, PhaFormatString(
-                L"Ping Loss: %u (0%%)", context->PingLossCount)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_STATIC6, PhaFormatString(
-                L"Minimum: %ums", context->PingMinMs)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_STATIC7, PhaFormatString(
-                L"Maximum: %ums", context->PingMaxMs)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_STATIC8, PhaFormatString(
+         
+            SetDlgItemText(hwndDlg, IDC_ICMP_AVG, PhaFormatString(
                 L"Average: %ums", context->PingAvgMs)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ICMP_MIN, PhaFormatString(
+                L"Minimum: %ums", context->PingMinMs)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ICMP_MAX, PhaFormatString(
+                L"Maximum: %ums", context->PingMaxMs)->Buffer);
+                        
+            SetDlgItemText(hwndDlg, IDC_PINGS_SENT, PhaFormatString(
+                L"Pings Sent: %u", context->PingSentCount)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
+                L"Pings Lost: %u (0%%)", context->PingLossCount)->Buffer);   
+
+            SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
+                L"Bad Hashes: %u", context->HashFailCount)->Buffer);  
+            SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
+                L"Anon Replies: %u", context->UnknownAddrCount)->Buffer);   
         }
         break;
     case WM_NOTIFY:
@@ -548,7 +731,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                    if (!!PhGetIntegerSetting(L"GraphColorMode"))
+                    if (context->UseOldColors)
                     {                      
                         drawInfo->BackColor = RGB(0x00, 0x00, 0x00);
                         drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
@@ -573,7 +756,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
                     if (header->hwndFrom == context->PingGraphHandle)
                     {
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (context->ShowGraphText)
                         {
                             HDC hdc = Graph_GetBufferedContext(context->PingGraphHandle);
 

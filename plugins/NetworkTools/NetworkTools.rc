@@ -109,20 +109,23 @@ BEGIN
     LTEXT           "Timeout:",IDC_STATIC,9,7,29,8
 END
 
-IDD_PINGDIALOG DIALOGEX 0, 0, 321, 176
+IDD_PINGDIALOG DIALOGEX 0, 0, 269, 130
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,264,155,50,14
-    LTEXT           "Pinging X with 32 bytes of data:",IDC_MAINTEXT,7,7,307,16
-    GROUPBOX        "Ping statistics",IDC_STATIC3,7,103,177,49,0,WS_EX_TRANSPARENT
-    LTEXT           "Ping Loss: 0 (0%)",IDC_STATIC5,95,114,73,8
-    LTEXT           "Minimum: 0ms",IDC_STATIC6,13,126,73,8
-    LTEXT           "Maximum: 0ms",IDC_STATIC7,13,139,73,8
-    LTEXT           "Average: 0ms",IDC_STATIC8,13,114,73,8
-    LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,307,72,NOT WS_VISIBLE
+    DEFPUSHBUTTON   "OK",IDOK,213,109,50,14
+    LTEXT           "Pinging X with X bytes of data:",IDC_MAINTEXT,7,7,255,16
+    GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,58,255,49,0,WS_EX_TRANSPARENT
+    LTEXT           "Pings Lost: 0 (0%)",IDC_PINGS_LOST,95,81,73,8
+    LTEXT           "Minimum: 0ms",IDC_ICMP_MIN,13,81,73,8
+    LTEXT           "Maximum: 0ms",IDC_ICMP_MAX,13,93,73,8
+    LTEXT           "Average: 0ms",IDC_ICMP_AVG,13,69,73,8
+    LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,255,27,NOT WS_VISIBLE | WS_BORDER
+    LTEXT           "Bad Hashes: 0",IDC_BAD_HASH,177,69,73,8
+    LTEXT           "Anon Replies: 0",IDC_ANON_ADDR,177,81,73,8
+    LTEXT           "Pings Sent: 0",IDC_PINGS_SENT,95,69,73,8
 END
 
 
@@ -153,9 +156,9 @@ BEGIN
     IDD_PINGDIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 314
+        RIGHTMARGIN, 262
         TOPMARGIN, 7
-        BOTTOMMARGIN, 169
+        BOTTOMMARGIN, 123
     END
 END
 #endif    // APSTUDIO_INVOKED
