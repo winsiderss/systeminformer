@@ -148,7 +148,6 @@ static NTSTATUS PhNetworkPingThreadStart(
         0,           // Type Of Service
         IP_FLAG_DF,  // IP header flags
         0            // Size of options data
-                     // Pointer to options data
     };
 
     __try
@@ -172,7 +171,7 @@ static NTSTATUS PhNetworkPingThreadStart(
             if ((icmpHandle = Icmp6CreateFile()) == INVALID_HANDLE_VALUE)
                 __leave;
 
-            // Set Local IPv6 address.
+            // Set Local IPv6-ANY address.
             icmp6LocalAddr.sin6_addr = in6addr_any;
             icmp6LocalAddr.sin6_family = AF_INET6;
 
@@ -202,6 +201,8 @@ static NTSTATUS PhNetworkPingThreadStart(
                 icmpReplyLength,
                 context->MaxPingTimeout * 1000
                 );
+
+            Icmp6ParseReplies(icmpReplyBuffer, icmpReplyLength);
 
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmp6ReplyStruct)
@@ -316,15 +317,19 @@ static NTSTATUS PhNetworkPingThreadStart(
         }
         else
         {
-            IPAddr icmpSourceAddr = 0;
+            IPAddr icmpLocalAddr = 0;
+            IPAddr icmpRemoteAddr = 0;
             PICMP_ECHO_REPLY icmpReplyStruct = NULL;
             
             // Create ICMPv4 handle.
             if ((icmpHandle = IcmpCreateFile()) == INVALID_HANDLE_VALUE)
                 __leave;
+            
+            // Set Local IPv4-ANY address.
+            icmpLocalAddr = in4addr_any.S_un.S_addr;
 
             // Set Remote IPv4 address.
-            icmpSourceAddr = context->IpAddress.InAddr.S_un.S_addr;
+            icmpRemoteAddr = context->IpAddress.InAddr.S_un.S_addr;
 
             // Allocate ICMPv4 message.
             icmpReplyLength = ICMP_IPv4_BUFFER_SIZE(icmpEchoBuffer);
@@ -334,12 +339,32 @@ static NTSTATUS PhNetworkPingThreadStart(
             InterlockedIncrement(&context->PingSentCount);
 
             // Send ICMPv4 ping...
+            //if (WindowsVersion > WINDOWS_VISTA)
+            //{
+            //    // Vista SP1 and up we can specify the source address:
+            //    icmpReplyCount = IcmpSendEcho2Ex(
+            //        icmpHandle,
+            //        NULL,
+            //        NULL,
+            //        NULL,
+            //        icmpLocalAddr,
+            //        icmpRemoteAddr,
+            //        icmpEchoBuffer->Buffer, 
+            //        icmpEchoBuffer->MaximumLength,
+            //        &pingOptions,
+            //        icmpReplyBuffer,
+            //        icmpReplyLength,
+            //        context->MaxPingTimeout * 1000
+            //        );
+            //}
+            //else
+
             icmpReplyCount = IcmpSendEcho2(
                 icmpHandle,
                 NULL,
                 NULL,
                 NULL, 
-                icmpSourceAddr,
+                icmpRemoteAddr,
                 icmpEchoBuffer->Buffer, 
                 icmpEchoBuffer->MaximumLength,
                 &pingOptions,
@@ -347,6 +372,8 @@ static NTSTATUS PhNetworkPingThreadStart(
                 icmpReplyLength,
                 context->MaxPingTimeout * 1000
                 );
+
+            IcmpParseReplies(icmpReplyBuffer, icmpReplyLength);
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmpReplyStruct)
@@ -724,10 +751,20 @@ static INT_PTR CALLBACK NetworkPingWndProc(
         break;
     case WM_PING_UPDATE:
         {
+            ULONG i = 0;
+            ULONG maxGraphHeight = 0;
+            ULONG pingAvgValue = 0;
+
             PhNetworkPingUpdateGraph(context);
-         
+
+            for (i = 0; i < context->PingHistory.Count; i++)
+            {
+                maxGraphHeight = maxGraphHeight + PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
+                pingAvgValue = maxGraphHeight / context->PingHistory.Count;
+            }
+
             SetDlgItemText(hwndDlg, IDC_ICMP_AVG, PhaFormatString(
-                L"Average: %ums", context->PingAvgMs)->Buffer);
+                L"Average: %ums", pingAvgValue)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ICMP_MIN, PhaFormatString(
                 L"Minimum: %ums", context->PingMinMs)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ICMP_MAX, PhaFormatString(
