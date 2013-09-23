@@ -60,7 +60,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HWND WindowHandle;
     HWND ParentHandle;
     HWND StatusHandle;
-    HWND EditHandle;
     HWND PingGraphHandle;
     HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
