@@ -48,20 +48,17 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
-    PPH_NETWORK_ITEM networkItem;
+    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)menuItem->Context;
 
     switch (menuItem->Id)
     {
-    case ID_TOOLS_PING:
-        networkItem = menuItem->Context;
+    case NETWORK_ACTION_PING:
         PerformNetworkAction(NETWORK_ACTION_PING, networkItem);
         break;
-    case ID_TOOLS_TRACEROUTE:
-        networkItem = menuItem->Context;
+    case NETWORK_ACTION_TRACEROUTE:
         PerformNetworkAction(NETWORK_ACTION_TRACEROUTE, networkItem);
         break;
-    case ID_TOOLS_WHOIS:
-        networkItem = menuItem->Context;
+    case NETWORK_ACTION_WHOIS:
         PerformNetworkAction(NETWORK_ACTION_WHOIS, networkItem);
         break;
     }
@@ -83,9 +80,9 @@ VOID NTAPI NetworkMenuInitializingCallback(
 
     // Create the Tools menu.
     toolsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Tools", NULL);
-    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_TOOLS_PING, L"Ping", networkItem), -1);
-    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_TOOLS_TRACEROUTE, L"Traceroute", networkItem), -1);
-    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_TOOLS_WHOIS, L"Whois", networkItem), -1);
+    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_PING, L"Ping", networkItem), -1);
+    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", networkItem), -1);
+    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_WHOIS, L"Whois", networkItem), -1);
 
     // Insert the Tools menu into the network menu.
     PhInsertEMenuItem(menuInfo->Menu, toolsMenu, 1);

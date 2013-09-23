@@ -31,6 +31,7 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #define WM_PING_UPDATE (WM_APP + 151)
+#define IDC_PING_GRAPH (55050)
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
@@ -68,7 +69,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
     ULONG icmpReplyLength = 0;       
     ULONG icmpReplyCount = 0;
     ULONG icmpMaxPingTimeout = 0;
-    LONG64 icmpCurrentPingMs = 0;
+    ULONG icmpCurrentPingMs = 0;
     PVOID icmpReplyBuffer = NULL;
     PNETWORK_OUTPUT_CONTEXT context = NULL;
     IP_OPTION_INFORMATION pingOptions = 
@@ -112,7 +113,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
-            InterlockedIncrement64(&context->PingSentCount);
+            InterlockedIncrement(&context->PingSentCount);
 
             // Send ICMPv6 ping...
             icmpReplyCount = Icmp6SendEcho2(            
@@ -139,14 +140,14 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 
                 if (icmp6ReplyStruct->Status != IP_SUCCESS)
                 {
-                    InterlockedIncrement64(&context->PingLossCount);
+                    InterlockedIncrement(&context->PingLossCount);
                 }
 
                 icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
             }
             else
             {
-                InterlockedIncrement64(&context->PingLossCount);
+                InterlockedIncrement(&context->PingLossCount);
             }
         }
         else
@@ -166,7 +167,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
    
-            InterlockedIncrement64(&context->PingSentCount);
+            InterlockedIncrement(&context->PingSentCount);
 
             // Send ICMPv4 ping...
             icmpReplyCount = IcmpSendEcho2(
@@ -193,18 +194,18 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                
                 if (icmpReplyStruct->Status != IP_SUCCESS)
                 {
-                    InterlockedIncrement64(&context->PingLossCount);
+                    InterlockedIncrement(&context->PingLossCount);
                 }
 
                 icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
             }
             else
             {
-                InterlockedIncrement64(&context->PingLossCount);
+                InterlockedIncrement(&context->PingLossCount);
             }
         }
 
-        InterlockedIncrement64(&context->PingRecvCount);
+        InterlockedIncrement(&context->PingRecvCount);
 
         if (context->PingMinMs == 0 || icmpCurrentPingMs < context->PingMinMs)
             context->PingMinMs = icmpCurrentPingMs;
@@ -213,7 +214,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
 
         context->CurrentPingMs = icmpCurrentPingMs;
 
-        PhAddItemCircularBuffer_ULONG64(&context->PingHistory, (ULONG64)icmpCurrentPingMs);                
+        PhAddItemCircularBuffer_ULONG(&context->PingHistory, icmpCurrentPingMs);                
     }
     __finally
     {
@@ -299,7 +300,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             InitializeFont(GetDlgItem(hwndDlg, IDC_MAINTEXT));
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhInitializeCircularBuffer_ULONG64(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
+            PhInitializeCircularBuffer_ULONG(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
 
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC3), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATIC5), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
@@ -318,7 +319,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 3,
                 3,
                 hwndDlg,
-                (HMENU)9001,
+                (HMENU)IDC_PING_GRAPH,
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
@@ -421,13 +422,13 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             //SetDlgItemText(hwndDlg, IDC_STATIC2, PhaFormatString(
             //    L"Sent: %I64u", context->PingSentCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_STATIC5, PhaFormatString(
-                L"Loss: %I64u (0%% loss)", context->PingLossCount)->Buffer);
+                L"Loss: %u (0%% loss)", context->PingLossCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_STATIC6, PhaFormatString(
-                L"Minimum: %I64ums", context->PingMinMs)->Buffer);
+                L"Minimum: %ums", context->PingMinMs)->Buffer);
             SetDlgItemText(hwndDlg, IDC_STATIC7, PhaFormatString(
-                L"Maximum: %I64ums", context->PingMaxMs)->Buffer);
+                L"Maximum: %ums", context->PingMaxMs)->Buffer);
             SetDlgItemText(hwndDlg, IDC_STATIC8, PhaFormatString(
-                L"Average: %I64ums", context->PingAvgMs)->Buffer);
+                L"Average: %ums", context->PingAvgMs)->Buffer);
         }
         break;
     case WM_NOTIFY:
@@ -496,7 +497,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 context->PingGraphState.Data1[i] =
-                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->PingHistory, i);
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
                             }
 
                             // Scale the data.
@@ -521,10 +522,10 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                         {
                             if (context->PingGraphState.TooltipIndex != getTooltipText->Index)
                             {
-                                ULONG64 pingMs = PhGetItemCircularBuffer_ULONG64(&context->PingHistory, getTooltipText->Index);
+                                ULONG pingMs = PhGetItemCircularBuffer_ULONG(&context->PingHistory, getTooltipText->Index);
 
                                 PhSwapReference2(&context->PingGraphState.TooltipText, 
-                                    PhFormatString(L"Ping: %I64ums", pingMs)
+                                    PhFormatString(L"Ping: %ums", pingMs)
                                     );
                             }
 
