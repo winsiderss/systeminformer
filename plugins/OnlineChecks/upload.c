@@ -1237,8 +1237,9 @@ INT_PTR CALLBACK UploadDlgProc(
             SetBkMode(hDC, TRANSPARENT);
 
             // set window background color.
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);;
-        }
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+        }       
+        break;
     case UM_EXISTS:
         {
             context->UploadServiceState = PhUploadServiceViewReport;

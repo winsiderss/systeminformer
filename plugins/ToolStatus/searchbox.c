@@ -463,10 +463,10 @@ HBITMAP LoadImageFromResources(
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
         // Get the WicFrame width and height.
-        if (FAILED(IWICBitmapSource_GetSize((IWICBitmapSource*)wicFrame, &width, &height)) || width == 0 || height == 0)
+        if (FAILED(IWICBitmapFrameDecode_GetSize(wicFrame, &width, &height)) || width == 0 || height == 0)
             __leave;
         // Get the WicFrame image format.
-        if (FAILED(IWICBitmapSource_GetPixelFormat((IWICBitmapSource*)wicFrame, &pixelFormat)))
+        if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
             __leave;
         // Check if the image format is supported:
         if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
