@@ -66,8 +66,13 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HANDLE ProcessHandle;
     HFONT FontHandle;
     HICON IconHandle;
+    BOOLEAN UseOldColors;
+    BOOLEAN ShowGraphText;
 
     ULONG CurrentPingMs;
+    ULONG MaxPingTimeout;
+    ULONG HashFailCount;
+    ULONG UnknownAddrCount;
     ULONG PingMinMs;
     ULONG PingMaxMs;
     ULONG PingAvgMs;
@@ -77,7 +82,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
 
     PPH_NETWORK_ITEM NetworkItem;
     PH_IP_ADDRESS IpAddress;
-    
     PH_STRING_BUILDER ReceivedString;
     WCHAR addressString[65];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
