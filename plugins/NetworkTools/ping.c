@@ -89,7 +89,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
         if (context == NULL)
             __leave;
 
-        if (context->RemoteAddrType == PH_IPV6_NETWORK_TYPE)
+        if (context->IpAddress.Type == PH_IPV6_NETWORK_TYPE)
         {          
             SOCKADDR_IN6 icmp6LocalAddr = { 0 };
             SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
@@ -104,7 +104,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
             icmp6LocalAddr.sin6_family = AF_INET6;
 
             // Set Remote IPv6 address.
-            icmp6RemoteAddr.sin6_addr = context->NetworkItem->RemoteEndpoint.Address.In6Addr;
+            icmp6RemoteAddr.sin6_addr = context->IpAddress.In6Addr;
             icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 Ping buffer.
@@ -133,7 +133,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmp6ReplyStruct)
             {
-                //if (icmpReplyStruct->Address.sin6_addr == context->NetworkItem->RemoteEndpoint.Address.In6Addr) 
+                //if (icmpReplyStruct->Address.sin6_addr == context->IpAddress.In6Addr) 
                 //if (icmpReplyStruct->DataSize < max_size)
                 //if (icmpReplyStruct->RoundTripTime < 1)
                 
@@ -159,7 +159,7 @@ static NTSTATUS PhPingNetworkPingThreadStart(
                 __leave;
 
             // Set Remote IPv4 address.
-            icmpSourceAddr = context->NetworkItem->RemoteEndpoint.Address.InAddr.S_un.S_addr;
+            icmpSourceAddr = context->IpAddress.InAddr.S_un.S_addr;
 
             // Allocate ICMPv4 Ping buffer.
             icmpReplyLength = sizeof(ICMP_ECHO_REPLY);
@@ -338,17 +338,17 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             }
                   
             // Convert IP Address to string format.
-            if (context->RemoteAddrType == PH_IPV4_NETWORK_TYPE)
+            if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
             {
                 RtlIpv4AddressToString(
-                    &context->NetworkItem->RemoteEndpoint.Address.InAddr, 
+                    &context->IpAddress.InAddr, 
                     context->addressString
                     );
             }
             else
             {
                 RtlIpv6AddressToString(
-                    &context->NetworkItem->RemoteEndpoint.Address.In6Addr, 
+                    &context->IpAddress.In6Addr, 
                     context->addressString
                     );
             }
