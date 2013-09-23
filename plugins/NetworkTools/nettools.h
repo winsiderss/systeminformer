@@ -75,7 +75,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     ULONG UnknownAddrCount;
     ULONG PingMinMs;
     ULONG PingMaxMs;
-    ULONG PingAvgMs;
     ULONG PingSentCount;
     ULONG PingRecvCount;
     ULONG PingLossCount;
