@@ -9,13 +9,15 @@
 #define IDC_NETRETRY                    1004
 #define IDC_MAXTIMEOUTTEXT              1008
 #define IDC_NETOUTPUTEDIT               1008
-#define IDC_STATIC3                     1012
-#define IDC_STATIC5                     1014
-#define IDC_STATIC6                     1015
-#define IDC_STATIC7                     1016
-#define IDC_STATIC8                     1017
+#define IDC_ICMP_PANEL                  1012
+#define IDC_PINGS_LOST                  1014
+#define IDC_ICMP_MIN                    1015
+#define IDC_ICMP_MAX                    1016
+#define IDC_ICMP_AVG                    1017
 #define IDC_MAINTEXT                    1018
-#define IDC_EDIT1                       1019
+#define IDC_BAD_HASH                    1019
+#define IDC_ANON_ADDR                   1020
+#define IDC_PINGS_SENT                  1021
 #define IDC_PING_LAYOUT                 1076
 
 // Next default values for new objects
