@@ -30,6 +30,20 @@
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
+// ICMPv4 Ping buffer.
+// MSDN: The buffer must be large enough to hold at least one ICMP_ECHO_REPLY structure 
+//       + RequestSize bytes of data. 
+// This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message) 
+//       + space for an IO_STATUS_BLOCK structure.
+#define ICMP_IPv4_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMP_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
+
+// ICMPv6 Ping buffer.
+// MSDN: At least one ICMPV6_ECHO_REPLY structure 
+//       + the number of bytes of data specified in the RequestSize parameter. 
+// This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message)
+//       + space for an IO_STATUS_BLOCK structure.
+#define ICMP_IPv6_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMPV6_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
+
 #define WM_PING_UPDATE (WM_APP + 151)
 #define IDC_PING_GRAPH (55050)
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
@@ -62,7 +76,7 @@ static HFONT InitializeFont(
     return NULL;
 }
 
-VOID PhNetworkPingUpdateGraph(
+static VOID PhNetworkPingUpdateGraph(
     __in PNETWORK_OUTPUT_CONTEXT Context
     )
 {
@@ -80,7 +94,7 @@ VOID PhNetworkPingUpdateGraph(
  * \param Format The format-control string.
  * \param ArgPtr A pointer to the list of arguments.
  */
-PPH_ANSI_STRING PhFormatAnsiString_V(
+static PPH_ANSI_STRING PhFormatAnsiString_V(
     __in __format_string PSTR Format,
     __in va_list ArgPtr
     )
@@ -109,7 +123,7 @@ PPH_ANSI_STRING PhFormatAnsiString_V(
  *
  * \param Format The format-control string.
  */
-PPH_ANSI_STRING PhFormatAnsiString(
+static PPH_ANSI_STRING PhFormatAnsiString(
     __in __format_string PSTR Format,
     ...
     )
@@ -139,14 +153,14 @@ static NTSTATUS PhNetworkPingThreadStart(
         255,         // Time To Live
         0,           // Type Of Service
         IP_FLAG_DF,  // IP header flags
-        0,           // Size of options data
-        NULL         // Pointer to options data
+        0            // Size of options data
+                     // Pointer to options data
     };
 
     __try
     {
         phVersion = PhGetPhVersion();
-        icmpEchoBuffer = PhFormatAnsiString("proceshacker_v%S_0x0D06F00D_x1", phVersion->Buffer);
+        icmpEchoBuffer = PhFormatAnsiString("processhacker_%S_0x0D06F00D_x1", phVersion->Buffer);
         if (icmpEchoBuffer == NULL)
             __leave;
 
@@ -172,8 +186,8 @@ static NTSTATUS PhNetworkPingThreadStart(
             icmp6RemoteAddr.sin6_addr = context->IpAddress.In6Addr;
             icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
-            // Allocate ICMPv6 Ping buffer.
-            icmpReplyLength = (sizeof(ICMPV6_ECHO_REPLY) * 2) + sizeof(IO_STATUS_BLOCK) + icmpEchoBuffer->MaximumLength;
+            // Allocate ICMPv6 message.
+            icmpReplyLength = ICMP_IPv6_BUFFER_SIZE(icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -205,11 +219,10 @@ static NTSTATUS PhNetworkPingThreadStart(
                     InterlockedIncrement(&context->PingLossCount);
                 }
 
-                if (icmp6ReplyStruct->Address.sin6_addr != context->IpAddress.In6Addr.u.Word)
-                {
-                    InterlockedIncrement(&context->UnknownAddrCount);
-                }
-               
+                //if (icmp6ReplyStruct->Address.sin6_addr != context->IpAddress.In6Addr.u.Word)
+                //{
+                //    InterlockedIncrement(&context->UnknownAddrCount);
+                //}
                 //if (icmp6ReplyStruct->DataSize == icmpEchoBuffer->MaximumLength)
                 //{
                 //    icmpPacketSignature = (_memicmp(
@@ -218,11 +231,10 @@ static NTSTATUS PhNetworkPingThreadStart(
                 //        icmp6ReplyStruct->DataSize
                 //        ) == 0);
                 //}
-
-                if (icmpPacketSignature != TRUE)
-                {
-                    InterlockedIncrement(&context->HashFailCount);
-                }
+                //if (icmpPacketSignature != TRUE)
+                //{
+                //    InterlockedIncrement(&context->HashFailCount);
+                //}
 
                 icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
                 //icmpCurrentPingTtl = icmp6ReplyStruct->Options.Ttl;
@@ -320,8 +332,8 @@ static NTSTATUS PhNetworkPingThreadStart(
             // Set Remote IPv4 address.
             icmpSourceAddr = context->IpAddress.InAddr.S_un.S_addr;
 
-            // Allocate ICMPv4 Ping buffer.
-            icmpReplyLength = (sizeof(ICMP_ECHO_REPLY) * 2) + sizeof(IO_STATUS_BLOCK) + icmpEchoBuffer->MaximumLength;
+            // Allocate ICMPv4 message.
+            icmpReplyLength = ICMP_IPv4_BUFFER_SIZE(icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
    
