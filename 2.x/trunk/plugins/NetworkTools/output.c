@@ -93,13 +93,13 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                 PhLoadWindowPlacementFromSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", L"ProcessHacker.NetTools.NetToolsWindowSize", hwndDlg);
             }
 
-            if (context->RemoteAddrType == PH_IPV4_NETWORK_TYPE)
+            if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
             {
-                RtlIpv4AddressToString(&context->NetworkItem->RemoteEndpoint.Address.InAddr, context->addressString);
+                RtlIpv4AddressToString(&context->IpAddress.InAddr, context->addressString);
             }
             else
             {
-                RtlIpv6AddressToString(&context->NetworkItem->RemoteEndpoint.Address.In6Addr, context->addressString);
+                RtlIpv6AddressToString(&context->IpAddress.In6Addr, context->addressString);
             }
 
             switch (context->Action)
@@ -342,7 +342,7 @@ VOID PerformNetworkAction(
 
     context->Action = Action;
     context->NetworkItem = NetworkItem;
-    context->RemoteAddrType = NetworkItem->RemoteEndpoint.Address.Type;
+    context->IpAddress = NetworkItem->RemoteEndpoint.Address;
 
     if (context->Action == NETWORK_ACTION_PING)
     {
