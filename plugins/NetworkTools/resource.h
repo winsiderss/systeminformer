@@ -15,6 +15,7 @@
 #define IDC_STATIC7                     1016
 #define IDC_STATIC8                     1017
 #define IDC_MAINTEXT                    1018
+#define IDC_EDIT1                       1019
 #define IDC_PING_LAYOUT                 1076
 
 // Next default values for new objects
@@ -23,7 +24,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        103
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1019
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
