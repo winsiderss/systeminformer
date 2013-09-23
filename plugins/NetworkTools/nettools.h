@@ -54,7 +54,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PH_NETWORK_ACTION Action;
     PH_LAYOUT_MANAGER LayoutManager;
     PH_GRAPH_STATE PingGraphState;
-    PH_CIRCULAR_BUFFER_ULONG64 PingHistory;
+    PH_CIRCULAR_BUFFER_ULONG PingHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
@@ -63,14 +63,13 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
 
-
-    LONG64 CurrentPingMs;
-    LONG64 PingMinMs;
-    LONG64 PingMaxMs;
-    LONG64 PingAvgMs;
-    LONG64 PingSentCount;
-    LONG64 PingRecvCount;
-    LONG64 PingLossCount;
+    ULONG CurrentPingMs;
+    ULONG PingMinMs;
+    ULONG PingMaxMs;
+    ULONG PingAvgMs;
+    ULONG PingSentCount;
+    ULONG PingRecvCount;
+    ULONG PingLossCount;
 
     PPH_NETWORK_ITEM NetworkItem;
     PH_IP_ADDRESS IpAddress;
