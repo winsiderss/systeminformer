@@ -58,10 +58,15 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
+    HWND ParentHandle;
+    HWND StatusHandle;
+    HWND EditHandle;
     HWND PingGraphHandle;
     HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
+    HFONT FontHandle;
+    HICON IconHandle;
 
     ULONG CurrentPingMs;
     ULONG PingMinMs;
