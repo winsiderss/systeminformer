@@ -41,9 +41,10 @@ static HFONT InitializeFont(
 {
     LOGFONT logFont = { 0 };
     HFONT fontHandle = NULL;
-
-    logFont.lfHeight = 20;
-    logFont.lfWeight = FW_MEDIUM;
+        
+    logFont.lfHeight = 18;
+    logFont.lfWeight = FW_NORMAL;
+    //logFont.lfWeight = FW_MEDIUM;
     logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
     wcscpy_s(logFont.lfFaceName, _countof(logFont.lfFaceName),
@@ -93,7 +94,7 @@ PPH_ANSI_STRING PhFormatAnsiString_V(
         return NULL;
 
     string = PhCreateAnsiStringEx(NULL, length * sizeof(CHAR));
-    
+
     _vsnprintf(
         string->Buffer, 
         length, 
@@ -172,7 +173,7 @@ static NTSTATUS PhNetworkPingThreadStart(
             icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 Ping buffer.
-            icmpReplyLength = (sizeof(ICMPV6_ECHO_REPLY) * 2) + icmpEchoBuffer->MaximumLength;
+            icmpReplyLength = (sizeof(ICMPV6_ECHO_REPLY) * 2) + sizeof(IO_STATUS_BLOCK) + icmpEchoBuffer->MaximumLength;
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -197,13 +198,30 @@ static NTSTATUS PhNetworkPingThreadStart(
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmp6ReplyStruct)
             {
-                //if (icmp6ReplyStruct->Address.sin6_addr == context->IpAddress.In6Addr) 
-                //if (icmp6ReplyStruct->DataSize < max_size)
-                //if (icmp6ReplyStruct->RoundTripTime < 1)
-                
+                BOOLEAN icmpPacketSignature = FALSE;
+
                 if (icmp6ReplyStruct->Status != IP_SUCCESS)
                 {
                     InterlockedIncrement(&context->PingLossCount);
+                }
+
+                if (icmp6ReplyStruct->Address.sin6_addr != context->IpAddress.In6Addr.u.Word)
+                {
+                    InterlockedIncrement(&context->UnknownAddrCount);
+                }
+               
+                //if (icmp6ReplyStruct->DataSize == icmpEchoBuffer->MaximumLength)
+                //{
+                //    icmpPacketSignature = (_memicmp(
+                //        icmpEchoBuffer->Buffer, 
+                //        icmp6ReplyStruct->Data, 
+                //        icmp6ReplyStruct->DataSize
+                //        ) == 0);
+                //}
+
+                if (icmpPacketSignature != TRUE)
+                {
+                    InterlockedIncrement(&context->HashFailCount);
                 }
 
                 icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
@@ -303,7 +321,7 @@ static NTSTATUS PhNetworkPingThreadStart(
             icmpSourceAddr = context->IpAddress.InAddr.S_un.S_addr;
 
             // Allocate ICMPv4 Ping buffer.
-            icmpReplyLength = (sizeof(ICMP_ECHO_REPLY) * 2) + icmpEchoBuffer->MaximumLength;
+            icmpReplyLength = (sizeof(ICMP_ECHO_REPLY) * 2) + sizeof(IO_STATUS_BLOCK) + icmpEchoBuffer->MaximumLength;
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
    
@@ -326,17 +344,8 @@ static NTSTATUS PhNetworkPingThreadStart(
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmpReplyStruct)
-            {              
-                //IN_ADDR icmpReplyAddr;
-                //icmpReplyAddr.S_un.S_addr = icmpReplyStruct->Address;
-                //if (icmpReplyStruct->DataSize < max_size)
-                //if (icmpReplyStruct->RoundTripTime < 1)
-
-                BOOLEAN icmpPacketSignature = (_memicmp(
-                    icmpEchoBuffer->Buffer, 
-                    icmpReplyStruct->Data, 
-                    icmpReplyStruct->DataSize
-                    ) == 0);
+            { 
+                BOOLEAN icmpPacketSignature = FALSE;
 
                 if (icmpReplyStruct->Status != IP_SUCCESS)
                 {
@@ -346,6 +355,15 @@ static NTSTATUS PhNetworkPingThreadStart(
                 if (icmpReplyStruct->Address != context->IpAddress.InAddr.S_un.S_addr)
                 {
                     InterlockedIncrement(&context->UnknownAddrCount);
+                }
+               
+                if (icmpReplyStruct->DataSize == icmpEchoBuffer->MaximumLength)
+                {
+                    icmpPacketSignature = (_memicmp(
+                        icmpEchoBuffer->Buffer, 
+                        icmpReplyStruct->Data, 
+                        icmpReplyStruct->DataSize
+                        ) == 0);
                 }
 
                 if (icmpPacketSignature != TRUE)
@@ -600,7 +618,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhInitializeCircularBuffer_ULONG(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
-           
+
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_PANEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_AVG), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_MIN), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
