@@ -1007,6 +1007,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->Name = Template->Name;
     section->Flags = Template->Flags;
     section->Callback = Template->Callback;
+    section->Context = Template->Context;
 
     section->GraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
@@ -1564,7 +1565,8 @@ VOID PhSipRestoreSummaryView(
 HWND PhSipDefaultCreateDialog(
     __in PVOID Instance,
     __in PWSTR Template,
-    __in DLGPROC DialogProc
+    __in DLGPROC DialogProc,
+    __in PVOID Parameter
     )
 {
     HRSRC resourceInfo;
@@ -1605,7 +1607,7 @@ HWND PhSipDefaultCreateDialog(
         ((DLGTEMPLATE *)dialogCopy)->style = DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD;
     }
 
-    dialogHandle = CreateDialogIndirect(Instance, (DLGTEMPLATE *)dialogCopy, ContainerControl, DialogProc);
+    dialogHandle = CreateDialogIndirectParam(Instance, (DLGTEMPLATE *)dialogCopy, ContainerControl, DialogProc, (LPARAM)Parameter);
 
     PhFree(dialogCopy);
 
@@ -1624,7 +1626,7 @@ VOID PhSipCreateSectionDialog(
     {
         if (!createDialog.CustomCreate)
         {
-            Section->DialogHandle = PhSipDefaultCreateDialog(createDialog.Instance, createDialog.Template, createDialog.DialogProc);
+            Section->DialogHandle = PhSipDefaultCreateDialog(createDialog.Instance, createDialog.Template, createDialog.DialogProc, createDialog.Parameter);
         }
     }
 }
