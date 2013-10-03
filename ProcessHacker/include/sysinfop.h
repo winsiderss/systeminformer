@@ -180,7 +180,8 @@ VOID PhSipRestoreSummaryView(
 HWND PhSipDefaultCreateDialog(
     __in PVOID Instance,
     __in PWSTR Template,
-    __in DLGPROC DialogProc
+    __in DLGPROC DialogProc,
+    __in PVOID Parameter
     );
 
 VOID PhSipCreateSectionDialog(
