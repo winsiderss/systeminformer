@@ -921,6 +921,7 @@ typedef struct _PH_SYSINFO_CREATE_DIALOG
     PVOID Instance;
     PWSTR Template;
     DLGPROC DialogProc;
+    PVOID Parameter;
 } PH_SYSINFO_CREATE_DIALOG, *PPH_SYSINFO_CREATE_DIALOG;
 
 typedef struct _PH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT
