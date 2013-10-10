@@ -187,7 +187,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     }
 
     switch (uMsg)
-    {
+    {   
+    case WM_ERASEBKGND:
+        return 1;
     case WM_STYLECHANGED:
     case WM_THEMECHANGED:
         NcAreaInitializeUxTheme(context, hwndDlg);
@@ -213,20 +215,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_NCPAINT:
         {
             HDC hdc = NULL;
-            HRGN updateRegion = (HRGN)wParam;
             RECT clientRect = { 0, 0, 0, 0 };
             RECT windowRect = { 0, 0, 0, 0 };
 
-            // Note the use of undocumented flags below. GetDCEx doesn't work without these.
-            ULONG flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
-
-            if (updateRegion == HRGN_FULL)
-                updateRegion = NULL;
-
-            if (updateRegion)
-                flags |= DCX_INTERSECTRGN | 0x40000;
-
-            if (!(hdc = GetDCEx(hwndDlg, updateRegion, flags)))
+            if (!(hdc = GetWindowDC(hwndDlg)))
                 return FALSE;
 
             //SelectClipRgn(hdc, updateRegion);
@@ -280,7 +272,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             else
             {
                 // Fill in the text box.
-                SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+                //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
                 FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
             }
 
