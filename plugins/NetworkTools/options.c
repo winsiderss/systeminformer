@@ -46,9 +46,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    ULONG maxPingTimeout = 0;
+                    ULONG maxPingTimeout = GetDlgItemInt(hwndDlg, IDC_MAXTIMEOUTTEXT, NULL, FALSE);
 
-                    maxPingTimeout = GetDlgItemInt(hwndDlg, IDC_MAXTIMEOUTTEXT, NULL, FALSE);
                     PhSetIntegerSetting(SETTING_NAME_PING_TIMEOUT, maxPingTimeout);
           
                     EndDialog(hwndDlg, IDOK);
