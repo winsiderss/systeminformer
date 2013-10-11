@@ -43,9 +43,9 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
     {
         context = (PNETWORK_OUTPUT_CONTEXT)GetProp(hwndDlg, L"Context");
 
-        if (uMsg == WM_NCDESTROY)
+        if (uMsg == WM_DESTROY)
         {
-            PhSaveWindowPlacementToSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", L"ProcessHacker.NetTools.NetToolsWindowSize", hwndDlg); 
+            PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg); 
             PhDeleteStringBuilder(&context->ReceivedString);
             RemoveProp(hwndDlg, L"Context");
         }
@@ -67,8 +67,8 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
              
-            windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition");
-            windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsWindowSize");
+            windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_TRACERT_WINDOW_POSITION);
+            windowRectangle.Size = PhGetIntegerPairSetting(SETTING_NAME_TRACERT_WINDOW_SIZE);
 
             if (MinimumSize.left == -1)
             {
@@ -90,7 +90,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             }
             else
             {
-                PhLoadWindowPlacementFromSetting(L"ProcessHacker.NetTools.NetToolsWindowPosition", L"ProcessHacker.NetTools.NetToolsWindowSize", hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
             }
 
             if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
@@ -147,7 +147,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             ULONG hwndChildID = 0;
             
             // Check if old graph colors are enabled.
-            if (!!PhGetIntegerSetting(L"GraphColorMode"))
+            if (!PhGetIntegerSetting(L"GraphColorMode"))
                 break;
 
             // Get the control ID.
@@ -159,8 +159,8 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             // Check for our edit control and change the color.
             if (hwndChildID == IDC_NETOUTPUTEDIT)
             {
-                // Set a Vista style text color.
-                SetTextColor(hDC, RGB(19, 112, 171));
+                // Set text color as the Green PH graph text color.
+                SetTextColor(hDC, RGB(124, 252, 0));
                 
                 // Set a black control backcolor.
                 return (INT_PTR)GetStockBrush(BLACK_BRUSH);
