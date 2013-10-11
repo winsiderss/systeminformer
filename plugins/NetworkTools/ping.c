@@ -563,8 +563,8 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             }
 
             PhSaveWindowPlacementToSetting(
-                L"ProcessHacker.NetTools.NetToolsPingWindowPosition", 
-                L"ProcessHacker.NetTools.NetToolsPingWindowSize", 
+                SETTING_NAME_PING_WINDOW_POSITION, 
+                SETTING_NAME_PING_WINDOW_SIZE, 
                 hwndDlg
                 );
                        
@@ -605,10 +605,10 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
             context->ParentHandle = GetParent(hwndDlg);
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
-            context->MaxPingTimeout = PhGetIntegerSetting(L"ProcessHacker.NetTools.NetToolsMaxTimeoutMs");
+            context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
 
-            windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowPosition");
-            windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowSize");
+            windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_POSITION);
+            windowRectangle.Size = PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_SIZE);
 
             // Create the font handle.
             context->FontHandle = InitializeFont(context->StatusHandle);
@@ -662,11 +662,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             else
             {
-                PhLoadWindowPlacementFromSetting(
-                    L"ProcessHacker.NetTools.NetToolsPingWindowPosition", 
-                    L"ProcessHacker.NetTools.NetToolsPingWindowSize", 
-                    hwndDlg
-                    );
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION, SETTING_NAME_PING_WINDOW_SIZE, hwndDlg);
             }
                   
             // Convert IP Address to string format.

@@ -89,7 +89,7 @@ NTSTATUS NetworkTracertThreadStart(
         startupInfo.hStdError = pipeWriteHandle;
         startupInfo.wShowWindow = SW_HIDE;
 
-        if (PhGetIntegerSetting(L"ProcessHacker.NetTools.EnableHostnameLookup"))
+        if (PhGetIntegerSetting(L"EnableNetworkResolve"))
         {
             command = PhFormatString(
                 L"%s\\system32\\tracert.exe %s",

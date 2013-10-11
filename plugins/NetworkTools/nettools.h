@@ -35,6 +35,13 @@
 
 #include "resource.h"
 
+#define SETTING_PREFIX L"ProcessHacker.NetworkTools."
+#define SETTING_NAME_TRACERT_WINDOW_POSITION (SETTING_PREFIX L"WindowPosition")
+#define SETTING_NAME_TRACERT_WINDOW_SIZE (SETTING_PREFIX L"WindowSize")
+#define SETTING_NAME_PING_WINDOW_POSITION (SETTING_PREFIX L"PingWindowPosition")
+#define SETTING_NAME_PING_WINDOW_SIZE (SETTING_PREFIX L"PingWindowSize")
+#define SETTING_NAME_PING_TIMEOUT (SETTING_PREFIX L"PingMaxTimeout")
+
 extern PPH_PLUGIN PluginInstance;
 
 typedef enum _PH_NETWORK_ACTION

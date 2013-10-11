@@ -34,18 +34,7 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG maxPingTimeout = PhGetIntegerSetting(L"ProcessHacker.NetTools.NetToolsMaxTimeoutMs");
-
-            if (maxPingTimeout)
-            {
-                Static_SetText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT), 
-                    PhaFormatString(L"%u", maxPingTimeout)->Buffer
-                    ); 
-            }
-
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_NETRESOLVECHECK),
-                PhGetIntegerSetting(L"ProcessHacker.NetTools.EnableHostnameLookup") ? BST_CHECKED : BST_UNCHECKED
-                );
+            SetDlgItemInt(hwndDlg, IDC_MAXTIMEOUTTEXT, PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT), FALSE);
         }
         break;
     case WM_COMMAND:
@@ -57,20 +46,11 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PPH_STRING maxPingTimeoutText = NULL;
-                    ULONG64 integer = 0;
+                    ULONG maxPingTimeout = 0;
 
-                    if (maxPingTimeoutText = PhGetWindowText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT)))
-                    {
-                        PhStringToInteger64(&maxPingTimeoutText->sr, 10, &integer);
-                        PhSetIntegerSetting(L"ProcessHacker.NetTools.NetToolsMaxTimeoutMs", (ULONG)integer);
-                        PhDereferenceObject(maxPingTimeoutText);
-                    }
-
-                    PhSetIntegerSetting(L"ProcessHacker.NetTools.EnableHostnameLookup",
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_NETRESOLVECHECK)) == BST_CHECKED
-                        );
-
+                    maxPingTimeout = GetDlgItemInt(hwndDlg, IDC_MAXTIMEOUTTEXT, NULL, FALSE);
+                    PhSetIntegerSetting(SETTING_NAME_PING_TIMEOUT, maxPingTimeout);
+          
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
