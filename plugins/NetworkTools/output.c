@@ -146,7 +146,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             HWND hwndChild = (HWND)lParam;
             ULONG hwndChildID = 0;
             
-            // Check if OldColors are enabled.
+            // Check if old graph colors are enabled.
             if (!!PhGetIntegerSetting(L"GraphColorMode"))
                 break;
 
@@ -160,7 +160,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             if (hwndChildID == IDC_NETOUTPUTEDIT)
             {
                 // Set a Vista style text color.
-                SetTextColor(hDC, RGB(124, 252, 0));
+                SetTextColor(hDC, RGB(19, 112, 171));
                 
                 // Set a black control backcolor.
                 return (INT_PTR)GetStockBrush(BLACK_BRUSH);
@@ -313,8 +313,8 @@ static HFONT InitializeFont(
     LOGFONT logFont = { 0 };
     HFONT fontHandle = NULL;
 
-    logFont.lfHeight = 14;
-    logFont.lfWeight = FW_NORMAL;//FW_MEDIUM;
+    logFont.lfHeight = -15;
+    logFont.lfWeight = FW_MEDIUM;
     logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
     
     // GDI uses the first font that matches the above attributes.
