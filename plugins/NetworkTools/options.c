@@ -39,7 +39,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             if (maxPingTimeout)
             {
                 Static_SetText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT), 
-                    PhaFormatString(L"%d", maxPingTimeout)->Buffer
+                    PhaFormatString(L"%u", maxPingTimeout)->Buffer
                     ); 
             }
 
@@ -58,12 +58,12 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDOK:
                 {
                     PPH_STRING maxPingTimeoutText = NULL;
-                    ULONG integer = 0;
+                    ULONG64 integer = 0;
 
                     if (maxPingTimeoutText = PhGetWindowText(GetDlgItem(hwndDlg, IDC_MAXTIMEOUTTEXT)))
                     {
-                        PhStringToInteger64(&maxPingTimeoutText->sr, 10, (PLONG64)&integer);
-                        PhSetIntegerSetting(L"ProcessHacker.NetTools.NetToolsMaxTimeoutMs", integer);
+                        PhStringToInteger64(&maxPingTimeoutText->sr, 10, &integer);
+                        PhSetIntegerSetting(L"ProcessHacker.NetTools.NetToolsMaxTimeoutMs", (ULONG)integer);
                         PhDereferenceObject(maxPingTimeoutText);
                     }
 

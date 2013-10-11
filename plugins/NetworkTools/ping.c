@@ -50,9 +50,8 @@ static HFONT InitializeFont(
     LOGFONT logFont = { 0 };
     HFONT fontHandle = NULL;
         
-    logFont.lfHeight = 18;
-    logFont.lfWeight = FW_NORMAL;
-    //logFont.lfWeight = FW_MEDIUM;
+    logFont.lfHeight = -15;
+    logFont.lfWeight = FW_MEDIUM;
     logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
     wcscpy_s(logFont.lfFaceName, _countof(logFont.lfFaceName),
@@ -201,8 +200,6 @@ static NTSTATUS PhNetworkPingThreadStart(
                 icmpReplyLength,
                 context->MaxPingTimeout
                 );
-
-            Icmp6ParseReplies(icmpReplyBuffer, icmpReplyLength);
 
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmp6ReplyStruct)
@@ -372,8 +369,6 @@ static NTSTATUS PhNetworkPingThreadStart(
                 icmpReplyLength,
                 context->MaxPingTimeout
                 );
-
-            IcmpParseReplies(icmpReplyBuffer, icmpReplyLength);
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmpReplyStruct)
@@ -611,8 +606,6 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             context->ParentHandle = GetParent(hwndDlg);
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
             context->MaxPingTimeout = PhGetIntegerSetting(L"ProcessHacker.NetTools.NetToolsMaxTimeoutMs");
-            context->UseOldColors = !!PhGetIntegerSetting(L"GraphColorMode");
-            context->ShowGraphText = !!PhGetIntegerSetting(L"GraphShowText");
 
             windowRectangle.Position = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowPosition");
             windowRectangle.Size = PhGetIntegerPairSetting(L"ProcessHacker.NetTools.NetToolsPingWindowSize");
@@ -791,8 +784,9 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-
-                    if (context->UseOldColors)
+       
+                    // Check if old graph colors are enabled.
+                    if (PhGetIntegerSetting(L"GraphColorMode"))
                     {                      
                         drawInfo->BackColor = RGB(0x00, 0x00, 0x00);
                         drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
@@ -817,7 +811,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
                     if (header->hwndFrom == context->PingGraphHandle)
                     {
-                        if (context->ShowGraphText)
+                        if (PhGetIntegerSetting(L"GraphShowText"))
                         {
                             HDC hdc = Graph_GetBufferedContext(context->PingGraphHandle);
 
@@ -843,22 +837,22 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                         if (!context->PingGraphState.Valid)
                         {
                             ULONG i = 0;
-                            FLOAT maxGraphHeight = 0;
+                            //FLOAT maxGraphHeight = 0;
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 context->PingGraphState.Data1[i] =
                                     (FLOAT)PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
-                                if (maxGraphHeight == 0)
-                                    maxGraphHeight = context->PingGraphState.Data1[i];
-                                if (context->PingGraphState.Data1[i] > maxGraphHeight)
-                                    maxGraphHeight = context->PingGraphState.Data1[i];
+                                //if (maxGraphHeight == 0)
+                                //    maxGraphHeight = context->PingGraphState.Data1[i];
+                                //if (context->PingGraphState.Data1[i] > maxGraphHeight)
+                                //    maxGraphHeight = context->PingGraphState.Data1[i];
                             }
 
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->PingGraphState.Data1,
-                                maxGraphHeight,
+                                (FLOAT)context->MaxPingTimeout,
                                 drawInfo->LineDataCount
                                 );
 
