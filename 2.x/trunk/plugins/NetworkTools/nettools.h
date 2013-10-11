@@ -66,8 +66,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HANDLE ProcessHandle;
     HFONT FontHandle;
     HICON IconHandle;
-    BOOLEAN UseOldColors;
-    BOOLEAN ShowGraphText;
 
     ULONG CurrentPingMs;
     ULONG MaxPingTimeout;

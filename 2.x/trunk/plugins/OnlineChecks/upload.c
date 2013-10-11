@@ -86,7 +86,7 @@ static HFONT InitializeFont(
     LOGFONT logFont = { 0 };
     HFONT fontHandle = NULL;
 
-    logFont.lfHeight = 20;
+    logFont.lfHeight = -15;
     logFont.lfWeight = FW_MEDIUM;
     logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
