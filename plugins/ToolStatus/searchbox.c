@@ -221,11 +221,12 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             if (!(hdc = GetWindowDC(hwndDlg)))
                 return FALSE;
 
-            //SelectClipRgn(hdc, updateRegion);
-            SetBkMode(hdc, TRANSPARENT);
-
             // Get the screen coordinates of the client window.
             GetClientRect(hwndDlg, &clientRect);
+            // Get the screen coordinates of the window.
+            GetWindowRect(hwndDlg, &windowRect);
+            // Adjust the coordinates (start from 0,0).
+            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
             // Exclude the client area.
             ExcludeClipRect(
@@ -235,11 +236,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 clientRect.right,
                 clientRect.bottom
                 );
-
-            // Get the screen coordinates of the window.
-            GetWindowRect(hwndDlg, &windowRect);
-            // Adjust the coordinates (start from 0,0).
-            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
             // Draw the themed background.
             if (context->IsThemeActive && context->IsThemeBackgroundActive)
@@ -273,7 +269,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             {
                 // Fill in the text box.
                 //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-                FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
+                FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));   
+                SetBkMode(hdc, TRANSPARENT);
             }
 
             // Get the position of the inserted button.
@@ -379,10 +376,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             }
         }
         break;
+    case WM_CUT:
+    case WM_CLEAR:   
+    case WM_PASTE: 
     case WM_UNDO:
-    case WM_PASTE:
-    case EN_CHANGE: // Same value as WM_CUT...
-    case WM_CLEAR:
         RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
     case WM_KEYUP:
