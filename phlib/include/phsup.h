@@ -257,6 +257,7 @@ void *_InterlockedCompareExchangePointer(
     );
 #endif
 
+#ifndef _InterlockedExchangePointer
 FORCEINLINE void *_InterlockedExchangePointer(
     void *volatile *Destination,
     void *Exchange
@@ -267,6 +268,7 @@ FORCEINLINE void *_InterlockedExchangePointer(
         (LONG_PTR)Exchange
         );
 }
+#endif
 
 #endif
 
