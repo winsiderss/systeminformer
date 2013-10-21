@@ -508,7 +508,7 @@ PPH_STRING PhGetSymbolFromAddress(
     )
 {
     PSYMBOL_INFOW symbolInfo;
-    UCHAR symbolInfoBuffer[FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * 2];
+    ULONG nameLength;
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
     ULONG64 displacement;
@@ -534,10 +534,10 @@ PPH_STRING PhGetSymbolFromAddress(
     PhpRegisterSymbolProvider(SymbolProvider);
 #endif
 
-    symbolInfo = (PSYMBOL_INFOW)symbolInfoBuffer;
+    symbolInfo = PhAllocate(FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * 2);
     memset(symbolInfo, 0, sizeof(SYMBOL_INFOW));
     symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
-    symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
+    symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
 
     // Get the symbol name.
 
@@ -557,16 +557,32 @@ PPH_STRING PhGetSymbolFromAddress(
             &displacement,
             symbolInfo
             );
+        nameLength = symbolInfo->NameLen;
+
+        if (nameLength + 1 > PH_MAX_SYMBOL_NAME_LEN)
+        {
+            PhFree(symbolInfo);
+            symbolInfo = PhAllocate(FIELD_OFFSET(SYMBOL_INFOW, Name) + nameLength * 2 + 2);
+            memset(symbolInfo, 0, sizeof(SYMBOL_INFOW));
+            symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
+            symbolInfo->MaxNameLen = nameLength + 1;
+
+            SymFromAddrW_I(
+                SymbolProvider->ProcessHandle,
+                Address,
+                &displacement,
+                symbolInfo
+                );
+        }
     }
     else if (SymFromAddr_I)
     {
-        UCHAR buffer[FIELD_OFFSET(SYMBOL_INFO, Name) + PH_MAX_SYMBOL_NAME_LEN];
         PSYMBOL_INFO symbolInfoA;
 
-        symbolInfoA = (PSYMBOL_INFO)buffer;
+        symbolInfoA = PhAllocate(FIELD_OFFSET(SYMBOL_INFO, Name) + PH_MAX_SYMBOL_NAME_LEN);
         memset(symbolInfoA, 0, sizeof(SYMBOL_INFO));
         symbolInfoA->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbolInfoA->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
+        symbolInfoA->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
 
         SymFromAddr_I(
             SymbolProvider->ProcessHandle,
@@ -574,7 +590,33 @@ PPH_STRING PhGetSymbolFromAddress(
             &displacement,
             symbolInfoA
             );
+        nameLength = symbolInfoA->NameLen;
+
+        if (nameLength + 1 > PH_MAX_SYMBOL_NAME_LEN)
+        {
+            PhFree(symbolInfoA);
+            symbolInfoA = PhAllocate(FIELD_OFFSET(SYMBOL_INFO, Name) + nameLength + 1);
+            memset(symbolInfoA, 0, sizeof(SYMBOL_INFO));
+            symbolInfoA->SizeOfStruct = sizeof(SYMBOL_INFO);
+            symbolInfoA->MaxNameLen = nameLength + 1;
+
+            SymFromAddr_I(
+                SymbolProvider->ProcessHandle,
+                Address,
+                &displacement,
+                symbolInfoA
+                );
+
+            // Also reallocate the Unicode-based buffer.
+            PhFree(symbolInfo);
+            symbolInfo = PhAllocate(FIELD_OFFSET(SYMBOL_INFOW, Name) + nameLength * 2 + 2);
+            memset(symbolInfo, 0, sizeof(SYMBOL_INFOW));
+            symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
+            symbolInfo->MaxNameLen = nameLength + 1;
+        }
+
         PhpSymbolInfoAnsiToUnicode(symbolInfo, symbolInfoA);
+        PhFree(symbolInfoA);
     }
 
     PH_UNLOCK_SYMBOLS();
@@ -702,6 +744,8 @@ CleanupExit:
     if (symbolName)
         PhDereferenceObject(symbolName);
 
+    PhFree(symbolInfo);
+
     return symbol;
 }
 
@@ -725,7 +769,7 @@ BOOLEAN PhGetSymbolFromName(
     symbolInfo = (PSYMBOL_INFOW)symbolInfoBuffer;
     memset(symbolInfo, 0, sizeof(SYMBOL_INFOW));
     symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
-    symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
+    symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
 
     // Get the symbol information.
 
@@ -748,7 +792,7 @@ BOOLEAN PhGetSymbolFromName(
         symbolInfoA = (PSYMBOL_INFO)buffer;
         memset(symbolInfoA, 0, sizeof(SYMBOL_INFO));
         symbolInfoA->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbolInfoA->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
+        symbolInfoA->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
 
         name = PhCreateAnsiStringFromUnicode(Name);
 

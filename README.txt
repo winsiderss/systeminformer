@@ -57,10 +57,6 @@ assist with certain functionality. This includes:
 The feature(s) marked with an asterisk (*) are NOT available on 64-bit
 versions of Windows.
 
-Certain features such as modifying process protection are disabled
-in the released driver binary due to legal reasons. You can enable
-them by building KProcessHacker with the "dirty" configuration.
-
 Note that by default, KProcessHacker only allows connections from
 processes with SeDebugPrivilege. To allow Process Hacker to show details
 for all processes when it is not running as administrator:
