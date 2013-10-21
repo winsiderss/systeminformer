@@ -1,6 +1,10 @@
 #ifndef NTFILL_H
 #define NTFILL_H
 
+extern ULONG KphDynNtVersion;
+extern ULONG KphDynObDecodeShift;
+extern ULONG KphDynObAttributesShift;
+
 // IO
 
 extern POBJECT_TYPE *IoDriverObjectType;
@@ -130,31 +134,45 @@ ZwQuerySystemInformation(
 #define ObpDecodeGrantedAccess(Access) \
     ((Access) & ~ObpAccessProtectCloseBit)
 
+FORCEINLINE PVOID ObpDecodeObject(PVOID Object)
+{
 #ifdef _M_X64
-#define ObpDecodeObject(Object) \
-    (KphDynNtVersion >= PHNT_WIN8 ? \
-    (PVOID)(((LONG_PTR)(Object) >> 19) & ~(ULONG_PTR)0xf) : \
-    (PVOID)((ULONG_PTR)(Object) & ~OBJ_HANDLE_ATTRIBUTES))
+    if (KphDynNtVersion >= PHNT_WIN8)
+    {
+        if (KphDynObDecodeShift != -1)
+            return (PVOID)(((LONG_PTR)Object >> KphDynObDecodeShift) & ~(ULONG_PTR)0xf);
+        else
+            return NULL;
+    }
+    else
+    {
+        return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
+    }
 #else
-#define ObpDecodeObject(Object) \
-    ((PVOID)((ULONG_PTR)(Object) & ~OBJ_HANDLE_ATTRIBUTES))
+    return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
 #endif
+}
 
+FORCEINLINE ULONG ObpGetHandleAttributes(PHANDLE_TABLE_ENTRY HandleTableEntry)
+{
 #ifdef _M_X64
-#define ObpGetHandleAttributes(HandleTableEntry) \
-    (KphDynNtVersion >= PHNT_WIN8 ? \
-    ((ULONG)((HandleTableEntry)->Value >> 20) & 0x3) : \
-    (((HandleTableEntry)->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) | \
-    (((HandleTableEntry)->GrantedAccess & ObpAccessProtectCloseBit) ? \
-    OBJ_PROTECT_CLOSE : 0) \
-    ))
+    if (KphDynNtVersion >= PHNT_WIN8)
+    {
+        if (KphDynObAttributesShift != -1)
+            return (ULONG)(HandleTableEntry->Value >> KphDynObAttributesShift) & 0x3;
+        else
+            return 0;
+    }
+    else
+    {
+        return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) | 
+            ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
+    }
 #else
-#define ObpGetHandleAttributes(HandleTableEntry) \
-    (((HandleTableEntry)->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) | \
-    (((HandleTableEntry)->GrantedAccess & ObpAccessProtectCloseBit) ? \
-    OBJ_PROTECT_CLOSE : 0) \
-    )
+    return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) | 
+        ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
 #endif
+}
 
 typedef struct _OBJECT_CREATE_INFORMATION OBJECT_CREATE_INFORMATION, *POBJECT_CREATE_INFORMATION;
 

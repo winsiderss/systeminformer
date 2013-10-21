@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -271,6 +271,8 @@ NTSTATUS KphpLoadDynamicConfiguration(
             KphDynHtHandleContentionEvent = C_2sTo4(package->StructData.HtHandleContentionEvent);
             KphDynOtName = C_2sTo4(package->StructData.OtName);
             KphDynOtIndex = C_2sTo4(package->StructData.OtIndex);
+            KphDynObDecodeShift = C_2sTo4(package->StructData.ObDecodeShift);
+            KphDynObAttributesShift = C_2sTo4(package->StructData.ObAttributesShift);
 
             return STATUS_SUCCESS;
         }
@@ -548,7 +550,52 @@ static NTSTATUS KphpX86DataInitialization(
 
         dprintf("Initialized version-specific data for Windows 8 SP%d\n", servicePack);
     }
-    else if (majorVersion == 6 && minorVersion > 2 || majorVersion > 6)
+    // Windows 8.1, Windows Server 2012 R2
+    else if (majorVersion == 6 && minorVersion == 3)
+    {
+        //ULONG_PTR searchOffset1 = (ULONG_PTR)KphGetSystemRoutineAddress(L"IoSetIoCompletion");
+        //ULONG_PTR searchOffset2 = searchOffset1;
+
+        KphDynNtVersion = PHNT_WINBLUE;
+
+        if (servicePack == 0)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        KphDynEgeGuid = 0xc;
+        KphDynEpObjectTable = 0x150;
+        KphDynEpRundownProtect = 0xb0;
+        KphDynEreGuidEntry = 0x8;
+        KphDynOtName = 0x8;
+        KphDynOtIndex = 0x14;
+
+        //if (searchOffset1)
+        //{
+        //    INIT_SCAN(
+        //        &KphDynPsTerminateProcessScan,
+        //        PsTerminateProcess62Bytes,
+        //        sizeof(PsTerminateProcess62Bytes),
+        //        searchOffset1, 0x8000, 0
+        //        );
+        //}
+
+        //if (searchOffset2)
+        //{
+        //    INIT_SCAN(
+        //        &KphDynPspTerminateThreadByPointerScan,
+        //        PspTerminateThreadByPointer62Bytes,
+        //        sizeof(PspTerminateThreadByPointer62Bytes),
+        //        searchOffset2, 0x8000, 0
+        //        );
+        //}
+
+        dprintf("Initialized version-specific data for Windows 8.1 SP%d\n", servicePack);
+    }
+    else if (majorVersion == 6 && minorVersion > 3 || majorVersion > 6)
     {
         KphDynNtVersion = 0xffffffff;
         return STATUS_NOT_SUPPORTED;
@@ -671,7 +718,20 @@ static NTSTATUS KphpAmd64DataInitialization(
             return STATUS_NOT_SUPPORTED;
         }
     }
-    else if (majorVersion == 6 && minorVersion > 2 || majorVersion > 6)
+    // Windows 8.1, Windows Server 2012 R2
+    else if (majorVersion == 6 && minorVersion == 3)
+    {
+        KphDynNtVersion = PHNT_WINBLUE;
+
+        if (servicePack == 0)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+    else if (majorVersion == 6 && minorVersion > 3 || majorVersion > 6)
     {
         KphDynNtVersion = 0xffffffff;
         return STATUS_NOT_SUPPORTED;

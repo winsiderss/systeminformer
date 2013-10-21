@@ -2,7 +2,7 @@
  * Process Hacker -
  *   KProcessHacker dynamic data definitions
  *
- * Copyright (C) 2011-2012 wj32
+ * Copyright (C) 2011-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -100,7 +100,7 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.OtName = 0x10;
         Package->StructData.OtIndex = 0x28; // now only a UCHAR, not a ULONG
     }
-    // Windows 8
+    // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2 && buildNumber == 9200)
     {
         Package->BuildNumber = 9200;
@@ -115,6 +115,26 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.HtHandleContentionEvent = 0x30;
         Package->StructData.OtName = 0x10;
         Package->StructData.OtIndex = 0x28;
+        Package->StructData.ObDecodeShift = 19;
+        Package->StructData.ObAttributesShift = 20;
+    }
+    // Windows 8.1, Windows Server 2012 R2
+    else if (majorVersion == 6 && minorVersion == 3 && buildNumber == 9600)
+    {
+        Package->BuildNumber = 9600;
+        Package->ResultingNtVersion = PHNT_WINBLUE;
+
+        Package->StructData.EgeGuid = 0x18;
+        Package->StructData.EpObjectTable = 0x408;
+        Package->StructData.EpProtectedProcessOff = -1; // now SE_SIGNING_LEVEL, no longer relevant
+        Package->StructData.EpProtectedProcessBit = -1;
+        Package->StructData.EpRundownProtect = 0x2d8;
+        Package->StructData.EreGuidEntry = 0x10;
+        Package->StructData.HtHandleContentionEvent = 0x30;
+        Package->StructData.OtName = 0x10;
+        Package->StructData.OtIndex = 0x28;
+        Package->StructData.ObDecodeShift = 16;
+        Package->StructData.ObAttributesShift = 17;
     }
     else
     {
