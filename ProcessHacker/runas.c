@@ -738,26 +738,44 @@ VOID PhSetDesktopWinStaAccess(
     VOID
     )
 {
+    static SID_IDENTIFIER_AUTHORITY appPackageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
+
     HWINSTA wsHandle;
     HDESK desktopHandle;
     ULONG allocationLength;
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
+    CHAR allAppPackagesSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+    PSID allAppPackagesSid;
 
     // TODO: Set security on the correct window station and desktop.
+
+    allAppPackagesSid = (PISID)allAppPackagesSidBuffer;
+    RtlInitializeSid(allAppPackagesSid, &appPackageAuthority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+    *RtlSubAuthoritySid(allAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
+    *RtlSubAuthoritySid(allAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
 
     // We create a DACL that allows everyone to access everything.
 
     allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeEveryoneSid);
+        RtlLengthSid(&PhSeEveryoneSid) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(allAppPackagesSid);
     securityDescriptor = PhAllocate(allocationLength);
     dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+
     RtlCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, &PhSeEveryoneSid);
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
+    }
+
     RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     if (wsHandle = OpenWindowStation(

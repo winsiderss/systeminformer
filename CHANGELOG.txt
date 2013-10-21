@@ -5,6 +5,7 @@ Process Hacker
    * Updated for Windows 8.1
  * FIXED:
    * Fixed handling of long symbol names
+   * Fixed Run As preventing Windows 8 apps from starting
 
 2.31
  * NEW/IMPROVED:
