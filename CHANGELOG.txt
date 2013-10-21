@@ -3,6 +3,7 @@ Process Hacker
 2.32
  * NEW/IMPROVED:
  * FIXED:
+   * Fixed handling of long symbol names
 
 2.31
  * NEW/IMPROVED:

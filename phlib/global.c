@@ -253,7 +253,12 @@ static VOID PhInitializeWindowsVersion(
     {
         WindowsVersion = WINDOWS_8;
     }
-    else if (majorVersion == 6 && minorVersion > 2 || majorVersion > 6)
+    /* Windows 8.1 */
+    else if (majorVersion == 6 && minorVersion == 3)
+    {
+        WindowsVersion = WINDOWS_81;
+    }
+    else if (majorVersion == 6 && minorVersion > 3 || majorVersion > 6)
     {
         WindowsVersion = WINDOWS_NEW;
     }
