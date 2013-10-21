@@ -2,6 +2,7 @@ Process Hacker
 
 2.32
  * NEW/IMPROVED:
+   * Updated for Windows 8.1
  * FIXED:
    * Fixed handling of long symbol names
 
