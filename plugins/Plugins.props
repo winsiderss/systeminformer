@@ -15,13 +15,13 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>../../sdk/lib/i386;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/SUBSYSTEM:WINDOWS,5.01 %(AdditionalOptions)</AdditionalOptions>
+      <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
     <Link>
       <AdditionalLibraryDirectories>../../sdk/lib/amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/SUBSYSTEM:WINDOWS,5.02 %(AdditionalOptions)</AdditionalOptions>
+      <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />
