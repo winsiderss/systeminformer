@@ -102,6 +102,12 @@ static UCHAR PsTerminateProcess62Bytes[] =
     0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00, 0x56, 0x8d,
     0xb3, 0x3c, 0x01, 0x00, 0x00, 0x66, 0xff, 0x0e
 };
+static UCHAR PsTerminateProcess63Bytes[] =
+{
+    0x8b, 0xff, 0x55, 0x8b, 0xec, 0x83, 0xe4, 0xf8,
+    0x56, 0x64, 0x8b, 0x35, 0x24, 0x01, 0x00, 0x00,
+    0x57, 0x66, 0xff, 0x8e, 0x3c, 0x01, 0x00, 0x00
+};
 
 // PspTerminateThreadByPointer
 static UCHAR PspTerminateThreadByPointer51Bytes[] =
@@ -130,6 +136,11 @@ static UCHAR PspTerminateThreadByPointer62Bytes[] =
 {
     0x8b, 0xff, 0x55, 0x8b, 0xec, 0x8d, 0x87, 0x68,
     0x02, 0x00, 0x00, 0xf6, 0x00, 0x20, 0x53, 0x8a
+};
+static UCHAR PspTerminateThreadByPointer63Bytes[] =
+{
+    0x8b, 0xff, 0x55, 0x8b, 0xec, 0x53, 0x56, 0x8b,
+    0xf1, 0x8b, 0xda, 0x57, 0x8d, 0xbe, 0xb8, 0x03
 };
 
 #endif
@@ -553,8 +564,8 @@ static NTSTATUS KphpX86DataInitialization(
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3)
     {
-        //ULONG_PTR searchOffset1 = (ULONG_PTR)KphGetSystemRoutineAddress(L"IoSetIoCompletion");
-        //ULONG_PTR searchOffset2 = searchOffset1;
+        ULONG_PTR searchOffset1 = (ULONG_PTR)KphGetSystemRoutineAddress(L"IoSetIoCompletion");
+        ULONG_PTR searchOffset2 = searchOffset1;
 
         KphDynNtVersion = PHNT_WINBLUE;
 
@@ -573,25 +584,25 @@ static NTSTATUS KphpX86DataInitialization(
         KphDynOtName = 0x8;
         KphDynOtIndex = 0x14;
 
-        //if (searchOffset1)
-        //{
-        //    INIT_SCAN(
-        //        &KphDynPsTerminateProcessScan,
-        //        PsTerminateProcess62Bytes,
-        //        sizeof(PsTerminateProcess62Bytes),
-        //        searchOffset1, 0x8000, 0
-        //        );
-        //}
+        if (searchOffset1)
+        {
+            INIT_SCAN(
+                &KphDynPsTerminateProcessScan,
+                PsTerminateProcess63Bytes,
+                sizeof(PsTerminateProcess63Bytes),
+                searchOffset1, 0x8000, 0
+                );
+        }
 
-        //if (searchOffset2)
-        //{
-        //    INIT_SCAN(
-        //        &KphDynPspTerminateThreadByPointerScan,
-        //        PspTerminateThreadByPointer62Bytes,
-        //        sizeof(PspTerminateThreadByPointer62Bytes),
-        //        searchOffset2, 0x8000, 0
-        //        );
-        //}
+        if (searchOffset2)
+        {
+            INIT_SCAN(
+                &KphDynPspTerminateThreadByPointerScan,
+                PspTerminateThreadByPointer63Bytes,
+                sizeof(PspTerminateThreadByPointer63Bytes),
+                searchOffset2, 0x8000, 0
+                );
+        }
 
         dprintf("Initialized version-specific data for Windows 8.1 SP%d\n", servicePack);
     }
