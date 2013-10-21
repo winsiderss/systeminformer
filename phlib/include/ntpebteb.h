@@ -21,11 +21,11 @@ typedef struct _PEB
         {
             BOOLEAN ImageUsesLargePages : 1;
             BOOLEAN IsProtectedProcess : 1;
-            BOOLEAN IsLegacyProcess : 1;
             BOOLEAN IsImageDynamicallyRelocated : 1;
             BOOLEAN SkipPatchingUser32Forwarders : 1;
             BOOLEAN IsPackagedProcess : 1;
             BOOLEAN IsAppContainer : 1;
+            BOOLEAN IsProtectedProcessLight : 1;
             BOOLEAN SpareBits : 1;
         };
     };

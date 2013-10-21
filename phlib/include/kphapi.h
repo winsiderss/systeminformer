@@ -138,6 +138,8 @@ typedef struct _KPH_DYN_STRUCT_DATA
     SHORT HtHandleContentionEvent;
     SHORT OtName;
     SHORT OtIndex;
+    SHORT ObDecodeShift;
+    SHORT ObAttributesShift;
 } KPH_DYN_STRUCT_DATA, *PKPH_DYN_STRUCT_DATA;
 
 typedef struct _KPH_DYN_PACKAGE
@@ -150,7 +152,7 @@ typedef struct _KPH_DYN_PACKAGE
     KPH_DYN_STRUCT_DATA StructData;
 } KPH_DYN_PACKAGE, *PKPH_DYN_PACKAGE;
 
-#define KPH_DYN_CONFIGURATION_VERSION 1
+#define KPH_DYN_CONFIGURATION_VERSION 2
 #define KPH_DYN_MAXIMUM_PACKAGES 64
 
 typedef struct _KPH_DYN_CONFIGURATION

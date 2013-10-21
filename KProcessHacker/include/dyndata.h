@@ -54,6 +54,8 @@ EXT RTL_OSVERSIONINFOEXW KphDynOsVersionInfo;
 // Oh: OBJECT_HEADER
 // Ot: OBJECT_TYPE
 // Oti: OBJECT_TYPE_INITIALIZER, offset measured from an OBJECT_TYPE
+// ObDecodeShift: shift value in ObpDecodeObject
+// ObAttributesShift: shift value in ObpGetHandleAttributes
 EXT ULONG KphDynEgeGuid OFFDEFAULT;
 EXT ULONG KphDynEpObjectTable OFFDEFAULT;
 EXT ULONG KphDynEpProtectedProcessOff OFFDEFAULT;
@@ -63,6 +65,8 @@ EXT ULONG KphDynEreGuidEntry OFFDEFAULT;
 EXT ULONG KphDynHtHandleContentionEvent OFFDEFAULT;
 EXT ULONG KphDynOtName OFFDEFAULT;
 EXT ULONG KphDynOtIndex OFFDEFAULT;
+EXT ULONG KphDynObDecodeShift OFFDEFAULT;
+EXT ULONG KphDynObAttributesShift OFFDEFAULT;
 
 // Procedures
 EXT KPH_PROCEDURE_SCAN KphDynPsTerminateProcessScan;

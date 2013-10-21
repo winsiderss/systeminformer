@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -191,30 +191,32 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
 {
     PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context = Context;
     KPH_PROCESS_HANDLE handleInfo;
+    POBJECT_HEADER objectHeader;
     POBJECT_TYPE objectType;
     PKPH_PROCESS_HANDLE entryInBuffer;
 
     PAGED_CODE();
 
+    objectHeader = ObpDecodeObject(HandleTableEntry->Object);
     handleInfo.Handle = Handle;
-    handleInfo.Object = &((POBJECT_HEADER)ObpDecodeObject(HandleTableEntry->Object))->Body;
+    handleInfo.Object = objectHeader ? &objectHeader->Body : NULL;
     handleInfo.GrantedAccess = ObpDecodeGrantedAccess(HandleTableEntry->GrantedAccess);
+    handleInfo.ObjectTypeIndex = -1;
     handleInfo.Reserved1 = 0;
     handleInfo.HandleAttributes = ObpGetHandleAttributes(HandleTableEntry);
     handleInfo.Reserved2 = 0;
 
-    objectType = KphGetObjectType(handleInfo.Object);
+    if (handleInfo.Object)
+    {
+        objectType = KphGetObjectType(handleInfo.Object);
 
-    if (objectType && KphDynOtIndex != -1)
-    {
-        if (KphDynNtVersion >= PHNT_WIN7)
-            handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)((ULONG_PTR)objectType + KphDynOtIndex);
-        else
-            handleInfo.ObjectTypeIndex = (USHORT)*(PULONG)((ULONG_PTR)objectType + KphDynOtIndex);
-    }
-    else
-    {
-        handleInfo.ObjectTypeIndex = -1;
+        if (objectType && KphDynOtIndex != -1)
+        {
+            if (KphDynNtVersion >= PHNT_WIN7)
+                handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)((ULONG_PTR)objectType + KphDynOtIndex);
+            else
+                handleInfo.ObjectTypeIndex = (USHORT)*(PULONG)((ULONG_PTR)objectType + KphDynOtIndex);
+        }
     }
 
     // Advance the current entry pointer regardless of whether the information will be written;
