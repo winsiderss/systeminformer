@@ -328,6 +328,15 @@ NTSTATUS KphTerminateThreadByPointerInternal(
 
         return status;
     }
+    else if (KphDynNtVersion == PHNT_WINBLUE)
+    {
+        dprintf("Calling 8.1-style PspTerminateThreadByPointer\n");
+        return ((_PspTerminateThreadByPointer63)PspTerminateThreadByPointer_I)(
+            Thread,
+            ExitStatus,
+            Thread == PsGetCurrentThread()
+            );
+    }
     else
     {
         return STATUS_NOT_SUPPORTED;
