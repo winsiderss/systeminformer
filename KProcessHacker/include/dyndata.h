@@ -6,12 +6,23 @@ typedef NTSTATUS (NTAPI *_PsTerminateProcess)(
     __in NTSTATUS ExitStatus
     );
 
+typedef NTSTATUS (FASTCALL *_PsTerminateProcess63)(
+    __in PEPROCESS Process,
+    __in NTSTATUS ExitStatus
+    );
+
 typedef NTSTATUS (NTAPI *_PspTerminateThreadByPointer51)(
     __in PETHREAD Thread,
     __in NTSTATUS ExitStatus
     );
 
 typedef NTSTATUS (NTAPI *_PspTerminateThreadByPointer52)(
+    __in PETHREAD Thread,
+    __in NTSTATUS ExitStatus,
+    __in BOOLEAN DirectTerminate
+    );
+
+typedef NTSTATUS (FASTCALL *_PspTerminateThreadByPointer63)(
     __in PETHREAD Thread,
     __in NTSTATUS ExitStatus,
     __in BOOLEAN DirectTerminate

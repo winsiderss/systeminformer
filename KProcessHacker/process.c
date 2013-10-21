@@ -435,6 +435,13 @@ NTSTATUS KphTerminateProcessInternal(
             mov     [status], eax
         }
     }
+    else if (KphDynNtVersion == PHNT_WINBLUE)
+    {
+        dprintf("Calling 8.1-style PsTerminateProcess\n");
+
+        // PsTerminateProcess on 8.1 is fastcall.
+        status = ((_PsTerminateProcess63)PsTerminateProcess_I)(Process, ExitStatus);
+    }
     else
     {
         return STATUS_NOT_SUPPORTED;
