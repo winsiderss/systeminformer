@@ -1547,6 +1547,8 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT
 {
     ULONG Hits;
     UCHAR PercentFrequency;
+    ULONG Reserved1; // rev
+    ULONG Reserved2; // rev
 } SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT;
 
 // private
