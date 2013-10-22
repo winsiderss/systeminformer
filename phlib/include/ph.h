@@ -1737,6 +1737,7 @@ typedef struct _PH_SYMBOL_PROVIDER
     PH_INITONCE InitOnce;
 #endif
     PH_AVL_TREE ModulesSet;
+    PH_CALLBACK EventCallback;
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
 
 typedef enum _PH_SYMBOL_RESOLVE_LEVEL
@@ -1760,6 +1761,26 @@ typedef struct _PH_SYMBOL_LINE_INFORMATION
     ULONG LineNumber;
     ULONG64 Address;
 } PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_INFORMATION;
+
+typedef enum _PH_SYMBOL_EVENT_TYPE
+{
+    SymbolDeferredSymbolLoadStart = 1,
+    SymbolDeferredSymbolLoadComplete = 2,
+    SymbolDeferredSymbolLoadFailure = 3,
+    SymbolSymbolsUnloaded = 4,
+    SymbolDeferredSymbolLoadCancel = 7
+} PH_SYMBOL_EVENT_TYPE;
+
+typedef struct _PH_SYMBOL_EVENT_DATA
+{
+    PPH_SYMBOL_PROVIDER SymbolProvider;
+    PH_SYMBOL_EVENT_TYPE Type;
+
+    ULONG64 BaseAddress;
+    ULONG CheckSum;
+    ULONG TimeStamp;
+    PPH_STRING FileName;
+} PH_SYMBOL_EVENT_DATA, *PPH_SYMBOL_EVENT_DATA;
 
 BOOLEAN PhSymbolProviderInitialization(
     VOID

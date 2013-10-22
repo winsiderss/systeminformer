@@ -82,6 +82,7 @@ _SymSetSearchPathW SymSetSearchPathW_I;
 _SymUnloadModule64 SymUnloadModule64_I;
 _SymFunctionTableAccess64 SymFunctionTableAccess64_I;
 _SymGetModuleBase64 SymGetModuleBase64_I;
+_SymRegisterCallbackW64 SymRegisterCallbackW64_I;
 _StackWalk64 StackWalk64_I;
 _MiniDumpWriteDump MiniDumpWriteDump_I;
 _SymbolServerGetOptions SymbolServerGetOptions;
@@ -138,6 +139,7 @@ VOID PhSymbolProviderDynamicImport(
     SymUnloadModule64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymUnloadModule64");
     SymFunctionTableAccess64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFunctionTableAccess64");
     SymGetModuleBase64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetModuleBase64");
+    SymRegisterCallbackW64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymRegisterCallbackW64");
     StackWalk64_I = (PVOID)GetProcAddress(dbghelpHandle, "StackWalk64");
     MiniDumpWriteDump_I = (PVOID)GetProcAddress(dbghelpHandle, "MiniDumpWriteDump");
     SymbolServerGetOptions = (PVOID)GetProcAddress(symsrvHandle, "SymbolServerGetOptions");
@@ -164,6 +166,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     InitializeListHead(&symbolProvider->ModulesListHead);
     PhInitializeQueuedLock(&symbolProvider->ModulesListLock);
     PhInitializeAvlTree(&symbolProvider->ModulesSet, PhpSymbolModuleCompareFunction);
+    PhInitializeCallback(&symbolProvider->EventCallback);
 
     if (ProcessId)
     {
@@ -230,6 +233,8 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Object;
     PLIST_ENTRY listEntry;
 
+    PhDeleteCallback(&symbolProvider->EventCallback);
+
     if (SymCleanup_I)
     {
         PH_LOCK_SYMBOLS();
@@ -255,6 +260,63 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
+NTSTATUS PhpSymbolCallbackWorker(
+    __in PVOID Parameter
+    )
+{
+    PPH_SYMBOL_EVENT_DATA data = Parameter;
+
+    dprintf("symbol event %d: %S\n", data->Type, data->FileName->Buffer);
+    PhInvokeCallback(&data->SymbolProvider->EventCallback, data);
+    PhSwapReference(&data->FileName, NULL);
+    PhDereferenceObject(data);
+
+    return STATUS_SUCCESS;
+}
+
+BOOL CALLBACK PhpSymbolCallbackFunction(
+    __in HANDLE hProcess,
+    __in ULONG ActionCode,
+    __in_opt ULONG64 CallbackData,
+    __in_opt ULONG64 UserContext
+    )
+{
+    PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)UserContext;
+    PPH_SYMBOL_EVENT_DATA data;
+    PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData;
+
+    if (!IsListEmpty(&symbolProvider->EventCallback.ListHead))
+    {
+        switch (ActionCode)
+        {
+        case SymbolDeferredSymbolLoadStart:
+        case SymbolDeferredSymbolLoadComplete:
+        case SymbolDeferredSymbolLoadFailure:
+        case SymbolSymbolsUnloaded:
+        case SymbolDeferredSymbolLoadCancel:
+            PhCreateAlloc((PVOID *)&data, sizeof(PH_SYMBOL_EVENT_DATA));
+            memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
+            data->SymbolProvider = symbolProvider;
+            data->Type = ActionCode;
+
+            if (ActionCode != SymbolSymbolsUnloaded)
+            {
+                callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)CallbackData;
+                data->BaseAddress = callbackData->BaseOfImage;
+                data->CheckSum = callbackData->CheckSum;
+                data->TimeStamp = callbackData->TimeDateStamp;
+                data->FileName = PhCreateString(callbackData->FileName);
+            }
+
+            PhQueueItemGlobalWorkQueue(PhpSymbolCallbackWorker, data);
+
+            break;
+        }
+    }
+
+    return FALSE;
+}
+
 VOID PhpRegisterSymbolProvider(
     __in_opt PPH_SYMBOL_PROVIDER SymbolProvider
     )
@@ -276,6 +338,7 @@ VOID PhpRegisterSymbolProvider(
         {
             PH_LOCK_SYMBOLS();
             SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
+            SymRegisterCallbackW64_I(SymbolProvider->ProcessHandle, PhpSymbolCallbackFunction, (ULONG64)SymbolProvider);
             PH_UNLOCK_SYMBOLS();
 
             SymbolProvider->IsRegistered = TRUE;

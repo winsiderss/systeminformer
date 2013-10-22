@@ -121,6 +121,12 @@ typedef DWORD64 (WINAPI *_SymGetModuleBase64)(
     __in DWORD64 dwAddr
     );
 
+typedef BOOL (WINAPI *_SymRegisterCallbackW64)(
+    __in HANDLE hProcess,
+    __in PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction,
+    __in ULONG64 UserContext
+    );
+
 typedef BOOL (WINAPI *_StackWalk64)(
     __in DWORD MachineType,
     __in HANDLE hProcess,
