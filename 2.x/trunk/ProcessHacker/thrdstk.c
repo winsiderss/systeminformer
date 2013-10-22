@@ -26,6 +26,7 @@
 #include <phplug.h>
 
 #define WM_PH_COMPLETED (WM_APP + 301)
+#define WM_PH_STATUS_UPDATE (WM_APP + 302)
 
 typedef struct _THREAD_STACK_CONTEXT
 {
@@ -36,10 +37,13 @@ typedef struct _THREAD_STACK_CONTEXT
     PPH_SYMBOL_PROVIDER SymbolProvider;
     BOOLEAN CustomWalk;
 
+    BOOLEAN StopWalk;
     PPH_LIST List;
     PPH_LIST NewList;
     HWND ProgressWindowHandle;
     NTSTATUS WalkStatus;
+    PPH_STRING StatusMessage;
+    PH_QUEUED_LOCK StatusLock;
 } THREAD_STACK_CONTEXT, *PTHREAD_STACK_CONTEXT;
 
 typedef struct _THREAD_STACK_ITEM
@@ -56,12 +60,13 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
     __in LPARAM lParam
     );
 
-NTSTATUS PhpRefreshThreadStack(
-    __in PTHREAD_STACK_CONTEXT ThreadStackContext
+VOID PhpFreeThreadStackItem(
+    __in PTHREAD_STACK_ITEM StackItem
     );
 
-NTSTATUS PhpRefreshThreadStackThreadStart(
-    __in PVOID Parameter
+NTSTATUS PhpRefreshThreadStack(
+    __in HWND hwnd,
+    __in PTHREAD_STACK_CONTEXT ThreadStackContext
     );
 
 INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
@@ -92,10 +97,10 @@ VOID PhShowThreadStackDialog(
         return;
     }
 
+    memset(&threadStackContext, 0, sizeof(THREAD_STACK_CONTEXT));
     threadStackContext.ProcessId = ProcessId;
     threadStackContext.ThreadId = ThreadId;
     threadStackContext.SymbolProvider = SymbolProvider;
-    threadStackContext.CustomWalk = FALSE;
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
@@ -122,6 +127,7 @@ VOID PhShowThreadStackDialog(
     threadStackContext.ThreadHandle = threadHandle;
     threadStackContext.List = PhCreateList(10);
     threadStackContext.NewList = PhCreateList(10);
+    PhInitializeQueuedLock(&threadStackContext.StatusLock);
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -131,6 +137,7 @@ VOID PhShowThreadStackDialog(
         (LPARAM)&threadStackContext
         );
 
+    PhSwapReference(&threadStackContext.StatusMessage, NULL);
     PhDereferenceObject(threadStackContext.NewList);
     PhDereferenceObject(threadStackContext.List);
 
@@ -149,6 +156,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
     {
     case WM_INITDIALOG:
         {
+            NTSTATUS status;
             PTHREAD_STACK_CONTEXT threadStackContext;
             PPH_STRING title;
             HWND lvHandle;
@@ -215,7 +223,12 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 threadStackContext->CustomWalk = control.u.Initializing.CustomWalk;
             }
 
-            PhpRefreshThreadStack(threadStackContext);
+            status = PhpRefreshThreadStack(hwndDlg, threadStackContext);
+
+            if (status == STATUS_ABANDONED)
+                EndDialog(hwndDlg, IDCANCEL);
+            else if (!NT_SUCCESS(status))
+                PhShowStatus(hwndDlg, L"Unable to load the stack", status, 0);
         }
         break;
     case WM_DESTROY:
@@ -240,7 +253,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             }
 
             for (i = 0; i < threadStackContext->List->Count; i++)
-                PhFree(threadStackContext->List->Items[i]);
+                PhpFreeThreadStackItem(threadStackContext->List->Items[i]);
 
             PhSaveListViewColumnsToSetting(L"ThreadStackListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
             PhSaveWindowPlacementToSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
@@ -261,9 +274,15 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 break;
             case IDC_REFRESH:
                 {
-                    PhpRefreshThreadStack(
+                    NTSTATUS status;
+
+                    if (!NT_SUCCESS(status = PhpRefreshThreadStack(
+                        hwndDlg,
                         (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom())
-                        );
+                        )))
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to load the stack", status, 0);
+                    }
                 }
                 break;
             case IDC_COPY:
@@ -299,14 +318,16 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
                     if (header->hwndFrom == lvHandle)
                     {
+                        PTHREAD_STACK_ITEM stackItem;
                         PPH_THREAD_STACK_FRAME stackFrame;
 
-                        if (PhGetListViewItemParam(lvHandle, getInfoTip->iItem, &stackFrame))
+                        if (PhGetListViewItemParam(lvHandle, getInfoTip->iItem, &stackItem))
                         {
                             PH_STRING_BUILDER stringBuilder;
                             PPH_STRING fileName;
                             PH_SYMBOL_LINE_INFORMATION lineInfo;
 
+                            stackFrame = &stackItem->StackFrame;
                             PhInitializeStringBuilder(&stringBuilder, 40);
 
                             // There are no params for kernel-mode stack traces.
@@ -393,27 +414,57 @@ static NTSTATUS PhpRefreshThreadStack(
     __in PTHREAD_STACK_CONTEXT ThreadStackContext
     )
 {
-    HANDLE threadHandle;
+    ULONG i;
 
-    if (threadHandle = PhCreateThread(0, PhpRefreshThreadStackThreadStart, ThreadStackContext))
+    ThreadStackContext->StopWalk = FALSE;
+    PhSwapReference2(&ThreadStackContext->StatusMessage, PhCreateString(L"Loading stack..."));
+
+    DialogBoxParam(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_PROGRESS),
+        hwnd,
+        PhpThreadStackProgressDlgProc,
+        (LPARAM)ThreadStackContext
+        );
+
+    if (!ThreadStackContext->StopWalk && NT_SUCCESS(ThreadStackContext->WalkStatus))
     {
-        DialogBoxParam(
-            PhInstanceHandle,
-            MAKEINTRESOURCE(IDD_PROGRESS),
-            hwnd,
-            PhpThreadStackProgressDlgProc,
-            (LPARAM)ThreadStackContext
-            );
-        NtClose(threadHandle);
+        for (i = 0; i < ThreadStackContext->List->Count; i++)
+            PhpFreeThreadStackItem(ThreadStackContext->List->Items[i]);
 
-        if (NT_SUCCESS(ThreadStackContext->WalkStatus))
+        PhDereferenceObject(ThreadStackContext->List);
+        ThreadStackContext->List = ThreadStackContext->NewList;
+        ThreadStackContext->NewList = PhCreateList(10);
+
+        ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
+        SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, FALSE, 0);
+
+        for (i = 0; i < ThreadStackContext->List->Count; i++)
         {
+            PTHREAD_STACK_ITEM item = ThreadStackContext->List->Items[i];
+            INT lvItemIndex;
+            WCHAR integerString[PH_INT32_STR_LEN_1];
+
+            PhPrintUInt32(integerString, item->Index);
+            lvItemIndex = PhAddListViewItem(ThreadStackContext->ListViewHandle, MAXINT, integerString, item);
+            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 1, PhGetStringOrDefault(item->Symbol, L"???"));
         }
 
-        return ThreadStackContext->WalkStatus;
+        SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, TRUE, 0);
+        InvalidateRect(ThreadStackContext->ListViewHandle, NULL, FALSE);
+    }
+    else
+    {
+        for (i = 0; i < ThreadStackContext->NewList->Count; i++)
+            PhpFreeThreadStackItem(ThreadStackContext->NewList->Items[i]);
+
+        PhClearList(ThreadStackContext->NewList);
     }
 
-    return STATUS_UNSUCCESSFUL;
+    if (ThreadStackContext->StopWalk)
+        return STATUS_ABANDONED;
+
+    return ThreadStackContext->WalkStatus;
 }
 
 static BOOLEAN NTAPI PhpWalkThreadStackCallback(
@@ -423,9 +474,16 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
 {
     PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)Context;
     PPH_STRING symbol;
-    INT lvItemIndex;
-    WCHAR integerString[PH_INT32_STR_LEN_1];
-    PPH_THREAD_STACK_FRAME stackFrame;
+    PTHREAD_STACK_ITEM item;
+
+    if (threadStackContext->StopWalk)
+        return FALSE;
+
+    PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
+    PhSwapReference2(&threadStackContext->StatusMessage,
+        PhFormatString(L"Processing frame %u...", threadStackContext->NewList->Count));
+    PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
+    PostMessage(threadStackContext->ProgressWindowHandle, WM_PH_STATUS_UPDATE, 0, 0);
 
     symbol = PhGetSymbolFromAddress(
         threadStackContext->SymbolProvider,
@@ -436,12 +494,9 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         NULL
         );
 
-    PhPrintUInt32(integerString, threadStackContext->Index++);
-
-    stackFrame = PhAllocateCopy(StackFrame, sizeof(PH_THREAD_STACK_FRAME));
-    PhAddItemList(threadStackContext->List, stackFrame);
-    lvItemIndex = PhAddListViewItem(threadStackContext->ListViewHandle, MAXINT,
-        integerString, stackFrame);
+    item = PhAllocate(sizeof(THREAD_STACK_ITEM));
+    item->StackFrame = *StackFrame;
+    item->Index = threadStackContext->NewList->Count;
 
     if (PhPluginsEnabled)
     {
@@ -456,17 +511,8 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         symbol = control.u.ResolveSymbol.Symbol;
     }
 
-    if (symbol)
-    {
-        PhSetListViewSubItem(threadStackContext->ListViewHandle, lvItemIndex, 1,
-            symbol->Buffer);
-        PhDereferenceObject(symbol);
-    }
-    else
-    {
-        PhSetListViewSubItem(threadStackContext->ListViewHandle, lvItemIndex, 1,
-            L"???");
-    }
+    item->Symbol = symbol;
+    PhAddItemList(threadStackContext->NewList, item);
 
     return TRUE;
 }
@@ -477,7 +523,6 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
 {
     NTSTATUS status;
     PTHREAD_STACK_CONTEXT threadStackContext = Parameter;
-    ULONG i;
     CLIENT_ID clientId;
     BOOLEAN defaultWalk;
 
@@ -517,7 +562,11 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
             );
     }
 
+    if (threadStackContext->NewList->Count != 0)
+        status = STATUS_SUCCESS;
+
     threadStackContext->WalkStatus = status;
+    PostMessage(threadStackContext->ProgressWindowHandle, WM_PH_COMPLETED, 0, 0);
 
     return STATUS_SUCCESS;
 }
@@ -534,11 +583,24 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
     case WM_INITDIALOG:
         {
             PTHREAD_STACK_CONTEXT threadStackContext;
+            HANDLE threadHandle;
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)threadStackContext);
             threadStackContext->ProgressWindowHandle = hwndDlg;
 
+            if (threadHandle = PhCreateThread(0, PhpRefreshThreadStackThreadStart, threadStackContext))
+            {
+                NtClose(threadHandle);
+            }
+            else
+            {
+                threadStackContext->WalkStatus = STATUS_UNSUCCESSFUL;
+                EndDialog(hwndDlg, IDOK);
+                break;
+            }
+
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             SetWindowText(hwndDlg, L"Loading stack...");
         }
         break;
@@ -547,10 +609,41 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
             RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDCANCEL:
+                {
+                    PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+
+                    EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
+                    threadStackContext->StopWalk = TRUE;
+                }
+                break;
+            }
+        }
+        break;
     case WM_PH_COMPLETED:
         {
             EndDialog(hwndDlg, IDOK);
         }
         break;
+    case WM_PH_STATUS_UPDATE:
+        {
+            PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+            PPH_STRING message;
+
+            PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
+            message = threadStackContext->StatusMessage;
+            PhReferenceObject(message);
+            PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
+
+            SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, message->Buffer);
+            PhDereferenceObject(message);
+        }
+        break;
     }
+
+    return 0;
 }
