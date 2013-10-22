@@ -2,7 +2,7 @@
 Process Hacker must be built using a Microsoft C compiler.
 Do not attempt to use any other compiler or be prepared to
 spend a long time trying to fix things. The only tested
-IDE is Visual Studio 2012. Note that
+IDE is Visual Studio 2013. Note that
 "Text Editor > C/C++ > Advanced > Disable Error Reporting" should be
 set to workaround the fact that IntelliSense thinks all C code is C++.
 
