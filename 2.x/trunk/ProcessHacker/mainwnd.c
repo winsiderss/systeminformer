@@ -602,6 +602,24 @@ PPH_STRING PhMwpFindDbghelpPath(
     if (path)
         PhDereferenceObject(path);
 
+    path = PhGetKnownLocation(
+#ifdef _M_IX86
+        CSIDL_PROGRAM_FILES,
+#else
+        CSIDL_PROGRAM_FILESX86,
+#endif
+#ifdef _M_IX86
+        L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll"
+#else
+        L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll"
+#endif
+        );
+
+    if (path && RtlDoesFileExists_U(path->Buffer))
+        return path;
+    if (path)
+        PhDereferenceObject(path);
+
     return NULL;
 }
 

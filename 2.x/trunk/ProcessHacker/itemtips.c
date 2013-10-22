@@ -348,16 +348,20 @@ PPH_STRING PhGetProcessTooltipText(
                 );
         }
 
-        if (Process->ConsoleHostProcessId)
+        if ((ULONG_PTR)Process->ConsoleHostProcessId & ~3)
         {
             CLIENT_ID clientId;
+            PWSTR description = L"Console host";
             PPH_STRING clientIdString;
 
-            clientId.UniqueProcess = Process->ConsoleHostProcessId;
+            clientId.UniqueProcess = (HANDLE)((ULONG_PTR)Process->ConsoleHostProcessId & ~3);
             clientId.UniqueThread = NULL;
 
+            if ((ULONG_PTR)Process->ConsoleHostProcessId & 2)
+                description = L"Console application";
+
             clientIdString = PhGetClientIdName(&clientId);
-            PhAppendFormatStringBuilder(&notes, L"    Console host: %s\n", clientIdString->Buffer);
+            PhAppendFormatStringBuilder(&notes, L"    %s: %s\n", description, clientIdString->Buffer);
             PhDereferenceObject(clientIdString);
         }
 
