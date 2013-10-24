@@ -106,7 +106,7 @@ static HBITMAP LoadImageFromResources(
 
         // Get the Frame count.
         if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
-        __leave;
+            __leave;
 
         // Get the Frame.
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
