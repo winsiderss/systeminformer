@@ -18,10 +18,11 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+*
+* dmex: The non-client area subclassing code has been modified based on the following guide:
+* http://www.catch22.net/tuts/insert-buttons-edit-control
 */
 
-// dmex: The non-client area subclassing code has been modified based on the following guide:
-// http://www.catch22.net/tuts/insert-buttons-edit-control
 #include "toolstatus.h"
 
 #include <Wincodec.h>
@@ -29,9 +30,8 @@
 #include <vsstyle.h>
 #include <vssym32.h>
 
-#pragma comment(lib, "windowscodecs.lib")
-
-#define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
+DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
+DEFINE_GUID(IID_IWICBitmapDecoder, 0x9edde9e7, 0x8dee, 0x47ea, 0x99, 0xdf, 0xe6, 0xfa, 0xf2, 0xed, 0x44, 0xbf);
 
 static _IsThemeActive IsThemeActive_I;
 static _OpenThemeData OpenThemeData_I;
@@ -390,10 +390,33 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 }
 
+static HFONT InitializeFont(
+    __in HWND hwndDlg
+    )
+{
+    LOGFONT logFont = { 0 };
+    HFONT fontHandle = NULL;
+
+    logFont.lfHeight = 14;
+    logFont.lfWeight = FW_NORMAL;
+    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    
+    // GDI uses the first font that matches the above attributes.
+    fontHandle = CreateFontIndirect(&logFont);
+
+    if (fontHandle)
+    {
+        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
+        return fontHandle;
+    }
+
+    return NULL;
+}
+
 HBITMAP LoadImageFromResources(
     __in UINT Width,
     __in UINT Height,
-    __in LPCTSTR Name
+    __in PCWSTR Name
     )
 {
     UINT width = 0;
@@ -418,10 +441,11 @@ HBITMAP LoadImageFromResources(
     HDC hdcScreen = GetDC(NULL);
 
     __try
-    {  
+    {
         // Create the ImagingFactory.
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
             __leave;
+
         // Create the PNG decoder.
         if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
             __leave;
@@ -429,47 +453,55 @@ HBITMAP LoadImageFromResources(
         // Find the resource.
         if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
+
         // Get the resource length.
-        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);       
+        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
+
         // Load the resource.
         if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
             __leave;
+
         if ((resBuffer = (WICInProcPointer)LockResource(resHandle)) == NULL)
             __leave;
 
         // Create the Stream.
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
+
         // Initialize the Stream from Memory.
         if (FAILED(IWICStream_InitializeFromMemory(wicStream, resBuffer, resLength)))
             __leave;
+
+        // Initialize the HBITMAP decoder from memory.
         if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
             __leave;
+
         // Get the Frame count.
         if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
             __leave;
+
         // Get the Frame.
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
+
         // Get the WicFrame width and height.
         if (FAILED(IWICBitmapFrameDecode_GetSize(wicFrame, &width, &height)) || width == 0 || height == 0)
             __leave;
+
         // Get the WicFrame image format.
         if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
             __leave;
-        // Check if the image format is supported:
-        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
-        {
-            // Convert the image to the correct format:
-            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
-                __leave;
 
-            IWICBitmapFrameDecode_Release(wicFrame);
-        }
-        else
-        {
-            wicBitmapSource = (IWICBitmapSource*)wicFrame;
-        }
+        // Check if the image format is supported:
+        //if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+        //{
+        // // Convert the image to the correct format:
+        // if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+        // __leave;
+        // IWICBitmapFrameDecode_Release(wicFrame);
+        //}
+        //else
+        wicBitmapSource = (IWICBitmapSource*)wicFrame;
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         bitmapInfo.bmiHeader.biWidth = Width;
@@ -518,7 +550,7 @@ HBITMAP LoadImageFromResources(
         {
             IWICImagingFactory_Release(wicFactory);
         }
-       
+
         if (resHandle)
         {
             FreeResource(resHandle);
@@ -526,29 +558,6 @@ HBITMAP LoadImageFromResources(
     }
 
     return bitmapHandle;
-}
-
-static HFONT InitializeFont(
-    __in HWND hwndDlg
-    )
-{
-    LOGFONT logFont = { 0 };
-    HFONT fontHandle = NULL;
-
-    logFont.lfHeight = 14;
-    logFont.lfWeight = FW_NORMAL;
-    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-    
-    // GDI uses the first font that matches the above attributes.
-    fontHandle = CreateFontIndirect(&logFont);
-
-    if (fontHandle)
-    {
-        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
-        return fontHandle;
-    }
-
-    return NULL;
 }
 
 BOOLEAN InsertButton(

@@ -2,13 +2,13 @@
 #define __UPDATER_H__
 
 #pragma comment(lib, "Winhttp.lib")
-#pragma comment(lib, "WindowsCodecs.lib")
 
+#define CINTERFACE
+#define COBJMACROS
+#define INITGUID
 #include <phdk.h>
 #include <phappresource.h>
 #include <mxml.h>
-#define CINTERFACE
-#define COBJMACROS
 #include <windowsx.h>
 #include <netlistmgr.h>
 #include <winhttp.h>
