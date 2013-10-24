@@ -920,49 +920,46 @@ VOID PhTnpOnXxxButtonXxx(
 
     if (!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN))
     {
-        LOGICAL realHitItem;
+        LOGICAL allowDragSelect;
         PH_TREENEW_CELL_PARTS parts;
 
         PhTnpPopTooltip(Context);
+        allowDragSelect = TRUE;
 
         if (hitTest.Flags & TN_HIT_ITEM)
         {
+            allowDragSelect = FALSE;
             Context->FocusNode = hitTest.Node;
-        }
 
-        realHitItem = hitTest.Flags & TN_HIT_ITEM;
-
-        if (realHitItem && (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT))
-        {
-            // To allow drag selection to begin even if the cursor is on an item,
-            // we check if the cursor is on the item icon or text. If it isn't, then
-            // don't count that as a hit. Exceptions are:
-            // * When the item is already selected
-            // * When user is beginning to drag the divider
-
-            if (!hitTest.Node->Selected && !startingTracking)
+            if (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT)
             {
-                if (PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts))
+                // To allow drag selection to begin even if the cursor is on an item,
+                // we check if the cursor is on the item icon or text. Exceptions are:
+                // * When the item is already selected
+                // * When user is beginning to drag the divider
+
+                if (!hitTest.Node->Selected && !startingTracking)
                 {
-                    realHitItem = FALSE;
-
-                    if ((parts.Flags & TN_PART_ICON) && CursorX >= parts.IconRect.left && CursorX < parts.IconRect.right)
-                        realHitItem = TRUE;
-
-                    if ((parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
+                    if (PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts))
                     {
-                        if (CursorX >= parts.TextRect.left && CursorX < parts.TextRect.right)
-                            realHitItem = TRUE;
+                        allowDragSelect = TRUE;
+
+                        if ((parts.Flags & TN_PART_ICON) && CursorX >= parts.IconRect.left && CursorX < parts.IconRect.right)
+                            allowDragSelect = FALSE;
+
+                        if ((parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
+                        {
+                            if (CursorX >= parts.TextRect.left && CursorX < parts.TextRect.right)
+                                allowDragSelect = FALSE;
+                        }
                     }
                 }
             }
-        }
 
-        if (realHitItem)
-        {
             PhTnpProcessSelectNode(Context, hitTest.Node, controlKey, shiftKey, Message == WM_RBUTTONDOWN);
         }
-        else
+
+        if (allowDragSelect)
         {
             BOOLEAN dragSelect;
             ULONG indexToSelect;
@@ -1029,9 +1026,7 @@ VOID PhTnpOnXxxButtonXxx(
 
                         if ((hitTest.Flags & TN_HIT_ITEM) && (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT))
                         {
-                            // The user isn't performing a drag selection, but we didn't count this as a hit earlier.
-                            // It's a hit now.
-                            PhTnpProcessSelectNode(Context, hitTest.Node, controlKey, shiftKey, Message == WM_RBUTTONDOWN);
+                            // The user isn't performing a drag selection, so prevent deselection.
                             selectionProcessed = TRUE;
                         }
 
