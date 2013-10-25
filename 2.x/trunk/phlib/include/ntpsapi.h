@@ -155,6 +155,10 @@ typedef enum _PROCESSINFOCLASS
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
     ProcessWorkingSetControl,
+    ProcessHandleTable, // since WINBLUE
+    ProcessCheckStackExtentsMode,
+    ProcessCommandLineInformation,
+    ProcessProtectionInformation,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -197,6 +201,7 @@ typedef enum _THREADINFOCLASS
     ThreadCounterProfiling,
     ThreadIdealProcessorEx, // q: PROCESSOR_NUMBER
     ThreadCpuAccountingInformation, // since WIN8
+    ThreadSuspendCount, // since WINBLUE
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
