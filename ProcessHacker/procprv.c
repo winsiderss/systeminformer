@@ -2006,7 +2006,7 @@ VOID PhProcessProviderUpdate(
             // Open a handle to the process for later usage.
             // Don't try to do this if the process has no threads. On Windows 8.1, processes without threads are
             // probably reflected processes which will not terminate if we have a handle open.
-            if (processItem->NumberOfThreads != 0)
+            if (process->NumberOfThreads != 0)
             {
                 PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
 
