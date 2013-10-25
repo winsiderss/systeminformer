@@ -2736,11 +2736,10 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     )
 {
     ULONG stateSize;
-    ULONG hitcountSize;
     PVOID differences;
     PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION stateDistribution;
     PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION stateDifference;
-    PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcount;
+    PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOld;
     ULONG i;
     ULONG j;
     DOUBLE count;
@@ -2752,11 +2751,6 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
         return FALSE;
 
     stateSize = FIELD_OFFSET(SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION, States) + sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * 2;
-    hitcountSize = sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT);
-
-    if (WindowsVersion <= WINDOWS_8)
-        hitcountSize = 8;
-
     differences = PhAllocate(stateSize * NumberOfProcessors);
 
     for (i = 0; i < NumberOfProcessors; i++)
@@ -2772,9 +2766,16 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
         for (j = 0; j < stateDistribution->StateCount; j++)
         {
-            hitcount = (PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT)((PCHAR)stateDistribution->States + hitcountSize * j);
-            stateDifference->States[j].Hits = hitcount->Hits;
-            stateDifference->States[j].PercentFrequency = hitcount->PercentFrequency;
+            if (WindowsVersion >= WINDOWS_81)
+            {
+                stateDifference->States[j] = stateDistribution->States[j];
+            }
+            else
+            {
+                hitcountOld = (PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8)((PCHAR)stateDistribution->States + sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
+                stateDifference->States[j].Hits.QuadPart = hitcountOld->Hits;
+                stateDifference->States[j].PercentFrequency = hitcountOld->PercentFrequency;
+            }
         }
     }
 
@@ -2791,8 +2792,15 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
         for (j = 0; j < stateDistribution->StateCount; j++)
         {
-            hitcount = (PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT)((PCHAR)stateDistribution->States + hitcountSize * j);
-            stateDifference->States[j].Hits -= hitcount->Hits;
+            if (WindowsVersion >= WINDOWS_81)
+            {
+                stateDifference->States[j].Hits.QuadPart -= stateDistribution->States[j].Hits.QuadPart;
+            }
+            else
+            {
+                hitcountOld = (PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8)((PCHAR)stateDistribution->States + sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
+                stateDifference->States[j].Hits.QuadPart -= hitcountOld->Hits;
+            }
         }
     }
 
@@ -2807,8 +2815,8 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
         for (j = 0; j < 2; j++)
         {
-            count += stateDifference->States[j].Hits;
-            total += stateDifference->States[j].Hits * stateDifference->States[j].PercentFrequency;
+            count += (ULONGLONG)stateDifference->States[j].Hits.QuadPart;
+            total += (ULONGLONG)stateDifference->States[j].Hits.QuadPart * stateDifference->States[j].PercentFrequency;
         }
     }
 

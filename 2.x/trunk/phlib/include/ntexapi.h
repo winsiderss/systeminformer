@@ -1545,10 +1545,8 @@ typedef struct _SYSTEM_SYSTEM_DISK_INFORMATION
 // private
 typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT
 {
-    ULONG Hits;
+    LARGE_INTEGER Hits; // ULONG in WIN8
     UCHAR PercentFrequency;
-    ULONG Reserved1; // rev
-    ULONG Reserved2; // rev
 } SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT;
 
 // private
