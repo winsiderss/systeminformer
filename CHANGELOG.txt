@@ -8,6 +8,7 @@ Process Hacker
    * Fixed handling of long symbol names
    * Fixed Run As preventing Windows 8 apps from starting
    * Fixed console host information for Windows 8.1
+   * Fixed reflected processes not terminating on Windows 8.1
 
 2.31
  * NEW/IMPROVED:

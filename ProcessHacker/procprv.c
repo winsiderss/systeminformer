@@ -1674,7 +1674,7 @@ VOID PhpGetProcessThreadInformation(
     BOOLEAN isSuspended;
     ULONG contextSwitches;
 
-    isSuspended = Process->NumberOfThreads != 0;
+    isSuspended = PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId);
     contextSwitches = 0;
 
     for (i = 0; i < Process->NumberOfThreads; i++)
@@ -2004,10 +2004,15 @@ VOID PhProcessProviderUpdate(
             processItem->Record = processRecord;
 
             // Open a handle to the process for later usage.
-            PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
+            // Don't try to do this if the process has no threads. On Windows 8.1, processes without threads are
+            // probably reflected processes which will not terminate if we have a handle open.
+            if (processItem->NumberOfThreads != 0)
+            {
+                PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
 
-            if (WINDOWS_HAS_LIMITED_ACCESS && !processItem->QueryHandle)
-                PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId);
+                if (WINDOWS_HAS_LIMITED_ACCESS && !processItem->QueryHandle)
+                    PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId);
+            }
 
             PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
