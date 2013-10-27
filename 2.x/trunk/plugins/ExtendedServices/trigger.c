@@ -36,6 +36,8 @@ typedef struct _ES_TRIGGER_DATA
             PVOID Binary;
             ULONG BinaryLength;
         };
+        UCHAR Byte;
+        ULONG64 UInt64;
     };
 } ES_TRIGGER_DATA, *PES_TRIGGER_DATA;
 
@@ -173,6 +175,16 @@ PES_TRIGGER_DATA EspCreateTriggerData(
         {
             data->BinaryLength = DataItem->cbData;
             data->Binary = PhAllocateCopy(DataItem->pData, DataItem->cbData);
+        }
+        else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
+        {
+            if (DataItem->cbData == sizeof(UCHAR))
+                data->Byte = *(PUCHAR)DataItem->pData;
+        }
+        else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY || data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
+        {
+            if (DataItem->cbData == sizeof(ULONG64))
+                data->UInt64 = *(PULONG64)DataItem->pData;
         }
     }
 
@@ -795,6 +807,16 @@ BOOLEAN EsSaveServiceTriggerInfo(
                         dataItem->cbData = data->BinaryLength;
                         dataItem->pData = data->Binary;
                     }
+                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
+                    {
+                        dataItem->cbData = sizeof(UCHAR);
+                        dataItem->pData = (PBYTE)&data->Byte;
+                    }
+                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY || data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
+                    {
+                        dataItem->cbData = sizeof(ULONG64);
+                        dataItem->pData = (PBYTE)&data->UInt64;
+                    }
                 }
             }
         }
@@ -1189,6 +1211,18 @@ VOID EspFormatTriggerData(
     else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
     {
         *Text = PhCreateString(L"(binary data)");
+    }
+    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
+    {
+        *Text = PhFormatString(L"(level) %u", Data->Byte);
+    }
+    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY)
+    {
+        *Text = PhFormatString(L"(keyword any) 0x%I64x", Data->UInt64);
+    }
+    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
+    {
+        *Text = PhFormatString(L"(keyword all) 0x%I64x", Data->UInt64);
     }
     else
     {
