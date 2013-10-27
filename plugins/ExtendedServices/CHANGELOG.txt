@@ -1,3 +1,6 @@
+1.9
+ * Added new trigger data types
+
 1.8
  * Fixed some bugs relating to Windows 8
 
