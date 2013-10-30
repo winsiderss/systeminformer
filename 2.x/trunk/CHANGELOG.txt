@@ -1,6 +1,8 @@
 Process Hacker
 
 2.32
+ * NOTE:
+   * All executable files are now signed.
  * NEW/IMPROVED:
    * Updated for Windows 8.1
    * Added progress display for thread stacks
