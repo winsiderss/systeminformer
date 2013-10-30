@@ -7,11 +7,6 @@
 #include <ntfill.h>
 #include <kphapi.h>
 
-// Configuration
-
-// Disable features that conflict with driver signing requirements.
-// KPH_CONFIG_CLEAN
-
 // Debugging
 
 #ifdef DBG
