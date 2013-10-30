@@ -1,6 +1,6 @@
 1.5
  * Added CIMA hash checking
- * Added file analysed prompt
+ * Added file analyzed prompt
 
 1.4
  * 2013-07-16: Added upload progress
