@@ -1,7 +1,6 @@
 @echo off
 
-rem The first parameter specifies the ProcessHacker2
-rem base directory.
+rem The first parameter specifies the ProcessHacker2 base directory.
 rem The second parameter specifies the output directory.
 rem Variables:
 rem INNOBIN - Specify the path to Inno Setup.
@@ -10,8 +9,8 @@ rem SVNBIN - Specify the path to the SVN client.
 rem SEVENZIPBIN - Specify the path to 7-Zip.
 rem     e.g. C:\Program Files\7-Zip
 rem SIGN - Specify 1 to sign executable files.
-rem MINORVERSION - Specify the minor version of
-rem     the Process Hacker release being built.
+rem SIGN_TIMESTAMP - Specify 1 to timestamp executable files.
+rem MINORVERSION - Specify the minor version of the Process Hacker release being built.
 rem     e.g. 8
 
 rem Build the main projects
