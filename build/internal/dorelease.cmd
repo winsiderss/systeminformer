@@ -88,6 +88,16 @@ for %%a in (
 )
 
 if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-bin.zip %2\bin\*
+
+rem Installer distribution
+
+if exist "%INNOBIN%\iscc.exe". (
+    pushd %1\build\Installer\
+    del *.exe
+    "%INNOBIN%\iscc.exe" Process_Hacker2_installer.iss
+    popd
+)
+
 if exist %1\build\Installer\processhacker-2.%MINORVERSION%-setup.exe (
     copy %1\build\Installer\processhacker-2.%MINORVERSION%-setup.exe %2\
     if "%SIGN%" == "1" (
