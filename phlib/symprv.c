@@ -338,7 +338,10 @@ VOID PhpRegisterSymbolProvider(
         {
             PH_LOCK_SYMBOLS();
             SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
-            SymRegisterCallbackW64_I(SymbolProvider->ProcessHandle, PhpSymbolCallbackFunction, (ULONG64)SymbolProvider);
+
+            if (SymRegisterCallbackW64_I)
+                SymRegisterCallbackW64_I(SymbolProvider->ProcessHandle, PhpSymbolCallbackFunction, (ULONG64)SymbolProvider);
+
             PH_UNLOCK_SYMBOLS();
 
             SymbolProvider->IsRegistered = TRUE;
