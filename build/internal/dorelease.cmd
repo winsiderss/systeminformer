@@ -41,10 +41,10 @@ copy %1\KProcessHacker\bin-signed\amd64\kprocesshacker.sys %2\bin\x64\
 copy %1\bin\Release64\peview.exe %2\bin\x64\
 
 if "%SIGN%" == "1" (
-    call sign.cmd %2\bin\x86\ProcessHacker.exe
-    call sign.cmd %2\bin\x86\peview.exe
-    call sign.cmd %2\bin\x64\ProcessHacker.exe
-    call sign.cmd %2\bin\x64\peview.exe
+    call %1\build\internal\sign.cmd %2\bin\x86\ProcessHacker.exe
+    call %1\build\internal\sign.cmd %2\bin\x86\peview.exe
+    call %1\build\internal\sign.cmd %2\bin\x64\ProcessHacker.exe
+    call %1\build\internal\sign.cmd %2\bin\x64\peview.exe
 )
 
 mkdir %2\bin\x86\plugins
@@ -63,7 +63,7 @@ for %%a in (
 ) do (
     copy %1\bin\Release32\plugins\%%a.dll %2\bin\x86\plugins\%%a.dll
     if "%SIGN%" == "1" (
-        call sign.cmd %2\bin\x86\plugins\%%a.dll
+        call %1\build\internal\sign.cmd %2\bin\x86\plugins\%%a.dll
     )
 )
 
@@ -83,7 +83,7 @@ for %%a in (
 ) do (
     copy %1\bin\Release64\plugins\%%a.dll %2\bin\x64\plugins\%%a.dll
     if "%SIGN%" == "1" (
-        call sign.cmd %2\bin\x64\plugins\%%a.dll
+        call %1\build\internal\sign.cmd %2\bin\x64\plugins\%%a.dll
     )
 )
 
@@ -91,7 +91,7 @@ if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2
 if exist %1\build\Installer\processhacker-2.%MINORVERSION%-setup.exe (
     copy %1\build\Installer\processhacker-2.%MINORVERSION%-setup.exe %2\
     if "%SIGN%" == "1" (
-        call sign.cmd %2\processhacker-2.%MINORVERSION%-setup.exe
+        call %1\build\internal\sign.cmd %2\processhacker-2.%MINORVERSION%-setup.exe
     )
 )
 
