@@ -29,13 +29,4 @@ devenv %1\plugins\Plugins.sln /build "Release|Win32"
 devenv %1\plugins\Plugins.sln /build "Release|x64"
 call %1\build\internal\wait.cmd 2
 
-rem Build the installer (HARDCODED PATH)
-
-if exist "%INNOBIN%\iscc.exe". (
-    pushd %1\build\Installer\
-    del *.exe
-    "%INNOBIN%\iscc.exe" Process_Hacker2_installer.iss
-    popd
-)
-
 call %1\build\internal\dorelease.cmd %1 %2
