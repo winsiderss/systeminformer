@@ -228,7 +228,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     // handle keybind Ctrl + K
                     if (EnableToolBar)
                     {
-                        // Remove searchbox text...
+                        SetFocus(TextboxHandle);
                         Edit_SetSel(TextboxHandle, 0, -1);
                     }
 
