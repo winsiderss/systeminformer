@@ -39,9 +39,6 @@ rights.
 
 == KProcessHacker ==
 
-NOTE: The driver has been very generously signed by the
-ReactOS Foundation (http://www.reactos.org).
-
 Process Hacker uses a kernel-mode driver, KProcessHacker, to
 assist with certain functionality. This includes:
 
