@@ -9,11 +9,14 @@ rem     e.g. C:\Program Files\Inno Setup 5
 rem SVNBIN - Specify the path to the SVN client.
 rem SEVENZIPBIN - Specify the path to 7-Zip.
 rem     e.g. C:\Program Files\7-Zip
+rem SIGN - Specify 1 to sign executable files.
 rem MINORVERSION - Specify the minor version of
 rem     the Process Hacker release being built.
 rem     e.g. 8
 
 rem Build the main projects
+
+set PHBASE=%1
 
 devenv %1\ProcessHacker.sln /build "Release|Win32"
 devenv %1\ProcessHacker.sln /build "Release|x64"
