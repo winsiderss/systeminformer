@@ -592,22 +592,12 @@ NTSTATUS KpiQueryInformationProcess(
     {
     case KphProcessProtectionInformation:
         {
-            BOOLEAN protectedProcess = FALSE; // stupid x64 compiler
+            BOOLEAN protectedProcess = FALSE;
 
             if (PsIsProtectedProcess_I)
-            {
                 protectedProcess = PsIsProtectedProcess_I(process);
-            }
-#if !defined(KPH_CONFIG_CLEAN)
-            else if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
-            {
-                protectedProcess = (*(PULONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff) >> KphDynEpProtectedProcessBit) & 0x1;
-            }
-#endif
             else
-            {
                 status = STATUS_NOT_SUPPORTED;
-            }
 
             if (NT_SUCCESS(status))
             {
