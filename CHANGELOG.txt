@@ -8,6 +8,10 @@ Process Hacker
    * Added progress display for thread stacks
    * Updated ExtendedServices plugin:
      * Added new trigger data types
+   * Updated NetworkTools plugin:
+     * Updated UI
+   * Updated OnlineChecks plugin:
+     * Added file analyzed prompt
  * FIXED:
    * Fixed handling of long symbol names
    * Fixed Run As preventing Windows 8 apps from starting
