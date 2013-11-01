@@ -887,6 +887,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     )
 {
     HANDLE threadHandle;
+    BOOLEAN timeout = FALSE;
 
     // ProcessDotNetTrace is not guaranteed to complete within any period of time, because
     // the target process might terminate before it writes the DCStartComplete_V1 event.
@@ -908,6 +909,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
         if (_InterlockedExchange(&Context->TraceHandleActive, 0) == 1)
         {
             CloseTrace(Context->TraceHandle);
+            timeout = TRUE;
         }
 
         NtWaitForSingleObject(threadHandle, FALSE, NULL);
@@ -915,7 +917,28 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
 
     NtClose(threadHandle);
 
+    if (timeout)
+        return ERROR_TIMEOUT;
+
     return Context->TraceResult;
+}
+
+BOOLEAN IsProcessSuspended(
+    __in HANDLE ProcessId
+    )
+{
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+
+    if (NT_SUCCESS(PhEnumProcesses(&processes)))
+    {
+        if (process = PhFindProcessInformation(processes, ProcessId))
+            return PhGetProcessIsSuspended(process);
+
+        PhFree(processes);
+    }
+
+    return FALSE;
 }
 
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
@@ -981,30 +1004,74 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
 
             SetCursor(LoadCursor(NULL, IDC_WAIT));
 
-            if (context->ClrVersions & PH_CLR_VERSION_1_0)
+            if (
+                !IsProcessSuspended(processItem->ProcessId) ||
+                PhShowMessage(hwndDlg, MB_ICONWARNING | MB_YESNO, L".NET assembly enumeration may not work properly because the process is currently suspended. Do you want to continue?") == IDYES
+                )
             {
-                AddFakeClrNode(context, L"CLR v1.0.3705"); // what PE displays
-            }
+                BOOLEAN timeoutReached = FALSE;
+                BOOLEAN nonClrNode = FALSE;
+                ULONG i;
 
-            if (context->ClrVersions & PH_CLR_VERSION_1_1)
+                if (context->ClrVersions & PH_CLR_VERSION_1_0)
+                {
+                    AddFakeClrNode(context, L"CLR v1.0.3705"); // what PE displays
+                }
+
+                if (context->ClrVersions & PH_CLR_VERSION_1_1)
+                {
+                    AddFakeClrNode(context, L"CLR v1.1.4322");
+                }
+
+                timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
+
+                if (context->ClrVersions & PH_CLR_VERSION_2_0)
+                {
+                    context->ClrV2Node = AddFakeClrNode(context, L"CLR v2.0.50727");
+                    result = UpdateDotNetTraceInfoWithTimeout(context, TRUE, &timeout);
+
+                    if (result == ERROR_TIMEOUT)
+                    {
+                        timeoutReached = TRUE;
+                        result = ERROR_SUCCESS;
+                    }
+                }
+
+                if (context->ClrVersions & PH_CLR_VERSION_4_ABOVE)
+                {
+                    result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
+
+                    if (result == ERROR_TIMEOUT)
+                    {
+                        timeoutReached = TRUE;
+                        result = ERROR_SUCCESS;
+                    }
+                }
+
+                TreeNew_NodesStructured(tnHandle);
+
+                // If we reached the timeout, check whether we got any data back.
+                if (timeoutReached)
+                {
+                    for (i = 0; i < context->NodeList->Count; i++)
+                    {
+                        PDNA_NODE node = context->NodeList->Items[i];
+
+                        if (node->Type != DNA_TYPE_CLR)
+                        {
+                            nonClrNode = TRUE;
+                            break;
+                        }
+                    }
+
+                    if (!nonClrNode)
+                        result = ERROR_TIMEOUT;
+                }
+            }
+            else
             {
-                AddFakeClrNode(context, L"CLR v1.1.4322");
+                result = ERROR_INSTALL_SUSPEND;
             }
-
-            timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
-
-            if (context->ClrVersions & PH_CLR_VERSION_2_0)
-            {
-                context->ClrV2Node = AddFakeClrNode(context, L"CLR v2.0.50727");
-                result = UpdateDotNetTraceInfoWithTimeout(context, TRUE, &timeout);
-            }
-
-            if (context->ClrVersions & PH_CLR_VERSION_4_ABOVE)
-            {
-                result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
-            }
-
-            TreeNew_NodesStructured(tnHandle);
 
             TreeNew_SetRedraw(tnHandle, TRUE);
             SetCursor(LoadCursor(NULL, IDC_ARROW));
@@ -1017,6 +1084,14 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 if (result == ERROR_ACCESS_DENIED)
                 {
                     SetDlgItemText(hwndDlg, IDC_ERROR, L"Unable to start the event tracing session. Make sure Process Hacker is running with administrative privileges.");
+                }
+                else if (result == ERROR_INSTALL_SUSPEND)
+                {
+                    SetDlgItemText(hwndDlg, IDC_ERROR, L"Unable to start the event tracing session because the process is suspended.");
+                }
+                else if (result == ERROR_TIMEOUT)
+                {
+                    SetDlgItemText(hwndDlg, IDC_ERROR, L"The event tracing session timed out.");
                 }
                 else
                 {
