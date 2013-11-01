@@ -1,5 +1,11 @@
 Process Hacker
 
+2.33
+ * NEW/IMPROVED:
+   * Updated DotNetTools plugin:
+     * Improved .NET assembly enumeration timeout handling
+ * FIXED:
+
 2.32
  * NOTE:
    * All executable files are now signed.
