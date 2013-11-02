@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HexPidPlugin", "HexPidPlugin\HexPidPlugin.vcxproj", "{50691784-4EB0-4B5E-B428-BD37E52F8D2E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AvgCpuPlugin", "AvgCpuPlugin\AvgCpuPlugin.vcxproj", "{A68DC3E8-5E2E-4883-A2A4-81F921458A9C}"
@@ -12,6 +14,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DnsCachePlugin", "DnsCachePlugin\DnsCachePlugin.vcxproj", "{34E39D39-7148-45BF-9B36-DEF53E534A11}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AtomTablePlugin", "AtomTablePlugin\AtomTablePlugin.vcxproj", "{12390643-F40D-411F-A2E8-BF85F90223DF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WaitChainPlugin", "WaitChainPlugin\WaitChainPlugin.vcxproj", "{D6EA1C23-4CBC-4CD5-931C-38C984722510}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -73,6 +77,14 @@ Global
 		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|x64.ActiveCfg = Release|x64
 		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|x64.Build.0 = Release|x64
 		{12390643-F40D-411F-A2E8-BF85F90223DF}.Release|x64.Deploy.0 = Release|x64
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Debug|Win32.Build.0 = Debug|Win32
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Debug|x64.ActiveCfg = Debug|x64
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Debug|x64.Build.0 = Debug|x64
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Release|Win32.ActiveCfg = Release|Win32
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Release|Win32.Build.0 = Release|Win32
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Release|x64.ActiveCfg = Release|x64
+		{D6EA1C23-4CBC-4CD5-931C-38C984722510}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
