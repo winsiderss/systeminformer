@@ -41,12 +41,12 @@ BEGIN
         BLOCK "000904b0"
         BEGIN
             VALUE "CompanyName", "dmex"
-            VALUE "FileDescription", "Dns Cache plugin for Process Hacker"
+            VALUE "FileDescription", "Wait Chain Traversal plugin for Process Hacker"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "WaitChainPlugin"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "WaitChainPlugin.dll"
-            VALUE "ProductName", "WaitChainPlugin plugin for Process Hacker"
+            VALUE "ProductName", "Wait Chain Traversal plugin for Process Hacker"
             VALUE "ProductVersion", "1.0.0.0"
         END
     END

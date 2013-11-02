@@ -64,7 +64,6 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             PhInitializeStringBuilder(&context->ReceivedString, PAGE_SIZE);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NETRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
              
             windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_TRACERT_WINDOW_POSITION);
@@ -123,9 +122,6 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
         {
             switch (LOWORD(wParam))
             {
-            case IDC_NETRETRY:
-                Button_Enable(GetDlgItem(hwndDlg, IDC_NETRETRY), FALSE);
-                break;
             case IDCANCEL:
             case IDOK:
                 PostQuitMessage(0);
