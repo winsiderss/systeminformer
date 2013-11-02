@@ -22,6 +22,9 @@
 
 #include "main.h"
 
+// Wait Chain Traversal Documentation:
+// http://msdn.microsoft.com/en-us/library/windows/desktop/ms681622.aspx
+
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
