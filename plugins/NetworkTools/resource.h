@@ -5,8 +5,6 @@
 #define IDD_OUTPUT                      101
 #define IDD_PINGDIALOG                  102
 #define IDD_OPTIONS                     109
-#define IDC_NETRESOLVECHECK             1001
-#define IDC_NETRETRY                    1004
 #define IDC_MAXTIMEOUTTEXT              1008
 #define IDC_NETOUTPUTEDIT               1008
 #define IDC_ICMP_PANEL                  1012
