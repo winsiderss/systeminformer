@@ -199,6 +199,7 @@
     <ClInclude Include="include\colorbox.h" />
     <ClInclude Include="include\treenew.h" />
     <ClInclude Include="include\treenewp.h" />
+    <ClInclude Include="include\verify.h" />
     <ClInclude Include="pcre\config.h" />
     <ClInclude Include="include\dltmgr.h" />
     <ClInclude Include="include\dspick.h" />

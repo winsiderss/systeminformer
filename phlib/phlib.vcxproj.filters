@@ -367,5 +367,8 @@
     <ClInclude Include="include\winmisc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\verify.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

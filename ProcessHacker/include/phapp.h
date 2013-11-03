@@ -134,6 +134,8 @@ extern GUID WIN7_CONTEXT_GUID;
 extern GUID WIN8_CONTEXT_GUID;
 extern GUID WINBLUE_CONTEXT_GUID;
 
+typedef struct PACKAGE_ID PACKAGE_ID;
+
 PHAPPAPI
 BOOLEAN PhGetProcessIsSuspended(
     __in PSYSTEM_PROCESS_INFORMATION Process
@@ -146,6 +148,14 @@ NTSTATUS PhGetProcessSwitchContext(
 
 PPH_STRING PhGetProcessPackageFullName(
     __in HANDLE ProcessHandle
+    );
+
+PACKAGE_ID *PhPackageIdFromFullName(
+    __in PWSTR PackageFullName
+    );
+
+PPH_STRING PhGetPackagePath(
+    __in PACKAGE_ID *PackageId
     );
 
 VOID PhEnumChildWindows(

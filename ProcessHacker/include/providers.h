@@ -285,6 +285,7 @@ VOID PhEnumProcessItems(
 
 VERIFY_RESULT PhVerifyFileCached(
     __in PPH_STRING FileName,
+    __in_opt PWSTR PackageFullName,
     __out_opt PPH_STRING *SignerName,
     __in BOOLEAN CachedOnly
     );
@@ -545,6 +546,7 @@ typedef struct _PH_MODULE_PROVIDER
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
+    PPH_STRING PackageFullName;
     SLIST_HEADER QueryListHead;
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 

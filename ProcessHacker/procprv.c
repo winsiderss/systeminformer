@@ -2,7 +2,7 @@
  * Process Hacker -
  *   process provider
  *
- * Copyright (C) 2009-2011 wj32
+ * Copyright (C) 2009-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -60,6 +60,7 @@
 #include <kphuser.h>
 #include <extmgri.h>
 #include <phplug.h>
+#include <verify.h>
 #include <winsta.h>
 
 #define PROCESS_ID_BUCKETS 64
@@ -663,11 +664,74 @@ INT NTAPI PhpVerifyCacheCompareFunction(
     return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
 }
 
+VERIFY_RESULT PhpVerifyFileWithAdditionalCatalog(
+    __in PWSTR FileName,
+    __in_opt PWSTR PackageFullName,
+    __out_opt PPH_STRING *SignerName
+    )
+{
+    static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
+
+    VERIFY_RESULT result;
+    PH_VERIFY_FILE_INFO info;
+    PPH_STRING additionalCatalogFileName = NULL;
+    PCERT_CONTEXT *signatures;
+    ULONG numberOfSignatures;
+
+    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+    info.FileName = FileName;
+    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+
+    if (PackageFullName)
+    {
+        PACKAGE_ID *packageId;
+        PPH_STRING packagePath;
+
+        if (packageId = PhPackageIdFromFullName(PackageFullName))
+        {
+            if (packagePath = PhGetPackagePath(packageId))
+            {
+                additionalCatalogFileName = PhConcatStringRef2(&packagePath->sr, &codeIntegrityFileName);
+                PhDereferenceObject(packagePath);
+            }
+
+            PhFree(packageId);
+        }
+    }
+
+    if (additionalCatalogFileName)
+    {
+        info.NumberOfCatalogFileNames = 1;
+        info.CatalogFileNames = &additionalCatalogFileName->Buffer;
+    }
+
+    if (!NT_SUCCESS(PhVerifyFileEx(&info, &result, &signatures, &numberOfSignatures)))
+    {
+        result = VrNoSignature;
+        signatures = NULL;
+        numberOfSignatures = 0;
+    }
+
+    if (additionalCatalogFileName)
+        PhDereferenceObject(additionalCatalogFileName);
+
+    if (SignerName)
+    {
+        if (numberOfSignatures != 0)
+            *SignerName = PhGetSignerNameFromCertificate(signatures[0]);
+        else
+            *SignerName = NULL;
+    }
+
+    return result;
+}
+
 /**
  * Verifies a file's digital signature, using a cached
  * result if possible.
  *
  * \param FileName A file name.
+ * \param ProcessItem An associated process item.
  * \param SignerName A variable which receives a pointer
  * to a string containing the signer name. You must free
  * the string using PhDereferenceObject() when you no
@@ -680,6 +744,7 @@ INT NTAPI PhpVerifyCacheCompareFunction(
  */
 VERIFY_RESULT PhVerifyFileCached(
     __in PPH_STRING FileName,
+    __in_opt PWSTR PackageFullName,
     __out_opt PPH_STRING *SignerName,
     __in BOOLEAN CachedOnly
     )
@@ -716,7 +781,7 @@ VERIFY_RESULT PhVerifyFileCached(
 
         if (!CachedOnly)
         {
-            result = PhVerifyFile(FileName->Buffer, &signerName);
+            result = PhpVerifyFileWithAdditionalCatalog(FileName->Buffer, PackageFullName, &signerName);
         }
         else
         {
@@ -764,10 +829,7 @@ VERIFY_RESULT PhVerifyFileCached(
         return result;
     }
 #else
-    return PhVerifyFile(
-        FileName->Buffer,
-        SignerName
-        );
+    return PhpVerifyFileWithAdditionalCatalog(FileName->Buffer, PackageFullName, SignerName);
 #endif
 }
 
@@ -1010,11 +1072,20 @@ VOID PhpProcessQueryStage2(
 
     if (PhEnableProcessQueryStage2 && processItem->FileName)
     {
+        PPH_STRING packageFullName = NULL;
+
+        if (processItem->QueryHandle)
+            packageFullName = PhGetProcessPackageFullName(processItem->QueryHandle);
+
         Data->VerifyResult = PhVerifyFileCached(
             processItem->FileName,
+            PhGetString(packageFullName),
             &Data->VerifySignerName,
             FALSE
             );
+
+        if (packageFullName)
+            PhDereferenceObject(packageFullName);
 
         status = PhIsExecutablePacked(
             processItem->FileName->Buffer,
