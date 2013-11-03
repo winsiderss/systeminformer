@@ -2571,6 +2571,7 @@ VOID PhMwpSymInitHandler(
         PH_STRINGREF dbghelpFolder;
         PPH_STRING symsrvPath;
 
+        PhSymPreferredDbgHelpBase = dbghelpModule;
         fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
 
         if (fullDbghelpPath)
