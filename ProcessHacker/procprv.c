@@ -718,6 +718,8 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
             *SignerName = NULL;
     }
 
+    PhFreeVerifySignatures(signatures, numberOfSignatures);
+
     return result;
 }
 
