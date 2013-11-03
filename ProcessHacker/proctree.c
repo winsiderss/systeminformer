@@ -195,6 +195,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_SUBSYSTEM, FALSE, L"Subsystem", 110, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PACKAGENAME, FALSE, L"Package Name", 160, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_APPID, FALSE, L"App ID", 160, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_DPIAWARENESS, FALSE, L"DPI Awareness", 110, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -596,7 +597,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE; // OS Context always remains valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS; // Items that always remain valid
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
@@ -1071,6 +1072,39 @@ static VOID PhpUpdateProcessNodeAppId(
 
 Done:
         ProcessNode->ValidMask |= PHPN_APPID;
+    }
+}
+
+static VOID PhpUpdateProcessNodeDpiAwareness(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *getProcessDpiAwarenessInternal)(
+        __in HANDLE hprocess,
+        __out ULONG *value
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        getProcessDpiAwarenessInternal = PhGetProcAddress(L"user32.dll", "GetProcessDpiAwarenessInternal");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!getProcessDpiAwarenessInternal)
+        return;
+
+    if (!(ProcessNode->ValidMask & PHPN_DPIAWARENESS))
+    {
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
+            ULONG dpiAwareness;
+
+            if (getProcessDpiAwarenessInternal(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
+                ProcessNode->DpiAwareness = dpiAwareness + 1;
+        }
+
+        ProcessNode->ValidMask |= PHPN_DPIAWARENESS;
     }
 }
 
@@ -1740,6 +1774,14 @@ BEGIN_SORT_FUNCTION(AppId)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(DpiAwareness)
+{
+    PhpUpdateProcessNodeDpiAwareness(node1);
+    PhpUpdateProcessNodeDpiAwareness(node2);
+    sortResult = uintcmp(node1->DpiAwareness, node2->DpiAwareness);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1853,7 +1895,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(PrivateBytesDelta),
                         SORT_FUNCTION(Subsystem),
                         SORT_FUNCTION(PackageName),
-                        SORT_FUNCTION(AppId)
+                        SORT_FUNCTION(AppId),
+                        SORT_FUNCTION(DpiAwareness)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2519,6 +2562,24 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_APPID:
                 PhpUpdateProcessNodeAppId(node);
                 getCellText->Text = PhGetStringRef(node->AppIdText);
+                break;
+            case PHPRTLC_DPIAWARENESS:
+                PhpUpdateProcessNodeDpiAwareness(node);
+
+                switch (node->DpiAwareness)
+                {
+                case 0:
+                    break;
+                case 1:
+                    PhInitializeStringRef(&getCellText->Text, L"Unaware");
+                    break;
+                case 2:
+                    PhInitializeStringRef(&getCellText->Text, L"System Aware");
+                    break;
+                case 3:
+                    PhInitializeStringRef(&getCellText->Text, L"Per-Monitor Aware");
+                    break;
+                }
                 break;
             default:
                 return FALSE;
