@@ -745,16 +745,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 if (processItem->VerifySignerName)
                 {
-                    RECT windowRect;
-
                     SetDlgItemText(hwndDlg, IDC_COMPANYNAME_LINK,
                         PhaFormatString(L"<a>(Verified) %s</a>", processItem->VerifySignerName->Buffer)->Buffer);
-
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_COMPANYNAME), &windowRect);
-                    MapWindowPoints(NULL, hwndDlg, (POINT *)&windowRect, 2);
-                    MoveWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), windowRect.left + 2, windowRect.top,
-                        windowRect.right - windowRect.left - 2, windowRect.bottom - windowRect.top, FALSE);
-
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME), SW_HIDE);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), SW_SHOW);
                 }
@@ -766,6 +758,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PhGetStringOrEmpty(processItem->VersionInfo.CompanyName)
                         )->Buffer);
                 }
+            }
+            else if (processItem->VerifyResult != VrUnknown)
+            {
+                SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
+                    PhaConcatStrings2(
+                    L"(UNVERIFIED) ",
+                    PhGetStringOrEmpty(processItem->VersionInfo.CompanyName)
+                    )->Buffer);
             }
             else
             {
@@ -1025,6 +1025,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VERSION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
