@@ -664,8 +664,8 @@ INT NTAPI PhpVerifyCacheCompareFunction(
     return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
 }
 
-VERIFY_RESULT PhpVerifyFileWithAdditionalCatalog(
-    __in PWSTR FileName,
+VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
+    __in PPH_VERIFY_FILE_INFO Information,
     __in_opt PWSTR PackageFullName,
     __out_opt PPH_STRING *SignerName
     )
@@ -673,14 +673,9 @@ VERIFY_RESULT PhpVerifyFileWithAdditionalCatalog(
     static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
 
     VERIFY_RESULT result;
-    PH_VERIFY_FILE_INFO info;
     PPH_STRING additionalCatalogFileName = NULL;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
-
-    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-    info.FileName = FileName;
-    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
 
     if (PackageFullName)
     {
@@ -701,11 +696,11 @@ VERIFY_RESULT PhpVerifyFileWithAdditionalCatalog(
 
     if (additionalCatalogFileName)
     {
-        info.NumberOfCatalogFileNames = 1;
-        info.CatalogFileNames = &additionalCatalogFileName->Buffer;
+        Information->NumberOfCatalogFileNames = 1;
+        Information->CatalogFileNames = &additionalCatalogFileName->Buffer;
     }
 
-    if (!NT_SUCCESS(PhVerifyFileEx(&info, &result, &signatures, &numberOfSignatures)))
+    if (!NT_SUCCESS(PhVerifyFileEx(Information, &result, &signatures, &numberOfSignatures)))
     {
         result = VrNoSignature;
         signatures = NULL;
@@ -781,7 +776,12 @@ VERIFY_RESULT PhVerifyFileCached(
 
         if (!CachedOnly)
         {
-            result = PhpVerifyFileWithAdditionalCatalog(FileName->Buffer, PackageFullName, &signerName);
+            PH_VERIFY_FILE_INFO info;
+
+            memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+            info.FileName = FileName->Buffer;
+            info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+            result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
         }
         else
         {
@@ -829,7 +829,12 @@ VERIFY_RESULT PhVerifyFileCached(
         return result;
     }
 #else
-    return PhpVerifyFileWithAdditionalCatalog(FileName->Buffer, PackageFullName, SignerName);
+    PH_VERIFY_FILE_INFO info;
+
+    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+    info.FileName = FileName->Buffer;
+    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+    return PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, SignerName);
 #endif
 }
 
