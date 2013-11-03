@@ -28,11 +28,26 @@
 #include "mxml/mxml.h"
 #include <winsta.h>
 #include <dbghelp.h>
+#include <appmodel.h>
 
 typedef LONG (WINAPI *_GetPackageFullName)(
     __in HANDLE hProcess,
     __inout UINT32 *packageFullNameLength,
     __out_opt PWSTR packageFullName
+    );
+
+typedef LONG (WINAPI *_GetPackagePath)(
+    __in PACKAGE_ID *packageId,
+    __reserved UINT32 reserved,
+    __inout UINT32 *pathLength,
+    __out_opt PWSTR path
+    );
+
+typedef LONG (WINAPI *_PackageIdFromFullName)(
+    __in PCWSTR packageFullName,
+    __in UINT32 flags,
+    __inout UINT32 *bufferLength,
+    __out_opt BYTE *buffer
     );
 
 GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
@@ -200,7 +215,6 @@ PPH_STRING PhGetProcessPackageFullName(
 
     if (!getPackageFullName)
         getPackageFullName = PhGetProcAddress(L"kernel32.dll", "GetPackageFullName");
-
     if (!getPackageFullName)
         return NULL;
 
@@ -225,6 +239,85 @@ PPH_STRING PhGetProcessPackageFullName(
     else
     {
         PhDereferenceObject(name);
+        return NULL;
+    }
+}
+
+PACKAGE_ID *PhPackageIdFromFullName(
+    __in PWSTR PackageFullName
+    )
+{
+    static _PackageIdFromFullName packageIdFromFullName = NULL;
+
+    LONG result;
+    PVOID packageIdBuffer;
+    ULONG packageIdBufferSize;
+
+    if (!packageIdFromFullName)
+        packageIdFromFullName = PhGetProcAddress(L"kernel32.dll", "PackageIdFromFullName");
+    if (!packageIdFromFullName)
+        return NULL;
+
+    packageIdBufferSize = 100;
+    packageIdBuffer = PhAllocate(packageIdBufferSize);
+
+    result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
+
+    if (result == ERROR_INSUFFICIENT_BUFFER)
+    {
+        PhFree(packageIdBuffer);
+        packageIdBuffer = PhAllocate(packageIdBufferSize);
+
+        result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
+    }
+
+    if (result == ERROR_SUCCESS)
+    {
+        return packageIdBuffer;
+    }
+    else
+    {
+        PhFree(packageIdBuffer);
+        return NULL;
+    }
+}
+
+PPH_STRING PhGetPackagePath(
+    __in PACKAGE_ID *PackageId
+    )
+{
+    static _GetPackagePath getPackagePath = NULL;
+
+    LONG result;
+    PPH_STRING path;
+    ULONG pathLength;
+
+    if (!getPackagePath)
+        getPackagePath = PhGetProcAddress(L"kernel32.dll", "GetPackagePath");
+    if (!getPackagePath)
+        return NULL;
+
+    pathLength = 101;
+    path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
+
+    result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
+
+    if (result == ERROR_INSUFFICIENT_BUFFER)
+    {
+        PhDereferenceObject(path);
+        path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
+
+        result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
+    }
+
+    if (result == ERROR_SUCCESS)
+    {
+        PhTrimToNullTerminatorString(path);
+        return path;
+    }
+    else
+    {
+        PhDereferenceObject(path);
         return NULL;
     }
 }
