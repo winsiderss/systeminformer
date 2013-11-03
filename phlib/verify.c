@@ -393,10 +393,9 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         }
 
         PhFree(fileHashTag);
+        PhFree(fileHash);
+        CryptCATAdminReleaseContext(catAdminHandle, 0);
     }
-
-    PhFree(fileHash);
-    CryptCATAdminReleaseContext(catAdminHandle, 0);
 
     return verifyResult;
 }
