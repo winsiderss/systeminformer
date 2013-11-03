@@ -188,8 +188,9 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_SUBSYSTEM 71
 #define PHPRTLC_PACKAGENAME 72
 #define PHPRTLC_APPID 73
+#define PHPRTLC_DPIAWARENESS 74
 
-#define PHPRTLC_MAXIMUM 74
+#define PHPRTLC_MAXIMUM 75
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -202,6 +203,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPN_QUOTALIMITS 0x80
 #define PHPN_IMAGE 0x100
 #define PHPN_APPID 0x200
+#define PHPN_DPIAWARENESS 0x400
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -257,6 +259,8 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING AppIdText;
     // Cycles (Vista only)
     PH_UINT64_DELTA CyclesDelta;
+    // DPI Awareness
+    ULONG DpiAwareness;
 
     PPH_STRING TooltipText;
 
