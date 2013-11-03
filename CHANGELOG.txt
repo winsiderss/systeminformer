@@ -2,6 +2,7 @@ Process Hacker
 
 2.33
  * NEW/IMPROVED:
+   * View digital signature information from process properties
    * Signatures for Windows 8 apps are now detected
    * Updated DotNetTools plugin:
      * Improved .NET assembly enumeration timeout handling

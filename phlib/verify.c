@@ -152,6 +152,41 @@ BOOLEAN PhpGetSignaturesFromStateData(
     return TRUE;
 }
 
+VOID PhpViewSignerInfo(
+    __in PPH_VERIFY_FILE_INFO Information,
+    __in HANDLE StateData
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static _CryptUIDlgViewSignerInfo cryptUIDlgViewSignerInfo;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HMODULE cryptui = LoadLibrary(L"cryptui.dll");
+
+        cryptUIDlgViewSignerInfo = (PVOID)GetProcAddress(cryptui, "CryptUIDlgViewSignerInfoW");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (cryptUIDlgViewSignerInfo)
+    {
+        CRYPTUI_VIEWSIGNERINFO_STRUCT viewSignerInfo = { sizeof(CRYPTUI_VIEWSIGNERINFO_STRUCT) };
+        PCRYPT_PROVIDER_DATA provData;
+        PCRYPT_PROVIDER_SGNR sgnr;
+
+        if (!(provData = WTHelperProvDataFromStateData_I(StateData)))
+            return;
+        if (!(sgnr = WTHelperGetProvSignerFromChain_I(provData, 0, FALSE, 0)))
+            return;
+
+        viewSignerInfo.hwndParent = Information->hWnd;
+        viewSignerInfo.pSignerInfo = sgnr->psSigner;
+        viewSignerInfo.hMsg = provData->hMsg;
+        viewSignerInfo.pszOID = szOID_PKIX_KP_CODE_SIGNING;
+        cryptUIDlgViewSignerInfo(&viewSignerInfo);
+    }
+}
+
 VERIFY_RESULT PhpVerifyFile(
     __in PPH_VERIFY_FILE_INFO Information,
     __in HANDLE FileHandle,
@@ -189,6 +224,9 @@ VERIFY_RESULT PhpVerifyFile(
 
     status = WinVerifyTrust_I(NULL, ActionId, &trustData);
     PhpGetSignaturesFromStateData(trustData.hWVTStateData, Signatures, NumberOfSignatures);
+
+    if (status == 0 && (Information->Flags & PH_VERIFY_VIEW_PROPERTIES))
+        PhpViewSignerInfo(Information, trustData.hWVTStateData);
 
     // Close the state data.
     trustData.dwStateAction = WTD_STATEACTION_CLOSE;
