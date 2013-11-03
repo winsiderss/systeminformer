@@ -55,6 +55,7 @@ PPH_OBJECT_TYPE PhSymbolProviderType;
 
 static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
 DECLSPEC_SELECTANY PH_CALLBACK_DECLARE(PhSymInitCallback);
+PVOID PhSymPreferredDbgHelpBase;
 
 static HANDLE PhNextFakeHandle = (HANDLE)0;
 static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
@@ -116,7 +117,11 @@ VOID PhSymbolProviderDynamicImport(
     HMODULE dbghelpHandle;
     HMODULE symsrvHandle;
 
-    dbghelpHandle = GetModuleHandle(L"dbghelp.dll");
+    if (PhSymPreferredDbgHelpBase)
+        dbghelpHandle = PhSymPreferredDbgHelpBase;
+    else
+        dbghelpHandle = GetModuleHandle(L"dbghelp.dll");
+
     symsrvHandle = GetModuleHandle(L"symsrv.dll");
 
     SymInitialize_I = (PVOID)GetProcAddress(dbghelpHandle, "SymInitialize");

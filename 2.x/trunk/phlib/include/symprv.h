@@ -204,6 +204,7 @@ PhWriteMiniDumpProcess(
 
 #ifndef _PH_SYMPRV_PRIVATE
 extern PH_CALLBACK PhSymInitCallback;
+extern PVOID PhSymPreferredDbgHelpBase;
 #endif
 
 #endif
