@@ -1,9 +1,6 @@
 #ifndef _PH_VERIFYP_H
 #define _PH_VERIFYP_H
 
-#include <wintrust.h>
-#include <softpub.h>
-
 typedef struct _CATALOG_INFO
 {
     DWORD cbStruct;
@@ -87,6 +84,14 @@ typedef DWORD (WINAPI *_CertNameToStr)(
     DWORD dwStrType,
     LPTSTR psz,
     DWORD csz
+    );
+
+typedef PCCERT_CONTEXT (WINAPI *_CertDuplicateCertificateContext)(
+    __in PCCERT_CONTEXT pCertContext
+    );
+
+typedef BOOL (WINAPI *_CertFreeCertificateContext)(
+    __in PCCERT_CONTEXT pCertContext
     );
 
 #endif

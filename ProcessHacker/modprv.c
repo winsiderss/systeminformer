@@ -2,7 +2,7 @@
  * Process Hacker -
  *   module provider
  *
- * Copyright (C) 2009-2011 wj32
+ * Copyright (C) 2009-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -108,6 +108,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     moduleProvider->ProcessId = ProcessId;
     moduleProvider->ProcessHandle = NULL;
+    moduleProvider->PackageFullName = NULL;
 
     // It doesn't matter if we can't get a process handle.
 
@@ -128,6 +129,9 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
                 );
         }
     }
+
+    if (moduleProvider->ProcessHandle)
+        moduleProvider->PackageFullName = PhGetProcessPackageFullName(moduleProvider->ProcessHandle);
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
 
@@ -170,6 +174,7 @@ VOID PhpModuleProviderDeleteProcedure(
         }
     }
 
+    if (moduleProvider->PackageFullName) PhDereferenceObject(moduleProvider->PackageFullName);
     if (moduleProvider->ProcessHandle) NtClose(moduleProvider->ProcessHandle);
 }
 
@@ -299,6 +304,7 @@ NTSTATUS PhpModuleQueryWorker(
 
     data->VerifyResult = PhVerifyFileCached(
         data->ModuleItem->FileName,
+        PhGetString(data->ModuleProvider->PackageFullName),
         &data->VerifySignerName,
         FALSE
         );
@@ -525,7 +531,7 @@ VOID PhModuleProviderUpdate(
             {
                 // See if the file has already been verified; if not, queue for verification.
 
-                moduleItem->VerifyResult = PhVerifyFileCached(moduleItem->FileName, &moduleItem->VerifySignerName, TRUE);
+                moduleItem->VerifyResult = PhVerifyFileCached(moduleItem->FileName, NULL, &moduleItem->VerifySignerName, TRUE);
 
                 if (moduleItem->VerifyResult == VrUnknown)
                     PhpQueueModuleQuery(moduleProvider, moduleItem);
