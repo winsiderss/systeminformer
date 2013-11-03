@@ -308,6 +308,8 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     )
 {
     VERIFY_RESULT verifyResult = VrNoSignature;
+    PCERT_CONTEXT *signatures;
+    ULONG numberOfSignatures;
     WINTRUST_DATA trustData = { 0 };
     WINTRUST_CATALOG_INFO catalogInfo = { 0 };
     LARGE_INTEGER fileSize;
@@ -324,6 +326,9 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 
     if (!NT_SUCCESS(PhGetFileSize(FileHandle, &fileSize)))
         return VrNoSignature;
+
+    signatures = NULL;
+    numberOfSignatures = 0;
 
     if (Information->FileSizeLimitForHash != -1)
     {
@@ -369,7 +374,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
                 catalogInfo.pcwszMemberTag = fileHashTag;
                 catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, Signatures, NumberOfSignatures);
+                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &signatures, &numberOfSignatures);
             }
 
             CryptCATAdminReleaseCatalogContext(catAdminHandle, catInfoHandle, 0);
@@ -380,12 +385,14 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 
             for (i = 0; i < Information->NumberOfCatalogFileNames; i++)
             {
+                PhFreeVerifySignatures(signatures, numberOfSignatures);
+
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
                 catalogInfo.pcwszMemberTag = fileHashTag;
                 catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, Signatures, NumberOfSignatures);
+                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, &signatures, &numberOfSignatures);
 
                 if (verifyResult == VrTrusted)
                     break;
@@ -396,6 +403,9 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         PhFree(fileHash);
         CryptCATAdminReleaseContext(catAdminHandle, 0);
     }
+
+    *Signatures = signatures;
+    *NumberOfSignatures = numberOfSignatures;
 
     return verifyResult;
 }
