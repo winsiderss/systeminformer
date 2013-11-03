@@ -28,6 +28,7 @@
 #include <emenu.h>
 #include <phplug.h>
 #include <extmgri.h>
+#include <verify.h>
 #include <windowsx.h>
 
 #define SET_BUTTON_BITMAP(Id, Bitmap) \
@@ -744,8 +745,18 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 if (processItem->VerifySignerName)
                 {
-                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
-                        PhaConcatStrings2(L"(Verified) ", processItem->VerifySignerName->Buffer)->Buffer);
+                    RECT windowRect;
+
+                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME_LINK,
+                        PhaFormatString(L"<a>(Verified) %s</a>", processItem->VerifySignerName->Buffer)->Buffer);
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_COMPANYNAME), &windowRect);
+                    MapWindowPoints(NULL, hwndDlg, (POINT *)&windowRect, 2);
+                    MoveWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), windowRect.left + 2, windowRect.top,
+                        windowRect.right - windowRect.left - 2, windowRect.bottom - windowRect.top, FALSE);
+
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME), SW_HIDE);
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), SW_SHOW);
                 }
                 else
                 {
@@ -1116,6 +1127,40 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             numberOfAccessEntries
                             );
                         PhFree(accessEntries);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case NM_CLICK:
+                {
+                    switch (header->idFrom)
+                    {
+                    case IDC_COMPANYNAME_LINK:
+                        {
+                            if (processItem->FileName)
+                            {
+                                PH_VERIFY_FILE_INFO info;
+
+                                memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+                                info.FileName = processItem->FileName->Buffer;
+                                info.Flags = PH_VERIFY_VIEW_PROPERTIES;
+                                info.hWnd = hwndDlg;
+                                PhVerifyFileWithAdditionalCatalog(
+                                    &info,
+                                    PhGetString(processItem->PackageFullName),
+                                    NULL
+                                    );
+                            }
+                        }
+                        break;
                     }
                 }
                 break;

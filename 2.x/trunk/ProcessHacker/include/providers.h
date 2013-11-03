@@ -283,6 +283,14 @@ VOID PhEnumProcessItems(
     __out PULONG NumberOfProcessItems
     );
 
+typedef struct _PH_VERIFY_FILE_INFO *PPH_VERIFY_FILE_INFO;
+
+VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
+    __in PPH_VERIFY_FILE_INFO Information,
+    __in_opt PWSTR PackageFullName,
+    __out_opt PPH_STRING *SignerName
+    );
+
 VERIFY_RESULT PhVerifyFileCached(
     __in PPH_STRING FileName,
     __in_opt PWSTR PackageFullName,

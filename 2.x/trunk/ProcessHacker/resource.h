@@ -423,6 +423,7 @@
 #define IDC_CUSTOM1                     1276
 #define IDC_SYSLINK1                    1279
 #define IDC_OPENURL                     1279
+#define IDC_COMPANYNAME_LINK            1279
 #define IDC_SAMPLECOUNT                 1280
 #define IDC_SAMPLECOUNT_L               1281
 #define IDC_SAMPLECOUNTLABEL            1281
