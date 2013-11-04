@@ -181,19 +181,6 @@ static VOID RebarLoadSettings(
             NULL
             );
 
-        // Create the SearchBox window.
-        TextboxHandle = CreateWindowEx(
-            WS_EX_CLIENTEDGE,
-            WC_EDIT,
-            NULL,
-            WS_CHILD | WS_VISIBLE | ES_LEFT,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            ReBarHandle,
-            (HMENU)IDC_MENU_REBAR_SEARCH,
-            (HINSTANCE)PluginInstance->DllBase,
-            NULL
-            );
-
         // Set the toolbar info with no imagelist.
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
 
@@ -206,25 +193,42 @@ static VOID RebarLoadSettings(
         // Add the buttons to the toolbar.
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
 
-        // Insert a paint region into the edit control NC window area
-        InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
-       // Reset the client area margins.
-        SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
-        // Set initial text
-        SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
-
         // Enable theming:
         //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
         //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
         // Inset the toolbar into the rebar control
         RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
-        // Insert the edit control into the rebar control
-        RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
 
-        ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
-        ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
-        NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
+        if (EnableSearchBox && !TextboxHandle)
+        {
+            // Create the SearchBox window.
+            TextboxHandle = CreateWindowEx(
+                WS_EX_CLIENTEDGE,
+                WC_EDIT,
+                NULL,
+                WS_CHILD | WS_VISIBLE | ES_LEFT,
+                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                ReBarHandle,
+                (HMENU)IDC_MENU_REBAR_SEARCH,
+                (HINSTANCE)PluginInstance->DllBase,
+                NULL
+                );
+
+            // Insert a paint region into the edit control NC window area
+            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+            // Reset the client area margins.
+            SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
+            // Set initial text
+            SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
+
+            // Insert the edit control into the rebar control
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
+
+            ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
+            ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
+            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
+        }
     }
 
     // Load the Statusbar control.
@@ -254,6 +258,24 @@ static VOID RebarLoadSettings(
     {
         if (ReBarHandle && IsWindowVisible(ReBarHandle))
             ShowWindow(ReBarHandle, SW_HIDE);
+    }
+
+    if (EnableSearchBox)
+    {
+        if (TextboxHandle && !IsWindowVisible(TextboxHandle))
+            ShowWindow(TextboxHandle, SW_SHOW);
+    }
+    else
+    {
+        if (TextboxHandle)
+        {
+            // Clear search text and reset search filters.
+            SetFocus(TextboxHandle);
+            Static_SetText(TextboxHandle, L"");
+
+            if (IsWindowVisible(TextboxHandle))
+                ShowWindow(TextboxHandle, SW_HIDE);
+        }
     }
 
     if (EnableStatusBar)
