@@ -2,7 +2,7 @@
  * Process Hacker -
  *   process properties
  *
- * Copyright (C) 2009-2012 wj32
+ * Copyright (C) 2009-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -4798,7 +4798,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                         else if (PhEqualString2(handleItem->TypeName, L"Key", TRUE))
                         {
                             if (handleItem->BestObjectName)
-                                PhShellOpenKey(hwndDlg, handleItem->BestObjectName);
+                                PhShellOpenKey2(hwndDlg, handleItem->BestObjectName);
                             else
                                 PhShowError(hwndDlg, L"Unable to open key because the object is unnamed.");
                         }

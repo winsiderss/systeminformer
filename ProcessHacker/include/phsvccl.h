@@ -12,10 +12,6 @@ VOID PhSvcDisconnectFromServer(
     VOID
     );
 
-NTSTATUS PhSvcCallClose(
-    __in HANDLE Handle
-    );
-
 NTSTATUS PhSvcCallExecuteRunAsCommand(
     __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
@@ -91,6 +87,20 @@ NTSTATUS PhSvcCallInvokeRunAsService(
 
 NTSTATUS PhSvcCallIssueMemoryListCommand(
     __in SYSTEM_MEMORY_LIST_COMMAND Command
+    );
+
+NTSTATUS PhSvcCallPostMessage(
+    __in_opt HWND hWnd,
+    __in UINT Msg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+NTSTATUS PhSvcCallSendMessage(
+    __in_opt HWND hWnd,
+    __in UINT Msg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
     );
 
 #endif

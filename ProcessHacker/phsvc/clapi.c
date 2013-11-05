@@ -2,7 +2,7 @@
  * Process Hacker -
  *   phsvc client
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -215,21 +215,6 @@ NTSTATUS PhSvcpCallServer(
         return status;
 
     return Message->ReturnStatus;
-}
-
-NTSTATUS PhSvcCallClose(
-    __in HANDLE Handle
-    )
-{
-    PHSVC_API_MSG m;
-
-    if (!PhSvcClPortHandle)
-        return STATUS_PORT_DISCONNECTED;
-
-    m.ApiNumber = PhSvcCloseApiNumber;
-    m.u.Close.i.Handle = Handle;
-
-    return PhSvcpCallServer(&m);
 }
 
 NTSTATUS PhSvcpCallExecuteRunAsCommand(
@@ -749,6 +734,48 @@ NTSTATUS PhSvcCallIssueMemoryListCommand(
 
     m.ApiNumber = PhSvcIssueMemoryListCommandApiNumber;
     m.u.IssueMemoryListCommand.i.Command = Command;
+
+    return PhSvcpCallServer(&m);
+}
+
+NTSTATUS PhSvcCallPostMessage(
+    __in_opt HWND hWnd,
+    __in UINT Msg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PHSVC_API_MSG m;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcPostMessageApiNumber;
+    m.u.PostMessage.i.hWnd = hWnd;
+    m.u.PostMessage.i.Msg = Msg;
+    m.u.PostMessage.i.wParam = wParam;
+    m.u.PostMessage.i.lParam = lParam;
+
+    return PhSvcpCallServer(&m);
+}
+
+NTSTATUS PhSvcCallSendMessage(
+    __in_opt HWND hWnd,
+    __in UINT Msg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PHSVC_API_MSG m;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcSendMessageApiNumber;
+    m.u.PostMessage.i.hWnd = hWnd;
+    m.u.PostMessage.i.Msg = Msg;
+    m.u.PostMessage.i.wParam = wParam;
+    m.u.PostMessage.i.lParam = lParam;
 
     return PhSvcpCallServer(&m);
 }

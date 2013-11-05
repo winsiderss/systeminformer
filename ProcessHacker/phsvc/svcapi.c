@@ -2,7 +2,7 @@
  * Process Hacker -
  *   server API
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -36,7 +36,7 @@ typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
 
 PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
 {
-    PhSvcApiClose,
+    PhSvcApiDefault,
     PhSvcApiExecuteRunAsCommand,
     PhSvcApiUnloadDriver,
     PhSvcApiControlProcess,
@@ -48,7 +48,9 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiControlThread,
     PhSvcApiAddAccountRight,
     PhSvcApiInvokeRunAsService,
-    PhSvcApiIssueMemoryListCommand
+    PhSvcApiIssueMemoryListCommand,
+    PhSvcApiPostMessage,
+    PhSvcApiSendMessage
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -211,12 +213,12 @@ NTSTATUS PhSvcCaptureSid(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhSvcApiClose(
+NTSTATUS PhSvcApiDefault(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
     )
 {
-    return PhSvcCloseHandle(Message->u.Close.i.Handle);
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS PhSvcpCaptureRunAsServiceParameters(
@@ -885,4 +887,44 @@ NTSTATUS PhSvcApiIssueMemoryListCommand(
         );
 
     return status;
+}
+
+NTSTATUS PhSvcApiPostMessage(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    if (PostMessage(
+        Message->u.PostMessage.i.hWnd,
+        Message->u.PostMessage.i.Msg,
+        Message->u.PostMessage.i.wParam,
+        Message->u.PostMessage.i.lParam
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
+}
+
+NTSTATUS PhSvcApiSendMessage(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    if (SendMessage(
+        Message->u.PostMessage.i.hWnd,
+        Message->u.PostMessage.i.Msg,
+        Message->u.PostMessage.i.wParam,
+        Message->u.PostMessage.i.lParam
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
 }
