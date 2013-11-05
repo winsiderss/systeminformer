@@ -5,7 +5,7 @@
 
 typedef enum _PHSVC_API_NUMBER
 {
-    PhSvcCloseApiNumber = 1,
+    PhSvcReserved1ApiNumber = 1,
     PhSvcExecuteRunAsCommandApiNumber = 2,
     PhSvcUnloadDriverApiNumber = 3,
     PhSvcControlProcessApiNumber = 4,
@@ -18,6 +18,8 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcAddAccountRightApiNumber = 11,
     PhSvcInvokeRunAsServiceApiNumber = 12,
     PhSvcIssueMemoryListCommandApiNumber = 13,
+    PhSvcPostMessageApiNumber = 14,
+    PhSvcSendMessageApiNumber = 15,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -25,14 +27,6 @@ typedef struct _PHSVC_API_CONNECTINFO
 {
     HANDLE ServerProcessId;
 } PHSVC_API_CONNECTINFO, *PPHSVC_API_CONNECTINFO;
-
-typedef union _PHSVC_API_CLOSE
-{
-    struct
-    {
-        HANDLE Handle;
-    } i;
-} PHSVC_API_CLOSE, *PPHSVC_API_CLOSE;
 
 typedef union _PHSVC_API_EXECUTERUNASCOMMAND
 {
@@ -200,6 +194,17 @@ typedef union _PHSVC_API_ISSUEMEMORYLISTCOMMAND
     } i;
 } PHSVC_API_ISSUEMEMORYLISTCOMMAND, *PPHSVC_API_ISSUEMEMORYLISTCOMMAND;
 
+typedef union _PHSVC_API_POSTMESSAGE
+{
+    struct
+    {
+        HWND hWnd;
+        UINT Msg;
+        WPARAM wParam;
+        LPARAM lParam;
+    } i;
+} PHSVC_API_POSTMESSAGE, *PPHSVC_API_POSTMESSAGE;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
@@ -213,7 +218,6 @@ typedef struct _PHSVC_API_MSG
 
             union
             {
-                PHSVC_API_CLOSE Close;
                 PHSVC_API_EXECUTERUNASCOMMAND ExecuteRunAsCommand;
                 PHSVC_API_UNLOADDRIVER UnloadDriver;
                 PHSVC_API_CONTROLPROCESS ControlProcess;
@@ -225,6 +229,7 @@ typedef struct _PHSVC_API_MSG
                 PHSVC_API_CONTROLTHREAD ControlThread;
                 PHSVC_API_ADDACCOUNTRIGHT AddAccountRight;
                 PHSVC_API_ISSUEMEMORYLISTCOMMAND IssueMemoryListCommand;
+                PHSVC_API_POSTMESSAGE PostMessage;
             } u;
         };
     };

@@ -2593,6 +2593,11 @@ VOID PhShellProperties(
     __in PWSTR FileName
     );
 
+PPH_STRING PhExpandKeyName(
+    __in PPH_STRING KeyName,
+    __in BOOLEAN Computer
+    );
+
 PHLIBAPI
 VOID PhShellOpenKey(
     __in HWND hWnd,

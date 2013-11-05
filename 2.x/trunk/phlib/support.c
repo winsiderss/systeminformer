@@ -2,7 +2,7 @@
  * Process Hacker -
  *   general support functions
  *
- * Copyright (C) 2009-2012 wj32
+ * Copyright (C) 2009-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -3345,6 +3345,57 @@ VOID PhShellProperties(
 }
 
 /**
+ * Expands registry name abbreviations.
+ *
+ * \param KeyName The key name.
+ * \param Computer TRUE to prepend "Computer" or "My Computer" for use with
+ * the Registry Editor.
+ */
+PPH_STRING PhExpandKeyName(
+    __in PPH_STRING KeyName,
+    __in BOOLEAN Computer
+    )
+{
+    PPH_STRING keyName;
+    PPH_STRING tempString;
+
+    if (PhStartsWithString2(KeyName, L"HKCU", TRUE))
+    {
+        keyName = PhConcatStrings2(L"HKEY_CURRENT_USER", &KeyName->Buffer[4]);
+    }
+    else if (PhStartsWithString2(KeyName, L"HKU", TRUE))
+    {
+        keyName = PhConcatStrings2(L"HKEY_USERS", &KeyName->Buffer[3]);
+    }
+    else if (PhStartsWithString2(KeyName, L"HKCR", TRUE))
+    {
+        keyName = PhConcatStrings2(L"HKEY_CLASSES_ROOT", &KeyName->Buffer[4]);
+    }
+    else if (PhStartsWithString2(KeyName, L"HKLM", TRUE))
+    {
+        keyName = PhConcatStrings2(L"HKEY_LOCAL_MACHINE", &KeyName->Buffer[4]);
+    }
+    else
+    {
+        keyName = KeyName;
+        PhReferenceObject(KeyName);
+    }
+
+    if (Computer)
+    {
+        if (WindowsVersion >= WINDOWS_VISTA)
+            tempString = PhConcatStrings2(L"Computer\\", keyName->Buffer);
+        else
+            tempString = PhConcatStrings2(L"My Computer\\", keyName->Buffer);
+
+        PhDereferenceObject(keyName);
+        keyName = tempString;
+    }
+
+    return keyName;
+}
+
+/**
  * Opens a key in the Registry Editor.
  *
  * \param hWnd A handle to the parent window.
@@ -3355,14 +3406,12 @@ VOID PhShellOpenKey(
     __in PPH_STRING KeyName
     )
 {
+    static PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
+
     PPH_STRING lastKey;
-    PPH_STRING tempString;
     HANDLE regeditKeyHandle;
-    PH_STRINGREF regeditKeyName;
     UNICODE_STRING valueName;
     PPH_STRING regeditFileName;
-
-    PhInitializeStringRef(&regeditKeyName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
 
     if (!NT_SUCCESS(PhCreateKey(
         &regeditKeyHandle,
@@ -3375,42 +3424,11 @@ VOID PhShellOpenKey(
         )))
         return;
 
-    // Expand the abbreviations.
-    if (PhStartsWithString2(KeyName, L"HKCU", TRUE))
-    {
-        lastKey = PhConcatStrings2(L"HKEY_CURRENT_USER", &KeyName->Buffer[4]);
-    }
-    else if (PhStartsWithString2(KeyName, L"HKU", TRUE))
-    {
-        lastKey = PhConcatStrings2(L"HKEY_USERS", &KeyName->Buffer[3]);
-    }
-    else if (PhStartsWithString2(KeyName, L"HKCR", TRUE))
-    {
-        lastKey = PhConcatStrings2(L"HKEY_CLASSES_ROOT", &KeyName->Buffer[4]);
-    }
-    else if (PhStartsWithString2(KeyName, L"HKLM", TRUE))
-    {
-        lastKey = PhConcatStrings2(L"HKEY_LOCAL_MACHINE", &KeyName->Buffer[4]);
-    }
-    else
-    {
-        lastKey = KeyName;
-        PhReferenceObject(KeyName);
-    }
-
-    // Set the last opened key in regedit's configuration. Note that
-    // if we are on Vista, we need to prepend "Computer\".
-
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        tempString = PhConcatStrings2(L"Computer\\", lastKey->Buffer);
-        PhDereferenceObject(lastKey);
-        lastKey = tempString;
-    }
-
     RtlInitUnicodeString(&valueName, L"LastKey");
+    lastKey = PhExpandKeyName(KeyName, TRUE);
     NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + 2);
     PhDereferenceObject(lastKey);
+
     NtClose(regeditKeyHandle);
 
     // Start regedit.

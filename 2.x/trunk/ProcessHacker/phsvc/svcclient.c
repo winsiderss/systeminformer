@@ -2,7 +2,7 @@
  * Process Hacker -
  *   server client
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -56,16 +56,6 @@ PPHSVC_CLIENT PhSvcCreateClient(
     )
 {
     PPHSVC_CLIENT client;
-    PPH_HANDLE_TABLE handleTable;
-
-    __try
-    {
-        handleTable = PhCreateHandleTable();
-    }
-    __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_NO_MEMORY))
-    {
-        return NULL;
-    }
 
     if (!NT_SUCCESS(PhCreateObject(
         &client,
@@ -74,7 +64,6 @@ PPHSVC_CLIENT PhSvcCreateClient(
         PhSvcClientType
         )))
     {
-        PhDestroyHandleTable(handleTable);
         return NULL;
     }
 
@@ -82,8 +71,6 @@ PPHSVC_CLIENT PhSvcCreateClient(
 
     if (ClientId)
         client->ClientId = *ClientId;
-
-    client->HandleTable = handleTable;
 
     PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
     InsertTailList(&PhSvcClientListHead, &client->ListEntry);
@@ -102,8 +89,6 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
     PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
     RemoveEntryList(&client->ListEntry);
     PhReleaseQueuedLockExclusive(&PhSvcClientListLock);
-
-    PhDestroyHandleTable(client->HandleTable);
 
     if (client->PortHandle)
         NtClose(client->PortHandle);
@@ -188,83 +173,4 @@ VOID PhSvcDetachClient(
     PhDereferenceObject(threadContext->CurrentClient);
     threadContext->CurrentClient = threadContext->OldClient;
     threadContext->OldClient = NULL;
-}
-
-NTSTATUS PhSvcCreateHandle(
-    __out PHANDLE Handle,
-    __in PVOID Object,
-    __in ACCESS_MASK GrantedAccess
-    )
-{
-    PPHSVC_CLIENT client = PhSvcGetCurrentClient();
-    HANDLE handle;
-    PH_HANDLE_TABLE_ENTRY entry;
-
-    entry.Object = Object;
-    entry.GrantedAccess = GrantedAccess;
-
-    __try
-    {
-        handle = PhCreateHandle(client->HandleTable, &entry);
-    }
-    __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_NO_MEMORY))
-    {
-        return STATUS_NO_MEMORY;
-    }
-
-    if (!handle)
-        return STATUS_NO_MEMORY;
-
-    PhReferenceObject(Object);
-
-    *Handle = handle;
-
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS PhSvcCloseHandle(
-    __in HANDLE Handle
-    )
-{
-    PPHSVC_CLIENT client = PhSvcGetCurrentClient();
-    PPH_HANDLE_TABLE_ENTRY entry;
-
-    entry = PhLookupHandleTableEntry(client->HandleTable, Handle);
-
-    if (!entry)
-        return STATUS_INVALID_HANDLE;
-
-    PhDereferenceObject(entry->Object);
-    PhDestroyHandle(client->HandleTable, Handle, entry);
-
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS PhSvcReferenceObjectByHandle(
-    __in HANDLE Handle,
-    __in_opt PPH_OBJECT_TYPE ObjectType,
-    __in_opt ACCESS_MASK DesiredAccess,
-    __out PVOID *Object
-    )
-{
-    PPHSVC_CLIENT client = PhSvcGetCurrentClient();
-    PPH_HANDLE_TABLE_ENTRY entry;
-
-    entry = PhLookupHandleTableEntry(client->HandleTable, Handle);
-
-    if (!entry)
-        return STATUS_INVALID_HANDLE;
-
-    if (ObjectType && PhGetObjectType(entry->Object) != ObjectType)
-    {
-        PhUnlockHandleTableEntry(client->HandleTable, entry);
-        return STATUS_OBJECT_TYPE_MISMATCH;
-    }
-
-    PhReferenceObject(entry->Object);
-    *Object = entry->Object;
-
-    PhUnlockHandleTableEntry(client->HandleTable, entry);
-
-    return STATUS_SUCCESS;
 }

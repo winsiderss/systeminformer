@@ -25,6 +25,7 @@
 #include <cpysave.h>
 #include <phappres.h>
 #include <emenu.h>
+#include <phsvccl.h>
 #include "mxml/mxml.h"
 #include <winsta.h>
 #include <dbghelp.h>
@@ -1747,4 +1748,162 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     PhDeleteStringBuilder(&stringBuilder);
 
     return TRUE;
+}
+
+BOOLEAN PhpSelectFavoriteInRegedit(
+    __in HWND RegeditWindow,
+    __in PPH_STRINGREF FavoriteName,
+    __in BOOLEAN UsePhSvc
+    )
+{
+    HMENU menu;
+    HMENU favoritesMenu;
+    ULONG count;
+    ULONG i;
+    ULONG id = -1;
+
+    if (!(menu = GetMenu(RegeditWindow)))
+        return FALSE;
+
+    // Cause the Registry Editor to refresh the Favorites menu.
+    if (UsePhSvc)
+        PhSvcCallSendMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu);
+    else
+        SendMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu);
+
+    if (!(favoritesMenu = GetSubMenu(menu, 3)))
+        return FALSE;
+
+    // Find our entry.
+
+    count = GetMenuItemCount(favoritesMenu);
+
+    if (count == -1)
+        return FALSE;
+    if (count > 1000)
+        count = 1000;
+
+    for (i = 3; i < count; i++)
+    {
+        MENUITEMINFO info = { sizeof(MENUITEMINFO) };
+        WCHAR buffer[32];
+
+        info.fMask = MIIM_ID | MIIM_STRING;
+        info.dwTypeData = buffer;
+        info.cch = sizeof(buffer) / sizeof(WCHAR);
+        GetMenuItemInfo(favoritesMenu, i, TRUE, &info);
+
+        if (info.cch == FavoriteName->Length / 2)
+        {
+            PH_STRINGREF text;
+
+            text.Buffer = buffer;
+            text.Length = info.cch * 2;
+
+            if (PhEqualStringRef(&text, FavoriteName, TRUE))
+            {
+                id = info.wID;
+                break;
+            }
+        }
+    }
+
+    if (id == -1)
+        return FALSE;
+
+    // Activate our entry.
+    if (UsePhSvc)
+        PhSvcCallSendMessage(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0);
+    else
+        SendMessage(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0);
+
+    // "Close" the Favorites menu and restore normal status bar text.
+    if (UsePhSvc)
+        PhSvcCallPostMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(0, 0xffff), 0);
+    else
+        PostMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(0, 0xffff), 0);
+
+    // Bring regedit to the top.
+    if (IsIconic(RegeditWindow))
+    {
+        ShowWindow(RegeditWindow, SW_RESTORE);
+        SetForegroundWindow(RegeditWindow);
+    }
+    else
+    {
+        SetForegroundWindow(RegeditWindow);
+    }
+
+    return TRUE;
+}
+
+/**
+ * Opens a key in the Registry Editor. If the Registry Editor is already open,
+ * the specified key is selected in the Registry Editor.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param KeyName The key name to open.
+ */
+BOOLEAN PhShellOpenKey2(
+    __in HWND hWnd,
+    __in PPH_STRING KeyName
+    )
+{
+    static PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
+
+    BOOLEAN result = FALSE;
+    HWND regeditWindow;
+    HANDLE favoritesKeyHandle;
+    WCHAR favoriteName[32];
+    UNICODE_STRING valueName;
+    PH_STRINGREF valueNameSr;
+    PPH_STRING expandedKeyName;
+
+    regeditWindow = FindWindow(L"RegEdit_RegEdit", NULL);
+
+    if (!regeditWindow)
+    {
+        PhShellOpenKey(hWnd, KeyName);
+        return TRUE;
+    }
+
+    if (!PhElevated)
+    {
+        if (!PhUiConnectToPhSvc(hWnd, FALSE))
+            return FALSE;
+    }
+
+    // Create our entry in Favorites.
+
+    if (!NT_SUCCESS(PhCreateKey(
+        &favoritesKeyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &favoritesKeyName,
+        0,
+        0,
+        NULL
+        )))
+        goto CleanupExit;
+
+    memcpy(favoriteName, L"A_ProcessHacker", 15 * sizeof(WCHAR));
+    PhGenerateRandomAlphaString(&favoriteName[15], 16);
+    RtlInitUnicodeString(&valueName, favoriteName);
+    PhUnicodeStringToStringRef(&valueName, &valueNameSr);
+
+    expandedKeyName = PhExpandKeyName(KeyName, TRUE);
+    NtSetValueKey(favoritesKeyHandle, &valueName, 0, REG_SZ, expandedKeyName->Buffer, (ULONG)expandedKeyName->Length + 2);
+    PhDereferenceObject(expandedKeyName);
+
+    // Select our entry in regedit.
+    result = PhpSelectFavoriteInRegedit(regeditWindow, &valueNameSr, !PhElevated);
+
+    NtDeleteValueKey(favoritesKeyHandle, &valueName);
+    NtClose(favoritesKeyHandle);
+
+CleanupExit:
+    if (!PhElevated)
+        PhUiDisconnectFromPhSvc();
+
+    return result;
 }
