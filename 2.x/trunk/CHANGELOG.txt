@@ -5,6 +5,7 @@ Process Hacker
    * View digital signature information from process properties
    * Signatures for Windows 8 apps are now detected
    * Added DPI Awareness column
+   * Improved file, key, process and thread handle properties
    * Updated DotNetTools plugin:
      * Improved .NET assembly enumeration timeout handling
  * FIXED:

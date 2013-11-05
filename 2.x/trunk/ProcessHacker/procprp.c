@@ -4357,6 +4357,20 @@ static VOID NTAPI HandlesUpdatedHandler(
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, 0, 0);
 }
 
+VOID PhpReplaceTextEMenuItem(
+    __in PPH_EMENU_ITEM Item,
+    __in PWSTR NewText
+    )
+{
+    if ((Item->Flags & PH_EMENU_TEXT_OWNED) && Item->Text)
+    {
+        PhFree(Item->Text);
+        Item->Flags &= ~PH_EMENU_TEXT_OWNED;
+    }
+
+    Item->Text = NewText;
+}
+
 VOID PhpInitializeHandleMenu(
     __in PPH_EMENU Menu,
     __in HANDLE ProcessId,
@@ -4381,6 +4395,48 @@ VOID PhpInitializeHandleMenu(
 
         PhEnableEMenuItem(Menu, ID_HANDLE_CLOSE, TRUE);
         PhEnableEMenuItem(Menu, ID_HANDLE_COPY, TRUE);
+    }
+
+    if (NumberOfHandles == 1)
+    {
+        PPH_HANDLE_ITEM handle = Handles[0];
+        PPH_EMENU_ITEM item1 = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_OPENFILELOCATION);
+        PPH_EMENU_ITEM item2 = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_OBJECTPROPERTIES);
+
+        if (item1 && item2)
+        {
+            if (PhEqualString2(handle->TypeName, L"File", TRUE))
+            {
+                PhpReplaceTextEMenuItem(item2, L"File Properties");
+            }
+            else if (PhEqualString2(handle->TypeName, L"Key", TRUE))
+            {
+                PhpReplaceTextEMenuItem(item1, L"Open Key\tCtrl+Enter");
+                PhDestroyEMenuItem(item2);
+            }
+            else if (PhEqualString2(handle->TypeName, L"Process", TRUE))
+            {
+                PhpReplaceTextEMenuItem(item1, L"Process Properties\tCtrl+Enter");
+                PhDestroyEMenuItem(item2);
+            }
+            else if (PhEqualString2(handle->TypeName, L"Thread", TRUE))
+            {
+                PhpReplaceTextEMenuItem(item1, L"Go to Thread\tCtrl+Enter");
+                PhDestroyEMenuItem(item2);
+            }
+            else
+            {
+                PhDestroyEMenuItem(item1);
+                PhDestroyEMenuItem(item2);
+            }
+        }
+    }
+    else
+    {
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_OPENFILELOCATION))
+            PhDestroyEMenuItem(item);
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_OBJECTPROPERTIES))
+            PhDestroyEMenuItem(item);
     }
 
     // Remove irrelevant menu items.
@@ -4476,6 +4532,45 @@ VOID PhShowHandleContextMenu(
     }
 
     PhFree(handles);
+}
+
+static NTSTATUS PhpDuplicateHandleFromProcessItem(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in PPH_HANDLE_ITEM HandleItem
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_DUP_HANDLE,
+        ProcessItem->ProcessId
+        )))
+        return status;
+
+    status = PhDuplicateObject(
+        processHandle,
+        HandleItem->Handle,
+        NtCurrentProcess(),
+        Handle,
+        DesiredAccess,
+        0,
+        0
+        );
+    NtClose(processHandle);
+
+    return status;
+}
+
+static VOID PhpShowProcessPropContext(
+    __in PVOID Parameter
+    )
+{
+    PhShowProcessProperties(Parameter);
+    PhDereferenceObject(Parameter);
 }
 
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
@@ -4684,6 +4779,183 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                         PhReferenceObject(handleItem);
                         PhUiSetAttributesHandle(hwndDlg, processItem->ProcessId, handleItem, attributes);
                         PhDereferenceObject(handleItem);
+                    }
+                }
+                break;
+            case ID_HANDLE_OPENFILELOCATION:
+                {
+                    PPH_HANDLE_ITEM handleItem = PhGetSelectedHandleItem(&handlesContext->ListContext);
+
+                    if (handleItem)
+                    {
+                        if (PhEqualString2(handleItem->TypeName, L"File", TRUE))
+                        {
+                            if (handleItem->BestObjectName)
+                                PhShellExploreFile(hwndDlg, handleItem->BestObjectName->Buffer);
+                            else
+                                PhShowError(hwndDlg, L"Unable to open file location because the object is unnamed.");
+                        }
+                        else if (PhEqualString2(handleItem->TypeName, L"Key", TRUE))
+                        {
+                            if (handleItem->BestObjectName)
+                                PhShellOpenKey(hwndDlg, handleItem->BestObjectName);
+                            else
+                                PhShowError(hwndDlg, L"Unable to open key because the object is unnamed.");
+                        }
+                        else if (PhEqualString2(handleItem->TypeName, L"Process", TRUE))
+                        {
+                            HANDLE processHandle;
+                            HANDLE processId;
+                            PPH_PROCESS_ITEM targetProcessItem;
+
+                            processId = NULL;
+
+                            if (KphIsConnected())
+                            {
+                                if (NT_SUCCESS(PhOpenProcess(
+                                    &processHandle,
+                                    ProcessQueryAccess,
+                                    processItem->ProcessId
+                                    )))
+                                {
+                                    PROCESS_BASIC_INFORMATION basicInfo;
+
+                                    if (NT_SUCCESS(KphQueryInformationObject(
+                                        processHandle,
+                                        handleItem->Handle,
+                                        KphObjectProcessBasicInformation,
+                                        &basicInfo,
+                                        sizeof(PROCESS_BASIC_INFORMATION),
+                                        NULL
+                                        )))
+                                    {
+                                        processId = basicInfo.UniqueProcessId;
+                                    }
+
+                                    NtClose(processHandle);
+                                }
+                            }
+                            else
+                            {
+                                HANDLE handle;
+                                PROCESS_BASIC_INFORMATION basicInfo;
+
+                                if (NT_SUCCESS(PhpDuplicateHandleFromProcessItem(
+                                    &handle,
+                                    ProcessQueryAccess,
+                                    processItem,
+                                    handleItem
+                                    )))
+                                {
+                                    if (NT_SUCCESS(PhGetProcessBasicInformation(handle, &basicInfo)))
+                                        processId = basicInfo.UniqueProcessId;
+
+                                    NtClose(handle);
+                                }
+                            }
+
+                            if (processId)
+                            {
+                                targetProcessItem = PhReferenceProcessItem(processId);
+
+                                if (targetProcessItem)
+                                {
+                                    ProcessHacker_ShowProcessProperties(PhMainWndHandle, targetProcessItem);
+                                    PhDereferenceObject(targetProcessItem);
+                                }
+                                else
+                                {
+                                    PhShowError(hwndDlg, L"The process does not exist.");
+                                }
+                            }
+                        }
+                        else if (PhEqualString2(handleItem->TypeName, L"Thread", TRUE))
+                        {
+                            HANDLE processHandle;
+                            CLIENT_ID clientId;
+                            PPH_PROCESS_ITEM targetProcessItem;
+                            PPH_PROCESS_PROPCONTEXT propContext;
+
+                            clientId.UniqueProcess = NULL;
+                            clientId.UniqueThread = NULL;
+
+                            if (KphIsConnected())
+                            {
+                                if (NT_SUCCESS(PhOpenProcess(
+                                    &processHandle,
+                                    ProcessQueryAccess,
+                                    processItem->ProcessId
+                                    )))
+                                {
+                                    THREAD_BASIC_INFORMATION basicInfo;
+
+                                    if (NT_SUCCESS(KphQueryInformationObject(
+                                        processHandle,
+                                        handleItem->Handle,
+                                        KphObjectThreadBasicInformation,
+                                        &basicInfo,
+                                        sizeof(THREAD_BASIC_INFORMATION),
+                                        NULL
+                                        )))
+                                    {
+                                        clientId = basicInfo.ClientId;
+                                    }
+
+                                    NtClose(processHandle);
+                                }
+                            }
+                            else
+                            {
+                                HANDLE handle;
+                                THREAD_BASIC_INFORMATION basicInfo;
+
+                                if (NT_SUCCESS(PhpDuplicateHandleFromProcessItem(
+                                    &handle,
+                                    ThreadQueryAccess,
+                                    processItem,
+                                    handleItem
+                                    )))
+                                {
+                                    if (NT_SUCCESS(PhGetThreadBasicInformation(handle, &basicInfo)))
+                                        clientId = basicInfo.ClientId;
+
+                                    NtClose(handle);
+                                }
+                            }
+
+                            if (clientId.UniqueProcess)
+                            {
+                                targetProcessItem = PhReferenceProcessItem(clientId.UniqueProcess);
+
+                                if (targetProcessItem)
+                                {
+                                    propContext = PhCreateProcessPropContext(PhMainWndHandle, targetProcessItem);
+                                    PhDereferenceObject(targetProcessItem);
+                                    PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
+                                    ProcessHacker_Invoke(PhMainWndHandle, PhpShowProcessPropContext, propContext);
+                                }
+                                else
+                                {
+                                    PhShowError(hwndDlg, L"The process does not exist.");
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            case ID_HANDLE_OBJECTPROPERTIES:
+                {
+                    PPH_HANDLE_ITEM handleItem = PhGetSelectedHandleItem(&handlesContext->ListContext);
+
+                    if (handleItem)
+                    {
+                        if (PhEqualString2(handleItem->TypeName, L"File", TRUE))
+                        {
+                            if (handleItem->BestObjectName)
+                                PhShellProperties(hwndDlg, handleItem->BestObjectName->Buffer);
+                            else
+                                PhShowError(hwndDlg, L"Unable to open file properties because the object is unnamed.");
+                        }
                     }
                 }
                 break;

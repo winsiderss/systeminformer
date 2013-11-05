@@ -206,14 +206,6 @@ VOID PhShowHandleProperties(
     PropertySheet(&propSheetHeader);
 }
 
-static VOID PhpShowProcessPropContext(
-    __in PVOID Parameter
-    )
-{
-    PhShowProcessProperties(Parameter);
-    PhDereferenceObject(Parameter);
-}
-
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -227,7 +219,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
-            BOOLEAN showPropertiesButton = FALSE;
             PPH_ACCESS_ENTRY accessEntries;
             ULONG numberOfAccessEntries;
             HANDLE processHandle;
@@ -235,29 +226,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             BOOLEAN haveBasicInfo = FALSE;
 
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
-
-            if (!context)
-            {
-                // Dummy
-            }
-            else if (PhEqualString2(context->HandleItem->TypeName, L"File", TRUE))
-            {
-                showPropertiesButton = TRUE;
-            }
-            else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))
-            {
-                showPropertiesButton = TRUE;
-            }
-            else if (PhEqualString2(context->HandleItem->TypeName, L"Process", TRUE))
-            {
-                showPropertiesButton = TRUE;
-            }
-            else if (PhEqualString2(context->HandleItem->TypeName, L"Thread", TRUE))
-            {
-                showPropertiesButton = TRUE;
-            }
-
-            ShowWindow(GetDlgItem(hwndDlg, IDC_PROPERTIES), showPropertiesButton ? SW_SHOW : SW_HIDE);
 
             SetDlgItemText(hwndDlg, IDC_NAME, PhGetString(context->HandleItem->BestObjectName));
             SetDlgItemText(hwndDlg, IDC_TYPE, context->HandleItem->TypeName->Buffer);
@@ -341,170 +309,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     case WM_DESTROY:
         {
             RemoveProp(hwndDlg, PhMakeContextAtom());
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDC_PROPERTIES:
-                {
-                    PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
-                    if (!context)
-                    {
-                        // Dummy
-                    }
-                    else if (PhEqualString2(context->HandleItem->TypeName, L"File", TRUE))
-                    {
-                        if (context->HandleItem->BestObjectName)
-                            PhShellProperties(hwndDlg, context->HandleItem->BestObjectName->Buffer);
-                        else
-                            PhShowError(hwndDlg, L"Unable to open file properties because the object is unnamed.");
-                    }
-                    else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))
-                    {
-                        PhShellOpenKey(hwndDlg, context->HandleItem->BestObjectName);
-                    }
-                    else if (PhEqualString2(context->HandleItem->TypeName, L"Process", TRUE))
-                    {
-                        HANDLE processHandle;
-                        HANDLE processId;
-                        PPH_PROCESS_ITEM processItem;
-
-                        processId = NULL;
-
-                        if (KphIsConnected())
-                        {
-                            if (NT_SUCCESS(PhOpenProcess(
-                                &processHandle,
-                                ProcessQueryAccess,
-                                context->ProcessId
-                                )))
-                            {
-                                PROCESS_BASIC_INFORMATION basicInfo;
-
-                                if (NT_SUCCESS(KphQueryInformationObject(
-                                    processHandle,
-                                    context->HandleItem->Handle,
-                                    KphObjectProcessBasicInformation,
-                                    &basicInfo,
-                                    sizeof(PROCESS_BASIC_INFORMATION),
-                                    NULL
-                                    )))
-                                {
-                                    processId = basicInfo.UniqueProcessId;
-                                }
-
-                                NtClose(processHandle);
-                            }
-                        }
-                        else
-                        {
-                            HANDLE handle;
-                            PROCESS_BASIC_INFORMATION basicInfo;
-
-                            if (NT_SUCCESS(PhpDuplicateHandleFromProcess(
-                                &handle,
-                                ProcessQueryAccess,
-                                context
-                                )))
-                            {
-                                if (NT_SUCCESS(PhGetProcessBasicInformation(handle, &basicInfo)))
-                                    processId = basicInfo.UniqueProcessId;
-
-                                NtClose(handle);
-                            }
-                        }
-
-                        if (processId)
-                        {
-                            processItem = PhReferenceProcessItem(processId);
-
-                            if (processItem)
-                            {
-                                ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
-                                PhDereferenceObject(processItem);
-                            }
-                            else
-                            {
-                                PhShowError(hwndDlg, L"The process does not exist.");
-                            }
-                        }
-                    }
-                    else if (PhEqualString2(context->HandleItem->TypeName, L"Thread", TRUE))
-                    {
-                        HANDLE processHandle;
-                        CLIENT_ID clientId;
-                        PPH_PROCESS_ITEM processItem;
-                        PPH_PROCESS_PROPCONTEXT propContext;
-
-                        clientId.UniqueProcess = NULL;
-                        clientId.UniqueThread = NULL;
-
-                        if (KphIsConnected())
-                        {
-                            if (NT_SUCCESS(PhOpenProcess(
-                                &processHandle,
-                                ProcessQueryAccess,
-                                context->ProcessId
-                                )))
-                            {
-                                THREAD_BASIC_INFORMATION basicInfo;
-
-                                if (NT_SUCCESS(KphQueryInformationObject(
-                                    processHandle,
-                                    context->HandleItem->Handle,
-                                    KphObjectThreadBasicInformation,
-                                    &basicInfo,
-                                    sizeof(THREAD_BASIC_INFORMATION),
-                                    NULL
-                                    )))
-                                {
-                                    clientId = basicInfo.ClientId;
-                                }
-
-                                NtClose(processHandle);
-                            }
-                        }
-                        else
-                        {
-                            HANDLE handle;
-                            THREAD_BASIC_INFORMATION basicInfo;
-
-                            if (NT_SUCCESS(PhpDuplicateHandleFromProcess(
-                                &handle,
-                                ThreadQueryAccess,
-                                context
-                                )))
-                            {
-                                if (NT_SUCCESS(PhGetThreadBasicInformation(handle, &basicInfo)))
-                                    clientId = basicInfo.ClientId;
-
-                                NtClose(handle);
-                            }
-                        }
-
-                        if (clientId.UniqueProcess)
-                        {
-                            processItem = PhReferenceProcessItem(clientId.UniqueProcess);
-
-                            if (processItem)
-                            {
-                                propContext = PhCreateProcessPropContext(PhMainWndHandle, processItem);
-                                PhDereferenceObject(processItem);
-                                PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
-                                ProcessHacker_Invoke(PhMainWndHandle, PhpShowProcessPropContext, propContext);
-                            }
-                            else
-                            {
-                                PhShowError(hwndDlg, L"The process does not exist.");
-                            }
-                        }
-                    }
-                }
-                break;
-            }
         }
         break;
     case WM_NOTIFY:
