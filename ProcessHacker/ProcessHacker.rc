@@ -159,7 +159,7 @@ IDR_THREAD MENU
 BEGIN
     POPUP "Thread"
     BEGIN
-        MENUITEM "&Inspect",                    ID_THREAD_INSPECT
+        MENUITEM "&Inspect\aEnter",             ID_THREAD_INSPECT
         MENUITEM "T&erminate\aDel",             ID_THREAD_TERMINATE
         MENUITEM "Force Terminate",             ID_THREAD_FORCETERMINATE
         MENUITEM "&Suspend",                    ID_THREAD_SUSPEND
@@ -210,8 +210,10 @@ BEGIN
         MENUITEM "&Protected",                  ID_HANDLE_PROTECTED
         MENUITEM "&Inherit",                    ID_HANDLE_INHERIT
         MENUITEM SEPARATOR
+        MENUITEM "Open &File Location\aCtrl+Enter", ID_HANDLE_OPENFILELOCATION
+        MENUITEM "Object Properties",           ID_HANDLE_OBJECTPROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_HANDLE_COPY
-        MENUITEM "Prope&rties",                 ID_HANDLE_PROPERTIES
+        MENUITEM "Prope&rties\aEnter",          ID_HANDLE_PROPERTIES
     END
 END
 
@@ -221,9 +223,9 @@ BEGIN
     BEGIN
         MENUITEM "&Unload\aDel",                ID_MODULE_UNLOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Inspect",                    ID_MODULE_INSPECT
-        MENUITEM "&Search Online",              ID_MODULE_SEARCHONLINE
-        MENUITEM "Open &File Location",         ID_MODULE_OPENFILELOCATION
+        MENUITEM "&Inspect\aEnter",             ID_MODULE_INSPECT
+        MENUITEM "&Search Online\aCtrl+M",      ID_MODULE_SEARCHONLINE
+        MENUITEM "Open &File Location\aCtrl+Enter", ID_MODULE_OPENFILELOCATION
         MENUITEM "&Copy\aCtrl+C",               ID_MODULE_COPY
         MENUITEM "P&roperties",                 ID_MODULE_PROPERTIES
     END
@@ -658,7 +660,6 @@ BEGIN
     LTEXT           "Static",IDC_PAGED,182,89,39,8
     LTEXT           "Non-Paged:",IDC_STATIC,138,100,39,8
     LTEXT           "Static",IDC_NONPAGED,182,100,39,8
-    PUSHBUTTON      "Properties",IDC_PROPERTIES,7,122,50,14
 END
 
 IDD_INFORMATION DIALOGEX 0, 0, 317, 184

@@ -499,7 +499,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Inspect", 0))
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Inspect", 0))
         insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
     else
         insertIndex = 0;
