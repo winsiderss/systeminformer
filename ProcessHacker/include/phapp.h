@@ -467,6 +467,11 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     __in struct _PH_EMENU_ITEM *SelectedItem
     );
 
+BOOLEAN PhShellOpenKey2(
+    __in HWND hWnd,
+    __in PPH_STRING KeyName
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(

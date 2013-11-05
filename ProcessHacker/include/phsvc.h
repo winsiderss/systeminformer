@@ -34,8 +34,6 @@ typedef struct _PHSVC_CLIENT
     HANDLE PortHandle;
     PVOID ClientViewBase;
     PVOID ClientViewLimit;
-
-    PPH_HANDLE_TABLE HandleTable;
 } PHSVC_CLIENT, *PPHSVC_CLIENT;
 
 NTSTATUS PhSvcClientInitialization(
@@ -60,23 +58,6 @@ BOOLEAN PhSvcAttachClient(
 
 VOID PhSvcDetachClient(
     __in PPHSVC_CLIENT Client
-    );
-
-NTSTATUS PhSvcCreateHandle(
-    __out PHANDLE Handle,
-    __in PVOID Object,
-    __in ACCESS_MASK GrantedAccess
-    );
-
-NTSTATUS PhSvcCloseHandle(
-    __in HANDLE Handle
-    );
-
-NTSTATUS PhSvcReferenceObjectByHandle(
-    __in HANDLE Handle,
-    __in_opt PPH_OBJECT_TYPE ObjectType,
-    __in_opt ACCESS_MASK DesiredAccess,
-    __out PVOID *Object
     );
 
 // svcapiport
@@ -135,7 +116,7 @@ NTSTATUS PhSvcCaptureSid(
     __out PSID *CapturedSid
     );
 
-NTSTATUS PhSvcApiClose(
+NTSTATUS PhSvcApiDefault(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
     );
@@ -196,6 +177,16 @@ NTSTATUS PhSvcApiInvokeRunAsService(
     );
 
 NTSTATUS PhSvcApiIssueMemoryListCommand(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiPostMessage(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiSendMessage(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
     );
