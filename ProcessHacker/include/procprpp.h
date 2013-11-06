@@ -98,6 +98,33 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     __in LPARAM lParam
     );
 
+typedef struct _PH_HANDLE_ITEM_INFO
+{
+    HANDLE ProcessId;
+    HANDLE Handle;
+    PPH_STRING TypeName;
+    PPH_STRING BestObjectName;
+} PH_HANDLE_ITEM_INFO, *PPH_HANDLE_ITEM_INFO;
+
+#define PHA_APPEND_CTRL_ENTER(Text, Enable) ((Enable) ? PhaConcatStrings2((Text), L"\tCtrl+Enter")->Buffer : (Text))
+
+VOID PhInsertHandleObjectPropertiesEMenuItems(
+    __in struct _PH_EMENU_ITEM *Menu,
+    __in ULONG InsertBeforeId,
+    __in BOOLEAN EnableShortcut,
+    __in PPH_HANDLE_ITEM_INFO Info
+    );
+
+VOID PhShowHandleObjectProperties1(
+    __in HWND hWnd,
+    __in PPH_HANDLE_ITEM_INFO Info
+    );
+
+VOID PhShowHandleObjectProperties2(
+    __in HWND hWnd,
+    __in PPH_HANDLE_ITEM_INFO Info
+    );
+
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,

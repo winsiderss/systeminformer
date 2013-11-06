@@ -640,8 +640,8 @@ PHAPPAPI extern HWND PhMainWndHandle;
     SendMessage(hWnd, WM_PH_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0)
 #define ProcessHacker_CancelEarlyShutdown(hWnd) \
     SendMessage(hWnd, WM_PH_CANCEL_EARLY_SHUTDOWN, 0, 0)
-#define ProcessHacker_ToggleVisible(hWnd) \
-    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
+#define ProcessHacker_ToggleVisible(hWnd, AlwaysShow) \
+    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, (WPARAM)(AlwaysShow), 0)
 #define ProcessHacker_SelectTabPage(hWnd, Index) \
     SendMessage(hWnd, WM_PH_SELECT_TAB_PAGE, (WPARAM)(Index), 0)
 #define ProcessHacker_GetCallbackLayoutPadding(hWnd) \
