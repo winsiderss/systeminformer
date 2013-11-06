@@ -645,7 +645,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) >= 0)
                     SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_HANDLE_PROPERTIES, 0);
                 else
-                    SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_HANDLE_OPENFILELOCATION, 0);
+                    SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_HANDLE_OBJECTPROPERTIES1, 0);
                 break;
             }
         }

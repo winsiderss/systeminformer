@@ -210,8 +210,6 @@ BEGIN
         MENUITEM "&Protected",                  ID_HANDLE_PROTECTED
         MENUITEM "&Inherit",                    ID_HANDLE_INHERIT
         MENUITEM SEPARATOR
-        MENUITEM "Open &File Location\aCtrl+Enter", ID_HANDLE_OPENFILELOCATION
-        MENUITEM "Object Properties",           ID_HANDLE_OBJECTPROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_HANDLE_COPY
         MENUITEM "Prope&rties\aEnter",          ID_HANDLE_PROPERTIES
     END
@@ -348,10 +346,10 @@ BEGIN
     POPUP "Object"
     BEGIN
         MENUITEM "C&lose\aDel",                 ID_OBJECT_CLOSE
-        MENUITEM "&Process Properties",         ID_OBJECT_PROCESSPROPERTIES
-        MENUITEM "Prope&rties",                 ID_OBJECT_PROPERTIES
         MENUITEM SEPARATOR
         MENUITEM "&Copy\aCtrl+C",               ID_OBJECT_COPY
+        MENUITEM "Go to Owning &Process",       ID_OBJECT_GOTOOWNINGPROCESS
+        MENUITEM "Prope&rties",                 ID_OBJECT_PROPERTIES
     END
 END
 

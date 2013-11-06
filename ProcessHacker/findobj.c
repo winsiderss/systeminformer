@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object search
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <emenu.h>
+#include <procprpp.h>
 #include <windowsx.h>
 
 #define WM_PH_SEARCH_UPDATE (WM_APP + 801)
@@ -95,7 +97,7 @@ VOID PhShowFindObjectsDialog(
 }
 
 VOID PhpInitializeFindObjMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in PPHP_OBJECT_SEARCH_RESULT *Results,
     __in ULONG NumberOfResults
     )
@@ -105,12 +107,18 @@ VOID PhpInitializeFindObjMenu(
 
     if (NumberOfResults == 1)
     {
-        // Nothing
+        PH_HANDLE_ITEM_INFO info;
+
+        info.ProcessId = Results[0]->ProcessId;
+        info.Handle = Results[0]->Handle;
+        info.TypeName = Results[0]->TypeName;
+        info.BestObjectName = Results[0]->Name;
+        PhInsertHandleObjectPropertiesEMenuItems(Menu, ID_OBJECT_COPY, FALSE, &info);
     }
     else
     {
-        PhEnableAllMenuItems(Menu, FALSE);
-        PhEnableMenuItem(Menu, ID_OBJECT_COPY, TRUE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        PhEnableEMenuItem(Menu, ID_OBJECT_COPY, TRUE);
     }
 
     for (i = 0; i < NumberOfResults; i++)
@@ -122,7 +130,7 @@ VOID PhpInitializeFindObjMenu(
         }
     }
 
-    PhEnableMenuItem(Menu, ID_OBJECT_CLOSE, allCanBeClosed);
+    PhEnableEMenuItem(Menu, ID_OBJECT_CLOSE, allCanBeClosed);
 }
 
 INT NTAPI PhpObjectProcessCompareFunction(
@@ -396,19 +404,42 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     PhFree(results);
                 }
                 break;
-            case ID_OBJECT_PROCESSPROPERTIES:
+            case ID_HANDLE_OBJECTPROPERTIES1:
+            case ID_HANDLE_OBJECTPROPERTIES2:
                 {
                     PPHP_OBJECT_SEARCH_RESULT result =
                         PhGetSelectedListViewItemParam(PhFindObjectsListViewHandle);
 
                     if (result)
                     {
-                        PPH_PROCESS_ITEM processItem;
+                        PH_HANDLE_ITEM_INFO info;
 
-                        if (processItem = PhReferenceProcessItem(result->ProcessId))
+                        info.ProcessId = result->ProcessId;
+                        info.Handle = result->Handle;
+                        info.TypeName = result->TypeName;
+                        info.BestObjectName = result->Name;
+
+                        if (LOWORD(wParam) == ID_HANDLE_OBJECTPROPERTIES1)
+                            PhShowHandleObjectProperties1(hwndDlg, &info);
+                        else
+                            PhShowHandleObjectProperties2(hwndDlg, &info);
+                    }
+                }
+                break;
+            case ID_OBJECT_GOTOOWNINGPROCESS:
+                {
+                    PPHP_OBJECT_SEARCH_RESULT result =
+                        PhGetSelectedListViewItemParam(PhFindObjectsListViewHandle);
+
+                    if (result)
+                    {
+                        PPH_PROCESS_NODE processNode;
+
+                        if (processNode = PhFindProcessNode(result->ProcessId))
                         {
-                            ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
-                            PhDereferenceObject(processItem);
+                            ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
+                            ProcessHacker_SelectProcessNode(PhMainWndHandle, processNode);
+                            ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
                         }
                     }
                 }
@@ -513,26 +544,28 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                 if (numberOfResults != 0)
                 {
-                    HMENU menu;
-                    HMENU subMenu;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM item;
 
-                    menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_FINDOBJ));
-                    subMenu = GetSubMenu(menu, 0);
+                    menu = PhCreateEMenu();
+                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_FINDOBJ), 0);
+                    PhSetFlagsEMenuItem(menu, ID_OBJECT_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-                    SetMenuDefaultItem(subMenu, ID_OBJECT_PROPERTIES, FALSE);
-                    PhpInitializeFindObjMenu(
-                        subMenu,
-                        results,
-                        numberOfResults
-                        );
+                    PhpInitializeFindObjMenu(menu, results, numberOfResults);
 
-                    PhShowContextMenu(
-                        hwndDlg,
+                    item = PhShowEMenu(
+                        menu,
                         PhFindObjectsListViewHandle,
-                        subMenu,
-                        point
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
                         );
-                    DestroyMenu(menu);
+
+                    if (item)
+                        SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+
+                    PhDestroyEMenu(menu);
                 }
 
                 PhFree(results);

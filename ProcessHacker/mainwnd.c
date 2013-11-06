@@ -2071,7 +2071,7 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_TOGGLE_VISIBLE:
         {
-            PhMwpActivateWindow(TRUE);
+            PhMwpActivateWindow(!WParam);
         }
         break;
     case WM_PH_SHOW_MEMORY_EDITOR:
