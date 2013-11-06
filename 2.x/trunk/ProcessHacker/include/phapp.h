@@ -575,8 +575,8 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0)
 #define ProcessHacker_CancelEarlyShutdown(hWnd) \
     SendMessage(hWnd, WM_PH_CANCEL_EARLY_SHUTDOWN, 0, 0)
-#define ProcessHacker_ToggleVisible(hWnd) \
-    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
+#define ProcessHacker_ToggleVisible(hWnd, AlwaysShow) \
+    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, (WPARAM)(AlwaysShow), 0)
 #define ProcessHacker_ShowMemoryEditor(hWnd, ShowMemoryEditor) \
     PostMessage(hWnd, WM_PH_SHOW_MEMORY_EDITOR, 0, (LPARAM)(ShowMemoryEditor))
 #define ProcessHacker_ShowMemoryResults(hWnd, ShowMemoryResults) \
