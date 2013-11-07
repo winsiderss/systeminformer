@@ -601,6 +601,9 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
             }
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
             SetWindowText(hwndDlg, L"Loading stack...");
         }
         break;
