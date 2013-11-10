@@ -280,8 +280,6 @@ static COLORREF PhpPluginColorFunction(
 {
     PPH_PLUGIN plugin = Param;
 
-    if (plugin->Flags & PH_PLUGIN_FLAG_IS_CLR)
-        return RGB(0xde, 0xff, 0x00);
     if (PhFindItemSimpleHashtable(DisabledPluginLookup, plugin))
         return RGB(0x77, 0x77, 0x77); // fake disabled plugin
 
