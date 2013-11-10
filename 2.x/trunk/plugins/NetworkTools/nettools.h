@@ -60,6 +60,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
 {
     PH_NETWORK_ACTION Action;
     PH_LAYOUT_MANAGER LayoutManager;
+    PH_WORK_QUEUE PingWorkQueue;
     PH_GRAPH_STATE PingGraphState;
     PH_CIRCULAR_BUFFER_ULONG PingHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
