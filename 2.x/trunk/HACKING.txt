@@ -53,7 +53,7 @@ Always use:
 to test a boolean value.
 
 ==== Annotations, qualifiers ====
- * All parameters must use annotations, such as __in, __inout, __out, etc.
+ * All functions use SAL annotations, such as _In_, _Inout_, _Out_, etc.
  * Do not use "const", unless obvious optimizations can be made by the
    compiler (e.g. inlining).
  * Do not use "volatile" in definitions. Instead, cast to a volatile
@@ -69,7 +69,7 @@ There are three main types of indicators used:
    A special value (e.g. NULL) indicates failure.
 
 Unless indicated, a function which fails is guaranteed not to
-modify any of its output parameters (__out, __out_opt, etc.).
+modify any of its output parameters (_Out_, _Out_opt_, etc.).
 
 For functions which are passed a callback function, it is not
 guaranteed that a failed function has not executed the callback
@@ -79,7 +79,7 @@ function.
 Every thread start routine must have the following signature:
 
     NTSTATUS NameOfRoutine(
-        __in PVOID Parameter
+        _In_ PVOID Parameter
         );
 
 Thread creation is done through the PhCreateThread function.
@@ -126,117 +126,6 @@ use PhQueueWakeEvent/PhWaitForWakeEvent to block. When a condition is
 modified use PhSetWakeEvent to wake waiters. If after calling
 PhQueueWakeEvent it is determined that no blocking should occur, use
 PhSetWakeEvent.
-
-==== (Lazy) Singletons ====
-
-====== Not thread-safe ======
-    BOOLEAN initialized = FALSE;
-    OBJECT object = NULL;
-
-    DoSomething()
-    {
-        if (!initialized)
-        {
-            object = Create();
-            initialized = TRUE;
-        }
-
-        Use(object);
-    }
-
-Disadvantages:
-  * Not thread-safe
-
-====== Thread-safe (locking, double-checked) ======
-    BOOLEAN initialized = FALSE;
-    OBJECT object = NULL;
-    PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
-
-    DoSomething()
-    {
-        if (!initialized)
-        {
-            PhAcquireQueuedLockExclusiveFast(&lock);
-
-            if (!initialized)
-            {
-                object = Create();
-                MemoryBarrier();
-                initialized = TRUE;
-            }
-
-            PhReleaseQueuedLockExclusiveFast(&lock);
-        }
-
-        Use(object);
-    }
-
-Advantages:
-  * Thread-safe
-Disadvantages:
-  * Lock overhead
-  * More code
-
-====== Thread-safe (PH_INITONCE) ======
-    PH_INITONCE initOnce = PH_INITONCE_INIT;
-    OBJECT object = NULL;
-
-    DoSomething()
-    {
-        if (PhBeginInitOnce(&initOnce))
-        {
-            object = Create();
-            PhEndInitOnce(&initOnce);
-        }
-
-        Use(object);
-    }
-
-Advantages:
-  * Less overhead
-  * Less code
-
-====== Thread-safe (custom) ======
-    OBJECT object = NULL;
-
-    DoSomething()
-    {
-        OBJECT localObject;
-        OBJECT newObject;
-
-        localObject = object;
-
-        if (!localObject)
-        {
-            newObject = Create();
-
-            // Try to store the created object.
-            localObject = InterlockedCompareExchangePointer(
-                &object,
-                newObject,
-                NULL
-                );
-
-            if (!localObject)
-            {
-                // Success.
-                localObject = newObject;
-            }
-            else
-            {
-                // Someone else already stored the object.
-                Destroy(newObject);
-            }
-        }
-
-        return localObject;
-    }
-
-Advantages:
-  * Less overhead
-Disadvantages:
-  * More code
-  * Created object may need to be destroyed
 
 ==== Exceptions (SEH) ====
 The only method of error handling used in Process Hacker is
