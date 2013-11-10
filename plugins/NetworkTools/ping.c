@@ -557,18 +557,22 @@ static INT_PTR CALLBACK NetworkPingWndProc(
         context = (PNETWORK_OUTPUT_CONTEXT)GetProp(hwndDlg, L"Context");
         if (uMsg == WM_NCDESTROY)
         {
+            PhSaveWindowPlacementToSetting(
+                SETTING_NAME_PING_WINDOW_POSITION,
+                SETTING_NAME_PING_WINDOW_SIZE,
+                hwndDlg
+                );
+
+            PhDeleteWorkQueue(&context->PingWorkQueue);
+            PhDeleteGraphState(&context->PingGraphState);
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             if (context->PingGraphHandle)
             {
                 DestroyWindow(context->PingGraphHandle);
                 context->PingGraphHandle = NULL;
             }
 
-            PhSaveWindowPlacementToSetting(
-                SETTING_NAME_PING_WINDOW_POSITION, 
-                SETTING_NAME_PING_WINDOW_SIZE, 
-                hwndDlg
-                );
-                       
             if (context->IconHandle)
             {
                 DestroyIcon(context->IconHandle);
@@ -581,9 +585,6 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 context->FontHandle = NULL;
             }
 
-			PhDeleteWorkQueue(&context->PingWorkQueue);
-            PhDeleteGraphState(&context->PingGraphState);
-            PhDeleteLayoutManager(&context->LayoutManager);
             RemoveProp(hwndDlg, L"Context");
             context = NULL;
         }
@@ -642,8 +643,9 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             // Set window icon.
             if (context->IconHandle) 
                 SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
-          
-			PhInitializeWorkQueue(&context->PingWorkQueue, 0, 3, 1000);
+
+            // Initialize the WorkQueue with a maximum of 20 threads (fix pinging slow-links with a high interval update).
+            PhInitializeWorkQueue(&context->PingWorkQueue, 0, 20, 5000);
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhInitializeCircularBuffer_ULONG(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
@@ -667,7 +669,10 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             {
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION, SETTING_NAME_PING_WINDOW_SIZE, hwndDlg);
             }
-                  
+
+            // Initialize window layout.
+            PhLayoutManagerLayout(&context->LayoutManager);
+
             // Convert IP Address to string format.
             if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
             {
