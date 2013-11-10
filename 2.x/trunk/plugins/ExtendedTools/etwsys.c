@@ -40,7 +40,7 @@ static PH_GRAPH_STATE NetworkGraphState;
 static HWND NetworkPanel;
 
 VOID EtEtwSystemInformationInitializing(
-    __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     )
 {
     PH_SYSINFO_SECTION section;
@@ -61,10 +61,10 @@ VOID EtEtwSystemInformationInitializing(
 }
 
 BOOLEAN EtpDiskSectionCallback(
-    __in PPH_SYSINFO_SECTION Section,
-    __in PH_SYSINFO_SECTION_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -181,10 +181,10 @@ BOOLEAN EtpDiskSectionCallback(
 }
 
 INT_PTR CALLBACK EtpDiskDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -254,17 +254,17 @@ INT_PTR CALLBACK EtpDiskDialogProc(
 }
 
 INT_PTR CALLBACK EtpDiskPanelDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     return FALSE;
 }
 
 VOID EtpNotifyDiskGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     )
 {
     switch (Header->code)
@@ -395,7 +395,7 @@ VOID EtpUpdateDiskPanel(
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxDiskRecord(
-    __in LONG Index
+    _In_ LONG Index
     )
 {
     LARGE_INTEGER time;
@@ -413,7 +413,7 @@ PPH_PROCESS_RECORD EtpReferenceMaxDiskRecord(
 }
 
 PPH_STRING EtpGetMaxDiskString(
-    __in LONG Index
+    _In_ LONG Index
     )
 {
     PPH_PROCESS_RECORD maxProcessRecord;
@@ -433,10 +433,10 @@ PPH_STRING EtpGetMaxDiskString(
 }
 
 BOOLEAN EtpNetworkSectionCallback(
-    __in PPH_SYSINFO_SECTION Section,
-    __in PH_SYSINFO_SECTION_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -553,10 +553,10 @@ BOOLEAN EtpNetworkSectionCallback(
 }
 
 INT_PTR CALLBACK EtpNetworkDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -626,17 +626,17 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
 }
 
 INT_PTR CALLBACK EtpNetworkPanelDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     return FALSE;
 }
 
 VOID EtpNotifyNetworkGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     )
 {
     switch (Header->code)
@@ -767,7 +767,7 @@ VOID EtpUpdateNetworkPanel(
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxNetworkRecord(
-    __in LONG Index
+    _In_ LONG Index
     )
 {
     LARGE_INTEGER time;
@@ -785,7 +785,7 @@ PPH_PROCESS_RECORD EtpReferenceMaxNetworkRecord(
 }
 
 PPH_STRING EtpGetMaxNetworkString(
-    __in LONG Index
+    _In_ LONG Index
     )
 {
     PPH_PROCESS_RECORD maxProcessRecord;

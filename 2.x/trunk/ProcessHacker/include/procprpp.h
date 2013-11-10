@@ -10,92 +10,92 @@ typedef struct _PH_PROCESS_PROPSHEETCONTEXT
 } PH_PROCESS_PROPSHEETCONTEXT, *PPH_PROCESS_PROPSHEETCONTEXT;
 
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 INT CALLBACK PhpPropSheetProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
     );
 
 PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
-    __in HWND hwnd
+    _In_ HWND hwnd
     );
 
 LRESULT CALLBACK PhpPropSheetWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 INT CALLBACK PhpStandardPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     );
 
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessTokenHookProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 typedef struct _PH_HANDLE_ITEM_INFO
@@ -109,34 +109,34 @@ typedef struct _PH_HANDLE_ITEM_INFO
 #define PHA_APPEND_CTRL_ENTER(Text, Enable) ((Enable) ? PhaConcatStrings2((Text), L"\tCtrl+Enter")->Buffer : (Text))
 
 VOID PhInsertHandleObjectPropertiesEMenuItems(
-    __in struct _PH_EMENU_ITEM *Menu,
-    __in ULONG InsertBeforeId,
-    __in BOOLEAN EnableShortcut,
-    __in PPH_HANDLE_ITEM_INFO Info
+    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ ULONG InsertBeforeId,
+    _In_ BOOLEAN EnableShortcut,
+    _In_ PPH_HANDLE_ITEM_INFO Info
     );
 
 VOID PhShowHandleObjectProperties1(
-    __in HWND hWnd,
-    __in PPH_HANDLE_ITEM_INFO Info
+    _In_ HWND hWnd,
+    _In_ PPH_HANDLE_ITEM_INFO Info
     );
 
 VOID PhShowHandleObjectProperties2(
-    __in HWND hWnd,
-    __in PPH_HANDLE_ITEM_INFO Info
+    _In_ HWND hWnd,
+    _In_ PPH_HANDLE_ITEM_INFO Info
     );
 
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpProcessServicesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 #define WM_PH_THREAD_ADDED (WM_APP + 201)

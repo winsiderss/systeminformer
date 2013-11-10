@@ -24,10 +24,10 @@
 #include <phappres.h>
 
 static INT_PTR CALLBACK PhpAboutDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -115,7 +115,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 }
 
 VOID PhShowAboutDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     )
 {
     DialogBox(
@@ -127,7 +127,7 @@ VOID PhShowAboutDialog(
 }
 
 FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
-    __in PPH_OBJECT_TYPE ObjectType
+    _In_ PPH_OBJECT_TYPE ObjectType
     )
 {
     PH_OBJECT_TYPE_INFORMATION info;

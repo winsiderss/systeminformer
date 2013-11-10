@@ -11,12 +11,12 @@ typedef struct _PH_SH_STATE
 } PH_SH_STATE, *PPH_SH_STATE;
 
 FORCEINLINE VOID PhChangeShStateTn(
-    __inout PPH_TREENEW_NODE Node,
-    __inout PPH_SH_STATE ShState,
-    __inout PPH_POINTER_LIST *StateList,
-    __in PH_ITEM_STATE NewState,
-    __in COLORREF NewTempBackColor,
-    __in_opt HWND TreeNewHandleForUpdate
+    _Inout_ PPH_TREENEW_NODE Node,
+    _Inout_ PPH_SH_STATE ShState,
+    _Inout_ PPH_POINTER_LIST *StateList,
+    _In_ PH_ITEM_STATE NewState,
+    _In_ COLORREF NewTempBackColor,
+    _In_opt_ HWND TreeNewHandleForUpdate
     )
 {
     if (!*StateList)
@@ -316,7 +316,7 @@ VOID PhProcessTreeListInitialization(
     );
 
 VOID PhInitializeProcessTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     );
 
 VOID PhLoadSettingsProcessTreeList(
@@ -337,22 +337,22 @@ struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportProcessTreeList(
     );
 
 PPH_PROCESS_NODE PhAddProcessNode(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG RunId
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG RunId
     );
 
 PHAPPAPI
 PPH_PROCESS_NODE PhFindProcessNode(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 VOID PhRemoveProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     );
 
 PHAPPAPI
 VOID PhUpdateProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     );
 
 VOID PhTickProcessNodes(
@@ -366,8 +366,8 @@ PPH_PROCESS_ITEM PhGetSelectedProcessItem(
 
 PHAPPAPI
 VOID PhGetSelectedProcessItems(
-    __out PPH_PROCESS_ITEM **Processes,
-    __out PULONG NumberOfProcesses
+    _Out_ PPH_PROCESS_ITEM **Processes,
+    _Out_ PULONG NumberOfProcesses
     );
 
 PHAPPAPI
@@ -377,7 +377,7 @@ VOID PhDeselectAllProcessNodes(
 
 PHAPPAPI
 VOID PhExpandAllProcessNodes(
-    __in BOOLEAN Expand
+    _In_ BOOLEAN Expand
     );
 
 PHAPPAPI
@@ -387,14 +387,14 @@ VOID PhInvalidateAllProcessNodes(
 
 PHAPPAPI
 VOID PhSelectAndEnsureVisibleProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     );
 
 PPH_LIST PhGetProcessTreeListLines(
-    __in HWND TreeListHandle,
-    __in ULONG NumberOfNodes,
-    __in PPH_LIST RootNodes,
-    __in ULONG Mode
+    _In_ HWND TreeListHandle,
+    _In_ ULONG NumberOfNodes,
+    _In_ PPH_LIST RootNodes,
+    _In_ ULONG Mode
     );
 
 VOID PhCopyProcessTree(
@@ -402,8 +402,8 @@ VOID PhCopyProcessTree(
     );
 
 VOID PhWriteProcessTree(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     );
 
 // srvlist
@@ -453,7 +453,7 @@ VOID PhServiceTreeListInitialization(
     );
 
 VOID PhInitializeServiceTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     );
 
 VOID PhLoadSettingsServiceTreeList(
@@ -470,22 +470,22 @@ struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportServiceTreeList(
     );
 
 PPH_SERVICE_NODE PhAddServiceNode(
-    __in PPH_SERVICE_ITEM ServiceItem,
-    __in ULONG RunId
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ ULONG RunId
     );
 
 PHAPPAPI
 PPH_SERVICE_NODE PhFindServiceNode(
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 VOID PhRemoveServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     );
 
 PHAPPAPI
 VOID PhUpdateServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     );
 
 VOID PhTickServiceNodes(
@@ -499,8 +499,8 @@ PPH_SERVICE_ITEM PhGetSelectedServiceItem(
 
 PHAPPAPI
 VOID PhGetSelectedServiceItems(
-    __out PPH_SERVICE_ITEM **Services,
-    __out PULONG NumberOfServices
+    _Out_ PPH_SERVICE_ITEM **Services,
+    _Out_ PULONG NumberOfServices
     );
 
 PHAPPAPI
@@ -510,7 +510,7 @@ VOID PhDeselectAllServiceNodes(
 
 PHAPPAPI
 VOID PhSelectAndEnsureVisibleServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     );
 
 VOID PhCopyServiceList(
@@ -518,8 +518,8 @@ VOID PhCopyServiceList(
     );
 
 VOID PhWriteServiceList(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     );
 
 // netlist
@@ -561,7 +561,7 @@ VOID PhNetworkTreeListInitialization(
     );
 
 VOID PhInitializeNetworkTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     );
 
 VOID PhLoadSettingsNetworkTreeList(
@@ -578,23 +578,23 @@ struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportNetworkTreeList(
     );
 
 PPH_NETWORK_NODE PhAddNetworkNode(
-    __in PPH_NETWORK_ITEM NetworkItem,
-    __in ULONG RunId
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ ULONG RunId
     );
 
 PHAPPAPI
 PPH_NETWORK_NODE
 NTAPI
 PhFindNetworkNode(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 VOID PhRemoveNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     );
 
 VOID PhUpdateNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     );
 
 VOID PhTickNetworkNodes(
@@ -606,8 +606,8 @@ PPH_NETWORK_ITEM PhGetSelectedNetworkItem(
     );
 
 VOID PhGetSelectedNetworkItems(
-    __out PPH_NETWORK_ITEM **NetworkItems,
-    __out PULONG NumberOfNetworkItems
+    _Out_ PPH_NETWORK_ITEM **NetworkItems,
+    _Out_ PULONG NumberOfNetworkItems
     );
 
 VOID PhDeselectAllNetworkNodes(
@@ -615,7 +615,7 @@ VOID PhDeselectAllNetworkNodes(
     );
 
 VOID PhSelectAndEnsureVisibleNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     );
 
 VOID PhCopyNetworkList(
@@ -623,8 +623,8 @@ VOID PhCopyNetworkList(
     );
 
 VOID PhWriteNetworkList(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     );
 
 // thrdlist
@@ -677,61 +677,61 @@ typedef struct _PH_THREAD_LIST_CONTEXT
 } PH_THREAD_LIST_CONTEXT, *PPH_THREAD_LIST_CONTEXT;
 
 VOID PhInitializeThreadList(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __out PPH_THREAD_LIST_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 VOID PhDeleteThreadList(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 VOID PhLoadSettingsThreadList(
-    __inout PPH_THREAD_LIST_CONTEXT Context
+    _Inout_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 VOID PhSaveSettingsThreadList(
-    __inout PPH_THREAD_LIST_CONTEXT Context
+    _Inout_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 PPH_THREAD_NODE PhAddThreadNode(
-    __inout PPH_THREAD_LIST_CONTEXT Context,
-    __in PPH_THREAD_ITEM ThreadItem,
-    __in ULONG RunId
+    _Inout_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_ITEM ThreadItem,
+    _In_ ULONG RunId
     );
 
 PPH_THREAD_NODE PhFindThreadNode(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __in HANDLE ThreadId
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ HANDLE ThreadId
     );
 
 VOID PhRemoveThreadNode(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __in PPH_THREAD_NODE ThreadNode
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
     );
 
 VOID PhUpdateThreadNode(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __in PPH_THREAD_NODE ThreadNode
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
     );
 
 VOID PhTickThreadNodes(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 PPH_THREAD_ITEM PhGetSelectedThreadItem(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 VOID PhGetSelectedThreadItems(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __out PPH_THREAD_ITEM **Threads,
-    __out PULONG NumberOfThreads
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _Out_ PPH_THREAD_ITEM **Threads,
+    _Out_ PULONG NumberOfThreads
     );
 
 VOID PhDeselectAllThreadNodes(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 // modlist
@@ -793,61 +793,61 @@ typedef struct _PH_MODULE_LIST_CONTEXT
 } PH_MODULE_LIST_CONTEXT, *PPH_MODULE_LIST_CONTEXT;
 
 VOID PhInitializeModuleList(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __out PPH_MODULE_LIST_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 VOID PhDeleteModuleList(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 VOID PhLoadSettingsModuleList(
-    __inout PPH_MODULE_LIST_CONTEXT Context
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 VOID PhSaveSettingsModuleList(
-    __inout PPH_MODULE_LIST_CONTEXT Context
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 PPH_MODULE_NODE PhAddModuleNode(
-    __inout PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_ITEM ModuleItem,
-    __in ULONG RunId
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_ITEM ModuleItem,
+    _In_ ULONG RunId
     );
 
 PPH_MODULE_NODE PhFindModuleNode(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_ITEM ModuleItem
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_ITEM ModuleItem
     );
 
 VOID PhRemoveModuleNode(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_NODE ModuleNode
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_NODE ModuleNode
     );
 
 VOID PhUpdateModuleNode(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_NODE ModuleNode
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_NODE ModuleNode
     );
 
 VOID PhTickModuleNodes(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 PPH_MODULE_ITEM PhGetSelectedModuleItem(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 VOID PhGetSelectedModuleItems(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __out PPH_MODULE_ITEM **Modules,
-    __out PULONG NumberOfModules
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _Out_ PPH_MODULE_ITEM **Modules,
+    _Out_ PULONG NumberOfModules
     );
 
 VOID PhDeselectAllModuleNodes(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 // hndllist
@@ -899,66 +899,66 @@ typedef struct _PH_HANDLE_LIST_CONTEXT
 } PH_HANDLE_LIST_CONTEXT, *PPH_HANDLE_LIST_CONTEXT;
 
 VOID PhInitializeHandleList(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __out PPH_HANDLE_LIST_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 VOID PhDeleteHandleList(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 VOID PhLoadSettingsHandleList(
-    __inout PPH_HANDLE_LIST_CONTEXT Context
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 VOID PhSaveSettingsHandleList(
-    __inout PPH_HANDLE_LIST_CONTEXT Context
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 VOID PhSetOptionsHandleList(
-    __inout PPH_HANDLE_LIST_CONTEXT Context,
-    __in BOOLEAN HideUnnamedHandles
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ BOOLEAN HideUnnamedHandles
     );
 
 PPH_HANDLE_NODE PhAddHandleNode(
-    __inout PPH_HANDLE_LIST_CONTEXT Context,
-    __in PPH_HANDLE_ITEM HandleItem,
-    __in ULONG RunId
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ PPH_HANDLE_ITEM HandleItem,
+    _In_ ULONG RunId
     );
 
 PPH_HANDLE_NODE PhFindHandleNode(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __in HANDLE Handle
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ HANDLE Handle
     );
 
 VOID PhRemoveHandleNode(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __in PPH_HANDLE_NODE HandleNode
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ PPH_HANDLE_NODE HandleNode
     );
 
 VOID PhUpdateHandleNode(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __in PPH_HANDLE_NODE HandleNode
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ PPH_HANDLE_NODE HandleNode
     );
 
 VOID PhTickHandleNodes(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 PPH_HANDLE_ITEM PhGetSelectedHandleItem(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 VOID PhGetSelectedHandleItems(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __out PPH_HANDLE_ITEM **Handles,
-    __out PULONG NumberOfHandles
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _Out_ PPH_HANDLE_ITEM **Handles,
+    _Out_ PULONG NumberOfHandles
     );
 
 VOID PhDeselectAllHandleNodes(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 #endif

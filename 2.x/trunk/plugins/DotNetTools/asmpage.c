@@ -100,22 +100,22 @@ typedef struct _FLAG_DEFINITION
 } FLAG_DEFINITION, *PFLAG_DEFINITION;
 
 typedef ULONG (__stdcall *_EnableTraceEx)(
-    __in LPCGUID ProviderId,
-    __in_opt LPCGUID SourceId,
-    __in TRACEHANDLE TraceHandle,
-    __in ULONG IsEnabled,
-    __in UCHAR Level,
-    __in ULONGLONG MatchAnyKeyword,
-    __in ULONGLONG MatchAllKeyword,
-    __in ULONG EnableProperty,
-    __in_opt PEVENT_FILTER_DESCRIPTOR EnableFilterDesc
+    _In_ LPCGUID ProviderId,
+    _In_opt_ LPCGUID SourceId,
+    _In_ TRACEHANDLE TraceHandle,
+    _In_ ULONG IsEnabled,
+    _In_ UCHAR Level,
+    _In_ ULONGLONG MatchAnyKeyword,
+    _In_ ULONGLONG MatchAllKeyword,
+    _In_ ULONG EnableProperty,
+    _In_opt_ PEVENT_FILTER_DESCRIPTOR EnableFilterDesc
     );
 
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static UNICODE_STRING DotNetLoggerName = RTL_CONSTANT_STRING(L"PhDnLogger");
@@ -174,7 +174,7 @@ static FLAG_DEFINITION StartupFlagsMap[] =
 };
 
 VOID AddAsmPageToPropContext(
-    __in PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
+    _In_ PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
     )
 {
     PhAddProcessPropPage(
@@ -184,9 +184,9 @@ VOID AddAsmPageToPropContext(
 }
 
 PPH_STRING FlagsToString(
-    __in ULONG Flags,
-    __in PFLAG_DEFINITION Map,
-    __in ULONG SizeOfMap
+    _In_ ULONG Flags,
+    _In_ PFLAG_DEFINITION Map,
+    _In_ ULONG SizeOfMap
     )
 {
     PH_STRING_BUILDER sb;
@@ -210,7 +210,7 @@ PPH_STRING FlagsToString(
 }
 
 PDNA_NODE AddNode(
-    __inout PASMPAGE_CONTEXT Context
+    _Inout_ PASMPAGE_CONTEXT Context
     )
 {
     PDNA_NODE node;
@@ -231,7 +231,7 @@ PDNA_NODE AddNode(
 }
 
 VOID DestroyNode(
-    __in PDNA_NODE Node
+    _In_ PDNA_NODE Node
     )
 {
     PhDereferenceObject(Node->Children);
@@ -258,8 +258,8 @@ VOID DestroyNode(
 }
 
 PDNA_NODE AddFakeClrNode(
-    __in PASMPAGE_CONTEXT Context,
-    __in PWSTR DisplayName
+    _In_ PASMPAGE_CONTEXT Context,
+    _In_ PWSTR DisplayName
     )
 {
     PDNA_NODE node;
@@ -277,8 +277,8 @@ PDNA_NODE AddFakeClrNode(
 }
 
 PDNA_NODE FindClrNode(
-    __in PASMPAGE_CONTEXT Context,
-    __in USHORT ClrInstanceID
+    _In_ PASMPAGE_CONTEXT Context,
+    _In_ USHORT ClrInstanceID
     )
 {
     ULONG i;
@@ -295,8 +295,8 @@ PDNA_NODE FindClrNode(
 }
 
 PDNA_NODE FindAppDomainNode(
-    __in PDNA_NODE ClrNode,
-    __in ULONG64 AppDomainID
+    _In_ PDNA_NODE ClrNode,
+    _In_ ULONG64 AppDomainID
     )
 {
     ULONG i;
@@ -313,8 +313,8 @@ PDNA_NODE FindAppDomainNode(
 }
 
 PDNA_NODE FindAssemblyNode(
-    __in PDNA_NODE AppDomainNode,
-    __in ULONG64 AssemblyID
+    _In_ PDNA_NODE AppDomainNode,
+    _In_ ULONG64 AssemblyID
     )
 {
     ULONG i;
@@ -331,8 +331,8 @@ PDNA_NODE FindAssemblyNode(
 }
 
 PDNA_NODE FindAssemblyNode2(
-    __in PDNA_NODE ClrNode,
-    __in ULONG64 AssemblyID
+    _In_ PDNA_NODE ClrNode,
+    _In_ ULONG64 AssemblyID
     )
 {
     ULONG i;
@@ -355,8 +355,8 @@ PDNA_NODE FindAssemblyNode2(
 }
 
 static int __cdecl AssemblyNodeNameCompareFunction(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PDNA_NODE node1 = *(PDNA_NODE *)elem1;
@@ -366,11 +366,11 @@ static int __cdecl AssemblyNodeNameCompareFunction(
 }
 
 BOOLEAN NTAPI DotNetAsmTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PASMPAGE_CONTEXT context;
@@ -482,9 +482,9 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
 }
 
 ULONG StartDotNetTrace(
-    __in PASMPAGE_CONTEXT Context,
-    __out PTRACEHANDLE SessionHandle,
-    __out PEVENT_TRACE_PROPERTIES *Properties
+    _In_ PASMPAGE_CONTEXT Context,
+    _Out_ PTRACEHANDLE SessionHandle,
+    _Out_ PEVENT_TRACE_PROPERTIES *Properties
     )
 {
     ULONG result;
@@ -538,14 +538,14 @@ ULONG StartDotNetTrace(
 }
 
 ULONG NTAPI DotNetBufferCallback(
-    __in PEVENT_TRACE_LOGFILE Buffer
+    _In_ PEVENT_TRACE_LOGFILE Buffer
     )
 {
     return TRUE;
 }
 
 VOID NTAPI DotNetEventCallback(
-    __in PEVENT_RECORD EventRecord
+    _In_ PEVENT_RECORD EventRecord
     )
 {
     PASMPAGE_CONTEXT context = EventRecord->UserContext;
@@ -791,7 +791,7 @@ VOID NTAPI DotNetEventCallback(
 }
 
 ULONG ProcessDotNetTrace(
-    __in PASMPAGE_CONTEXT Context
+    _In_ PASMPAGE_CONTEXT Context
     )
 {
     ULONG result;
@@ -823,8 +823,8 @@ ULONG ProcessDotNetTrace(
 }
 
 ULONG UpdateDotNetTraceInfo(
-    __in PASMPAGE_CONTEXT Context,
-    __in BOOLEAN ClrV2
+    _In_ PASMPAGE_CONTEXT Context,
+    _In_ BOOLEAN ClrV2
     )
 {
     static _EnableTraceEx EnableTraceEx_I = NULL;
@@ -870,7 +870,7 @@ ULONG UpdateDotNetTraceInfo(
 }
 
 NTSTATUS UpdateDotNetTraceInfoThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PASMPAGE_CONTEXT context = Parameter;
@@ -881,9 +881,9 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
 }
 
 ULONG UpdateDotNetTraceInfoWithTimeout(
-    __in PASMPAGE_CONTEXT Context,
-    __in BOOLEAN ClrV2,
-    __in_opt PLARGE_INTEGER Timeout
+    _In_ PASMPAGE_CONTEXT Context,
+    _In_ BOOLEAN ClrV2,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     HANDLE threadHandle;
@@ -924,7 +924,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
 }
 
 BOOLEAN IsProcessSuspended(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PVOID processes;
@@ -942,10 +942,10 @@ BOOLEAN IsProcessSuspended(
 }
 
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;

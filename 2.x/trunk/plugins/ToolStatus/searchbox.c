@@ -43,8 +43,8 @@ static _IsThemeBackgroundPartiallyTransparent IsThemeBackgroundPartiallyTranspar
 static _GetThemeColor GetThemeColor_I;
 
 static VOID NcAreaInitializeUxTheme(
-    __inout NC_CONTEXT* Context,
-    __in HWND hwndDlg
+    _Inout_ NC_CONTEXT* Context,
+    _In_ HWND hwndDlg
     )
 {
     if (!Context->UxThemeModule)
@@ -126,8 +126,8 @@ static VOID NcAreaInitializeUxTheme(
 }
 
 static VOID NcAreaGetButtonRect(
-    __inout NC_CONTEXT* Context,
-    __in RECT* rect
+    _Inout_ NC_CONTEXT* Context,
+    _In_ RECT* rect
     )
 {
     // retrieve the coordinates of an inserted button, given the specified window rectangle.
@@ -141,12 +141,12 @@ static VOID NcAreaGetButtonRect(
 }
 
 static LRESULT CALLBACK NcAreaWndSubclassProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in UINT_PTR uIdSubclass,
-    __in DWORD_PTR dwRefData
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ DWORD_PTR dwRefData
     )
 {
     NC_CONTEXT* context = (NC_CONTEXT*)GetProp(hwndDlg, L"Context");
@@ -391,7 +391,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 }
 
 static HFONT InitializeFont(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     LOGFONT logFont = { 0 };
@@ -414,9 +414,9 @@ static HFONT InitializeFont(
 }
 
 HBITMAP LoadImageFromResources(
-    __in UINT Width,
-    __in UINT Height,
-    __in PCWSTR Name
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ PCWSTR Name
     )
 {
     UINT width = 0;
@@ -561,8 +561,8 @@ HBITMAP LoadImageFromResources(
 }
 
 BOOLEAN InsertButton(
-    __in HWND hwndDlg,
-    __in UINT CommandID
+    _In_ HWND hwndDlg,
+    _In_ UINT CommandID
     )
 {
     NC_CONTEXT* context = (NC_CONTEXT*)PhAllocate(sizeof(NC_CONTEXT));

@@ -4,10 +4,10 @@
 #define PH_CM_ORDER_LIMIT 160
 
 typedef LONG (NTAPI *PPH_CM_POST_SORT_FUNCTION)(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     );
 
 typedef struct _PH_CM_MANAGER
@@ -31,82 +31,82 @@ typedef struct _PH_CM_COLUMN
 } PH_CM_COLUMN, *PPH_CM_COLUMN;
 
 VOID PhCmInitializeManager(
-    __out PPH_CM_MANAGER Manager,
-    __in HWND Handle,
-    __in ULONG MinId,
-    __in PPH_CM_POST_SORT_FUNCTION PostSortFunction
+    _Out_ PPH_CM_MANAGER Manager,
+    _In_ HWND Handle,
+    _In_ ULONG MinId,
+    _In_ PPH_CM_POST_SORT_FUNCTION PostSortFunction
     );
 
 VOID PhCmDeleteManager(
-    __in PPH_CM_MANAGER Manager
+    _In_ PPH_CM_MANAGER Manager
     );
 
 PPH_CM_COLUMN PhCmCreateColumn(
-    __inout PPH_CM_MANAGER Manager,
-    __in PPH_TREENEW_COLUMN Column,
-    __in struct _PH_PLUGIN *Plugin,
-    __in ULONG SubId,
-    __in_opt PVOID Context,
-    __in PVOID SortFunction
+    _Inout_ PPH_CM_MANAGER Manager,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_ PVOID SortFunction
     );
 
 PPH_CM_COLUMN PhCmFindColumn(
-    __in PPH_CM_MANAGER Manager,
-    __in PPH_STRINGREF PluginName,
-    __in ULONG SubId
+    _In_ PPH_CM_MANAGER Manager,
+    _In_ PPH_STRINGREF PluginName,
+    _In_ ULONG SubId
     );
 
 VOID PhCmSetNotifyPlugin(
-    __in PPH_CM_MANAGER Manager,
-    __in struct _PH_PLUGIN *Plugin
+    _In_ PPH_CM_MANAGER Manager,
+    _In_ struct _PH_PLUGIN *Plugin
     );
 
 BOOLEAN PhCmForwardMessage(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in PPH_CM_MANAGER Manager
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_ PPH_CM_MANAGER Manager
     );
 
 BOOLEAN PhCmForwardSort(
-    __in PPH_TREENEW_NODE *Nodes,
-    __in ULONG NumberOfNodes,
-    __in ULONG SortColumn,
-    __in PH_SORT_ORDER SortOrder,
-    __in PPH_CM_MANAGER Manager
+    _In_ PPH_TREENEW_NODE *Nodes,
+    _In_ ULONG NumberOfNodes,
+    _In_ ULONG SortColumn,
+    _In_ PH_SORT_ORDER SortOrder,
+    _In_ PPH_CM_MANAGER Manager
     );
 
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhCmLoadSettings(
-    __in HWND TreeNewHandle,
-    __in PPH_STRINGREF Settings
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_STRINGREF Settings
     );
 
 #define PH_CM_COLUMN_WIDTHS_ONLY 0x1
 
 BOOLEAN PhCmLoadSettingsEx(
-    __in HWND TreeNewHandle,
-    __in_opt PPH_CM_MANAGER Manager,
-    __in ULONG Flags,
-    __in PPH_STRINGREF Settings,
-    __in_opt PPH_STRINGREF SortSettings
+    _In_ HWND TreeNewHandle,
+    _In_opt_ PPH_CM_MANAGER Manager,
+    _In_ ULONG Flags,
+    _In_ PPH_STRINGREF Settings,
+    _In_opt_ PPH_STRINGREF SortSettings
     );
 
 PHAPPAPI
 PPH_STRING
 NTAPI
 PhCmSaveSettings(
-    __in HWND TreeNewHandle
+    _In_ HWND TreeNewHandle
     );
 
 PPH_STRING PhCmSaveSettingsEx(
-    __in HWND TreeNewHandle,
-    __in_opt PPH_CM_MANAGER Manager,
-    __in ULONG Flags,
-    __out_opt PPH_STRING *SortSettings
+    _In_ HWND TreeNewHandle,
+    _In_opt_ PPH_CM_MANAGER Manager,
+    _In_ ULONG Flags,
+    _Out_opt_ PPH_STRING *SortSettings
     );
 
 #endif

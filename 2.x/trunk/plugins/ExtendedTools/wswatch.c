@@ -52,23 +52,23 @@ typedef struct _SYMBOL_LOOKUP_RESULT
 } SYMBOL_LOOKUP_RESULT, *PSYMBOL_LOOKUP_RESULT;
 
 VOID EtpReferenceWsWatchContext(
-    __inout PWS_WATCH_CONTEXT Context
+    _Inout_ PWS_WATCH_CONTEXT Context
     );
 
 VOID EtpDereferenceWsWatchContext(
-    __inout PWS_WATCH_CONTEXT Context
+    _Inout_ PWS_WATCH_CONTEXT Context
     );
 
 INT_PTR CALLBACK EtpWsWatchDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EtShowWsWatchDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PWS_WATCH_CONTEXT context;
@@ -89,14 +89,14 @@ VOID EtShowWsWatchDialog(
 }
 
 static VOID EtpReferenceWsWatchContext(
-    __inout PWS_WATCH_CONTEXT Context
+    _Inout_ PWS_WATCH_CONTEXT Context
     )
 {
     _InterlockedIncrement(&Context->RefCount);
 }
 
 static VOID EtpDereferenceWsWatchContext(
-    __inout PWS_WATCH_CONTEXT Context
+    _Inout_ PWS_WATCH_CONTEXT Context
     )
 {
     if (_InterlockedDecrement(&Context->RefCount) == 0)
@@ -129,7 +129,7 @@ static VOID EtpDereferenceWsWatchContext(
 }
 
 static NTSTATUS EtpSymbolLookupFunction(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PSYMBOL_LOOKUP_RESULT result;
@@ -170,8 +170,8 @@ static NTSTATUS EtpSymbolLookupFunction(
 }
 
 static VOID EtpQueueSymbolLookup(
-    __in PWS_WATCH_CONTEXT Context,
-    __in PVOID Address
+    _In_ PWS_WATCH_CONTEXT Context,
+    _In_ PVOID Address
     )
 {
     PSYMBOL_LOOKUP_RESULT result;
@@ -185,8 +185,8 @@ static VOID EtpQueueSymbolLookup(
 }
 
 static PPH_STRING EtpGetBasicSymbol(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in ULONG64 Address
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address
     )
 {
     ULONG64 modBase;
@@ -224,8 +224,8 @@ static PPH_STRING EtpGetBasicSymbol(
 }
 
 static VOID EtpProcessSymbolLookupResults(
-    __in HWND hwndDlg,
-    __in PWS_WATCH_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PWS_WATCH_CONTEXT Context
     )
 {
     PSINGLE_LIST_ENTRY listEntry;
@@ -257,8 +257,8 @@ static VOID EtpProcessSymbolLookupResults(
 }
 
 static BOOLEAN EtpUpdateWsWatch(
-    __in HWND hwndDlg,
-    __in PWS_WATCH_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PWS_WATCH_CONTEXT Context
     )
 {
     NTSTATUS status;
@@ -377,8 +377,8 @@ SkipBuffer:
 }
 
 static BOOLEAN NTAPI EnumGenericModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PWS_WATCH_CONTEXT context = Context;
@@ -399,10 +399,10 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
 }
 
 INT_PTR CALLBACK EtpWsWatchDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PWS_WATCH_CONTEXT context;

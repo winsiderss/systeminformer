@@ -37,15 +37,15 @@ typedef struct _STRING_TABLE_ENTRY
 } STRING_TABLE_ENTRY, *PSTRING_TABLE_ENTRY;
 
 BOOL ConsoleHandlerRoutine(
-    __in DWORD dwCtrlType
+    _In_ DWORD dwCtrlType
     );
 
 VOID PhpPrintHashtableStatistics(
-    __in PPH_HASHTABLE Hashtable
+    _In_ PPH_HASHTABLE Hashtable
     );
 
 NTSTATUS PhpDebugConsoleThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 extern PH_FREE_LIST PhObjectSmallFreeList;
@@ -114,7 +114,7 @@ VOID PhCloseDebugConsole(
 }
 
 static BOOL ConsoleHandlerRoutine(
-    __in DWORD dwCtrlType
+    _In_ DWORD dwCtrlType
     )
 {
     switch (dwCtrlType)
@@ -130,8 +130,8 @@ static BOOL ConsoleHandlerRoutine(
 }
 
 static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PhLoadModuleSymbolProvider((PPH_SYMBOL_PROVIDER)Context, Module->FileName->Buffer,
@@ -141,7 +141,7 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
 }
 
 static PWSTR PhpGetSymbolForAddress(
-    __in PVOID Address
+    _In_ PVOID Address
     )
 {
     return ((PPH_STRING)PHA_DEREFERENCE(PhGetSymbolFromAddress(
@@ -150,8 +150,8 @@ static PWSTR PhpGetSymbolForAddress(
 }
 
 static VOID PhpPrintObjectInfo(
-    __in PPH_OBJECT_HEADER ObjectHeader,
-    __in LONG RefToSubtract
+    _In_ PPH_OBJECT_HEADER ObjectHeader,
+    _In_ LONG RefToSubtract
     )
 {
     WCHAR c = ' ';
@@ -217,7 +217,7 @@ static VOID PhpPrintObjectInfo(
 }
 
 static VOID PhpDumpObjectInfo(
-    __in PPH_OBJECT_HEADER ObjectHeader
+    _In_ PPH_OBJECT_HEADER ObjectHeader
     )
 {
     __try
@@ -253,7 +253,7 @@ static VOID PhpDumpObjectInfo(
 }
 
 static VOID PhpPrintHashtableStatistics(
-    __in PPH_HASHTABLE Hashtable
+    _In_ PPH_HASHTABLE Hashtable
     )
 {
     ULONG i;
@@ -322,10 +322,10 @@ static VOID PhpPrintHashtableStatistics(
 
 #ifdef DEBUG
 static VOID PhpDebugCreateObjectHook(
-    __in PVOID Object,
-    __in SIZE_T Size,
-    __in ULONG Flags,
-    __in PPH_OBJECT_TYPE ObjectType
+    _In_ PVOID Object,
+    _In_ SIZE_T Size,
+    _In_ ULONG Flags,
+    _In_ PPH_OBJECT_TYPE ObjectType
     )
 {
     PhAcquireQueuedLockExclusive(&NewObjectListLock);
@@ -359,8 +359,8 @@ static VOID PhpDeleteNewObjectList(
 #endif
 
 static BOOLEAN PhpStringHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PSTRING_TABLE_ENTRY entry1 = Entry1;
@@ -370,7 +370,7 @@ static BOOLEAN PhpStringHashtableCompareFunction(
 }
 
 static ULONG PhpStringHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PSTRING_TABLE_ENTRY entry = Entry;
@@ -379,8 +379,8 @@ static ULONG PhpStringHashtableHashFunction(
 }
 
 static int __cdecl PhpStringEntryCompareByCount(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PSTRING_TABLE_ENTRY entry1 = *(PSTRING_TABLE_ENTRY *)elem1;
@@ -390,12 +390,12 @@ static int __cdecl PhpStringEntryCompareByCount(
 }
 
 static NTSTATUS PhpLeakEnumerationRoutine(
-    __in LONG Reserved,
-    __in PVOID HeapHandle,
-    __in PVOID BaseAddress,
-    __in SIZE_T BlockSize,
-    __in ULONG StackTraceDepth,
-    __in PVOID *StackTrace
+    _In_ LONG Reserved,
+    _In_ PVOID HeapHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T BlockSize,
+    _In_ ULONG StackTraceDepth,
+    _In_ PVOID *StackTrace
     )
 {
     ULONG i;
@@ -440,7 +440,7 @@ typedef struct _STOPWATCH
 } STOPWATCH, *PSTOPWATCH;
 
 static VOID PhInitializeStopwatch(
-    __out PSTOPWATCH Stopwatch
+    _Out_ PSTOPWATCH Stopwatch
     )
 {
     Stopwatch->StartCounter.QuadPart = 0;
@@ -448,21 +448,21 @@ static VOID PhInitializeStopwatch(
 }
 
 static VOID PhStartStopwatch(
-    __inout PSTOPWATCH Stopwatch
+    _Inout_ PSTOPWATCH Stopwatch
     )
 {
     NtQueryPerformanceCounter(&Stopwatch->StartCounter, &Stopwatch->Frequency);
 }
 
 static VOID PhStopStopwatch(
-    __inout PSTOPWATCH Stopwatch
+    _Inout_ PSTOPWATCH Stopwatch
     )
 {
     NtQueryPerformanceCounter(&Stopwatch->EndCounter, NULL);
 }
 
 static ULONG PhGetMillisecondsStopwatch(
-    __in PSTOPWATCH Stopwatch
+    _In_ PSTOPWATCH Stopwatch
     )
 {
     LARGE_INTEGER countsPerMs;
@@ -475,7 +475,7 @@ static ULONG PhGetMillisecondsStopwatch(
 }
 
 typedef VOID (FASTCALL *PPHF_RW_LOCK_FUNCTION)(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 typedef struct _RW_TEST_CONTEXT
@@ -495,7 +495,7 @@ static LONG RwReadersActive;
 static LONG RwWritersActive;
 
 static NTSTATUS PhpRwLockTestThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
 #define RW_ITERS 10000
@@ -567,7 +567,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
 }
 
 static VOID PhpTestRwLock(
-    __in PRW_TEST_CONTEXT Context
+    _In_ PRW_TEST_CONTEXT Context
     )
 {
 #define RW_PROCESSORS 4
@@ -622,28 +622,28 @@ static VOID PhpTestRwLock(
 }
 
 VOID FASTCALL PhfAcquireCriticalSection(
-    __in PRTL_CRITICAL_SECTION CriticalSection
+    _In_ PRTL_CRITICAL_SECTION CriticalSection
     )
 {
     RtlEnterCriticalSection(CriticalSection);
 }
 
 VOID FASTCALL PhfReleaseCriticalSection(
-    __in PRTL_CRITICAL_SECTION CriticalSection
+    _In_ PRTL_CRITICAL_SECTION CriticalSection
     )
 {
     RtlLeaveCriticalSection(CriticalSection);
 }
 
 VOID FASTCALL PhfReleaseQueuedLockExclusiveUsingInline(
-    __in PPH_QUEUED_LOCK QueuedLock
+    _In_ PPH_QUEUED_LOCK QueuedLock
     )
 {
     PhReleaseQueuedLockExclusive(QueuedLock);
 }
 
 NTSTATUS PhpDebugConsoleThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PH_AUTO_POOL autoPool;

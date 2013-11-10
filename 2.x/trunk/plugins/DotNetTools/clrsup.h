@@ -15,31 +15,31 @@ typedef struct _CLR_PROCESS_SUPPORT
 } CLR_PROCESS_SUPPORT, *PCLR_PROCESS_SUPPORT;
 
 PCLR_PROCESS_SUPPORT CreateClrProcessSupport(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 VOID FreeClrProcessSupport(
-    __in PCLR_PROCESS_SUPPORT Support
+    _In_ PCLR_PROCESS_SUPPORT Support
     );
 
 PPH_STRING GetRuntimeNameByAddressClrProcess(
-    __in PCLR_PROCESS_SUPPORT Support,
-    __in ULONG64 Address,
-    __out_opt PULONG64 Displacement
+    _In_ PCLR_PROCESS_SUPPORT Support,
+    _In_ ULONG64 Address,
+    _Out_opt_ PULONG64 Displacement
     );
 
 PPH_STRING GetNameXClrDataAppDomain(
-    __in PVOID AppDomain
+    _In_ PVOID AppDomain
     );
 
 PVOID LoadMscordacwks(
-    __in BOOLEAN IsClrV4
+    _In_ BOOLEAN IsClrV4
     );
 
 HRESULT CreateXCLRDataProcess(
-    __in HANDLE ProcessId,
-    __in ICLRDataTarget *Target,
-    __out struct IXCLRDataProcess **DataProcess
+    _In_ HANDLE ProcessId,
+    _In_ ICLRDataTarget *Target,
+    _Out_ struct IXCLRDataProcess **DataProcess
     );
 
 // xclrdata
@@ -55,43 +55,43 @@ typedef struct IXCLRDataFrame IXCLRDataFrame;
 typedef struct IXCLRDataProcessVtbl
 {
     HRESULT (STDMETHODCALLTYPE *QueryInterface)(
-        __in IXCLRDataProcess *This,
-        __in REFIID riid,
-        __deref_out void **ppvObject
+        _In_ IXCLRDataProcess *This,
+        _In_ REFIID riid,
+        _Outptr_ void **ppvObject
         );
 
     ULONG (STDMETHODCALLTYPE *AddRef)(
-        __in IXCLRDataProcess *This
+        _In_ IXCLRDataProcess *This
         );
 
     ULONG (STDMETHODCALLTYPE *Release)(
-        __in IXCLRDataProcess *This
+        _In_ IXCLRDataProcess *This
         );
 
     HRESULT (STDMETHODCALLTYPE *Flush)(
-        __in IXCLRDataProcess *This
+        _In_ IXCLRDataProcess *This
         );
 
     HRESULT (STDMETHODCALLTYPE *StartEnumTasks)(
-        __in IXCLRDataProcess *This,
-        __out CLRDATA_ENUM *handle
+        _In_ IXCLRDataProcess *This,
+        _Out_ CLRDATA_ENUM *handle
         );
 
     HRESULT (STDMETHODCALLTYPE *EnumTask)(
-        __in IXCLRDataProcess *This,
-        __inout CLRDATA_ENUM *handle,
-        __out IXCLRDataTask **task
+        _In_ IXCLRDataProcess *This,
+        _Inout_ CLRDATA_ENUM *handle,
+        _Out_ IXCLRDataTask **task
         );
 
     HRESULT (STDMETHODCALLTYPE *EndEnumTasks)(
-        __in IXCLRDataProcess *This,
-        __in CLRDATA_ENUM handle
+        _In_ IXCLRDataProcess *This,
+        _In_ CLRDATA_ENUM handle
         );
 
     HRESULT (STDMETHODCALLTYPE *GetTaskByOSThreadID)(
-        __in IXCLRDataProcess *This,
-        __in ULONG32 osThreadID,
-        __out IXCLRDataTask **task
+        _In_ IXCLRDataProcess *This,
+        _In_ ULONG32 osThreadID,
+        _Out_ IXCLRDataTask **task
         );
 
     PVOID GetTaskByUniqueID;
@@ -103,13 +103,13 @@ typedef struct IXCLRDataProcessVtbl
     PVOID GetAddressType;
 
     HRESULT (STDMETHODCALLTYPE *GetRuntimeNameByAddress)(
-        __in IXCLRDataProcess *This,
-        __in CLRDATA_ADDRESS address,
-        __in ULONG32 flags,
-        __in ULONG32 bufLen,
-        __out ULONG32 *nameLen,
-        __out WCHAR *nameBuf,
-        __out CLRDATA_ADDRESS *displacement
+        _In_ IXCLRDataProcess *This,
+        _In_ CLRDATA_ADDRESS address,
+        _In_ ULONG32 flags,
+        _In_ ULONG32 bufLen,
+        _Out_ ULONG32 *nameLen,
+        _Out_ WCHAR *nameBuf,
+        _Out_ CLRDATA_ADDRESS *displacement
         );
 
     // ...
@@ -150,34 +150,34 @@ typedef struct IXCLRDataProcess
 typedef struct IXCLRDataAppDomainVtbl
 {
     HRESULT (STDMETHODCALLTYPE *QueryInterface)(
-        __in IXCLRDataAppDomain *This,
-        __in REFIID riid,
-        __deref_out void **ppvObject
+        _In_ IXCLRDataAppDomain *This,
+        _In_ REFIID riid,
+        _Outptr_ void **ppvObject
         );
 
     ULONG (STDMETHODCALLTYPE *AddRef)(
-        __in IXCLRDataAppDomain *This
+        _In_ IXCLRDataAppDomain *This
         );
 
     ULONG (STDMETHODCALLTYPE *Release)(
-        __in IXCLRDataAppDomain *This
+        _In_ IXCLRDataAppDomain *This
         );
 
     HRESULT (STDMETHODCALLTYPE *GetProcess)(
-        __in IXCLRDataAppDomain *This,
-        __out IXCLRDataProcess **process
+        _In_ IXCLRDataAppDomain *This,
+        _Out_ IXCLRDataProcess **process
         );
 
     HRESULT (STDMETHODCALLTYPE *GetName)(
-        __in IXCLRDataAppDomain *This,
-        __in ULONG32 bufLen,
-        __out ULONG32 *nameLen,
-        __out WCHAR *name
+        _In_ IXCLRDataAppDomain *This,
+        _In_ ULONG32 bufLen,
+        _Out_ ULONG32 *nameLen,
+        _Out_ WCHAR *name
         );
 
     HRESULT (STDMETHODCALLTYPE *GetUniqueID)(
-        __in IXCLRDataAppDomain *This,
-        __out ULONG64 *id
+        _In_ IXCLRDataAppDomain *This,
+        _Out_ ULONG64 *id
         );
 
     // ...
@@ -209,37 +209,37 @@ typedef struct IXCLRDataAppDomain
 typedef struct IXCLRDataTaskVtbl
 {
     HRESULT (STDMETHODCALLTYPE *QueryInterface)(
-        __in IXCLRDataTask *This,
-        __in REFIID riid,
-        __deref_out void **ppvObject
+        _In_ IXCLRDataTask *This,
+        _In_ REFIID riid,
+        _Outptr_ void **ppvObject
         );
 
     ULONG (STDMETHODCALLTYPE *AddRef)(
-        __in IXCLRDataTask *This
+        _In_ IXCLRDataTask *This
         );
 
     ULONG (STDMETHODCALLTYPE *Release)(
-        __in IXCLRDataTask *This
+        _In_ IXCLRDataTask *This
         );
 
     HRESULT (STDMETHODCALLTYPE *GetProcess)(
-        __in IXCLRDataTask *This,
-        __out IXCLRDataProcess **process
+        _In_ IXCLRDataTask *This,
+        _Out_ IXCLRDataProcess **process
         );
 
     HRESULT (STDMETHODCALLTYPE *GetCurrentAppDomain)(
-        __in IXCLRDataTask *This,
-        __out IXCLRDataAppDomain **appDomain
+        _In_ IXCLRDataTask *This,
+        _Out_ IXCLRDataAppDomain **appDomain
         );
 
     HRESULT (STDMETHODCALLTYPE *GetUniqueID)(
-        __in IXCLRDataTask *This,
-        __out ULONG64 *id
+        _In_ IXCLRDataTask *This,
+        _Out_ ULONG64 *id
         );
 
     HRESULT (STDMETHODCALLTYPE *GetFlags)(
-        __in IXCLRDataTask *This,
-        __out ULONG32 *flags
+        _In_ IXCLRDataTask *This,
+        _Out_ ULONG32 *flags
         );
 
     PVOID IsSameObject;
@@ -248,14 +248,14 @@ typedef struct IXCLRDataTaskVtbl
     PVOID SetDesiredExecutionState;
 
     HRESULT (STDMETHODCALLTYPE *CreateStackWalk)(
-        __in IXCLRDataTask *This,
-        __in ULONG32 flags,
-        __out IXCLRDataStackWalk **stackWalk
+        _In_ IXCLRDataTask *This,
+        _In_ ULONG32 flags,
+        _Out_ IXCLRDataStackWalk **stackWalk
         );
 
     HRESULT (STDMETHODCALLTYPE *GetOSThreadID)(
-        __in IXCLRDataTask *This,
-        __out ULONG32 *id
+        _In_ IXCLRDataTask *This,
+        _Out_ ULONG32 *id
         );
 
     PVOID GetContext;
@@ -264,10 +264,10 @@ typedef struct IXCLRDataTaskVtbl
     PVOID Request;
 
     HRESULT (STDMETHODCALLTYPE *GetName)(
-        __in IXCLRDataTask *This,
-        __in ULONG32 bufLen,
-        __out ULONG32 *nameLen,
-        __out WCHAR *name
+        _In_ IXCLRDataTask *This,
+        _In_ ULONG32 bufLen,
+        _Out_ ULONG32 *nameLen,
+        _Out_ WCHAR *name
         );
 
     PVOID GetLastExceptionState;
@@ -345,63 +345,63 @@ typedef enum
 typedef struct IXCLRDataStackWalkVtbl
 {
     HRESULT (STDMETHODCALLTYPE *QueryInterface)(
-        __in IXCLRDataStackWalk *This,
-        __in REFIID riid,
-        __deref_out void **ppvObject
+        _In_ IXCLRDataStackWalk *This,
+        _In_ REFIID riid,
+        _Outptr_ void **ppvObject
         );
 
     ULONG (STDMETHODCALLTYPE *AddRef)(
-        __in IXCLRDataStackWalk *This
+        _In_ IXCLRDataStackWalk *This
         );
 
     ULONG (STDMETHODCALLTYPE *Release)(
-        __in IXCLRDataStackWalk *This
+        _In_ IXCLRDataStackWalk *This
         );
 
     HRESULT (STDMETHODCALLTYPE *GetContext)(
-        __in IXCLRDataStackWalk *This,
-        __in ULONG32 contextFlags,
-        __in ULONG32 contextBufSize,
-        __out ULONG32 *contextSize,
-        __out BYTE *contextBuf
+        _In_ IXCLRDataStackWalk *This,
+        _In_ ULONG32 contextFlags,
+        _In_ ULONG32 contextBufSize,
+        _Out_ ULONG32 *contextSize,
+        _Out_ BYTE *contextBuf
         );
 
     PVOID SetContext;
 
     HRESULT (STDMETHODCALLTYPE *Next)(
-        __in IXCLRDataStackWalk *This
+        _In_ IXCLRDataStackWalk *This
         );
 
     HRESULT (STDMETHODCALLTYPE *GetStackSizeSkipped)(
-        __in IXCLRDataStackWalk *This,
-        __out ULONG64 *stackSizeSkipped
+        _In_ IXCLRDataStackWalk *This,
+        _Out_ ULONG64 *stackSizeSkipped
         );
 
     HRESULT (STDMETHODCALLTYPE *GetFrameType)(
-        __in IXCLRDataStackWalk *This,
-        __out CLRDataSimpleFrameType *simpleType,
-        __out CLRDataDetailedFrameType *detailedType
+        _In_ IXCLRDataStackWalk *This,
+        _Out_ CLRDataSimpleFrameType *simpleType,
+        _Out_ CLRDataDetailedFrameType *detailedType
         );
 
     HRESULT (STDMETHODCALLTYPE *GetFrame)(
-        __in IXCLRDataStackWalk *This,
-        __out PVOID *frame
+        _In_ IXCLRDataStackWalk *This,
+        _Out_ PVOID *frame
         );
 
     HRESULT (STDMETHODCALLTYPE *Request)(
-        __in IXCLRDataStackWalk *This,
-        __in ULONG32 reqCode,
-        __in ULONG32 inBufferSize,
-        __in BYTE *inBuffer,
-        __in ULONG32 outBufferSize,
-        __out BYTE *outBuffer
+        _In_ IXCLRDataStackWalk *This,
+        _In_ ULONG32 reqCode,
+        _In_ ULONG32 inBufferSize,
+        _In_ BYTE *inBuffer,
+        _In_ ULONG32 outBufferSize,
+        _Out_ BYTE *outBuffer
         );
 
     HRESULT (STDMETHODCALLTYPE *SetContext2)(
-        __in IXCLRDataStackWalk *This,
-        __in ULONG32 flags,
-        __in ULONG32 contextSize,
-        __in BYTE *context
+        _In_ IXCLRDataStackWalk *This,
+        _In_ ULONG32 flags,
+        _In_ ULONG32 contextSize,
+        _In_ BYTE *context
         );
 } IXCLRDataStackWalkVtbl;
 
@@ -443,31 +443,31 @@ typedef struct IXCLRDataStackWalk
 typedef struct IXCLRDataFrameVtbl
 {
     HRESULT (STDMETHODCALLTYPE *QueryInterface)(
-        __in IXCLRDataFrame *This,
-        __in REFIID riid,
-        __deref_out void **ppvObject
+        _In_ IXCLRDataFrame *This,
+        _In_ REFIID riid,
+        _Outptr_ void **ppvObject
         );
 
     ULONG (STDMETHODCALLTYPE *AddRef)(
-        __in IXCLRDataFrame *This
+        _In_ IXCLRDataFrame *This
         );
 
     ULONG (STDMETHODCALLTYPE *Release)(
-        __in IXCLRDataFrame *This
+        _In_ IXCLRDataFrame *This
         );
 
     HRESULT (STDMETHODCALLTYPE *GetFrameType)(
-        __in IXCLRDataFrame *This,
-        __out CLRDataSimpleFrameType *simpleType,
-        __out CLRDataDetailedFrameType *detailedType
+        _In_ IXCLRDataFrame *This,
+        _Out_ CLRDataSimpleFrameType *simpleType,
+        _Out_ CLRDataDetailedFrameType *detailedType
         );
 
     HRESULT (STDMETHODCALLTYPE *GetContext)(
-        __in IXCLRDataFrame *This,
-        __in ULONG32 contextFlags,
-        __in ULONG32 contextBufSize,
-        __out ULONG32 *contextSize,
-        __out BYTE *contextBuf
+        _In_ IXCLRDataFrame *This,
+        _In_ ULONG32 contextFlags,
+        _In_ ULONG32 contextBufSize,
+        _Out_ ULONG32 *contextSize,
+        _Out_ BYTE *contextBuf
         );
 
     PVOID GetAppDomain;
@@ -477,11 +477,11 @@ typedef struct IXCLRDataFrameVtbl
     PVOID GetLocalVariableByIndex;
 
     HRESULT (STDMETHODCALLTYPE *GetCodeName)(
-        __in IXCLRDataFrame *This,
-        __in ULONG32 *flags,
-        __in ULONG32 *bufLen,
-        __out ULONG32 *nameLen,
-        __out WCHAR *nameBuf
+        _In_ IXCLRDataFrame *This,
+        _In_ ULONG32 *flags,
+        _In_ ULONG32 *bufLen,
+        _Out_ ULONG32 *nameLen,
+        _Out_ WCHAR *nameBuf
         );
 } IXCLRDataFrameVtbl;
 
@@ -522,96 +522,96 @@ typedef struct
 } DnCLRDataTarget;
 
 ICLRDataTarget *DnCLRDataTarget_Create(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_QueryInterface(
-    __in ICLRDataTarget *This,
-    __in REFIID Riid,
-    __out PVOID *Object
+    _In_ ICLRDataTarget *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
     );
 
 ULONG STDMETHODCALLTYPE DnCLRDataTarget_AddRef(
-    __in ICLRDataTarget *This
+    _In_ ICLRDataTarget *This
     );
 
 ULONG STDMETHODCALLTYPE DnCLRDataTarget_Release(
-    __in ICLRDataTarget *This
+    _In_ ICLRDataTarget *This
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetMachineType(
-    __in ICLRDataTarget *This,
-    __out ULONG32 *machineType
+    _In_ ICLRDataTarget *This,
+    _Out_ ULONG32 *machineType
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
-    __in ICLRDataTarget *This,
-    __out ULONG32 *pointerSize
+    _In_ ICLRDataTarget *This,
+    _Out_ ULONG32 *pointerSize
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
-    __in ICLRDataTarget *This,
-    __in LPCWSTR imagePath,
-    __out CLRDATA_ADDRESS *baseAddress
+    _In_ ICLRDataTarget *This,
+    _In_ LPCWSTR imagePath,
+    _Out_ CLRDATA_ADDRESS *baseAddress
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
-    __in ICLRDataTarget *This,
-    __in CLRDATA_ADDRESS address,
-    __out BYTE *buffer,
-    __in ULONG32 bytesRequested,
-    __out ULONG32 *bytesRead
+    _In_ ICLRDataTarget *This,
+    _In_ CLRDATA_ADDRESS address,
+    _Out_ BYTE *buffer,
+    _In_ ULONG32 bytesRequested,
+    _Out_ ULONG32 *bytesRead
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_WriteVirtual(
-    __in ICLRDataTarget *This,
-    __in CLRDATA_ADDRESS address,
-    __in BYTE *buffer,
-    __in ULONG32 bytesRequested,
-    __out ULONG32 *bytesWritten
+    _In_ ICLRDataTarget *This,
+    _In_ CLRDATA_ADDRESS address,
+    _In_ BYTE *buffer,
+    _In_ ULONG32 bytesRequested,
+    _Out_ ULONG32 *bytesWritten
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetTLSValue(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 index,
-    __out CLRDATA_ADDRESS *value
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 index,
+    _Out_ CLRDATA_ADDRESS *value
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetTLSValue(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 index,
-    __in CLRDATA_ADDRESS value
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 index,
+    _In_ CLRDATA_ADDRESS value
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetCurrentThreadID(
-    __in ICLRDataTarget *This,
-    __out ULONG32 *threadID
+    _In_ ICLRDataTarget *This,
+    _Out_ ULONG32 *threadID
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 contextFlags,
-    __in ULONG32 contextSize,
-    __out BYTE *context
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 contextFlags,
+    _In_ ULONG32 contextSize,
+    _Out_ BYTE *context
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 contextSize,
-    __in BYTE *context
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 contextSize,
+    _In_ BYTE *context
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_Request(
-    __in ICLRDataTarget *This,
-    __in ULONG32 reqCode,
-    __in ULONG32 inBufferSize,
-    __in BYTE *inBuffer,
-    __in ULONG32 outBufferSize,
-    __out BYTE *outBuffer
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 reqCode,
+    _In_ ULONG32 inBufferSize,
+    _In_ BYTE *inBuffer,
+    _In_ ULONG32 outBufferSize,
+    _Out_ BYTE *outBuffer
     );
 
 typedef struct _PHP_GET_IMAGE_BASE_CONTEXT

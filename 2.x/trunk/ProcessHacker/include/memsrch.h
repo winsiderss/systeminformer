@@ -10,8 +10,8 @@ typedef struct _PH_MEMORY_RESULT
 } PH_MEMORY_RESULT, *PPH_MEMORY_RESULT;
 
 typedef VOID (NTAPI *PPH_MEMORY_RESULT_CALLBACK)(
-    __in __assumeRefs(1) PPH_MEMORY_RESULT Result,
-    __in_opt PVOID Context
+    _In_ _Assume_refs_(1) PPH_MEMORY_RESULT Result,
+    _In_opt_ PVOID Context
     );
 
 #define PH_DISPLAY_BUFFER_COUNT (PAGE_SIZE * 2 - 1)
@@ -33,29 +33,29 @@ typedef struct _PH_MEMORY_STRING_OPTIONS
 } PH_MEMORY_STRING_OPTIONS, *PPH_MEMORY_STRING_OPTIONS;
 
 PVOID PhAllocateForMemorySearch(
-    __in SIZE_T Size
+    _In_ SIZE_T Size
     );
 
 VOID PhFreeForMemorySearch(
-    __in __post_invalid PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     );
 
 PVOID PhCreateMemoryResult(
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     );
 
 VOID PhReferenceMemoryResult(
-    __in PPH_MEMORY_RESULT Result
+    _In_ PPH_MEMORY_RESULT Result
     );
 
 VOID PhDereferenceMemoryResult(
-    __in PPH_MEMORY_RESULT Result
+    _In_ PPH_MEMORY_RESULT Result
     );
 
 VOID PhDereferenceMemoryResults(
-    __in_ecount(NumberOfResults) PPH_MEMORY_RESULT *Results,
-    __in ULONG NumberOfResults
+    _In_reads_(NumberOfResults) PPH_MEMORY_RESULT *Results,
+    _In_ ULONG NumberOfResults
     );
 
 #endif

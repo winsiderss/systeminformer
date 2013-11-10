@@ -30,22 +30,22 @@
 #define PHP_USE_IFILEDIALOG (WINDOWS_HAS_IFILEDIALOG)
 
 typedef BOOLEAN (NTAPI *_WinStationQueryInformationW)(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG LogonId,
-    __in WINSTATIONINFOCLASS WinStationInformationClass,
-    __out_bcount(WinStationInformationLength) PVOID WinStationInformation,
-    __in ULONG WinStationInformationLength,
-    __out PULONG ReturnLength
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG LogonId,
+    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
+    _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
+    _In_ ULONG WinStationInformationLength,
+    _Out_ PULONG ReturnLength
     );
 
 typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
-    __out LPVOID *lpEnvironment,
-    __in_opt HANDLE hToken,
-    __in BOOL bInherit
+    _Out_ LPVOID *lpEnvironment,
+    _In_opt_ HANDLE hToken,
+    _In_ BOOL bInherit
     );
 
 typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
-    __in LPVOID lpEnvironment
+    _In_ LPVOID lpEnvironment
     );
 
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
@@ -63,8 +63,8 @@ DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = MAXULONG32;
  * top-left of the bounds.
  */
 VOID PhAdjustRectangleToBounds(
-    __inout PPH_RECTANGLE Rectangle,
-    __in PPH_RECTANGLE Bounds
+    _Inout_ PPH_RECTANGLE Rectangle,
+    _In_ PPH_RECTANGLE Bounds
     )
 {
     if (Rectangle->Left + Rectangle->Width > Bounds->Left + Bounds->Width)
@@ -86,8 +86,8 @@ VOID PhAdjustRectangleToBounds(
  * \param Bounds The bounds.
  */
 VOID PhCenterRectangle(
-    __inout PPH_RECTANGLE Rectangle,
-    __in PPH_RECTANGLE Bounds
+    _Inout_ PPH_RECTANGLE Rectangle,
+    _In_ PPH_RECTANGLE Bounds
     )
 {
     Rectangle->Left = Bounds->Left + (Bounds->Width - Rectangle->Width) / 2;
@@ -102,8 +102,8 @@ VOID PhCenterRectangle(
  * \param Rectangle The rectangle to be adjusted.
  */
 VOID PhAdjustRectangleToWorkingArea(
-    __in HWND hWnd,
-    __inout PPH_RECTANGLE Rectangle
+    _In_ HWND hWnd,
+    _Inout_ PPH_RECTANGLE Rectangle
     )
 {
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
@@ -129,8 +129,8 @@ VOID PhAdjustRectangleToWorkingArea(
  * at the center of the monitor.
  */
 VOID PhCenterWindow(
-    __in HWND WindowHandle,
-    __in_opt HWND ParentWindowHandle
+    _In_ HWND WindowHandle,
+    _In_opt_ HWND ParentWindowHandle
     )
 {
     if (ParentWindowHandle)
@@ -179,8 +179,8 @@ VOID PhCenterWindow(
  * \param NumberOfObjects The number of elements in \a Objects.
  */
 VOID PhReferenceObjects(
-    __in_ecount(NumberOfObjects) PVOID *Objects,
-    __in ULONG NumberOfObjects
+    _In_reads_(NumberOfObjects) PVOID *Objects,
+    _In_ ULONG NumberOfObjects
     )
 {
     ULONG i;
@@ -196,8 +196,8 @@ VOID PhReferenceObjects(
  * \param NumberOfObjects The number of elements in \a Objects.
  */
 VOID PhDereferenceObjects(
-    __in_ecount(NumberOfObjects) PVOID *Objects,
-    __in ULONG NumberOfObjects
+    _In_reads_(NumberOfObjects) PVOID *Objects,
+    _In_ ULONG NumberOfObjects
     )
 {
     ULONG i;
@@ -219,10 +219,10 @@ VOID PhDereferenceObjects(
  * when you no longer need it.
  */
 PPH_STRING PhGetMessage(
-    __in PVOID DllHandle,
-    __in ULONG MessageTableId,
-    __in ULONG MessageLanguageId,
-    __in ULONG MessageId
+    _In_ PVOID DllHandle,
+    _In_ ULONG MessageTableId,
+    _In_ ULONG MessageLanguageId,
+    _In_ ULONG MessageId
     )
 {
     NTSTATUS status;
@@ -279,7 +279,7 @@ PPH_STRING PhGetMessage(
  * \param Status The NT status value.
  */
 PPH_STRING PhGetNtMessage(
-    __in NTSTATUS Status
+    _In_ NTSTATUS Status
     )
 {
     PPH_STRING message;
@@ -324,7 +324,7 @@ PPH_STRING PhGetNtMessage(
  * \param Result The Win32 error code.
  */
 PPH_STRING PhGetWin32Message(
-    __in ULONG Result
+    _In_ ULONG Result
     )
 {
     return PhGetMessage(GetModuleHandle(L"kernel32.dll"), 0xb, GetUserDefaultLangID(), Result);
@@ -340,9 +340,9 @@ PPH_STRING PhGetWin32Message(
  * \return The user's response.
  */
 INT PhShowMessage(
-    __in HWND hWnd,
-    __in ULONG Type,
-    __in PWSTR Format,
+    _In_ HWND hWnd,
+    _In_ ULONG Type,
+    _In_ PWSTR Format,
     ...
     )
 {
@@ -354,10 +354,10 @@ INT PhShowMessage(
 }
 
 INT PhShowMessage_V(
-    __in HWND hWnd,
-    __in ULONG Type,
-    __in PWSTR Format,
-    __in va_list ArgPtr
+    _In_ HWND hWnd,
+    _In_ ULONG Type,
+    _In_ PWSTR Format,
+    _In_ va_list ArgPtr
     )
 {
     INT result;
@@ -372,8 +372,8 @@ INT PhShowMessage_V(
 }
 
 PPH_STRING PhpGetStatusMessage(
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
     )
 {
     if (!Win32Result)
@@ -408,10 +408,10 @@ PPH_STRING PhpGetStatusMessage(
  * \param Win32Result A Win32 error code, or 0 if there is none.
  */
 VOID PhShowStatus(
-    __in HWND hWnd,
-    __in_opt PWSTR Message,
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Message,
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
     )
 {
     PPH_STRING statusMessage;
@@ -457,10 +457,10 @@ VOID PhShowStatus(
  * otherwise FALSE.
  */
 BOOLEAN PhShowContinueStatus(
-    __in HWND hWnd,
-    __in_opt PWSTR Message,
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Message,
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
     )
 {
     PPH_STRING statusMessage;
@@ -509,11 +509,11 @@ BOOLEAN PhShowContinueStatus(
  * \return TRUE if the user wishes to continue, otherwise FALSE.
  */
 BOOLEAN PhShowConfirmMessage(
-    __in HWND hWnd,
-    __in PWSTR Verb,
-    __in PWSTR Object,
-    __in_opt PWSTR Message,
-    __in BOOLEAN Warning
+    _In_ HWND hWnd,
+    _In_ PWSTR Verb,
+    _In_ PWSTR Object,
+    _In_opt_ PWSTR Message,
+    _In_ BOOLEAN Warning
     )
 {
     PPH_STRING verb;
@@ -593,10 +593,10 @@ BOOLEAN PhShowConfirmMessage(
  * \remarks The search is case-sensitive.
  */
 BOOLEAN PhFindIntegerSiKeyValuePairs(
-    __in PPH_KEY_VALUE_PAIR KeyValuePairs,
-    __in ULONG SizeOfKeyValuePairs,
-    __in PWSTR String,
-    __out PULONG Integer
+    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ PWSTR String,
+    _Out_ PULONG Integer
     )
 {
     ULONG i;
@@ -624,10 +624,10 @@ BOOLEAN PhFindIntegerSiKeyValuePairs(
  * \return TRUE if the integer was found, otherwise FALSE.
  */
 BOOLEAN PhFindStringSiKeyValuePairs(
-    __in PPH_KEY_VALUE_PAIR KeyValuePairs,
-    __in ULONG SizeOfKeyValuePairs,
-    __in ULONG Integer,
-    __out PWSTR *String
+    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ ULONG Integer,
+    _Out_ PWSTR *String
     )
 {
     ULONG i;
@@ -650,7 +650,7 @@ BOOLEAN PhFindStringSiKeyValuePairs(
  * \param Guid The destination UUID.
  */
 VOID PhGenerateGuid(
-    __out PGUID Guid
+    _Out_ PGUID Guid
     )
 {
     static ULONG seed = 0;
@@ -687,7 +687,7 @@ VOID PhGenerateGuid(
 }
 
 FORCEINLINE VOID PhpReverseGuid(
-    __inout PGUID Guid
+    _Inout_ PGUID Guid
     )
 {
     Guid->Data1 = _byteswap_ulong(Guid->Data1);
@@ -708,11 +708,11 @@ FORCEINLINE VOID PhpReverseGuid(
  * \li \c GUID_VERSION_SHA1 Creates a type 5, SHA1-based UUID.
  */
 VOID PhGenerateGuidFromName(
-    __out PGUID Guid,
-    __in PGUID Namespace,
-    __in PCHAR Name,
-    __in ULONG NameLength,
-    __in UCHAR Version
+    _Out_ PGUID Guid,
+    _In_ PGUID Namespace,
+    _In_ PCHAR Name,
+    _In_ ULONG NameLength,
+    _In_ UCHAR Version
     )
 {
     PGUID_EX guid;
@@ -773,8 +773,8 @@ VOID PhGenerateGuidFromName(
  * including space for the null terminator.
  */
 VOID PhGenerateRandomAlphaString(
-    __out_ecount_z(Count) PWSTR Buffer,
-    __in ULONG Count
+    _Out_writes_z_(Count) PWSTR Buffer,
+    _In_ ULONG Count
     )
 {
     static ULONG seed = 0;
@@ -802,8 +802,8 @@ VOID PhGenerateRandomAlphaString(
  * \return The new string.
  */
 PPH_STRING PhEllipsisString(
-    __in PPH_STRING String,
-    __in ULONG DesiredCount
+    _In_ PPH_STRING String,
+    _In_ ULONG DesiredCount
     )
 {
     if (
@@ -838,8 +838,8 @@ PPH_STRING PhEllipsisString(
  * \return The new string.
  */
 PPH_STRING PhEllipsisStringPath(
-    __in PPH_STRING String,
-    __in ULONG DesiredCount
+    _In_ PPH_STRING String,
+    _In_ ULONG DesiredCount
     )
 {
     ULONG_PTR secondPartIndex;
@@ -904,9 +904,9 @@ PPH_STRING PhEllipsisStringPath(
 }
 
 FORCEINLINE BOOLEAN PhpMatchWildcards(
-    __in PWSTR Pattern,
-    __in PWSTR String,
-    __in BOOLEAN IgnoreCase
+    _In_ PWSTR Pattern,
+    _In_ PWSTR String,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     PWCHAR s, p;
@@ -972,9 +972,9 @@ StarCheck:
  * \param IgnoreCase Whether to ignore character cases.
  */
 BOOLEAN PhMatchWildcards(
-    __in PWSTR Pattern,
-    __in PWSTR String,
-    __in BOOLEAN IgnoreCase
+    _In_ PWSTR Pattern,
+    _In_ PWSTR String,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     if (!IgnoreCase)
@@ -992,7 +992,7 @@ BOOLEAN PhMatchWildcards(
  * 2 ampersands.
  */
 PPH_STRING PhEscapeStringForMenuPrefix(
-    __in PPH_STRINGREF String
+    _In_ PPH_STRINGREF String
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -1051,10 +1051,10 @@ PPH_STRING PhEscapeStringForMenuPrefix(
  * prefix of \a B.
  */
 LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
-    __in PWSTR A,
-    __in PWSTR B,
-    __in BOOLEAN IgnoreCase,
-    __in BOOLEAN MatchIfPrefix
+    _In_ PWSTR A,
+    _In_ PWSTR B,
+    _In_ BOOLEAN IgnoreCase,
+    _In_ BOOLEAN MatchIfPrefix
     )
 {
     WCHAR t;
@@ -1127,8 +1127,8 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
  * to the user's locale is used.
  */
 PPH_STRING PhFormatDate(
-    __in_opt PSYSTEMTIME Date,
-    __in_opt PWSTR Format
+    _In_opt_ PSYSTEMTIME Date,
+    _In_opt_ PWSTR Format
     )
 {
     PPH_STRING string;
@@ -1156,8 +1156,8 @@ PPH_STRING PhFormatDate(
  * to the user's locale is used.
  */
 PPH_STRING PhFormatTime(
-    __in_opt PSYSTEMTIME Time,
-    __in_opt PWSTR Format
+    _In_opt_ PSYSTEMTIME Time,
+    _In_opt_ PWSTR Format
     )
 {
     PPH_STRING string;
@@ -1185,7 +1185,7 @@ PPH_STRING PhFormatTime(
  * \return A string containing the time, a space character, then the date.
  */
 PPH_STRING PhFormatDateTime(
-    __in_opt PSYSTEMTIME DateTime
+    _In_opt_ PSYSTEMTIME DateTime
     )
 {
     PPH_STRING string;
@@ -1224,7 +1224,7 @@ PPH_STRING PhFormatDateTime(
  * \param TimeSpan The time span, in ticks.
  */
 PPH_STRING PhFormatTimeSpanRelative(
-    __in ULONG64 TimeSpan
+    _In_ ULONG64 TimeSpan
     )
 {
     PH_AUTO_POOL autoPool;
@@ -1348,8 +1348,8 @@ PPH_STRING PhFormatTimeSpanRelative(
  * \param GroupDigits TRUE to group digits, otherwise FALSE.
  */
 PPH_STRING PhFormatUInt64(
-    __in ULONG64 Value,
-    __in BOOLEAN GroupDigits
+    _In_ ULONG64 Value,
+    _In_ BOOLEAN GroupDigits
     )
 {
     PH_FORMAT format;
@@ -1361,9 +1361,9 @@ PPH_STRING PhFormatUInt64(
 }
 
 PPH_STRING PhFormatDecimal(
-    __in PWSTR Value,
-    __in ULONG FractionalDigits,
-    __in BOOLEAN GroupDigits
+    _In_ PWSTR Value,
+    _In_ ULONG FractionalDigits,
+    _In_ BOOLEAN GroupDigits
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -1427,8 +1427,8 @@ PPH_STRING PhFormatDecimal(
  * \li \c 6 Exabytes.
  */
 PPH_STRING PhFormatSize(
-    __in ULONG64 Size,
-    __in ULONG MaxSizeUnit
+    _In_ ULONG64 Size,
+    _In_ ULONG MaxSizeUnit
     )
 {
     PH_FORMAT format;
@@ -1448,7 +1448,7 @@ PPH_STRING PhFormatSize(
  * \param Guid A UUID.
  */
 PPH_STRING PhFormatGuid(
-    __in PGUID Guid
+    _In_ PGUID Guid
     )
 {
     PPH_STRING string;
@@ -1472,7 +1472,7 @@ PPH_STRING PhFormatGuid(
  * free this using PhFree() when you no longer need it.
  */
 PVOID PhGetFileVersionInfo(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     )
 {
     ULONG versionInfoSize;
@@ -1515,7 +1515,7 @@ PVOID PhGetFileVersionInfo(
  * \param VersionInfo The version information block.
  */
 ULONG PhGetFileVersionInfoLangCodePage(
-    __in PVOID VersionInfo
+    _In_ PVOID VersionInfo
     )
 {
     PVOID buffer;
@@ -1539,8 +1539,8 @@ ULONG PhGetFileVersionInfoLangCodePage(
  * \param SubBlock The path to the sub-block.
  */
 PPH_STRING PhGetFileVersionInfoString(
-    __in PVOID VersionInfo,
-    __in PWSTR SubBlock
+    _In_ PVOID VersionInfo,
+    _In_ PWSTR SubBlock
     )
 {
     PVOID buffer;
@@ -1570,9 +1570,9 @@ PPH_STRING PhGetFileVersionInfoString(
  * \param StringName The name of the string.
  */
 PPH_STRING PhGetFileVersionInfoString2(
-    __in PVOID VersionInfo,
-    __in ULONG LangCodePage,
-    __in PWSTR StringName
+    _In_ PVOID VersionInfo,
+    _In_ ULONG LangCodePage,
+    _In_ PWSTR StringName
     )
 {
     WCHAR subBlock[65];
@@ -1592,9 +1592,9 @@ PPH_STRING PhGetFileVersionInfoString2(
 }
 
 VOID PhpGetImageVersionInfoFields(
-    __out PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    __in PVOID VersionInfo,
-    __in ULONG LangCodePage
+    _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PVOID VersionInfo,
+    _In_ ULONG LangCodePage
     )
 {
     ImageVersionInfo->CompanyName = PhGetFileVersionInfoString2(VersionInfo, LangCodePage, L"CompanyName");
@@ -1609,8 +1609,8 @@ VOID PhpGetImageVersionInfoFields(
  * \param FileName The file name of an image.
  */
 BOOLEAN PhInitializeImageVersionInfo(
-    __out PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    __in PWSTR FileName
+    _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PWSTR FileName
     )
 {
     PVOID versionInfo;
@@ -1672,7 +1672,7 @@ BOOLEAN PhInitializeImageVersionInfo(
  * \param ImageVersionInfo The version information structure.
  */
 VOID PhDeleteImageVersionInfo(
-    __inout PPH_IMAGE_VERSION_INFO ImageVersionInfo
+    _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo
     )
 {
     if (ImageVersionInfo->CompanyName) PhDereferenceObject(ImageVersionInfo->CompanyName);
@@ -1682,10 +1682,10 @@ VOID PhDeleteImageVersionInfo(
 }
 
 PPH_STRING PhFormatImageVersionInfo(
-    __in_opt PPH_STRING FileName,
-    __in PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    __in_opt PWSTR Indent,
-    __in_opt ULONG LineLimit
+    _In_opt_ PPH_STRING FileName,
+    _In_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_opt_ PWSTR Indent,
+    _In_opt_ ULONG LineLimit
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -1812,8 +1812,8 @@ PPH_STRING PhFormatImageVersionInfo(
  * \return An absolute file name, or NULL if the function failed.
  */
 PPH_STRING PhGetFullPath(
-    __in PWSTR FileName,
-    __out_opt PULONG IndexOfFileName
+    _In_ PWSTR FileName,
+    _Out_opt_ PULONG IndexOfFileName
     )
 {
     PPH_STRING fullPath;
@@ -1866,7 +1866,7 @@ PPH_STRING PhGetFullPath(
  * \param String The string.
  */
 PPH_STRING PhExpandEnvironmentStrings(
-    __in PPH_STRINGREF String
+    _In_ PPH_STRINGREF String
     )
 {
     NTSTATUS status;
@@ -1925,7 +1925,7 @@ PPH_STRING PhExpandEnvironmentStrings(
  * \param FileName The file name.
  */
 PPH_STRING PhGetBaseName(
-    __in PPH_STRING FileName
+    _In_ PPH_STRING FileName
     )
 {
     ULONG_PTR lastIndexOfBackslash;
@@ -2008,7 +2008,7 @@ PPH_STRING PhGetSystemDirectory(
  * Retrieves the Windows directory path.
  */
 VOID PhGetSystemRoot(
-    __out PPH_STRINGREF SystemRoot
+    _Out_ PPH_STRINGREF SystemRoot
     )
 {
     static PH_STRINGREF systemRoot;
@@ -2052,9 +2052,9 @@ VOID PhGetSystemRoot(
  * values is returned.
  */
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
-    __in_opt PVOID DllBase,
-    __in_opt PPH_STRINGREF FullDllName,
-    __in_opt PPH_STRINGREF BaseDllName
+    _In_opt_ PVOID DllBase,
+    _In_opt_ PPH_STRINGREF FullDllName,
+    _In_opt_ PPH_STRINGREF BaseDllName
     )
 {
     PLDR_DATA_TABLE_ENTRY result = NULL;
@@ -2100,8 +2100,8 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
  * be found.
  */
 PPH_STRING PhGetDllFileName(
-    __in PVOID DllHandle,
-    __out_opt PULONG IndexOfFileName
+    _In_ PVOID DllHandle,
+    _Out_opt_ PULONG IndexOfFileName
     )
 {
     PLDR_DATA_TABLE_ENTRY entry;
@@ -2186,8 +2186,8 @@ PPH_STRING PhGetApplicationDirectory(
  * \param AppendPath A string to append to the folder path.
  */
 PPH_STRING PhGetKnownLocation(
-    __in ULONG Folder,
-    __in_opt PWSTR AppendPath
+    _In_ ULONG Folder,
+    _In_opt_ PWSTR AppendPath
     )
 {
     PPH_STRING path;
@@ -2238,10 +2238,10 @@ PPH_STRING PhGetKnownLocation(
  * \remarks The wait is always in WaitAny mode.
  */
 NTSTATUS PhWaitForMultipleObjectsAndPump(
-    __in_opt HWND hWnd,
-    __in ULONG NumberOfHandles,
-    __in PHANDLE Handles,
-    __in ULONG Timeout
+    _In_opt_ HWND hWnd,
+    _In_ ULONG NumberOfHandles,
+    _In_ PHANDLE Handles,
+    _In_ ULONG Timeout
     )
 {
     NTSTATUS status;
@@ -2324,16 +2324,16 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
 NTSTATUS PhCreateProcess(
-    __in PWSTR FileName,
-    __in_opt PPH_STRINGREF CommandLine,
-    __in_opt PVOID Environment,
-    __in_opt PPH_STRINGREF CurrentDirectory,
-    __in_opt PPH_CREATE_PROCESS_INFO Information,
-    __in ULONG Flags,
-    __in_opt HANDLE ParentProcessHandle,
-    __out_opt PCLIENT_ID ClientId,
-    __out_opt PHANDLE ProcessHandle,
-    __out_opt PHANDLE ThreadHandle
+    _In_ PWSTR FileName,
+    _In_opt_ PPH_STRINGREF CommandLine,
+    _In_opt_ PVOID Environment,
+    _In_opt_ PPH_STRINGREF CurrentDirectory,
+    _In_opt_ PPH_CREATE_PROCESS_INFO Information,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE ParentProcessHandle,
+    _Out_opt_ PCLIENT_ID ClientId,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
     )
 {
     NTSTATUS status;
@@ -2453,14 +2453,14 @@ NTSTATUS PhCreateProcess(
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
 NTSTATUS PhCreateProcessWin32(
-    __in_opt PWSTR FileName,
-    __in_opt PWSTR CommandLine,
-    __in_opt PVOID Environment,
-    __in_opt PWSTR CurrentDirectory,
-    __in ULONG Flags,
-    __in_opt HANDLE TokenHandle,
-    __out_opt PHANDLE ProcessHandle,
-    __out_opt PHANDLE ThreadHandle
+    _In_opt_ PWSTR FileName,
+    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PVOID Environment,
+    _In_opt_ PWSTR CurrentDirectory,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
     )
 {
     return PhCreateProcessWin32Ex(
@@ -2486,10 +2486,10 @@ static const PH_FLAG_MAPPING PhpCreateProcessMappings[] =
 };
 
 FORCEINLINE VOID PhpConvertProcessInformation(
-    __in PPROCESS_INFORMATION ProcessInfo,
-    __out_opt PCLIENT_ID ClientId,
-    __out_opt PHANDLE ProcessHandle,
-    __out_opt PHANDLE ThreadHandle
+    _In_ PPROCESS_INFORMATION ProcessInfo,
+    _Out_opt_ PCLIENT_ID ClientId,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
     )
 {
     if (ClientId)
@@ -2530,16 +2530,16 @@ FORCEINLINE VOID PhpConvertProcessInformation(
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
 NTSTATUS PhCreateProcessWin32Ex(
-    __in_opt PWSTR FileName,
-    __in_opt PWSTR CommandLine,
-    __in_opt PVOID Environment,
-    __in_opt PWSTR CurrentDirectory,
-    __in_opt STARTUPINFO *StartupInfo,
-    __in ULONG Flags,
-    __in_opt HANDLE TokenHandle,
-    __out_opt PCLIENT_ID ClientId,
-    __out_opt PHANDLE ProcessHandle,
-    __out_opt PHANDLE ThreadHandle
+    _In_opt_ PWSTR FileName,
+    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PVOID Environment,
+    _In_opt_ PWSTR CurrentDirectory,
+    _In_opt_ STARTUPINFO *StartupInfo,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _Out_opt_ PCLIENT_ID ClientId,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
     )
 {
     NTSTATUS status;
@@ -2634,11 +2634,11 @@ NTSTATUS PhCreateProcessWin32Ex(
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
 NTSTATUS PhCreateProcessAsUser(
-    __in PPH_CREATE_PROCESS_AS_USER_INFO Information,
-    __in ULONG Flags,
-    __out_opt PCLIENT_ID ClientId,
-    __out_opt PHANDLE ProcessHandle,
-    __out_opt PHANDLE ThreadHandle
+    _In_ PPH_CREATE_PROCESS_AS_USER_INFO Information,
+    _In_ ULONG Flags,
+    _Out_opt_ PCLIENT_ID ClientId,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -2949,8 +2949,8 @@ NTSTATUS PhCreateProcessAsUser(
 }
 
 NTSTATUS PhpGetAccountPrivileges(
-    __in PSID AccountSid,
-    __out PTOKEN_PRIVILEGES *Privileges
+    _In_ PSID AccountSid,
+    _Out_ PTOKEN_PRIVILEGES *Privileges
     )
 {
     NTSTATUS status;
@@ -2990,8 +2990,8 @@ NTSTATUS PhpGetAccountPrivileges(
  * token. The handle will have the same granted access as \a TokenHandle.
  */
 NTSTATUS PhFilterTokenForLimitedUser(
-    __in HANDLE TokenHandle,
-    __out PHANDLE NewTokenHandle
+    _In_ HANDLE TokenHandle,
+    _Out_ PHANDLE NewTokenHandle
     )
 {
     static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
@@ -3198,9 +3198,9 @@ NTSTATUS PhFilterTokenForLimitedUser(
  * \param Parameters The parameters to pass to the executed application.
  */
 VOID PhShellExecute(
-    __in HWND hWnd,
-    __in PWSTR FileName,
-    __in_opt PWSTR Parameters
+    _In_ HWND hWnd,
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Parameters
     )
 {
     SHELLEXECUTEINFO info = { sizeof(info) };
@@ -3233,13 +3233,13 @@ VOID PhShellExecute(
  * \param ProcessHandle A variable which receives a handle to the new process.
  */
 BOOLEAN PhShellExecuteEx(
-    __in HWND hWnd,
-    __in PWSTR FileName,
-    __in_opt PWSTR Parameters,
-    __in ULONG ShowWindowType,
-    __in ULONG Flags,
-    __in_opt ULONG Timeout,
-    __out_opt PHANDLE ProcessHandle
+    _In_ HWND hWnd,
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Parameters,
+    _In_ ULONG ShowWindowType,
+    _In_ ULONG Flags,
+    _In_opt_ ULONG Timeout,
+    _Out_opt_ PHANDLE ProcessHandle
     )
 {
     SHELLEXECUTEINFO info = { sizeof(info) };
@@ -3289,8 +3289,8 @@ BOOLEAN PhShellExecuteEx(
  * \param FileName A file name.
  */
 VOID PhShellExploreFile(
-    __in HWND hWnd,
-    __in PWSTR FileName
+    _In_ HWND hWnd,
+    _In_ PWSTR FileName
     )
 {
     if (SHOpenFolderAndSelectItems_I && SHParseDisplayName_I)
@@ -3325,8 +3325,8 @@ VOID PhShellExploreFile(
  * \param FileName A file name.
  */
 VOID PhShellProperties(
-    __in HWND hWnd,
-    __in PWSTR FileName
+    _In_ HWND hWnd,
+    _In_ PWSTR FileName
     )
 {
     SHELLEXECUTEINFO info = { sizeof(info) };
@@ -3352,8 +3352,8 @@ VOID PhShellProperties(
  * the Registry Editor.
  */
 PPH_STRING PhExpandKeyName(
-    __in PPH_STRING KeyName,
-    __in BOOLEAN Computer
+    _In_ PPH_STRING KeyName,
+    _In_ BOOLEAN Computer
     )
 {
     PPH_STRING keyName;
@@ -3402,8 +3402,8 @@ PPH_STRING PhExpandKeyName(
  * \param KeyName The key name to open.
  */
 VOID PhShellOpenKey(
-    __in HWND hWnd,
-    __in PPH_STRING KeyName
+    _In_ HWND hWnd,
+    _In_ PPH_STRING KeyName
     )
 {
     static PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
@@ -3465,8 +3465,8 @@ VOID PhShellOpenKey(
  * need it.
  */
 PKEY_VALUE_PARTIAL_INFORMATION PhQueryRegistryValue(
-    __in HANDLE KeyHandle,
-    __in_opt PWSTR ValueName
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
     )
 {
     NTSTATUS status;
@@ -3521,8 +3521,8 @@ PKEY_VALUE_PARTIAL_INFORMATION PhQueryRegistryValue(
  * you no longer need it.
  */
 PPH_STRING PhQueryRegistryString(
-    __in HANDLE KeyHandle,
-    __in_opt PWSTR ValueName
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
     )
 {
     PPH_STRING string = NULL;
@@ -3551,10 +3551,10 @@ PPH_STRING PhQueryRegistryString(
 }
 
 VOID PhMapFlags1(
-    __inout PULONG Value2,
-    __in ULONG Value1,
-    __in const PH_FLAG_MAPPING *Mappings,
-    __in ULONG NumberOfMappings
+    _Inout_ PULONG Value2,
+    _In_ ULONG Value1,
+    _In_ const PH_FLAG_MAPPING *Mappings,
+    _In_ ULONG NumberOfMappings
     )
 {
     ULONG i;
@@ -3593,10 +3593,10 @@ VOID PhMapFlags1(
 }
 
 VOID PhMapFlags2(
-    __inout PULONG Value1,
-    __in ULONG Value2,
-    __in const PH_FLAG_MAPPING *Mappings,
-    __in ULONG NumberOfMappings
+    _Inout_ PULONG Value1,
+    _In_ ULONG Value2,
+    _In_ const PH_FLAG_MAPPING *Mappings,
+    _In_ ULONG NumberOfMappings
     )
 {
     ULONG i;
@@ -3627,10 +3627,10 @@ VOID PhMapFlags2(
 }
 
 UINT_PTR CALLBACK PhpOpenFileNameHookProc(
-    __in HWND hdlg,
-    __in UINT uiMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hdlg,
+    _In_ UINT uiMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uiMsg)
@@ -3677,7 +3677,7 @@ UINT_PTR CALLBACK PhpOpenFileNameHookProc(
 }
 
 OPENFILENAME *PhpCreateOpenFileName(
-    __in ULONG Type
+    _In_ ULONG Type
     )
 {
     OPENFILENAME *ofn;
@@ -3699,7 +3699,7 @@ OPENFILENAME *PhpCreateOpenFileName(
 }
 
 VOID PhpFreeOpenFileName(
-    __in OPENFILENAME *OpenFileName
+    _In_ OPENFILENAME *OpenFileName
     )
 {
     if (OpenFileName->lpstrFilter) PhFree((PVOID)OpenFileName->lpstrFilter);
@@ -3800,7 +3800,7 @@ PVOID PhCreateSaveFileDialog(
  * \param FileDialog The file dialog.
  */
 VOID PhFreeFileDialog(
-    __in PVOID FileDialog
+    _In_ PVOID FileDialog
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -3824,8 +3824,8 @@ VOID PhFreeFileDialog(
  * occurred.
  */
 BOOLEAN PhShowFileDialog(
-    __in HWND hWnd,
-    __in PVOID FileDialog
+    _In_ HWND hWnd,
+    _In_ PVOID FileDialog
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -3888,7 +3888,7 @@ static const PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
  * documentation for PhSetFileDialogOptions() for details.
  */
 ULONG PhGetFileDialogOptions(
-    __in PVOID FileDialog
+    _In_ PVOID FileDialog
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -3956,8 +3956,8 @@ ULONG PhGetFileDialogOptions(
  * This is only valid for Save dialogs.
  */
 VOID PhSetFileDialogOptions(
-    __in PVOID FileDialog,
-    __in ULONG Options
+    _In_ PVOID FileDialog,
+    _In_ ULONG Options
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -3999,7 +3999,7 @@ VOID PhSetFileDialogOptions(
  * error occurred.
  */
 ULONG PhGetFileDialogFilterIndex(
-    __in PVOID FileDialog
+    _In_ PVOID FileDialog
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -4032,9 +4032,9 @@ ULONG PhGetFileDialogFilterIndex(
  * \param NumberOfFilters The number of file types.
  */
 VOID PhSetFileDialogFilter(
-    __in PVOID FileDialog,
-    __in PPH_FILETYPE_FILTER Filters,
-    __in ULONG NumberOfFilters
+    _In_ PVOID FileDialog,
+    _In_ PPH_FILETYPE_FILTER Filters,
+    _In_ ULONG NumberOfFilters
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -4083,7 +4083,7 @@ VOID PhSetFileDialogFilter(
  * it.
  */
 PPH_STRING PhGetFileDialogFileName(
-    __in PVOID FileDialog
+    _In_ PVOID FileDialog
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -4130,8 +4130,8 @@ PPH_STRING PhGetFileDialogFileName(
  * \param FileName The new file name.
  */
 VOID PhSetFileDialogFileName(
-    __in PVOID FileDialog,
-    __in PWSTR FileName
+    _In_ PVOID FileDialog,
+    _In_ PWSTR FileName
     )
 {
     if (PHP_USE_IFILEDIALOG)
@@ -4202,10 +4202,10 @@ VOID PhSetFileDialogFileName(
  * that the image imports.
  */
 NTSTATUS PhIsExecutablePacked(
-    __in PWSTR FileName,
-    __out PBOOLEAN IsPacked,
-    __out_opt PULONG NumberOfModules,
-    __out_opt PULONG NumberOfFunctions
+    _In_ PWSTR FileName,
+    _Out_ PBOOLEAN IsPacked,
+    _Out_opt_ PULONG NumberOfModules,
+    _Out_opt_ PULONG NumberOfFunctions
     )
 {
     // An image is packed if:
@@ -4368,8 +4368,8 @@ C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(A_SHA_CTX));
  * \li \c Crc32HashAlgorithm CRC-32-IEEE 802.3 (32 bits)
  */
 VOID PhInitializeHash(
-    __out PPH_HASH_CONTEXT Context,
-    __in PH_HASH_ALGORITHM Algorithm
+    _Out_ PPH_HASH_CONTEXT Context,
+    _In_ PH_HASH_ALGORITHM Algorithm
     )
 {
     Context->Algorithm = Algorithm;
@@ -4399,9 +4399,9 @@ VOID PhInitializeHash(
  * \param Length The number of bytes in the block.
  */
 VOID PhUpdateHash(
-    __inout PPH_HASH_CONTEXT Context,
-    __in_bcount(Length) PVOID Buffer,
-    __in ULONG Length
+    _Inout_ PPH_HASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
     )
 {
     switch (Context->Algorithm)
@@ -4430,10 +4430,10 @@ VOID PhUpdateHash(
  * the buffer, in bytes.
  */
 BOOLEAN PhFinalHash(
-    __inout PPH_HASH_CONTEXT Context,
-    __out_bcount(HashLength) PVOID Hash,
-    __in ULONG HashLength,
-    __out_opt PULONG ReturnLength
+    _Inout_ PPH_HASH_CONTEXT Context,
+    _Out_writes_bytes_(HashLength) PVOID Hash,
+    _In_ ULONG HashLength,
+    _Out_opt_ PULONG ReturnLength
     )
 {
     BOOLEAN result;
@@ -4494,8 +4494,8 @@ BOOLEAN PhFinalHash(
  * index is updated to point to the end of the command line part.
  */
 PPH_STRING PhParseCommandLinePart(
-    __in PPH_STRINGREF CommandLine,
-    __inout PULONG_PTR Index
+    _In_ PPH_STRINGREF CommandLine,
+    _Inout_ PULONG_PTR Index
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -4603,12 +4603,12 @@ PPH_STRING PhParseCommandLinePart(
  * \param Context A user-defined value to pass to \a Callback.
  */
 BOOLEAN PhParseCommandLine(
-    __in PPH_STRINGREF CommandLine,
-    __in_opt PPH_COMMAND_LINE_OPTION Options,
-    __in ULONG NumberOfOptions,
-    __in ULONG Flags,
-    __in PPH_COMMAND_LINE_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_STRINGREF CommandLine,
+    _In_opt_ PPH_COMMAND_LINE_OPTION Options,
+    _In_ ULONG NumberOfOptions,
+    _In_ ULONG Flags,
+    _In_ PPH_COMMAND_LINE_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     SIZE_T i;
@@ -4741,7 +4741,7 @@ BOOLEAN PhParseCommandLine(
  * \remarks Only the double quotation mark is escaped.
  */
 PPH_STRING PhEscapeCommandLinePart(
-    __in PPH_STRINGREF String
+    _In_ PPH_STRINGREF String
     )
 {
     static WCHAR backslashAndQuote[2] = { '\\', '\"' };
@@ -4793,7 +4793,7 @@ PPH_STRING PhEscapeCommandLinePart(
 }
 
 VOID PhpSkipWhitespaceStringRef(
-    __inout PPH_STRINGREF String
+    _Inout_ PPH_STRINGREF String
     )
 {
     WCHAR c;
@@ -4811,9 +4811,9 @@ VOID PhpSkipWhitespaceStringRef(
 }
 
 BOOLEAN PhpSearchFilePath(
-    __in PWSTR FileName,
-    __in_opt PWSTR Extension,
-    __out_ecount(MAX_PATH) PWSTR Buffer
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Extension,
+    _Out_writes_(MAX_PATH) PWSTR Buffer
     )
 {
     NTSTATUS status;
@@ -4877,10 +4877,10 @@ BOOLEAN PhpSearchFilePath(
  * and file name. This may be NULL if the file was not found.
  */
 BOOLEAN PhParseCommandLineFuzzy(
-    __in PPH_STRINGREF CommandLine,
-    __out PPH_STRINGREF FileName,
-    __out PPH_STRINGREF Arguments,
-    __out_opt PPH_STRING *FullFileName
+    _In_ PPH_STRINGREF CommandLine,
+    _Out_ PPH_STRINGREF FileName,
+    _Out_ PPH_STRINGREF Arguments,
+    _Out_opt_ PPH_STRING *FullFileName
     )
 {
     PH_STRINGREF commandLine;

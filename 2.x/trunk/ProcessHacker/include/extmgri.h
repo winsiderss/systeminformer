@@ -23,39 +23,39 @@ VOID PhEmInitialization(
     );
 
 VOID PhEmInitializeAppContext(
-    __out PPH_EM_APP_CONTEXT AppContext,
-    __in PPH_STRINGREF AppName
+    _Out_ PPH_EM_APP_CONTEXT AppContext,
+    _In_ PPH_STRINGREF AppName
     );
 
 VOID PhEmSetObjectExtension(
-    __inout PPH_EM_APP_CONTEXT AppContext,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in SIZE_T ExtensionSize,
-    __in_opt PPH_EM_OBJECT_CALLBACK CreateCallback,
-    __in_opt PPH_EM_OBJECT_CALLBACK DeleteCallback
+    _Inout_ PPH_EM_APP_CONTEXT AppContext,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ SIZE_T ExtensionSize,
+    _In_opt_ PPH_EM_OBJECT_CALLBACK CreateCallback,
+    _In_opt_ PPH_EM_OBJECT_CALLBACK DeleteCallback
     );
 
 PVOID PhEmGetObjectExtension(
-    __in PPH_EM_APP_CONTEXT AppContext,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Object
+    _In_ PPH_EM_APP_CONTEXT AppContext,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Object
     );
 
 SIZE_T PhEmGetObjectSize(
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in SIZE_T InitialSize
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ SIZE_T InitialSize
     );
 
 VOID PhEmCallObjectOperation(
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Object,
-    __in PH_EM_OBJECT_OPERATION Operation
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_OPERATION Operation
     );
 
 BOOLEAN PhEmParseCompoundId(
-    __in PPH_STRINGREF CompoundId,
-    __out PPH_STRINGREF AppName,
-    __out PULONG SubId
+    _In_ PPH_STRINGREF CompoundId,
+    _Out_ PPH_STRINGREF AppName,
+    _Out_ PULONG SubId
     );
 
 #endif

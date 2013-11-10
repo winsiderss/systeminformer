@@ -115,56 +115,56 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateDebugObject(
-    __out PHANDLE DebugObjectHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in ULONG Flags
+    _Out_ PHANDLE DebugObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDebugActiveProcess(
-    __in HANDLE ProcessHandle,
-    __in HANDLE DebugObjectHandle
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE DebugObjectHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDebugContinue(
-    __in HANDLE DebugObjectHandle,
-    __in PCLIENT_ID ClientId,
-    __in NTSTATUS ContinueStatus
+    _In_ HANDLE DebugObjectHandle,
+    _In_ PCLIENT_ID ClientId,
+    _In_ NTSTATUS ContinueStatus
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRemoveProcessDebug(
-    __in HANDLE ProcessHandle,
-    __in HANDLE DebugObjectHandle
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE DebugObjectHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationDebugObject(
-    __in HANDLE DebugObjectHandle,
-    __in DEBUGOBJECTINFOCLASS DebugObjectInformationClass,
-    __in PVOID DebugInformation,
-    __in ULONG DebugInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE DebugObjectHandle,
+    _In_ DEBUGOBJECTINFOCLASS DebugObjectInformationClass,
+    _In_ PVOID DebugInformation,
+    _In_ ULONG DebugInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWaitForDebugEvent(
-    __in HANDLE DebugObjectHandle,
-    __in BOOLEAN Alertable,
-    __in_opt PLARGE_INTEGER Timeout,
-    __out PVOID WaitStateChange
+    _In_ HANDLE DebugObjectHandle,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_ PVOID WaitStateChange
     );
 
 // Debugging UI
@@ -187,51 +187,51 @@ NTSYSAPI
 VOID
 NTAPI
 DbgUiSetThreadDebugObject(
-    __in HANDLE DebugObject
+    _In_ HANDLE DebugObject
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgUiWaitStateChange(
-    __out PDBGUI_WAIT_STATE_CHANGE StateChange,
-    __in_opt PLARGE_INTEGER Timeout
+    _Out_ PDBGUI_WAIT_STATE_CHANGE StateChange,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgUiContinue(
-    __in PCLIENT_ID AppClientId,
-    __in NTSTATUS ContinueStatus
+    _In_ PCLIENT_ID AppClientId,
+    _In_ NTSTATUS ContinueStatus
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgUiStopDebugging(
-    __in HANDLE Process
+    _In_ HANDLE Process
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgUiDebugActiveProcess(
-    __in HANDLE Process
+    _In_ HANDLE Process
     );
 
 NTSYSAPI
 VOID
 NTAPI
 DbgUiRemoteBreakin(
-    __in PVOID Context
+    _In_ PVOID Context
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgUiIssueRemoteBreakin(
-    __in HANDLE Process
+    _In_ HANDLE Process
     );
 
 struct _DEBUG_EVENT;
@@ -240,8 +240,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 DbgUiConvertStateChangeStructure(
-    __in PDBGUI_WAIT_STATE_CHANGE StateChange,
-    __out struct _DEBUG_EVENT *DebugEvent
+    _In_ PDBGUI_WAIT_STATE_CHANGE StateChange,
+    _Out_ struct _DEBUG_EVENT *DebugEvent
     );
 
 #endif

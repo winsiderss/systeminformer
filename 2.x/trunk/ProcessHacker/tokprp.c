@@ -55,71 +55,71 @@ typedef struct _TOKEN_PAGE_CONTEXT
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
 
 INT CALLBACK PhpTokenPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     );
 
 INT_PTR CALLBACK PhpTokenPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhpShowTokenAdvancedProperties(
-    __in HWND ParentWindowHandle,
-    __in PTOKEN_PAGE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ PTOKEN_PAGE_CONTEXT Context
     );
 
 INT_PTR CALLBACK PhpTokenGeneralPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpTokenAdvancedPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 INT_PTR CALLBACK PhpTokenClaimsPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpTokenAttributesPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowTokenProperties(
-    __in HWND ParentWindowHandle,
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt PWSTR Title
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ PWSTR Title
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -141,9 +141,9 @@ VOID PhShowTokenProperties(
 }
 
 HPROPSHEETPAGE PhCreateTokenPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt DLGPROC HookProc
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
@@ -175,9 +175,9 @@ HPROPSHEETPAGE PhCreateTokenPage(
 }
 
 INT CALLBACK PhpTokenPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext;
@@ -197,7 +197,7 @@ INT CALLBACK PhpTokenPropPageProc(
 }
 
 PPH_STRING PhGetGroupAttributesString(
-    __in ULONG Attributes
+    _In_ ULONG Attributes
     )
 {
     PWSTR baseString;
@@ -245,7 +245,7 @@ PPH_STRING PhGetGroupAttributesString(
 }
 
 COLORREF PhGetGroupAttributesColor(
-    __in ULONG Attributes
+    _In_ ULONG Attributes
     )
 {
     if (Attributes & SE_GROUP_INTEGRITY)
@@ -265,9 +265,9 @@ COLORREF PhGetGroupAttributesColor(
 }
 
 static COLORREF NTAPI PhpTokenGroupColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     )
 {
     PSID_AND_ATTRIBUTES sidAndAttributes = Param;
@@ -276,7 +276,7 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
 }
 
 PWSTR PhGetPrivilegeAttributesString(
-    __in ULONG Attributes
+    _In_ ULONG Attributes
     )
 {
     if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
@@ -288,7 +288,7 @@ PWSTR PhGetPrivilegeAttributesString(
 }
 
 COLORREF PhGetPrivilegeAttributesColor(
-    __in ULONG Attributes
+    _In_ ULONG Attributes
     )
 {
     if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
@@ -300,9 +300,9 @@ COLORREF PhGetPrivilegeAttributesColor(
 }
 
 static COLORREF NTAPI PhpTokenPrivilegeColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     )
 {
     PLUID_AND_ATTRIBUTES luidAndAttributes = Param;
@@ -311,7 +311,7 @@ static COLORREF NTAPI PhpTokenPrivilegeColorFunction(
 }
 
 PWSTR PhGetElevationTypeString(
-    __in TOKEN_ELEVATION_TYPE ElevationType
+    _In_ TOKEN_ELEVATION_TYPE ElevationType
     )
 {
     switch (ElevationType)
@@ -326,7 +326,7 @@ PWSTR PhGetElevationTypeString(
 }
 
 PWSTR PhGetBuiltinCapabilityString(
-    __in PSID CapabilitySid
+    _In_ PSID CapabilitySid
     )
 {
     static SID_IDENTIFIER_AUTHORITY appPackageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
@@ -364,10 +364,10 @@ PWSTR PhGetBuiltinCapabilityString(
 }
 
 BOOLEAN PhpUpdateTokenGroups(
-    __in HWND hwndDlg,
-    __in PTOKEN_PAGE_CONTEXT TokenPageContext,
-    __in HWND GroupsLv,
-    __in HANDLE TokenHandle
+    _In_ HWND hwndDlg,
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
+    _In_ HWND GroupsLv,
+    _In_ HANDLE TokenHandle
     )
 {
     PTOKEN_GROUPS groups;
@@ -413,10 +413,10 @@ BOOLEAN PhpUpdateTokenGroups(
 }
 
 FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     return (PTOKEN_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
@@ -424,10 +424,10 @@ FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
 }
 
 INT_PTR CALLBACK PhpTokenPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext;
@@ -967,8 +967,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
 }
 
 VOID PhpShowTokenAdvancedProperties(
-    __in HWND ParentWindowHandle,
-    __in PTOKEN_PAGE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ PTOKEN_PAGE_CONTEXT Context
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -1066,19 +1066,19 @@ VOID PhpShowTokenAdvancedProperties(
 }
 
 static NTSTATUS PhpOpenLinkedToken(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     return PhGetTokenLinkedToken((HANDLE)Context, Handle);
 }
 
 INT_PTR CALLBACK PhpTokenGeneralPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext;
@@ -1243,10 +1243,10 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 }
 
 INT_PTR CALLBACK PhpTokenAdvancedPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext;
@@ -1337,9 +1337,9 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 }
 
 static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     )
 {
     PSID_AND_ATTRIBUTES sidAndAttributes = Param;
@@ -1348,10 +1348,10 @@ static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
 }
 
 INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext;
@@ -1449,11 +1449,11 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 }
 
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PATTRIBUTE_TREE_CONTEXT context;
@@ -1527,9 +1527,9 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
 }
 
 PATTRIBUTE_NODE PhpAddAttributeNode(
-    __in PATTRIBUTE_TREE_CONTEXT Context,
-    __in_opt PATTRIBUTE_NODE Parent,
-    __in_opt __assumeRefs(1) PPH_STRING Text
+    _In_ PATTRIBUTE_TREE_CONTEXT Context,
+    _In_opt_ PATTRIBUTE_NODE Parent,
+    _In_opt_ _Assume_refs_(1) PPH_STRING Text
     )
 {
     PATTRIBUTE_NODE node;
@@ -1553,7 +1553,7 @@ PATTRIBUTE_NODE PhpAddAttributeNode(
 }
 
 VOID PhpDestroyAttributeNode(
-    __in PATTRIBUTE_NODE Node
+    _In_ PATTRIBUTE_NODE Node
     )
 {
     PhDereferenceObject(Node->Children);
@@ -1562,8 +1562,8 @@ VOID PhpDestroyAttributeNode(
 }
 
 VOID PhpInitializeAttributeTreeContext(
-    __out PATTRIBUTE_TREE_CONTEXT Context,
-    __in HWND TreeNewHandle
+    _Out_ PATTRIBUTE_TREE_CONTEXT Context,
+    _In_ HWND TreeNewHandle
     )
 {
     PH_TREENEW_VIEW_PARTS parts;
@@ -1578,7 +1578,7 @@ VOID PhpInitializeAttributeTreeContext(
 }
 
 VOID PhpDeleteAttributeTreeContext(
-    __inout PATTRIBUTE_TREE_CONTEXT Context
+    _Inout_ PATTRIBUTE_TREE_CONTEXT Context
     )
 {
     ULONG i;
@@ -1591,7 +1591,7 @@ VOID PhpDeleteAttributeTreeContext(
 }
 
 PWSTR PhGetSecurityAttributeTypeString(
-    __in USHORT Type
+    _In_ USHORT Type
     )
 {
     // These types are shared between CLAIM_* and TOKEN_* security attributes.
@@ -1620,7 +1620,7 @@ PWSTR PhGetSecurityAttributeTypeString(
 }
 
 PPH_STRING PhGetSecurityAttributeFlagsString(
-    __in ULONG Flags
+    _In_ ULONG Flags
     )
 {
     PH_STRING_BUILDER sb;
@@ -1651,8 +1651,8 @@ PPH_STRING PhGetSecurityAttributeFlagsString(
 }
 
 PPH_STRING PhFormatClaimSecurityAttributeValue(
-    __in PCLAIM_SECURITY_ATTRIBUTE_V1 Attribute,
-    __in ULONG ValueIndex
+    _In_ PCLAIM_SECURITY_ATTRIBUTE_V1 Attribute,
+    _In_ ULONG ValueIndex
     )
 {
     PH_FORMAT format;
@@ -1699,8 +1699,8 @@ PPH_STRING PhFormatClaimSecurityAttributeValue(
 }
 
 PPH_STRING PhFormatTokenSecurityAttributeValue(
-    __in PTOKEN_SECURITY_ATTRIBUTE_V1 Attribute,
-    __in ULONG ValueIndex
+    _In_ PTOKEN_SECURITY_ATTRIBUTE_V1 Attribute,
+    _In_ ULONG ValueIndex
     )
 {
     PH_FORMAT format;
@@ -1748,10 +1748,10 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
 }
 
 BOOLEAN PhpAddTokenClaimAttributes(
-    __in PTOKEN_PAGE_CONTEXT TokenPageContext,
-    __in HWND tnHandle,
-    __in BOOLEAN DeviceClaims,
-    __in PATTRIBUTE_NODE Parent
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
+    _In_ HWND tnHandle,
+    _In_ BOOLEAN DeviceClaims,
+    _In_ PATTRIBUTE_NODE Parent
     )
 {
     HANDLE tokenHandle;
@@ -1806,10 +1806,10 @@ BOOLEAN PhpAddTokenClaimAttributes(
 }
 
 INT_PTR CALLBACK PhpTokenClaimsPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext;
@@ -1858,8 +1858,8 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
 }
 
 BOOLEAN PhpAddTokenAttributes(
-    __in PTOKEN_PAGE_CONTEXT TokenPageContext,
-    __in HWND tnHandle
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
+    _In_ HWND tnHandle
     )
 {
     HANDLE tokenHandle;
@@ -1915,10 +1915,10 @@ BOOLEAN PhpAddTokenAttributes(
 }
 
 INT_PTR CALLBACK PhpTokenAttributesPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext;

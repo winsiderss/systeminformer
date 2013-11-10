@@ -26,10 +26,10 @@
 #define WM_PH_LOG_UPDATED (WM_APP + 300)
 
 INT_PTR CALLBACK PhpLogDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 HWND PhLogWindowHandle = NULL;
@@ -62,8 +62,8 @@ VOID PhShowLogDialog(
 }
 
 static VOID NTAPI LoggedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PostMessage(PhLogWindowHandle, WM_PH_LOG_UPDATED, 0, 0);
@@ -86,7 +86,7 @@ static VOID PhpUpdateLogList(
 }
 
 static PPH_STRING PhpGetStringForSelectedLogEntries(
-    __in BOOLEAN All
+    _In_ BOOLEAN All
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -142,10 +142,10 @@ ContinueLoop:
 }
 
 INT_PTR CALLBACK PhpLogDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

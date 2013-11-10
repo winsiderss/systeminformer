@@ -88,20 +88,20 @@
 #include <phintrnl.h>
 
 VOID FASTCALL PhpfOptimizeQueuedLockList(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value
     );
 
 VOID FASTCALL PhpfWakeQueuedLock(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value
     );
 
 VOID FASTCALL PhpfWakeQueuedLockEx(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value,
-    __in BOOLEAN IgnoreOwned,
-    __in BOOLEAN WakeAll
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value,
+    _In_ BOOLEAN IgnoreOwned,
+    _In_ BOOLEAN WakeAll
     );
 
 static HANDLE PhQueuedLockKeyedEventHandle;
@@ -158,13 +158,13 @@ BOOLEAN PhQueuedLockInitialization(
  * block to be unblocked.
  */
 FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value,
-    __in BOOLEAN Exclusive,
-    __out PPH_QUEUED_WAIT_BLOCK WaitBlock,
-    __out PBOOLEAN Optimize,
-    __out PULONG_PTR NewValue,
-    __out PULONG_PTR CurrentValue
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value,
+    _In_ BOOLEAN Exclusive,
+    _Out_ PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    _Out_ PBOOLEAN Optimize,
+    _Out_ PULONG_PTR NewValue,
+    _Out_ PULONG_PTR CurrentValue
     )
 {
     ULONG_PTR newValue;
@@ -256,7 +256,7 @@ FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
  * \ref PH_QUEUED_LOCK_TRAVERSING.
  */
 FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
-    __in ULONG_PTR Value
+    _In_ ULONG_PTR Value
     )
 {
     PPH_QUEUED_WAIT_BLOCK waitBlock;
@@ -295,10 +295,10 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
  * \param Spin TRUE to spin, FALSE to block immediately.
  * \param Timeout A timeout value.
  */
-__mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
-    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
-    __in BOOLEAN Spin,
-    __in_opt PLARGE_INTEGER Timeout
+_May_raise_ FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
+    _Inout_ PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    _In_ BOOLEAN Spin,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
@@ -350,8 +350,8 @@ __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
  * unblocked. Do not attempt to read any values from it. All relevant
  * information should be saved before unblocking the wait block.
  */
-__mayRaise FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
-    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock
+_May_raise_ FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
+    _Inout_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
     NTSTATUS status;
@@ -380,9 +380,9 @@ __mayRaise FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
  * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
  */
 FORCEINLINE VOID PhpOptimizeQueuedLockListEx(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value,
-    __in BOOLEAN IgnoreOwned
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value,
+    _In_ BOOLEAN IgnoreOwned
     )
 {
     ULONG_PTR value;
@@ -461,8 +461,8 @@ FORCEINLINE VOID PhpOptimizeQueuedLockListEx(
  * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
  */
 VOID FASTCALL PhpfOptimizeQueuedLockList(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value
     )
 {
     PhpOptimizeQueuedLockListEx(QueuedLock, Value, FALSE);
@@ -480,10 +480,10 @@ VOID FASTCALL PhpfOptimizeQueuedLockList(
  * to decide based on the wait block type.
  */
 FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value,
-    __in BOOLEAN IgnoreOwned,
-    __in BOOLEAN WakeAll
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value,
+    _In_ BOOLEAN IgnoreOwned,
+    _In_ BOOLEAN WakeAll
     )
 {
     ULONG_PTR value;
@@ -614,8 +614,8 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
  * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED.
  */
 VOID FASTCALL PhpfWakeQueuedLock(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value
     )
 {
     PPH_QUEUED_WAIT_BLOCK waitBlock;
@@ -649,10 +649,10 @@ VOID FASTCALL PhpfWakeQueuedLock(
  * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED.
  */
 VOID FASTCALL PhpfWakeQueuedLockEx(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value,
-    __in BOOLEAN IgnoreOwned,
-    __in BOOLEAN WakeAll
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value,
+    _In_ BOOLEAN IgnoreOwned,
+    _In_ BOOLEAN WakeAll
     )
 {
     PPH_QUEUED_WAIT_BLOCK waitBlock;
@@ -676,7 +676,7 @@ VOID FASTCALL PhpfWakeQueuedLockEx(
  * \param QueuedLock A queued lock.
  */
 VOID FASTCALL PhfAcquireQueuedLockExclusive(
-    __inout PPH_QUEUED_LOCK QueuedLock
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
     ULONG_PTR value;
@@ -728,7 +728,7 @@ VOID FASTCALL PhfAcquireQueuedLockExclusive(
  * \param QueuedLock A queued lock.
  */
 VOID FASTCALL PhfAcquireQueuedLockShared(
-    __inout PPH_QUEUED_LOCK QueuedLock
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
     ULONG_PTR value;
@@ -790,7 +790,7 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
  * \param QueuedLock A queued lock.
  */
 VOID FASTCALL PhfReleaseQueuedLockExclusive(
-    __inout PPH_QUEUED_LOCK QueuedLock
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
     ULONG_PTR value;
@@ -850,7 +850,7 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
  * \param QueuedLock A queued lock.
  */
 VOID FASTCALL PhfReleaseQueuedLockShared(
-    __inout PPH_QUEUED_LOCK QueuedLock
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
     ULONG_PTR value;
@@ -933,7 +933,7 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
  * \remarks This function exists only for compatibility reasons.
  */
 VOID FASTCALL PhfTryWakeQueuedLock(
-    __inout PPH_QUEUED_LOCK QueuedLock
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
     ULONG_PTR value;
@@ -972,8 +972,8 @@ VOID FASTCALL PhfTryWakeQueuedLock(
  * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED, \ref PH_QUEUED_LOCK_TRAVERSING.
  */
 VOID FASTCALL PhfWakeForReleaseQueuedLock(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value
     )
 {
     ULONG_PTR newValue;
@@ -999,7 +999,7 @@ VOID FASTCALL PhfWakeForReleaseQueuedLock(
  * the function.
  */
 VOID FASTCALL PhfPulseCondition(
-    __inout PPH_QUEUED_LOCK Condition
+    _Inout_ PPH_QUEUED_LOCK Condition
     )
 {
     if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
@@ -1015,7 +1015,7 @@ VOID FASTCALL PhfPulseCondition(
  * the function.
  */
 VOID FASTCALL PhfPulseAllCondition(
-    __inout PPH_QUEUED_LOCK Condition
+    _Inout_ PPH_QUEUED_LOCK Condition
     )
 {
     if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
@@ -1033,9 +1033,9 @@ VOID FASTCALL PhfPulseAllCondition(
  * the function.
  */
 VOID FASTCALL PhfWaitForCondition(
-    __inout PPH_QUEUED_LOCK Condition,
-    __inout PPH_QUEUED_LOCK Lock,
-    __in_opt PLARGE_INTEGER Timeout
+    _Inout_ PPH_QUEUED_LOCK Condition,
+    _Inout_ PPH_QUEUED_LOCK Lock,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     ULONG_PTR value;
@@ -1084,10 +1084,10 @@ VOID FASTCALL PhfWaitForCondition(
  * \param Timeout Not implemented.
  */
 VOID FASTCALL PhfWaitForConditionEx(
-    __inout PPH_QUEUED_LOCK Condition,
-    __inout PVOID Lock,
-    __in ULONG Flags,
-    __in_opt PLARGE_INTEGER Timeout
+    _Inout_ PPH_QUEUED_LOCK Condition,
+    _Inout_ PVOID Lock,
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     ULONG_PTR value;
@@ -1177,8 +1177,8 @@ VOID FASTCALL PhfWaitForConditionEx(
  * the wait block.
  */
 VOID FASTCALL PhfQueueWakeEvent(
-    __inout PPH_QUEUED_LOCK WakeEvent,
-    __out PPH_QUEUED_WAIT_BLOCK WaitBlock
+    _Inout_ PPH_QUEUED_LOCK WakeEvent,
+    _Out_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
     PPH_QUEUED_WAIT_BLOCK value;
@@ -1211,8 +1211,8 @@ VOID FASTCALL PhfQueueWakeEvent(
  * NULL.
  */
 VOID FASTCALL PhfSetWakeEvent(
-    __inout PPH_QUEUED_LOCK WakeEvent,
-    __inout_opt PPH_QUEUED_WAIT_BLOCK WaitBlock
+    _Inout_ PPH_QUEUED_LOCK WakeEvent,
+    _Inout_opt_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
     PPH_QUEUED_WAIT_BLOCK waitBlock;
@@ -1272,10 +1272,10 @@ VOID FASTCALL PhfSetWakeEvent(
  * predicate.
  */
 NTSTATUS FASTCALL PhfWaitForWakeEvent(
-    __inout PPH_QUEUED_LOCK WakeEvent,
-    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
-    __in BOOLEAN Spin,
-    __in_opt PLARGE_INTEGER Timeout
+    _Inout_ PPH_QUEUED_LOCK WakeEvent,
+    _Inout_ PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    _In_ BOOLEAN Spin,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;

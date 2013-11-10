@@ -73,28 +73,28 @@ typedef struct _PHP_BASE_THREAD_CONTEXT
 } PHP_BASE_THREAD_CONTEXT, *PPHP_BASE_THREAD_CONTEXT;
 
 VOID NTAPI PhpFullStringDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 VOID NTAPI PhpListDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 VOID NTAPI PhpPointerListDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 VOID NTAPI PhpQueueDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 VOID NTAPI PhpHashtableDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 // Types
@@ -138,7 +138,7 @@ static ULONG PhpPrimeNumbers[] =
  * Initializes the base support module.
  */
 BOOLEAN PhInitializeBase(
-    __in ULONG Flags
+    _In_ ULONG Flags
     )
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
@@ -209,7 +209,7 @@ BOOLEAN PhInitializeBase(
 }
 
 NTSTATUS PhpBaseThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     NTSTATUS status;
@@ -265,9 +265,9 @@ NTSTATUS PhpBaseThreadStart(
  * \param Parameter A user-defined value to pass to the function.
  */
 HANDLE PhCreateThread(
-    __in_opt SIZE_T StackSize,
-    __in PUSER_THREAD_START_ROUTINE StartAddress,
-    __in_opt PVOID Parameter
+    _In_opt_ SIZE_T StackSize,
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter
     )
 {
     HANDLE threadHandle;
@@ -306,7 +306,7 @@ HANDLE PhCreateThread(
  * because no system calls are involved.
  */
 VOID PhQuerySystemTime(
-    __out PLARGE_INTEGER SystemTime
+    _Out_ PLARGE_INTEGER SystemTime
     )
 {
     do
@@ -320,7 +320,7 @@ VOID PhQuerySystemTime(
  * Gets the offset of the current time zone from UTC.
  */
 VOID PhQueryTimeZoneBias(
-    __out PLARGE_INTEGER TimeZoneBias
+    _Out_ PLARGE_INTEGER TimeZoneBias
     )
 {
     do
@@ -341,8 +341,8 @@ VOID PhQueryTimeZoneBias(
  * because no system calls are involved.
  */
 VOID PhSystemTimeToLocalTime(
-    __in PLARGE_INTEGER SystemTime,
-    __out PLARGE_INTEGER LocalTime
+    _In_ PLARGE_INTEGER SystemTime,
+    _Out_ PLARGE_INTEGER LocalTime
     )
 {
     LARGE_INTEGER timeZoneBias;
@@ -362,8 +362,8 @@ VOID PhSystemTimeToLocalTime(
  * because no system calls are involved.
  */
 VOID PhLocalTimeToSystemTime(
-    __in PLARGE_INTEGER LocalTime,
-    __out PLARGE_INTEGER SystemTime
+    _In_ PLARGE_INTEGER LocalTime,
+    _Out_ PLARGE_INTEGER SystemTime
     )
 {
     LARGE_INTEGER timeZoneBias;
@@ -385,12 +385,12 @@ VOID PhLocalTimeToSystemTime(
  * The block is guaranteed to be aligned at
  * MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
-__mayRaise
-__checkReturn
-__notnull
-__bcount(Size)
+_May_raise_
+_Check_return_
+_Ret_notnull_
+_Post_writable_byte_size_(Size)
 PVOID PhAllocate(
-    __in SIZE_T Size
+    _In_ SIZE_T Size
     )
 {
     return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
@@ -405,7 +405,7 @@ PVOID PhAllocate(
  * memory, or NULL if the block could not be allocated.
  */
 PVOID PhAllocateSafe(
-    __in SIZE_T Size
+    _In_ SIZE_T Size
     )
 {
     return RtlAllocateHeap(PhHeapHandle, 0, Size);
@@ -421,8 +421,8 @@ PVOID PhAllocateSafe(
  * memory, or NULL if the block could not be allocated.
  */
 PVOID PhAllocateExSafe(
-    __in SIZE_T Size,
-    __in ULONG Flags
+    _In_ SIZE_T Size,
+    _In_ ULONG Flags
     )
 {
     return RtlAllocateHeap(PhHeapHandle, Flags, Size);
@@ -435,7 +435,7 @@ PVOID PhAllocateExSafe(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFree(
-    __in __post_invalid PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     )
 {
     RtlFreeHeap(PhHeapHandle, 0, Memory);
@@ -456,9 +456,11 @@ VOID PhFree(
  * \remarks If the function fails to allocate
  * the block of memory, it raises an exception.
  */
-__mayRaise PVOID PhReAllocate(
-    __in PVOID Memory,
-    __in SIZE_T Size
+_May_raise_
+_Post_writable_byte_size_(Size)
+PVOID PhReAllocate(
+    _In_ _Post_invalid_ PVOID Memory,
+    _In_ SIZE_T Size
     )
 {
     return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
@@ -478,8 +480,8 @@ __mayRaise PVOID PhReAllocate(
  * copied to the new block.
  */
 PVOID PhReAllocateSafe(
-    __in PVOID Memory,
-    __in SIZE_T Size
+    _In_ PVOID Memory,
+    _In_ SIZE_T Size
     )
 {
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
@@ -496,11 +498,11 @@ PVOID PhReAllocateSafe(
  * \return A pointer to the allocated block of memory, or NULL
  * if the block could not be allocated.
  */
-__checkReturn
-__maybenull
+_Check_return_
+_Ret_maybenull_
 PVOID PhAllocatePage(
-    __in SIZE_T Size,
-    __out_opt PSIZE_T NewSize
+    _In_ SIZE_T Size,
+    _Out_opt_ PSIZE_T NewSize
     )
 {
     PVOID baseAddress;
@@ -533,7 +535,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    __in __post_invalid PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     )
 {
     SIZE_T size;
@@ -556,7 +558,7 @@ VOID PhFreePage(
  * \return The new string, which can be freed using PhFree().
  */
 PSTR PhDuplicateAnsiStringZ(
-    __in PSTR String
+    _In_ PSTR String
     )
 {
     PSTR newString;
@@ -579,7 +581,7 @@ PSTR PhDuplicateAnsiStringZ(
  * NULL if storage could not be allocated.
  */
 PSTR PhDuplicateAnsiStringZSafe(
-    __in PSTR String
+    _In_ PSTR String
     )
 {
     PSTR newString;
@@ -605,7 +607,7 @@ PSTR PhDuplicateAnsiStringZSafe(
  * \return The new string, which can be freed using PhFree().
  */
 PWSTR PhDuplicateUnicodeStringZ(
-    __in PWSTR String
+    _In_ PWSTR String
     )
 {
     PWSTR newString;
@@ -646,11 +648,11 @@ PWSTR PhDuplicateUnicodeStringZ(
  * \a InputCount is not -1.
  */
 BOOLEAN PhCopyAnsiStringZ(
-    __in PSTR InputBuffer,
-    __in ULONG InputCount,
-    __out_ecount_z_opt(OutputCount) PSTR OutputBuffer,
-    __in ULONG OutputCount,
-    __out_opt PULONG ReturnCount
+    _In_ PSTR InputBuffer,
+    _In_ ULONG InputCount,
+    _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
+    _In_ ULONG OutputCount,
+    _Out_opt_ PULONG ReturnCount
     )
 {
     ULONG i;
@@ -716,11 +718,11 @@ BOOLEAN PhCopyAnsiStringZ(
  * \a InputCount is not -1.
  */
 BOOLEAN PhCopyUnicodeStringZ(
-    __in PWSTR InputBuffer,
-    __in ULONG InputCount,
-    __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
-    __in ULONG OutputCount,
-    __out_opt PULONG ReturnCount
+    _In_ PWSTR InputBuffer,
+    _In_ ULONG InputCount,
+    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _In_ ULONG OutputCount,
+    _Out_opt_ PULONG ReturnCount
     )
 {
     ULONG i;
@@ -786,11 +788,11 @@ BOOLEAN PhCopyUnicodeStringZ(
  * \a InputCount is not -1.
  */
 BOOLEAN PhCopyUnicodeStringZFromAnsi(
-    __in PSTR InputBuffer,
-    __in ULONG InputCount,
-    __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
-    __in ULONG OutputCount,
-    __out_opt PULONG ReturnCount
+    _In_ PSTR InputBuffer,
+    _In_ ULONG InputCount,
+    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _In_ ULONG OutputCount,
+    _Out_opt_ PULONG ReturnCount
     )
 {
     NTSTATUS status;
@@ -863,8 +865,8 @@ BOOLEAN PhCopyUnicodeStringZFromAnsi(
 }
 
 FORCEINLINE LONG PhpCompareRightNatural(
-    __in PWSTR A,
-    __in PWSTR B
+    _In_ PWSTR A,
+    _In_ PWSTR B
     )
 {
     LONG bias = 0;
@@ -903,8 +905,8 @@ FORCEINLINE LONG PhpCompareRightNatural(
 }
 
 FORCEINLINE LONG PhpCompareLeftNatural(
-    __in PWSTR A,
-    __in PWSTR B
+    _In_ PWSTR A,
+    _In_ PWSTR B
     )
 {
     for (; ; A++, B++)
@@ -935,9 +937,9 @@ FORCEINLINE LONG PhpCompareLeftNatural(
 }
 
 FORCEINLINE LONG PhpCompareUnicodeStringZNatural(
-    __in PWSTR A,
-    __in PWSTR B,
-    __in BOOLEAN IgnoreCase
+    _In_ PWSTR A,
+    _In_ PWSTR B,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     /*  strnatcmp.c -- Perform 'natural order' comparisons of strings in C.
@@ -1030,9 +1032,9 @@ FORCEINLINE LONG PhpCompareUnicodeStringZNatural(
  * \param IgnoreCase Whether to ignore character cases.
  */
 LONG PhCompareUnicodeStringZNatural(
-    __in PWSTR A,
-    __in PWSTR B,
-    __in BOOLEAN IgnoreCase
+    _In_ PWSTR A,
+    _In_ PWSTR B,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     if (!IgnoreCase)
@@ -1050,9 +1052,9 @@ LONG PhCompareUnicodeStringZNatural(
  * FALSE.
  */
 LONG PhCompareStringRef(
-    __in PPH_STRINGREF String1,
-    __in PPH_STRINGREF String2,
-    __in BOOLEAN IgnoreCase
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     SIZE_T l1;
@@ -1122,9 +1124,9 @@ LONG PhCompareStringRef(
  * FALSE.
  */
 BOOLEAN PhEqualStringRef(
-    __in PPH_STRINGREF String1,
-    __in PPH_STRINGREF String2,
-    __in BOOLEAN IgnoreCase
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     SIZE_T l1;
@@ -1272,9 +1274,9 @@ CompareCharacters:
  * \a Character in \a String1. If \a Character was not found, -1 is returned.
  */
 ULONG_PTR PhFindCharInStringRef(
-    __in PPH_STRINGREF String,
-    __in WCHAR Character,
-    __in BOOLEAN IgnoreCase
+    _In_ PPH_STRINGREF String,
+    _In_ WCHAR Character,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     PWSTR buffer;
@@ -1359,9 +1361,9 @@ ULONG_PTR PhFindCharInStringRef(
  * \a Character in \a String1. If \a Character was not found, -1 is returned.
  */
 ULONG_PTR PhFindLastCharInStringRef(
-    __in PPH_STRINGREF String,
-    __in WCHAR Character,
-    __in BOOLEAN IgnoreCase
+    _In_ PPH_STRINGREF String,
+    _In_ WCHAR Character,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     PWSTR buffer;
@@ -1452,9 +1454,9 @@ ULONG_PTR PhFindLastCharInStringRef(
  * \a String2 in \a String1. If \a String2 was not found, -1 is returned.
  */
 ULONG_PTR PhFindStringInStringRef(
-    __in PPH_STRINGREF String1,
-    __in PPH_STRINGREF String2,
-    __in BOOLEAN IgnoreCase
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ BOOLEAN IgnoreCase
     )
 {
     SIZE_T length1;
@@ -1526,10 +1528,10 @@ FoundUString:
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtChar(
-    __in PPH_STRINGREF Input,
-    __in WCHAR Separator,
-    __out PPH_STRINGREF FirstPart,
-    __out PPH_STRINGREF SecondPart
+    _In_ PPH_STRINGREF Input,
+    _In_ WCHAR Separator,
+    _Out_ PPH_STRINGREF FirstPart,
+    _Out_ PPH_STRINGREF SecondPart
     )
 {
     PH_STRINGREF input;
@@ -1575,10 +1577,10 @@ BOOLEAN PhSplitStringRefAtChar(
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtLastChar(
-    __in PPH_STRINGREF Input,
-    __in WCHAR Separator,
-    __out PPH_STRINGREF FirstPart,
-    __out PPH_STRINGREF SecondPart
+    _In_ PPH_STRINGREF Input,
+    _In_ WCHAR Separator,
+    _Out_ PPH_STRINGREF FirstPart,
+    _Out_ PPH_STRINGREF SecondPart
     )
 {
     PH_STRINGREF input;
@@ -1626,11 +1628,11 @@ BOOLEAN PhSplitStringRefAtLastChar(
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtString(
-    __in PPH_STRINGREF Input,
-    __in PPH_STRINGREF Separator,
-    __in BOOLEAN IgnoreCase,
-    __out PPH_STRINGREF FirstPart,
-    __out PPH_STRINGREF SecondPart
+    _In_ PPH_STRINGREF Input,
+    _In_ PPH_STRINGREF Separator,
+    _In_ BOOLEAN IgnoreCase,
+    _Out_ PPH_STRINGREF FirstPart,
+    _Out_ PPH_STRINGREF SecondPart
     )
 {
     PH_STRINGREF input;
@@ -1696,12 +1698,12 @@ BOOLEAN PhSplitStringRefAtString(
  * \return TRUE if a separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefEx(
-    __in PPH_STRINGREF Input,
-    __in PPH_STRINGREF Separator,
-    __in ULONG Flags,
-    __out PPH_STRINGREF FirstPart,
-    __out PPH_STRINGREF SecondPart,
-    __out_opt PPH_STRINGREF SeparatorPart
+    _In_ PPH_STRINGREF Input,
+    _In_ PPH_STRINGREF Separator,
+    _In_ ULONG Flags,
+    _Out_ PPH_STRINGREF FirstPart,
+    _Out_ PPH_STRINGREF SecondPart,
+    _Out_opt_ PPH_STRINGREF SeparatorPart
     )
 {
     PH_STRINGREF input;
@@ -1919,7 +1921,7 @@ SeparatorNotFound:
  * \param Buffer A null-terminated Unicode string.
  */
 PPH_STRING PhCreateString(
-    __in PWSTR Buffer
+    _In_ PWSTR Buffer
     )
 {
     return PhCreateStringEx(Buffer, wcslen(Buffer) * sizeof(WCHAR));
@@ -1932,8 +1934,8 @@ PPH_STRING PhCreateString(
  * \param Length The length, in bytes, of the string.
  */
 PPH_STRING PhCreateStringEx(
-    __in_opt PWSTR Buffer,
-    __in SIZE_T Length
+    _In_opt_ PWSTR Buffer,
+    _In_ SIZE_T Length
     )
 {
     PPH_STRING string;
@@ -1966,7 +1968,7 @@ PPH_STRING PhCreateStringEx(
  * \param Buffer A null-terminated ANSI string.
  */
 PPH_STRING PhCreateStringFromAnsi(
-    __in PSTR Buffer
+    _In_ PSTR Buffer
     )
 {
     return PhCreateStringFromAnsiEx(
@@ -1983,8 +1985,8 @@ PPH_STRING PhCreateStringFromAnsi(
  * \param Length The number of bytes to use.
  */
 PPH_STRING PhCreateStringFromAnsiEx(
-    __in PSTR Buffer,
-    __in SIZE_T Length
+    _In_ PSTR Buffer,
+    _In_ SIZE_T Length
     )
 {
     NTSTATUS status;
@@ -2062,7 +2064,7 @@ PPH_STRING PhReferenceEmptyString(
  * \param Count The number of strings to concatenate.
  */
 PPH_STRING PhConcatStrings(
-    __in ULONG Count,
+    _In_ ULONG Count,
     ...
     )
 {
@@ -2080,8 +2082,8 @@ PPH_STRING PhConcatStrings(
  * \param ArgPtr A pointer to an array of strings.
  */
 PPH_STRING PhConcatStrings_V(
-    __in ULONG Count,
-    __in va_list ArgPtr
+    _In_ ULONG Count,
+    _In_ va_list ArgPtr
     )
 {
     va_list argptr;
@@ -2142,8 +2144,8 @@ PPH_STRING PhConcatStrings_V(
  * \param String2 The second string.
  */
 PPH_STRING PhConcatStrings2(
-    __in PWSTR String1,
-    __in PWSTR String2
+    _In_ PWSTR String1,
+    _In_ PWSTR String2
     )
 {
     PPH_STRING string;
@@ -2174,8 +2176,8 @@ PPH_STRING PhConcatStrings2(
  * \param String2 The second string.
  */
 PPH_STRING PhConcatStringRef2(
-    __in PPH_STRINGREF String1,
-    __in PPH_STRINGREF String2
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2
     )
 {
     PPH_STRING string;
@@ -2198,9 +2200,9 @@ PPH_STRING PhConcatStringRef2(
  * \param String3 The third string.
  */
 PPH_STRING PhConcatStringRef3(
-    __in PPH_STRINGREF String1,
-    __in PPH_STRINGREF String2,
-    __in PPH_STRINGREF String3
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String3
     )
 {
     PPH_STRING string;
@@ -2230,7 +2232,7 @@ PPH_STRING PhConcatStringRef3(
  * \param Format The format-control string.
  */
 PPH_STRING PhFormatString(
-    __in __format_string PWSTR Format,
+    _In_ _Printf_format_string_ PWSTR Format,
     ...
     )
 {
@@ -2248,8 +2250,8 @@ PPH_STRING PhFormatString(
  * \param ArgPtr A pointer to the list of arguments.
  */
 PPH_STRING PhFormatString_V(
-    __in __format_string PWSTR Format,
-    __in va_list ArgPtr
+    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ va_list ArgPtr
     )
 {
     PPH_STRING string;
@@ -2273,7 +2275,7 @@ PPH_STRING PhFormatString_V(
  * \param Buffer A null-terminated ANSI string.
  */
 PPH_ANSI_STRING PhCreateAnsiString(
-    __in PSTR Buffer
+    _In_ PSTR Buffer
     )
 {
     return PhCreateAnsiStringEx(Buffer, strlen(Buffer));
@@ -2286,8 +2288,8 @@ PPH_ANSI_STRING PhCreateAnsiString(
  * \param Length The length, in bytes, of the string.
  */
 PPH_ANSI_STRING PhCreateAnsiStringEx(
-    __in_opt PSTR Buffer,
-    __in SIZE_T Length
+    _In_opt_ PSTR Buffer,
+    _In_ SIZE_T Length
     )
 {
     PPH_ANSI_STRING string;
@@ -2319,7 +2321,7 @@ PPH_ANSI_STRING PhCreateAnsiStringEx(
  * \param Buffer A null-terminated Unicode string.
  */
 PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
-    __in PWSTR Buffer
+    _In_ PWSTR Buffer
     )
 {
     return PhCreateAnsiStringFromUnicodeEx(
@@ -2336,8 +2338,8 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
  * \param Length The number of bytes to use.
  */
 PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
-    __in PWSTR Buffer,
-    __in SIZE_T Length
+    _In_ PWSTR Buffer,
+    _In_ SIZE_T Length
     )
 {
     NTSTATUS status;
@@ -2380,8 +2382,8 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
  * initially.
  */
 VOID PhInitializeStringBuilder(
-    __out PPH_STRING_BUILDER StringBuilder,
-    __in SIZE_T InitialCapacity
+    _Out_ PPH_STRING_BUILDER StringBuilder,
+    _In_ SIZE_T InitialCapacity
     )
 {
     // Make sure the initial capacity is even, as required for all string objects.
@@ -2417,15 +2419,15 @@ VOID PhInitializeStringBuilder(
  * \param StringBuilder A string builder object.
  */
 VOID PhDeleteStringBuilder(
-    __inout PPH_STRING_BUILDER StringBuilder
+    _Inout_ PPH_STRING_BUILDER StringBuilder
     )
 {
     PhDereferenceObject(StringBuilder->String);
 }
 
 VOID PhpResizeStringBuilder(
-    __in PPH_STRING_BUILDER StringBuilder,
-    __in SIZE_T NewCapacity
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ SIZE_T NewCapacity
     )
 {
     PPH_STRING newString;
@@ -2460,7 +2462,7 @@ VOID PhpResizeStringBuilder(
 }
 
 FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
-    __in PPH_STRING_BUILDER StringBuilder
+    _In_ PPH_STRING_BUILDER StringBuilder
     )
 {
     assert(!(StringBuilder->String->Length & 1));
@@ -2482,7 +2484,7 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
  * Otherwise, the string may change unexpectedly.
  */
 PPH_STRING PhReferenceStringBuilderString(
-    __in PPH_STRING_BUILDER StringBuilder
+    _In_ PPH_STRING_BUILDER StringBuilder
     )
 {
     PPH_STRING string;
@@ -2509,7 +2511,7 @@ PPH_STRING PhReferenceStringBuilderString(
  * PhDeleteStringBuilder().
  */
 PPH_STRING PhFinalStringBuilderString(
-    __inout PPH_STRING_BUILDER StringBuilder
+    _Inout_ PPH_STRING_BUILDER StringBuilder
     )
 {
     return StringBuilder->String;
@@ -2523,8 +2525,8 @@ PPH_STRING PhFinalStringBuilderString(
  * \param String The string to append.
  */
 VOID PhAppendStringBuilder(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in PPH_STRING String
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PPH_STRING String
     )
 {
     PhAppendStringBuilderEx(
@@ -2542,8 +2544,8 @@ VOID PhAppendStringBuilder(
  * \param String The string to append.
  */
 VOID PhAppendStringBuilder2(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in PWSTR String
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PWSTR String
     )
 {
     PhAppendStringBuilderEx(
@@ -2563,9 +2565,9 @@ VOID PhAppendStringBuilder2(
  * \param Length The number of bytes to append.
  */
 VOID PhAppendStringBuilderEx(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in_opt PWSTR String,
-    __in SIZE_T Length
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_opt_ PWSTR String,
+    _In_ SIZE_T Length
     )
 {
     if (Length == 0)
@@ -2600,8 +2602,8 @@ VOID PhAppendStringBuilderEx(
  * \param Character The character to append.
  */
 VOID PhAppendCharStringBuilder(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in WCHAR Character
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ WCHAR Character
     )
 {
     if (StringBuilder->AllocatedLength < StringBuilder->String->Length + sizeof(WCHAR))
@@ -2623,9 +2625,9 @@ VOID PhAppendCharStringBuilder(
  * \param Count The number of times to append the character.
  */
 VOID PhAppendCharStringBuilder2(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in WCHAR Character,
-    __in SIZE_T Count
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ WCHAR Character,
+    _In_ SIZE_T Count
     )
 {
     if (Count == 0)
@@ -2655,8 +2657,8 @@ VOID PhAppendCharStringBuilder2(
  * \param Format The format-control string.
  */
 VOID PhAppendFormatStringBuilder(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in __format_string PWSTR Format,
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ _Printf_format_string_ PWSTR Format,
     ...
     )
 {
@@ -2667,9 +2669,9 @@ VOID PhAppendFormatStringBuilder(
 }
 
 VOID PhAppendFormatStringBuilder_V(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in __format_string PWSTR Format,
-    __in va_list ArgPtr
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ va_list ArgPtr
     )
 {
     int length;
@@ -2705,9 +2707,9 @@ VOID PhAppendFormatStringBuilder_V(
  * \param String The string to insert.
  */
 VOID PhInsertStringBuilder(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in SIZE_T Index,
-    __in PPH_STRING String
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ SIZE_T Index,
+    _In_ PPH_STRING String
     )
 {
     PhInsertStringBuilderEx(
@@ -2727,9 +2729,9 @@ VOID PhInsertStringBuilder(
  * \param String The string to insert.
  */
 VOID PhInsertStringBuilder2(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in SIZE_T Index,
-    __in PWSTR String
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ SIZE_T Index,
+    _In_ PWSTR String
     )
 {
     PhInsertStringBuilderEx(
@@ -2751,10 +2753,10 @@ VOID PhInsertStringBuilder2(
  * \param Length The number of bytes to insert.
  */
 VOID PhInsertStringBuilderEx(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in SIZE_T Index,
-    __in_opt PWSTR String,
-    __in SIZE_T Length
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ SIZE_T Index,
+    _In_opt_ PWSTR String,
+    _In_ SIZE_T Length
     )
 {
     if (Length == 0)
@@ -2799,9 +2801,9 @@ VOID PhInsertStringBuilderEx(
  * \param Count The number of characters to remove.
  */
 VOID PhRemoveStringBuilder(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in SIZE_T StartIndex,
-    __in SIZE_T Count
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ SIZE_T StartIndex,
+    _In_ SIZE_T Count
     )
 {
     // Overwrite the removed part with the part
@@ -2823,7 +2825,7 @@ VOID PhRemoveStringBuilder(
  * allocate storage for initially.
  */
 PPH_LIST PhCreateList(
-    __in ULONG InitialCapacity
+    _In_ ULONG InitialCapacity
     )
 {
     PPH_LIST list;
@@ -2848,8 +2850,8 @@ PPH_LIST PhCreateList(
 }
 
 VOID PhpListDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_LIST list = (PPH_LIST)Object;
@@ -2866,8 +2868,8 @@ VOID PhpListDeleteProcedure(
  * than the current number of items in the list.
  */
 VOID PhResizeList(
-    __inout PPH_LIST List,
-    __in ULONG NewCapacity
+    _Inout_ PPH_LIST List,
+    _In_ ULONG NewCapacity
     )
 {
     if (List->Count > NewCapacity)
@@ -2884,8 +2886,8 @@ VOID PhResizeList(
  * \param Item The item to add.
  */
 VOID PhAddItemList(
-    __inout PPH_LIST List,
-    __in PVOID Item
+    _Inout_ PPH_LIST List,
+    _In_ PVOID Item
     )
 {
     // See if we need to resize the list.
@@ -2906,9 +2908,9 @@ VOID PhAddItemList(
  * \param Count The number of items to add.
  */
 VOID PhAddItemsList(
-    __inout PPH_LIST List,
-    __in PVOID *Items,
-    __in ULONG Count
+    _Inout_ PPH_LIST List,
+    _In_ PVOID *Items,
+    _In_ ULONG Count
     )
 {
     // See if we need to resize the list.
@@ -2937,13 +2939,13 @@ VOID PhAddItemsList(
  * \param List A list object.
  */
 VOID PhClearList(
-    __inout PPH_LIST List
+    _Inout_ PPH_LIST List
     )
 {
     List->Count = 0;
 }
 
-__success(return != -1)
+_Success_(return != -1)
 /**
  * Locates an item in a list.
  *
@@ -2954,8 +2956,8 @@ __success(return != -1)
  * item was not found, -1 is returned.
  */
 ULONG PhFindItemList(
-    __in PPH_LIST List,
-    __in PVOID Item
+    _In_ PPH_LIST List,
+    _In_ PVOID Item
     )
 {
     ULONG i;
@@ -2977,9 +2979,9 @@ ULONG PhFindItemList(
  * \param Item The item to add.
  */
 VOID PhInsertItemList(
-    __inout PPH_LIST List,
-    __in ULONG Index,
-    __in PVOID Item
+    _Inout_ PPH_LIST List,
+    _In_ ULONG Index,
+    _In_ PVOID Item
     )
 {
     PhInsertItemsList(List, Index, &Item, 1);
@@ -2994,10 +2996,10 @@ VOID PhInsertItemList(
  * \param Count The number of items to add.
  */
 VOID PhInsertItemsList(
-    __inout PPH_LIST List,
-    __in ULONG Index,
-    __in PVOID *Items,
-    __in ULONG Count
+    _Inout_ PPH_LIST List,
+    _In_ ULONG Index,
+    _In_ PVOID *Items,
+    _In_ ULONG Count
     )
 {
     // See if we need to resize the list.
@@ -3038,8 +3040,8 @@ VOID PhInsertItemsList(
  * \param Index The index of the item.
  */
 VOID PhRemoveItemList(
-    __inout PPH_LIST List,
-    __in ULONG Index
+    _Inout_ PPH_LIST List,
+    _In_ ULONG Index
     )
 {
     PhRemoveItemsList(List, Index, 1);
@@ -3054,9 +3056,9 @@ VOID PhRemoveItemList(
  * \param Count The number of items to remove.
  */
 VOID PhRemoveItemsList(
-    __inout PPH_LIST List,
-    __in ULONG StartIndex,
-    __in ULONG Count
+    _Inout_ PPH_LIST List,
+    _In_ ULONG StartIndex,
+    _In_ ULONG Count
     )
 {
     // Shift the items after the items forward.
@@ -3076,7 +3078,7 @@ VOID PhRemoveItemsList(
  * allocate storage for initially.
  */
 PPH_POINTER_LIST PhCreatePointerList(
-    __in ULONG InitialCapacity
+    _In_ ULONG InitialCapacity
     )
 {
     PPH_POINTER_LIST pointerList;
@@ -3103,8 +3105,8 @@ PPH_POINTER_LIST PhCreatePointerList(
 }
 
 VOID NTAPI PhpPointerListDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_POINTER_LIST pointerList = (PPH_POINTER_LIST)Object;
@@ -3116,7 +3118,7 @@ VOID NTAPI PhpPointerListDeleteProcedure(
  * Decodes an index stored in a free entry.
  */
 FORCEINLINE ULONG PhpDecodePointerListIndex(
-    __in PVOID Index
+    _In_ PVOID Index
     )
 {
     // At least with Microsoft's compiler, shift right on
@@ -3130,14 +3132,14 @@ FORCEINLINE ULONG PhpDecodePointerListIndex(
  * Encodes an index for storage in a free entry.
  */
 FORCEINLINE PVOID PhpEncodePointerListIndex(
-    __in ULONG Index
+    _In_ ULONG Index
     )
 {
     return (PVOID)(((ULONG_PTR)Index << 1) | 0x1);
 }
 
 FORCEINLINE HANDLE PhpPointerListIndexToHandle(
-    __in ULONG Index
+    _In_ ULONG Index
     )
 {
     // Add one to allow NULL handles to indicate
@@ -3146,7 +3148,7 @@ FORCEINLINE HANDLE PhpPointerListIndexToHandle(
 }
 
 FORCEINLINE ULONG PhpPointerListHandleToIndex(
-    __in HANDLE Handle
+    _In_ HANDLE Handle
     )
 {
     return (ULONG)Handle - 1;
@@ -3163,8 +3165,8 @@ FORCEINLINE ULONG PhpPointerListHandleToIndex(
  * the pointer is removed from the pointer list.
  */
 HANDLE PhAddItemPointerList(
-    __inout PPH_POINTER_LIST PointerList,
-    __in PVOID Pointer
+    _Inout_ PPH_POINTER_LIST PointerList,
+    _In_ PVOID Pointer
     )
 {
     ULONG index;
@@ -3200,10 +3202,10 @@ HANDLE PhAddItemPointerList(
 }
 
 BOOLEAN PhEnumPointerListEx(
-    __in PPH_POINTER_LIST PointerList,
-    __inout PULONG EnumerationKey,
-    __out PVOID *Pointer,
-    __out PHANDLE PointerHandle
+    _In_ PPH_POINTER_LIST PointerList,
+    _Inout_ PULONG EnumerationKey,
+    _Out_ PVOID *Pointer,
+    _Out_ PHANDLE PointerHandle
     )
 {
     ULONG index;
@@ -3239,8 +3241,8 @@ BOOLEAN PhEnumPointerListEx(
  * list, NULL is returned.
  */
 HANDLE PhFindItemPointerList(
-    __in PPH_POINTER_LIST PointerList,
-    __in PVOID Pointer
+    _In_ PPH_POINTER_LIST PointerList,
+    _In_ PVOID Pointer
     )
 {
     ULONG i;
@@ -3268,8 +3270,8 @@ HANDLE PhFindItemPointerList(
  * before calling the function.
  */
 VOID PhRemoveItemPointerList(
-    __inout PPH_POINTER_LIST PointerList,
-    __in HANDLE PointerHandle
+    _Inout_ PPH_POINTER_LIST PointerList,
+    _In_ HANDLE PointerHandle
     )
 {
     ULONG index;
@@ -3285,7 +3287,7 @@ VOID PhRemoveItemPointerList(
 }
 
 FORCEINLINE ULONG PhpValidateHash(
-    __in ULONG Hash
+    _In_ ULONG Hash
     )
 {
     // No point in using a full hash when we're going to
@@ -3301,8 +3303,8 @@ FORCEINLINE ULONG PhpValidateHash(
 }
 
 FORCEINLINE ULONG PhpIndexFromHash(
-    __in PPH_HASHTABLE Hashtable,
-    __in ULONG Hash
+    _In_ PPH_HASHTABLE Hashtable,
+    _In_ ULONG Hash
     )
 {
 #ifdef PH_HASHTABLE_POWER_OF_TWO_SIZE
@@ -3313,7 +3315,7 @@ FORCEINLINE ULONG PhpIndexFromHash(
 }
 
 FORCEINLINE ULONG PhpGetNumberOfBuckets(
-    __in ULONG Capacity
+    _In_ ULONG Capacity
     )
 {
 #ifdef PH_HASHTABLE_POWER_OF_TWO_SIZE
@@ -3336,10 +3338,10 @@ FORCEINLINE ULONG PhpGetNumberOfBuckets(
  * allocate storage for initially.
  */
 PPH_HASHTABLE PhCreateHashtable(
-    __in ULONG EntrySize,
-    __in PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
-    __in PPH_HASHTABLE_HASH_FUNCTION HashFunction,
-    __in ULONG InitialCapacity
+    _In_ ULONG EntrySize,
+    _In_ PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
+    _In_ PPH_HASHTABLE_HASH_FUNCTION HashFunction,
+    _In_ ULONG InitialCapacity
     )
 {
     PPH_HASHTABLE hashtable;
@@ -3378,8 +3380,8 @@ PPH_HASHTABLE PhCreateHashtable(
 }
 
 VOID PhpHashtableDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_HASHTABLE hashtable = (PPH_HASHTABLE)Object;
@@ -3389,8 +3391,8 @@ VOID PhpHashtableDeleteProcedure(
 }
 
 VOID PhpResizeHashtable(
-    __inout PPH_HASHTABLE Hashtable,
-    __in ULONG NewCapacity
+    _Inout_ PPH_HASHTABLE Hashtable,
+    _In_ ULONG NewCapacity
     )
 {
     PPH_HASHTABLE_ENTRY entry;
@@ -3431,10 +3433,10 @@ VOID PhpResizeHashtable(
 }
 
 FORCEINLINE PVOID PhpAddEntryHashtable(
-    __inout PPH_HASHTABLE Hashtable,
-    __in PVOID Entry,
-    __in BOOLEAN CheckForDuplicate,
-    __out_opt PBOOLEAN Added
+    _Inout_ PPH_HASHTABLE Hashtable,
+    _In_ PVOID Entry,
+    _In_ BOOLEAN CheckForDuplicate,
+    _Out_opt_ PBOOLEAN Added
     )
 {
     ULONG hashCode; // hash code of the new entry
@@ -3515,8 +3517,8 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
  * aligned, even on 64-bit systems.
  */
 PVOID PhAddEntryHashtable(
-    __inout PPH_HASHTABLE Hashtable,
-    __in PVOID Entry
+    _Inout_ PPH_HASHTABLE Hashtable,
+    _In_ PVOID Entry
     )
 {
     PVOID entry;
@@ -3550,9 +3552,9 @@ PVOID PhAddEntryHashtable(
  * aligned, even on 64-bit systems.
  */
 PVOID PhAddEntryHashtableEx(
-    __inout PPH_HASHTABLE Hashtable,
-    __in PVOID Entry,
-    __out_opt PBOOLEAN Added
+    _Inout_ PPH_HASHTABLE Hashtable,
+    _In_ PVOID Entry,
+    _Out_opt_ PBOOLEAN Added
     )
 {
     return PhpAddEntryHashtable(Hashtable, Entry, TRUE, Added);
@@ -3564,7 +3566,7 @@ PVOID PhAddEntryHashtableEx(
  * \param Hashtable A hashtable object.
  */
 VOID PhClearHashtable(
-    __inout PPH_HASHTABLE Hashtable
+    _Inout_ PPH_HASHTABLE Hashtable
     )
 {
     if (Hashtable->Count > 0)
@@ -3598,9 +3600,9 @@ VOID PhClearHashtable(
  * restart the enumeration.
  */
 BOOLEAN PhEnumHashtable(
-    __in PPH_HASHTABLE Hashtable,
-    __out PVOID *Entry,
-    __inout PULONG EnumerationKey
+    _In_ PPH_HASHTABLE Hashtable,
+    _Out_ PVOID *Entry,
+    _Inout_ PULONG EnumerationKey
     )
 {
     while (*EnumerationKey < Hashtable->NextEntry)
@@ -3637,8 +3639,8 @@ BOOLEAN PhEnumHashtable(
  * work with them.
  */
 PVOID PhFindEntryHashtable(
-    __in PPH_HASHTABLE Hashtable,
-    __in PVOID Entry
+    _In_ PPH_HASHTABLE Hashtable,
+    _In_ PVOID Entry
     )
 {
     ULONG hashCode;
@@ -3677,8 +3679,8 @@ PVOID PhFindEntryHashtable(
  * entry.
  */
 BOOLEAN PhRemoveEntryHashtable(
-    __inout PPH_HASHTABLE Hashtable,
-    __in PVOID Entry
+    _Inout_ PPH_HASHTABLE Hashtable,
+    _In_ PVOID Entry
     )
 {
     ULONG hashCode;
@@ -3729,8 +3731,8 @@ BOOLEAN PhRemoveEntryHashtable(
  * \param Length The number of bytes to hash.
  */
 ULONG FASTCALL PhfHashBytesHsieh(
-    __in PUCHAR Bytes,
-    __in SIZE_T Length
+    _In_ PUCHAR Bytes,
+    _In_ SIZE_T Length
     )
 {
     // Hsieh hash, http://www.azillionmonkeys.com/qed/hash.html
@@ -3791,8 +3793,8 @@ ULONG FASTCALL PhfHashBytesHsieh(
  * \param Length The number of bytes to hash.
  */
 ULONG FASTCALL PhfHashBytesMurmur(
-    __in PUCHAR Bytes,
-    __in SIZE_T Length
+    _In_ PUCHAR Bytes,
+    _In_ SIZE_T Length
     )
 {
     // Murmur hash, http://murmurhash.googlepages.com
@@ -3842,8 +3844,8 @@ ULONG FASTCALL PhfHashBytesMurmur(
  * \param Length The number of bytes to hash.
  */
 ULONG FASTCALL PhfHashBytesSdbm(
-    __in PUCHAR Bytes,
-    __in SIZE_T Length
+    _In_ PUCHAR Bytes,
+    _In_ SIZE_T Length
     )
 {
     ULONG hash = (ULONG)Length;
@@ -3859,8 +3861,8 @@ ULONG FASTCALL PhfHashBytesSdbm(
 }
 
 BOOLEAN NTAPI PhpSimpleHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_KEY_VALUE_PAIR entry1 = Entry1;
@@ -3870,7 +3872,7 @@ BOOLEAN NTAPI PhpSimpleHashtableCompareFunction(
 }
 
 ULONG NTAPI PhpSimpleHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PPH_KEY_VALUE_PAIR entry = Entry;
@@ -3883,7 +3885,7 @@ ULONG NTAPI PhpSimpleHashtableHashFunction(
 }
 
 PPH_HASHTABLE PhCreateSimpleHashtable(
-    __in ULONG InitialCapacity
+    _In_ ULONG InitialCapacity
     )
 {
     return PhCreateHashtable(
@@ -3895,9 +3897,9 @@ PPH_HASHTABLE PhCreateSimpleHashtable(
 }
 
 PVOID PhAddItemSimpleHashtable(
-    __inout PPH_HASHTABLE SimpleHashtable,
-    __in_opt PVOID Key,
-    __in_opt PVOID Value
+    _Inout_ PPH_HASHTABLE SimpleHashtable,
+    _In_opt_ PVOID Key,
+    _In_opt_ PVOID Value
     )
 {
     PH_KEY_VALUE_PAIR entry;
@@ -3912,8 +3914,8 @@ PVOID PhAddItemSimpleHashtable(
 }
 
 PVOID *PhFindItemSimpleHashtable(
-    __in PPH_HASHTABLE SimpleHashtable,
-    __in_opt PVOID Key
+    _In_ PPH_HASHTABLE SimpleHashtable,
+    _In_opt_ PVOID Key
     )
 {
     PH_KEY_VALUE_PAIR lookupEntry;
@@ -3929,8 +3931,8 @@ PVOID *PhFindItemSimpleHashtable(
 }
 
 BOOLEAN PhRemoveItemSimpleHashtable(
-    __inout PPH_HASHTABLE SimpleHashtable,
-    __in_opt PVOID Key
+    _Inout_ PPH_HASHTABLE SimpleHashtable,
+    _In_opt_ PVOID Key
     )
 {
     PH_KEY_VALUE_PAIR lookupEntry;
@@ -3949,9 +3951,9 @@ BOOLEAN PhRemoveItemSimpleHashtable(
  * to store.
  */
 VOID PhInitializeFreeList(
-    __out PPH_FREE_LIST FreeList,
-    __in SIZE_T Size,
-    __in ULONG MaximumCount
+    _Out_ PPH_FREE_LIST FreeList,
+    _In_ SIZE_T Size,
+    _In_ ULONG MaximumCount
     )
 {
     RtlInitializeSListHead(&FreeList->ListHead);
@@ -3966,7 +3968,7 @@ VOID PhInitializeFreeList(
  * \param FreeList A pointer to the free list object.
  */
 VOID PhDeleteFreeList(
-    __inout PPH_FREE_LIST FreeList
+    _Inout_ PPH_FREE_LIST FreeList
     )
 {
     PPH_FREE_LIST_ENTRY entry;
@@ -3993,7 +3995,7 @@ VOID PhDeleteFreeList(
  * aligned at MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
 PVOID PhAllocateFromFreeList(
-    __inout PPH_FREE_LIST FreeList
+    _Inout_ PPH_FREE_LIST FreeList
     )
 {
     PPH_FREE_LIST_ENTRY entry;
@@ -4021,8 +4023,8 @@ PVOID PhAllocateFromFreeList(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreeToFreeList(
-    __inout PPH_FREE_LIST FreeList,
-    __in PVOID Memory
+    _Inout_ PPH_FREE_LIST FreeList,
+    _In_ PVOID Memory
     )
 {
     PPH_FREE_LIST_ENTRY entry;
@@ -4048,7 +4050,7 @@ VOID PhFreeToFreeList(
  * \param Callback A pointer to a callback object.
  */
 VOID PhInitializeCallback(
-    __out PPH_CALLBACK Callback
+    _Out_ PPH_CALLBACK Callback
     )
 {
     InitializeListHead(&Callback->ListHead);
@@ -4062,7 +4064,7 @@ VOID PhInitializeCallback(
  * \param Callback A pointer to a callback object.
  */
 VOID PhDeleteCallback(
-    __inout PPH_CALLBACK Callback
+    _Inout_ PPH_CALLBACK Callback
     )
 {
     // Nothing for now
@@ -4082,10 +4084,10 @@ VOID PhDeleteCallback(
  * unregistered the callback.
  */
 VOID PhRegisterCallback(
-    __inout PPH_CALLBACK Callback,
-    __in PPH_CALLBACK_FUNCTION Function,
-    __in_opt PVOID Context,
-    __out PPH_CALLBACK_REGISTRATION Registration
+    _Inout_ PPH_CALLBACK Callback,
+    _In_ PPH_CALLBACK_FUNCTION Function,
+    _In_opt_ PVOID Context,
+    _Out_ PPH_CALLBACK_REGISTRATION Registration
     )
 {
     PhRegisterCallbackEx(
@@ -4113,11 +4115,11 @@ VOID PhRegisterCallback(
  * unregistered the callback.
  */
 VOID PhRegisterCallbackEx(
-    __inout PPH_CALLBACK Callback,
-    __in PPH_CALLBACK_FUNCTION Function,
-    __in_opt PVOID Context,
-    __in USHORT Flags,
-    __out PPH_CALLBACK_REGISTRATION Registration
+    _Inout_ PPH_CALLBACK Callback,
+    _In_ PPH_CALLBACK_FUNCTION Function,
+    _In_opt_ PVOID Context,
+    _In_ USHORT Flags,
+    _Out_ PPH_CALLBACK_REGISTRATION Registration
     )
 {
     Registration->Function = Function;
@@ -4144,8 +4146,8 @@ VOID PhRegisterCallbackEx(
  * from within the same function will result in a deadlock.
  */
 VOID PhUnregisterCallback(
-    __inout PPH_CALLBACK Callback,
-    __inout PPH_CALLBACK_REGISTRATION Registration
+    _Inout_ PPH_CALLBACK Callback,
+    _Inout_ PPH_CALLBACK_REGISTRATION Registration
     )
 {
     Registration->Unregistering = TRUE;
@@ -4169,8 +4171,8 @@ VOID PhUnregisterCallback(
  * functions.
  */
 VOID PhInvokeCallback(
-    __in PPH_CALLBACK Callback,
-    __in_opt PVOID Parameter
+    _In_ PPH_CALLBACK Callback,
+    _In_opt_ PVOID Parameter
     )
 {
     PLIST_ENTRY listEntry;
@@ -4222,7 +4224,7 @@ VOID PhInvokeCallback(
  * specified number.
  */
 ULONG PhGetPrimeNumber(
-    __in ULONG Minimum
+    _In_ ULONG Minimum
     )
 {
     ULONG i, j;
@@ -4259,7 +4261,7 @@ NextPrime:
  * Rounds up a number to the next power of two.
  */
 ULONG PhRoundUpToPowerOfTwo(
-    __in ULONG Number
+    _In_ ULONG Number
     )
 {
     Number--;
@@ -4277,8 +4279,8 @@ ULONG PhRoundUpToPowerOfTwo(
  * Performs exponentiation.
  */
 ULONG PhExponentiate(
-    __in ULONG Base,
-    __in ULONG Exponent
+    _In_ ULONG Base,
+    _In_ ULONG Exponent
     )
 {
     ULONG result = 1;
@@ -4299,8 +4301,8 @@ ULONG PhExponentiate(
  * Performs 64-bit exponentiation.
  */
 ULONG64 PhExponentiate64(
-    __in ULONG64 Base,
-    __in ULONG Exponent
+    _In_ ULONG64 Base,
+    _In_ ULONG Exponent
     )
 {
     ULONG64 result = 1;
@@ -4324,7 +4326,7 @@ ULONG64 PhExponentiate64(
  * This is the same as the position of the highest set bit.
  */
 ULONG PhLog2(
-    __in ULONG Exponent
+    _In_ ULONG Exponent
     )
 {
     ULONG result = 0;
@@ -4349,8 +4351,8 @@ ULONG PhLog2(
  * \return TRUE if the string was successfully converted, otherwise FALSE.
  */
 BOOLEAN PhHexStringToBuffer(
-    __in PPH_STRINGREF String,
-    __out_bcount(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
+    _In_ PPH_STRINGREF String,
+    _Out_writes_bytes_(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     )
 {
     SIZE_T i;
@@ -4381,8 +4383,8 @@ BOOLEAN PhHexStringToBuffer(
  * \return A string containing a sequence of hexadecimal digits.
  */
 PPH_STRING PhBufferToHexString(
-    __in PUCHAR Buffer,
-    __in ULONG Length
+    _In_ PUCHAR Buffer,
+    _In_ ULONG Length
     )
 {
     PPH_STRING string;
@@ -4409,9 +4411,9 @@ PPH_STRING PhBufferToHexString(
  * \param Integer The resulting integer.
  */
 BOOLEAN PhpStringToInteger64(
-    __in PPH_STRINGREF String,
-    __in ULONG Base,
-    __out PULONG64 Integer
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG Base,
+    _Out_ PULONG64 Integer
     )
 {
     BOOLEAN valid = TRUE;
@@ -4464,9 +4466,9 @@ BOOLEAN PhpStringToInteger64(
  * used.
  */
 BOOLEAN PhStringToInteger64(
-    __in PPH_STRINGREF String,
-    __in_opt ULONG Base,
-    __out_opt PLONG64 Integer
+    _In_ PPH_STRINGREF String,
+    _In_opt_ ULONG Base,
+    _Out_opt_ PLONG64 Integer
     )
 {
     BOOLEAN valid;
@@ -4566,9 +4568,9 @@ BOOLEAN PhStringToInteger64(
  * occurred.
  */
 PPH_STRING PhIntegerToString64(
-    __in LONG64 Integer,
-    __in_opt ULONG Base,
-    __in BOOLEAN Signed
+    _In_ LONG64 Integer,
+    _In_opt_ ULONG Base,
+    _In_ BOOLEAN Signed
     )
 {
     PH_FORMAT format;
@@ -4591,9 +4593,9 @@ PPH_STRING PhIntegerToString64(
 }
 
 VOID PhPrintTimeSpan(
-    __out_ecount(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
-    __in ULONG64 Ticks,
-    __in_opt ULONG Mode
+    _Out_writes_(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
+    _In_ ULONG64 Ticks,
+    _In_opt_ ULONG Mode
     )
 {
     switch (Mode)

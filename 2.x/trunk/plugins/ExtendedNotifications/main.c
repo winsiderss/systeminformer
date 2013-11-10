@@ -27,58 +27,58 @@
 #include "gntp-send/growl.h"
 
 VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI NotifyEventCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID RegisterGrowl(
-    __in BOOLEAN Force
+    _In_ BOOLEAN Force
     );
 
 VOID NotifyGrowl(
-    __in PPH_PLUGIN_NOTIFY_EVENT NotifyEvent
+    _In_ PPH_PLUGIN_NOTIFY_EVENT NotifyEvent
     );
 
 NTSTATUS NTAPI RegisterGrowlCallback(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 INT_PTR CALLBACK ProcessesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK ServicesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK LoggingDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK GrowlDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 PPH_PLUGIN PluginInstance;
@@ -100,9 +100,9 @@ PSTR GrowlNotifications[] =
 };
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)
@@ -163,7 +163,7 @@ LOGICAL DllMain(
 }
 
 VOID FreeFilterEntry(
-    __in PFILTER_ENTRY Entry
+    _In_ PFILTER_ENTRY Entry
     )
 {
     PhDereferenceObject(Entry->Filter);
@@ -171,7 +171,7 @@ VOID FreeFilterEntry(
 }
 
 VOID ClearFilterList(
-    __inout PPH_LIST FilterList
+    _Inout_ PPH_LIST FilterList
     )
 {
     ULONG i;
@@ -183,8 +183,8 @@ VOID ClearFilterList(
 }
 
 VOID CopyFilterList(
-    __inout PPH_LIST Destination,
-    __in PPH_LIST Source
+    _Inout_ PPH_LIST Destination,
+    _In_ PPH_LIST Source
     )
 {
     ULONG i;
@@ -204,8 +204,8 @@ VOID CopyFilterList(
 }
 
 VOID LoadFilterList(
-    __inout PPH_LIST FilterList,
-    __in PPH_STRING String
+    _Inout_ PPH_LIST FilterList,
+    _In_ PPH_STRING String
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -271,7 +271,7 @@ VOID LoadFilterList(
 }
 
 PPH_STRING SaveFilterList(
-    __inout PPH_LIST FilterList
+    _Inout_ PPH_LIST FilterList
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -316,8 +316,8 @@ PPH_STRING SaveFilterList(
 }
 
 VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_STRING string;
@@ -339,8 +339,8 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -393,9 +393,9 @@ VOID NTAPI ShowOptionsCallback(
 }
 
 BOOLEAN MatchFilterList(
-    __in PPH_LIST FilterList,
-    __in PPH_STRING String,
-    __out FILTER_TYPE *FilterType
+    _In_ PPH_LIST FilterList,
+    _In_ PPH_STRING String,
+    _Out_ FILTER_TYPE *FilterType
     )
 {
     ULONG i;
@@ -427,8 +427,8 @@ BOOLEAN MatchFilterList(
 }
 
 VOID NTAPI NotifyEventCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_NOTIFY_EVENT notifyEvent = Parameter;
@@ -472,7 +472,7 @@ VOID NTAPI NotifyEventCallback(
 }
 
 VOID RegisterGrowl(
-    __in BOOLEAN Force
+    _In_ BOOLEAN Force
     )
 {
     static BOOLEAN registered = FALSE;
@@ -486,7 +486,7 @@ VOID RegisterGrowl(
 }
 
 VOID NotifyGrowl(
-    __in PPH_PLUGIN_NOTIFY_EVENT NotifyEvent
+    _In_ PPH_PLUGIN_NOTIFY_EVENT NotifyEvent
     )
 {
     PSTR notification;
@@ -605,7 +605,7 @@ VOID NotifyGrowl(
 }
 
 NTSTATUS NTAPI RegisterGrowlCallback(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     RegisterGrowl(FALSE);
@@ -614,15 +614,15 @@ NTSTATUS NTAPI RegisterGrowlCallback(
 }
 
 PPH_STRING FormatFilterEntry(
-    __in PFILTER_ENTRY Entry
+    _In_ PFILTER_ENTRY Entry
     )
 {
     return PhConcatStrings2(Entry->Type == FilterInclude ? L"[Include] " : L"[Exclude] ", Entry->Filter->Buffer);
 }
 
 VOID AddEntriesToListBox(
-    __in HWND ListBox,
-    __in PPH_LIST FilterList
+    _In_ HWND ListBox,
+    _In_ PPH_LIST FilterList
     )
 {
     ULONG i;
@@ -642,10 +642,10 @@ PPH_LIST EditingProcessFilterList;
 PPH_LIST EditingServiceFilterList;
 
 static LRESULT CALLBACK TextBoxWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     WNDPROC oldWndProc;
@@ -680,8 +680,8 @@ static LRESULT CALLBACK TextBoxWndProc(
 }
 
 VOID FixControlStates(
-    __in HWND hwndDlg,
-    __in HWND ListBox
+    _In_ HWND hwndDlg,
+    _In_ HWND ListBox
     )
 {
     ULONG i;
@@ -696,12 +696,12 @@ VOID FixControlStates(
 }
 
 INT_PTR HandleCommonMessages(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in HWND ListBox,
-    __in PPH_LIST FilterList
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ HWND ListBox,
+    _In_ PPH_LIST FilterList
     )
 {
     switch (uMsg)
@@ -897,10 +897,10 @@ INT_PTR HandleCommonMessages(
 }
 
 INT_PTR CALLBACK ProcessesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     INT_PTR result;
@@ -963,10 +963,10 @@ INT_PTR CALLBACK ProcessesDlgProc(
 }
 
 INT_PTR CALLBACK ServicesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     if (HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
@@ -1027,10 +1027,10 @@ INT_PTR CALLBACK ServicesDlgProc(
 }
 
 INT_PTR CALLBACK LoggingDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -1096,10 +1096,10 @@ INT_PTR CALLBACK LoggingDlgProc(
 }
 
 INT_PTR CALLBACK GrowlDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

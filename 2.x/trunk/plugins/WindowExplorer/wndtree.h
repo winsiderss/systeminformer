@@ -41,41 +41,41 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
 } WE_WINDOW_TREE_CONTEXT, *PWE_WINDOW_TREE_CONTEXT;
 
 VOID WeInitializeWindowTree(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __out PWE_WINDOW_TREE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _Out_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
 VOID WeDeleteWindowTree(
-    __in PWE_WINDOW_TREE_CONTEXT Context
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
 PWE_WINDOW_NODE WeAddWindowNode(
-    __inout PWE_WINDOW_TREE_CONTEXT Context
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
 PWE_WINDOW_NODE WeFindWindowNode(
-    __in PWE_WINDOW_TREE_CONTEXT Context,
-    __in HWND WindowHandle
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ HWND WindowHandle
     );
 
 VOID WeRemoveWindowNode(
-    __in PWE_WINDOW_TREE_CONTEXT Context,
-    __in PWE_WINDOW_NODE WindowNode
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PWE_WINDOW_NODE WindowNode
     );
 
 VOID WeClearWindowTree(
-    __in PWE_WINDOW_TREE_CONTEXT Context
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
 PWE_WINDOW_NODE WeGetSelectedWindowNode(
-    __in PWE_WINDOW_TREE_CONTEXT Context
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
 VOID WeGetSelectedWindowNodes(
-    __in PWE_WINDOW_TREE_CONTEXT Context,
-    __out PWE_WINDOW_NODE **Windows,
-    __out PULONG NumberOfWindows
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _Out_ PWE_WINDOW_NODE **Windows,
+    _Out_ PULONG NumberOfWindows
     );
 
 #endif

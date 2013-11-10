@@ -27,15 +27,15 @@
 #include <taskschd.h>
 
 VOID PhpFillRunningTasks(
-    __in PPH_PROCESS_ITEM Process,
-    __inout PPH_STRING_BUILDER Tasks
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Tasks
     );
 
 VOID PhpAppendStringWithLineBreaks(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in PPH_STRINGREF String,
-    __in ULONG CharactersPerLine,
-    __in_opt PWSTR IndentAfterFirstLine
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG CharactersPerLine,
+    _In_opt_ PWSTR IndentAfterFirstLine
     )
 {
     PH_STRINGREF line;
@@ -75,8 +75,8 @@ VOID PhpAppendStringWithLineBreaks(
 }
 
 static int __cdecl ServiceForTooltipCompare(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PPH_SERVICE_ITEM serviceItem1 = *(PPH_SERVICE_ITEM *)elem1;
@@ -86,7 +86,7 @@ static int __cdecl ServiceForTooltipCompare(
 }
 
 PPH_STRING PhGetProcessTooltipText(
-    __in PPH_PROCESS_ITEM Process
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -400,8 +400,8 @@ PPH_STRING PhGetProcessTooltipText(
 }
 
 VOID PhpFillRunningTasks(
-    __in PPH_PROCESS_ITEM Process,
-    __inout PPH_STRING_BUILDER Tasks
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Tasks
     )
 {
     static CLSID CLSID_TaskScheduler_I = { 0x0f87369f, 0xa4e5, 0x4cfc, { 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd } };
@@ -483,7 +483,7 @@ VOID PhpFillRunningTasks(
 }
 
 PPH_STRING PhGetServiceTooltipText(
-    __in PPH_SERVICE_ITEM Service
+    _In_ PPH_SERVICE_ITEM Service
     )
 {
     PH_STRING_BUILDER stringBuilder;

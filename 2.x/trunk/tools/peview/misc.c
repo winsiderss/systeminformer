@@ -33,7 +33,7 @@ static GUID IID_IShellLinkW_I = { 0x000214f9, 0x0000, 0x0000, { 0xc0, 0x00, 0x00
 static GUID IID_IPersistFile_I = { 0x0000010b, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
 
 PPH_STRING PvResolveShortcutTarget(
-    __in PPH_STRING ShortcutFileName
+    _In_ PPH_STRING ShortcutFileName
     )
 {
     PPH_STRING targetFileName;
@@ -68,7 +68,7 @@ PPH_STRING PvResolveShortcutTarget(
 // Copied from appsup.c
 
 VOID PvCopyListView(
-    __in HWND ListViewHandle
+    _In_ HWND ListViewHandle
     )
 {
     PPH_STRING text;
@@ -79,8 +79,8 @@ VOID PvCopyListView(
 }
 
 VOID PvHandleListViewNotifyForCopy(
-    __in LPARAM lParam,
-    __in HWND ListViewHandle
+    _In_ LPARAM lParam,
+    _In_ HWND ListViewHandle
     )
 {
     if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle)

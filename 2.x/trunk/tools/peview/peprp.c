@@ -26,38 +26,38 @@
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PvpPeImportsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PvpPeExportsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 PH_MAPPED_IMAGE PvMappedImage;
@@ -164,7 +164,7 @@ VOID PvPeProperties(
 }
 
 static NTSTATUS CheckSumImageThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     HWND windowHandle;
@@ -184,10 +184,10 @@ static NTSTATUS CheckSumImageThreadStart(
 }
 
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -405,9 +405,9 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 }
 
 VOID PvpProcessImports(
-    __in HWND ListViewHandle,
-    __in PPH_MAPPED_IMAGE_IMPORTS Imports,
-    __in BOOLEAN DelayImports
+    _In_ HWND ListViewHandle,
+    _In_ PPH_MAPPED_IMAGE_IMPORTS Imports,
+    _In_ BOOLEAN DelayImports
     )
 {
     PH_MAPPED_IMAGE_IMPORT_DLL importDll;
@@ -457,10 +457,10 @@ VOID PvpProcessImports(
 }
 
 INT_PTR CALLBACK PvpPeImportsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -504,10 +504,10 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
 }
 
 INT_PTR CALLBACK PvpPeExportsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -589,10 +589,10 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 }
 
 INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -682,10 +682,10 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

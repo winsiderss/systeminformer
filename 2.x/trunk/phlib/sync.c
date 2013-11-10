@@ -56,7 +56,7 @@
  * \param Event A pointer to an event object.
  */
 VOID FASTCALL PhfInitializeEvent(
-    __out PPH_EVENT Event
+    _Out_ PPH_EVENT Event
     )
 {
     Event->Value = PH_EVENT_REFCOUNT_INC;
@@ -70,8 +70,8 @@ VOID FASTCALL PhfInitializeEvent(
  * \param EventHandle The current value of the event object.
  */
 FORCEINLINE VOID PhpDereferenceEvent(
-    __inout PPH_EVENT Event,
-    __in_opt HANDLE EventHandle
+    _Inout_ PPH_EVENT Event,
+    _In_opt_ HANDLE EventHandle
     )
 {
     ULONG_PTR value;
@@ -95,7 +95,7 @@ FORCEINLINE VOID PhpDereferenceEvent(
  * \param Event A pointer to an event object.
  */
 FORCEINLINE VOID PhpReferenceEvent(
-    __inout PPH_EVENT Event
+    _Inout_ PPH_EVENT Event
     )
 {
     _InterlockedExchangeAddPointer((PLONG_PTR)&Event->Value, PH_EVENT_REFCOUNT_INC);
@@ -108,7 +108,7 @@ FORCEINLINE VOID PhpReferenceEvent(
  * \param Event A pointer to an event object.
  */
 VOID FASTCALL PhfSetEvent(
-    __inout PPH_EVENT Event
+    _Inout_ PPH_EVENT Event
     )
 {
     HANDLE eventHandle;
@@ -140,8 +140,8 @@ VOID FASTCALL PhfSetEvent(
  * of using a timeout of zero.
  */
 BOOLEAN FASTCALL PhfWaitForEvent(
-    __inout PPH_EVENT Event,
-    __in_opt PLARGE_INTEGER Timeout
+    _Inout_ PPH_EVENT Event,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     BOOLEAN result;
@@ -208,7 +208,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
  * event when you call this function.
  */
 VOID FASTCALL PhfResetEvent(
-    __inout PPH_EVENT Event
+    _Inout_ PPH_EVENT Event
     )
 {
     assert(!Event->EventHandle);
@@ -218,8 +218,8 @@ VOID FASTCALL PhfResetEvent(
 }
 
 VOID FASTCALL PhfInitializeBarrier(
-    __out PPH_BARRIER Barrier,
-    __in ULONG_PTR Target
+    _Out_ PPH_BARRIER Barrier,
+    _In_ ULONG_PTR Target
     )
 {
     Barrier->Value = Target << PH_BARRIER_TARGET_SHIFT;
@@ -227,9 +227,9 @@ VOID FASTCALL PhfInitializeBarrier(
 }
 
 FORCEINLINE VOID PhpBlockOnBarrier(
-    __inout PPH_BARRIER Barrier,
-    __in ULONG Role,
-    __in BOOLEAN Spin
+    _Inout_ PPH_BARRIER Barrier,
+    _In_ ULONG Role,
+    _In_ BOOLEAN Spin
     )
 {
     PH_QUEUED_WAIT_BLOCK waitBlock;
@@ -279,8 +279,8 @@ FORCEINLINE VOID PhpBlockOnBarrier(
  * example, involve merging the results of calculations.
  */
 BOOLEAN FASTCALL PhfWaitForBarrier(
-    __inout PPH_BARRIER Barrier,
-    __in BOOLEAN Spin
+    _Inout_ PPH_BARRIER Barrier,
+    _In_ BOOLEAN Spin
     )
 {
     ULONG_PTR value;
@@ -364,14 +364,14 @@ BOOLEAN FASTCALL PhfWaitForBarrier(
 }
 
 VOID FASTCALL PhfInitializeRundownProtection(
-    __out PPH_RUNDOWN_PROTECT Protection
+    _Out_ PPH_RUNDOWN_PROTECT Protection
     )
 {
     Protection->Value = 0;
 }
 
 BOOLEAN FASTCALL PhfAcquireRundownProtection(
-    __inout PPH_RUNDOWN_PROTECT Protection
+    _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
 {
     ULONG_PTR value;
@@ -396,7 +396,7 @@ BOOLEAN FASTCALL PhfAcquireRundownProtection(
 }
 
 VOID FASTCALL PhfReleaseRundownProtection(
-    __inout PPH_RUNDOWN_PROTECT Protection
+    _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
 {
     ULONG_PTR value;
@@ -437,7 +437,7 @@ VOID FASTCALL PhfReleaseRundownProtection(
 }
 
 VOID FASTCALL PhfWaitForRundownProtection(
-    __inout PPH_RUNDOWN_PROTECT Protection
+    _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
 {
     ULONG_PTR value;
@@ -488,7 +488,7 @@ VOID FASTCALL PhfWaitForRundownProtection(
 }
 
 VOID FASTCALL PhfInitializeInitOnce(
-    __out PPH_INITONCE InitOnce
+    _Out_ PPH_INITONCE InitOnce
     )
 {
     InitOnce->State = PH_INITONCE_UNINITIALIZED;
@@ -496,7 +496,7 @@ VOID FASTCALL PhfInitializeInitOnce(
 }
 
 BOOLEAN FASTCALL PhfBeginInitOnce(
-    __inout PPH_INITONCE InitOnce
+    _Inout_ PPH_INITONCE InitOnce
     )
 {
     LONG oldState;
@@ -523,7 +523,7 @@ BOOLEAN FASTCALL PhfBeginInitOnce(
 }
 
 VOID FASTCALL PhfEndInitOnce(
-    __inout PPH_INITONCE InitOnce
+    _Inout_ PPH_INITONCE InitOnce
     )
 {
     InitOnce->State = PH_INITONCE_INITIALIZED;

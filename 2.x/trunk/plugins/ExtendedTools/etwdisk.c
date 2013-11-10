@@ -31,22 +31,22 @@ typedef struct _ETP_DISK_PACKET
 } ETP_DISK_PACKET, *PETP_DISK_PACKET;
 
 VOID NTAPI EtpDiskItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 BOOLEAN NTAPI EtpDiskHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG NTAPI EtpDiskHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 BOOLEAN EtDiskEnabled = FALSE;
@@ -130,8 +130,8 @@ PET_DISK_ITEM EtCreateDiskItem(
 }
 
 VOID NTAPI EtpDiskItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PET_DISK_ITEM diskItem = Object;
@@ -151,8 +151,8 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
  * \param Count The number of characters to hash.
  */
 FORCEINLINE ULONG EtpHashStringIgnoreCase(
-    __in PWSTR String,
-    __in SIZE_T Count
+    _In_ PWSTR String,
+    _In_ SIZE_T Count
     )
 {
     ULONG hash = (ULONG)Count;
@@ -170,8 +170,8 @@ FORCEINLINE ULONG EtpHashStringIgnoreCase(
 }
 
 BOOLEAN NTAPI EtpDiskHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PET_DISK_ITEM diskItem1 = *(PET_DISK_ITEM *)Entry1;
@@ -181,7 +181,7 @@ BOOLEAN NTAPI EtpDiskHashtableCompareFunction(
 }
 
 ULONG NTAPI EtpDiskHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PET_DISK_ITEM diskItem = *(PET_DISK_ITEM *)Entry;
@@ -190,8 +190,8 @@ ULONG NTAPI EtpDiskHashtableHashFunction(
 }
 
 PET_DISK_ITEM EtReferenceDiskItem(
-    __in HANDLE ProcessId,
-    __in PPH_STRING FileName
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
     )
 {
     ET_DISK_ITEM lookupDiskItem;
@@ -224,8 +224,8 @@ PET_DISK_ITEM EtReferenceDiskItem(
     return diskItem;
 }
 
-__assumeLocked VOID EtpRemoveDiskItem(
-    __in PET_DISK_ITEM DiskItem
+VOID EtpRemoveDiskItem(
+    _In_ PET_DISK_ITEM DiskItem
     )
 {
     RemoveEntryList(&DiskItem->AgeListEntry);
@@ -234,7 +234,7 @@ __assumeLocked VOID EtpRemoveDiskItem(
 }
 
 VOID EtDiskProcessDiskEvent(
-    __in PET_ETW_DISK_EVENT Event
+    _In_ PET_ETW_DISK_EVENT Event
     )
 {
     PETP_DISK_PACKET packet;
@@ -249,7 +249,7 @@ VOID EtDiskProcessDiskEvent(
 }
 
 VOID EtDiskProcessFileEvent(
-    __in PET_ETW_FILE_EVENT Event
+    _In_ PET_ETW_FILE_EVENT Event
     )
 {
     PH_KEY_VALUE_PAIR pair;
@@ -289,7 +289,7 @@ VOID EtDiskProcessFileEvent(
 }
 
 PPH_STRING EtFileObjectToFileName(
-    __in PVOID FileObject
+    _In_ PVOID FileObject
     )
 {
     PH_KEY_VALUE_PAIR pair;
@@ -315,8 +315,8 @@ PPH_STRING EtFileObjectToFileName(
 }
 
 VOID EtpProcessDiskPacket(
-    __in PETP_DISK_PACKET Packet,
-    __in ULONG RunId
+    _In_ PETP_DISK_PACKET Packet,
+    _In_ ULONG RunId
     )
 {
     PET_ETW_DISK_EVENT diskEvent;
@@ -414,11 +414,11 @@ VOID EtpProcessDiskPacket(
 }
 
 ULONG64 EtpCalculateAverage(
-    __in PULONG64 Buffer,
-    __in ULONG BufferSize,
-    __in ULONG BufferPosition,
-    __in ULONG BufferCount,
-    __in ULONG NumberToConsider
+    _In_ PULONG64 Buffer,
+    _In_ ULONG BufferSize,
+    _In_ ULONG BufferPosition,
+    _In_ ULONG BufferCount,
+    _In_ ULONG NumberToConsider
     )
 {
     ULONG64 sum;
@@ -449,8 +449,8 @@ ULONG64 EtpCalculateAverage(
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     static ULONG runCount = 0;

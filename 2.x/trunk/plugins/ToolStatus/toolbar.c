@@ -37,11 +37,11 @@ static TBBUTTON ButtonArray[9] =
 };
 
 static VOID RebarAddMenuItem(
-    __in HWND WindowHandle,
-    __in HWND HwndHandle,
-    __in UINT BandID,
-    __in UINT cyMinChild,
-    __in UINT cxMinChild
+    _In_ HWND WindowHandle,
+    _In_ HWND HwndHandle,
+    _In_ UINT BandID,
+    _In_ UINT cyMinChild,
+    _In_ UINT cxMinChild
     )
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
@@ -57,8 +57,8 @@ static VOID RebarAddMenuItem(
 }
 
 static VOID RebarRemoveMenuItem(
-    __in HWND WindowHandle,
-    __in UINT ID
+    _In_ HWND WindowHandle,
+    _In_ UINT ID
     )
 {
     INT bandId = (INT)SendMessage(WindowHandle, RB_IDTOINDEX, (WPARAM)ID, 0);

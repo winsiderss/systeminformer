@@ -75,72 +75,72 @@ typedef struct _STRING_INTEGER_PAIR
 } STRING_INTEGER_PAIR, *PSTRING_INTEGER_PAIR;
 
 VOID WepReferenceWindowPropertiesContext(
-    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    _Inout_ PWINDOW_PROPERTIES_CONTEXT Context
     );
 
 VOID WepDereferenceWindowPropertiesContext(
-    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    _Inout_ PWINDOW_PROPERTIES_CONTEXT Context
     );
 
 HWND WepCreateWindowProperties(
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     );
 
 INT CALLBACK WepPropSheetProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
     );
 
 LRESULT CALLBACK WepPropSheetWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 HPROPSHEETPAGE WepCommonCreatePage(
-    __in PWINDOW_PROPERTIES_CONTEXT Context,
-    __in PWSTR Template,
-    __in DLGPROC DlgProc
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DlgProc
     );
 
 INT CALLBACK WepCommonPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     );
 
 NTSTATUS WepPropertiesThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 INT_PTR CALLBACK WepWindowGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK WepWindowStylesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK WepWindowClassDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK WepWindowPropertiesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 #define DEFINE_PAIR(Symbol) { L#Symbol, Symbol }
@@ -217,8 +217,8 @@ PPH_LIST WePropertiesWindowList;
 PH_QUEUED_LOCK WePropertiesCreateLock = PH_QUEUED_LOCK_INIT;
 
 VOID WeShowWindowProperties(
-    __in HWND ParentWindowHandle,
-    __in HWND WindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND WindowHandle
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
@@ -258,14 +258,14 @@ VOID WeShowWindowProperties(
 }
 
 VOID WepReferenceWindowPropertiesContext(
-    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    _Inout_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     _InterlockedIncrement(&Context->RefCount);
 }
 
 VOID WepDereferenceWindowPropertiesContext(
-    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    _Inout_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     if (_InterlockedDecrement(&Context->RefCount) == 0)
@@ -298,7 +298,7 @@ VOID WepDereferenceWindowPropertiesContext(
 }
 
 static HWND WepCreateWindowProperties(
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -346,9 +346,9 @@ static HWND WepCreateWindowProperties(
 }
 
 static INT CALLBACK WepPropSheetProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -378,10 +378,10 @@ static INT CALLBACK WepPropSheetProc(
 }
 
 LRESULT CALLBACK WepPropSheetWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, L"OldWndProc");
@@ -435,9 +435,9 @@ LRESULT CALLBACK WepPropSheetWndProc(
 }
 
 static HPROPSHEETPAGE WepCommonCreatePage(
-    __in PWINDOW_PROPERTIES_CONTEXT Context,
-    __in PWSTR Template,
-    __in DLGPROC DlgProc
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DlgProc
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
@@ -458,9 +458,9 @@ static HPROPSHEETPAGE WepCommonCreatePage(
 }
 
 static INT CALLBACK WepCommonPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
@@ -476,7 +476,7 @@ static INT CALLBACK WepCommonPropPageProc(
 }
 
 NTSTATUS WepPropertiesThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PH_AUTO_POOL autoPool;
@@ -554,11 +554,11 @@ NTSTATUS WepPropertiesThreadStart(
 }
 
 FORCEINLINE BOOLEAN WepPropPageDlgProcHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam,
-    __out_opt LPPROPSHEETPAGE *PropSheetPage,
-    __out_opt PWINDOW_PROPERTIES_CONTEXT *Context
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam,
+    _Out_opt_ LPPROPSHEETPAGE *PropSheetPage,
+    _Out_opt_ PWINDOW_PROPERTIES_CONTEXT *Context
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -589,7 +589,7 @@ FORCEINLINE BOOLEAN WepPropPageDlgProcHeader(
 }
 
 static VOID WepEnsureHookDataValid(
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     if (!Context->HookDataValid)
@@ -641,8 +641,8 @@ static VOID WepEnsureHookDataValid(
 }
 
 static BOOLEAN NTAPI EnumGenericModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context = Context;
@@ -654,7 +654,7 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
 }
 
 static NTSTATUS WepResolveSymbolFunction(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PSYMBOL_RESOLVE_CONTEXT context = Parameter;
@@ -694,10 +694,10 @@ static NTSTATUS WepResolveSymbolFunction(
 }
 
 static VOID WepQueueResolveSymbol(
-    __in PWINDOW_PROPERTIES_CONTEXT Context,
-    __in HWND NotifyWindow,
-    __in ULONG64 Address,
-    __in ULONG Id
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context,
+    _In_ HWND NotifyWindow,
+    _In_ ULONG64 Address,
+    _In_ ULONG Id
     )
 {
     PSYMBOL_RESOLVE_CONTEXT resolveContext;
@@ -721,7 +721,7 @@ static VOID WepQueueResolveSymbol(
 }
 
 static PPH_STRING WepFormatRect(
-    __in PRECT Rect
+    _In_ PRECT Rect
     )
 {
     return PhaFormatString(L"(%d, %d) - (%d, %d) [%dx%d]",
@@ -730,8 +730,8 @@ static PPH_STRING WepFormatRect(
 }
 
 static VOID WepRefreshWindowGeneralInfoSymbols(
-    __in HWND hwndDlg,
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     if (Context->WndProcResolving != 0)
@@ -756,8 +756,8 @@ static VOID WepRefreshWindowGeneralInfoSymbols(
 }
 
 static VOID WepRefreshWindowGeneralInfo(
-    __in HWND hwndDlg,
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     PPH_STRING windowText;
@@ -825,10 +825,10 @@ static VOID WepRefreshWindowGeneralInfo(
 }
 
 INT_PTR CALLBACK WepWindowGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
@@ -897,8 +897,8 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
 }
 
 static VOID WepRefreshWindowStyles(
-    __in HWND hwndDlg,
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
@@ -957,10 +957,10 @@ static VOID WepRefreshWindowStyles(
 }
 
 INT_PTR CALLBACK WepWindowStylesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
@@ -991,8 +991,8 @@ INT_PTR CALLBACK WepWindowStylesDlgProc(
 }
 
 static VOID WepRefreshWindowClassInfoSymbols(
-    __in HWND hwndDlg,
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     if (Context->ClassWndProcResolving != 0)
@@ -1006,8 +1006,8 @@ static VOID WepRefreshWindowClassInfoSymbols(
 }
 
 static VOID WepRefreshWindowClassInfo(
-    __in HWND hwndDlg,
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     WCHAR className[256];
@@ -1072,10 +1072,10 @@ static VOID WepRefreshWindowClassInfo(
 }
 
 INT_PTR CALLBACK WepWindowClassDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
@@ -1126,10 +1126,10 @@ INT_PTR CALLBACK WepWindowClassDlgProc(
 }
 
 static BOOL CALLBACK EnumPropsExCallback(
-    __in HWND hwnd,
-    __in LPTSTR lpszString,
-    __in HANDLE hData,
-    __in ULONG_PTR dwData
+    _In_ HWND hwnd,
+    _In_ LPTSTR lpszString,
+    _In_ HANDLE hData,
+    _In_ ULONG_PTR dwData
     )
 {
     INT lvItemIndex;
@@ -1153,9 +1153,9 @@ static BOOL CALLBACK EnumPropsExCallback(
 }
 
 static VOID WepRefreshWindowProps(
-    __in HWND hwndDlg,
-    __in HWND ListViewHandle,
-    __in PWINDOW_PROPERTIES_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ HWND ListViewHandle,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     ExtendedListView_SetRedraw(ListViewHandle, FALSE);
@@ -1166,10 +1166,10 @@ static VOID WepRefreshWindowProps(
 }
 
 INT_PTR CALLBACK WepWindowPropertiesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;

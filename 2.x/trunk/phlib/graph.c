@@ -54,10 +54,10 @@ typedef struct _PHP_GRAPH_CONTEXT
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
 LRESULT CALLBACK PhpGraphWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 RECT PhNormalGraphTextMargin = { 5, 5, 5, 5 };
@@ -97,8 +97,8 @@ BOOLEAN PhGraphControlInitialization(
  * whenever possible.
  */
 VOID PhDrawGraph(
-    __in HDC hdc,
-    __in PPH_GRAPH_DRAW_INFO DrawInfo
+    _In_ HDC hdc,
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     )
 {
     ULONG width;
@@ -357,10 +357,10 @@ VOID PhDrawGraph(
 }
 
 FORCEINLINE VOID PhpGetGraphPoint(
-    __in PPH_GRAPH_DRAW_INFO DrawInfo,
-    __in ULONG Index,
-    __out PULONG H1,
-    __out PULONG H2
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG Index,
+    _Out_ PULONG H1,
+    _Out_ PULONG H2
     )
 {
     if (Index < DrawInfo->LineDataCount)
@@ -411,9 +411,9 @@ FORCEINLINE VOID PhpGetGraphPoint(
  * is never used.
  */
 VOID PhDrawGraphDirect(
-    __in HDC hdc,
-    __in PVOID Bits,
-    __in PPH_GRAPH_DRAW_INFO DrawInfo
+    _In_ HDC hdc,
+    _In_ PVOID Bits,
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     )
 {
     PULONG bits;
@@ -701,12 +701,12 @@ VOID PhDrawGraphDirect(
  * \param Align The alignment of the text box.
  */
 VOID PhSetGraphText(
-    __in HDC hdc,
-    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
-    __in PPH_STRINGREF Text,
-    __in PRECT Margin,
-    __in PRECT Padding,
-    __in ULONG Align
+    _In_ HDC hdc,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text,
+    _In_ PRECT Margin,
+    _In_ PRECT Padding,
+    _In_ ULONG Align
     )
 {
     SIZE textSize;
@@ -748,7 +748,7 @@ VOID PhSetGraphText(
 }
 
 VOID PhpCreateGraphContext(
-    __out PPHP_GRAPH_CONTEXT *Context
+    _Out_ PPHP_GRAPH_CONTEXT *Context
     )
 {
     PPHP_GRAPH_CONTEXT context;
@@ -782,7 +782,7 @@ VOID PhpCreateGraphContext(
 }
 
 VOID PhpFreeGraphContext(
-    __inout __post_invalid PPHP_GRAPH_CONTEXT Context
+    _Inout_ _Post_invalid_ PPHP_GRAPH_CONTEXT Context
     )
 {
     PhFree(Context);
@@ -796,7 +796,7 @@ static PWSTR PhpMakeGraphTooltipContextAtom(
 }
 
 static VOID PhpDeleteBufferedContext(
-    __in PPHP_GRAPH_CONTEXT Context
+    _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
     if (Context->BufferedContext)
@@ -814,7 +814,7 @@ static VOID PhpDeleteBufferedContext(
 }
 
 static VOID PhpCreateBufferedContext(
-    __in PPHP_GRAPH_CONTEXT Context
+    _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
     HDC hdc;
@@ -841,7 +841,7 @@ static VOID PhpCreateBufferedContext(
 }
 
 static VOID PhpDeleteFadeOutContext(
-    __in PPHP_GRAPH_CONTEXT Context
+    _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
     if (Context->FadeOutContext)
@@ -857,7 +857,7 @@ static VOID PhpDeleteFadeOutContext(
 }
 
 static VOID PhpCreateFadeOutContext(
-    __in PPHP_GRAPH_CONTEXT Context
+    _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
     HDC hdc;
@@ -916,8 +916,8 @@ static VOID PhpCreateFadeOutContext(
 }
 
 VOID PhpUpdateDrawInfo(
-    __in HWND hwnd,
-    __in PPHP_GRAPH_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
     PH_GRAPH_GETDRAWINFO getDrawInfo;
@@ -934,8 +934,8 @@ VOID PhpUpdateDrawInfo(
 }
 
 VOID PhpDrawGraphControl(
-    __in HWND hwnd,
-    __in PPHP_GRAPH_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
     if (Context->BufferedBits)
@@ -982,10 +982,10 @@ VOID PhpDrawGraphControl(
 }
 
 LRESULT CALLBACK PhpGraphWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPHP_GRAPH_CONTEXT context;
@@ -1352,7 +1352,7 @@ LRESULT CALLBACK PhpGraphWndProc(
  * \param Buffers The buffer management structure.
  */
 VOID PhInitializeGraphBuffers(
-    __out PPH_GRAPH_BUFFERS Buffers
+    _Out_ PPH_GRAPH_BUFFERS Buffers
     )
 {
     Buffers->AllocatedCount = 0;
@@ -1367,7 +1367,7 @@ VOID PhInitializeGraphBuffers(
  * \param Buffers The buffer management structure.
  */
 VOID PhDeleteGraphBuffers(
-    __inout PPH_GRAPH_BUFFERS Buffers
+    _Inout_ PPH_GRAPH_BUFFERS Buffers
     )
 {
     if (Buffers->Data1) PhFree(Buffers->Data1);
@@ -1384,9 +1384,9 @@ VOID PhDeleteGraphBuffers(
  * The buffers are resized if needed.
  */
 VOID PhGetDrawInfoGraphBuffers(
-    __inout PPH_GRAPH_BUFFERS Buffers,
-    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
-    __in ULONG DataCount
+    _Inout_ PPH_GRAPH_BUFFERS Buffers,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataCount
     )
 {
     DrawInfo->LineDataCount = min(DataCount, PH_GRAPH_DATA_COUNT(DrawInfo->Width, DrawInfo->Step));
@@ -1419,7 +1419,7 @@ VOID PhGetDrawInfoGraphBuffers(
 }
 
 VOID PhInitializeGraphState(
-    __out PPH_GRAPH_STATE State
+    _Out_ PPH_GRAPH_STATE State
     )
 {
     PhInitializeGraphBuffers(&State->Buffers);
@@ -1429,7 +1429,7 @@ VOID PhInitializeGraphState(
 }
 
 VOID PhDeleteGraphState(
-    __inout PPH_GRAPH_STATE State
+    _Inout_ PPH_GRAPH_STATE State
     )
 {
     PhDeleteGraphBuffers(&State->Buffers);
@@ -1438,9 +1438,9 @@ VOID PhDeleteGraphState(
 }
 
 VOID PhGraphStateGetDrawInfo(
-    __inout PPH_GRAPH_STATE State,
-    __in PPH_GRAPH_GETDRAWINFO GetDrawInfo,
-    __in ULONG DataCount
+    _Inout_ PPH_GRAPH_STATE State,
+    _In_ PPH_GRAPH_GETDRAWINFO GetDrawInfo,
+    _In_ ULONG DataCount
     )
 {
     PhGetDrawInfoGraphBuffers(&State->Buffers, GetDrawInfo->DrawInfo, DataCount);

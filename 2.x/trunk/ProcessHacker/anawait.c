@@ -36,15 +36,15 @@
 #include <phapp.h>
 
 typedef HWND (WINAPI *_GetSendMessageReceiver)(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     );
 
 typedef NTSTATUS (NTAPI *_NtAlpcQueryInformation)(
-    __in HANDLE PortHandle,
-    __in ALPC_PORT_INFORMATION_CLASS PortInformationClass,
-    __out_bcount(Length) PVOID PortInformation,
-    __in ULONG Length,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE PortHandle,
+    _In_ ALPC_PORT_INFORMATION_CLASS PortInformationClass,
+    _Out_writes_bytes_(Length) PVOID PortInformation,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReturnLength
     );
 
 typedef struct _ANALYZE_WAIT_CONTEXT
@@ -62,18 +62,18 @@ typedef struct _ANALYZE_WAIT_CONTEXT
 } ANALYZE_WAIT_CONTEXT, *PANALYZE_WAIT_CONTEXT;
 
 VOID PhpAnalyzeWaitPassive(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId
     );
 
 BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
-    __in PPH_THREAD_STACK_FRAME StackFrame,
-    __in_opt PVOID Context
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _In_opt_ PVOID Context
     );
 
 VOID PhpAnalyzeWaitFallbacks(
-    __in PANALYZE_WAIT_CONTEXT Context
+    _In_ PANALYZE_WAIT_CONTEXT Context
     );
 
 VOID PhpInitializeServiceNumbers(
@@ -81,26 +81,26 @@ VOID PhpInitializeServiceNumbers(
     );
 
 PPH_STRING PhapGetHandleString(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle
     );
 
 VOID PhpGetWfmoInformation(
-    __in HANDLE ProcessHandle,
-    __in BOOLEAN IsWow64,
-    __in ULONG NumberOfHandles,
-    __in PHANDLE AddressOfHandles,
-    __in WAIT_TYPE WaitType,
-    __in BOOLEAN Alertable,
-    __inout PPH_STRING_BUILDER StringBuilder
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN IsWow64,
+    _In_ ULONG NumberOfHandles,
+    _In_ PHANDLE AddressOfHandles,
+    _In_ WAIT_TYPE WaitType,
+    _In_ BOOLEAN Alertable,
+    _Inout_ PPH_STRING_BUILDER StringBuilder
     );
 
 PPH_STRING PhapGetSendMessageReceiver(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     );
 
 PPH_STRING PhapGetAlpcInformation(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     );
 
 static PH_INITONCE ServiceNumbersInitOnce = PH_INITONCE_INIT;
@@ -108,10 +108,10 @@ static USHORT WfsoNumber = -1;
 static USHORT WfmoNumber = -1;
 
 VOID PhUiAnalyzeWaitThread(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId,
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
     NTSTATUS status;
@@ -186,9 +186,9 @@ VOID PhUiAnalyzeWaitThread(
 }
 
 VOID PhpAnalyzeWaitPassive(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId
     )
 {
     NTSTATUS status;
@@ -271,8 +271,8 @@ VOID PhpAnalyzeWaitPassive(
 }
 
 static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
-    __in PPH_THREAD_STACK_FRAME StackFrame,
-    __in_opt PVOID Context
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _In_opt_ PVOID Context
     )
 {
     PANALYZE_WAIT_CONTEXT context = (PANALYZE_WAIT_CONTEXT)Context;
@@ -606,7 +606,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
 }
 
 static VOID PhpAnalyzeWaitFallbacks(
-    __in PANALYZE_WAIT_CONTEXT Context
+    _In_ PANALYZE_WAIT_CONTEXT Context
     )
 {
     PPH_STRING info;
@@ -640,7 +640,7 @@ static VOID PhpAnalyzeWaitFallbacks(
 }
 
 static BOOLEAN PhpWaitUntilThreadIsWaiting(
-    __in HANDLE ThreadHandle
+    _In_ HANDLE ThreadHandle
     )
 {
     ULONG attempts;
@@ -694,8 +694,8 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
 }
 
 static VOID PhpGetThreadLastSystemCallNumber(
-    __in HANDLE ThreadHandle,
-    __out PUSHORT LastSystemCallNumber
+    _In_ HANDLE ThreadHandle,
+    _Out_ PUSHORT LastSystemCallNumber
     )
 {
     THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
@@ -713,7 +713,7 @@ static VOID PhpGetThreadLastSystemCallNumber(
 }
 
 static NTSTATUS PhpWfsoThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     HANDLE eventHandle;
@@ -728,7 +728,7 @@ static NTSTATUS PhpWfsoThreadStart(
 }
 
 static NTSTATUS PhpWfmoThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     HANDLE eventHandle;
@@ -803,8 +803,8 @@ static VOID PhpInitializeServiceNumbers(
 }
 
 static PPH_STRING PhapGetHandleString(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle
     )
 {
     PPH_STRING typeName = NULL;
@@ -847,13 +847,13 @@ static PPH_STRING PhapGetHandleString(
 }
 
 static VOID PhpGetWfmoInformation(
-    __in HANDLE ProcessHandle,
-    __in BOOLEAN IsWow64,
-    __in ULONG NumberOfHandles,
-    __in PHANDLE AddressOfHandles,
-    __in WAIT_TYPE WaitType,
-    __in BOOLEAN Alertable,
-    __inout PPH_STRING_BUILDER StringBuilder
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN IsWow64,
+    _In_ ULONG NumberOfHandles,
+    _In_ PHANDLE AddressOfHandles,
+    _In_ WAIT_TYPE WaitType,
+    _In_ BOOLEAN Alertable,
+    _Inout_ PPH_STRING_BUILDER StringBuilder
     )
 {
     NTSTATUS status;
@@ -928,7 +928,7 @@ static VOID PhpGetWfmoInformation(
 }
 
 static PPH_STRING PhapGetSendMessageReceiver(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     )
 {
     static _GetSendMessageReceiver GetSendMessageReceiver_I;
@@ -971,7 +971,7 @@ static PPH_STRING PhapGetSendMessageReceiver(
 }
 
 static PPH_STRING PhapGetAlpcInformation(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     )
 {
     static _NtAlpcQueryInformation NtAlpcQueryInformation_I;

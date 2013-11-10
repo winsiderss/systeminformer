@@ -24,8 +24,8 @@
 #include "extnoti.h"
 
 VOID NTAPI LoggedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 PPH_FILE_STREAM LogFileStream = NULL;
@@ -66,8 +66,8 @@ VOID FileLogInitialization(
 }
 
 VOID NTAPI LoggedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_LOG_ENTRY logEntry = Parameter;

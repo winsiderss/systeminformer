@@ -23,28 +23,28 @@
 // Misc.
 
 typedef HRESULT (WINAPI *_EnableThemeDialogTexture)(
-    __in HWND hwnd,
-    __in DWORD dwFlags
+    _In_ HWND hwnd,
+    _In_ DWORD dwFlags
     );
 
 // Thread & window
 
 NTSTATUS PhSipSysInfoThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 INT_PTR CALLBACK PhSipSysInfoDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhSipContainerDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // Event handlers
@@ -62,8 +62,8 @@ VOID PhSipOnNcDestroy(
     );
 
 VOID PhSipOnShowWindow(
-    __in BOOLEAN Showing,
-    __in ULONG State
+    _In_ BOOLEAN Showing,
+    _In_ ULONG State
     );
 
 VOID PhSipOnSize(
@@ -71,8 +71,8 @@ VOID PhSipOnSize(
     );
 
 VOID PhSipOnSizing(
-    __in ULONG Edge,
-    __in PRECT DragRectangle
+    _In_ ULONG Edge,
+    _In_ PRECT DragRectangle
     );
 
 VOID PhSipOnThemeChanged(
@@ -80,34 +80,34 @@ VOID PhSipOnThemeChanged(
     );
 
 VOID PhSipOnCommand(
-    __in ULONG Id,
-    __in ULONG Code
+    _In_ ULONG Id,
+    _In_ ULONG Code
     );
 
 BOOLEAN PhSipOnNotify(
-    __in NMHDR *Header,
-    __out LRESULT *Result
+    _In_ NMHDR *Header,
+    _Out_ LRESULT *Result
     );
 
 BOOLEAN PhSipOnDrawItem(
-    __in ULONG_PTR Id,
-    __in DRAWITEMSTRUCT *DrawItemStruct
+    _In_ ULONG_PTR Id,
+    _In_ DRAWITEMSTRUCT *DrawItemStruct
     );
 
 VOID PhSipOnUserMessage(
-    __in ULONG Message,
-    __in ULONG_PTR WParam,
-    __in ULONG_PTR LParam
+    _In_ ULONG Message,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam
     );
 
 // Framework
 
 VOID PhSipRegisterDialog(
-    __in HWND DialogWindowHandle
+    _In_ HWND DialogWindowHandle
     );
 
 VOID PhSipUnregisterDialog(
-    __in HWND DialogWindowHandle
+    _In_ HWND DialogWindowHandle
     );
 
 VOID PhSipInitializeParameters(
@@ -123,42 +123,42 @@ VOID PhSipUpdateColorParameters(
     );
 
 PPH_SYSINFO_SECTION PhSipCreateSection(
-    __in PPH_SYSINFO_SECTION Template
+    _In_ PPH_SYSINFO_SECTION Template
     );
 
 VOID PhSipDestroySection(
-    __in PPH_SYSINFO_SECTION Section
+    _In_ PPH_SYSINFO_SECTION Section
     );
 
 PPH_SYSINFO_SECTION PhSipFindSection(
-    __in PPH_STRINGREF Name
+    _In_ PPH_STRINGREF Name
     );
 
 PPH_SYSINFO_SECTION PhSipCreateInternalSection(
-    __in PWSTR Name,
-    __in ULONG Flags,
-    __in PPH_SYSINFO_SECTION_CALLBACK Callback
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_SYSINFO_SECTION_CALLBACK Callback
     );
 
 VOID PhSipDrawRestoreSummaryPanel(
-    __in HDC hdc,
-    __in PRECT Rect
+    _In_ HDC hdc,
+    _In_ PRECT Rect
     );
 
 VOID PhSipDrawSeparator(
-    __in HDC hdc,
-    __in PRECT Rect
+    _In_ HDC hdc,
+    _In_ PRECT Rect
     );
 
 VOID PhSipDrawPanel(
-    __in PPH_SYSINFO_SECTION Section,
-    __in HDC hdc,
-    __in PRECT Rect
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ HDC hdc,
+    _In_ PRECT Rect
     );
 
 VOID PhSipDefaultDrawPanel(
-    __in PPH_SYSINFO_SECTION Section,
-    __in PPH_SYSINFO_DRAW_PANEL DrawPanel
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PPH_SYSINFO_DRAW_PANEL DrawPanel
     );
 
 VOID PhSipLayoutSummaryView(
@@ -170,7 +170,7 @@ VOID PhSipLayoutSectionView(
     );
 
 VOID PhSipEnterSectionView(
-    __in PPH_SYSINFO_SECTION NewSection
+    _In_ PPH_SYSINFO_SECTION NewSection
     );
 
 VOID PhSipRestoreSummaryView(
@@ -178,28 +178,28 @@ VOID PhSipRestoreSummaryView(
     );
 
 HWND PhSipDefaultCreateDialog(
-    __in PVOID Instance,
-    __in PWSTR Template,
-    __in DLGPROC DialogProc,
-    __in PVOID Parameter
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
     );
 
 VOID PhSipCreateSectionDialog(
-    __in PPH_SYSINFO_SECTION Section
+    _In_ PPH_SYSINFO_SECTION Section
     );
 
 LRESULT CALLBACK PhSipGraphHookWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 LRESULT CALLBACK PhSipPanelHookWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // Misc.
@@ -213,13 +213,13 @@ VOID PhSipSetAlwaysOnTop(
     );
 
 VOID NTAPI PhSipSysInfoUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 PPH_STRING PhSipFormatSizeWithPrecision(
-    __in ULONG64 Size,
-    __in USHORT Precision
+    _In_ ULONG64 Size,
+    _In_ USHORT Precision
     );
 
 // CPU section
@@ -231,10 +231,10 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8
 } SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8;
 
 BOOLEAN PhSipCpuSectionCallback(
-    __in PPH_SYSINFO_SECTION Section,
-    __in PH_SYSINFO_SECTION_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 VOID PhSipInitializeCpuDialog(
@@ -250,17 +250,17 @@ VOID PhSipTickCpuDialog(
     );
 
 INT_PTR CALLBACK PhSipCpuDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhSipCpuPanelDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhSipCreateCpuGraphs(
@@ -276,8 +276,8 @@ VOID PhSipSetOneGraphPerCpu(
     );
 
 VOID PhSipNotifyCpuGraph(
-    __in ULONG Index,
-    __in NMHDR *Header
+    _In_ ULONG Index,
+    _In_ NMHDR *Header
     );
 
 VOID PhSipUpdateCpuGraphs(
@@ -289,32 +289,32 @@ VOID PhSipUpdateCpuPanel(
     );
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
-    __in LONG Index
+    _In_ LONG Index
     );
 
 PPH_STRING PhSipGetMaxCpuString(
-    __in LONG Index
+    _In_ LONG Index
     );
 
 VOID PhSipGetCpuBrandString(
-    __out_ecount(49) PWSTR BrandString
+    _Out_writes_(49) PWSTR BrandString
     );
 
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
-    __out DOUBLE *Fraction
+    _Out_ DOUBLE *Fraction
     );
 
 NTSTATUS PhSipQueryProcessorPerformanceDistribution(
-    __out PVOID *Buffer
+    _Out_ PVOID *Buffer
     );
 
 // Memory section
 
 BOOLEAN PhSipMemorySectionCallback(
-    __in PPH_SYSINFO_SECTION Section,
-    __in PH_SYSINFO_SECTION_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 VOID PhSipInitializeMemoryDialog(
@@ -330,17 +330,17 @@ VOID PhSipTickMemoryDialog(
     );
 
 INT_PTR CALLBACK PhSipMemoryDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhSipLayoutMemoryGraphs(
@@ -348,11 +348,11 @@ VOID PhSipLayoutMemoryGraphs(
     );
 
 VOID PhSipNotifyCommitGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     );
 
 VOID PhSipNotifyPhysicalGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     );
 
 VOID PhSipUpdateMemoryGraphs(
@@ -364,21 +364,21 @@ VOID PhSipUpdateMemoryPanel(
     );
 
 NTSTATUS PhSipLoadMmAddresses(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID PhSipGetPoolLimits(
-    __out PSIZE_T Paged,
-    __out PSIZE_T NonPaged
+    _Out_ PSIZE_T Paged,
+    _Out_ PSIZE_T NonPaged
     );
 
 // I/O section
 
 BOOLEAN PhSipIoSectionCallback(
-    __in PPH_SYSINFO_SECTION Section,
-    __in PH_SYSINFO_SECTION_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 VOID PhSipInitializeIoDialog(
@@ -394,21 +394,21 @@ VOID PhSipTickIoDialog(
     );
 
 INT_PTR CALLBACK PhSipIoDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhSipIoPanelDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhSipNotifyIoGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     );
 
 VOID PhSipUpdateIoGraph(
@@ -420,11 +420,11 @@ VOID PhSipUpdateIoPanel(
     );
 
 PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
-    __in LONG Index
+    _In_ LONG Index
     );
 
 PPH_STRING PhSipGetMaxIoString(
-    __in LONG Index
+    _In_ LONG Index
     );
 
 #endif

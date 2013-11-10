@@ -32,36 +32,36 @@
 #include <metahost.h>
 
 typedef HRESULT (STDAPICALLTYPE *_CLRCreateInstance)(
-    __in REFCLSID clsid,
-    __in REFIID riid,
-    __out LPVOID *ppInterface
+    _In_ REFCLSID clsid,
+    _In_ REFIID riid,
+    _Out_ LPVOID *ppInterface
     );
 
 typedef HRESULT (STDAPICALLTYPE *_CorBindToRuntimeEx)(
-    __in LPCWSTR pwszVersion,
-    __in LPCWSTR pwszBuildFlavor,
-    __in DWORD startupFlags,
-    __in REFCLSID rclsid,
-    __in REFIID riid,
-    __out LPVOID *ppv
+    _In_ LPCWSTR pwszVersion,
+    _In_ LPCWSTR pwszBuildFlavor,
+    _In_ DWORD startupFlags,
+    _In_ REFCLSID rclsid,
+    _In_ REFIID riid,
+    _Out_ LPVOID *ppv
     );
 
 INT NTAPI PhpPluginsCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     );
 
 BOOLEAN PhLoadPlugin(
-    __in PPH_STRING FileName
+    _In_ PPH_STRING FileName
     );
 
 BOOLEAN PhpLoadClrPlugin(
-    __in PPH_STRING FileName,
-    __out_opt PPH_STRING *ErrorMessage
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PPH_STRING *ErrorMessage
     );
 
 VOID PhpExecuteCallbackForAllPlugins(
-    __in PH_PLUGIN_CALLBACK Callback
+    _In_ PH_PLUGIN_CALLBACK Callback
     );
 
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
@@ -102,8 +102,8 @@ VOID PhPluginsInitialization(
 }
 
 INT NTAPI PhpPluginsCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     )
 {
     PPH_PLUGIN plugin1 = CONTAINING_RECORD(Links1, PH_PLUGIN, Links);
@@ -113,9 +113,9 @@ INT NTAPI PhpPluginsCompareFunction(
 }
 
 BOOLEAN PhpLocateDisabledPlugin(
-    __in PPH_STRING List,
-    __in PPH_STRINGREF BaseName,
-    __out_opt PULONG FoundIndex
+    _In_ PPH_STRING List,
+    _In_ PPH_STRINGREF BaseName,
+    _Out_opt_ PULONG FoundIndex
     )
 {
     BOOLEAN found;
@@ -155,7 +155,7 @@ BOOLEAN PhpLocateDisabledPlugin(
 }
 
 BOOLEAN PhIsPluginDisabled(
-    __in PPH_STRINGREF BaseName
+    _In_ PPH_STRINGREF BaseName
     )
 {
     BOOLEAN found;
@@ -169,8 +169,8 @@ BOOLEAN PhIsPluginDisabled(
 }
 
 VOID PhSetPluginDisabled(
-    __in PPH_STRINGREF BaseName,
-    __in BOOLEAN Disable
+    _In_ PPH_STRINGREF BaseName,
+    _In_ BOOLEAN Disable
     )
 {
     BOOLEAN found;
@@ -234,8 +234,8 @@ VOID PhSetPluginDisabled(
 }
 
 static BOOLEAN EnumPluginsDirectoryCallback(
-    __in PFILE_DIRECTORY_INFORMATION Information,
-    __in_opt PVOID Context
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_opt_ PVOID Context
     )
 {
     PH_STRINGREF baseName;
@@ -321,8 +321,8 @@ VOID PhUnloadPlugins(
 }
 
 VOID PhpHandlePluginLoadError(
-    __in PPH_STRING FileName,
-    __in_opt PPH_STRING ErrorMessage
+    _In_ PPH_STRING FileName,
+    _In_opt_ PPH_STRING ErrorMessage
     )
 {
     PPH_STRING baseName;
@@ -349,7 +349,7 @@ VOID PhpHandlePluginLoadError(
  * \param FileName The full file name of the plugin.
  */
 BOOLEAN PhLoadPlugin(
-    __in PPH_STRING FileName
+    _In_ PPH_STRING FileName
     )
 {
     BOOLEAN success;
@@ -401,7 +401,7 @@ BOOLEAN PhLoadPlugin(
 }
 
 BOOLEAN PhpLoadV2ClrHost(
-    __in _CorBindToRuntimeEx CorBindToRuntimeEx_I
+    _In_ _CorBindToRuntimeEx CorBindToRuntimeEx_I
     )
 {
     ICLRRuntimeHost *clrHost;
@@ -418,7 +418,7 @@ BOOLEAN PhpLoadV2ClrHost(
 }
 
 BOOLEAN PhpLoadV4ClrHost(
-    __in _CLRCreateInstance CLRCreateInstance_I
+    _In_ _CLRCreateInstance CLRCreateInstance_I
     )
 {
     ICLRMetaHost *metaHost;
@@ -434,8 +434,8 @@ BOOLEAN PhpLoadV4ClrHost(
 }
 
 PVOID PhpGetClrHostForPlugin(
-    __in PPH_STRING FileName,
-    __out_opt PPH_STRING *ErrorMessage
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PPH_STRING *ErrorMessage
     )
 {
     if (PhPluginsMetaHost)
@@ -497,8 +497,8 @@ PVOID PhpGetClrHostForPlugin(
 }
 
 BOOLEAN PhpLoadClrPlugin(
-    __in PPH_STRING FileName,
-    __out_opt PPH_STRING *ErrorMessage
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PPH_STRING *ErrorMessage
     )
 {
     ICLRRuntimeHost *clrHost;
@@ -561,7 +561,7 @@ BOOLEAN PhpLoadClrPlugin(
 }
 
 VOID PhpExecuteCallbackForAllPlugins(
-    __in PH_PLUGIN_CALLBACK Callback
+    _In_ PH_PLUGIN_CALLBACK Callback
     )
 {
     PPH_AVL_LINKS links;
@@ -579,7 +579,7 @@ VOID PhpExecuteCallbackForAllPlugins(
 }
 
 BOOLEAN PhpValidatePluginName(
-    __in PPH_STRINGREF Name
+    _In_ PPH_STRINGREF Name
     )
 {
     SIZE_T i;
@@ -617,9 +617,9 @@ BOOLEAN PhpValidatePluginName(
  * function failed.
  */
 PPH_PLUGIN PhRegisterPlugin(
-    __in PWSTR Name,
-    __in PVOID DllBase,
-    __out_opt PPH_PLUGIN_INFORMATION *Information
+    _In_ PWSTR Name,
+    _In_ PVOID DllBase,
+    _Out_opt_ PPH_PLUGIN_INFORMATION *Information
     )
 {
     PPH_PLUGIN plugin;
@@ -691,7 +691,7 @@ PPH_PLUGIN PhRegisterPlugin(
  * was not found.
  */
 PPH_PLUGIN PhFindPlugin(
-    __in PWSTR Name
+    _In_ PWSTR Name
     )
 {
     PPH_AVL_LINKS links;
@@ -716,8 +716,8 @@ PPH_PLUGIN PhFindPlugin(
  * specific to a plugin.
  */
 PPH_CALLBACK PhGetPluginCallback(
-    __in PPH_PLUGIN Plugin,
-    __in PH_PLUGIN_CALLBACK Callback
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PH_PLUGIN_CALLBACK Callback
     )
 {
     if (Callback >= PluginCallbackMaximum)
@@ -735,7 +735,7 @@ PPH_CALLBACK PhGetPluginCallback(
  * notifications.
  */
 PPH_CALLBACK PhGetGeneralCallback(
-    __in PH_GENERAL_CALLBACK Callback
+    _In_ PH_GENERAL_CALLBACK Callback
     )
 {
     if (Callback >= GeneralCallbackMaximum)
@@ -755,7 +755,7 @@ PPH_CALLBACK PhGetGeneralCallback(
  * guaranteed to be unique throughout the program.
  */
 ULONG PhPluginReserveIds(
-    __in ULONG Count
+    _In_ ULONG Count
     )
 {
     ULONG nextPluginId;
@@ -789,12 +789,12 @@ ULONG PhPluginReserveIds(
  * will contain the \a Id and \a Context values passed to this function.
  */
 ULONG_PTR PhPluginAddMenuItem(
-    __in PPH_PLUGIN Plugin,
-    __in ULONG_PTR Location,
-    __in_opt PWSTR InsertAfter,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PVOID Context
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG_PTR Location,
+    _In_opt_ PWSTR InsertAfter,
+    _In_ ULONG Id,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Context
     )
 {
     PH_ADDMENUITEM addMenuItem;
@@ -824,7 +824,7 @@ ULONG_PTR PhPluginAddMenuItem(
  * Retrieves current system statistics.
  */
 VOID PhPluginGetSystemStatistics(
-    __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _Out_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     Statistics->Performance = &PhPerfInformation;
@@ -869,7 +869,7 @@ VOID PhPluginGetSystemStatistics(
 }
 
 static VOID NTAPI PhpPluginEMenuItemDeleteFunction(
-    __in PPH_EMENU_ITEM Item
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     PPH_PLUGIN_MENU_ITEM pluginMenuItem;
@@ -900,11 +900,11 @@ static VOID NTAPI PhpPluginEMenuItemDeleteFunction(
  * will contain the \a Id and \a Context values passed to this function.
  */
 PPH_EMENU_ITEM PhPluginCreateEMenuItem(
-    __in PPH_PLUGIN Plugin,
-    __in ULONG Flags,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PVOID Context
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG Flags,
+    _In_ ULONG Id,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Context
     )
 {
     PPH_EMENU_ITEM item;
@@ -933,8 +933,8 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
  * \remarks This function is reserved for internal use.
  */
 BOOLEAN PhPluginTriggerEMenuItem(
-    __in HWND OwnerWindow,
-    __in PPH_EMENU_ITEM Item
+    _In_ HWND OwnerWindow,
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     PPH_PLUGIN_MENU_ITEM pluginMenuItem;
@@ -964,12 +964,12 @@ BOOLEAN PhPluginTriggerEMenuItem(
  * \param SortFunction The sort function for the column.
  */
 BOOLEAN PhPluginAddTreeNewColumn(
-    __in PPH_PLUGIN Plugin,
-    __in PVOID CmData,
-    __in PPH_TREENEW_COLUMN Column,
-    __in ULONG SubId,
-    __in_opt PVOID Context,
-    __in_opt PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PVOID CmData,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_opt_ PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
     )
 {
     return !!PhCmCreateColumn(
@@ -992,11 +992,11 @@ BOOLEAN PhPluginAddTreeNewColumn(
  * \param DeleteCallback The object deletion callback.
  */
 VOID PhPluginSetObjectExtension(
-    __in PPH_PLUGIN Plugin,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in ULONG ExtensionSize,
-    __in_opt PPH_EM_OBJECT_CALLBACK CreateCallback,
-    __in_opt PPH_EM_OBJECT_CALLBACK DeleteCallback
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ ULONG ExtensionSize,
+    _In_opt_ PPH_EM_OBJECT_CALLBACK CreateCallback,
+    _In_opt_ PPH_EM_OBJECT_CALLBACK DeleteCallback
     )
 {
     PhEmSetObjectExtension(
@@ -1016,9 +1016,9 @@ VOID PhPluginSetObjectExtension(
  * \param ObjectType The type of object for which an extension has been registered.
  */
 PVOID PhPluginGetObjectExtension(
-    __in PPH_PLUGIN Plugin,
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType
     )
 {
     return PhEmGetObjectExtension(
@@ -1042,12 +1042,12 @@ PVOID PhPluginGetObjectExtension(
  * contains registration information.
  */
 struct _PH_NF_ICON *PhPluginRegisterIcon(
-    __in PPH_PLUGIN Plugin,
-    __in ULONG SubId,
-    __in_opt PVOID Context,
-    __in PWSTR Text,
-    __in ULONG Flags,
-    __in struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags,
+    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
     )
 {
     return PhNfRegisterIcon(
@@ -1069,8 +1069,8 @@ struct _PH_NF_ICON *PhPluginRegisterIcon(
  * structure.
  */
 VOID PhPluginEnableTreeNewNotify(
-    __in PPH_PLUGIN Plugin,
-    __in PVOID CmData
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PVOID CmData
     )
 {
     PhCmSetNotifyPlugin(CmData, Plugin);

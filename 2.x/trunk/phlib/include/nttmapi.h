@@ -6,12 +6,12 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateTransactionManager(
-    __out PHANDLE TmHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in_opt PUNICODE_STRING LogFileName,
-    __in_opt ULONG CreateOptions,
-    __in_opt ULONG CommitStrength
+    _Out_ PHANDLE TmHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PUNICODE_STRING LogFileName,
+    _In_opt_ ULONG CreateOptions,
+    _In_opt_ ULONG CommitStrength
     );
 #endif
 
@@ -20,12 +20,12 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenTransactionManager(
-    __out PHANDLE TmHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in_opt PUNICODE_STRING LogFileName,
-    __in_opt LPGUID TmIdentity,
-    __in_opt ULONG OpenOptions
+    _Out_ PHANDLE TmHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PUNICODE_STRING LogFileName,
+    _In_opt_ LPGUID TmIdentity,
+    _In_opt_ ULONG OpenOptions
     );
 #endif
 
@@ -34,8 +34,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRenameTransactionManager(
-    __in PUNICODE_STRING LogFileName,
-    __in LPGUID ExistingTransactionManagerGuid
+    _In_ PUNICODE_STRING LogFileName,
+    _In_ LPGUID ExistingTransactionManagerGuid
     );
 #endif
 
@@ -44,8 +44,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRollforwardTransactionManager(
-    __in HANDLE TransactionManagerHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE TransactionManagerHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -54,7 +54,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRecoverTransactionManager(
-    __in HANDLE TransactionManagerHandle
+    _In_ HANDLE TransactionManagerHandle
     );
 #endif
 
@@ -63,11 +63,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationTransactionManager(
-    __in HANDLE TransactionManagerHandle,
-    __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
-    __out_bcount(TransactionManagerInformationLength) PVOID TransactionManagerInformation,
-    __in ULONG TransactionManagerInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE TransactionManagerHandle,
+    _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
+    _Out_writes_bytes_(TransactionManagerInformationLength) PVOID TransactionManagerInformation,
+    _In_ ULONG TransactionManagerInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 #endif
 
@@ -76,10 +76,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationTransactionManager(
-    __in_opt HANDLE TmHandle,
-    __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
-    __in_bcount(TransactionManagerInformationLength) PVOID TransactionManagerInformation,
-    __in ULONG TransactionManagerInformationLength
+    _In_opt_ HANDLE TmHandle,
+    _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
+    _In_reads_bytes_(TransactionManagerInformationLength) PVOID TransactionManagerInformation,
+    _In_ ULONG TransactionManagerInformationLength
     );
 #endif
 
@@ -88,11 +88,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtEnumerateTransactionObject(
-    __in_opt HANDLE RootObjectHandle,
-    __in KTMOBJECT_TYPE QueryType,
-    __inout_bcount(ObjectCursorLength) PKTMOBJECT_CURSOR ObjectCursor,
-    __in ULONG ObjectCursorLength,
-    __out PULONG ReturnLength
+    _In_opt_ HANDLE RootObjectHandle,
+    _In_ KTMOBJECT_TYPE QueryType,
+    _Inout_updates_bytes_(ObjectCursorLength) PKTMOBJECT_CURSOR ObjectCursor,
+    _In_ ULONG ObjectCursorLength,
+    _Out_ PULONG ReturnLength
     );
 #endif
 
@@ -101,16 +101,16 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateTransaction(
-    __out PHANDLE TransactionHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in_opt LPGUID Uow,
-    __in_opt HANDLE TmHandle,
-    __in_opt ULONG CreateOptions,
-    __in_opt ULONG IsolationLevel,
-    __in_opt ULONG IsolationFlags,
-    __in_opt PLARGE_INTEGER Timeout,
-    __in_opt PUNICODE_STRING Description
+    _Out_ PHANDLE TransactionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ LPGUID Uow,
+    _In_opt_ HANDLE TmHandle,
+    _In_opt_ ULONG CreateOptions,
+    _In_opt_ ULONG IsolationLevel,
+    _In_opt_ ULONG IsolationFlags,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ PUNICODE_STRING Description
     );
 #endif
 
@@ -119,11 +119,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenTransaction(
-    __out PHANDLE TransactionHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in LPGUID Uow,
-    __in_opt HANDLE TmHandle
+    _Out_ PHANDLE TransactionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ LPGUID Uow,
+    _In_opt_ HANDLE TmHandle
     );
 #endif
 
@@ -132,11 +132,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationTransaction(
-    __in HANDLE TransactionHandle,
-    __in TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
-    __out_bcount(TransactionInformationLength) PVOID TransactionInformation,
-    __in ULONG TransactionInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE TransactionHandle,
+    _In_ TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
+    _Out_writes_bytes_(TransactionInformationLength) PVOID TransactionInformation,
+    _In_ ULONG TransactionInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 #endif
 
@@ -145,10 +145,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationTransaction(
-    __in HANDLE TransactionHandle,
-    __in TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
-    __in_bcount(TransactionInformationLength) PVOID TransactionInformation,
-    __in ULONG TransactionInformationLength
+    _In_ HANDLE TransactionHandle,
+    _In_ TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
+    _In_reads_bytes_(TransactionInformationLength) PVOID TransactionInformation,
+    _In_ ULONG TransactionInformationLength
     );
 #endif
 
@@ -157,8 +157,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCommitTransaction(
-    __in HANDLE TransactionHandle,
-    __in BOOLEAN Wait
+    _In_ HANDLE TransactionHandle,
+    _In_ BOOLEAN Wait
     );
 #endif
 
@@ -167,8 +167,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRollbackTransaction(
-    __in HANDLE TransactionHandle,
-    __in BOOLEAN Wait
+    _In_ HANDLE TransactionHandle,
+    _In_ BOOLEAN Wait
     );
 #endif
 
@@ -177,14 +177,14 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateEnlistment(
-    __out PHANDLE EnlistmentHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ResourceManagerHandle,
-    __in HANDLE TransactionHandle,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in_opt ULONG CreateOptions,
-    __in NOTIFICATION_MASK NotificationMask,
-    __in_opt PVOID EnlistmentKey
+    _Out_ PHANDLE EnlistmentHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ResourceManagerHandle,
+    _In_ HANDLE TransactionHandle,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ ULONG CreateOptions,
+    _In_ NOTIFICATION_MASK NotificationMask,
+    _In_opt_ PVOID EnlistmentKey
     );
 #endif
 
@@ -193,11 +193,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenEnlistment(
-    __out PHANDLE EnlistmentHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ResourceManagerHandle,
-    __in LPGUID EnlistmentGuid,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes
+    _Out_ PHANDLE EnlistmentHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ResourceManagerHandle,
+    _In_ LPGUID EnlistmentGuid,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 #endif
 
@@ -206,11 +206,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationEnlistment(
-    __in HANDLE EnlistmentHandle,
-    __in ENLISTMENT_INFORMATION_CLASS EnlistmentInformationClass,
-    __out_bcount(EnlistmentInformationLength) PVOID EnlistmentInformation,
-    __in ULONG EnlistmentInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE EnlistmentHandle,
+    _In_ ENLISTMENT_INFORMATION_CLASS EnlistmentInformationClass,
+    _Out_writes_bytes_(EnlistmentInformationLength) PVOID EnlistmentInformation,
+    _In_ ULONG EnlistmentInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 #endif
 
@@ -219,10 +219,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationEnlistment(
-    __in_opt HANDLE EnlistmentHandle,
-    __in ENLISTMENT_INFORMATION_CLASS EnlistmentInformationClass,
-    __in_bcount(EnlistmentInformationLength) PVOID EnlistmentInformation,
-    __in ULONG EnlistmentInformationLength
+    _In_opt_ HANDLE EnlistmentHandle,
+    _In_ ENLISTMENT_INFORMATION_CLASS EnlistmentInformationClass,
+    _In_reads_bytes_(EnlistmentInformationLength) PVOID EnlistmentInformation,
+    _In_ ULONG EnlistmentInformationLength
     );
 #endif
 
@@ -231,8 +231,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRecoverEnlistment(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PVOID EnlistmentKey
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PVOID EnlistmentKey
     );
 #endif
 
@@ -241,8 +241,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrePrepareEnlistment(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -251,8 +251,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrepareEnlistment(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -261,8 +261,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCommitEnlistment(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -271,8 +271,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRollbackEnlistment(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -281,8 +281,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrePrepareComplete(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -291,8 +291,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrepareComplete(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -301,8 +301,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCommitComplete(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -311,8 +311,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReadOnlyEnlistment(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -321,8 +321,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRollbackComplete(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -331,8 +331,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSinglePhaseReject(
-    __in HANDLE EnlistmentHandle,
-    __in_opt PLARGE_INTEGER TmVirtualClock
+    _In_ HANDLE EnlistmentHandle,
+    _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 #endif
 
@@ -341,13 +341,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateResourceManager(
-    __out PHANDLE ResourceManagerHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE TmHandle,
-    __in LPGUID RmGuid,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in_opt ULONG CreateOptions,
-    __in_opt PUNICODE_STRING Description
+    _Out_ PHANDLE ResourceManagerHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE TmHandle,
+    _In_ LPGUID RmGuid,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ ULONG CreateOptions,
+    _In_opt_ PUNICODE_STRING Description
     );
 #endif
 
@@ -356,11 +356,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenResourceManager(
-    __out PHANDLE ResourceManagerHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE TmHandle,
-    __in_opt LPGUID ResourceManagerGuid,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes
+    _Out_ PHANDLE ResourceManagerHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE TmHandle,
+    _In_opt_ LPGUID ResourceManagerGuid,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 #endif
 
@@ -369,7 +369,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRecoverResourceManager(
-    __in HANDLE ResourceManagerHandle
+    _In_ HANDLE ResourceManagerHandle
     );
 #endif
 
@@ -378,13 +378,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtGetNotificationResourceManager(
-    __in HANDLE ResourceManagerHandle,
-    __out PTRANSACTION_NOTIFICATION TransactionNotification,
-    __in ULONG NotificationLength,
-    __in_opt PLARGE_INTEGER Timeout,
-    __out_opt PULONG ReturnLength,
-    __in ULONG Asynchronous,
-    __in_opt ULONG_PTR AsynchronousContext
+    _In_ HANDLE ResourceManagerHandle,
+    _Out_ PTRANSACTION_NOTIFICATION TransactionNotification,
+    _In_ ULONG NotificationLength,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ ULONG Asynchronous,
+    _In_opt_ ULONG_PTR AsynchronousContext
     );
 #endif
 
@@ -393,11 +393,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationResourceManager(
-    __in HANDLE ResourceManagerHandle,
-    __in RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
-    __out_bcount(ResourceManagerInformationLength) PVOID ResourceManagerInformation,
-    __in ULONG ResourceManagerInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE ResourceManagerHandle,
+    _In_ RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
+    _Out_writes_bytes_(ResourceManagerInformationLength) PVOID ResourceManagerInformation,
+    _In_ ULONG ResourceManagerInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 #endif
 
@@ -406,10 +406,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationResourceManager(
-    __in HANDLE ResourceManagerHandle,
-    __in RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
-    __in_bcount(ResourceManagerInformationLength) PVOID ResourceManagerInformation,
-    __in ULONG ResourceManagerInformationLength
+    _In_ HANDLE ResourceManagerHandle,
+    _In_ RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
+    _In_reads_bytes_(ResourceManagerInformationLength) PVOID ResourceManagerInformation,
+    _In_ ULONG ResourceManagerInformationLength
     );
 #endif
 
@@ -418,11 +418,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRegisterProtocolAddressInformation(
-    __in HANDLE ResourceManager,
-    __in PCRM_PROTOCOL_ID ProtocolId,
-    __in ULONG ProtocolInformationSize,
-    __in PVOID ProtocolInformation,
-    __in_opt ULONG CreateOptions
+    _In_ HANDLE ResourceManager,
+    _In_ PCRM_PROTOCOL_ID ProtocolId,
+    _In_ ULONG ProtocolInformationSize,
+    _In_ PVOID ProtocolInformation,
+    _In_opt_ ULONG CreateOptions
     );
 #endif
 
@@ -431,10 +431,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPropagationComplete(
-    __in HANDLE ResourceManagerHandle,
-    __in ULONG RequestCookie,
-    __in ULONG BufferLength,
-    __in PVOID Buffer
+    _In_ HANDLE ResourceManagerHandle,
+    _In_ ULONG RequestCookie,
+    _In_ ULONG BufferLength,
+    _In_ PVOID Buffer
     );
 #endif
 
@@ -443,9 +443,9 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPropagationFailed(
-    __in HANDLE ResourceManagerHandle,
-    __in ULONG RequestCookie,
-    __in NTSTATUS PropStatus
+    _In_ HANDLE ResourceManagerHandle,
+    _In_ ULONG RequestCookie,
+    _In_ NTSTATUS PropStatus
     );
 #endif
 
@@ -455,8 +455,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFreezeTransactions(
-    __in PLARGE_INTEGER FreezeTimeout,
-    __in PLARGE_INTEGER ThawTimeout
+    _In_ PLARGE_INTEGER FreezeTimeout,
+    _In_ PLARGE_INTEGER ThawTimeout
     );
 #endif
 

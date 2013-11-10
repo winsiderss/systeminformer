@@ -65,7 +65,7 @@ VOID PhFastLockInitialization(
 }
 
 VOID PhInitializeFastLock(
-    __out PPH_FAST_LOCK FastLock
+    _Out_ PPH_FAST_LOCK FastLock
     )
 {
     FastLock->Value = 0;
@@ -74,7 +74,7 @@ VOID PhInitializeFastLock(
 }
 
 VOID PhDeleteFastLock(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     if (FastLock->ExclusiveWakeEvent)
@@ -91,7 +91,7 @@ VOID PhDeleteFastLock(
 }
 
 FORCEINLINE VOID PhpEnsureEventCreated(
-    __inout PHANDLE Handle
+    _Inout_ PHANDLE Handle
     )
 {
     HANDLE handle;
@@ -111,8 +111,8 @@ FORCEINLINE VOID PhpEnsureEventCreated(
     }
 }
 
-__mayRaise VOID FASTCALL PhfAcquireFastLockExclusive(
-    __inout PPH_FAST_LOCK FastLock
+_May_raise_ VOID FASTCALL PhfAcquireFastLockExclusive(
+    _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     ULONG value;
@@ -166,8 +166,8 @@ __mayRaise VOID FASTCALL PhfAcquireFastLockExclusive(
     }
 }
 
-__mayRaise VOID FASTCALL PhfAcquireFastLockShared(
-    __inout PPH_FAST_LOCK FastLock
+_May_raise_ VOID FASTCALL PhfAcquireFastLockShared(
+    _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     ULONG value;
@@ -230,7 +230,7 @@ __mayRaise VOID FASTCALL PhfAcquireFastLockShared(
 }
 
 VOID FASTCALL PhfReleaseFastLockExclusive(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     ULONG value;
@@ -276,7 +276,7 @@ VOID FASTCALL PhfReleaseFastLockExclusive(
 }
 
 VOID FASTCALL PhfReleaseFastLockShared(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     ULONG value;
@@ -323,7 +323,7 @@ VOID FASTCALL PhfReleaseFastLockShared(
 }
 
 BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     ULONG value;
@@ -341,7 +341,7 @@ BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
 }
 
 BOOLEAN FASTCALL PhfTryAcquireFastLockShared(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     ULONG value;

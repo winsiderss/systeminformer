@@ -46,7 +46,7 @@ BOOLEAN WeIsServerActive(
     );
 
 BOOLEAN WeLockServerSharedData(
-    __out PWE_HOOK_SHARED_DATA *Data
+    _Out_ PWE_HOOK_SHARED_DATA *Data
     );
 
 VOID WeUnlockServerSharedData(
@@ -54,7 +54,7 @@ VOID WeUnlockServerSharedData(
     );
 
 BOOLEAN WeSendServerRequest(
-    __in HWND hWnd
+    _In_ HWND hWnd
     );
 
 VOID WeHookClientInitialization(
@@ -96,8 +96,8 @@ typedef struct _WE_WINDOW_SELECTOR
 } WE_WINDOW_SELECTOR, *PWE_WINDOW_SELECTOR;
 
 VOID WeShowWindowsDialog(
-    __in HWND ParentWindowHandle,
-    __in PWE_WINDOW_SELECTOR Selector
+    _In_ HWND ParentWindowHandle,
+    _In_ PWE_WINDOW_SELECTOR Selector
     );
 
 #define WM_WE_PLUSMINUS (WM_APP + 1)
@@ -105,8 +105,8 @@ VOID WeShowWindowsDialog(
 // wndprp
 
 VOID WeShowWindowProperties(
-    __in HWND ParentWindowHandle,
-    __in HWND WindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND WindowHandle
     );
 
 // utils
@@ -115,17 +115,17 @@ VOID WeShowWindowProperties(
 #define WE_WindowsVersion (*(ULONG *)WeGetProcedureAddress("WindowsVersion"))
 
 PVOID WeGetProcedureAddress(
-    __in PSTR Name
+    _In_ PSTR Name
     );
 
 VOID WeFormatLocalObjectName(
-    __in PWSTR OriginalName,
-    __inout_ecount(256) PWCHAR Buffer,
-    __out PUNICODE_STRING ObjectName
+    _In_ PWSTR OriginalName,
+    _Inout_updates_(256) PWCHAR Buffer,
+    _Out_ PUNICODE_STRING ObjectName
     );
 
 VOID WeInvertWindowBorder(
-    __in HWND hWnd
+    _In_ HWND hWnd
     );
 
 #endif

@@ -45,16 +45,16 @@ typedef struct _PH_HANDLE_TABLE
 } PH_HANDLE_TABLE, *PPH_HANDLE_TABLE;
 
 FORCEINLINE VOID PhpLockHandleTableShared(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in ULONG Index
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ ULONG Index
     )
 {
     PhAcquireQueuedLockShared(&HandleTable->Locks[Index]);
 }
 
 FORCEINLINE VOID PhpUnlockHandleTableShared(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in ULONG Index
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ ULONG Index
     )
 {
     PhReleaseQueuedLockShared(&HandleTable->Locks[Index]);
@@ -80,72 +80,72 @@ FORCEINLINE VOID PhpUnlockHandleTableShared(
 #define PH_HANDLE_VALUE_IS_INVALID(HandleValue) (((HandleValue) >> 24) != 0)
 
 FORCEINLINE HANDLE PhpEncodeHandle(
-    __in ULONG HandleValue
+    _In_ ULONG HandleValue
     )
 {
     return (HANDLE)((HandleValue << PH_HANDLE_VALUE_SHIFT) + PH_HANDLE_VALUE_BIAS);
 }
 
 FORCEINLINE ULONG PhpDecodeHandle(
-    __in HANDLE Handle
+    _In_ HANDLE Handle
     )
 {
     return ((ULONG)Handle - PH_HANDLE_VALUE_BIAS) >> PH_HANDLE_VALUE_SHIFT;
 }
 
 VOID PhpBlockOnLockedHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
 PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __out PULONG HandleValue
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _Out_ PULONG HandleValue
     );
 
 VOID PhpFreeHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in ULONG HandleValue,
-    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ ULONG HandleValue,
+    _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
 BOOLEAN PhpAllocateMoreHandleTableEntries(
-    __in __assumeLocked PPH_HANDLE_TABLE HandleTable,
-    __in BOOLEAN Initialize
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ BOOLEAN Initialize
     );
 
 PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in ULONG HandleValue
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ ULONG HandleValue
     );
 
 ULONG PhpMoveFreeHandleTableEntries(
-    __inout __assumeLocked PPH_HANDLE_TABLE HandleTable
+    _Inout_ PPH_HANDLE_TABLE HandleTable
     );
 
 PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in BOOLEAN Initialize
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ BOOLEAN Initialize
     );
 
 VOID PhpFreeHandleTableLevel0(
-    __in PPH_HANDLE_TABLE_ENTRY Table
+    _In_ PPH_HANDLE_TABLE_ENTRY Table
     );
 
 PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
-    __in PPH_HANDLE_TABLE HandleTable
+    _In_ PPH_HANDLE_TABLE HandleTable
     );
 
 VOID PhpFreeHandleTableLevel1(
-    __in PPH_HANDLE_TABLE_ENTRY *Table
+    _In_ PPH_HANDLE_TABLE_ENTRY *Table
     );
 
 PPH_HANDLE_TABLE_ENTRY **PhpCreateHandleTableLevel2(
-    __in PPH_HANDLE_TABLE HandleTable
+    _In_ PPH_HANDLE_TABLE HandleTable
     );
 
 VOID PhpFreeHandleTableLevel2(
-    __in PPH_HANDLE_TABLE_ENTRY **Table
+    _In_ PPH_HANDLE_TABLE_ENTRY **Table
     );
 
 #endif

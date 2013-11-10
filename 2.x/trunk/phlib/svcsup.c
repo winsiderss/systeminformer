@@ -70,10 +70,10 @@ WCHAR *PhServiceStartTypeStrings[5] = { L"Disabled", L"Boot Start", L"System Sta
 WCHAR *PhServiceErrorControlStrings[4] = { L"Ignore", L"Normal", L"Severe", L"Critical" };
 
 PVOID PhEnumServices(
-    __in SC_HANDLE ScManagerHandle,
-    __in_opt ULONG Type,
-    __in_opt ULONG State,
-    __out PULONG Count
+    _In_ SC_HANDLE ScManagerHandle,
+    _In_opt_ ULONG Type,
+    _In_opt_ ULONG State,
+    _Out_ PULONG Count
     )
 {
     static ULONG initialBufferSize = 0x8000;
@@ -138,8 +138,8 @@ PVOID PhEnumServices(
 }
 
 SC_HANDLE PhOpenService(
-    __in PWSTR ServiceName,
-    __in ACCESS_MASK DesiredAccess
+    _In_ PWSTR ServiceName,
+    _In_ ACCESS_MASK DesiredAccess
     )
 {
     SC_HANDLE scManagerHandle;
@@ -157,7 +157,7 @@ SC_HANDLE PhOpenService(
 }
 
 PVOID PhGetServiceConfig(
-    __in SC_HANDLE ServiceHandle
+    _In_ SC_HANDLE ServiceHandle
     )
 {
     PVOID buffer;
@@ -181,8 +181,8 @@ PVOID PhGetServiceConfig(
 }
 
 PVOID PhQueryServiceVariableSize(
-    __in SC_HANDLE ServiceHandle,
-    __in ULONG InfoLevel
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG InfoLevel
     )
 {
     PVOID buffer;
@@ -218,7 +218,7 @@ PVOID PhQueryServiceVariableSize(
 }
 
 PPH_STRING PhGetServiceDescription(
-    __in SC_HANDLE ServiceHandle
+    _In_ SC_HANDLE ServiceHandle
     )
 {
     PPH_STRING description = NULL;
@@ -242,8 +242,8 @@ PPH_STRING PhGetServiceDescription(
 }
 
 BOOLEAN PhGetServiceDelayedAutoStart(
-    __in SC_HANDLE ServiceHandle,
-    __out PBOOLEAN DelayedAutoStart
+    _In_ SC_HANDLE ServiceHandle,
+    _Out_ PBOOLEAN DelayedAutoStart
     )
 {
     SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
@@ -267,8 +267,8 @@ BOOLEAN PhGetServiceDelayedAutoStart(
 }
 
 BOOLEAN PhSetServiceDelayedAutoStart(
-    __in SC_HANDLE ServiceHandle,
-    __in BOOLEAN DelayedAutoStart
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ BOOLEAN DelayedAutoStart
     )
 {
     SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
@@ -283,7 +283,7 @@ BOOLEAN PhSetServiceDelayedAutoStart(
 }
 
 PWSTR PhGetServiceStateString(
-    __in ULONG ServiceState
+    _In_ ULONG ServiceState
     )
 {
     PWSTR string;
@@ -300,7 +300,7 @@ PWSTR PhGetServiceStateString(
 }
 
 PWSTR PhGetServiceTypeString(
-    __in ULONG ServiceType
+    _In_ ULONG ServiceType
     )
 {
     PWSTR string;
@@ -317,7 +317,7 @@ PWSTR PhGetServiceTypeString(
 }
 
 ULONG PhGetServiceTypeInteger(
-    __in PWSTR ServiceType
+    _In_ PWSTR ServiceType
     )
 {
     ULONG integer;
@@ -334,7 +334,7 @@ ULONG PhGetServiceTypeInteger(
 }
 
 PWSTR PhGetServiceStartTypeString(
-    __in ULONG ServiceStartType
+    _In_ ULONG ServiceStartType
     )
 {
     PWSTR string;
@@ -351,7 +351,7 @@ PWSTR PhGetServiceStartTypeString(
 }
 
 ULONG PhGetServiceStartTypeInteger(
-    __in PWSTR ServiceStartType
+    _In_ PWSTR ServiceStartType
     )
 {
     ULONG integer;
@@ -368,7 +368,7 @@ ULONG PhGetServiceStartTypeInteger(
 }
 
 PWSTR PhGetServiceErrorControlString(
-    __in ULONG ServiceErrorControl
+    _In_ ULONG ServiceErrorControl
     )
 {
     PWSTR string;
@@ -385,7 +385,7 @@ PWSTR PhGetServiceErrorControlString(
 }
 
 ULONG PhGetServiceErrorControlInteger(
-    __in PWSTR ServiceErrorControl
+    _In_ PWSTR ServiceErrorControl
     )
 {
     ULONG integer;
@@ -402,8 +402,8 @@ ULONG PhGetServiceErrorControlInteger(
 }
 
 PPH_STRING PhGetServiceNameFromTag(
-    __in HANDLE ProcessId,
-    __in PVOID ServiceTag
+    _In_ HANDLE ProcessId,
+    _In_ PVOID ServiceTag
     )
 {
     static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
@@ -434,9 +434,9 @@ PPH_STRING PhGetServiceNameFromTag(
 }
 
 NTSTATUS PhGetThreadServiceTag(
-    __in HANDLE ThreadHandle,
-    __in_opt HANDLE ProcessHandle,
-    __out PVOID *ServiceTag
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PVOID *ServiceTag
     )
 {
     NTSTATUS status;

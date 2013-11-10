@@ -54,35 +54,35 @@ typedef struct _THREAD_STACK_ITEM
 } THREAD_STACK_ITEM, *PTHREAD_STACK_ITEM;
 
 INT_PTR CALLBACK PhpThreadStackDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhpFreeThreadStackItem(
-    __in PTHREAD_STACK_ITEM StackItem
+    _In_ PTHREAD_STACK_ITEM StackItem
     );
 
 NTSTATUS PhpRefreshThreadStack(
-    __in HWND hwnd,
-    __in PTHREAD_STACK_CONTEXT ThreadStackContext
+    _In_ HWND hwnd,
+    _In_ PTHREAD_STACK_CONTEXT ThreadStackContext
     );
 
 INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID PhShowThreadStackDialog(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId,
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
     NTSTATUS status;
@@ -146,10 +146,10 @@ VOID PhShowThreadStackDialog(
 }
 
 static INT_PTR CALLBACK PhpThreadStackDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -402,7 +402,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 }
 
 static VOID PhpFreeThreadStackItem(
-    __in PTHREAD_STACK_ITEM StackItem
+    _In_ PTHREAD_STACK_ITEM StackItem
     )
 {
     PhSwapReference(&StackItem->Symbol, NULL);
@@ -410,8 +410,8 @@ static VOID PhpFreeThreadStackItem(
 }
 
 static NTSTATUS PhpRefreshThreadStack(
-    __in HWND hwnd,
-    __in PTHREAD_STACK_CONTEXT ThreadStackContext
+    _In_ HWND hwnd,
+    _In_ PTHREAD_STACK_CONTEXT ThreadStackContext
     )
 {
     ULONG i;
@@ -468,8 +468,8 @@ static NTSTATUS PhpRefreshThreadStack(
 }
 
 static BOOLEAN NTAPI PhpWalkThreadStackCallback(
-    __in PPH_THREAD_STACK_FRAME StackFrame,
-    __in_opt PVOID Context
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _In_opt_ PVOID Context
     )
 {
     PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)Context;
@@ -518,7 +518,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
 }
 
 static NTSTATUS PhpRefreshThreadStackThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     NTSTATUS status;
@@ -572,10 +572,10 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
 }
 
 static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

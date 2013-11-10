@@ -38,15 +38,15 @@ typedef struct _HANDLE_STATISTICS_CONTEXT
 } HANDLE_STATISTICS_CONTEXT, *PHANDLE_STATISTICS_CONTEXT;
 
 INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowHandleStatisticsDialog(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -101,9 +101,9 @@ VOID PhShowHandleStatisticsDialog(
 }
 
 static INT NTAPI PhpTypeCountCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PHANDLE_STATISTICS_ENTRY entry1 = Item1;
@@ -113,10 +113,10 @@ static INT NTAPI PhpTypeCountCompareFunction(
 }
 
 INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

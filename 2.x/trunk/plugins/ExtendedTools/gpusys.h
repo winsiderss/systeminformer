@@ -4,10 +4,10 @@
 #define ET_GPU_PADDING 3
 
 BOOLEAN EtpGpuSectionCallback(
-    __in PPH_SYSINFO_SECTION Section,
-    __in PH_SYSINFO_SECTION_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 VOID EtpInitializeGpuDialog(
@@ -23,17 +23,17 @@ VOID EtpTickGpuDialog(
     );
 
 INT_PTR CALLBACK EtpGpuDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EtpGpuPanelDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EtpCreateGpuGraphs(
@@ -45,15 +45,15 @@ VOID EtpLayoutGpuGraphs(
     );
 
 VOID EtpNotifyGpuGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     );
 
 VOID EtpNotifyDedicatedGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     );
 
 VOID EtpNotifySharedGraph(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     );
 
 VOID EtpUpdateGpuGraphs(
@@ -65,11 +65,11 @@ VOID EtpUpdateGpuPanel(
     );
 
 PPH_PROCESS_RECORD EtpReferenceMaxNodeRecord(
-    __in LONG Index
+    _In_ LONG Index
     );
 
 PPH_STRING EtpGetMaxNodeString(
-    __in LONG Index
+    _In_ LONG Index
     );
 
 PPH_STRING EtpGetGpuNameString(

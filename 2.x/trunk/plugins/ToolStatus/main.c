@@ -52,8 +52,8 @@ static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 
 static VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     ProcessesUpdatedCount++;
@@ -63,8 +63,8 @@ static VOID NTAPI ProcessesUpdatedCallback(
 }
 
 static VOID NTAPI TabPageUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     INT tabIndex = (INT)Parameter;
@@ -91,8 +91,8 @@ static VOID NTAPI TabPageUpdatedCallback(
 }
 
 static VOID NTAPI LayoutPaddingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
@@ -120,8 +120,8 @@ static VOID NTAPI LayoutPaddingCallback(
 }
 
 static BOOLEAN NTAPI MessageLoopFilter(
-    __in PMSG Message,
-    __in PVOID Context
+    _In_ PMSG Message,
+    _In_ PVOID Context
     )
 {
     if (
@@ -137,7 +137,7 @@ static BOOLEAN NTAPI MessageLoopFilter(
 }
 
 static VOID DrawWindowBorderForTargeting(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     RECT rect;
@@ -176,12 +176,12 @@ static VOID DrawWindowBorderForTargeting(
 }
 
 static LRESULT CALLBACK MainWndSubclassProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in UINT_PTR uIdSubclass,
-    __in DWORD_PTR dwRefData
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ DWORD_PTR dwRefData
     )
 {
     switch (uMsg)
@@ -389,7 +389,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         // This is an undocumented function exported by user32.dll that
                         // retrieves the hung window represented by a ghost window.
                         static HWND (WINAPI *HungWindowFromGhostWindow_I)(
-                            __in HWND hWnd
+                            _In_ HWND hWnd
                             );
 
                         if (!HungWindowFromGhostWindow_I)
@@ -505,8 +505,8 @@ DefaultWndProc:
 }
 
 static VOID NTAPI MainWindowShowingCallback(
-     __in_opt PVOID Parameter,
-     __in_opt PVOID Context
+     _In_opt_ PVOID Parameter,
+     _In_opt_ PVOID Context
     )
 {
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
@@ -522,8 +522,8 @@ static VOID NTAPI MainWindowShowingCallback(
 }
 
 static VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
@@ -536,8 +536,8 @@ static VOID NTAPI LoadCallback(
 }
 
 static VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     DialogBox(
@@ -549,9 +549,9 @@ static VOID NTAPI ShowOptionsCallback(
 }
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)

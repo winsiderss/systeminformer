@@ -254,91 +254,91 @@ BOOLEAN PhProcessProviderInitialization(
 
 PHAPPAPI
 PPH_STRING PhGetClientIdName(
-    __in PCLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     );
 
 PHAPPAPI
 PPH_STRING PhGetClientIdNameEx(
-    __in PCLIENT_ID ClientId,
-    __in_opt PPH_STRING ProcessName
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ PPH_STRING ProcessName
     );
 
 PHAPPAPI
 PWSTR PhGetProcessPriorityClassString(
-    __in ULONG PriorityClass
+    _In_ ULONG PriorityClass
     );
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 PHAPPAPI
 PPH_PROCESS_ITEM PhReferenceProcessItem(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 PHAPPAPI
 VOID PhEnumProcessItems(
-    __out_opt PPH_PROCESS_ITEM **ProcessItems,
-    __out PULONG NumberOfProcessItems
+    _Out_opt_ PPH_PROCESS_ITEM **ProcessItems,
+    _Out_ PULONG NumberOfProcessItems
     );
 
 typedef struct _PH_VERIFY_FILE_INFO *PPH_VERIFY_FILE_INFO;
 
 VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
-    __in PPH_VERIFY_FILE_INFO Information,
-    __in_opt PWSTR PackageFullName,
-    __out_opt PPH_STRING *SignerName
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _In_opt_ PWSTR PackageFullName,
+    _Out_opt_ PPH_STRING *SignerName
     );
 
 VERIFY_RESULT PhVerifyFileCached(
-    __in PPH_STRING FileName,
-    __in_opt PWSTR PackageFullName,
-    __out_opt PPH_STRING *SignerName,
-    __in BOOLEAN CachedOnly
+    _In_ PPH_STRING FileName,
+    _In_opt_ PWSTR PackageFullName,
+    _Out_opt_ PPH_STRING *SignerName,
+    _In_ BOOLEAN CachedOnly
     );
 
 PHAPPAPI
 BOOLEAN PhGetStatisticsTime(
-    __in_opt PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG Index,
-    __out PLARGE_INTEGER Time
+    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Index,
+    _Out_ PLARGE_INTEGER Time
     );
 
 PHAPPAPI
 PPH_STRING PhGetStatisticsTimeString(
-    __in_opt PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG Index
+    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Index
     );
 
 VOID PhProcessProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 PHAPPAPI
 VOID PhReferenceProcessRecord(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     );
 
 PHAPPAPI
 BOOLEAN PhReferenceProcessRecordSafe(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     );
 
 PHAPPAPI
 VOID PhReferenceProcessRecordForStatistics(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     );
 
 PHAPPAPI
 VOID PhDereferenceProcessRecord(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     );
 
 PHAPPAPI
 PPH_PROCESS_RECORD PhFindProcessRecord(
-    __in_opt HANDLE ProcessId,
-    __in PLARGE_INTEGER Time
+    _In_opt_ HANDLE ProcessId,
+    _In_ PLARGE_INTEGER Time
     );
 
 VOID PhPurgeProcessRecords(
@@ -347,14 +347,14 @@ VOID PhPurgeProcessRecords(
 
 PHAPPAPI
 PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
-    __in HANDLE ParentProcessId,
-    __in HANDLE ProcessId,
-    __in PLARGE_INTEGER CreateTime
+    _In_ HANDLE ParentProcessId,
+    _In_ HANDLE ProcessId,
+    _In_ PLARGE_INTEGER CreateTime
     );
 
 PHAPPAPI
 PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
-    __in PPH_PROCESS_RECORD Record
+    _In_ PPH_PROCESS_RECORD Record
     );
 
 // srvprv
@@ -412,29 +412,29 @@ BOOLEAN PhServiceProviderInitialization(
     );
 
 PPH_SERVICE_ITEM PhCreateServiceItem(
-    __in_opt LPENUM_SERVICE_STATUS_PROCESS Information
+    _In_opt_ LPENUM_SERVICE_STATUS_PROCESS Information
     );
 
 PHAPPAPI
 PPH_SERVICE_ITEM PhReferenceServiceItem(
-    __in PWSTR Name
+    _In_ PWSTR Name
     );
 
 VOID PhMarkNeedsConfigUpdateServiceItem(
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 PHAPPAPI
 PH_SERVICE_CHANGE PhGetServiceChange(
-    __in PPH_SERVICE_MODIFIED_DATA Data
+    _In_ PPH_SERVICE_MODIFIED_DATA Data
     );
 
 VOID PhUpdateProcessItemServices(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 VOID PhServiceProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 // netprv
@@ -487,28 +487,28 @@ PPH_NETWORK_ITEM PhCreateNetworkItem(
 
 PHAPPAPI
 PPH_NETWORK_ITEM PhReferenceNetworkItem(
-    __in ULONG ProtocolType,
-    __in PPH_IP_ENDPOINT LocalEndpoint,
-    __in PPH_IP_ENDPOINT RemoteEndpoint,
-    __in HANDLE ProcessId
+    _In_ ULONG ProtocolType,
+    _In_ PPH_IP_ENDPOINT LocalEndpoint,
+    _In_ PPH_IP_ENDPOINT RemoteEndpoint,
+    _In_ HANDLE ProcessId
     );
 
 PPH_STRING PhGetHostNameFromAddress(
-    __in PPH_IP_ADDRESS Address
+    _In_ PPH_IP_ADDRESS Address
     );
 
 VOID PhNetworkProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 PHAPPAPI
 PWSTR PhGetProtocolTypeName(
-    __in ULONG ProtocolType
+    _In_ ULONG ProtocolType
     );
 
 PHAPPAPI
 PWSTR PhGetTcpStateName(
-    __in ULONG State
+    _In_ ULONG State
     );
 
 // modprv
@@ -563,7 +563,7 @@ BOOLEAN PhModuleProviderInitialization(
     );
 
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 PPH_MODULE_ITEM PhCreateModuleItem(
@@ -571,16 +571,16 @@ PPH_MODULE_ITEM PhCreateModuleItem(
     );
 
 PPH_MODULE_ITEM PhReferenceModuleItem(
-    __in PPH_MODULE_PROVIDER ModuleProvider,
-    __in PVOID BaseAddress
+    _In_ PPH_MODULE_PROVIDER ModuleProvider,
+    _In_ PVOID BaseAddress
     );
 
 VOID PhDereferenceAllModuleItems(
-    __in PPH_MODULE_PROVIDER ModuleProvider
+    _In_ PPH_MODULE_PROVIDER ModuleProvider
     );
 
 VOID PhModuleProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 // thrdprv
@@ -650,39 +650,39 @@ BOOLEAN PhThreadProviderInitialization(
     );
 
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 VOID PhRegisterThreadProvider(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __out PPH_CALLBACK_REGISTRATION CallbackRegistration
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _Out_ PPH_CALLBACK_REGISTRATION CallbackRegistration
     );
 
 VOID PhUnregisterThreadProvider(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in PPH_CALLBACK_REGISTRATION CallbackRegistration
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PPH_CALLBACK_REGISTRATION CallbackRegistration
     );
 
 PPH_THREAD_ITEM PhCreateThreadItem(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     );
 
 PPH_THREAD_ITEM PhReferenceThreadItem(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in HANDLE ThreadId
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ HANDLE ThreadId
     );
 
 VOID PhDereferenceAllThreadItems(
-    __in PPH_THREAD_PROVIDER ThreadProvider
+    _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
 PHAPPAPI
 PPH_STRING PhGetThreadPriorityWin32String(
-    __in LONG PriorityWin32
+    _In_ LONG PriorityWin32
     );
 
 VOID PhThreadProviderInitialUpdate(
-    __in PPH_THREAD_PROVIDER ThreadProvider
+    _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
 // hndlprv
@@ -739,31 +739,31 @@ BOOLEAN PhHandleProviderInitialization(
     );
 
 PPH_HANDLE_PROVIDER PhCreateHandleProvider(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 PPH_HANDLE_ITEM PhCreateHandleItem(
-    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
+    _In_opt_ PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
     );
 
 PPH_HANDLE_ITEM PhReferenceHandleItem(
-    __in PPH_HANDLE_PROVIDER HandleProvider,
-    __in HANDLE Handle
+    _In_ PPH_HANDLE_PROVIDER HandleProvider,
+    _In_ HANDLE Handle
     );
 
 VOID PhDereferenceAllHandleItems(
-    __in PPH_HANDLE_PROVIDER HandleProvider
+    _In_ PPH_HANDLE_PROVIDER HandleProvider
     );
 
 NTSTATUS PhEnumHandlesGeneric(
-    __in HANDLE ProcessId,
-    __in HANDLE ProcessHandle,
-    __out PSYSTEM_HANDLE_INFORMATION_EX *Handles,
-    __out PBOOLEAN FilterNeeded
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PSYSTEM_HANDLE_INFORMATION_EX *Handles,
+    _Out_ PBOOLEAN FilterNeeded
     );
 
 VOID PhHandleProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 // memprv
@@ -786,8 +786,8 @@ typedef struct _PH_MEMORY_ITEM
 typedef struct _PH_MEMORY_PROVIDER *PPH_MEMORY_PROVIDER;
 
 typedef BOOLEAN (NTAPI *PPH_MEMORY_PROVIDER_CALLBACK)(
-    __in PPH_MEMORY_PROVIDER Provider,
-    __in __assumeRefs(1) PPH_MEMORY_ITEM MemoryItem
+    _In_ PPH_MEMORY_PROVIDER Provider,
+    _In_ _Assume_refs_(1) PPH_MEMORY_ITEM MemoryItem
     );
 
 typedef struct _PH_MEMORY_PROVIDER
@@ -806,14 +806,14 @@ BOOLEAN PhMemoryProviderInitialization(
     );
 
 VOID PhInitializeMemoryProvider(
-    __out PPH_MEMORY_PROVIDER Provider,
-    __in HANDLE ProcessId,
-    __in PPH_MEMORY_PROVIDER_CALLBACK Callback,
-    __in_opt PVOID Context
+    _Out_ PPH_MEMORY_PROVIDER Provider,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MEMORY_PROVIDER_CALLBACK Callback,
+    _In_opt_ PVOID Context
     );
 
 VOID PhDeleteMemoryProvider(
-    __inout PPH_MEMORY_PROVIDER Provider
+    _Inout_ PPH_MEMORY_PROVIDER Provider
     );
 
 PPH_MEMORY_ITEM PhCreateMemoryItem(
@@ -822,22 +822,22 @@ PPH_MEMORY_ITEM PhCreateMemoryItem(
 
 PHAPPAPI
 VOID PhGetMemoryProtectionString(
-    __in ULONG Protection,
-    __out_ecount(17) PWSTR String
+    _In_ ULONG Protection,
+    _Out_writes_(17) PWSTR String
     );
 
 PHAPPAPI
 PWSTR PhGetMemoryStateString(
-    __in ULONG State
+    _In_ ULONG State
     );
 
 PHAPPAPI
 PWSTR PhGetMemoryTypeString(
-    __in ULONG Type
+    _In_ ULONG Type
     );
 
 VOID PhMemoryProviderUpdate(
-    __in PPH_MEMORY_PROVIDER Provider
+    _In_ PPH_MEMORY_PROVIDER Provider
     );
 
 #endif

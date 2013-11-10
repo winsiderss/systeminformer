@@ -40,10 +40,10 @@ typedef struct _CHOICE_DIALOG_CONTEXT
 } CHOICE_DIALOG_CONTEXT, *PCHOICE_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpChoiceDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 /**
@@ -53,16 +53,16 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
  * returned in \a SelectedChoice is NOT auto-dereferenced.
  */
 BOOLEAN PhaChoiceDialog(
-    __in HWND ParentWindowHandle,
-    __in PWSTR Title,
-    __in PWSTR Message,
-    __in_opt PWSTR *Choices,
-    __in_opt ULONG NumberOfChoices,
-    __in_opt PWSTR Option,
-    __in ULONG Flags,
-    __inout PPH_STRING *SelectedChoice,
-    __inout_opt PBOOLEAN SelectedOption,
-    __in_opt PWSTR SavedChoicesSettingName
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR Title,
+    _In_ PWSTR Message,
+    _In_opt_ PWSTR *Choices,
+    _In_opt_ ULONG NumberOfChoices,
+    _In_opt_ PWSTR Option,
+    _In_ ULONG Flags,
+    _Inout_ PPH_STRING *SelectedChoice,
+    _Inout_opt_ PBOOLEAN SelectedOption,
+    _In_opt_ PWSTR SavedChoicesSettingName
     )
 {
     CHOICE_DIALOG_CONTEXT context;
@@ -87,10 +87,10 @@ BOOLEAN PhaChoiceDialog(
 }
 
 INT_PTR CALLBACK PhpChoiceDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

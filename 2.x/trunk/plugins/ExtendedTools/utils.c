@@ -23,9 +23,9 @@
 #include "exttools.h"
 
 VOID EtFormatRate(
-    __in ULONG64 ValuePerPeriod,
-    __inout PPH_STRING *Buffer,
-    __out_opt PPH_STRINGREF String
+    _In_ ULONG64 ValuePerPeriod,
+    _Inout_ PPH_STRING *Buffer,
+    _Out_opt_ PPH_STRINGREF String
     )
 {
     ULONG64 number;

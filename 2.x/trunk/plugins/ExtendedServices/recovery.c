@@ -49,14 +49,14 @@ static PH_KEY_VALUE_PAIR ServiceActionPairs[] =
 };
 
 INT_PTR CALLBACK RestartComputerDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EspAddServiceActionStrings(
-    __in HWND ComboBoxHandle
+    _In_ HWND ComboBoxHandle
     )
 {
     ULONG i;
@@ -68,7 +68,7 @@ VOID EspAddServiceActionStrings(
 }
 
 SC_ACTION_TYPE EspStringToServiceAction(
-    __in PWSTR String
+    _In_ PWSTR String
     )
 {
     ULONG integer;
@@ -80,7 +80,7 @@ SC_ACTION_TYPE EspStringToServiceAction(
 }
 
 PWSTR EspServiceActionToString(
-    __in SC_ACTION_TYPE ActionType
+    _In_ SC_ACTION_TYPE ActionType
     )
 {
     PWSTR string;
@@ -92,7 +92,7 @@ PWSTR EspServiceActionToString(
 }
 
 static SC_ACTION_TYPE ComboBoxToServiceAction(
-    __in HWND ComboBoxHandle
+    _In_ HWND ComboBoxHandle
     )
 {
     SC_ACTION_TYPE actionType;
@@ -110,8 +110,8 @@ static SC_ACTION_TYPE ComboBoxToServiceAction(
 }
 
 static VOID ServiceActionToComboBox(
-    __in HWND ComboBoxHandle,
-    __in SC_ACTION_TYPE ActionType
+    _In_ HWND ComboBoxHandle,
+    _In_ SC_ACTION_TYPE ActionType
     )
 {
     PWSTR string;
@@ -123,8 +123,8 @@ static VOID ServiceActionToComboBox(
 }
 
 static VOID EspFixControls(
-    __in HWND hwndDlg,
-    __in PSERVICE_RECOVERY_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PSERVICE_RECOVERY_CONTEXT Context
     )
 {
     SC_ACTION_TYPE action1;
@@ -158,8 +158,8 @@ static VOID EspFixControls(
 }
 
 NTSTATUS EspLoadRecoveryInfo(
-    __in HWND hwndDlg,
-    __in PSERVICE_RECOVERY_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PSERVICE_RECOVERY_CONTEXT Context
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -271,10 +271,10 @@ NTSTATUS EspLoadRecoveryInfo(
 }
 
 INT_PTR CALLBACK EspServiceRecoveryDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PSERVICE_RECOVERY_CONTEXT context;
@@ -543,20 +543,20 @@ ErrorCase:
 }
 
 INT_PTR CALLBACK EspServiceRecovery2DlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     return FALSE;
 }
 
 static INT_PTR CALLBACK RestartComputerDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PSERVICE_RECOVERY_CONTEXT context;

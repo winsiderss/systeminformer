@@ -44,7 +44,7 @@ static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
 static HFONT InitializeFont(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     LOGFONT logFont = { 0 };
@@ -70,7 +70,7 @@ static HFONT InitializeFont(
 }
 
 static VOID PhNetworkPingUpdateGraph(
-    __in PNETWORK_OUTPUT_CONTEXT Context
+    _In_ PNETWORK_OUTPUT_CONTEXT Context
     )
 {
     Context->PingGraphState.Valid = FALSE;
@@ -88,8 +88,8 @@ static VOID PhNetworkPingUpdateGraph(
  * \param ArgPtr A pointer to the list of arguments.
  */
 static PPH_ANSI_STRING PhFormatAnsiString_V(
-    __in __format_string PSTR Format,
-    __in va_list ArgPtr
+    _In_ _Printf_format_string_ PSTR Format,
+    _In_ va_list ArgPtr
     )
 {
     PPH_ANSI_STRING string;
@@ -117,7 +117,7 @@ static PPH_ANSI_STRING PhFormatAnsiString_V(
  * \param Format The format-control string.
  */
 static PPH_ANSI_STRING PhFormatAnsiString(
-    __in __format_string PSTR Format,
+    _In_ _Printf_format_string_ PSTR Format,
     ...
     )
 {
@@ -129,7 +129,7 @@ static PPH_ANSI_STRING PhFormatAnsiString(
 }
 
 static NTSTATUS PhNetworkPingThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
@@ -522,8 +522,8 @@ static NTSTATUS PhNetworkPingThreadStart(
 }
 
 static VOID NTAPI NetworkPingUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Context;
@@ -538,10 +538,10 @@ static VOID NTAPI NetworkPingUpdateHandler(
 }
 
 static INT_PTR CALLBACK NetworkPingWndProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PNETWORK_OUTPUT_CONTEXT context = NULL;
@@ -888,7 +888,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 }
 
 NTSTATUS PhNetworkPingDialogThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     BOOL result;

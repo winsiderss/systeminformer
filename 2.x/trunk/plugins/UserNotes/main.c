@@ -39,33 +39,33 @@ typedef struct _SERVICE_COMMENT_PAGE_CONTEXT
 } SERVICE_COMMENT_PAGE_CONTEXT, *PSERVICE_COMMENT_PAGE_CONTEXT;
 
 INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK ProcessCommentPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK ServiceCommentPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 LRESULT CALLBACK MainWndSubclassProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in UINT_PTR uIdSubclass,
-    __in DWORD_PTR dwRefData
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ DWORD_PTR dwRefData
     );
 
 PPH_PLUGIN PluginInstance;
@@ -92,8 +92,8 @@ LIST_ENTRY ServiceListHead = { &ServiceListHead, &ServiceListHead };
 PH_QUEUED_LOCK ServiceListLock = PH_QUEUED_LOCK_INIT;
 
 BOOLEAN MatchDbObjectIntent(
-    __in PDB_OBJECT Object,
-    __in ULONG Intent
+    _In_ PDB_OBJECT Object,
+    _In_ ULONG Intent
     )
 {
     return (!(Intent & INTENT_PROCESS_COMMENT) || Object->Comment->Length != 0) &&
@@ -101,8 +101,8 @@ BOOLEAN MatchDbObjectIntent(
 }
 
 PDB_OBJECT FindDbObjectForProcess(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG Intent
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Intent
     )
 {
     PDB_OBJECT object;
@@ -120,7 +120,7 @@ PDB_OBJECT FindDbObjectForProcess(
 }
 
 VOID DeleteDbObjectForProcessIfUnused(
-    __in PDB_OBJECT Object
+    _In_ PDB_OBJECT Object
     )
 {
     if (Object->Comment->Length == 0 && Object->PriorityClass == 0)
@@ -130,8 +130,8 @@ VOID DeleteDbObjectForProcessIfUnused(
 }
 
 VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_STRING path;
@@ -160,16 +160,16 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI UnloadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     SaveDb();
 }
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     DialogBox(
@@ -181,8 +181,8 @@ VOID NTAPI ShowOptionsCallback(
 }
 
 VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
@@ -263,8 +263,8 @@ VOID InvalidateProcessComments(
 }
 
 VOID UpdateProcessComment(
-    __in PPH_PROCESS_NODE Node,
-    __in PPROCESS_EXTENSION Extension
+    _In_ PPH_PROCESS_NODE Node,
+    _In_ PPROCESS_EXTENSION Extension
     )
 {
     if (!Extension->Valid)
@@ -313,8 +313,8 @@ VOID InvalidateServiceComments(
 }
 
 VOID UpdateServiceComment(
-    __in PPH_SERVICE_NODE Node,
-    __in PSERVICE_EXTENSION Extension
+    _In_ PPH_SERVICE_NODE Node,
+    _In_ PSERVICE_EXTENSION Extension
     )
 {
     if (!Extension->Valid)
@@ -339,8 +339,8 @@ VOID UpdateServiceComment(
 }
 
 VOID TreeNewMessageCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
@@ -395,16 +395,16 @@ VOID TreeNewMessageCallback(
 }
 
 VOID MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 }
 
 VOID ProcessPropertiesInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
@@ -416,8 +416,8 @@ VOID ProcessPropertiesInitializingCallback(
 }
 
 VOID ProcessMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
@@ -451,10 +451,10 @@ VOID ProcessMenuInitializingCallback(
 }
 
 LONG NTAPI ProcessCommentSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_NODE node1 = Node1;
@@ -469,8 +469,8 @@ LONG NTAPI ProcessCommentSortFunction(
 }
 
 VOID ProcessTreeNewInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
@@ -487,8 +487,8 @@ VOID ProcessTreeNewInitializingCallback(
 }
 
 VOID ServicePropertiesInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
@@ -509,10 +509,10 @@ VOID ServicePropertiesInitializingCallback(
 }
 
 LONG NTAPI ServiceCommentSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     )
 {
     PPH_SERVICE_NODE node1 = Node1;
@@ -527,8 +527,8 @@ LONG NTAPI ServiceCommentSortFunction(
 }
 
 VOID ServiceTreeNewInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
@@ -545,8 +545,8 @@ VOID ServiceTreeNewInitializingCallback(
 }
 
 VOID ProcessModifiedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = Parameter;
@@ -556,8 +556,8 @@ VOID ProcessModifiedCallback(
 }
 
 VOID ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PLIST_ENTRY listEntry;
@@ -606,9 +606,9 @@ VOID ProcessesUpdatedCallback(
 }
 
 VOID ProcessItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     PPH_PROCESS_ITEM processItem = Object;
@@ -623,9 +623,9 @@ VOID ProcessItemCreateCallback(
 }
 
 VOID ProcessItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     PPH_PROCESS_ITEM processItem = Object;
@@ -638,9 +638,9 @@ VOID ProcessItemDeleteCallback(
 }
 
 VOID ServiceItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     PPH_SERVICE_ITEM processItem = Object;
@@ -653,9 +653,9 @@ VOID ServiceItemCreateCallback(
 }
 
 VOID ServiceItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     PPH_SERVICE_ITEM processItem = Object;
@@ -668,9 +668,9 @@ VOID ServiceItemDeleteCallback(
 }
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     if (Reason == DLL_PROCESS_ATTACH)
@@ -735,10 +735,10 @@ LOGICAL DllMain(
 }
 
 INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -803,10 +803,10 @@ INT_PTR CALLBACK OptionsDlgProc(
 }
 
 INT_PTR CALLBACK ProcessCommentPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -988,10 +988,10 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 }
 
 INT_PTR CALLBACK ServiceCommentPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PSERVICE_COMMENT_PAGE_CONTEXT context;
@@ -1123,7 +1123,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
 }
 
 ULONG GetPriorityClassFromId(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     switch (Id)
@@ -1146,12 +1146,12 @@ ULONG GetPriorityClassFromId(
 }
 
 LRESULT CALLBACK MainWndSubclassProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in UINT_PTR uIdSubclass,
-    __in DWORD_PTR dwRefData
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ DWORD_PTR dwRefData
     )
 {
     switch (uMsg)

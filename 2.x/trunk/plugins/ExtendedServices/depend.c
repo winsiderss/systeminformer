@@ -32,9 +32,9 @@ typedef struct _SERVICE_LIST_CONTEXT
 } SERVICE_LIST_CONTEXT, *PSERVICE_LIST_CONTEXT;
 
 LPENUM_SERVICE_STATUS EsEnumDependentServices(
-    __in SC_HANDLE ServiceHandle,
-    __in_opt ULONG State,
-    __out PULONG Count
+    _In_ SC_HANDLE ServiceHandle,
+    _In_opt_ ULONG State,
+    _Out_ PULONG Count
     )
 {
     LOGICAL result;
@@ -87,8 +87,8 @@ LPENUM_SERVICE_STATUS EsEnumDependentServices(
 }
 
 static VOID EspLayoutServiceListControl(
-    __in HWND hwndDlg,
-    __in HWND ServiceListHandle
+    _In_ HWND hwndDlg,
+    _In_ HWND ServiceListHandle
     )
 {
     RECT rect;
@@ -107,10 +107,10 @@ static VOID EspLayoutServiceListControl(
 }
 
 INT_PTR CALLBACK EspServiceDependenciesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PSERVICE_LIST_CONTEXT context;
@@ -236,10 +236,10 @@ ContinueLoop:
 }
 
 INT_PTR CALLBACK EspServiceDependentsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PSERVICE_LIST_CONTEXT context;

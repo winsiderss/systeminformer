@@ -102,15 +102,15 @@ typedef DWORD (WINAPI *_CertNameToStr)(
     );
 
 typedef PCCERT_CONTEXT (WINAPI *_CertDuplicateCertificateContext)(
-    __in PCCERT_CONTEXT pCertContext
+    _In_ PCCERT_CONTEXT pCertContext
     );
 
 typedef BOOL (WINAPI *_CertFreeCertificateContext)(
-    __in PCCERT_CONTEXT pCertContext
+    _In_ PCCERT_CONTEXT pCertContext
     );
 
 typedef BOOL (WINAPI *_CryptUIDlgViewSignerInfo)(
-    __in CRYPTUI_VIEWSIGNERINFO_STRUCT *pcvsi
+    _In_ CRYPTUI_VIEWSIGNERINFO_STRUCT *pcvsi
     );
 
 #endif

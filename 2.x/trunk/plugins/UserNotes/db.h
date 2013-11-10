@@ -32,22 +32,22 @@ VOID UnlockDb(
     );
 
 PDB_OBJECT FindDbObject(
-    __in ULONG Tag,
-    __in PPH_STRINGREF Name
+    _In_ ULONG Tag,
+    _In_ PPH_STRINGREF Name
     );
 
 PDB_OBJECT CreateDbObject(
-    __in ULONG Tag,
-    __in PPH_STRINGREF Name,
-    __in_opt PPH_STRING Comment
+    _In_ ULONG Tag,
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ PPH_STRING Comment
     );
 
 VOID DeleteDbObject(
-    __in PDB_OBJECT Object
+    _In_ PDB_OBJECT Object
     );
 
 VOID SetDbPath(
-    __in PPH_STRING Path
+    _In_ PPH_STRING Path
     );
 
 NTSTATUS LoadDb(

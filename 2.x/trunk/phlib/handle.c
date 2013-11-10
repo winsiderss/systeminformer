@@ -94,7 +94,7 @@ PPH_HANDLE_TABLE PhCreateHandleTable(
 }
 
 VOID PhDestroyHandleTable(
-    __in __post_invalid PPH_HANDLE_TABLE HandleTable
+    _In_ _Post_invalid_ PPH_HANDLE_TABLE HandleTable
     )
 {
     ULONG_PTR tableValue;
@@ -164,8 +164,8 @@ VOID PhDestroyHandleTable(
 }
 
 VOID PhpBlockOnLockedHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
     PH_QUEUED_WAIT_BLOCK waitBlock;
@@ -190,8 +190,8 @@ VOID PhpBlockOnLockedHandleTableEntry(
 }
 
 BOOLEAN PhLockHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
     ULONG_PTR value;
@@ -220,8 +220,8 @@ BOOLEAN PhLockHandleTableEntry(
 }
 
 VOID PhUnlockHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
     _interlockedbittestandset(
@@ -232,8 +232,8 @@ VOID PhUnlockHandleTableEntry(
 }
 
 HANDLE PhCreateHandle(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
     PPH_HANDLE_TABLE_ENTRY entry;
@@ -261,9 +261,9 @@ HANDLE PhCreateHandle(
 }
 
 BOOLEAN PhDestroyHandle(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in HANDLE Handle,
-    __in_opt __assumeLocked PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ HANDLE Handle,
+    _In_opt_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
     ULONG handleValue;
@@ -297,8 +297,8 @@ BOOLEAN PhDestroyHandle(
 }
 
 PPH_HANDLE_TABLE_ENTRY PhLookupHandleTableEntry(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in HANDLE Handle
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ HANDLE Handle
     )
 {
     PPH_HANDLE_TABLE_ENTRY entry;
@@ -315,9 +315,9 @@ PPH_HANDLE_TABLE_ENTRY PhLookupHandleTableEntry(
 }
 
 VOID PhEnumHandleTable(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     ULONG handleValue;
@@ -347,9 +347,9 @@ VOID PhEnumHandleTable(
 }
 
 VOID PhSweepHandleTable(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     ULONG handleValue;
@@ -378,11 +378,11 @@ VOID PhSweepHandleTable(
 }
 
 NTSTATUS PhQueryInformationHandleTable(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
-    __out_bcount_opt(BufferLength) PVOID Buffer,
-    __in ULONG BufferLength,
-    __out_opt PULONG ReturnLength
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
+    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -437,10 +437,10 @@ NTSTATUS PhQueryInformationHandleTable(
 }
 
 NTSTATUS PhSetInformationHandleTable(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
-    __in_bcount(BufferLength) PVOID Buffer,
-    __in ULONG BufferLength
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
+    _In_reads_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -475,8 +475,8 @@ NTSTATUS PhSetInformationHandleTable(
 }
 
 PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __out PULONG HandleValue
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _Out_ PULONG HandleValue
     )
 {
     PPH_HANDLE_TABLE_ENTRY entry;
@@ -594,9 +594,9 @@ PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
 }
 
 VOID PhpFreeHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __in ULONG HandleValue,
-    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    _Inout_ PPH_HANDLE_TABLE HandleTable,
+    _In_ ULONG HandleValue,
+    _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
     PULONG freeList;
@@ -639,8 +639,8 @@ VOID PhpFreeHandleTableEntry(
 }
 
 BOOLEAN PhpAllocateMoreHandleTableEntries(
-    __in __assumeLocked PPH_HANDLE_TABLE HandleTable,
-    __in BOOLEAN Initialize
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ BOOLEAN Initialize
     )
 {
     ULONG_PTR tableValue;
@@ -856,8 +856,8 @@ BOOLEAN PhpAllocateMoreHandleTableEntries(
 }
 
 PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in ULONG HandleValue
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ ULONG HandleValue
     )
 {
     ULONG_PTR tableValue;
@@ -910,7 +910,7 @@ PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
 }
 
 ULONG PhpMoveFreeHandleTableEntries(
-    __inout __assumeLocked PPH_HANDLE_TABLE HandleTable
+    _Inout_ PPH_HANDLE_TABLE HandleTable
     )
 {
     ULONG freeValueAlt;
@@ -1012,8 +1012,8 @@ ULONG PhpMoveFreeHandleTableEntries(
 }
 
 PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
-    __in PPH_HANDLE_TABLE HandleTable,
-    __in BOOLEAN Initialize
+    _In_ PPH_HANDLE_TABLE HandleTable,
+    _In_ BOOLEAN Initialize
     )
 {
     PPH_HANDLE_TABLE_ENTRY table;
@@ -1054,14 +1054,14 @@ PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
 }
 
 VOID PhpFreeHandleTableLevel0(
-    __in PPH_HANDLE_TABLE_ENTRY Table
+    _In_ PPH_HANDLE_TABLE_ENTRY Table
     )
 {
     PhFreeToFreeList(&PhHandleTableLevel0FreeList, Table);
 }
 
 PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
-    __in PPH_HANDLE_TABLE HandleTable
+    _In_ PPH_HANDLE_TABLE HandleTable
     )
 {
     PPH_HANDLE_TABLE_ENTRY *table;
@@ -1085,14 +1085,14 @@ PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
 }
 
 VOID PhpFreeHandleTableLevel1(
-    __in PPH_HANDLE_TABLE_ENTRY *Table
+    _In_ PPH_HANDLE_TABLE_ENTRY *Table
     )
 {
     PhFreeToFreeList(&PhHandleTableLevel1FreeList, Table);
 }
 
 PPH_HANDLE_TABLE_ENTRY **PhpCreateHandleTableLevel2(
-    __in PPH_HANDLE_TABLE HandleTable
+    _In_ PPH_HANDLE_TABLE HandleTable
     )
 {
     PPH_HANDLE_TABLE_ENTRY **table;
@@ -1112,7 +1112,7 @@ PPH_HANDLE_TABLE_ENTRY **PhpCreateHandleTableLevel2(
 }
 
 VOID PhpFreeHandleTableLevel2(
-    __in PPH_HANDLE_TABLE_ENTRY **Table
+    _In_ PPH_HANDLE_TABLE_ENTRY **Table
     )
 {
     PhFree(Table);

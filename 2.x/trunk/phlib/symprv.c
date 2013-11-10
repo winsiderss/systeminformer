@@ -34,21 +34,21 @@ typedef struct _PH_SYMBOL_MODULE
 } PH_SYMBOL_MODULE, *PPH_SYMBOL_MODULE;
 
 VOID NTAPI PhpSymbolProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 VOID PhpRegisterSymbolProvider(
-    __in_opt PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
 VOID PhpFreeSymbolModule(
-    __in PPH_SYMBOL_MODULE SymbolModule
+    _In_ PPH_SYMBOL_MODULE SymbolModule
     );
 
 LONG NTAPI PhpSymbolModuleCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     );
 
 PPH_OBJECT_TYPE PhSymbolProviderType;
@@ -155,7 +155,7 @@ VOID PhSymbolProviderDynamicImport(
 }
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
-    __in_opt HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     )
 {
     PPH_SYMBOL_PROVIDER symbolProvider;
@@ -231,8 +231,8 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
 }
 
 VOID NTAPI PhpSymbolProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Object;
@@ -266,7 +266,7 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
 }
 
 NTSTATUS PhpSymbolCallbackWorker(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_SYMBOL_EVENT_DATA data = Parameter;
@@ -280,10 +280,10 @@ NTSTATUS PhpSymbolCallbackWorker(
 }
 
 BOOL CALLBACK PhpSymbolCallbackFunction(
-    __in HANDLE hProcess,
-    __in ULONG ActionCode,
-    __in_opt ULONG64 CallbackData,
-    __in_opt ULONG64 UserContext
+    _In_ HANDLE hProcess,
+    _In_ ULONG ActionCode,
+    _In_opt_ ULONG64 CallbackData,
+    _In_opt_ ULONG64 UserContext
     )
 {
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)UserContext;
@@ -323,7 +323,7 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
 }
 
 VOID PhpRegisterSymbolProvider(
-    __in_opt PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
     if (PhBeginInitOnce(&PhSymInitOnce))
@@ -359,7 +359,7 @@ VOID PhpRegisterSymbolProvider(
 }
 
 VOID PhpFreeSymbolModule(
-    __in PPH_SYMBOL_MODULE SymbolModule
+    _In_ PPH_SYMBOL_MODULE SymbolModule
     )
 {
     if (SymbolModule->FileName) PhDereferenceObject(SymbolModule->FileName);
@@ -368,8 +368,8 @@ VOID PhpFreeSymbolModule(
 }
 
 static LONG NTAPI PhpSymbolModuleCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     )
 {
     PPH_SYMBOL_MODULE symbolModule1 = CONTAINING_RECORD(Links1, PH_SYMBOL_MODULE, Links);
@@ -379,11 +379,11 @@ static LONG NTAPI PhpSymbolModuleCompareFunction(
 }
 
 BOOLEAN PhGetLineFromAddress(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in ULONG64 Address,
-    __out PPH_STRING *FileName,
-    __out_opt PULONG Displacement,
-    __out_opt PPH_SYMBOL_LINE_INFORMATION Information
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address,
+    _Out_ PPH_STRING *FileName,
+    _Out_opt_ PULONG Displacement,
+    _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
     )
 {
     IMAGEHLP_LINEW64 line;
@@ -455,9 +455,9 @@ BOOLEAN PhGetLineFromAddress(
 }
 
 ULONG64 PhGetModuleFromAddress(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in ULONG64 Address,
-    __out_opt PPH_STRING *FileName
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address,
+    _Out_opt_ PPH_STRING *FileName
     )
 {
     PH_SYMBOL_MODULE lookupModule;
@@ -534,8 +534,8 @@ ULONG64 PhGetModuleFromAddress(
 }
 
 VOID PhpSymbolInfoAnsiToUnicode(
-    __out PSYMBOL_INFOW SymbolInfoW,
-    __in PSYMBOL_INFO SymbolInfoA
+    _Out_ PSYMBOL_INFOW SymbolInfoW,
+    _In_ PSYMBOL_INFO SymbolInfoA
     )
 {
     SymbolInfoW->TypeIndex = SymbolInfoA->TypeIndex;
@@ -570,12 +570,12 @@ VOID PhpSymbolInfoAnsiToUnicode(
 }
 
 PPH_STRING PhGetSymbolFromAddress(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in ULONG64 Address,
-    __out_opt PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
-    __out_opt PPH_STRING *FileName,
-    __out_opt PPH_STRING *SymbolName,
-    __out_opt PULONG64 Displacement
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address,
+    _Out_opt_ PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
+    _Out_opt_ PPH_STRING *FileName,
+    _Out_opt_ PPH_STRING *SymbolName,
+    _Out_opt_ PULONG64 Displacement
     )
 {
     PSYMBOL_INFOW symbolInfo;
@@ -821,9 +821,9 @@ CleanupExit:
 }
 
 BOOLEAN PhGetSymbolFromName(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in PWSTR Name,
-    __out PPH_SYMBOL_INFORMATION Information
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PWSTR Name,
+    _Out_ PPH_SYMBOL_INFORMATION Information
     )
 {
     PSYMBOL_INFOW symbolInfo;
@@ -897,10 +897,10 @@ BOOLEAN PhGetSymbolFromName(
 }
 
 BOOLEAN PhLoadModuleSymbolProvider(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in PWSTR FileName,
-    __in ULONG64 BaseAddress,
-    __in ULONG Size
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PWSTR FileName,
+    _In_ ULONG64 BaseAddress,
+    _In_ ULONG Size
     )
 {
     PPH_ANSI_STRING fileName;
@@ -971,8 +971,8 @@ BOOLEAN PhLoadModuleSymbolProvider(
 }
 
 VOID PhSetOptionsSymbolProvider(
-    __in ULONG Mask,
-    __in ULONG Value
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     )
 {
     ULONG options;
@@ -995,8 +995,8 @@ VOID PhSetOptionsSymbolProvider(
 }
 
 VOID PhSetSearchPathSymbolProvider(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in PWSTR Path
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PWSTR Path
     )
 {
     if (!SymSetSearchPathW_I && !SymSetSearchPath_I)
@@ -1027,13 +1027,13 @@ VOID PhSetSearchPathSymbolProvider(
 #ifdef _M_X64
 
 NTSTATUS PhpLookupDynamicFunctionTable(
-    __in HANDLE ProcessHandle,
-    __in ULONG64 Address,
-    __out_opt PDYNAMIC_FUNCTION_TABLE *FunctionTableAddress,
-    __out_opt PDYNAMIC_FUNCTION_TABLE FunctionTable,
-    __out_bcount_opt(OutOfProcessCallbackDllBufferSize) PWCHAR OutOfProcessCallbackDllBuffer,
-    __in ULONG OutOfProcessCallbackDllBufferSize,
-    __out_opt PUNICODE_STRING OutOfProcessCallbackDllString
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 Address,
+    _Out_opt_ PDYNAMIC_FUNCTION_TABLE *FunctionTableAddress,
+    _Out_opt_ PDYNAMIC_FUNCTION_TABLE FunctionTable,
+    _Out_writes_bytes_opt_(OutOfProcessCallbackDllBufferSize) PWCHAR OutOfProcessCallbackDllBuffer,
+    _In_ ULONG OutOfProcessCallbackDllBufferSize,
+    _Out_opt_ PUNICODE_STRING OutOfProcessCallbackDllString
     )
 {
     NTSTATUS status;
@@ -1157,10 +1157,10 @@ NTSTATUS PhpLookupDynamicFunctionTable(
 }
 
 PRUNTIME_FUNCTION PhpLookupFunctionEntry(
-    __in PRUNTIME_FUNCTION Functions,
-    __in ULONG NumberOfFunctions,
-    __in BOOLEAN Sorted,
-    __in ULONG64 RelativeControlPc
+    _In_ PRUNTIME_FUNCTION Functions,
+    _In_ ULONG NumberOfFunctions,
+    _In_ BOOLEAN Sorted,
+    _In_ ULONG64 RelativeControlPc
     )
 {
     LONG low;
@@ -1200,11 +1200,11 @@ PRUNTIME_FUNCTION PhpLookupFunctionEntry(
 }
 
 NTSTATUS PhpAccessCallbackFunctionTable(
-    __in HANDLE ProcessHandle,
-    __in PVOID FunctionTableAddress,
-    __in PUNICODE_STRING OutOfProcessCallbackDllString,
-    __out PRUNTIME_FUNCTION *Functions,
-    __out PULONG NumberOfFunctions
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID FunctionTableAddress,
+    _In_ PUNICODE_STRING OutOfProcessCallbackDllString,
+    _Out_ PRUNTIME_FUNCTION *Functions,
+    _Out_ PULONG NumberOfFunctions
     )
 {
     static PH_STRINGREF knownFunctionTableDllsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\KnownFunctionTableDlls");
@@ -1260,10 +1260,10 @@ NTSTATUS PhpAccessCallbackFunctionTable(
 }
 
 NTSTATUS PhpAccessNormalFunctionTable(
-    __in HANDLE ProcessHandle,
-    __in PDYNAMIC_FUNCTION_TABLE FunctionTable,
-    __out PRUNTIME_FUNCTION *Functions,
-    __out PULONG NumberOfFunctions
+    _In_ HANDLE ProcessHandle,
+    _In_ PDYNAMIC_FUNCTION_TABLE FunctionTable,
+    _Out_ PRUNTIME_FUNCTION *Functions,
+    _Out_ PULONG NumberOfFunctions
     )
 {
     NTSTATUS status;
@@ -1296,9 +1296,9 @@ NTSTATUS PhpAccessNormalFunctionTable(
 }
 
 NTSTATUS PhAccessOutOfProcessFunctionEntry(
-    __in HANDLE ProcessHandle,
-    __in ULONG64 ControlPc,
-    __out PRUNTIME_FUNCTION Function
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 ControlPc,
+    _Out_ PRUNTIME_FUNCTION Function
     )
 {
     NTSTATUS status;
@@ -1373,8 +1373,8 @@ NTSTATUS PhAccessOutOfProcessFunctionEntry(
 #endif
 
 ULONG64 __stdcall PhGetModuleBase64(
-    __in HANDLE hProcess,
-    __in DWORD64 dwAddr
+    _In_ HANDLE hProcess,
+    _In_ DWORD64 dwAddr
     )
 {
     ULONG64 base;
@@ -1410,8 +1410,8 @@ ULONG64 __stdcall PhGetModuleBase64(
 }
 
 PVOID __stdcall PhFunctionTableAccess64(
-    __in HANDLE hProcess,
-    __in DWORD64 AddrBase
+    _In_ HANDLE hProcess,
+    _In_ DWORD64 AddrBase
     )
 {
 #ifdef _M_X64
@@ -1436,15 +1436,15 @@ PVOID __stdcall PhFunctionTableAccess64(
 }
 
 BOOLEAN PhStackWalk(
-    __in ULONG MachineType,
-    __in HANDLE ProcessHandle,
-    __in HANDLE ThreadHandle,
-    __inout STACKFRAME64 *StackFrame,
-    __inout PVOID ContextRecord,
-    __in_opt PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
-    __in_opt PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
-    __in_opt PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
-    __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
+    _In_ ULONG MachineType,
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ThreadHandle,
+    _Inout_ STACKFRAME64 *StackFrame,
+    _Inout_ PVOID ContextRecord,
+    _In_opt_ PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
+    _In_opt_ PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
+    _In_opt_ PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
+    _In_opt_ PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
     )
 {
     BOOLEAN result;
@@ -1488,13 +1488,13 @@ BOOLEAN PhStackWalk(
 }
 
 BOOLEAN PhWriteMiniDumpProcess(
-    __in HANDLE ProcessHandle,
-    __in HANDLE ProcessId,
-    __in HANDLE FileHandle,
-    __in MINIDUMP_TYPE DumpType,
-    __in_opt PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-    __in_opt PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-    __in_opt PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE FileHandle,
+    _In_ MINIDUMP_TYPE DumpType,
+    _In_opt_ PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+    _In_opt_ PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+    _In_opt_ PMINIDUMP_CALLBACK_INFORMATION CallbackParam
     )
 {
     PhpRegisterSymbolProvider(NULL);

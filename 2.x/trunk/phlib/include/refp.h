@@ -139,7 +139,7 @@ typedef struct _PH_OBJECT_TYPE
  * \param RefCount A pointer to a reference count.
  */
 FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
-    __inout PLONG RefCount
+    _Inout_ PLONG RefCount
     )
 {
     /* Here we will attempt to increment the reference count,
@@ -149,21 +149,21 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
 }
 
 PPH_OBJECT_HEADER PhpAllocateObject(
-    __in PPH_OBJECT_TYPE ObjectType,
-    __in SIZE_T ObjectSize,
-    __in ULONG Flags
+    _In_ PPH_OBJECT_TYPE ObjectType,
+    _In_ SIZE_T ObjectSize,
+    _In_ ULONG Flags
     );
 
 VOID PhpFreeObject(
-    __in PPH_OBJECT_HEADER ObjectHeader
+    _In_ PPH_OBJECT_HEADER ObjectHeader
     );
 
 VOID PhpDeferDeleteObject(
-    __in PPH_OBJECT_HEADER ObjectHeader
+    _In_ PPH_OBJECT_HEADER ObjectHeader
     );
 
 NTSTATUS PhpDeferDeleteObjectRoutine(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 #endif

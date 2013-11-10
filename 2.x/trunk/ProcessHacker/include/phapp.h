@@ -88,17 +88,17 @@ typedef struct _PH_STARTUP_PARAMETERS
 
 PHAPPAPI
 VOID PhRegisterDialog(
-    __in HWND DialogWindowHandle
+    _In_ HWND DialogWindowHandle
     );
 
 PHAPPAPI
 VOID PhUnregisterDialog(
-    __in HWND DialogWindowHandle
+    _In_ HWND DialogWindowHandle
     );
 
 typedef BOOLEAN (NTAPI *PPH_MESSAGE_LOOP_FILTER)(
-    __in PMSG Message,
-    __in PVOID Context
+    _In_ PMSG Message,
+    _In_ PVOID Context
     );
 
 typedef struct _PH_MESSAGE_LOOP_FILTER_ENTRY
@@ -109,21 +109,21 @@ typedef struct _PH_MESSAGE_LOOP_FILTER_ENTRY
 
 PHAPPAPI
 struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
-    __in PPH_MESSAGE_LOOP_FILTER Filter,
-    __in_opt PVOID Context
+    _In_ PPH_MESSAGE_LOOP_FILTER Filter,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 VOID PhUnregisterMessageLoopFilter(
-    __in struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
+    _In_ struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
     );
 
 VOID PhApplyUpdateInterval(
-    __in ULONG Interval
+    _In_ ULONG Interval
     );
 
 VOID PhInitializeFont(
-    __in HWND hWnd
+    _In_ HWND hWnd
     );
 
 // appsup
@@ -138,31 +138,31 @@ typedef struct PACKAGE_ID PACKAGE_ID;
 
 PHAPPAPI
 BOOLEAN PhGetProcessIsSuspended(
-    __in PSYSTEM_PROCESS_INFORMATION Process
+    _In_ PSYSTEM_PROCESS_INFORMATION Process
     );
 
 NTSTATUS PhGetProcessSwitchContext(
-    __in HANDLE ProcessHandle,
-    __out PGUID Guid
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGUID Guid
     );
 
 PPH_STRING PhGetProcessPackageFullName(
-    __in HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle
     );
 
 PACKAGE_ID *PhPackageIdFromFullName(
-    __in PWSTR PackageFullName
+    _In_ PWSTR PackageFullName
     );
 
 PPH_STRING PhGetPackagePath(
-    __in PACKAGE_ID *PackageId
+    _In_ PACKAGE_ID *PackageId
     );
 
 VOID PhEnumChildWindows(
-    __in_opt HWND hWnd,
-    __in ULONG Limit,
-    __in WNDENUMPROC Callback,
-    __in LPARAM lParam
+    _In_opt_ HWND hWnd,
+    _In_ ULONG Limit,
+    _In_ WNDENUMPROC Callback,
+    _In_ LPARAM lParam
     );
 
 typedef enum _PH_KNOWN_PROCESS_TYPE
@@ -189,8 +189,8 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
 
 PHAPPAPI
 NTSTATUS PhGetProcessKnownType(
-    __in HANDLE ProcessHandle,
-    __out PH_KNOWN_PROCESS_TYPE *KnownProcessType
+    _In_ HANDLE ProcessHandle,
+    _Out_ PH_KNOWN_PROCESS_TYPE *KnownProcessType
     );
 
 typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
@@ -214,45 +214,45 @@ typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
 
 PHAPPAPI
 BOOLEAN PhaGetProcessKnownCommandLine(
-    __in PPH_STRING CommandLine,
-    __in PH_KNOWN_PROCESS_TYPE KnownProcessType,
-    __out PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
+    _In_ PPH_STRING CommandLine,
+    _In_ PH_KNOWN_PROCESS_TYPE KnownProcessType,
+    _Out_ PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
     );
 
 PPH_STRING PhEscapeStringForDelimiter(
-    __in PPH_STRING String,
-    __in WCHAR Delimiter
+    _In_ PPH_STRING String,
+    _In_ WCHAR Delimiter
     );
 
 PPH_STRING PhUnescapeStringForDelimiter(
-    __in PPH_STRING String,
-    __in WCHAR Delimiter
+    _In_ PPH_STRING String,
+    _In_ WCHAR Delimiter
     );
 
 typedef struct mxml_node_s mxml_node_t;
 
 PPH_STRING PhGetOpaqueXmlNodeText(
-    __in mxml_node_t *node
+    _In_ mxml_node_t *node
     );
 
 PHAPPAPI
 VOID PhSearchOnlineString(
-    __in HWND hWnd,
-    __in PWSTR String
+    _In_ HWND hWnd,
+    _In_ PWSTR String
     );
 
 PHAPPAPI
 VOID PhShellExecuteUserString(
-    __in HWND hWnd,
-    __in PWSTR Setting,
-    __in PWSTR String,
-    __in BOOLEAN UseShellExecute,
-    __in_opt PWSTR ErrorMessage
+    _In_ HWND hWnd,
+    _In_ PWSTR Setting,
+    _In_ PWSTR String,
+    _In_ BOOLEAN UseShellExecute,
+    _In_opt_ PWSTR ErrorMessage
     );
 
 PHAPPAPI
 VOID PhLoadSymbolProviderOptions(
-    __inout PPH_SYMBOL_PROVIDER SymbolProvider
+    _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
 PWSTR PhMakeContextAtom(
@@ -261,19 +261,19 @@ PWSTR PhMakeContextAtom(
 
 PHAPPAPI
 VOID PhCopyListViewInfoTip(
-    __inout LPNMLVGETINFOTIP GetInfoTip,
-    __in PPH_STRINGREF Tip
+    _Inout_ LPNMLVGETINFOTIP GetInfoTip,
+    _In_ PPH_STRINGREF Tip
     );
 
 PHAPPAPI
 VOID PhCopyListView(
-    __in HWND ListViewHandle
+    _In_ HWND ListViewHandle
     );
 
 PHAPPAPI
 VOID PhHandleListViewNotifyForCopy(
-    __in LPARAM lParam,
-    __in HWND ListViewHandle
+    _In_ LPARAM lParam,
+    _In_ HWND ListViewHandle
     );
 
 #define PH_LIST_VIEW_CTRL_C_BEHAVIOR 0x1
@@ -281,46 +281,46 @@ VOID PhHandleListViewNotifyForCopy(
 #define PH_LIST_VIEW_DEFAULT_1_BEHAVIORS (PH_LIST_VIEW_CTRL_C_BEHAVIOR | PH_LIST_VIEW_CTRL_A_BEHAVIOR)
 
 VOID PhHandleListViewNotifyBehaviors(
-    __in LPARAM lParam,
-    __in HWND ListViewHandle,
-    __in ULONG Behaviors
+    _In_ LPARAM lParam,
+    _In_ HWND ListViewHandle,
+    _In_ ULONG Behaviors
     );
 
 PHAPPAPI
 BOOLEAN PhGetListViewContextMenuPoint(
-    __in HWND ListViewHandle,
-    __out PPOINT Point
+    _In_ HWND ListViewHandle,
+    _Out_ PPOINT Point
     );
 
 HFONT PhDuplicateFontWithNewWeight(
-    __in HFONT Font,
-    __in LONG NewWeight
+    _In_ HFONT Font,
+    _In_ LONG NewWeight
     );
 
 PHAPPAPI
 VOID PhLoadWindowPlacementFromSetting(
-    __in_opt PWSTR PositionSettingName,
-    __in_opt PWSTR SizeSettingName,
-    __in HWND WindowHandle
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName,
+    _In_ HWND WindowHandle
     );
 
 PHAPPAPI
 VOID PhSaveWindowPlacementToSetting(
-    __in_opt PWSTR PositionSettingName,
-    __in_opt PWSTR SizeSettingName,
-    __in HWND WindowHandle
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName,
+    _In_ HWND WindowHandle
     );
 
 PHAPPAPI
 VOID PhLoadListViewColumnsFromSetting(
-    __in PWSTR Name,
-    __in HWND ListViewHandle
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
     );
 
 PHAPPAPI
 VOID PhSaveListViewColumnsToSetting(
-    __in PWSTR Name,
-    __in HWND ListViewHandle
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
     );
 
 PHAPPAPI
@@ -330,15 +330,15 @@ PPH_STRING PhGetPhVersion(
 
 PHAPPAPI
 VOID PhGetPhVersionNumbers(
-    __out_opt PULONG MajorVersion,
-    __out_opt PULONG MinorVersion,
-    __reserved PULONG Reserved,
-    __out_opt PULONG RevisionNumber
+    _Out_opt_ PULONG MajorVersion,
+    _Out_opt_ PULONG MinorVersion,
+    _Reserved_ PULONG Reserved,
+    _Out_opt_ PULONG RevisionNumber
     );
 
 PHAPPAPI
 VOID PhWritePhTextHeader(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     );
 
 #define PH_SHELL_APP_PROPAGATE_PARAMETERS 0x1
@@ -346,17 +346,17 @@ VOID PhWritePhTextHeader(
 #define PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS 0x4
 
 BOOLEAN PhShellProcessHacker(
-    __in HWND hWnd,
-    __in_opt PWSTR Parameters,
-    __in ULONG ShowWindowType,
-    __in ULONG Flags,
-    __in ULONG AppFlags,
-    __in_opt ULONG Timeout,
-    __out_opt PHANDLE ProcessHandle
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Parameters,
+    _In_ ULONG ShowWindowType,
+    _In_ ULONG Flags,
+    _In_ ULONG AppFlags,
+    _In_opt_ ULONG Timeout,
+    _Out_opt_ PHANDLE ProcessHandle
     );
 
 BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     );
 
 typedef struct _PH_TN_COLUMN_MENU_DATA
@@ -378,24 +378,24 @@ typedef struct _PH_TN_COLUMN_MENU_DATA
 
 PHAPPAPI
 VOID PhInitializeTreeNewColumnMenu(
-    __inout PPH_TN_COLUMN_MENU_DATA Data
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data
     );
 
 #define PH_TN_COLUMN_MENU_NO_VISIBILITY 0x1
 
 VOID PhInitializeTreeNewColumnMenuEx(
-    __inout PPH_TN_COLUMN_MENU_DATA Data,
-    __in ULONG Flags
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data,
+    _In_ ULONG Flags
     );
 
 PHAPPAPI
 BOOLEAN PhHandleTreeNewColumnMenu(
-    __inout PPH_TN_COLUMN_MENU_DATA Data
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data
     );
 
 PHAPPAPI
 VOID PhDeleteTreeNewColumnMenu(
-    __in PPH_TN_COLUMN_MENU_DATA Data
+    _In_ PPH_TN_COLUMN_MENU_DATA Data
     );
 
 typedef struct _PH_TN_FILTER_SUPPORT
@@ -406,8 +406,8 @@ typedef struct _PH_TN_FILTER_SUPPORT
 } PH_TN_FILTER_SUPPORT, *PPH_TN_FILTER_SUPPORT;
 
 typedef BOOLEAN (NTAPI *PPH_TN_FILTER_FUNCTION)(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     );
 
 typedef struct _PH_TN_FILTER_ENTRY
@@ -417,36 +417,36 @@ typedef struct _PH_TN_FILTER_ENTRY
 } PH_TN_FILTER_ENTRY, *PPH_TN_FILTER_ENTRY;
 
 VOID PhInitializeTreeNewFilterSupport(
-    __out PPH_TN_FILTER_SUPPORT Support,
-    __in HWND TreeNewHandle,
-    __in PPH_LIST NodeList
+    _Out_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_LIST NodeList
     );
 
 VOID PhDeleteTreeNewFilterSupport(
-    __in PPH_TN_FILTER_SUPPORT Support
+    _In_ PPH_TN_FILTER_SUPPORT Support
     );
 
 PHAPPAPI
 PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
-    __in PPH_TN_FILTER_SUPPORT Support,
-    __in PPH_TN_FILTER_FUNCTION Filter,
-    __in_opt PVOID Context
+    _In_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ PPH_TN_FILTER_FUNCTION Filter,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 VOID PhRemoveTreeNewFilter(
-    __in PPH_TN_FILTER_SUPPORT Support,
-    __in PPH_TN_FILTER_ENTRY Entry
+    _In_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ PPH_TN_FILTER_ENTRY Entry
     );
 
 BOOLEAN PhApplyTreeNewFiltersToNode(
-    __in PPH_TN_FILTER_SUPPORT Support,
-    __in PPH_TREENEW_NODE Node
+    _In_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ PPH_TREENEW_NODE Node
     );
 
 PHAPPAPI
 VOID PhApplyTreeNewFilters(
-    __in PPH_TN_FILTER_SUPPORT Support
+    _In_ PPH_TN_FILTER_SUPPORT Support
     );
 
 typedef struct _PH_COPY_CELL_CONTEXT
@@ -457,29 +457,29 @@ typedef struct _PH_COPY_CELL_CONTEXT
 } PH_COPY_CELL_CONTEXT, *PPH_COPY_CELL_CONTEXT;
 
 BOOLEAN PhInsertCopyCellEMenuItem(
-    __in struct _PH_EMENU_ITEM *Menu,
-    __in ULONG InsertAfterId,
-    __in HWND TreeNewHandle,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_TREENEW_COLUMN Column
     );
 
 BOOLEAN PhHandleCopyCellEMenuItem(
-    __in struct _PH_EMENU_ITEM *SelectedItem
+    _In_ struct _PH_EMENU_ITEM *SelectedItem
     );
 
 BOOLEAN PhShellOpenKey2(
-    __in HWND hWnd,
-    __in PPH_STRING KeyName
+    _In_ HWND hWnd,
+    _In_ PPH_STRING KeyName
     );
 
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in PWSTR ContextName
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ PWSTR ContextName
     )
 {
     PVOID context;
@@ -630,24 +630,24 @@ typedef struct _PH_LAYOUT_PADDING_DATA
 
 typedef struct _PH_ADDMENUITEM
 {
-    __in PVOID Plugin;
-    __in ULONG Location;
-    __in_opt PWSTR InsertAfter;
-    __in ULONG Flags;
-    __in ULONG Id;
-    __in PWSTR Text;
-    __in_opt PVOID Context;
+    _In_ PVOID Plugin;
+    _In_ ULONG Location;
+    _In_opt_ PWSTR InsertAfter;
+    _In_ ULONG Flags;
+    _In_ ULONG Id;
+    _In_ PWSTR Text;
+    _In_opt_ PVOID Context;
 } PH_ADDMENUITEM, *PPH_ADDMENUITEM;
 
 typedef HWND (NTAPI *PPH_TAB_PAGE_CREATE_FUNCTION)(
-    __in PVOID Context
+    _In_ PVOID Context
     );
 
 typedef VOID (NTAPI *PPH_TAB_PAGE_CALLBACK_FUNCTION)(
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Parameter3,
-    __in PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
     );
 
 typedef struct _PH_ADDITIONAL_TAB_PAGE
@@ -675,30 +675,30 @@ typedef struct _PH_ADDITIONAL_TAB_PAGE
 #define PH_NOTIFY_VALID_MASK 0x3f
 
 BOOLEAN PhMainWndInitialization(
-    __in INT ShowCommand
+    _In_ INT ShowCommand
     );
 
 VOID PhShowIconContextMenu(
-    __in POINT Location
+    _In_ POINT Location
     );
 
 PHAPPAPI
 VOID PhShowIconNotification(
-    __in PWSTR Title,
-    __in PWSTR Text,
-    __in ULONG Flags
+    _In_ PWSTR Title,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags
     );
 
 VOID PhShowProcessContextMenu(
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 
 VOID PhShowServiceContextMenu(
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 
 VOID PhShowNetworkContextMenu(
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 
 // plugin
@@ -710,12 +710,12 @@ VOID PhPluginsInitialization(
     );
 
 BOOLEAN PhIsPluginDisabled(
-    __in PPH_STRINGREF BaseName
+    _In_ PPH_STRINGREF BaseName
     );
 
 VOID PhSetPluginDisabled(
-    __in PPH_STRINGREF BaseName,
-    __in BOOLEAN Disable
+    _In_ PPH_STRINGREF BaseName,
+    _In_ BOOLEAN Disable
     );
 
 VOID PhLoadPlugins(
@@ -773,80 +773,80 @@ BOOLEAN PhProcessPropInitialization(
 
 PHAPPAPI
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 VOID PhRefreshProcessPropContext(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext
     );
 
 PHAPPAPI
 VOID PhSetSelectThreadIdProcessPropContext(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in HANDLE ThreadId
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ HANDLE ThreadId
     );
 
 PHAPPAPI
 BOOLEAN PhAddProcessPropPage(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in __assumeRefs(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ _Assume_refs_(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     );
 
 PHAPPAPI
 BOOLEAN PhAddProcessPropPage2(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in HPROPSHEETPAGE PropSheetPageHandle
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ HPROPSHEETPAGE PropSheetPageHandle
     );
 
 PHAPPAPI
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
-    __in LPCWSTR Template,
-    __in DLGPROC DlgProc,
-    __in_opt PVOID Context
+    _In_ LPCWSTR Template,
+    _In_ DLGPROC DlgProc,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
-    __in_opt PVOID InstanceHandle,
-    __in LPCWSTR Template,
-    __in DLGPROC DlgProc,
-    __in_opt PVOID Context
+    _In_opt_ PVOID InstanceHandle,
+    _In_ LPCWSTR Template,
+    _In_ DLGPROC DlgProc,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 BOOLEAN PhPropPageDlgProcHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam,
-    __out LPPROPSHEETPAGE *PropSheetPage,
-    __out PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
-    __out PPH_PROCESS_ITEM *ProcessItem
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam,
+    _Out_ LPPROPSHEETPAGE *PropSheetPage,
+    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    _Out_ PPH_PROCESS_ITEM *ProcessItem
     );
 
 PHAPPAPI
 VOID PhPropPageDlgProcDestroy(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     );
 
 #define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
 
 PHAPPAPI
 PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
-    __in HWND hwnd,
-    __in HWND Handle,
-    __in PPH_LAYOUT_ITEM ParentItem,
-    __in ULONG Anchor
+    _In_ HWND hwnd,
+    _In_ HWND Handle,
+    _In_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
     );
 
 PHAPPAPI
 VOID PhDoPropPageLayout(
-    __in HWND hwnd
+    _In_ HWND hwnd
     );
 
 FORCEINLINE PPH_LAYOUT_ITEM PhBeginPropPageLayout(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     )
 {
     if (!PropPageContext->LayoutInitialized)
@@ -861,8 +861,8 @@ FORCEINLINE PPH_LAYOUT_ITEM PhBeginPropPageLayout(
 }
 
 FORCEINLINE VOID PhEndPropPageLayout(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     )
 {
     PhDoPropPageLayout(hwndDlg);
@@ -871,7 +871,7 @@ FORCEINLINE VOID PhEndPropPageLayout(
 
 PHAPPAPI
 BOOLEAN PhShowProcessProperties(
-    __in PPH_PROCESS_PROPCONTEXT Context
+    _In_ PPH_PROCESS_PROPCONTEXT Context
     );
 
 // sysinfo
@@ -883,9 +883,9 @@ typedef enum _PH_SYSINFO_VIEW_TYPE
 } PH_SYSINFO_VIEW_TYPE;
 
 typedef VOID (NTAPI *PPH_SYSINFO_COLOR_SETUP_FUNCTION)(
-    __out PPH_GRAPH_DRAW_INFO DrawInfo,
-    __in COLORREF Color1,
-    __in COLORREF Color2
+    _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ COLORREF Color1,
+    _In_ COLORREF Color2
     );
 
 typedef struct _PH_SYSINFO_PARAMETERS
@@ -923,10 +923,10 @@ typedef enum _PH_SYSINFO_SECTION_MESSAGE
 } PH_SYSINFO_SECTION_MESSAGE;
 
 typedef BOOLEAN (NTAPI *PPH_SYSINFO_SECTION_CALLBACK)(
-    __in struct _PH_SYSINFO_SECTION *Section,
-    __in PH_SYSINFO_SECTION_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2
+    _In_ struct _PH_SYSINFO_SECTION *Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 typedef struct _PH_SYSINFO_CREATE_DIALOG
@@ -997,13 +997,13 @@ VOID PhSiNotifyChangeSettings(
     );
 
 VOID PhSiSetColorsGraphDrawInfo(
-    __out PPH_GRAPH_DRAW_INFO DrawInfo,
-    __in COLORREF Color1,
-    __in COLORREF Color2
+    _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ COLORREF Color1,
+    _In_ COLORREF Color2
     );
 
 VOID PhShowSystemInformationDialog(
-    __in_opt PWSTR SectionName
+    _In_opt_ PWSTR SectionName
     );
 
 // log
@@ -1063,28 +1063,28 @@ VOID PhClearLogEntries(
     );
 
 VOID PhLogProcessEntry(
-    __in UCHAR Type,
-    __in HANDLE ProcessId,
-    __in PPH_STRING Name,
-    __in_opt HANDLE ParentProcessId,
-    __in_opt PPH_STRING ParentName
+    _In_ UCHAR Type,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING Name,
+    _In_opt_ HANDLE ParentProcessId,
+    _In_opt_ PPH_STRING ParentName
     );
 
 VOID PhLogServiceEntry(
-    __in UCHAR Type,
-    __in PPH_STRING Name,
-    __in PPH_STRING DisplayName
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Name,
+    _In_ PPH_STRING DisplayName
     );
 
 PHAPPAPI
 VOID PhLogMessageEntry(
-    __in UCHAR Type,
-    __in PPH_STRING Message
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Message
     );
 
 PHAPPAPI
 PPH_STRING PhFormatLogEntry(
-    __in PPH_LOG_ENTRY Entry
+    _In_ PPH_LOG_ENTRY Entry
     );
 
 // dbgcon
@@ -1103,8 +1103,8 @@ typedef enum _PH_ACTION_ELEVATION_LEVEL
 } PH_ACTION_ELEVATION_LEVEL;
 
 BOOLEAN PhUiConnectToPhSvc(
-    __in HWND hWnd,
-    __in BOOLEAN ConnectOnly
+    _In_ HWND hWnd,
+    _In_ BOOLEAN ConnectOnly
     );
 
 VOID PhUiDisconnectFromPhSvc(
@@ -1113,280 +1113,280 @@ VOID PhUiDisconnectFromPhSvc(
 
 PHAPPAPI
 BOOLEAN PhUiLockComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     );
 
 PHAPPAPI
 BOOLEAN PhUiLogoffComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     );
 
 PHAPPAPI
 BOOLEAN PhUiSleepComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     );
 
 PHAPPAPI
 BOOLEAN PhUiHibernateComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     );
 
 PHAPPAPI
 BOOLEAN PhUiRestartComputer(
-    __in HWND hWnd,
-    __in ULONG Flags
+    _In_ HWND hWnd,
+    _In_ ULONG Flags
     );
 
 PHAPPAPI
 BOOLEAN PhUiShutdownComputer(
-    __in HWND hWnd,
-    __in ULONG Flags
+    _In_ HWND hWnd,
+    _In_ ULONG Flags
     );
 
 PHAPPAPI
 BOOLEAN PhUiConnectSession(
-    __in HWND hWnd,
-    __in ULONG SessionId
+    _In_ HWND hWnd,
+    _In_ ULONG SessionId
     );
 
 PHAPPAPI
 BOOLEAN PhUiDisconnectSession(
-    __in HWND hWnd,
-    __in ULONG SessionId
+    _In_ HWND hWnd,
+    _In_ ULONG SessionId
     );
 
 PHAPPAPI
 BOOLEAN PhUiLogoffSession(
-    __in HWND hWnd,
-    __in ULONG SessionId
+    _In_ HWND hWnd,
+    _In_ ULONG SessionId
     );
 
 PHAPPAPI
 BOOLEAN PhUiTerminateProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     );
 
 PHAPPAPI
 BOOLEAN PhUiTerminateTreeProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PHAPPAPI
 BOOLEAN PhUiSuspendProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     );
 
 PHAPPAPI
 BOOLEAN PhUiResumeProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     );
 
 PHAPPAPI
 BOOLEAN PhUiRestartProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PHAPPAPI
 BOOLEAN PhUiDebugProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PHAPPAPI
 BOOLEAN PhUiReduceWorkingSetProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetVirtualizationProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in BOOLEAN Enable
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ BOOLEAN Enable
     );
 
 PHAPPAPI
 BOOLEAN PhUiDetachFromDebuggerProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PHAPPAPI
 BOOLEAN PhUiInjectDllProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetIoPriorityProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in ULONG IoPriority
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ ULONG IoPriority
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetPagePriorityProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in ULONG PagePriority
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ ULONG PagePriority
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetPriorityProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in ULONG PriorityClass
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ ULONG PriorityClass
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetDepStatusProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PHAPPAPI
 BOOLEAN PhUiStartService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     );
 
 PHAPPAPI
 BOOLEAN PhUiContinueService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     );
 
 PHAPPAPI
 BOOLEAN PhUiPauseService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     );
 
 PHAPPAPI
 BOOLEAN PhUiStopService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     );
 
 PHAPPAPI
 BOOLEAN PhUiDeleteService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     );
 
 PHAPPAPI
 BOOLEAN PhUiCloseConnections(
-    __in HWND hWnd,
-    __in PPH_NETWORK_ITEM *Connections,
-    __in ULONG NumberOfConnections
+    _In_ HWND hWnd,
+    _In_ PPH_NETWORK_ITEM *Connections,
+    _In_ ULONG NumberOfConnections
     );
 
 PHAPPAPI
 BOOLEAN PhUiTerminateThreads(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     );
 
 PHAPPAPI
 BOOLEAN PhUiForceTerminateThreads(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     );
 
 PHAPPAPI
 BOOLEAN PhUiSuspendThreads(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     );
 
 PHAPPAPI
 BOOLEAN PhUiResumeThreads(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetPriorityThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread,
-    __in ULONG ThreadPriorityWin32
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ ULONG ThreadPriorityWin32
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetIoPriorityThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread,
-    __in ULONG IoPriority
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ ULONG IoPriority
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetPagePriorityThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread,
-    __in ULONG PagePriority
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ ULONG PagePriority
     );
 
 PHAPPAPI
 BOOLEAN PhUiUnloadModule(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_MODULE_ITEM Module
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MODULE_ITEM Module
     );
 
 PHAPPAPI
 BOOLEAN PhUiFreeMemory(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_MEMORY_ITEM MemoryItem,
-    __in BOOLEAN Free
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MEMORY_ITEM MemoryItem,
+    _In_ BOOLEAN Free
     );
 
 PHAPPAPI
 BOOLEAN PhUiCloseHandles(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_HANDLE_ITEM *Handles,
-    __in ULONG NumberOfHandles,
-    __in BOOLEAN Warn
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM *Handles,
+    _In_ ULONG NumberOfHandles,
+    _In_ BOOLEAN Warn
     );
 
 PHAPPAPI
 BOOLEAN PhUiSetAttributesHandle(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_HANDLE_ITEM Handle,
-    __in ULONG Attributes
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM Handle,
+    _In_ ULONG Attributes
     );
 
 PHAPPAPI
 BOOLEAN PhUiDestroyHeap(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PVOID HeapHandle
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PVOID HeapHandle
     );
 
 // itemtips
 
 PPH_STRING PhGetProcessTooltipText(
-    __in PPH_PROCESS_ITEM Process
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PPH_STRING PhGetServiceTooltipText(
-    __in PPH_SERVICE_ITEM Service
+    _In_ PPH_SERVICE_ITEM Service
     );
 
 // cmdmode
@@ -1398,23 +1398,23 @@ NTSTATUS PhCommandModeStart(
 // anawait
 
 VOID PhUiAnalyzeWaitThread(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId,
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
 // mdump
 
 BOOLEAN PhUiCreateDumpFileProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 // about
 
 VOID PhShowAboutDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     );
 
 PPH_STRING PhGetDiagnosticsString(
@@ -1424,16 +1424,16 @@ PPH_STRING PhGetDiagnosticsString(
 // affinity
 
 VOID PhShowProcessAffinityDialog(
-    __in HWND ParentWindowHandle,
-    __in_opt PPH_PROCESS_ITEM ProcessItem,
-    __in_opt PPH_THREAD_ITEM ThreadItem
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PPH_THREAD_ITEM ThreadItem
     );
 
 PHAPPAPI
 BOOLEAN PhShowProcessAffinityDialog2(
-    __in HWND ParentWindowHandle,
-    __in ULONG_PTR AffinityMask,
-    __out PULONG_PTR NewAffinityMask
+    _In_ HWND ParentWindowHandle,
+    _In_ ULONG_PTR AffinityMask,
+    _Out_ PULONG_PTR NewAffinityMask
     );
 
 // chcol
@@ -1441,9 +1441,9 @@ BOOLEAN PhShowProcessAffinityDialog2(
 #define PH_CONTROL_TYPE_TREE_NEW 1
 
 VOID PhShowChooseColumnsDialog(
-    __in HWND ParentWindowHandle,
-    __in HWND ControlHandle,
-    __in ULONG Type
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND ControlHandle,
+    _In_ ULONG Type
     );
 
 // chdlg
@@ -1457,25 +1457,25 @@ VOID PhShowChooseColumnsDialog(
 
 PHAPPAPI
 BOOLEAN PhaChoiceDialog(
-    __in HWND ParentWindowHandle,
-    __in PWSTR Title,
-    __in PWSTR Message,
-    __in_opt PWSTR *Choices,
-    __in_opt ULONG NumberOfChoices,
-    __in_opt PWSTR Option,
-    __in ULONG Flags,
-    __inout PPH_STRING *SelectedChoice,
-    __inout_opt PBOOLEAN SelectedOption,
-    __in_opt PWSTR SavedChoicesSettingName
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR Title,
+    _In_ PWSTR Message,
+    _In_opt_ PWSTR *Choices,
+    _In_opt_ ULONG NumberOfChoices,
+    _In_opt_ PWSTR Option,
+    _In_ ULONG Flags,
+    _Inout_ PPH_STRING *SelectedChoice,
+    _Inout_opt_ PBOOLEAN SelectedOption,
+    _In_opt_ PWSTR SavedChoicesSettingName
     );
 
 // chproc
 
 PHAPPAPI
 BOOLEAN PhShowChooseProcessDialog(
-    __in HWND ParentWindowHandle,
-    __in PWSTR Message,
-    __out PHANDLE ProcessId
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR Message,
+    _Out_ PHANDLE ProcessId
     );
 
 // findobj
@@ -1487,20 +1487,20 @@ VOID PhShowFindObjectsDialog(
 // gdihndl
 
 VOID PhShowGdiHandlesDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 // heapinfo
 
 VOID PhShowProcessHeapsDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 NTSTATUS PhGetProcessDefaultHeap(
-    __in HANDLE ProcessHandle,
-    __out PPVOID Heap
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPVOID Heap
     );
 
 // hidnproc
@@ -1512,38 +1512,38 @@ VOID PhShowHiddenProcessesDialog(
 // hndlprp
 
 VOID PhShowHandleProperties(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId,
-    __in PPH_HANDLE_ITEM HandleItem
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM HandleItem
     );
 
 // hndlstat
 
 VOID PhShowHandleStatisticsDialog(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId
     );
 
 // infodlg
 
 VOID PhShowInformationDialog(
-    __in HWND ParentWindowHandle,
-    __in PWSTR String
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR String
     );
 
 // jobprp
 
 VOID PhShowJobProperties(
-    __in HWND ParentWindowHandle,
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt PWSTR Title
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ PWSTR Title
     );
 
 HPROPSHEETPAGE PhCreateJobPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt DLGPROC HookProc
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
     );
 
 // logwnd
@@ -1555,106 +1555,106 @@ VOID PhShowLogDialog(
 // memedit
 
 VOID PhShowMemoryEditorDialog(
-    __in HANDLE ProcessId,
-    __in PVOID BaseAddress,
-    __in SIZE_T RegionSize,
-    __in ULONG SelectOffset,
-    __in ULONG SelectLength
+    _In_ HANDLE ProcessId,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T RegionSize,
+    _In_ ULONG SelectOffset,
+    _In_ ULONG SelectLength
     );
 
 // memlists
 
 VOID PhShowMemoryListsDialog(
-    __in HWND ParentWindowHandle,
-    __in_opt VOID (NTAPI *RegisterDialog)(HWND),
-    __in_opt VOID (NTAPI *UnregisterDialog)(HWND)
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ VOID (NTAPI *RegisterDialog)(HWND),
+    _In_opt_ VOID (NTAPI *UnregisterDialog)(HWND)
     );
 
 // memprot
 
 VOID PhShowMemoryProtectDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_MEMORY_ITEM MemoryItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_MEMORY_ITEM MemoryItem
     );
 
 // memrslt
 
 VOID PhShowMemoryResultsDialog(
-    __in HANDLE ProcessId,
-    __in PPH_LIST Results
+    _In_ HANDLE ProcessId,
+    _In_ PPH_LIST Results
     );
 
 // memsrch
 
 VOID PhShowMemoryStringDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 // netstk
 
 VOID PhShowNetworkStackDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 // ntobjprp
 
 HPROPSHEETPAGE PhCreateEventPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateEventPairPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateMutantPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateSectionPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateSemaphorePage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateTimerPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     );
 
 // options
 
 VOID PhShowOptionsDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     );
 
 // pagfiles
 
 VOID PhShowPagefilesDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     );
 
 // plugman
 
 VOID PhShowPluginsDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     );
 
 // procrec
 
 PHAPPAPI
 VOID PhShowProcessRecordDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_RECORD Record
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_RECORD Record
     );
 
 // runas
@@ -1675,59 +1675,59 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(
-    __in HWND ParentWindowHandle,
-    __in_opt HANDLE ProcessId
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ HANDLE ProcessId
     );
 
 NTSTATUS PhExecuteRunAsCommand(
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
 NTSTATUS PhExecuteRunAsCommand2(
-    __in HWND hWnd,
-    __in PWSTR Program,
-    __in_opt PWSTR UserName,
-    __in_opt PWSTR Password,
-    __in_opt ULONG LogonType,
-    __in_opt HANDLE ProcessIdWithToken,
-    __in ULONG SessionId,
-    __in PWSTR DesktopName,
-    __in BOOLEAN UseLinkedToken
+    _In_ HWND hWnd,
+    _In_ PWSTR Program,
+    _In_opt_ PWSTR UserName,
+    _In_opt_ PWSTR Password,
+    _In_opt_ ULONG LogonType,
+    _In_opt_ HANDLE ProcessIdWithToken,
+    _In_ ULONG SessionId,
+    _In_ PWSTR DesktopName,
+    _In_ BOOLEAN UseLinkedToken
     );
 
 NTSTATUS PhRunAsServiceStart(
-    __in PPH_STRING ServiceName
+    _In_ PPH_STRING ServiceName
     );
 
 NTSTATUS PhInvokeRunAsService(
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
 // sessmsg
 
 VOID PhShowSessionSendMessageDialog(
-    __in HWND ParentWindowHandle,
-    __in ULONG SessionId
+    _In_ HWND ParentWindowHandle,
+    _In_ ULONG SessionId
     );
 
 // sessprp
 
 VOID PhShowSessionProperties(
-    __in HWND ParentWindowHandle,
-    __in ULONG SessionId
+    _In_ HWND ParentWindowHandle,
+    _In_ ULONG SessionId
     );
 
 // sessshad
 
 VOID PhShowSessionShadowDialog(
-    __in HWND ParentWindowHandle,
-    __in ULONG SessionId
+    _In_ HWND ParentWindowHandle,
+    _In_ ULONG SessionId
     );
 
 // srvcr
 
 VOID PhShowCreateServiceDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     );
 
 // srvctl
@@ -1736,55 +1736,55 @@ VOID PhShowCreateServiceDialog(
 
 PHAPPAPI
 HWND PhCreateServiceListControl(
-    __in HWND ParentWindowHandle,
-    __in PPH_SERVICE_ITEM *Services,
-    __in ULONG NumberOfServices
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_SERVICE_ITEM *Services,
+    _In_ ULONG NumberOfServices
     );
 
 // srvprp
 
 VOID PhShowServiceProperties(
-    __in HWND ParentWindowHandle,
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 // termator
 
 VOID PhShowProcessTerminatorDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 // thrdstk
 
 VOID PhShowThreadStackDialog(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId,
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
 // tokprp
 
 PPH_STRING PhGetGroupAttributesString(
-    __in ULONG Attributes
+    _In_ ULONG Attributes
     );
 
 PWSTR PhGetPrivilegeAttributesString(
-    __in ULONG Attributes
+    _In_ ULONG Attributes
     );
 
 VOID PhShowTokenProperties(
-    __in HWND ParentWindowHandle,
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt PWSTR Title
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ PWSTR Title
     );
 
 HPROPSHEETPAGE PhCreateTokenPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt DLGPROC HookProc
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
     );
 
 #endif

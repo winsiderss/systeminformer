@@ -30,8 +30,8 @@ static VOID Test_rectangle(
 }
 
 static BOOLEAN AreGuidsEqual(
-    __in PGUID Guid1,
-    __in PWSTR Guid2
+    _In_ PGUID Guid1,
+    _In_ PWSTR Guid2
     )
 {
     GUID guid2;

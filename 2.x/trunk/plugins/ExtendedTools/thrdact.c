@@ -24,8 +24,8 @@
 #include "resource.h"
 
 BOOLEAN EtUiCancelIoThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread
     )
 {
     NTSTATUS status;

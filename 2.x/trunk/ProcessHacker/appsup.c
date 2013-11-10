@@ -32,23 +32,23 @@
 #include <appmodel.h>
 
 typedef LONG (WINAPI *_GetPackageFullName)(
-    __in HANDLE hProcess,
-    __inout UINT32 *packageFullNameLength,
-    __out_opt PWSTR packageFullName
+    _In_ HANDLE hProcess,
+    _Inout_ UINT32 *packageFullNameLength,
+    _Out_opt_ PWSTR packageFullName
     );
 
 typedef LONG (WINAPI *_GetPackagePath)(
-    __in PACKAGE_ID *packageId,
-    __reserved UINT32 reserved,
-    __inout UINT32 *pathLength,
-    __out_opt PWSTR path
+    _In_ PACKAGE_ID *packageId,
+    _Reserved_ UINT32 reserved,
+    _Inout_ UINT32 *pathLength,
+    _Out_opt_ PWSTR path
     );
 
 typedef LONG (WINAPI *_PackageIdFromFullName)(
-    __in PCWSTR packageFullName,
-    __in UINT32 flags,
-    __inout UINT32 *bufferLength,
-    __out_opt BYTE *buffer
+    _In_ PCWSTR packageFullName,
+    _In_ UINT32 flags,
+    _Inout_ UINT32 *bufferLength,
+    _Out_opt_ BYTE *buffer
     );
 
 GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
@@ -64,7 +64,7 @@ GUID WINBLUE_CONTEXT_GUID = { 0x1f676c76, 0x80e1, 0x4239, { 0x95, 0xbb, 0x83, 0x
  * of the process.
  */
 BOOLEAN PhGetProcessIsSuspended(
-    __in PSYSTEM_PROCESS_INFORMATION Process
+    _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
     ULONG i;
@@ -89,8 +89,8 @@ BOOLEAN PhGetProcessIsSuspended(
  * operating system version.
  */
 NTSTATUS PhGetProcessSwitchContext(
-    __in HANDLE ProcessHandle,
-    __out PGUID Guid
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGUID Guid
     )
 {
     NTSTATUS status;
@@ -205,7 +205,7 @@ NTSTATUS PhGetProcessSwitchContext(
 }
 
 PPH_STRING PhGetProcessPackageFullName(
-    __in HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle
     )
 {
     static _GetPackageFullName getPackageFullName = NULL;
@@ -245,7 +245,7 @@ PPH_STRING PhGetProcessPackageFullName(
 }
 
 PACKAGE_ID *PhPackageIdFromFullName(
-    __in PWSTR PackageFullName
+    _In_ PWSTR PackageFullName
     )
 {
     static _PackageIdFromFullName packageIdFromFullName = NULL;
@@ -284,7 +284,7 @@ PACKAGE_ID *PhPackageIdFromFullName(
 }
 
 PPH_STRING PhGetPackagePath(
-    __in PACKAGE_ID *PackageId
+    _In_ PACKAGE_ID *PackageId
     )
 {
     static _GetPackagePath getPackagePath = NULL;
@@ -324,10 +324,10 @@ PPH_STRING PhGetPackagePath(
 }
 
 VOID PhEnumChildWindows(
-    __in_opt HWND hWnd,
-    __in ULONG Limit,
-    __in WNDENUMPROC Callback,
-    __in LPARAM lParam
+    _In_opt_ HWND hWnd,
+    _In_ ULONG Limit,
+    _In_ WNDENUMPROC Callback,
+    _In_ LPARAM lParam
     )
 {
     HWND childWindow = NULL;
@@ -350,8 +350,8 @@ VOID PhEnumChildWindows(
  * type.
  */
 NTSTATUS PhGetProcessKnownType(
-    __in HANDLE ProcessHandle,
-    __out PH_KNOWN_PROCESS_TYPE *KnownProcessType
+    _In_ HANDLE ProcessHandle,
+    _Out_ PH_KNOWN_PROCESS_TYPE *KnownProcessType
     )
 {
     NTSTATUS status;
@@ -461,9 +461,9 @@ NTSTATUS PhGetProcessKnownType(
 }
 
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
-    __in_opt PPH_COMMAND_LINE_OPTION Option,
-    __in_opt PPH_STRING Value,
-    __in_opt PVOID Context
+    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PPH_STRING Value,
+    _In_opt_ PVOID Context
     )
 {
     PPH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine = Context;
@@ -477,9 +477,9 @@ static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
 }
 
 BOOLEAN PhaGetProcessKnownCommandLine(
-    __in PPH_STRING CommandLine,
-    __in PH_KNOWN_PROCESS_TYPE KnownProcessType,
-    __out PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
+    _In_ PPH_STRING CommandLine,
+    _In_ PH_KNOWN_PROCESS_TYPE KnownProcessType,
+    _Out_ PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
     )
 {
     switch (KnownProcessType & KnownProcessTypeMask)
@@ -688,8 +688,8 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 }
 
 PPH_STRING PhEscapeStringForDelimiter(
-    __in PPH_STRING String,
-    __in WCHAR Delimiter
+    _In_ PPH_STRING String,
+    _In_ WCHAR Delimiter
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -719,8 +719,8 @@ PPH_STRING PhEscapeStringForDelimiter(
 }
 
 PPH_STRING PhUnescapeStringForDelimiter(
-    __in PPH_STRING String,
-    __in WCHAR Delimiter
+    _In_ PPH_STRING String,
+    _In_ WCHAR Delimiter
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -755,7 +755,7 @@ PPH_STRING PhUnescapeStringForDelimiter(
 }
 
 PPH_STRING PhGetOpaqueXmlNodeText(
-    __in mxml_node_t *node
+    _In_ mxml_node_t *node
     )
 {
     if (node->child && node->child->type == MXML_OPAQUE && node->child->value.opaque)
@@ -769,19 +769,19 @@ PPH_STRING PhGetOpaqueXmlNodeText(
 }
 
 VOID PhSearchOnlineString(
-    __in HWND hWnd,
-    __in PWSTR String
+    _In_ HWND hWnd,
+    _In_ PWSTR String
     )
 {
     PhShellExecuteUserString(hWnd, L"SearchEngine", String, TRUE, NULL);
 }
 
 VOID PhShellExecuteUserString(
-    __in HWND hWnd,
-    __in PWSTR Setting,
-    __in PWSTR String,
-    __in BOOLEAN UseShellExecute,
-    __in_opt PWSTR ErrorMessage
+    _In_ HWND hWnd,
+    _In_ PWSTR Setting,
+    _In_ PWSTR String,
+    _In_ BOOLEAN UseShellExecute,
+    _In_opt_ PWSTR ErrorMessage
     )
 {
     static PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"%s");
@@ -848,7 +848,7 @@ VOID PhShellExecuteUserString(
 }
 
 VOID PhLoadSymbolProviderOptions(
-    __inout PPH_SYMBOL_PROVIDER SymbolProvider
+    _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
     PPH_STRING searchPath;
@@ -882,8 +882,8 @@ PWSTR PhMakeContextAtom(
  * \remarks The text is truncated if it is too long.
  */
 VOID PhCopyListViewInfoTip(
-    __inout LPNMLVGETINFOTIP GetInfoTip,
-    __in PPH_STRINGREF Tip
+    _Inout_ LPNMLVGETINFOTIP GetInfoTip,
+    _In_ PPH_STRINGREF Tip
     )
 {
     ULONG copyIndex;
@@ -916,7 +916,7 @@ VOID PhCopyListViewInfoTip(
 }
 
 VOID PhCopyListView(
-    __in HWND ListViewHandle
+    _In_ HWND ListViewHandle
     )
 {
     PPH_STRING text;
@@ -927,17 +927,17 @@ VOID PhCopyListView(
 }
 
 VOID PhHandleListViewNotifyForCopy(
-    __in LPARAM lParam,
-    __in HWND ListViewHandle
+    _In_ LPARAM lParam,
+    _In_ HWND ListViewHandle
     )
 {
     PhHandleListViewNotifyBehaviors(lParam, ListViewHandle, PH_LIST_VIEW_CTRL_C_BEHAVIOR);
 }
 
 VOID PhHandleListViewNotifyBehaviors(
-    __in LPARAM lParam,
-    __in HWND ListViewHandle,
-    __in ULONG Behaviors
+    _In_ LPARAM lParam,
+    _In_ HWND ListViewHandle,
+    _In_ ULONG Behaviors
     )
 {
     if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle)
@@ -965,8 +965,8 @@ VOID PhHandleListViewNotifyBehaviors(
 }
 
 BOOLEAN PhGetListViewContextMenuPoint(
-    __in HWND ListViewHandle,
-    __out PPOINT Point
+    _In_ HWND ListViewHandle,
+    _Out_ PPOINT Point
     )
 {
     INT selectedIndex;
@@ -1006,8 +1006,8 @@ BOOLEAN PhGetListViewContextMenuPoint(
 }
 
 HFONT PhDuplicateFontWithNewWeight(
-    __in HFONT Font,
-    __in LONG NewWeight
+    _In_ HFONT Font,
+    _In_ LONG NewWeight
     )
 {
     LOGFONT logFont;
@@ -1024,9 +1024,9 @@ HFONT PhDuplicateFontWithNewWeight(
 }
 
 VOID PhLoadWindowPlacementFromSetting(
-    __in_opt PWSTR PositionSettingName,
-    __in_opt PWSTR SizeSettingName,
-    __in HWND WindowHandle
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName,
+    _In_ HWND WindowHandle
     )
 {
     PH_RECTANGLE windowRectangle;
@@ -1086,9 +1086,9 @@ VOID PhLoadWindowPlacementFromSetting(
 }
 
 VOID PhSaveWindowPlacementToSetting(
-    __in_opt PWSTR PositionSettingName,
-    __in_opt PWSTR SizeSettingName,
-    __in HWND WindowHandle
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName,
+    _In_ HWND WindowHandle
     )
 {
     WINDOWPLACEMENT placement = { sizeof(placement) };
@@ -1112,8 +1112,8 @@ VOID PhSaveWindowPlacementToSetting(
 }
 
 VOID PhLoadListViewColumnsFromSetting(
-    __in PWSTR Name,
-    __in HWND ListViewHandle
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
     )
 {
     PPH_STRING string;
@@ -1124,8 +1124,8 @@ VOID PhLoadListViewColumnsFromSetting(
 }
 
 VOID PhSaveListViewColumnsToSetting(
-    __in PWSTR Name,
-    __in HWND ListViewHandle
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
     )
 {
     PPH_STRING string;
@@ -1149,10 +1149,10 @@ PPH_STRING PhGetPhVersion(
 }
 
 VOID PhGetPhVersionNumbers(
-    __out_opt PULONG MajorVersion,
-    __out_opt PULONG MinorVersion,
-    __reserved PULONG Reserved,
-    __out_opt PULONG RevisionNumber
+    _Out_opt_ PULONG MajorVersion,
+    _Out_opt_ PULONG MinorVersion,
+    _Reserved_ PULONG Reserved,
+    _Out_opt_ PULONG RevisionNumber
     )
 {
     if (MajorVersion)
@@ -1164,7 +1164,7 @@ VOID PhGetPhVersionNumbers(
 }
 
 VOID PhWritePhTextHeader(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     )
 {
     PPH_STRING version;
@@ -1203,13 +1203,13 @@ VOID PhWritePhTextHeader(
 }
 
 BOOLEAN PhShellProcessHacker(
-    __in HWND hWnd,
-    __in_opt PWSTR Parameters,
-    __in ULONG ShowWindowType,
-    __in ULONG Flags,
-    __in ULONG AppFlags,
-    __in_opt ULONG Timeout,
-    __out_opt PHANDLE ProcessHandle
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Parameters,
+    _In_ ULONG ShowWindowType,
+    _In_ ULONG Flags,
+    _In_ ULONG AppFlags,
+    _In_opt_ ULONG Timeout,
+    _Out_opt_ PHANDLE ProcessHandle
     )
 {
     BOOLEAN result;
@@ -1296,7 +1296,7 @@ BOOLEAN PhShellProcessHacker(
 }
 
 BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     )
 {
     BOOLEAN result;
@@ -1341,15 +1341,15 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
 }
 
 VOID PhInitializeTreeNewColumnMenu(
-    __inout PPH_TN_COLUMN_MENU_DATA Data
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data
     )
 {
     PhInitializeTreeNewColumnMenuEx(Data, 0);
 }
 
 VOID PhInitializeTreeNewColumnMenuEx(
-    __inout PPH_TN_COLUMN_MENU_DATA Data,
-    __in ULONG Flags
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data,
+    _In_ ULONG Flags
     )
 {
     PPH_EMENU_ITEM sizeColumnToFitMenuItem;
@@ -1401,9 +1401,9 @@ VOID PhInitializeTreeNewColumnMenuEx(
 }
 
 VOID PhpEnsureValidSortColumnTreeNew(
-    __inout HWND TreeNewHandle,
-    __in ULONG DefaultSortColumn,
-    __in PH_SORT_ORDER DefaultSortOrder
+    _Inout_ HWND TreeNewHandle,
+    _In_ ULONG DefaultSortColumn,
+    _In_ PH_SORT_ORDER DefaultSortOrder
     )
 {
     ULONG sortColumn;
@@ -1466,7 +1466,7 @@ VOID PhpEnsureValidSortColumnTreeNew(
 }
 
 BOOLEAN PhHandleTreeNewColumnMenu(
-    __inout PPH_TN_COLUMN_MENU_DATA Data
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data
     )
 {
     if (!Data->Selection)
@@ -1527,7 +1527,7 @@ BOOLEAN PhHandleTreeNewColumnMenu(
 }
 
 VOID PhDeleteTreeNewColumnMenu(
-    __in PPH_TN_COLUMN_MENU_DATA Data
+    _In_ PPH_TN_COLUMN_MENU_DATA Data
     )
 {
     if (Data->Menu)
@@ -1538,9 +1538,9 @@ VOID PhDeleteTreeNewColumnMenu(
 }
 
 VOID PhInitializeTreeNewFilterSupport(
-    __out PPH_TN_FILTER_SUPPORT Support,
-    __in HWND TreeNewHandle,
-    __in PPH_LIST NodeList
+    _Out_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_LIST NodeList
     )
 {
     Support->FilterList = NULL;
@@ -1549,16 +1549,16 @@ VOID PhInitializeTreeNewFilterSupport(
 }
 
 VOID PhDeleteTreeNewFilterSupport(
-    __in PPH_TN_FILTER_SUPPORT Support
+    _In_ PPH_TN_FILTER_SUPPORT Support
     )
 {
     PhDereferenceObject(Support->FilterList);
 }
 
 PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
-    __in PPH_TN_FILTER_SUPPORT Support,
-    __in PPH_TN_FILTER_FUNCTION Filter,
-    __in_opt PVOID Context
+    _In_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ PPH_TN_FILTER_FUNCTION Filter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_TN_FILTER_ENTRY entry;
@@ -1576,8 +1576,8 @@ PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
 }
 
 VOID PhRemoveTreeNewFilter(
-    __in PPH_TN_FILTER_SUPPORT Support,
-    __in PPH_TN_FILTER_ENTRY Entry
+    _In_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ PPH_TN_FILTER_ENTRY Entry
     )
 {
     ULONG index;
@@ -1595,8 +1595,8 @@ VOID PhRemoveTreeNewFilter(
 }
 
 BOOLEAN PhApplyTreeNewFiltersToNode(
-    __in PPH_TN_FILTER_SUPPORT Support,
-    __in PPH_TREENEW_NODE Node
+    _In_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ PPH_TREENEW_NODE Node
     )
 {
     BOOLEAN show;
@@ -1624,7 +1624,7 @@ BOOLEAN PhApplyTreeNewFiltersToNode(
 }
 
 VOID PhApplyTreeNewFilters(
-    __in PPH_TN_FILTER_SUPPORT Support
+    _In_ PPH_TN_FILTER_SUPPORT Support
     )
 {
     ULONG i;
@@ -1646,7 +1646,7 @@ VOID PhApplyTreeNewFilters(
 }
 
 VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
-    __in struct _PH_EMENU_ITEM *Item
+    _In_ struct _PH_EMENU_ITEM *Item
     )
 {
     PPH_COPY_CELL_CONTEXT context;
@@ -1657,10 +1657,10 @@ VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
 }
 
 BOOLEAN PhInsertCopyCellEMenuItem(
-    __in struct _PH_EMENU_ITEM *Menu,
-    __in ULONG InsertAfterId,
-    __in HWND TreeNewHandle,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_TREENEW_COLUMN Column
     )
 {
     PPH_EMENU_ITEM parentItem;
@@ -1700,7 +1700,7 @@ BOOLEAN PhInsertCopyCellEMenuItem(
 }
 
 BOOLEAN PhHandleCopyCellEMenuItem(
-    __in struct _PH_EMENU_ITEM *SelectedItem
+    _In_ struct _PH_EMENU_ITEM *SelectedItem
     )
 {
     PPH_COPY_CELL_CONTEXT context;
@@ -1751,9 +1751,9 @@ BOOLEAN PhHandleCopyCellEMenuItem(
 }
 
 BOOLEAN PhpSelectFavoriteInRegedit(
-    __in HWND RegeditWindow,
-    __in PPH_STRINGREF FavoriteName,
-    __in BOOLEAN UsePhSvc
+    _In_ HWND RegeditWindow,
+    _In_ PPH_STRINGREF FavoriteName,
+    _In_ BOOLEAN UsePhSvc
     )
 {
     HMENU menu;
@@ -1845,8 +1845,8 @@ BOOLEAN PhpSelectFavoriteInRegedit(
  * \param KeyName The key name to open.
  */
 BOOLEAN PhShellOpenKey2(
-    __in HWND hWnd,
-    __in PPH_STRING KeyName
+    _In_ HWND hWnd,
+    _In_ PPH_STRING KeyName
     )
 {
     static PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");

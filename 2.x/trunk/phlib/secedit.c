@@ -70,12 +70,12 @@ FORCEINLINE VOID PhpSecurityEditorInitialization(
  * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
  */
 HPROPSHEETPAGE PhCreateSecurityPage(
-    __in PWSTR ObjectName,
-    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in_opt PVOID Context,
-    __in PPH_ACCESS_ENTRY AccessEntries,
-    __in ULONG NumberOfAccessEntries
+    _In_ PWSTR ObjectName,
+    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_opt_ PVOID Context,
+    _In_ PPH_ACCESS_ENTRY AccessEntries,
+    _In_ ULONG NumberOfAccessEntries
     )
 {
     ISecurityInformation *info;
@@ -116,13 +116,13 @@ HPROPSHEETPAGE PhCreateSecurityPage(
  * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
  */
 VOID PhEditSecurity(
-    __in HWND hWnd,
-    __in PWSTR ObjectName,
-    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in_opt PVOID Context,
-    __in PPH_ACCESS_ENTRY AccessEntries,
-    __in ULONG NumberOfAccessEntries
+    _In_ HWND hWnd,
+    _In_ PWSTR ObjectName,
+    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_opt_ PVOID Context,
+    _In_ PPH_ACCESS_ENTRY AccessEntries,
+    _In_ ULONG NumberOfAccessEntries
     )
 {
     ISecurityInformation *info;
@@ -147,12 +147,12 @@ VOID PhEditSecurity(
 }
 
 ISecurityInformation *PhSecurityInformation_Create(
-    __in PWSTR ObjectName,
-    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in_opt PVOID Context,
-    __in PPH_ACCESS_ENTRY AccessEntries,
-    __in ULONG NumberOfAccessEntries
+    _In_ PWSTR ObjectName,
+    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_opt_ PVOID Context,
+    _In_ PPH_ACCESS_ENTRY AccessEntries,
+    _In_ ULONG NumberOfAccessEntries
     )
 {
     PhSecurityInformation *info;
@@ -185,9 +185,9 @@ ISecurityInformation *PhSecurityInformation_Create(
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
-    __in ISecurityInformation *This,
-    __in REFIID Riid,
-    __out PVOID *Object
+    _In_ ISecurityInformation *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
     )
 {
     if (
@@ -205,7 +205,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
 }
 
 ULONG STDMETHODCALLTYPE PhSecurityInformation_AddRef(
-    __in ISecurityInformation *This
+    _In_ ISecurityInformation *This
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)This;
@@ -216,7 +216,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation_AddRef(
 }
 
 ULONG STDMETHODCALLTYPE PhSecurityInformation_Release(
-    __in ISecurityInformation *This
+    _In_ ISecurityInformation *This
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)This;
@@ -237,8 +237,8 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation_Release(
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
-    __in ISecurityInformation *This,
-    __out PSI_OBJECT_INFO ObjectInfo
+    _In_ ISecurityInformation *This,
+    _Out_ PSI_OBJECT_INFO ObjectInfo
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)This;
@@ -258,10 +258,10 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
-    __in ISecurityInformation *This,
-    __in SECURITY_INFORMATION RequestedInformation,
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
-    __in BOOL Default
+    _In_ ISecurityInformation *This,
+    _In_ SECURITY_INFORMATION RequestedInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    _In_ BOOL Default
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)This;
@@ -290,9 +290,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
-    __in ISecurityInformation *This,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ ISecurityInformation *This,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)This;
@@ -311,12 +311,12 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetAccessRights(
-    __in ISecurityInformation *This,
-    __in const GUID *ObjectType,
-    __in ULONG Flags,
-    __out PSI_ACCESS *Access,
-    __out PULONG Accesses,
-    __out PULONG DefaultAccess
+    _In_ ISecurityInformation *This,
+    _In_ const GUID *ObjectType,
+    _In_ ULONG Flags,
+    _Out_ PSI_ACCESS *Access,
+    _Out_ PULONG Accesses,
+    _Out_ PULONG DefaultAccess
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)This;
@@ -329,29 +329,29 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetAccessRights(
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
-    __in ISecurityInformation *This,
-    __in const GUID *ObjectType,
-    __in PUCHAR AceFlags,
-    __inout PACCESS_MASK Mask
+    _In_ ISecurityInformation *This,
+    _In_ const GUID *ObjectType,
+    _In_ PUCHAR AceFlags,
+    _Inout_ PACCESS_MASK Mask
     )
 {
     return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
-    __in ISecurityInformation *This,
-    __out PSI_INHERIT_TYPE *InheritTypes,
-    __out PULONG InheritTypesCount
+    _In_ ISecurityInformation *This,
+    _Out_ PSI_INHERIT_TYPE *InheritTypes,
+    _Out_ PULONG InheritTypesCount
     )
 {
     return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
-    __in ISecurityInformation *This,
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in SI_PAGE_TYPE uPage
+    _In_ ISecurityInformation *This,
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ SI_PAGE_TYPE uPage
     )
 {
     return E_NOTIMPL;
@@ -370,10 +370,10 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
  * \remarks This function may be used for the \a GetObjectSecurity
  * callback in PhCreateSecurityPage() or PhEditSecurity().
  */
-__callback NTSTATUS PhStdGetObjectSecurity(
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in_opt PVOID Context
+_Callback_ NTSTATUS PhStdGetObjectSecurity(
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -417,10 +417,10 @@ __callback NTSTATUS PhStdGetObjectSecurity(
  * \remarks This function may be used for the \a SetObjectSecurity
  * callback in PhCreateSecurityPage() or PhEditSecurity().
  */
-__callback NTSTATUS PhStdSetObjectSecurity(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in_opt PVOID Context
+_Callback_ NTSTATUS PhStdSetObjectSecurity(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -453,10 +453,10 @@ __callback NTSTATUS PhStdSetObjectSecurity(
 }
 
 NTSTATUS PhGetSeObjectSecurity(
-    __in HANDLE Handle,
-    __in ULONG ObjectType,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectType,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
     )
 {
     ULONG win32Result;
@@ -486,10 +486,10 @@ NTSTATUS PhGetSeObjectSecurity(
 }
 
 NTSTATUS PhSetSeObjectSecurity(
-    __in HANDLE Handle,
-    __in ULONG ObjectType,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectType,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
     ULONG win32Result;

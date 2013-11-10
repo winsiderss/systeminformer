@@ -278,8 +278,8 @@ VOID PhUpdateCachedSettings(
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_SETTING setting1 = (PPH_SETTING)Entry1;
@@ -289,7 +289,7 @@ BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
 }
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
@@ -297,10 +297,10 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
     return PhHashBytes((PUCHAR)setting->Name.Buffer, setting->Name.Length);
 }
 
-__assumeLocked static VOID PhpAddSetting(
-    __in PH_SETTING_TYPE Type,
-    __in PPH_STRINGREF Name,
-    __in PPH_STRINGREF DefaultValue
+static VOID PhpAddSetting(
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF DefaultValue
     )
 {
     PH_SETTING setting;
@@ -316,8 +316,8 @@ __assumeLocked static VOID PhpAddSetting(
 }
 
 static PPH_STRING PhpSettingToString(
-    __in PH_SETTING_TYPE Type,
-    __in PPH_SETTING Setting
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_SETTING Setting
     )
 {
     switch (Type)
@@ -347,10 +347,10 @@ static PPH_STRING PhpSettingToString(
 }
 
 static BOOLEAN PhpSettingFromString(
-    __in PH_SETTING_TYPE Type,
-    __in PPH_STRINGREF StringRef,
-    __in_opt PPH_STRING String,
-    __inout PPH_SETTING Setting
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_STRINGREF StringRef,
+    _In_opt_ PPH_STRING String,
+    _Inout_ PPH_SETTING Setting
     )
 {
     switch (Type)
@@ -410,8 +410,8 @@ static BOOLEAN PhpSettingFromString(
 }
 
 static VOID PhpFreeSettingValue(
-    __in PH_SETTING_TYPE Type,
-    __in PPH_SETTING Setting
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_SETTING Setting
     )
 {
     switch (Type)
@@ -424,7 +424,7 @@ static VOID PhpFreeSettingValue(
 }
 
 static PVOID PhpLookupSetting(
-    __in PPH_STRINGREF Name
+    _In_ PPH_STRINGREF Name
     )
 {
     PH_SETTING lookupSetting;
@@ -439,8 +439,8 @@ static PVOID PhpLookupSetting(
     return setting;
 }
 
-__mayRaise ULONG PhGetIntegerSetting(
-    __in PWSTR Name
+_May_raise_ ULONG PhGetIntegerSetting(
+    _In_ PWSTR Name
     )
 {
     PPH_SETTING setting;
@@ -470,8 +470,8 @@ __mayRaise ULONG PhGetIntegerSetting(
     return value;
 }
 
-__mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
-    __in PWSTR Name
+_May_raise_ PH_INTEGER_PAIR PhGetIntegerPairSetting(
+    _In_ PWSTR Name
     )
 {
     PPH_SETTING setting;
@@ -501,8 +501,8 @@ __mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
     return value;
 }
 
-__mayRaise PPH_STRING PhGetStringSetting(
-    __in PWSTR Name
+_May_raise_ PPH_STRING PhGetStringSetting(
+    _In_ PWSTR Name
     )
 {
     PPH_SETTING setting;
@@ -545,9 +545,9 @@ __mayRaise PPH_STRING PhGetStringSetting(
     return value;
 }
 
-__mayRaise VOID PhSetIntegerSetting(
-    __in PWSTR Name,
-    __in ULONG Value
+_May_raise_ VOID PhSetIntegerSetting(
+    _In_ PWSTR Name,
+    _In_ ULONG Value
     )
 {
     PPH_SETTING setting;
@@ -570,9 +570,9 @@ __mayRaise VOID PhSetIntegerSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-__mayRaise VOID PhSetIntegerPairSetting(
-    __in PWSTR Name,
-    __in PH_INTEGER_PAIR Value
+_May_raise_ VOID PhSetIntegerPairSetting(
+    _In_ PWSTR Name,
+    _In_ PH_INTEGER_PAIR Value
     )
 {
     PPH_SETTING setting;
@@ -595,9 +595,9 @@ __mayRaise VOID PhSetIntegerPairSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-__mayRaise VOID PhSetStringSetting(
-    __in PWSTR Name,
-    __in PWSTR Value
+_May_raise_ VOID PhSetStringSetting(
+    _In_ PWSTR Name,
+    _In_ PWSTR Value
     )
 {
     PPH_SETTING setting;
@@ -621,9 +621,9 @@ __mayRaise VOID PhSetStringSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-__mayRaise VOID PhSetStringSetting2(
-    __in PWSTR Name,
-    __in PPH_STRINGREF Value
+_May_raise_ VOID PhSetStringSetting2(
+    _In_ PWSTR Name,
+    _In_ PPH_STRINGREF Value
     )
 {
     PPH_SETTING setting;
@@ -648,7 +648,7 @@ __mayRaise VOID PhSetStringSetting2(
 }
 
 VOID PhpFreeIgnoredSetting(
-    __in PPH_SETTING Setting
+    _In_ PPH_SETTING Setting
     )
 {
     PhFree(Setting->Name.Buffer);
@@ -727,14 +727,14 @@ VOID PhConvertIgnoredSettings(
 }
 
 mxml_type_t PhpSettingsLoadCallback(
-    __in mxml_node_t *node
+    _In_ mxml_node_t *node
     )
 {
     return MXML_OPAQUE;
 }
 
 NTSTATUS PhLoadSettings(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     )
 {
     NTSTATUS status;
@@ -853,8 +853,8 @@ NTSTATUS PhLoadSettings(
 }
 
 char *PhpSettingsSaveCallback(
-    __in mxml_node_t *node,
-    __in int position
+    _In_ mxml_node_t *node,
+    _In_ int position
     )
 {
     if (STR_IEQUAL(node->value.element.name, "setting"))
@@ -874,9 +874,9 @@ char *PhpSettingsSaveCallback(
 }
 
 mxml_node_t *PhpCreateSettingElement(
-    __inout mxml_node_t *ParentNode,
-    __in PPH_STRINGREF SettingName,
-    __in PPH_STRINGREF SettingValue
+    _Inout_ mxml_node_t *ParentNode,
+    _In_ PPH_STRINGREF SettingName,
+    _In_ PPH_STRINGREF SettingValue
     )
 {
     mxml_node_t *settingNode;
@@ -902,7 +902,7 @@ mxml_node_t *PhpCreateSettingElement(
 }
 
 NTSTATUS PhSaveSettings(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     )
 {
     NTSTATUS status;
@@ -1007,8 +1007,8 @@ VOID PhResetSettings(
 }
 
 VOID PhAddSettings(
-    __in PPH_SETTING_CREATE Settings,
-    __in ULONG NumberOfSettings
+    _In_ PPH_SETTING_CREATE Settings,
+    _In_ ULONG NumberOfSettings
     )
 {
     ULONG i;

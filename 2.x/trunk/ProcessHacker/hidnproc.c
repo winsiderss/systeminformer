@@ -46,25 +46,25 @@
 #include <windowsx.h>
 
 INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 COLORREF NTAPI PhpHiddenProcessesColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     );
 
 BOOLEAN NTAPI PhpHiddenProcessesCallback(
-    __in PPH_HIDDEN_PROCESS_ENTRY Process,
-    __in_opt PVOID Context
+    _In_ PPH_HIDDEN_PROCESS_ENTRY Process,
+    _In_opt_ PVOID Context
     );
 
 PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
-    __in PPH_HIDDEN_PROCESS_ENTRY Entry
+    _In_ PPH_HIDDEN_PROCESS_ENTRY Entry
     );
 
 HWND PhHiddenProcessesWindowHandle = NULL;
@@ -107,10 +107,10 @@ VOID PhShowHiddenProcessesDialog(
 }
 
 static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -485,9 +485,9 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 }
 
 static COLORREF NTAPI PhpHiddenProcessesColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     )
 {
     PPH_HIDDEN_PROCESS_ENTRY entry = Param;
@@ -505,8 +505,8 @@ static COLORREF NTAPI PhpHiddenProcessesColorFunction(
 }
 
 static BOOLEAN NTAPI PhpHiddenProcessesCallback(
-    __in PPH_HIDDEN_PROCESS_ENTRY Process,
-    __in_opt PVOID Context
+    _In_ PPH_HIDDEN_PROCESS_ENTRY Process,
+    _In_opt_ PVOID Context
     )
 {
     PPH_HIDDEN_PROCESS_ENTRY entry;
@@ -534,7 +534,7 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
 }
 
 static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
-    __in PPH_HIDDEN_PROCESS_ENTRY Entry
+    _In_ PPH_HIDDEN_PROCESS_ENTRY Entry
     )
 {
     NTSTATUS status;
@@ -746,8 +746,8 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 }
 
 NTSTATUS PhpEnumHiddenProcessesBruteForce(
-    __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -868,8 +868,8 @@ typedef struct _CSR_HANDLES_CONTEXT
 } CSR_HANDLES_CONTEXT, *PCSR_HANDLES_CONTEXT;
 
 static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
-    __in PPH_CSR_HANDLE_INFO Handle,
-    __in_opt PVOID Context
+    _In_ PPH_CSR_HANDLE_INFO Handle,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -929,8 +929,8 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
 }
 
 NTSTATUS PhpEnumHiddenProcessesCsrHandles(
-    __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -965,9 +965,9 @@ NTSTATUS PhpEnumHiddenProcessesCsrHandles(
 }
 
 NTSTATUS PhEnumHiddenProcesses(
-    __in PH_HIDDEN_PROCESS_METHOD Method,
-    __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PH_HIDDEN_PROCESS_METHOD Method,
+    _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     if (Method == BruteForceScanMethod)
@@ -987,8 +987,8 @@ NTSTATUS PhEnumHiddenProcesses(
 }
 
 NTSTATUS PhpOpenCsrProcesses(
-    __out PHANDLE *ProcessHandles,
-    __out PULONG NumberOfProcessHandles
+    _Out_ PHANDLE *ProcessHandles,
+    _Out_ PULONG NumberOfProcessHandles
     )
 {
     NTSTATUS status;
@@ -1040,7 +1040,7 @@ NTSTATUS PhpOpenCsrProcesses(
 }
 
 NTSTATUS PhpGetCsrHandleProcessId(
-    __inout PPH_CSR_HANDLE_INFO Handle
+    _Inout_ PPH_CSR_HANDLE_INFO Handle
     )
 {
     NTSTATUS status;
@@ -1091,8 +1091,8 @@ NTSTATUS PhpGetCsrHandleProcessId(
 }
 
 NTSTATUS PhEnumCsrProcessHandles(
-    __in PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -1161,9 +1161,9 @@ NTSTATUS PhEnumCsrProcessHandles(
 }
 
 NTSTATUS PhOpenProcessByCsrHandle(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PPH_CSR_HANDLE_INFO Handle
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_CSR_HANDLE_INFO Handle
     )
 {
     NTSTATUS status;
@@ -1215,8 +1215,8 @@ typedef struct _OPEN_PROCESS_BY_CSR_CONTEXT
 } OPEN_PROCESS_BY_CSR_CONTEXT, *POPEN_PROCESS_BY_CSR_CONTEXT;
 
 static BOOLEAN NTAPI PhpOpenProcessByCsrHandlesCallback(
-    __in PPH_CSR_HANDLE_INFO Handle,
-    __in_opt PVOID Context
+    _In_ PPH_CSR_HANDLE_INFO Handle,
+    _In_opt_ PVOID Context
     )
 {
     POPEN_PROCESS_BY_CSR_CONTEXT context = Context;
@@ -1236,9 +1236,9 @@ static BOOLEAN NTAPI PhpOpenProcessByCsrHandlesCallback(
 }
 
 NTSTATUS PhOpenProcessByCsrHandles(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ProcessId
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;

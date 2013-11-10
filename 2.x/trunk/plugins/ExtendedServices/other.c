@@ -40,8 +40,8 @@ typedef struct _SERVICE_OTHER_CONTEXT
 } SERVICE_OTHER_CONTEXT, *PSERVICE_OTHER_CONTEXT;
 
 NTSTATUS EspLoadOtherInfo(
-    __in HWND hwndDlg,
-    __in PSERVICE_OTHER_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PSERVICE_OTHER_CONTEXT Context
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -124,8 +124,8 @@ NTSTATUS EspLoadOtherInfo(
 }
 
 static int __cdecl PrivilegeNameCompareFunction(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PWSTR string1 = *(PWSTR *)elem1;
@@ -135,10 +135,10 @@ static int __cdecl PrivilegeNameCompareFunction(
 }
 
 INT_PTR CALLBACK EspServiceOtherDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PSERVICE_OTHER_CONTEXT context;

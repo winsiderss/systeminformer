@@ -103,26 +103,26 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCallbackReturn(
-    __in_bcount_opt(OutputLength) PVOID OutputBuffer,
-    __in ULONG OutputLength,
-    __in NTSTATUS Status
+    _In_reads_bytes_opt_(OutputLength) PVOID OutputBuffer,
+    _In_ ULONG OutputLength,
+    _In_ NTSTATUS Status
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryDebugFilterState(
-    __in ULONG ComponentId,
-    __in ULONG Level
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetDebugFilterState(
-    __in ULONG ComponentId,
-    __in ULONG Level,
-    __in BOOLEAN State
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_ BOOLEAN State
     );
 
 NTSYSCALLAPI

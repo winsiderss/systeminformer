@@ -32,48 +32,48 @@ typedef struct _PH_CSR_HANDLE_INFO
 } PH_CSR_HANDLE_INFO, *PPH_CSR_HANDLE_INFO;
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_HIDDEN_PROCESSES_CALLBACK)(
-    __in PPH_HIDDEN_PROCESS_ENTRY Process,
-    __in_opt PVOID Context
+    _In_ PPH_HIDDEN_PROCESS_ENTRY Process,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 NTSTATUS
 NTAPI
 PhEnumHiddenProcesses(
-    __in PH_HIDDEN_PROCESS_METHOD Method,
-    __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PH_HIDDEN_PROCESS_METHOD Method,
+    _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     );
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK)(
-    __in PPH_CSR_HANDLE_INFO Handle,
-    __in_opt PVOID Context
+    _In_ PPH_CSR_HANDLE_INFO Handle,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 NTSTATUS
 NTAPI
 PhEnumCsrProcessHandles(
-    __in PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 NTSTATUS
 NTAPI
 PhOpenProcessByCsrHandle(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PPH_CSR_HANDLE_INFO Handle
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_CSR_HANDLE_INFO Handle
     );
 
 PHAPPAPI
 NTSTATUS
 NTAPI
 PhOpenProcessByCsrHandles(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ProcessId
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId
     );
 
 #endif

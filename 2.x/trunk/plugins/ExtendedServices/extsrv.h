@@ -13,62 +13,62 @@ extern PPH_PLUGIN PluginInstance;
 // depend
 
 LPENUM_SERVICE_STATUS EsEnumDependentServices(
-    __in SC_HANDLE ServiceHandle,
-    __in_opt ULONG State,
-    __out PULONG Count
+    _In_ SC_HANDLE ServiceHandle,
+    _In_opt_ ULONG State,
+    _Out_ PULONG Count
     );
 
 INT_PTR CALLBACK EspServiceDependenciesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EspServiceDependentsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // options
 
 VOID EsShowOptionsDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     );
 
 // other
 
 INT_PTR CALLBACK EspServiceOtherDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // recovery
 
 INT_PTR CALLBACK EspServiceRecoveryDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EspServiceRecovery2DlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // srvprgrs
 
 VOID EsRestartServiceWithProgress(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM ServiceItem,
-    __in SC_HANDLE ServiceHandle
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ SC_HANDLE ServiceHandle
     );
 
 // trigger
@@ -76,23 +76,23 @@ VOID EsRestartServiceWithProgress(
 struct _ES_TRIGGER_CONTEXT;
 
 struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
-    __in PPH_SERVICE_ITEM ServiceItem,
-    __in HWND WindowHandle,
-    __in HWND TriggersLv
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ HWND WindowHandle,
+    _In_ HWND TriggersLv
     );
 
 VOID EsDestroyServiceTriggerContext(
-    __in struct _ES_TRIGGER_CONTEXT *Context
+    _In_ struct _ES_TRIGGER_CONTEXT *Context
     );
 
 VOID EsLoadServiceTriggerInfo(
-    __in struct _ES_TRIGGER_CONTEXT *Context,
-    __in SC_HANDLE ServiceHandle
+    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ SC_HANDLE ServiceHandle
     );
 
 BOOLEAN EsSaveServiceTriggerInfo(
-    __in struct _ES_TRIGGER_CONTEXT *Context,
-    __out PULONG Win32Result
+    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _Out_ PULONG Win32Result
     );
 
 #define ES_TRIGGER_EVENT_NEW 1
@@ -101,8 +101,8 @@ BOOLEAN EsSaveServiceTriggerInfo(
 #define ES_TRIGGER_EVENT_SELECTIONCHANGED 4
 
 VOID EsHandleEventServiceTrigger(
-    __in struct _ES_TRIGGER_CONTEXT *Context,
-    __in ULONG Event
+    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ ULONG Event
     );
 
 #endif

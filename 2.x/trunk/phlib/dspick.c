@@ -62,14 +62,14 @@ IDsObjectPicker *PhpCreateDsObjectPicker(
 }
 
 VOID PhFreeDsObjectPickerDialog(
-    __in PVOID PickerDialog
+    _In_ PVOID PickerDialog
     )
 {
     IDsObjectPicker_Release((IDsObjectPicker *)PickerDialog);
 }
 
 PVOID PhCreateDsObjectPickerDialog(
-    __in ULONG Flags
+    _In_ ULONG Flags
     )
 {
     IDsObjectPicker *picker;
@@ -121,7 +121,7 @@ PVOID PhCreateDsObjectPickerDialog(
 }
 
 PDS_SELECTION_LIST PhpGetDsSelectionList(
-    __in IDataObject *Selections
+    _In_ IDataObject *Selections
     )
 {
     FORMATETC format;
@@ -147,9 +147,9 @@ PDS_SELECTION_LIST PhpGetDsSelectionList(
 }
 
 BOOLEAN PhShowDsObjectPickerDialog(
-    __in HWND hWnd,
-    __in PVOID PickerDialog,
-    __out PPH_DSPICK_OBJECTS *Objects
+    _In_ HWND hWnd,
+    _In_ PVOID PickerDialog,
+    _Out_ PPH_DSPICK_OBJECTS *Objects
     )
 {
     IDsObjectPicker *picker;
@@ -229,7 +229,7 @@ BOOLEAN PhShowDsObjectPickerDialog(
 }
 
 VOID PhFreeDsObjectPickerObjects(
-    __in PPH_DSPICK_OBJECTS Objects
+    _In_ PPH_DSPICK_OBJECTS Objects
     )
 {
     ULONG i;

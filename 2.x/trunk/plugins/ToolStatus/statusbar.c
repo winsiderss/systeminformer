@@ -29,7 +29,7 @@ ULONG ProcessesUpdatedCount;
 static ULONG StatusBarMaxWidths[STATUS_COUNT];
 
 VOID ShowStatusMenu(
-    __in PPOINT Point
+    _In_ PPOINT Point
     )
 {
     HMENU menu;

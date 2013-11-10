@@ -28,19 +28,19 @@
 #define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16
 
 typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
-    __in HANDLE ProcessHandle,
-    __in PLDR_DATA_TABLE_ENTRY Entry,
-    __in PVOID AddressOfEntry,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_ PVOID AddressOfEntry,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     );
 
 typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES32_CALLBACK)(
-    __in HANDLE ProcessHandle,
-    __in PLDR_DATA_TABLE_ENTRY32 Entry,
-    __in ULONG AddressOfEntry,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
+    _In_ ULONG AddressOfEntry,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     );
 
 static PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
@@ -70,9 +70,9 @@ static HANDLE PhPredefineKeyHandles[PH_KEY_MAXIMUM_PREDEFINE] = { 0 };
  * \param ProcessId The ID of the process.
  */
 NTSTATUS PhOpenProcess(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ProcessId
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId
     )
 {
     OBJECT_ATTRIBUTES objectAttributes;
@@ -110,9 +110,9 @@ NTSTATUS PhOpenProcess(
  * \param ThreadId The ID of the thread.
  */
 NTSTATUS PhOpenThread(
-    __out PHANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ThreadId
+    _Out_ PHANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ThreadId
     )
 {
     OBJECT_ATTRIBUTES objectAttributes;
@@ -143,9 +143,9 @@ NTSTATUS PhOpenThread(
 }
 
 NTSTATUS PhOpenThreadProcess(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ThreadHandle
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ThreadHandle
     )
 {
     if (KphIsConnected())
@@ -183,9 +183,9 @@ NTSTATUS PhOpenThreadProcess(
  * \param ProcessHandle A handle to a process.
  */
 NTSTATUS PhOpenProcessToken(
-    __out PHANDLE TokenHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ProcessHandle
+    _Out_ PHANDLE TokenHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessHandle
     )
 {
     if (KphIsConnected())
@@ -216,10 +216,10 @@ NTSTATUS PhOpenProcessToken(
  * FALSE to use the impersonation token.
  */
 NTSTATUS PhOpenThreadToken(
-    __out PHANDLE TokenHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ThreadHandle,
-    __in BOOLEAN OpenAsSelf
+    _Out_ PHANDLE TokenHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ThreadHandle,
+    _In_ BOOLEAN OpenAsSelf
     )
 {
     return NtOpenThreadToken(
@@ -231,9 +231,9 @@ NTSTATUS PhOpenThreadToken(
 }
 
 NTSTATUS PhGetObjectSecurity(
-    __in HANDLE Handle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
     )
 {
     NTSTATUS status;
@@ -277,9 +277,9 @@ NTSTATUS PhGetObjectSecurity(
 }
 
 NTSTATUS PhSetObjectSecurity(
-    __in HANDLE Handle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
     return NtSetSecurityObject(
@@ -298,8 +298,8 @@ NTSTATUS PhSetObjectSecurity(
  * process is being terminated.
  */
 NTSTATUS PhTerminateProcess(
-    __in HANDLE ProcessHandle,
-    __in NTSTATUS ExitStatus
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus
     )
 {
     NTSTATUS status;
@@ -328,7 +328,7 @@ NTSTATUS PhTerminateProcess(
  * have PROCESS_SUSPEND_RESUME access.
  */
 NTSTATUS PhSuspendProcess(
-    __in HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle
     )
 {
     if (KphIsConnected() && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
@@ -348,7 +348,7 @@ NTSTATUS PhSuspendProcess(
  * have PROCESS_SUSPEND_RESUME access.
  */
 NTSTATUS PhResumeProcess(
-    __in HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle
     )
 {
     if (KphIsConnected() && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
@@ -370,8 +370,8 @@ NTSTATUS PhResumeProcess(
  * thread is being terminated.
  */
 NTSTATUS PhTerminateThread(
-    __in HANDLE ThreadHandle,
-    __in NTSTATUS ExitStatus
+    _In_ HANDLE ThreadHandle,
+    _In_ NTSTATUS ExitStatus
     )
 {
 #ifndef _M_X64
@@ -404,8 +404,8 @@ NTSTATUS PhTerminateThread(
  * number of times the thread had been suspended.
  */
 NTSTATUS PhSuspendThread(
-    __in HANDLE ThreadHandle,
-    __out_opt PULONG PreviousSuspendCount
+    _In_ HANDLE ThreadHandle,
+    _Out_opt_ PULONG PreviousSuspendCount
     )
 {
     return NtSuspendThread(ThreadHandle, PreviousSuspendCount);
@@ -420,8 +420,8 @@ NTSTATUS PhSuspendThread(
  * number of times the thread had been suspended.
  */
 NTSTATUS PhResumeThread(
-    __in HANDLE ThreadHandle,
-    __out_opt PULONG PreviousSuspendCount
+    _In_ HANDLE ThreadHandle,
+    _Out_opt_ PULONG PreviousSuspendCount
     )
 {
     return NtResumeThread(ThreadHandle, PreviousSuspendCount);
@@ -436,8 +436,8 @@ NTSTATUS PhResumeThread(
  * structure.
  */
 NTSTATUS PhGetThreadContext(
-    __in HANDLE ThreadHandle,
-    __inout PCONTEXT Context
+    _In_ HANDLE ThreadHandle,
+    _Inout_ PCONTEXT Context
     )
 {
     if (KphIsConnected())
@@ -458,8 +458,8 @@ NTSTATUS PhGetThreadContext(
  * \param Context The new context structure.
  */
 NTSTATUS PhSetThreadContext(
-    __in HANDLE ThreadHandle,
-    __in PCONTEXT Context
+    _In_ HANDLE ThreadHandle,
+    _In_ PCONTEXT Context
     )
 {
     if (KphIsConnected())
@@ -484,11 +484,11 @@ NTSTATUS PhSetThreadContext(
  * of bytes copied to the buffer.
  */
 NTSTATUS PhReadVirtualMemory(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesRead
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead
     )
 {
     NTSTATUS status;
@@ -531,11 +531,11 @@ NTSTATUS PhReadVirtualMemory(
  * of bytes copied from the buffer.
  */
 NTSTATUS PhWriteVirtualMemory(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __in_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesWritten
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesWritten
     )
 {
     NTSTATUS status;
@@ -574,9 +574,9 @@ NTSTATUS PhWriteVirtualMemory(
  * PhFree() when you no longer need it.
  */
 NTSTATUS PhpQueryProcessVariableSize(
-    __in HANDLE ProcessHandle,
-    __in PROCESSINFOCLASS ProcessInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESSINFOCLASS ProcessInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -621,8 +621,8 @@ NTSTATUS PhpQueryProcessVariableSize(
  * using PhDereferenceObject() when you no longer need it.
  */
 NTSTATUS PhGetProcessImageFileName(
-    __in HANDLE ProcessHandle,
-    __out PPH_STRING *FileName
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_STRING *FileName
     )
 {
     NTSTATUS status;
@@ -656,8 +656,8 @@ NTSTATUS PhGetProcessImageFileName(
  * and above.
  */
 NTSTATUS PhGetProcessImageFileNameWin32(
-    __in HANDLE ProcessHandle,
-    __out PPH_STRING *FileName
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_STRING *FileName
     )
 {
     NTSTATUS status;
@@ -693,9 +693,9 @@ NTSTATUS PhGetProcessImageFileNameWin32(
  * specified in the Offset parameter.
  */
 NTSTATUS PhGetProcessPebString(
-    __in HANDLE ProcessHandle,
-    __in PH_PEB_OFFSET Offset,
-    __out PPH_STRING *String
+    _In_ HANDLE ProcessHandle,
+    _In_ PH_PEB_OFFSET Offset,
+    _Out_ PPH_STRING *String
     )
 {
     NTSTATUS status;
@@ -826,9 +826,9 @@ NTSTATUS PhGetProcessPebString(
  * PhDereferenceObject() when you no longer need it.
  */
 NTSTATUS PhGetProcessWindowTitle(
-    __in HANDLE ProcessHandle,
-    __out PULONG WindowFlags,
-    __out PPH_STRING *WindowTitle
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG WindowFlags,
+    _Out_ PPH_STRING *WindowTitle
     )
 {
     NTSTATUS status;
@@ -943,8 +943,8 @@ NTSTATUS PhGetProcessWindowTitle(
  * POSIX subsystem.
  */
 NTSTATUS PhGetProcessIsPosix(
-    __in HANDLE ProcessHandle,
-    __out PBOOLEAN IsPosix
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsPosix
     )
 {
     NTSTATUS status;
@@ -985,8 +985,8 @@ NTSTATUS PhGetProcessIsPosix(
  * no-execute flags.
  */
 NTSTATUS PhGetProcessExecuteFlags(
-    __in HANDLE ProcessHandle,
-    __out PULONG ExecuteFlags
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ExecuteFlags
     )
 {
     if (KphIsConnected())
@@ -1012,8 +1012,8 @@ NTSTATUS PhGetProcessExecuteFlags(
 }
 
 NTSTATUS PhGetProcessDepStatus(
-    __in HANDLE ProcessHandle,
-    __out PULONG DepStatus
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG DepStatus
     )
 {
     NTSTATUS status;
@@ -1061,8 +1061,8 @@ NTSTATUS PhGetProcessDepStatus(
  * whether a process is running under the POSIX subsystem.
  */
 NTSTATUS PhGetProcessPosixCommandLine(
-    __in HANDLE ProcessHandle,
-    __out PPH_STRING *CommandLine
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_STRING *CommandLine
     )
 {
     NTSTATUS status;
@@ -1195,10 +1195,10 @@ NTSTATUS PhGetProcessPosixCommandLine(
  * the length of the environment block, in bytes.
  */
 NTSTATUS PhGetProcessEnvironment(
-    __in HANDLE ProcessHandle,
-    __in ULONG Flags,
-    __out PVOID *Environment,
-    __out PULONG EnvironmentLength
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG Flags,
+    _Out_ PVOID *Environment,
+    _Out_ PULONG EnvironmentLength
     )
 {
     NTSTATUS status;
@@ -1308,10 +1308,10 @@ NTSTATUS PhGetProcessEnvironment(
 }
 
 BOOLEAN PhEnumProcessEnvironmentVariables(
-    __in PVOID Environment,
-    __in ULONG EnvironmentLength,
-    __inout PULONG EnumerationKey,
-    __out PPH_ENVIRONMENT_VARIABLE Variable
+    _In_ PVOID Environment,
+    _In_ ULONG EnvironmentLength,
+    _Inout_ PULONG EnumerationKey,
+    _Out_ PPH_ENVIRONMENT_VARIABLE Variable
     )
 {
     ULONG length;
@@ -1388,9 +1388,9 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
  * you no longer need it.
  */
 NTSTATUS PhGetProcessMappedFileName(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out PPH_STRING *FileName
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PPH_STRING *FileName
     )
 {
     NTSTATUS status;
@@ -1453,8 +1453,8 @@ NTSTATUS PhGetProcessMappedFileName(
  * PhFree() when you no longer need it.
  */
 NTSTATUS PhGetProcessWorkingSetInformation(
-    __in HANDLE ProcessHandle,
-    __out PMEMORY_WORKING_SET_INFORMATION *WorkingSetInformation
+    _In_ HANDLE ProcessHandle,
+    _Out_ PMEMORY_WORKING_SET_INFORMATION *WorkingSetInformation
     )
 {
     NTSTATUS status;
@@ -1504,8 +1504,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
  * counters.
  */
 NTSTATUS PhGetProcessWsCounters(
-    __in HANDLE ProcessHandle,
-    __out PPH_PROCESS_WS_COUNTERS WsCounters
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_PROCESS_WS_COUNTERS WsCounters
     )
 {
     NTSTATUS status;
@@ -1553,8 +1553,8 @@ NTSTATUS PhGetProcessWsCounters(
  * handle.
  */
 NTSTATUS PhEnumProcessHandles(
-    __in HANDLE ProcessHandle,
-    __out PKPH_PROCESS_HANDLE_INFORMATION *Handles
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKPH_PROCESS_HANDLE_INFORMATION *Handles
     )
 {
     NTSTATUS status;
@@ -1602,8 +1602,8 @@ NTSTATUS PhEnumProcessHandles(
  * \param AffinityMask The new affinity mask.
  */
 NTSTATUS PhSetProcessAffinityMask(
-    __in HANDLE ProcessHandle,
-    __in ULONG_PTR AffinityMask
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG_PTR AffinityMask
     )
 {
     return NtSetInformationProcess(
@@ -1622,8 +1622,8 @@ NTSTATUS PhSetProcessAffinityMask(
  * \param IoPriority The new I/O priority.
  */
 NTSTATUS PhSetProcessIoPriority(
-    __in HANDLE ProcessHandle,
-    __in ULONG IoPriority
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG IoPriority
     )
 {
     if (KphIsConnected())
@@ -1656,8 +1656,8 @@ NTSTATUS PhSetProcessIoPriority(
  * handle.
  */
 NTSTATUS PhSetProcessExecuteFlags(
-    __in HANDLE ProcessHandle,
-    __in ULONG ExecuteFlags
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG ExecuteFlags
     )
 {
     return KphSetInformationProcess(
@@ -1669,8 +1669,8 @@ NTSTATUS PhSetProcessExecuteFlags(
 }
 
 NTSTATUS PhSetProcessDepStatus(
-    __in HANDLE ProcessHandle,
-    __in ULONG DepStatus
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG DepStatus
     )
 {
     ULONG executeFlags;
@@ -1689,9 +1689,9 @@ NTSTATUS PhSetProcessDepStatus(
 }
 
 NTSTATUS PhSetProcessDepStatusInvasive(
-    __in HANDLE ProcessHandle,
-    __in ULONG DepStatus,
-    __in_opt PLARGE_INTEGER Timeout
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG DepStatus,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
@@ -1771,9 +1771,9 @@ NTSTATUS PhSetProcessDepStatusInvasive(
  * value carefully.
  */
 NTSTATUS PhInjectDllProcess(
-    __in HANDLE ProcessHandle,
-    __in PWSTR FileName,
-    __in_opt PLARGE_INTEGER Timeout
+    _In_ HANDLE ProcessHandle,
+    _In_ PWSTR FileName,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
 #ifdef _M_X64
@@ -1921,9 +1921,9 @@ FreeExit:
  * process to unload the DLL.
  */
 NTSTATUS PhUnloadDllProcess(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __in_opt PLARGE_INTEGER Timeout
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
 #ifdef _M_X64
@@ -2063,8 +2063,8 @@ NTSTATUS PhUnloadDllProcess(
  * \param AffinityMask The new affinity mask.
  */
 NTSTATUS PhSetThreadAffinityMask(
-    __in HANDLE ThreadHandle,
-    __in ULONG_PTR AffinityMask
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG_PTR AffinityMask
     )
 {
     return NtSetInformationThread(
@@ -2083,8 +2083,8 @@ NTSTATUS PhSetThreadAffinityMask(
  * \param IoPriority The new I/O priority.
  */
 NTSTATUS PhSetThreadIoPriority(
-    __in HANDLE ThreadHandle,
-    __in ULONG IoPriority
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG IoPriority
     )
 {
     if (KphIsConnected())
@@ -2117,8 +2117,8 @@ NTSTATUS PhSetThreadIoPriority(
  * PH_THREAD_STACK_FRAME structure.
  */
 VOID PhpConvertStackFrame(
-    __in STACKFRAME64 *StackFrame64,
-    __out PPH_THREAD_STACK_FRAME ThreadStackFrame
+    _In_ STACKFRAME64 *StackFrame64,
+    _Out_ PPH_THREAD_STACK_FRAME ThreadStackFrame
     )
 {
     ULONG i;
@@ -2160,12 +2160,12 @@ VOID PhpConvertStackFrame(
  * callback function.
  */
 NTSTATUS PhWalkThreadStack(
-    __in HANDLE ThreadHandle,
-    __in_opt HANDLE ProcessHandle,
-    __in_opt PCLIENT_ID ClientId,
-    __in ULONG Flags,
-    __in PPH_WALK_THREAD_STACK_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ PCLIENT_ID ClientId,
+    _In_ ULONG Flags,
+    _In_ PPH_WALK_THREAD_STACK_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -2405,8 +2405,8 @@ ResumeExit:
 }
 
 NTSTATUS PhGetJobProcessIdList(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
     )
 {
     NTSTATUS status;
@@ -2461,9 +2461,9 @@ NTSTATUS PhGetJobProcessIdList(
  * PhFree() when you no longer need it.
  */
 NTSTATUS PhpQueryTokenVariableSize(
-    __in HANDLE TokenHandle,
-    __in TOKEN_INFORMATION_CLASS TokenInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE TokenHandle,
+    _In_ TOKEN_INFORMATION_CLASS TokenInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -2510,9 +2510,9 @@ NTSTATUS PhpQueryTokenVariableSize(
  * PhFree() when you no longer need it.
  */
 NTSTATUS PhQueryTokenVariableSize(
-    __in HANDLE TokenHandle,
-    __in TOKEN_INFORMATION_CLASS TokenInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE TokenHandle,
+    _In_ TOKEN_INFORMATION_CLASS TokenInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     return PhpQueryTokenVariableSize(
@@ -2533,8 +2533,8 @@ NTSTATUS PhQueryTokenVariableSize(
  * need it.
  */
 NTSTATUS PhGetTokenUser(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_USER *User
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_USER *User
     )
 {
     return PhpQueryTokenVariableSize(
@@ -2555,8 +2555,8 @@ NTSTATUS PhGetTokenUser(
  * need it.
  */
 NTSTATUS PhGetTokenOwner(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_OWNER *Owner
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_OWNER *Owner
     )
 {
     return PhpQueryTokenVariableSize(
@@ -2577,8 +2577,8 @@ NTSTATUS PhGetTokenOwner(
  * need it.
  */
 NTSTATUS PhGetTokenPrimaryGroup(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_PRIMARY_GROUP *PrimaryGroup
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_PRIMARY_GROUP *PrimaryGroup
     )
 {
     return PhpQueryTokenVariableSize(
@@ -2599,8 +2599,8 @@ NTSTATUS PhGetTokenPrimaryGroup(
  * need it.
  */
 NTSTATUS PhGetTokenGroups(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_GROUPS *Groups
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_GROUPS *Groups
     )
 {
     return PhpQueryTokenVariableSize(
@@ -2621,8 +2621,8 @@ NTSTATUS PhGetTokenGroups(
  * need it.
  */
 NTSTATUS PhGetTokenPrivileges(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_PRIVILEGES *Privileges
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_PRIVILEGES *Privileges
     )
 {
     return PhpQueryTokenVariableSize(
@@ -2633,8 +2633,8 @@ NTSTATUS PhGetTokenPrivileges(
 }
 
 NTSTATUS PhSetTokenSessionId(
-    __in HANDLE TokenHandle,
-    __in ULONG SessionId
+    _In_ HANDLE TokenHandle,
+    _In_ ULONG SessionId
     )
 {
     return NtSetInformationToken(
@@ -2659,10 +2659,10 @@ NTSTATUS PhSetTokenSessionId(
  * \param Attributes The new attributes of the privilege.
  */
 BOOLEAN PhSetTokenPrivilege(
-    __in HANDLE TokenHandle,
-    __in_opt PWSTR PrivilegeName,
-    __in_opt PLUID PrivilegeLuid,
-    __in ULONG Attributes
+    _In_ HANDLE TokenHandle,
+    _In_opt_ PWSTR PrivilegeName,
+    _In_opt_ PLUID PrivilegeLuid,
+    _In_ ULONG Attributes
     )
 {
     NTSTATUS status;
@@ -2709,9 +2709,9 @@ BOOLEAN PhSetTokenPrivilege(
 }
 
 BOOLEAN PhSetTokenPrivilege2(
-    __in HANDLE TokenHandle,
-    __in LONG Privilege,
-    __in ULONG Attributes
+    _In_ HANDLE TokenHandle,
+    _In_ LONG Privilege,
+    _In_ ULONG Attributes
     )
 {
     LUID privilegeLuid;
@@ -2730,8 +2730,8 @@ BOOLEAN PhSetTokenPrivilege2(
  * whether virtualization is to be enabled for the token.
  */
 NTSTATUS PhSetTokenIsVirtualizationEnabled(
-    __in HANDLE TokenHandle,
-    __in BOOLEAN IsVirtualizationEnabled
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN IsVirtualizationEnabled
     )
 {
     ULONG virtualizationEnabled;
@@ -2758,9 +2758,9 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
  * of the integrity level.
  */
 NTSTATUS PhGetTokenIntegrityLevel(
-    __in HANDLE TokenHandle,
-    __out_opt PMANDATORY_LEVEL IntegrityLevel,
-    __out_opt PWSTR *IntegrityString
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PMANDATORY_LEVEL IntegrityLevel,
+    _Out_opt_ PWSTR *IntegrityString
     )
 {
     NTSTATUS status;
@@ -2816,9 +2816,9 @@ NTSTATUS PhGetTokenIntegrityLevel(
 }
 
 NTSTATUS PhpQueryFileVariableSize(
-    __in HANDLE FileHandle,
-    __in FILE_INFORMATION_CLASS FileInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -2867,8 +2867,8 @@ NTSTATUS PhpQueryFileVariableSize(
 }
 
 NTSTATUS PhGetFileSize(
-    __in HANDLE FileHandle,
-    __out PLARGE_INTEGER Size
+    _In_ HANDLE FileHandle,
+    _Out_ PLARGE_INTEGER Size
     )
 {
     NTSTATUS status;
@@ -2892,8 +2892,8 @@ NTSTATUS PhGetFileSize(
 }
 
 NTSTATUS PhSetFileSize(
-    __in HANDLE FileHandle,
-    __in PLARGE_INTEGER Size
+    _In_ HANDLE FileHandle,
+    _In_ PLARGE_INTEGER Size
     )
 {
     FILE_END_OF_FILE_INFORMATION endOfFileInfo;
@@ -2911,9 +2911,9 @@ NTSTATUS PhSetFileSize(
 }
 
 NTSTATUS PhpQueryTransactionManagerVariableSize(
-    __in HANDLE TransactionManagerHandle,
-    __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE TransactionManagerHandle,
+    _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -2964,8 +2964,8 @@ NTSTATUS PhpQueryTransactionManagerVariableSize(
 }
 
 NTSTATUS PhGetTransactionManagerBasicInformation(
-    __in HANDLE TransactionManagerHandle,
-    __out PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE TransactionManagerHandle,
+    _Out_ PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
     )
 {
     if (NtQueryInformationTransactionManager)
@@ -2985,8 +2985,8 @@ NTSTATUS PhGetTransactionManagerBasicInformation(
 }
 
 NTSTATUS PhGetTransactionManagerLogFileName(
-    __in HANDLE TransactionManagerHandle,
-    __out PPH_STRING *LogFileName
+    _In_ HANDLE TransactionManagerHandle,
+    _Out_ PPH_STRING *LogFileName
     )
 {
     NTSTATUS status;
@@ -3011,9 +3011,9 @@ NTSTATUS PhGetTransactionManagerLogFileName(
 }
 
 NTSTATUS PhpQueryTransactionVariableSize(
-    __in HANDLE TransactionHandle,
-    __in TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE TransactionHandle,
+    _In_ TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -3064,8 +3064,8 @@ NTSTATUS PhpQueryTransactionVariableSize(
 }
 
 NTSTATUS PhGetTransactionBasicInformation(
-    __in HANDLE TransactionHandle,
-    __out PTRANSACTION_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE TransactionHandle,
+    _Out_ PTRANSACTION_BASIC_INFORMATION BasicInformation
     )
 {
     if (NtQueryInformationTransaction)
@@ -3085,10 +3085,10 @@ NTSTATUS PhGetTransactionBasicInformation(
 }
 
 NTSTATUS PhGetTransactionPropertiesInformation(
-    __in HANDLE TransactionHandle,
-    __out_opt PLARGE_INTEGER Timeout,
-    __out_opt TRANSACTION_OUTCOME *Outcome,
-    __out_opt PPH_STRING *Description
+    _In_ HANDLE TransactionHandle,
+    _Out_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ TRANSACTION_OUTCOME *Outcome,
+    _Out_opt_ PPH_STRING *Description
     )
 {
     NTSTATUS status;
@@ -3127,9 +3127,9 @@ NTSTATUS PhGetTransactionPropertiesInformation(
 }
 
 NTSTATUS PhpQueryResourceManagerVariableSize(
-    __in HANDLE ResourceManagerHandle,
-    __in RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE ResourceManagerHandle,
+    _In_ RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -3180,9 +3180,9 @@ NTSTATUS PhpQueryResourceManagerVariableSize(
 }
 
 NTSTATUS PhGetResourceManagerBasicInformation(
-    __in HANDLE ResourceManagerHandle,
-    __out_opt PGUID Guid,
-    __out_opt PPH_STRING *Description
+    _In_ HANDLE ResourceManagerHandle,
+    _Out_opt_ PGUID Guid,
+    _Out_opt_ PPH_STRING *Description
     )
 {
     NTSTATUS status;
@@ -3216,8 +3216,8 @@ NTSTATUS PhGetResourceManagerBasicInformation(
 }
 
 NTSTATUS PhGetEnlistmentBasicInformation(
-    __in HANDLE EnlistmentHandle,
-    __out PENLISTMENT_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE EnlistmentHandle,
+    _Out_ PENLISTMENT_BASIC_INFORMATION BasicInformation
     )
 {
     if (NtQueryInformationEnlistment)
@@ -3244,9 +3244,9 @@ typedef struct _OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT
 } OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT, *POPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT;
 
 BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
-    __in PPH_STRING Name,
-    __in PPH_STRING TypeName,
-    __in_opt PVOID Context
+    _In_ PPH_STRING Name,
+    _In_ PPH_STRING TypeName,
+    _In_opt_ PVOID Context
     )
 {
     static PH_STRINGREF driverDirectoryName = PH_STRINGREF_INIT(L"\\Driver\\");
@@ -3320,8 +3320,8 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
  * handle.
  */
 NTSTATUS PhOpenDriverByBaseAddress(
-    __out PHANDLE DriverHandle,
-    __in PVOID BaseAddress
+    _Out_ PHANDLE DriverHandle,
+    _In_ PVOID BaseAddress
     )
 {
     NTSTATUS status;
@@ -3385,9 +3385,9 @@ NTSTATUS PhOpenDriverByBaseAddress(
  * handle.
  */
 NTSTATUS PhpQueryDriverVariableSize(
-    __in HANDLE DriverHandle,
-    __in DRIVER_INFORMATION_CLASS DriverInformationClass,
-    __out PVOID *Buffer
+    _In_ HANDLE DriverHandle,
+    _In_ DRIVER_INFORMATION_CLASS DriverInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -3435,8 +3435,8 @@ NTSTATUS PhpQueryDriverVariableSize(
  * handle.
  */
 NTSTATUS PhGetDriverServiceKeyName(
-    __in HANDLE DriverHandle,
-    __out PPH_STRING *ServiceKeyName
+    _In_ HANDLE DriverHandle,
+    _Out_ PPH_STRING *ServiceKeyName
     )
 {
     NTSTATUS status;
@@ -3459,7 +3459,7 @@ NTSTATUS PhGetDriverServiceKeyName(
 }
 
 NTSTATUS PhpUnloadDriver(
-    __in PPH_STRING ServiceKeyName
+    _In_ PPH_STRING ServiceKeyName
     )
 {
     static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
@@ -3542,8 +3542,8 @@ NTSTATUS PhpUnloadDriver(
  * could not be found.
  */
 NTSTATUS PhUnloadDriver(
-    __in_opt PVOID BaseAddress,
-    __in_opt PWSTR Name
+    _In_opt_ PVOID BaseAddress,
+    _In_opt_ PWSTR Name
     )
 {
     NTSTATUS status;
@@ -3624,13 +3624,13 @@ NTSTATUS PhUnloadDriver(
  * the handle.
  */
 NTSTATUS PhDuplicateObject(
-    __in HANDLE SourceProcessHandle,
-    __in HANDLE SourceHandle,
-    __in_opt HANDLE TargetProcessHandle,
-    __out_opt PHANDLE TargetHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __in ULONG Options
+    _In_ HANDLE SourceProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_opt_ HANDLE TargetProcessHandle,
+    _Out_opt_ PHANDLE TargetHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Options
     )
 {
     NTSTATUS status;
@@ -3665,10 +3665,10 @@ NTSTATUS PhDuplicateObject(
 }
 
 NTSTATUS PhpEnumProcessModules(
-    __in HANDLE ProcessHandle,
-    __in PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     )
 {
     NTSTATUS status;
@@ -3766,11 +3766,11 @@ NTSTATUS PhpEnumProcessModules(
 }
 
 BOOLEAN NTAPI PhpEnumProcessModulesCallback(
-    __in HANDLE ProcessHandle,
-    __in PLDR_DATA_TABLE_ENTRY Entry,
-    __in PVOID AddressOfEntry,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_ PVOID AddressOfEntry,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     )
 {
     NTSTATUS status;
@@ -3902,9 +3902,9 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
  * callback function.
  */
 NTSTATUS PhEnumProcessModules(
-    __in HANDLE ProcessHandle,
-    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
@@ -3927,8 +3927,8 @@ NTSTATUS PhEnumProcessModules(
  * \param Parameters The enumeration parameters.
  */
 NTSTATUS PhEnumProcessModulesEx(
-    __in HANDLE ProcessHandle,
-    __in PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
     )
 {
     return PhpEnumProcessModules(
@@ -3947,11 +3947,11 @@ typedef struct _SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT
 } SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT, *PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT;
 
 BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
-    __in HANDLE ProcessHandle,
-    __in PLDR_DATA_TABLE_ENTRY Entry,
-    __in PVOID AddressOfEntry,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_ PVOID AddressOfEntry,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     )
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
@@ -3984,9 +3984,9 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
  * \retval STATUS_DLL_NOT_FOUND The module was not found.
  */
 NTSTATUS PhSetProcessModuleLoadCount(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __in ULONG LoadCount
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ ULONG LoadCount
     )
 {
     NTSTATUS status;
@@ -4010,10 +4010,10 @@ NTSTATUS PhSetProcessModuleLoadCount(
 }
 
 NTSTATUS PhpEnumProcessModules32(
-    __in HANDLE ProcessHandle,
-    __in PPHP_ENUM_PROCESS_MODULES32_CALLBACK Callback,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PPHP_ENUM_PROCESS_MODULES32_CALLBACK Callback,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     )
 {
     NTSTATUS status;
@@ -4108,11 +4108,11 @@ NTSTATUS PhpEnumProcessModules32(
 }
 
 BOOLEAN NTAPI PhpEnumProcessModules32Callback(
-    __in HANDLE ProcessHandle,
-    __in PLDR_DATA_TABLE_ENTRY32 Entry,
-    __in ULONG AddressOfEntry,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
+    _In_ ULONG AddressOfEntry,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     )
 {
     static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\system32\\");
@@ -4274,9 +4274,9 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
  * environment.
  */
 NTSTATUS PhEnumProcessModules32(
-    __in HANDLE ProcessHandle,
-    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
@@ -4305,8 +4305,8 @@ NTSTATUS PhEnumProcessModules32(
  * environment.
  */
 NTSTATUS PhEnumProcessModules32Ex(
-    __in HANDLE ProcessHandle,
-    __in PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
     )
 {
     return PhpEnumProcessModules32(
@@ -4318,11 +4318,11 @@ NTSTATUS PhEnumProcessModules32Ex(
 }
 
 BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
-    __in HANDLE ProcessHandle,
-    __in PLDR_DATA_TABLE_ENTRY32 Entry,
-    __in ULONG AddressOfEntry,
-    __in_opt PVOID Context1,
-    __in_opt PVOID Context2
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
+    _In_ ULONG AddressOfEntry,
+    _In_opt_ PVOID Context1,
+    _In_opt_ PVOID Context2
     )
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
@@ -4360,9 +4360,9 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
  * environment.
  */
 NTSTATUS PhSetProcessModuleLoadCount32(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __in ULONG LoadCount
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ ULONG LoadCount
     )
 {
     NTSTATUS status;
@@ -4392,8 +4392,8 @@ typedef struct _GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT
 } GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT, *PGET_PROCEDURE_ADDRESS_REMOTE_CONTEXT;
 
 static BOOLEAN PhpGetProcedureAddressRemoteCallback(
-    __in PLDR_DATA_TABLE_ENTRY Module,
-    __in_opt PVOID Context
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_opt_ PVOID Context
     )
 {
     PGET_PROCEDURE_ADDRESS_REMOTE_CONTEXT context = Context;
@@ -4427,12 +4427,12 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
  * address of the DLL containing the procedure.
  */
 NTSTATUS PhGetProcedureAddressRemote(
-    __in HANDLE ProcessHandle,
-    __in PWSTR FileName,
-    __in_opt PSTR ProcedureName,
-    __in_opt ULONG ProcedureNumber,
-    __out PVOID *ProcedureAddress,
-    __out_opt PVOID *DllBase
+    _In_ HANDLE ProcessHandle,
+    _In_ PWSTR FileName,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ ULONG ProcedureNumber,
+    _Out_ PVOID *ProcedureAddress,
+    _Out_opt_ PVOID *DllBase
     )
 {
     NTSTATUS status;
@@ -4498,7 +4498,7 @@ CleanupExit:
  * using PhFree() when you no longer need it.
  */
 NTSTATUS PhEnumKernelModules(
-    __out PRTL_PROCESS_MODULES *Modules
+    _Out_ PRTL_PROCESS_MODULES *Modules
     )
 {
     NTSTATUS status;
@@ -4544,7 +4544,7 @@ NTSTATUS PhEnumKernelModules(
  * using PhFree() when you no longer need it.
  */
 NTSTATUS PhEnumKernelModulesEx(
-    __out PRTL_PROCESS_MODULE_INFORMATION_EX *Modules
+    _Out_ PRTL_PROCESS_MODULE_INFORMATION_EX *Modules
     )
 {
     NTSTATUS status;
@@ -4622,7 +4622,7 @@ PPH_STRING PhGetKernelFileName(
  * information contained in the buffer.
  */
 NTSTATUS PhEnumProcesses(
-    __out PVOID *Processes
+    _Out_ PVOID *Processes
     )
 {
     static ULONG initialBufferSize = 0x4000;
@@ -4679,8 +4679,8 @@ NTSTATUS PhEnumProcesses(
  * information contained in the buffer.
  */
 NTSTATUS PhEnumProcessesForSession(
-    __out PVOID *Processes,
-    __in ULONG SessionId
+    _Out_ PVOID *Processes,
+    _In_ ULONG SessionId
     )
 {
     static ULONG initialBufferSize = 0x4000;
@@ -4742,7 +4742,7 @@ NTSTATUS PhEnumProcessesForSession(
  * information contained in the buffer.
  */
 NTSTATUS PhEnumProcessesEx(
-    __out PVOID *Processes
+    _Out_ PVOID *Processes
     )
 {
     static ULONG initialBufferSize = 0x4000;
@@ -4798,8 +4798,8 @@ NTSTATUS PhEnumProcessesEx(
  * the structure could not be found.
  */
 PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
-    __in PVOID Processes,
-    __in HANDLE ProcessId
+    _In_ PVOID Processes,
+    _In_ HANDLE ProcessId
     )
 {
     PSYSTEM_PROCESS_INFORMATION process;
@@ -4828,8 +4828,8 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
  * the structure could not be found.
  */
 PSYSTEM_PROCESS_INFORMATION PhFindProcessInformationByImageName(
-    __in PVOID Processes,
-    __in PPH_STRINGREF ImageName
+    _In_ PVOID Processes,
+    _In_ PPH_STRINGREF ImageName
     )
 {
     PSYSTEM_PROCESS_INFORMATION process;
@@ -4861,7 +4861,7 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformationByImageName(
  * large.
  */
 NTSTATUS PhEnumHandles(
-    __out PSYSTEM_HANDLE_INFORMATION *Handles
+    _Out_ PSYSTEM_HANDLE_INFORMATION *Handles
     )
 {
     static ULONG initialBufferSize = 0x4000;
@@ -4918,7 +4918,7 @@ NTSTATUS PhEnumHandles(
  * with Windows XP.
  */
 NTSTATUS PhEnumHandlesEx(
-    __out PSYSTEM_HANDLE_INFORMATION_EX *Handles
+    _Out_ PSYSTEM_HANDLE_INFORMATION_EX *Handles
     )
 {
     static ULONG initialBufferSize = 0x10000;
@@ -4972,7 +4972,7 @@ NTSTATUS PhEnumHandlesEx(
  * large.
  */
 NTSTATUS PhEnumPagefiles(
-    __out PVOID *Pagefiles
+    _Out_ PVOID *Pagefiles
     )
 {
     NTSTATUS status;
@@ -5023,8 +5023,8 @@ NTSTATUS PhEnumPagefiles(
  * performed by the kernel for this.
  */
 NTSTATUS PhGetProcessImageFileNameByProcessId(
-    __in HANDLE ProcessId,
-    __out PPH_STRING *FileName
+    _In_ HANDLE ProcessId,
+    _Out_ PPH_STRING *FileName
     )
 {
     NTSTATUS status;
@@ -5082,16 +5082,16 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
  * whether the process is managed.
  */
 NTSTATUS PhGetProcessIsDotNet(
-    __in HANDLE ProcessId,
-    __out PBOOLEAN IsDotNet
+    _In_ HANDLE ProcessId,
+    _Out_ PBOOLEAN IsDotNet
     )
 {
     return PhGetProcessIsDotNetEx(ProcessId, NULL, 0, IsDotNet, NULL);
 }
 
 BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
-    __in PLDR_DATA_TABLE_ENTRY Module,
-    __in_opt PVOID Context
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_opt_ PVOID Context
     )
 {
     static UNICODE_STRING clrString = RTL_CONSTANT_STRING(L"clr.dll");
@@ -5192,11 +5192,11 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
  * \param Flags A variable which receives additional flags.
  */
 NTSTATUS PhGetProcessIsDotNetEx(
-    __in HANDLE ProcessId,
-    __in_opt HANDLE ProcessHandle,
-    __in ULONG InFlags,
-    __out_opt PBOOLEAN IsDotNet,
-    __out_opt PULONG Flags
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ ULONG InFlags,
+    _Out_opt_ PBOOLEAN IsDotNet,
+    _Out_opt_ PULONG Flags
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -5352,9 +5352,9 @@ NTSTATUS PhGetProcessIsDotNetEx(
  * callback function.
  */
 NTSTATUS PhEnumDirectoryObjects(
-    __in HANDLE DirectoryHandle,
-    __in PPH_ENUM_DIRECTORY_OBJECTS Callback,
-    __in_opt PVOID Context
+    _In_ HANDLE DirectoryHandle,
+    _In_ PPH_ENUM_DIRECTORY_OBJECTS Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -5451,10 +5451,10 @@ NTSTATUS PhEnumDirectoryObjects(
 }
 
 NTSTATUS PhEnumDirectoryFile(
-    __in HANDLE FileHandle,
-    __in_opt PUNICODE_STRING SearchPattern,
-    __in PPH_ENUM_DIRECTORY_FILE Callback,
-    __in_opt PVOID Context
+    _In_ HANDLE FileHandle,
+    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -5558,8 +5558,8 @@ NTSTATUS PhEnumDirectoryFile(
 }
 
 NTSTATUS PhEnumFileStreams(
-    __in HANDLE FileHandle,
-    __out PVOID *Streams
+    _In_ HANDLE FileHandle,
+    _Out_ PVOID *Streams
     )
 {
     return PhpQueryFileVariableSize(
@@ -5755,7 +5755,7 @@ VOID PhUpdateDosDevicePrefixes(
  * when you no longer need it.
  */
 PPH_STRING PhResolveDevicePrefix(
-    __in PPH_STRING Name
+    _In_ PPH_STRING Name
     )
 {
     ULONG i;
@@ -5874,7 +5874,7 @@ PPH_STRING PhResolveDevicePrefix(
  * PhResolveDevicePrefix().
  */
 PPH_STRING PhGetFileName(
-    __in PPH_STRING FileName
+    _In_ PPH_STRING FileName
     )
 {
     PPH_STRING newFileName;
@@ -5945,8 +5945,8 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 } ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
 
 static BOOLEAN EnumGenericProcessModulesCallback(
-    __in PLDR_DATA_TABLE_ENTRY Module,
-    __in_opt PVOID Context
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_opt_ PVOID Context
     )
 {
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
@@ -5989,10 +5989,10 @@ static BOOLEAN EnumGenericProcessModulesCallback(
 }
 
 VOID PhpRtlModulesToGenericModules(
-    __in PRTL_PROCESS_MODULES Modules,
-    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context,
-    __in PPH_HASHTABLE BaseAddressHashtable
+    _In_ PRTL_PROCESS_MODULES Modules,
+    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PRTL_PROCESS_MODULE_INFORMATION module;
@@ -6059,10 +6059,10 @@ VOID PhpRtlModulesToGenericModules(
 }
 
 VOID PhpRtlModulesExToGenericModules(
-    __in PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
-    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context,
-    __in PPH_HASHTABLE BaseAddressHashtable
+    _In_ PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
+    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PRTL_PROCESS_MODULE_INFORMATION_EX module;
@@ -6116,13 +6116,13 @@ VOID PhpRtlModulesExToGenericModules(
 }
 
 BOOLEAN PhpCallbackMappedFileOrImage(
-    __in PVOID AllocationBase,
-    __in SIZE_T AllocationSize,
-    __in ULONG Type,
-    __in PPH_STRING FileName,
-    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context,
-    __in PPH_HASHTABLE BaseAddressHashtable
+    _In_ PVOID AllocationBase,
+    _In_ SIZE_T AllocationSize,
+    _In_ ULONG Type,
+    _In_ PPH_STRING FileName,
+    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PH_MODULE_INFO moduleInfo;
@@ -6147,11 +6147,11 @@ BOOLEAN PhpCallbackMappedFileOrImage(
 }
 
 VOID PhpEnumGenericMappedFilesAndImages(
-    __in HANDLE ProcessHandle,
-    __in ULONG Flags,
-    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context,
-    __in PPH_HASHTABLE BaseAddressHashtable
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG Flags,
+    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
     BOOLEAN querySucceeded;
@@ -6272,15 +6272,15 @@ VOID PhpEnumGenericMappedFilesAndImages(
 }
 
 BOOLEAN NTAPI PhpBaseAddressHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     return *(PVOID *)Entry1 == *(PVOID *)Entry2;
 }
 
 ULONG NTAPI PhpBaseAddressHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
 #ifdef _M_IX86
@@ -6309,11 +6309,11 @@ ULONG NTAPI PhpBaseAddressHashtableHashFunction(
  * to the callback function.
  */
 NTSTATUS PhEnumGenericModules(
-    __in HANDLE ProcessId,
-    __in_opt HANDLE ProcessHandle,
-    __in ULONG Flags,
-    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ ULONG Flags,
+    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -6493,11 +6493,11 @@ VOID PhpInitializePredefineKeys(
  * be set to NULL if no handle needs to be closed.
  */
 NTSTATUS PhpInitializeKeyObjectAttributes(
-    __in_opt HANDLE RootDirectory,
-    __in PUNICODE_STRING ObjectName,
-    __in ULONG Attributes,
-    __out POBJECT_ATTRIBUTES ObjectAttributes,
-    __out PHANDLE NeedsClose
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ ULONG Attributes,
+    _Out_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PHANDLE NeedsClose
     )
 {
     NTSTATUS status;
@@ -6592,13 +6592,13 @@ NTSTATUS PhpInitializeKeyObjectAttributes(
  * \li \c REG_OPENED_EXISTING_KEY An existing key was opened.
  */
 NTSTATUS PhCreateKey(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt HANDLE RootDirectory,
-    __in PPH_STRINGREF ObjectName,
-    __in ULONG Attributes,
-    __in ULONG CreateOptions,
-    __out_opt PULONG Disposition
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF ObjectName,
+    _In_ ULONG Attributes,
+    _In_ ULONG CreateOptions,
+    _Out_opt_ PULONG Disposition
     )
 {
     NTSTATUS status;
@@ -6647,11 +6647,11 @@ NTSTATUS PhCreateKey(
  * \param Attributes Additional object flags.
  */
 NTSTATUS PhOpenKey(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt HANDLE RootDirectory,
-    __in PPH_STRINGREF ObjectName,
-    __in ULONG Attributes
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF ObjectName,
+    _In_ ULONG Attributes
     )
 {
     NTSTATUS status;

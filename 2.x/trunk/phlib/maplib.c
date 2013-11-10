@@ -31,21 +31,21 @@
 #include <ph.h>
 
 VOID PhpMappedArchiveProbe(
-    __in PPH_MAPPED_ARCHIVE MappedArchive,
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PPH_MAPPED_ARCHIVE MappedArchive,
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     );
 
 NTSTATUS PhpGetMappedArchiveMemberFromHeader(
-    __in PPH_MAPPED_ARCHIVE MappedArchive,
-    __in PIMAGE_ARCHIVE_MEMBER_HEADER Header,
-    __out PPH_MAPPED_ARCHIVE_MEMBER Member
+    _In_ PPH_MAPPED_ARCHIVE MappedArchive,
+    _In_ PIMAGE_ARCHIVE_MEMBER_HEADER Header,
+    _Out_ PPH_MAPPED_ARCHIVE_MEMBER Member
     );
 
 NTSTATUS PhInitializeMappedArchive(
-    __out PPH_MAPPED_ARCHIVE MappedArchive,
-    __in PVOID ViewBase,
-    __in SIZE_T Size
+    _Out_ PPH_MAPPED_ARCHIVE MappedArchive,
+    _In_ PVOID ViewBase,
+    _In_ SIZE_T Size
     )
 {
     NTSTATUS status;
@@ -130,10 +130,10 @@ NTSTATUS PhInitializeMappedArchive(
 }
 
 NTSTATUS PhLoadMappedArchive(
-    __in_opt PWSTR FileName,
-    __in_opt HANDLE FileHandle,
-    __in BOOLEAN ReadOnly,
-    __out PPH_MAPPED_ARCHIVE MappedArchive
+    _In_opt_ PWSTR FileName,
+    _In_opt_ HANDLE FileHandle,
+    _In_ BOOLEAN ReadOnly,
+    _Out_ PPH_MAPPED_ARCHIVE MappedArchive
     )
 {
     NTSTATUS status;
@@ -164,7 +164,7 @@ NTSTATUS PhLoadMappedArchive(
 }
 
 NTSTATUS PhUnloadMappedArchive(
-    __inout PPH_MAPPED_ARCHIVE MappedArchive
+    _Inout_ PPH_MAPPED_ARCHIVE MappedArchive
     )
 {
     return NtUnmapViewOfSection(
@@ -174,9 +174,9 @@ NTSTATUS PhUnloadMappedArchive(
 }
 
 VOID PhpMappedArchiveProbe(
-    __in PPH_MAPPED_ARCHIVE MappedArchive,
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PPH_MAPPED_ARCHIVE MappedArchive,
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     )
 {
     PhProbeAddress(Address, Length, MappedArchive->ViewBase, MappedArchive->Size, 1);
@@ -191,8 +191,8 @@ VOID PhpMappedArchiveProbe(
  * the same as the pointer specified in \a Member.
  */
 NTSTATUS PhGetNextMappedArchiveMember(
-    __in PPH_MAPPED_ARCHIVE_MEMBER Member,
-    __out PPH_MAPPED_ARCHIVE_MEMBER NextMember
+    _In_ PPH_MAPPED_ARCHIVE_MEMBER Member,
+    _Out_ PPH_MAPPED_ARCHIVE_MEMBER NextMember
     )
 {
     PIMAGE_ARCHIVE_MEMBER_HEADER nextHeader;
@@ -214,9 +214,9 @@ NTSTATUS PhGetNextMappedArchiveMember(
 }
 
 NTSTATUS PhpGetMappedArchiveMemberFromHeader(
-    __in PPH_MAPPED_ARCHIVE MappedArchive,
-    __in PIMAGE_ARCHIVE_MEMBER_HEADER Header,
-    __out PPH_MAPPED_ARCHIVE_MEMBER Member
+    _In_ PPH_MAPPED_ARCHIVE MappedArchive,
+    _In_ PIMAGE_ARCHIVE_MEMBER_HEADER Header,
+    _Out_ PPH_MAPPED_ARCHIVE_MEMBER Member
     )
 {
     WCHAR integerString[11];
@@ -356,7 +356,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 }
 
 BOOLEAN PhIsMappedArchiveMemberShortFormat(
-    __in PPH_MAPPED_ARCHIVE_MEMBER Member
+    _In_ PPH_MAPPED_ARCHIVE_MEMBER Member
     )
 {
     PIMAGE_FILE_HEADER header;
@@ -367,8 +367,8 @@ BOOLEAN PhIsMappedArchiveMemberShortFormat(
 }
 
 NTSTATUS PhGetMappedArchiveImportEntry(
-    __in PPH_MAPPED_ARCHIVE_MEMBER Member,
-    __out PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
+    _In_ PPH_MAPPED_ARCHIVE_MEMBER Member,
+    _Out_ PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     )
 {
     IMPORT_OBJECT_HEADER *importHeader;

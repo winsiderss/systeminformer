@@ -65,7 +65,7 @@ typedef struct _PH_UPDATER_CONTEXT
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID ShowUpdateDialog(
-    __in_opt PPH_UPDATER_CONTEXT Context
+    _In_opt_ PPH_UPDATER_CONTEXT Context
     );
 
 VOID StartInitialCheck(
@@ -73,7 +73,7 @@ VOID StartInitialCheck(
     );
 
 PPH_STRING PhGetOpaqueXmlNodeText(
-    __in mxml_node_t *xmlNode
+    _In_ mxml_node_t *xmlNode
     );
 
 BOOL PhInstalledUsingSetup(
@@ -85,22 +85,22 @@ BOOL ConnectionAvailable(
     );
 
 INT_PTR CALLBACK UpdaterWndProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 typedef BOOL (WINAPI *_InternetGetConnectedState)(
-    __out PULONG Flags,
-    __reserved ULONG Reserved
+    _Out_ PULONG Flags,
+    _Reserved_ ULONG Reserved
     );
 
 #endif

@@ -23,29 +23,29 @@
 #include <phbase.h>
 
 PPH_STRING PhaCreateString(
-    __in PWSTR Buffer
+    _In_ PWSTR Buffer
     )
 {
     return PHA_DEREFERENCE(PhCreateString(Buffer));
 }
 
 PPH_STRING PhaCreateStringEx(
-    __in_opt PWSTR Buffer,
-    __in SIZE_T Length
+    _In_opt_ PWSTR Buffer,
+    _In_ SIZE_T Length
     )
 {
     return PHA_DEREFERENCE(PhCreateStringEx(Buffer, Length));
 }
 
 PPH_STRING PhaDuplicateString(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     return PHA_DEREFERENCE(PhDuplicateString(String));
 }
 
 PPH_STRING PhaConcatStrings(
-    __in ULONG Count,
+    _In_ ULONG Count,
     ...
     )
 {
@@ -57,15 +57,15 @@ PPH_STRING PhaConcatStrings(
 }
 
 PPH_STRING PhaConcatStrings2(
-    __in PWSTR String1,
-    __in PWSTR String2
+    _In_ PWSTR String1,
+    _In_ PWSTR String2
     )
 {
     return PHA_DEREFERENCE(PhConcatStrings2(String1, String2));
 }
 
 PPH_STRING PhaFormatString(
-    __in __format_string PWSTR Format,
+    _In_ _Printf_format_string_ PWSTR Format,
     ...
     )
 {
@@ -77,7 +77,7 @@ PPH_STRING PhaFormatString(
 }
 
 PPH_STRING PhaLowerString(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     PPH_STRING newString;
@@ -89,7 +89,7 @@ PPH_STRING PhaLowerString(
 }
 
 PPH_STRING PhaUpperString(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     PPH_STRING newString;
@@ -101,9 +101,9 @@ PPH_STRING PhaUpperString(
 }
 
 PPH_STRING PhaSubstring(
-    __in PPH_STRING String,
-    __in SIZE_T StartIndex,
-    __in SIZE_T Count
+    _In_ PPH_STRING String,
+    _In_ SIZE_T StartIndex,
+    _In_ SIZE_T Count
     )
 {
     return PHA_DEREFERENCE(PhSubstring(String, StartIndex, Count));

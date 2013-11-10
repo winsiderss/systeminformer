@@ -29,9 +29,9 @@ typedef enum _PH_EM_OBJECT_OPERATION
 } PH_EM_OBJECT_OPERATION;
 
 typedef VOID (NTAPI *PPH_EM_OBJECT_CALLBACK)(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     );
 
 typedef struct _PH_EM_APP_CONTEXT

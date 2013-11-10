@@ -153,568 +153,568 @@ typedef struct _PH_TREENEW_CONTEXT
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 BOOLEAN NTAPI PhTnpNullCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 VOID PhTnpCreateTreeNewContext(
-    __out PPH_TREENEW_CONTEXT *Context
+    _Out_ PPH_TREENEW_CONTEXT *Context
     );
 
 VOID PhTnpDestroyTreeNewContext(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 // Event handlers
 
 BOOLEAN PhTnpOnCreate(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in CREATESTRUCT *CreateStruct
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ CREATESTRUCT *CreateStruct
     );
 
 VOID PhTnpOnSize(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnSetFont(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt HFONT Font,
-    __in LOGICAL Redraw
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ HFONT Font,
+    _In_ LOGICAL Redraw
     );
 
 VOID PhTnpOnStyleChanged(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Type,
-    __in STYLESTRUCT *StyleStruct
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Type,
+    _In_ STYLESTRUCT *StyleStruct
     );
 
 VOID PhTnpOnSettingChange(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnThemeChanged(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 ULONG PhTnpOnGetDlgCode(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey,
-    __in_opt PMSG Message
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey,
+    _In_opt_ PMSG Message
     );
 
 VOID PhTnpOnPaint(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnPrintClient(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in ULONG Flags
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ ULONG Flags
     );
 
 BOOLEAN PhTnpOnNcPaint(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt HRGN UpdateRegion
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ HRGN UpdateRegion
     );
 
 BOOLEAN PhTnpOnSetCursor(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HWND CursorWindowHandle
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HWND CursorWindowHandle
     );
 
 VOID PhTnpOnTimer(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id
     );
 
 VOID PhTnpOnMouseMove(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     );
 
 VOID PhTnpOnMouseLeave(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnXxxButtonXxx(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Message,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Message,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     );
 
 VOID PhTnpOnCaptureChanged(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnKeyDown(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey,
-    __in ULONG Data
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey,
+    _In_ ULONG Data
     );
 
 VOID PhTnpOnChar(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Character,
-    __in ULONG Data
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Character,
+    _In_ ULONG Data
     );
 
 VOID PhTnpOnMouseWheel(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     );
 
 VOID PhTnpOnMouseHWheel(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     );
 
 VOID PhTnpOnContextMenu(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorScreenX,
-    __in LONG CursorScreenY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorScreenX,
+    _In_ LONG CursorScreenY
     );
 
 VOID PhTnpOnVScroll(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Request
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Request
     );
 
 VOID PhTnpOnHScroll(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Request
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Request
     );
 
 BOOLEAN PhTnpOnNotify(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in NMHDR *Header,
-    __out LRESULT *Result
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ NMHDR *Header,
+    _Out_ LRESULT *Result
     );
 
 ULONG_PTR PhTnpOnUserMessage(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Message,
-    __in ULONG_PTR WParam,
-    __in ULONG_PTR LParam
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Message,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam
     );
 
 // Misc.
 
 VOID PhTnpSetFont(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt HFONT Font,
-    __in BOOLEAN Redraw
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ HFONT Font,
+    _In_ BOOLEAN Redraw
     );
 
 VOID PhTnpUpdateSystemMetrics(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpUpdateTextMetrics(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpUpdateThemeData(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpInitializeThemeData(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpCancelTrack(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpLayout(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpLayoutHeader(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpSetFixedWidth(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG FixedWidth
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG FixedWidth
     );
 
 VOID PhTnpSetRedraw(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Redraw
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Redraw
     );
 
 VOID PhTnpSendMouseEvent(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PH_TREENEW_MESSAGE Message,
-    __in LONG CursorX,
-    __in LONG CursorY,
-    __in PPH_TREENEW_NODE Node,
-    __in PPH_TREENEW_COLUMN Column,
-    __in ULONG VirtualKeys
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG VirtualKeys
     );
 
 // Columns
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id
     );
 
 BOOLEAN PhTnpAddColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column
     );
 
 BOOLEAN PhTnpRemoveColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id
     );
 
 BOOLEAN PhTnpCopyColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id,
-    __out PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id,
+    _Out_ PPH_TREENEW_COLUMN Column
     );
 
 BOOLEAN PhTnpChangeColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Mask,
-    __in ULONG Id,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Mask,
+    _In_ ULONG Id,
+    _In_ PPH_TREENEW_COLUMN Column
     );
 
 VOID PhTnpExpandAllocatedColumns(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpUpdateColumnMaps(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 // Columns (header control)
 
 LONG PhTnpInsertColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column
     );
 
 VOID PhTnpChangeColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Mask,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Mask,
+    _In_ PPH_TREENEW_COLUMN Column
     );
 
 VOID PhTnpDeleteColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_TREENEW_COLUMN Column
     );
 
 VOID PhTnpUpdateColumnHeaders(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpProcessResizeColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN Column,
-    __in LONG Delta
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ LONG Delta
     );
 
 VOID PhTnpProcessSortColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN NewColumn
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN NewColumn
     );
 
 BOOLEAN PhTnpSetColumnHeaderSortIcon(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt PPH_TREENEW_COLUMN SortColumnPointer
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ PPH_TREENEW_COLUMN SortColumnPointer
     );
 
 VOID PhTnpAutoSizeColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HWND HeaderHandle,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HWND HeaderHandle,
+    _In_ PPH_TREENEW_COLUMN Column
     );
 
 // Nodes
 
 BOOLEAN PhTnpGetNodeChildren(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt PPH_TREENEW_NODE Node,
-    __out PPH_TREENEW_NODE **Children,
-    __out PULONG NumberOfChildren
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ PPH_TREENEW_NODE Node,
+    _Out_ PPH_TREENEW_NODE **Children,
+    _Out_ PULONG NumberOfChildren
     );
 
 BOOLEAN PhTnpIsNodeLeaf(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node
     );
 
 BOOLEAN PhTnpGetCellText(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in ULONG Id,
-    __out PPH_STRINGREF Text
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ ULONG Id,
+    _Out_ PPH_STRINGREF Text
     );
 
 VOID PhTnpRestructureNodes(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpInsertNodeChildren(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in ULONG Level
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ ULONG Level
     );
 
 VOID PhTnpSetExpandedNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in BOOLEAN Expanded
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ BOOLEAN Expanded
     );
 
 BOOLEAN PhTnpGetCellParts(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Index,
-    __in_opt PPH_TREENEW_COLUMN Column,
-    __in ULONG Flags,
-    __out PPH_TREENEW_CELL_PARTS Parts
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Index,
+    _In_opt_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG Flags,
+    _Out_ PPH_TREENEW_CELL_PARTS Parts
     );
 
 BOOLEAN PhTnpGetRowRects(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Start,
-    __in ULONG End,
-    __in BOOLEAN Clip,
-    __out PRECT Rect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Start,
+    _In_ ULONG End,
+    _In_ BOOLEAN Clip,
+    _Out_ PRECT Rect
     );
 
 VOID PhTnpHitTest(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_HIT_TEST HitTest
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_TREENEW_HIT_TEST HitTest
     );
 
 VOID PhTnpSelectRange(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Start,
-    __in ULONG End,
-    __in ULONG Flags,
-    __out_opt PULONG ChangedStart,
-    __out_opt PULONG ChangedEnd
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Start,
+    _In_ ULONG End,
+    _In_ ULONG Flags,
+    _Out_opt_ PULONG ChangedStart,
+    _Out_opt_ PULONG ChangedEnd
     );
 
 VOID PhTnpSetHotNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt PPH_TREENEW_NODE NewHotNode,
-    __in BOOLEAN NewPlusMinusHot
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ PPH_TREENEW_NODE NewHotNode,
+    _In_ BOOLEAN NewPlusMinusHot
     );
 
 VOID PhTnpProcessSelectNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in LOGICAL ControlKey,
-    __in LOGICAL ShiftKey,
-    __in LOGICAL RightButton
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ LOGICAL ControlKey,
+    _In_ LOGICAL ShiftKey,
+    _In_ LOGICAL RightButton
     );
 
 BOOLEAN PhTnpEnsureVisibleNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Index
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Index
     );
 
 // Mouse
 
 VOID PhTnpProcessMoveMouse(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     );
 
 VOID PhTnpProcessMouseVWheel(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance
     );
 
 VOID PhTnpProcessMouseHWheel(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance
     );
 
 // Keyboard
 
 BOOLEAN PhTnpProcessFocusKey(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey
     );
 
 BOOLEAN PhTnpProcessNodeKey(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey
     );
 
 VOID PhTnpProcessSearchKey(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Character
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Character
     );
 
 BOOLEAN PhTnpDefaultIncrementalSearch(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_SEARCH_EVENT SearchEvent,
-    __in BOOLEAN Partial,
-    __in BOOLEAN Wrap
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_TREENEW_SEARCH_EVENT SearchEvent,
+    _In_ BOOLEAN Partial,
+    _In_ BOOLEAN Wrap
     );
 
 // Scrolling
 
 VOID PhTnpUpdateScrollBars(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpScroll(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG DeltaRows,
-    __in LONG DeltaX
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG DeltaRows,
+    _In_ LONG DeltaX
     );
 
 VOID PhTnpProcessScroll(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG DeltaRows,
-    __in LONG DeltaX
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG DeltaRows,
+    _In_ LONG DeltaX
     );
 
 BOOLEAN PhTnpCanScroll(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Horizontal,
-    __in BOOLEAN Positive
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Horizontal,
+    _In_ BOOLEAN Positive
     );
 
 // Drawing
 
 VOID PhTnpPaint(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT PaintRect
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ PRECT PaintRect
     );
 
 VOID PhTnpPrepareRowForDraw(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __inout PPH_TREENEW_NODE Node
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _Inout_ PPH_TREENEW_NODE Node
     );
 
 VOID PhTnpDrawCell(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT CellRect,
-    __in PPH_TREENEW_NODE Node,
-    __in PPH_TREENEW_COLUMN Column,
-    __in LONG RowIndex,
-    __in LONG ColumnIndex
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ PRECT CellRect,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ LONG RowIndex,
+    _In_ LONG ColumnIndex
     );
 
 VOID PhTnpDrawDivider(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc
     );
 
 VOID PhTnpDrawPlusMinusGlyph(
-    __in HDC hdc,
-    __in PRECT Rect,
-    __in BOOLEAN Plus
+    _In_ HDC hdc,
+    _In_ PRECT Rect,
+    _In_ BOOLEAN Plus
     );
 
 VOID PhTnpDrawSelectionRectangle(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT Rect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ PRECT Rect
     );
 
 VOID PhTnpDrawThemedBorder(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc
     );
 
 // Tooltips
 
 VOID PhTnpInitializeTooltips(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpGetTooltipText(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPOINT Point,
-    __out PWSTR *Text
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPOINT Point,
+    _Out_ PWSTR *Text
     );
 
 BOOLEAN PhTnpPrepareTooltipShow(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpPrepareTooltipPop(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpPopTooltip(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 PPH_TREENEW_COLUMN PhTnpHitTestHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Fixed,
-    __in PPOINT Point,
-    __out_opt PRECT ItemRect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Fixed,
+    _In_ PPOINT Point,
+    _Out_opt_ PRECT ItemRect
     );
 
 VOID PhTnpGetHeaderTooltipText(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Fixed,
-    __in PPOINT Point,
-    __out PWSTR *Text
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Fixed,
+    _In_ PPOINT Point,
+    _Out_ PWSTR *Text
     );
 
 PWSTR PhTnpMakeContextAtom(
@@ -722,51 +722,51 @@ PWSTR PhTnpMakeContextAtom(
     );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // Drag selection
 
 BOOLEAN PhTnpDetectDrag(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorX,
-    __in LONG CursorY,
-    __in BOOLEAN DispatchMessages,
-    __out_opt PULONG CancelledByMessage
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY,
+    _In_ BOOLEAN DispatchMessages,
+    _Out_opt_ PULONG CancelledByMessage
     );
 
 VOID PhTnpDragSelect(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     );
 
 VOID PhTnpProcessDragSelect(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKeys,
-    __in PRECT OldRect,
-    __in PRECT NewRect,
-    __in PRECT TotalRect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKeys,
+    _In_ PRECT OldRect,
+    _In_ PRECT NewRect,
+    _In_ PRECT TotalRect
     );
 
 // Double buffering
 
 VOID PhTnpCreateBufferedContext(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpDestroyBufferedContext(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 // Support functions
 
 VOID PhTnpGetMessagePos(
-    __in HWND hwnd,
-    __out PPOINT ClientPoint
+    _In_ HWND hwnd,
+    _Out_ PPOINT ClientPoint
     );
 
 // Macros

@@ -27,7 +27,7 @@
 #define TICK_INDEX 1
 
 typedef NTSTATUS (NTAPI *PTEST_PROC)(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     );
 
 typedef struct _TEST_ITEM
@@ -38,15 +38,15 @@ typedef struct _TEST_ITEM
 } TEST_ITEM, *PTEST_ITEM;
 
 INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowProcessTerminatorDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     NTSTATUS status;
@@ -114,7 +114,7 @@ static PVOID GetExitProcessFunction(
 }
 
 static NTSTATUS NTAPI TerminatorTP1(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -136,7 +136,7 @@ static NTSTATUS NTAPI TerminatorTP1(
 }
 
 static NTSTATUS NTAPI TerminatorTP2(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -168,9 +168,9 @@ static NTSTATUS NTAPI TerminatorTP2(
 }
 
 static NTSTATUS NTAPI TerminatorTTGeneric(
-    __in HANDLE ProcessId,
-    __in BOOLEAN UseKph,
-    __in BOOLEAN UseKphDangerous
+    _In_ HANDLE ProcessId,
+    _In_ BOOLEAN UseKph,
+    _In_ BOOLEAN UseKphDangerous
     )
 {
     NTSTATUS status;
@@ -219,14 +219,14 @@ static NTSTATUS NTAPI TerminatorTTGeneric(
 }
 
 static NTSTATUS NTAPI TerminatorTT1(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     return TerminatorTTGeneric(ProcessId, FALSE, FALSE);
 }
 
 static NTSTATUS NTAPI TerminatorTT2(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -281,7 +281,7 @@ static NTSTATUS NTAPI TerminatorTT2(
 }
 
 static NTSTATUS NTAPI TerminatorTP1a(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -336,7 +336,7 @@ static NTSTATUS NTAPI TerminatorTP1a(
 }
 
 static NTSTATUS NTAPI TerminatorTT1a(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -398,7 +398,7 @@ static NTSTATUS NTAPI TerminatorTT1a(
 }
 
 static NTSTATUS NTAPI TerminatorCH1(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -432,8 +432,8 @@ static NTSTATUS NTAPI TerminatorCH1(
 }
 
 static BOOL CALLBACK DestroyProcessWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ LPARAM lParam
     )
 {
     ULONG processId;
@@ -449,7 +449,7 @@ static BOOL CALLBACK DestroyProcessWindowsProc(
 }
 
 static NTSTATUS NTAPI TerminatorW1(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     EnumWindows(DestroyProcessWindowsProc, (LPARAM)ProcessId);
@@ -457,8 +457,8 @@ static NTSTATUS NTAPI TerminatorW1(
 }
 
 static BOOL CALLBACK QuitProcessWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ LPARAM lParam
     )
 {
     ULONG processId;
@@ -474,7 +474,7 @@ static BOOL CALLBACK QuitProcessWindowsProc(
 }
 
 static NTSTATUS NTAPI TerminatorW2(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     EnumWindows(QuitProcessWindowsProc, (LPARAM)ProcessId);
@@ -482,8 +482,8 @@ static NTSTATUS NTAPI TerminatorW2(
 }
 
 static BOOL CALLBACK CloseProcessWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ LPARAM lParam
     )
 {
     ULONG processId;
@@ -499,7 +499,7 @@ static BOOL CALLBACK CloseProcessWindowsProc(
 }
 
 static NTSTATUS NTAPI TerminatorW3(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     EnumWindows(CloseProcessWindowsProc, (LPARAM)ProcessId);
@@ -507,7 +507,7 @@ static NTSTATUS NTAPI TerminatorW3(
 }
 
 static NTSTATUS NTAPI TerminatorTJ1(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -542,7 +542,7 @@ static NTSTATUS NTAPI TerminatorTJ1(
 }
 
 static NTSTATUS NTAPI TerminatorTD1(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -583,7 +583,7 @@ static NTSTATUS NTAPI TerminatorTD1(
 }
 
 static NTSTATUS NTAPI TerminatorTP3(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -607,21 +607,21 @@ static NTSTATUS NTAPI TerminatorTP3(
 }
 
 static NTSTATUS NTAPI TerminatorTT3(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     return TerminatorTTGeneric(ProcessId, TRUE, FALSE);
 }
 
 static NTSTATUS NTAPI TerminatorTT4(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     return TerminatorTTGeneric(ProcessId, FALSE, TRUE);
 }
 
 static NTSTATUS NTAPI TerminatorM1(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -702,7 +702,7 @@ static NTSTATUS NTAPI TerminatorM1(
 }
 
 static NTSTATUS NTAPI TerminatorM2(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -770,8 +770,8 @@ TEST_ITEM PhTerminatorTests[] =
 };
 
 static BOOLEAN PhpRunTerminatorTest(
-    __in HWND WindowHandle,
-    __in INT Index
+    _In_ HWND WindowHandle,
+    _In_ INT Index
     )
 {
     NTSTATUS status;
@@ -840,10 +840,10 @@ static BOOLEAN PhpRunTerminatorTest(
 }
 
 static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

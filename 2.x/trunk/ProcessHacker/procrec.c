@@ -29,15 +29,15 @@ typedef struct _PROCESS_RECORD_CONTEXT
 } PROCESS_RECORD_CONTEXT, *PPROCESS_RECORD_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessRecordDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowProcessRecordDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_RECORD Record
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_RECORD Record
     )
 {
     PROCESS_RECORD_CONTEXT context;
@@ -54,7 +54,7 @@ VOID PhShowProcessRecordDialog(
 }
 
 PPH_STRING PhapGetRelativeTimeString(
-    __in PLARGE_INTEGER Time
+    _In_ PLARGE_INTEGER Time
     )
 {
     LARGE_INTEGER time;
@@ -74,7 +74,7 @@ PPH_STRING PhapGetRelativeTimeString(
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     if (String)
@@ -84,10 +84,10 @@ FORCEINLINE PWSTR PhpGetStringOrNa(
 }
 
 INT_PTR CALLBACK PhpProcessRecordDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPROCESS_RECORD_CONTEXT context = NULL;

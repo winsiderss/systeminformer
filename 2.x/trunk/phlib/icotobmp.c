@@ -4,22 +4,22 @@
 // code from http://msdn.microsoft.com/en-us/library/bb757020.aspx
 
 typedef HPAINTBUFFER (*_BeginBufferedPaint)(
-    __in HDC hdcTarget,
-    __in const RECT *prcTarget,
-    __in BP_BUFFERFORMAT dwFormat,
-    __in BP_PAINTPARAMS *pPaintParams,
-    __out HDC *phdc
+    _In_ HDC hdcTarget,
+    _In_ const RECT *prcTarget,
+    _In_ BP_BUFFERFORMAT dwFormat,
+    _In_ BP_PAINTPARAMS *pPaintParams,
+    _Out_ HDC *phdc
     );
 
 typedef HRESULT (*_EndBufferedPaint)(
-    __in HPAINTBUFFER hBufferedPaint,
-    __in BOOL fUpdateTarget
+    _In_ HPAINTBUFFER hBufferedPaint,
+    _In_ BOOL fUpdateTarget
     );
 
 typedef HRESULT (*_GetBufferedPaintBits)(
-    __in HPAINTBUFFER hBufferedPaint,
-    __out RGBQUAD **ppbBuffer,
-    __out int *pcxRow
+    _In_ HPAINTBUFFER hBufferedPaint,
+    _Out_ RGBQUAD **ppbBuffer,
+    _Out_ int *pcxRow
     );
 
 static BOOLEAN ImportsInitialized = FALSE;
@@ -28,10 +28,10 @@ static _EndBufferedPaint EndBufferedPaint_I = NULL;
 static _GetBufferedPaintBits GetBufferedPaintBits_I = NULL;
 
 static HBITMAP PhpCreateBitmap32(
-    __in HDC hdc,
-    __in ULONG Width,
-    __in ULONG Height,
-    __deref_opt_out PVOID *Bits
+    _In_ HDC hdc,
+    _In_ ULONG Width,
+    _In_ ULONG Height,
+    _Outptr_opt_ PVOID *Bits
     )
 {
     BITMAPINFO bitmapInfo;
@@ -49,10 +49,10 @@ static HBITMAP PhpCreateBitmap32(
 }
 
 static BOOLEAN PhpHasAlpha(
-    __in PULONG Argb,
-    __in ULONG Width,
-    __in ULONG Height,
-    __in ULONG RowWidth
+    _In_ PULONG Argb,
+    _In_ ULONG Width,
+    _In_ ULONG Height,
+    _In_ ULONG RowWidth
     )
 {
     ULONG delta;
@@ -76,12 +76,12 @@ static BOOLEAN PhpHasAlpha(
 }
 
 static VOID PhpConvertToPArgb32(
-    __in HDC hdc,
-    __inout PULONG Argb,
-    __in HBITMAP Bitmap,
-    __in ULONG Width,
-    __in ULONG Height,
-    __in ULONG RowWidth
+    _In_ HDC hdc,
+    _Inout_ PULONG Argb,
+    _In_ HBITMAP Bitmap,
+    _In_ ULONG Width,
+    _In_ ULONG Height,
+    _In_ ULONG RowWidth
     )
 {
     BITMAPINFO bitmapInfo;
@@ -130,11 +130,11 @@ static VOID PhpConvertToPArgb32(
 }
 
 static VOID PhpConvertToPArgb32IfNeeded(
-    __in HPAINTBUFFER PaintBuffer,
-    __in HDC hdc,
-    __in HICON Icon,
-    __in ULONG Width,
-    __in ULONG Height
+    _In_ HPAINTBUFFER PaintBuffer,
+    _In_ HDC hdc,
+    _In_ HICON Icon,
+    _In_ ULONG Width,
+    _In_ ULONG Height
     )
 {
     RGBQUAD *quad;
@@ -163,9 +163,9 @@ static VOID PhpConvertToPArgb32IfNeeded(
 }
 
 HBITMAP PhIconToBitmap(
-    __in HICON Icon,
-    __in ULONG Width,
-    __in ULONG Height
+    _In_ HICON Icon,
+    _In_ ULONG Width,
+    _In_ ULONG Height
     )
 {
     HBITMAP bitmap;

@@ -11,18 +11,18 @@ typedef struct
 } A_SHA_CTX;
 
 VOID A_SHAInit(
-    __out A_SHA_CTX *Context
+    _Out_ A_SHA_CTX *Context
     );
 
 VOID A_SHAUpdate(
-    __inout A_SHA_CTX *Context,
-    __in_bcount(Length) UCHAR *Input,
-    __in ULONG Length
+    _Inout_ A_SHA_CTX *Context,
+    _In_reads_bytes_(Length) UCHAR *Input,
+    _In_ ULONG Length
     );
 
 VOID A_SHAFinal(
-    __inout A_SHA_CTX *Context,
-    __out_bcount(20) UCHAR *Hash
+    _Inout_ A_SHA_CTX *Context,
+    _Out_writes_bytes_(20) UCHAR *Hash
     );
 
 #endif

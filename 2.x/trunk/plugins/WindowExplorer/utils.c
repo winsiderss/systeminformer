@@ -23,7 +23,7 @@
 #include "wndexp.h"
 
 PVOID WeGetProcedureAddress(
-    __in PSTR Name
+    _In_ PSTR Name
     )
 {
     static PVOID imageBase = NULL;
@@ -35,9 +35,9 @@ PVOID WeGetProcedureAddress(
 }
 
 VOID WeFormatLocalObjectName(
-    __in PWSTR OriginalName,
-    __inout_ecount(256) PWCHAR Buffer,
-    __out PUNICODE_STRING ObjectName
+    _In_ PWSTR OriginalName,
+    _Inout_updates_(256) PWCHAR Buffer,
+    _Out_ PUNICODE_STRING ObjectName
     )
 {
     SIZE_T length;
@@ -63,7 +63,7 @@ VOID WeFormatLocalObjectName(
 }
 
 VOID WeInvertWindowBorder(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     RECT rect;

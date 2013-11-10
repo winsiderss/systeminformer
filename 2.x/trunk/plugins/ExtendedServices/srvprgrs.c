@@ -34,16 +34,16 @@ typedef struct _RESTART_SERVICE_CONTEXT
 } RESTART_SERVICE_CONTEXT, *PRESTART_SERVICE_CONTEXT;
 
 INT_PTR CALLBACK EspRestartServiceDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EsRestartServiceWithProgress(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM ServiceItem,
-    __in SC_HANDLE ServiceHandle
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ SC_HANDLE ServiceHandle
     )
 {
     RESTART_SERVICE_CONTEXT context;
@@ -63,10 +63,10 @@ VOID EsRestartServiceWithProgress(
 }
 
 INT_PTR CALLBACK EspRestartServiceDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PRESTART_SERVICE_CONTEXT context;

@@ -70,11 +70,11 @@ PPH_EMENU_ITEM PhAllocateEMenuItem(
  * \param Context A user-defined value.
  */
 PPH_EMENU_ITEM PhCreateEMenuItem(
-    __in ULONG Flags,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PWSTR Bitmap,
-    __in_opt PVOID Context
+    _In_ ULONG Flags,
+    _In_ ULONG Id,
+    _In_ PWSTR Text,
+    _In_opt_ PWSTR Bitmap,
+    _In_opt_ PVOID Context
     )
 {
     PPH_EMENU_ITEM item;
@@ -104,7 +104,7 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
  * It is safe to call this function while enumerating menu items.
  */
 VOID PhpDestroyEMenuItem(
-    __in PPH_EMENU_ITEM Item
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     if (Item->DeleteFunction)
@@ -138,7 +138,7 @@ VOID PhpDestroyEMenuItem(
  * \remarks The menu item is automatically removed from its parent.
  */
 VOID PhDestroyEMenuItem(
-    __in PPH_EMENU_ITEM Item
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     // Remove the item from its parent, if it has one.
@@ -168,10 +168,10 @@ VOID PhDestroyEMenuItem(
  * be found.
  */
 PPH_EMENU_ITEM PhFindEMenuItem(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Flags,
-    __in_opt PWSTR Text,
-    __in_opt ULONG Id
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR Text,
+    _In_opt_ ULONG Id
     )
 {
     return PhFindEMenuItemEx(Item, Flags, Text, Id, NULL, NULL);
@@ -201,12 +201,12 @@ PPH_EMENU_ITEM PhFindEMenuItem(
  * be found.
  */
 PPH_EMENU_ITEM PhFindEMenuItemEx(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Flags,
-    __in_opt PWSTR Text,
-    __in_opt ULONG Id,
-    __out_opt PPH_EMENU_ITEM *FoundParent,
-    __out_opt PULONG FoundIndex
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR Text,
+    _In_opt_ ULONG Id,
+    _Out_opt_ PPH_EMENU_ITEM *FoundParent,
+    _Out_opt_ PULONG FoundIndex
     )
 {
     PH_STRINGREF searchText;
@@ -294,8 +294,8 @@ FoundItemHere:
  * was not found in the parent menu item.
  */
 ULONG PhIndexOfEMenuItem(
-    __in PPH_EMENU_ITEM Parent,
-    __in PPH_EMENU_ITEM Item
+    _In_ PPH_EMENU_ITEM Parent,
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     if (!Parent->Items)
@@ -314,9 +314,9 @@ ULONG PhIndexOfEMenuItem(
  * at the last position.
  */
 VOID PhInsertEMenuItem(
-    __inout PPH_EMENU_ITEM Parent,
-    __inout PPH_EMENU_ITEM Item,
-    __in ULONG Index
+    _Inout_ PPH_EMENU_ITEM Parent,
+    _Inout_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Index
     )
 {
     // Remove the item from its old parent if it has one.
@@ -348,9 +348,9 @@ VOID PhInsertEMenuItem(
  * \a Item is specified, this parameter is ignored.
  */
 BOOLEAN PhRemoveEMenuItem(
-    __inout_opt PPH_EMENU_ITEM Parent,
-    __in_opt PPH_EMENU_ITEM Item,
-    __in_opt ULONG Index
+    _Inout_opt_ PPH_EMENU_ITEM Parent,
+    _In_opt_ PPH_EMENU_ITEM Item,
+    _In_opt_ ULONG Index
     )
 {
     if (Item)
@@ -386,7 +386,7 @@ BOOLEAN PhRemoveEMenuItem(
  * \param Parent The parent menu item.
  */
 VOID PhRemoveAllEMenuItems(
-    __inout PPH_EMENU_ITEM Parent
+    _Inout_ PPH_EMENU_ITEM Parent
     )
 {
     ULONG i;
@@ -424,7 +424,7 @@ PPH_EMENU PhCreateEMenu(
  * \param Menu A root menu.
  */
 VOID PhDestroyEMenu(
-    __in PPH_EMENU Menu
+    _In_ PPH_EMENU Menu
     )
 {
     ULONG i;
@@ -443,7 +443,7 @@ VOID PhDestroyEMenu(
  * resulting from a call to PhEMenuToHMenu().
  */
 VOID PhInitializeEMenuData(
-    __out PPH_EMENU_DATA Data
+    _Out_ PPH_EMENU_DATA Data
     )
 {
     Data->IdToItem = PhCreateList(16);
@@ -454,7 +454,7 @@ VOID PhInitializeEMenuData(
  * PhInitializeEMenuData().
  */
 VOID PhDeleteEMenuData(
-    __inout PPH_EMENU_DATA Data
+    _Inout_ PPH_EMENU_DATA Data
     )
 {
     PhDereferenceObject(Data->IdToItem);
@@ -476,9 +476,9 @@ VOID PhDeleteEMenuData(
  * DestroyMenu() when it is no longer needed.
  */
 HMENU PhEMenuToHMenu(
-    __in PPH_EMENU_ITEM Menu,
-    __in ULONG Flags,
-    __inout_opt PPH_EMENU_DATA Data
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ ULONG Flags,
+    _Inout_opt_ PPH_EMENU_DATA Data
     )
 {
     HMENU menuHandle;
@@ -508,10 +508,10 @@ HMENU PhEMenuToHMenu(
  * prior to calling this function.
  */
 VOID PhEMenuToHMenu2(
-    __in HMENU MenuHandle,
-    __in PPH_EMENU_ITEM Menu,
-    __in ULONG Flags,
-    __inout_opt PPH_EMENU_DATA Data
+    _In_ HMENU MenuHandle,
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ ULONG Flags,
+    _Inout_opt_ PPH_EMENU_DATA Data
     )
 {
     ULONG i;
@@ -613,8 +613,8 @@ VOID PhEMenuToHMenu2(
  * \param MenuHandle A menu handle.
  */
 VOID PhHMenuToEMenuItem(
-    __inout PPH_EMENU_ITEM MenuItem,
-    __in HMENU MenuHandle
+    _Inout_ PPH_EMENU_ITEM MenuItem,
+    _In_ HMENU MenuHandle
     )
 {
     ULONG i;
@@ -681,10 +681,10 @@ VOID PhHMenuToEMenuItem(
  * to use the root menu.
  */
 VOID PhLoadResourceEMenuItem(
-    __inout PPH_EMENU_ITEM MenuItem,
-    __in HINSTANCE InstanceHandle,
-    __in PWSTR Resource,
-    __in ULONG SubMenuIndex
+    _Inout_ PPH_EMENU_ITEM MenuItem,
+    _In_ HINSTANCE InstanceHandle,
+    _In_ PWSTR Resource,
+    _In_ ULONG SubMenuIndex
     )
 {
     HMENU menu;
@@ -719,12 +719,12 @@ VOID PhLoadResourceEMenuItem(
  * \return The selected menu item, or NULL if the menu was cancelled.
  */
 PPH_EMENU_ITEM PhShowEMenu(
-    __in PPH_EMENU Menu,
-    __in HWND WindowHandle,
-    __in ULONG Flags,
-    __in ULONG Align,
-    __in ULONG X,
-    __in ULONG Y
+    _In_ PPH_EMENU Menu,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG Align,
+    _In_ ULONG X,
+    _In_ ULONG Y
     )
 {
     PPH_EMENU_ITEM selectedItem;
@@ -798,10 +798,10 @@ PPH_EMENU_ITEM PhShowEMenu(
  * \param Value The new value of the flags.
  */
 BOOLEAN PhSetFlagsEMenuItem(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Id,
-    __in ULONG Mask,
-    __in ULONG Value
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Id,
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     )
 {
     PPH_EMENU_ITEM item;
@@ -829,9 +829,9 @@ BOOLEAN PhSetFlagsEMenuItem(
  * \param Value The new value of the flags.
  */
 VOID PhSetFlagsAllEMenuItems(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Mask,
-    __in ULONG Value
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     )
 {
     ULONG i;

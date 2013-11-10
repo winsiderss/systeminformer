@@ -32,36 +32,36 @@ HICON PhNfpGetBlackIcon(
     );
 
 BOOLEAN PhNfpAddNotifyIcon(
-    __in ULONG Id
+    _In_ ULONG Id
     );
 
 BOOLEAN PhNfpRemoveNotifyIcon(
-    __in ULONG Id
+    _In_ ULONG Id
     );
 
 BOOLEAN PhNfpModifyNotifyIcon(
-    __in ULONG Id,
-    __in ULONG Flags,
-    __in_opt PWSTR Text,
-    __in_opt HICON Icon
+    _In_ ULONG Id,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR Text,
+    _In_opt_ HICON Icon
     );
 
 VOID PhNfpProcessesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID PhNfpUpdateRegisteredIcon(
-    __in PPH_NF_ICON Icon
+    _In_ PPH_NF_ICON Icon
     );
 
 VOID PhNfpBeginBitmap(
-    __out PULONG Width,
-    __out PULONG Height,
-    __out HBITMAP *Bitmap,
-    __out_opt PVOID *Bits,
-    __out HDC *Hdc,
-    __out HBITMAP *OldBitmap
+    _Out_ PULONG Width,
+    _Out_ PULONG Height,
+    _Out_ HBITMAP *Bitmap,
+    _Out_opt_ PVOID *Bits,
+    _Out_ HDC *Hdc,
+    _Out_ HBITMAP *OldBitmap
     );
 
 VOID PhNfpUpdateIconCpuHistory(
@@ -218,8 +218,8 @@ VOID PhNfUninitialization(
 }
 
 VOID PhNfForwardMessage(
-    __in ULONG_PTR WParam,
-    __in ULONG_PTR LParam
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam
     )
 {
     ULONG iconIndex;
@@ -275,15 +275,15 @@ ULONG PhNfGetMaximumIconId(
 }
 
 ULONG PhNfTestIconMask(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     return PhNfIconMask & Id;
 }
 
 VOID PhNfSetVisibleIcon(
-    __in ULONG Id,
-    __in BOOLEAN Visible
+    _In_ ULONG Id,
+    _In_ BOOLEAN Visible
     )
 {
     if (Visible)
@@ -299,11 +299,11 @@ VOID PhNfSetVisibleIcon(
 }
 
 BOOLEAN PhNfShowBalloonTip(
-    __in_opt ULONG Id,
-    __in PWSTR Title,
-    __in PWSTR Text,
-    __in ULONG Timeout,
-    __in ULONG Flags
+    _In_opt_ ULONG Id,
+    _In_ PWSTR Title,
+    _In_ PWSTR Text,
+    _In_ ULONG Timeout,
+    _In_ ULONG Flags
     )
 {
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
@@ -331,7 +331,7 @@ BOOLEAN PhNfShowBalloonTip(
 }
 
 HICON PhNfBitmapToIcon(
-    __in HBITMAP Bitmap
+    _In_ HBITMAP Bitmap
     )
 {
     ICONINFO iconInfo;
@@ -348,13 +348,13 @@ HICON PhNfBitmapToIcon(
 }
 
 PPH_NF_ICON PhNfRegisterIcon(
-    __in struct _PH_PLUGIN *Plugin,
-    __in ULONG SubId,
-    __in_opt PVOID Context,
-    __in PWSTR Text,
-    __reserved ULONG Flags,
-    __in_opt PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback,
-    __in_opt PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback
+    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Text,
+    _Reserved_ ULONG Flags,
+    _In_opt_ PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback,
+    _In_opt_ PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback
     )
 {
     PPH_NF_ICON icon;
@@ -395,7 +395,7 @@ PPH_NF_ICON PhNfRegisterIcon(
 }
 
 PPH_NF_ICON PhNfGetIconById(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     ULONG iconIndex;
@@ -407,8 +407,8 @@ PPH_NF_ICON PhNfGetIconById(
 }
 
 PPH_NF_ICON PhNfFindIcon(
-    __in PPH_STRINGREF PluginName,
-    __in ULONG SubId
+    _In_ PPH_STRINGREF PluginName,
+    _In_ ULONG SubId
     )
 {
     ULONG i;
@@ -450,7 +450,7 @@ HICON PhNfpGetBlackIcon(
 }
 
 BOOLEAN PhNfpAddNotifyIcon(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
@@ -479,7 +479,7 @@ BOOLEAN PhNfpAddNotifyIcon(
 }
 
 BOOLEAN PhNfpRemoveNotifyIcon(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
@@ -500,10 +500,10 @@ BOOLEAN PhNfpRemoveNotifyIcon(
 }
 
 BOOLEAN PhNfpModifyNotifyIcon(
-    __in ULONG Id,
-    __in ULONG Flags,
-    __in_opt PWSTR Text,
-    __in_opt HICON Icon
+    _In_ ULONG Id,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR Text,
+    _In_opt_ HICON Icon
     )
 {
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
@@ -536,8 +536,8 @@ BOOLEAN PhNfpModifyNotifyIcon(
 }
 
 VOID PhNfpProcessesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     ULONG registeredIconMask;
@@ -573,7 +573,7 @@ VOID PhNfpProcessesUpdatedHandler(
 }
 
 VOID PhNfpUpdateRegisteredIcon(
-    __in PPH_NF_ICON Icon
+    _In_ PPH_NF_ICON Icon
     )
 {
     PVOID newIconOrBitmap;
@@ -630,12 +630,12 @@ VOID PhNfpUpdateRegisteredIcon(
 }
 
 VOID PhNfpBeginBitmap(
-    __out PULONG Width,
-    __out PULONG Height,
-    __out HBITMAP *Bitmap,
-    __out_opt PVOID *Bits,
-    __out HDC *Hdc,
-    __out HBITMAP *OldBitmap
+    _Out_ PULONG Width,
+    _Out_ PULONG Height,
+    _Out_ HBITMAP *Bitmap,
+    _Out_opt_ PVOID *Bits,
+    _Out_ HDC *Hdc,
+    _Out_ HBITMAP *OldBitmap
     )
 {
     static BOOLEAN initialized = FALSE;

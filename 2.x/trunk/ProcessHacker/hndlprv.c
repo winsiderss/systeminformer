@@ -26,13 +26,13 @@
 #include <extmgri.h>
 
 VOID NTAPI PhpHandleProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 VOID NTAPI PhpHandleItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 PPH_OBJECT_TYPE PhHandleProviderType;
@@ -62,7 +62,7 @@ BOOLEAN PhHandleProviderInitialization(
 }
 
 PPH_HANDLE_PROVIDER PhCreateHandleProvider(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PPH_HANDLE_PROVIDER handleProvider;
@@ -100,8 +100,8 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
 }
 
 VOID PhpHandleProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
@@ -121,7 +121,7 @@ VOID PhpHandleProviderDeleteProcedure(
 }
 
 PPH_HANDLE_ITEM PhCreateHandleItem(
-    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
+    _In_opt_ PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
     )
 {
     PPH_HANDLE_ITEM handleItem;
@@ -153,8 +153,8 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
 }
 
 VOID PhpHandleItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)Object;
@@ -167,23 +167,23 @@ VOID PhpHandleItemDeleteProcedure(
 }
 
 FORCEINLINE BOOLEAN PhCompareHandleItem(
-    __in PPH_HANDLE_ITEM Value1,
-    __in PPH_HANDLE_ITEM Value2
+    _In_ PPH_HANDLE_ITEM Value1,
+    _In_ PPH_HANDLE_ITEM Value2
     )
 {
     return Value1->Handle == Value2->Handle;
 }
 
 FORCEINLINE ULONG PhHashHandleItem(
-    __in PPH_HANDLE_ITEM Value
+    _In_ PPH_HANDLE_ITEM Value
     )
 {
     return (ULONG)Value->Handle / 4;
 }
 
 PPH_HANDLE_ITEM PhpLookupHandleItem(
-    __in __assumeLocked PPH_HANDLE_PROVIDER HandleProvider,
-    __in HANDLE Handle
+    _In_ PPH_HANDLE_PROVIDER HandleProvider,
+    _In_ HANDLE Handle
     )
 {
     PH_HANDLE_ITEM lookupHandleItem;
@@ -209,8 +209,8 @@ PPH_HANDLE_ITEM PhpLookupHandleItem(
 }
 
 PPH_HANDLE_ITEM PhReferenceHandleItem(
-    __in PPH_HANDLE_PROVIDER HandleProvider,
-    __in HANDLE Handle
+    _In_ PPH_HANDLE_PROVIDER HandleProvider,
+    _In_ HANDLE Handle
     )
 {
     PPH_HANDLE_ITEM handleItem;
@@ -228,7 +228,7 @@ PPH_HANDLE_ITEM PhReferenceHandleItem(
 }
 
 VOID PhDereferenceAllHandleItems(
-    __in PPH_HANDLE_PROVIDER HandleProvider
+    _In_ PPH_HANDLE_PROVIDER HandleProvider
     )
 {
     ULONG i;
@@ -252,9 +252,9 @@ VOID PhDereferenceAllHandleItems(
     PhReleaseQueuedLockExclusive(&HandleProvider->HandleHashSetLock);
 }
 
-__assumeLocked VOID PhpAddHandleItem(
-    __in PPH_HANDLE_PROVIDER HandleProvider,
-    __in __assumeRefs(1) PPH_HANDLE_ITEM HandleItem
+VOID PhpAddHandleItem(
+    _In_ PPH_HANDLE_PROVIDER HandleProvider,
+    _In_ _Assume_refs_(1) PPH_HANDLE_ITEM HandleItem
     )
 {
     if (HandleProvider->HandleHashSetSize < HandleProvider->HandleHashSetCount + 1)
@@ -275,9 +275,9 @@ __assumeLocked VOID PhpAddHandleItem(
     HandleProvider->HandleHashSetCount++;
 }
 
-__assumeLocked VOID PhpRemoveHandleItem(
-    __in PPH_HANDLE_PROVIDER HandleProvider,
-    __in PPH_HANDLE_ITEM HandleItem
+VOID PhpRemoveHandleItem(
+    _In_ PPH_HANDLE_PROVIDER HandleProvider,
+    _In_ PPH_HANDLE_ITEM HandleItem
     )
 {
     PhRemoveEntryHashSet(HandleProvider->HandleHashSet, HandleProvider->HandleHashSetSize, &HandleItem->HashEntry);
@@ -296,10 +296,10 @@ __assumeLocked VOID PhpRemoveHandleItem(
  * whether the handle information needs to be filtered by process ID.
  */
 NTSTATUS PhEnumHandlesGeneric(
-    __in HANDLE ProcessId,
-    __in HANDLE ProcessHandle,
-    __out PSYSTEM_HANDLE_INFORMATION_EX *Handles,
-    __out PBOOLEAN FilterNeeded
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PSYSTEM_HANDLE_INFORMATION_EX *Handles,
+    _Out_ PBOOLEAN FilterNeeded
     )
 {
     NTSTATUS status;
@@ -423,7 +423,7 @@ NTSTATUS PhEnumHandlesGeneric(
 }
 
 VOID PhHandleProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;

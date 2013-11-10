@@ -31,16 +31,16 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
 } HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static NTSTATUS PhpDuplicateHandleFromProcess(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -69,9 +69,9 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
 }
 
 VOID PhShowHandleProperties(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId,
-    __in PPH_HANDLE_ITEM HandleItem
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM HandleItem
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -207,10 +207,10 @@ VOID PhShowHandleProperties(
 }
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

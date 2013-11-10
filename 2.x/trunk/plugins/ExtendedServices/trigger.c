@@ -88,17 +88,17 @@ typedef struct _ETW_PUBLISHER_ENTRY
 } ETW_PUBLISHER_ENTRY, *PETW_PUBLISHER_ENTRY;
 
 INT_PTR CALLBACK EspServiceTriggerDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK ValueDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static GUID NetworkManagerFirstIpAddressArrivalGuid = { 0x4f27f2de, 0x14e2, 0x430b, { 0xa5, 0x49, 0x7c, 0xd4, 0x8c, 0xbc, 0x82, 0x45 } };
@@ -152,7 +152,7 @@ static SUBTYPE_ENTRY SubTypeEntries[] =
 static PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
 
 PES_TRIGGER_DATA EspCreateTriggerData(
-    __in_opt PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM DataItem
+    _In_opt_ PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM DataItem
     )
 {
     PES_TRIGGER_DATA data;
@@ -192,7 +192,7 @@ PES_TRIGGER_DATA EspCreateTriggerData(
 }
 
 PES_TRIGGER_DATA EspCloneTriggerData(
-    __in PES_TRIGGER_DATA Data
+    _In_ PES_TRIGGER_DATA Data
     )
 {
     PES_TRIGGER_DATA newData;
@@ -214,7 +214,7 @@ PES_TRIGGER_DATA EspCloneTriggerData(
 }
 
 VOID EspDestroyTriggerData(
-    __in PES_TRIGGER_DATA Data
+    _In_ PES_TRIGGER_DATA Data
     )
 {
     if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
@@ -232,7 +232,7 @@ VOID EspDestroyTriggerData(
 }
 
 PES_TRIGGER_INFO EspCreateTriggerInfo(
-    __in_opt PSERVICE_TRIGGER Trigger
+    _In_opt_ PSERVICE_TRIGGER Trigger
     )
 {
     PES_TRIGGER_INFO info;
@@ -274,7 +274,7 @@ PES_TRIGGER_INFO EspCreateTriggerInfo(
 }
 
 PES_TRIGGER_INFO EspCloneTriggerInfo(
-    __in PES_TRIGGER_INFO Info
+    _In_ PES_TRIGGER_INFO Info
     )
 {
     PES_TRIGGER_INFO newInfo;
@@ -299,7 +299,7 @@ PES_TRIGGER_INFO EspCloneTriggerInfo(
 }
 
 VOID EspDestroyTriggerInfo(
-    __in PES_TRIGGER_INFO Info
+    _In_ PES_TRIGGER_INFO Info
     )
 {
     if (Info->DataList)
@@ -318,7 +318,7 @@ VOID EspDestroyTriggerInfo(
 }
 
 VOID EspClearTriggerInfoList(
-    __in PPH_LIST List
+    _In_ PPH_LIST List
     )
 {
     ULONG i;
@@ -332,9 +332,9 @@ VOID EspClearTriggerInfoList(
 }
 
 struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
-    __in PPH_SERVICE_ITEM ServiceItem,
-    __in HWND WindowHandle,
-    __in HWND TriggersLv
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ HWND WindowHandle,
+    _In_ HWND TriggersLv
     )
 {
     PES_TRIGGER_CONTEXT context;
@@ -359,7 +359,7 @@ struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
 }
 
 VOID EsDestroyServiceTriggerContext(
-    __in struct _ES_TRIGGER_CONTEXT *Context
+    _In_ struct _ES_TRIGGER_CONTEXT *Context
     )
 {
     ULONG i;
@@ -374,7 +374,7 @@ VOID EsDestroyServiceTriggerContext(
 }
 
 PPH_STRING EspLookupEtwPublisherName(
-    __in PGUID Guid
+    _In_ PGUID Guid
     )
 {
     PPH_STRING guidString;
@@ -421,8 +421,8 @@ PPH_STRING EspLookupEtwPublisherName(
 }
 
 BOOLEAN EspEnumerateEtwPublishers(
-    __out PETW_PUBLISHER_ENTRY *Entries,
-    __out PULONG NumberOfEntries
+    _Out_ PETW_PUBLISHER_ENTRY *Entries,
+    _Out_ PULONG NumberOfEntries
     )
 {
     NTSTATUS status;
@@ -543,8 +543,8 @@ BOOLEAN EspEnumerateEtwPublishers(
 }
 
 BOOLEAN EspLookupEtwPublisherGuid(
-    __in PPH_STRINGREF PublisherName,
-    __out PGUID Guid
+    _In_ PPH_STRINGREF PublisherName,
+    _Out_ PGUID Guid
     )
 {
     BOOLEAN result;
@@ -574,10 +574,10 @@ BOOLEAN EspLookupEtwPublisherGuid(
 }
 
 VOID EspFormatTriggerInfo(
-    __in PES_TRIGGER_INFO Info,
-    __out PWSTR *TriggerString,
-    __out PWSTR *ActionString,
-    __out PPH_STRING *StringUsed
+    _In_ PES_TRIGGER_INFO Info,
+    _Out_ PWSTR *TriggerString,
+    _Out_ PWSTR *ActionString,
+    _Out_ PPH_STRING *StringUsed
     )
 {
     PPH_STRING stringUsed = NULL;
@@ -697,8 +697,8 @@ VOID EspFormatTriggerInfo(
 }
 
 VOID EsLoadServiceTriggerInfo(
-    __in struct _ES_TRIGGER_CONTEXT *Context,
-    __in SC_HANDLE ServiceHandle
+    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ SC_HANDLE ServiceHandle
     )
 {
     PSERVICE_TRIGGER_INFO triggerInfo;
@@ -738,8 +738,8 @@ VOID EsLoadServiceTriggerInfo(
 }
 
 BOOLEAN EsSaveServiceTriggerInfo(
-    __in struct _ES_TRIGGER_CONTEXT *Context,
-    __out PULONG Win32Result
+    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _Out_ PULONG Win32Result
     )
 {
     BOOLEAN result = TRUE;
@@ -836,9 +836,9 @@ BOOLEAN EsSaveServiceTriggerInfo(
 }
 
 LOGICAL EspSetListViewItemParam(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in PVOID Param
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ PVOID Param
     )
 {
     LVITEM item;
@@ -852,8 +852,8 @@ LOGICAL EspSetListViewItemParam(
 }
 
 VOID EsHandleEventServiceTrigger(
-    __in struct _ES_TRIGGER_CONTEXT *Context,
-    __in ULONG Event
+    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ ULONG Event
     )
 {
     switch (Event)
@@ -986,7 +986,7 @@ VOID EsHandleEventServiceTrigger(
 }
 
 static ULONG EspTriggerTypeStringToInteger(
-    __in PWSTR String
+    _In_ PWSTR String
     )
 {
     ULONG i;
@@ -1001,8 +1001,8 @@ static ULONG EspTriggerTypeStringToInteger(
 }
 
 static int __cdecl EtwPublisherByNameCompareFunction(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PETW_PUBLISHER_ENTRY entry1 = (PETW_PUBLISHER_ENTRY)elem1;
@@ -1012,8 +1012,8 @@ static int __cdecl EtwPublisherByNameCompareFunction(
 }
 
 static VOID EspFixServiceTriggerControls(
-    __in HWND hwndDlg,
-    __in PES_TRIGGER_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PES_TRIGGER_CONTEXT Context
     )
 {
     HWND typeComboBox;
@@ -1109,7 +1109,7 @@ static VOID EspFixServiceTriggerControls(
 }
 
 PPH_STRING EspConvertNullsToNewLines(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     PH_STRING_BUILDER sb;
@@ -1132,7 +1132,7 @@ PPH_STRING EspConvertNullsToNewLines(
 }
 
 PPH_STRING EspConvertNewLinesToNulls(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     PPH_STRING text;
@@ -1173,7 +1173,7 @@ PPH_STRING EspConvertNewLinesToNulls(
 }
 
 PPH_STRING EspConvertNullsToSpaces(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     PPH_STRING text;
@@ -1191,8 +1191,8 @@ PPH_STRING EspConvertNullsToSpaces(
 }
 
 VOID EspFormatTriggerData(
-    __in PES_TRIGGER_DATA Data,
-    __out PPH_STRING *Text
+    _In_ PES_TRIGGER_DATA Data,
+    _Out_ PPH_STRING *Text
     )
 {
     if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
@@ -1231,10 +1231,10 @@ VOID EspFormatTriggerData(
 }
 
 INT_PTR CALLBACK EspServiceTriggerDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PES_TRIGGER_CONTEXT context;
@@ -1645,10 +1645,10 @@ DoNotClose:
 }
 
 static INT_PTR CALLBACK ValueDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PES_TRIGGER_CONTEXT context;

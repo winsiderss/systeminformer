@@ -24,7 +24,7 @@
 #include <phsvc.h>
 
 NTSTATUS PhSvcApiRequestThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 extern HANDLE PhSvcTimeoutStandbyEventHandle;
@@ -35,7 +35,7 @@ HANDLE PhSvcApiPortHandle;
 ULONG PhSvcApiNumberOfClients = 0;
 
 NTSTATUS PhSvcApiPortInitialization(
-    __in PUNICODE_STRING PortName
+    _In_ PUNICODE_STRING PortName
     )
 {
     static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
@@ -116,7 +116,7 @@ PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(
 }
 
 NTSTATUS PhSvcApiRequestThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     NTSTATUS status;
@@ -187,7 +187,7 @@ NTSTATUS PhSvcApiRequestThreadStart(
 }
 
 VOID PhSvcHandleConnectionRequest(
-    __in PPHSVC_API_MSG Message
+    _In_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;

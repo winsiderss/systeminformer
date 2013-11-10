@@ -26,10 +26,10 @@
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 static INT_PTR CALLBACK PhpInformationDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -186,8 +186,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
 }
 
 VOID PhShowInformationDialog(
-    __in HWND ParentWindowHandle,
-    __in PWSTR String
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR String
     )
 {
     DialogBoxParam(

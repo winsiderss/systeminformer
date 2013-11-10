@@ -8,31 +8,31 @@
 #undef COBJMACROS
 
 typedef HRESULT (WINAPI *_SetWindowTheme)(
-    __in HWND hwnd,
-    __in LPCWSTR pszSubAppName,
-    __in LPCWSTR pszSubIdList
+    _In_ HWND hwnd,
+    _In_ LPCWSTR pszSubAppName,
+    _In_ LPCWSTR pszSubIdList
     );
 
 typedef HRESULT (WINAPI *_SHCreateShellItem)(
-    __in_opt PCIDLIST_ABSOLUTE pidlParent,
-    __in_opt IShellFolder *psfParent,
-    __in PCUITEMID_CHILD pidl,
-    __out IShellItem **ppsi
+    _In_opt_ PCIDLIST_ABSOLUTE pidlParent,
+    _In_opt_ IShellFolder *psfParent,
+    _In_ PCUITEMID_CHILD pidl,
+    _Out_ IShellItem **ppsi
     );
 
 typedef HRESULT (WINAPI *_SHOpenFolderAndSelectItems)(
-    __in PCIDLIST_ABSOLUTE pidlFolder,
-    __in UINT cidl,
-    __in_ecount_opt(cidl) PCUITEMID_CHILD_ARRAY *apidl,
-    __in DWORD dwFlags
+    _In_ PCIDLIST_ABSOLUTE pidlFolder,
+    _In_ UINT cidl,
+    _In_reads_opt_(cidl) PCUITEMID_CHILD_ARRAY *apidl,
+    _In_ DWORD dwFlags
     );
 
 typedef HRESULT (WINAPI *_SHParseDisplayName)(
-    __in LPCWSTR pszName,
-    __in_opt IBindCtx *pbc,
-    __out PIDLIST_ABSOLUTE *ppidl,
-    __in SFGAOF sfgaoIn,
-    __out SFGAOF *psfgaoOut
+    _In_ LPCWSTR pszName,
+    _In_opt_ IBindCtx *pbc,
+    _Out_ PIDLIST_ABSOLUTE *ppidl,
+    _In_ SFGAOF sfgaoIn,
+    _Out_ SFGAOF *psfgaoOut
     );
 
 #ifndef _PH_GUISUP_PRIVATE

@@ -16,8 +16,8 @@
  * \param BasicInformation A variable which receives the information.
  */
 FORCEINLINE NTSTATUS PhGetProcessBasicInformation(
-    __in HANDLE ProcessHandle,
-    __out PPROCESS_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_BASIC_INFORMATION BasicInformation
     )
 {
     return NtQueryInformationProcess(
@@ -37,8 +37,8 @@ FORCEINLINE NTSTATUS PhGetProcessBasicInformation(
  * \param ExtendedBasicInformation A variable which receives the information.
  */
 FORCEINLINE NTSTATUS PhGetProcessExtendedBasicInformation(
-    __in HANDLE ProcessHandle,
-    __out PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
     )
 {
     ExtendedBasicInformation->Size = sizeof(PROCESS_EXTENDED_BASIC_INFORMATION);
@@ -60,8 +60,8 @@ FORCEINLINE NTSTATUS PhGetProcessExtendedBasicInformation(
  * \param Times A variable which receives the information.
  */
 FORCEINLINE NTSTATUS PhGetProcessTimes(
-    __in HANDLE ProcessHandle,
-    __out PKERNEL_USER_TIMES Times
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKERNEL_USER_TIMES Times
     )
 {
     return NtQueryInformationProcess(
@@ -82,8 +82,8 @@ FORCEINLINE NTSTATUS PhGetProcessTimes(
  * process' session ID.
  */
 FORCEINLINE NTSTATUS PhGetProcessSessionId(
-    __in HANDLE ProcessHandle,
-    __out PULONG SessionId
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG SessionId
     )
 {
     NTSTATUS status;
@@ -118,8 +118,8 @@ FORCEINLINE NTSTATUS PhGetProcessSessionId(
  * environment.
  */
 FORCEINLINE NTSTATUS PhGetProcessIsWow64(
-    __in HANDLE ProcessHandle,
-    __out PBOOLEAN IsWow64
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsWow64
     )
 {
     NTSTATUS status;
@@ -154,8 +154,8 @@ FORCEINLINE NTSTATUS PhGetProcessIsWow64(
  * environment.
  */
 FORCEINLINE NTSTATUS PhGetProcessPeb32(
-    __in HANDLE ProcessHandle,
-    __out PVOID *Peb32
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID *Peb32
     )
 {
     NTSTATUS status;
@@ -186,8 +186,8 @@ FORCEINLINE NTSTATUS PhGetProcessPeb32(
  * indicating whether the process is being debugged.
  */
 FORCEINLINE NTSTATUS PhGetProcessIsBeingDebugged(
-    __in HANDLE ProcessHandle,
-    __out PBOOLEAN IsBeingDebugged
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsBeingDebugged
     )
 {
     NTSTATUS status;
@@ -222,8 +222,8 @@ FORCEINLINE NTSTATUS PhGetProcessIsBeingDebugged(
  * debugged and has no associated debug object.
  */
 FORCEINLINE NTSTATUS PhGetProcessDebugObject(
-    __in HANDLE ProcessHandle,
-    __out PHANDLE DebugObjectHandle
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE DebugObjectHandle
     )
 {
     return NtQueryInformationProcess(
@@ -244,8 +244,8 @@ FORCEINLINE NTSTATUS PhGetProcessDebugObject(
  * priority of the process.
  */
 FORCEINLINE NTSTATUS PhGetProcessIoPriority(
-    __in HANDLE ProcessHandle,
-    __out PULONG IoPriority
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG IoPriority
     )
 {
     return NtQueryInformationProcess(
@@ -266,8 +266,8 @@ FORCEINLINE NTSTATUS PhGetProcessIoPriority(
  * priority of the process.
  */
 FORCEINLINE NTSTATUS PhGetProcessPagePriority(
-    __in HANDLE ProcessHandle,
-    __out PULONG PagePriority
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG PagePriority
     )
 {
     NTSTATUS status;
@@ -298,8 +298,8 @@ FORCEINLINE NTSTATUS PhGetProcessPagePriority(
  * time.
  */
 FORCEINLINE NTSTATUS PhGetProcessCycleTime(
-    __in HANDLE ProcessHandle,
-    __out PULONG64 CycleTime
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG64 CycleTime
     )
 {
     NTSTATUS status;
@@ -322,8 +322,8 @@ FORCEINLINE NTSTATUS PhGetProcessCycleTime(
 }
 
 FORCEINLINE NTSTATUS PhGetProcessConsoleHostProcessId(
-    __in HANDLE ProcessHandle,
-    __out PHANDLE ConsoleHostProcessId
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE ConsoleHostProcessId
     )
 {
     NTSTATUS status;
@@ -353,8 +353,8 @@ FORCEINLINE NTSTATUS PhGetProcessConsoleHostProcessId(
  * \param BasicInformation A variable which receives the information.
  */
 FORCEINLINE NTSTATUS PhGetThreadBasicInformation(
-    __in HANDLE ThreadHandle,
-    __out PTHREAD_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_BASIC_INFORMATION BasicInformation
     )
 {
     return NtQueryInformationThread(
@@ -375,8 +375,8 @@ FORCEINLINE NTSTATUS PhGetThreadBasicInformation(
  * priority of the thread.
  */
 FORCEINLINE NTSTATUS PhGetThreadIoPriority(
-    __in HANDLE ThreadHandle,
-    __out PULONG IoPriority
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG IoPriority
     )
 {
     return NtQueryInformationThread(
@@ -397,8 +397,8 @@ FORCEINLINE NTSTATUS PhGetThreadIoPriority(
  * priority of the thread.
  */
 FORCEINLINE NTSTATUS PhGetThreadPagePriority(
-    __in HANDLE ThreadHandle,
-    __out PULONG PagePriority
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG PagePriority
     )
 {
     NTSTATUS status;
@@ -429,8 +429,8 @@ FORCEINLINE NTSTATUS PhGetThreadPagePriority(
  * time.
  */
 FORCEINLINE NTSTATUS PhGetThreadCycleTime(
-    __in HANDLE ThreadHandle,
-    __out PULONG64 CycleTime
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG64 CycleTime
     )
 {
     NTSTATUS status;
@@ -453,8 +453,8 @@ FORCEINLINE NTSTATUS PhGetThreadCycleTime(
 }
 
 FORCEINLINE NTSTATUS PhGetJobBasicAndIoAccounting(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
     )
 {
     return NtQueryInformationJobObject(
@@ -467,8 +467,8 @@ FORCEINLINE NTSTATUS PhGetJobBasicAndIoAccounting(
 }
 
 FORCEINLINE NTSTATUS PhGetJobBasicLimits(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
     )
 {
     return NtQueryInformationJobObject(
@@ -481,8 +481,8 @@ FORCEINLINE NTSTATUS PhGetJobBasicLimits(
 }
 
 FORCEINLINE NTSTATUS PhGetJobExtendedLimits(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
     )
 {
     return NtQueryInformationJobObject(
@@ -495,8 +495,8 @@ FORCEINLINE NTSTATUS PhGetJobExtendedLimits(
 }
 
 FORCEINLINE NTSTATUS PhGetJobBasicUiRestrictions(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
     )
 {
     return NtQueryInformationJobObject(
@@ -517,8 +517,8 @@ FORCEINLINE NTSTATUS PhGetJobBasicUiRestrictions(
  * session ID.
  */
 FORCEINLINE NTSTATUS PhGetTokenSessionId(
-    __in HANDLE TokenHandle,
-    __out PULONG SessionId
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG SessionId
     )
 {
     ULONG returnLength;
@@ -541,8 +541,8 @@ FORCEINLINE NTSTATUS PhGetTokenSessionId(
  * elevation type.
  */
 FORCEINLINE NTSTATUS PhGetTokenElevationType(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_ELEVATION_TYPE ElevationType
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ELEVATION_TYPE ElevationType
     )
 {
     ULONG returnLength;
@@ -565,8 +565,8 @@ FORCEINLINE NTSTATUS PhGetTokenElevationType(
  * boolean indicating whether the token is elevated.
  */
 FORCEINLINE NTSTATUS PhGetTokenIsElevated(
-    __in HANDLE TokenHandle,
-    __out PBOOLEAN Elevated
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN Elevated
     )
 {
     NTSTATUS status;
@@ -598,8 +598,8 @@ FORCEINLINE NTSTATUS PhGetTokenIsElevated(
  * token's statistics.
  */
 FORCEINLINE NTSTATUS PhGetTokenStatistics(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_STATISTICS Statistics
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_STATISTICS Statistics
     )
 {
     ULONG returnLength;
@@ -622,8 +622,8 @@ FORCEINLINE NTSTATUS PhGetTokenStatistics(
  * token's source.
  */
 FORCEINLINE NTSTATUS PhGetTokenSource(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_SOURCE Source
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_SOURCE Source
     )
 {
     ULONG returnLength;
@@ -647,8 +647,8 @@ FORCEINLINE NTSTATUS PhGetTokenSource(
  * using NtClose() when you no longer need it.
  */
 FORCEINLINE NTSTATUS PhGetTokenLinkedToken(
-    __in HANDLE TokenHandle,
-    __out PHANDLE LinkedTokenHandle
+    _In_ HANDLE TokenHandle,
+    _Out_ PHANDLE LinkedTokenHandle
     )
 {
     NTSTATUS status;
@@ -681,8 +681,8 @@ FORCEINLINE NTSTATUS PhGetTokenLinkedToken(
  * for the token.
  */
 FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationAllowed(
-    __in HANDLE TokenHandle,
-    __out PBOOLEAN IsVirtualizationAllowed
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationAllowed
     )
 {
     NTSTATUS status;
@@ -715,8 +715,8 @@ FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationAllowed(
  * for the token.
  */
 FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationEnabled(
-    __in HANDLE TokenHandle,
-    __out PBOOLEAN IsVirtualizationEnabled
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationEnabled
     )
 {
     NTSTATUS status;
@@ -740,8 +740,8 @@ FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationEnabled(
 }
 
 FORCEINLINE NTSTATUS PhGetEventBasicInformation(
-    __in HANDLE EventHandle,
-    __out PEVENT_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE EventHandle,
+    _Out_ PEVENT_BASIC_INFORMATION BasicInformation
     )
 {
     return NtQueryEvent(
@@ -754,8 +754,8 @@ FORCEINLINE NTSTATUS PhGetEventBasicInformation(
 }
 
 FORCEINLINE NTSTATUS PhGetMutantBasicInformation(
-    __in HANDLE MutantHandle,
-    __out PMUTANT_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE MutantHandle,
+    _Out_ PMUTANT_BASIC_INFORMATION BasicInformation
     )
 {
     return NtQueryMutant(
@@ -768,8 +768,8 @@ FORCEINLINE NTSTATUS PhGetMutantBasicInformation(
 }
 
 FORCEINLINE NTSTATUS PhGetMutantOwnerInformation(
-    __in HANDLE MutantHandle,
-    __out PMUTANT_OWNER_INFORMATION OwnerInformation
+    _In_ HANDLE MutantHandle,
+    _Out_ PMUTANT_OWNER_INFORMATION OwnerInformation
     )
 {
     return NtQueryMutant(
@@ -782,8 +782,8 @@ FORCEINLINE NTSTATUS PhGetMutantOwnerInformation(
 }
 
 FORCEINLINE NTSTATUS PhGetSectionBasicInformation(
-    __in HANDLE SectionHandle,
-    __out PSECTION_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE SectionHandle,
+    _Out_ PSECTION_BASIC_INFORMATION BasicInformation
     )
 {
     return NtQuerySection(
@@ -796,8 +796,8 @@ FORCEINLINE NTSTATUS PhGetSectionBasicInformation(
 }
 
 FORCEINLINE NTSTATUS PhGetSemaphoreBasicInformation(
-    __in HANDLE SemaphoreHandle,
-    __out PSEMAPHORE_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE SemaphoreHandle,
+    _Out_ PSEMAPHORE_BASIC_INFORMATION BasicInformation
     )
 {
     return NtQuerySemaphore(
@@ -810,8 +810,8 @@ FORCEINLINE NTSTATUS PhGetSemaphoreBasicInformation(
 }
 
 FORCEINLINE NTSTATUS PhGetTimerBasicInformation(
-    __in HANDLE TimerHandle,
-    __out PTIMER_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE TimerHandle,
+    _Out_ PTIMER_BASIC_INFORMATION BasicInformation
     )
 {
     return NtQueryTimer(

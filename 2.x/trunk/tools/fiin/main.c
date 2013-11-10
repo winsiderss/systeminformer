@@ -53,9 +53,9 @@ ULONG64 FipDirTotalSize;
 ULONG64 FipDirTotalAllocSize;
 
 static BOOLEAN NTAPI FiCommandLineCallback(
-    __in_opt PPH_COMMAND_LINE_OPTION Option,
-    __in_opt PPH_STRING Value,
-    __in_opt PVOID Context
+    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PPH_STRING Value,
+    _In_opt_ PVOID Context
     )
 {
     if (Option)
@@ -129,7 +129,7 @@ VOID FiPrintHelp(
 }
 
 PPH_STRING FiFormatFileName(
-    __in PPH_STRING FileName
+    _In_ PPH_STRING FileName
     )
 {
     if (!FiArgNative)
@@ -200,13 +200,13 @@ PPH_STRING FiFormatFileName(
 }
 
 BOOLEAN FiCreateFile(
-    __out PHANDLE FileHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PPH_STRING FileName,
-    __in_opt ULONG FileAttributes,
-    __in ULONG ShareAccess,
-    __in ULONG CreateDisposition,
-    __in_opt ULONG Options
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_STRING FileName,
+    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_opt_ ULONG Options
     )
 {
     NTSTATUS status;
@@ -285,8 +285,8 @@ BOOLEAN FiCreateFile(
 }
 
 BOOLEAN NTAPI FipEnumDirectoryFileForDir(
-    __in PFILE_DIRECTORY_INFORMATION Information,
-    __in_opt PVOID Context
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_opt_ PVOID Context
     )
 {
     PPH_STRING date, time, size;
