@@ -1611,7 +1611,7 @@ VERIFY_RESULT PhVerifyFile(
 // provider
 
 #if defined(DEBUG)
-extern LIST_ENTRY PhDbgProviderListHead;
+extern PPH_LIST PhDbgProviderList;
 extern PH_QUEUED_LOCK PhDbgProviderListLock;
 #endif
 
@@ -1643,9 +1643,6 @@ typedef struct _PH_PROVIDER_REGISTRATION
 
 typedef struct _PH_PROVIDER_THREAD
 {
-#ifdef DEBUG
-    LIST_ENTRY DbgListEntry;
-#endif
     HANDLE ThreadHandle;
     HANDLE TimerHandle;
     ULONG Interval;

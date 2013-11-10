@@ -32,7 +32,7 @@ static PH_FREE_LIST PhWorkQueueItemFreeList;
 static PH_WORK_QUEUE PhGlobalWorkQueue;
 static PH_INITONCE PhGlobalWorkQueueInitOnce = PH_INITONCE_INIT;
 #ifdef DEBUG
-LIST_ENTRY PhDbgWorkQueueListHead;
+PPH_LIST PhDbgWorkQueueList;
 PH_QUEUED_LOCK PhDbgWorkQueueListLock = PH_QUEUED_LOCK_INIT;
 #endif
 
@@ -43,7 +43,7 @@ VOID PhWorkQueueInitialization(
     PhInitializeFreeList(&PhWorkQueueItemFreeList, sizeof(PH_WORK_QUEUE_ITEM), 32);
 
 #ifdef DEBUG
-    InitializeListHead(&PhDbgWorkQueueListHead);
+    PhDbgWorkQueueList = PhCreateList(4);
 #endif
 }
 
@@ -82,7 +82,7 @@ VOID PhInitializeWorkQueue(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgWorkQueueListLock);
-    InsertTailList(&PhDbgWorkQueueListHead, &WorkQueue->DbgListEntry);
+    PhAddItemList(PhDbgWorkQueueList, WorkQueue);
     PhReleaseQueuedLockExclusive(&PhDbgWorkQueueListLock);
 #endif
 }
@@ -98,10 +98,14 @@ VOID PhDeleteWorkQueue(
 {
     PLIST_ENTRY listEntry;
     PPH_WORK_QUEUE_ITEM workQueueItem;
+#ifdef DEBUG
+    ULONG index;
+#endif
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgWorkQueueListLock);
-    RemoveEntryList(&WorkQueue->DbgListEntry);
+    if ((index = PhFindItemList(PhDbgWorkQueueList, WorkQueue)) != -1)
+        PhRemoveItemList(PhDbgWorkQueueList, index);
     PhReleaseQueuedLockExclusive(&PhDbgWorkQueueListLock);
 #endif
 

@@ -172,10 +172,6 @@ static BOOLEAN PhInitializeSystem(
         PhHandleInfoInitialization();
     }
 
-#ifdef DEBUG
-    InitializeListHead(&PhDbgProviderListHead);
-#endif
-
     return TRUE;
 }
 
