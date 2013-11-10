@@ -3504,15 +3504,12 @@ PhSetInformationHandleTable(
 // workqueue
 
 #if !defined(_PH_WORKQUEUE_PRIVATE) && defined(DEBUG)
-extern LIST_ENTRY PhDbgWorkQueueListHead;
+extern PPH_LIST PhDbgWorkQueueList;
 extern PH_QUEUED_LOCK PhDbgWorkQueueListLock;
 #endif
 
 typedef struct _PH_WORK_QUEUE
 {
-#ifdef DEBUG
-    LIST_ENTRY DbgListEntry;
-#endif
     PH_RUNDOWN_PROTECT RundownProtect;
     BOOLEAN Terminating;
 
