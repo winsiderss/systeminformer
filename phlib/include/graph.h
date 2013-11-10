@@ -54,25 +54,25 @@ BOOLEAN PhGraphControlInitialization(
 
 PHLIBAPI
 VOID PhDrawGraph(
-    __in HDC hdc,
-    __in PPH_GRAPH_DRAW_INFO DrawInfo
+    _In_ HDC hdc,
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     );
 
 PHLIBAPI
 VOID PhDrawGraphDirect(
-    __in HDC hdc,
-    __in PVOID Bits,
-    __in PPH_GRAPH_DRAW_INFO DrawInfo
+    _In_ HDC hdc,
+    _In_ PVOID Bits,
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     );
 
 PHLIBAPI
 VOID PhSetGraphText(
-    __in HDC hdc,
-    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
-    __in PPH_STRINGREF Text,
-    __in PRECT Margin,
-    __in PRECT Padding,
-    __in ULONG Align
+    _In_ HDC hdc,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text,
+    _In_ PRECT Margin,
+    _In_ PRECT Padding,
+    _In_ ULONG Align
     );
 
 // Configuration
@@ -173,18 +173,18 @@ typedef struct _PH_GRAPH_BUFFERS
 } PH_GRAPH_BUFFERS, *PPH_GRAPH_BUFFERS;
 
 VOID PhInitializeGraphBuffers(
-    __out PPH_GRAPH_BUFFERS Buffers
+    _Out_ PPH_GRAPH_BUFFERS Buffers
     );
 
 VOID PhDeleteGraphBuffers(
-    __inout PPH_GRAPH_BUFFERS Buffers
+    _Inout_ PPH_GRAPH_BUFFERS Buffers
     );
 
 PHLIBAPI
 VOID PhGetDrawInfoGraphBuffers(
-    __inout PPH_GRAPH_BUFFERS Buffers,
-    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
-    __in ULONG DataCount
+    _Inout_ PPH_GRAPH_BUFFERS Buffers,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataCount
     );
 
 // Graph control state
@@ -214,19 +214,19 @@ typedef struct _PH_GRAPH_STATE
 
 PHLIBAPI
 VOID PhInitializeGraphState(
-    __out PPH_GRAPH_STATE State
+    _Out_ PPH_GRAPH_STATE State
     );
 
 PHLIBAPI
 VOID PhDeleteGraphState(
-    __inout PPH_GRAPH_STATE State
+    _Inout_ PPH_GRAPH_STATE State
     );
 
 PHLIBAPI
 VOID PhGraphStateGetDrawInfo(
-    __inout PPH_GRAPH_STATE State,
-    __in PPH_GRAPH_GETDRAWINFO GetDrawInfo,
-    __in ULONG DataCount
+    _Inout_ PPH_GRAPH_STATE State,
+    _In_ PPH_GRAPH_GETDRAWINFO GetDrawInfo,
+    _In_ ULONG DataCount
     );
 
 #endif

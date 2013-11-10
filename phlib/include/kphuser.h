@@ -13,24 +13,24 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect(
-    __in_opt PWSTR DeviceName
+    _In_opt_ PWSTR DeviceName
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect2(
-    __in_opt PWSTR DeviceName,
-    __in PWSTR FileName
+    _In_opt_ PWSTR DeviceName,
+    _In_ PWSTR FileName
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect2Ex(
-    __in_opt PWSTR DeviceName,
-    __in PWSTR FileName,
-    __in_opt PKPH_PARAMETERS Parameters
+    _In_opt_ PWSTR DeviceName,
+    _In_ PWSTR FileName,
+    _In_opt_ PKPH_PARAMETERS Parameters
     );
 
 PHLIBAPI
@@ -51,296 +51,296 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetParameters(
-    __in_opt PWSTR DeviceName,
-    __in PKPH_PARAMETERS Parameters
+    _In_opt_ PWSTR DeviceName,
+    _In_ PKPH_PARAMETERS Parameters
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphInstall(
-    __in_opt PWSTR DeviceName,
-    __in PWSTR FileName
+    _In_opt_ PWSTR DeviceName,
+    _In_ PWSTR FileName
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphInstallEx(
-    __in_opt PWSTR DeviceName,
-    __in PWSTR FileName,
-    __in_opt PKPH_PARAMETERS Parameters
+    _In_opt_ PWSTR DeviceName,
+    _In_ PWSTR FileName,
+    _In_opt_ PKPH_PARAMETERS Parameters
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphUninstall(
-    __in_opt PWSTR DeviceName
+    _In_opt_ PWSTR DeviceName
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphGetFeatures(
-    __out PULONG Features
+    _Out_ PULONG Features
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenProcess(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PCLIENT_ID ClientId
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PCLIENT_ID ClientId
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenProcessToken(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE TokenHandle
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenProcessJob(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE JobHandle
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE JobHandle
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphSuspendProcess(
-    __in HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphResumeProcess(
-    __in HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphTerminateProcess(
-    __in HANDLE ProcessHandle,
-    __in NTSTATUS ExitStatus
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphReadVirtualMemory(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesRead
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphWriteVirtualMemory(
-    __in HANDLE ProcessHandle,
-    __in_opt PVOID BaseAddress,
-    __in_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesWritten
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphReadVirtualMemoryUnsafe(
-    __in_opt HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesRead
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphQueryInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenThread(
-    __out PHANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PCLIENT_ID ClientId
+    _Out_ PHANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PCLIENT_ID ClientId
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenThreadProcess(
-    __in HANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE ProcessHandle
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE ProcessHandle
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphTerminateThread(
-    __in HANDLE ThreadHandle,
-    __in NTSTATUS ExitStatus
+    _In_ HANDLE ThreadHandle,
+    _In_ NTSTATUS ExitStatus
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphTerminateThreadUnsafe(
-    __in HANDLE ThreadHandle,
-    __in NTSTATUS ExitStatus
+    _In_ HANDLE ThreadHandle,
+    _In_ NTSTATUS ExitStatus
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphGetContextThread(
-    __in HANDLE ThreadHandle,
-    __inout PCONTEXT ThreadContext
+    _In_ HANDLE ThreadHandle,
+    _Inout_ PCONTEXT ThreadContext
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetContextThread(
-    __in HANDLE ThreadHandle,
-    __in PCONTEXT ThreadContext
+    _In_ HANDLE ThreadHandle,
+    _In_ PCONTEXT ThreadContext
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphCaptureStackBackTraceThread(
-    __in HANDLE ThreadHandle,
-    __in ULONG FramesToSkip,
-    __in ULONG FramesToCapture,
-    __out_ecount(FramesToCapture) PVOID *BackTrace,
-    __out_opt PULONG CapturedFrames,
-    __out_opt PULONG BackTraceHash
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID *BackTrace,
+    _Out_opt_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphQueryInformationThread(
-    __in HANDLE ThreadHandle,
-    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __out_bcount(ThreadInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetInformationThread(
-    __in HANDLE ThreadHandle,
-    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphEnumerateProcessHandles(
-    __in HANDLE ProcessHandle,
-    __out_bcount(BufferLength) PVOID Buffer,
-    __in_opt ULONG BufferLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE ProcessHandle,
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_opt_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphQueryInformationObject(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __out_bcount(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetInformationObject(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __in_bcount(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphDuplicateObject(
-    __in HANDLE SourceProcessHandle,
-    __in HANDLE SourceHandle,
-    __in_opt HANDLE TargetProcessHandle,
-    __out_opt PHANDLE TargetHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __in ULONG Options
+    _In_ HANDLE SourceProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_opt_ HANDLE TargetProcessHandle,
+    _Out_opt_ PHANDLE TargetHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Options
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenDriver(
-    __out PHANDLE DriverHandle,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
+    _Out_ PHANDLE DriverHandle,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphQueryInformationDriver(
-    __in HANDLE DriverHandle,
-    __in DRIVER_INFORMATION_CLASS DriverInformationClass,
-    __out_bcount(DriverInformationLength) PVOID DriverInformation,
-    __in ULONG DriverInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE DriverHandle,
+    _In_ DRIVER_INFORMATION_CLASS DriverInformationClass,
+    _Out_writes_bytes_(DriverInformationLength) PVOID DriverInformation,
+    _In_ ULONG DriverInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 // kphdata
 
 NTSTATUS KphInitializeDynamicPackage(
-    __out PKPH_DYN_PACKAGE Package
+    _Out_ PKPH_DYN_PACKAGE Package
     );
 
 #endif

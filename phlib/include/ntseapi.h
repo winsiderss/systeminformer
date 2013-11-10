@@ -47,153 +47,153 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateToken(
-    __out PHANDLE TokenHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in TOKEN_TYPE TokenType,
-    __in PLUID AuthenticationId,
-    __in PLARGE_INTEGER ExpirationTime,
-    __in PTOKEN_USER User,
-    __in PTOKEN_GROUPS Groups,
-    __in PTOKEN_PRIVILEGES Privileges,
-    __in_opt PTOKEN_OWNER Owner,
-    __in PTOKEN_PRIMARY_GROUP PrimaryGroup,
-    __in_opt PTOKEN_DEFAULT_DACL DefaultDacl,
-    __in PTOKEN_SOURCE TokenSource
+    _Out_ PHANDLE TokenHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ TOKEN_TYPE TokenType,
+    _In_ PLUID AuthenticationId,
+    _In_ PLARGE_INTEGER ExpirationTime,
+    _In_ PTOKEN_USER User,
+    _In_ PTOKEN_GROUPS Groups,
+    _In_ PTOKEN_PRIVILEGES Privileges,
+    _In_opt_ PTOKEN_OWNER Owner,
+    _In_ PTOKEN_PRIMARY_GROUP PrimaryGroup,
+    _In_opt_ PTOKEN_DEFAULT_DACL DefaultDacl,
+    _In_ PTOKEN_SOURCE TokenSource
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenProcessToken(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE TokenHandle
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenProcessTokenEx(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __out PHANDLE TokenHandle
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _Out_ PHANDLE TokenHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenThreadToken(
-    __in HANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in BOOLEAN OpenAsSelf,
-    __out PHANDLE TokenHandle
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ BOOLEAN OpenAsSelf,
+    _Out_ PHANDLE TokenHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenThreadTokenEx(
-    __in HANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in BOOLEAN OpenAsSelf,
-    __in ULONG HandleAttributes,
-    __out PHANDLE TokenHandle
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ BOOLEAN OpenAsSelf,
+    _In_ ULONG HandleAttributes,
+    _Out_ PHANDLE TokenHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDuplicateToken(
-    __in HANDLE ExistingTokenHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in BOOLEAN EffectiveOnly,
-    __in TOKEN_TYPE TokenType,
-    __out PHANDLE NewTokenHandle
+    _In_ HANDLE ExistingTokenHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ BOOLEAN EffectiveOnly,
+    _In_ TOKEN_TYPE TokenType,
+    _Out_ PHANDLE NewTokenHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationToken(
-    __in HANDLE TokenHandle,
-    __in TOKEN_INFORMATION_CLASS TokenInformationClass,
-    __out_bcount(TokenInformationLength) PVOID TokenInformation,
-    __in ULONG TokenInformationLength,
-    __out PULONG ReturnLength
+    _In_ HANDLE TokenHandle,
+    _In_ TOKEN_INFORMATION_CLASS TokenInformationClass,
+    _Out_writes_bytes_(TokenInformationLength) PVOID TokenInformation,
+    _In_ ULONG TokenInformationLength,
+    _Out_ PULONG ReturnLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationToken(
-    __in HANDLE TokenHandle,
-    __in TOKEN_INFORMATION_CLASS TokenInformationClass,
-    __in_bcount(TokenInformationLength) PVOID TokenInformation,
-    __in ULONG TokenInformationLength
+    _In_ HANDLE TokenHandle,
+    _In_ TOKEN_INFORMATION_CLASS TokenInformationClass,
+    _In_reads_bytes_(TokenInformationLength) PVOID TokenInformation,
+    _In_ ULONG TokenInformationLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAdjustPrivilegesToken(
-    __in HANDLE TokenHandle,
-    __in BOOLEAN DisableAllPrivileges,
-    __in_opt PTOKEN_PRIVILEGES NewState,
-    __in ULONG BufferLength,
-    __out_bcount_part_opt(BufferLength, *ReturnLength) PTOKEN_PRIVILEGES PreviousState,
-    __out __drv_when(PreviousState == NULL, __out_opt) PULONG ReturnLength
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN DisableAllPrivileges,
+    _In_opt_ PTOKEN_PRIVILEGES NewState,
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_to_opt_(BufferLength, *ReturnLength) PTOKEN_PRIVILEGES PreviousState,
+    _Out_ _When_(PreviousState == NULL, _Out_opt_) PULONG ReturnLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAdjustGroupsToken(
-    __in HANDLE TokenHandle,
-    __in BOOLEAN ResetToDefault,
-    __in_opt PTOKEN_GROUPS NewState,
-    __in_opt ULONG BufferLength,
-    __out_bcount_part_opt(BufferLength, *ReturnLength) PTOKEN_GROUPS PreviousState,
-    __out PULONG ReturnLength
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN ResetToDefault,
+    _In_opt_ PTOKEN_GROUPS NewState,
+    _In_opt_ ULONG BufferLength,
+    _Out_writes_bytes_to_opt_(BufferLength, *ReturnLength) PTOKEN_GROUPS PreviousState,
+    _Out_ PULONG ReturnLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFilterToken(
-    __in HANDLE ExistingTokenHandle,
-    __in ULONG Flags,
-    __in_opt PTOKEN_GROUPS SidsToDisable,
-    __in_opt PTOKEN_PRIVILEGES PrivilegesToDelete,
-    __in_opt PTOKEN_GROUPS RestrictedSids,
-    __out PHANDLE NewTokenHandle
+    _In_ HANDLE ExistingTokenHandle,
+    _In_ ULONG Flags,
+    _In_opt_ PTOKEN_GROUPS SidsToDisable,
+    _In_opt_ PTOKEN_PRIVILEGES PrivilegesToDelete,
+    _In_opt_ PTOKEN_GROUPS RestrictedSids,
+    _Out_ PHANDLE NewTokenHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCompareTokens(
-    __in HANDLE FirstTokenHandle,
-    __in HANDLE SecondTokenHandle,
-    __out PBOOLEAN Equal
+    _In_ HANDLE FirstTokenHandle,
+    _In_ HANDLE SecondTokenHandle,
+    _Out_ PBOOLEAN Equal
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrivilegeCheck(
-    __in HANDLE ClientToken,
-    __inout PPRIVILEGE_SET RequiredPrivileges,
-    __out PBOOLEAN Result
+    _In_ HANDLE ClientToken,
+    _Inout_ PPRIVILEGE_SET RequiredPrivileges,
+    _Out_ PBOOLEAN Result
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtImpersonateAnonymousToken(
-    __in HANDLE ThreadHandle
+    _In_ HANDLE ThreadHandle
     );
 
 // Access checking
@@ -202,48 +202,48 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheck(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in HANDLE ClientToken,
-    __in ACCESS_MASK DesiredAccess,
-    __in PGENERIC_MAPPING GenericMapping,
-    __out_bcount(*PrivilegeSetLength) PPRIVILEGE_SET PrivilegeSet,
-    __inout PULONG PrivilegeSetLength,
-    __out PACCESS_MASK GrantedAccess,
-    __out PNTSTATUS AccessStatus
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ HANDLE ClientToken,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _Out_writes_bytes_(*PrivilegeSetLength) PPRIVILEGE_SET PrivilegeSet,
+    _Inout_ PULONG PrivilegeSetLength,
+    _Out_ PACCESS_MASK GrantedAccess,
+    _Out_ PNTSTATUS AccessStatus
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByType(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PSID PrincipalSelfSid,
-    __in HANDLE ClientToken,
-    __in ACCESS_MASK DesiredAccess,
-    __in_ecount(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
-    __in ULONG ObjectTypeListLength,
-    __in PGENERIC_MAPPING GenericMapping,
-    __out_bcount(*PrivilegeSetLength) PPRIVILEGE_SET PrivilegeSet,
-    __inout PULONG PrivilegeSetLength,
-    __out PACCESS_MASK GrantedAccess,
-    __out PNTSTATUS AccessStatus
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PSID PrincipalSelfSid,
+    _In_ HANDLE ClientToken,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_reads_(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
+    _In_ ULONG ObjectTypeListLength,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _Out_writes_bytes_(*PrivilegeSetLength) PPRIVILEGE_SET PrivilegeSet,
+    _Inout_ PULONG PrivilegeSetLength,
+    _Out_ PACCESS_MASK GrantedAccess,
+    _Out_ PNTSTATUS AccessStatus
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByTypeResultList(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PSID PrincipalSelfSid,
-    __in HANDLE ClientToken,
-    __in ACCESS_MASK DesiredAccess,
-    __in_ecount(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
-    __in ULONG ObjectTypeListLength,
-    __in PGENERIC_MAPPING GenericMapping,
-    __out_bcount(*PrivilegeSetLength) PPRIVILEGE_SET PrivilegeSet,
-    __inout PULONG PrivilegeSetLength,
-    __out_ecount(ObjectTypeListLength) PACCESS_MASK GrantedAccess,
-    __out_ecount(ObjectTypeListLength) PNTSTATUS AccessStatus
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PSID PrincipalSelfSid,
+    _In_ HANDLE ClientToken,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_reads_(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
+    _In_ ULONG ObjectTypeListLength,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _Out_writes_bytes_(*PrivilegeSetLength) PPRIVILEGE_SET PrivilegeSet,
+    _Inout_ PULONG PrivilegeSetLength,
+    _Out_writes_(ObjectTypeListLength) PACCESS_MASK GrantedAccess,
+    _Out_writes_(ObjectTypeListLength) PNTSTATUS AccessStatus
     );
 
 // Audit alarm
@@ -252,143 +252,143 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckAndAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in PUNICODE_STRING ObjectTypeName,
-    __in PUNICODE_STRING ObjectName,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in ACCESS_MASK DesiredAccess,
-    __in PGENERIC_MAPPING GenericMapping,
-    __in BOOLEAN ObjectCreation,
-    __out PACCESS_MASK GrantedAccess,
-    __out PNTSTATUS AccessStatus,
-    __out PBOOLEAN GenerateOnClose
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ PUNICODE_STRING ObjectTypeName,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_ BOOLEAN ObjectCreation,
+    _Out_ PACCESS_MASK GrantedAccess,
+    _Out_ PNTSTATUS AccessStatus,
+    _Out_ PBOOLEAN GenerateOnClose
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByTypeAndAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in PUNICODE_STRING ObjectTypeName,
-    __in PUNICODE_STRING ObjectName,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PSID PrincipalSelfSid,
-    __in ACCESS_MASK DesiredAccess,
-    __in AUDIT_EVENT_TYPE AuditType,
-    __in ULONG Flags,
-    __in_ecount_opt(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
-    __in ULONG ObjectTypeListLength,
-    __in PGENERIC_MAPPING GenericMapping,
-    __in BOOLEAN ObjectCreation,
-    __out PACCESS_MASK GrantedAccess,
-    __out PNTSTATUS AccessStatus,
-    __out PBOOLEAN GenerateOnClose
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ PUNICODE_STRING ObjectTypeName,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PSID PrincipalSelfSid,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ AUDIT_EVENT_TYPE AuditType,
+    _In_ ULONG Flags,
+    _In_reads_opt_(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
+    _In_ ULONG ObjectTypeListLength,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_ BOOLEAN ObjectCreation,
+    _Out_ PACCESS_MASK GrantedAccess,
+    _Out_ PNTSTATUS AccessStatus,
+    _Out_ PBOOLEAN GenerateOnClose
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByTypeResultListAndAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in PUNICODE_STRING ObjectTypeName,
-    __in PUNICODE_STRING ObjectName,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PSID PrincipalSelfSid,
-    __in ACCESS_MASK DesiredAccess,
-    __in AUDIT_EVENT_TYPE AuditType,
-    __in ULONG Flags,
-    __in_ecount_opt(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
-    __in ULONG ObjectTypeListLength,
-    __in PGENERIC_MAPPING GenericMapping,
-    __in BOOLEAN ObjectCreation,
-    __out_ecount(ObjectTypeListLength) PACCESS_MASK GrantedAccess,
-    __out_ecount(ObjectTypeListLength) PNTSTATUS AccessStatus,
-    __out PBOOLEAN GenerateOnClose
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ PUNICODE_STRING ObjectTypeName,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PSID PrincipalSelfSid,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ AUDIT_EVENT_TYPE AuditType,
+    _In_ ULONG Flags,
+    _In_reads_opt_(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
+    _In_ ULONG ObjectTypeListLength,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_ BOOLEAN ObjectCreation,
+    _Out_writes_(ObjectTypeListLength) PACCESS_MASK GrantedAccess,
+    _Out_writes_(ObjectTypeListLength) PNTSTATUS AccessStatus,
+    _Out_ PBOOLEAN GenerateOnClose
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByTypeResultListAndAuditAlarmByHandle(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in HANDLE ClientToken,
-    __in PUNICODE_STRING ObjectTypeName,
-    __in PUNICODE_STRING ObjectName,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PSID PrincipalSelfSid,
-    __in ACCESS_MASK DesiredAccess,
-    __in AUDIT_EVENT_TYPE AuditType,
-    __in ULONG Flags,
-    __in_ecount_opt(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
-    __in ULONG ObjectTypeListLength,
-    __in PGENERIC_MAPPING GenericMapping,
-    __in BOOLEAN ObjectCreation,
-    __out_ecount(ObjectTypeListLength) PACCESS_MASK GrantedAccess,
-    __out_ecount(ObjectTypeListLength) PNTSTATUS AccessStatus,
-    __out PBOOLEAN GenerateOnClose
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ HANDLE ClientToken,
+    _In_ PUNICODE_STRING ObjectTypeName,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PSID PrincipalSelfSid,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ AUDIT_EVENT_TYPE AuditType,
+    _In_ ULONG Flags,
+    _In_reads_opt_(ObjectTypeListLength) POBJECT_TYPE_LIST ObjectTypeList,
+    _In_ ULONG ObjectTypeListLength,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_ BOOLEAN ObjectCreation,
+    _Out_writes_(ObjectTypeListLength) PACCESS_MASK GrantedAccess,
+    _Out_writes_(ObjectTypeListLength) PNTSTATUS AccessStatus,
+    _Out_ PBOOLEAN GenerateOnClose
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenObjectAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in PUNICODE_STRING ObjectTypeName,
-    __in PUNICODE_STRING ObjectName,
-    __in_opt PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in HANDLE ClientToken,
-    __in ACCESS_MASK DesiredAccess,
-    __in ACCESS_MASK GrantedAccess,
-    __in_opt PPRIVILEGE_SET Privileges,
-    __in BOOLEAN ObjectCreation,
-    __in BOOLEAN AccessGranted,
-    __out PBOOLEAN GenerateOnClose
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ PUNICODE_STRING ObjectTypeName,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ HANDLE ClientToken,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_opt_ PPRIVILEGE_SET Privileges,
+    _In_ BOOLEAN ObjectCreation,
+    _In_ BOOLEAN AccessGranted,
+    _Out_ PBOOLEAN GenerateOnClose
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrivilegeObjectAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in HANDLE ClientToken,
-    __in ACCESS_MASK DesiredAccess,
-    __in PPRIVILEGE_SET Privileges,
-    __in BOOLEAN AccessGranted
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ HANDLE ClientToken,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPRIVILEGE_SET Privileges,
+    _In_ BOOLEAN AccessGranted
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCloseObjectAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in BOOLEAN GenerateOnClose
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ BOOLEAN GenerateOnClose
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeleteObjectAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in_opt PVOID HandleId,
-    __in BOOLEAN GenerateOnClose
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_opt_ PVOID HandleId,
+    _In_ BOOLEAN GenerateOnClose
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrivilegedServiceAuditAlarm(
-    __in PUNICODE_STRING SubsystemName,
-    __in PUNICODE_STRING ServiceName,
-    __in HANDLE ClientToken,
-    __in PPRIVILEGE_SET Privileges,
-    __in BOOLEAN AccessGranted
+    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PUNICODE_STRING ServiceName,
+    _In_ HANDLE ClientToken,
+    _In_ PPRIVILEGE_SET Privileges,
+    _In_ BOOLEAN AccessGranted
     );
 
 // Authz
@@ -482,12 +482,12 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySecurityAttributesToken(
-    __in HANDLE TokenHandle,
-    __in_ecount_opt(NumberOfAttributes) PUNICODE_STRING Attributes,
-    __in ULONG NumberOfAttributes,
-    __out_bcount(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
-    __in ULONG Length,
-    __out PULONG ReturnLength
+    _In_ HANDLE TokenHandle,
+    _In_reads_opt_(NumberOfAttributes) PUNICODE_STRING Attributes,
+    _In_ ULONG NumberOfAttributes,
+    _Out_writes_bytes_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
+    _In_ ULONG Length,
+    _Out_ PULONG ReturnLength
     );
 #endif
 

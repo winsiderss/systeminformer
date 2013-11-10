@@ -45,7 +45,7 @@ static ICLRDataTargetVtbl DnCLRDataTarget_VTable =
 };
 
 PCLR_PROCESS_SUPPORT CreateClrProcessSupport(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PCLR_PROCESS_SUPPORT support;
@@ -71,7 +71,7 @@ PCLR_PROCESS_SUPPORT CreateClrProcessSupport(
 }
 
 VOID FreeClrProcessSupport(
-    __in PCLR_PROCESS_SUPPORT Support
+    _In_ PCLR_PROCESS_SUPPORT Support
     )
 {
     IXCLRDataProcess_Release(Support->DataProcess);
@@ -79,9 +79,9 @@ VOID FreeClrProcessSupport(
 }
 
 PPH_STRING GetRuntimeNameByAddressClrProcess(
-    __in PCLR_PROCESS_SUPPORT Support,
-    __in ULONG64 Address,
-    __out_opt PULONG64 Displacement
+    _In_ PCLR_PROCESS_SUPPORT Support,
+    _In_ ULONG64 Address,
+    _Out_opt_ PULONG64 Displacement
     )
 {
     PPH_STRING buffer;
@@ -139,7 +139,7 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
 }
 
 PPH_STRING GetNameXClrDataAppDomain(
-    __in PVOID AppDomain
+    _In_ PVOID AppDomain
     )
 {
     IXCLRDataAppDomain *appDomain;
@@ -180,7 +180,7 @@ PPH_STRING GetNameXClrDataAppDomain(
 }
 
 PVOID LoadMscordacwks(
-    __in BOOLEAN IsClrV4
+    _In_ BOOLEAN IsClrV4
     )
 {
     PVOID dllBase;
@@ -217,9 +217,9 @@ PVOID LoadMscordacwks(
 }
 
 HRESULT CreateXCLRDataProcess(
-    __in HANDLE ProcessId,
-    __in ICLRDataTarget *Target,
-    __out struct IXCLRDataProcess **DataProcess
+    _In_ HANDLE ProcessId,
+    _In_ ICLRDataTarget *Target,
+    _Out_ struct IXCLRDataProcess **DataProcess
     )
 {
     ULONG flags;
@@ -276,7 +276,7 @@ HRESULT CreateXCLRDataProcess(
 }
 
 ICLRDataTarget *DnCLRDataTarget_Create(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     DnCLRDataTarget *dataTarget;
@@ -308,9 +308,9 @@ ICLRDataTarget *DnCLRDataTarget_Create(
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_QueryInterface(
-    __in ICLRDataTarget *This,
-    __in REFIID Riid,
-    __out PVOID *Object
+    _In_ ICLRDataTarget *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
     )
 {
     if (
@@ -328,7 +328,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_QueryInterface(
 }
 
 ULONG STDMETHODCALLTYPE DnCLRDataTarget_AddRef(
-    __in ICLRDataTarget *This
+    _In_ ICLRDataTarget *This
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
@@ -339,7 +339,7 @@ ULONG STDMETHODCALLTYPE DnCLRDataTarget_AddRef(
 }
 
 ULONG STDMETHODCALLTYPE DnCLRDataTarget_Release(
-    __in ICLRDataTarget *This
+    _In_ ICLRDataTarget *This
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
@@ -359,8 +359,8 @@ ULONG STDMETHODCALLTYPE DnCLRDataTarget_Release(
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetMachineType(
-    __in ICLRDataTarget *This,
-    __out ULONG32 *machineType
+    _In_ ICLRDataTarget *This,
+    _Out_ ULONG32 *machineType
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
@@ -378,8 +378,8 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetMachineType(
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
-    __in ICLRDataTarget *This,
-    __out ULONG32 *pointerSize
+    _In_ ICLRDataTarget *This,
+    _Out_ ULONG32 *pointerSize
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
@@ -397,8 +397,8 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
 }
 
 BOOLEAN NTAPI PhpGetImageBaseCallback(
-    __in PLDR_DATA_TABLE_ENTRY Module,
-    __in_opt PVOID Context
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_opt_ PVOID Context
     )
 {
     PPHP_GET_IMAGE_BASE_CONTEXT context = Context;
@@ -414,9 +414,9 @@ BOOLEAN NTAPI PhpGetImageBaseCallback(
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
-    __in ICLRDataTarget *This,
-    __in LPCWSTR imagePath,
-    __out CLRDATA_ADDRESS *baseAddress
+    _In_ ICLRDataTarget *This,
+    _In_ LPCWSTR imagePath,
+    _Out_ CLRDATA_ADDRESS *baseAddress
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
@@ -444,11 +444,11 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
-    __in ICLRDataTarget *This,
-    __in CLRDATA_ADDRESS address,
-    __out BYTE *buffer,
-    __in ULONG32 bytesRequested,
-    __out ULONG32 *bytesRead
+    _In_ ICLRDataTarget *This,
+    _In_ CLRDATA_ADDRESS address,
+    _Out_ BYTE *buffer,
+    _In_ ULONG32 bytesRequested,
+    _Out_ ULONG32 *bytesRead
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
@@ -478,50 +478,50 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_WriteVirtual(
-    __in ICLRDataTarget *This,
-    __in CLRDATA_ADDRESS address,
-    __in BYTE *buffer,
-    __in ULONG32 bytesRequested,
-    __out ULONG32 *bytesWritten
+    _In_ ICLRDataTarget *This,
+    _In_ CLRDATA_ADDRESS address,
+    _In_ BYTE *buffer,
+    _In_ ULONG32 bytesRequested,
+    _Out_ ULONG32 *bytesWritten
     )
 {
     return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetTLSValue(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 index,
-    __out CLRDATA_ADDRESS *value
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 index,
+    _Out_ CLRDATA_ADDRESS *value
     )
 {
     return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetTLSValue(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 index,
-    __in CLRDATA_ADDRESS value
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 index,
+    _In_ CLRDATA_ADDRESS value
     )
 {
     return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetCurrentThreadID(
-    __in ICLRDataTarget *This,
-    __out ULONG32 *threadID
+    _In_ ICLRDataTarget *This,
+    _Out_ ULONG32 *threadID
     )
 {
     return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 contextFlags,
-    __in ULONG32 contextSize,
-    __out BYTE *context
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 contextFlags,
+    _In_ ULONG32 contextSize,
+    _Out_ BYTE *context
     )
 {
     NTSTATUS status;
@@ -553,22 +553,22 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
-    __in ICLRDataTarget *This,
-    __in ULONG32 threadID,
-    __in ULONG32 contextSize,
-    __in BYTE *context
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 threadID,
+    _In_ ULONG32 contextSize,
+    _In_ BYTE *context
     )
 {
     return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_Request(
-    __in ICLRDataTarget *This,
-    __in ULONG32 reqCode,
-    __in ULONG32 inBufferSize,
-    __in BYTE *inBuffer,
-    __in ULONG32 outBufferSize,
-    __out BYTE *outBuffer
+    _In_ ICLRDataTarget *This,
+    _In_ ULONG32 reqCode,
+    _In_ ULONG32 inBufferSize,
+    _In_ BYTE *inBuffer,
+    _In_ ULONG32 outBufferSize,
+    _Out_ BYTE *outBuffer
     )
 {
     return E_NOTIMPL;

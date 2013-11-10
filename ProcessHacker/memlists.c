@@ -26,10 +26,10 @@
 #define MSG_UPDATE (WM_APP + 1)
 
 INT_PTR CALLBACK PhpMemoryListsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 HWND PhMemoryListsWindowHandle = NULL;
@@ -37,9 +37,9 @@ static VOID (NTAPI *UnregisterDialogFunction)(HWND);
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 VOID PhShowMemoryListsDialog(
-    __in HWND ParentWindowHandle,
-    __in_opt VOID (NTAPI *RegisterDialog)(HWND),
-    __in_opt VOID (NTAPI *UnregisterDialog)(HWND)
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ VOID (NTAPI *RegisterDialog)(HWND),
+    _In_opt_ VOID (NTAPI *UnregisterDialog)(HWND)
     )
 {
     if (!PhMemoryListsWindowHandle)
@@ -63,15 +63,15 @@ VOID PhShowMemoryListsDialog(
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PostMessage(PhMemoryListsWindowHandle, MSG_UPDATE, 0, 0);
 }
 
 static VOID PhpUpdateMemoryListInfo(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     SYSTEM_MEMORY_LIST_INFORMATION memoryListInfo;
@@ -155,10 +155,10 @@ static VOID PhpUpdateMemoryListInfo(
 }
 
 INT_PTR CALLBACK PhpMemoryListsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

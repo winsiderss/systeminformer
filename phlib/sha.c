@@ -89,7 +89,7 @@ static void SHATransform(ULONG State[5], UCHAR Buffer[64])
 }
 
 VOID A_SHAInit(
-    __out A_SHA_CTX *Context
+    _Out_ A_SHA_CTX *Context
     )
 {
    /* SHA1 initialization constants */
@@ -103,9 +103,9 @@ VOID A_SHAInit(
 }
 
 VOID A_SHAUpdate(
-    __inout A_SHA_CTX *Context,
-    __in_bcount(Length) UCHAR *Input,
-    __in ULONG Length
+    _Inout_ A_SHA_CTX *Context,
+    _In_reads_bytes_(Length) UCHAR *Input,
+    _In_ ULONG Length
     )
 {
    ULONG InputContentSize;
@@ -137,8 +137,8 @@ VOID A_SHAUpdate(
 }
 
 VOID A_SHAFinal(
-    __inout A_SHA_CTX *Context,
-    __out_bcount(20) UCHAR *Hash
+    _Inout_ A_SHA_CTX *Context,
+    _Out_writes_bytes_(20) UCHAR *Hash
     )
 {
    INT Pad, Index;

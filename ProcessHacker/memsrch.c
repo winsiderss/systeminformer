@@ -46,17 +46,17 @@ typedef struct _MEMORY_STRING_CONTEXT
 } MEMORY_STRING_CONTEXT, *PMEMORY_STRING_CONTEXT;
 
 INT_PTR CALLBACK PhpMemoryStringDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 PVOID PhMemorySearchHeap = NULL;
@@ -64,7 +64,7 @@ LONG PhMemorySearchHeapRefCount = 0;
 PH_QUEUED_LOCK PhMemorySearchHeapLock = PH_QUEUED_LOCK_INIT;
 
 PVOID PhAllocateForMemorySearch(
-    __in SIZE_T Size
+    _In_ SIZE_T Size
     )
 {
     PVOID memory;
@@ -103,7 +103,7 @@ PVOID PhAllocateForMemorySearch(
 }
 
 VOID PhFreeForMemorySearch(
-    __in __post_invalid PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     )
 {
     PhAcquireQueuedLockExclusive(&PhMemorySearchHeapLock);
@@ -120,8 +120,8 @@ VOID PhFreeForMemorySearch(
 }
 
 PVOID PhCreateMemoryResult(
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     )
 {
     PPH_MEMORY_RESULT result;
@@ -141,14 +141,14 @@ PVOID PhCreateMemoryResult(
 }
 
 VOID PhReferenceMemoryResult(
-    __in PPH_MEMORY_RESULT Result
+    _In_ PPH_MEMORY_RESULT Result
     )
 {
     _InterlockedIncrement(&Result->RefCount);
 }
 
 VOID PhDereferenceMemoryResult(
-    __in PPH_MEMORY_RESULT Result
+    _In_ PPH_MEMORY_RESULT Result
     )
 {
     if (_InterlockedDecrement(&Result->RefCount) == 0)
@@ -161,8 +161,8 @@ VOID PhDereferenceMemoryResult(
 }
 
 VOID PhDereferenceMemoryResults(
-    __in_ecount(NumberOfResults) PPH_MEMORY_RESULT *Results,
-    __in ULONG NumberOfResults
+    _In_reads_(NumberOfResults) PPH_MEMORY_RESULT *Results,
+    _In_ ULONG NumberOfResults
     )
 {
     ULONG i;
@@ -172,8 +172,8 @@ VOID PhDereferenceMemoryResults(
 }
 
 VOID PhSearchMemoryString(
-    __in HANDLE ProcessHandle,
-    __in PPH_MEMORY_STRING_OPTIONS Options
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_MEMORY_STRING_OPTIONS Options
     )
 {
     ULONG minimumLength;
@@ -461,8 +461,8 @@ ContinueLoop:
 }
 
 VOID PhShowMemoryStringDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     NTSTATUS status;
@@ -522,10 +522,10 @@ VOID PhShowMemoryStringDialog(
 }
 
 INT_PTR CALLBACK PhpMemoryStringDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -581,8 +581,8 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
 }
 
 static BOOL NTAPI PhpMemoryStringResultCallback(
-    __in __assumeRefs(1) PPH_MEMORY_RESULT Result,
-    __in_opt PVOID Context
+    _In_ _Assume_refs_(1) PPH_MEMORY_RESULT Result,
+    _In_opt_ PVOID Context
     )
 {
     PMEMORY_STRING_CONTEXT context = Context;
@@ -593,7 +593,7 @@ static BOOL NTAPI PhpMemoryStringResultCallback(
 }
 
 NTSTATUS PhpMemoryStringThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PMEMORY_STRING_CONTEXT context = Parameter;
@@ -623,10 +623,10 @@ NTSTATUS PhpMemoryStringThreadStart(
 }
 
 INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

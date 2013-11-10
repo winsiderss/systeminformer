@@ -110,21 +110,21 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryObject(
-    __in HANDLE Handle,
-    __in OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __out_bcount_opt(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE Handle,
+    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationObject(
-    __in HANDLE Handle,
-    __in OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __in_bcount(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength
+    _In_ HANDLE Handle,
+    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength
     );
 
 #define DUPLICATE_CLOSE_SOURCE 0x00000001
@@ -135,81 +135,81 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDuplicateObject(
-    __in HANDLE SourceProcessHandle,
-    __in HANDLE SourceHandle,
-    __in_opt HANDLE TargetProcessHandle,
-    __out_opt PHANDLE TargetHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __in ULONG Options
+    _In_ HANDLE SourceProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_opt_ HANDLE TargetProcessHandle,
+    _Out_opt_ PHANDLE TargetHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Options
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtMakeTemporaryObject(
-    __in HANDLE Handle
+    _In_ HANDLE Handle
     );
 
 typedef NTSTATUS (NTAPI *_NtMakePermanentObject)(
-    __in HANDLE Handle
+    _In_ HANDLE Handle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSignalAndWaitForSingleObject(
-    __in HANDLE SignalHandle,
-    __in HANDLE WaitHandle,
-    __in BOOLEAN Alertable,
-    __in_opt PLARGE_INTEGER Timeout
+    _In_ HANDLE SignalHandle,
+    _In_ HANDLE WaitHandle,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWaitForSingleObject(
-    __in HANDLE Handle,
-    __in BOOLEAN Alertable,
-    __in_opt PLARGE_INTEGER Timeout
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWaitForMultipleObjects(
-    __in ULONG Count,
-    __in_ecount(Count) PHANDLE Handles,
-    __in WAIT_TYPE WaitType,
-    __in BOOLEAN Alertable,
-    __in_opt PLARGE_INTEGER Timeout
+    _In_ ULONG Count,
+    _In_reads_(Count) PHANDLE Handles,
+    _In_ WAIT_TYPE WaitType,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSecurityObject(
-    __in HANDLE Handle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySecurityObject(
-    __in HANDLE Handle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __out_bcount_opt(Length) PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in ULONG Length,
-    __out PULONG LengthNeeded
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_writes_bytes_opt_(Length) PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG Length,
+    _Out_ PULONG LengthNeeded
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtClose(
-    __in HANDLE Handle
+    _In_ HANDLE Handle
     );
 
 #endif
@@ -222,18 +222,18 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateDirectoryObject(
-    __out PHANDLE DirectoryHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
+    _Out_ PHANDLE DirectoryHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenDirectoryObject(
-    __out PHANDLE DirectoryHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
+    _Out_ PHANDLE DirectoryHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 typedef struct _OBJECT_DIRECTORY_INFORMATION
@@ -246,13 +246,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryDirectoryObject(
-    __in HANDLE DirectoryHandle,
-    __out_bcount_opt(Length) PVOID Buffer,
-    __in ULONG Length,
-    __in BOOLEAN ReturnSingleEntry,
-    __in BOOLEAN RestartScan,
-    __inout PULONG Context,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE DirectoryHandle,
+    _Out_writes_bytes_opt_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_ BOOLEAN RestartScan,
+    _Inout_ PULONG Context,
+    _Out_opt_ PULONG ReturnLength
     );
 
 #endif
@@ -269,27 +269,27 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePrivateNamespace(
-    __out PHANDLE NamespaceHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in PVOID BoundaryDescriptor
+    _Out_ PHANDLE NamespaceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PVOID BoundaryDescriptor
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenPrivateNamespace(
-    __out PHANDLE NamespaceHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in PVOID BoundaryDescriptor
+    _Out_ PHANDLE NamespaceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PVOID BoundaryDescriptor
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeletePrivateNamespace(
-    __in HANDLE NamespaceHandle
+    _In_ HANDLE NamespaceHandle
     );
 
 // end_private
@@ -306,28 +306,28 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateSymbolicLinkObject(
-    __out PHANDLE LinkHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in PUNICODE_STRING LinkTarget
+    _Out_ PHANDLE LinkHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PUNICODE_STRING LinkTarget
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenSymbolicLinkObject(
-    __out PHANDLE LinkHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
+    _Out_ PHANDLE LinkHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySymbolicLinkObject(
-    __in HANDLE LinkHandle,
-    __inout PUNICODE_STRING LinkTarget,
-    __out_opt PULONG ReturnedLength
+    _In_ HANDLE LinkHandle,
+    _Inout_ PUNICODE_STRING LinkTarget,
+    _Out_opt_ PULONG ReturnedLength
     );
 
 #endif

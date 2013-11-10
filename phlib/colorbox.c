@@ -30,10 +30,10 @@ typedef struct _PHP_COLORBOX_CONTEXT
 } PHP_COLORBOX_CONTEXT, *PPHP_COLORBOX_CONTEXT;
 
 LRESULT CALLBACK PhpColorBoxWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 BOOLEAN PhColorBoxInitialization(
@@ -61,7 +61,7 @@ BOOLEAN PhColorBoxInitialization(
 }
 
 VOID PhpCreateColorBoxContext(
-    __out PPHP_COLORBOX_CONTEXT *Context
+    _Out_ PPHP_COLORBOX_CONTEXT *Context
     )
 {
     PPHP_COLORBOX_CONTEXT context;
@@ -75,17 +75,17 @@ VOID PhpCreateColorBoxContext(
 }
 
 VOID PhpFreeColorBoxContext(
-    __in __post_invalid PPHP_COLORBOX_CONTEXT Context
+    _In_ _Post_invalid_ PPHP_COLORBOX_CONTEXT Context
     )
 {
     PhFree(Context);
 }
 
 LRESULT CALLBACK PhpColorBoxWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPHP_COLORBOX_CONTEXT context;

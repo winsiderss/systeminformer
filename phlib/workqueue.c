@@ -25,7 +25,7 @@
 #include <phintrnl.h>
 
 NTSTATUS PhpWorkQueueThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 static PH_FREE_LIST PhWorkQueueItemFreeList;
@@ -58,10 +58,10 @@ VOID PhWorkQueueInitialization(
  * will terminate.
  */
 VOID PhInitializeWorkQueue(
-    __out PPH_WORK_QUEUE WorkQueue,
-    __in ULONG MinimumThreads,
-    __in ULONG MaximumThreads,
-    __in ULONG NoWorkTimeout
+    _Out_ PPH_WORK_QUEUE WorkQueue,
+    _In_ ULONG MinimumThreads,
+    _In_ ULONG MaximumThreads,
+    _In_ ULONG NoWorkTimeout
     )
 {
     PhInitializeRundownProtection(&WorkQueue->RundownProtect);
@@ -93,7 +93,7 @@ VOID PhInitializeWorkQueue(
  * \param WorkQueue A work queue object.
  */
 VOID PhDeleteWorkQueue(
-    __inout PPH_WORK_QUEUE WorkQueue
+    _Inout_ PPH_WORK_QUEUE WorkQueue
     )
 {
     PLIST_ENTRY listEntry;
@@ -125,9 +125,9 @@ VOID PhDeleteWorkQueue(
 }
 
 FORCEINLINE VOID PhpInitializeWorkQueueItem(
-    __out PPH_WORK_QUEUE_ITEM WorkQueueItem,
-    __in PTHREAD_START_ROUTINE Function,
-    __in_opt PVOID Context
+    _Out_ PPH_WORK_QUEUE_ITEM WorkQueueItem,
+    _In_ PTHREAD_START_ROUTINE Function,
+    _In_opt_ PVOID Context
     )
 {
     WorkQueueItem->Function = Function;
@@ -135,14 +135,14 @@ FORCEINLINE VOID PhpInitializeWorkQueueItem(
 }
 
 FORCEINLINE VOID PhpExecuteWorkQueueItem(
-    __inout PPH_WORK_QUEUE_ITEM WorkQueueItem
+    _Inout_ PPH_WORK_QUEUE_ITEM WorkQueueItem
     )
 {
     WorkQueueItem->Function(WorkQueueItem->Context);
 }
 
 BOOLEAN PhpCreateWorkQueueThread(
-    __inout PPH_WORK_QUEUE WorkQueue
+    _Inout_ PPH_WORK_QUEUE WorkQueue
     )
 {
     HANDLE threadHandle;
@@ -170,7 +170,7 @@ BOOLEAN PhpCreateWorkQueueThread(
 }
 
 NTSTATUS PhpWorkQueueThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_WORK_QUEUE workQueue = (PPH_WORK_QUEUE)Parameter;
@@ -279,9 +279,9 @@ NTSTATUS PhpWorkQueueThreadStart(
  * \param Context A user-defined value to pass to the function.
  */
 VOID PhQueueItemWorkQueue(
-    __inout PPH_WORK_QUEUE WorkQueue,
-    __in PTHREAD_START_ROUTINE Function,
-    __in_opt PVOID Context
+    _Inout_ PPH_WORK_QUEUE WorkQueue,
+    _In_ PTHREAD_START_ROUTINE Function,
+    _In_opt_ PVOID Context
     )
 {
     PPH_WORK_QUEUE_ITEM workQueueItem;
@@ -324,8 +324,8 @@ VOID PhQueueItemWorkQueue(
  * \param Context A user-defined value to pass to the function.
  */
 VOID PhQueueItemGlobalWorkQueue(
-    __in PTHREAD_START_ROUTINE Function,
-    __in_opt PVOID Context
+    _In_ PTHREAD_START_ROUTINE Function,
+    _In_opt_ PVOID Context
     )
 {
     if (PhBeginInitOnce(&PhGlobalWorkQueueInitOnce))

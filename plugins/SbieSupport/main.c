@@ -38,55 +38,55 @@ typedef struct _BOXED_PROCESS
 } BOXED_PROCESS, *PBOXED_PROCESS;
 
 VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI GetProcessHighlightingColorCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI GetProcessTooltipTextCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI GetIsDotNetDirectoryNamesCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI RefreshSandboxieInfo(
-    __in_opt PVOID Context,
-    __in BOOLEAN TimerOrWaitFired
+    _In_opt_ PVOID Context,
+    _In_ BOOLEAN TimerOrWaitFired
     );
 
 INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 PPH_PLUGIN PluginInstance;
@@ -111,9 +111,9 @@ BOX_INFO BoxInfo[16];
 ULONG BoxInfoCount;
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)
@@ -192,23 +192,23 @@ LOGICAL DllMain(
 }
 
 BOOLEAN NTAPI BoxedProcessesCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     return ((PBOXED_PROCESS)Entry1)->ProcessId == ((PBOXED_PROCESS)Entry2)->ProcessId;
 }
 
 ULONG NTAPI BoxedProcessesHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     return (ULONG)((PBOXED_PROCESS)Entry)->ProcessId / 4;
 }
 
 VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_STRING sbieDllPath;
@@ -239,8 +239,8 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     DialogBox(
@@ -252,8 +252,8 @@ VOID NTAPI ShowOptionsCallback(
 }
 
 VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
@@ -297,8 +297,8 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$",
@@ -308,8 +308,8 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PBOXED_PROCESS boxedProcess;
@@ -339,8 +339,8 @@ VOID NTAPI ProcessesUpdatedCallback(
 }
 
 VOID NTAPI GetProcessHighlightingColorCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
@@ -362,8 +362,8 @@ VOID NTAPI GetProcessHighlightingColorCallback(
 }
 
 VOID NTAPI GetProcessTooltipTextCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_GET_TOOLTIP_TEXT getTooltipText = Parameter;
@@ -383,8 +383,8 @@ VOID NTAPI GetProcessTooltipTextCallback(
 }
 
 VOID NTAPI RefreshSandboxieInfo(
-    __in_opt PVOID Context,
-    __in BOOLEAN TimerOrWaitFired
+    _In_opt_ PVOID Context,
+    _In_ BOOLEAN TimerOrWaitFired
     )
 {
     LONG index;
@@ -481,10 +481,10 @@ VOID NTAPI RefreshSandboxieInfo(
 }
 
 INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

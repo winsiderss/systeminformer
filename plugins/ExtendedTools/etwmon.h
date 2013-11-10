@@ -112,25 +112,25 @@ typedef struct _ET_ETW_NETWORK_EVENT
 // etwstat
 
 VOID EtProcessDiskEvent(
-    __in PET_ETW_DISK_EVENT Event
+    _In_ PET_ETW_DISK_EVENT Event
     );
 
 VOID EtProcessNetworkEvent(
-    __in PET_ETW_NETWORK_EVENT Event
+    _In_ PET_ETW_NETWORK_EVENT Event
     );
 
 HANDLE EtThreadIdToProcessId(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     );
 
 // etwdisk
 
 VOID EtDiskProcessDiskEvent(
-    __in PET_ETW_DISK_EVENT Event
+    _In_ PET_ETW_DISK_EVENT Event
     );
 
 VOID EtDiskProcessFileEvent(
-    __in PET_ETW_FILE_EVENT Event
+    _In_ PET_ETW_FILE_EVENT Event
     );
 
 #endif

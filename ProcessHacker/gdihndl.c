@@ -39,15 +39,15 @@ typedef struct _PH_GDI_HANDLE_ITEM
 } PH_GDI_HANDLE_ITEM, *PPH_GDI_HANDLE_ITEM;
 
 INT_PTR CALLBACK PhpGdiHandlesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowGdiHandlesDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     GDI_HANDLES_CONTEXT context;
@@ -78,7 +78,7 @@ VOID PhShowGdiHandlesDialog(
 }
 
 PWSTR PhpGetGdiHandleTypeName(
-    __in ULONG Unique
+    _In_ ULONG Unique
     )
 {
     switch (GDI_CLIENT_TYPE_FROM_UNIQUE(Unique))
@@ -117,7 +117,7 @@ PWSTR PhpGetGdiHandleTypeName(
 }
 
 PPH_STRING PhpGetGdiHandleInformation(
-    __in ULONG Handle
+    _In_ ULONG Handle
     )
 {
     HGDIOBJ handle;
@@ -220,8 +220,8 @@ PPH_STRING PhpGetGdiHandleInformation(
 }
 
 VOID PhpRefreshGdiHandles(
-    __in HWND hwndDlg,
-    __in PGDI_HANDLES_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PGDI_HANDLES_CONTEXT Context
     )
 {
     HWND lvHandle;
@@ -288,9 +288,9 @@ VOID PhpRefreshGdiHandles(
 }
 
 INT NTAPI PhpGdiHandleHandleCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_GDI_HANDLE_ITEM item1 = Item1;
@@ -300,9 +300,9 @@ INT NTAPI PhpGdiHandleHandleCompareFunction(
 }
 
 INT NTAPI PhpGdiHandleObjectCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_GDI_HANDLE_ITEM item1 = Item1;
@@ -312,10 +312,10 @@ INT NTAPI PhpGdiHandleObjectCompareFunction(
 }
 
 INT_PTR CALLBACK PhpGdiHandlesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

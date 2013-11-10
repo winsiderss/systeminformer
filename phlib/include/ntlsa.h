@@ -10,19 +10,19 @@
 // Basic
 
 NTSTATUS NTAPI LsaDelete(
-    __in LSA_HANDLE ObjectHandle
+    _In_ LSA_HANDLE ObjectHandle
     );
 
 NTSTATUS NTAPI LsaQuerySecurityObject(
-    __in LSA_HANDLE ObjectHandle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor
+    _In_ LSA_HANDLE ObjectHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
     );
 
 NTSTATUS NTAPI LsaSetSecurityObject(
-    __in LSA_HANDLE ObjectHandle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ LSA_HANDLE ObjectHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 // System access
@@ -76,22 +76,22 @@ typedef struct _POLICY_PRIVILEGE_DEFINITION
 } POLICY_PRIVILEGE_DEFINITION, *PPOLICY_PRIVILEGE_DEFINITION;
 
 NTSTATUS NTAPI LsaOpenPolicySce(
-    __in_opt PLSA_UNICODE_STRING SystemName,
-    __in PLSA_OBJECT_ATTRIBUTES ObjectAttributes,
-    __in ACCESS_MASK DesiredAccess,
-    __out PLSA_HANDLE PolicyHandle
+    _In_opt_ PLSA_UNICODE_STRING SystemName,
+    _In_ PLSA_OBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PLSA_HANDLE PolicyHandle
     );
 
 NTSTATUS NTAPI LsaClearAuditLog(
-    __in LSA_HANDLE PolicyHandle
+    _In_ LSA_HANDLE PolicyHandle
     );
 
 NTSTATUS NTAPI LsaEnumeratePrivileges(
-    __in LSA_HANDLE PolicyHandle,
-    __inout PLSA_ENUMERATION_HANDLE EnumerationContext,
-    __out PVOID *Buffer, // PPOLICY_PRIVILEGE_DEFINITION *Buffer
-    __in ULONG PreferedMaximumLength,
-    __out PULONG CountReturned
+    _In_ LSA_HANDLE PolicyHandle,
+    _Inout_ PLSA_ENUMERATION_HANDLE EnumerationContext,
+    _Out_ PVOID *Buffer, // PPOLICY_PRIVILEGE_DEFINITION *Buffer
+    _In_ ULONG PreferedMaximumLength,
+    _Out_ PULONG CountReturned
     );
 
 #define LSA_LOOKUP_ISOLATED_AS_LOCAL 0x80000000
@@ -115,61 +115,61 @@ NTSTATUS NTAPI LsaEnumeratePrivileges(
 #define ACCOUNT_EXECUTE (STANDARD_RIGHTS_EXECUTE)
 
 NTSTATUS NTAPI LsaCreateAccount(
-    __in LSA_HANDLE PolicyHandle,
-    __in PSID AccountSid,
-    __in ACCESS_MASK DesiredAccess,
-    __out PLSA_HANDLE AccountHandle
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PSID AccountSid,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PLSA_HANDLE AccountHandle
     );
 
 NTSTATUS NTAPI LsaOpenAccount(
-    __in LSA_HANDLE PolicyHandle,
-    __in PSID AccountSid,
-    __in ACCESS_MASK DesiredAccess,
-    __out PLSA_HANDLE AccountHandle
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PSID AccountSid,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PLSA_HANDLE AccountHandle
     );
 
 NTSTATUS NTAPI LsaEnumerateAccounts(
-    __in LSA_HANDLE PolicyHandle,
-    __inout PLSA_ENUMERATION_HANDLE EnumerationContext,
-    __out PVOID *Buffer, // PSID **Buffer
-    __in ULONG PreferedMaximumLength,
-    __out PULONG CountReturned
+    _In_ LSA_HANDLE PolicyHandle,
+    _Inout_ PLSA_ENUMERATION_HANDLE EnumerationContext,
+    _Out_ PVOID *Buffer, // PSID **Buffer
+    _In_ ULONG PreferedMaximumLength,
+    _Out_ PULONG CountReturned
     );
 
 NTSTATUS NTAPI LsaAddPrivilegesToAccount(
-    __in LSA_HANDLE AccountHandle,
-    __in PPRIVILEGE_SET Privileges
+    _In_ LSA_HANDLE AccountHandle,
+    _In_ PPRIVILEGE_SET Privileges
     );
 
 NTSTATUS NTAPI LsaRemovePrivilegesFromAccount(
-    __in LSA_HANDLE AccountHandle,
-    __in BOOLEAN AllPrivileges,
-    __in_opt PPRIVILEGE_SET Privileges
+    _In_ LSA_HANDLE AccountHandle,
+    _In_ BOOLEAN AllPrivileges,
+    _In_opt_ PPRIVILEGE_SET Privileges
     );
 
 NTSTATUS NTAPI LsaEnumeratePrivilegesOfAccount(
-    __in LSA_HANDLE AccountHandle,
-    __out PPRIVILEGE_SET *Privileges
+    _In_ LSA_HANDLE AccountHandle,
+    _Out_ PPRIVILEGE_SET *Privileges
     );
 
 NTSTATUS NTAPI LsaGetQuotasForAccount(
-    __in LSA_HANDLE AccountHandle,
-    __out PQUOTA_LIMITS QuotaLimits
+    _In_ LSA_HANDLE AccountHandle,
+    _Out_ PQUOTA_LIMITS QuotaLimits
     );
 
 NTSTATUS NTAPI LsaSetQuotasForAccount(
-    __in LSA_HANDLE AccountHandle,
-    __in PQUOTA_LIMITS QuotaLimits
+    _In_ LSA_HANDLE AccountHandle,
+    _In_ PQUOTA_LIMITS QuotaLimits
     );
 
 NTSTATUS NTAPI LsaGetSystemAccessAccount(
-    __in LSA_HANDLE AccountHandle,
-    __out PULONG SystemAccess
+    _In_ LSA_HANDLE AccountHandle,
+    _Out_ PULONG SystemAccess
     );
 
 NTSTATUS NTAPI LsaSetSystemAccessAccount(
-    __in LSA_HANDLE AccountHandle,
-    __in ULONG SystemAccess
+    _In_ LSA_HANDLE AccountHandle,
+    _In_ ULONG SystemAccess
     );
 
 // Trusted Domain
@@ -200,29 +200,29 @@ NTSTATUS NTAPI LsaSetSystemAccessAccount(
     TRUSTED_QUERY_POSIX)
 
 NTSTATUS NTAPI LsaCreateTrustedDomain(
-    __in LSA_HANDLE PolicyHandle,
-    __in PLSA_TRUST_INFORMATION TrustedDomainInformation,
-    __in ACCESS_MASK DesiredAccess,
-    __out PLSA_HANDLE TrustedDomainHandle
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PLSA_TRUST_INFORMATION TrustedDomainInformation,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
 NTSTATUS NTAPI LsaOpenTrustedDomain(
-    __in LSA_HANDLE PolicyHandle,
-    __in PSID TrustedDomainSid,
-    __in ACCESS_MASK DesiredAccess,
-    __out PLSA_HANDLE TrustedDomainHandle
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PSID TrustedDomainSid,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
 NTSTATUS NTAPI LsaQueryInfoTrustedDomain(
-    __in LSA_HANDLE TrustedDomainHandle,
-    __in TRUSTED_INFORMATION_CLASS InformationClass,
-    __out PVOID *Buffer
+    _In_ LSA_HANDLE TrustedDomainHandle,
+    _In_ TRUSTED_INFORMATION_CLASS InformationClass,
+    _Out_ PVOID *Buffer
     );
 
 NTSTATUS NTAPI LsaSetInformationTrustedDomain(
-    __in LSA_HANDLE TrustedDomainHandle,
-    __in TRUSTED_INFORMATION_CLASS InformationClass,
-    __in PVOID Buffer
+    _In_ LSA_HANDLE TrustedDomainHandle,
+    _In_ TRUSTED_INFORMATION_CLASS InformationClass,
+    _In_ PVOID Buffer
     );
 
 // Secret
@@ -252,73 +252,73 @@ NTSTATUS NTAPI LsaSetInformationTrustedDomain(
 #define LSA_SECRET_MAXIMUM_LENGTH 0x00000200L
 
 NTSTATUS NTAPI LsaCreateSecret(
-    __in LSA_HANDLE PolicyHandle,
-    __in PLSA_UNICODE_STRING SecretName,
-    __in ACCESS_MASK DesiredAccess,
-    __out PLSA_HANDLE SecretHandle
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PLSA_UNICODE_STRING SecretName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PLSA_HANDLE SecretHandle
     );
 
 NTSTATUS NTAPI LsaOpenSecret(
-    __in LSA_HANDLE PolicyHandle,
-    __in PLSA_UNICODE_STRING SecretName,
-    __in ACCESS_MASK DesiredAccess,
-    __out PLSA_HANDLE SecretHandle
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PLSA_UNICODE_STRING SecretName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PLSA_HANDLE SecretHandle
     );
 
 NTSTATUS NTAPI LsaSetSecret(
-    __in LSA_HANDLE SecretHandle,
-    __in_opt PLSA_UNICODE_STRING CurrentValue,
-    __in_opt PLSA_UNICODE_STRING OldValue
+    _In_ LSA_HANDLE SecretHandle,
+    _In_opt_ PLSA_UNICODE_STRING CurrentValue,
+    _In_opt_ PLSA_UNICODE_STRING OldValue
     );
 
 NTSTATUS NTAPI LsaQuerySecret(
-    __in LSA_HANDLE SecretHandle,
-    __out_opt OPTIONAL PLSA_UNICODE_STRING *CurrentValue,
-    __out_opt PLARGE_INTEGER CurrentValueSetTime,
-    __out_opt PLSA_UNICODE_STRING *OldValue,
-    __out_opt PLARGE_INTEGER OldValueSetTime
+    _In_ LSA_HANDLE SecretHandle,
+    _Out_opt_ OPTIONAL PLSA_UNICODE_STRING *CurrentValue,
+    _Out_opt_ PLARGE_INTEGER CurrentValueSetTime,
+    _Out_opt_ PLSA_UNICODE_STRING *OldValue,
+    _Out_opt_ PLARGE_INTEGER OldValueSetTime
     );
 
 // Privilege
 
 NTSTATUS NTAPI LsaLookupPrivilegeValue(
-    __in LSA_HANDLE PolicyHandle,
-    __in PLSA_UNICODE_STRING Name,
-    __out PLUID Value
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PLSA_UNICODE_STRING Name,
+    _Out_ PLUID Value
     );
 
 NTSTATUS NTAPI LsaLookupPrivilegeName(
-    __in LSA_HANDLE PolicyHandle,
-    __in PLUID Value,
-    __out PLSA_UNICODE_STRING *Name
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PLUID Value,
+    _Out_ PLSA_UNICODE_STRING *Name
     );
 
 NTSTATUS NTAPI LsaLookupPrivilegeDisplayName(
-    __in LSA_HANDLE PolicyHandle,
-    __in PLSA_UNICODE_STRING Name,
-    __out PLSA_UNICODE_STRING *DisplayName,
-    __out PSHORT LanguageReturned
+    _In_ LSA_HANDLE PolicyHandle,
+    _In_ PLSA_UNICODE_STRING Name,
+    _Out_ PLSA_UNICODE_STRING *DisplayName,
+    _Out_ PSHORT LanguageReturned
     );
 
 // Misc.
 
 NTSTATUS NTAPI LsaChangePassword(
-    __in PLSA_UNICODE_STRING ServerName,
-    __in PLSA_UNICODE_STRING DomainName,
-    __in PLSA_UNICODE_STRING AccountName,
-    __in PLSA_UNICODE_STRING OldPassword,
-    __in PLSA_UNICODE_STRING NewPassword
+    _In_ PLSA_UNICODE_STRING ServerName,
+    _In_ PLSA_UNICODE_STRING DomainName,
+    _In_ PLSA_UNICODE_STRING AccountName,
+    _In_ PLSA_UNICODE_STRING OldPassword,
+    _In_ PLSA_UNICODE_STRING NewPassword
     );
 
 NTSTATUS NTAPI LsaGetUserName(
-    __deref_out PLSA_UNICODE_STRING *UserName,
-    __deref_opt_out PLSA_UNICODE_STRING *DomainName
+    _Outptr_ PLSA_UNICODE_STRING *UserName,
+    _Outptr_opt_ PLSA_UNICODE_STRING *DomainName
     );
 
 NTSTATUS NTAPI LsaGetRemoteUserName(
-    __in_opt PLSA_UNICODE_STRING SystemName,
-    __deref_out PLSA_UNICODE_STRING *UserName,
-    __deref_opt_out PLSA_UNICODE_STRING *DomainName
+    _In_opt_ PLSA_UNICODE_STRING SystemName,
+    _Outptr_ PLSA_UNICODE_STRING *UserName,
+    _Outptr_opt_ PLSA_UNICODE_STRING *DomainName
     );
 
 #endif

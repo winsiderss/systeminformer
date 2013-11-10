@@ -27,43 +27,43 @@
 #include <emenu.h>
 
 BOOLEAN PhpModuleNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG PhpModuleNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID PhpDestroyModuleNode(
-    __in PPH_MODULE_NODE ModuleNode
+    _In_ PPH_MODULE_NODE ModuleNode
     );
 
 VOID PhpRemoveModuleNode(
-    __in PPH_MODULE_NODE ModuleNode,
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_NODE ModuleNode,
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
 LONG PhpModuleTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     );
 
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 VOID PhInitializeModuleList(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __out PPH_MODULE_LIST_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
     HWND hwnd;
@@ -114,7 +114,7 @@ VOID PhInitializeModuleList(
 }
 
 VOID PhDeleteModuleList(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
     ULONG i;
@@ -132,8 +132,8 @@ VOID PhDeleteModuleList(
 }
 
 BOOLEAN PhpModuleNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_MODULE_NODE moduleNode1 = *(PPH_MODULE_NODE *)Entry1;
@@ -143,7 +143,7 @@ BOOLEAN PhpModuleNodeHashtableCompareFunction(
 }
 
 ULONG PhpModuleNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
 #ifdef _M_IX86
@@ -154,7 +154,7 @@ ULONG PhpModuleNodeHashtableHashFunction(
 }
 
 VOID PhLoadSettingsModuleList(
-    __inout PPH_MODULE_LIST_CONTEXT Context
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -168,7 +168,7 @@ VOID PhLoadSettingsModuleList(
 }
 
 VOID PhSaveSettingsModuleList(
-    __inout PPH_MODULE_LIST_CONTEXT Context
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -182,9 +182,9 @@ VOID PhSaveSettingsModuleList(
 }
 
 PPH_MODULE_NODE PhAddModuleNode(
-    __inout PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_ITEM ModuleItem,
-    __in ULONG RunId
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_ITEM ModuleItem,
+    _In_ ULONG RunId
     )
 {
     PPH_MODULE_NODE moduleNode;
@@ -223,8 +223,8 @@ PPH_MODULE_NODE PhAddModuleNode(
 }
 
 PPH_MODULE_NODE PhFindModuleNode(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_ITEM ModuleItem
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_ITEM ModuleItem
     )
 {
     PH_MODULE_NODE lookupModuleNode;
@@ -245,8 +245,8 @@ PPH_MODULE_NODE PhFindModuleNode(
 }
 
 VOID PhRemoveModuleNode(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_NODE ModuleNode
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_NODE ModuleNode
     )
 {
     // Remove from the hashtable here to avoid problems in case the key is re-used.
@@ -270,7 +270,7 @@ VOID PhRemoveModuleNode(
 }
 
 VOID PhpDestroyModuleNode(
-    __in PPH_MODULE_NODE ModuleNode
+    _In_ PPH_MODULE_NODE ModuleNode
     )
 {
     PhEmCallObjectOperation(EmModuleNodeType, ModuleNode, EmObjectDelete);
@@ -286,8 +286,8 @@ VOID PhpDestroyModuleNode(
 }
 
 VOID PhpRemoveModuleNode(
-    __in PPH_MODULE_NODE ModuleNode,
-    __in PPH_MODULE_LIST_CONTEXT Context // PH_TICK_SH_STATE requires this parameter to be after ModuleNode
+    _In_ PPH_MODULE_NODE ModuleNode,
+    _In_ PPH_MODULE_LIST_CONTEXT Context // PH_TICK_SH_STATE requires this parameter to be after ModuleNode
     )
 {
     ULONG index;
@@ -303,8 +303,8 @@ VOID PhpRemoveModuleNode(
 }
 
 VOID PhUpdateModuleNode(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __in PPH_MODULE_NODE ModuleNode
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_NODE ModuleNode
     )
 {
     memset(ModuleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
@@ -316,7 +316,7 @@ VOID PhUpdateModuleNode(
 }
 
 VOID PhTickModuleNodes(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
     PH_TICK_SH_STATE_TN(PH_MODULE_NODE, ShState, Context->NodeStateList, PhpRemoveModuleNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
@@ -325,9 +325,9 @@ VOID PhTickModuleNodes(
 #define SORT_FUNCTION(Column) PhpModuleTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpModuleTreeNewCompare##Column( \
-    __in void *_context, \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PPH_MODULE_NODE node1 = *(PPH_MODULE_NODE *)_elem1; \
@@ -344,10 +344,10 @@ VOID PhTickModuleNodes(
 }
 
 LONG PhpModuleTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     )
 {
     if (Result == 0)
@@ -459,11 +459,11 @@ BEGIN_SORT_FUNCTION(TimeStamp)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MODULE_LIST_CONTEXT context;
@@ -828,7 +828,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 }
 
 PPH_MODULE_ITEM PhGetSelectedModuleItem(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
     PPH_MODULE_ITEM moduleItem = NULL;
@@ -849,9 +849,9 @@ PPH_MODULE_ITEM PhGetSelectedModuleItem(
 }
 
 VOID PhGetSelectedModuleItems(
-    __in PPH_MODULE_LIST_CONTEXT Context,
-    __out PPH_MODULE_ITEM **Modules,
-    __out PULONG NumberOfModules
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _Out_ PPH_MODULE_ITEM **Modules,
+    _Out_ PULONG NumberOfModules
     )
 {
     PPH_LIST list;
@@ -876,7 +876,7 @@ VOID PhGetSelectedModuleItems(
 }
 
 VOID PhDeselectAllModuleNodes(
-    __in PPH_MODULE_LIST_CONTEXT Context
+    _In_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
     TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);

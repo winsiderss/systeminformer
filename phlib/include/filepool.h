@@ -102,74 +102,74 @@ typedef struct _PH_FILE_POOL
 } PH_FILE_POOL, *PPH_FILE_POOL;
 
 NTSTATUS PhCreateFilePool(
-    __out PPH_FILE_POOL *Pool,
-    __in HANDLE FileHandle,
-    __in BOOLEAN ReadOnly,
-    __in_opt PPH_FILE_POOL_PARAMETERS Parameters
+    _Out_ PPH_FILE_POOL *Pool,
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN ReadOnly,
+    _In_opt_ PPH_FILE_POOL_PARAMETERS Parameters
     );
 
 NTSTATUS PhCreateFilePool2(
-    __out PPH_FILE_POOL *Pool,
-    __in PWSTR FileName,
-    __in BOOLEAN ReadOnly,
-    __in ULONG ShareAccess,
-    __in ULONG CreateDisposition,
-    __in_opt PPH_FILE_POOL_PARAMETERS Parameters
+    _Out_ PPH_FILE_POOL *Pool,
+    _In_ PWSTR FileName,
+    _In_ BOOLEAN ReadOnly,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_opt_ PPH_FILE_POOL_PARAMETERS Parameters
     );
 
 VOID PhDestroyFilePool(
-    __in __post_invalid PPH_FILE_POOL Pool
+    _In_ _Post_invalid_ PPH_FILE_POOL Pool
     );
 
 PVOID PhAllocateFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Size,
-    __out_opt PULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Size,
+    _Out_opt_ PULONG Rva
     );
 
 VOID PhFreeFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Block
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Block
     );
 
 BOOLEAN PhFreeFilePoolByRva(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Rva
     );
 
 VOID PhReferenceFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Address
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Address
     );
 
 VOID PhDereferenceFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Address
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Address
     );
 
 PVOID PhReferenceFilePoolByRva(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Rva
     );
 
 BOOLEAN PhDereferenceFilePoolByRva(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Rva
     );
 
 ULONG PhEncodeRvaFilePool(
-    __in PPH_FILE_POOL Pool,
-    __in PVOID Address
+    _In_ PPH_FILE_POOL Pool,
+    _In_ PVOID Address
     );
 
 VOID PhGetUserContextFilePool(
-    __in PPH_FILE_POOL Pool,
-    __out PULONGLONG Context
+    _In_ PPH_FILE_POOL Pool,
+    _Out_ PULONGLONG Context
     );
 
 VOID PhSetUserContextFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PULONGLONG Context
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PULONGLONG Context
     );
 
 #endif

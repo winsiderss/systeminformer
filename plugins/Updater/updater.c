@@ -42,9 +42,9 @@ DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54
 DEFINE_GUID(IID_IWICBitmapDecoder, 0x9edde9e7, 0x8dee, 0x47ea, 0x99, 0xdf, 0xe6, 0xfa, 0xf2, 0xed, 0x44, 0xbf);
 
 static HBITMAP LoadImageFromResources(
-    __in UINT Width,
-    __in UINT Height,
-    __in PCWSTR Name
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ PCWSTR Name
     )
 {
     UINT width = 0;
@@ -189,14 +189,14 @@ static HBITMAP LoadImageFromResources(
 }
 
 static mxml_type_t QueryXmlDataCallback(
-    __in mxml_node_t *node
+    _In_ mxml_node_t *node
     )
 {
     return MXML_OPAQUE;
 }
 
 static BOOLEAN ParseVersionString(
-    __inout PPH_UPDATER_CONTEXT Context
+    _Inout_ PPH_UPDATER_CONTEXT Context
     )
 {
     PH_STRINGREF sr, majorPart, minorPart, revisionPart;
@@ -223,9 +223,9 @@ static BOOLEAN ParseVersionString(
 }
 
 static BOOLEAN ReadRequestString(
-    __in HINTERNET Handle,
-    __out_z PSTR* Data,
-    __out ULONG* DataLength
+    _In_ HINTERNET Handle,
+    _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
+    _Out_ ULONG *DataLength
     )
 {
     BYTE buffer[PAGE_SIZE];
@@ -289,7 +289,7 @@ static PPH_UPDATER_CONTEXT CreateUpdateContext(
 }
 
 static VOID FreeUpdateContext(
-    __in __post_invalid PPH_UPDATER_CONTEXT Context
+    _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
     )
 {
     if (!Context)
@@ -341,7 +341,7 @@ static VOID FreeUpdateContext(
 }
 
 static BOOLEAN QueryUpdateData(
-    __inout PPH_UPDATER_CONTEXT Context
+    _Inout_ PPH_UPDATER_CONTEXT Context
     )
 {
     BOOLEAN isSuccess = FALSE;
@@ -505,7 +505,7 @@ static BOOLEAN QueryUpdateData(
 }
 
 static NTSTATUS UpdateCheckSilentThread(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_UPDATER_CONTEXT context = NULL;
@@ -571,7 +571,7 @@ static NTSTATUS UpdateCheckSilentThread(
 }
 
 static NTSTATUS UpdateCheckThread(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_UPDATER_CONTEXT context = NULL;
@@ -640,7 +640,7 @@ static NTSTATUS UpdateCheckThread(
 }
 
 static NTSTATUS UpdateDownloadThread(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_UPDATER_CONTEXT context;
@@ -887,10 +887,10 @@ static NTSTATUS UpdateDownloadThread(
 }
 
 static INT_PTR CALLBACK UpdaterWndProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPH_UPDATER_CONTEXT context = NULL;
@@ -1248,7 +1248,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
 }
 
 static NTSTATUS ShowUpdateDialogThread(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     BOOL result;
@@ -1306,7 +1306,7 @@ static NTSTATUS ShowUpdateDialogThread(
 }
 
 VOID ShowUpdateDialog(
-    __in_opt PPH_UPDATER_CONTEXT Context
+    _In_opt_ PPH_UPDATER_CONTEXT Context
     )
 {
     if (!UpdateDialogThreadHandle)

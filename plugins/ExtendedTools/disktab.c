@@ -57,7 +57,7 @@ VOID EtInitializeDiskTab(
 }
 
 HWND NTAPI EtpDiskTabCreateFunction(
-    __in PVOID Context
+    _In_ PVOID Context
     )
 {
     HWND hwnd;
@@ -124,10 +124,10 @@ HWND NTAPI EtpDiskTabCreateFunction(
 }
 
 VOID NTAPI EtpDiskTabSelectionChangedCallback(
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Parameter3,
-    __in PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
     )
 {
     if ((BOOLEAN)Parameter1)
@@ -137,10 +137,10 @@ VOID NTAPI EtpDiskTabSelectionChangedCallback(
 }
 
 VOID NTAPI EtpDiskTabSaveContentCallback(
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Parameter3,
-    __in PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
     )
 {
     PPH_FILE_STREAM fileStream = Parameter1;
@@ -150,10 +150,10 @@ VOID NTAPI EtpDiskTabSaveContentCallback(
 }
 
 VOID NTAPI EtpDiskTabFontChangedCallback(
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Parameter3,
-    __in PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
     )
 {
     if (DiskTreeNewHandle)
@@ -161,8 +161,8 @@ VOID NTAPI EtpDiskTabFontChangedCallback(
 }
 
 BOOLEAN EtpDiskNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PET_DISK_NODE diskNode1 = *(PET_DISK_NODE *)Entry1;
@@ -172,7 +172,7 @@ BOOLEAN EtpDiskNodeHashtableCompareFunction(
 }
 
 ULONG EtpDiskNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
 #ifdef _M_IX86
@@ -183,7 +183,7 @@ ULONG EtpDiskNodeHashtableHashFunction(
 }
 
 VOID EtInitializeDiskTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     DiskTreeNewHandle = hwnd;
@@ -248,7 +248,7 @@ VOID EtSaveSettingsDiskTreeList(
 }
 
 PET_DISK_NODE EtAddDiskNode(
-    __in PET_DISK_ITEM DiskItem
+    _In_ PET_DISK_ITEM DiskItem
     )
 {
     PET_DISK_NODE diskNode;
@@ -275,7 +275,7 @@ PET_DISK_NODE EtAddDiskNode(
 }
 
 PET_DISK_NODE EtFindDiskNode(
-    __in PET_DISK_ITEM DiskItem
+    _In_ PET_DISK_ITEM DiskItem
     )
 {
     ET_DISK_NODE lookupDiskNode;
@@ -296,7 +296,7 @@ PET_DISK_NODE EtFindDiskNode(
 }
 
 VOID EtRemoveDiskNode(
-    __in PET_DISK_NODE DiskNode
+    _In_ PET_DISK_NODE DiskNode
     )
 {
     ULONG index;
@@ -323,7 +323,7 @@ VOID EtRemoveDiskNode(
 }
 
 VOID EtUpdateDiskNode(
-    __in PET_DISK_NODE DiskNode
+    _In_ PET_DISK_NODE DiskNode
     )
 {
     memset(DiskNode->TextCache, 0, sizeof(PH_STRINGREF) * ETDSTNC_MAXIMUM);
@@ -335,8 +335,8 @@ VOID EtUpdateDiskNode(
 #define SORT_FUNCTION(Column) EtpDiskTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl EtpDiskTreeNewCompare##Column( \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PET_DISK_NODE node1 = *(PET_DISK_NODE *)_elem1; \
@@ -395,11 +395,11 @@ BEGIN_SORT_FUNCTION(ResponseTime)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PET_DISK_NODE node;
@@ -645,7 +645,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 }
 
 PPH_STRING EtpGetDiskItemProcessName(
-    __in PET_DISK_ITEM DiskItem
+    _In_ PET_DISK_ITEM DiskItem
     )
 {
     PH_FORMAT format[4];
@@ -687,8 +687,8 @@ PET_DISK_ITEM EtGetSelectedDiskItem(
 }
 
 VOID EtGetSelectedDiskItems(
-    __out PET_DISK_ITEM **DiskItems,
-    __out PULONG NumberOfDiskItems
+    _Out_ PET_DISK_ITEM **DiskItems,
+    _Out_ PULONG NumberOfDiskItems
     )
 {
     PPH_LIST list;
@@ -720,7 +720,7 @@ VOID EtDeselectAllDiskNodes(
 }
 
 VOID EtSelectAndEnsureVisibleDiskNode(
-    __in PET_DISK_NODE DiskNode
+    _In_ PET_DISK_NODE DiskNode
     )
 {
     EtDeselectAllDiskNodes();
@@ -746,8 +746,8 @@ VOID EtCopyDiskList(
 }
 
 VOID EtWriteDiskList(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     )
 {
     PPH_LIST lines;
@@ -769,7 +769,7 @@ VOID EtWriteDiskList(
 }
 
 VOID EtHandleDiskCommand(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     switch (Id)
@@ -835,9 +835,9 @@ VOID EtHandleDiskCommand(
 }
 
 VOID EtpInitializeDiskMenu(
-    __in PPH_EMENU Menu,
-    __in PET_DISK_ITEM *DiskItems,
-    __in ULONG NumberOfDiskItems
+    _In_ PPH_EMENU Menu,
+    _In_ PET_DISK_ITEM *DiskItems,
+    _In_ ULONG NumberOfDiskItems
     )
 {
     PPH_EMENU_ITEM item;
@@ -876,7 +876,7 @@ VOID EtpInitializeDiskMenu(
 }
 
 VOID EtShowDiskContextMenu(
-    __in POINT Location
+    _In_ POINT Location
     )
 {
     PET_DISK_ITEM *diskItems;
@@ -916,8 +916,8 @@ VOID EtShowDiskContextMenu(
 }
 
 static VOID NTAPI EtpDiskItemAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PET_DISK_ITEM diskItem = (PET_DISK_ITEM)Parameter;
@@ -927,31 +927,31 @@ static VOID NTAPI EtpDiskItemAddedHandler(
 }
 
 static VOID NTAPI EtpDiskItemModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemModified, (PET_DISK_ITEM)Parameter);
 }
 
 static VOID NTAPI EtpDiskItemRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemRemoved, (PET_DISK_ITEM)Parameter);
 }
 
 static VOID NTAPI EtpDiskItemsUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, NULL);
 }
 
 static VOID NTAPI EtpOnDiskItemAdded(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PET_DISK_ITEM diskItem = Parameter;
@@ -968,7 +968,7 @@ static VOID NTAPI EtpOnDiskItemAdded(
 }
 
 static VOID NTAPI EtpOnDiskItemModified(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PET_DISK_ITEM diskItem = Parameter;
@@ -977,7 +977,7 @@ static VOID NTAPI EtpOnDiskItemModified(
 }
 
 static VOID NTAPI EtpOnDiskItemRemoved(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PET_DISK_ITEM diskItem = Parameter;
@@ -992,7 +992,7 @@ static VOID NTAPI EtpOnDiskItemRemoved(
 }
 
 static VOID NTAPI EtpOnDiskItemsUpdated(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     ULONG i;

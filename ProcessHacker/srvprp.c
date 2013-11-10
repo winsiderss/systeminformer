@@ -35,16 +35,16 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
 } SERVICE_PROPERTIES_CONTEXT, *PSERVICE_PROPERTIES_CONTEXT;
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static NTSTATUS PhpOpenService(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     SC_HANDLE serviceHandle;
@@ -61,8 +61,8 @@ static NTSTATUS PhpOpenService(
 }
 
 VOID PhShowServiceProperties(
-    __in HWND ParentWindowHandle,
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -134,7 +134,7 @@ VOID PhShowServiceProperties(
 }
 
 static VOID PhpRefreshControls(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     if (
@@ -151,10 +151,10 @@ static VOID PhpRefreshControls(
 }
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

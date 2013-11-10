@@ -28,8 +28,8 @@ PVOID PhSvcClPortHeap;
 HANDLE PhSvcClServerProcessId;
 
 NTSTATUS PhSvcConnectToServer(
-    __in PUNICODE_STRING PortName,
-    __in_opt SIZE_T PortSectionSize
+    _In_ PUNICODE_STRING PortName,
+    _In_opt_ SIZE_T PortSectionSize
     )
 {
     NTSTATUS status;
@@ -139,8 +139,8 @@ VOID PhSvcDisconnectFromServer(
 }
 
 PVOID PhSvcpAllocateHeap(
-    __in SIZE_T Size,
-    __out PULONG Offset
+    _In_ SIZE_T Size,
+    _Out_ PULONG Offset
     )
 {
     PVOID memory;
@@ -159,7 +159,7 @@ PVOID PhSvcpAllocateHeap(
 }
 
 VOID PhSvcpFreeHeap(
-    __in PVOID Memory
+    _In_ PVOID Memory
     )
 {
     if (!PhSvcClPortHeap)
@@ -169,9 +169,9 @@ VOID PhSvcpFreeHeap(
 }
 
 PVOID PhSvcpCreateString(
-    __in PVOID String,
-    __in SIZE_T Length,
-    __out PPH_RELATIVE_STRINGREF StringRef
+    _In_ PVOID String,
+    _In_ SIZE_T Length,
+    _Out_ PPH_RELATIVE_STRINGREF StringRef
     )
 {
     PVOID memory;
@@ -200,7 +200,7 @@ PVOID PhSvcpCreateString(
 }
 
 NTSTATUS PhSvcpCallServer(
-    __inout PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -218,8 +218,8 @@ NTSTATUS PhSvcpCallServer(
 }
 
 NTSTATUS PhSvcpCallExecuteRunAsCommand(
-    __in PHSVC_API_NUMBER ApiNumber,
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PHSVC_API_NUMBER ApiNumber,
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
@@ -290,15 +290,15 @@ CleanupExit:
 }
 
 NTSTATUS PhSvcCallExecuteRunAsCommand(
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     return PhSvcpCallExecuteRunAsCommand(PhSvcExecuteRunAsCommandApiNumber, Parameters);
 }
 
 NTSTATUS PhSvcCallUnloadDriver(
-    __in_opt PVOID BaseAddress,
-    __in_opt PWSTR Name
+    _In_opt_ PVOID BaseAddress,
+    _In_opt_ PWSTR Name
     )
 {
     NTSTATUS status;
@@ -331,9 +331,9 @@ NTSTATUS PhSvcCallUnloadDriver(
 }
 
 NTSTATUS PhSvcCallControlProcess(
-    __in HANDLE ProcessId,
-    __in PHSVC_API_CONTROLPROCESS_COMMAND Command,
-    __in ULONG Argument
+    _In_ HANDLE ProcessId,
+    _In_ PHSVC_API_CONTROLPROCESS_COMMAND Command,
+    _In_ ULONG Argument
     )
 {
     PHSVC_API_MSG m;
@@ -350,8 +350,8 @@ NTSTATUS PhSvcCallControlProcess(
 }
 
 NTSTATUS PhSvcCallControlService(
-    __in PWSTR ServiceName,
-    __in PHSVC_API_CONTROLSERVICE_COMMAND Command
+    _In_ PWSTR ServiceName,
+    _In_ PHSVC_API_CONTROLSERVICE_COMMAND Command
     )
 {
     NTSTATUS status;
@@ -382,17 +382,17 @@ NTSTATUS PhSvcCallControlService(
 }
 
 NTSTATUS PhSvcCallCreateService(
-    __in PWSTR ServiceName,
-    __in_opt PWSTR DisplayName,
-    __in ULONG ServiceType,
-    __in ULONG StartType,
-    __in ULONG ErrorControl,
-    __in_opt PWSTR BinaryPathName,
-    __in_opt PWSTR LoadOrderGroup,
-    __out_opt PULONG TagId,
-    __in_opt PWSTR Dependencies,
-    __in_opt PWSTR ServiceStartName,
-    __in_opt PWSTR Password
+    _In_ PWSTR ServiceName,
+    _In_opt_ PWSTR DisplayName,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PWSTR BinaryPathName,
+    _In_opt_ PWSTR LoadOrderGroup,
+    _Out_opt_ PULONG TagId,
+    _In_opt_ PWSTR Dependencies,
+    _In_opt_ PWSTR ServiceStartName,
+    _In_opt_ PWSTR Password
     )
 {
     NTSTATUS status;
@@ -486,17 +486,17 @@ CleanupExit:
 }
 
 NTSTATUS PhSvcCallChangeServiceConfig(
-    __in PWSTR ServiceName,
-    __in ULONG ServiceType,
-    __in ULONG StartType,
-    __in ULONG ErrorControl,
-    __in_opt PWSTR BinaryPathName,
-    __in_opt PWSTR LoadOrderGroup,
-    __out_opt PULONG TagId,
-    __in_opt PWSTR Dependencies,
-    __in_opt PWSTR ServiceStartName,
-    __in_opt PWSTR Password,
-    __in_opt PWSTR DisplayName
+    _In_ PWSTR ServiceName,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PWSTR BinaryPathName,
+    _In_opt_ PWSTR LoadOrderGroup,
+    _Out_opt_ PULONG TagId,
+    _In_opt_ PWSTR Dependencies,
+    _In_opt_ PWSTR ServiceStartName,
+    _In_opt_ PWSTR Password,
+    _In_opt_ PWSTR DisplayName
     )
 {
     NTSTATUS status;
@@ -592,9 +592,9 @@ CleanupExit:
 }
 
 NTSTATUS PhSvcCallChangeServiceConfig2(
-    __in PWSTR ServiceName,
-    __in ULONG InfoLevel,
-    __in PVOID Info
+    _In_ PWSTR ServiceName,
+    _In_ ULONG InfoLevel,
+    _In_ PVOID Info
     )
 {
     NTSTATUS status;
@@ -639,7 +639,7 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
 }
 
 NTSTATUS PhSvcCallSetTcpEntry(
-    __in PVOID TcpRow
+    _In_ PVOID TcpRow
     )
 {
     PHSVC_API_MSG m;
@@ -667,9 +667,9 @@ NTSTATUS PhSvcCallSetTcpEntry(
 }
 
 NTSTATUS PhSvcCallControlThread(
-    __in HANDLE ThreadId,
-    __in PHSVC_API_CONTROLTHREAD_COMMAND Command,
-    __in ULONG Argument
+    _In_ HANDLE ThreadId,
+    _In_ PHSVC_API_CONTROLTHREAD_COMMAND Command,
+    _In_ ULONG Argument
     )
 {
     PHSVC_API_MSG m;
@@ -686,8 +686,8 @@ NTSTATUS PhSvcCallControlThread(
 }
 
 NTSTATUS PhSvcCallAddAccountRight(
-    __in PSID AccountSid,
-    __in PUNICODE_STRING UserRight
+    _In_ PSID AccountSid,
+    _In_ PUNICODE_STRING UserRight
     )
 {
     NTSTATUS status;
@@ -717,14 +717,14 @@ CleanupExit:
 }
 
 NTSTATUS PhSvcCallInvokeRunAsService(
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     return PhSvcpCallExecuteRunAsCommand(PhSvcInvokeRunAsServiceApiNumber, Parameters);
 }
 
 NTSTATUS PhSvcCallIssueMemoryListCommand(
-    __in SYSTEM_MEMORY_LIST_COMMAND Command
+    _In_ SYSTEM_MEMORY_LIST_COMMAND Command
     )
 {
     PHSVC_API_MSG m;
@@ -739,10 +739,10 @@ NTSTATUS PhSvcCallIssueMemoryListCommand(
 }
 
 NTSTATUS PhSvcCallPostMessage(
-    __in_opt HWND hWnd,
-    __in UINT Msg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_opt_ HWND hWnd,
+    _In_ UINT Msg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PHSVC_API_MSG m;
@@ -760,10 +760,10 @@ NTSTATUS PhSvcCallPostMessage(
 }
 
 NTSTATUS PhSvcCallSendMessage(
-    __in_opt HWND hWnd,
-    __in UINT Msg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_opt_ HWND hWnd,
+    _In_ UINT Msg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PHSVC_API_MSG m;

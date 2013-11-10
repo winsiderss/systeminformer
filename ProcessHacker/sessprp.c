@@ -25,10 +25,10 @@
 #include <ws2tcpip.h>
 
 INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
@@ -48,8 +48,8 @@ static PH_KEY_VALUE_PAIR PhpConnectStatePairs[] =
 };
 
 VOID PhShowSessionProperties(
-    __in HWND ParentWindowHandle,
-    __in ULONG SessionId
+    _In_ HWND ParentWindowHandle,
+    _In_ ULONG SessionId
     )
 {
     DialogBoxParam(
@@ -62,10 +62,10 @@ VOID PhShowSessionProperties(
 }
 
 INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

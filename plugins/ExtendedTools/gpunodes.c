@@ -29,10 +29,10 @@
 #define CHECKBOX_PADDING 3
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static HWND WindowHandle;
@@ -46,8 +46,8 @@ static PPH_SYSINFO_PARAMETERS SysInfoParameters;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 VOID EtShowGpuNodesDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_SYSINFO_PARAMETERS Parameters
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_SYSINFO_PARAMETERS Parameters
     )
 {
     SysInfoParameters = Parameters;
@@ -60,8 +60,8 @@ VOID EtShowGpuNodesDialog(
 }
 
 static VOID ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PostMessage(WindowHandle, UPDATE_MSG, 0, 0);
@@ -104,10 +104,10 @@ VOID EtpSaveNodeBitMap(
 }
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

@@ -210,15 +210,15 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
 } PH_PLUGIN_THREAD_STACK_CONTROL, *PPH_PLUGIN_THREAD_STACK_CONTROL;
 
 typedef PPH_SYSINFO_SECTION (NTAPI *PPH_SYSINFO_CREATE_SECTION)(
-    __in PPH_SYSINFO_SECTION Template
+    _In_ PPH_SYSINFO_SECTION Template
     );
 
 typedef PPH_SYSINFO_SECTION (NTAPI *PPH_SYSINFO_FIND_SECTION)(
-    __in PPH_STRINGREF Name
+    _In_ PPH_STRINGREF Name
     );
 
 typedef VOID (NTAPI *PPH_SYSINFO_ENTER_SECTION_VIEW)(
-    __in PPH_SYSINFO_SECTION NewSection
+    _In_ PPH_SYSINFO_SECTION NewSection
     );
 
 typedef VOID (NTAPI *PPH_SYSINFO_RESTORE_SUMMARY_VIEW)(
@@ -245,10 +245,10 @@ typedef struct _PH_PLUGIN_TREENEW_MESSAGE
 } PH_PLUGIN_TREENEW_MESSAGE, *PPH_PLUGIN_TREENEW_MESSAGE;
 
 typedef LONG (NTAPI *PPH_PLUGIN_TREENEW_SORT_FUNCTION)(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     );
 
 typedef enum _PH_PLUGIN_CALLBACK
@@ -293,42 +293,42 @@ PHAPPAPI
 PPH_PLUGIN
 NTAPI
 PhRegisterPlugin(
-    __in PWSTR Name,
-    __in PVOID DllBase,
-    __out_opt PPH_PLUGIN_INFORMATION *Information
+    _In_ PWSTR Name,
+    _In_ PVOID DllBase,
+    _Out_opt_ PPH_PLUGIN_INFORMATION *Information
     );
 
 PHAPPAPI
 PPH_PLUGIN
 NTAPI
 PhFindPlugin(
-    __in PWSTR Name
+    _In_ PWSTR Name
     );
 
 PHAPPAPI
 PPH_CALLBACK
 NTAPI
 PhGetPluginCallback(
-    __in PPH_PLUGIN Plugin,
-    __in PH_PLUGIN_CALLBACK Callback
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PH_PLUGIN_CALLBACK Callback
     );
 
 PHAPPAPI
 PPH_CALLBACK
 NTAPI
 PhGetGeneralCallback(
-    __in PH_GENERAL_CALLBACK Callback
+    _In_ PH_GENERAL_CALLBACK Callback
     );
 
 PHAPPAPI
 ULONG
 NTAPI
 PhPluginReserveIds(
-    __in ULONG Count
+    _In_ ULONG Count
     );
 
 typedef VOID (NTAPI *PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)(
-    __in struct _PH_PLUGIN_MENU_ITEM *MenuItem
+    _In_ struct _PH_PLUGIN_MENU_ITEM *MenuItem
     );
 
 typedef struct _PH_PLUGIN_MENU_ITEM
@@ -357,12 +357,12 @@ PHAPPAPI
 ULONG_PTR
 NTAPI
 PhPluginAddMenuItem(
-    __in PPH_PLUGIN Plugin,
-    __in ULONG_PTR Location,
-    __in_opt PWSTR InsertAfter,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PVOID Context
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG_PTR Location,
+    _In_opt_ PWSTR InsertAfter,
+    _In_ ULONG Id,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Context
     );
 
 typedef struct _PH_PLUGIN_SYSTEM_STATISTICS
@@ -406,78 +406,78 @@ PHAPPAPI
 VOID
 NTAPI
 PhPluginGetSystemStatistics(
-    __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _Out_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 PHAPPAPI
 PPH_EMENU_ITEM
 NTAPI
 PhPluginCreateEMenuItem(
-    __in PPH_PLUGIN Plugin,
-    __in ULONG Flags,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PVOID Context
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG Flags,
+    _In_ ULONG Id,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhPluginTriggerEMenuItem(
-    __in HWND OwnerWindow,
-    __in PPH_EMENU_ITEM Item
+    _In_ HWND OwnerWindow,
+    _In_ PPH_EMENU_ITEM Item
     );
 
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhPluginAddTreeNewColumn(
-    __in PPH_PLUGIN Plugin,
-    __in PVOID CmData,
-    __in PPH_TREENEW_COLUMN Column,
-    __in ULONG SubId,
-    __in_opt PVOID Context,
-    __in_opt PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PVOID CmData,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_opt_ PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
     );
 
 PHAPPAPI
 VOID
 NTAPI
 PhPluginSetObjectExtension(
-    __in PPH_PLUGIN Plugin,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in ULONG ExtensionSize,
-    __in_opt PPH_EM_OBJECT_CALLBACK CreateCallback,
-    __in_opt PPH_EM_OBJECT_CALLBACK DeleteCallback
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ ULONG ExtensionSize,
+    _In_opt_ PPH_EM_OBJECT_CALLBACK CreateCallback,
+    _In_opt_ PPH_EM_OBJECT_CALLBACK DeleteCallback
     );
 
 PHAPPAPI
 PVOID
 NTAPI
 PhPluginGetObjectExtension(
-    __in PPH_PLUGIN Plugin,
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType
     );
 
 PHAPPAPI
 struct _PH_NF_ICON *
 NTAPI
 PhPluginRegisterIcon(
-    __in PPH_PLUGIN Plugin,
-    __in ULONG SubId,
-    __in_opt PVOID Context,
-    __in PWSTR Text,
-    __in ULONG Flags,
-    __in struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags,
+    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
     );
 
 PHAPPAPI
 VOID
 NTAPI
 PhPluginEnableTreeNewNotify(
-    __in PPH_PLUGIN Plugin,
-    __in PVOID CmData
+    _In_ PPH_PLUGIN Plugin,
+    _In_ PVOID CmData
     );
 
 #ifdef __cplusplus

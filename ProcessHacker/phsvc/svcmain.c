@@ -27,9 +27,9 @@ HANDLE PhSvcTimeoutStandbyEventHandle;
 HANDLE PhSvcTimeoutCancelEventHandle;
 
 NTSTATUS PhSvcMain(
-    __in_opt PUNICODE_STRING PortName,
-    __in_opt PLARGE_INTEGER Timeout,
-    __inout_opt PPHSVC_STOP Stop
+    _In_opt_ PUNICODE_STRING PortName,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Inout_opt_ PPHSVC_STOP Stop
     )
 {
     NTSTATUS status;
@@ -95,7 +95,7 @@ NTSTATUS PhSvcMain(
 }
 
 VOID PhSvcStop(
-    __inout PPHSVC_STOP Stop
+    _Inout_ PPHSVC_STOP Stop
     )
 {
     Stop->Stop = TRUE;

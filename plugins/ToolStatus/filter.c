@@ -24,7 +24,7 @@
 #include "toolstatus.h"
 
 static BOOLEAN WordMatchStringRef(
-    __in PPH_STRINGREF Text
+    _In_ PPH_STRINGREF Text
     )
 {
     PH_STRINGREF part;
@@ -47,7 +47,7 @@ static BOOLEAN WordMatchStringRef(
 }
 
 static BOOLEAN WordMatchString(
-    __in PWSTR Text
+    _In_ PWSTR Text
     )
 {
     PH_STRINGREF text;
@@ -73,8 +73,8 @@ static BOOLEAN WordMatchString(
 }
 
 BOOLEAN ProcessTreeFilterCallback(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     BOOLEAN showItem = FALSE;
@@ -293,8 +293,8 @@ BOOLEAN ProcessTreeFilterCallback(
 }
 
 BOOLEAN ServiceTreeFilterCallback(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     BOOLEAN showItem = FALSE;
@@ -337,8 +337,8 @@ BOOLEAN ServiceTreeFilterCallback(
 }
 
 BOOLEAN NetworkTreeFilterCallback(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     BOOLEAN showItem = FALSE;

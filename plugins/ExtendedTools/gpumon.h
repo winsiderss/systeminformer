@@ -3,42 +3,42 @@
 
 // setupapi definitions
 
-typedef __checkReturn HDEVINFO (WINAPI *_SetupDiGetClassDevsW)(
-    __in_opt CONST GUID *ClassGuid,
-    __in_opt PCWSTR Enumerator,
-    __in_opt HWND hwndParent,
-    __in DWORD Flags
+typedef _Check_return_ HDEVINFO (WINAPI *_SetupDiGetClassDevsW)(
+    _In_opt_ CONST GUID *ClassGuid,
+    _In_opt_ PCWSTR Enumerator,
+    _In_opt_ HWND hwndParent,
+    _In_ DWORD Flags
     );
 
 typedef BOOL (WINAPI *_SetupDiDestroyDeviceInfoList)(
-    __in HDEVINFO DeviceInfoSet
+    _In_ HDEVINFO DeviceInfoSet
     );
 
 typedef BOOL (WINAPI *_SetupDiEnumDeviceInterfaces)(
-    __in HDEVINFO DeviceInfoSet,
-    __in_opt PSP_DEVINFO_DATA DeviceInfoData,
-    __in CONST GUID *InterfaceClassGuid,
-    __in DWORD MemberIndex,
-    __out PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_opt_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ CONST GUID *InterfaceClassGuid,
+    _In_ DWORD MemberIndex,
+    _Out_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData
     );
 
 typedef BOOL (WINAPI *_SetupDiGetDeviceInterfaceDetailW)(
-    __in HDEVINFO DeviceInfoSet,
-    __in PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
-    __out_bcount_opt(DeviceInterfaceDetailDataSize) PSP_DEVICE_INTERFACE_DETAIL_DATA_W DeviceInterfaceDetailData,
-    __in DWORD DeviceInterfaceDetailDataSize,
-    __out_opt PDWORD RequiredSize,
-    __out_opt PSP_DEVINFO_DATA DeviceInfoData
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _Out_writes_bytes_opt_(DeviceInterfaceDetailDataSize) PSP_DEVICE_INTERFACE_DETAIL_DATA_W DeviceInterfaceDetailData,
+    _In_ DWORD DeviceInterfaceDetailDataSize,
+    _Out_opt_ PDWORD RequiredSize,
+    _Out_opt_ PSP_DEVINFO_DATA DeviceInfoData
     );
 
 typedef BOOL (WINAPI *_SetupDiGetDeviceRegistryPropertyW)(
-    __in HDEVINFO DeviceInfoSet,
-    __in PSP_DEVINFO_DATA DeviceInfoData,
-    __in DWORD Property,
-    __out_opt PDWORD PropertyRegDataType,
-    __out_opt PBYTE PropertyBuffer,
-    __in DWORD PropertyBufferSize,
-    __out_opt PDWORD RequiredSize
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ DWORD Property,
+    _Out_opt_ PDWORD PropertyRegDataType,
+    _Out_opt_ PBYTE PropertyBuffer,
+    _In_ DWORD PropertyBufferSize,
+    _Out_opt_ PDWORD RequiredSize
     );
 
 // Macros
@@ -66,17 +66,17 @@ BOOLEAN EtpInitializeD3DStatistics(
     );
 
 PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
-    __in ULONG NumberOfSegments
+    _In_ ULONG NumberOfSegments
     );
 
 PPH_STRING EtpQueryDeviceDescription(
-    __in HDEVINFO DeviceInfoSet,
-    __in PSP_DEVINFO_DATA DeviceInfoData
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData
     );
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 #endif

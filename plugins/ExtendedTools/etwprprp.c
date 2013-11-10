@@ -34,19 +34,19 @@ typedef struct _ET_DISKNET_CONTEXT
 } ET_DISKNET_CONTEXT, *PET_DISKNET_CONTEXT;
 
 VOID NTAPI DiskNetworkUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EtProcessEtwPropertiesInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
@@ -61,8 +61,8 @@ VOID EtProcessEtwPropertiesInitializing(
 }
 
 VOID NTAPI DiskNetworkUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PET_DISKNET_CONTEXT context = Context;
@@ -72,8 +72,8 @@ VOID NTAPI DiskNetworkUpdateHandler(
 }
 
 VOID EtpUpdateDiskNetworkInfo(
-    __in HWND hwndDlg,
-    __in PET_DISKNET_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PET_DISKNET_CONTEXT Context
     )
 {
     PET_PROCESS_BLOCK block = Context->Block;
@@ -94,10 +94,10 @@ VOID EtpUpdateDiskNetworkInfo(
 }
 
 INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;

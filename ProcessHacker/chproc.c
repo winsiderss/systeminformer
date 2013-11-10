@@ -34,16 +34,16 @@ typedef struct _CHOOSE_PROCESS_DIALOG_CONTEXT
 } CHOOSE_PROCESS_DIALOG_CONTEXT, *PCHOOSE_PROCESS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpChooseProcessDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 BOOLEAN PhShowChooseProcessDialog(
-    __in HWND ParentWindowHandle,
-    __in PWSTR Message,
-    __out PHANDLE ProcessId
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR Message,
+    _Out_ PHANDLE ProcessId
     )
 {
     CHOOSE_PROCESS_DIALOG_CONTEXT context;
@@ -70,8 +70,8 @@ BOOLEAN PhShowChooseProcessDialog(
 }
 
 static VOID PhpRefreshProcessList(
-    __in HWND hwndDlg,
-    __in PCHOOSE_PROCESS_DIALOG_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PCHOOSE_PROCESS_DIALOG_CONTEXT Context
     )
 {
     NTSTATUS status;
@@ -178,10 +178,10 @@ static VOID PhpRefreshProcessList(
 }
 
 INT_PTR CALLBACK PhpChooseProcessDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCHOOSE_PROCESS_DIALOG_CONTEXT context = NULL;

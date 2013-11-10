@@ -312,7 +312,7 @@ BOOLEAN EtpInitializeD3DStatistics(
 }
 
 PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
-    __in ULONG NumberOfSegments
+    _In_ ULONG NumberOfSegments
     )
 {
     PETP_GPU_ADAPTER adapter;
@@ -328,8 +328,8 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
 }
 
 PPH_STRING EtpQueryDeviceDescription(
-    __in HDEVINFO DeviceInfoSet,
-    __in PSP_DEVINFO_DATA DeviceInfoData
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData
     )
 {
     LOGICAL result;
@@ -378,7 +378,7 @@ PPH_STRING EtpQueryDeviceDescription(
 }
 
 static VOID EtpUpdateSegmentInformation(
-    __in_opt PET_PROCESS_BLOCK Block
+    _In_opt_ PET_PROCESS_BLOCK Block
     )
 {
     ULONG i;
@@ -474,7 +474,7 @@ static VOID EtpUpdateSegmentInformation(
 }
 
 static VOID EtpUpdateNodeInformation(
-    __in_opt PET_PROCESS_BLOCK Block
+    _In_opt_ PET_PROCESS_BLOCK Block
     )
 {
     ULONG i;
@@ -558,8 +558,8 @@ static VOID EtpUpdateNodeInformation(
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
@@ -688,7 +688,7 @@ ULONG EtGetGpuAdapterCount(
 }
 
 ULONG EtGetGpuAdapterIndexFromNodeIndex(
-    __in ULONG NodeIndex
+    _In_ ULONG NodeIndex
     )
 {
     ULONG i;
@@ -706,7 +706,7 @@ ULONG EtGetGpuAdapterIndexFromNodeIndex(
 }
 
 PPH_STRING EtGetGpuAdapterDescription(
-    __in ULONG Index
+    _In_ ULONG Index
     )
 {
     PPH_STRING description;
@@ -728,7 +728,7 @@ PPH_STRING EtGetGpuAdapterDescription(
 }
 
 VOID EtAllocateGpuNodeBitMap(
-    __out PRTL_BITMAP BitMap
+    _Out_ PRTL_BITMAP BitMap
     )
 {
     SIZE_T numberOfBytes;
@@ -741,7 +741,7 @@ VOID EtAllocateGpuNodeBitMap(
 }
 
 VOID EtUpdateGpuNodeBitMap(
-    __in PRTL_BITMAP NewBitMap
+    _In_ PRTL_BITMAP NewBitMap
     )
 {
     PULONG buffer;
@@ -753,8 +753,8 @@ VOID EtUpdateGpuNodeBitMap(
 }
 
 VOID EtQueryProcessGpuStatistics(
-    __in HANDLE ProcessHandle,
-    __out PET_PROCESS_GPU_STATISTICS Statistics
+    _In_ HANDLE ProcessHandle,
+    _Out_ PET_PROCESS_GPU_STATISTICS Statistics
     )
 {
     NTSTATUS status;

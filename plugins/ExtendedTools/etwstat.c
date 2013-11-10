@@ -24,13 +24,13 @@
 #include "etwmon.h"
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI NetworkItemsUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID EtpUpdateProcessInformation(
@@ -111,7 +111,7 @@ VOID EtEtwStatisticsUninitialization(
 }
 
 VOID EtProcessDiskEvent(
-    __in PET_ETW_DISK_EVENT Event
+    _In_ PET_ETW_DISK_EVENT Event
     )
 {
     PPH_PROCESS_ITEM processItem;
@@ -148,7 +148,7 @@ VOID EtProcessDiskEvent(
 }
 
 VOID EtProcessNetworkEvent(
-    __in PET_ETW_NETWORK_EVENT Event
+    _In_ PET_ETW_NETWORK_EVENT Event
     )
 {
     PPH_PROCESS_ITEM processItem;
@@ -213,8 +213,8 @@ VOID EtProcessNetworkEvent(
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
@@ -316,7 +316,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
 }
 
 static VOID NTAPI EtpInvalidateNetworkNode(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_NETWORK_ITEM networkItem = Parameter;
@@ -329,8 +329,8 @@ static VOID NTAPI EtpInvalidateNetworkNode(
 }
 
 static VOID NTAPI NetworkItemsUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PLIST_ENTRY listEntry;
@@ -386,7 +386,7 @@ VOID EtpUpdateProcessInformation(
 }
 
 HANDLE EtThreadIdToProcessId(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     )
 {
     PSYSTEM_PROCESS_INFORMATION process;

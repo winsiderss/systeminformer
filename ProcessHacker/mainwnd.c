@@ -40,10 +40,10 @@
 #define RUNAS_MODE_LIMITED 2
 
 typedef HRESULT (WINAPI *_LoadIconMetric)(
-    __in HINSTANCE hinst,
-    __in PCWSTR pszName,
-    __in int lims,
-    __out HICON *phico
+    _In_ HINSTANCE hinst,
+    _In_ PCWSTR pszName,
+    _In_ int lims,
+    _Out_ HICON *phico
     );
 
 PHAPPAPI HWND PhMainWndHandle;
@@ -118,7 +118,7 @@ static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
 
 BOOLEAN PhMainWndInitialization(
-    __in INT ShowCommand
+    _In_ INT ShowCommand
     )
 {
     PH_RECTANGLE windowRectangle;
@@ -255,10 +255,10 @@ BOOLEAN PhMainWndInitialization(
 }
 
 LRESULT CALLBACK PhMwpWndProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -547,7 +547,7 @@ VOID PhMwpInitializeControls(
 }
 
 NTSTATUS PhMwpDelayedLoadFunction(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     // Register for window station notifications.
@@ -662,7 +662,7 @@ VOID PhMwpOnSettingChange(
 }
 
 VOID PhMwpOnCommand(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     switch (Id)
@@ -1725,8 +1725,8 @@ VOID PhMwpOnCommand(
 }
 
 VOID PhMwpOnShowWindow(
-    __in BOOLEAN Showing,
-    __in ULONG State
+    _In_ BOOLEAN Showing,
+    _In_ ULONG State
     )
 {
     if (NeedsMaximize)
@@ -1737,9 +1737,9 @@ VOID PhMwpOnShowWindow(
 }
 
 BOOLEAN PhMwpOnSysCommand(
-    __in ULONG Type,
-    __in LONG CursorScreenX,
-    __in LONG CursorScreenY
+    _In_ ULONG Type,
+    _In_ LONG CursorScreenX,
+    _In_ LONG CursorScreenY
     )
 {
     switch (Type)
@@ -1772,8 +1772,8 @@ BOOLEAN PhMwpOnSysCommand(
 }
 
 VOID PhMwpOnMenuCommand(
-    __in ULONG Index,
-    __in HMENU Menu
+    _In_ ULONG Index,
+    _In_ HMENU Menu
     )
 {
     MENUITEMINFO menuItemInfo;
@@ -1788,9 +1788,9 @@ VOID PhMwpOnMenuCommand(
 }
 
 VOID PhMwpOnInitMenuPopup(
-    __in HMENU Menu,
-    __in ULONG Index,
-    __in BOOLEAN IsWindowMenu
+    _In_ HMENU Menu,
+    _In_ ULONG Index,
+    _In_ BOOLEAN IsWindowMenu
     )
 {
     ULONG i;
@@ -1864,8 +1864,8 @@ VOID PhMwpOnSize(
 }
 
 VOID PhMwpOnSizing(
-    __in ULONG Edge,
-    __in PRECT DragRectangle
+    _In_ ULONG Edge,
+    _In_ PRECT DragRectangle
     )
 {
     PhResizingMinimumSize(DragRectangle, Edge, 400, 340);
@@ -1886,8 +1886,8 @@ VOID PhMwpOnSetFocus(
 }
 
 BOOLEAN PhMwpOnNotify(
-    __in NMHDR *Header,
-    __out LRESULT *Result
+    _In_ NMHDR *Header,
+    _Out_ LRESULT *Result
     )
 {
     if (Header->hwndFrom == TabControlHandle)
@@ -1982,8 +1982,8 @@ BOOLEAN PhMwpOnNotify(
 }
 
 VOID PhMwpOnWtsSessionChange(
-    __in ULONG Reason,
-    __in ULONG SessionId
+    _In_ ULONG Reason,
+    _In_ ULONG SessionId
     )
 {
     if (Reason == WTS_SESSION_LOGON || Reason == WTS_SESSION_LOGOFF)
@@ -1996,9 +1996,9 @@ VOID PhMwpOnWtsSessionChange(
 }
 
 ULONG_PTR PhMwpOnUserMessage(
-    __in ULONG Message,
-    __in ULONG_PTR WParam,
-    __in ULONG_PTR LParam
+    _In_ ULONG Message,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam
     )
 {
     switch (Message)
@@ -2329,8 +2329,8 @@ ULONG_PTR PhMwpOnUserMessage(
 }
 
 VOID NTAPI PhMwpProcessAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -2347,8 +2347,8 @@ VOID NTAPI PhMwpProcessAddedHandler(
 }
 
 VOID NTAPI PhMwpProcessModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -2357,8 +2357,8 @@ VOID NTAPI PhMwpProcessModifiedHandler(
 }
 
 VOID NTAPI PhMwpProcessRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -2369,16 +2369,16 @@ VOID NTAPI PhMwpProcessRemovedHandler(
 }
 
 VOID NTAPI PhMwpProcessesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
 }
 
 VOID NTAPI PhMwpServiceAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
@@ -2393,8 +2393,8 @@ VOID NTAPI PhMwpServiceAddedHandler(
 }
 
 VOID NTAPI PhMwpServiceModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
@@ -2406,8 +2406,8 @@ VOID NTAPI PhMwpServiceModifiedHandler(
 }
 
 VOID NTAPI PhMwpServiceRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
@@ -2416,16 +2416,16 @@ VOID NTAPI PhMwpServiceRemovedHandler(
 }
 
 VOID NTAPI PhMwpServicesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, 0, 0);
 }
 
 VOID NTAPI PhMwpNetworkItemAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
@@ -2440,8 +2440,8 @@ VOID NTAPI PhMwpNetworkItemAddedHandler(
 }
 
 VOID NTAPI PhMwpNetworkItemModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
@@ -2450,8 +2450,8 @@ VOID NTAPI PhMwpNetworkItemModifiedHandler(
 }
 
 VOID NTAPI PhMwpNetworkItemRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
@@ -2460,8 +2460,8 @@ VOID NTAPI PhMwpNetworkItemRemovedHandler(
 }
 
 VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
@@ -2555,8 +2555,8 @@ VOID PhMwpSaveWindowSettings(
 }
 
 VOID PhMwpSymInitHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_STRING dbghelpPath;
@@ -2614,8 +2614,8 @@ VOID PhMwpUpdateLayoutPadding(
 }
 
 VOID PhMwpApplyLayoutPadding(
-    __inout PRECT Rect,
-    __in PRECT Padding
+    _Inout_ PRECT Rect,
+    _In_ PRECT Padding
     )
 {
     Rect->left += Padding->left;
@@ -2625,7 +2625,7 @@ VOID PhMwpApplyLayoutPadding(
 }
 
 VOID PhMwpLayout(
-    __inout HDWP *DeferHandle
+    _Inout_ HDWP *DeferHandle
     )
 {
     RECT rect;
@@ -2651,7 +2651,7 @@ VOID PhMwpLayout(
 }
 
 VOID PhMwpSetWindowOpacity(
-    __in ULONG Opacity
+    _In_ ULONG Opacity
     )
 {
     if (Opacity == 0)
@@ -2677,7 +2677,7 @@ VOID PhMwpSetWindowOpacity(
 }
 
 VOID PhMwpSetupComputerMenu(
-    __in PPH_EMENU_ITEM Root
+    _In_ PPH_EMENU_ITEM Root
     )
 {
     PPH_EMENU_ITEM menuItem;
@@ -2692,7 +2692,7 @@ VOID PhMwpSetupComputerMenu(
 }
 
 BOOLEAN PhMwpExecuteComputerCommand(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     switch (Id)
@@ -2727,7 +2727,7 @@ BOOLEAN PhMwpExecuteComputerCommand(
 }
 
 VOID PhMwpActivateWindow(
-    __in BOOLEAN Toggle
+    _In_ BOOLEAN Toggle
     )
 {
     if (IsIconic(PhMainWndHandle))
@@ -2750,7 +2750,7 @@ VOID PhMwpActivateWindow(
 }
 
 VOID PhMwpInitializeMainMenu(
-    __in HMENU Menu
+    _In_ HMENU Menu
     )
 {
     MENUINFO menuInfo;
@@ -2768,10 +2768,10 @@ VOID PhMwpInitializeMainMenu(
 }
 
 VOID PhMwpDispatchMenuCommand(
-    __in HMENU MenuHandle,
-    __in ULONG ItemIndex,
-    __in ULONG ItemId,
-    __in ULONG_PTR ItemData
+    _In_ HMENU MenuHandle,
+    _In_ ULONG ItemIndex,
+    _In_ ULONG ItemId,
+    _In_ ULONG_PTR ItemData
     )
 {
     switch (ItemId)
@@ -2821,7 +2821,7 @@ VOID PhMwpDispatchMenuCommand(
 }
 
 ULONG_PTR PhMwpLegacyAddPluginMenuItem(
-    __in PPH_ADDMENUITEM AddMenuItem
+    _In_ PPH_ADDMENUITEM AddMenuItem
     )
 {
     PPH_ADDMENUITEM addMenuItem;
@@ -2845,8 +2845,8 @@ ULONG_PTR PhMwpLegacyAddPluginMenuItem(
 }
 
 VOID PhMwpInitializeSubMenu(
-    __in PPH_EMENU Menu,
-    __in ULONG Index
+    _In_ PPH_EMENU Menu,
+    _In_ ULONG Index
     )
 {
     PPH_EMENU_ITEM menuItem;
@@ -3079,7 +3079,7 @@ VOID PhMwpInitializeSubMenu(
 }
 
 PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
-    __in PPH_EMENU Menu
+    _In_ PPH_EMENU Menu
     )
 {
     ULONG i;
@@ -3097,8 +3097,8 @@ PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
 }
 
 VOID PhMwpInitializeSectionMenuItems(
-    __in PPH_EMENU Menu,
-    __in ULONG StartIndex
+    _In_ PPH_EMENU Menu,
+    _In_ ULONG StartIndex
     )
 {
     INT selectedIndex;
@@ -3182,7 +3182,7 @@ VOID PhMwpInitializeSectionMenuItems(
 }
 
 VOID PhMwpLayoutTabControl(
-    __inout HDWP *DeferHandle
+    _Inout_ HDWP *DeferHandle
     )
 {
     RECT rect;
@@ -3252,7 +3252,7 @@ VOID PhMwpLayoutTabControl(
 }
 
 VOID PhMwpNotifyTabControl(
-    __in NMHDR *Header
+    _In_ NMHDR *Header
     )
 {
     if (Header->code == TCN_SELCHANGING)
@@ -3266,7 +3266,7 @@ VOID PhMwpNotifyTabControl(
 }
 
 VOID PhMwpSelectionChangedTabControl(
-    __in ULONG OldIndex
+    _In_ ULONG OldIndex
     )
 {
     INT selectedIndex;
@@ -3335,7 +3335,7 @@ VOID PhMwpSelectionChangedTabControl(
 }
 
 PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(
-    __in PPH_ADDITIONAL_TAB_PAGE TabPage
+    _In_ PPH_ADDITIONAL_TAB_PAGE TabPage
     )
 {
     PPH_ADDITIONAL_TAB_PAGE newTabPage;
@@ -3362,7 +3362,7 @@ PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(
 }
 
 VOID PhMwpSelectTabPage(
-    __in ULONG Index
+    _In_ ULONG Index
     )
 {
     INT oldIndex;
@@ -3373,8 +3373,8 @@ VOID PhMwpSelectTabPage(
 }
 
 static int __cdecl IconProcessesCpuUsageCompare(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
@@ -3384,8 +3384,8 @@ static int __cdecl IconProcessesCpuUsageCompare(
 }
 
 static int __cdecl IconProcessesNameCompare(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
@@ -3395,8 +3395,8 @@ static int __cdecl IconProcessesNameCompare(
 }
 
 VOID PhMwpAddIconProcesses(
-    __in PPH_EMENU_ITEM Menu,
-    __in ULONG NumberOfProcesses
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ ULONG NumberOfProcesses
     )
 {
     ULONG i;
@@ -3533,7 +3533,7 @@ VOID PhMwpAddIconProcesses(
 }
 
 VOID PhShowIconContextMenu(
-    __in POINT Location
+    _In_ POINT Location
     )
 {
     PPH_EMENU menu;
@@ -3751,17 +3751,17 @@ VOID PhShowIconContextMenu(
 }
 
 VOID PhShowIconNotification(
-    __in PWSTR Title,
-    __in PWSTR Text,
-    __in ULONG Flags
+    _In_ PWSTR Title,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags
     )
 {
     PhNfShowBalloonTip(0, Title, Text, 10, Flags);
 }
 
 BOOLEAN PhMwpPluginNotifyEvent(
-    __in ULONG Type,
-    __in PVOID Parameter
+    _In_ ULONG Type,
+    _In_ PVOID Parameter
     )
 {
     PH_PLUGIN_NOTIFY_EVENT notifyEvent;
@@ -3776,7 +3776,7 @@ BOOLEAN PhMwpPluginNotifyEvent(
 }
 
 VOID PhMwpShowProcessProperties(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PPH_PROCESS_PROPCONTEXT propContext;
@@ -3794,8 +3794,8 @@ VOID PhMwpShowProcessProperties(
 }
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
@@ -3813,8 +3813,8 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 }
 
 BOOLEAN PhMwpSignedProcessTreeFilter(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
@@ -3826,8 +3826,8 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
 }
 
 BOOLEAN PhMwpExecuteProcessPriorityCommand(
-    __in ULONG Id,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ ULONG Id,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     ULONG priorityClass;
@@ -3862,11 +3862,11 @@ BOOLEAN PhMwpExecuteProcessPriorityCommand(
 }
 
 VOID PhMwpSetProcessMenuPriorityChecks(
-    __in PPH_EMENU Menu,
-    __in PPH_PROCESS_ITEM Process,
-    __in BOOLEAN SetPriority,
-    __in BOOLEAN SetIoPriority,
-    __in BOOLEAN SetPagePriority
+    _In_ PPH_EMENU Menu,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ BOOLEAN SetPriority,
+    _In_ BOOLEAN SetIoPriority,
+    _In_ BOOLEAN SetPagePriority
     )
 {
     HANDLE processHandle;
@@ -4004,8 +4004,8 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 }
 
 static BOOL CALLBACK EnumProcessWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ LPARAM lParam
     )
 {
     ULONG processId;
@@ -4030,9 +4030,9 @@ static BOOL CALLBACK EnumProcessWindowsProc(
 }
 
 VOID PhMwpInitializeProcessMenu(
-    __in PPH_EMENU Menu,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ PPH_EMENU Menu,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     )
 {
     PPH_EMENU_ITEM item;
@@ -4178,7 +4178,7 @@ VOID PhMwpInitializeProcessMenu(
 }
 
 VOID PhShowProcessContextMenu(
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_PROCESS_ITEM *processes;
@@ -4239,8 +4239,8 @@ VOID PhShowProcessContextMenu(
 }
 
 VOID PhMwpOnProcessAdded(
-    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG RunId
+    _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG RunId
     )
 {
     PPH_PROCESS_NODE processNode;
@@ -4311,7 +4311,7 @@ VOID PhMwpOnProcessAdded(
 }
 
 VOID PhMwpOnProcessModified(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
@@ -4321,7 +4321,7 @@ VOID PhMwpOnProcessModified(
 }
 
 VOID PhMwpOnProcessRemoved(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PPH_PROCESS_NODE processNode;
@@ -4424,8 +4424,8 @@ VOID PhMwpNeedServiceTreeList(
 }
 
 BOOLEAN PhMwpDriverServiceTreeFilter(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
@@ -4437,9 +4437,9 @@ BOOLEAN PhMwpDriverServiceTreeFilter(
 }
 
 VOID PhMwpInitializeServiceMenu(
-    __in PPH_EMENU Menu,
-    __in PPH_SERVICE_ITEM *Services,
-    __in ULONG NumberOfServices
+    _In_ PPH_EMENU Menu,
+    _In_ PPH_SERVICE_ITEM *Services,
+    _In_ ULONG NumberOfServices
     )
 {
     if (NumberOfServices == 0)
@@ -4514,7 +4514,7 @@ VOID PhMwpInitializeServiceMenu(
 }
 
 VOID PhShowServiceContextMenu(
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_SERVICE_ITEM *services;
@@ -4575,8 +4575,8 @@ VOID PhShowServiceContextMenu(
 }
 
 VOID PhMwpOnServiceAdded(
-    __in __assumeRefs(1) PPH_SERVICE_ITEM ServiceItem,
-    __in ULONG RunId
+    _In_ _Assume_refs_(1) PPH_SERVICE_ITEM ServiceItem,
+    _In_ ULONG RunId
     )
 {
     PPH_SERVICE_NODE serviceNode;
@@ -4622,7 +4622,7 @@ VOID PhMwpOnServiceAdded(
 }
 
 VOID PhMwpOnServiceModified(
-    __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
+    _In_ PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
     )
 {
     PH_SERVICE_CHANGE serviceChange;
@@ -4698,7 +4698,7 @@ VOID PhMwpOnServiceModified(
 }
 
 VOID PhMwpOnServiceRemoved(
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     if (ServiceTreeListLoaded)
@@ -4774,8 +4774,8 @@ VOID PhMwpNeedNetworkTreeList(
 }
 
 BOOLEAN PhMwpCurrentUserNetworkTreeFilter(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
@@ -4790,8 +4790,8 @@ BOOLEAN PhMwpCurrentUserNetworkTreeFilter(
 }
 
 BOOLEAN PhMwpSignedNetworkTreeFilter(
-    __in PPH_TREENEW_NODE Node,
-    __in_opt PVOID Context
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
@@ -4806,9 +4806,9 @@ BOOLEAN PhMwpSignedNetworkTreeFilter(
 }
 
 VOID PhMwpInitializeNetworkMenu(
-    __in PPH_EMENU Menu,
-    __in PPH_NETWORK_ITEM *NetworkItems,
-    __in ULONG NumberOfNetworkItems
+    _In_ PPH_EMENU Menu,
+    _In_ PPH_NETWORK_ITEM *NetworkItems,
+    _In_ ULONG NumberOfNetworkItems
     )
 {
     ULONG i;
@@ -4859,7 +4859,7 @@ VOID PhMwpInitializeNetworkMenu(
 }
 
 VOID PhShowNetworkContextMenu(
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_NETWORK_ITEM *networkItems;
@@ -4920,8 +4920,8 @@ VOID PhShowNetworkContextMenu(
 }
 
 VOID PhMwpOnNetworkItemAdded(
-    __in ULONG RunId,
-    __in __assumeRefs(1) PPH_NETWORK_ITEM NetworkItem
+    _In_ ULONG RunId,
+    _In_ _Assume_refs_(1) PPH_NETWORK_ITEM NetworkItem
     )
 {
     PPH_NETWORK_NODE networkNode;
@@ -4937,14 +4937,14 @@ VOID PhMwpOnNetworkItemAdded(
 }
 
 VOID PhMwpOnNetworkItemModified(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     PhUpdateNetworkNode(PhFindNetworkNode(NetworkItem));
 }
 
 VOID PhMwpOnNetworkItemRemoved(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     if (!NetworkNeedsRedraw)

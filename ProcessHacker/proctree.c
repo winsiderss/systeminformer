@@ -36,12 +36,12 @@
 #include <emenu.h>
 
 VOID PhpEnableColumnCustomDraw(
-    __in HWND hwnd,
-    __in ULONG Id
+    _In_ HWND hwnd,
+    _In_ ULONG Id
     );
 
 VOID PhpRemoveProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     );
 
 VOID PhpUpdateNeedCyclesInformation(
@@ -49,22 +49,22 @@ VOID PhpUpdateNeedCyclesInformation(
     );
 
 VOID PhpUpdateProcessNodeCycles(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     );
 
 LONG PhpProcessTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     );
 
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 static HWND ProcessTreeListHandle;
@@ -98,7 +98,7 @@ VOID PhProcessTreeListInitialization(
 }
 
 VOID PhInitializeProcessTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     ProcessTreeListHandle = hwnd;
@@ -221,8 +221,8 @@ VOID PhInitializeProcessTreeList(
 }
 
 static VOID PhpEnableColumnCustomDraw(
-    __in HWND hwnd,
-    __in ULONG Id
+    _In_ HWND hwnd,
+    _In_ ULONG Id
     )
 {
     PH_TREENEW_COLUMN column;
@@ -283,23 +283,23 @@ struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportProcessTreeList(
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessNode(
-    __in PPH_PROCESS_NODE Value1,
-    __in PPH_PROCESS_NODE Value2
+    _In_ PPH_PROCESS_NODE Value1,
+    _In_ PPH_PROCESS_NODE Value2
     )
 {
     return Value1->ProcessId == Value2->ProcessId;
 }
 
 FORCEINLINE ULONG PhHashProcessNode(
-    __in PPH_PROCESS_NODE Value
+    _In_ PPH_PROCESS_NODE Value
     )
 {
     return (ULONG)Value->ProcessId / 4;
 }
 
 PPH_PROCESS_NODE PhAddProcessNode(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG RunId
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG RunId
     )
 {
     PPH_PROCESS_NODE processNode;
@@ -426,7 +426,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
 }
 
 PPH_PROCESS_NODE PhFindProcessNode(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PH_PROCESS_NODE lookupNode;
@@ -452,7 +452,7 @@ PPH_PROCESS_NODE PhFindProcessNode(
 }
 
 VOID PhRemoveProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
     // Remove from the hashtable here to avoid problems in case the key is re-used.
@@ -476,7 +476,7 @@ VOID PhRemoveProcessNode(
 }
 
 VOID PhpRemoveProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
     ULONG index;
@@ -565,7 +565,7 @@ VOID PhpRemoveProcessNode(
 }
 
 VOID PhUpdateProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
     memset(ProcessNode->TextCache, 0, sizeof(PH_STRINGREF) * PHPRTLC_MAXIMUM);
@@ -636,9 +636,9 @@ VOID PhTickProcessNodes(
 }
 
 static VOID PhpNeedGraphContext(
-    __in HDC hdc,
-    __in ULONG Width,
-    __in ULONG Height
+    _In_ HDC hdc,
+    _In_ ULONG Width,
+    _In_ ULONG Height
     )
 {
     BITMAPINFOHEADER header;
@@ -673,10 +673,10 @@ static VOID PhpNeedGraphContext(
 }
 
 static BOOLEAN PhpFormatInt32GroupDigits(
-    __in ULONG Value,
-    __out_bcount(BufferLength) PWCHAR Buffer,
-    __in ULONG BufferLength,
-    __out_opt PPH_STRINGREF String
+    _In_ ULONG Value,
+    _Out_writes_bytes_(BufferLength) PWCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _Out_opt_ PPH_STRINGREF String
     )
 {
     PH_FORMAT format;
@@ -702,7 +702,7 @@ static BOOLEAN PhpFormatInt32GroupDigits(
 }
 
 static FLOAT PhpCalculateInclusiveCpuUsage(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
     FLOAT cpuUsage;
@@ -719,7 +719,7 @@ static FLOAT PhpCalculateInclusiveCpuUsage(
 }
 
 static VOID PhpUpdateProcessNodeWsCounters(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_WSCOUNTERS))
@@ -750,7 +750,7 @@ static VOID PhpUpdateProcessNodeWsCounters(
 }
 
 static VOID PhpUpdateProcessNodeGdiUserHandles(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_GDIUSERHANDLES))
@@ -771,7 +771,7 @@ static VOID PhpUpdateProcessNodeGdiUserHandles(
 }
 
 static VOID PhpUpdateProcessNodeIoPagePriority(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_IOPAGEPRIORITY))
@@ -794,8 +794,8 @@ static VOID PhpUpdateProcessNodeIoPagePriority(
 }
 
 static BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ LPARAM lParam
     )
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)lParam;
@@ -823,7 +823,7 @@ static BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
 }
 
 static VOID PhpUpdateProcessNodeWindow(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_WINDOW))
@@ -844,7 +844,7 @@ static VOID PhpUpdateProcessNodeWindow(
 }
 
 static VOID PhpUpdateProcessNodeDepStatus(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_DEPSTATUS))
@@ -883,7 +883,7 @@ static VOID PhpUpdateProcessNodeDepStatus(
 }
 
 static VOID PhpUpdateProcessNodeToken(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_TOKEN))
@@ -919,7 +919,7 @@ static VOID PhpUpdateProcessNodeToken(
 }
 
 static VOID PhpUpdateProcessOsContext(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_OSCONTEXT))
@@ -953,7 +953,7 @@ static VOID PhpUpdateProcessOsContext(
 }
 
 static VOID PhpUpdateProcessNodeQuotaLimits(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_QUOTALIMITS))
@@ -982,7 +982,7 @@ static VOID PhpUpdateProcessNodeQuotaLimits(
 }
 
 static VOID PhpUpdateProcessNodeImage(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_IMAGE))
@@ -1032,7 +1032,7 @@ static VOID PhpUpdateProcessNodeImage(
 }
 
 static VOID PhpUpdateProcessNodeAppId(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_APPID))
@@ -1076,13 +1076,13 @@ Done:
 }
 
 static VOID PhpUpdateProcessNodeDpiAwareness(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static BOOL (WINAPI *getProcessDpiAwarenessInternal)(
-        __in HANDLE hprocess,
-        __out ULONG *value
+        _In_ HANDLE hprocess,
+        _Out_ ULONG *value
         );
 
     if (PhBeginInitOnce(&initOnce))
@@ -1140,7 +1140,7 @@ static VOID PhpUpdateNeedCyclesInformation(
 }
 
 static VOID PhpUpdateProcessNodeCycles(
-    __inout PPH_PROCESS_NODE ProcessNode
+    _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (ProcessNode->ProcessId == SYSTEM_IDLE_PROCESS_ID)
@@ -1196,8 +1196,8 @@ static VOID PhpUpdateProcessNodeCycles(
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)_elem1; \
@@ -1214,10 +1214,10 @@ static VOID PhpUpdateProcessNodeCycles(
 }
 
 LONG PhpProcessTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     )
 {
     if (Result == 0)
@@ -1783,11 +1783,11 @@ BEGIN_SORT_FUNCTION(DpiAwareness)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_NODE node;
@@ -3017,8 +3017,8 @@ PPH_PROCESS_ITEM PhGetSelectedProcessItem(
 }
 
 VOID PhGetSelectedProcessItems(
-    __out PPH_PROCESS_ITEM **Processes,
-    __out PULONG NumberOfProcesses
+    _Out_ PPH_PROCESS_ITEM **Processes,
+    _Out_ PULONG NumberOfProcesses
     )
 {
     PPH_LIST list;
@@ -3050,7 +3050,7 @@ VOID PhDeselectAllProcessNodes(
 }
 
 VOID PhExpandAllProcessNodes(
-    __in BOOLEAN Expand
+    _In_ BOOLEAN Expand
     )
 {
     ULONG i;
@@ -3095,7 +3095,7 @@ VOID PhInvalidateAllProcessNodes(
 }
 
 VOID PhSelectAndEnsureVisibleProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
     PPH_PROCESS_NODE processNode;
@@ -3131,13 +3131,13 @@ VOID PhSelectAndEnsureVisibleProcessNode(
 }
 
 VOID PhpPopulateTableWithProcessNodes(
-    __in HWND TreeListHandle,
-    __in PPH_PROCESS_NODE Node,
-    __in ULONG Level,
-    __in PPH_STRING **Table,
-    __inout PULONG Index,
-    __in PULONG DisplayToId,
-    __in ULONG Columns
+    _In_ HWND TreeListHandle,
+    _In_ PPH_PROCESS_NODE Node,
+    _In_ ULONG Level,
+    _In_ PPH_STRING **Table,
+    _Inout_ PULONG Index,
+    _In_ PULONG DisplayToId,
+    _In_ ULONG Columns
     )
 {
     ULONG i;
@@ -3188,10 +3188,10 @@ VOID PhpPopulateTableWithProcessNodes(
 }
 
 PPH_LIST PhGetProcessTreeListLines(
-    __in HWND TreeListHandle,
-    __in ULONG NumberOfNodes,
-    __in PPH_LIST RootNodes,
-    __in ULONG Mode
+    _In_ HWND TreeListHandle,
+    _In_ ULONG NumberOfNodes,
+    _In_ PPH_LIST RootNodes,
+    _In_ ULONG Mode
     )
 {
     PH_AUTO_POOL autoPool;
@@ -3264,8 +3264,8 @@ VOID PhCopyProcessTree(
 }
 
 VOID PhWriteProcessTree(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     )
 {
     PPH_LIST lines;

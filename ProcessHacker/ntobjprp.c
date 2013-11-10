@@ -29,65 +29,65 @@ typedef struct _COMMON_PAGE_CONTEXT
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
 
 HPROPSHEETPAGE PhpCommonCreatePage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in PWSTR Template,
-    __in DLGPROC DlgProc
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DlgProc
     );
 
 INT CALLBACK PhpCommonPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     );
 
 INT_PTR CALLBACK PhpEventPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpEventPairPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpMutantPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpSectionPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpSemaphorePageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpTimerPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static HPROPSHEETPAGE PhpCommonCreatePage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in PWSTR Template,
-    __in DLGPROC DlgProc
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DlgProc
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
@@ -118,9 +118,9 @@ static HPROPSHEETPAGE PhpCommonCreatePage(
 }
 
 INT CALLBACK PhpCommonPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
@@ -140,10 +140,10 @@ INT CALLBACK PhpCommonPropPageProc(
 }
 
 FORCEINLINE PCOMMON_PAGE_CONTEXT PhpCommonPageHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     return (PCOMMON_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
@@ -151,8 +151,8 @@ FORCEINLINE PCOMMON_PAGE_CONTEXT PhpCommonPageHeader(
 }
 
 HPROPSHEETPAGE PhCreateEventPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -164,8 +164,8 @@ HPROPSHEETPAGE PhCreateEventPage(
 }
 
 static VOID PhpRefreshEventPageInfo(
-    __in HWND hwndDlg,
-    __in PCOMMON_PAGE_CONTEXT PageContext
+    _In_ HWND hwndDlg,
+    _In_ PCOMMON_PAGE_CONTEXT PageContext
     )
 {
     HANDLE eventHandle;
@@ -203,10 +203,10 @@ static VOID PhpRefreshEventPageInfo(
 }
 
 INT_PTR CALLBACK PhpEventPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
@@ -271,8 +271,8 @@ INT_PTR CALLBACK PhpEventPageProc(
 }
 
 HPROPSHEETPAGE PhCreateEventPairPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -284,10 +284,10 @@ HPROPSHEETPAGE PhCreateEventPairPage(
 }
 
 INT_PTR CALLBACK PhpEventPairPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
@@ -346,8 +346,8 @@ INT_PTR CALLBACK PhpEventPairPageProc(
 }
 
 HPROPSHEETPAGE PhCreateMutantPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -359,8 +359,8 @@ HPROPSHEETPAGE PhCreateMutantPage(
 }
 
 static VOID PhpRefreshMutantPageInfo(
-    __in HWND hwndDlg,
-    __in PCOMMON_PAGE_CONTEXT PageContext
+    _In_ HWND hwndDlg,
+    _In_ PCOMMON_PAGE_CONTEXT PageContext
     )
 {
     HANDLE mutantHandle;
@@ -413,10 +413,10 @@ static VOID PhpRefreshMutantPageInfo(
 }
 
 INT_PTR CALLBACK PhpMutantPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
@@ -445,8 +445,8 @@ INT_PTR CALLBACK PhpMutantPageProc(
 }
 
 HPROPSHEETPAGE PhCreateSectionPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -458,8 +458,8 @@ HPROPSHEETPAGE PhCreateSectionPage(
 }
 
 static VOID PhpRefreshSectionPageInfo(
-    __in HWND hwndDlg,
-    __in PCOMMON_PAGE_CONTEXT PageContext
+    _In_ HWND hwndDlg,
+    _In_ PCOMMON_PAGE_CONTEXT PageContext
     )
 {
     HANDLE sectionHandle;
@@ -496,10 +496,10 @@ static VOID PhpRefreshSectionPageInfo(
 }
 
 INT_PTR CALLBACK PhpSectionPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
@@ -522,8 +522,8 @@ INT_PTR CALLBACK PhpSectionPageProc(
 }
 
 HPROPSHEETPAGE PhCreateSemaphorePage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -535,8 +535,8 @@ HPROPSHEETPAGE PhCreateSemaphorePage(
 }
 
 static VOID PhpRefreshSemaphorePageInfo(
-    __in HWND hwndDlg,
-    __in PCOMMON_PAGE_CONTEXT PageContext
+    _In_ HWND hwndDlg,
+    _In_ PCOMMON_PAGE_CONTEXT PageContext
     )
 {
     HANDLE semaphoreHandle;
@@ -565,10 +565,10 @@ static VOID PhpRefreshSemaphorePageInfo(
 }
 
 INT_PTR CALLBACK PhpSemaphorePageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
@@ -634,8 +634,8 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
 }
 
 HPROPSHEETPAGE PhCreateTimerPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -647,8 +647,8 @@ HPROPSHEETPAGE PhCreateTimerPage(
 }
 
 static VOID PhpRefreshTimerPageInfo(
-    __in HWND hwndDlg,
-    __in PCOMMON_PAGE_CONTEXT PageContext
+    _In_ HWND hwndDlg,
+    _In_ PCOMMON_PAGE_CONTEXT PageContext
     )
 {
     HANDLE timerHandle;
@@ -675,10 +675,10 @@ static VOID PhpRefreshTimerPageInfo(
 }
 
 INT_PTR CALLBACK PhpTimerPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;

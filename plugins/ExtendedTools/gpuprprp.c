@@ -34,19 +34,19 @@ typedef struct _ET_GPU_CONTEXT
 } ET_GPU_CONTEXT, *PET_GPU_CONTEXT;
 
 VOID NTAPI GpuUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 INT_PTR CALLBACK EtpGpuPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EtProcessGpuPropertiesInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
@@ -61,8 +61,8 @@ VOID EtProcessGpuPropertiesInitializing(
 }
 
 VOID NTAPI GpuUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PET_GPU_CONTEXT context = Context;
@@ -72,8 +72,8 @@ VOID NTAPI GpuUpdateHandler(
 }
 
 VOID EtpUpdateGpuInfo(
-    __in HWND hwndDlg,
-    __in PET_GPU_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PET_GPU_CONTEXT Context
     )
 {
     PET_PROCESS_BLOCK block = Context->Block;
@@ -106,10 +106,10 @@ VOID EtpUpdateGpuInfo(
 }
 
 INT_PTR CALLBACK EtpGpuPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;

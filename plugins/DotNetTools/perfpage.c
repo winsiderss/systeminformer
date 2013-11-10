@@ -36,10 +36,10 @@ typedef struct _PERFPAGE_CONTEXT
 } PERFPAGE_CONTEXT, *PPERFPAGE_CONTEXT;
 
 INT_PTR CALLBACK DotNetPerfPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static GUID CLSID_CorpubPublish_I = { 0x047a9a40, 0x657e, 0x11d3, { 0x8d, 0x5b, 0x00, 0x10, 0x4b, 0x35, 0xe7, 0xef } };
@@ -51,7 +51,7 @@ static ULONG DotNetObjectTypeInfoCount = 0;
 static PVOID PerfInfoTextData = NULL;
 
 VOID AddPerfPageToPropContext(
-    __in PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
+    _In_ PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
     )
 {
     PhAddProcessPropPage(
@@ -61,8 +61,8 @@ VOID AddPerfPageToPropContext(
 }
 
 HRESULT CreateCorpubPublish(
-    __in HANDLE ProcessId,
-    __out ICorPublish **Publish
+    _In_ HANDLE ProcessId,
+    _Out_ ICorPublish **Publish
     )
 {
     HRESULT result;
@@ -132,8 +132,8 @@ HRESULT CreateCorpubPublish(
 }
 
 HRESULT GetCorPublishProcess(
-    __in HANDLE ProcessId,
-    __out ICorPublishProcess **PublishProcess
+    _In_ HANDLE ProcessId,
+    _Out_ ICorPublishProcess **PublishProcess
     )
 {
     HRESULT result;
@@ -176,8 +176,8 @@ VOID InitializeDotNetObjectTypeInfo(
 }
 
 VOID AddProcessAppDomains(
-    __in HWND hwndDlg,
-    __in PPERFPAGE_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PPERFPAGE_CONTEXT Context
     )
 {
     HWND appDomainsLv;
@@ -222,8 +222,8 @@ VOID AddProcessAppDomains(
 }
 
 PPERF_OBJECT_TYPE_INFO GetSelectedObjectTypeInfo(
-    __in HWND hwndDlg,
-    __in PPERFPAGE_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PPERFPAGE_CONTEXT Context
     )
 {
     PPH_STRING selectedText;
@@ -243,9 +243,9 @@ PPERF_OBJECT_TYPE_INFO GetSelectedObjectTypeInfo(
 }
 
 VOID UpdateCounterData(
-    __in HWND hwndDlg,
-    __in PPERFPAGE_CONTEXT Context,
-    __in BOOLEAN RefreshCategory
+    _In_ HWND hwndDlg,
+    _In_ PPERFPAGE_CONTEXT Context,
+    _In_ BOOLEAN RefreshCategory
     )
 {
     HWND countersLv;
@@ -411,10 +411,10 @@ EndOfLoop:
 }
 
 INT_PTR CALLBACK DotNetPerfPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;

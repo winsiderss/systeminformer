@@ -3,8 +3,8 @@
 #include <templ.h>
 
 VOID T___(PhInitializeCircularBuffer, T)(
-    __out T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in ULONG Size
+    _Out_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ ULONG Size
     )
 {
 #ifdef PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
@@ -20,15 +20,15 @@ VOID T___(PhInitializeCircularBuffer, T)(
 }
 
 VOID T___(PhDeleteCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer
     )
 {
     PhFree(Buffer->Data);
 }
 
 VOID T___(PhResizeCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in ULONG NewSize
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ ULONG NewSize
     )
 {
     T *newData;
@@ -83,7 +83,7 @@ VOID T___(PhResizeCircularBuffer, T)(
 }
 
 VOID T___(PhClearCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer
     )
 {
     Buffer->Count = 0;
@@ -91,9 +91,9 @@ VOID T___(PhClearCircularBuffer, T)(
 }
 
 VOID T___(PhCopyCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __out_ecount(Count) T *Destination,
-    __in ULONG Count
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _Out_writes_(Count) T *Destination,
+    _In_ ULONG Count
     )
 {
     ULONG tailSize;

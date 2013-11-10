@@ -28,51 +28,51 @@
 #define WM_PH_CHILD_EXIT (WM_APP + 301)
 
 INT CALLBACK PhpOptionsPropSheetProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
     );
 
 LRESULT CALLBACK PhpOptionsWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // All
@@ -96,7 +96,7 @@ static HWND WindowHandleForElevate;
 static HWND HighlightingListViewHandle;
 
 VOID PhShowOptionsDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -220,9 +220,9 @@ VOID PhShowOptionsDialog(
 }
 
 INT CALLBACK PhpOptionsPropSheetProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -241,7 +241,7 @@ INT CALLBACK PhpOptionsPropSheetProc(
 }
 
 static VOID PhpPageInit(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     if (!PageInit)
@@ -296,10 +296,10 @@ static VOID PhpPageInit(
 }
 
 LRESULT CALLBACK PhpOptionsWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -359,7 +359,7 @@ LRESULT CALLBACK PhpOptionsWndProc(
 #define DialogChanged PropSheet_Changed(GetParent(hwndDlg), hwndDlg)
 
 static BOOLEAN GetCurrentFont(
-    __out PLOGFONT Font
+    _Out_ PLOGFONT Font
     )
 {
     BOOLEAN result;
@@ -386,10 +386,10 @@ static BOOLEAN GetCurrentFont(
 }
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -523,7 +523,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 }
 
 static BOOLEAN PathMatchesPh(
-    __in PPH_STRING Path
+    _In_ PPH_STRING Path
     )
 {
     BOOLEAN match = FALSE;
@@ -552,7 +552,7 @@ static BOOLEAN PathMatchesPh(
 }
 
 VOID PhpAdvancedPageLoad(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     HWND changeButton;
@@ -635,7 +635,7 @@ VOID PhpAdvancedPageLoad(
 }
 
 VOID PhpAdvancedPageSave(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     ULONG sampleCount;
@@ -709,7 +709,7 @@ VOID PhpAdvancedPageSave(
 }
 
 NTSTATUS PhpElevateAdvancedThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_STRING arguments;
@@ -732,10 +732,10 @@ NTSTATUS PhpElevateAdvancedThreadStart(
 }
 
 INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -833,10 +833,10 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 }
 
 INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -956,9 +956,9 @@ static COLOR_ITEM ColorItems[] =
 };
 
 COLORREF NTAPI PhpColorItemColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     )
 {
     PCOLOR_ITEM item = Param;
@@ -967,10 +967,10 @@ COLORREF NTAPI PhpColorItemColorFunction(
 }
 
 INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -1106,10 +1106,10 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 }
 
 INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

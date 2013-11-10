@@ -45,7 +45,7 @@ typedef struct _PH_QUERY_OBJECT_CONTEXT
 } PH_QUERY_OBJECT_CONTEXT, *PPH_QUERY_OBJECT_CONTEXT;
 
 NTSTATUS PhpQueryObjectThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 static HANDLE PhQueryObjectThreadHandle = NULL;
@@ -66,7 +66,7 @@ VOID PhHandleInfoInitialization(
 }
 
 PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
-    __in PPH_GET_CLIENT_ID_NAME GetClientIdName
+    _In_ PPH_GET_CLIENT_ID_NAME GetClientIdName
     )
 {
     return _InterlockedExchangePointer(
@@ -76,9 +76,9 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
 }
 
 NTSTATUS PhpGetObjectBasicInformation(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __out POBJECT_BASIC_INFORMATION BasicInformation
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     )
 {
     NTSTATUS status;
@@ -126,10 +126,10 @@ NTSTATUS PhpGetObjectBasicInformation(
 }
 
 NTSTATUS PhpGetObjectTypeName(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in ULONG ObjectTypeNumber,
-    __out PPH_STRING *TypeName
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectTypeNumber,
+    _Out_ PPH_STRING *TypeName
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -237,9 +237,9 @@ NTSTATUS PhpGetObjectTypeName(
 }
 
 NTSTATUS PhpGetObjectName(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __out PPH_STRING *ObjectName
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING *ObjectName
     )
 {
     NTSTATUS status;
@@ -298,7 +298,7 @@ NTSTATUS PhpGetObjectName(
 }
 
 PPH_STRING PhFormatNativeKeyName(
-    __in PPH_STRING Name
+    _In_ PPH_STRING Name
     )
 {
     static PH_STRINGREF hklmPrefix = PH_STRINGREF_INIT(L"\\Registry\\Machine");
@@ -395,8 +395,8 @@ PPH_STRING PhFormatNativeKeyName(
     return newName;
 }
 
-__callback PPH_STRING PhStdGetClientIdName(
-    __in PCLIENT_ID ClientId
+_Callback_ PPH_STRING PhStdGetClientIdName(
+    _In_ PCLIENT_ID ClientId
     )
 {
     static PH_QUEUED_LOCK cachedProcessesLock = PH_QUEUED_LOCK_INIT;
@@ -490,11 +490,11 @@ __callback PPH_STRING PhStdGetClientIdName(
 }
 
 NTSTATUS PhpGetBestObjectName(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in PPH_STRING ObjectName,
-    __in PPH_STRING TypeName,
-    __out PPH_STRING *BestObjectName
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ PPH_STRING ObjectName,
+    _In_ PPH_STRING TypeName,
+    _Out_ PPH_STRING *BestObjectName
     )
 {
     NTSTATUS status;
@@ -932,13 +932,13 @@ CleanupExit:
  * \c ObjectTypeNumber is invalid.
  */
 NTSTATUS PhGetHandleInformation(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in ULONG ObjectTypeNumber,
-    __out_opt POBJECT_BASIC_INFORMATION BasicInformation,
-    __out_opt PPH_STRING *TypeName,
-    __out_opt PPH_STRING *ObjectName,
-    __out_opt PPH_STRING *BestObjectName
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectTypeNumber,
+    _Out_opt_ POBJECT_BASIC_INFORMATION BasicInformation,
+    _Out_opt_ PPH_STRING *TypeName,
+    _Out_opt_ PPH_STRING *ObjectName,
+    _Out_opt_ PPH_STRING *BestObjectName
     )
 {
     NTSTATUS status;
@@ -1000,16 +1000,16 @@ NTSTATUS PhGetHandleInformation(
  * cannot be queried.
  */
 NTSTATUS PhGetHandleInformationEx(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in ULONG ObjectTypeNumber,
-    __reserved ULONG Flags,
-    __out_opt PNTSTATUS SubStatus,
-    __out_opt POBJECT_BASIC_INFORMATION BasicInformation,
-    __out_opt PPH_STRING *TypeName,
-    __out_opt PPH_STRING *ObjectName,
-    __out_opt PPH_STRING *BestObjectName,
-    __reserved PVOID *ExtraInformation
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectTypeNumber,
+    _Reserved_ ULONG Flags,
+    _Out_opt_ PNTSTATUS SubStatus,
+    _Out_opt_ POBJECT_BASIC_INFORMATION BasicInformation,
+    _Out_opt_ PPH_STRING *TypeName,
+    _Out_opt_ PPH_STRING *ObjectName,
+    _Out_opt_ PPH_STRING *BestObjectName,
+    _Reserved_ PVOID *ExtraInformation
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1260,7 +1260,7 @@ BOOLEAN PhpHeadQueryObjectHack(
 }
 
 NTSTATUS PhpTailQueryObjectHack(
-    __out_opt PULONG ReturnLength
+    _Out_opt_ PULONG ReturnLength
     )
 {
     NTSTATUS status;
@@ -1312,10 +1312,10 @@ NTSTATUS PhpTailQueryObjectHack(
 }
 
 NTSTATUS PhQueryObjectNameHack(
-    __in HANDLE Handle,
-    __out_bcount(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
-    __in ULONG ObjectNameInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE Handle,
+    _Out_writes_bytes_(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
+    _In_ ULONG ObjectNameInformationLength,
+    _Out_opt_ PULONG ReturnLength
     )
 {
     if (!PhpHeadQueryObjectHack())
@@ -1330,11 +1330,11 @@ NTSTATUS PhQueryObjectNameHack(
 }
 
 NTSTATUS PhQueryObjectSecurityHack(
-    __in HANDLE Handle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __out_bcount(Length) PVOID Buffer,
-    __in ULONG Length,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReturnLength
     )
 {
     if (!PhpHeadQueryObjectHack())
@@ -1350,9 +1350,9 @@ NTSTATUS PhQueryObjectSecurityHack(
 }
 
 NTSTATUS PhSetObjectSecurityHack(
-    __in HANDLE Handle,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Buffer
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PVOID Buffer
     )
 {
     if (!PhpHeadQueryObjectHack())
@@ -1367,7 +1367,7 @@ NTSTATUS PhSetObjectSecurityHack(
 }
 
 NTSTATUS PhpQueryObjectThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PhQueryObjectFiber = ConvertThreadToFiber(Parameter);

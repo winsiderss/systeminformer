@@ -19,7 +19,7 @@ void MD5Transform(ULONG buf[4], ULONG in[16]);
  * initialization constants.
  */
 VOID MD5Init(
-    __out MD5_CTX *Context
+    _Out_ MD5_CTX *Context
     )
 {
     Context->buf[0] = 0x67452301;
@@ -36,9 +36,9 @@ VOID MD5Init(
  * of bytes.
  */
 VOID MD5Update(
-    __inout MD5_CTX *Context,
-    __in_bcount(Length) UCHAR *Input,
-    __in ULONG Length
+    _Inout_ MD5_CTX *Context,
+    _In_reads_bytes_(Length) UCHAR *Input,
+    _In_ ULONG Length
     )
 {
     ULONG t;
@@ -86,7 +86,7 @@ VOID MD5Update(
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 VOID MD5Final(
-    __inout MD5_CTX *Context
+    _Inout_ MD5_CTX *Context
     )
 {
     unsigned int count;

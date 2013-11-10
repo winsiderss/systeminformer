@@ -51,7 +51,7 @@ BOOLEAN PhHexEditInitialization(
 }
 
 VOID PhpCreateHexEditContext(
-    __out PPHP_HEXEDIT_CONTEXT *Context
+    _Out_ PPHP_HEXEDIT_CONTEXT *Context
     )
 {
     PPHP_HEXEDIT_CONTEXT context;
@@ -91,7 +91,7 @@ VOID PhpCreateHexEditContext(
 }
 
 VOID PhpFreeHexEditContext(
-    __in __post_invalid PPHP_HEXEDIT_CONTEXT Context
+    _In_ _Post_invalid_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     if (!Context->UserBuffer && Context->Data)
@@ -102,10 +102,10 @@ VOID PhpFreeHexEditContext(
 }
 
 LRESULT CALLBACK PhpHexEditWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPHP_HEXEDIT_CONTEXT context;
@@ -848,13 +848,13 @@ DefaultHandler:
 }
 
 FORCEINLINE VOID PhpPrintHex(
-    __in HDC hdc,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __inout PWCHAR Buffer,
-    __in UCHAR Byte,
-    __inout PLONG X,
-    __inout PLONG Y,
-    __inout PULONG N
+    _In_ HDC hdc,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _Inout_ PWCHAR Buffer,
+    _In_ UCHAR Byte,
+    _Inout_ PLONG X,
+    _Inout_ PLONG Y,
+    _Inout_ PULONG N
     )
 {
     PWCHAR p = Buffer;
@@ -874,12 +874,12 @@ FORCEINLINE VOID PhpPrintHex(
 }
 
 FORCEINLINE VOID PhpPrintAscii(
-    __in HDC hdc,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in UCHAR Byte,
-    __inout PLONG X,
-    __inout PLONG Y,
-    __inout PULONG N
+    _In_ HDC hdc,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ UCHAR Byte,
+    _Inout_ PLONG X,
+    _Inout_ PLONG Y,
+    _Inout_ PULONG N
     )
 {
     WCHAR c;
@@ -930,10 +930,10 @@ FORCEINLINE COLORREF GetLighterHighlightColor(
 }
 
 VOID PhpHexEditOnPaint(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in PAINTSTRUCT *PaintStruct,
-    __in HDC hdc
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ PAINTSTRUCT *PaintStruct,
+    _In_ HDC hdc
     )
 {
     RECT clientRect;
@@ -1208,8 +1208,8 @@ VOID PhpHexEditOnPaint(
 }
 
 VOID PhpHexEditUpdateScrollbars(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     SCROLLINFO si = { sizeof(si) };
@@ -1235,8 +1235,8 @@ VOID PhpHexEditUpdateScrollbars(
 }
 
 VOID PhpHexEditCreateAddressCaret(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     DestroyCaret();
@@ -1244,8 +1244,8 @@ VOID PhpHexEditCreateAddressCaret(
 }
 
 VOID PhpHexEditCreateEditCaret(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     DestroyCaret();
@@ -1253,9 +1253,9 @@ VOID PhpHexEditCreateEditCaret(
 }
 
 VOID PhpHexEditRepositionCaret(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in LONG Position
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ LONG Position
     )
 {
     ULONG x;
@@ -1302,11 +1302,11 @@ VOID PhpHexEditRepositionCaret(
 }
 
 VOID PhpHexEditCalculatePosition(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in LONG X,
-    __in LONG Y,
-    __out POINT *Point
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ LONG X,
+    _In_ LONG Y,
+    _Out_ POINT *Point
     )
 {
     LONG xp;
@@ -1378,10 +1378,10 @@ VOID PhpHexEditCalculatePosition(
 }
 
 VOID PhpHexEditMove(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in LONG X,
-    __in LONG Y
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ LONG X,
+    _In_ LONG Y
     )
 {
     switch (Context->CurrentMode)
@@ -1430,10 +1430,10 @@ VOID PhpHexEditMove(
 }
 
 VOID PhpHexEditSetSel(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in LONG S,
-    __in LONG E
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ LONG S,
+    _In_ LONG E
     )
 {
     DestroyCaret();
@@ -1458,9 +1458,9 @@ VOID PhpHexEditSetSel(
 }
 
 VOID PhpHexEditScrollTo(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in LONG Position
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ LONG Position
     )
 {
     if (Position < Context->TopIndex || Position > Context->TopIndex + Context->LinesPerPage * Context->BytesPerRow)
@@ -1483,8 +1483,8 @@ VOID PhpHexEditScrollTo(
 }
 
 VOID PhpHexEditClearEdit(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     if (Context->AllowLengthChange)
@@ -1497,8 +1497,8 @@ VOID PhpHexEditClearEdit(
 }
 
 VOID PhpHexEditCopyEdit(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     if (OpenClipboard(hwnd))
@@ -1584,8 +1584,8 @@ VOID PhpHexEditCopyEdit(
 }
 
 VOID PhpHexEditCutEdit(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     if (Context->AllowLengthChange)
@@ -1597,8 +1597,8 @@ VOID PhpHexEditCutEdit(
 }
 
 VOID PhpHexEditPasteEdit(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     if (OpenClipboard(hwnd))
@@ -1667,8 +1667,8 @@ VOID PhpHexEditPasteEdit(
 }
 
 VOID PhpHexEditSelectAll(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     Context->SelStart = 0;
@@ -1678,16 +1678,16 @@ VOID PhpHexEditSelectAll(
 }
 
 VOID PhpHexEditUndoEdit(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     // TODO
 }
 
 VOID PhpHexEditNormalizeSel(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
     if (Context->SelStart > Context->SelEnd)
@@ -1701,10 +1701,10 @@ VOID PhpHexEditNormalizeSel(
 }
 
 VOID PhpHexEditSelDelete(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in LONG S,
-    __in LONG E
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ LONG S,
+    _In_ LONG E
     )
 {
     if (Context->AllowLengthChange)
@@ -1732,10 +1732,10 @@ VOID PhpHexEditSelDelete(
 }
 
 VOID PhpHexEditSelInsert(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in LONG S,
-    __in LONG L
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ LONG S,
+    _In_ LONG L
     )
 {
     if (Context->AllowLengthChange)
@@ -1756,10 +1756,10 @@ VOID PhpHexEditSelInsert(
 }
 
 VOID PhpHexEditSetBuffer(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in PUCHAR Data,
-    __in ULONG Length
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ PUCHAR Data,
+    _In_ ULONG Length
     )
 {
     Context->Data = Data;
@@ -1776,10 +1776,10 @@ VOID PhpHexEditSetBuffer(
 }
 
 VOID PhpHexEditSetData(
-    __in HWND hwnd,
-    __in PPHP_HEXEDIT_CONTEXT Context,
-    __in PUCHAR Data,
-    __in ULONG Length
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ PUCHAR Data,
+    _In_ ULONG Length
     )
 {
     PhFree(Context->Data);

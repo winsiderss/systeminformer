@@ -25,30 +25,30 @@
 #include "resource.h"
 
 BOOLEAN WepWindowNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG WepWindowNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID WepDestroyWindowNode(
-    __in PWE_WINDOW_NODE WindowNode
+    _In_ PWE_WINDOW_NODE WindowNode
     );
 
 BOOLEAN NTAPI WepWindowTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 VOID WeInitializeWindowTree(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __out PWE_WINDOW_TREE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _Out_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
     HWND hwnd;
@@ -86,7 +86,7 @@ VOID WeInitializeWindowTree(
 }
 
 VOID WeDeleteWindowTree(
-    __in PWE_WINDOW_TREE_CONTEXT Context
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -105,8 +105,8 @@ VOID WeDeleteWindowTree(
 }
 
 BOOLEAN WepWindowNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PWE_WINDOW_NODE windowNode1 = *(PWE_WINDOW_NODE *)Entry1;
@@ -116,7 +116,7 @@ BOOLEAN WepWindowNodeHashtableCompareFunction(
 }
 
 ULONG WepWindowNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
 #ifdef _M_IX86
@@ -127,7 +127,7 @@ ULONG WepWindowNodeHashtableHashFunction(
 }
 
 PWE_WINDOW_NODE WeAddWindowNode(
-    __inout PWE_WINDOW_TREE_CONTEXT Context
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
     PWE_WINDOW_NODE windowNode;
@@ -151,8 +151,8 @@ PWE_WINDOW_NODE WeAddWindowNode(
 }
 
 PWE_WINDOW_NODE WeFindWindowNode(
-    __in PWE_WINDOW_TREE_CONTEXT Context,
-    __in HWND WindowHandle
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ HWND WindowHandle
     )
 {
     WE_WINDOW_NODE lookupWindowNode;
@@ -173,8 +173,8 @@ PWE_WINDOW_NODE WeFindWindowNode(
 }
 
 VOID WeRemoveWindowNode(
-    __in PWE_WINDOW_TREE_CONTEXT Context,
-    __in PWE_WINDOW_NODE WindowNode
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PWE_WINDOW_NODE WindowNode
     )
 {
     ULONG index;
@@ -192,7 +192,7 @@ VOID WeRemoveWindowNode(
 }
 
 VOID WepDestroyWindowNode(
-    __in PWE_WINDOW_NODE WindowNode
+    _In_ PWE_WINDOW_NODE WindowNode
     )
 {
     PhDereferenceObject(WindowNode->Children);
@@ -207,9 +207,9 @@ VOID WepDestroyWindowNode(
 #define SORT_FUNCTION(Column) WepWindowTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl WepWindowTreeNewCompare##Column( \
-    __in void *_context, \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PWE_WINDOW_NODE node1 = *(PWE_WINDOW_NODE *)_elem1; \
@@ -248,11 +248,11 @@ BEGIN_SORT_FUNCTION(Thread)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI WepWindowTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PWE_WINDOW_TREE_CONTEXT context;
@@ -407,7 +407,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 }
 
 VOID WeClearWindowTree(
-    __in PWE_WINDOW_TREE_CONTEXT Context
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
     ULONG i;
@@ -421,7 +421,7 @@ VOID WeClearWindowTree(
 }
 
 PWE_WINDOW_NODE WeGetSelectedWindowNode(
-    __in PWE_WINDOW_TREE_CONTEXT Context
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
     PWE_WINDOW_NODE windowNode = NULL;
@@ -439,9 +439,9 @@ PWE_WINDOW_NODE WeGetSelectedWindowNode(
 }
 
 VOID WeGetSelectedWindowNodes(
-    __in PWE_WINDOW_TREE_CONTEXT Context,
-    __out PWE_WINDOW_NODE **Windows,
-    __out PULONG NumberOfWindows
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _Out_ PWE_WINDOW_NODE **Windows,
+    _Out_ PULONG NumberOfWindows
     )
 {
     PPH_LIST list;

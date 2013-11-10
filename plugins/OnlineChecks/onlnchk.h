@@ -81,15 +81,15 @@ extern PPH_PLUGIN PluginInstance;
 #define UPLOAD_SERVICE_CIMA 103
 
 VOID UploadToOnlineService(
-    __in PPH_STRING FileName,
-    __in ULONG Service
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Service
     );
 
 INT_PTR CALLBACK UploadDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 #endif

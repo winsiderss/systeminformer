@@ -40,17 +40,17 @@ typedef struct _MEMORY_RESULTS_CONTEXT
 } MEMORY_RESULTS_CONTEXT, *PMEMORY_RESULTS_CONTEXT;
 
 INT_PTR CALLBACK PhpMemoryResultsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID PhShowMemoryResultsDialog(
-    __in HANDLE ProcessId,
-    __in PPH_LIST Results
+    _In_ HANDLE ProcessId,
+    _In_ PPH_LIST Results
     )
 {
     HWND windowHandle;
@@ -77,9 +77,9 @@ VOID PhShowMemoryResultsDialog(
 }
 
 static PPH_STRING PhpGetStringForSelectedResults(
-    __in HWND ListViewHandle,
-    __in PPH_LIST Results,
-    __in BOOLEAN All
+    _In_ HWND ListViewHandle,
+    _In_ PPH_LIST Results,
+    _In_ BOOLEAN All
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -107,9 +107,9 @@ static PPH_STRING PhpGetStringForSelectedResults(
 }
 
 static VOID FilterResults(
-    __in HWND hwndDlg,
-    __in PMEMORY_RESULTS_CONTEXT Context,
-    __in ULONG Type
+    _In_ HWND hwndDlg,
+    _In_ PMEMORY_RESULTS_CONTEXT Context,
+    _In_ ULONG Type
     )
 {
     PPH_STRING selectedChoice = NULL;
@@ -282,10 +282,10 @@ static VOID FilterResults(
 }
 
 INT_PTR CALLBACK PhpMemoryResultsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PMEMORY_RESULTS_CONTEXT context;

@@ -23,14 +23,14 @@
 #include <phapp.h>
 
 INT_PTR CALLBACK PhpPagefilesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowPagefilesDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     )
 {
     DialogBox(
@@ -42,8 +42,8 @@ VOID PhShowPagefilesDialog(
 }
 
 static VOID PhpAddPagefileItems(
-    __in HWND ListViewHandle,
-    __in PVOID Pagefiles
+    _In_ HWND ListViewHandle,
+    _In_ PVOID Pagefiles
     )
 {
     PSYSTEM_PAGEFILE_INFORMATION pagefile;
@@ -86,10 +86,10 @@ static VOID PhpAddPagefileItems(
 }
 
 INT_PTR CALLBACK PhpPagefilesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

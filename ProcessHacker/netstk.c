@@ -31,17 +31,17 @@ typedef struct NETWORK_STACK_CONTEXT
 } NETWORK_STACK_CONTEXT, *PNETWORK_STACK_CONTEXT;
 
 INT_PTR CALLBACK PhpNetworkStackDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PNETWORK_STACK_CONTEXT context = Context;
@@ -68,8 +68,8 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 }
 
 VOID PhShowNetworkStackDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     NETWORK_STACK_CONTEXT networkStackContext;
@@ -117,10 +117,10 @@ VOID PhShowNetworkStackDialog(
 }
 
 static INT_PTR CALLBACK PhpNetworkStackDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

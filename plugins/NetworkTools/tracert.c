@@ -23,7 +23,7 @@
 #include "nettools.h"
 
 static NTSTATUS StdOutNetworkTracertThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     NTSTATUS status;
@@ -68,7 +68,7 @@ ExitCleanup:
 }
 
 NTSTATUS NetworkTracertThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     HANDLE pipeWriteHandle = INVALID_HANDLE_VALUE;

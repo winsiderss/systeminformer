@@ -15,13 +15,13 @@ typedef struct _PHSVC_STOP
 } PHSVC_STOP, *PPHSVC_STOP;
 
 NTSTATUS PhSvcMain(
-    __in_opt PUNICODE_STRING PortName,
-    __in_opt PLARGE_INTEGER Timeout,
-    __inout_opt PPHSVC_STOP Stop
+    _In_opt_ PUNICODE_STRING PortName,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Inout_opt_ PPHSVC_STOP Stop
     );
 
 VOID PhSvcStop(
-    __inout PPHSVC_STOP Stop
+    _Inout_ PPHSVC_STOP Stop
     );
 
 // svcclient
@@ -41,11 +41,11 @@ NTSTATUS PhSvcClientInitialization(
     );
 
 PPHSVC_CLIENT PhSvcCreateClient(
-    __in_opt PCLIENT_ID ClientId
+    _In_opt_ PCLIENT_ID ClientId
     );
 
 PPHSVC_CLIENT PhSvcReferenceClientByClientId(
-    __in PCLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     );
 
 PPHSVC_CLIENT PhSvcGetCurrentClient(
@@ -53,11 +53,11 @@ PPHSVC_CLIENT PhSvcGetCurrentClient(
     );
 
 BOOLEAN PhSvcAttachClient(
-    __in PPHSVC_CLIENT Client
+    _In_ PPHSVC_CLIENT Client
     );
 
 VOID PhSvcDetachClient(
-    __in PPHSVC_CLIENT Client
+    _In_ PPHSVC_CLIENT Client
     );
 
 // svcapiport
@@ -69,7 +69,7 @@ typedef struct _PHSVC_THREAD_CONTEXT
 } PHSVC_THREAD_CONTEXT, *PPHSVC_THREAD_CONTEXT;
 
 NTSTATUS PhSvcApiPortInitialization(
-    __in PUNICODE_STRING PortName
+    _In_ PUNICODE_STRING PortName
     );
 
 PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(
@@ -77,7 +77,7 @@ PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(
     );
 
 VOID PhSvcHandleConnectionRequest(
-    __in PPHSVC_API_MSG Message
+    _In_ PPHSVC_API_MSG Message
     );
 
 // svcapi
@@ -87,108 +87,108 @@ NTSTATUS PhSvcApiInitialization(
     );
 
 typedef NTSTATUS (NTAPI *PPHSVC_API_PROCEDURE)(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 VOID PhSvcDispatchApiCall(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message,
-    __out PPHSVC_API_MSG *ReplyMessage,
-    __out PHANDLE ReplyPortHandle
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message,
+    _Out_ PPHSVC_API_MSG *ReplyMessage,
+    _Out_ PHANDLE ReplyPortHandle
     );
 
 NTSTATUS PhSvcCaptureBuffer(
-    __in PPH_RELATIVE_STRINGREF String,
-    __in BOOLEAN AllowNull,
-    __out PVOID *CapturedBuffer
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PVOID *CapturedBuffer
     );
 
 NTSTATUS PhSvcCaptureString(
-    __in PPH_RELATIVE_STRINGREF String,
-    __in BOOLEAN AllowNull,
-    __out PPH_STRING *CapturedString
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PPH_STRING *CapturedString
     );
 
 NTSTATUS PhSvcCaptureSid(
-    __in PPH_RELATIVE_STRINGREF String,
-    __in BOOLEAN AllowNull,
-    __out PSID *CapturedSid
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PSID *CapturedSid
     );
 
 NTSTATUS PhSvcApiDefault(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiExecuteRunAsCommand(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiUnloadDriver(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiControlProcess(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiControlService(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiCreateService(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiChangeServiceConfig(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiChangeServiceConfig2(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiSetTcpEntry(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiControlThread(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiAddAccountRight(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiInvokeRunAsService(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiIssueMemoryListCommand(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiPostMessage(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 NTSTATUS PhSvcApiSendMessage(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     );
 
 #endif

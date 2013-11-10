@@ -24,8 +24,8 @@
 #include <phapp.h>
 
 VOID PhpMemoryItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 PPH_OBJECT_TYPE PhMemoryItemType;
@@ -46,10 +46,10 @@ BOOLEAN PhMemoryProviderInitialization(
 }
 
 VOID PhInitializeMemoryProvider(
-    __out PPH_MEMORY_PROVIDER Provider,
-    __in HANDLE ProcessId,
-    __in PPH_MEMORY_PROVIDER_CALLBACK Callback,
-    __in_opt PVOID Context
+    _Out_ PPH_MEMORY_PROVIDER Provider,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MEMORY_PROVIDER_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     Provider->Callback = Callback;
@@ -73,7 +73,7 @@ VOID PhInitializeMemoryProvider(
 }
 
 VOID PhDeleteMemoryProvider(
-    __inout PPH_MEMORY_PROVIDER Provider
+    _Inout_ PPH_MEMORY_PROVIDER Provider
     )
 {
     if (Provider->ProcessHandle)
@@ -100,8 +100,8 @@ PPH_MEMORY_ITEM PhCreateMemoryItem(
 }
 
 VOID PhpMemoryItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_MEMORY_ITEM memoryItem = (PPH_MEMORY_ITEM)Object;
@@ -111,8 +111,8 @@ VOID PhpMemoryItemDeleteProcedure(
 }
 
 VOID PhGetMemoryProtectionString(
-    __in ULONG Protection,
-    __out_ecount(17) PWSTR String
+    _In_ ULONG Protection,
+    _Out_writes_(17) PWSTR String
     )
 {
     PWSTR string;
@@ -170,7 +170,7 @@ VOID PhGetMemoryProtectionString(
 }
 
 PWSTR PhGetMemoryStateString(
-    __in ULONG State
+    _In_ ULONG State
     )
 {
     if (State & MEM_COMMIT)
@@ -184,7 +184,7 @@ PWSTR PhGetMemoryStateString(
 }
 
 PWSTR PhGetMemoryTypeString(
-    __in ULONG Type
+    _In_ ULONG Type
     )
 {
     if (Type & MEM_PRIVATE)
@@ -198,7 +198,7 @@ PWSTR PhGetMemoryTypeString(
 }
 
 VOID PhMemoryProviderUpdate(
-    __in PPH_MEMORY_PROVIDER Provider
+    _In_ PPH_MEMORY_PROVIDER Provider
     )
 {
     PVOID baseAddress;

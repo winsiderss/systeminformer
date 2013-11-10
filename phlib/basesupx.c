@@ -273,9 +273,9 @@ unsigned short __cdecl ph_chksum(unsigned long sum, unsigned short *buf, unsigne
 #endif
 
 VOID FASTCALL PhxpfFillMemoryUlongFallback(
-    __inout PULONG Memory,
-    __in ULONG Value,
-    __in ULONG Count
+    _Inout_ PULONG Memory,
+    _In_ ULONG Value,
+    _In_ ULONG Count
     )
 {
     if (Count != 0)
@@ -299,9 +299,9 @@ PHLIBAPI
 VOID
 FASTCALL
 PhxfFillMemoryUlong(
-    __inout PULONG Memory,
-    __in ULONG Value,
-    __in ULONG Count
+    _Inout_ PULONG Memory,
+    _In_ ULONG Value,
+    _In_ ULONG Count
     )
 {
     __m128i pattern;
@@ -368,9 +368,9 @@ PhxfFillMemoryUlong(
 }
 
 VOID FASTCALL PhxpfAddInt32Fallback(
-    __inout PLONG A,
-    __in PLONG B,
-    __in ULONG Count
+    _Inout_ PLONG A,
+    _In_ PLONG B,
+    _In_ ULONG Count
     )
 {
     while (Count--)
@@ -387,9 +387,9 @@ VOID FASTCALL PhxpfAddInt32Fallback(
  * \param Count The number of elements.
  */
 VOID FASTCALL PhxfAddInt32(
-    __inout __needsAlign(16) PLONG A,
-    __in __needsAlign(16) PLONG B,
-    __in ULONG Count
+    _Inout_ _Needs_align_(16) PLONG A,
+    _In_ _Needs_align_(16) PLONG B,
+    _In_ ULONG Count
     )
 {
     if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
@@ -436,9 +436,9 @@ VOID FASTCALL PhxfAddInt32(
  * \param Count The number of elements.
  */
 VOID FASTCALL PhxfAddInt32U(
-    __inout PLONG A,
-    __in PLONG B,
-    __in ULONG Count
+    _Inout_ PLONG A,
+    _In_ PLONG B,
+    _In_ ULONG Count
     )
 {
     if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
@@ -505,9 +505,9 @@ VOID FASTCALL PhxfAddInt32U(
 }
 
 VOID FASTCALL PhxpfDivideSingleFallback(
-    __inout PFLOAT A,
-    __in PFLOAT B,
-    __in ULONG Count
+    _Inout_ PFLOAT A,
+    _In_ PFLOAT B,
+    _In_ ULONG Count
     )
 {
     while (Count--)
@@ -523,9 +523,9 @@ VOID FASTCALL PhxpfDivideSingleFallback(
  * \param Count The number of elements.
  */
 VOID FASTCALL PhxfDivideSingleU(
-    __inout PFLOAT A,
-    __in PFLOAT B,
-    __in ULONG Count
+    _Inout_ PFLOAT A,
+    _In_ PFLOAT B,
+    _In_ ULONG Count
     )
 {
     if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE])
@@ -592,9 +592,9 @@ VOID FASTCALL PhxfDivideSingleU(
 }
 
 VOID FASTCALL PhxpfDivideSingle2Fallback(
-    __inout PFLOAT A,
-    __in FLOAT B,
-    __in ULONG Count
+    _Inout_ PFLOAT A,
+    _In_ FLOAT B,
+    _In_ ULONG Count
     )
 {
     while (Count--)
@@ -610,9 +610,9 @@ VOID FASTCALL PhxpfDivideSingle2Fallback(
  * \param Count The number of elements.
  */
 VOID FASTCALL PhxfDivideSingle2U(
-    __inout PFLOAT A,
-    __in FLOAT B,
-    __in ULONG Count
+    _Inout_ PFLOAT A,
+    _In_ FLOAT B,
+    _In_ ULONG Count
     )
 {
     PFLOAT endA;

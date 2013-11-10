@@ -48,7 +48,7 @@ typedef struct _COUNTED_REASON_CONTEXT
             UNICODE_STRING ResourceFileName;
             USHORT ResourceReasonId;
             ULONG StringCount;
-            PUNICODE_STRING __field_ecount(StringCount) ReasonStrings;
+            PUNICODE_STRING _Field_size_(StringCount) ReasonStrings;
         };
         UNICODE_STRING SimpleString;
     };
@@ -69,15 +69,15 @@ typedef enum
 } POWER_STATE_HANDLER_TYPE, *PPOWER_STATE_HANDLER_TYPE;
 
 typedef NTSTATUS (NTAPI *PENTER_STATE_SYSTEM_HANDLER)(
-    __in PVOID SystemContext
+    _In_ PVOID SystemContext
     );
 
 typedef NTSTATUS (NTAPI *PENTER_STATE_HANDLER)(
-    __in PVOID Context,
-    __in_opt PENTER_STATE_SYSTEM_HANDLER SystemHandler,
-    __in PVOID SystemContext,
-    __in LONG NumberProcessors,
-    __in volatile PLONG Number
+    _In_ PVOID Context,
+    _In_opt_ PENTER_STATE_SYSTEM_HANDLER SystemHandler,
+    _In_ PVOID SystemContext,
+    _In_ LONG NumberProcessors,
+    _In_ volatile PLONG Number
     );
 
 typedef struct _POWER_STATE_HANDLER
@@ -90,9 +90,9 @@ typedef struct _POWER_STATE_HANDLER
 } POWER_STATE_HANDLER, *PPOWER_STATE_HANDLER;
 
 typedef NTSTATUS (NTAPI *PENTER_STATE_NOTIFY_HANDLER)(
-    __in POWER_STATE_HANDLER_TYPE State,
-    __in PVOID Context,
-    __in BOOLEAN Entering
+    _In_ POWER_STATE_HANDLER_TYPE State,
+    _In_ PVOID Context,
+    _In_ BOOLEAN Entering
     );
 
 typedef struct _POWER_STATE_NOTIFY_HANDLER
@@ -123,53 +123,53 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPowerInformation(
-    __in POWER_INFORMATION_LEVEL InformationLevel,
-    __in_bcount_opt(InputBufferLength) PVOID InputBuffer,
-    __in ULONG InputBufferLength,
-    __out_bcount_opt(OutputBufferLength) PVOID OutputBuffer,
-    __in ULONG OutputBufferLength
+    _In_ POWER_INFORMATION_LEVEL InformationLevel,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetThreadExecutionState(
-    __in EXECUTION_STATE NewFlags, // ES_* flags
-    __out EXECUTION_STATE *PreviousFlags
+    _In_ EXECUTION_STATE NewFlags, // ES_* flags
+    _Out_ EXECUTION_STATE *PreviousFlags
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRequestWakeupLatency(
-    __in LATENCY_TIME latency
+    _In_ LATENCY_TIME latency
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtInitiatePowerAction(
-    __in POWER_ACTION SystemAction,
-    __in SYSTEM_POWER_STATE LightestSystemState,
-    __in ULONG Flags, // POWER_ACTION_* flags
-    __in BOOLEAN Asynchronous
+    _In_ POWER_ACTION SystemAction,
+    _In_ SYSTEM_POWER_STATE LightestSystemState,
+    _In_ ULONG Flags, // POWER_ACTION_* flags
+    _In_ BOOLEAN Asynchronous
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSystemPowerState(
-    __in POWER_ACTION SystemAction,
-    __in SYSTEM_POWER_STATE LightestSystemState,
-    __in ULONG Flags // POWER_ACTION_* flags
+    _In_ POWER_ACTION SystemAction,
+    _In_ SYSTEM_POWER_STATE LightestSystemState,
+    _In_ ULONG Flags // POWER_ACTION_* flags
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtGetDevicePowerState(
-    __in HANDLE Device,
-    __out PDEVICE_POWER_STATE State
+    _In_ HANDLE Device,
+    _Out_ PDEVICE_POWER_STATE State
     );
 
 NTSYSCALLAPI

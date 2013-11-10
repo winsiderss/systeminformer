@@ -78,9 +78,9 @@ static _locale_t PhpFormatUserLocale = NULL;
  * \param Output A buffer which will contain the converted string.
  */
 VOID PhZeroExtendToUnicode(
-    __in_bcount(InputLength) PSTR Input,
-    __in ULONG InputLength,
-    __out_bcount(InputLength * 2) PWSTR Output
+    _In_reads_bytes_(InputLength) PSTR Input,
+    _In_ ULONG InputLength,
+    _Out_writes_bytes_(InputLength * 2) PWSTR Output
     )
 {
     ULONG inputLength;
@@ -113,10 +113,10 @@ VOID PhZeroExtendToUnicode(
 }
 
 PPH_STRING PhpResizeFormatBuffer(
-    __in PPH_STRING String,
-    __inout PSIZE_T AllocatedLength,
-    __in SIZE_T UsedLength,
-    __in SIZE_T NeededLength
+    _In_ PPH_STRING String,
+    _Inout_ PSIZE_T AllocatedLength,
+    _In_ SIZE_T UsedLength,
+    _In_ SIZE_T NeededLength
     )
 {
     PPH_STRING newString;
@@ -146,9 +146,9 @@ PPH_STRING PhpResizeFormatBuffer(
  * the string. If 0 is specified, a default value is used.
  */
 PPH_STRING PhFormat(
-    __in_ecount(Count) PPH_FORMAT Format,
-    __in ULONG Count,
-    __in_opt SIZE_T InitialCapacity
+    _In_reads_(Count) PPH_FORMAT Format,
+    _In_ ULONG Count,
+    _In_opt_ SIZE_T InitialCapacity
     )
 {
     PPH_STRING string;
@@ -216,11 +216,11 @@ PPH_STRING PhFormat(
  * single null byte is written to the start of \a Buffer.
  */
 BOOLEAN PhFormatToBuffer(
-    __in_ecount(Count) PPH_FORMAT Format,
-    __in ULONG Count,
-    __out_bcount_opt(BufferLength) PWSTR Buffer,
-    __in_opt SIZE_T BufferLength,
-    __out_opt PSIZE_T ReturnLength
+    _In_reads_(Count) PPH_FORMAT Format,
+    _In_ ULONG Count,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
     )
 {
     PWSTR buffer;

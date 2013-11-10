@@ -24,8 +24,8 @@
 #include <phsvc.h>
 
 VOID NTAPI PhSvcpClientDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 PPH_OBJECT_TYPE PhSvcClientType;
@@ -52,7 +52,7 @@ NTSTATUS PhSvcClientInitialization(
 }
 
 PPHSVC_CLIENT PhSvcCreateClient(
-    __in_opt PCLIENT_ID ClientId
+    _In_opt_ PCLIENT_ID ClientId
     )
 {
     PPHSVC_CLIENT client;
@@ -80,8 +80,8 @@ PPHSVC_CLIENT PhSvcCreateClient(
 }
 
 VOID NTAPI PhSvcpClientDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPHSVC_CLIENT client = (PPHSVC_CLIENT)Object;
@@ -95,7 +95,7 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
 }
 
 PPHSVC_CLIENT PhSvcReferenceClientByClientId(
-    __in PCLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     )
 {
     PLIST_ENTRY listEntry;
@@ -149,7 +149,7 @@ PPHSVC_CLIENT PhSvcGetCurrentClient(
 }
 
 BOOLEAN PhSvcAttachClient(
-    __in PPHSVC_CLIENT Client
+    _In_ PPHSVC_CLIENT Client
     )
 {
     PPHSVC_THREAD_CONTEXT threadContext = PhSvcGetCurrentThreadContext();
@@ -165,7 +165,7 @@ BOOLEAN PhSvcAttachClient(
 }
 
 VOID PhSvcDetachClient(
-    __in PPHSVC_CLIENT Client
+    _In_ PPHSVC_CLIENT Client
     )
 {
     PPHSVC_THREAD_CONTEXT threadContext = PhSvcGetCurrentThreadContext();

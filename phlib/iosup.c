@@ -70,13 +70,13 @@ BOOLEAN PhIoSupportInitialization(
  * \param CreateOptions The options to apply when the file is opened or created.
  */
 NTSTATUS PhCreateFileWin32(
-    __out PHANDLE FileHandle,
-    __in PWSTR FileName,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt ULONG FileAttributes,
-    __in ULONG ShareAccess,
-    __in ULONG CreateDisposition,
-    __in ULONG CreateOptions
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions
     )
 {
     return PhCreateFileWin32Ex(
@@ -127,14 +127,14 @@ NTSTATUS PhCreateFileWin32(
  * \c FILE_OVERWRITE was specified in \a CreateDisposition.
  */
 NTSTATUS PhCreateFileWin32Ex(
-    __out PHANDLE FileHandle,
-    __in PWSTR FileName,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt ULONG FileAttributes,
-    __in ULONG ShareAccess,
-    __in ULONG CreateDisposition,
-    __in ULONG CreateOptions,
-    __out_opt PULONG CreateStatus
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _Out_opt_ PULONG CreateStatus
     )
 {
     NTSTATUS status;
@@ -196,8 +196,8 @@ NTSTATUS PhCreateFileWin32Ex(
  * \param FileInformation A variable that receives the file information.
  */
 NTSTATUS PhQueryFullAttributesFileWin32(
-    __in PWSTR FileName,
-    __out PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    _In_ PWSTR FileName,
+    _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     )
 {
     NTSTATUS status;
@@ -232,7 +232,7 @@ NTSTATUS PhQueryFullAttributesFileWin32(
  * \param FileName The Win32 file name.
  */
 NTSTATUS PhDeleteFileWin32(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     )
 {
     NTSTATUS status;
@@ -257,11 +257,11 @@ NTSTATUS PhDeleteFileWin32(
 }
 
 NTSTATUS PhListenNamedPipe(
-    __in HANDLE FileHandle,
-    __in_opt HANDLE Event,
-    __in_opt PIO_APC_ROUTINE ApcRoutine,
-    __in_opt PVOID ApcContext,
-    __out PIO_STATUS_BLOCK IoStatusBlock
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
     )
 {
     return NtFsControlFile(
@@ -279,7 +279,7 @@ NTSTATUS PhListenNamedPipe(
 }
 
 NTSTATUS PhDisconnectNamedPipe(
-    __in HANDLE FileHandle
+    _In_ HANDLE FileHandle
     )
 {
     NTSTATUS status;
@@ -310,12 +310,12 @@ NTSTATUS PhDisconnectNamedPipe(
 }
 
 NTSTATUS PhPeekNamedPipe(
-    __in HANDLE FileHandle,
-    __out_bcount_opt(Length) PVOID Buffer,
-    __in ULONG Length,
-    __out_opt PULONG NumberOfBytesRead,
-    __out_opt PULONG NumberOfBytesAvailable,
-    __out_opt PULONG NumberOfBytesLeftInMessage
+    _In_ HANDLE FileHandle,
+    _Out_writes_bytes_opt_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG NumberOfBytesRead,
+    _Out_opt_ PULONG NumberOfBytesAvailable,
+    _Out_opt_ PULONG NumberOfBytesLeftInMessage
     )
 {
     NTSTATUS status;
@@ -377,15 +377,15 @@ NTSTATUS PhPeekNamedPipe(
 }
 
 NTSTATUS PhTransceiveNamedPipe(
-    __in HANDLE FileHandle,
-    __in_opt HANDLE Event,
-    __in_opt PIO_APC_ROUTINE ApcRoutine,
-    __in_opt PVOID ApcContext,
-    __out PIO_STATUS_BLOCK IoStatusBlock,
-    __in_bcount(InputBufferLength) PVOID InputBuffer,
-    __in ULONG InputBufferLength,
-    __out_bcount(OutputBufferLength) PVOID OutputBuffer,
-    __in ULONG OutputBufferLength
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength
     )
 {
     return NtFsControlFile(
@@ -403,10 +403,10 @@ NTSTATUS PhTransceiveNamedPipe(
 }
 
 NTSTATUS PhWaitForNamedPipe(
-    __in_opt PUNICODE_STRING FileSystemName,
-    __in PUNICODE_STRING Name,
-    __in_opt PLARGE_INTEGER Timeout,
-    __in BOOLEAN UseDefaultTimeout
+    _In_opt_ PUNICODE_STRING FileSystemName,
+    _In_ PUNICODE_STRING Name,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ BOOLEAN UseDefaultTimeout
     )
 {
     NTSTATUS status;
@@ -488,7 +488,7 @@ NTSTATUS PhWaitForNamedPipe(
 }
 
 NTSTATUS PhImpersonateClientOfNamedPipe(
-    __in HANDLE FileHandle
+    _In_ HANDLE FileHandle
     )
 {
     NTSTATUS status;
@@ -511,12 +511,12 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
 }
 
 NTSTATUS PhCreateFileStream(
-    __out PPH_FILE_STREAM *FileStream,
-    __in PWSTR FileName,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG ShareAccess,
-    __in ULONG CreateDisposition,
-    __in ULONG Flags
+    _Out_ PPH_FILE_STREAM *FileStream,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status;
@@ -574,10 +574,10 @@ NTSTATUS PhCreateFileStream(
 }
 
 NTSTATUS PhCreateFileStream2(
-    __out PPH_FILE_STREAM *FileStream,
-    __in HANDLE FileHandle,
-    __in ULONG Flags,
-    __in ULONG BufferLength
+    _Out_ PPH_FILE_STREAM *FileStream,
+    _In_ HANDLE FileHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG BufferLength
     )
 {
     NTSTATUS status;
@@ -616,8 +616,8 @@ NTSTATUS PhCreateFileStream2(
 }
 
 VOID NTAPI PhpFileStreamDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_FILE_STREAM fileStream = (PPH_FILE_STREAM)Object;
@@ -636,7 +636,7 @@ VOID NTAPI PhpFileStreamDeleteProcedure(
  * the position held by the file object.
  */
 VOID PhVerifyFileStream(
-    __in PPH_FILE_STREAM FileStream
+    _In_ PPH_FILE_STREAM FileStream
     )
 {
     NTSTATUS status;
@@ -666,7 +666,7 @@ VOID PhVerifyFileStream(
 }
 
 NTSTATUS PhpAllocateBufferFileStream(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     )
 {
     FileStream->Buffer = PhAllocatePage(FileStream->BufferLength, NULL);
@@ -678,10 +678,10 @@ NTSTATUS PhpAllocateBufferFileStream(
 }
 
 NTSTATUS PhpReadFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __out_bcount(Length) PVOID Buffer,
-    __in ULONG Length,
-    __out_opt PULONG ReadLength
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReadLength
     )
 {
     NTSTATUS status;
@@ -727,10 +727,10 @@ NTSTATUS PhpReadFileStream(
 }
 
 NTSTATUS PhReadFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __out_bcount(Length) PVOID Buffer,
-    __in ULONG Length,
-    __out_opt PULONG ReadLength
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReadLength
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -851,9 +851,9 @@ NTSTATUS PhReadFileStream(
 }
 
 NTSTATUS PhpWriteFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in_bcount(Length) PVOID Buffer,
-    __in ULONG Length
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
     )
 {
     NTSTATUS status;
@@ -897,9 +897,9 @@ NTSTATUS PhpWriteFileStream(
 }
 
 NTSTATUS PhWriteFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in_bcount(Length) PVOID Buffer,
-    __in ULONG Length
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -994,7 +994,7 @@ NTSTATUS PhWriteFileStream(
 }
 
 NTSTATUS PhpFlushReadFileStream(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1023,7 +1023,7 @@ NTSTATUS PhpFlushReadFileStream(
 }
 
 NTSTATUS PhpFlushWriteFileStream(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1049,8 +1049,8 @@ NTSTATUS PhpFlushWriteFileStream(
  * is flushed to the operating system.
  */
 NTSTATUS PhFlushFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in BOOLEAN Full
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ BOOLEAN Full
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1082,8 +1082,8 @@ NTSTATUS PhFlushFileStream(
 }
 
 VOID PhGetPositionFileStream(
-    __in PPH_FILE_STREAM FileStream,
-    __out PLARGE_INTEGER Position
+    _In_ PPH_FILE_STREAM FileStream,
+    _Out_ PLARGE_INTEGER Position
     )
 {
     Position->QuadPart =
@@ -1093,9 +1093,9 @@ VOID PhGetPositionFileStream(
 }
 
 NTSTATUS PhpSeekFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PLARGE_INTEGER Offset,
-    __in PH_SEEK_ORIGIN Origin
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PLARGE_INTEGER Offset,
+    _In_ PH_SEEK_ORIGIN Origin
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1146,9 +1146,9 @@ NTSTATUS PhpSeekFileStream(
 }
 
 NTSTATUS PhSeekFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PLARGE_INTEGER Offset,
-    __in PH_SEEK_ORIGIN Origin
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PLARGE_INTEGER Offset,
+    _In_ PH_SEEK_ORIGIN Origin
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1187,11 +1187,11 @@ NTSTATUS PhSeekFileStream(
 }
 
 NTSTATUS PhLockFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PLARGE_INTEGER Position,
-    __in PLARGE_INTEGER Length,
-    __in BOOLEAN Wait,
-    __in BOOLEAN Shared
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PLARGE_INTEGER Position,
+    _In_ PLARGE_INTEGER Length,
+    _In_ BOOLEAN Wait,
+    _In_ BOOLEAN Shared
     )
 {
     NTSTATUS status;
@@ -1222,9 +1222,9 @@ NTSTATUS PhLockFileStream(
 }
 
 NTSTATUS PhUnlockFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PLARGE_INTEGER Position,
-    __in PLARGE_INTEGER Length
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PLARGE_INTEGER Position,
+    _In_ PLARGE_INTEGER Length
     )
 {
     IO_STATUS_BLOCK isb;
@@ -1239,16 +1239,16 @@ NTSTATUS PhUnlockFileStream(
 }
 
 NTSTATUS PhWriteStringAsAnsiFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PPH_STRINGREF String
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PPH_STRINGREF String
     )
 {
     return PhWriteStringAsAnsiFileStreamEx(FileStream, String->Buffer, String->Length);
 }
 
 NTSTATUS PhWriteStringAsAnsiFileStream2(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PWSTR String
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PWSTR String
     )
 {
     PH_STRINGREF string;
@@ -1259,9 +1259,9 @@ NTSTATUS PhWriteStringAsAnsiFileStream2(
 }
 
 NTSTATUS PhWriteStringAsAnsiFileStreamEx(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PWSTR Buffer,
-    __in SIZE_T Length
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PWSTR Buffer,
+    _In_ SIZE_T Length
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1299,9 +1299,9 @@ NTSTATUS PhWriteStringAsAnsiFileStreamEx(
 }
 
 NTSTATUS PhWriteStringFormatFileStream_V(
-    __inout PPH_FILE_STREAM FileStream,
-    __in __format_string PWSTR Format,
-    __in va_list ArgPtr
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ va_list ArgPtr
     )
 {
     NTSTATUS status;
@@ -1315,8 +1315,8 @@ NTSTATUS PhWriteStringFormatFileStream_V(
 }
 
 NTSTATUS PhWriteStringFormatFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in __format_string PWSTR Format,
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ _Printf_format_string_ PWSTR Format,
     ...
     )
 {

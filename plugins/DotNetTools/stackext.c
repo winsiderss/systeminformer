@@ -37,11 +37,11 @@ typedef struct _THREAD_STACK_CONTEXT
 } THREAD_STACK_CONTEXT, *PTHREAD_STACK_CONTEXT;
 
 VOID PredictAddressesFromClrData(
-    __in PTHREAD_STACK_CONTEXT Context,
-    __in PPH_THREAD_STACK_FRAME Frame,
-    __out PVOID *PredictedEip,
-    __out PVOID *PredictedEbp,
-    __out PVOID *PredictedEsp
+    _In_ PTHREAD_STACK_CONTEXT Context,
+    _In_ PPH_THREAD_STACK_FRAME Frame,
+    _Out_ PVOID *PredictedEip,
+    _Out_ PVOID *PredictedEbp,
+    _Out_ PVOID *PredictedEsp
     );
 
 static PPH_HASHTABLE ContextHashtable;
@@ -49,7 +49,7 @@ static PH_QUEUED_LOCK ContextHashtableLock = PH_QUEUED_LOCK_INIT;
 static PH_INITONCE ContextHashtableInitOnce = PH_INITONCE_INIT;
 
 VOID ProcessThreadStackControl(
-    __in PPH_PLUGIN_THREAD_STACK_CONTROL Control
+    _In_ PPH_PLUGIN_THREAD_STACK_CONTROL Control
     )
 {
     if (PhBeginInitOnce(&ContextHashtableInitOnce))
@@ -181,11 +181,11 @@ VOID ProcessThreadStackControl(
 }
 
 VOID PredictAddressesFromClrData(
-    __in PTHREAD_STACK_CONTEXT Context,
-    __in PPH_THREAD_STACK_FRAME Frame,
-    __out PVOID *PredictedEip,
-    __out PVOID *PredictedEbp,
-    __out PVOID *PredictedEsp
+    _In_ PTHREAD_STACK_CONTEXT Context,
+    _In_ PPH_THREAD_STACK_FRAME Frame,
+    _Out_ PVOID *PredictedEip,
+    _Out_ PVOID *PredictedEbp,
+    _Out_ PVOID *PredictedEsp
     )
 {
 #ifdef _M_X64

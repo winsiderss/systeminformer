@@ -495,70 +495,70 @@ typedef struct _TS_COUNTER
 BOOLEAN
 WINAPI
 WinStationFreeMemory(
-    __in PVOID Buffer
+    _In_ PVOID Buffer
     );
 
 // rev
 HANDLE
 WINAPI
 WinStationOpenServerW(
-    __in PWSTR ServerName
+    _In_ PWSTR ServerName
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationCloseServer(
-    __in HANDLE hServer
+    _In_ HANDLE hServer
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationServerPing(
-    __in_opt HANDLE hServer
+    _In_opt_ HANDLE hServer
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationGetTermSrvCountersValue(
-    __in_opt HANDLE hServer,
-    __in ULONG Count,
-    __inout PTS_COUNTER Counters // set counter IDs before calling
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG Count,
+    _Inout_ PTS_COUNTER Counters // set counter IDs before calling
     );
 
 BOOLEAN
 WINAPI
 WinStationShutdownSystem(
-    __in_opt HANDLE hServer,
-    __in ULONG ShutdownFlags // WSD_*
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG ShutdownFlags // WSD_*
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationWaitSystemEvent(
-    __in_opt HANDLE hServer,
-    __in ULONG EventMask, // WEVENT_*
-    __out PULONG EventFlags
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG EventMask, // WEVENT_*
+    _Out_ PULONG EventFlags
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationRegisterConsoleNotification(
-    __in_opt HANDLE hServer,
-    __in HWND WindowHandle,
-    __in ULONG Flags
+    _In_opt_ HANDLE hServer,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationUnRegisterConsoleNotification(
-    __in_opt HANDLE hServer,
-    __in HWND WindowHandle
+    _In_opt_ HANDLE hServer,
+    _In_ HWND WindowHandle
     );
 
 // Sessions
@@ -567,102 +567,102 @@ WinStationUnRegisterConsoleNotification(
 BOOLEAN
 WINAPI
 WinStationEnumerateW(
-    __in_opt HANDLE hServer,
-    __out PSESSIONIDW *SessionIds,
-    __out PULONG Count
+    _In_opt_ HANDLE hServer,
+    _Out_ PSESSIONIDW *SessionIds,
+    _Out_ PULONG Count
     );
 
 BOOLEAN
 WINAPI
 WinStationQueryInformationW(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __in WINSTATIONINFOCLASS WinStationInformationClass,
-    __out_bcount(WinStationInformationLength) PVOID pWinStationInformation,
-    __in ULONG WinStationInformationLength,
-    __out PULONG pReturnLength
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
+    _Out_writes_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _In_ ULONG WinStationInformationLength,
+    _Out_ PULONG pReturnLength
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationSetInformationW(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __in WINSTATIONINFOCLASS WinStationInformationClass,
-    __in_bcount(WinStationInformationLength) PVOID pWinStationInformation,
-    __in ULONG WinStationInformationLength
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
+    _In_reads_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _In_ ULONG WinStationInformationLength
     );
 
 BOOLEAN
 WINAPI
 WinStationNameFromLogonIdW(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __out_ecount(WINSTATIONNAME_LENGTH + 1) PWSTR pWinStationName
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _Out_writes_(WINSTATIONNAME_LENGTH + 1) PWSTR pWinStationName
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationSendMessageW(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __in PWSTR Title,
-    __in ULONG TitleLength,
-    __in PWSTR Message,
-    __in ULONG MessageLength,
-    __in ULONG Style,
-    __in ULONG Timeout,
-    __out PULONG Response,
-    __in BOOLEAN DoNotWait
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_ PWSTR Title,
+    _In_ ULONG TitleLength,
+    _In_ PWSTR Message,
+    _In_ ULONG MessageLength,
+    _In_ ULONG Style,
+    _In_ ULONG Timeout,
+    _Out_ PULONG Response,
+    _In_ BOOLEAN DoNotWait
     );
 
 BOOLEAN
 WINAPI
 WinStationConnectW(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __in ULONG TargetSessionId,
-    __in_opt PWSTR pPassword,
-    __in BOOLEAN bWait
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_ ULONG TargetSessionId,
+    _In_opt_ PWSTR pPassword,
+    _In_ BOOLEAN bWait
     );
 
 BOOLEAN
 WINAPI
 WinStationDisconnect(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __in BOOLEAN bWait
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_ BOOLEAN bWait
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationReset(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __in BOOLEAN bWait
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_ BOOLEAN bWait
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationShadow(
-    __in_opt HANDLE hServer,
-    __in PWSTR TargetServerName,
-    __in ULONG TargetSessionId,
-    __in UCHAR HotKeyVk,
-    __in USHORT HotkeyModifiers // KBD*
+    _In_opt_ HANDLE hServer,
+    _In_ PWSTR TargetServerName,
+    _In_ ULONG TargetSessionId,
+    _In_ UCHAR HotKeyVk,
+    _In_ USHORT HotkeyModifiers // KBD*
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationShadowStop(
-    __in_opt HANDLE hServer,
-    __in ULONG SessionId,
-    __in BOOLEAN bWait // ignored
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG SessionId,
+    _In_ BOOLEAN bWait // ignored
     );
 
 // Processes
@@ -671,46 +671,46 @@ WinStationShadowStop(
 BOOLEAN
 WINAPI
 WinStationEnumerateProcesses(
-    __in_opt HANDLE hServer,
-    __out PVOID *Processes
+    _In_opt_ HANDLE hServer,
+    _Out_ PVOID *Processes
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationGetAllProcesses(
-    __in_opt HANDLE hServer,
-    __in ULONG Level,
-    __out PULONG NumberOfProcesses,
-    __out PTS_ALL_PROCESSES_INFO *Processes
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG Level,
+    _Out_ PULONG NumberOfProcesses,
+    _Out_ PTS_ALL_PROCESSES_INFO *Processes
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationFreeGAPMemory(
-    __in ULONG Level,
-    __in PTS_ALL_PROCESSES_INFO Processes,
-    __in ULONG NumberOfProcesses
+    _In_ ULONG Level,
+    _In_ PTS_ALL_PROCESSES_INFO Processes,
+    _In_ ULONG NumberOfProcesses
     );
 
 // rev
 BOOLEAN
 WINAPI
 WinStationTerminateProcess(
-    __in_opt HANDLE hServer,
-    __in ULONG ProcessId,
-    __in ULONG ExitCode
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG ProcessId,
+    _In_ ULONG ExitCode
     );
 
 BOOLEAN
 WINAPI
 WinStationGetProcessSid(
-    __in_opt HANDLE hServer,
-    __in ULONG ProcessId,
-    __in FILETIME ProcessStartTime,
-    __out PVOID pProcessUserSid,
-    __inout PULONG dwSidSize
+    _In_opt_ HANDLE hServer,
+    _In_ ULONG ProcessId,
+    _In_ FILETIME ProcessStartTime,
+    _Out_ PVOID pProcessUserSid,
+    _Inout_ PULONG dwSidSize
     );
 
 // Services isolation

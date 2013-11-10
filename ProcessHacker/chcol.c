@@ -35,16 +35,16 @@ typedef struct _COLUMNS_DIALOG_CONTEXT
 } COLUMNS_DIALOG_CONTEXT, *PCOLUMNS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowChooseColumnsDialog(
-    __in HWND ParentWindowHandle,
-    __in HWND ControlHandle,
-    __in ULONG Type
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND ControlHandle,
+    _In_ ULONG Type
     )
 {
     COLUMNS_DIALOG_CONTEXT context;
@@ -69,8 +69,8 @@ VOID PhShowChooseColumnsDialog(
 }
 
 static int __cdecl PhpColumnsCompareDisplayIndexTn(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PPH_TREENEW_COLUMN column1 = *(PPH_TREENEW_COLUMN *)elem1;
@@ -79,10 +79,10 @@ static int __cdecl PhpColumnsCompareDisplayIndexTn(
     return uintcmp(column1->DisplayIndex, column2->DisplayIndex);
 }
 
-__success(return != -1)
+_Success_(return != -1)
 static ULONG IndexOfStringInList(
-    __in PPH_LIST List,
-    __in PWSTR String
+    _In_ PPH_LIST List,
+    _In_ PWSTR String
     )
 {
     ULONG i;
@@ -97,10 +97,10 @@ static ULONG IndexOfStringInList(
 }
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PCOLUMNS_DIALOG_CONTEXT context = NULL;

@@ -31,8 +31,8 @@ typedef struct _PH_IP_ADDRESS
 } PH_IP_ADDRESS, *PPH_IP_ADDRESS;
 
 FORCEINLINE BOOLEAN PhEqualIpAddress(
-    __in PPH_IP_ADDRESS Address1,
-    __in PPH_IP_ADDRESS Address2
+    _In_ PPH_IP_ADDRESS Address1,
+    _In_ PPH_IP_ADDRESS Address2
     )
 {
     if ((Address1->Type | Address2->Type) == 0) // don't check addresses if both are invalid
@@ -61,7 +61,7 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
 }
 
 FORCEINLINE ULONG PhHashIpAddress(
-    __in PPH_IP_ADDRESS Address
+    _In_ PPH_IP_ADDRESS Address
     )
 {
     ULONG hash = 0;
@@ -87,7 +87,7 @@ FORCEINLINE ULONG PhHashIpAddress(
 }
 
 FORCEINLINE BOOLEAN PhIsNullIpAddress(
-    __in PPH_IP_ADDRESS Address
+    _In_ PPH_IP_ADDRESS Address
     )
 {
     if (Address->Type == 0)
@@ -120,8 +120,8 @@ typedef struct _PH_IP_ENDPOINT
 } PH_IP_ENDPOINT, *PPH_IP_ENDPOINT;
 
 FORCEINLINE BOOLEAN PhEqualIpEndpoint(
-    __in PPH_IP_ENDPOINT Endpoint1,
-    __in PPH_IP_ENDPOINT Endpoint2
+    _In_ PPH_IP_ENDPOINT Endpoint1,
+    _In_ PPH_IP_ENDPOINT Endpoint2
     )
 {
     return
@@ -130,7 +130,7 @@ FORCEINLINE BOOLEAN PhEqualIpEndpoint(
 }
 
 FORCEINLINE ULONG PhHashIpEndpoint(
-    __in PPH_IP_ENDPOINT Endpoint
+    _In_ PPH_IP_ENDPOINT Endpoint
     )
 {
     return PhHashIpAddress(&Endpoint->Address) ^ Endpoint->Port;

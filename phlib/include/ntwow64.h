@@ -421,8 +421,8 @@ typedef struct _TEB32
 // Conversion
 
 FORCEINLINE VOID UStr32ToUStr(
-    __out PUNICODE_STRING Destination,
-    __in PUNICODE_STRING32 Source
+    _Out_ PUNICODE_STRING Destination,
+    _In_ PUNICODE_STRING32 Source
     )
 {
     Destination->Length = Source->Length;
@@ -431,8 +431,8 @@ FORCEINLINE VOID UStr32ToUStr(
 }
 
 FORCEINLINE VOID UStrToUStr32(
-    __out PUNICODE_STRING32 Destination,
-    __in PUNICODE_STRING Source
+    _Out_ PUNICODE_STRING32 Destination,
+    _In_ PUNICODE_STRING Source
     )
 {
     Destination->Length = Source->Length;

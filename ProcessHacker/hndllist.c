@@ -27,43 +27,43 @@
 #include <emenu.h>
 
 BOOLEAN PhpHandleNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG PhpHandleNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID PhpDestroyHandleNode(
-    __in PPH_HANDLE_NODE HandleNode
+    _In_ PPH_HANDLE_NODE HandleNode
     );
 
 VOID PhpRemoveHandleNode(
-    __in PPH_HANDLE_NODE HandleNode,
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_NODE HandleNode,
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
 LONG PhpHandleTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     );
 
 BOOLEAN NTAPI PhpHandleTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 VOID PhInitializeHandleList(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __out PPH_HANDLE_LIST_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
     HWND hwnd;
@@ -108,7 +108,7 @@ VOID PhInitializeHandleList(
 }
 
 VOID PhDeleteHandleList(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
     ULONG i;
@@ -123,8 +123,8 @@ VOID PhDeleteHandleList(
 }
 
 BOOLEAN PhpHandleNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_HANDLE_NODE handleNode1 = *(PPH_HANDLE_NODE *)Entry1;
@@ -134,14 +134,14 @@ BOOLEAN PhpHandleNodeHashtableCompareFunction(
 }
 
 ULONG PhpHandleNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     return (ULONG)(*(PPH_HANDLE_NODE *)Entry)->Handle / 4;
 }
 
 VOID PhLoadSettingsHandleList(
-    __inout PPH_HANDLE_LIST_CONTEXT Context
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -155,7 +155,7 @@ VOID PhLoadSettingsHandleList(
 }
 
 VOID PhSaveSettingsHandleList(
-    __inout PPH_HANDLE_LIST_CONTEXT Context
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -169,8 +169,8 @@ VOID PhSaveSettingsHandleList(
 }
 
 VOID PhSetOptionsHandleList(
-    __inout PPH_HANDLE_LIST_CONTEXT Context,
-    __in BOOLEAN HideUnnamedHandles
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ BOOLEAN HideUnnamedHandles
     )
 {
     ULONG i;
@@ -207,9 +207,9 @@ VOID PhSetOptionsHandleList(
 }
 
 PPH_HANDLE_NODE PhAddHandleNode(
-    __inout PPH_HANDLE_LIST_CONTEXT Context,
-    __in PPH_HANDLE_ITEM HandleItem,
-    __in ULONG RunId
+    _Inout_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ PPH_HANDLE_ITEM HandleItem,
+    _In_ ULONG RunId
     )
 {
     PPH_HANDLE_NODE handleNode;
@@ -252,8 +252,8 @@ PPH_HANDLE_NODE PhAddHandleNode(
 }
 
 PPH_HANDLE_NODE PhFindHandleNode(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __in HANDLE Handle
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ HANDLE Handle
     )
 {
     PH_HANDLE_NODE lookupHandleNode;
@@ -274,8 +274,8 @@ PPH_HANDLE_NODE PhFindHandleNode(
 }
 
 VOID PhRemoveHandleNode(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __in PPH_HANDLE_NODE HandleNode
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ PPH_HANDLE_NODE HandleNode
     )
 {
     // Remove from the hashtable here to avoid problems in case the key is re-used.
@@ -299,7 +299,7 @@ VOID PhRemoveHandleNode(
 }
 
 VOID PhpDestroyHandleNode(
-    __in PPH_HANDLE_NODE HandleNode
+    _In_ PPH_HANDLE_NODE HandleNode
     )
 {
     PhEmCallObjectOperation(EmHandleNodeType, HandleNode, EmObjectDelete);
@@ -312,8 +312,8 @@ VOID PhpDestroyHandleNode(
 }
 
 VOID PhpRemoveHandleNode(
-    __in PPH_HANDLE_NODE HandleNode,
-    __in PPH_HANDLE_LIST_CONTEXT Context // PH_TICK_SH_STATE requires this parameter to be after HandleNode
+    _In_ PPH_HANDLE_NODE HandleNode,
+    _In_ PPH_HANDLE_LIST_CONTEXT Context // PH_TICK_SH_STATE requires this parameter to be after HandleNode
     )
 {
     ULONG index;
@@ -329,8 +329,8 @@ VOID PhpRemoveHandleNode(
 }
 
 VOID PhUpdateHandleNode(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __in PPH_HANDLE_NODE HandleNode
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ PPH_HANDLE_NODE HandleNode
     )
 {
     memset(HandleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHHNTLC_MAXIMUM);
@@ -340,7 +340,7 @@ VOID PhUpdateHandleNode(
 }
 
 VOID PhTickHandleNodes(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
     PH_TICK_SH_STATE_TN(PH_HANDLE_NODE, ShState, Context->NodeStateList, PhpRemoveHandleNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
@@ -349,9 +349,9 @@ VOID PhTickHandleNodes(
 #define SORT_FUNCTION(Column) PhpHandleTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpHandleTreeNewCompare##Column( \
-    __in void *_context, \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PPH_HANDLE_NODE node1 = *(PPH_HANDLE_NODE *)_elem1; \
@@ -369,10 +369,10 @@ VOID PhTickHandleNodes(
 }
 
 LONG PhpHandleTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     )
 {
     if (Result == 0)
@@ -434,11 +434,11 @@ BEGIN_SORT_FUNCTION(FileShareAccess)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpHandleTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_HANDLE_LIST_CONTEXT context;
@@ -695,7 +695,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
 }
 
 PPH_HANDLE_ITEM PhGetSelectedHandleItem(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
     PPH_HANDLE_ITEM handleItem = NULL;
@@ -716,9 +716,9 @@ PPH_HANDLE_ITEM PhGetSelectedHandleItem(
 }
 
 VOID PhGetSelectedHandleItems(
-    __in PPH_HANDLE_LIST_CONTEXT Context,
-    __out PPH_HANDLE_ITEM **Handles,
-    __out PULONG NumberOfHandles
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _Out_ PPH_HANDLE_ITEM **Handles,
+    _Out_ PULONG NumberOfHandles
     )
 {
     PPH_LIST list;
@@ -743,7 +743,7 @@ VOID PhGetSelectedHandleItems(
 }
 
 VOID PhDeselectAllHandleNodes(
-    __in PPH_HANDLE_LIST_CONTEXT Context
+    _In_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
     TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);

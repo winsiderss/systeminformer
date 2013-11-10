@@ -33,14 +33,14 @@ static PPH_LIST DisabledPluginInstances; // fake PH_PLUGIN structures for disabl
 static PPH_HASHTABLE DisabledPluginLookup; // list of all disabled plugins (including fake structures) by PH_PLUGIN address
 
 INT_PTR CALLBACK PhpPluginsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowPluginsDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     )
 {
     if (PhPluginsEnabled)
@@ -60,7 +60,7 @@ VOID PhShowPluginsDialog(
 }
 
 PWSTR PhpGetPluginBaseName(
-    __in PPH_PLUGIN Plugin
+    _In_ PPH_PLUGIN Plugin
     )
 {
     PWSTR baseName;
@@ -84,7 +84,7 @@ PWSTR PhpGetPluginBaseName(
 }
 
 PWSTR PhpGetPluginDisableButtonText(
-    __in PWSTR BaseName
+    _In_ PWSTR BaseName
     )
 {
     PH_STRINGREF baseName;
@@ -98,7 +98,7 @@ PWSTR PhpGetPluginDisableButtonText(
 }
 
 VOID PhpRefreshPluginDetails(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     PPH_STRING fileName;
@@ -159,7 +159,7 @@ VOID PhpRefreshPluginDetails(
 }
 
 BOOLEAN PhpIsPluginLoadedByBaseName(
-    __in PPH_STRINGREF BaseName
+    _In_ PPH_STRINGREF BaseName
     )
 {
     PPH_AVL_LINKS links;
@@ -186,7 +186,7 @@ BOOLEAN PhpIsPluginLoadedByBaseName(
 }
 
 PPH_PLUGIN PhpCreateDisabledPlugin(
-    __in PPH_STRINGREF BaseName
+    _In_ PPH_STRINGREF BaseName
     )
 {
     PPH_PLUGIN plugin;
@@ -202,7 +202,7 @@ PPH_PLUGIN PhpCreateDisabledPlugin(
 }
 
 VOID PhpFreeDisabledPlugin(
-    __in PPH_PLUGIN Plugin
+    _In_ PPH_PLUGIN Plugin
     )
 {
     PhFree(Plugin->Name);
@@ -246,10 +246,10 @@ VOID PhpAddDisabledPlugins(
 }
 
 VOID PhpUpdateDisabledPlugin(
-    __in HWND hwndDlg,
-    __in INT ItemIndex,
-    __in PPH_PLUGIN Plugin,
-    __in BOOLEAN NewDisabledState
+    _In_ HWND hwndDlg,
+    _In_ INT ItemIndex,
+    _In_ PPH_PLUGIN Plugin,
+    _In_ BOOLEAN NewDisabledState
     )
 {
     if (NewDisabledState)
@@ -273,9 +273,9 @@ VOID PhpUpdateDisabledPlugin(
 }
 
 static COLORREF PhpPluginColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN plugin = Param;
@@ -289,10 +289,10 @@ static COLORREF PhpPluginColorFunction(
 }
 
 INT_PTR CALLBACK PhpPluginsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

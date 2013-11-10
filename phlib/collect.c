@@ -29,8 +29,8 @@
  * \param CompareFunction A function used to compare tree elements.
  */
 VOID PhInitializeAvlTree(
-    __out PPH_AVL_TREE Tree,
-    __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction
+    _Out_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction
     )
 {
     Tree->Root.Parent = NULL;
@@ -50,9 +50,9 @@ VOID PhInitializeAvlTree(
  * \param Result The result of the search.
  */
 FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
-    __in PPH_AVL_TREE Tree,
-    __in PPH_AVL_LINKS Element,
-    __out PLONG Result
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element,
+    _Out_ PLONG Result
     )
 {
     PPH_AVL_LINKS links;
@@ -107,7 +107,7 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
 }
 
 FORCEINLINE VOID PhpRotateLeftAvlLinks(
-    __deref_inout PPH_AVL_LINKS *Root
+    __inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -153,7 +153,7 @@ FORCEINLINE VOID PhpRotateLeftAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
-    __deref_inout PPH_AVL_LINKS *Root
+    __inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -222,7 +222,7 @@ FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateRightAvlLinks(
-    __deref_inout PPH_AVL_LINKS *Root
+    __inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS Q;
@@ -268,7 +268,7 @@ FORCEINLINE VOID PhpRotateRightAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
-    __deref_inout PPH_AVL_LINKS *Root
+    __inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -337,7 +337,7 @@ FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
 }
 
 ULONG PhpRebalanceAvlLinks(
-    __deref_inout PPH_AVL_LINKS *Root
+    __inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -490,8 +490,8 @@ ULONG PhpRebalanceAvlLinks(
  * element.
  */
 PPH_AVL_LINKS PhAddElementAvlTree(
-    __inout PPH_AVL_TREE Tree,
-    __out PPH_AVL_LINKS Element
+    _Inout_ PPH_AVL_TREE Tree,
+    _Out_ PPH_AVL_LINKS Element
     )
 {
     LONG result;
@@ -575,8 +575,8 @@ PPH_AVL_LINKS PhAddElementAvlTree(
  * \param Element An element already present in the tree.
  */
 VOID PhRemoveElementAvlTree(
-    __inout PPH_AVL_TREE Tree,
-    __inout PPH_AVL_LINKS Element
+    _Inout_ PPH_AVL_TREE Tree,
+    _Inout_ PPH_AVL_LINKS Element
     )
 {
     PPH_AVL_LINKS newElement;
@@ -704,8 +704,8 @@ VOID PhRemoveElementAvlTree(
  * \return The element, or NULL if it could not be found.
  */
 PPH_AVL_LINKS PhFindElementAvlTree(
-    __in PPH_AVL_TREE Tree,
-    __in PPH_AVL_LINKS Element
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element
     )
 {
     PPH_AVL_LINKS links;
@@ -729,9 +729,9 @@ PPH_AVL_LINKS PhFindElementAvlTree(
  * \return The closest element, or NULL if the tree is empty.
  */
 PPH_AVL_LINKS PhFindElementAvlTree2(
-    __in PPH_AVL_TREE Tree,
-    __in PPH_AVL_LINKS Element,
-    __out PLONG Result
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element,
+    _Out_ PLONG Result
     )
 {
     PPH_AVL_LINKS links;
@@ -755,7 +755,7 @@ PPH_AVL_LINKS PhFindElementAvlTree2(
  * \return An element, or NULL if the tree is empty.
  */
 PPH_AVL_LINKS PhMinimumElementAvlTree(
-    __in PPH_AVL_TREE Tree
+    _In_ PPH_AVL_TREE Tree
     )
 {
     PPH_AVL_LINKS links;
@@ -779,7 +779,7 @@ PPH_AVL_LINKS PhMinimumElementAvlTree(
  * \return An element, or NULL if the tree is empty.
  */
 PPH_AVL_LINKS PhMaximumElementAvlTree(
-    __in PPH_AVL_TREE Tree
+    _In_ PPH_AVL_TREE Tree
     )
 {
     PPH_AVL_LINKS links;
@@ -804,7 +804,7 @@ PPH_AVL_LINKS PhMaximumElementAvlTree(
  * more elements.
  */
 PPH_AVL_LINKS PhSuccessorElementAvlTree(
-    __in PPH_AVL_LINKS Element
+    _In_ PPH_AVL_LINKS Element
     )
 {
     PPH_AVL_LINKS links;
@@ -846,7 +846,7 @@ PPH_AVL_LINKS PhSuccessorElementAvlTree(
  * more elements.
  */
 PPH_AVL_LINKS PhPredecessorElementAvlTree(
-    __in PPH_AVL_LINKS Element
+    _In_ PPH_AVL_LINKS Element
     )
 {
     PPH_AVL_LINKS links;
@@ -892,10 +892,10 @@ PPH_AVL_LINKS PhPredecessorElementAvlTree(
  * function.
  */
 VOID PhEnumAvlTree(
-    __in PPH_AVL_TREE Tree,
-    __in PH_TREE_ENUMERATION_ORDER Order,
-    __in PPH_ENUM_AVL_TREE_CALLBACK Callback,
-    __in_opt PVOID Context
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PH_TREE_ENUMERATION_ORDER Order,
+    _In_ PPH_ENUM_AVL_TREE_CALLBACK Callback,
+    _In_opt_ PVOID Context
     )
 {
     // The maximum height of an AVL tree is around 1.44 * log2(n).

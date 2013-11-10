@@ -62,10 +62,10 @@ NTSTATUS PhSvcApiInitialization(
 }
 
 VOID PhSvcDispatchApiCall(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message,
-    __out PPHSVC_API_MSG *ReplyMessage,
-    __out PHANDLE ReplyPortHandle
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message,
+    _Out_ PPHSVC_API_MSG *ReplyMessage,
+    _Out_ PHANDLE ReplyPortHandle
     )
 {
     NTSTATUS status;
@@ -90,9 +90,9 @@ VOID PhSvcDispatchApiCall(
 }
 
 NTSTATUS PhSvcCaptureBuffer(
-    __in PPH_RELATIVE_STRINGREF String,
-    __in BOOLEAN AllowNull,
-    __out PVOID *CapturedBuffer
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PVOID *CapturedBuffer
     )
 {
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
@@ -132,9 +132,9 @@ NTSTATUS PhSvcCaptureBuffer(
 }
 
 NTSTATUS PhSvcCaptureString(
-    __in PPH_RELATIVE_STRINGREF String,
-    __in BOOLEAN AllowNull,
-    __out PPH_STRING *CapturedString
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PPH_STRING *CapturedString
     )
 {
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
@@ -180,9 +180,9 @@ NTSTATUS PhSvcCaptureString(
 }
 
 NTSTATUS PhSvcCaptureSid(
-    __in PPH_RELATIVE_STRINGREF String,
-    __in BOOLEAN AllowNull,
-    __out PSID *CapturedSid
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PSID *CapturedSid
     )
 {
     NTSTATUS status;
@@ -214,18 +214,18 @@ NTSTATUS PhSvcCaptureSid(
 }
 
 NTSTATUS PhSvcApiDefault(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS PhSvcpCaptureRunAsServiceParameters(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message,
-    __out PPH_RUNAS_SERVICE_PARAMETERS Parameters,
-    __out PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS CapturedParameters
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message,
+    _Out_ PPH_RUNAS_SERVICE_PARAMETERS Parameters,
+    _Out_ PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS CapturedParameters
     )
 {
     NTSTATUS status;
@@ -263,7 +263,7 @@ NTSTATUS PhSvcpCaptureRunAsServiceParameters(
 }
 
 VOID PhSvcpReleaseRunAsServiceParameters(
-    __in PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS CapturedParameters
+    _In_ PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS CapturedParameters
     )
 {
     if (CapturedParameters->UserName)
@@ -288,7 +288,7 @@ VOID PhSvcpReleaseRunAsServiceParameters(
 }
 
 NTSTATUS PhSvcpValidateRunAsServiceParameters(
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     if ((!Parameters->UserName || !Parameters->Password) && !Parameters->ProcessId)
@@ -302,8 +302,8 @@ NTSTATUS PhSvcpValidateRunAsServiceParameters(
 }
 
 NTSTATUS PhSvcApiExecuteRunAsCommand(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -324,8 +324,8 @@ NTSTATUS PhSvcApiExecuteRunAsCommand(
 }
 
 NTSTATUS PhSvcApiUnloadDriver(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -341,8 +341,8 @@ NTSTATUS PhSvcApiUnloadDriver(
 }
 
 NTSTATUS PhSvcApiControlProcess(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -402,8 +402,8 @@ NTSTATUS PhSvcApiControlProcess(
 }
 
 NTSTATUS PhSvcApiControlService(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -507,8 +507,8 @@ NTSTATUS PhSvcApiControlService(
 }
 
 NTSTATUS PhSvcApiCreateService(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -589,8 +589,8 @@ CleanupExit:
 }
 
 NTSTATUS PhSvcApiChangeServiceConfig(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -668,8 +668,8 @@ CleanupExit:
 }
 
 NTSTATUS PhSvcApiChangeServiceConfig2(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -717,8 +717,8 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
 }
 
 NTSTATUS PhSvcApiSetTcpEntry(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     static PVOID setTcpEntry = NULL;
@@ -772,8 +772,8 @@ NTSTATUS PhSvcApiSetTcpEntry(
 }
 
 NTSTATUS PhSvcApiControlThread(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -821,8 +821,8 @@ NTSTATUS PhSvcApiControlThread(
 }
 
 NTSTATUS PhSvcApiAddAccountRight(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -852,8 +852,8 @@ NTSTATUS PhSvcApiAddAccountRight(
 }
 
 NTSTATUS PhSvcApiInvokeRunAsService(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -874,8 +874,8 @@ NTSTATUS PhSvcApiInvokeRunAsService(
 }
 
 NTSTATUS PhSvcApiIssueMemoryListCommand(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
@@ -890,8 +890,8 @@ NTSTATUS PhSvcApiIssueMemoryListCommand(
 }
 
 NTSTATUS PhSvcApiPostMessage(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     if (PostMessage(
@@ -910,8 +910,8 @@ NTSTATUS PhSvcApiPostMessage(
 }
 
 NTSTATUS PhSvcApiSendMessage(
-    __in PPHSVC_CLIENT Client,
-    __inout PPHSVC_API_MSG Message
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
     )
 {
     if (SendMessage(

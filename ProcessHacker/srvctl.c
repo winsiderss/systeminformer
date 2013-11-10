@@ -35,15 +35,15 @@ typedef struct _PH_SERVICES_CONTEXT
 } PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
 
 VOID NTAPI ServiceModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 INT_PTR CALLBACK PhpServicesPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 /**
@@ -59,9 +59,9 @@ INT_PTR CALLBACK PhpServicesPageProc(
  * in \a Services.
  */
 HWND PhCreateServiceListControl(
-    __in HWND ParentWindowHandle,
-    __in PPH_SERVICE_ITEM *Services,
-    __in ULONG NumberOfServices
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_SERVICE_ITEM *Services,
+    _In_ ULONG NumberOfServices
     )
 {
     HWND windowHandle;
@@ -91,8 +91,8 @@ HWND PhCreateServiceListControl(
 }
 
 static VOID NTAPI ServiceModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
@@ -105,8 +105,8 @@ static VOID NTAPI ServiceModifiedHandler(
 }
 
 VOID PhpFixProcessServicesControls(
-    __in HWND hWnd,
-    __in_opt PPH_SERVICE_ITEM ServiceItem
+    _In_ HWND hWnd,
+    _In_opt_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     HWND startButton;
@@ -186,10 +186,10 @@ VOID PhpFixProcessServicesControls(
 }
 
 INT_PTR CALLBACK PhpServicesPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPH_SERVICES_CONTEXT servicesContext;

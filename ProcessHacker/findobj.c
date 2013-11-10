@@ -51,14 +51,14 @@ typedef struct _PHP_OBJECT_SEARCH_RESULT
 } PHP_OBJECT_SEARCH_RESULT, *PPHP_OBJECT_SEARCH_RESULT;
 
 INT_PTR CALLBACK PhpFindObjectsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 NTSTATUS PhpFindObjectsThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 HWND PhFindObjectsWindowHandle = NULL;
@@ -97,9 +97,9 @@ VOID PhShowFindObjectsDialog(
 }
 
 VOID PhpInitializeFindObjMenu(
-    __in PPH_EMENU Menu,
-    __in PPHP_OBJECT_SEARCH_RESULT *Results,
-    __in ULONG NumberOfResults
+    _In_ PPH_EMENU Menu,
+    _In_ PPHP_OBJECT_SEARCH_RESULT *Results,
+    _In_ ULONG NumberOfResults
     )
 {
     BOOLEAN allCanBeClosed = TRUE;
@@ -134,9 +134,9 @@ VOID PhpInitializeFindObjMenu(
 }
 
 INT NTAPI PhpObjectProcessCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
@@ -152,9 +152,9 @@ INT NTAPI PhpObjectProcessCompareFunction(
 }
 
 INT NTAPI PhpObjectTypeCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
@@ -164,9 +164,9 @@ INT NTAPI PhpObjectTypeCompareFunction(
 }
 
 INT NTAPI PhpObjectNameCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
@@ -176,9 +176,9 @@ INT NTAPI PhpObjectNameCompareFunction(
 }
 
 INT NTAPI PhpObjectHandleCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
@@ -188,10 +188,10 @@ INT NTAPI PhpObjectHandleCompareFunction(
 }
 
 static INT_PTR CALLBACK PhpFindObjectsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -665,8 +665,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 }
 
 static BOOLEAN NTAPI EnumModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PPH_STRING upperFileName;
@@ -722,7 +722,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 }
 
 static NTSTATUS PhpFindObjectsThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PSYSTEM_HANDLE_INFORMATION_EX handles;

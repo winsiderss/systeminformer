@@ -116,11 +116,11 @@ NTSTATUS PhInitializeRef(
  * allocated.
  * \param ObjectType The type of the object.
  */
-__mayRaise NTSTATUS PhCreateObject(
-    __out PVOID *Object,
-    __in SIZE_T ObjectSize,
-    __in ULONG Flags,
-    __in PPH_OBJECT_TYPE ObjectType
+_May_raise_ NTSTATUS PhCreateObject(
+    _Out_ PVOID *Object,
+    _In_ SIZE_T ObjectSize,
+    _In_ ULONG Flags,
+    _In_ PPH_OBJECT_TYPE ObjectType
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -218,7 +218,7 @@ __mayRaise NTSTATUS PhCreateObject(
  * \param Object A pointer to the object to reference.
  */
 VOID PhReferenceObject(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -236,9 +236,9 @@ VOID PhReferenceObject(
  *
  * \return The new reference count of the object.
  */
-__mayRaise LONG PhReferenceObjectEx(
-    __in PVOID Object,
-    __in LONG RefCount
+_May_raise_ LONG PhReferenceObjectEx(
+    _In_ PVOID Object,
+    _In_ LONG RefCount
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -276,7 +276,7 @@ __mayRaise LONG PhReferenceObjectEx(
  * avoid referencing an object that is being destroyed.
  */
 BOOLEAN PhReferenceObjectSafe(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -298,7 +298,7 @@ BOOLEAN PhReferenceObjectSafe(
  * \return TRUE if the object was freed, otherwise FALSE.
  */
 VOID PhDereferenceObject(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -326,7 +326,7 @@ VOID PhDereferenceObject(
  * \return TRUE if the object was freed, otherwise FALSE.
  */
 BOOLEAN PhDereferenceObjectDeferDelete(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     return PhDereferenceObjectEx(Object, 1, TRUE) == 0;
@@ -342,10 +342,10 @@ BOOLEAN PhDereferenceObjectDeferDelete(
  *
  * \return The new reference count of the object.
  */
-__mayRaise LONG PhDereferenceObjectEx(
-    __in PVOID Object,
-    __in LONG RefCount,
-    __in BOOLEAN DeferDelete
+_May_raise_ LONG PhDereferenceObjectEx(
+    _In_ PVOID Object,
+    _In_ LONG RefCount,
+    _In_ BOOLEAN DeferDelete
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -395,7 +395,7 @@ __mayRaise LONG PhDereferenceObjectEx(
  * \return A pointer to a type object.
  */
 PPH_OBJECT_TYPE PhGetObjectType(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     return PhObjectToObjectHeader(Object)->Type;
@@ -417,10 +417,10 @@ PPH_OBJECT_TYPE PhGetObjectType(
  * is created.
  */
 NTSTATUS PhCreateObjectType(
-    __out PPH_OBJECT_TYPE *ObjectType,
-    __in PWSTR Name,
-    __in ULONG Flags,
-    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
+    _Out_ PPH_OBJECT_TYPE *ObjectType,
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     )
 {
     return PhCreateObjectTypeEx(
@@ -450,11 +450,11 @@ NTSTATUS PhCreateObjectType(
  * is created.
  */
 NTSTATUS PhCreateObjectTypeEx(
-    __out PPH_OBJECT_TYPE *ObjectType,
-    __in PWSTR Name,
-    __in ULONG Flags,
-    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
-    __in_opt PPH_OBJECT_TYPE_PARAMETERS Parameters
+    _Out_ PPH_OBJECT_TYPE *ObjectType,
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
+    _In_opt_ PPH_OBJECT_TYPE_PARAMETERS Parameters
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -508,8 +508,8 @@ NTSTATUS PhCreateObjectTypeEx(
  * information about the object type.
  */
 VOID PhGetObjectTypeInformation(
-    __in PPH_OBJECT_TYPE ObjectType,
-    __out PPH_OBJECT_TYPE_INFORMATION Information
+    _In_ PPH_OBJECT_TYPE ObjectType,
+    _Out_ PPH_OBJECT_TYPE_INFORMATION Information
     )
 {
     Information->Name = ObjectType->Name;
@@ -524,9 +524,9 @@ VOID PhGetObjectTypeInformation(
  * \param Flags A combination of flags specifying how the object is to be allocated.
  */
 PPH_OBJECT_HEADER PhpAllocateObject(
-    __in PPH_OBJECT_TYPE ObjectType,
-    __in SIZE_T ObjectSize,
-    __in ULONG Flags
+    _In_ PPH_OBJECT_TYPE ObjectType,
+    _In_ SIZE_T ObjectSize,
+    _In_ ULONG Flags
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -567,7 +567,7 @@ PPH_OBJECT_HEADER PhpAllocateObject(
  * \param ObjectHeader A pointer to the object header of an allocated object.
  */
 VOID PhpFreeObject(
-    __in PPH_OBJECT_HEADER ObjectHeader
+    _In_ PPH_OBJECT_HEADER ObjectHeader
     )
 {
     /* Object type statistics. */
@@ -614,7 +614,7 @@ VOID PhpFreeObject(
  * to delete.
  */
 VOID PhpDeferDeleteObject(
-    __in PPH_OBJECT_HEADER ObjectHeader
+    _In_ PPH_OBJECT_HEADER ObjectHeader
     )
 {
     PPH_OBJECT_HEADER nextToFree;
@@ -658,7 +658,7 @@ VOID PhpDeferDeleteObject(
  * Removes and frees objects from the to-free list.
  */
 NTSTATUS PhpDeferDeleteObjectRoutine(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -685,8 +685,8 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
  * \param Size The number of bytes to allocate.
  */
 NTSTATUS PhCreateAlloc(
-    __out PVOID *Alloc,
-    __in SIZE_T Size
+    _Out_ PVOID *Alloc,
+    _In_ SIZE_T Size
     )
 {
     return PhCreateObject(
@@ -712,8 +712,8 @@ FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool(
  * Sets the current auto-dereference pool for the
  * current thread.
  */
-__mayRaise FORCEINLINE VOID PhpSetCurrentAutoPool(
-    __in PPH_AUTO_POOL AutoPool
+_May_raise_ FORCEINLINE VOID PhpSetCurrentAutoPool(
+    _In_ PPH_AUTO_POOL AutoPool
     )
 {
     if (!TlsSetValue(PhpAutoPoolTlsIndex, AutoPool))
@@ -744,7 +744,7 @@ __mayRaise FORCEINLINE VOID PhpSetCurrentAutoPool(
  * functions.
  */
 VOID PhInitializeAutoPool(
-    __out PPH_AUTO_POOL AutoPool
+    _Out_ PPH_AUTO_POOL AutoPool
     )
 {
     AutoPool->StaticCount = 0;
@@ -768,8 +768,8 @@ VOID PhInitializeAutoPool(
  *
  * \param AutoPool The auto-dereference pool to delete.
  */
-__mayRaise VOID PhDeleteAutoPool(
-    __inout PPH_AUTO_POOL AutoPool
+_May_raise_ VOID PhDeleteAutoPool(
+    _Inout_ PPH_AUTO_POOL AutoPool
     )
 {
     PhDrainAutoPool(AutoPool);
@@ -797,8 +797,8 @@ __mayRaise VOID PhDeleteAutoPool(
  * will be dereferenced when the current auto-dereference
  * pool is drained or freed.
  */
-__mayRaise VOID PhaDereferenceObject(
-    __in PVOID Object
+_May_raise_ VOID PhaDereferenceObject(
+    _In_ PVOID Object
     )
 {
     PPH_AUTO_POOL autoPool = PhpGetCurrentAutoPool();
@@ -851,7 +851,7 @@ __mayRaise VOID PhaDereferenceObject(
  * \param AutoPool The auto-release pool to drain.
  */
 VOID PhDrainAutoPool(
-    __in PPH_AUTO_POOL AutoPool
+    _In_ PPH_AUTO_POOL AutoPool
     )
 {
     ULONG i;

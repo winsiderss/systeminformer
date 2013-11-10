@@ -52,36 +52,36 @@ typedef struct _PH_THREAD_SYMBOL_LOAD_CONTEXT
 } PH_THREAD_SYMBOL_LOAD_CONTEXT, *PPH_THREAD_SYMBOL_LOAD_CONTEXT;
 
 VOID NTAPI PhpThreadProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 NTSTATUS PhpThreadProviderLoadSymbols(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID NTAPI PhpThreadItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 BOOLEAN NTAPI PhpThreadHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG NTAPI PhpThreadHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID PhpThreadProviderCallbackHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID PhpThreadProviderUpdate(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in PVOID ProcessInformation
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PVOID ProcessInformation
     );
 
 PPH_OBJECT_TYPE PhThreadProviderType;
@@ -114,8 +114,8 @@ BOOLEAN PhThreadProviderInitialization(
 }
 
 VOID PhpQueueThreadWorkQueueItem(
-    __in PTHREAD_START_ROUTINE Function,
-    __in_opt PVOID Context
+    _In_ PTHREAD_START_ROUTINE Function,
+    _In_opt_ PVOID Context
     )
 {
     if (PhBeginInitOnce(&PhThreadProviderWorkQueueInitOnce))
@@ -128,7 +128,7 @@ VOID PhpQueueThreadWorkQueueItem(
 }
 
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PPH_THREAD_PROVIDER threadProvider;
@@ -178,8 +178,8 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
 }
 
 VOID PhpThreadProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Object;
@@ -221,8 +221,8 @@ VOID PhpThreadProviderDeleteProcedure(
 }
 
 VOID PhRegisterThreadProvider(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __out PPH_CALLBACK_REGISTRATION CallbackRegistration
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _Out_ PPH_CALLBACK_REGISTRATION CallbackRegistration
     )
 {
     PhReferenceObject(ThreadProvider);
@@ -230,8 +230,8 @@ VOID PhRegisterThreadProvider(
 }
 
 VOID PhUnregisterThreadProvider(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in PPH_CALLBACK_REGISTRATION CallbackRegistration
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PPH_CALLBACK_REGISTRATION CallbackRegistration
     )
 {
     PhUnregisterCallback(&PhProcessesUpdatedEvent, CallbackRegistration);
@@ -239,8 +239,8 @@ VOID PhUnregisterThreadProvider(
 }
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
@@ -267,8 +267,8 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 }
 
 static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
@@ -291,7 +291,7 @@ static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
 }
 
 NTSTATUS PhpThreadProviderLoadSymbols(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Parameter;
@@ -398,7 +398,7 @@ NTSTATUS PhpThreadProviderLoadSymbols(
 }
 
 PPH_THREAD_ITEM PhCreateThreadItem(
-    __in HANDLE ThreadId
+    _In_ HANDLE ThreadId
     )
 {
     PPH_THREAD_ITEM threadItem;
@@ -421,8 +421,8 @@ PPH_THREAD_ITEM PhCreateThreadItem(
 }
 
 VOID PhpThreadItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)Object;
@@ -436,8 +436,8 @@ VOID PhpThreadItemDeleteProcedure(
 }
 
 BOOLEAN PhpThreadHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     return
@@ -446,15 +446,15 @@ BOOLEAN PhpThreadHashtableCompareFunction(
 }
 
 ULONG PhpThreadHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     return (ULONG)(*(PPH_THREAD_ITEM *)Entry)->ThreadId / 4;
 }
 
 PPH_THREAD_ITEM PhReferenceThreadItem(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in HANDLE ThreadId
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ HANDLE ThreadId
     )
 {
     PH_THREAD_ITEM lookupThreadItem;
@@ -487,7 +487,7 @@ PPH_THREAD_ITEM PhReferenceThreadItem(
 }
 
 VOID PhDereferenceAllThreadItems(
-    __in PPH_THREAD_PROVIDER ThreadProvider
+    _In_ PPH_THREAD_PROVIDER ThreadProvider
     )
 {
     ULONG enumerationKey = 0;
@@ -503,9 +503,9 @@ VOID PhDereferenceAllThreadItems(
     PhReleaseFastLockExclusive(&ThreadProvider->ThreadHashtableLock);
 }
 
-__assumeLocked VOID PhpRemoveThreadItem(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in PPH_THREAD_ITEM ThreadItem
+VOID PhpRemoveThreadItem(
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PPH_THREAD_ITEM ThreadItem
     )
 {
     PhRemoveEntryHashtable(ThreadProvider->ThreadHashtable, &ThreadItem);
@@ -513,7 +513,7 @@ __assumeLocked VOID PhpRemoveThreadItem(
 }
 
 NTSTATUS PhpThreadQueryWorker(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_THREAD_QUERY_DATA data = (PPH_THREAD_QUERY_DATA)Parameter;
@@ -572,8 +572,8 @@ NTSTATUS PhpThreadQueryWorker(
 }
 
 VOID PhpQueueThreadQuery(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in PPH_THREAD_ITEM ThreadItem
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PPH_THREAD_ITEM ThreadItem
     )
 {
     PPH_THREAD_QUERY_DATA data;
@@ -589,9 +589,9 @@ VOID PhpQueueThreadQuery(
 }
 
 PPH_STRING PhpGetThreadBasicStartAddress(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in ULONG64 Address,
-    __out PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ ULONG64 Address,
+    _Out_ PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel
     )
 {
     ULONG64 modBase;
@@ -636,9 +636,9 @@ PPH_STRING PhpGetThreadBasicStartAddress(
 }
 
 static NTSTATUS PhpGetThreadCycleTime(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in PPH_THREAD_ITEM ThreadItem,
-    __out PULONG64 CycleTime
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PPH_THREAD_ITEM ThreadItem,
+    _Out_ PULONG64 CycleTime
     )
 {
     if (ThreadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
@@ -658,7 +658,7 @@ static NTSTATUS PhpGetThreadCycleTime(
 }
 
 PPH_STRING PhGetThreadPriorityWin32String(
-    __in LONG PriorityWin32
+    _In_ LONG PriorityWin32
     )
 {
     switch (PriorityWin32)
@@ -685,7 +685,7 @@ PPH_STRING PhGetThreadPriorityWin32String(
 }
 
 VOID PhThreadProviderInitialUpdate(
-    __in PPH_THREAD_PROVIDER ThreadProvider
+    _In_ PPH_THREAD_PROVIDER ThreadProvider
     )
 {
     PVOID processes;
@@ -698,8 +698,8 @@ VOID PhThreadProviderInitialUpdate(
 }
 
 VOID PhpThreadProviderCallbackHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     if (PhProcessInformation)
@@ -709,8 +709,8 @@ VOID PhpThreadProviderCallbackHandler(
 }
 
 VOID PhpThreadProviderUpdate(
-    __in PPH_THREAD_PROVIDER ThreadProvider,
-    __in PVOID ProcessInformation
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PVOID ProcessInformation
     )
 {
     PPH_THREAD_PROVIDER threadProvider = ThreadProvider;

@@ -23,10 +23,10 @@
 #include "dn.h"
 
 BOOLEAN QueryPerfInfoVariableSize(
-    __in HKEY Key,
-    __in PWSTR ValueName,
-    __out PVOID *Data,
-    __out_opt PULONG DataSize
+    _In_ HKEY Key,
+    _In_ PWSTR ValueName,
+    _Out_ PVOID *Data,
+    _Out_opt_ PULONG DataSize
     )
 {
     LONG result;
@@ -70,8 +70,8 @@ BOOLEAN QueryPerfInfoVariableSize(
 }
 
 PWSTR FindPerfTextInTextData(
-    __in PVOID TextData,
-    __in ULONG Index
+    _In_ PVOID TextData,
+    _In_ ULONG Index
     )
 {
     PWSTR textData;
@@ -101,8 +101,8 @@ PWSTR FindPerfTextInTextData(
 }
 
 ULONG FindPerfIndexInTextData(
-    __in PVOID TextData,
-    __in PPH_STRINGREF Text
+    _In_ PVOID TextData,
+    _In_ PPH_STRINGREF Text
     )
 {
     PWSTR textData;
@@ -138,9 +138,9 @@ ULONG FindPerfIndexInTextData(
 }
 
 BOOLEAN GetPerfObjectTypeInfo(
-    __in_opt PPH_STRINGREF Filter,
-    __out PPERF_OBJECT_TYPE_INFO *Info,
-    __out PULONG Count
+    _In_opt_ PPH_STRINGREF Filter,
+    _Out_ PPERF_OBJECT_TYPE_INFO *Info,
+    _Out_ PULONG Count
     )
 {
     BOOLEAN result;
@@ -222,10 +222,10 @@ ExitCleanup:
 }
 
 BOOLEAN GetPerfObjectTypeInfo2(
-    __in PPH_STRINGREF NameList,
-    __out PPERF_OBJECT_TYPE_INFO *Info,
-    __out PULONG Count,
-    __out_opt PVOID *TextData
+    _In_ PPH_STRINGREF NameList,
+    _Out_ PPERF_OBJECT_TYPE_INFO *Info,
+    _Out_ PULONG Count,
+    _Out_opt_ PVOID *TextData
     )
 {
     BOOLEAN result;

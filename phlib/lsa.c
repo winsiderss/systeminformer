@@ -34,9 +34,9 @@
 static LSA_HANDLE PhLookupPolicyHandle = NULL;
 
 NTSTATUS PhOpenLsaPolicy(
-    __out PLSA_HANDLE PolicyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PUNICODE_STRING SystemName
+    _Out_ PLSA_HANDLE PolicyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PUNICODE_STRING SystemName
     )
 {
     OBJECT_ATTRIBUTES oa = { 0 };
@@ -112,8 +112,8 @@ LSA_HANDLE PhGetLookupPolicyHandle(
  * PhDereferenceObject() when you no longer need it.
  */
 BOOLEAN PhLookupPrivilegeName(
-    __in PLUID PrivilegeValue,
-    __out PPH_STRING *PrivilegeName
+    _In_ PLUID PrivilegeValue,
+    _Out_ PPH_STRING *PrivilegeName
     )
 {
     NTSTATUS status;
@@ -144,8 +144,8 @@ BOOLEAN PhLookupPrivilegeName(
  * PhDereferenceObject() when you no longer need it.
  */
 BOOLEAN PhLookupPrivilegeDisplayName(
-    __in PPH_STRINGREF PrivilegeName,
-    __out PPH_STRING *PrivilegeDisplayName
+    _In_ PPH_STRINGREF PrivilegeName,
+    _Out_ PPH_STRING *PrivilegeDisplayName
     )
 {
     NTSTATUS status;
@@ -179,8 +179,8 @@ BOOLEAN PhLookupPrivilegeDisplayName(
  * the LUID of the privilege.
  */
 BOOLEAN PhLookupPrivilegeValue(
-    __in PPH_STRINGREF PrivilegeName,
-    __out PLUID PrivilegeValue
+    _In_ PPH_STRINGREF PrivilegeName,
+    _Out_ PLUID PrivilegeValue
     )
 {
     UNICODE_STRING privilegeName;
@@ -210,10 +210,10 @@ BOOLEAN PhLookupPrivilegeValue(
  * SID's usage.
  */
 NTSTATUS PhLookupSid(
-    __in PSID Sid,
-    __out_opt PPH_STRING *Name,
-    __out_opt PPH_STRING *DomainName,
-    __out_opt PSID_NAME_USE NameUse
+    _In_ PSID Sid,
+    _Out_opt_ PPH_STRING *Name,
+    _Out_opt_ PPH_STRING *DomainName,
+    _Out_opt_ PSID_NAME_USE NameUse
     )
 {
     NTSTATUS status;
@@ -291,10 +291,10 @@ NTSTATUS PhLookupSid(
  * SID's usage.
  */
 NTSTATUS PhLookupName(
-    __in PPH_STRINGREF Name,
-    __out_opt PSID *Sid,
-    __out_opt PPH_STRING *DomainName,
-    __out_opt PSID_NAME_USE NameUse
+    _In_ PPH_STRINGREF Name,
+    _Out_opt_ PSID *Sid,
+    _Out_opt_ PPH_STRING *DomainName,
+    _Out_opt_ PSID_NAME_USE NameUse
     )
 {
     NTSTATUS status;
@@ -385,9 +385,9 @@ NTSTATUS PhLookupName(
  * returns NULL.
  */
 PPH_STRING PhGetSidFullName(
-    __in PSID Sid,
-    __in BOOLEAN IncludeDomain,
-    __out_opt PSID_NAME_USE NameUse
+    _In_ PSID Sid,
+    _In_ BOOLEAN IncludeDomain,
+    _Out_opt_ PSID_NAME_USE NameUse
     )
 {
     NTSTATUS status;
@@ -475,7 +475,7 @@ PPH_STRING PhGetSidFullName(
  * the function returns NULL.
  */
 PPH_STRING PhSidToStringSid(
-    __in PSID Sid
+    _In_ PSID Sid
     )
 {
     PPH_STRING string;

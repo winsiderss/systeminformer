@@ -609,9 +609,9 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
  * \a AccessEntries.
  */
 BOOLEAN PhGetAccessEntries(
-    __in PWSTR Type,
-    __out PPH_ACCESS_ENTRY *AccessEntries,
-    __out PULONG NumberOfAccessEntries
+    _In_ PWSTR Type,
+    _Out_ PPH_ACCESS_ENTRY *AccessEntries,
+    _Out_ PULONG NumberOfAccessEntries
     )
 {
     ULONG i;
@@ -698,8 +698,8 @@ BOOLEAN PhGetAccessEntries(
 }
 
 static int __cdecl PhpAccessEntryCompare(
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PPH_ACCESS_ENTRY entry1 = (PPH_ACCESS_ENTRY)elem1;
@@ -720,9 +720,9 @@ static int __cdecl PhpAccessEntryCompare(
  * \return The string representation of \a Access.
  */
 PPH_STRING PhGetAccessString(
-    __in ACCESS_MASK Access,
-    __in PPH_ACCESS_ENTRY AccessEntries,
-    __in ULONG NumberOfAccessEntries
+    _In_ ACCESS_MASK Access,
+    _In_ PPH_ACCESS_ENTRY AccessEntries,
+    _In_ ULONG NumberOfAccessEntries
     )
 {
     PH_STRING_BUILDER stringBuilder;

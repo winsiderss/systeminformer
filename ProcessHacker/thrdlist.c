@@ -28,43 +28,43 @@
 #include <procprpp.h>
 
 BOOLEAN PhpThreadNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG PhpThreadNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID PhpDestroyThreadNode(
-    __in PPH_THREAD_NODE ThreadNode
+    _In_ PPH_THREAD_NODE ThreadNode
     );
 
 VOID PhpRemoveThreadNode(
-    __in PPH_THREAD_NODE ThreadNode,
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_NODE ThreadNode,
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     );
 
 LONG PhpThreadTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     );
 
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 VOID PhInitializeThreadList(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __out PPH_THREAD_LIST_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
     HWND hwnd;
@@ -105,7 +105,7 @@ VOID PhInitializeThreadList(
 }
 
 VOID PhDeleteThreadList(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
     ULONG i;
@@ -120,8 +120,8 @@ VOID PhDeleteThreadList(
 }
 
 BOOLEAN PhpThreadNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_THREAD_NODE threadNode1 = *(PPH_THREAD_NODE *)Entry1;
@@ -131,14 +131,14 @@ BOOLEAN PhpThreadNodeHashtableCompareFunction(
 }
 
 ULONG PhpThreadNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     return (ULONG)(*(PPH_THREAD_NODE *)Entry)->ThreadId / 4;
 }
 
 VOID PhLoadSettingsThreadList(
-    __inout PPH_THREAD_LIST_CONTEXT Context
+    _Inout_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -177,7 +177,7 @@ VOID PhLoadSettingsThreadList(
 }
 
 VOID PhSaveSettingsThreadList(
-    __inout PPH_THREAD_LIST_CONTEXT Context
+    _Inout_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -191,9 +191,9 @@ VOID PhSaveSettingsThreadList(
 }
 
 PPH_THREAD_NODE PhAddThreadNode(
-    __inout PPH_THREAD_LIST_CONTEXT Context,
-    __in PPH_THREAD_ITEM ThreadItem,
-    __in ULONG RunId
+    _Inout_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_ITEM ThreadItem,
+    _In_ ULONG RunId
     )
 {
     PPH_THREAD_NODE threadNode;
@@ -233,8 +233,8 @@ PPH_THREAD_NODE PhAddThreadNode(
 }
 
 PPH_THREAD_NODE PhFindThreadNode(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __in HANDLE ThreadId
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ HANDLE ThreadId
     )
 {
     PH_THREAD_NODE lookupThreadNode;
@@ -255,8 +255,8 @@ PPH_THREAD_NODE PhFindThreadNode(
 }
 
 VOID PhRemoveThreadNode(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __in PPH_THREAD_NODE ThreadNode
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
     )
 {
     // Remove from the hashtable here to avoid problems in case the key is re-used.
@@ -280,7 +280,7 @@ VOID PhRemoveThreadNode(
 }
 
 VOID PhpDestroyThreadNode(
-    __in PPH_THREAD_NODE ThreadNode
+    _In_ PPH_THREAD_NODE ThreadNode
     )
 {
     PhEmCallObjectOperation(EmThreadNodeType, ThreadNode, EmObjectDelete);
@@ -295,8 +295,8 @@ VOID PhpDestroyThreadNode(
 }
 
 VOID PhpRemoveThreadNode(
-    __in PPH_THREAD_NODE ThreadNode,
-    __in PPH_THREAD_LIST_CONTEXT Context // PH_TICK_SH_STATE requires this parameter to be after ThreadNode
+    _In_ PPH_THREAD_NODE ThreadNode,
+    _In_ PPH_THREAD_LIST_CONTEXT Context // PH_TICK_SH_STATE requires this parameter to be after ThreadNode
     )
 {
     ULONG index;
@@ -312,8 +312,8 @@ VOID PhpRemoveThreadNode(
 }
 
 VOID PhUpdateThreadNode(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __in PPH_THREAD_NODE ThreadNode
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
     )
 {
     memset(ThreadNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTHTLC_MAXIMUM);
@@ -324,7 +324,7 @@ VOID PhUpdateThreadNode(
 }
 
 VOID PhTickThreadNodes(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
     PH_TICK_SH_STATE_TN(PH_THREAD_NODE, ShState, Context->NodeStateList, PhpRemoveThreadNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
@@ -333,9 +333,9 @@ VOID PhTickThreadNodes(
 #define SORT_FUNCTION(Column) PhpThreadTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpThreadTreeNewCompare##Column( \
-    __in void *_context, \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PPH_THREAD_NODE node1 = *(PPH_THREAD_NODE *)_elem1; \
@@ -353,10 +353,10 @@ VOID PhTickThreadNodes(
 }
 
 LONG PhpThreadTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     )
 {
     if (Result == 0)
@@ -413,11 +413,11 @@ BEGIN_SORT_FUNCTION(Service)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREAD_LIST_CONTEXT context;
@@ -668,7 +668,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 }
 
 PPH_THREAD_ITEM PhGetSelectedThreadItem(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
     PPH_THREAD_ITEM threadItem = NULL;
@@ -689,9 +689,9 @@ PPH_THREAD_ITEM PhGetSelectedThreadItem(
 }
 
 VOID PhGetSelectedThreadItems(
-    __in PPH_THREAD_LIST_CONTEXT Context,
-    __out PPH_THREAD_ITEM **Threads,
-    __out PULONG NumberOfThreads
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _Out_ PPH_THREAD_ITEM **Threads,
+    _Out_ PULONG NumberOfThreads
     )
 {
     PPH_LIST list;
@@ -716,7 +716,7 @@ VOID PhGetSelectedThreadItems(
 }
 
 VOID PhDeselectAllThreadNodes(
-    __in PPH_THREAD_LIST_CONTEXT Context
+    _In_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
     TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);

@@ -6,58 +6,58 @@
 #define PH_EXPORT_MODE_CSV 2
 
 VOID PhaCreateTextTable(
-    __out PPH_STRING ***Table,
-    __in ULONG Rows,
-    __in ULONG Columns
+    _Out_ PPH_STRING ***Table,
+    _In_ ULONG Rows,
+    _In_ ULONG Columns
     );
 
 PPH_LIST PhaFormatTextTable(
-    __in PPH_STRING **Table,
-    __in ULONG Rows,
-    __in ULONG Columns,
-    __in ULONG Mode
+    _In_ PPH_STRING **Table,
+    _In_ ULONG Rows,
+    _In_ ULONG Columns,
+    _In_ ULONG Mode
     );
 
 VOID PhMapDisplayIndexTreeNew(
-    __in HWND TreeNewHandle,
-    __out_opt PULONG *DisplayToId,
-    __out_opt PWSTR **DisplayToText,
-    __out PULONG NumberOfColumns
+    _In_ HWND TreeNewHandle,
+    _Out_opt_ PULONG *DisplayToId,
+    _Out_opt_ PWSTR **DisplayToText,
+    _Out_ PULONG NumberOfColumns
     );
 
 PHLIBAPI
 PPH_STRING PhGetTreeNewText(
-    __in HWND TreeNewHandle,
-    __reserved ULONG Reserved
+    _In_ HWND TreeNewHandle,
+    _Reserved_ ULONG Reserved
     );
 
 PHLIBAPI
 PPH_LIST PhGetGenericTreeNewLines(
-    __in HWND TreeNewHandle,
-    __in ULONG Mode
+    _In_ HWND TreeNewHandle,
+    _In_ ULONG Mode
     );
 
 VOID PhaMapDisplayIndexListView(
-    __in HWND ListViewHandle,
-    __out_ecount(Count) PULONG DisplayToId,
-    __out_ecount_opt(Count) PPH_STRING *DisplayToText,
-    __in ULONG Count,
-    __out PULONG NumberOfColumns
+    _In_ HWND ListViewHandle,
+    _Out_writes_(Count) PULONG DisplayToId,
+    _Out_writes_opt_(Count) PPH_STRING *DisplayToText,
+    _In_ ULONG Count,
+    _Out_ PULONG NumberOfColumns
     );
 
 PPH_STRING PhaGetListViewItemText(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in INT SubItemIndex
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ INT SubItemIndex
     );
 
 PPH_STRING PhGetListViewText(
-    __in HWND ListViewHandle
+    _In_ HWND ListViewHandle
     );
 
 PPH_LIST PhGetListViewLines(
-    __in HWND ListViewHandle,
-    __in ULONG Mode
+    _In_ HWND ListViewHandle,
+    _In_ ULONG Mode
     );
 
 #endif

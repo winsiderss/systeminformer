@@ -23,7 +23,7 @@
 #include "exttools.h"
 
 PET_PROCESS_ICON EtProcIconCreateProcessIcon(
-    __in HICON Icon
+    _In_ HICON Icon
     )
 {
     PET_PROCESS_ICON processIcon;
@@ -36,14 +36,14 @@ PET_PROCESS_ICON EtProcIconCreateProcessIcon(
 }
 
 VOID EtProcIconReferenceProcessIcon(
-    __inout PET_PROCESS_ICON ProcessIcon
+    _Inout_ PET_PROCESS_ICON ProcessIcon
     )
 {
     _InterlockedIncrement(&ProcessIcon->RefCount);
 }
 
 VOID EtProcIconDereferenceProcessIcon(
-    __inout PET_PROCESS_ICON ProcessIcon
+    _Inout_ PET_PROCESS_ICON ProcessIcon
     )
 {
     if (_InterlockedDecrement(&ProcessIcon->RefCount) == 0)
@@ -54,7 +54,7 @@ VOID EtProcIconDereferenceProcessIcon(
 }
 
 PET_PROCESS_ICON EtProcIconReferenceSmallProcessIcon(
-    __inout PET_PROCESS_BLOCK Block
+    _Inout_ PET_PROCESS_BLOCK Block
     )
 {
     PET_PROCESS_ICON smallProcessIcon;
@@ -85,7 +85,7 @@ PET_PROCESS_ICON EtProcIconReferenceSmallProcessIcon(
 }
 
 VOID EtProcIconNotifyProcessDelete(
-    __inout PET_PROCESS_BLOCK Block
+    _Inout_ PET_PROCESS_BLOCK Block
     )
 {
     if (Block->SmallProcessIcon)
