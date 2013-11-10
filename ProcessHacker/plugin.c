@@ -26,25 +26,6 @@
 #include <phplug.h>
 #include <extmgri.h>
 #include <notifico.h>
-#define CINTERFACE
-#define COBJMACROS
-#include <mscoree.h>
-#include <metahost.h>
-
-typedef HRESULT (STDAPICALLTYPE *_CLRCreateInstance)(
-    _In_ REFCLSID clsid,
-    _In_ REFIID riid,
-    _Out_ LPVOID *ppInterface
-    );
-
-typedef HRESULT (STDAPICALLTYPE *_CorBindToRuntimeEx)(
-    _In_ LPCWSTR pwszVersion,
-    _In_ LPCWSTR pwszBuildFlavor,
-    _In_ DWORD startupFlags,
-    _In_ REFCLSID rclsid,
-    _In_ REFIID riid,
-    _Out_ LPVOID *ppv
-    );
 
 INT NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
@@ -53,11 +34,6 @@ INT NTAPI PhpPluginsCompareFunction(
 
 BOOLEAN PhLoadPlugin(
     _In_ PPH_STRING FileName
-    );
-
-BOOLEAN PhpLoadClrPlugin(
-    _In_ PPH_STRING FileName,
-    _Out_opt_ PPH_STRING *ErrorMessage
     );
 
 VOID PhpExecuteCallbackForAllPlugins(
@@ -69,18 +45,7 @@ PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
 static PPH_STRING LoadingPluginFileName;
-static BOOLEAN LoadingPluginIsClr = FALSE;
 static ULONG NextPluginId = IDPLUGINS + 1;
-
-static BOOLEAN PhPluginsClrHostInitialized = FALSE;
-static PVOID PhPluginsClrHost = NULL;
-static PVOID PhPluginsMetaHost = NULL;
-
-static CLSID CLSID_CLRRuntimeHost_I = { 0x90f1a06e, 0x7712, 0x4762, { 0x86, 0xb5, 0x7a, 0x5e, 0xba, 0x6b, 0xdb, 0x02 } };
-static IID IID_ICLRRuntimeHost_I = { 0x90f1a06c, 0x7712, 0x4762, { 0x86, 0xb5, 0x7a, 0x5e, 0xba, 0x6b, 0xdb, 0x02 } };
-static CLSID CLSID_CLRMetaHost_I = { 0x9280188d, 0xe8e, 0x4867, { 0xb3, 0xc, 0x7f, 0xa8, 0x38, 0x84, 0xe8, 0xde } };
-static IID IID_ICLRMetaHost_I = { 0xd332db9e, 0xb9b3, 0x4125, { 0x82, 0x07, 0xa1, 0x48, 0x84, 0xf5, 0x32, 0x16 } };
-static IID IID_ICLRRuntimeInfo_I = { 0xbd39d1d2, 0xba2f, 0x486a, { 0x89, 0xb0, 0xb4, 0xb0, 0xcb, 0x46, 0x68, 0x91 } };
 
 VOID PhPluginsInitialization(
     VOID
@@ -368,22 +333,10 @@ BOOLEAN PhLoadPlugin(
 
     success = TRUE;
 
-    if (!PhEndsWithString2(fileName, L".clr.dll", TRUE))
+    if (!LoadLibrary(fileName->Buffer))
     {
-        if (!LoadLibrary(fileName->Buffer))
-        {
-            success = FALSE;
-            errorMessage = PhGetWin32Message(GetLastError());
-        }
-    }
-    else
-    {
-        errorMessage = NULL;
-
-        if (!PhpLoadClrPlugin(fileName, &errorMessage))
-        {
-            success = FALSE;
-        }
+        success = FALSE;
+        errorMessage = PhGetWin32Message(GetLastError());
     }
 
     if (!success)
@@ -398,166 +351,6 @@ BOOLEAN PhLoadPlugin(
     LoadingPluginFileName = NULL;
 
     return success;
-}
-
-BOOLEAN PhpLoadV2ClrHost(
-    _In_ _CorBindToRuntimeEx CorBindToRuntimeEx_I
-    )
-{
-    ICLRRuntimeHost *clrHost;
-
-    if (SUCCEEDED(CorBindToRuntimeEx_I(NULL, L"wks", STARTUP_CONCURRENT_GC, &CLSID_CLRRuntimeHost_I,
-        &IID_ICLRRuntimeHost_I, &clrHost)))
-    {
-        PhPluginsClrHost = clrHost;
-
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PhpLoadV4ClrHost(
-    _In_ _CLRCreateInstance CLRCreateInstance_I
-    )
-{
-    ICLRMetaHost *metaHost;
-
-    if (SUCCEEDED(CLRCreateInstance_I(&CLSID_CLRMetaHost_I, &IID_ICLRMetaHost_I, &metaHost)))
-    {
-        PhPluginsMetaHost = metaHost;
-
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-PVOID PhpGetClrHostForPlugin(
-    _In_ PPH_STRING FileName,
-    _Out_opt_ PPH_STRING *ErrorMessage
-    )
-{
-    if (PhPluginsMetaHost)
-    {
-        HRESULT result;
-        ICLRMetaHost *metaHost;
-        WCHAR runtimeVersion[MAX_PATH];
-        ULONG runtimeVersionSize;
-
-        metaHost = (ICLRMetaHost *)PhPluginsMetaHost;
-        runtimeVersionSize = sizeof(runtimeVersion) / sizeof(WCHAR);
-
-        // Get the framework version required by the plugin.
-        if (SUCCEEDED(result = ICLRMetaHost_GetVersionFromFile(
-            metaHost,
-            FileName->Buffer,
-            runtimeVersion,
-            &runtimeVersionSize
-            )))
-        {
-            ICLRRuntimeInfo *runtimeInfo;
-
-            if (SUCCEEDED(ICLRMetaHost_GetRuntime(
-                metaHost,
-                runtimeVersion,
-                &IID_ICLRRuntimeInfo_I,
-                &runtimeInfo
-                )))
-            {
-                ICLRRuntimeHost *clrHost;
-
-                if (SUCCEEDED(ICLRRuntimeInfo_GetInterface(
-                    runtimeInfo,
-                    &CLSID_CLRRuntimeHost_I,
-                    &IID_ICLRRuntimeHost_I,
-                    &clrHost
-                    )))
-                {
-                    return clrHost;
-                }
-
-                ICLRRuntimeInfo_Release(runtimeInfo);
-            }
-        }
-        else
-        {
-            *ErrorMessage = PhFormatString(L"Unable to get the runtime version: Error 0x%x", result);
-        }
-
-        return NULL;
-    }
-    else
-    {
-        if (PhPluginsClrHost)
-            ICLRRuntimeHost_AddRef((ICLRRuntimeHost *)PhPluginsClrHost);
-
-        return PhPluginsClrHost;
-    }
-}
-
-BOOLEAN PhpLoadClrPlugin(
-    _In_ PPH_STRING FileName,
-    _Out_opt_ PPH_STRING *ErrorMessage
-    )
-{
-    ICLRRuntimeHost *clrHost;
-    HRESULT result;
-    ULONG returnValue;
-
-    if (!PhPluginsClrHostInitialized)
-    {
-        _CLRCreateInstance CLRCreateInstance_I;
-        _CorBindToRuntimeEx CorBindToRuntimeEx_I;
-        HMODULE mscoreeHandle;
-
-        if (mscoreeHandle = LoadLibrary(L"mscoree.dll"))
-        {
-            CLRCreateInstance_I = (_CLRCreateInstance)GetProcAddress(mscoreeHandle, "CLRCreateInstance");
-
-            if (!CLRCreateInstance_I || !PhpLoadV4ClrHost(CLRCreateInstance_I))
-            {
-                CorBindToRuntimeEx_I = (_CorBindToRuntimeEx)GetProcAddress(mscoreeHandle, "CorBindToRuntimeEx");
-
-                if (CorBindToRuntimeEx_I)
-                    PhpLoadV2ClrHost(CorBindToRuntimeEx_I);
-            }
-        }
-
-        PhPluginsClrHostInitialized = TRUE;
-    }
-
-    clrHost = (ICLRRuntimeHost *)PhpGetClrHostForPlugin(FileName, ErrorMessage);
-
-    if (clrHost)
-    {
-        ICLRRuntimeHost_Start(clrHost);
-
-        LoadingPluginIsClr = TRUE;
-        result = ICLRRuntimeHost_ExecuteInDefaultAppDomain(
-            clrHost,
-            FileName->Buffer,
-            L"ProcessHacker.Plugin",
-            L"PluginEntry",
-            FileName->Buffer,
-            &returnValue
-            );
-        LoadingPluginIsClr = FALSE;
-
-        ICLRRuntimeHost_Release(clrHost);
-
-        if (!SUCCEEDED(result))
-        {
-            *ErrorMessage = PhFormatString(L"Error 0x%x", result);
-            return FALSE;
-        }
-    }
-    else
-    {
-        return FALSE;
-    }
-
-    return TRUE;
 }
 
 VOID PhpExecuteCallbackForAllPlugins(
@@ -633,23 +426,10 @@ PPH_PLUGIN PhRegisterPlugin(
     if (!PhpValidatePluginName(&pluginName))
         return NULL;
 
-    if (DllBase)
-    {
-        fileName = PhGetDllFileName(DllBase, NULL);
+    fileName = PhGetDllFileName(DllBase, NULL);
 
-        if (!fileName)
-            return NULL;
-    }
-    else
-    {
-        // Should only happen for .NET DLLs.
-
-        if (!LoadingPluginFileName)
-            return NULL;
-
-        fileName = LoadingPluginFileName;
-        PhReferenceObject(fileName);
-    }
+    if (!fileName)
+        return NULL;
 
     plugin = PhAllocate(sizeof(PH_PLUGIN));
     memset(plugin, 0, sizeof(PH_PLUGIN));
@@ -667,9 +447,6 @@ PPH_PLUGIN PhRegisterPlugin(
         PhFree(plugin);
         return NULL;
     }
-
-    if (LoadingPluginIsClr)
-        plugin->Flags |= PH_PLUGIN_FLAG_IS_CLR;
 
     for (i = 0; i < PluginCallbackMaximum; i++)
         PhInitializeCallback(&plugin->Callbacks[i]);
