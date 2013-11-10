@@ -151,13 +151,15 @@ static ULONG PhNetworkPingThreadStart(
 
     __try
     {
-        phVersion = PhGetPhVersion();
-        icmpEchoBuffer = PhFormatAnsiString("processhacker_%S_0x0D06F00D_x1", phVersion->Buffer);
-        if (icmpEchoBuffer == NULL)
+        context = (PNETWORK_OUTPUT_CONTEXT) Parameter;
+        if (context == NULL)
             __leave;
 
-        context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
-        if (context == NULL)
+        if ((phVersion = PhGetPhVersion()) == NULL)
+            __leave;
+
+        // Create ICMP echo buffer.
+        if ((icmpEchoBuffer = PhFormatAnsiString("processhacker_%S_0x0D06F00D_x1", phVersion->Buffer)) == NULL)
             __leave;
 
         if (context->IpAddress.Type == PH_IPV6_NETWORK_TYPE)
@@ -497,19 +499,14 @@ static ULONG PhNetworkPingThreadStart(
     }
     __finally
     {        
-        if (phVersion);
+        if (phVersion)
         {
             PhDereferenceObject(phVersion);
         }
 
-        if (icmpEchoBuffer);
+        if (icmpEchoBuffer)
         {
             PhDereferenceObject(icmpEchoBuffer);
-        }
-
-        if (icmpReplyBuffer)
-        {
-            PhFree(icmpReplyBuffer);
         }
 
         if (icmpHandle)
