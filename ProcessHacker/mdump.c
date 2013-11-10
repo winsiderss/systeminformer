@@ -47,22 +47,22 @@ typedef struct _PROCESS_MINIDUMP_CONTEXT
 } PROCESS_MINIDUMP_CONTEXT, *PPROCESS_MINIDUMP_CONTEXT;
 
 BOOLEAN PhpCreateProcessMiniDumpWithProgress(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PWSTR FileName,
-    __in MINIDUMP_TYPE DumpType
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PWSTR FileName,
+    _In_ MINIDUMP_TYPE DumpType
     );
 
 INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 BOOLEAN PhUiCreateDumpFileProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     static PH_FILETYPE_FILTER filters[] =
@@ -100,10 +100,10 @@ BOOLEAN PhUiCreateDumpFileProcess(
 }
 
 BOOLEAN PhpCreateProcessMiniDumpWithProgress(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PWSTR FileName,
-    __in MINIDUMP_TYPE DumpType
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PWSTR FileName,
+    _In_ MINIDUMP_TYPE DumpType
     )
 {
     NTSTATUS status;
@@ -158,9 +158,9 @@ BOOLEAN PhpCreateProcessMiniDumpWithProgress(
 }
 
 static BOOL CALLBACK PhpProcessMiniDumpCallback(
-    __in PVOID CallbackParam,
-    __in const PMINIDUMP_CALLBACK_INPUT CallbackInput,
-    __inout PMINIDUMP_CALLBACK_OUTPUT CallbackOutput
+    _In_ PVOID CallbackParam,
+    _In_ const PMINIDUMP_CALLBACK_INPUT CallbackInput,
+    _Inout_ PMINIDUMP_CALLBACK_OUTPUT CallbackOutput
     )
 {
     PPROCESS_MINIDUMP_CONTEXT context = CallbackParam;
@@ -209,7 +209,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
 }
 
 NTSTATUS PhpProcessMiniDumpThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPROCESS_MINIDUMP_CONTEXT context = Parameter;
@@ -268,10 +268,10 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
 }
 
 INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

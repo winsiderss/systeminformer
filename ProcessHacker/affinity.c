@@ -39,16 +39,16 @@ typedef struct _AFFINITY_DIALOG_CONTEXT
 } AFFINITY_DIALOG_CONTEXT, *PAFFINITY_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessAffinityDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowProcessAffinityDialog(
-    __in HWND ParentWindowHandle,
-    __in_opt PPH_PROCESS_ITEM ProcessItem,
-    __in_opt PPH_THREAD_ITEM ThreadItem
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PPH_THREAD_ITEM ThreadItem
     )
 {
     AFFINITY_DIALOG_CONTEXT context;
@@ -68,9 +68,9 @@ VOID PhShowProcessAffinityDialog(
 }
 
 BOOLEAN PhShowProcessAffinityDialog2(
-    __in HWND ParentWindowHandle,
-    __in ULONG_PTR AffinityMask,
-    __out PULONG_PTR NewAffinityMask
+    _In_ HWND ParentWindowHandle,
+    _In_ ULONG_PTR AffinityMask,
+    _Out_ PULONG_PTR NewAffinityMask
     )
 {
     AFFINITY_DIALOG_CONTEXT context;
@@ -98,10 +98,10 @@ BOOLEAN PhShowProcessAffinityDialog2(
 }
 
 static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

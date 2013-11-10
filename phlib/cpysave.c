@@ -27,8 +27,8 @@
 #define TAB_SIZE 8
 
 VOID PhpEscapeStringForCsv(
-    __inout PPH_STRING_BUILDER StringBuilder,
-    __in PPH_STRING String
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PPH_STRING String
     )
 {
     SIZE_T i;
@@ -80,9 +80,9 @@ VOID PhpEscapeStringForCsv(
  * \param Columns The number of columns in the table.
  */
 VOID PhaCreateTextTable(
-    __out PPH_STRING ***Table,
-    __in ULONG Rows,
-    __in ULONG Columns
+    _Out_ PPH_STRING ***Table,
+    _In_ ULONG Rows,
+    _In_ ULONG Columns
     )
 {
     PPH_STRING **table;
@@ -113,10 +113,10 @@ VOID PhaCreateTextTable(
  * string objects are not auto-dereferenced.
  */
 PPH_LIST PhaFormatTextTable(
-    __in PPH_STRING **Table,
-    __in ULONG Rows,
-    __in ULONG Columns,
-    __in ULONG Mode
+    _In_ PPH_STRING **Table,
+    _In_ ULONG Rows,
+    _In_ ULONG Columns,
+    _In_ ULONG Mode
     )
 {
     PPH_LIST lines;
@@ -237,10 +237,10 @@ PPH_LIST PhaFormatTextTable(
 }
 
 VOID PhMapDisplayIndexTreeNew(
-    __in HWND TreeNewHandle,
-    __out_opt PULONG *DisplayToId,
-    __out_opt PWSTR **DisplayToText,
-    __out PULONG NumberOfColumns
+    _In_ HWND TreeNewHandle,
+    _Out_opt_ PULONG *DisplayToId,
+    _Out_opt_ PWSTR **DisplayToText,
+    _Out_ PULONG NumberOfColumns
     )
 {
     PPH_TREENEW_COLUMN fixedColumn;
@@ -289,8 +289,8 @@ VOID PhMapDisplayIndexTreeNew(
 }
 
 PPH_STRING PhGetTreeNewText(
-    __in HWND TreeNewHandle,
-    __reserved ULONG Reserved
+    _In_ HWND TreeNewHandle,
+    _Reserved_ ULONG Reserved
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -338,8 +338,8 @@ PPH_STRING PhGetTreeNewText(
 }
 
 PPH_LIST PhGetGenericTreeNewLines(
-    __in HWND TreeNewHandle,
-    __in ULONG Mode
+    _In_ HWND TreeNewHandle,
+    _In_ ULONG Mode
     )
 {
     PH_AUTO_POOL autoPool;
@@ -405,11 +405,11 @@ PPH_LIST PhGetGenericTreeNewLines(
 }
 
 VOID PhaMapDisplayIndexListView(
-    __in HWND ListViewHandle,
-    __out_ecount(Count) PULONG DisplayToId,
-    __out_ecount_opt(Count) PPH_STRING *DisplayToText,
-    __in ULONG Count,
-    __out PULONG NumberOfColumns
+    _In_ HWND ListViewHandle,
+    _Out_writes_(Count) PULONG DisplayToId,
+    _Out_writes_opt_(Count) PPH_STRING *DisplayToText,
+    _In_ ULONG Count,
+    _Out_ PULONG NumberOfColumns
     )
 {
     LVCOLUMN lvColumn;
@@ -447,9 +447,9 @@ VOID PhaMapDisplayIndexListView(
 }
 
 PPH_STRING PhaGetListViewItemText(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in INT SubItemIndex
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ INT SubItemIndex
     )
 {
     PPH_STRING buffer;
@@ -487,7 +487,7 @@ PPH_STRING PhaGetListViewItemText(
 }
 
 PPH_STRING PhGetListViewText(
-    __in HWND ListViewHandle
+    _In_ HWND ListViewHandle
     )
 {
     PH_AUTO_POOL autoPool;
@@ -529,8 +529,8 @@ PPH_STRING PhGetListViewText(
 }
 
 PPH_LIST PhGetListViewLines(
-    __in HWND ListViewHandle,
-    __in ULONG Mode
+    _In_ HWND ListViewHandle,
+    _In_ ULONG Mode
     )
 {
     PH_AUTO_POOL autoPool;

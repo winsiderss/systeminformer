@@ -2,39 +2,39 @@
 #define _PH_IOSUPP_H
 
 VOID NTAPI PhpFileStreamDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 NTSTATUS PhpAllocateBufferFileStream(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     );
 
 NTSTATUS PhpReadFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __out_bcount(Length) PVOID Buffer,
-    __in ULONG Length,
-    __out_opt PULONG ReadLength
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReadLength
     );
 
 NTSTATUS PhpWriteFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in_bcount(Length) PVOID Buffer,
-    __in ULONG Length
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
     );
 
 NTSTATUS PhpFlushReadFileStream(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     );
 
 NTSTATUS PhpFlushWriteFileStream(
-    __inout PPH_FILE_STREAM FileStream
+    _Inout_ PPH_FILE_STREAM FileStream
     );
 
 NTSTATUS PhpSeekFileStream(
-    __inout PPH_FILE_STREAM FileStream,
-    __in PLARGE_INTEGER Offset,
-    __in PH_SEEK_ORIGIN Origin
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PLARGE_INTEGER Offset,
+    _In_ PH_SEEK_ORIGIN Origin
     );
 
 #endif

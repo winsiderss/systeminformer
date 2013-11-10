@@ -24,107 +24,107 @@
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI UnloadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI TreeNewMessageCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI HandlePropertiesInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ProcessMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ThreadMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ModuleMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ProcessTreeNewInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI NetworkTreeNewInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI SystemInformationInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI NetworkItemsUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI ProcessItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     );
 
 VOID NTAPI ProcessItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     );
 
 VOID NTAPI NetworkItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     );
 
 VOID NTAPI NetworkItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     );
 
 PPH_PLUGIN PluginInstance;
@@ -152,9 +152,9 @@ PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 static HANDLE ModuleProcessId;
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)
@@ -310,8 +310,8 @@ LOGICAL DllMain(
 }
 
 VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     EtEtwStatisticsInitialization();
@@ -321,8 +321,8 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI UnloadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     EtSaveSettingsDiskTreeList();
@@ -330,16 +330,16 @@ VOID NTAPI UnloadCallback(
 }
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     EtShowOptionsDialog((HWND)Parameter);
 }
 
 VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
@@ -374,8 +374,8 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI TreeNewMessageCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
@@ -387,8 +387,8 @@ VOID NTAPI TreeNewMessageCallback(
 }
 
 VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     if (EtEtwEnabled)
@@ -398,8 +398,8 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     EtProcessGpuPropertiesInitializing(Parameter);
@@ -407,16 +407,16 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
 }
 
 VOID NTAPI HandlePropertiesInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     EtHandlePropertiesInitializing(Parameter);
 }
 
 VOID NTAPI ProcessMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
@@ -444,8 +444,8 @@ VOID NTAPI ProcessMenuInitializingCallback(
 }
 
 VOID NTAPI ThreadMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
@@ -470,8 +470,8 @@ VOID NTAPI ThreadMenuInitializingCallback(
 }
 
 VOID NTAPI ModuleMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
@@ -513,8 +513,8 @@ VOID NTAPI ModuleMenuInitializingCallback(
 }
 
 VOID NTAPI ProcessTreeNewInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -524,8 +524,8 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
 }
 
 VOID NTAPI NetworkTreeNewInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -535,8 +535,8 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
 }
 
 VOID NTAPI SystemInformationInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     if (EtGpuEnabled)
@@ -546,8 +546,8 @@ VOID NTAPI SystemInformationInitializingCallback(
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PLIST_ENTRY listEntry;
@@ -575,8 +575,8 @@ static VOID NTAPI ProcessesUpdatedCallback(
 }
 
 static VOID NTAPI NetworkItemsUpdatedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PLIST_ENTRY listEntry;
@@ -602,22 +602,22 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
 }
 
 PET_PROCESS_BLOCK EtGetProcessBlock(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     return PhPluginGetObjectExtension(PluginInstance, ProcessItem, EmProcessItemType);
 }
 
 PET_NETWORK_BLOCK EtGetNetworkBlock(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     return PhPluginGetObjectExtension(PluginInstance, NetworkItem, EmNetworkItemType);
 }
 
 VOID EtInitializeProcessBlock(
-    __out PET_PROCESS_BLOCK Block,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _Out_ PET_PROCESS_BLOCK Block,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     memset(Block, 0, sizeof(ET_PROCESS_BLOCK));
@@ -627,7 +627,7 @@ VOID EtInitializeProcessBlock(
 }
 
 VOID EtDeleteProcessBlock(
-    __in PET_PROCESS_BLOCK Block
+    _In_ PET_PROCESS_BLOCK Block
     )
 {
     ULONG i;
@@ -643,8 +643,8 @@ VOID EtDeleteProcessBlock(
 }
 
 VOID EtInitializeNetworkBlock(
-    __out PET_NETWORK_BLOCK Block,
-    __in PPH_NETWORK_ITEM NetworkItem
+    _Out_ PET_NETWORK_BLOCK Block,
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     memset(Block, 0, sizeof(ET_NETWORK_BLOCK));
@@ -654,7 +654,7 @@ VOID EtInitializeNetworkBlock(
 }
 
 VOID EtDeleteNetworkBlock(
-    __in PET_NETWORK_BLOCK Block
+    _In_ PET_NETWORK_BLOCK Block
     )
 {
     ULONG i;
@@ -668,36 +668,36 @@ VOID EtDeleteNetworkBlock(
 }
 
 VOID NTAPI ProcessItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     EtInitializeProcessBlock(Extension, Object);
 }
 
 VOID NTAPI ProcessItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     EtDeleteProcessBlock(Extension);
 }
 
 VOID NTAPI NetworkItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     EtInitializeNetworkBlock(Extension, Object);
 }
 
 VOID NTAPI NetworkItemDeleteCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     EtDeleteNetworkBlock(Extension);

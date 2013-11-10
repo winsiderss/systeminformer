@@ -9,7 +9,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDrawText(
-    __in PUNICODE_STRING Text
+    _In_ PUNICODE_STRING Text
     );
 #endif
 
@@ -43,8 +43,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtVdmControl(
-    __in VDMSERVICECLASS Service,
-    __inout PVOID ServiceData
+    _In_ VDMSERVICECLASS Service,
+    _Inout_ PVOID ServiceData
     );
 
 // WMI/ETW
@@ -53,10 +53,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtTraceEvent(
-    __in HANDLE TraceHandle,
-    __in ULONG Flags,
-    __in ULONG FieldSize,
-    __in PVOID Fields
+    _In_ HANDLE TraceHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG FieldSize,
+    _In_ PVOID Fields
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -65,12 +65,12 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtTraceControl(
-    __in ULONG FunctionCode,
-    __in_bcount_opt(InBufferLen) PVOID InBuffer,
-    __in ULONG InBufferLen,
-    __out_bcount_opt(OutBufferLen) PVOID OutBuffer,
-    __in ULONG OutBufferLen,
-    __out PULONG ReturnLength
+    _In_ ULONG FunctionCode,
+    _In_reads_bytes_opt_(InBufferLen) PVOID InBuffer,
+    _In_ ULONG InBufferLen,
+    _Out_writes_bytes_opt_(OutBufferLen) PVOID OutBuffer,
+    _In_ ULONG OutBufferLen,
+    _Out_ PULONG ReturnLength
     );
 #endif
 

@@ -31,42 +31,42 @@ VOID PhUpdateCachedSettings(
     );
 
 PHAPPAPI
-__mayRaise ULONG PhGetIntegerSetting(
-    __in PWSTR Name
+_May_raise_ ULONG PhGetIntegerSetting(
+    _In_ PWSTR Name
     );
 
 PHAPPAPI
-__mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
-    __in PWSTR Name
+_May_raise_ PH_INTEGER_PAIR PhGetIntegerPairSetting(
+    _In_ PWSTR Name
     );
 
 PHAPPAPI
-__mayRaise PPH_STRING PhGetStringSetting(
-    __in PWSTR Name
+_May_raise_ PPH_STRING PhGetStringSetting(
+    _In_ PWSTR Name
     );
 
 PHAPPAPI
-__mayRaise VOID PhSetIntegerSetting(
-    __in PWSTR Name,
-    __in ULONG Value
+_May_raise_ VOID PhSetIntegerSetting(
+    _In_ PWSTR Name,
+    _In_ ULONG Value
     );
 
 PHAPPAPI
-__mayRaise VOID PhSetIntegerPairSetting(
-    __in PWSTR Name,
-    __in PH_INTEGER_PAIR Value
+_May_raise_ VOID PhSetIntegerPairSetting(
+    _In_ PWSTR Name,
+    _In_ PH_INTEGER_PAIR Value
     );
 
 PHAPPAPI
-__mayRaise VOID PhSetStringSetting(
-    __in PWSTR Name,
-    __in PWSTR Value
+_May_raise_ VOID PhSetStringSetting(
+    _In_ PWSTR Name,
+    _In_ PWSTR Value
     );
 
 PHAPPAPI
-__mayRaise VOID PhSetStringSetting2(
-    __in PWSTR Name,
-    __in PPH_STRINGREF Value
+_May_raise_ VOID PhSetStringSetting2(
+    _In_ PWSTR Name,
+    _In_ PPH_STRINGREF Value
     );
 
 VOID PhClearIgnoredSettings(
@@ -78,11 +78,11 @@ VOID PhConvertIgnoredSettings(
     );
 
 NTSTATUS PhLoadSettings(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     );
 
 NTSTATUS PhSaveSettings(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     );
 
 VOID PhResetSettings(
@@ -102,8 +102,8 @@ typedef struct _PH_CREATE_SETTING
 
 PHAPPAPI
 VOID PhAddSettings(
-    __in PPH_SETTING_CREATE Settings,
-    __in ULONG NumberOfSettings
+    _In_ PPH_SETTING_CREATE Settings,
+    _In_ ULONG NumberOfSettings
     );
 
 // Cached settings

@@ -218,13 +218,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateKey(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __reserved ULONG TitleIndex,
-    __in_opt PUNICODE_STRING Class,
-    __in ULONG CreateOptions,
-    __out_opt PULONG Disposition
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Reserved_ ULONG TitleIndex,
+    _In_opt_ PUNICODE_STRING Class,
+    _In_ ULONG CreateOptions,
+    _Out_opt_ PULONG Disposition
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -232,14 +232,14 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateKeyTransacted(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __reserved ULONG TitleIndex,
-    __in_opt PUNICODE_STRING Class,
-    __in ULONG CreateOptions,
-    __in HANDLE TransactionHandle,
-    __out_opt PULONG Disposition
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Reserved_ ULONG TitleIndex,
+    _In_opt_ PUNICODE_STRING Class,
+    _In_ ULONG CreateOptions,
+    _In_ HANDLE TransactionHandle,
+    _Out_opt_ PULONG Disposition
     );
 #endif
 
@@ -247,9 +247,9 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenKey(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -257,10 +257,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenKeyTransacted(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in HANDLE TransactionHandle
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE TransactionHandle
     );
 #endif
 
@@ -269,10 +269,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenKeyEx(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in ULONG OpenOptions
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG OpenOptions
     );
 #endif
 
@@ -281,11 +281,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenKeyTransactedEx(
-    __out PHANDLE KeyHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in ULONG OpenOptions,
-    __in HANDLE TransactionHandle
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG OpenOptions,
+    _In_ HANDLE TransactionHandle
     );
 #endif
 
@@ -293,294 +293,294 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeleteKey(
-    __in HANDLE KeyHandle
+    _In_ HANDLE KeyHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRenameKey(
-    __in HANDLE KeyHandle,
-    __in PUNICODE_STRING NewName
+    _In_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING NewName
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeleteValueKey(
-    __in HANDLE KeyHandle,
-    __in PUNICODE_STRING ValueName
+    _In_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING ValueName
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryKey(
-    __in HANDLE KeyHandle,
-    __in KEY_INFORMATION_CLASS KeyInformationClass,
-    __out_bcount_opt(Length) PVOID KeyInformation,
-    __in ULONG Length,
-    __out PULONG ResultLength
+    _In_ HANDLE KeyHandle,
+    _In_ KEY_INFORMATION_CLASS KeyInformationClass,
+    _Out_writes_bytes_opt_(Length) PVOID KeyInformation,
+    _In_ ULONG Length,
+    _Out_ PULONG ResultLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationKey(
-    __in HANDLE KeyHandle,
-    __in KEY_SET_INFORMATION_CLASS KeySetInformationClass,
-    __in_bcount(KeySetInformationLength) PVOID KeySetInformation,
-    __in ULONG KeySetInformationLength
+    _In_ HANDLE KeyHandle,
+    _In_ KEY_SET_INFORMATION_CLASS KeySetInformationClass,
+    _In_reads_bytes_(KeySetInformationLength) PVOID KeySetInformation,
+    _In_ ULONG KeySetInformationLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryValueKey(
-    __in HANDLE KeyHandle,
-    __in PUNICODE_STRING ValueName,
-    __in KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
-    __out_bcount_opt(Length) PVOID KeyValueInformation,
-    __in ULONG Length,
-    __out PULONG ResultLength
+    _In_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING ValueName,
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    _Out_writes_bytes_opt_(Length) PVOID KeyValueInformation,
+    _In_ ULONG Length,
+    _Out_ PULONG ResultLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetValueKey(
-    __in HANDLE KeyHandle,
-    __in PUNICODE_STRING ValueName,
-    __in_opt ULONG TitleIndex,
-    __in ULONG Type,
-    __in_bcount_opt(DataSize) PVOID Data,
-    __in ULONG DataSize
+    _In_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING ValueName,
+    _In_opt_ ULONG TitleIndex,
+    _In_ ULONG Type,
+    _In_reads_bytes_opt_(DataSize) PVOID Data,
+    _In_ ULONG DataSize
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryMultipleValueKey(
-    __in HANDLE KeyHandle,
-    __inout_ecount(EntryCount) PKEY_VALUE_ENTRY ValueEntries,
-    __in ULONG EntryCount,
-    __out_bcount(*BufferLength) PVOID ValueBuffer,
-    __inout PULONG BufferLength,
-    __out_opt PULONG RequiredBufferLength
+    _In_ HANDLE KeyHandle,
+    _Inout_updates_(EntryCount) PKEY_VALUE_ENTRY ValueEntries,
+    _In_ ULONG EntryCount,
+    _Out_writes_bytes_(*BufferLength) PVOID ValueBuffer,
+    _Inout_ PULONG BufferLength,
+    _Out_opt_ PULONG RequiredBufferLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtEnumerateKey(
-    __in HANDLE KeyHandle,
-    __in ULONG Index,
-    __in KEY_INFORMATION_CLASS KeyInformationClass,
-    __out_bcount_opt(Length) PVOID KeyInformation,
-    __in ULONG Length,
-    __out PULONG ResultLength
+    _In_ HANDLE KeyHandle,
+    _In_ ULONG Index,
+    _In_ KEY_INFORMATION_CLASS KeyInformationClass,
+    _Out_writes_bytes_opt_(Length) PVOID KeyInformation,
+    _In_ ULONG Length,
+    _Out_ PULONG ResultLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtEnumerateValueKey(
-    __in HANDLE KeyHandle,
-    __in ULONG Index,
-    __in KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
-    __out_bcount_opt(Length) PVOID KeyValueInformation,
-    __in ULONG Length,
-    __out PULONG ResultLength
+    _In_ HANDLE KeyHandle,
+    _In_ ULONG Index,
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    _Out_writes_bytes_opt_(Length) PVOID KeyValueInformation,
+    _In_ ULONG Length,
+    _Out_ PULONG ResultLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFlushKey(
-    __in HANDLE KeyHandle
+    _In_ HANDLE KeyHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCompactKeys(
-    __in ULONG Count,
-    __in_ecount(Count) HANDLE KeyArray[]
+    _In_ ULONG Count,
+    _In_reads_(Count) HANDLE KeyArray[]
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCompressKey(
-    __in HANDLE Key
+    _In_ HANDLE Key
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtLoadKey(
-    __in POBJECT_ATTRIBUTES TargetKey,
-    __in POBJECT_ATTRIBUTES SourceFile
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ POBJECT_ATTRIBUTES SourceFile
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtLoadKey2(
-    __in POBJECT_ATTRIBUTES TargetKey,
-    __in POBJECT_ATTRIBUTES SourceFile,
-    __in ULONG Flags
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ POBJECT_ATTRIBUTES SourceFile,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtLoadKeyEx(
-    __in POBJECT_ATTRIBUTES TargetKey,
-    __in POBJECT_ATTRIBUTES SourceFile,
-    __in ULONG Flags,
-    __in_opt HANDLE TrustClassKey
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ POBJECT_ATTRIBUTES SourceFile,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TrustClassKey
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReplaceKey(
-    __in POBJECT_ATTRIBUTES NewFile,
-    __in HANDLE TargetHandle,
-    __in POBJECT_ATTRIBUTES OldFile
+    _In_ POBJECT_ATTRIBUTES NewFile,
+    _In_ HANDLE TargetHandle,
+    _In_ POBJECT_ATTRIBUTES OldFile
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSaveKey(
-    __in HANDLE KeyHandle,
-    __in HANDLE FileHandle
+    _In_ HANDLE KeyHandle,
+    _In_ HANDLE FileHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSaveKeyEx(
-    __in HANDLE KeyHandle,
-    __in HANDLE FileHandle,
-    __in ULONG Format
+    _In_ HANDLE KeyHandle,
+    _In_ HANDLE FileHandle,
+    _In_ ULONG Format
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSaveMergedKeys(
-    __in HANDLE HighPrecedenceKeyHandle,
-    __in HANDLE LowPrecedenceKeyHandle,
-    __in HANDLE FileHandle
+    _In_ HANDLE HighPrecedenceKeyHandle,
+    _In_ HANDLE LowPrecedenceKeyHandle,
+    _In_ HANDLE FileHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRestoreKey(
-    __in HANDLE KeyHandle,
-    __in HANDLE FileHandle,
-    __in ULONG Flags
+    _In_ HANDLE KeyHandle,
+    _In_ HANDLE FileHandle,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUnloadKey(
-    __in POBJECT_ATTRIBUTES TargetKey
+    _In_ POBJECT_ATTRIBUTES TargetKey
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUnloadKey2(
-    __in POBJECT_ATTRIBUTES TargetKey,
-    __in ULONG Flags
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUnloadKeyEx(
-    __in POBJECT_ATTRIBUTES TargetKey,
-    __in_opt HANDLE Event
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_opt_ HANDLE Event
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtNotifyChangeKey(
-    __in HANDLE KeyHandle,
-    __in_opt HANDLE Event,
-    __in_opt PIO_APC_ROUTINE ApcRoutine,
-    __in_opt PVOID ApcContext,
-    __out PIO_STATUS_BLOCK IoStatusBlock,
-    __in ULONG CompletionFilter,
-    __in BOOLEAN WatchTree,
-    __out_bcount_opt(BufferSize) PVOID Buffer,
-    __in ULONG BufferSize,
-    __in BOOLEAN Asynchronous
+    _In_ HANDLE KeyHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG CompletionFilter,
+    _In_ BOOLEAN WatchTree,
+    _Out_writes_bytes_opt_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _In_ BOOLEAN Asynchronous
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtNotifyChangeMultipleKeys(
-    __in HANDLE MasterKeyHandle,
-    __in_opt ULONG Count,
-    __in_ecount_opt(Count) OBJECT_ATTRIBUTES SlaveObjects[],
-    __in_opt HANDLE Event,
-    __in_opt PIO_APC_ROUTINE ApcRoutine,
-    __in_opt PVOID ApcContext,
-    __out PIO_STATUS_BLOCK IoStatusBlock,
-    __in ULONG CompletionFilter,
-    __in BOOLEAN WatchTree,
-    __out_bcount_opt(BufferSize) PVOID Buffer,
-    __in ULONG BufferSize,
-    __in BOOLEAN Asynchronous
+    _In_ HANDLE MasterKeyHandle,
+    _In_opt_ ULONG Count,
+    _In_reads_opt_(Count) OBJECT_ATTRIBUTES SlaveObjects[],
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG CompletionFilter,
+    _In_ BOOLEAN WatchTree,
+    _Out_writes_bytes_opt_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _In_ BOOLEAN Asynchronous
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryOpenSubKeys(
-    __in POBJECT_ATTRIBUTES TargetKey,
-    __out PULONG HandleCount
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _Out_ PULONG HandleCount
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryOpenSubKeysEx(
-    __in POBJECT_ATTRIBUTES TargetKey,
-    __in ULONG BufferLength,
-    __out_bcount(BufferLength) PVOID Buffer,
-    __out PULONG RequiredSize
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _Out_ PULONG RequiredSize
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtInitializeRegistry(
-    __in USHORT BootCondition
+    _In_ USHORT BootCondition
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtLockRegistryKey(
-    __in HANDLE KeyHandle
+    _In_ HANDLE KeyHandle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtLockProductActivationKeys(
-    __inout_opt ULONG *pPrivateVer,
-    __out_opt ULONG *pSafeMode
+    _Inout_opt_ ULONG *pPrivateVer,
+    _Out_opt_ ULONG *pSafeMode
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -589,7 +589,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFreezeRegistry(
-    __in ULONG TimeOutInSeconds
+    _In_ ULONG TimeOutInSeconds
     );
 #endif
 

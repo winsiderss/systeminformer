@@ -19,7 +19,7 @@
 struct _PH_EMENU_ITEM;
 
 typedef VOID (NTAPI *PPH_EMENU_ITEM_DELETE_FUNCTION)(
-    __in struct _PH_EMENU_ITEM *Item
+    _In_ struct _PH_EMENU_ITEM *Item
     );
 
 typedef struct _PH_EMENU_ITEM
@@ -42,16 +42,16 @@ typedef struct _PH_EMENU_ITEM PH_EMENU, *PPH_EMENU;
 
 PHLIBAPI
 PPH_EMENU_ITEM PhCreateEMenuItem(
-    __in ULONG Flags,
-    __in ULONG Id,
-    __in PWSTR Text,
-    __in_opt PWSTR Bitmap,
-    __in_opt PVOID Context
+    _In_ ULONG Flags,
+    _In_ ULONG Id,
+    _In_ PWSTR Text,
+    _In_opt_ PWSTR Bitmap,
+    _In_opt_ PVOID Context
     );
 
 PHLIBAPI
 VOID PhDestroyEMenuItem(
-    __in PPH_EMENU_ITEM Item
+    _In_ PPH_EMENU_ITEM Item
     );
 
 #define PH_EMENU_FIND_DESCEND 0x1
@@ -60,44 +60,44 @@ VOID PhDestroyEMenuItem(
 
 PHLIBAPI
 PPH_EMENU_ITEM PhFindEMenuItem(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Flags,
-    __in_opt PWSTR Text,
-    __in_opt ULONG Id
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR Text,
+    _In_opt_ ULONG Id
     );
 
 PPH_EMENU_ITEM PhFindEMenuItemEx(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Flags,
-    __in_opt PWSTR Text,
-    __in_opt ULONG Id,
-    __out_opt PPH_EMENU_ITEM *FoundParent,
-    __out_opt PULONG FoundIndex
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR Text,
+    _In_opt_ ULONG Id,
+    _Out_opt_ PPH_EMENU_ITEM *FoundParent,
+    _Out_opt_ PULONG FoundIndex
     );
 
 PHLIBAPI
 ULONG PhIndexOfEMenuItem(
-    __in PPH_EMENU_ITEM Parent,
-    __in PPH_EMENU_ITEM Item
+    _In_ PPH_EMENU_ITEM Parent,
+    _In_ PPH_EMENU_ITEM Item
     );
 
 PHLIBAPI
 VOID PhInsertEMenuItem(
-    __inout PPH_EMENU_ITEM Parent,
-    __inout PPH_EMENU_ITEM Item,
-    __in ULONG Index
+    _Inout_ PPH_EMENU_ITEM Parent,
+    _Inout_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Index
     );
 
 PHLIBAPI
 BOOLEAN PhRemoveEMenuItem(
-    __inout_opt PPH_EMENU_ITEM Parent,
-    __in_opt PPH_EMENU_ITEM Item,
-    __in_opt ULONG Index
+    _Inout_opt_ PPH_EMENU_ITEM Parent,
+    _In_opt_ PPH_EMENU_ITEM Item,
+    _In_opt_ ULONG Index
     );
 
 PHLIBAPI
 VOID PhRemoveAllEMenuItems(
-    __inout PPH_EMENU_ITEM Parent
+    _Inout_ PPH_EMENU_ITEM Parent
     );
 
 PHLIBAPI
@@ -107,7 +107,7 @@ PPH_EMENU PhCreateEMenu(
 
 PHLIBAPI
 VOID PhDestroyEMenu(
-    __in PPH_EMENU Menu
+    _In_ PPH_EMENU Menu
     );
 
 #define PH_EMENU_CONVERT_ID 0x1
@@ -118,37 +118,37 @@ typedef struct _PH_EMENU_DATA
 } PH_EMENU_DATA, *PPH_EMENU_DATA;
 
 VOID PhInitializeEMenuData(
-    __out PPH_EMENU_DATA Data
+    _Out_ PPH_EMENU_DATA Data
     );
 
 VOID PhDeleteEMenuData(
-    __inout PPH_EMENU_DATA Data
+    _Inout_ PPH_EMENU_DATA Data
     );
 
 HMENU PhEMenuToHMenu(
-    __in PPH_EMENU_ITEM Menu,
-    __in ULONG Flags,
-    __inout_opt PPH_EMENU_DATA Data
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ ULONG Flags,
+    _Inout_opt_ PPH_EMENU_DATA Data
     );
 
 VOID PhEMenuToHMenu2(
-    __in HMENU MenuHandle,
-    __in PPH_EMENU_ITEM Menu,
-    __in ULONG Flags,
-    __inout_opt PPH_EMENU_DATA Data
+    _In_ HMENU MenuHandle,
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ ULONG Flags,
+    _Inout_opt_ PPH_EMENU_DATA Data
     );
 
 VOID PhHMenuToEMenuItem(
-    __inout PPH_EMENU_ITEM MenuItem,
-    __in HMENU MenuHandle
+    _Inout_ PPH_EMENU_ITEM MenuItem,
+    _In_ HMENU MenuHandle
     );
 
 PHLIBAPI
 VOID PhLoadResourceEMenuItem(
-    __inout PPH_EMENU_ITEM MenuItem,
-    __in HINSTANCE InstanceHandle,
-    __in PWSTR Resource,
-    __in ULONG SubMenuIndex
+    _Inout_ PPH_EMENU_ITEM MenuItem,
+    _In_ HINSTANCE InstanceHandle,
+    _In_ PWSTR Resource,
+    _In_ ULONG SubMenuIndex
     );
 
 #define PH_EMENU_SHOW_NONOTIFY 0x1
@@ -156,28 +156,28 @@ VOID PhLoadResourceEMenuItem(
 
 PHLIBAPI
 PPH_EMENU_ITEM PhShowEMenu(
-    __in PPH_EMENU Menu,
-    __in HWND WindowHandle,
-    __in ULONG Flags,
-    __in ULONG Align,
-    __in ULONG X,
-    __in ULONG Y
+    _In_ PPH_EMENU Menu,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG Align,
+    _In_ ULONG X,
+    _In_ ULONG Y
     );
 
 // Convenience functions
 
 PHLIBAPI
 BOOLEAN PhSetFlagsEMenuItem(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Id,
-    __in ULONG Mask,
-    __in ULONG Value
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Id,
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     );
 
 FORCEINLINE BOOLEAN PhEnableEMenuItem(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Id,
-    __in BOOLEAN Enable
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Id,
+    _In_ BOOLEAN Enable
     )
 {
     return PhSetFlagsEMenuItem(Item, Id, PH_EMENU_DISABLED, Enable ? 0 : PH_EMENU_DISABLED);
@@ -185,9 +185,9 @@ FORCEINLINE BOOLEAN PhEnableEMenuItem(
 
 PHLIBAPI
 VOID PhSetFlagsAllEMenuItems(
-    __in PPH_EMENU_ITEM Item,
-    __in ULONG Mask,
-    __in ULONG Value
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     );
 
 #endif

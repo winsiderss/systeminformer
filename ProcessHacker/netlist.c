@@ -28,39 +28,39 @@
 #include <emenu.h>
 
 BOOLEAN PhpNetworkNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG PhpNetworkNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID PhpRemoveNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     );
 
 LONG PhpNetworkTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     );
 
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 PPH_STRING PhpGetNetworkItemProcessName(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 VOID PhpUpdateNetworkNodeAddressStrings(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     );
 
 static HWND NetworkTreeListHandle;
@@ -91,8 +91,8 @@ VOID PhNetworkTreeListInitialization(
 }
 
 BOOLEAN PhpNetworkNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_NETWORK_NODE networkNode1 = *(PPH_NETWORK_NODE *)Entry1;
@@ -102,7 +102,7 @@ BOOLEAN PhpNetworkNodeHashtableCompareFunction(
 }
 
 ULONG PhpNetworkNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
 #ifdef _M_IX86
@@ -113,7 +113,7 @@ ULONG PhpNetworkNodeHashtableHashFunction(
 }
 
 VOID PhInitializeNetworkTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     NetworkTreeListHandle = hwnd;
@@ -189,8 +189,8 @@ struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportNetworkTreeList(
 }
 
 PPH_NETWORK_NODE PhAddNetworkNode(
-    __in PPH_NETWORK_ITEM NetworkItem,
-    __in ULONG RunId
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ ULONG RunId
     )
 {
     PPH_NETWORK_NODE networkNode;
@@ -236,7 +236,7 @@ PPH_NETWORK_NODE PhAddNetworkNode(
 }
 
 PPH_NETWORK_NODE PhFindNetworkNode(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     PH_NETWORK_NODE lookupNetworkNode;
@@ -257,7 +257,7 @@ PPH_NETWORK_NODE PhFindNetworkNode(
 }
 
 VOID PhRemoveNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
     // Remove from the hashtable here to avoid problems in case the key is re-used.
@@ -281,7 +281,7 @@ VOID PhRemoveNetworkNode(
 }
 
 VOID PhpRemoveNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
     ULONG index;
@@ -305,7 +305,7 @@ VOID PhpRemoveNetworkNode(
 }
 
 VOID PhUpdateNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
     memset(NetworkNode->TextCache, 0, sizeof(PH_STRINGREF) * PHNETLC_MAXIMUM);
@@ -333,8 +333,8 @@ VOID PhTickNetworkNodes(
 #define SORT_FUNCTION(Column) PhpNetworkTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpNetworkTreeNewCompare##Column( \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PPH_NETWORK_NODE node1 = *(PPH_NETWORK_NODE *)_elem1; \
@@ -351,10 +351,10 @@ VOID PhTickNetworkNodes(
 }
 
 LONG PhpNetworkTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     )
 {
     if (Result == 0)
@@ -418,11 +418,11 @@ BEGIN_SORT_FUNCTION(TimeStamp)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_NODE node;
@@ -658,7 +658,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 }
 
 PPH_STRING PhpGetNetworkItemProcessName(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     PH_FORMAT format[4];
@@ -679,7 +679,7 @@ PPH_STRING PhpGetNetworkItemProcessName(
 }
 
 VOID PhpUpdateNetworkNodeAddressStrings(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
     if (NetworkNode->NetworkItem->LocalHostString)
@@ -715,8 +715,8 @@ PPH_NETWORK_ITEM PhGetSelectedNetworkItem(
 }
 
 VOID PhGetSelectedNetworkItems(
-    __out PPH_NETWORK_ITEM **NetworkItems,
-    __out PULONG NumberOfNetworkItems
+    _Out_ PPH_NETWORK_ITEM **NetworkItems,
+    _Out_ PULONG NumberOfNetworkItems
     )
 {
     PPH_LIST list;
@@ -748,7 +748,7 @@ VOID PhDeselectAllNetworkNodes(
 }
 
 VOID PhSelectAndEnsureVisibleNetworkNode(
-    __in PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
     PhDeselectAllNetworkNodes();
@@ -774,8 +774,8 @@ VOID PhCopyNetworkList(
 }
 
 VOID PhWriteNetworkList(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     )
 {
     PPH_LIST lines;

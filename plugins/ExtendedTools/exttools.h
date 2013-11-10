@@ -228,19 +228,19 @@ typedef struct _ET_NETWORK_BLOCK
 // main
 
 PET_PROCESS_BLOCK EtGetProcessBlock(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 PET_NETWORK_BLOCK EtGetNetworkBlock(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 // utils
 
 VOID EtFormatRate(
-    __in ULONG64 ValuePerPeriod,
-    __inout PPH_STRING *Buffer,
-    __out_opt PPH_STRINGREF String
+    _In_ ULONG64 ValuePerPeriod,
+    _Inout_ PPH_STRING *Buffer,
+    _Out_opt_ PPH_STRINGREF String
     );
 
 // etwmon
@@ -298,40 +298,40 @@ PET_DISK_ITEM EtCreateDiskItem(
     );
 
 PET_DISK_ITEM EtReferenceDiskItem(
-    __in HANDLE ProcessId,
-    __in PPH_STRING FileName
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
     );
 
 PPH_STRING EtFileObjectToFileName(
-    __in PVOID FileObject
+    _In_ PVOID FileObject
     );
 
 // procicon
 
 PET_PROCESS_ICON EtProcIconCreateProcessIcon(
-    __in HICON Icon
+    _In_ HICON Icon
     );
 
 VOID EtProcIconReferenceProcessIcon(
-    __inout PET_PROCESS_ICON ProcessIcon
+    _Inout_ PET_PROCESS_ICON ProcessIcon
     );
 
 VOID EtProcIconDereferenceProcessIcon(
-    __inout PET_PROCESS_ICON ProcessIcon
+    _Inout_ PET_PROCESS_ICON ProcessIcon
     );
 
 PET_PROCESS_ICON EtProcIconReferenceSmallProcessIcon(
-    __inout PET_PROCESS_BLOCK Block
+    _Inout_ PET_PROCESS_BLOCK Block
     );
 
 VOID EtProcIconNotifyProcessDelete(
-    __inout PET_PROCESS_BLOCK Block
+    _Inout_ PET_PROCESS_BLOCK Block
     );
 
 // etwprprp
 
 VOID EtProcessEtwPropertiesInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 // disktab
@@ -409,71 +409,71 @@ ULONG EtGetGpuAdapterCount(
     );
 
 ULONG EtGetGpuAdapterIndexFromNodeIndex(
-    __in ULONG NodeIndex
+    _In_ ULONG NodeIndex
     );
 
 PPH_STRING EtGetGpuAdapterDescription(
-    __in ULONG Index
+    _In_ ULONG Index
     );
 
 VOID EtAllocateGpuNodeBitMap(
-    __out PRTL_BITMAP BitMap
+    _Out_ PRTL_BITMAP BitMap
     );
 
 VOID EtUpdateGpuNodeBitMap(
-    __in PRTL_BITMAP NewBitMap
+    _In_ PRTL_BITMAP NewBitMap
     );
 
 VOID EtQueryProcessGpuStatistics(
-    __in HANDLE ProcessHandle,
-    __out PET_PROCESS_GPU_STATISTICS Statistics
+    _In_ HANDLE ProcessHandle,
+    _Out_ PET_PROCESS_GPU_STATISTICS Statistics
     );
 
 // gpuprprp
 
 VOID EtProcessGpuPropertiesInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 // treeext
 
 VOID EtProcessTreeNewInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID EtProcessTreeNewMessage(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID EtNetworkTreeNewInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID EtNetworkTreeNewMessage(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 ET_FIREWALL_STATUS EtQueryFirewallStatus(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 // etwsys
 
 VOID EtEtwSystemInformationInitializing(
-    __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
 // gpunodes
 
 VOID EtShowGpuNodesDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_SYSINFO_PARAMETERS Parameters
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_SYSINFO_PARAMETERS Parameters
     );
 
 // gpusys
 
 VOID EtGpuSystemInformationInitializing(
-    __in PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
 // iconext
@@ -485,42 +485,42 @@ VOID EtRegisterNotifyIcons(
 // modsrv
 
 VOID EtShowModuleServicesDialog(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId,
-    __in PWSTR ModuleName
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PWSTR ModuleName
     );
 
 // objprp
 
 VOID EtHandlePropertiesInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 // options
 
 VOID EtShowOptionsDialog(
-    __in HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle
     );
 
 // thrdact
 
 BOOLEAN EtUiCancelIoThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread
     );
 
 // unldll
 
 VOID EtShowUnloadedDllsDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 // wswatch
 
 VOID EtShowWsWatchDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 #endif

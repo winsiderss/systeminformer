@@ -63,8 +63,8 @@ BOOLEAN PhProcessPropInitialization(
 }
 
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PPH_PROCESS_PROPCONTEXT propContext;
@@ -128,8 +128,8 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
 }
 
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_PROCESS_PROPCONTEXT propContext = (PPH_PROCESS_PROPCONTEXT)Object;
@@ -140,24 +140,24 @@ VOID NTAPI PhpProcessPropContextDeleteProcedure(
 }
 
 VOID PhRefreshProcessPropContext(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext
     )
 {
     PropContext->PropSheetHeader.hIcon = PropContext->ProcessItem->SmallIcon;
 }
 
 VOID PhSetSelectThreadIdProcessPropContext(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in HANDLE ThreadId
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ HANDLE ThreadId
     )
 {
     PropContext->SelectThreadId = ThreadId;
 }
 
 INT CALLBACK PhpPropSheetProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
     )
 {
 #define PROPSHEET_ADD_STYLE (WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
@@ -213,17 +213,17 @@ INT CALLBACK PhpPropSheetProc(
 }
 
 PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     return (PPH_PROCESS_PROPSHEETCONTEXT)GetProp(hwnd, PhMakeContextAtom());
 }
 
 LRESULT CALLBACK PhpPropSheetWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPH_PROCESS_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hwnd);
@@ -295,7 +295,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     PPH_PROCESS_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hwnd);
@@ -331,7 +331,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 }
 
 VOID PhpInitializePropSheetLayoutStage2(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     PH_RECTANGLE windowRectangle;
@@ -357,8 +357,8 @@ VOID PhpInitializePropSheetLayoutStage2(
 }
 
 BOOLEAN PhAddProcessPropPage(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in __assumeRefs(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ _Assume_refs_(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
@@ -384,8 +384,8 @@ BOOLEAN PhAddProcessPropPage(
 }
 
 BOOLEAN PhAddProcessPropPage2(
-    __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in HPROPSHEETPAGE PropSheetPageHandle
+    _Inout_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ HPROPSHEETPAGE PropSheetPageHandle
     )
 {
     if (PropContext->PropSheetHeader.nPages == PH_PROCESS_PROPCONTEXT_MAXPAGES)
@@ -399,19 +399,19 @@ BOOLEAN PhAddProcessPropPage2(
 }
 
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
-    __in LPCWSTR Template,
-    __in DLGPROC DlgProc,
-    __in_opt PVOID Context
+    _In_ LPCWSTR Template,
+    _In_ DLGPROC DlgProc,
+    _In_opt_ PVOID Context
     )
 {
     return PhCreateProcessPropPageContextEx(NULL, Template, DlgProc, Context);
 }
 
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
-    __in_opt PVOID InstanceHandle,
-    __in LPCWSTR Template,
-    __in DLGPROC DlgProc,
-    __in_opt PVOID Context
+    _In_opt_ PVOID InstanceHandle,
+    _In_ LPCWSTR Template,
+    _In_ DLGPROC DlgProc,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
@@ -441,8 +441,8 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
 }
 
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_PROCESS_PROPPAGECONTEXT propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)Object;
@@ -452,9 +452,9 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
 }
 
 INT CALLBACK PhpStandardPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     )
 {
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
@@ -470,12 +470,12 @@ INT CALLBACK PhpStandardPropPageProc(
 }
 
 FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam,
-    __out LPPROPSHEETPAGE *PropSheetPage,
-    __out PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
-    __out PPH_PROCESS_ITEM *ProcessItem
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam,
+    _Out_ LPPROPSHEETPAGE *PropSheetPage,
+    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    _Out_ PPH_PROCESS_ITEM *ProcessItem
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -500,36 +500,36 @@ FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
 }
 
 BOOLEAN PhPropPageDlgProcHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam,
-    __out LPPROPSHEETPAGE *PropSheetPage,
-    __out PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
-    __out PPH_PROCESS_ITEM *ProcessItem
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam,
+    _Out_ LPPROPSHEETPAGE *PropSheetPage,
+    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    _Out_ PPH_PROCESS_ITEM *ProcessItem
     )
 {
     return PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, PropSheetPage, PropPageContext, ProcessItem);
 }
 
 VOID PhpPropPageDlgProcDestroy(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     RemoveProp(hwndDlg, PhMakeContextAtom());
 }
 
 VOID PhPropPageDlgProcDestroy(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     PhpPropPageDlgProcDestroy(hwndDlg);
 }
 
 PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
-    __in HWND hwnd,
-    __in HWND Handle,
-    __in PPH_LAYOUT_ITEM ParentItem,
-    __in ULONG Anchor
+    _In_ HWND hwnd,
+    _In_ HWND Handle,
+    _In_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
     )
 {
     HWND parent;
@@ -590,7 +590,7 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
 }
 
 VOID PhDoPropPageLayout(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     HWND parent;
@@ -602,16 +602,16 @@ VOID PhDoPropPageLayout(
 }
 
 NTSTATUS PhpProcessGeneralOpenProcess(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
-    __in PPH_STRING String
+    _In_ PPH_STRING String
     )
 {
     if (String)
@@ -621,8 +621,8 @@ FORCEINLINE PWSTR PhpGetStringOrNa(
 }
 
 VOID PhpUpdateProcessDep(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     HANDLE processHandle;
@@ -679,10 +679,10 @@ VOID PhpUpdateProcessDep(
 }
 
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -1175,8 +1175,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 }
 
 static VOID NTAPI StatisticsUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_STATISTICS_CONTEXT statisticsContext = (PPH_STATISTICS_CONTEXT)Context;
@@ -1186,9 +1186,9 @@ static VOID NTAPI StatisticsUpdateHandler(
 }
 
 VOID PhpUpdateProcessStatistics(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_STATISTICS_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_STATISTICS_CONTEXT Context
     )
 {
     WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1];
@@ -1353,10 +1353,10 @@ VOID PhpUpdateProcessStatistics(
 }
 
 INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -1471,8 +1471,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 }
 
 static VOID NTAPI PerformanceUpdateHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PERFORMANCE_CONTEXT performanceContext = (PPH_PERFORMANCE_CONTEXT)Context;
@@ -1481,10 +1481,10 @@ static VOID NTAPI PerformanceUpdateHandler(
 }
 
 INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -1926,8 +1926,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 }
 
 static VOID NTAPI ThreadAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1943,8 +1943,8 @@ static VOID NTAPI ThreadAddedHandler(
 }
 
 static VOID NTAPI ThreadModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1953,8 +1953,8 @@ static VOID NTAPI ThreadModifiedHandler(
 }
 
 static VOID NTAPI ThreadRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1963,8 +1963,8 @@ static VOID NTAPI ThreadRemovedHandler(
 }
 
 static VOID NTAPI ThreadsUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1973,8 +1973,8 @@ static VOID NTAPI ThreadsUpdatedHandler(
 }
 
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1989,10 +1989,10 @@ static VOID NTAPI ThreadsLoadingStateChangedHandler(
 }
 
 VOID PhpInitializeThreadMenu(
-    __in PPH_EMENU Menu,
-    __in HANDLE ProcessId,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ PPH_EMENU Menu,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     )
 {
     PPH_EMENU_ITEM item;
@@ -2211,18 +2211,18 @@ VOID PhpInitializeThreadMenu(
 }
 
 static NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
 }
 
 static NTSTATUS NTAPI PhpOpenThreadTokenObject(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     return PhOpenThreadToken(
@@ -2234,9 +2234,9 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
 }
 
 VOID PhpUpdateThreadDetails(
-    __in HWND hwndDlg,
-    __in PPH_THREADS_CONTEXT Context,
-    __in BOOLEAN Force
+    _In_ HWND hwndDlg,
+    _In_ PPH_THREADS_CONTEXT Context,
+    _In_ BOOLEAN Force
     )
 {
     PPH_THREAD_ITEM *threads;
@@ -2353,10 +2353,10 @@ VOID PhpUpdateThreadDetails(
 }
 
 VOID PhShowThreadContextMenu(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_THREADS_CONTEXT Context,
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_THREADS_CONTEXT Context,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_THREAD_ITEM *threads;
@@ -2418,10 +2418,10 @@ VOID PhShowThreadContextMenu(
 }
 
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -3059,9 +3059,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 }
 
 static NTSTATUS NTAPI PhpOpenProcessToken(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -3081,10 +3081,10 @@ static NTSTATUS NTAPI PhpOpenProcessToken(
 }
 
 INT_PTR CALLBACK PhpProcessTokenHookProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -3153,8 +3153,8 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
 }
 
 static VOID NTAPI ModuleAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
@@ -3170,8 +3170,8 @@ static VOID NTAPI ModuleAddedHandler(
 }
 
 static VOID NTAPI ModuleModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
@@ -3180,8 +3180,8 @@ static VOID NTAPI ModuleModifiedHandler(
 }
 
 static VOID NTAPI ModuleRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
@@ -3190,8 +3190,8 @@ static VOID NTAPI ModuleRemovedHandler(
 }
 
 static VOID NTAPI ModulesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
@@ -3200,10 +3200,10 @@ static VOID NTAPI ModulesUpdatedHandler(
 }
 
 VOID PhpInitializeModuleMenu(
-    __in PPH_EMENU Menu,
-    __in HANDLE ProcessId,
-    __in PPH_MODULE_ITEM *Modules,
-    __in ULONG NumberOfModules
+    _In_ PPH_EMENU Menu,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MODULE_ITEM *Modules,
+    _In_ ULONG NumberOfModules
     )
 {
     PPH_EMENU_ITEM item;
@@ -3235,10 +3235,10 @@ VOID PhpInitializeModuleMenu(
 }
 
 VOID PhShowModuleContextMenu(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_MODULES_CONTEXT Context,
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_MODULES_CONTEXT Context,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_MODULE_ITEM *modules;
@@ -3300,10 +3300,10 @@ VOID PhShowModuleContextMenu(
 }
 
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -3606,8 +3606,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 }
 
 VOID PhpRefreshProcessMemoryList(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     )
 {
     PPH_MEMORY_CONTEXT memoryContext = PropPageContext->Context;
@@ -3625,8 +3625,8 @@ VOID PhpRefreshProcessMemoryList(
 }
 
 BOOLEAN NTAPI PhpProcessMemoryCallback(
-    __in PPH_MEMORY_PROVIDER Provider,
-    __in __assumeRefs(1) PPH_MEMORY_ITEM MemoryItem
+    _In_ PPH_MEMORY_PROVIDER Provider,
+    _In_ _Assume_refs_(1) PPH_MEMORY_ITEM MemoryItem
     )
 {
     PPH_PROCESS_PROPPAGECONTEXT propPageContext = Provider->Context;
@@ -3692,8 +3692,8 @@ BOOLEAN NTAPI PhpProcessMemoryCallback(
 }
 
 VOID PhpUpdateMemoryItemInListView(
-    __in HANDLE ListViewHandle,
-    __in PPH_MEMORY_ITEM MemoryItem
+    _In_ HANDLE ListViewHandle,
+    _In_ PPH_MEMORY_ITEM MemoryItem
     )
 {
     INT lvItemIndex;
@@ -3710,9 +3710,9 @@ VOID PhpUpdateMemoryItemInListView(
 }
 
 INT NTAPI PhpMemoryAddressCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MEMORY_ITEM item1 = Item1;
@@ -3722,9 +3722,9 @@ INT NTAPI PhpMemoryAddressCompareFunction(
 }
 
 INT NTAPI PhpMemorySizeCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MEMORY_ITEM item1 = Item1;
@@ -3734,10 +3734,10 @@ INT NTAPI PhpMemorySizeCompareFunction(
 }
 
 VOID PhpInitializeMemoryMenu(
-    __in PPH_EMENU Menu,
-    __in HANDLE ProcessId,
-    __in PPH_MEMORY_ITEM *MemoryItems,
-    __in ULONG NumberOfMemoryItems
+    _In_ PPH_EMENU Menu,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MEMORY_ITEM *MemoryItems,
+    _In_ ULONG NumberOfMemoryItems
     )
 {
     if (NumberOfMemoryItems == 0)
@@ -3768,10 +3768,10 @@ VOID PhpInitializeMemoryMenu(
 }
 
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -4191,10 +4191,10 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 }
 
 INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -4311,8 +4311,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 }
 
 static VOID NTAPI HandleAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -4328,8 +4328,8 @@ static VOID NTAPI HandleAddedHandler(
 }
 
 static VOID NTAPI HandleModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -4338,8 +4338,8 @@ static VOID NTAPI HandleModifiedHandler(
 }
 
 static VOID NTAPI HandleRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -4348,8 +4348,8 @@ static VOID NTAPI HandleRemovedHandler(
 }
 
 static VOID NTAPI HandlesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -4358,10 +4358,10 @@ static VOID NTAPI HandlesUpdatedHandler(
 }
 
 static NTSTATUS PhpDuplicateHandleFromProcessItem(
-    __out PHANDLE NewHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in HANDLE ProcessId,
-    __in HANDLE Handle
+    _Out_ PHANDLE NewHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE Handle
     )
 {
     NTSTATUS status;
@@ -4389,7 +4389,7 @@ static NTSTATUS PhpDuplicateHandleFromProcessItem(
 }
 
 static VOID PhpShowProcessPropContext(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PhShowProcessProperties(Parameter);
@@ -4397,10 +4397,10 @@ static VOID PhpShowProcessPropContext(
 }
 
 VOID PhInsertHandleObjectPropertiesEMenuItems(
-    __in struct _PH_EMENU_ITEM *Menu,
-    __in ULONG InsertBeforeId,
-    __in BOOLEAN EnableShortcut,
-    __in PPH_HANDLE_ITEM_INFO Info
+    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ ULONG InsertBeforeId,
+    _In_ BOOLEAN EnableShortcut,
+    _In_ PPH_HANDLE_ITEM_INFO Info
     )
 {
     PPH_EMENU_ITEM parentItem;
@@ -4430,8 +4430,8 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
 }
 
 VOID PhShowHandleObjectProperties1(
-    __in HWND hWnd,
-    __in PPH_HANDLE_ITEM_INFO Info
+    _In_ HWND hWnd,
+    _In_ PPH_HANDLE_ITEM_INFO Info
     )
 {
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
@@ -4590,8 +4590,8 @@ VOID PhShowHandleObjectProperties1(
 }
 
 VOID PhShowHandleObjectProperties2(
-    __in HWND hWnd,
-    __in PPH_HANDLE_ITEM_INFO Info
+    _In_ HWND hWnd,
+    _In_ PPH_HANDLE_ITEM_INFO Info
     )
 {
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
@@ -4605,11 +4605,11 @@ VOID PhShowHandleObjectProperties2(
 }
 
 VOID PhpInitializeHandleMenu(
-    __in PPH_EMENU Menu,
-    __in HANDLE ProcessId,
-    __in PPH_HANDLE_ITEM *Handles,
-    __in ULONG NumberOfHandles,
-    __inout PPH_HANDLES_CONTEXT HandlesContext
+    _In_ PPH_EMENU Menu,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM *Handles,
+    _In_ ULONG NumberOfHandles,
+    _Inout_ PPH_HANDLES_CONTEXT HandlesContext
     )
 {
     PPH_EMENU_ITEM item;
@@ -4667,10 +4667,10 @@ VOID PhpInitializeHandleMenu(
 }
 
 VOID PhShowHandleContextMenu(
-    __in HWND hwndDlg,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_HANDLES_CONTEXT Context,
-    __in PPH_TREENEW_CONTEXT_MENU ContextMenu
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_HANDLES_CONTEXT Context,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
     PPH_HANDLE_ITEM *handles;
@@ -4732,10 +4732,10 @@ VOID PhShowHandleContextMenu(
 }
 
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -5066,9 +5066,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 }
 
 static NTSTATUS NTAPI PhpOpenProcessJob(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in_opt PVOID Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
@@ -5098,10 +5098,10 @@ static NTSTATUS NTAPI PhpOpenProcessJob(
 }
 
 INT_PTR CALLBACK PhpProcessJobHookProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -5146,8 +5146,8 @@ INT_PTR CALLBACK PhpProcessJobHookProc(
 }
 
 static VOID PhpLayoutServiceListControl(
-    __in HWND hwndDlg,
-    __in HWND ServiceListHandle
+    _In_ HWND hwndDlg,
+    _In_ HWND ServiceListHandle
     )
 {
     RECT rect;
@@ -5166,10 +5166,10 @@ static VOID PhpLayoutServiceListControl(
 }
 
 INT_PTR CALLBACK PhpProcessServicesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LPPROPSHEETPAGE propSheetPage;
@@ -5258,7 +5258,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 }
 
 NTSTATUS PhpProcessPropertiesThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PH_AUTO_POOL autoPool;
@@ -5432,7 +5432,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 }
 
 BOOLEAN PhShowProcessProperties(
-    __in PPH_PROCESS_PROPCONTEXT Context
+    _In_ PPH_PROCESS_PROPCONTEXT Context
     )
 {
     HANDLE threadHandle;

@@ -26,7 +26,7 @@
 #ifdef _M_X64
 
 NTSTATUS KphInitializeDynamicPackage(
-    __out PKPH_DYN_PACKAGE Package
+    _Out_ PKPH_DYN_PACKAGE Package
     )
 {
     ULONG majorVersion, minorVersion, servicePack, buildNumber;
@@ -147,7 +147,7 @@ NTSTATUS KphInitializeDynamicPackage(
 #else
 
 NTSTATUS KphInitializeDynamicPackage(
-    __out PKPH_DYN_PACKAGE Package
+    _Out_ PKPH_DYN_PACKAGE Package
     )
 {
     ULONG majorVersion, minorVersion, servicePack, buildNumber;

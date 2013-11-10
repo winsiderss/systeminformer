@@ -4,12 +4,12 @@
 #include "db.h"
 
 BOOLEAN NTAPI ObjectDbCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG NTAPI ObjectDbHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 PPH_HASHTABLE ObjectDb;
@@ -36,8 +36,8 @@ VOID InitializeDb(
  * \param Count The number of characters to hash.
  */
 FORCEINLINE ULONG HashStringIgnoreCase(
-    __in PWSTR String,
-    __in SIZE_T Count
+    _In_ PWSTR String,
+    _In_ SIZE_T Count
     )
 {
     ULONG hash = (ULONG)Count;
@@ -55,8 +55,8 @@ FORCEINLINE ULONG HashStringIgnoreCase(
 }
 
 BOOLEAN NTAPI ObjectDbCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PDB_OBJECT object1 = *(PDB_OBJECT *)Entry1;
@@ -66,7 +66,7 @@ BOOLEAN NTAPI ObjectDbCompareFunction(
 }
 
 ULONG NTAPI ObjectDbHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PDB_OBJECT object = *(PDB_OBJECT *)Entry;
@@ -96,8 +96,8 @@ VOID UnlockDb(
 }
 
 PDB_OBJECT FindDbObject(
-    __in ULONG Tag,
-    __in PPH_STRINGREF Name
+    _In_ ULONG Tag,
+    _In_ PPH_STRINGREF Name
     )
 {
     DB_OBJECT lookupObject;
@@ -117,9 +117,9 @@ PDB_OBJECT FindDbObject(
 }
 
 PDB_OBJECT CreateDbObject(
-    __in ULONG Tag,
-    __in PPH_STRINGREF Name,
-    __in_opt PPH_STRING Comment
+    _In_ ULONG Tag,
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ PPH_STRING Comment
     )
 {
     PDB_OBJECT object;
@@ -161,7 +161,7 @@ PDB_OBJECT CreateDbObject(
 }
 
 VOID DeleteDbObject(
-    __in PDB_OBJECT Object
+    _In_ PDB_OBJECT Object
     )
 {
     PhRemoveEntryHashtable(ObjectDb, &Object);
@@ -172,21 +172,21 @@ VOID DeleteDbObject(
 }
 
 VOID SetDbPath(
-    __in PPH_STRING Path
+    _In_ PPH_STRING Path
     )
 {
     PhSwapReference(&ObjectDbPath, Path);
 }
 
 mxml_type_t MxmlLoadCallback(
-    __in mxml_node_t *node
+    _In_ mxml_node_t *node
     )
 {
     return MXML_OPAQUE;
 }
 
 PPH_STRING GetOpaqueXmlNodeText(
-    __in mxml_node_t *node
+    _In_ mxml_node_t *node
     )
 {
     if (node->child && node->child->type == MXML_OPAQUE && node->child->value.opaque)
@@ -301,8 +301,8 @@ NTSTATUS LoadDb(
 }
 
 char *MxmlSaveCallback(
-    __in mxml_node_t *node,
-    __in int position
+    _In_ mxml_node_t *node,
+    _In_ int position
     )
 {
     if (STR_IEQUAL(node->value.element.name, "object"))
@@ -322,11 +322,11 @@ char *MxmlSaveCallback(
 }
 
 mxml_node_t *CreateObjectElement(
-    __inout mxml_node_t *ParentNode,
-    __in PPH_STRINGREF Tag,
-    __in PPH_STRINGREF Name,
-    __in PPH_STRINGREF PriorityClass,
-    __in PPH_STRINGREF Comment
+    _Inout_ mxml_node_t *ParentNode,
+    _In_ PPH_STRINGREF Tag,
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF PriorityClass,
+    _In_ PPH_STRINGREF Comment
     )
 {
     mxml_node_t *objectNode;

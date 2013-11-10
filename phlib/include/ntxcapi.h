@@ -5,8 +5,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDispatchException(
-    __in PEXCEPTION_RECORD ExceptionRecord,
-    __in PCONTEXT ContextRecord
+    _In_ PEXCEPTION_RECORD ExceptionRecord,
+    _In_ PCONTEXT ContextRecord
     );
 
 NTSYSAPI
@@ -14,31 +14,31 @@ DECLSPEC_NORETURN
 VOID
 NTAPI
 RtlRaiseStatus(
-    __in NTSTATUS Status
+    _In_ NTSTATUS Status
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlRaiseException(
-    __in PEXCEPTION_RECORD ExceptionRecord
+    _In_ PEXCEPTION_RECORD ExceptionRecord
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtContinue(
-    __in PCONTEXT ContextRecord,
-    __in BOOLEAN TestAlert
+    _In_ PCONTEXT ContextRecord,
+    _In_ BOOLEAN TestAlert
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRaiseException(
-    __in PEXCEPTION_RECORD ExceptionRecord,
-    __in PCONTEXT ContextRecord,
-    __in BOOLEAN FirstChance
+    _In_ PEXCEPTION_RECORD ExceptionRecord,
+    _In_ PCONTEXT ContextRecord,
+    _In_ BOOLEAN FirstChance
     );
 
 #endif

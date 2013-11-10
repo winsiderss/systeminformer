@@ -75,8 +75,8 @@ VOID PhGuiSupportInitialization(
 }
 
 VOID PhSetControlTheme(
-    __in HWND Handle,
-    __in PWSTR Theme
+    _In_ HWND Handle,
+    _In_ PWSTR Theme
     )
 {
     if (WindowsVersion >= WINDOWS_VISTA)
@@ -87,8 +87,8 @@ VOID PhSetControlTheme(
 }
 
 HWND PhCreateListViewControl(
-    __in HWND ParentHandle,
-    __in INT_PTR Id
+    _In_ HWND ParentHandle,
+    _In_ INT_PTR Id
     )
 {
     return CreateWindow(
@@ -107,13 +107,13 @@ HWND PhCreateListViewControl(
 }
 
 INT PhAddListViewColumn(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in INT DisplayIndex,
-    __in INT SubItemIndex,
-    __in INT Format,
-    __in INT Width,
-    __in PWSTR Text
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ INT DisplayIndex,
+    _In_ INT SubItemIndex,
+    _In_ INT Format,
+    _In_ INT Width,
+    _In_ PWSTR Text
     )
 {
     LVCOLUMN column;
@@ -129,10 +129,10 @@ INT PhAddListViewColumn(
 }
 
 INT PhAddListViewItem(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in PWSTR Text,
-    __in_opt PVOID Param
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
     )
 {
     LVITEM item;
@@ -147,18 +147,18 @@ INT PhAddListViewItem(
 }
 
 INT PhFindListViewItemByFlags(
-    __in HWND ListViewHandle,
-    __in INT StartIndex,
-    __in ULONG Flags
+    _In_ HWND ListViewHandle,
+    _In_ INT StartIndex,
+    _In_ ULONG Flags
     )
 {
     return ListView_GetNextItem(ListViewHandle, StartIndex, Flags);
 }
 
 INT PhFindListViewItemByParam(
-    __in HWND ListViewHandle,
-    __in INT StartIndex,
-    __in_opt PVOID Param
+    _In_ HWND ListViewHandle,
+    _In_ INT StartIndex,
+    _In_opt_ PVOID Param
     )
 {
     LVFINDINFO findInfo;
@@ -170,9 +170,9 @@ INT PhFindListViewItemByParam(
 }
 
 LOGICAL PhGetListViewItemImageIndex(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __out PINT ImageIndex
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _Out_ PINT ImageIndex
     )
 {
     LOGICAL result;
@@ -193,9 +193,9 @@ LOGICAL PhGetListViewItemImageIndex(
 }
 
 LOGICAL PhGetListViewItemParam(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __out PVOID *Param
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _Out_ PVOID *Param
     )
 {
     LOGICAL result;
@@ -216,17 +216,17 @@ LOGICAL PhGetListViewItemParam(
 }
 
 VOID PhRemoveListViewItem(
-    __in HWND ListViewHandle,
-    __in INT Index
+    _In_ HWND ListViewHandle,
+    _In_ INT Index
     )
 {
     ListView_DeleteItem(ListViewHandle, Index);
 }
 
 VOID PhSetListViewItemImageIndex(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in INT ImageIndex
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ INT ImageIndex
     )
 {
     LVITEM item;
@@ -240,9 +240,9 @@ VOID PhSetListViewItemImageIndex(
 }
 
 VOID PhSetListViewItemStateImage(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in INT StateImage
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ INT StateImage
     )
 {
     LVITEM item;
@@ -257,10 +257,10 @@ VOID PhSetListViewItemStateImage(
 }
 
 VOID PhSetListViewSubItem(
-    __in HWND ListViewHandle,
-    __in INT Index,
-    __in INT SubItemIndex,
-    __in PWSTR Text
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ INT SubItemIndex,
+    _In_ PWSTR Text
     )
 {
     LVITEM item;
@@ -274,8 +274,8 @@ VOID PhSetListViewSubItem(
 }
 
 BOOLEAN PhLoadListViewColumnSettings(
-    __in HWND ListViewHandle,
-    __in PPH_STRING Settings
+    _In_ HWND ListViewHandle,
+    _In_ PPH_STRING Settings
     )
 {
 #define ORDER_LIMIT 50
@@ -354,7 +354,7 @@ BOOLEAN PhLoadListViewColumnSettings(
 }
 
 PPH_STRING PhSaveListViewColumnSettings(
-    __in HWND ListViewHandle
+    _In_ HWND ListViewHandle
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -383,7 +383,7 @@ PPH_STRING PhSaveListViewColumnSettings(
 }
 
 HWND PhCreateTabControl(
-    __in HWND ParentHandle
+    _In_ HWND ParentHandle
     )
 {
     HWND tabControlHandle;
@@ -406,9 +406,9 @@ HWND PhCreateTabControl(
 }
 
 INT PhAddTabControlTab(
-    __in HWND TabControlHandle,
-    __in INT Index,
-    __in PWSTR Text
+    _In_ HWND TabControlHandle,
+    _In_ INT Index,
+    _In_ PWSTR Text
     )
 {
     TCITEM item;
@@ -420,7 +420,7 @@ INT PhAddTabControlTab(
 }
 
 PPH_STRING PhGetWindowText(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     PPH_STRING string;
@@ -445,9 +445,9 @@ PPH_STRING PhGetWindowText(
 }
 
 VOID PhAddComboBoxStrings(
-    __in HWND hWnd,
-    __in PWSTR *Strings,
-    __in ULONG NumberOfStrings
+    _In_ HWND hWnd,
+    _In_ PWSTR *Strings,
+    _In_ ULONG NumberOfStrings
     )
 {
     ULONG i;
@@ -457,8 +457,8 @@ VOID PhAddComboBoxStrings(
 }
 
 PPH_STRING PhGetComboBoxString(
-    __in HWND hwnd,
-    __in INT Index
+    _In_ HWND hwnd,
+    _In_ INT Index
     )
 {
     PPH_STRING string;
@@ -493,9 +493,9 @@ PPH_STRING PhGetComboBoxString(
 }
 
 INT PhSelectComboBoxString(
-    __in HWND hwnd,
-    __in PWSTR String,
-    __in BOOLEAN Partial
+    _In_ HWND hwnd,
+    _In_ PWSTR String,
+    _In_ BOOLEAN Partial
     )
 {
     if (Partial)
@@ -518,8 +518,8 @@ INT PhSelectComboBoxString(
 }
 
 PPH_STRING PhGetListBoxString(
-    __in HWND hwnd,
-    __in INT Index
+    _In_ HWND hwnd,
+    _In_ INT Index
     )
 {
     PPH_STRING string;
@@ -554,10 +554,10 @@ PPH_STRING PhGetListBoxString(
 }
 
 VOID PhShowContextMenu(
-    __in HWND hwnd,
-    __in HWND subHwnd,
-    __in HMENU menu,
-    __in POINT point
+    _In_ HWND hwnd,
+    _In_ HWND subHwnd,
+    _In_ HMENU menu,
+    _In_ POINT point
     )
 {
     TrackPopupMenu(
@@ -572,10 +572,10 @@ VOID PhShowContextMenu(
 }
 
 UINT PhShowContextMenu2(
-    __in HWND hwnd,
-    __in HWND subHwnd,
-    __in HMENU menu,
-    __in POINT point
+    _In_ HWND hwnd,
+    _In_ HWND subHwnd,
+    _In_ HMENU menu,
+    _In_ POINT point
     )
 {
     return (UINT)TrackPopupMenu(
@@ -590,10 +590,10 @@ UINT PhShowContextMenu2(
 }
 
 VOID PhSetMenuItemBitmap(
-    __in HMENU Menu,
-    __in ULONG Item,
-    __in BOOLEAN ByPosition,
-    __in HBITMAP Bitmap
+    _In_ HMENU Menu,
+    _In_ ULONG Item,
+    _In_ BOOLEAN ByPosition,
+    _In_ HBITMAP Bitmap
     )
 {
     MENUITEMINFO info = { sizeof(info) };
@@ -605,9 +605,9 @@ VOID PhSetMenuItemBitmap(
 }
 
 VOID PhSetRadioCheckMenuItem(
-    __in HMENU Menu,
-    __in ULONG Id,
-    __in BOOLEAN RadioCheck
+    _In_ HMENU Menu,
+    _In_ ULONG Id,
+    _In_ BOOLEAN RadioCheck
     )
 {
     MENUITEMINFO info = { sizeof(info) };
@@ -624,17 +624,17 @@ VOID PhSetRadioCheckMenuItem(
 }
 
 VOID PhEnableMenuItem(
-    __in HMENU Menu,
-    __in ULONG Id,
-    __in BOOLEAN Enable
+    _In_ HMENU Menu,
+    _In_ ULONG Id,
+    _In_ BOOLEAN Enable
     )
 {
     EnableMenuItem(Menu, Id, Enable ? MF_ENABLED : (MF_DISABLED | MF_GRAYED));
 }
 
 VOID PhEnableAllMenuItems(
-    __in HMENU Menu,
-    __in BOOLEAN Enable
+    _In_ HMENU Menu,
+    _In_ BOOLEAN Enable
     )
 {
     ULONG i;
@@ -660,9 +660,9 @@ VOID PhEnableAllMenuItems(
 }
 
 VOID PhSetStateAllListViewItems(
-    __in HWND hWnd,
-    __in ULONG State,
-    __in ULONG Mask
+    _In_ HWND hWnd,
+    _In_ ULONG State,
+    _In_ ULONG Mask
     )
 {
     ULONG i;
@@ -680,7 +680,7 @@ VOID PhSetStateAllListViewItems(
 }
 
 PVOID PhGetSelectedListViewItemParam(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     INT index;
@@ -708,9 +708,9 @@ PVOID PhGetSelectedListViewItemParam(
 }
 
 VOID PhGetSelectedListViewItemParams(
-    __in HWND hWnd,
-    __out PVOID **Items,
-    __out PULONG NumberOfItems
+    _In_ HWND hWnd,
+    _Out_ PVOID **Items,
+    _Out_ PULONG NumberOfItems
     )
 {
     PPH_LIST list;
@@ -743,10 +743,10 @@ VOID PhGetSelectedListViewItemParams(
 }
 
 VOID PhSetImageListBitmap(
-    __in HIMAGELIST ImageList,
-    __in INT Index,
-    __in HINSTANCE InstanceHandle,
-    __in LPCWSTR BitmapName
+    _In_ HIMAGELIST ImageList,
+    _In_ INT Index,
+    _In_ HINSTANCE InstanceHandle,
+    _In_ LPCWSTR BitmapName
     )
 {
     HBITMAP bitmap;
@@ -769,8 +769,8 @@ VOID PhSetImageListBitmap(
  * Do not destroy the icon using DestroyIcon(); it is shared between callers.
  */
 VOID PhGetStockApplicationIcon(
-    __out_opt HICON *SmallIcon,
-    __out_opt HICON *LargeIcon
+    _Out_opt_ HICON *SmallIcon,
+    _Out_opt_ HICON *LargeIcon
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -833,9 +833,9 @@ VOID PhGetStockApplicationIcon(
 }
 
 HICON PhGetFileShellIcon(
-    __in_opt PWSTR FileName,
-    __in_opt PWSTR DefaultExtension,
-    __in BOOLEAN LargeIcon
+    _In_opt_ PWSTR FileName,
+    _In_opt_ PWSTR DefaultExtension,
+    _In_ BOOLEAN LargeIcon
     )
 {
     SHFILEINFO fileInfo;
@@ -903,9 +903,9 @@ HICON PhGetFileShellIcon(
 }
 
 VOID PhpSetClipboardData(
-    __in HWND hWnd,
-    __in ULONG Format,
-    __in HANDLE Data
+    _In_ HWND hWnd,
+    _In_ ULONG Format,
+    _In_ HANDLE Data
     )
 {
     if (OpenClipboard(hWnd))
@@ -926,17 +926,17 @@ Fail:
 }
 
 VOID PhSetClipboardString(
-    __in HWND hWnd,
-    __in PPH_STRINGREF String
+    _In_ HWND hWnd,
+    _In_ PPH_STRINGREF String
     )
 {
     PhSetClipboardStringEx(hWnd, String->Buffer, String->Length);
 }
 
 VOID PhSetClipboardStringEx(
-    __in HWND hWnd,
-    __in PWSTR Buffer,
-    __in SIZE_T Length
+    _In_ HWND hWnd,
+    _In_ PWSTR Buffer,
+    _In_ SIZE_T Length
     )
 {
     HANDLE data;
@@ -954,8 +954,8 @@ VOID PhSetClipboardStringEx(
 }
 
 VOID PhInitializeLayoutManager(
-    __out PPH_LAYOUT_MANAGER Manager,
-    __in HWND RootWindowHandle
+    _Out_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND RootWindowHandle
     )
 {
     Manager->List = PhCreateList(4);
@@ -972,7 +972,7 @@ VOID PhInitializeLayoutManager(
 }
 
 VOID PhDeleteLayoutManager(
-    __inout PPH_LAYOUT_MANAGER Manager
+    _Inout_ PPH_LAYOUT_MANAGER Manager
     )
 {
     ULONG i;
@@ -987,10 +987,10 @@ VOID PhDeleteLayoutManager(
 // controls.
 
 PPH_LAYOUT_ITEM PhAddLayoutItem(
-    __inout PPH_LAYOUT_MANAGER Manager,
-    __in HWND Handle,
-    __in_opt PPH_LAYOUT_ITEM ParentItem,
-    __in ULONG Anchor
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
     )
 {
     PPH_LAYOUT_ITEM layoutItem;
@@ -1021,11 +1021,11 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
 }
 
 PPH_LAYOUT_ITEM PhAddLayoutItemEx(
-    __inout PPH_LAYOUT_MANAGER Manager,
-    __in HWND Handle,
-    __in_opt PPH_LAYOUT_ITEM ParentItem,
-    __in ULONG Anchor,
-    __in RECT Margin
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor,
+    _In_ RECT Margin
     )
 {
     PPH_LAYOUT_ITEM item;
@@ -1070,8 +1070,8 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
 }
 
 VOID PhpLayoutItemLayout(
-    __inout PPH_LAYOUT_MANAGER Manager,
-    __inout PPH_LAYOUT_ITEM Item
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _Inout_ PPH_LAYOUT_ITEM Item
     )
 {
     RECT rect;
@@ -1187,7 +1187,7 @@ VOID PhpLayoutItemLayout(
 }
 
 VOID PhLayoutManagerLayout(
-    __inout PPH_LAYOUT_MANAGER Manager
+    _Inout_ PPH_LAYOUT_MANAGER Manager
     )
 {
     ULONG i;

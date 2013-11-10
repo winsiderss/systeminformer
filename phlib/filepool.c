@@ -91,10 +91,10 @@
  * \param Parameters Parameters for on-disk and runtime structures.
  */
 NTSTATUS PhCreateFilePool(
-    __out PPH_FILE_POOL *Pool,
-    __in HANDLE FileHandle,
-    __in BOOLEAN ReadOnly,
-    __in_opt PPH_FILE_POOL_PARAMETERS Parameters
+    _Out_ PPH_FILE_POOL *Pool,
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN ReadOnly,
+    _In_opt_ PPH_FILE_POOL_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
@@ -263,12 +263,12 @@ CleanupExit:
  * \param Parameters Parameters for on-disk and runtime structures.
  */
 NTSTATUS PhCreateFilePool2(
-    __out PPH_FILE_POOL *Pool,
-    __in PWSTR FileName,
-    __in BOOLEAN ReadOnly,
-    __in ULONG ShareAccess,
-    __in ULONG CreateDisposition,
-    __in_opt PPH_FILE_POOL_PARAMETERS Parameters
+    _Out_ PPH_FILE_POOL *Pool,
+    _In_ PWSTR FileName,
+    _In_ BOOLEAN ReadOnly,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_opt_ PPH_FILE_POOL_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
@@ -319,7 +319,7 @@ NTSTATUS PhCreateFilePool2(
  * \param Pool The file pool.
  */
 VOID PhDestroyFilePool(
-    __in __post_invalid PPH_FILE_POOL Pool
+    _In_ _Post_invalid_ PPH_FILE_POOL Pool
     )
 {
     ULONG i;
@@ -364,7 +364,7 @@ VOID PhDestroyFilePool(
  * and modified if necessary.
  */
 NTSTATUS PhpValidateFilePoolParameters(
-    __inout PPH_FILE_POOL_PARAMETERS Parameters
+    _Inout_ PPH_FILE_POOL_PARAMETERS Parameters
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -393,7 +393,7 @@ NTSTATUS PhpValidateFilePoolParameters(
  * the default parameter values.
  */
 VOID PhpSetDefaultFilePoolParameters(
-    __out PPH_FILE_POOL_PARAMETERS Parameters
+    _Out_ PPH_FILE_POOL_PARAMETERS Parameters
     )
 {
     Parameters->SegmentShift = 18; // 256kB
@@ -417,9 +417,9 @@ VOID PhpSetDefaultFilePoolParameters(
  * if you need a permanent reference to the allocated block.
  */
 PVOID PhAllocateFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Size,
-    __out_opt PULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Size,
+    _Out_opt_ PULONG Rva
     )
 {
     PPH_FP_BLOCK_HEADER blockHeader;
@@ -515,10 +515,10 @@ BlockAllocated:
  * \param Block A pointer to the block.
  */
 VOID PhpFreeFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG SegmentIndex,
-    __in PPH_FP_BLOCK_HEADER FirstBlock,
-    __in PVOID Block
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG SegmentIndex,
+    _In_ PPH_FP_BLOCK_HEADER FirstBlock,
+    _In_ PVOID Block
     )
 {
     PPH_FP_SEGMENT_HEADER segmentHeader;
@@ -547,8 +547,8 @@ VOID PhpFreeFilePool(
  * PhDereferenceFilePoolByRva().
  */
 VOID PhFreeFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Block
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Block
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -571,8 +571,8 @@ VOID PhFreeFilePool(
  * \param Rva The relative virtual address of the block.
  */
 BOOLEAN PhFreeFilePoolByRva(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Rva
     )
 {
     ULONG segmentIndex;
@@ -602,8 +602,8 @@ BOOLEAN PhFreeFilePoolByRva(
  * \param Address An address.
  */
 VOID PhReferenceFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Address
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Address
     )
 {
     PhFppReferenceSegmentByBase(Pool, Address);
@@ -616,8 +616,8 @@ VOID PhReferenceFilePool(
  * \param Address An address.
  */
 VOID PhDereferenceFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Address
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Address
     )
 {
     PhFppDereferenceSegmentByBase(Pool, Address);
@@ -631,8 +631,8 @@ VOID PhDereferenceFilePool(
  * \param Rva A relative virtual address.
  */
 PVOID PhReferenceFilePoolByRva(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Rva
     )
 {
     ULONG segmentIndex;
@@ -662,8 +662,8 @@ PVOID PhReferenceFilePoolByRva(
  * \param Rva A relative virtual address.
  */
 BOOLEAN PhDereferenceFilePoolByRva(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Rva
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Rva
     )
 {
     ULONG segmentIndex;
@@ -690,8 +690,8 @@ BOOLEAN PhDereferenceFilePoolByRva(
  * \remarks No reference counts are changed.
  */
 ULONG PhEncodeRvaFilePool(
-    __in PPH_FILE_POOL Pool,
-    __in PVOID Address
+    _In_ PPH_FILE_POOL Pool,
+    _In_ PVOID Address
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -714,8 +714,8 @@ ULONG PhEncodeRvaFilePool(
  * \param Context A variable which receives the user data.
  */
 VOID PhGetUserContextFilePool(
-    __in PPH_FILE_POOL Pool,
-    __out PULONGLONG Context
+    _In_ PPH_FILE_POOL Pool,
+    _Out_ PULONGLONG Context
     )
 {
     *Context = Pool->Header->UserContext;
@@ -728,8 +728,8 @@ VOID PhGetUserContextFilePool(
  * \param Context A variable which contains the user data.
  */
 VOID PhSetUserContextFilePool(
-    __inout PPH_FILE_POOL Pool,
-    __in PULONGLONG Context
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PULONGLONG Context
     )
 {
     Pool->Header->UserContext = *Context;
@@ -742,8 +742,8 @@ VOID PhSetUserContextFilePool(
  * \param NewSize The new size of the file, in bytes.
  */
 NTSTATUS PhFppExtendRange(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG NewSize
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG NewSize
     )
 {
     LARGE_INTEGER newSectionSize;
@@ -762,10 +762,10 @@ NTSTATUS PhFppExtendRange(
  * \param Base A variable which receives the base address of the view.
  */
 NTSTATUS PhFppMapRange(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG Offset,
-    __in ULONG Size,
-    __out PVOID *Base
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG Offset,
+    _In_ ULONG Size,
+    _Out_ PVOID *Base
     )
 {
     NTSTATUS status;
@@ -803,8 +803,8 @@ NTSTATUS PhFppMapRange(
  * \param Base The base address of the view.
  */
 NTSTATUS PhFppUnmapRange(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Base
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Base
     )
 {
     return NtUnmapViewOfSection(NtCurrentProcess(), Base);
@@ -820,9 +820,9 @@ NTSTATUS PhFppUnmapRange(
  * from the segment, excluding the blocks comprising the segment header.
  */
 VOID PhFppInitializeSegment(
-    __inout PPH_FILE_POOL Pool,
-    __out PPH_FP_BLOCK_HEADER BlockOfSegmentHeader,
-    __in ULONG AdditionalBlocksUsed
+    _Inout_ PPH_FILE_POOL Pool,
+    _Out_ PPH_FP_BLOCK_HEADER BlockOfSegmentHeader,
+    _In_ ULONG AdditionalBlocksUsed
     )
 {
     PPH_FP_SEGMENT_HEADER segmentHeader;
@@ -848,8 +848,8 @@ VOID PhFppInitializeSegment(
  * \return A pointer to the first block of the segment.
  */
 PPH_FP_BLOCK_HEADER PhFppAllocateSegment(
-    __inout PPH_FILE_POOL Pool,
-    __out PULONG NewSegmentIndex
+    _Inout_ PPH_FILE_POOL Pool,
+    _Out_ PULONG NewSegmentIndex
     )
 {
     ULONG newSize;
@@ -881,8 +881,8 @@ PPH_FP_BLOCK_HEADER PhFppAllocateSegment(
  * \param FirstBlock The first block of the segment.
  */
 PPH_FP_SEGMENT_HEADER PhFppGetHeaderSegment(
-    __inout PPH_FILE_POOL Pool,
-    __in PPH_FP_BLOCK_HEADER FirstBlock
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PPH_FP_BLOCK_HEADER FirstBlock
     )
 {
     if (FirstBlock != Pool->FirstBlockOfFirstSegment)
@@ -897,8 +897,8 @@ PPH_FP_SEGMENT_HEADER PhFppGetHeaderSegment(
 }
 
 VOID PhFppAddViewByIndex(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     ULONG index;
@@ -919,8 +919,8 @@ VOID PhFppAddViewByIndex(
 }
 
 VOID PhFppRemoveViewByIndex(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     ULONG index;
@@ -958,8 +958,8 @@ VOID PhFppRemoveViewByIndex(
  * present for the segment.
  */
 PPH_FILE_POOL_VIEW PhFppFindViewByIndex(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG SegmentIndex
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG SegmentIndex
     )
 {
     ULONG index;
@@ -989,8 +989,8 @@ PPH_FILE_POOL_VIEW PhFppFindViewByIndex(
 }
 
 LONG NTAPI PhpFilePoolViewByBaseCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     )
 {
     PPH_FILE_POOL_VIEW view1 = CONTAINING_RECORD(Links1, PH_FILE_POOL_VIEW, ByBaseLinks);
@@ -1000,16 +1000,16 @@ LONG NTAPI PhpFilePoolViewByBaseCompareFunction(
 }
 
 VOID PhFppAddViewByBase(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     PhAddElementAvlTree(&Pool->ByBaseSet, &View->ByBaseLinks);
 }
 
 VOID PhFppRemoveViewByBase(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     PhRemoveElementAvlTree(&Pool->ByBaseSet, &View->ByBaseLinks);
@@ -1025,8 +1025,8 @@ VOID PhFppRemoveViewByBase(
  * is present for the address.
  */
 PPH_FILE_POOL_VIEW PhFppFindViewByBase(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Base
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Base
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -1073,8 +1073,8 @@ PPH_FILE_POOL_VIEW PhFppFindViewByBase(
 }
 
 PPH_FILE_POOL_VIEW PhFppCreateView(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG SegmentIndex
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG SegmentIndex
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -1100,8 +1100,8 @@ PPH_FILE_POOL_VIEW PhFppCreateView(
 }
 
 VOID PhFppDestroyView(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     PhFppUnmapRange(Pool, View->Base);
@@ -1112,8 +1112,8 @@ VOID PhFppDestroyView(
 }
 
 VOID PhFppActivateView(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     RemoveEntryList(&View->InactiveViewsListEntry);
@@ -1121,8 +1121,8 @@ VOID PhFppActivateView(
 }
 
 VOID PhFppDeactivateView(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     InsertHeadList(&Pool->InactiveViewsListHead, &View->InactiveViewsListEntry);
@@ -1144,8 +1144,8 @@ VOID PhFppDeactivateView(
 }
 
 VOID PhFppReferenceView(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     if (View->RefCount == 0)
@@ -1158,8 +1158,8 @@ VOID PhFppReferenceView(
 }
 
 VOID PhFppDereferenceView(
-    __inout PPH_FILE_POOL Pool,
-    __inout PPH_FILE_POOL_VIEW View
+    _Inout_ PPH_FILE_POOL Pool,
+    _Inout_ PPH_FILE_POOL_VIEW View
     )
 {
     if (--View->RefCount == 0)
@@ -1172,8 +1172,8 @@ VOID PhFppDereferenceView(
 }
 
 PPH_FP_BLOCK_HEADER PhFppReferenceSegment(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG SegmentIndex
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG SegmentIndex
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -1204,8 +1204,8 @@ PPH_FP_BLOCK_HEADER PhFppReferenceSegment(
 }
 
 VOID PhFppDereferenceSegment(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG SegmentIndex
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG SegmentIndex
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -1219,8 +1219,8 @@ VOID PhFppDereferenceSegment(
 }
 
 VOID PhFppReferenceSegmentByBase(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Base
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Base
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -1234,8 +1234,8 @@ VOID PhFppReferenceSegmentByBase(
 }
 
 VOID PhFppDereferenceSegmentByBase(
-    __inout PPH_FILE_POOL Pool,
-    __in PVOID Base
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PVOID Base
     )
 {
     PPH_FILE_POOL_VIEW view;
@@ -1260,10 +1260,10 @@ VOID PhFppDereferenceSegmentByBase(
  * an insufficient number of contiguous free blocks for the allocation.
  */
 PPH_FP_BLOCK_HEADER PhFppAllocateBlocks(
-    __inout PPH_FILE_POOL Pool,
-    __in PPH_FP_BLOCK_HEADER FirstBlock,
-    __inout PPH_FP_SEGMENT_HEADER SegmentHeader,
-    __in ULONG NumberOfBlocks
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PPH_FP_BLOCK_HEADER FirstBlock,
+    _Inout_ PPH_FP_SEGMENT_HEADER SegmentHeader,
+    _In_ ULONG NumberOfBlocks
     )
 {
     RTL_BITMAP bitmap;
@@ -1305,10 +1305,10 @@ PPH_FP_BLOCK_HEADER PhFppAllocateBlocks(
  * \param BlockHeader The header of the allocated span.
  */
 VOID PhFppFreeBlocks(
-    __inout PPH_FILE_POOL Pool,
-    __in PPH_FP_BLOCK_HEADER FirstBlock,
-    __inout PPH_FP_SEGMENT_HEADER SegmentHeader,
-    __in PPH_FP_BLOCK_HEADER BlockHeader
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ PPH_FP_BLOCK_HEADER FirstBlock,
+    _Inout_ PPH_FP_SEGMENT_HEADER SegmentHeader,
+    _In_ PPH_FP_BLOCK_HEADER BlockHeader
     )
 {
     RTL_BITMAP bitmap;
@@ -1331,8 +1331,8 @@ VOID PhFppFreeBlocks(
  * \param NumberOfBlocks The number of free or required blocks.
  */
 ULONG PhFppComputeFreeListIndex(
-    __in PPH_FILE_POOL Pool,
-    __in ULONG NumberOfBlocks
+    _In_ PPH_FILE_POOL Pool,
+    _In_ ULONG NumberOfBlocks
     )
 {
     // Use a binary tree to speed up comparison.
@@ -1382,10 +1382,10 @@ ULONG PhFppComputeFreeListIndex(
  * \param SegmentHeader The header of the segment.
  */
 BOOLEAN PhFppInsertFreeList(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG FreeListIndex,
-    __in ULONG SegmentIndex,
-    __in PPH_FP_SEGMENT_HEADER SegmentHeader
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG FreeListIndex,
+    _In_ ULONG SegmentIndex,
+    _In_ PPH_FP_SEGMENT_HEADER SegmentHeader
     )
 {
     ULONG oldSegmentIndex;
@@ -1429,10 +1429,10 @@ BOOLEAN PhFppInsertFreeList(
  * \param SegmentHeader The header of the segment.
  */
 BOOLEAN PhFppRemoveFreeList(
-    __inout PPH_FILE_POOL Pool,
-    __in ULONG FreeListIndex,
-    __in ULONG SegmentIndex,
-    __in PPH_FP_SEGMENT_HEADER SegmentHeader
+    _Inout_ PPH_FILE_POOL Pool,
+    _In_ ULONG FreeListIndex,
+    _In_ ULONG SegmentIndex,
+    _In_ PPH_FP_SEGMENT_HEADER SegmentHeader
     )
 {
     ULONG flinkSegmentIndex;
@@ -1499,8 +1499,8 @@ BOOLEAN PhFppRemoveFreeList(
  * \param Block A pointer to the body of the block.
  */
 PPH_FP_BLOCK_HEADER PhFppGetHeaderBlock(
-    __in PPH_FILE_POOL Pool,
-    __in PVOID Block
+    _In_ PPH_FILE_POOL Pool,
+    _In_ PVOID Block
     )
 {
     return CONTAINING_RECORD(Block, PH_FP_BLOCK_HEADER, Body);
@@ -1515,10 +1515,10 @@ PPH_FP_BLOCK_HEADER PhFppGetHeaderBlock(
  * \param Address An address.
  */
 ULONG PhFppEncodeRva(
-    __in PPH_FILE_POOL Pool,
-    __in ULONG SegmentIndex,
-    __in PPH_FP_BLOCK_HEADER FirstBlock,
-    __in PVOID Address
+    _In_ PPH_FILE_POOL Pool,
+    _In_ ULONG SegmentIndex,
+    _In_ PPH_FP_BLOCK_HEADER FirstBlock,
+    _In_ PVOID Address
     )
 {
     return (SegmentIndex << Pool->SegmentShift) + (ULONG)((PCHAR)Address - (PCHAR)FirstBlock);
@@ -1535,9 +1535,9 @@ ULONG PhFppEncodeRva(
  * if \a Rva is invalid.
  */
 ULONG PhFppDecodeRva(
-    __in PPH_FILE_POOL Pool,
-    __in ULONG Rva,
-    __out PULONG SegmentIndex
+    _In_ PPH_FILE_POOL Pool,
+    _In_ ULONG Rva,
+    _Out_ PULONG SegmentIndex
     )
 {
     ULONG segmentIndex;

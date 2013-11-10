@@ -23,9 +23,9 @@
 #include <phapp.h>
 
 NTSTATUS PhpGetDllBaseRemote(
-    __in HANDLE ProcessHandle,
-    __in PPH_STRINGREF BaseDllName,
-    __out PVOID *DllBase
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF BaseDllName,
+    _Out_ PVOID *DllBase
     );
 
 static HWND CommandModeWindowHandle;
@@ -33,9 +33,9 @@ static HWND CommandModeWindowHandle;
 #define PH_COMMAND_OPTION_HWND 1
 
 BOOLEAN NTAPI PhpCommandModeOptionCallback(
-    __in_opt PPH_COMMAND_LINE_OPTION Option,
-    __in_opt PPH_STRING Value,
-    __in_opt PVOID Context
+    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PPH_STRING Value,
+    _In_opt_ PVOID Context
     )
 {
     ULONG64 integer;
@@ -401,8 +401,8 @@ typedef struct _GET_DLL_BASE_REMOTE_CONTEXT
 } GET_DLL_BASE_REMOTE_CONTEXT, *PGET_DLL_BASE_REMOTE_CONTEXT;
 
 static BOOLEAN PhpGetDllBaseRemoteCallback(
-    __in PLDR_DATA_TABLE_ENTRY Module,
-    __in_opt PVOID Context
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_opt_ PVOID Context
     )
 {
     PGET_DLL_BASE_REMOTE_CONTEXT context = Context;
@@ -420,9 +420,9 @@ static BOOLEAN PhpGetDllBaseRemoteCallback(
 }
 
 NTSTATUS PhpGetDllBaseRemote(
-    __in HANDLE ProcessHandle,
-    __in PPH_STRINGREF BaseDllName,
-    __out PVOID *DllBase
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF BaseDllName,
+    _Out_ PVOID *DllBase
     )
 {
     NTSTATUS status;

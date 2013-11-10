@@ -53,8 +53,8 @@ extern "C" {
  * \param Flags Reserved.
  */
 typedef VOID (NTAPI *PPH_TYPE_DELETE_PROCEDURE)(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 struct _PH_OBJECT_TYPE;
@@ -65,10 +65,10 @@ typedef struct _PH_QUEUED_LOCK PH_QUEUED_LOCK, *PPH_QUEUED_LOCK;
 
 #ifdef DEBUG
 typedef VOID (NTAPI *PPH_CREATE_OBJECT_HOOK)(
-    __in PVOID Object,
-    __in SIZE_T Size,
-    __in ULONG Flags,
-    __in PPH_OBJECT_TYPE ObjectType
+    _In_ PVOID Object,
+    _In_ SIZE_T Size,
+    _In_ ULONG Flags,
+    _In_ PPH_OBJECT_TYPE ObjectType
     );
 #endif
 
@@ -105,103 +105,103 @@ NTSTATUS PhInitializeRef(
     VOID
     );
 
-__mayRaise
+_May_raise_
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateObject(
-    __out PVOID *Object,
-    __in SIZE_T ObjectSize,
-    __in ULONG Flags,
-    __in PPH_OBJECT_TYPE ObjectType
+    _Out_ PVOID *Object,
+    _In_ SIZE_T ObjectSize,
+    _In_ ULONG Flags,
+    _In_ PPH_OBJECT_TYPE ObjectType
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhReferenceObject(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
-__mayRaise
+_May_raise_
 PHLIBAPI
 LONG
 NTAPI
 PhReferenceObjectEx(
-    __in PVOID Object,
-    __in LONG RefCount
+    _In_ PVOID Object,
+    _In_ LONG RefCount
     );
 
 PHLIBAPI
 BOOLEAN
 NTAPI
 PhReferenceObjectSafe(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhDereferenceObject(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 PHLIBAPI
 BOOLEAN
 NTAPI
 PhDereferenceObjectDeferDelete(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
-__mayRaise
+_May_raise_
 PHLIBAPI
 LONG
 NTAPI
 PhDereferenceObjectEx(
-    __in PVOID Object,
-    __in LONG RefCount,
-    __in BOOLEAN DeferDelete
+    _In_ PVOID Object,
+    _In_ LONG RefCount,
+    _In_ BOOLEAN DeferDelete
     );
 
 PHLIBAPI
 PPH_OBJECT_TYPE
 NTAPI
 PhGetObjectType(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateObjectType(
-    __out PPH_OBJECT_TYPE *ObjectType,
-    __in PWSTR Name,
-    __in ULONG Flags,
-    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
+    _Out_ PPH_OBJECT_TYPE *ObjectType,
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateObjectTypeEx(
-    __out PPH_OBJECT_TYPE *ObjectType,
-    __in PWSTR Name,
-    __in ULONG Flags,
-    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
-    __in_opt PPH_OBJECT_TYPE_PARAMETERS Parameters
+    _Out_ PPH_OBJECT_TYPE *ObjectType,
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
+    _In_opt_ PPH_OBJECT_TYPE_PARAMETERS Parameters
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhGetObjectTypeInformation(
-    __in PPH_OBJECT_TYPE ObjectType,
-    __out PPH_OBJECT_TYPE_INFORMATION Information
+    _In_ PPH_OBJECT_TYPE ObjectType,
+    _Out_ PPH_OBJECT_TYPE_INFORMATION Information
     );
 
 FORCEINLINE VOID PhSwapReference(
-    __inout PVOID *ObjectReference,
-    __in_opt PVOID NewObject
+    _Inout_ PVOID *ObjectReference,
+    _In_opt_ PVOID NewObject
     )
 {
     PVOID oldObject;
@@ -214,8 +214,8 @@ FORCEINLINE VOID PhSwapReference(
 }
 
 FORCEINLINE VOID PhSwapReference2(
-    __inout PVOID *ObjectReference,
-    __in_opt __assumeRefs(1) PVOID NewObject
+    _Inout_ PVOID *ObjectReference,
+    _In_opt_ _Assume_refs_(1) PVOID NewObject
     )
 {
     PVOID oldObject;
@@ -230,8 +230,8 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateAlloc(
-    __out PVOID *Alloc,
-    __in SIZE_T Size
+    _Out_ PVOID *Alloc,
+    _In_ SIZE_T Size
     );
 
 /** The size of the static array in an auto-release pool. */
@@ -265,30 +265,30 @@ PHLIBAPI
 VOID
 NTAPI
 PhInitializeAutoPool(
-    __out PPH_AUTO_POOL AutoPool
+    _Out_ PPH_AUTO_POOL AutoPool
     );
 
-__mayRaise
+_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhDeleteAutoPool(
-    __inout PPH_AUTO_POOL AutoPool
+    _Inout_ PPH_AUTO_POOL AutoPool
     );
 
-__mayRaise
+_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhaDereferenceObject(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhDrainAutoPool(
-    __in PPH_AUTO_POOL AutoPool
+    _In_ PPH_AUTO_POOL AutoPool
     );
 
 /**
@@ -300,7 +300,7 @@ PhDrainAutoPool(
  * \return The value of \a Object.
  */
 FORCEINLINE PVOID PHA_DEREFERENCE(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     if (Object)

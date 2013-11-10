@@ -2,69 +2,69 @@
 #define DISKTABP_H
 
 HWND NTAPI EtpDiskTabCreateFunction(
-    __in PVOID Context
+    _In_ PVOID Context
     );
 
 VOID NTAPI EtpDiskTabSelectionChangedCallback(
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Parameter3,
-    __in PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
     );
 
 VOID NTAPI EtpDiskTabSaveContentCallback(
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Parameter3,
-    __in PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
     );
 
 VOID NTAPI EtpDiskTabFontChangedCallback(
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Parameter3,
-    __in PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
     );
 
 BOOLEAN EtpDiskNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG EtpDiskNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID EtInitializeDiskTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     );
 
 PET_DISK_NODE EtAddDiskNode(
-    __in PET_DISK_ITEM DiskItem
+    _In_ PET_DISK_ITEM DiskItem
     );
 
 PET_DISK_NODE EtFindDiskNode(
-    __in PET_DISK_ITEM DiskItem
+    _In_ PET_DISK_ITEM DiskItem
     );
 
 VOID EtRemoveDiskNode(
-    __in PET_DISK_NODE DiskNode
+    _In_ PET_DISK_NODE DiskNode
     );
 
 VOID EtUpdateDiskNode(
-    __in PET_DISK_NODE DiskNode
+    _In_ PET_DISK_NODE DiskNode
     );
 
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 PPH_STRING EtpGetDiskItemProcessName(
-    __in PET_DISK_ITEM DiskItem
+    _In_ PET_DISK_ITEM DiskItem
     );
 
 PET_DISK_ITEM EtGetSelectedDiskItem(
@@ -72,8 +72,8 @@ PET_DISK_ITEM EtGetSelectedDiskItem(
     );
 
 VOID EtGetSelectedDiskItems(
-    __out PET_DISK_ITEM **DiskItems,
-    __out PULONG NumberOfDiskItems
+    _Out_ PET_DISK_ITEM **DiskItems,
+    _Out_ PULONG NumberOfDiskItems
     );
 
 VOID EtDeselectAllDiskNodes(
@@ -81,7 +81,7 @@ VOID EtDeselectAllDiskNodes(
     );
 
 VOID EtSelectAndEnsureVisibleDiskNode(
-    __in PET_DISK_NODE DiskNode
+    _In_ PET_DISK_NODE DiskNode
     );
 
 VOID EtCopyDiskList(
@@ -89,58 +89,58 @@ VOID EtCopyDiskList(
     );
 
 VOID EtWriteDiskList(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     );
 
 VOID EtHandleDiskCommand(
-    __in ULONG Id
+    _In_ ULONG Id
     );
 
 VOID EtpInitializeDiskMenu(
-    __in PPH_EMENU Menu,
-    __in PET_DISK_ITEM *DiskItems,
-    __in ULONG NumberOfDiskItems
+    _In_ PPH_EMENU Menu,
+    _In_ PET_DISK_ITEM *DiskItems,
+    _In_ ULONG NumberOfDiskItems
     );
 
 VOID EtShowDiskContextMenu(
-    __in POINT Location
+    _In_ POINT Location
     );
 
 VOID NTAPI EtpDiskItemAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI EtpDiskItemModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI EtpDiskItemRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI EtpDiskItemsUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI EtpOnDiskItemAdded(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID NTAPI EtpOnDiskItemModified(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID NTAPI EtpOnDiskItemRemoved(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID NTAPI EtpOnDiskItemsUpdated(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 #endif

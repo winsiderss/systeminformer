@@ -75,10 +75,10 @@ typedef struct _RUNAS_DIALOG_CONTEXT
 } RUNAS_DIALOG_CONTEXT, *PRUNAS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpRunAsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhSetDesktopWinStaAccess(
@@ -86,9 +86,9 @@ VOID PhSetDesktopWinStaAccess(
     );
 
 VOID PhpSplitUserName(
-    __in PWSTR UserName,
-    __out PPH_STRING *DomainPart,
-    __out PPH_STRING *UserPart
+    _In_ PWSTR UserName,
+    _Out_ PPH_STRING *DomainPart,
+    _Out_ PPH_STRING *UserPart
     );
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
@@ -110,8 +110,8 @@ static SERVICE_STATUS_HANDLE RunAsServiceStatusHandle;
 static PHSVC_STOP RunAsServiceStop;
 
 VOID PhShowRunAsDialog(
-    __in HWND ParentWindowHandle,
-    __in_opt HANDLE ProcessId
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ HANDLE ProcessId
     )
 {
     RUNAS_DIALOG_CONTEXT context;
@@ -129,7 +129,7 @@ VOID PhShowRunAsDialog(
 }
 
 static VOID PhpAddAccountsToComboBox(
-    __in HWND ComboBoxHandle
+    _In_ HWND ComboBoxHandle
     )
 {
     LSA_HANDLE policyHandle;
@@ -171,7 +171,7 @@ static VOID PhpAddAccountsToComboBox(
 }
 
 static BOOLEAN IsServiceAccount(
-    __in PPH_STRING UserName
+    _In_ PPH_STRING UserName
     )
 {
     if (
@@ -215,8 +215,8 @@ static PPH_STRING GetCurrentWinStaName(
 }
 
 static BOOL CALLBACK EnumDesktopsCallback(
-    __in PWSTR DesktopName,
-    __in LPARAM Context
+    _In_ PWSTR DesktopName,
+    _In_ LPARAM Context
     )
 {
     PRUNAS_DIALOG_CONTEXT context = (PRUNAS_DIALOG_CONTEXT)Context;
@@ -232,10 +232,10 @@ static BOOL CALLBACK EnumDesktopsCallback(
 }
 
 INT_PTR CALLBACK PhpRunAsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PRUNAS_DIALOG_CONTEXT context;
@@ -810,7 +810,7 @@ VOID PhSetDesktopWinStaAccess(
  * \remarks This function requires administrator-level access.
  */
 NTSTATUS PhExecuteRunAsCommand(
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
@@ -919,15 +919,15 @@ NTSTATUS PhExecuteRunAsCommand(
  * through a UAC elevation prompt.
  */
 NTSTATUS PhExecuteRunAsCommand2(
-    __in HWND hWnd,
-    __in PWSTR Program,
-    __in_opt PWSTR UserName,
-    __in_opt PWSTR Password,
-    __in_opt ULONG LogonType,
-    __in_opt HANDLE ProcessIdWithToken,
-    __in ULONG SessionId,
-    __in PWSTR DesktopName,
-    __in BOOLEAN UseLinkedToken
+    _In_ HWND hWnd,
+    _In_ PWSTR Program,
+    _In_opt_ PWSTR UserName,
+    _In_opt_ PWSTR Password,
+    _In_opt_ ULONG LogonType,
+    _In_opt_ HANDLE ProcessIdWithToken,
+    _In_ ULONG SessionId,
+    _In_ PWSTR DesktopName,
+    _In_ BOOLEAN UseLinkedToken
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1001,9 +1001,9 @@ NTSTATUS PhExecuteRunAsCommand2(
 }
 
 static VOID PhpSplitUserName(
-    __in PWSTR UserName,
-    __out PPH_STRING *DomainPart,
-    __out PPH_STRING *UserPart
+    _In_ PWSTR UserName,
+    _Out_ PPH_STRING *DomainPart,
+    _Out_ PPH_STRING *UserPart
     )
 {
     PH_STRINGREF userName;
@@ -1025,7 +1025,7 @@ static VOID PhpSplitUserName(
 }
 
 static VOID SetRunAsServiceStatus(
-    __in ULONG State
+    _In_ ULONG State
     )
 {
     SERVICE_STATUS status;
@@ -1039,10 +1039,10 @@ static VOID SetRunAsServiceStatus(
 }
 
 static DWORD WINAPI RunAsServiceHandlerEx(
-    __in DWORD dwControl,
-    __in DWORD dwEventType,
-    __in LPVOID lpEventData,
-    __in LPVOID lpContext
+    _In_ DWORD dwControl,
+    _In_ DWORD dwEventType,
+    _In_ LPVOID lpEventData,
+    _In_ LPVOID lpContext
     )
 {
     switch (dwControl)
@@ -1058,8 +1058,8 @@ static DWORD WINAPI RunAsServiceHandlerEx(
 }
 
 static VOID WINAPI RunAsServiceMain(
-    __in DWORD dwArgc,
-    __in LPTSTR *lpszArgv
+    _In_ DWORD dwArgc,
+    _In_ LPTSTR *lpszArgv
     )
 {
     PPH_STRING portName;
@@ -1081,7 +1081,7 @@ static VOID WINAPI RunAsServiceMain(
 }
 
 NTSTATUS PhRunAsServiceStart(
-    __in PPH_STRING ServiceName
+    _In_ PPH_STRING ServiceName
     )
 {
     HANDLE tokenHandle;
@@ -1114,7 +1114,7 @@ NTSTATUS PhRunAsServiceStart(
 }
 
 NTSTATUS PhInvokeRunAsService(
-    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     NTSTATUS status;

@@ -85,10 +85,10 @@ static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
 
 INT WINAPI WinMain(
-    __in HINSTANCE hInstance,
-    __in_opt HINSTANCE hPrevInstance,
-    __in LPSTR lpCmdLine,
-    __in INT nCmdShow
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPSTR lpCmdLine,
+    _In_ INT nCmdShow
     )
 {
     LONG result;
@@ -327,7 +327,7 @@ LONG PhMainMessageLoop(
 }
 
 VOID PhRegisterDialog(
-    __in HWND DialogWindowHandle
+    _In_ HWND DialogWindowHandle
     )
 {
     if (!DialogList)
@@ -337,7 +337,7 @@ VOID PhRegisterDialog(
 }
 
 VOID PhUnregisterDialog(
-    __in HWND DialogWindowHandle
+    _In_ HWND DialogWindowHandle
     )
 {
     ULONG indexOfDialog;
@@ -352,8 +352,8 @@ VOID PhUnregisterDialog(
 }
 
 struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
-    __in PPH_MESSAGE_LOOP_FILTER Filter,
-    __in_opt PVOID Context
+    _In_ PPH_MESSAGE_LOOP_FILTER Filter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MESSAGE_LOOP_FILTER_ENTRY entry;
@@ -370,7 +370,7 @@ struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
 }
 
 VOID PhUnregisterMessageLoopFilter(
-    __in struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
+    _In_ struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
     )
 {
     ULONG indexOfFilter;
@@ -387,7 +387,7 @@ VOID PhUnregisterMessageLoopFilter(
 }
 
 VOID PhApplyUpdateInterval(
-    __in ULONG Interval
+    _In_ ULONG Interval
     )
 {
     PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
@@ -434,10 +434,10 @@ VOID PhInitializeCommonControls(
 }
 
 HFONT PhpCreateFont(
-    __in HWND hWnd,
-    __in PWSTR Name,
-    __in ULONG Size,
-    __in ULONG Weight
+    _In_ HWND hWnd,
+    _In_ PWSTR Name,
+    _In_ ULONG Size,
+    _In_ ULONG Weight
     )
 {
     HFONT font;
@@ -474,7 +474,7 @@ HFONT PhpCreateFont(
 }
 
 VOID PhInitializeFont(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
@@ -677,9 +677,9 @@ VOID PhpInitializeSettings(
 #define PH_ARG_PRIORITY 25
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
-    __in_opt PPH_COMMAND_LINE_OPTION Option,
-    __in_opt PPH_STRING Value,
-    __in_opt PVOID Context
+    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PPH_STRING Value,
+    _In_opt_ PVOID Context
     )
 {
     ULONG64 integer;

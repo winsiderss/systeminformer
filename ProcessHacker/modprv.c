@@ -35,22 +35,22 @@ typedef struct _PH_MODULE_QUERY_DATA
 } PH_MODULE_QUERY_DATA, *PPH_MODULE_QUERY_DATA;
 
 VOID NTAPI PhpModuleProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 VOID NTAPI PhpModuleItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 BOOLEAN NTAPI PhpModuleHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG NTAPI PhpModuleHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 PPH_OBJECT_TYPE PhModuleProviderType;
@@ -80,7 +80,7 @@ BOOLEAN PhModuleProviderInitialization(
 }
 
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PPH_MODULE_PROVIDER moduleProvider;
@@ -139,8 +139,8 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 }
 
 VOID PhpModuleProviderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_MODULE_PROVIDER moduleProvider = (PPH_MODULE_PROVIDER)Object;
@@ -199,8 +199,8 @@ PPH_MODULE_ITEM PhCreateModuleItem(
 }
 
 VOID PhpModuleItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)Object;
@@ -214,8 +214,8 @@ VOID PhpModuleItemDeleteProcedure(
 }
 
 BOOLEAN NTAPI PhpModuleHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     return
@@ -224,7 +224,7 @@ BOOLEAN NTAPI PhpModuleHashtableCompareFunction(
 }
 
 ULONG NTAPI PhpModuleHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PVOID baseAddress = (*(PPH_MODULE_ITEM *)Entry)->BaseAddress;
@@ -237,8 +237,8 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
 }
 
 PPH_MODULE_ITEM PhReferenceModuleItem(
-    __in PPH_MODULE_PROVIDER ModuleProvider,
-    __in PVOID BaseAddress
+    _In_ PPH_MODULE_PROVIDER ModuleProvider,
+    _In_ PVOID BaseAddress
     )
 {
     PH_MODULE_ITEM lookupModuleItem;
@@ -271,7 +271,7 @@ PPH_MODULE_ITEM PhReferenceModuleItem(
 }
 
 VOID PhDereferenceAllModuleItems(
-    __in PPH_MODULE_PROVIDER ModuleProvider
+    _In_ PPH_MODULE_PROVIDER ModuleProvider
     )
 {
     ULONG enumerationKey = 0;
@@ -287,9 +287,9 @@ VOID PhDereferenceAllModuleItems(
     PhReleaseFastLockExclusive(&ModuleProvider->ModuleHashtableLock);
 }
 
-__assumeLocked VOID PhpRemoveModuleItem(
-    __in PPH_MODULE_PROVIDER ModuleProvider,
-    __in PPH_MODULE_ITEM ModuleItem
+VOID PhpRemoveModuleItem(
+    _In_ PPH_MODULE_PROVIDER ModuleProvider,
+    _In_ PPH_MODULE_ITEM ModuleItem
     )
 {
     PhRemoveEntryHashtable(ModuleProvider->ModuleHashtable, &ModuleItem);
@@ -297,7 +297,7 @@ __assumeLocked VOID PhpRemoveModuleItem(
 }
 
 NTSTATUS PhpModuleQueryWorker(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_MODULE_QUERY_DATA data = (PPH_MODULE_QUERY_DATA)Parameter;
@@ -317,8 +317,8 @@ NTSTATUS PhpModuleQueryWorker(
 }
 
 VOID PhpQueueModuleQuery(
-    __in PPH_MODULE_PROVIDER ModuleProvider,
-    __in PPH_MODULE_ITEM ModuleItem
+    _In_ PPH_MODULE_PROVIDER ModuleProvider,
+    _In_ PPH_MODULE_ITEM ModuleItem
     )
 {
     PPH_MODULE_QUERY_DATA data;
@@ -337,8 +337,8 @@ VOID PhpQueueModuleQuery(
 }
 
 static BOOLEAN NTAPI EnumModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     PPH_MODULE_INFO copy;
@@ -353,7 +353,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 }
 
 VOID PhModuleProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     PPH_MODULE_PROVIDER moduleProvider = (PPH_MODULE_PROVIDER)Object;

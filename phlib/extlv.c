@@ -60,39 +60,39 @@ typedef struct _PH_EXTLV_CONTEXT
 } PH_EXTLV_CONTEXT, *PPH_EXTLV_CONTEXT;
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT PhpExtendedListViewCompareFunc(
-    __in LPARAM lParam1,
-    __in LPARAM lParam2,
-    __in LPARAM lParamSort
+    _In_ LPARAM lParam1,
+    _In_ LPARAM lParam2,
+    _In_ LPARAM lParamSort
     );
 
 INT PhpExtendedListViewCompareFastFunc(
-    __in LPARAM lParam1,
-    __in LPARAM lParam2,
-    __in LPARAM lParamSort
+    _In_ LPARAM lParam1,
+    _In_ LPARAM lParam2,
+    _In_ LPARAM lParamSort
     );
 
 INT PhpCompareListViewItems(
-    __in PPH_EXTLV_CONTEXT Context,
-    __in INT X,
-    __in INT Y,
-    __in PVOID XParam,
-    __in PVOID YParam,
-    __in ULONG Column,
-    __in BOOLEAN EnableDefault
+    _In_ PPH_EXTLV_CONTEXT Context,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ PVOID XParam,
+    _In_ PVOID YParam,
+    _In_ ULONG Column,
+    _In_ BOOLEAN EnableDefault
     );
 
 INT PhpDefaultCompareListViewItems(
-    __in PPH_EXTLV_CONTEXT Context,
-    __in INT X,
-    __in INT Y,
-    __in ULONG Column
+    _In_ PPH_EXTLV_CONTEXT Context,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ ULONG Column
     );
 
 static PWSTR PhpMakeExtLvContextAtom(
@@ -108,7 +108,7 @@ static PWSTR PhpMakeExtLvContextAtom(
  * \param hWnd A handle to the list view control.
  */
 VOID PhSetExtendedListView(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     WNDPROC oldWndProc;
@@ -142,10 +142,10 @@ VOID PhSetExtendedListView(
 }
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPH_EXTLV_CONTEXT context;
@@ -491,9 +491,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
  * \param Order The sort order of the item.
  */
 VOID PhSetHeaderSortIcon(
-    __in HWND hwnd,
-    __in INT Index,
-    __in PH_SORT_ORDER Order
+    _In_ HWND hwnd,
+    _In_ INT Index,
+    _In_ PH_SORT_ORDER Order
     )
 {
     ULONG count;
@@ -534,9 +534,9 @@ VOID PhSetHeaderSortIcon(
 }
 
 static INT PhpExtendedListViewCompareFunc(
-    __in LPARAM lParam1,
-    __in LPARAM lParam2,
-    __in LPARAM lParamSort
+    _In_ LPARAM lParam1,
+    _In_ LPARAM lParam2,
+    _In_ LPARAM lParamSort
     )
 {
     PPH_EXTLV_CONTEXT context = (PPH_EXTLV_CONTEXT)lParamSort;
@@ -611,9 +611,9 @@ static INT PhpExtendedListViewCompareFunc(
 }
 
 static INT PhpExtendedListViewCompareFastFunc(
-    __in LPARAM lParam1,
-    __in LPARAM lParam2,
-    __in LPARAM lParamSort
+    _In_ LPARAM lParam1,
+    _In_ LPARAM lParam2,
+    _In_ LPARAM lParamSort
     )
 {
     PPH_EXTLV_CONTEXT context = (PPH_EXTLV_CONTEXT)lParamSort;
@@ -668,13 +668,13 @@ static INT PhpExtendedListViewCompareFastFunc(
 }
 
 static FORCEINLINE INT PhpCompareListViewItems(
-    __in PPH_EXTLV_CONTEXT Context,
-    __in INT X,
-    __in INT Y,
-    __in PVOID XParam,
-    __in PVOID YParam,
-    __in ULONG Column,
-    __in BOOLEAN EnableDefault
+    _In_ PPH_EXTLV_CONTEXT Context,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ PVOID XParam,
+    _In_ PVOID YParam,
+    _In_ ULONG Column,
+    _In_ BOOLEAN EnableDefault
     )
 {
     INT result = 0;
@@ -707,10 +707,10 @@ static FORCEINLINE INT PhpCompareListViewItems(
 }
 
 static INT PhpDefaultCompareListViewItems(
-    __in PPH_EXTLV_CONTEXT Context,
-    __in INT X,
-    __in INT Y,
-    __in ULONG Column
+    _In_ PPH_EXTLV_CONTEXT Context,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ ULONG Column
     )
 {
     WCHAR xText[261];

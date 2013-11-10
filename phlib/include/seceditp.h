@@ -19,82 +19,82 @@ typedef struct
 } PhSecurityInformation;
 
 ISecurityInformation *PhSecurityInformation_Create(
-    __in PWSTR ObjectName,
-    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in_opt PVOID Context,
-    __in PPH_ACCESS_ENTRY AccessEntries,
-    __in ULONG NumberOfAccessEntries
+    _In_ PWSTR ObjectName,
+    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_opt_ PVOID Context,
+    _In_ PPH_ACCESS_ENTRY AccessEntries,
+    _In_ ULONG NumberOfAccessEntries
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
-    __in ISecurityInformation *This,
-    __in REFIID Riid,
-    __out PVOID *Object
+    _In_ ISecurityInformation *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
     );
 
 ULONG STDMETHODCALLTYPE PhSecurityInformation_AddRef(
-    __in ISecurityInformation *This
+    _In_ ISecurityInformation *This
     );
 
 ULONG STDMETHODCALLTYPE PhSecurityInformation_Release(
-    __in ISecurityInformation *This
+    _In_ ISecurityInformation *This
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
-    __in ISecurityInformation *This,
-    __out PSI_OBJECT_INFO ObjectInfo
+    _In_ ISecurityInformation *This,
+    _Out_ PSI_OBJECT_INFO ObjectInfo
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
-    __in ISecurityInformation *This,
-    __in SECURITY_INFORMATION RequestedInformation,
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
-    __in BOOL Default
+    _In_ ISecurityInformation *This,
+    _In_ SECURITY_INFORMATION RequestedInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    _In_ BOOL Default
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
-    __in ISecurityInformation *This,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ ISecurityInformation *This,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetAccessRights(
-    __in ISecurityInformation *This,
-    __in const GUID *ObjectType,
-    __in ULONG Flags,
-    __out PSI_ACCESS *Access,
-    __out PULONG Accesses,
-    __out PULONG DefaultAccess
+    _In_ ISecurityInformation *This,
+    _In_ const GUID *ObjectType,
+    _In_ ULONG Flags,
+    _Out_ PSI_ACCESS *Access,
+    _Out_ PULONG Accesses,
+    _Out_ PULONG DefaultAccess
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
-    __in ISecurityInformation *This,
-    __in const GUID *ObjectType,
-    __in PUCHAR AceFlags,
-    __inout PACCESS_MASK Mask
+    _In_ ISecurityInformation *This,
+    _In_ const GUID *ObjectType,
+    _In_ PUCHAR AceFlags,
+    _Inout_ PACCESS_MASK Mask
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
-    __in ISecurityInformation *This,
-    __out PSI_INHERIT_TYPE *InheritTypes,
-    __out PULONG InheritTypesCount
+    _In_ ISecurityInformation *This,
+    _Out_ PSI_INHERIT_TYPE *InheritTypes,
+    _Out_ PULONG InheritTypesCount
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
-    __in ISecurityInformation *This,
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in SI_PAGE_TYPE uPage
+    _In_ ISecurityInformation *This,
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ SI_PAGE_TYPE uPage
     );
 
 typedef HPROPSHEETPAGE (WINAPI *_CreateSecurityPage)(
-    __in LPSECURITYINFO psi
+    _In_ LPSECURITYINFO psi
     );
 
 typedef BOOL (WINAPI *_EditSecurity)(
-    __in HWND hwndOwner,
-    __in LPSECURITYINFO psi
+    _In_ HWND hwndOwner,
+    _In_ LPSECURITYINFO psi
     );
 
 #endif

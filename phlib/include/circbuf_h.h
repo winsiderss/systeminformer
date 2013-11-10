@@ -17,44 +17,44 @@ PHLIBAPI
 VOID
 NTAPI
 T___(PhInitializeCircularBuffer, T)(
-    __out T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in ULONG Size
+    _Out_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ ULONG Size
     );
 
 PHLIBAPI
 VOID
 NTAPI
 T___(PhDeleteCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer
     );
 
 PHLIBAPI
 VOID
 NTAPI
 T___(PhResizeCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in ULONG NewSize
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ ULONG NewSize
     );
 
 PHLIBAPI
 VOID
 NTAPI
 T___(PhClearCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer
     );
 
 PHLIBAPI
 VOID
 NTAPI
 T___(PhCopyCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __out_ecount(Count) T *Destination,
-    __in ULONG Count
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _Out_writes_(Count) T *Destination,
+    _In_ ULONG Count
     );
 
 FORCEINLINE T T___(PhGetItemCircularBuffer, T)(
-    __in T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in LONG Index
+    _In_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ LONG Index
     )
 {
 #ifdef PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
@@ -69,9 +69,9 @@ FORCEINLINE T T___(PhGetItemCircularBuffer, T)(
 }
 
 FORCEINLINE VOID T___(PhSetItemCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in LONG Index,
-    __in T Value
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ LONG Index,
+    _In_ T Value
     )
 {
 #ifdef PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
@@ -85,8 +85,8 @@ FORCEINLINE VOID T___(PhSetItemCircularBuffer, T)(
 }
 
 FORCEINLINE VOID T___(PhAddItemCircularBuffer, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in T Value
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ T Value
     )
 {
 #ifdef PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
@@ -103,8 +103,8 @@ FORCEINLINE VOID T___(PhAddItemCircularBuffer, T)(
 }
 
 FORCEINLINE T T___(PhAddItemCircularBuffer2, T)(
-    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __in T Value
+    _Inout_ T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    _In_ T Value
     )
 {
     LONG index;

@@ -27,9 +27,9 @@
 #include <winhttp.h>
 
 static BOOLEAN ReadRequestString(
-    __in HINTERNET Handle,
-    __out_z PSTR* Data,
-    __out ULONG* DataLength
+    _In_ HINTERNET Handle,
+    _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
+    _Out_ ULONG *DataLength
     )
 {
     BYTE buffer[PAGE_SIZE];
@@ -80,7 +80,7 @@ static BOOLEAN ReadRequestString(
 }
 
 NTSTATUS NetworkWhoisThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     BOOLEAN isSuccess = FALSE;

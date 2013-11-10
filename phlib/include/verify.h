@@ -22,19 +22,19 @@ typedef struct _PH_VERIFY_FILE_INFO
 } PH_VERIFY_FILE_INFO, *PPH_VERIFY_FILE_INFO;
 
 NTSTATUS PhVerifyFileEx(
-    __in PPH_VERIFY_FILE_INFO Information,
-    __out VERIFY_RESULT *VerifyResult,
-    __out_opt PCERT_CONTEXT **Signatures,
-    __out_opt PULONG NumberOfSignatures
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _Out_ VERIFY_RESULT *VerifyResult,
+    _Out_opt_ PCERT_CONTEXT **Signatures,
+    _Out_opt_ PULONG NumberOfSignatures
     );
 
 VOID PhFreeVerifySignatures(
-    __in PCERT_CONTEXT *Signatures,
-    __in ULONG NumberOfSignatures
+    _In_ PCERT_CONTEXT *Signatures,
+    _In_ ULONG NumberOfSignatures
     );
 
 PPH_STRING PhGetSignerNameFromCertificate(
-    __in PCERT_CONTEXT Certificate
+    _In_ PCERT_CONTEXT Certificate
     );
 
 #endif

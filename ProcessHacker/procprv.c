@@ -123,33 +123,33 @@ typedef struct _PH_VERIFY_CACHE_ENTRY
 } PH_VERIFY_CACHE_ENTRY, *PPH_VERIFY_CACHE_ENTRY;
 
 VOID NTAPI PhpProcessItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 INT NTAPI PhpVerifyCacheCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     );
 
 VOID PhpQueueProcessQueryStage1(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 VOID PhpQueueProcessQueryStage2(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 PPH_PROCESS_RECORD PhpCreateProcessRecord(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 VOID PhpAddProcessRecord(
-    __inout PPH_PROCESS_RECORD ProcessRecord
+    _Inout_ PPH_PROCESS_RECORD ProcessRecord
     );
 
 VOID PhpRemoveProcessRecord(
-    __inout PPH_PROCESS_RECORD ProcessRecord
+    _Inout_ PPH_PROCESS_RECORD ProcessRecord
     );
 
 PPH_OBJECT_TYPE PhProcessItemType;
@@ -324,7 +324,7 @@ BOOLEAN PhProcessProviderInitialization(
 }
 
 PPH_STRING PhGetClientIdName(
-    __in PCLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     )
 {
     PPH_STRING name;
@@ -346,8 +346,8 @@ PPH_STRING PhGetClientIdName(
 }
 
 PPH_STRING PhGetClientIdNameEx(
-    __in PCLIENT_ID ClientId,
-    __in_opt PPH_STRING ProcessName
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ PPH_STRING ProcessName
     )
 {
     PPH_STRING name;
@@ -400,7 +400,7 @@ PPH_STRING PhGetClientIdNameEx(
 }
 
 PWSTR PhGetProcessPriorityClassString(
-    __in ULONG PriorityClass
+    _In_ ULONG PriorityClass
     )
 {
     switch (PriorityClass)
@@ -426,7 +426,7 @@ PWSTR PhGetProcessPriorityClassString(
  * Creates a process item.
  */
 PPH_PROCESS_ITEM PhCreateProcessItem(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PPH_PROCESS_ITEM processItem;
@@ -463,8 +463,8 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 }
 
 VOID PhpProcessItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Object;
@@ -509,15 +509,15 @@ VOID PhpProcessItemDeleteProcedure(
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessItem(
-    __in PPH_PROCESS_ITEM Value1,
-    __in PPH_PROCESS_ITEM Value2
+    _In_ PPH_PROCESS_ITEM Value1,
+    _In_ PPH_PROCESS_ITEM Value2
     )
 {
     return Value1->ProcessId == Value2->ProcessId;
 }
 
 FORCEINLINE ULONG PhHashProcessItem(
-    __in PPH_PROCESS_ITEM Value
+    _In_ PPH_PROCESS_ITEM Value
     )
 {
     return (ULONG)Value->ProcessId / 4;
@@ -532,8 +532,8 @@ FORCEINLINE ULONG PhHashProcessItem(
  * function. The reference count of the found process item is
  * not incremented.
  */
-__assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
-    __in HANDLE ProcessId
+PPH_PROCESS_ITEM PhpLookupProcessItem(
+    _In_ HANDLE ProcessId
     )
 {
     PH_PROCESS_ITEM lookupProcessItem;
@@ -566,7 +566,7 @@ __assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
  * \return The found process item.
  */
 PPH_PROCESS_ITEM PhReferenceProcessItem(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     PPH_PROCESS_ITEM processItem;
@@ -593,8 +593,8 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
  * number of process items returned in \a ProcessItems.
  */
 VOID PhEnumProcessItems(
-    __out_opt PPH_PROCESS_ITEM **ProcessItems,
-    __out PULONG NumberOfProcessItems
+    _Out_opt_ PPH_PROCESS_ITEM **ProcessItems,
+    _Out_ PULONG NumberOfProcessItems
     )
 {
     PPH_PROCESS_ITEM *processItems;
@@ -631,8 +631,8 @@ VOID PhEnumProcessItems(
     *NumberOfProcessItems = numberOfProcessItems;
 }
 
-__assumeLocked VOID PhpAddProcessItem(
-    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem
+VOID PhpAddProcessItem(
+    _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem
     )
 {
     PhAddEntryHashSet(
@@ -644,8 +644,8 @@ __assumeLocked VOID PhpAddProcessItem(
     PhProcessHashSetCount++;
 }
 
-__assumeLocked VOID PhpRemoveProcessItem(
-    __in PPH_PROCESS_ITEM ProcessItem
+VOID PhpRemoveProcessItem(
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PhRemoveEntryHashSet(PhProcessHashSet, PH_HASH_SET_SIZE(PhProcessHashSet), &ProcessItem->HashEntry);
@@ -654,8 +654,8 @@ __assumeLocked VOID PhpRemoveProcessItem(
 }
 
 INT NTAPI PhpVerifyCacheCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     )
 {
     PPH_VERIFY_CACHE_ENTRY entry1 = CONTAINING_RECORD(Links1, PH_VERIFY_CACHE_ENTRY, Links);
@@ -665,9 +665,9 @@ INT NTAPI PhpVerifyCacheCompareFunction(
 }
 
 VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
-    __in PPH_VERIFY_FILE_INFO Information,
-    __in_opt PWSTR PackageFullName,
-    __out_opt PPH_STRING *SignerName
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _In_opt_ PWSTR PackageFullName,
+    _Out_opt_ PPH_STRING *SignerName
     )
 {
     static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
@@ -740,10 +740,10 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
  * \return A VERIFY_RESULT value.
  */
 VERIFY_RESULT PhVerifyFileCached(
-    __in PPH_STRING FileName,
-    __in_opt PWSTR PackageFullName,
-    __out_opt PPH_STRING *SignerName,
-    __in BOOLEAN CachedOnly
+    _In_ PPH_STRING FileName,
+    _In_opt_ PWSTR PackageFullName,
+    _Out_opt_ PPH_STRING *SignerName,
+    _In_ BOOLEAN CachedOnly
     )
 {
 #ifdef PH_ENABLE_VERIFY_CACHE
@@ -841,7 +841,7 @@ VERIFY_RESULT PhVerifyFileCached(
 }
 
 VOID PhpProcessQueryStage1(
-    __inout PPH_PROCESS_QUERY_S1_DATA Data
+    _Inout_ PPH_PROCESS_QUERY_S1_DATA Data
     )
 {
     NTSTATUS status;
@@ -1070,7 +1070,7 @@ VOID PhpProcessQueryStage1(
 }
 
 VOID PhpProcessQueryStage2(
-    __inout PPH_PROCESS_QUERY_S2_DATA Data
+    _Inout_ PPH_PROCESS_QUERY_S2_DATA Data
     )
 {
     NTSTATUS status;
@@ -1116,7 +1116,7 @@ VOID PhpProcessQueryStage2(
 }
 
 NTSTATUS PhpProcessQueryStage1Worker(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PROCESS_QUERY_S1_DATA data;
@@ -1135,7 +1135,7 @@ NTSTATUS PhpProcessQueryStage1Worker(
 }
 
 NTSTATUS PhpProcessQueryStage2Worker(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PROCESS_QUERY_S2_DATA data;
@@ -1154,7 +1154,7 @@ NTSTATUS PhpProcessQueryStage2Worker(
 }
 
 VOID PhpQueueProcessQueryStage1(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     // Ref: dereferenced when the provider update function removes the item from
@@ -1164,7 +1164,7 @@ VOID PhpQueueProcessQueryStage1(
 }
 
 VOID PhpQueueProcessQueryStage2(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     if (PhEnableProcessQueryStage2)
@@ -1175,7 +1175,7 @@ VOID PhpQueueProcessQueryStage2(
 }
 
 VOID PhpFillProcessItemStage1(
-    __in PPH_PROCESS_QUERY_S1_DATA Data
+    _In_ PPH_PROCESS_QUERY_S1_DATA Data
     )
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
@@ -1202,7 +1202,7 @@ VOID PhpFillProcessItemStage1(
 }
 
 VOID PhpFillProcessItemStage2(
-    __in PPH_PROCESS_QUERY_S2_DATA Data
+    _In_ PPH_PROCESS_QUERY_S2_DATA Data
     )
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
@@ -1215,8 +1215,8 @@ VOID PhpFillProcessItemStage2(
 }
 
 VOID PhpFillProcessItem(
-    __inout PPH_PROCESS_ITEM ProcessItem,
-    __in PSYSTEM_PROCESS_INFORMATION Process
+    _Inout_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
     NTSTATUS status;
@@ -1357,8 +1357,8 @@ VOID PhpFillProcessItem(
 }
 
 FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
-    __inout PPH_PROCESS_ITEM ProcessItem,
-    __in PSYSTEM_PROCESS_INFORMATION Process
+    _Inout_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
     ProcessItem->BasePriority = Process->BasePriority;
@@ -1413,8 +1413,8 @@ VOID PhpUpdatePerfInformation(
 }
 
 VOID PhpUpdateCpuInformation(
-    __in BOOLEAN SetCpuUsage,
-    __out PULONG64 TotalTime
+    _In_ BOOLEAN SetCpuUsage,
+    _Out_ PULONG64 TotalTime
     )
 {
     ULONG i;
@@ -1491,7 +1491,7 @@ VOID PhpUpdateCpuInformation(
 }
 
 VOID PhpUpdateCpuCycleInformation(
-    __out PULONG64 IdleCycleTime
+    _Out_ PULONG64 IdleCycleTime
     )
 {
     ULONG i;
@@ -1539,8 +1539,8 @@ VOID PhpUpdateCpuCycleInformation(
 }
 
 VOID PhpUpdateCpuCycleUsageInformation(
-    __in ULONG64 TotalCycleTime,
-    __in ULONG64 IdleCycleTime
+    _In_ ULONG64 TotalCycleTime,
+    _In_ ULONG64 IdleCycleTime
     )
 {
     ULONG i;
@@ -1687,9 +1687,9 @@ VOID PhpUpdateSystemHistory(
  * past for that process item.
  */
 BOOLEAN PhGetStatisticsTime(
-    __in_opt PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG Index,
-    __out PLARGE_INTEGER Time
+    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Index,
+    _Out_ PLARGE_INTEGER Time
     )
 {
     ULONG secondsSince1980;
@@ -1723,8 +1723,8 @@ BOOLEAN PhGetStatisticsTime(
 }
 
 PPH_STRING PhGetStatisticsTimeString(
-    __in_opt PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG Index
+    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Index
     )
 {
     LARGE_INTEGER time;
@@ -1743,9 +1743,9 @@ PPH_STRING PhGetStatisticsTimeString(
 }
 
 VOID PhpGetProcessThreadInformation(
-    __in PSYSTEM_PROCESS_INFORMATION Process,
-    __out_opt PBOOLEAN IsSuspended,
-    __out_opt PULONG ContextSwitches
+    _In_ PSYSTEM_PROCESS_INFORMATION Process,
+    _Out_opt_ PBOOLEAN IsSuspended,
+    _Out_opt_ PULONG ContextSwitches
     )
 {
     ULONG i;
@@ -1775,7 +1775,7 @@ VOID PhpGetProcessThreadInformation(
 }
 
 VOID PhProcessProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     static ULONG runCount = 0;
@@ -2407,7 +2407,7 @@ VOID PhProcessProviderUpdate(
 }
 
 PPH_PROCESS_RECORD PhpCreateProcessRecord(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PPH_PROCESS_RECORD processRecord;
@@ -2448,9 +2448,9 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
 }
 
 PPH_PROCESS_RECORD PhpSearchProcessRecordList(
-    __in PLARGE_INTEGER Time,
-    __out_opt PULONG Index,
-    __out_opt PULONG InsertIndex
+    _In_ PLARGE_INTEGER Time,
+    _Out_opt_ PULONG Index,
+    _Out_opt_ PULONG InsertIndex
     )
 {
     PPH_PROCESS_RECORD processRecord;
@@ -2513,7 +2513,7 @@ PPH_PROCESS_RECORD PhpSearchProcessRecordList(
 }
 
 VOID PhpAddProcessRecord(
-    __inout PPH_PROCESS_RECORD ProcessRecord
+    _Inout_ PPH_PROCESS_RECORD ProcessRecord
     )
 {
     PPH_PROCESS_RECORD processRecord;
@@ -2538,7 +2538,7 @@ VOID PhpAddProcessRecord(
 }
 
 VOID PhpRemoveProcessRecord(
-    __inout PPH_PROCESS_RECORD ProcessRecord
+    _Inout_ PPH_PROCESS_RECORD ProcessRecord
     )
 {
     ULONG i;
@@ -2565,21 +2565,21 @@ VOID PhpRemoveProcessRecord(
 }
 
 VOID PhReferenceProcessRecord(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     )
 {
     _InterlockedIncrement(&ProcessRecord->RefCount);
 }
 
 BOOLEAN PhReferenceProcessRecordSafe(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     )
 {
     return _InterlockedIncrementNoZero(&ProcessRecord->RefCount);
 }
 
 VOID PhReferenceProcessRecordForStatistics(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     )
 {
     if (!(ProcessRecord->Flags & PH_PROCESS_RECORD_STAT_REF))
@@ -2590,7 +2590,7 @@ VOID PhReferenceProcessRecordForStatistics(
 }
 
 VOID PhDereferenceProcessRecord(
-    __in PPH_PROCESS_RECORD ProcessRecord
+    _In_ PPH_PROCESS_RECORD ProcessRecord
     )
 {
     if (_InterlockedDecrement(&ProcessRecord->RefCount) == 0)
@@ -2606,8 +2606,8 @@ VOID PhDereferenceProcessRecord(
 }
 
 PPH_PROCESS_RECORD PhpFindProcessRecord(
-    __in PPH_PROCESS_RECORD ProcessRecord,
-    __in HANDLE ProcessId
+    _In_ PPH_PROCESS_RECORD ProcessRecord,
+    _In_ HANDLE ProcessId
     )
 {
     PPH_PROCESS_RECORD startProcessRecord;
@@ -2637,8 +2637,8 @@ PPH_PROCESS_RECORD PhpFindProcessRecord(
  * the record.
  */
 PPH_PROCESS_RECORD PhFindProcessRecord(
-    __in_opt HANDLE ProcessId,
-    __in PLARGE_INTEGER Time
+    _In_opt_ HANDLE ProcessId,
+    _In_ PLARGE_INTEGER Time
     )
 {
     PPH_PROCESS_RECORD processRecord;
@@ -2788,9 +2788,9 @@ VOID PhPurgeProcessRecords(
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
-    __in HANDLE ParentProcessId,
-    __in HANDLE ProcessId,
-    __in PLARGE_INTEGER CreateTime
+    _In_ HANDLE ParentProcessId,
+    _In_ HANDLE ProcessId,
+    _In_ PLARGE_INTEGER CreateTime
     )
 {
     PPH_PROCESS_ITEM processItem;
@@ -2816,7 +2816,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
-    __in PPH_PROCESS_RECORD Record
+    _In_ PPH_PROCESS_RECORD Record
     )
 {
     PPH_PROCESS_ITEM processItem;

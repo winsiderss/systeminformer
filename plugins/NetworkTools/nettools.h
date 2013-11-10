@@ -91,43 +91,43 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
 NTSTATUS PhNetworkPingDialogThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID PerformNetworkAction(
-    __in PH_NETWORK_ACTION Action,
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PH_NETWORK_ACTION Action,
+    _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 NTSTATUS NetworkPingThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 NTSTATUS NetworkTracertThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 NTSTATUS NetworkWhoisThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 INT_PTR CALLBACK NetworkOutputDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK OptionsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 #endif

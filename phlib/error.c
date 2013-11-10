@@ -29,7 +29,7 @@
  * properly, unlike RtlNtStatusToDosError.
  */
 ULONG PhNtStatusToDosError(
-    __in NTSTATUS Status
+    _In_ NTSTATUS Status
     )
 {
     if (NT_NTWIN32(Status)) // RtlNtStatusToDosError doesn't seem to handle these cases correctly
@@ -45,7 +45,7 @@ ULONG PhNtStatusToDosError(
  * Other status values are wrapped using FACILITY_NTWIN32.
  */
 NTSTATUS PhDosErrorToNtStatus(
-    __in ULONG DosError
+    _In_ ULONG DosError
     )
 {
     switch (DosError)
@@ -71,7 +71,7 @@ NTSTATUS PhDosErrorToNtStatus(
  * cannot be not found.
  */
 BOOLEAN PhNtStatusFileNotFound(
-    __in NTSTATUS Status
+    _In_ NTSTATUS Status
     )
 {
     switch (Status)

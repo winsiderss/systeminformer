@@ -35,15 +35,15 @@ typedef struct _PROCESS_HEAPS_CONTEXT
 } PROCESS_HEAPS_CONTEXT, *PPROCESS_HEAPS_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessHeapsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowProcessHeapsDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     NTSTATUS status;
@@ -96,9 +96,9 @@ VOID PhShowProcessHeapsDialog(
 }
 
 static INT NTAPI PhpHeapAddressCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -108,9 +108,9 @@ static INT NTAPI PhpHeapAddressCompareFunction(
 }
 
 static INT NTAPI PhpHeapUsedCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -120,9 +120,9 @@ static INT NTAPI PhpHeapUsedCompareFunction(
 }
 
 static INT NTAPI PhpHeapCommittedCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -132,9 +132,9 @@ static INT NTAPI PhpHeapCommittedCompareFunction(
 }
 
 static INT NTAPI PhpHeapEntriesCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -144,9 +144,9 @@ static INT NTAPI PhpHeapEntriesCompareFunction(
 }
 
 static HFONT NTAPI PhpHeapFontFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo = Param;
@@ -164,10 +164,10 @@ static HFONT NTAPI PhpHeapFontFunction(
 }
 
 INT_PTR CALLBACK PhpProcessHeapsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPROCESS_HEAPS_CONTEXT context = NULL;
@@ -347,8 +347,8 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 }
 
 NTSTATUS PhGetProcessDefaultHeap(
-    __in HANDLE ProcessHandle,
-    __out PPVOID Heap
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPVOID Heap
     )
 {
     NTSTATUS status;

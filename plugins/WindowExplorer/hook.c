@@ -45,13 +45,13 @@ VOID WepCloseServerObjects(
     );
 
 VOID WepWriteClientData(
-    __in HWND hwnd
+    _In_ HWND hwnd
     );
 
 LRESULT CALLBACK WepCallWndProc(
-    __in int nCode,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ int nCode,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // Shared
@@ -358,7 +358,7 @@ BOOLEAN WeIsServerActive(
 }
 
 BOOLEAN WeLockServerSharedData(
-    __out PWE_HOOK_SHARED_DATA *Data
+    _Out_ PWE_HOOK_SHARED_DATA *Data
     )
 {
     LARGE_INTEGER timeout;
@@ -384,7 +384,7 @@ VOID WeUnlockServerSharedData(
 }
 
 BOOLEAN WeSendServerRequest(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     ULONG threadId;
@@ -437,7 +437,7 @@ VOID WeHookClientUninitialization(
 }
 
 VOID WepWriteClientData(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     WCHAR className[256];
@@ -470,9 +470,9 @@ VOID WepWriteClientData(
 }
 
 LRESULT CALLBACK WepCallWndProc(
-    __in int nCode,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ int nCode,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     LRESULT result;

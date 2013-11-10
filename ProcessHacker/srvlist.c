@@ -28,31 +28,31 @@
 #include <emenu.h>
 
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG PhpServiceNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID PhpRemoveServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     );
 
 LONG PhpServiceTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     );
 
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 static HWND ServiceTreeListHandle;
@@ -87,8 +87,8 @@ VOID PhServiceTreeListInitialization(
 }
 
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_SERVICE_NODE serviceNode1 = *(PPH_SERVICE_NODE *)Entry1;
@@ -98,7 +98,7 @@ BOOLEAN PhpServiceNodeHashtableCompareFunction(
 }
 
 ULONG PhpServiceNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
 #ifdef _M_IX86
@@ -109,7 +109,7 @@ ULONG PhpServiceNodeHashtableHashFunction(
 }
 
 VOID PhInitializeServiceTreeList(
-    __in HWND hwnd
+    _In_ HWND hwnd
     )
 {
     ServiceApplicationIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATION), IMAGE_ICON);
@@ -192,8 +192,8 @@ struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportServiceTreeList(
 }
 
 PPH_SERVICE_NODE PhAddServiceNode(
-    __in PPH_SERVICE_ITEM ServiceItem,
-    __in ULONG RunId
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ ULONG RunId
     )
 {
     PPH_SERVICE_NODE serviceNode;
@@ -235,7 +235,7 @@ PPH_SERVICE_NODE PhAddServiceNode(
 }
 
 PPH_SERVICE_NODE PhFindServiceNode(
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     PH_SERVICE_NODE lookupServiceNode;
@@ -256,7 +256,7 @@ PPH_SERVICE_NODE PhFindServiceNode(
 }
 
 VOID PhRemoveServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     )
 {
     // Remove from the hashtable here to avoid problems in case the key is re-used.
@@ -280,7 +280,7 @@ VOID PhRemoveServiceNode(
 }
 
 VOID PhpRemoveServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     )
 {
     ULONG index;
@@ -306,7 +306,7 @@ VOID PhpRemoveServiceNode(
 }
 
 VOID PhUpdateServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     )
 {
     memset(ServiceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
@@ -332,7 +332,7 @@ VOID PhTickServiceNodes(
 }
 
 static VOID PhpUpdateServiceNodeConfig(
-    __inout PPH_SERVICE_NODE ServiceNode
+    _Inout_ PPH_SERVICE_NODE ServiceNode
     )
 {
     if (!(ServiceNode->ValidMask & PHSN_CONFIG))
@@ -360,7 +360,7 @@ static VOID PhpUpdateServiceNodeConfig(
 }
 
 static VOID PhpUpdateServiceNodeDescription(
-    __inout PPH_SERVICE_NODE ServiceNode
+    _Inout_ PPH_SERVICE_NODE ServiceNode
     )
 {
     if (!(ServiceNode->ValidMask & PHSN_DESCRIPTION))
@@ -381,8 +381,8 @@ static VOID PhpUpdateServiceNodeDescription(
 #define SORT_FUNCTION(Column) PhpServiceTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpServiceTreeNewCompare##Column( \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
     ) \
 { \
     PPH_SERVICE_NODE node1 = *(PPH_SERVICE_NODE *)_elem1; \
@@ -399,10 +399,10 @@ static VOID PhpUpdateServiceNodeDescription(
 }
 
 LONG PhpServiceTreeNewPostSortFunction(
-    __in LONG Result,
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in PH_SORT_ORDER SortOrder
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
     )
 {
     return PhModifySort(Result, SortOrder);
@@ -475,11 +475,11 @@ BEGIN_SORT_FUNCTION(Description)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PPH_SERVICE_NODE node;
@@ -724,8 +724,8 @@ PPH_SERVICE_ITEM PhGetSelectedServiceItem(
 }
 
 VOID PhGetSelectedServiceItems(
-    __out PPH_SERVICE_ITEM **Services,
-    __out PULONG NumberOfServices
+    _Out_ PPH_SERVICE_ITEM **Services,
+    _Out_ PULONG NumberOfServices
     )
 {
     PPH_LIST list;
@@ -757,7 +757,7 @@ VOID PhDeselectAllServiceNodes(
 }
 
 VOID PhSelectAndEnsureVisibleServiceNode(
-    __in PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode
     )
 {
     PhDeselectAllServiceNodes();
@@ -783,8 +783,8 @@ VOID PhCopyServiceList(
 }
 
 VOID PhWriteServiceList(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
     )
 {
     PPH_LIST lines;

@@ -70,7 +70,7 @@ static VOID PhpVerifyInitialization(
 }
 
 VERIFY_RESULT PhpStatusToVerifyResult(
-    __in LONG Status
+    _In_ LONG Status
     )
 {
     switch (Status)
@@ -95,9 +95,9 @@ VERIFY_RESULT PhpStatusToVerifyResult(
 }
 
 BOOLEAN PhpGetSignaturesFromStateData(
-    __in HANDLE StateData,
-    __out PCERT_CONTEXT **Signatures,
-    __out PULONG NumberOfSignatures
+    _In_ HANDLE StateData,
+    _Out_ PCERT_CONTEXT **Signatures,
+    _Out_ PULONG NumberOfSignatures
     )
 {
     PCRYPT_PROVIDER_DATA provData;
@@ -153,8 +153,8 @@ BOOLEAN PhpGetSignaturesFromStateData(
 }
 
 VOID PhpViewSignerInfo(
-    __in PPH_VERIFY_FILE_INFO Information,
-    __in HANDLE StateData
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _In_ HANDLE StateData
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -188,13 +188,13 @@ VOID PhpViewSignerInfo(
 }
 
 VERIFY_RESULT PhpVerifyFile(
-    __in PPH_VERIFY_FILE_INFO Information,
-    __in HANDLE FileHandle,
-    __in ULONG UnionChoice,
-    __in PVOID UnionData,
-    __in PGUID ActionId,
-    __out PCERT_CONTEXT **Signatures,
-    __out PULONG NumberOfSignatures
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _In_ HANDLE FileHandle,
+    _In_ ULONG UnionChoice,
+    _In_ PVOID UnionData,
+    _In_ PGUID ActionId,
+    _Out_ PCERT_CONTEXT **Signatures,
+    _Out_ PULONG NumberOfSignatures
     )
 {
     LONG status;
@@ -236,11 +236,11 @@ VERIFY_RESULT PhpVerifyFile(
 }
 
 BOOLEAN PhpCalculateFileHash(
-    __in HANDLE FileHandle,
-    __in PWSTR HashAlgorithm,
-    __out PUCHAR *FileHash,
-    __out PULONG FileHashLength,
-    __out HANDLE *CatAdminHandle
+    _In_ HANDLE FileHandle,
+    _In_ PWSTR HashAlgorithm,
+    _Out_ PUCHAR *FileHash,
+    _Out_ PULONG FileHashLength,
+    _Out_ HANDLE *CatAdminHandle
     )
 {
     HANDLE catAdminHandle;
@@ -300,11 +300,11 @@ BOOLEAN PhpCalculateFileHash(
 }
 
 VERIFY_RESULT PhpVerifyFileFromCatalog(
-    __in PPH_VERIFY_FILE_INFO Information,
-    __in HANDLE FileHandle,
-    __in_opt PWSTR HashAlgorithm,
-    __out PCERT_CONTEXT **Signatures,
-    __out PULONG NumberOfSignatures
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _In_ HANDLE FileHandle,
+    _In_opt_ PWSTR HashAlgorithm,
+    _Out_ PCERT_CONTEXT **Signatures,
+    _Out_ PULONG NumberOfSignatures
     )
 {
     VERIFY_RESULT verifyResult = VrNoSignature;
@@ -411,10 +411,10 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 }
 
 NTSTATUS PhVerifyFileEx(
-    __in PPH_VERIFY_FILE_INFO Information,
-    __out VERIFY_RESULT *VerifyResult,
-    __out_opt PCERT_CONTEXT **Signatures,
-    __out_opt PULONG NumberOfSignatures
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _Out_ VERIFY_RESULT *VerifyResult,
+    _Out_opt_ PCERT_CONTEXT **Signatures,
+    _Out_opt_ PULONG NumberOfSignatures
     )
 {
     NTSTATUS status;
@@ -496,8 +496,8 @@ NTSTATUS PhVerifyFileEx(
 }
 
 VOID PhFreeVerifySignatures(
-    __in PCERT_CONTEXT *Signatures,
-    __in ULONG NumberOfSignatures
+    _In_ PCERT_CONTEXT *Signatures,
+    _In_ ULONG NumberOfSignatures
     )
 {
     ULONG i;
@@ -512,7 +512,7 @@ VOID PhFreeVerifySignatures(
 }
 
 PPH_STRING PhpGetCertNameString(
-    __in PCERT_NAME_BLOB Blob
+    _In_ PCERT_NAME_BLOB Blob
     )
 {
     PPH_STRING string;
@@ -543,8 +543,8 @@ PPH_STRING PhpGetCertNameString(
 }
 
 PPH_STRING PhpGetX500Value(
-    __in PPH_STRING String,
-    __in PPH_STRINGREF KeyName
+    _In_ PPH_STRING String,
+    _In_ PPH_STRINGREF KeyName
     )
 {
     WCHAR keyNamePlusEquals[10];
@@ -598,7 +598,7 @@ PPH_STRING PhpGetX500Value(
 }
 
 PPH_STRING PhGetSignerNameFromCertificate(
-    __in PCERT_CONTEXT Certificate
+    _In_ PCERT_CONTEXT Certificate
     )
 {
     PCERT_INFO certInfo;
@@ -646,8 +646,8 @@ PPH_STRING PhGetSignerNameFromCertificate(
  * \return A VERIFY_RESULT value.
  */
 VERIFY_RESULT PhVerifyFile(
-    __in PWSTR FileName,
-    __out_opt PPH_STRING *SignerName
+    _In_ PWSTR FileName,
+    _Out_opt_ PPH_STRING *SignerName
     )
 {
     PH_VERIFY_FILE_INFO info = { 0 };

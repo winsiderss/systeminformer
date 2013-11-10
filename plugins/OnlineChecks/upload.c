@@ -31,14 +31,14 @@ static SERVICE_INFO UploadServiceInfo[] =
 };
 
 static PPH_STRING PhGetWinHttpMessage(
-    __in ULONG Result
+    _In_ ULONG Result
     )
 {
     return PhGetMessage(GetModuleHandle(L"winhttp.dll"), 0xb, GetUserDefaultLangID(), Result);
 }
 
 static NTSTATUS PhUploadToDialogThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     BOOL result;
@@ -80,7 +80,7 @@ static NTSTATUS PhUploadToDialogThreadStart(
 }
 
 static HFONT InitializeFont(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     LOGFONT logFont = { 0 };
@@ -106,9 +106,9 @@ static HFONT InitializeFont(
 }
 
 static BOOL ReadRequestString(
-    __in HINTERNET Handle,
-    __out_z PSTR* Data,
-    __out ULONG* DataLength
+    _In_ HINTERNET Handle,
+    _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
+    _Out_ ULONG *DataLength
     )
 {
     BYTE buffer[PAGE_SIZE];
@@ -159,9 +159,9 @@ static BOOL ReadRequestString(
 }
 
 static VOID RaiseUploadError(
-    __in PUPLOAD_CONTEXT Context,
-    __in PWSTR Error,
-    __in ULONG ErrorCode
+    _In_ PUPLOAD_CONTEXT Context,
+    _In_ PWSTR Error,
+    _In_ ULONG ErrorCode
     )
 {
     PhSwapReference(&Context->ErrorMessage, NULL);
@@ -177,7 +177,7 @@ static VOID RaiseUploadError(
 }
 
 static PSERVICE_INFO GetUploadServiceInfo(
-    __in ULONG Id
+    _In_ ULONG Id
     )
 {
     ULONG i;
@@ -192,11 +192,11 @@ static PSERVICE_INFO GetUploadServiceInfo(
 }
 
 static BOOLEAN PerformSubRequest(
-    __in PUPLOAD_CONTEXT Context,
-    __in PWSTR HostName,
-    __in PWSTR ObjectName,
-    __out_bcount(DataLength) PSTR* Data,
-    __out_opt PULONG DataLength
+    _In_ PUPLOAD_CONTEXT Context,
+    _In_ PWSTR HostName,
+    _In_ PWSTR ObjectName,
+    _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
+    _Out_opt_ PULONG DataLength
     )
 {
     BOOLEAN result = FALSE;
@@ -303,10 +303,10 @@ static BOOLEAN PerformSubRequest(
 }
 
 static NTSTATUS HashFileAndResetPosition(
-    __in HANDLE FileHandle,
-    __in PLARGE_INTEGER FileSize,
-    __in ULONG Algorithm,
-    __out PVOID Hash
+    _In_ HANDLE FileHandle,
+    _In_ PLARGE_INTEGER FileSize,
+    _In_ ULONG Algorithm,
+    _Out_ PVOID Hash
     )
 {
     NTSTATUS status;
@@ -382,7 +382,7 @@ static NTSTATUS HashFileAndResetPosition(
 }
 
 static NTSTATUS UploadFileThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     time_t timeStart = 0;
@@ -781,7 +781,7 @@ static NTSTATUS UploadFileThreadStart(
 }
 
 static NTSTATUS UploadCheckThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1068,10 +1068,10 @@ static NTSTATUS UploadCheckThreadStart(
 }
 
 INT_PTR CALLBACK UploadDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PUPLOAD_CONTEXT context = NULL;
@@ -1290,8 +1290,8 @@ INT_PTR CALLBACK UploadDlgProc(
 }
 
 VOID UploadToOnlineService(
-    __in PPH_STRING FileName,
-    __in ULONG Service
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Service
     )
 {
     HANDLE dialogThread = NULL;

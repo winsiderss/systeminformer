@@ -56,72 +56,72 @@ typedef struct _PHP_RESOLVE_CACHE_ITEM
 } PHP_RESOLVE_CACHE_ITEM, *PPHP_RESOLVE_CACHE_ITEM;
 
 typedef DWORD (WINAPI *_GetExtendedTcpTable)(
-    __out_bcount_opt(*pdwSize) PVOID pTcpTable,
-    __inout PDWORD pdwSize,
-    __in BOOL bOrder,
-    __in ULONG ulAf,
-    __in TCP_TABLE_CLASS TableClass,
-    __in ULONG Reserved
+    _Out_writes_bytes_opt_(*pdwSize) PVOID pTcpTable,
+    _Inout_ PDWORD pdwSize,
+    _In_ BOOL bOrder,
+    _In_ ULONG ulAf,
+    _In_ TCP_TABLE_CLASS TableClass,
+    _In_ ULONG Reserved
     );
 
 typedef DWORD (WINAPI *_GetExtendedUdpTable)(
-    __out_bcount_opt(*pdwSize) PVOID pUdpTable,
-    __inout PDWORD pdwSize,
-    __in BOOL bOrder,
-    __in ULONG ulAf,
-    __in UDP_TABLE_CLASS TableClass,
-    __in ULONG Reserved
+    _Out_writes_bytes_opt_(*pdwSize) PVOID pUdpTable,
+    _Inout_ PDWORD pdwSize,
+    _In_ BOOL bOrder,
+    _In_ ULONG ulAf,
+    _In_ UDP_TABLE_CLASS TableClass,
+    _In_ ULONG Reserved
     );
 
 typedef int (WSAAPI *_WSAStartup)(
-    __in WORD wVersionRequested,
-    __out LPWSADATA lpWSAData
+    _In_ WORD wVersionRequested,
+    _Out_ LPWSADATA lpWSAData
     );
 
 typedef int (WSAAPI *_WSAGetLastError)();
 
 typedef INT (WSAAPI *_GetNameInfoW)(
-    __in_bcount(SockaddrLength) const SOCKADDR *pSockaddr,
-    __in socklen_t SockaddrLength,
-    __out_ecount_opt(NodeBufferSize) PWCHAR pNodeBuffer,
-    __in DWORD NodeBufferSize,
-    __out_ecount_opt(ServiceBufferSize) PWCHAR pServiceBuffer,
-    __in DWORD ServiceBufferSize,
-    __in INT Flags
+    _In_reads_bytes_(SockaddrLength) const SOCKADDR *pSockaddr,
+    _In_ socklen_t SockaddrLength,
+    _Out_writes_opt_(NodeBufferSize) PWCHAR pNodeBuffer,
+    _In_ DWORD NodeBufferSize,
+    _Out_writes_opt_(ServiceBufferSize) PWCHAR pServiceBuffer,
+    _In_ DWORD ServiceBufferSize,
+    _In_ INT Flags
     );
 
 typedef struct hostent *(WSAAPI *_gethostbyaddr)(
-    __in_bcount(len) const char *addr,
-    __in int len,
-    __in int type
+    _In_reads_bytes_(len) const char *addr,
+    _In_ int len,
+    _In_ int type
     );
 
 VOID NTAPI PhpNetworkItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 BOOLEAN PhpNetworkHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG NTAPI PhpNetworkHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 BOOLEAN PhpResolveCacheHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG NTAPI PhpResolveCacheHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 BOOLEAN PhGetNetworkConnections(
-    __out PPH_NETWORK_CONNECTION *Connections,
-    __out PULONG NumberOfConnections
+    _Out_ PPH_NETWORK_CONNECTION *Connections,
+    _Out_ PULONG NumberOfConnections
     );
 
 PPH_OBJECT_TYPE PhNetworkItemType;
@@ -203,8 +203,8 @@ PPH_NETWORK_ITEM PhCreateNetworkItem(
 }
 
 VOID NTAPI PhpNetworkItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Object;
@@ -222,8 +222,8 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
 }
 
 BOOLEAN PhpNetworkHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_NETWORK_ITEM networkItem1 = *(PPH_NETWORK_ITEM *)Entry1;
@@ -237,7 +237,7 @@ BOOLEAN PhpNetworkHashtableCompareFunction(
 }
 
 ULONG NTAPI PhpNetworkHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PPH_NETWORK_ITEM networkItem = *(PPH_NETWORK_ITEM *)Entry;
@@ -250,10 +250,10 @@ ULONG NTAPI PhpNetworkHashtableHashFunction(
 }
 
 PPH_NETWORK_ITEM PhReferenceNetworkItem(
-    __in ULONG ProtocolType,
-    __in PPH_IP_ENDPOINT LocalEndpoint,
-    __in PPH_IP_ENDPOINT RemoteEndpoint,
-    __in HANDLE ProcessId
+    _In_ ULONG ProtocolType,
+    _In_ PPH_IP_ENDPOINT LocalEndpoint,
+    _In_ PPH_IP_ENDPOINT RemoteEndpoint,
+    _In_ HANDLE ProcessId
     )
 {
     PH_NETWORK_ITEM lookupNetworkItem;
@@ -288,8 +288,8 @@ PPH_NETWORK_ITEM PhReferenceNetworkItem(
     return networkItem;
 }
 
-__assumeLocked VOID PhpRemoveNetworkItem(
-    __in PPH_NETWORK_ITEM NetworkItem
+VOID PhpRemoveNetworkItem(
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     PhRemoveEntryHashtable(PhNetworkHashtable, &NetworkItem);
@@ -297,8 +297,8 @@ __assumeLocked VOID PhpRemoveNetworkItem(
 }
 
 BOOLEAN PhpResolveCacheHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPHP_RESOLVE_CACHE_ITEM cacheItem1 = *(PPHP_RESOLVE_CACHE_ITEM *)Entry1;
@@ -308,7 +308,7 @@ BOOLEAN PhpResolveCacheHashtableCompareFunction(
 }
 
 ULONG NTAPI PhpResolveCacheHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PPHP_RESOLVE_CACHE_ITEM cacheItem = *(PPHP_RESOLVE_CACHE_ITEM *)Entry;
@@ -316,8 +316,8 @@ ULONG NTAPI PhpResolveCacheHashtableHashFunction(
     return PhHashIpAddress(&cacheItem->Address);
 }
 
-__assumeLocked PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
-    __in PPH_IP_ADDRESS Address
+PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
+    _In_ PPH_IP_ADDRESS Address
     )
 {
     PHP_RESOLVE_CACHE_ITEM lookupCacheItem;
@@ -339,7 +339,7 @@ __assumeLocked PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
 }
 
 PPH_STRING PhGetHostNameFromAddress(
-    __in PPH_IP_ADDRESS Address
+    _In_ PPH_IP_ADDRESS Address
     )
 {
     struct sockaddr_in ipv4Address;
@@ -412,7 +412,7 @@ PPH_STRING PhGetHostNameFromAddress(
 }
 
 NTSTATUS PhpNetworkItemQueryWorker(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_NETWORK_ITEM_QUERY_DATA data = (PPH_NETWORK_ITEM_QUERY_DATA)Parameter;
@@ -468,8 +468,8 @@ NTSTATUS PhpNetworkItemQueryWorker(
 }
 
 VOID PhpQueueNetworkItemQuery(
-    __in PPH_NETWORK_ITEM NetworkItem,
-    __in BOOLEAN Remote
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ BOOLEAN Remote
     )
 {
     PPH_NETWORK_ITEM_QUERY_DATA data;
@@ -499,8 +499,8 @@ VOID PhpQueueNetworkItemQuery(
 }
 
 VOID PhpUpdateNetworkItemOwner(
-    __in PPH_NETWORK_ITEM NetworkItem,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     if (*(PULONG64)NetworkItem->OwnerInfo)
@@ -518,7 +518,7 @@ VOID PhpUpdateNetworkItemOwner(
 }
 
 VOID PhNetworkProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     PPH_NETWORK_CONNECTION connections;
@@ -799,7 +799,7 @@ VOID PhNetworkProviderUpdate(
 }
 
 PWSTR PhGetProtocolTypeName(
-    __in ULONG ProtocolType
+    _In_ ULONG ProtocolType
     )
 {
     switch (ProtocolType)
@@ -818,7 +818,7 @@ PWSTR PhGetProtocolTypeName(
 }
 
 PWSTR PhGetTcpStateName(
-    __in ULONG State
+    _In_ ULONG State
     )
 {
     switch (State)
@@ -853,8 +853,8 @@ PWSTR PhGetTcpStateName(
 }
 
 BOOLEAN PhGetNetworkConnections(
-    __out PPH_NETWORK_CONNECTION *Connections,
-    __out PULONG NumberOfConnections
+    _Out_ PPH_NETWORK_CONNECTION *Connections,
+    _Out_ PULONG NumberOfConnections
     )
 {
     PVOID table;

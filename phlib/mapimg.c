@@ -32,20 +32,20 @@
 #include <delayimp.h>
 
 VOID PhpMappedImageProbe(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     );
 
 ULONG PhpLookupMappedImageExportName(
-    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in PSTR Name
+    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ PSTR Name
     );
 
 NTSTATUS PhInitializeMappedImage(
-    __out PPH_MAPPED_IMAGE MappedImage,
-    __in PVOID ViewBase,
-    __in SIZE_T Size
+    _Out_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PVOID ViewBase,
+    _In_ SIZE_T Size
     )
 {
     PIMAGE_DOS_HEADER dosHeader;
@@ -127,10 +127,10 @@ NTSTATUS PhInitializeMappedImage(
 }
 
 NTSTATUS PhLoadMappedImage(
-    __in_opt PWSTR FileName,
-    __in_opt HANDLE FileHandle,
-    __in BOOLEAN ReadOnly,
-    __out PPH_MAPPED_IMAGE MappedImage
+    _In_opt_ PWSTR FileName,
+    _In_opt_ HANDLE FileHandle,
+    _In_ BOOLEAN ReadOnly,
+    _Out_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     NTSTATUS status;
@@ -161,7 +161,7 @@ NTSTATUS PhLoadMappedImage(
 }
 
 NTSTATUS PhUnloadMappedImage(
-    __inout PPH_MAPPED_IMAGE MappedImage
+    _Inout_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     return NtUnmapViewOfSection(
@@ -171,11 +171,11 @@ NTSTATUS PhUnloadMappedImage(
 }
 
 NTSTATUS PhMapViewOfEntireFile(
-    __in_opt PWSTR FileName,
-    __in_opt HANDLE FileHandle,
-    __in BOOLEAN ReadOnly,
-    __out PVOID *ViewBase,
-    __out PSIZE_T Size
+    _In_opt_ PWSTR FileName,
+    _In_opt_ HANDLE FileHandle,
+    _In_ BOOLEAN ReadOnly,
+    _Out_ PVOID *ViewBase,
+    _Out_ PSIZE_T Size
     )
 {
     NTSTATUS status;
@@ -262,17 +262,17 @@ CleanupExit:
 }
 
 VOID PhpMappedImageProbe(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     )
 {
     PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->Size, 1);
 }
 
 PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __in ULONG Rva
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Rva
     )
 {
     ULONG i;
@@ -292,9 +292,9 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
 }
 
 PVOID PhMappedImageRvaToVa(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __in ULONG Rva,
-    __out_opt PIMAGE_SECTION_HEADER *Section
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Rva,
+    _Out_opt_ PIMAGE_SECTION_HEADER *Section
     )
 {
     PIMAGE_SECTION_HEADER section;
@@ -315,10 +315,10 @@ PVOID PhMappedImageRvaToVa(
 }
 
 BOOLEAN PhGetMappedImageSectionName(
-    __in PIMAGE_SECTION_HEADER Section,
-    __out_ecount_z_opt(Count) PSTR Buffer,
-    __in ULONG Count,
-    __out_opt PULONG ReturnCount
+    _In_ PIMAGE_SECTION_HEADER Section,
+    _Out_writes_opt_z_(Count) PSTR Buffer,
+    _In_ ULONG Count,
+    _Out_opt_ PULONG ReturnCount
     )
 {
     return PhCopyAnsiStringZ(
@@ -331,9 +331,9 @@ BOOLEAN PhGetMappedImageSectionName(
 }
 
 NTSTATUS PhGetMappedImageDataEntry(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __in ULONG Index,
-    __out PIMAGE_DATA_DIRECTORY *Entry
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Index,
+    _Out_ PIMAGE_DATA_DIRECTORY *Entry
     )
 {
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
@@ -367,10 +367,10 @@ NTSTATUS PhGetMappedImageDataEntry(
 }
 
 FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __in USHORT Magic,
-    __in ULONG ProbeLength,
-    __out PVOID *LoadConfig
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ USHORT Magic,
+    _In_ ULONG ProbeLength,
+    _Out_ PVOID *LoadConfig
     )
 {
     NTSTATUS status;
@@ -405,8 +405,8 @@ FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
 }
 
 NTSTATUS PhGetMappedImageLoadConfig32(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __out PIMAGE_LOAD_CONFIG_DIRECTORY32 *LoadConfig
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PIMAGE_LOAD_CONFIG_DIRECTORY32 *LoadConfig
     )
 {
     return PhpGetMappedImageLoadConfig(
@@ -418,8 +418,8 @@ NTSTATUS PhGetMappedImageLoadConfig32(
 }
 
 NTSTATUS PhGetMappedImageLoadConfig64(
-    __in PPH_MAPPED_IMAGE MappedImage,
-    __out PIMAGE_LOAD_CONFIG_DIRECTORY64 *LoadConfig
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PIMAGE_LOAD_CONFIG_DIRECTORY64 *LoadConfig
     )
 {
     return PhpGetMappedImageLoadConfig(
@@ -431,9 +431,9 @@ NTSTATUS PhGetMappedImageLoadConfig64(
 }
 
 NTSTATUS PhLoadRemoteMappedImage(
-    __in HANDLE ProcessHandle,
-    __in PVOID ViewBase,
-    __out PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID ViewBase,
+    _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
     NTSTATUS status;
@@ -526,7 +526,7 @@ NTSTATUS PhLoadRemoteMappedImage(
 }
 
 NTSTATUS PhUnloadRemoteMappedImage(
-    __inout PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    _Inout_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
     PhFree(RemoteMappedImage->NtHeaders);
@@ -535,8 +535,8 @@ NTSTATUS PhUnloadRemoteMappedImage(
 }
 
 NTSTATUS PhGetMappedImageExports(
-    __out PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in PPH_MAPPED_IMAGE MappedImage
+    _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     NTSTATUS status;
@@ -634,9 +634,9 @@ NTSTATUS PhGetMappedImageExports(
 }
 
 NTSTATUS PhGetMappedImageExportEntry(
-    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in ULONG Index,
-    __out PPH_MAPPED_IMAGE_EXPORT_ENTRY Entry
+    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ ULONG Index,
+    _Out_ PPH_MAPPED_IMAGE_EXPORT_ENTRY Entry
     )
 {
     PSTR name;
@@ -670,10 +670,10 @@ NTSTATUS PhGetMappedImageExportEntry(
 }
 
 NTSTATUS PhGetMappedImageExportFunction(
-    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in_opt PSTR Name,
-    __in_opt USHORT Ordinal,
-    __out PPH_MAPPED_IMAGE_EXPORT_FUNCTION Function
+    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_opt_ PSTR Name,
+    _In_opt_ USHORT Ordinal,
+    _Out_ PPH_MAPPED_IMAGE_EXPORT_FUNCTION Function
     )
 {
     ULONG rva;
@@ -731,11 +731,11 @@ NTSTATUS PhGetMappedImageExportFunction(
 }
 
 NTSTATUS PhGetMappedImageExportFunctionRemote(
-    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in_opt PSTR Name,
-    __in_opt USHORT Ordinal,
-    __in PVOID RemoteBase,
-    __out PVOID *Function
+    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_opt_ PSTR Name,
+    _In_opt_ USHORT Ordinal,
+    _In_ PVOID RemoteBase,
+    _Out_ PVOID *Function
     )
 {
     ULONG rva;
@@ -776,8 +776,8 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
 }
 
 ULONG PhpLookupMappedImageExportName(
-    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in PSTR Name
+    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ PSTR Name
     )
 {
     LONG low;
@@ -822,8 +822,8 @@ ULONG PhpLookupMappedImageExportName(
 }
 
 NTSTATUS PhGetMappedImageImports(
-    __out PPH_MAPPED_IMAGE_IMPORTS Imports,
-    __in PPH_MAPPED_IMAGE MappedImage
+    _Out_ PPH_MAPPED_IMAGE_IMPORTS Imports,
+    _In_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     NTSTATUS status;
@@ -882,9 +882,9 @@ NTSTATUS PhGetMappedImageImports(
 }
 
 NTSTATUS PhGetMappedImageImportDll(
-    __in PPH_MAPPED_IMAGE_IMPORTS Imports,
-    __in ULONG Index,
-    __out PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll
+    _In_ PPH_MAPPED_IMAGE_IMPORTS Imports,
+    _In_ ULONG Index,
+    _Out_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll
     )
 {
     ULONG i;
@@ -1023,9 +1023,9 @@ NTSTATUS PhGetMappedImageImportDll(
 }
 
 NTSTATUS PhGetMappedImageImportEntry(
-    __in PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
-    __in ULONG Index,
-    __out PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
+    _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
+    _In_ ULONG Index,
+    _Out_ PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
     )
 {
     PIMAGE_IMPORT_BY_NAME importByName;
@@ -1109,8 +1109,8 @@ NTSTATUS PhGetMappedImageImportEntry(
 }
 
 NTSTATUS PhGetMappedImageDelayImports(
-    __out PPH_MAPPED_IMAGE_IMPORTS Imports,
-    __in PPH_MAPPED_IMAGE MappedImage
+    _Out_ PPH_MAPPED_IMAGE_IMPORTS Imports,
+    _In_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     NTSTATUS status;
@@ -1169,7 +1169,7 @@ NTSTATUS PhGetMappedImageDelayImports(
 }
 
 ULONG PhCheckSumMappedImage(
-    __in PPH_MAPPED_IMAGE MappedImage
+    _In_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     ULONG checkSum;

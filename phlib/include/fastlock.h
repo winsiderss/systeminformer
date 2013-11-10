@@ -24,32 +24,32 @@ PHLIBAPI
 VOID
 NTAPI
 PhInitializeFastLock(
-    __out PPH_FAST_LOCK FastLock
+    _Out_ PPH_FAST_LOCK FastLock
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhDeleteFastLock(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     );
 
 #define PhAcquireFastLockExclusive PhfAcquireFastLockExclusive
-__mayRaise
+_May_raise_
 PHLIBAPI
 VOID
 FASTCALL
 PhfAcquireFastLockExclusive(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     );
 
 #define PhAcquireFastLockShared PhfAcquireFastLockShared
-__mayRaise
+_May_raise_
 PHLIBAPI
 VOID
 FASTCALL
 PhfAcquireFastLockShared(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     );
 
 #define PhReleaseFastLockExclusive PhfReleaseFastLockExclusive
@@ -57,7 +57,7 @@ PHLIBAPI
 VOID
 FASTCALL
 PhfReleaseFastLockExclusive(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     );
 
 #define PhReleaseFastLockShared PhfReleaseFastLockShared
@@ -65,7 +65,7 @@ PHLIBAPI
 VOID
 FASTCALL
 PhfReleaseFastLockShared(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     );
 
 #define PhTryAcquireFastLockExclusive PhfTryAcquireFastLockExclusive
@@ -73,7 +73,7 @@ PHLIBAPI
 BOOLEAN
 FASTCALL
 PhfTryAcquireFastLockExclusive(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     );
 
 #define PhTryAcquireFastLockShared PhfTryAcquireFastLockShared
@@ -81,7 +81,7 @@ PHLIBAPI
 BOOLEAN
 FASTCALL
 PhfTryAcquireFastLockShared(
-    __inout PPH_FAST_LOCK FastLock
+    _Inout_ PPH_FAST_LOCK FastLock
     );
 
 #ifdef __cplusplus

@@ -40,7 +40,7 @@ VOID PhLogInitialization(
 }
 
 PPH_LOG_ENTRY PhpCreateLogEntry(
-    __in UCHAR Type
+    _In_ UCHAR Type
     )
 {
     PPH_LOG_ENTRY entry;
@@ -55,7 +55,7 @@ PPH_LOG_ENTRY PhpCreateLogEntry(
 }
 
 VOID PhpFreeLogEntry(
-    __inout PPH_LOG_ENTRY Entry
+    _Inout_ PPH_LOG_ENTRY Entry
     )
 {
     if (Entry->Type >= PH_LOG_ENTRY_PROCESS_FIRST && Entry->Type <= PH_LOG_ENTRY_PROCESS_LAST)
@@ -77,11 +77,11 @@ VOID PhpFreeLogEntry(
 }
 
 PPH_LOG_ENTRY PhpCreateProcessLogEntry(
-    __in UCHAR Type,
-    __in HANDLE ProcessId,
-    __in PPH_STRING Name,
-    __in_opt HANDLE ParentProcessId,
-    __in_opt PPH_STRING ParentName
+    _In_ UCHAR Type,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING Name,
+    _In_opt_ HANDLE ParentProcessId,
+    _In_opt_ PPH_STRING ParentName
     )
 {
     PPH_LOG_ENTRY entry;
@@ -103,9 +103,9 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
 }
 
 PPH_LOG_ENTRY PhpCreateServiceLogEntry(
-    __in UCHAR Type,
-    __in PPH_STRING Name,
-    __in PPH_STRING DisplayName
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Name,
+    _In_ PPH_STRING DisplayName
     )
 {
     PPH_LOG_ENTRY entry;
@@ -120,8 +120,8 @@ PPH_LOG_ENTRY PhpCreateServiceLogEntry(
 }
 
 PPH_LOG_ENTRY PhpCreateMessageLogEntry(
-    __in UCHAR Type,
-    __in PPH_STRING Message
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Message
     )
 {
     PPH_LOG_ENTRY entry;
@@ -134,7 +134,7 @@ PPH_LOG_ENTRY PhpCreateMessageLogEntry(
 }
 
 VOID PhpLogEntry(
-    __in PPH_LOG_ENTRY Entry
+    _In_ PPH_LOG_ENTRY Entry
     )
 {
     PPH_LOG_ENTRY oldEntry;
@@ -164,35 +164,35 @@ VOID PhClearLogEntries(
 }
 
 VOID PhLogProcessEntry(
-    __in UCHAR Type,
-    __in HANDLE ProcessId,
-    __in PPH_STRING Name,
-    __in_opt HANDLE ParentProcessId,
-    __in_opt PPH_STRING ParentName
+    _In_ UCHAR Type,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING Name,
+    _In_opt_ HANDLE ParentProcessId,
+    _In_opt_ PPH_STRING ParentName
     )
 {
     PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName));
 }
 
 VOID PhLogServiceEntry(
-    __in UCHAR Type,
-    __in PPH_STRING Name,
-    __in PPH_STRING DisplayName
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Name,
+    _In_ PPH_STRING DisplayName
     )
 {
     PhpLogEntry(PhpCreateServiceLogEntry(Type, Name, DisplayName));
 }
 
 VOID PhLogMessageEntry(
-    __in UCHAR Type,
-    __in PPH_STRING Message
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Message
     )
 {
     PhpLogEntry(PhpCreateMessageLogEntry(Type, Message));
 }
 
 PPH_STRING PhFormatLogEntry(
-    __in PPH_LOG_ENTRY Entry
+    _In_ PPH_LOG_ENTRY Entry
     )
 {
     switch (Entry->Type)

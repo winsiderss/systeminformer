@@ -31,16 +31,16 @@ typedef struct _MODULE_SERVICES_CONTEXT
 } MODULE_SERVICES_CONTEXT, *PMODULE_SERVICES_CONTEXT;
 
 INT_PTR CALLBACK EtpModuleServicesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EtShowModuleServicesDialog(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId,
-    __in PWSTR ModuleName
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PWSTR ModuleName
     )
 {
     MODULE_SERVICES_CONTEXT context;
@@ -58,10 +58,10 @@ VOID EtShowModuleServicesDialog(
 }
 
 INT_PTR CALLBACK EtpModuleServicesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

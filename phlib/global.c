@@ -24,11 +24,11 @@
 #include <phintrnl.h>
 
 VOID PhInitializeSecurity(
-    __in ULONG Flags
+    _In_ ULONG Flags
     );
 
 BOOLEAN PhInitializeSystem(
-    __in ULONG Flags
+    _In_ ULONG Flags
     );
 
 VOID PhInitializeSystemInformation(
@@ -74,9 +74,9 @@ NTSTATUS PhInitializePhLib(
 }
 
 NTSTATUS PhInitializePhLibEx(
-    __in ULONG Flags,
-    __in_opt SIZE_T HeapReserveSize,
-    __in_opt SIZE_T HeapCommitSize
+    _In_ ULONG Flags,
+    _In_opt_ SIZE_T HeapReserveSize,
+    _In_opt_ SIZE_T HeapCommitSize
     )
 {
     PhHeapHandle = RtlCreateHeap(
@@ -123,7 +123,7 @@ NTSTATUS PhInitializePhLibEx(
 }
 
 static VOID PhInitializeSecurity(
-    __in ULONG Flags
+    _In_ ULONG Flags
     )
 {
     HANDLE tokenHandle;
@@ -152,7 +152,7 @@ static VOID PhInitializeSecurity(
 }
 
 static BOOLEAN PhInitializeSystem(
-    __in ULONG Flags
+    _In_ ULONG Flags
     )
 {
     if (Flags & PHLIB_INIT_MODULE_IO_SUPPORT)

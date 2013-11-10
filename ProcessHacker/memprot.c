@@ -30,16 +30,16 @@ typedef struct _MEMORY_PROTECT_CONTEXT
 } MEMORY_PROTECT_CONTEXT, *PMEMORY_PROTECT_CONTEXT;
 
 INT_PTR CALLBACK PhpMemoryProtectDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowMemoryProtectDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_MEMORY_ITEM MemoryItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_MEMORY_ITEM MemoryItem
     )
 {
     MEMORY_PROTECT_CONTEXT context;
@@ -57,10 +57,10 @@ VOID PhShowMemoryProtectDialog(
 }
 
 static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

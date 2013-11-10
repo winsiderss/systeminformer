@@ -24,27 +24,27 @@
 #include "etwmon.h"
 
 ULONG NTAPI EtpEtwBufferCallback(
-    __in PEVENT_TRACE_LOGFILE Buffer
+    _In_ PEVENT_TRACE_LOGFILE Buffer
     );
 
 VOID NTAPI EtpEtwEventCallback(
-    __in PEVENT_TRACE EventTrace
+    _In_ PEVENT_TRACE EventTrace
     );
 
 NTSTATUS EtpEtwMonitorThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 ULONG NTAPI EtpRundownEtwBufferCallback(
-    __in PEVENT_TRACE_LOGFILE Buffer
+    _In_ PEVENT_TRACE_LOGFILE Buffer
     );
 
 VOID NTAPI EtpRundownEtwEventCallback(
-    __in PEVENT_RECORD EventRecord
+    _In_ PEVENT_RECORD EventRecord
     );
 
 NTSTATUS EtpRundownEtwMonitorThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 static GUID SystemTraceControlGuid_I = { 0x9e814aad, 0x3204, 0x11d2, { 0x9a, 0x82, 0x00, 0x60, 0x08, 0xa8, 0x69, 0x39 } };
@@ -152,7 +152,7 @@ VOID EtStartEtwSession(
 }
 
 ULONG EtpControlEtwSession(
-    __in ULONG ControlCode
+    _In_ ULONG ControlCode
     )
 {
     // If we have a session handle, we use that instead of the logger name.
@@ -184,14 +184,14 @@ VOID EtFlushEtwSession(
 }
 
 ULONG NTAPI EtpEtwBufferCallback(
-    __in PEVENT_TRACE_LOGFILE Buffer
+    _In_ PEVENT_TRACE_LOGFILE Buffer
     )
 {
     return !EtpEtwExiting;
 }
 
 VOID NTAPI EtpEtwEventCallback(
-    __in PEVENT_TRACE EventTrace
+    _In_ PEVENT_TRACE EventTrace
     )
 {
     if (memcmp(&EventTrace->Header.Guid, &DiskIoGuid_I, sizeof(GUID)) == 0)
@@ -358,7 +358,7 @@ VOID NTAPI EtpEtwEventCallback(
 }
 
 NTSTATUS EtpEtwMonitorThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     ULONG result;
@@ -456,14 +456,14 @@ ULONG EtStartEtwRundown(
 }
 
 ULONG NTAPI EtpRundownEtwBufferCallback(
-    __in PEVENT_TRACE_LOGFILE Buffer
+    _In_ PEVENT_TRACE_LOGFILE Buffer
     )
 {
     return !EtpEtwExiting;
 }
 
 VOID NTAPI EtpRundownEtwEventCallback(
-    __in PEVENT_RECORD EventRecord
+    _In_ PEVENT_RECORD EventRecord
     )
 {
     // TODO: Find a way to call CloseTrace when the enumeration finishes so we can
@@ -500,7 +500,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
 }
 
 NTSTATUS EtpRundownEtwMonitorThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     EVENT_TRACE_LOGFILE logFile;

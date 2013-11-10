@@ -35,7 +35,7 @@
 #include <iphlpapi.h>
 
 typedef DWORD (WINAPI *_SetTcpEntry)(
-    __in PMIB_TCPROW pTcpRow
+    _In_ PMIB_TCPROW pTcpRow
     );
 
 static PWSTR DangerousProcesses[] =
@@ -50,11 +50,11 @@ static ULONG PhSvcReferenceCount = 0;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
 
 HRESULT CALLBACK PhpElevateActionCallbackProc(
-    __in HWND hwnd,
-    __in UINT uNotification,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in LONG_PTR dwRefData
+    _In_ HWND hwnd,
+    _In_ UINT uNotification,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
     )
 {
     switch (uNotification)
@@ -68,10 +68,10 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
 }
 
 BOOLEAN PhpShowElevatePrompt(
-    __in HWND hWnd,
-    __in PWSTR Message,
-    __in NTSTATUS Status,
-    __out PINT Button
+    _In_ HWND hWnd,
+    _In_ PWSTR Message,
+    _In_ NTSTATUS Status,
+    _Out_ PINT Button
     )
 {
     TASKDIALOGCONFIG config = { sizeof(config) };
@@ -138,11 +138,11 @@ BOOLEAN PhpShowElevatePrompt(
  * FALSE, in which case you need to show your own error message.
  */
 BOOLEAN PhpShowErrorAndElevateAction(
-    __in HWND hWnd,
-    __in PWSTR Message,
-    __in NTSTATUS Status,
-    __in PWSTR Command,
-    __out PBOOLEAN Success
+    _In_ HWND hWnd,
+    _In_ PWSTR Message,
+    _In_ NTSTATUS Status,
+    _In_ PWSTR Command,
+    _Out_ PBOOLEAN Success
     )
 {
     PH_ACTION_ELEVATION_LEVEL elevationLevel;
@@ -230,10 +230,10 @@ BOOLEAN PhpShowErrorAndElevateAction(
  * FALSE, in which case you need to show your own error message.
  */
 BOOLEAN PhpShowErrorAndConnectToPhSvc(
-    __in HWND hWnd,
-    __in PWSTR Message,
-    __in NTSTATUS Status,
-    __out PBOOLEAN Connected
+    _In_ HWND hWnd,
+    _In_ PWSTR Message,
+    _In_ NTSTATUS Status,
+    _Out_ PBOOLEAN Connected
     )
 {
     PH_ACTION_ELEVATION_LEVEL elevationLevel;
@@ -286,8 +286,8 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
  * attempt failed.
  */
 BOOLEAN PhUiConnectToPhSvc(
-    __in HWND hWnd,
-    __in BOOLEAN ConnectOnly
+    _In_ HWND hWnd,
+    _In_ BOOLEAN ConnectOnly
     )
 {
     NTSTATUS status;
@@ -387,7 +387,7 @@ VOID PhUiDisconnectFromPhSvc(
 }
 
 BOOLEAN PhUiLockComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     if (LockWorkStation())
@@ -399,7 +399,7 @@ BOOLEAN PhUiLockComputer(
 }
 
 BOOLEAN PhUiLogoffComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     if (ExitWindowsEx(EWX_LOGOFF, 0))
@@ -411,7 +411,7 @@ BOOLEAN PhUiLogoffComputer(
 }
 
 BOOLEAN PhUiSleepComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     NTSTATUS status;
@@ -430,7 +430,7 @@ BOOLEAN PhUiSleepComputer(
 }
 
 BOOLEAN PhUiHibernateComputer(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     NTSTATUS status;
@@ -449,8 +449,8 @@ BOOLEAN PhUiHibernateComputer(
 }
 
 BOOLEAN PhUiRestartComputer(
-    __in HWND hWnd,
-    __in ULONG Flags
+    _In_ HWND hWnd,
+    _In_ ULONG Flags
     )
 {
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
@@ -471,8 +471,8 @@ BOOLEAN PhUiRestartComputer(
 }
 
 BOOLEAN PhUiShutdownComputer(
-    __in HWND hWnd,
-    __in ULONG Flags
+    _In_ HWND hWnd,
+    _In_ ULONG Flags
     )
 {
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
@@ -501,8 +501,8 @@ BOOLEAN PhUiShutdownComputer(
 }
 
 BOOLEAN PhUiConnectSession(
-    __in HWND hWnd,
-    __in ULONG SessionId
+    _In_ HWND hWnd,
+    _In_ ULONG SessionId
     )
 {
     BOOLEAN success = FALSE;
@@ -556,8 +556,8 @@ BOOLEAN PhUiConnectSession(
 }
 
 BOOLEAN PhUiDisconnectSession(
-    __in HWND hWnd,
-    __in ULONG SessionId
+    _In_ HWND hWnd,
+    _In_ ULONG SessionId
     )
 {
     if (WinStationDisconnect(NULL, SessionId, FALSE))
@@ -569,8 +569,8 @@ BOOLEAN PhUiDisconnectSession(
 }
 
 BOOLEAN PhUiLogoffSession(
-    __in HWND hWnd,
-    __in ULONG SessionId
+    _In_ HWND hWnd,
+    _In_ ULONG SessionId
     )
 {
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
@@ -596,7 +596,7 @@ BOOLEAN PhUiLogoffSession(
  * \param ProcessId The PID of the process to check.
  */
 static BOOLEAN PhpIsDangerousProcess(
-    __in HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -663,12 +663,12 @@ static BOOLEAN PhpIsDangerousProcess(
  * otherwise FALSE.
  */
 static BOOLEAN PhpShowContinueMessageProcesses(
-    __in HWND hWnd,
-    __in PWSTR Verb,
-    __in_opt PWSTR Message,
-    __in BOOLEAN WarnOnlyIfDangerous,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PWSTR Verb,
+    _In_opt_ PWSTR Message,
+    _In_ BOOLEAN WarnOnlyIfDangerous,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     )
 {
     PWSTR object;
@@ -814,11 +814,11 @@ static BOOLEAN PhpShowContinueMessageProcesses(
  * executing an action on multiple processes.
  */
 static BOOLEAN PhpShowErrorProcess(
-    __in HWND hWnd,
-    __in PWSTR Verb,
-    __in PPH_PROCESS_ITEM Process,
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result
+    _In_ HWND hWnd,
+    _In_ PWSTR Verb,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
     )
 {
     if (!PH_IS_FAKE_PROCESS_ID(Process->ProcessId))
@@ -851,9 +851,9 @@ static BOOLEAN PhpShowErrorProcess(
 }
 
 BOOLEAN PhUiTerminateProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     )
 {
     BOOLEAN success = TRUE;
@@ -923,10 +923,10 @@ BOOLEAN PhUiTerminateProcesses(
 }
 
 BOOLEAN PhpUiTerminateTreeProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in PVOID Processes,
-    __inout PBOOLEAN Success
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ PVOID Processes,
+    _Inout_ PBOOLEAN Success
     )
 {
     NTSTATUS status;
@@ -991,8 +991,8 @@ BOOLEAN PhpUiTerminateTreeProcess(
 }
 
 BOOLEAN PhUiTerminateTreeProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     NTSTATUS status;
@@ -1031,9 +1031,9 @@ BOOLEAN PhUiTerminateTreeProcess(
 }
 
 BOOLEAN PhUiSuspendProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     )
 {
     BOOLEAN success = TRUE;
@@ -1099,9 +1099,9 @@ BOOLEAN PhUiSuspendProcesses(
 }
 
 BOOLEAN PhUiResumeProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     )
 {
     BOOLEAN success = TRUE;
@@ -1167,8 +1167,8 @@ BOOLEAN PhUiResumeProcesses(
 }
 
 BOOLEAN PhUiRestartProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     NTSTATUS status;
@@ -1282,8 +1282,8 @@ ErrorExit:
 
 // Contributed by evilpie (#2981421)
 BOOLEAN PhUiDebugProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     NTSTATUS status;
@@ -1380,9 +1380,9 @@ BOOLEAN PhUiDebugProcess(
 }
 
 BOOLEAN PhUiReduceWorkingSetProcesses(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     )
 {
     BOOLEAN success = TRUE;
@@ -1428,9 +1428,9 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
 }
 
 BOOLEAN PhUiSetVirtualizationProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in BOOLEAN Enable
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ BOOLEAN Enable
     )
 {
     NTSTATUS status;
@@ -1487,8 +1487,8 @@ BOOLEAN PhUiSetVirtualizationProcess(
 }
 
 BOOLEAN PhUiDetachFromDebuggerProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     NTSTATUS status;
@@ -1542,8 +1542,8 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 }
 
 BOOLEAN PhUiInjectDllProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     static PH_FILETYPE_FILTER filters[] =
@@ -1598,9 +1598,9 @@ BOOLEAN PhUiInjectDllProcess(
 }
 
 BOOLEAN PhUiSetIoPriorityProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in ULONG IoPriority
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ ULONG IoPriority
     )
 {
     NTSTATUS status;
@@ -1652,9 +1652,9 @@ BOOLEAN PhUiSetIoPriorityProcess(
 }
 
 BOOLEAN PhUiSetPagePriorityProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in ULONG PagePriority
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ ULONG PagePriority
     )
 {
     NTSTATUS status;
@@ -1686,9 +1686,9 @@ BOOLEAN PhUiSetPagePriorityProcess(
 }
 
 BOOLEAN PhUiSetPriorityProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process,
-    __in ULONG PriorityClass
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ ULONG PriorityClass
     )
 {
     NTSTATUS status;
@@ -1743,8 +1743,8 @@ BOOLEAN PhUiSetPriorityProcess(
 }
 
 BOOLEAN PhUiSetDepStatusProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     static WCHAR *choices[] = { L"Disabled", L"Enabled", L"Enabled, DEP-ATL thunk emulation disabled" };
@@ -1865,8 +1865,8 @@ BOOLEAN PhUiSetDepStatusProcess(
 }
 
 BOOLEAN PhUiSetProtectionProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM Process
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     )
 {
     static WCHAR *choices[] = { L"Protected", L"Not Protected" };
@@ -1941,11 +1941,11 @@ BOOLEAN PhUiSetProtectionProcess(
 }
 
 static VOID PhpShowErrorService(
-    __in HWND hWnd,
-    __in PWSTR Verb,
-    __in PPH_SERVICE_ITEM Service,
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result
+    _In_ HWND hWnd,
+    _In_ PWSTR Verb,
+    _In_ PPH_SERVICE_ITEM Service,
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
     )
 {
     PhShowStatus(
@@ -1961,8 +1961,8 @@ static VOID PhpShowErrorService(
 }
 
 BOOLEAN PhUiStartService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
@@ -2012,8 +2012,8 @@ BOOLEAN PhUiStartService(
 }
 
 BOOLEAN PhUiContinueService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
@@ -2065,8 +2065,8 @@ BOOLEAN PhUiContinueService(
 }
 
 BOOLEAN PhUiPauseService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
@@ -2118,8 +2118,8 @@ BOOLEAN PhUiPauseService(
 }
 
 BOOLEAN PhUiStopService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
@@ -2171,8 +2171,8 @@ BOOLEAN PhUiStopService(
 }
 
 BOOLEAN PhUiDeleteService(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM Service
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
@@ -2233,9 +2233,9 @@ BOOLEAN PhUiDeleteService(
 }
 
 BOOLEAN PhUiCloseConnections(
-    __in HWND hWnd,
-    __in PPH_NETWORK_ITEM *Connections,
-    __in ULONG NumberOfConnections
+    _In_ HWND hWnd,
+    _In_ PPH_NETWORK_ITEM *Connections,
+    _In_ ULONG NumberOfConnections
     )
 {
 
@@ -2317,12 +2317,12 @@ BOOLEAN PhUiCloseConnections(
 }
 
 static BOOLEAN PhpShowContinueMessageThreads(
-    __in HWND hWnd,
-    __in PWSTR Verb,
-    __in PWSTR Message,
-    __in BOOLEAN Warning,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ PWSTR Verb,
+    _In_ PWSTR Message,
+    _In_ BOOLEAN Warning,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     )
 {
     PWSTR object;
@@ -2359,11 +2359,11 @@ static BOOLEAN PhpShowContinueMessageThreads(
 }
 
 static BOOLEAN PhpShowErrorThread(
-    __in HWND hWnd,
-    __in PWSTR Verb,
-    __in PPH_THREAD_ITEM Thread,
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result
+    _In_ HWND hWnd,
+    _In_ PWSTR Verb,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
     )
 {
     return PhShowContinueStatus(
@@ -2379,9 +2379,9 @@ static BOOLEAN PhpShowErrorThread(
 }
 
 BOOLEAN PhUiTerminateThreads(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     )
 {
     BOOLEAN success = TRUE;
@@ -2447,10 +2447,10 @@ BOOLEAN PhUiTerminateThreads(
 }
 
 BOOLEAN PhUiForceTerminateThreads(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     )
 {
     BOOLEAN success = TRUE;
@@ -2515,9 +2515,9 @@ BOOLEAN PhUiForceTerminateThreads(
 }
 
 BOOLEAN PhUiSuspendThreads(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     )
 {
     BOOLEAN success = TRUE;
@@ -2573,9 +2573,9 @@ BOOLEAN PhUiSuspendThreads(
 }
 
 BOOLEAN PhUiResumeThreads(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM *Threads,
-    __in ULONG NumberOfThreads
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
     )
 {
     BOOLEAN success = TRUE;
@@ -2631,9 +2631,9 @@ BOOLEAN PhUiResumeThreads(
 }
 
 BOOLEAN PhUiSetPriorityThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread,
-    __in ULONG ThreadPriorityWin32
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ ULONG ThreadPriorityWin32
     )
 {
     NTSTATUS status;
@@ -2662,9 +2662,9 @@ BOOLEAN PhUiSetPriorityThread(
 }
 
 BOOLEAN PhUiSetIoPriorityThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread,
-    __in ULONG IoPriority
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ ULONG IoPriority
     )
 {
     NTSTATUS status;
@@ -2716,9 +2716,9 @@ BOOLEAN PhUiSetIoPriorityThread(
 }
 
 BOOLEAN PhUiSetPagePriorityThread(
-    __in HWND hWnd,
-    __in PPH_THREAD_ITEM Thread,
-    __in ULONG PagePriority
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ ULONG PagePriority
     )
 {
     NTSTATUS status;
@@ -2750,9 +2750,9 @@ BOOLEAN PhUiSetPagePriorityThread(
 }
 
 BOOLEAN PhUiUnloadModule(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_MODULE_ITEM Module
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MODULE_ITEM Module
     )
 {
     NTSTATUS status;
@@ -2926,10 +2926,10 @@ BOOLEAN PhUiUnloadModule(
 }
 
 BOOLEAN PhUiFreeMemory(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_MEMORY_ITEM MemoryItem,
-    __in BOOLEAN Free
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MEMORY_ITEM MemoryItem,
+    _In_ BOOLEAN Free
     )
 {
     NTSTATUS status;
@@ -3039,11 +3039,11 @@ BOOLEAN PhUiFreeMemory(
 }
 
 static BOOLEAN PhpShowErrorHandle(
-    __in HWND hWnd,
-    __in PWSTR Verb,
-    __in PPH_HANDLE_ITEM Handle,
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result
+    _In_ HWND hWnd,
+    _In_ PWSTR Verb,
+    _In_ PPH_HANDLE_ITEM Handle,
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
     )
 {
     if (!PhIsNullOrEmptyString(Handle->BestObjectName))
@@ -3076,11 +3076,11 @@ static BOOLEAN PhpShowErrorHandle(
 }
 
 BOOLEAN PhUiCloseHandles(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_HANDLE_ITEM *Handles,
-    __in ULONG NumberOfHandles,
-    __in BOOLEAN Warn
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM *Handles,
+    _In_ ULONG NumberOfHandles,
+    _In_ BOOLEAN Warn
     )
 {
     NTSTATUS status;
@@ -3156,10 +3156,10 @@ BOOLEAN PhUiCloseHandles(
 }
 
 BOOLEAN PhUiSetAttributesHandle(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PPH_HANDLE_ITEM Handle,
-    __in ULONG Attributes
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM Handle,
+    _In_ ULONG Attributes
     )
 {
     NTSTATUS status;
@@ -3203,9 +3203,9 @@ BOOLEAN PhUiSetAttributesHandle(
 }
 
 BOOLEAN PhUiDestroyHeap(
-    __in HWND hWnd,
-    __in HANDLE ProcessId,
-    __in PVOID HeapHandle
+    _In_ HWND hWnd,
+    _In_ HANDLE ProcessId,
+    _In_ PVOID HeapHandle
     )
 {
     NTSTATUS status;

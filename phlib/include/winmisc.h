@@ -86,9 +86,9 @@ typedef struct _TAG_INFO_NAME_TAG_MAPPING
 
 // rev
 typedef ULONG (WINAPI *PQUERY_TAG_INFORMATION)(
-    __in PCWSTR Reserved, // ?
-    __in TAG_INFO_LEVEL InfoLevel,
-    __inout PVOID Data
+    _In_ PCWSTR Reserved, // ?
+    _In_ TAG_INFO_LEVEL InfoLevel,
+    _Inout_ PVOID Data
     );
 
 #endif

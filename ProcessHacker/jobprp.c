@@ -31,35 +31,35 @@ typedef struct _JOB_PAGE_CONTEXT
 } JOB_PAGE_CONTEXT, *PJOB_PAGE_CONTEXT;
 
 INT CALLBACK PhpJobPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     );
 
 INT_PTR CALLBACK PhpJobPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhpShowJobAdvancedProperties(
-    __in HWND ParentWindowHandle,
-    __in PJOB_PAGE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ PJOB_PAGE_CONTEXT Context
     );
 
 INT_PTR CALLBACK PhpJobStatisticsPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID PhShowJobProperties(
-    __in HWND ParentWindowHandle,
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt PWSTR Title
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ PWSTR Title
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -81,9 +81,9 @@ VOID PhShowJobProperties(
 }
 
 HPROPSHEETPAGE PhCreateJobPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in_opt PVOID Context,
-    __in_opt DLGPROC HookProc
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
@@ -115,9 +115,9 @@ HPROPSHEETPAGE PhCreateJobPage(
 }
 
 INT CALLBACK PhpJobPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     )
 {
     PJOB_PAGE_CONTEXT jobPageContext;
@@ -137,10 +137,10 @@ INT CALLBACK PhpJobPropPageProc(
 }
 
 FORCEINLINE PJOB_PAGE_CONTEXT PhpJobPageHeader(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     return (PJOB_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
@@ -148,9 +148,9 @@ FORCEINLINE PJOB_PAGE_CONTEXT PhpJobPageHeader(
 }
 
 static VOID PhpAddLimit(
-    __in HWND Handle,
-    __in PWSTR Name,
-    __in PWSTR Value
+    _In_ HWND Handle,
+    _In_ PWSTR Name,
+    _In_ PWSTR Value
     )
 {
     INT lvItemIndex;
@@ -160,8 +160,8 @@ static VOID PhpAddLimit(
 }
 
 static VOID PhpAddJobProcesses(
-    __in HWND hwndDlg,
-    __in HANDLE JobHandle
+    _In_ HWND hwndDlg,
+    _In_ HANDLE JobHandle
     )
 {
     PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
@@ -190,10 +190,10 @@ static VOID PhpAddJobProcesses(
 }
 
 INT_PTR CALLBACK PhpJobPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PJOB_PAGE_CONTEXT jobPageContext;
@@ -483,8 +483,8 @@ INT_PTR CALLBACK PhpJobPageProc(
 }
 
 VOID PhpShowJobAdvancedProperties(
-    __in HWND ParentWindowHandle,
-    __in PJOB_PAGE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ PJOB_PAGE_CONTEXT Context
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -536,8 +536,8 @@ VOID PhpShowJobAdvancedProperties(
 }
 
 static VOID PhpRefreshJobStatisticsInfo(
-    __in HWND hwndDlg,
-    __in PJOB_PAGE_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PJOB_PAGE_CONTEXT Context
     )
 {
     HANDLE jobHandle = NULL;
@@ -619,10 +619,10 @@ static VOID PhpRefreshJobStatisticsInfo(
 }
 
 INT_PTR CALLBACK PhpJobStatisticsPageProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PJOB_PAGE_CONTEXT jobPageContext;

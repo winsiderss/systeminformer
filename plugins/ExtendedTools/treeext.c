@@ -26,17 +26,17 @@
 #include <netfw.h>
 
 LONG EtpProcessTreeNewSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     );
 
 LONG EtpNetworkTreeNewSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     );
 
 typedef struct _COLUMN_INFO
@@ -56,14 +56,14 @@ static GUID IID_INetFwMgr_I = { 0xf7898af5, 0xcac4, 0x4632, { 0xa2, 0xec, 0xda, 
 static GUID CLSID_NetFwMgr_I = { 0x304ce942, 0x6e39, 0x40d8, { 0x94, 0x3a, 0xb9, 0x13, 0xc4, 0x0c, 0x9c, 0xd4 } };
 
 VOID EtpAddTreeNewColumn(
-    __in PPH_PLUGIN_TREENEW_INFORMATION TreeNewInfo,
-    __in ULONG SubId,
-    __in PWSTR Text,
-    __in ULONG Width,
-    __in ULONG Alignment,
-    __in ULONG TextFlags,
-    __in BOOLEAN SortDescending,
-    __in PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
+    _In_ PPH_PLUGIN_TREENEW_INFORMATION TreeNewInfo,
+    _In_ ULONG SubId,
+    _In_ PWSTR Text,
+    _In_ ULONG Width,
+    _In_ ULONG Alignment,
+    _In_ ULONG TextFlags,
+    _In_ BOOLEAN SortDescending,
+    _In_ PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
     )
 {
     PH_TREENEW_COLUMN column;
@@ -86,7 +86,7 @@ VOID EtpAddTreeNewColumn(
 }
 
 VOID EtProcessTreeNewInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     static COLUMN_INFO columns[] =
@@ -138,7 +138,7 @@ VOID EtProcessTreeNewInitializing(
 }
 
 static FLOAT EtpCalculateInclusiveGpuUsage(
-    __in PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
     FLOAT gpuUsage;
@@ -155,7 +155,7 @@ static FLOAT EtpCalculateInclusiveGpuUsage(
 }
 
 VOID EtProcessTreeNewMessage(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
@@ -355,10 +355,10 @@ VOID EtProcessTreeNewMessage(
 }
 
 LONG EtpProcessTreeNewSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     )
 {
     LONG result;
@@ -476,7 +476,7 @@ LONG EtpProcessTreeNewSortFunction(
 }
 
 VOID EtNetworkTreeNewInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     static COLUMN_INFO columns[] =
@@ -508,7 +508,7 @@ VOID EtNetworkTreeNewInitializing(
 }
 
 VOID EtpUpdateFirewallStatus(
-    __inout PET_NETWORK_BLOCK Block
+    _Inout_ PET_NETWORK_BLOCK Block
     )
 {
     if (!Block->FirewallStatusValid)
@@ -519,7 +519,7 @@ VOID EtpUpdateFirewallStatus(
 }
 
 VOID EtNetworkTreeNewMessage(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
@@ -640,10 +640,10 @@ VOID EtNetworkTreeNewMessage(
 }
 
 LONG EtpNetworkTreeNewSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     )
 {
     LONG result;
@@ -709,7 +709,7 @@ LONG EtpNetworkTreeNewSortFunction(
 }
 
 ET_FIREWALL_STATUS EtQueryFirewallStatus(
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
     static INetFwMgr* manager = NULL;

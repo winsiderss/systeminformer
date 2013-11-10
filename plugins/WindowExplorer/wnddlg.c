@@ -37,21 +37,21 @@ typedef struct _WINDOWS_CONTEXT
 } WINDOWS_CONTEXT, *PWINDOWS_CONTEXT;
 
 VOID WepShowWindowsDialogCallback(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 INT_PTR CALLBACK WepWindowsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID WeShowWindowsDialog(
-    __in HWND ParentWindowHandle,
-    __in PWE_WINDOW_SELECTOR Selector
+    _In_ HWND ParentWindowHandle,
+    _In_ PWE_WINDOW_SELECTOR Selector
     )
 {
     PWINDOWS_CONTEXT context;
@@ -64,7 +64,7 @@ VOID WeShowWindowsDialog(
 }
 
 VOID WepShowWindowsDialogCallback(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     HWND hwnd;
@@ -81,7 +81,7 @@ VOID WepShowWindowsDialogCallback(
 }
 
 VOID WepDeleteWindowSelector(
-    __in PWE_WINDOW_SELECTOR Selector
+    _In_ PWE_WINDOW_SELECTOR Selector
     )
 {
     switch (Selector->Type)
@@ -93,7 +93,7 @@ VOID WepDeleteWindowSelector(
 }
 
 VOID WepFillWindowInfo(
-    __in PWE_WINDOW_NODE Node
+    _In_ PWE_WINDOW_NODE Node
     )
 {
     HWND hwnd;
@@ -117,9 +117,9 @@ VOID WepFillWindowInfo(
 }
 
 VOID WepAddChildWindowNode(
-    __in PWE_WINDOW_TREE_CONTEXT Context,
-    __in_opt PWE_WINDOW_NODE ParentNode,
-    __in HWND hwnd
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_opt_ PWE_WINDOW_NODE ParentNode,
+    _In_ HWND hwnd
     )
 {
     PWE_WINDOW_NODE childNode;
@@ -144,11 +144,11 @@ VOID WepAddChildWindowNode(
 }
 
 VOID WepAddChildWindows(
-    __in PWINDOWS_CONTEXT Context,
-    __in_opt PWE_WINDOW_NODE ParentNode,
-    __in HWND hwnd,
-    __in_opt HANDLE FilterProcessId,
-    __in_opt HANDLE FilterThreadId
+    _In_ PWINDOWS_CONTEXT Context,
+    _In_opt_ PWE_WINDOW_NODE ParentNode,
+    _In_ HWND hwnd,
+    _In_opt_ HANDLE FilterProcessId,
+    _In_opt_ HANDLE FilterThreadId
     )
 {
     HWND childWindow = NULL;
@@ -176,8 +176,8 @@ VOID WepAddChildWindows(
 }
 
 BOOL CALLBACK WepEnumDesktopWindowsProc(
-    __in HWND hwnd,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ LPARAM lParam
     )
 {
     PWINDOWS_CONTEXT context = (PWINDOWS_CONTEXT)lParam;
@@ -188,8 +188,8 @@ BOOL CALLBACK WepEnumDesktopWindowsProc(
 }
 
 VOID WepAddDesktopWindows(
-    __in PWINDOWS_CONTEXT Context,
-    __in PWSTR DesktopName
+    _In_ PWINDOWS_CONTEXT Context,
+    _In_ PWSTR DesktopName
     )
 {
     HDESK desktopHandle;
@@ -202,7 +202,7 @@ VOID WepAddDesktopWindows(
 }
 
 VOID WepRefreshWindows(
-    __in PWINDOWS_CONTEXT Context
+    _In_ PWINDOWS_CONTEXT Context
     )
 {
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
@@ -248,7 +248,7 @@ VOID WepRefreshWindows(
 }
 
 PPH_STRING WepGetWindowTitleForSelector(
-    __in PWE_WINDOW_SELECTOR Selector
+    _In_ PWE_WINDOW_SELECTOR Selector
     )
 {
     PPH_STRING title;
@@ -290,10 +290,10 @@ PPH_STRING WepGetWindowTitleForSelector(
 }
 
 INT_PTR CALLBACK WepWindowsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PWINDOWS_CONTEXT context;

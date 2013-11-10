@@ -4,21 +4,21 @@
 // Linked lists
 
 FORCEINLINE VOID InitializeListHead(
-    __out PLIST_ENTRY ListHead
+    _Out_ PLIST_ENTRY ListHead
     )
 {
     ListHead->Flink = ListHead->Blink = ListHead;
 }
 
-__checkReturn FORCEINLINE BOOLEAN IsListEmpty(
-    __in PLIST_ENTRY ListHead
+_Check_return_ FORCEINLINE BOOLEAN IsListEmpty(
+    _In_ PLIST_ENTRY ListHead
     )
 {
     return ListHead->Flink == ListHead;
 }
 
 FORCEINLINE BOOLEAN RemoveEntryList(
-    __in PLIST_ENTRY Entry
+    _In_ PLIST_ENTRY Entry
     )
 {
     PLIST_ENTRY Blink;
@@ -33,7 +33,7 @@ FORCEINLINE BOOLEAN RemoveEntryList(
 }
 
 FORCEINLINE PLIST_ENTRY RemoveHeadList(
-    __inout PLIST_ENTRY ListHead
+    _Inout_ PLIST_ENTRY ListHead
     )
 {
     PLIST_ENTRY Flink;
@@ -48,7 +48,7 @@ FORCEINLINE PLIST_ENTRY RemoveHeadList(
 }
 
 FORCEINLINE PLIST_ENTRY RemoveTailList(
-    __inout PLIST_ENTRY ListHead
+    _Inout_ PLIST_ENTRY ListHead
     )
 {
     PLIST_ENTRY Blink;
@@ -63,8 +63,8 @@ FORCEINLINE PLIST_ENTRY RemoveTailList(
 }
 
 FORCEINLINE VOID InsertTailList(
-    __inout PLIST_ENTRY ListHead,
-    __inout PLIST_ENTRY Entry
+    _Inout_ PLIST_ENTRY ListHead,
+    _Inout_ PLIST_ENTRY Entry
     )
 {
     PLIST_ENTRY Blink;
@@ -77,8 +77,8 @@ FORCEINLINE VOID InsertTailList(
 }
 
 FORCEINLINE VOID InsertHeadList(
-    __inout PLIST_ENTRY ListHead,
-    __inout PLIST_ENTRY Entry
+    _Inout_ PLIST_ENTRY ListHead,
+    _Inout_ PLIST_ENTRY Entry
     )
 {
     PLIST_ENTRY Flink;
@@ -91,8 +91,8 @@ FORCEINLINE VOID InsertHeadList(
 }
 
 FORCEINLINE VOID AppendTailList(
-    __inout PLIST_ENTRY ListHead,
-    __inout PLIST_ENTRY ListToAppend
+    _Inout_ PLIST_ENTRY ListHead,
+    _Inout_ PLIST_ENTRY ListToAppend
     )
 {
     PLIST_ENTRY ListEnd = ListHead->Blink;
@@ -104,7 +104,7 @@ FORCEINLINE VOID AppendTailList(
 }
 
 FORCEINLINE PSINGLE_LIST_ENTRY PopEntryList(
-    __inout PSINGLE_LIST_ENTRY ListHead
+    _Inout_ PSINGLE_LIST_ENTRY ListHead
     )
 {
     PSINGLE_LIST_ENTRY FirstEntry;
@@ -118,8 +118,8 @@ FORCEINLINE PSINGLE_LIST_ENTRY PopEntryList(
 }
 
 FORCEINLINE VOID PushEntryList(
-    __inout PSINGLE_LIST_ENTRY ListHead,
-    __inout PSINGLE_LIST_ENTRY Entry
+    _Inout_ PSINGLE_LIST_ENTRY ListHead,
+    _Inout_ PSINGLE_LIST_ENTRY Entry
     )
 {
     Entry->Next = ListHead->Next;
@@ -144,25 +144,25 @@ typedef enum _RTL_GENERIC_COMPARE_RESULTS
 } RTL_GENERIC_COMPARE_RESULTS;
 
 typedef RTL_GENERIC_COMPARE_RESULTS (NTAPI *PRTL_AVL_COMPARE_ROUTINE)(
-    __in struct _RTL_AVL_TABLE *Table,
-    __in PVOID FirstStruct,
-    __in PVOID SecondStruct
+    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ PVOID FirstStruct,
+    _In_ PVOID SecondStruct
     );
 
 typedef PVOID (NTAPI *PRTL_AVL_ALLOCATE_ROUTINE)(
-    __in struct _RTL_AVL_TABLE *Table,
-    __in CLONG ByteSize
+    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ CLONG ByteSize
     );
 
 typedef VOID (NTAPI *PRTL_AVL_FREE_ROUTINE)(
-    __in struct _RTL_AVL_TABLE *Table,
-    __in __post_invalid PVOID Buffer
+    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ _Post_invalid_ PVOID Buffer
     );
 
 typedef NTSTATUS (NTAPI *PRTL_AVL_MATCH_FUNCTION)(
-    __in struct _RTL_AVL_TABLE *Table,
-    __in PVOID UserData,
-    __in PVOID MatchData
+    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ PVOID UserData,
+    _In_ PVOID MatchData
     );
 
 typedef struct _RTL_BALANCED_LINKS
@@ -193,126 +193,126 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeGenericTableAvl(
-    __out PRTL_AVL_TABLE Table,
-    __in PRTL_AVL_COMPARE_ROUTINE CompareRoutine,
-    __in PRTL_AVL_ALLOCATE_ROUTINE AllocateRoutine,
-    __in PRTL_AVL_FREE_ROUTINE FreeRoutine,
-    __in_opt PVOID TableContext
+    _Out_ PRTL_AVL_TABLE Table,
+    _In_ PRTL_AVL_COMPARE_ROUTINE CompareRoutine,
+    _In_ PRTL_AVL_ALLOCATE_ROUTINE AllocateRoutine,
+    _In_ PRTL_AVL_FREE_ROUTINE FreeRoutine,
+    _In_opt_ PVOID TableContext
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlInsertElementGenericTableAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in_bcount(BufferSize) PVOID Buffer,
-    __in CLONG BufferSize,
-    __out_opt PBOOLEAN NewElement
+    _In_ PRTL_AVL_TABLE Table,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ CLONG BufferSize,
+    _Out_opt_ PBOOLEAN NewElement
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlInsertElementGenericTableFullAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in_bcount(BufferSize) PVOID Buffer,
-    __in CLONG BufferSize,
-    __out_opt PBOOLEAN NewElement,
-    __in PVOID NodeOrParent,
-    __in TABLE_SEARCH_RESULT SearchResult
+    _In_ PRTL_AVL_TABLE Table,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ CLONG BufferSize,
+    _Out_opt_ PBOOLEAN NewElement,
+    _In_ PVOID NodeOrParent,
+    _In_ TABLE_SEARCH_RESULT SearchResult
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDeleteElementGenericTableAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in PVOID Buffer
+    _In_ PRTL_AVL_TABLE Table,
+    _In_ PVOID Buffer
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlLookupElementGenericTableAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in PVOID Buffer
+    _In_ PRTL_AVL_TABLE Table,
+    _In_ PVOID Buffer
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlLookupElementGenericTableFullAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in PVOID Buffer,
-    __out PVOID *NodeOrParent,
-    __out TABLE_SEARCH_RESULT *SearchResult
+    _In_ PRTL_AVL_TABLE Table,
+    _In_ PVOID Buffer,
+    _Out_ PVOID *NodeOrParent,
+    _Out_ TABLE_SEARCH_RESULT *SearchResult
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlEnumerateGenericTableAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in BOOLEAN Restart
+    _In_ PRTL_AVL_TABLE Table,
+    _In_ BOOLEAN Restart
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlEnumerateGenericTableWithoutSplayingAvl(
-    __in PRTL_AVL_TABLE Table,
-    __inout PVOID *RestartKey
+    _In_ PRTL_AVL_TABLE Table,
+    _Inout_ PVOID *RestartKey
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlLookupFirstMatchingElementGenericTableAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in PVOID Buffer,
-    __out PVOID *RestartKey
+    _In_ PRTL_AVL_TABLE Table,
+    _In_ PVOID Buffer,
+    _Out_ PVOID *RestartKey
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlEnumerateGenericTableLikeADirectory(
-    __in PRTL_AVL_TABLE Table,
-    __in_opt PRTL_AVL_MATCH_FUNCTION MatchFunction,
-    __in_opt PVOID MatchData,
-    __in ULONG NextFlag,
-    __inout PVOID *RestartKey,
-    __inout PULONG DeleteCount,
-    __in PVOID Buffer
+    _In_ PRTL_AVL_TABLE Table,
+    _In_opt_ PRTL_AVL_MATCH_FUNCTION MatchFunction,
+    _In_opt_ PVOID MatchData,
+    _In_ ULONG NextFlag,
+    _Inout_ PVOID *RestartKey,
+    _Inout_ PULONG DeleteCount,
+    _In_ PVOID Buffer
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlGetElementGenericTableAvl(
-    __in PRTL_AVL_TABLE Table,
-    __in ULONG I
+    _In_ PRTL_AVL_TABLE Table,
+    _In_ ULONG I
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlNumberGenericTableElementsAvl(
-    __in PRTL_AVL_TABLE Table
+    _In_ PRTL_AVL_TABLE Table
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsGenericTableEmptyAvl(
-    __in PRTL_AVL_TABLE Table
+    _In_ PRTL_AVL_TABLE Table
     );
 
 typedef struct _RTL_SPLAY_LINKS
@@ -362,72 +362,72 @@ NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
 RtlSplay(
-    __inout PRTL_SPLAY_LINKS Links
+    _Inout_ PRTL_SPLAY_LINKS Links
     );
 
 NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
 RtlDelete(
-    __in PRTL_SPLAY_LINKS Links
+    _In_ PRTL_SPLAY_LINKS Links
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlDeleteNoSplay(
-    __in PRTL_SPLAY_LINKS Links,
-    __inout PRTL_SPLAY_LINKS *Root
+    _In_ PRTL_SPLAY_LINKS Links,
+    _Inout_ PRTL_SPLAY_LINKS *Root
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
 RtlSubtreeSuccessor(
-    __in PRTL_SPLAY_LINKS Links
+    _In_ PRTL_SPLAY_LINKS Links
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
 RtlSubtreePredecessor(
-    __in PRTL_SPLAY_LINKS Links
+    _In_ PRTL_SPLAY_LINKS Links
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
 RtlRealSuccessor(
-    __in PRTL_SPLAY_LINKS Links
+    _In_ PRTL_SPLAY_LINKS Links
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
 RtlRealPredecessor(
-    __in PRTL_SPLAY_LINKS Links
+    _In_ PRTL_SPLAY_LINKS Links
     );
 
 struct _RTL_GENERIC_TABLE;
 
 typedef RTL_GENERIC_COMPARE_RESULTS (NTAPI *PRTL_GENERIC_COMPARE_ROUTINE)(
-    __in struct _RTL_GENERIC_TABLE *Table,
-    __in PVOID FirstStruct,
-    __in PVOID SecondStruct
+    _In_ struct _RTL_GENERIC_TABLE *Table,
+    _In_ PVOID FirstStruct,
+    _In_ PVOID SecondStruct
     );
 
 typedef PVOID (NTAPI *PRTL_GENERIC_ALLOCATE_ROUTINE)(
-    __in struct _RTL_GENERIC_TABLE *Table,
-    __in CLONG ByteSize
+    _In_ struct _RTL_GENERIC_TABLE *Table,
+    _In_ CLONG ByteSize
     );
 
 typedef VOID (NTAPI *PRTL_GENERIC_FREE_ROUTINE)(
-    __in struct _RTL_GENERIC_TABLE *Table,
-    __in __post_invalid PVOID Buffer
+    _In_ struct _RTL_GENERIC_TABLE *Table,
+    _In_ _Post_invalid_ PVOID Buffer
     );
 
 typedef struct _RTL_GENERIC_TABLE
@@ -447,102 +447,102 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeGenericTable(
-    __out PRTL_GENERIC_TABLE Table,
-    __in PRTL_GENERIC_COMPARE_ROUTINE CompareRoutine,
-    __in PRTL_GENERIC_ALLOCATE_ROUTINE AllocateRoutine,
-    __in PRTL_GENERIC_FREE_ROUTINE FreeRoutine,
-    __in_opt PVOID TableContext
+    _Out_ PRTL_GENERIC_TABLE Table,
+    _In_ PRTL_GENERIC_COMPARE_ROUTINE CompareRoutine,
+    _In_ PRTL_GENERIC_ALLOCATE_ROUTINE AllocateRoutine,
+    _In_ PRTL_GENERIC_FREE_ROUTINE FreeRoutine,
+    _In_opt_ PVOID TableContext
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlInsertElementGenericTable(
-    __in PRTL_GENERIC_TABLE Table,
-    __in_bcount(BufferSize) PVOID Buffer,
-    __in CLONG BufferSize,
-    __out_opt PBOOLEAN NewElement
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ CLONG BufferSize,
+    _Out_opt_ PBOOLEAN NewElement
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlInsertElementGenericTableFull(
-    __in PRTL_GENERIC_TABLE Table,
-    __in_bcount(BufferSize) PVOID Buffer,
-    __in CLONG BufferSize,
-    __out_opt PBOOLEAN NewElement,
-    __in PVOID NodeOrParent,
-    __in TABLE_SEARCH_RESULT SearchResult
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ CLONG BufferSize,
+    _Out_opt_ PBOOLEAN NewElement,
+    _In_ PVOID NodeOrParent,
+    _In_ TABLE_SEARCH_RESULT SearchResult
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDeleteElementGenericTable(
-    __in PRTL_GENERIC_TABLE Table,
-    __in PVOID Buffer
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_ PVOID Buffer
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlLookupElementGenericTable(
-    __in PRTL_GENERIC_TABLE Table,
-    __in PVOID Buffer
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_ PVOID Buffer
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlLookupElementGenericTableFull(
-    __in PRTL_GENERIC_TABLE Table,
-    __in PVOID Buffer,
-    __out PVOID *NodeOrParent,
-    __out TABLE_SEARCH_RESULT *SearchResult
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_ PVOID Buffer,
+    _Out_ PVOID *NodeOrParent,
+    _Out_ TABLE_SEARCH_RESULT *SearchResult
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlEnumerateGenericTable(
-    __in PRTL_GENERIC_TABLE Table,
-    __in BOOLEAN Restart
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_ BOOLEAN Restart
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlEnumerateGenericTableWithoutSplaying(
-    __in PRTL_GENERIC_TABLE Table,
-    __inout PVOID *RestartKey
+    _In_ PRTL_GENERIC_TABLE Table,
+    _Inout_ PVOID *RestartKey
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 PVOID
 NTAPI
 RtlGetElementGenericTable(
-    __in PRTL_GENERIC_TABLE Table,
-    __in ULONG I
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_ ULONG I
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlNumberGenericTableElements(
-    __in PRTL_GENERIC_TABLE Table
+    _In_ PRTL_GENERIC_TABLE Table
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsGenericTableEmpty(
-    __in PRTL_GENERIC_TABLE Table
+    _In_ PRTL_GENERIC_TABLE Table
     );
 
 // RB trees
@@ -560,10 +560,10 @@ NTSYSAPI
 VOID
 NTAPI
 RtlRbInsertNodeEx(
-    __in PRTL_RB_TREE Tree,
-    __in_opt PRTL_BALANCED_NODE Parent,
-    __in BOOLEAN Right,
-    __out PRTL_BALANCED_NODE Node
+    _In_ PRTL_RB_TREE Tree,
+    _In_opt_ PRTL_BALANCED_NODE Parent,
+    _In_ BOOLEAN Right,
+    _Out_ PRTL_BALANCED_NODE Node
     );
 
 // rev
@@ -571,8 +571,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlRbRemoveNode(
-    __in PRTL_RB_TREE Tree,
-    __in PRTL_BALANCED_NODE Node
+    _In_ PRTL_RB_TREE Tree,
+    _In_ PRTL_BALANCED_NODE Node
     );
 
 #endif
@@ -631,7 +631,7 @@ typedef struct _RTL_DYNAMIC_HASH_TABLE
 FORCEINLINE
 VOID
 RtlInitHashTableContext(
-    __inout PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
     )
 {
     Context->ChainHead = NULL;
@@ -641,8 +641,8 @@ RtlInitHashTableContext(
 FORCEINLINE
 VOID
 RtlInitHashTableContextFromEnumerator(
-    __inout PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context,
-    __in PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context,
+    _In_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
     )
 {
     Context->ChainHead = Enumerator->ChainHead;
@@ -652,7 +652,7 @@ RtlInitHashTableContextFromEnumerator(
 FORCEINLINE
 VOID
 RtlReleaseHashTableContext(
-    __inout PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
     )
 {
     UNREFERENCED_PARAMETER(Context);
@@ -662,7 +662,7 @@ RtlReleaseHashTableContext(
 FORCEINLINE
 ULONG
 RtlTotalBucketsHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     )
 {
     return HashTable->TableSize;
@@ -671,7 +671,7 @@ RtlTotalBucketsHashTable(
 FORCEINLINE
 ULONG
 RtlNonEmptyBucketsHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     )
 {
     return HashTable->NonEmptyBuckets;
@@ -680,7 +680,7 @@ RtlNonEmptyBucketsHashTable(
 FORCEINLINE
 ULONG
 RtlEmptyBucketsHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     )
 {
     return HashTable->TableSize - HashTable->NonEmptyBuckets;
@@ -689,7 +689,7 @@ RtlEmptyBucketsHashTable(
 FORCEINLINE
 ULONG
 RtlTotalEntriesHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     )
 {
     return HashTable->NumEntries;
@@ -698,129 +698,129 @@ RtlTotalEntriesHashTable(
 FORCEINLINE
 ULONG
 RtlActiveEnumeratorsHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     )
 {
     return HashTable->NumEnumerators;
 }
 
-__checkReturn
+_Must_inspect_result_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlCreateHashTable(
-    __deref_inout_opt PRTL_DYNAMIC_HASH_TABLE *HashTable,
-    __in ULONG Shift,
-    __in __reserved ULONG Flags
+    _Inout_ _When_(*HashTable == NULL, __drv_allocatesMem(Mem)) PRTL_DYNAMIC_HASH_TABLE *HashTable,
+    _In_ ULONG Shift,
+    _In_ _Reserved_ ULONG Flags
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlDeleteHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlInsertEntryHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __in PRTL_DYNAMIC_HASH_TABLE_ENTRY Entry,
-    __in ULONG_PTR Signature,
-    __inout_opt PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _In_ PRTL_DYNAMIC_HASH_TABLE_ENTRY Entry,
+    _In_ ULONG_PTR Signature,
+    _Inout_opt_ PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlRemoveEntryHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __in PRTL_DYNAMIC_HASH_TABLE_ENTRY Entry,
-    __inout_opt PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _In_ PRTL_DYNAMIC_HASH_TABLE_ENTRY Entry,
+    _Inout_opt_ PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
     );
 
-__checkReturn
+_Must_inspect_result_
 NTSYSAPI
 PRTL_DYNAMIC_HASH_TABLE_ENTRY
 NTAPI
 RtlLookupEntryHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __in ULONG_PTR Signature,
-    __out_opt PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _In_ ULONG_PTR Signature,
+    _Out_opt_ PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
     );
 
-__checkReturn
+_Must_inspect_result_
 NTSYSAPI
 PRTL_DYNAMIC_HASH_TABLE_ENTRY
 NTAPI
 RtlGetNextEntryHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __in PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _In_ PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlInitEnumerationHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __out PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Out_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
     );
 
-__checkReturn
+_Must_inspect_result_
 NTSYSAPI
 PRTL_DYNAMIC_HASH_TABLE_ENTRY
 NTAPI
 RtlEnumerateEntryHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlEndEnumerationHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlInitWeakEnumerationHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __out PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Out_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
     );
 
-__checkReturn
+_Must_inspect_result_
 NTSYSAPI
 PRTL_DYNAMIC_HASH_TABLE_ENTRY
 NTAPI
 RtlWeaklyEnumerateEntryHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlEndWeakEnumerationHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
-    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlExpandHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlContractHashTable(
-    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
     );
 
 #endif
@@ -833,72 +833,72 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitializeCriticalSection(
-    __out PRTL_CRITICAL_SECTION CriticalSection
+    _Out_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitializeCriticalSectionAndSpinCount(
-    __inout PRTL_CRITICAL_SECTION CriticalSection,
-    __in ULONG SpinCount
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection,
+    _In_ ULONG SpinCount
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteCriticalSection(
-    __inout PRTL_CRITICAL_SECTION CriticalSection
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlEnterCriticalSection(
-    __inout PRTL_CRITICAL_SECTION CriticalSection
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLeaveCriticalSection(
-    __inout PRTL_CRITICAL_SECTION CriticalSection
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 LOGICAL
 NTAPI
 RtlTryEnterCriticalSection(
-    __inout PRTL_CRITICAL_SECTION CriticalSection
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 LOGICAL
 NTAPI
 RtlIsCriticalSectionLocked(
-    __in PRTL_CRITICAL_SECTION CriticalSection
+    _In_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 LOGICAL
 NTAPI
 RtlIsCriticalSectionLockedByThread(
-    __in PRTL_CRITICAL_SECTION CriticalSection
+    _In_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlGetCriticalSectionRecursionCount(
-    __in PRTL_CRITICAL_SECTION CriticalSection
+    _In_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlSetCriticalSectionSpinCount(
-    __inout PRTL_CRITICAL_SECTION CriticalSection,
-    __in ULONG SpinCount
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection,
+    _In_ ULONG SpinCount
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -907,7 +907,7 @@ NTSYSAPI
 HANDLE
 NTAPI
 RtlQueryCriticalSectionOwner(
-    __in HANDLE EventHandle
+    _In_ HANDLE EventHandle
     );
 #endif
 
@@ -915,7 +915,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlCheckForOrphanedCriticalSections(
-    __in HANDLE hThread
+    _In_ HANDLE hThread
     );
 
 // Resources
@@ -943,51 +943,51 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeResource(
-    __out PRTL_RESOURCE Resource
+    _Out_ PRTL_RESOURCE Resource
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlDeleteResource(
-    __inout PRTL_RESOURCE Resource
+    _Inout_ PRTL_RESOURCE Resource
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlAcquireResourceShared(
-    __inout PRTL_RESOURCE Resource,
-    __in BOOLEAN Wait
+    _Inout_ PRTL_RESOURCE Resource,
+    _In_ BOOLEAN Wait
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlAcquireResourceExclusive(
-    __inout PRTL_RESOURCE Resource,
-    __in BOOLEAN Wait
+    _Inout_ PRTL_RESOURCE Resource,
+    _In_ BOOLEAN Wait
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlReleaseResource(
-    __inout PRTL_RESOURCE Resource
+    _Inout_ PRTL_RESOURCE Resource
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlConvertSharedToExclusive(
-    __inout PRTL_RESOURCE Resource
+    _Inout_ PRTL_RESOURCE Resource
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlConvertExclusiveToShared(
-    __inout PRTL_RESOURCE Resource
+    _Inout_ PRTL_RESOURCE Resource
     );
 
 // Slim reader-writer locks, condition variables, and barriers
@@ -999,7 +999,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeSRWLock(
-    __out PRTL_SRWLOCK SRWLock
+    _Out_ PRTL_SRWLOCK SRWLock
     );
 
 // winbase:AcquireSRWLockExclusive
@@ -1007,7 +1007,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlAcquireSRWLockExclusive(
-    __inout PRTL_SRWLOCK SRWLock
+    _Inout_ PRTL_SRWLOCK SRWLock
     );
 
 // winbase:AcquireSRWLockShared
@@ -1015,7 +1015,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlAcquireSRWLockShared(
-    __inout PRTL_SRWLOCK SRWLock
+    _Inout_ PRTL_SRWLOCK SRWLock
     );
 
 // winbase:ReleaseSRWLockExclusive
@@ -1023,7 +1023,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlReleaseSRWLockExclusive(
-    __inout PRTL_SRWLOCK SRWLock
+    _Inout_ PRTL_SRWLOCK SRWLock
     );
 
 // winbase:ReleaseSRWLockShared
@@ -1031,7 +1031,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlReleaseSRWLockShared(
-    __inout PRTL_SRWLOCK SRWLock
+    _Inout_ PRTL_SRWLOCK SRWLock
     );
 
 // winbase:TryAcquireSRWLockExclusive
@@ -1039,7 +1039,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlTryAcquireSRWLockExclusive(
-    __inout PRTL_SRWLOCK SRWLock
+    _Inout_ PRTL_SRWLOCK SRWLock
     );
 
 // winbase:TryAcquireSRWLockShared
@@ -1047,7 +1047,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlTryAcquireSRWLockShared(
-    __inout PRTL_SRWLOCK SRWLock
+    _Inout_ PRTL_SRWLOCK SRWLock
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -1056,7 +1056,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlAcquireReleaseSRWLockExclusive(
-    __inout PRTL_SRWLOCK SRWLock
+    _Inout_ PRTL_SRWLOCK SRWLock
     );
 #endif
 
@@ -1069,7 +1069,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeConditionVariable(
-    __out PRTL_CONDITION_VARIABLE ConditionVariable
+    _Out_ PRTL_CONDITION_VARIABLE ConditionVariable
     );
 
 // private
@@ -1077,9 +1077,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSleepConditionVariableCS(
-    __inout PRTL_CONDITION_VARIABLE ConditionVariable,
-    __inout PRTL_CRITICAL_SECTION CriticalSection,
-    __in_opt PLARGE_INTEGER Timeout
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable,
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 // private
@@ -1087,10 +1087,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSleepConditionVariableSRW(
-    __inout PRTL_CONDITION_VARIABLE ConditionVariable,
-    __inout PRTL_SRWLOCK SRWLock,
-    __in_opt PLARGE_INTEGER Timeout,
-    __in ULONG Flags
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable,
+    _Inout_ PRTL_SRWLOCK SRWLock,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ ULONG Flags
     );
 
 // winbase:WakeConditionVariable
@@ -1098,7 +1098,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlWakeConditionVariable(
-    __inout PRTL_CONDITION_VARIABLE ConditionVariable
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable
     );
 
 // winbase:WakeAllConditionVariable
@@ -1106,7 +1106,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlWakeAllConditionVariable(
-    __inout PRTL_CONDITION_VARIABLE ConditionVariable
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable
     );
 
 #endif
@@ -1125,32 +1125,32 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitBarrier(
-    __out PRTL_BARRIER Barrier,
-    __in ULONG TotalThreads,
-    __in ULONG SpinCount
+    _Out_ PRTL_BARRIER Barrier,
+    _In_ ULONG TotalThreads,
+    _In_ ULONG SpinCount
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteBarrier(
-    __in PRTL_BARRIER Barrier
+    _In_ PRTL_BARRIER Barrier
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlBarrier(
-    __inout PRTL_BARRIER Barrier,
-    __in ULONG Flags
+    _Inout_ PRTL_BARRIER Barrier,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlBarrierForDelete(
-    __inout PRTL_BARRIER Barrier,
-    __in ULONG Flags
+    _Inout_ PRTL_BARRIER Barrier,
+    _In_ ULONG Flags
     );
 
 #endif
@@ -1161,8 +1161,8 @@ RtlBarrierForDelete(
 
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitString(
-    __out PSTRING DestinationString,
-    __in_opt PSTR SourceString
+    _Out_ PSTRING DestinationString,
+    _In_opt_ PSTR SourceString
     )
 {
     if (SourceString)
@@ -1177,15 +1177,15 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitString(
-    __out PSTRING DestinationString,
-    __in_opt PSTR SourceString
+    _Out_ PSTRING DestinationString,
+    _In_opt_ PSTR SourceString
     );
 #endif
 
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitAnsiString(
-    __out PANSI_STRING DestinationString,
-    __in_opt PSTR SourceString
+    _Out_ PANSI_STRING DestinationString,
+    _In_opt_ PSTR SourceString
     )
 {
     if (SourceString)
@@ -1200,8 +1200,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitAnsiString(
-    __out PANSI_STRING DestinationString,
-    __in_opt PSTR SourceString
+    _Out_ PANSI_STRING DestinationString,
+    _In_opt_ PSTR SourceString
     );
 #endif
 
@@ -1209,94 +1209,94 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitAnsiStringEx(
-    __out PANSI_STRING DestinationString,
-    __in_opt PSTR SourceString
+    _Out_ PANSI_STRING DestinationString,
+    _In_opt_ PSTR SourceString
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlFreeAnsiString(
-    __in PANSI_STRING AnsiString
+    _In_ PANSI_STRING AnsiString
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlFreeOemString(
-    __in POEM_STRING OemString
+    _In_ POEM_STRING OemString
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlCopyString(
-    __in PSTRING DestinationString,
-    __in_opt PSTRING SourceString
+    _In_ PSTRING DestinationString,
+    _In_opt_ PSTRING SourceString
     );
 
 NTSYSAPI
 CHAR
 NTAPI
 RtlUpperChar(
-    __in CHAR Character
+    _In_ CHAR Character
     );
 
 NTSYSAPI
 LONG
 NTAPI
 RtlCompareString(
-    __in PSTRING String1,
-    __in PSTRING String2,
-    __in BOOLEAN CaseInSensitive
+    _In_ PSTRING String1,
+    _In_ PSTRING String2,
+    _In_ BOOLEAN CaseInSensitive
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualString(
-    __in PSTRING String1,
-    __in PSTRING String2,
-    __in BOOLEAN CaseInSensitive
+    _In_ PSTRING String1,
+    _In_ PSTRING String2,
+    _In_ BOOLEAN CaseInSensitive
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlPrefixString(
-    __in PSTRING String1,
-    __in PSTRING String2,
-    __in BOOLEAN CaseInSensitive
+    _In_ PSTRING String1,
+    _In_ PSTRING String2,
+    _In_ BOOLEAN CaseInSensitive
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAppendStringToString(
-    __in PSTRING Destination,
-    __in PSTRING Source
+    _In_ PSTRING Destination,
+    _In_ PSTRING Source
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAppendAsciizToString(
-    __in PSTRING Destination,
-    __in_opt PSTR Source
+    _In_ PSTRING Destination,
+    _In_opt_ PSTR Source
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlUpperString(
-    __in PSTRING DestinationString,
-    __in PSTRING SourceString
+    _In_ PSTRING DestinationString,
+    _In_ PSTRING SourceString
     );
 
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitUnicodeString(
-    __out PUNICODE_STRING DestinationString,
-    __in_opt PWSTR SourceString
+    _Out_ PUNICODE_STRING DestinationString,
+    _In_opt_ PWSTR SourceString
     )
 {
     if (SourceString)
@@ -1311,8 +1311,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitUnicodeString(
-    __out PUNICODE_STRING DestinationString,
-    __in_opt PWSTR SourceString
+    _Out_ PUNICODE_STRING DestinationString,
+    _In_opt_ PWSTR SourceString
     );
 #endif
 
@@ -1320,31 +1320,31 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitUnicodeStringEx(
-    __out PUNICODE_STRING DestinationString,
-    __in_opt PWSTR SourceString
+    _Out_ PUNICODE_STRING DestinationString,
+    _In_opt_ PWSTR SourceString
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlCreateUnicodeString(
-    __out PUNICODE_STRING DestinationString,
-    __in PWSTR SourceString
+    _Out_ PUNICODE_STRING DestinationString,
+    _In_ PWSTR SourceString
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlCreateUnicodeStringFromAsciiz(
-    __out PUNICODE_STRING DestinationString,
-    __in PSTR SourceString
+    _Out_ PUNICODE_STRING DestinationString,
+    _In_ PSTR SourceString
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlFreeUnicodeString(
-    __in PUNICODE_STRING UnicodeString
+    _In_ PUNICODE_STRING UnicodeString
     );
 
 #define RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE (0x00000001)
@@ -1354,40 +1354,40 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDuplicateUnicodeString(
-    __in ULONG Flags,
-    __in PUNICODE_STRING StringIn,
-    __out PUNICODE_STRING StringOut
+    _In_ ULONG Flags,
+    _In_ PUNICODE_STRING StringIn,
+    _Out_ PUNICODE_STRING StringOut
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlCopyUnicodeString(
-    __in PUNICODE_STRING DestinationString,
-    __in PUNICODE_STRING SourceString
+    _In_ PUNICODE_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString
     );
 
 NTSYSAPI
 WCHAR
 NTAPI
 RtlUpcaseUnicodeChar(
-    __in WCHAR SourceCharacter
+    _In_ WCHAR SourceCharacter
     );
 
 NTSYSAPI
 WCHAR
 NTAPI
 RtlDowncaseUnicodeChar(
-    __in WCHAR SourceCharacter
+    _In_ WCHAR SourceCharacter
     );
 
 NTSYSAPI
 LONG
 NTAPI
 RtlCompareUnicodeString(
-    __in PUNICODE_STRING String1,
-    __in PUNICODE_STRING String2,
-    __in BOOLEAN CaseInSensitive
+    _In_ PUNICODE_STRING String1,
+    _In_ PUNICODE_STRING String2,
+    _In_ BOOLEAN CaseInSensitive
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -1395,11 +1395,11 @@ NTSYSAPI
 LONG
 NTAPI
 RtlCompareUnicodeStrings(
-    __in_ecount(String1Length) PWCH String1,
-    __in SIZE_T String1Length,
-    __in_ecount(String2Length) PWCH String2,
-    __in SIZE_T String2Length,
-    __in BOOLEAN CaseInSensitive
+    _In_reads_(String1Length) PWCH String1,
+    _In_ SIZE_T String1Length,
+    _In_reads_(String2Length) PWCH String2,
+    _In_ SIZE_T String2Length,
+    _In_ BOOLEAN CaseInSensitive
     );
 #endif
 
@@ -1407,9 +1407,9 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualUnicodeString(
-    __in PUNICODE_STRING String1,
-    __in PUNICODE_STRING String2,
-    __in BOOLEAN CaseInSensitive
+    _In_ PUNICODE_STRING String1,
+    _In_ PUNICODE_STRING String2,
+    _In_ BOOLEAN CaseInSensitive
     );
 
 #define HASH_STRING_ALGORITHM_DEFAULT 0
@@ -1420,27 +1420,27 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlHashUnicodeString(
-    __in PUNICODE_STRING String,
-    __in BOOLEAN CaseInSensitive,
-    __in ULONG HashAlgorithm,
-    __out PULONG HashValue
+    _In_ PUNICODE_STRING String,
+    _In_ BOOLEAN CaseInSensitive,
+    _In_ ULONG HashAlgorithm,
+    _Out_ PULONG HashValue
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlValidateUnicodeString(
-    __in ULONG Flags,
-    __in PUNICODE_STRING String
+    _In_ ULONG Flags,
+    _In_ PUNICODE_STRING String
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlPrefixUnicodeString(
-    __in PUNICODE_STRING String1,
-    __in PUNICODE_STRING String2,
-    __in BOOLEAN CaseInSensitive
+    _In_ PUNICODE_STRING String1,
+    _In_ PUNICODE_STRING String2,
+    _In_ BOOLEAN CaseInSensitive
     );
 
 #define RTL_FIND_CHAR_IN_UNICODE_STRING_START_AT_END 0x00000001
@@ -1451,226 +1451,226 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFindCharInUnicodeString(
-    __in ULONG Flags,
-    __in PUNICODE_STRING StringToSearch,
-    __in PUNICODE_STRING CharSet,
-    __out PUSHORT NonInclusivePrefixLength
+    _In_ ULONG Flags,
+    _In_ PUNICODE_STRING StringToSearch,
+    _In_ PUNICODE_STRING CharSet,
+    _Out_ PUSHORT NonInclusivePrefixLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAppendUnicodeStringToString(
-    __in PUNICODE_STRING Destination,
-    __in PUNICODE_STRING Source
+    _In_ PUNICODE_STRING Destination,
+    _In_ PUNICODE_STRING Source
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAppendUnicodeToString(
-    __in PUNICODE_STRING Destination,
-    __in_opt PWSTR Source
+    _In_ PUNICODE_STRING Destination,
+    _In_opt_ PWSTR Source
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeString(
-    __inout PUNICODE_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ PUNICODE_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDowncaseUnicodeString(
-    __inout PUNICODE_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ PUNICODE_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlEraseUnicodeString(
-    __inout PUNICODE_STRING String
+    _Inout_ PUNICODE_STRING String
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAnsiStringToUnicodeString(
-    __inout PUNICODE_STRING DestinationString,
-    __in PANSI_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ PUNICODE_STRING DestinationString,
+    _In_ PANSI_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeStringToAnsiString(
-    __inout PANSI_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ PANSI_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 WCHAR
 NTAPI
 RtlAnsiCharToUnicodeChar(
-    __inout PUCHAR *SourceCharacter
+    _Inout_ PUCHAR *SourceCharacter
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeStringToAnsiString(
-    __inout PANSI_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ PANSI_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlOemStringToUnicodeString(
-    __inout PUNICODE_STRING DestinationString,
-    __in POEM_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ PUNICODE_STRING DestinationString,
+    _In_ POEM_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeStringToOemString(
-    __inout POEM_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ POEM_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeStringToOemString(
-    __inout POEM_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ POEM_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeStringToCountedOemString(
-    __inout POEM_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ POEM_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeStringToCountedOemString(
-    __inout POEM_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ POEM_STRING DestinationString,
+    _In_ PUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlMultiByteToUnicodeN(
-    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG MaxBytesInUnicodeString,
-    __out_opt PULONG BytesInUnicodeString,
-    __in_bcount(BytesInMultiByteString) PSTR MultiByteString,
-    __in ULONG BytesInMultiByteString
+    _Out_writes_bytes_to_(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG MaxBytesInUnicodeString,
+    _Out_opt_ PULONG BytesInUnicodeString,
+    _In_reads_bytes_(BytesInMultiByteString) PSTR MultiByteString,
+    _In_ ULONG BytesInMultiByteString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlMultiByteToUnicodeSize(
-    __out PULONG BytesInUnicodeString,
-    __in_bcount(BytesInMultiByteString) PSTR MultiByteString,
-    __in ULONG BytesInMultiByteString
+    _Out_ PULONG BytesInUnicodeString,
+    _In_reads_bytes_(BytesInMultiByteString) PSTR MultiByteString,
+    _In_ ULONG BytesInMultiByteString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToMultiByteN(
-    __out_bcount_part(MaxBytesInMultiByteString, *BytesInMultiByteString) PCHAR MultiByteString,
-    __in ULONG MaxBytesInMultiByteString,
-    __out_opt PULONG BytesInMultiByteString,
-    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG BytesInUnicodeString
+    _Out_writes_bytes_to_(MaxBytesInMultiByteString, *BytesInMultiByteString) PCHAR MultiByteString,
+    _In_ ULONG MaxBytesInMultiByteString,
+    _Out_opt_ PULONG BytesInMultiByteString,
+    _In_reads_bytes_(BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG BytesInUnicodeString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToMultiByteSize(
-    __out PULONG BytesInMultiByteString,
-    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG BytesInUnicodeString
+    _Out_ PULONG BytesInMultiByteString,
+    _In_reads_bytes_(BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG BytesInUnicodeString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeToMultiByteN(
-    __out_bcount_part(MaxBytesInMultiByteString, *BytesInMultiByteString) PCHAR MultiByteString,
-    __in ULONG MaxBytesInMultiByteString,
-    __out_opt PULONG BytesInMultiByteString,
-    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG BytesInUnicodeString
+    _Out_writes_bytes_to_(MaxBytesInMultiByteString, *BytesInMultiByteString) PCHAR MultiByteString,
+    _In_ ULONG MaxBytesInMultiByteString,
+    _Out_opt_ PULONG BytesInMultiByteString,
+    _In_reads_bytes_(BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG BytesInUnicodeString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlOemToUnicodeN(
-    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWSTR UnicodeString,
-    __in ULONG MaxBytesInUnicodeString,
-    __out_opt PULONG BytesInUnicodeString,
-    __in_bcount(BytesInOemString) PCH OemString,
-    __in ULONG BytesInOemString
+    _Out_writes_bytes_to_(MaxBytesInUnicodeString, *BytesInUnicodeString) PWSTR UnicodeString,
+    _In_ ULONG MaxBytesInUnicodeString,
+    _Out_opt_ PULONG BytesInUnicodeString,
+    _In_reads_bytes_(BytesInOemString) PCH OemString,
+    _In_ ULONG BytesInOemString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToOemN(
-    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PCHAR OemString,
-    __in ULONG MaxBytesInOemString,
-    __out_opt PULONG BytesInOemString,
-    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG BytesInUnicodeString
+    _Out_writes_bytes_to_(MaxBytesInOemString, *BytesInOemString) PCHAR OemString,
+    _In_ ULONG MaxBytesInOemString,
+    _Out_opt_ PULONG BytesInOemString,
+    _In_reads_bytes_(BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG BytesInUnicodeString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeToOemN(
-    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PCHAR OemString,
-    __in ULONG MaxBytesInOemString,
-    __out_opt PULONG BytesInOemString,
-    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG BytesInUnicodeString
+    _Out_writes_bytes_to_(MaxBytesInOemString, *BytesInOemString) PCHAR OemString,
+    _In_ ULONG MaxBytesInOemString,
+    _Out_opt_ PULONG BytesInOemString,
+    _In_reads_bytes_(BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG BytesInUnicodeString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlConsoleMultiByteToUnicodeN(
-    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG MaxBytesInUnicodeString,
-    __out_opt PULONG BytesInUnicodeString,
-    __in_bcount(BytesInMultiByteString) PCH MultiByteString,
-    __in ULONG BytesInMultiByteString,
-    __out PULONG pdwSpecialChar
+    _Out_writes_bytes_to_(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG MaxBytesInUnicodeString,
+    _Out_opt_ PULONG BytesInUnicodeString,
+    _In_reads_bytes_(BytesInMultiByteString) PCH MultiByteString,
+    _In_ ULONG BytesInMultiByteString,
+    _Out_ PULONG pdwSpecialChar
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -1678,11 +1678,11 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUTF8ToUnicodeN(
-    __out_bcount_part(UnicodeStringMaxByteCount, *UnicodeStringActualByteCount) PWSTR UnicodeStringDestination,
-    __in ULONG UnicodeStringMaxByteCount,
-    __out PULONG UnicodeStringActualByteCount,
-    __in_bcount(UTF8StringByteCount) PCH UTF8StringSource,
-    __in ULONG UTF8StringByteCount
+    _Out_writes_bytes_to_(UnicodeStringMaxByteCount, *UnicodeStringActualByteCount) PWSTR UnicodeStringDestination,
+    _In_ ULONG UnicodeStringMaxByteCount,
+    _Out_ PULONG UnicodeStringActualByteCount,
+    _In_reads_bytes_(UTF8StringByteCount) PCH UTF8StringSource,
+    _In_ ULONG UTF8StringByteCount
     );
 #endif
 
@@ -1691,11 +1691,11 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToUTF8N(
-    __out_bcount_part(UTF8StringMaxByteCount, *UTF8StringActualByteCount) PCHAR UTF8StringDestination,
-    __in ULONG UTF8StringMaxByteCount,
-    __out PULONG UTF8StringActualByteCount,
-    __in_bcount(UnicodeStringByteCount) PWCH UnicodeStringSource,
-    __in ULONG UnicodeStringByteCount
+    _Out_writes_bytes_to_(UTF8StringMaxByteCount, *UTF8StringActualByteCount) PCHAR UTF8StringDestination,
+    _In_ ULONG UTF8StringMaxByteCount,
+    _Out_ PULONG UTF8StringActualByteCount,
+    _In_reads_bytes_(UnicodeStringByteCount) PWCH UnicodeStringSource,
+    _In_ ULONG UnicodeStringByteCount
     );
 #endif
 
@@ -1703,70 +1703,70 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCustomCPToUnicodeN(
-    __in PCPTABLEINFO CustomCP,
-    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG MaxBytesInUnicodeString,
-    __out_opt PULONG BytesInUnicodeString,
-    __in_bcount(BytesInCustomCPString) PCH CustomCPString,
-    __in ULONG BytesInCustomCPString
+    _In_ PCPTABLEINFO CustomCP,
+    _Out_writes_bytes_to_(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG MaxBytesInUnicodeString,
+    _Out_opt_ PULONG BytesInUnicodeString,
+    _In_reads_bytes_(BytesInCustomCPString) PCH CustomCPString,
+    _In_ ULONG BytesInCustomCPString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToCustomCPN(
-    __in PCPTABLEINFO CustomCP,
-    __out_bcount_part(MaxBytesInCustomCPString, *BytesInCustomCPString) PCH CustomCPString,
-    __in ULONG MaxBytesInCustomCPString,
-    __out_opt PULONG BytesInCustomCPString,
-    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG BytesInUnicodeString
+    _In_ PCPTABLEINFO CustomCP,
+    _Out_writes_bytes_to_(MaxBytesInCustomCPString, *BytesInCustomCPString) PCH CustomCPString,
+    _In_ ULONG MaxBytesInCustomCPString,
+    _Out_opt_ PULONG BytesInCustomCPString,
+    _In_reads_bytes_(BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG BytesInUnicodeString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeToCustomCPN(
-    __in PCPTABLEINFO CustomCP,
-    __out_bcount_part(MaxBytesInCustomCPString, *BytesInCustomCPString) PCH CustomCPString,
-    __in ULONG MaxBytesInCustomCPString,
-    __out_opt PULONG BytesInCustomCPString,
-    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
-    __in ULONG BytesInUnicodeString
+    _In_ PCPTABLEINFO CustomCP,
+    _Out_writes_bytes_to_(MaxBytesInCustomCPString, *BytesInCustomCPString) PCH CustomCPString,
+    _In_ ULONG MaxBytesInCustomCPString,
+    _Out_opt_ PULONG BytesInCustomCPString,
+    _In_reads_bytes_(BytesInUnicodeString) PWCH UnicodeString,
+    _In_ ULONG BytesInUnicodeString
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlInitCodePageTable(
-    __in PUSHORT TableBase,
-    __out PCPTABLEINFO CodePageTable
+    _In_ PUSHORT TableBase,
+    _Out_ PCPTABLEINFO CodePageTable
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlInitNlsTables(
-    __in PUSHORT AnsiNlsBase,
-    __in PUSHORT OemNlsBase,
-    __in PUSHORT LanguageNlsBase,
-    __out PNLSTABLEINFO TableInfo
+    _In_ PUSHORT AnsiNlsBase,
+    _In_ PUSHORT OemNlsBase,
+    _In_ PUSHORT LanguageNlsBase,
+    _Out_ PNLSTABLEINFO TableInfo
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlResetRtlTranslations(
-    __in PNLSTABLEINFO TableInfo
+    _In_ PNLSTABLEINFO TableInfo
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsTextUnicode(
-    __in PVOID Buffer,
-    __in ULONG Size,
-    __inout_opt PULONG Result
+    _In_ PVOID Buffer,
+    _In_ ULONG Size,
+    _Inout_opt_ PULONG Result
     );
 
 typedef enum _RTL_NORM_FORM
@@ -1790,11 +1790,11 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlNormalizeString(
-    __in ULONG NormForm, // RTL_NORM_FORM
-    __in PCWSTR SourceString,
-    __in LONG SourceStringLength,
-    __out_ecount_part(*DestinationStringLength, *DestinationStringLength) PWSTR DestinationString,
-    __inout PLONG DestinationStringLength
+    _In_ ULONG NormForm, // RTL_NORM_FORM
+    _In_ PCWSTR SourceString,
+    _In_ LONG SourceStringLength,
+    _Out_writes_to_(*DestinationStringLength, *DestinationStringLength) PWSTR DestinationString,
+    _Inout_ PLONG DestinationStringLength
     );
 #endif
 
@@ -1803,10 +1803,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIsNormalizedString(
-    __in ULONG NormForm, // RTL_NORM_FORM
-    __in PCWSTR SourceString,
-    __in LONG SourceStringLength,
-    __out PBOOLEAN Normalized
+    _In_ ULONG NormForm, // RTL_NORM_FORM
+    _In_ PCWSTR SourceString,
+    _In_ LONG SourceStringLength,
+    _Out_ PBOOLEAN Normalized
     );
 #endif
 
@@ -1816,10 +1816,10 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsNameInExpression(
-    __in PUNICODE_STRING Expression,
-    __in PUNICODE_STRING Name,
-    __in BOOLEAN IgnoreCase,
-    __in_opt PWCH UpcaseTable
+    _In_ PUNICODE_STRING Expression,
+    _In_ PUNICODE_STRING Name,
+    _In_ BOOLEAN IgnoreCase,
+    _In_opt_ PWCH UpcaseTable
     );
 #endif
 
@@ -1827,41 +1827,41 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualDomainName(
-    __in PUNICODE_STRING String1,
-    __in PUNICODE_STRING String2
+    _In_ PUNICODE_STRING String1,
+    _In_ PUNICODE_STRING String2
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualComputerName(
-    __in PUNICODE_STRING String1,
-    __in PUNICODE_STRING String2
+    _In_ PUNICODE_STRING String1,
+    _In_ PUNICODE_STRING String2
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDnsHostNameToComputerName(
-    __out PUNICODE_STRING ComputerNameString,
-    __in PCUNICODE_STRING DnsHostNameString,
-    __in BOOLEAN AllocateComputerNameString
+    _Out_ PUNICODE_STRING ComputerNameString,
+    _In_ PCUNICODE_STRING DnsHostNameString,
+    _In_ BOOLEAN AllocateComputerNameString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlStringFromGUID(
-    __in PGUID Guid,
-    __out PUNICODE_STRING GuidString
+    _In_ PGUID Guid,
+    _Out_ PUNICODE_STRING GuidString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGUIDFromString(
-    __in PUNICODE_STRING GuidString,
-    __out PGUID Guid
+    _In_ PUNICODE_STRING GuidString,
+    _Out_ PGUID Guid
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -1869,8 +1869,8 @@ NTSYSAPI
 LONG
 NTAPI
 RtlCompareAltitudes(
-    __in PUNICODE_STRING Altitude1,
-    __in PUNICODE_STRING Altitude2
+    _In_ PUNICODE_STRING Altitude1,
+    _In_ PUNICODE_STRING Altitude2
     );
 #endif
 
@@ -1896,32 +1896,32 @@ NTSYSAPI
 VOID
 NTAPI
 PfxInitialize(
-    __out PPREFIX_TABLE PrefixTable
+    _Out_ PPREFIX_TABLE PrefixTable
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 PfxInsertPrefix(
-    __in PPREFIX_TABLE PrefixTable,
-    __in PSTRING Prefix,
-    __out PPREFIX_TABLE_ENTRY PrefixTableEntry
+    _In_ PPREFIX_TABLE PrefixTable,
+    _In_ PSTRING Prefix,
+    _Out_ PPREFIX_TABLE_ENTRY PrefixTableEntry
     );
 
 NTSYSAPI
 VOID
 NTAPI
 PfxRemovePrefix(
-    __in PPREFIX_TABLE PrefixTable,
-    __in PPREFIX_TABLE_ENTRY PrefixTableEntry
+    _In_ PPREFIX_TABLE PrefixTable,
+    _In_ PPREFIX_TABLE_ENTRY PrefixTableEntry
     );
 
 NTSYSAPI
 PPREFIX_TABLE_ENTRY
 NTAPI
 PfxFindPrefix(
-    __in PPREFIX_TABLE PrefixTable,
-    __in PSTRING FullName
+    _In_ PPREFIX_TABLE PrefixTable,
+    _In_ PSTRING FullName
     );
 
 typedef struct _UNICODE_PREFIX_TABLE_ENTRY
@@ -1946,41 +1946,41 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeUnicodePrefix(
-    __out PUNICODE_PREFIX_TABLE PrefixTable
+    _Out_ PUNICODE_PREFIX_TABLE PrefixTable
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlInsertUnicodePrefix(
-    __in PUNICODE_PREFIX_TABLE PrefixTable,
-    __in PUNICODE_STRING Prefix,
-    __out PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
+    _In_ PUNICODE_PREFIX_TABLE PrefixTable,
+    _In_ PUNICODE_STRING Prefix,
+    _Out_ PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlRemoveUnicodePrefix(
-    __in PUNICODE_PREFIX_TABLE PrefixTable,
-    __in PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
+    _In_ PUNICODE_PREFIX_TABLE PrefixTable,
+    _In_ PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
     );
 
 NTSYSAPI
 PUNICODE_PREFIX_TABLE_ENTRY
 NTAPI
 RtlFindUnicodePrefix(
-    __in PUNICODE_PREFIX_TABLE PrefixTable,
-    __in PUNICODE_STRING FullName,
-    __in ULONG CaseInsensitiveIndex
+    _In_ PUNICODE_PREFIX_TABLE PrefixTable,
+    _In_ PUNICODE_STRING FullName,
+    _In_ ULONG CaseInsensitiveIndex
     );
 
 NTSYSAPI
 PUNICODE_PREFIX_TABLE_ENTRY
 NTAPI
 RtlNextUnicodePrefix(
-    __in PUNICODE_PREFIX_TABLE PrefixTable,
-    __in BOOLEAN Restart
+    _In_ PUNICODE_PREFIX_TABLE PrefixTable,
+    _In_ BOOLEAN Restart
     );
 
 // Compression
@@ -2003,35 +2003,35 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetCompressionWorkSpaceSize(
-    __in USHORT CompressionFormatAndEngine,
-    __out PULONG CompressBufferWorkSpaceSize,
-    __out PULONG CompressFragmentWorkSpaceSize
+    _In_ USHORT CompressionFormatAndEngine,
+    _Out_ PULONG CompressBufferWorkSpaceSize,
+    _Out_ PULONG CompressFragmentWorkSpaceSize
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCompressBuffer(
-    __in USHORT CompressionFormatAndEngine,
-    __in_bcount(UncompressedBufferSize) PUCHAR UncompressedBuffer,
-    __in ULONG UncompressedBufferSize,
-    __out_bcount_part(CompressedBufferSize, *FinalCompressedSize) PUCHAR CompressedBuffer,
-    __in ULONG CompressedBufferSize,
-    __in ULONG UncompressedChunkSize,
-    __out PULONG FinalCompressedSize,
-    __in PVOID WorkSpace
+    _In_ USHORT CompressionFormatAndEngine,
+    _In_reads_bytes_(UncompressedBufferSize) PUCHAR UncompressedBuffer,
+    _In_ ULONG UncompressedBufferSize,
+    _Out_writes_bytes_to_(CompressedBufferSize, *FinalCompressedSize) PUCHAR CompressedBuffer,
+    _In_ ULONG CompressedBufferSize,
+    _In_ ULONG UncompressedChunkSize,
+    _Out_ PULONG FinalCompressedSize,
+    _In_ PVOID WorkSpace
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDecompressBuffer(
-    __in USHORT CompressionFormat,
-    __out_bcount_part(UncompressedBufferSize, *FinalUncompressedSize) PUCHAR UncompressedBuffer,
-    __in ULONG UncompressedBufferSize,
-    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
-    __in ULONG CompressedBufferSize,
-    __out PULONG FinalUncompressedSize
+    _In_ USHORT CompressionFormat,
+    _Out_writes_bytes_to_(UncompressedBufferSize, *FinalUncompressedSize) PUCHAR UncompressedBuffer,
+    _In_ ULONG UncompressedBufferSize,
+    _In_reads_bytes_(CompressedBufferSize) PUCHAR CompressedBuffer,
+    _In_ ULONG CompressedBufferSize,
+    _Out_ PULONG FinalUncompressedSize
     );
 
 #if (PHNT_VERSION >= PHNT_WIN8)
@@ -2039,13 +2039,13 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDecompressBufferEx(
-    __in USHORT CompressionFormat,
-    __out_bcount_part(UncompressedBufferSize, *FinalUncompressedSize) PUCHAR UncompressedBuffer,
-    __in ULONG UncompressedBufferSize,
-    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
-    __in ULONG CompressedBufferSize,
-    __out PULONG FinalUncompressedSize,
-    __in PVOID WorkSpace
+    _In_ USHORT CompressionFormat,
+    _Out_writes_bytes_to_(UncompressedBufferSize, *FinalUncompressedSize) PUCHAR UncompressedBuffer,
+    _In_ ULONG UncompressedBufferSize,
+    _In_reads_bytes_(CompressedBufferSize) PUCHAR CompressedBuffer,
+    _In_ ULONG CompressedBufferSize,
+    _Out_ PULONG FinalUncompressedSize,
+    _In_ PVOID WorkSpace
     );
 #endif
 
@@ -2053,62 +2053,62 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDecompressFragment(
-    __in USHORT CompressionFormat,
-    __out_bcount_part(UncompressedFragmentSize, *FinalUncompressedSize) PUCHAR UncompressedFragment,
-    __in ULONG UncompressedFragmentSize,
-    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
-    __in ULONG CompressedBufferSize,
-    __in_range(<, CompressedBufferSize) ULONG FragmentOffset,
-    __out PULONG FinalUncompressedSize,
-    __in PVOID WorkSpace
+    _In_ USHORT CompressionFormat,
+    _Out_writes_bytes_to_(UncompressedFragmentSize, *FinalUncompressedSize) PUCHAR UncompressedFragment,
+    _In_ ULONG UncompressedFragmentSize,
+    _In_reads_bytes_(CompressedBufferSize) PUCHAR CompressedBuffer,
+    _In_ ULONG CompressedBufferSize,
+    _In_range_(<, CompressedBufferSize) ULONG FragmentOffset,
+    _Out_ PULONG FinalUncompressedSize,
+    _In_ PVOID WorkSpace
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDescribeChunk(
-    __in USHORT CompressionFormat,
-    __inout PUCHAR *CompressedBuffer,
-    __in PUCHAR EndOfCompressedBufferPlus1,
-    __out PUCHAR *ChunkBuffer,
-    __out PULONG ChunkSize
+    _In_ USHORT CompressionFormat,
+    _Inout_ PUCHAR *CompressedBuffer,
+    _In_ PUCHAR EndOfCompressedBufferPlus1,
+    _Out_ PUCHAR *ChunkBuffer,
+    _Out_ PULONG ChunkSize
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlReserveChunk(
-    __in USHORT CompressionFormat,
-    __inout PUCHAR *CompressedBuffer,
-    __in PUCHAR EndOfCompressedBufferPlus1,
-    __out PUCHAR *ChunkBuffer,
-    __in ULONG ChunkSize
+    _In_ USHORT CompressionFormat,
+    _Inout_ PUCHAR *CompressedBuffer,
+    _In_ PUCHAR EndOfCompressedBufferPlus1,
+    _Out_ PUCHAR *ChunkBuffer,
+    _In_ ULONG ChunkSize
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDecompressChunks(
-    __out_bcount(UncompressedBufferSize) PUCHAR UncompressedBuffer,
-    __in ULONG UncompressedBufferSize,
-    __in_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
-    __in ULONG CompressedBufferSize,
-    __in_bcount(CompressedTailSize) PUCHAR CompressedTail,
-    __in ULONG CompressedTailSize,
-    __in PCOMPRESSED_DATA_INFO CompressedDataInfo
+    _Out_writes_bytes_(UncompressedBufferSize) PUCHAR UncompressedBuffer,
+    _In_ ULONG UncompressedBufferSize,
+    _In_reads_bytes_(CompressedBufferSize) PUCHAR CompressedBuffer,
+    _In_ ULONG CompressedBufferSize,
+    _In_reads_bytes_(CompressedTailSize) PUCHAR CompressedTail,
+    _In_ ULONG CompressedTailSize,
+    _In_ PCOMPRESSED_DATA_INFO CompressedDataInfo
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCompressChunks(
-    __in_bcount(UncompressedBufferSize) PUCHAR UncompressedBuffer,
-    __in ULONG UncompressedBufferSize,
-    __out_bcount(CompressedBufferSize) PUCHAR CompressedBuffer,
-    __in_range(>=, (UncompressedBufferSize - (UncompressedBufferSize / 16))) ULONG CompressedBufferSize,
-    __inout_bcount(CompressedDataInfoLength) PCOMPRESSED_DATA_INFO CompressedDataInfo,
-    __in_range(>, sizeof(COMPRESSED_DATA_INFO)) ULONG CompressedDataInfoLength,
-    __in PVOID WorkSpace
+    _In_reads_bytes_(UncompressedBufferSize) PUCHAR UncompressedBuffer,
+    _In_ ULONG UncompressedBufferSize,
+    _Out_writes_bytes_(CompressedBufferSize) PUCHAR CompressedBuffer,
+    _In_range_(>=, (UncompressedBufferSize - (UncompressedBufferSize / 16))) ULONG CompressedBufferSize,
+    _Inout_updates_bytes_(CompressedDataInfoLength) PCOMPRESSED_DATA_INFO CompressedDataInfo,
+    _In_range_(>, sizeof(COMPRESSED_DATA_INFO)) ULONG CompressedDataInfoLength,
+    _In_ PVOID WorkSpace
     );
 
 // Locale
@@ -2120,11 +2120,11 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlConvertLCIDToString(
-    __in LCID LcidValue,
-    __in ULONG Base,
-    __in ULONG Padding, // string is padded to this width
-    __out_ecount(Size) PWSTR pResultBuf,
-    __in ULONG Size
+    _In_ LCID LcidValue,
+    _In_ ULONG Base,
+    _In_ ULONG Padding, // string is padded to this width
+    _Out_writes_(Size) PWSTR pResultBuf,
+    _In_ ULONG Size
     );
 
 // private
@@ -2132,8 +2132,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsValidLocaleName(
-    __in PWSTR LocaleName,
-    __in ULONG Flags
+    _In_ PWSTR LocaleName,
+    _In_ ULONG Flags
     );
 
 // private
@@ -2141,10 +2141,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetParentLocaleName(
-    __in PWSTR LocaleName,
-    __inout PUNICODE_STRING ParentLocaleName,
-    __in ULONG Flags,
-    __in BOOLEAN AllocateDestinationString
+    _In_ PWSTR LocaleName,
+    _Inout_ PUNICODE_STRING ParentLocaleName,
+    _In_ ULONG Flags,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 // private
@@ -2152,10 +2152,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLcidToLocaleName(
-    __in LCID lcid, // sic
-    __inout PUNICODE_STRING LocaleName,
-    __in ULONG Flags,
-    __in BOOLEAN AllocateDestinationString
+    _In_ LCID lcid, // sic
+    _Inout_ PUNICODE_STRING LocaleName,
+    _In_ ULONG Flags,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 // private
@@ -2163,9 +2163,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLocaleNameToLcid(
-    __in PWSTR LocaleName,
-    __out PLCID lcid,
-    __in ULONG Flags
+    _In_ PWSTR LocaleName,
+    _Out_ PLCID lcid,
+    _In_ ULONG Flags
     );
 
 // private
@@ -2173,8 +2173,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlLCIDToCultureName(
-    __in LCID Lcid,
-    __inout PUNICODE_STRING String
+    _In_ LCID Lcid,
+    _Inout_ PUNICODE_STRING String
     );
 
 // private
@@ -2182,8 +2182,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlCultureNameToLCID(
-    __in PUNICODE_STRING String,
-    __out PLCID Lcid
+    _In_ PUNICODE_STRING String,
+    _Out_ PLCID Lcid
     );
 
 // private
@@ -2203,9 +2203,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetLocaleFileMappingAddress(
-    __out PVOID *BaseAddress,
-    __out PLCID DefaultLocaleId,
-    __out PLARGE_INTEGER DefaultCasingTableSize
+    _Out_ PVOID *BaseAddress,
+    _Out_ PLCID DefaultLocaleId,
+    _Out_ PLARGE_INTEGER DefaultCasingTableSize
     );
 
 #endif
@@ -2240,16 +2240,16 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAllocateFromPeb(
-    __in ULONG Size,
-    __out PVOID *Block
+    _In_ ULONG Size,
+    _Out_ PVOID *Block
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFreeToPeb(
-    __in PVOID Block,
-    __in ULONG Size
+    _In_ PVOID Block,
+    _In_ ULONG Size
     );
 
 // Processes
@@ -2336,16 +2336,16 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateProcessParameters(
-    __out PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
-    __in PUNICODE_STRING ImagePathName,
-    __in_opt PUNICODE_STRING DllPath,
-    __in_opt PUNICODE_STRING CurrentDirectory,
-    __in_opt PUNICODE_STRING CommandLine,
-    __in_opt PVOID Environment,
-    __in_opt PUNICODE_STRING WindowTitle,
-    __in_opt PUNICODE_STRING DesktopInfo,
-    __in_opt PUNICODE_STRING ShellInfo,
-    __in_opt PUNICODE_STRING RuntimeData
+    _Out_ PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
+    _In_ PUNICODE_STRING ImagePathName,
+    _In_opt_ PUNICODE_STRING DllPath,
+    _In_opt_ PUNICODE_STRING CurrentDirectory,
+    _In_opt_ PUNICODE_STRING CommandLine,
+    _In_opt_ PVOID Environment,
+    _In_opt_ PUNICODE_STRING WindowTitle,
+    _In_opt_ PUNICODE_STRING DesktopInfo,
+    _In_opt_ PUNICODE_STRING ShellInfo,
+    _In_opt_ PUNICODE_STRING RuntimeData
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2354,17 +2354,17 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateProcessParametersEx(
-    __out PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
-    __in PUNICODE_STRING ImagePathName,
-    __in_opt PUNICODE_STRING DllPath,
-    __in_opt PUNICODE_STRING CurrentDirectory,
-    __in_opt PUNICODE_STRING CommandLine,
-    __in_opt PVOID Environment,
-    __in_opt PUNICODE_STRING WindowTitle,
-    __in_opt PUNICODE_STRING DesktopInfo,
-    __in_opt PUNICODE_STRING ShellInfo,
-    __in_opt PUNICODE_STRING RuntimeData,
-    __in ULONG Flags // pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized
+    _Out_ PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
+    _In_ PUNICODE_STRING ImagePathName,
+    _In_opt_ PUNICODE_STRING DllPath,
+    _In_opt_ PUNICODE_STRING CurrentDirectory,
+    _In_opt_ PUNICODE_STRING CommandLine,
+    _In_opt_ PVOID Environment,
+    _In_opt_ PUNICODE_STRING WindowTitle,
+    _In_opt_ PUNICODE_STRING DesktopInfo,
+    _In_opt_ PUNICODE_STRING ShellInfo,
+    _In_opt_ PUNICODE_STRING RuntimeData,
+    _In_ ULONG Flags // pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized
     );
 #endif
 
@@ -2372,21 +2372,21 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyProcessParameters(
-    __in __post_invalid PRTL_USER_PROCESS_PARAMETERS ProcessParameters
+    _In_ _Post_invalid_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters
     );
 
 NTSYSAPI
 PRTL_USER_PROCESS_PARAMETERS
 NTAPI
 RtlNormalizeProcessParams(
-    __inout PRTL_USER_PROCESS_PARAMETERS ProcessParameters
+    _Inout_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters
     );
 
 NTSYSAPI
 PRTL_USER_PROCESS_PARAMETERS
 NTAPI
 RtlDeNormalizeProcessParams(
-    __inout PRTL_USER_PROCESS_PARAMETERS ProcessParameters
+    _Inout_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters
     );
 
 typedef struct _RTL_USER_PROCESS_INFORMATION
@@ -2403,16 +2403,16 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateUserProcess(
-    __in PUNICODE_STRING NtImagePathName,
-    __in ULONG AttributesDeprecated,
-    __in PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
-    __in_opt PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
-    __in_opt PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
-    __in_opt HANDLE ParentProcess,
-    __in BOOLEAN InheritHandles,
-    __in_opt HANDLE DebugPort,
-    __in_opt HANDLE TokenHandle, // used to be ExceptionPort
-    __out PRTL_USER_PROCESS_INFORMATION ProcessInformation
+    _In_ PUNICODE_STRING NtImagePathName,
+    _In_ ULONG AttributesDeprecated,
+    _In_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
+    _In_opt_ PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
+    _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    _In_opt_ HANDLE ParentProcess,
+    _In_ BOOLEAN InheritHandles,
+    _In_opt_ HANDLE DebugPort,
+    _In_opt_ HANDLE TokenHandle, // used to be ExceptionPort
+    _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2421,7 +2421,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlExitUserProcess(
-    __in NTSTATUS ExitStatus
+    _In_ NTSTATUS ExitStatus
     );
 #else
 
@@ -2429,7 +2429,7 @@ RtlExitUserProcess(
 
 DECLSPEC_NORETURN
 FORCEINLINE VOID RtlExitUserProcess_R(
-    __in NTSTATUS ExitStatus
+    _In_ NTSTATUS ExitStatus
     )
 {
     ExitProcess(ExitStatus);
@@ -2450,11 +2450,11 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCloneUserProcess(
-    __in ULONG ProcessFlags,
-    __in_opt PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
-    __in_opt PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
-    __in_opt HANDLE DebugPort,
-    __out PRTL_USER_PROCESS_INFORMATION ProcessInformation
+    _In_ ULONG ProcessFlags,
+    _In_opt_ PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
+    _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    _In_opt_ HANDLE DebugPort,
+    _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
 // private
@@ -2462,7 +2462,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlUpdateClonedCriticalSection(
-    __inout PRTL_CRITICAL_SECTION CriticalSection
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
 // private
@@ -2470,8 +2470,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlUpdateClonedSRWLock(
-    __inout PRTL_SRWLOCK SRWLock,
-    __in LOGICAL Shared // TRUE to set to shared acquire
+    _Inout_ PRTL_SRWLOCK SRWLock,
+    _In_ LOGICAL Shared // TRUE to set to shared acquire
     );
 
 // private
@@ -2488,12 +2488,12 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateProcessReflection(
-    __in HANDLE ProcessHandle,
-    __in ULONG Flags,
-    __in_opt PVOID StartRoutine,
-    __in_opt PVOID StartContext,
-    __in_opt HANDLE EventHandle,
-    __out_opt PRTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION ReflectionInformation
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG Flags,
+    _In_opt_ PVOID StartRoutine,
+    _In_opt_ PVOID StartContext,
+    _In_opt_ HANDLE EventHandle,
+    _Out_opt_ PRTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION ReflectionInformation
     );
 #endif
 
@@ -2503,40 +2503,40 @@ NTSYSAPI
 NTSTATUS
 STDAPIVCALLTYPE
 RtlSetProcessIsCritical(
-    __in BOOLEAN NewValue,
-    __out_opt PBOOLEAN OldValue,
-    __in BOOLEAN CheckFlag
+    _In_ BOOLEAN NewValue,
+    _Out_opt_ PBOOLEAN OldValue,
+    _In_ BOOLEAN CheckFlag
     );
 
 NTSYSAPI
 NTSTATUS
 STDAPIVCALLTYPE
 RtlSetThreadIsCritical(
-    __in BOOLEAN NewValue,
-    __out_opt PBOOLEAN OldValue,
-    __in BOOLEAN CheckFlag
+    _In_ BOOLEAN NewValue,
+    _Out_opt_ PBOOLEAN OldValue,
+    _In_ BOOLEAN CheckFlag
     );
 
 // Threads
 
 typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
-    __in PVOID ThreadParameter
+    _In_ PVOID ThreadParameter
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateUserThread(
-    __in HANDLE Process,
-    __in_opt PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
-    __in BOOLEAN CreateSuspended,
-    __in_opt ULONG ZeroBits,
-    __in_opt SIZE_T MaximumStackSize,
-    __in_opt SIZE_T CommittedStackSize,
-    __in PUSER_THREAD_START_ROUTINE StartAddress,
-    __in_opt PVOID Parameter,
-    __out_opt PHANDLE Thread,
-    __out_opt PCLIENT_ID ClientId
+    _In_ HANDLE Process,
+    _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    _In_ BOOLEAN CreateSuspended,
+    _In_opt_ ULONG ZeroBits,
+    _In_opt_ SIZE_T MaximumStackSize,
+    _In_opt_ SIZE_T CommittedStackSize,
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter,
+    _Out_opt_ PHANDLE Thread,
+    _Out_opt_ PCLIENT_ID ClientId
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA) // should be PHNT_WINXP, but is PHNT_VISTA for consistency with RtlExitUserProcess
@@ -2545,7 +2545,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlExitUserThread(
-    __in NTSTATUS ExitStatus
+    _In_ NTSTATUS ExitStatus
     );
 #else
 
@@ -2553,7 +2553,7 @@ RtlExitUserThread(
 
 DECLSPEC_NORETURN
 FORCEINLINE VOID RtlExitUserThread_R(
-    __in NTSTATUS ExitStatus
+    _In_ NTSTATUS ExitStatus
     )
 {
     ExitThread(ExitStatus);
@@ -2567,12 +2567,12 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateUserStack(
-    __in_opt SIZE_T CommittedStackSize,
-    __in_opt SIZE_T MaximumStackSize,
-    __in_opt ULONG_PTR ZeroBits,
-    __in SIZE_T PageSize,
-    __in ULONG_PTR ReserveAlignment,
-    __out PINITIAL_TEB InitialTeb
+    _In_opt_ SIZE_T CommittedStackSize,
+    _In_opt_ SIZE_T MaximumStackSize,
+    _In_opt_ ULONG_PTR ZeroBits,
+    _In_ SIZE_T PageSize,
+    _In_ ULONG_PTR ReserveAlignment,
+    _Out_ PINITIAL_TEB InitialTeb
     );
 #endif
 
@@ -2580,24 +2580,24 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeContext(
-    __in HANDLE Process,
-    __out PCONTEXT Context,
-    __in_opt PVOID Parameter,
-    __in_opt PVOID InitialPc,
-    __in_opt PVOID InitialSp
+    _In_ HANDLE Process,
+    _Out_ PCONTEXT Context,
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID InitialPc,
+    _In_opt_ PVOID InitialSp
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRemoteCall(
-    __in HANDLE Process,
-    __in HANDLE Thread,
-    __in PVOID CallSite,
-    __in ULONG ArgumentCount,
-    __in_opt PULONG_PTR Arguments,
-    __in BOOLEAN PassContext,
-    __in BOOLEAN AlreadySuspended
+    _In_ HANDLE Process,
+    _In_ HANDLE Thread,
+    _In_ PVOID CallSite,
+    _In_ ULONG ArgumentCount,
+    _In_opt_ PULONG_PTR Arguments,
+    _In_ BOOLEAN PassContext,
+    _In_ BOOLEAN AlreadySuspended
     );
 
 #ifdef _M_X64
@@ -2606,8 +2606,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWow64GetThreadContext(
-    __in HANDLE ThreadHandle,
-    __inout PWOW64_CONTEXT ThreadContext
+    _In_ HANDLE ThreadHandle,
+    _Inout_ PWOW64_CONTEXT ThreadContext
     );
 #endif
 
@@ -2617,8 +2617,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWow64SetThreadContext(
-    __in HANDLE ThreadHandle,
-    __in PWOW64_CONTEXT ThreadContext
+    _In_ HANDLE ThreadHandle,
+    _In_ PWOW64_CONTEXT ThreadContext
     );
 #endif
 
@@ -2667,15 +2667,15 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlPcToFileHeader(
-    __in PVOID PcValue,
-    __out PVOID *BaseOfImage
+    _In_ PVOID PcValue,
+    _Out_ PVOID *BaseOfImage
     );
 
 NTSYSAPI
 PIMAGE_NT_HEADERS
 NTAPI
 RtlImageNtHeader(
-    __in PVOID Base
+    _In_ PVOID Base
     );
 
 #define RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK 0x00000001
@@ -2684,57 +2684,57 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlImageNtHeaderEx(
-    __in ULONG Flags,
-    __in PVOID Base,
-    __in ULONG64 Size,
-    __out PIMAGE_NT_HEADERS *OutHeaders
+    _In_ ULONG Flags,
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PIMAGE_NT_HEADERS *OutHeaders
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlAddressInSectionTable(
-    __in PIMAGE_NT_HEADERS NtHeaders,
-    __in PVOID BaseOfImage,
-    __in ULONG VirtualAddress
+    _In_ PIMAGE_NT_HEADERS NtHeaders,
+    _In_ PVOID BaseOfImage,
+    _In_ ULONG VirtualAddress
     );
 
 NTSYSAPI
 PIMAGE_SECTION_HEADER
 NTAPI
 RtlSectionTableFromVirtualAddress(
-    __in PIMAGE_NT_HEADERS NtHeaders,
-    __in PVOID BaseOfImage,
-    __in ULONG VirtualAddress
+    _In_ PIMAGE_NT_HEADERS NtHeaders,
+    _In_ PVOID BaseOfImage,
+    _In_ ULONG VirtualAddress
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlImageDirectoryEntryToData(
-    __in PVOID BaseOfImage,
-    __in BOOLEAN MappedAsImage,
-    __in USHORT DirectoryEntry,
-    __out PULONG Size
+    _In_ PVOID BaseOfImage,
+    _In_ BOOLEAN MappedAsImage,
+    _In_ USHORT DirectoryEntry,
+    _Out_ PULONG Size
     );
 
 NTSYSAPI
 PIMAGE_SECTION_HEADER
 NTAPI
 RtlImageRvaToSection(
-    __in PIMAGE_NT_HEADERS NtHeaders,
-    __in PVOID Base,
-    __in ULONG Rva
+    _In_ PIMAGE_NT_HEADERS NtHeaders,
+    _In_ PVOID Base,
+    _In_ ULONG Rva
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlImageRvaToVa(
-    __in PIMAGE_NT_HEADERS NtHeaders,
-    __in PVOID Base,
-    __in ULONG Rva,
-    __inout_opt PIMAGE_SECTION_HEADER *LastRvaSection
+    _In_ PIMAGE_NT_HEADERS NtHeaders,
+    _In_ PVOID Base,
+    _In_ ULONG Rva,
+    _Inout_opt_ PIMAGE_SECTION_HEADER *LastRvaSection
     );
 
 // Memory
@@ -2743,27 +2743,27 @@ NTSYSAPI
 SIZE_T
 NTAPI
 RtlCompareMemoryUlong(
-    __in PVOID Source,
-    __in SIZE_T Length,
-    __in ULONG Pattern
+    _In_ PVOID Source,
+    _In_ SIZE_T Length,
+    _In_ ULONG Pattern
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlFillMemoryUlong(
-    __out PVOID Destination,
-    __in SIZE_T Length,
-    __in ULONG Pattern
+    _Out_ PVOID Destination,
+    _In_ SIZE_T Length,
+    _In_ ULONG Pattern
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlFillMemoryUlonglong(
-    __out PVOID Destination,
-    __in SIZE_T Length,
-    __in ULONGLONG Pattern
+    _Out_ PVOID Destination,
+    _In_ SIZE_T Length,
+    _In_ ULONGLONG Pattern
     );
 
 // Environment
@@ -2772,8 +2772,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateEnvironment(
-    __in BOOLEAN CloneCurrentEnvironment,
-    __out PVOID *Environment
+    _In_ BOOLEAN CloneCurrentEnvironment,
+    _Out_ PVOID *Environment
     );
 
 // begin_rev
@@ -2788,9 +2788,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateEnvironmentEx(
-    __in PVOID SourceEnv,
-    __out PVOID *Environment,
-    __in ULONG Flags
+    _In_ PVOID SourceEnv,
+    _Out_ PVOID *Environment,
+    _In_ ULONG Flags
     );
 #endif
 
@@ -2798,15 +2798,15 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyEnvironment(
-    __in PVOID Environment
+    _In_ PVOID Environment
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetCurrentEnvironment(
-    __in PVOID Environment,
-    __out_opt PVOID *PreviousEnvironment
+    _In_ PVOID Environment,
+    _Out_opt_ PVOID *PreviousEnvironment
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2815,11 +2815,11 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetEnvironmentVar(
-    __in_opt PWSTR *Environment,
-    __in_ecount(NameLength) PWSTR Name,
-    __in SIZE_T NameLength,
-    __in_ecount(ValueLength) PWSTR Value,
-    __in SIZE_T ValueLength
+    _In_opt_ PWSTR *Environment,
+    _In_reads_(NameLength) PWSTR Name,
+    _In_ SIZE_T NameLength,
+    _In_reads_(ValueLength) PWSTR Value,
+    _In_ SIZE_T ValueLength
     );
 #endif
 
@@ -2827,9 +2827,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetEnvironmentVariable(
-    __in_opt PVOID *Environment,
-    __in PUNICODE_STRING Name,
-    __in PUNICODE_STRING Value
+    _In_opt_ PVOID *Environment,
+    _In_ PUNICODE_STRING Name,
+    _In_ PUNICODE_STRING Value
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2838,12 +2838,12 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryEnvironmentVariable(
-    __in_opt PVOID Environment,
-    __in_ecount(NameLength) PWSTR Name,
-    __in SIZE_T NameLength,
-    __out_ecount(ValueLength) PWSTR Value,
-    __in SIZE_T ValueLength,
-    __out PSIZE_T ReturnLength
+    _In_opt_ PVOID Environment,
+    _In_reads_(NameLength) PWSTR Name,
+    _In_ SIZE_T NameLength,
+    _Out_writes_(ValueLength) PWSTR Value,
+    _In_ SIZE_T ValueLength,
+    _Out_ PSIZE_T ReturnLength
     );
 #endif
 
@@ -2851,9 +2851,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryEnvironmentVariable_U(
-    __in_opt PVOID Environment,
-    __in PUNICODE_STRING Name,
-    __out PUNICODE_STRING Value
+    _In_opt_ PVOID Environment,
+    _In_ PUNICODE_STRING Name,
+    _Out_ PUNICODE_STRING Value
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2862,12 +2862,12 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlExpandEnvironmentStrings(
-    __in_opt PVOID Environment,
-    __in_ecount(SrcLength) PWSTR Src,
-    __in SIZE_T SrcLength,
-    __out_ecount(DstLength) PWSTR Dst,
-    __in SIZE_T DstLength,
-    __out_opt PSIZE_T ReturnLength
+    _In_opt_ PVOID Environment,
+    _In_reads_(SrcLength) PWSTR Src,
+    _In_ SIZE_T SrcLength,
+    _Out_writes_(DstLength) PWSTR Dst,
+    _In_ SIZE_T DstLength,
+    _Out_opt_ PSIZE_T ReturnLength
     );
 #endif
 
@@ -2875,18 +2875,18 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlExpandEnvironmentStrings_U(
-    __in_opt PVOID Environment,
-    __in PUNICODE_STRING Source,
-    __out PUNICODE_STRING Destination,
-    __out_opt PULONG ReturnedLength
+    _In_opt_ PVOID Environment,
+    _In_ PUNICODE_STRING Source,
+    _Out_ PUNICODE_STRING Destination,
+    _Out_opt_ PULONG ReturnedLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetEnvironmentStrings(
-    __in PWCHAR NewEnvironment,
-    __in SIZE_T NewEnvironmentSize
+    _In_ PWCHAR NewEnvironment,
+    _In_ SIZE_T NewEnvironmentSize
     );
 
 // Current directory and paths
@@ -2916,24 +2916,24 @@ NTSYSAPI
 RTL_PATH_TYPE
 NTAPI
 RtlDetermineDosPathNameType_U(
-    __in PWSTR DosFileName
+    _In_ PWSTR DosFileName
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlIsDosDeviceName_U(
-    __in PWSTR DosFileName
+    _In_ PWSTR DosFileName
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlGetFullPathName_U(
-    __in PWSTR FileName,
-    __in ULONG BufferLength,
-    __out_bcount(BufferLength) PWSTR Buffer,
-    __out_opt PWSTR *FilePart
+    _In_ PWSTR FileName,
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _Out_opt_ PWSTR *FilePart
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -2942,11 +2942,11 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetFullPathName_UEx(
-    __in PWSTR FileName,
-    __in ULONG BufferLength,
-    __out_bcount(BufferLength) PWSTR Buffer,
-    __out_opt PWSTR *FilePart,
-    __out_opt RTL_PATH_TYPE *InputPathType
+    _In_ PWSTR FileName,
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _Out_opt_ PWSTR *FilePart,
+    _Out_opt_ RTL_PATH_TYPE *InputPathType
     );
 #endif
 
@@ -2955,14 +2955,14 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetFullPathName_UstrEx(
-    __in PUNICODE_STRING FileName,
-    __inout PUNICODE_STRING StaticString,
-    __out_opt PUNICODE_STRING DynamicString,
-    __out_opt PUNICODE_STRING *StringUsed,
-    __out_opt SIZE_T *FilePartPrefixCch,
-    __out_opt PBOOLEAN NameInvalid,
-    __out RTL_PATH_TYPE *InputPathType,
-    __out_opt SIZE_T *BytesRequired
+    _In_ PUNICODE_STRING FileName,
+    _Inout_ PUNICODE_STRING StaticString,
+    _Out_opt_ PUNICODE_STRING DynamicString,
+    _Out_opt_ PUNICODE_STRING *StringUsed,
+    _Out_opt_ SIZE_T *FilePartPrefixCch,
+    _Out_opt_ PBOOLEAN NameInvalid,
+    _Out_ RTL_PATH_TYPE *InputPathType,
+    _Out_opt_ SIZE_T *BytesRequired
     );
 #endif
 
@@ -2970,15 +2970,15 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlGetCurrentDirectory_U(
-    __in ULONG BufferLength,
-    __out_bcount(BufferLength) PWSTR Buffer
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetCurrentDirectory_U(
-    __in PUNICODE_STRING PathName
+    _In_ PUNICODE_STRING PathName
     );
 
 NTSYSAPI
@@ -2992,10 +2992,10 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDosPathNameToNtPathName_U(
-    __in PWSTR DosFileName,
-    __out PUNICODE_STRING NtFileName,
-    __out_opt PWSTR *FilePart,
-    __out_opt PRTL_RELATIVE_NAME_U RelativeName
+    _In_ PWSTR DosFileName,
+    _Out_ PUNICODE_STRING NtFileName,
+    _Out_opt_ PWSTR *FilePart,
+    _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
 
 #if (PHNT_VERSION >= PHNT_WS03)
@@ -3003,10 +3003,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDosPathNameToNtPathName_U_WithStatus(
-    __in PWSTR DosFileName,
-    __out PUNICODE_STRING NtFileName,
-    __out_opt PWSTR *FilePart,
-    __out_opt PRTL_RELATIVE_NAME_U RelativeName
+    _In_ PWSTR DosFileName,
+    _Out_ PUNICODE_STRING NtFileName,
+    _Out_opt_ PWSTR *FilePart,
+    _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
 #endif
 
@@ -3015,10 +3015,10 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDosPathNameToRelativeNtPathName_U(
-    __in PWSTR DosFileName,
-    __out PUNICODE_STRING NtFileName,
-    __out_opt PWSTR *FilePart,
-    __out_opt PRTL_RELATIVE_NAME_U RelativeName
+    _In_ PWSTR DosFileName,
+    _Out_ PUNICODE_STRING NtFileName,
+    _Out_opt_ PWSTR *FilePart,
+    _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
 #endif
 
@@ -3027,10 +3027,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDosPathNameToRelativeNtPathName_U_WithStatus(
-    __in PWSTR DosFileName,
-    __out PUNICODE_STRING NtFileName,
-    __out_opt PWSTR *FilePart,
-    __out_opt PRTL_RELATIVE_NAME_U RelativeName
+    _In_ PWSTR DosFileName,
+    _Out_ PUNICODE_STRING NtFileName,
+    _Out_opt_ PWSTR *FilePart,
+    _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
 #endif
 
@@ -3039,7 +3039,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlReleaseRelativeName(
-    __inout PRTL_RELATIVE_NAME_U RelativeName
+    _Inout_ PRTL_RELATIVE_NAME_U RelativeName
     );
 #endif
 
@@ -3047,12 +3047,12 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlDosSearchPath_U(
-    __in PWSTR Path,
-    __in PWSTR FileName,
-    __in_opt PWSTR Extension,
-    __in ULONG BufferLength,
-    __out_bcount(BufferLength) PWSTR Buffer,
-    __out_opt PWSTR *FilePart
+    _In_ PWSTR Path,
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Extension,
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _Out_opt_ PWSTR *FilePart
     );
 
 #define RTL_DOS_SEARCH_PATH_FLAG_APPLY_ISOLATION_REDIRECTION 0x00000001
@@ -3063,22 +3063,22 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDosSearchPath_Ustr(
-    __in ULONG Flags,
-    __in PUNICODE_STRING Path,
-    __in PUNICODE_STRING FileName,
-    __in_opt PUNICODE_STRING DefaultExtension,
-    __out_opt PUNICODE_STRING StaticString,
-    __out_opt PUNICODE_STRING DynamicString,
-    __out_opt PCUNICODE_STRING *FullFileNameOut,
-    __out_opt SIZE_T *FilePartPrefixCch,
-    __out_opt SIZE_T *BytesRequired
+    _In_ ULONG Flags,
+    _In_ PUNICODE_STRING Path,
+    _In_ PUNICODE_STRING FileName,
+    _In_opt_ PUNICODE_STRING DefaultExtension,
+    _Out_opt_ PUNICODE_STRING StaticString,
+    _Out_opt_ PUNICODE_STRING DynamicString,
+    _Out_opt_ PCUNICODE_STRING *FullFileNameOut,
+    _Out_opt_ SIZE_T *FilePartPrefixCch,
+    _Out_opt_ SIZE_T *BytesRequired
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDoesFileExists_U(
-    __in PWSTR FileName
+    _In_ PWSTR FileName
     );
 
 // Heaps
@@ -3147,9 +3147,9 @@ typedef struct _RTL_PROCESS_HEAPS
 } RTL_PROCESS_HEAPS, *PRTL_PROCESS_HEAPS;
 
 typedef NTSTATUS (NTAPI *PRTL_HEAP_COMMIT_ROUTINE)(
-    __in PVOID Base,
-    __inout PVOID *CommitAddress,
-    __inout PSIZE_T CommitSize
+    _In_ PVOID Base,
+    _Inout_ PVOID *CommitAddress,
+    _Inout_ PSIZE_T CommitSize
     );
 
 typedef struct _RTL_HEAP_PARAMETERS
@@ -3188,62 +3188,62 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlCreateHeap(
-    __in ULONG Flags,
-    __in_opt PVOID HeapBase,
-    __in_opt SIZE_T ReserveSize,
-    __in_opt SIZE_T CommitSize,
-    __in_opt PVOID Lock,
-    __in_opt PRTL_HEAP_PARAMETERS Parameters
+    _In_ ULONG Flags,
+    _In_opt_ PVOID HeapBase,
+    _In_opt_ SIZE_T ReserveSize,
+    _In_opt_ SIZE_T CommitSize,
+    _In_opt_ PVOID Lock,
+    _In_opt_ PRTL_HEAP_PARAMETERS Parameters
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlDestroyHeap(
-    __in __post_invalid PVOID HeapHandle
+    _In_ _Post_invalid_ PVOID HeapHandle
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlAllocateHeap(
-    __in PVOID HeapHandle,
-    __in_opt ULONG Flags,
-    __in SIZE_T Size
+    _In_ PVOID HeapHandle,
+    _In_opt_ ULONG Flags,
+    _In_ SIZE_T Size
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlFreeHeap(
-    __in PVOID HeapHandle,
-    __in_opt ULONG Flags,
-    __in __post_invalid PVOID BaseAddress
+    _In_ PVOID HeapHandle,
+    _In_opt_ ULONG Flags,
+    _In_ _Post_invalid_ PVOID BaseAddress
     );
 
 NTSYSAPI
 SIZE_T
 NTAPI
 RtlSizeHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID BaseAddress
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ PVOID BaseAddress
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlZeroHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlProtectHeap(
-    __in PVOID HeapHandle,
-    __in BOOLEAN MakeReadOnly
+    _In_ PVOID HeapHandle,
+    _In_ BOOLEAN MakeReadOnly
     );
 
 #define RtlProcessHeap() (NtCurrentPeb()->ProcessHeap)
@@ -3252,56 +3252,56 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlLockHeap(
-    __in PVOID HeapHandle
+    _In_ PVOID HeapHandle
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlUnlockHeap(
-    __in PVOID HeapHandle
+    _In_ PVOID HeapHandle
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlReAllocateHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID BaseAddress,
-    __in SIZE_T Size
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T Size
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlGetUserInfoHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID BaseAddress,
-    __out_opt PVOID *UserValue,
-    __out_opt PULONG UserFlags
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ PVOID BaseAddress,
+    _Out_opt_ PVOID *UserValue,
+    _Out_opt_ PULONG UserFlags
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlSetUserValueHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID BaseAddress,
-    __in PVOID UserValue
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ PVOID BaseAddress,
+    _In_ PVOID UserValue
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlSetUserFlagsHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID BaseAddress,
-    __in ULONG UserFlagsReset,
-    __in ULONG UserFlagsSet
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ PVOID BaseAddress,
+    _In_ ULONG UserFlagsReset,
+    _In_ ULONG UserFlagsSet
     );
 
 typedef struct _RTL_HEAP_TAG_INFO
@@ -3317,48 +3317,48 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlCreateTagHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in_opt PWSTR TagPrefix,
-    __in PWSTR TagNames
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR TagPrefix,
+    _In_ PWSTR TagNames
     );
 
 NTSYSAPI
 PWSTR
 NTAPI
 RtlQueryTagHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in USHORT TagIndex,
-    __in BOOLEAN ResetCounters,
-    __out_opt PRTL_HEAP_TAG_INFO TagInfo
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ USHORT TagIndex,
+    _In_ BOOLEAN ResetCounters,
+    _Out_opt_ PRTL_HEAP_TAG_INFO TagInfo
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlExtendHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID Base,
-    __in SIZE_T Size
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ PVOID Base,
+    _In_ SIZE_T Size
     );
 
 NTSYSAPI
 SIZE_T
 NTAPI
 RtlCompactHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidateHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID BaseAddress
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ PVOID BaseAddress
     );
 
 NTSYSAPI
@@ -3372,21 +3372,21 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlGetProcessHeaps(
-    __in ULONG NumberOfHeaps,
-    __out PVOID *ProcessHeaps
+    _In_ ULONG NumberOfHeaps,
+    _Out_ PVOID *ProcessHeaps
     );
 
 typedef NTSTATUS (NTAPI *PRTL_ENUM_HEAPS_ROUTINE)(
-    __in PVOID HeapHandle,
-    __in PVOID Parameter
+    _In_ PVOID HeapHandle,
+    _In_ PVOID Parameter
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlEnumProcessHeaps(
-    __in PRTL_ENUM_HEAPS_ROUTINE EnumRoutine,
-    __in PVOID Parameter
+    _In_ PRTL_ENUM_HEAPS_ROUTINE EnumRoutine,
+    _In_ PVOID Parameter
     );
 
 typedef struct _RTL_HEAP_USAGE_ENTRY
@@ -3418,9 +3418,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUsageHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __inout PRTL_HEAP_USAGE Usage
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _Inout_ PRTL_HEAP_USAGE Usage
     );
 
 typedef struct _RTL_HEAP_WALK_ENTRY
@@ -3453,8 +3453,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWalkHeap(
-    __in PVOID HeapHandle,
-    __inout PRTL_HEAP_WALK_ENTRY Entry
+    _In_ PVOID HeapHandle,
+    _Inout_ PRTL_HEAP_WALK_ENTRY Entry
     );
 
 // rev
@@ -3462,12 +3462,12 @@ RtlWalkHeap(
 
 // rev
 typedef NTSTATUS (NTAPI *PRTL_HEAP_LEAK_ENUMERATION_ROUTINE)(
-    __in LONG Reserved,
-    __in PVOID HeapHandle,
-    __in PVOID BaseAddress,
-    __in SIZE_T BlockSize,
-    __in ULONG StackTraceDepth,
-    __in PVOID *StackTrace
+    _In_ LONG Reserved,
+    _In_ PVOID HeapHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T BlockSize,
+    _In_ ULONG StackTraceDepth,
+    _In_ PVOID *StackTrace
     );
 
 // symbols
@@ -3486,42 +3486,42 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryHeapInformation(
-    __in PVOID HeapHandle,
-    __in HEAP_INFORMATION_CLASS HeapInformationClass,
-    __out_opt PVOID HeapInformation,
-    __in_opt SIZE_T HeapInformationLength,
-    __out_opt PSIZE_T ReturnLength
+    _In_ PVOID HeapHandle,
+    _In_ HEAP_INFORMATION_CLASS HeapInformationClass,
+    _Out_opt_ PVOID HeapInformation,
+    _In_opt_ SIZE_T HeapInformationLength,
+    _Out_opt_ PSIZE_T ReturnLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetHeapInformation(
-    __in PVOID HeapHandle,
-    __in HEAP_INFORMATION_CLASS HeapInformationClass,
-    __in_opt PVOID HeapInformation,
-    __in_opt SIZE_T HeapInformationLength
+    _In_ PVOID HeapHandle,
+    _In_ HEAP_INFORMATION_CLASS HeapInformationClass,
+    _In_opt_ PVOID HeapInformation,
+    _In_opt_ SIZE_T HeapInformationLength
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlMultipleAllocateHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in SIZE_T Size,
-    __in ULONG Count,
-    __out PVOID *Array
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ SIZE_T Size,
+    _In_ ULONG Count,
+    _Out_ PVOID *Array
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlMultipleFreeHeap(
-    __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in ULONG Count,
-    __in PVOID *Array
+    _In_ PVOID HeapHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG Count,
+    _In_ PVOID *Array
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -3559,46 +3559,46 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateMemoryZone(
-    __out PVOID *MemoryZone,
-    __in SIZE_T InitialSize,
-    __reserved ULONG Flags
+    _Out_ PVOID *MemoryZone,
+    _In_ SIZE_T InitialSize,
+    _Reserved_ ULONG Flags
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyMemoryZone(
-    __in __post_invalid PVOID MemoryZone
+    _In_ _Post_invalid_ PVOID MemoryZone
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAllocateMemoryZone(
-    __in PVOID MemoryZone,
-    __in SIZE_T BlockSize,
-    __out PVOID *Block
+    _In_ PVOID MemoryZone,
+    _In_ SIZE_T BlockSize,
+    _Out_ PVOID *Block
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlResetMemoryZone(
-    __in PVOID MemoryZone
+    _In_ PVOID MemoryZone
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLockMemoryZone(
-    __in PVOID MemoryZone
+    _In_ PVOID MemoryZone
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnlockMemoryZone(
-    __in PVOID MemoryZone
+    _In_ PVOID MemoryZone
     );
 
 #endif
@@ -3615,64 +3615,64 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateMemoryBlockLookaside(
-    __out PVOID *MemoryBlockLookaside,
-    __reserved ULONG Flags,
-    __in ULONG InitialSize,
-    __in ULONG MinimumBlockSize,
-    __in ULONG MaximumBlockSize
+    _Out_ PVOID *MemoryBlockLookaside,
+    _Reserved_ ULONG Flags,
+    _In_ ULONG InitialSize,
+    _In_ ULONG MinimumBlockSize,
+    _In_ ULONG MaximumBlockSize
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyMemoryBlockLookaside(
-    __in PVOID MemoryBlockLookaside
+    _In_ PVOID MemoryBlockLookaside
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAllocateMemoryBlockLookaside(
-    __in PVOID MemoryBlockLookaside,
-    __in ULONG BlockSize,
-    __out PVOID *Block
+    _In_ PVOID MemoryBlockLookaside,
+    _In_ ULONG BlockSize,
+    _Out_ PVOID *Block
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFreeMemoryBlockLookaside(
-    __in PVOID MemoryBlockLookaside,
-    __in PVOID Block
+    _In_ PVOID MemoryBlockLookaside,
+    _In_ PVOID Block
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlExtendMemoryBlockLookaside(
-    __in PVOID MemoryBlockLookaside,
-    __in ULONG Increment
+    _In_ PVOID MemoryBlockLookaside,
+    _In_ ULONG Increment
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlResetMemoryBlockLookaside(
-    __in PVOID MemoryBlockLookaside
+    _In_ PVOID MemoryBlockLookaside
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLockMemoryBlockLookaside(
-    __in PVOID MemoryBlockLookaside
+    _In_ PVOID MemoryBlockLookaside
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnlockMemoryBlockLookaside(
-    __in PVOID MemoryBlockLookaside
+    _In_ PVOID MemoryBlockLookaside
     );
 
 #endif
@@ -3697,15 +3697,15 @@ NTSYSAPI
 LOGICAL
 NTAPI
 RtlSetCurrentTransaction(
-    __in HANDLE TransactionHandle
+    _In_ HANDLE TransactionHandle
     );
 #endif
 
 // LUIDs
 
 FORCEINLINE BOOLEAN RtlIsEqualLuid(
-    __in PLUID L1,
-    __in PLUID L2
+    _In_ PLUID L1,
+    _In_ PLUID L2
     )
 {
     return L1->LowPart == L2->LowPart &&
@@ -3713,14 +3713,14 @@ FORCEINLINE BOOLEAN RtlIsEqualLuid(
 }
 
 FORCEINLINE BOOLEAN RtlIsZeroLuid(
-    __in PLUID L1
+    _In_ PLUID L1
     )
 {
     return (L1->LowPart | L1->HighPart) == 0;
 }
 
 FORCEINLINE LUID RtlConvertLongToLuid(
-    __in LONG Long
+    _In_ LONG Long
     )
 {
     LUID tempLuid;
@@ -3734,7 +3734,7 @@ FORCEINLINE LUID RtlConvertLongToLuid(
 }
 
 FORCEINLINE LUID RtlConvertUlongToLuid(
-    __in ULONG Ulong
+    _In_ ULONG Ulong
     )
 {
     LUID tempLuid;
@@ -3749,8 +3749,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlCopyLuid(
-    __out PLUID DestinationLuid,
-    __in PLUID SourceLuid
+    _Out_ PLUID DestinationLuid,
+    _In_ PLUID SourceLuid
     );
 
 // Debugging
@@ -3799,15 +3799,15 @@ NTSYSAPI
 PRTL_DEBUG_INFORMATION
 NTAPI
 RtlCreateQueryDebugBuffer(
-    __in_opt ULONG MaximumCommit,
-    __in BOOLEAN UseEventPair
+    _In_opt_ ULONG MaximumCommit,
+    _In_ BOOLEAN UseEventPair
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyQueryDebugBuffer(
-    __in PRTL_DEBUG_INFORMATION Buffer
+    _In_ PRTL_DEBUG_INFORMATION Buffer
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -3817,8 +3817,8 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlCommitDebugInfo(
-    __inout PRTL_DEBUG_INFORMATION Buffer,
-    __in SIZE_T Size
+    _Inout_ PRTL_DEBUG_INFORMATION Buffer,
+    _In_ SIZE_T Size
     );
 
 // private
@@ -3826,9 +3826,9 @@ NTSYSAPI
 VOID
 NTAPI
 RtlDeCommitDebugInfo(
-    __inout PRTL_DEBUG_INFORMATION Buffer,
-    __in PVOID p,
-    __in SIZE_T Size
+    _Inout_ PRTL_DEBUG_INFORMATION Buffer,
+    _In_ PVOID p,
+    _In_ SIZE_T Size
     );
 
 #endif
@@ -3850,9 +3850,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryProcessDebugInformation(
-    __in HANDLE UniqueProcessId,
-    __in ULONG Flags,
-    __inout PRTL_DEBUG_INFORMATION Buffer
+    _In_ HANDLE UniqueProcessId,
+    _In_ ULONG Flags,
+    _Inout_ PRTL_DEBUG_INFORMATION Buffer
     );
 
 // Messages
@@ -3861,26 +3861,26 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFindMessage(
-    __in PVOID DllHandle,
-    __in ULONG MessageTableId,
-    __in ULONG MessageLanguageId,
-    __in ULONG MessageId,
-    __out PMESSAGE_RESOURCE_ENTRY *MessageEntry
+    _In_ PVOID DllHandle,
+    _In_ ULONG MessageTableId,
+    _In_ ULONG MessageLanguageId,
+    _In_ ULONG MessageId,
+    _Out_ PMESSAGE_RESOURCE_ENTRY *MessageEntry
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFormatMessage(
-    __in PWSTR MessageFormat,
-    __in ULONG MaximumWidth,
-    __in BOOLEAN IgnoreInserts,
-    __in BOOLEAN ArgumentsAreAnsi,
-    __in BOOLEAN ArgumentsAreAnArray,
-    __in va_list *Arguments,
-    __out_bcount_part(Length, *ReturnLength) PWSTR Buffer,
-    __in ULONG Length,
-    __out_opt PULONG ReturnLength
+    _In_ PWSTR MessageFormat,
+    _In_ ULONG MaximumWidth,
+    _In_ BOOLEAN IgnoreInserts,
+    _In_ BOOLEAN ArgumentsAreAnsi,
+    _In_ BOOLEAN ArgumentsAreAnArray,
+    _In_ va_list *Arguments,
+    _Out_writes_bytes_to_(Length, *ReturnLength) PWSTR Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReturnLength
     );
 
 typedef struct _PARSE_MESSAGE_CONTEXT
@@ -3906,16 +3906,16 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFormatMessageEx(
-    __in PWSTR MessageFormat,
-    __in ULONG MaximumWidth,
-    __in BOOLEAN IgnoreInserts,
-    __in BOOLEAN ArgumentsAreAnsi,
-    __in BOOLEAN ArgumentsAreAnArray,
-    __in va_list *Arguments,
-    __out_bcount_part(Length, *ReturnLength) PWSTR Buffer,
-    __in ULONG Length,
-    __out_opt PULONG ReturnLength,
-    __out_opt PPARSE_MESSAGE_CONTEXT ParseContext
+    _In_ PWSTR MessageFormat,
+    _In_ ULONG MaximumWidth,
+    _In_ BOOLEAN IgnoreInserts,
+    _In_ BOOLEAN ArgumentsAreAnsi,
+    _In_ BOOLEAN ArgumentsAreAnArray,
+    _In_ va_list *Arguments,
+    _Out_writes_bytes_to_(Length, *ReturnLength) PWSTR Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG ReturnLength,
+    _Out_opt_ PPARSE_MESSAGE_CONTEXT ParseContext
     );
 
 // Errors
@@ -3924,14 +3924,14 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlNtStatusToDosError(
-    __in NTSTATUS Status
+    _In_ NTSTATUS Status
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlNtStatusToDosErrorNoTeb(
-    __in NTSTATUS Status
+    _In_ NTSTATUS Status
     );
 
 NTSYSAPI
@@ -3952,21 +3952,21 @@ NTSYSAPI
 VOID
 NTAPI
 RtlSetLastWin32ErrorAndNtStatusFromNtStatus(
-    __in NTSTATUS Status
+    _In_ NTSTATUS Status
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlSetLastWin32Error(
-    __in LONG Win32Error
+    _In_ LONG Win32Error
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlRestoreLastWin32Error(
-    __in LONG Win32Error
+    _In_ LONG Win32Error
     );
 
 #define RTL_ERRORMODE_NOGPFAULTERRORBOX 0x0020
@@ -3983,8 +3983,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetThreadErrorMode(
-    __in ULONG NewMode,
-    __out_opt PULONG OldMode
+    _In_ ULONG NewMode,
+    _Out_opt_ PULONG OldMode
     );
 
 // Windows Error Reporting
@@ -3995,9 +3995,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlReportException(
-    __in PEXCEPTION_RECORD ExceptionRecord,
-    __in PCONTEXT ContextRecord,
-    __in ULONG Flags
+    _In_ PEXCEPTION_RECORD ExceptionRecord,
+    _In_ PCONTEXT ContextRecord,
+    _In_ ULONG Flags
     );
 #endif
 
@@ -4007,10 +4007,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWerpReportException(
-    __in ULONG ProcessId,
-    __in HANDLE CrashReportSharedMem,
-    __in ULONG Flags,
-    __out PHANDLE CrashVerticalProcessHandle
+    _In_ ULONG ProcessId,
+    _In_ HANDLE CrashReportSharedMem,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE CrashVerticalProcessHandle
     );
 #endif
 
@@ -4020,8 +4020,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlReportSilentProcessExit(
-    __in HANDLE ProcessHandle,
-    __in NTSTATUS ExitStatus
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus
     );
 #endif
 
@@ -4031,30 +4031,30 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlAddVectoredExceptionHandler(
-    __in ULONG First,
-    __in PVECTORED_EXCEPTION_HANDLER Handler
+    _In_ ULONG First,
+    _In_ PVECTORED_EXCEPTION_HANDLER Handler
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlRemoveVectoredExceptionHandler(
-    __in PVOID Handle
+    _In_ PVOID Handle
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlAddVectoredContinueHandler(
-    __in ULONG First,
-    __in PVECTORED_EXCEPTION_HANDLER Handler
+    _In_ ULONG First,
+    _In_ PVECTORED_EXCEPTION_HANDLER Handler
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlRemoveVectoredContinueHandler(
-    __in PVOID Handle
+    _In_ PVOID Handle
     );
 
 // Random
@@ -4063,30 +4063,30 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlUniform(
-    __inout PULONG Seed
+    _Inout_ PULONG Seed
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlRandom(
-    __inout PULONG Seed
+    _Inout_ PULONG Seed
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlRandomEx(
-    __inout PULONG Seed
+    _Inout_ PULONG Seed
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlComputeImportTableHash(
-    __in HANDLE hFile,
-    __out_bcount(16) PCHAR Hash,
-    __in ULONG ImportTableHashRevision // must be 1
+    _In_ HANDLE hFile,
+    _Out_writes_bytes_(16) PCHAR Hash,
+    _In_ ULONG ImportTableHashRevision // must be 1
     );
 
 // Integer conversion
@@ -4095,47 +4095,47 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIntegerToChar(
-    __in ULONG Value,
-    __in_opt ULONG Base,
-    __in LONG OutputLength, // negative to pad to width
-    __out PSTR String
+    _In_ ULONG Value,
+    _In_opt_ ULONG Base,
+    _In_ LONG OutputLength, // negative to pad to width
+    _Out_ PSTR String
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCharToInteger(
-    __in PSTR String,
-    __in_opt ULONG Base,
-    __out PULONG Value
+    _In_ PSTR String,
+    _In_opt_ ULONG Base,
+    _Out_ PULONG Value
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLargeIntegerToChar(
-    __in PLARGE_INTEGER Value,
-    __in_opt ULONG Base,
-    __in LONG OutputLength,
-    __out PSTR String
+    _In_ PLARGE_INTEGER Value,
+    _In_opt_ ULONG Base,
+    _In_ LONG OutputLength,
+    _Out_ PSTR String
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIntegerToUnicodeString(
-    __in ULONG Value,
-    __in_opt ULONG Base,
-    __inout PUNICODE_STRING String
+    _In_ ULONG Value,
+    _In_opt_ ULONG Base,
+    _Inout_ PUNICODE_STRING String
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInt64ToUnicodeString(
-    __in ULONGLONG Value,
-    __in_opt ULONG Base,
-    __inout PUNICODE_STRING String
+    _In_ ULONGLONG Value,
+    _In_opt_ ULONG Base,
+    _Inout_ PUNICODE_STRING String
     );
 
 #ifdef _M_X64
@@ -4148,9 +4148,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeStringToInteger(
-    __in PUNICODE_STRING String,
-    __in_opt ULONG Base,
-    __out PULONG Value
+    _In_ PUNICODE_STRING String,
+    _In_opt_ ULONG Base,
+    _Out_ PULONG Value
     );
 
 // IPv4/6 conversion
@@ -4162,76 +4162,76 @@ NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv4AddressToStringW(
-    __in struct in_addr *Addr,
-    __out_ecount(16) PWSTR S
+    _In_ struct in_addr *Addr,
+    _Out_writes_(16) PWSTR S
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv4AddressToStringExW(
-    __in struct in_addr *Address,
-    __in USHORT Port,
-    __out_ecount_part(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
-    __inout PULONG AddressStringLength
+    _In_ struct in_addr *Address,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
     );
 
 NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv6AddressToStringW(
-    __in struct in6_addr *Addr,
-    __out_ecount(65) PWSTR S
+    _In_ struct in6_addr *Addr,
+    _Out_writes_(65) PWSTR S
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv6AddressToStringExW(
-    __in struct in6_addr *Address,
-    __in ULONG ScopeId,
-    __in USHORT Port,
-    __out_ecount_part(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
-    __inout PULONG AddressStringLength
+    _In_ struct in6_addr *Address,
+    _In_ ULONG ScopeId,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv4StringToAddressW(
-    __in PWSTR S,
-    __in BOOLEAN Strict,
-    __out PWSTR *Terminator,
-    __out struct in_addr *Addr
+    _In_ PWSTR S,
+    _In_ BOOLEAN Strict,
+    _Out_ PWSTR *Terminator,
+    _Out_ struct in_addr *Addr
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv4StringToAddressExW(
-    __in PWSTR AddressString,
-    __in BOOLEAN Strict,
-    __out struct in_addr *Address,
-    __out PUSHORT Port
+    _In_ PWSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ struct in_addr *Address,
+    _Out_ PUSHORT Port
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv6StringToAddressW(
-    __in PWSTR S,
-    __out PWSTR *Terminator,
-    __out struct in6_addr *Addr
+    _In_ PWSTR S,
+    _Out_ PWSTR *Terminator,
+    _Out_ struct in6_addr *Addr
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv6StringToAddressExW(
-    __in PWSTR AddressString,
-    __out struct in6_addr *Address,
-    __out PULONG ScopeId,
-    __out PUSHORT Port
+    _In_ PWSTR AddressString,
+    _Out_ struct in6_addr *Address,
+    _Out_ PULONG ScopeId,
+    _Out_ PUSHORT Port
     );
 
 #define RtlIpv4AddressToString RtlIpv4AddressToStringW
@@ -4261,82 +4261,82 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlCutoverTimeToSystemTime(
-    __in PTIME_FIELDS CutoverTime,
-    __out PLARGE_INTEGER SystemTime,
-    __in PLARGE_INTEGER CurrentSystemTime,
-    __in BOOLEAN ThisYear
+    _In_ PTIME_FIELDS CutoverTime,
+    _Out_ PLARGE_INTEGER SystemTime,
+    _In_ PLARGE_INTEGER CurrentSystemTime,
+    _In_ BOOLEAN ThisYear
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSystemTimeToLocalTime(
-    __in PLARGE_INTEGER SystemTime,
-    __out PLARGE_INTEGER LocalTime
+    _In_ PLARGE_INTEGER SystemTime,
+    _Out_ PLARGE_INTEGER LocalTime
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLocalTimeToSystemTime(
-    __in PLARGE_INTEGER LocalTime,
-    __out PLARGE_INTEGER SystemTime
+    _In_ PLARGE_INTEGER LocalTime,
+    _Out_ PLARGE_INTEGER SystemTime
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlTimeToElapsedTimeFields(
-    __in PLARGE_INTEGER Time,
-    __out PTIME_FIELDS TimeFields
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PTIME_FIELDS TimeFields
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlTimeToTimeFields(
-    __in PLARGE_INTEGER Time,
-    __out PTIME_FIELDS TimeFields
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PTIME_FIELDS TimeFields
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlTimeFieldsToTime(
-    __in PTIME_FIELDS TimeFields, // Weekday is ignored
-    __out PLARGE_INTEGER Time
+    _In_ PTIME_FIELDS TimeFields, // Weekday is ignored
+    _Out_ PLARGE_INTEGER Time
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlTimeToSecondsSince1980(
-    __in PLARGE_INTEGER Time,
-    __out PULONG ElapsedSeconds
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlSecondsSince1980ToTime(
-    __in ULONG ElapsedSeconds,
-    __out PLARGE_INTEGER Time
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlTimeToSecondsSince1970(
-    __in PLARGE_INTEGER Time,
-    __out PULONG ElapsedSeconds
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlSecondsSince1970ToTime(
-    __in ULONG ElapsedSeconds,
-    __out PLARGE_INTEGER Time
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
     );
 
 // Time zones
@@ -4356,14 +4356,14 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryTimeZoneInformation(
-    __out PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
+    _Out_ PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetTimeZoneInformation(
-    __in PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
+    _In_ PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
     );
 
 // Bitmaps
@@ -4378,9 +4378,9 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeBitMap(
-    __out PRTL_BITMAP BitMapHeader,
-    __in PULONG BitMapBuffer,
-    __in ULONG SizeOfBitMap
+    _Out_ PRTL_BITMAP BitMapHeader,
+    _In_ PULONG BitMapBuffer,
+    _In_ ULONG SizeOfBitMap
     );
 
 #if (PHNT_MODE == PHNT_MODE_KERNEL)
@@ -4388,8 +4388,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlClearBit(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
 #endif
 
@@ -4398,92 +4398,92 @@ NTSYSAPI
 VOID
 NTAPI
 RtlSetBit(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
 #endif
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlTestBit(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlClearAllBits(
-    __in PRTL_BITMAP BitMapHeader
+    _In_ PRTL_BITMAP BitMapHeader
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlSetAllBits(
-    __in PRTL_BITMAP BitMapHeader
+    _In_ PRTL_BITMAP BitMapHeader
     );
 
-__success(return != -1)
-__checkReturn
+_Success_(return != -1)
+_Check_return_
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindClearBits(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG NumberToFind,
-    __in ULONG HintIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
     );
 
-__success(return != -1)
-__checkReturn
+_Success_(return != -1)
+_Check_return_
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindSetBits(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG NumberToFind,
-    __in ULONG HintIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
     );
 
-__success(return != -1)
+_Success_(return != -1)
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindClearBitsAndSet(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG NumberToFind,
-    __in ULONG HintIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
     );
 
-__success(return != -1)
+_Success_(return != -1)
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindSetBitsAndClear(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG NumberToFind,
-    __in ULONG HintIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlClearBits(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
-    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlSetBits(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
-    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
     );
 
 typedef struct _RTL_BITMAP_RUN
@@ -4496,34 +4496,34 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlFindClearRuns(
-    __in PRTL_BITMAP BitMapHeader,
-    __out_ecount_part(SizeOfRunArray, return) PRTL_BITMAP_RUN RunArray,
-    __in_range(>, 0) ULONG SizeOfRunArray,
-    __in BOOLEAN LocateLongestRuns
+    _In_ PRTL_BITMAP BitMapHeader,
+    _Out_writes_to_(SizeOfRunArray, return) PRTL_BITMAP_RUN RunArray,
+    _In_range_(>, 0) ULONG SizeOfRunArray,
+    _In_ BOOLEAN LocateLongestRuns
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindLongestRunClear(
-    __in PRTL_BITMAP BitMapHeader,
-    __out PULONG StartingIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _Out_ PULONG StartingIndex
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindFirstRunClear(
-    __in PRTL_BITMAP BitMapHeader,
-    __out PULONG StartingIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _Out_ PULONG StartingIndex
     );
 
-__checkReturn
+_Check_return_
 FORCEINLINE
 BOOLEAN
 RtlCheckBit(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitPosition
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitPosition
     )
 {
 #ifdef _M_IX86
@@ -4537,52 +4537,52 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlNumberOfClearBits(
-    __in PRTL_BITMAP BitMapHeader
+    _In_ PRTL_BITMAP BitMapHeader
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlNumberOfSetBits(
-    __in PRTL_BITMAP BitMapHeader
+    _In_ PRTL_BITMAP BitMapHeader
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlAreBitsClear(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG StartingIndex,
-    __in ULONG Length
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG Length
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlAreBitsSet(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG StartingIndex,
-    __in ULONG Length
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG Length
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindNextForwardRunClear(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG FromIndex,
-    __out PULONG StartingRunIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG FromIndex,
+    _Out_ PULONG StartingRunIndex
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlFindLastBackwardRunClear(
-    __in PRTL_BITMAP BitMapHeader,
-    __in ULONG FromIndex,
-    __out PULONG StartingRunIndex
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG FromIndex,
+    _Out_ PULONG StartingRunIndex
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -4592,9 +4592,9 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInterlockedClearBitRun(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
-    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
     );
 
 // rev
@@ -4602,9 +4602,9 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInterlockedSetBitRun(
-    __in PRTL_BITMAP BitMapHeader,
-    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
-    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
+    _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
     );
 
 #endif
@@ -4637,49 +4637,49 @@ NTSYSAPI
 VOID
 NTAPI
 RtlInitializeHandleTable(
-    __in ULONG MaximumNumberOfHandles,
-    __in ULONG SizeOfHandleTableEntry,
-    __out PRTL_HANDLE_TABLE HandleTable
+    _In_ ULONG MaximumNumberOfHandles,
+    _In_ ULONG SizeOfHandleTableEntry,
+    _Out_ PRTL_HANDLE_TABLE HandleTable
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyHandleTable(
-    __inout PRTL_HANDLE_TABLE HandleTable
+    _Inout_ PRTL_HANDLE_TABLE HandleTable
     );
 
 NTSYSAPI
 PRTL_HANDLE_TABLE_ENTRY
 NTAPI
 RtlAllocateHandle(
-    __in PRTL_HANDLE_TABLE HandleTable,
-    __out_opt PULONG HandleIndex
+    _In_ PRTL_HANDLE_TABLE HandleTable,
+    _Out_opt_ PULONG HandleIndex
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlFreeHandle(
-    __in PRTL_HANDLE_TABLE HandleTable,
-    __in PRTL_HANDLE_TABLE_ENTRY Handle
+    _In_ PRTL_HANDLE_TABLE HandleTable,
+    _In_ PRTL_HANDLE_TABLE_ENTRY Handle
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsValidHandle(
-    __in PRTL_HANDLE_TABLE HandleTable,
-    __in PRTL_HANDLE_TABLE_ENTRY Handle
+    _In_ PRTL_HANDLE_TABLE HandleTable,
+    _In_ PRTL_HANDLE_TABLE_ENTRY Handle
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsValidIndexHandle(
-    __in PRTL_HANDLE_TABLE HandleTable,
-    __in ULONG HandleIndex,
-    __out PRTL_HANDLE_TABLE_ENTRY *Handle
+    _In_ PRTL_HANDLE_TABLE HandleTable,
+    _In_ ULONG HandleIndex,
+    _Out_ PRTL_HANDLE_TABLE_ENTRY *Handle
     );
 
 // Atom tables
@@ -4694,69 +4694,69 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateAtomTable(
-    __in ULONG NumberOfBuckets,
-    __out PVOID *AtomTableHandle
+    _In_ ULONG NumberOfBuckets,
+    _Out_ PVOID *AtomTableHandle
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyAtomTable(
-    __in __post_invalid PVOID AtomTableHandle
+    _In_ _Post_invalid_ PVOID AtomTableHandle
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlEmptyAtomTable(
-    __in PVOID AtomTableHandle,
-    __in BOOLEAN IncludePinnedAtoms
+    _In_ PVOID AtomTableHandle,
+    _In_ BOOLEAN IncludePinnedAtoms
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAtomToAtomTable(
-    __in PVOID AtomTableHandle,
-    __in PWSTR AtomName,
-    __inout_opt PRTL_ATOM Atom
+    _In_ PVOID AtomTableHandle,
+    _In_ PWSTR AtomName,
+    _Inout_opt_ PRTL_ATOM Atom
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLookupAtomInAtomTable(
-    __in PVOID AtomTableHandle,
-    __in PWSTR AtomName,
-    __out_opt PRTL_ATOM Atom
+    _In_ PVOID AtomTableHandle,
+    _In_ PWSTR AtomName,
+    _Out_opt_ PRTL_ATOM Atom
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteAtomFromAtomTable(
-    __in PVOID AtomTableHandle,
-    __in RTL_ATOM Atom
+    _In_ PVOID AtomTableHandle,
+    _In_ RTL_ATOM Atom
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlPinAtomInAtomTable(
-    __in PVOID AtomTableHandle,
-    __in RTL_ATOM Atom
+    _In_ PVOID AtomTableHandle,
+    _In_ RTL_ATOM Atom
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryAtomInAtomTable(
-    __in PVOID AtomTableHandle,
-    __in RTL_ATOM Atom,
-    __out_opt PULONG AtomUsage,
-    __out_opt PULONG AtomFlags,
-    __inout_bcount_part_opt(*AtomNameLength, *AtomNameLength) PWSTR AtomName,
-    __inout_opt PULONG AtomNameLength
+    _In_ PVOID AtomTableHandle,
+    _In_ RTL_ATOM Atom,
+    _Out_opt_ PULONG AtomUsage,
+    _Out_opt_ PULONG AtomFlags,
+    _Inout_updates_bytes_to_opt_(*AtomNameLength, *AtomNameLength) PWSTR AtomName,
+    _Inout_opt_ PULONG AtomNameLength
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -4765,107 +4765,107 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlGetIntegerAtom(
-    __in PWSTR AtomName,
-    __out_opt PUSHORT IntegerAtom
+    _In_ PWSTR AtomName,
+    _Out_opt_ PUSHORT IntegerAtom
     );
 #endif
 
 // SIDs
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidSid(
-    __in PSID Sid
+    _In_ PSID Sid
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualSid(
-    __in PSID Sid1,
-    __in PSID Sid2
+    _In_ PSID Sid1,
+    _In_ PSID Sid2
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlLengthRequiredSid(
-    __in ULONG SubAuthorityCount
+    _In_ ULONG SubAuthorityCount
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlFreeSid(
-    __in __post_invalid PSID Sid
+    _In_ _Post_invalid_ PSID Sid
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAllocateAndInitializeSid(
-    __in PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
-    __in UCHAR SubAuthorityCount,
-    __in ULONG SubAuthority0,
-    __in ULONG SubAuthority1,
-    __in ULONG SubAuthority2,
-    __in ULONG SubAuthority3,
-    __in ULONG SubAuthority4,
-    __in ULONG SubAuthority5,
-    __in ULONG SubAuthority6,
-    __in ULONG SubAuthority7,
-    __deref_out PSID *Sid
+    _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
+    _In_ UCHAR SubAuthorityCount,
+    _In_ ULONG SubAuthority0,
+    _In_ ULONG SubAuthority1,
+    _In_ ULONG SubAuthority2,
+    _In_ ULONG SubAuthority3,
+    _In_ ULONG SubAuthority4,
+    _In_ ULONG SubAuthority5,
+    _In_ ULONG SubAuthority6,
+    _In_ ULONG SubAuthority7,
+    _Outptr_ PSID *Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitializeSid(
-    __out PSID Sid,
-    __in PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
-    __in UCHAR SubAuthorityCount
+    _Out_ PSID Sid,
+    _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
+    _In_ UCHAR SubAuthorityCount
     );
 
 NTSYSAPI
 PSID_IDENTIFIER_AUTHORITY
 NTAPI
 RtlIdentifierAuthoritySid(
-    __in PSID Sid
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 PULONG
 NTAPI
 RtlSubAuthoritySid(
-    __in PSID Sid,
-    __in ULONG SubAuthority
+    _In_ PSID Sid,
+    _In_ ULONG SubAuthority
     );
 
 NTSYSAPI
 PUCHAR
 NTAPI
 RtlSubAuthorityCountSid(
-    __in PSID Sid
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlLengthSid(
-    __in PSID Sid
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCopySid(
-    __in ULONG DestinationSidLength,
-    __in_bcount(DestinationSidLength) PSID DestinationSid,
-    __in PSID SourceSid
+    _In_ ULONG DestinationSidLength,
+    _In_reads_bytes_(DestinationSidLength) PSID DestinationSid,
+    _In_ PSID SourceSid
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -4873,9 +4873,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateServiceSid(
-    __in PUNICODE_STRING ServiceName,
-    __out_bcount(*ServiceSidLength) PSID ServiceSid,
-    __inout PULONG ServiceSidLength
+    _In_ PUNICODE_STRING ServiceName,
+    _Out_writes_bytes_(*ServiceSidLength) PSID ServiceSid,
+    _Inout_ PULONG ServiceSidLength
     );
 #endif
 
@@ -4885,9 +4885,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSidDominates(
-    __in PSID Sid1,
-    __in PSID Sid2,
-    __out PBOOLEAN pbDominate
+    _In_ PSID Sid1,
+    _In_ PSID Sid2,
+    _Out_ PBOOLEAN pbDominate
     );
 #endif
 
@@ -4897,9 +4897,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSidEqualLevel(
-    __in PSID Sid1,
-    __in PSID Sid2,
-    __out PBOOLEAN pbEqual
+    _In_ PSID Sid1,
+    _In_ PSID Sid2,
+    _Out_ PBOOLEAN pbEqual
     );
 #endif
 
@@ -4909,9 +4909,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSidIsHigherLevel(
-    __in PSID Sid1,
-    __in PSID Sid2,
-    __out PBOOLEAN pbHigher
+    _In_ PSID Sid1,
+    _In_ PSID Sid2,
+    _Out_ PBOOLEAN pbHigher
     );
 #endif
 
@@ -4920,10 +4920,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateVirtualAccountSid(
-    __in PUNICODE_STRING Name,
-    __in ULONG BaseSubAuthority,
-    __out_bcount(*SidLength) PSID Sid,
-    __inout PULONG SidLength
+    _In_ PUNICODE_STRING Name,
+    _In_ ULONG BaseSubAuthority,
+    _Out_writes_bytes_(*SidLength) PSID Sid,
+    _Inout_ PULONG SidLength
     );
 #endif
 
@@ -4932,10 +4932,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlReplaceSidInSd(
-    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in PSID OldSid,
-    __in PSID NewSid,
-    __out ULONG *NumChanges
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ PSID OldSid,
+    _In_ PSID NewSid,
+    _Out_ ULONG *NumChanges
     );
 #endif
 
@@ -4945,9 +4945,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlConvertSidToUnicodeString(
-    __inout PUNICODE_STRING UnicodeString,
-    __in PSID Sid,
-    __in BOOLEAN AllocateDestinationString
+    _Inout_ PUNICODE_STRING UnicodeString,
+    _In_ PSID Sid,
+    _In_ BOOLEAN AllocateDestinationString
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -4956,9 +4956,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSidHashInitialize(
-    __in_ecount(SidCount) PSID_AND_ATTRIBUTES SidAttr,
-    __in ULONG SidCount,
-    __out PSID_AND_ATTRIBUTES_HASH SidAttrHash
+    _In_reads_(SidCount) PSID_AND_ATTRIBUTES SidAttr,
+    _In_ ULONG SidCount,
+    _Out_ PSID_AND_ATTRIBUTES_HASH SidAttrHash
     );
 #endif
 
@@ -4968,8 +4968,8 @@ NTSYSAPI
 PSID_AND_ATTRIBUTES
 NTAPI
 RtlSidHashLookup(
-    __in PSID_AND_ATTRIBUTES_HASH SidAttrHash,
-    __in PSID Sid
+    _In_ PSID_AND_ATTRIBUTES_HASH SidAttrHash,
+    _In_ PSID Sid
     );
 #endif
 
@@ -4979,197 +4979,197 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateSecurityDescriptor(
-    __out PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in ULONG Revision
+    _Out_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG Revision
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 RtlLengthSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
-__checkReturn
+_Check_return_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidRelativeSecurityDescriptor(
-    __in_bcount(SecurityDescriptorLength) PSECURITY_DESCRIPTOR SecurityDescriptorInput,
-    __in ULONG SecurityDescriptorLength,
-    __in SECURITY_INFORMATION RequiredInformation
+    _In_reads_bytes_(SecurityDescriptorLength) PSECURITY_DESCRIPTOR SecurityDescriptorInput,
+    _In_ ULONG SecurityDescriptorLength,
+    _In_ SECURITY_INFORMATION RequiredInformation
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetControlSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __out PSECURITY_DESCRIPTOR_CONTROL Control,
-    __out PULONG Revision
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR_CONTROL Control,
+    _Out_ PULONG Revision
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetControlSecurityDescriptor(
-     __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-     __in SECURITY_DESCRIPTOR_CONTROL ControlBitsOfInterest,
-     __in SECURITY_DESCRIPTOR_CONTROL ControlBitsToSet
+     _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+     _In_ SECURITY_DESCRIPTOR_CONTROL ControlBitsOfInterest,
+     _In_ SECURITY_DESCRIPTOR_CONTROL ControlBitsToSet
      );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetAttributesSecurityDescriptor(
-    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in SECURITY_DESCRIPTOR_CONTROL Control,
-    __out PULONG Revision
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ SECURITY_DESCRIPTOR_CONTROL Control,
+    _Out_ PULONG Revision
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlGetSecurityDescriptorRMControl(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __out PUCHAR RMControl
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PUCHAR RMControl
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlSetSecurityDescriptorRMControl(
-    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PUCHAR RMControl
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PUCHAR RMControl
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetDaclSecurityDescriptor(
-    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in BOOLEAN DaclPresent,
-    __in_opt PACL Dacl,
-    __in_opt BOOLEAN DaclDefaulted
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ BOOLEAN DaclPresent,
+    _In_opt_ PACL Dacl,
+    _In_opt_ BOOLEAN DaclDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetDaclSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __out PBOOLEAN DaclPresent,
-    __out PACL *Dacl,
-    __out PBOOLEAN DaclDefaulted
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN DaclPresent,
+    _Out_ PACL *Dacl,
+    _Out_ PBOOLEAN DaclDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetSaclSecurityDescriptor(
-    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in BOOLEAN SaclPresent,
-    __in_opt PACL Sacl,
-    __in_opt BOOLEAN SaclDefaulted
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ BOOLEAN SaclPresent,
+    _In_opt_ PACL Sacl,
+    _In_opt_ BOOLEAN SaclDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetSaclSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __out PBOOLEAN SaclPresent,
-    __out PACL *Sacl,
-    __out PBOOLEAN SaclDefaulted
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN SaclPresent,
+    _Out_ PACL *Sacl,
+    _Out_ PBOOLEAN SaclDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetSaclSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __out PBOOLEAN SaclPresent,
-    __out PACL *Sacl,
-    __out PBOOLEAN SaclDefaulted
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN SaclPresent,
+    _Out_ PACL *Sacl,
+    _Out_ PBOOLEAN SaclDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetOwnerSecurityDescriptor(
-    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PSID Owner,
-    __in_opt BOOLEAN OwnerDefaulted
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PSID Owner,
+    _In_opt_ BOOLEAN OwnerDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetOwnerSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __out PSID *Owner,
-    __out PBOOLEAN OwnerDefaulted
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PSID *Owner,
+    _Out_ PBOOLEAN OwnerDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetGroupSecurityDescriptor(
-    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt PSID Group,
-    __in_opt BOOLEAN GroupDefaulted
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_opt_ PSID Group,
+    _In_opt_ BOOLEAN GroupDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetGroupSecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __out PSID *Group,
-    __out PBOOLEAN GroupDefaulted
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PSID *Group,
+    _Out_ PBOOLEAN GroupDefaulted
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlMakeSelfRelativeSD(
-    __in PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
-    __out_bcount(*BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
-    __inout PULONG BufferLength
+    _In_ PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    _Out_writes_bytes_(*BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    _Inout_ PULONG BufferLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAbsoluteToSelfRelativeSD(
-    __in PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
-    __out_bcount_part_opt(*BufferLength, *BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
-    __inout PULONG BufferLength
+    _In_ PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    _Inout_ PULONG BufferLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSelfRelativeToAbsoluteSD(
-    __in PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
-    __out_bcount_part_opt(*AbsoluteSecurityDescriptorSize, *AbsoluteSecurityDescriptorSize) PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
-    __inout PULONG AbsoluteSecurityDescriptorSize,
-    __out_bcount_part_opt(*DaclSize, *DaclSize) PACL Dacl,
-    __inout PULONG DaclSize,
-    __out_bcount_part_opt(*SaclSize, *SaclSize) PACL Sacl,
-    __inout PULONG SaclSize,
-    __out_bcount_part_opt(*OwnerSize, *OwnerSize) PSID Owner,
-    __inout PULONG OwnerSize,
-    __out_bcount_part_opt(*PrimaryGroupSize, *PrimaryGroupSize) PSID PrimaryGroup,
-    __inout PULONG PrimaryGroupSize
+    _In_ PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    _Out_writes_bytes_to_opt_(*AbsoluteSecurityDescriptorSize, *AbsoluteSecurityDescriptorSize) PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    _Inout_ PULONG AbsoluteSecurityDescriptorSize,
+    _Out_writes_bytes_to_opt_(*DaclSize, *DaclSize) PACL Dacl,
+    _Inout_ PULONG DaclSize,
+    _Out_writes_bytes_to_opt_(*SaclSize, *SaclSize) PACL Sacl,
+    _Inout_ PULONG SaclSize,
+    _Out_writes_bytes_to_opt_(*OwnerSize, *OwnerSize) PSID Owner,
+    _Inout_ PULONG OwnerSize,
+    _Out_writes_bytes_to_opt_(*PrimaryGroupSize, *PrimaryGroupSize) PSID PrimaryGroup,
+    _Inout_ PULONG PrimaryGroupSize
     );
 
 // private
@@ -5177,8 +5177,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSelfRelativeToAbsoluteSD2(
-    __inout PSECURITY_DESCRIPTOR pSelfRelativeSecurityDescriptor,
-    __inout PULONG pBufferSize
+    _Inout_ PSECURITY_DESCRIPTOR pSelfRelativeSecurityDescriptor,
+    _Inout_ PULONG pBufferSize
     );
 
 // Access masks
@@ -5187,24 +5187,24 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlAreAllAccessesGranted(
-    __in ACCESS_MASK GrantedAccess,
-    __in ACCESS_MASK DesiredAccess
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_ ACCESS_MASK DesiredAccess
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlAreAnyAccessesGranted(
-    __in ACCESS_MASK GrantedAccess,
-    __in ACCESS_MASK DesiredAccess
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_ ACCESS_MASK DesiredAccess
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlMapGenericMask(
-    __inout PACCESS_MASK AccessMask,
-    __in PGENERIC_MAPPING GenericMapping
+    _Inout_ PACCESS_MASK AccessMask,
+    _In_ PGENERIC_MAPPING GenericMapping
     );
 
 // ACLs
@@ -5213,72 +5213,72 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateAcl(
-    __out_bcount(AclLength) PACL Acl,
-    __in ULONG AclLength,
-    __in ULONG AclRevision
+    _Out_writes_bytes_(AclLength) PACL Acl,
+    _In_ ULONG AclLength,
+    _In_ ULONG AclRevision
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidAcl(
-    __in PACL Acl
+    _In_ PACL Acl
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryInformationAcl(
-    __in PACL Acl,
-    __out_bcount(AclInformationLength) PVOID AclInformation,
-    __in ULONG AclInformationLength,
-    __in ACL_INFORMATION_CLASS AclInformationClass
+    _In_ PACL Acl,
+    _Out_writes_bytes_(AclInformationLength) PVOID AclInformation,
+    _In_ ULONG AclInformationLength,
+    _In_ ACL_INFORMATION_CLASS AclInformationClass
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetInformationAcl(
-    __inout PACL Acl,
-    __in_bcount(AclInformationLength) PVOID AclInformation,
-    __in ULONG AclInformationLength,
-    __in ACL_INFORMATION_CLASS AclInformationClass
+    _Inout_ PACL Acl,
+    _In_reads_bytes_(AclInformationLength) PVOID AclInformation,
+    _In_ ULONG AclInformationLength,
+    _In_ ACL_INFORMATION_CLASS AclInformationClass
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG StartingAceIndex,
-    __in_bcount(AceListLength) PVOID AceList,
-    __in ULONG AceListLength
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG StartingAceIndex,
+    _In_reads_bytes_(AceListLength) PVOID AceList,
+    _In_ ULONG AceListLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteAce(
-    __inout PACL Acl,
-    __in ULONG AceIndex
+    _Inout_ PACL Acl,
+    _In_ ULONG AceIndex
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetAce(
-    __in PACL Acl,
-    __in ULONG AceIndex,
-    __deref_out PVOID *Ace
+    _In_ PACL Acl,
+    _In_ ULONG AceIndex,
+    _Outptr_ PVOID *Ace
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlFirstFreeAce(
-    __in PACL Acl,
-    __out PVOID *FirstFree
+    _In_ PACL Acl,
+    _Out_ PVOID *FirstFree
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -5287,9 +5287,9 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlFindAceByType(
-    __in PACL pAcl,
-    __in UCHAR AceType,
-    __out_opt PULONG pIndex
+    _In_ PACL pAcl,
+    _In_ UCHAR AceType,
+    _Out_opt_ PULONG pIndex
     );
 #endif
 
@@ -5299,7 +5299,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlOwnerAcesPresent(
-    __in PACL pAcl
+    _In_ PACL pAcl
     );
 #endif
 
@@ -5307,120 +5307,120 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAccessAllowedAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ACCESS_MASK AccessMask,
-    __in PSID Sid
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAccessAllowedAceEx(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG AceFlags,
-    __in ACCESS_MASK AccessMask,
-    __in PSID Sid
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAccessDeniedAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ACCESS_MASK AccessMask,
-    __in PSID Sid
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAccessDeniedAceEx(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG AceFlags,
-    __in ACCESS_MASK AccessMask,
-    __in PSID Sid
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAuditAccessAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ACCESS_MASK AccessMask,
-    __in PSID Sid,
-    __in BOOLEAN AuditSuccess,
-    __in BOOLEAN AuditFailure
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid,
+    _In_ BOOLEAN AuditSuccess,
+    _In_ BOOLEAN AuditFailure
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAuditAccessAceEx(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG AceFlags,
-    __in ACCESS_MASK AccessMask,
-    __in PSID Sid,
-    __in BOOLEAN AuditSuccess,
-    __in BOOLEAN AuditFailure
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid,
+    _In_ BOOLEAN AuditSuccess,
+    _In_ BOOLEAN AuditFailure
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAccessAllowedObjectAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG AceFlags,
-    __in ACCESS_MASK AccessMask,
-    __in_opt PGUID ObjectTypeGuid,
-    __in_opt PGUID InheritedObjectTypeGuid,
-    __in PSID Sid
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ACCESS_MASK AccessMask,
+    _In_opt_ PGUID ObjectTypeGuid,
+    _In_opt_ PGUID InheritedObjectTypeGuid,
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAccessDeniedObjectAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG AceFlags,
-    __in ACCESS_MASK AccessMask,
-    __in_opt PGUID ObjectTypeGuid,
-    __in_opt PGUID InheritedObjectTypeGuid,
-    __in PSID Sid
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ACCESS_MASK AccessMask,
+    _In_opt_ PGUID ObjectTypeGuid,
+    _In_opt_ PGUID InheritedObjectTypeGuid,
+    _In_ PSID Sid
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAuditAccessObjectAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG AceFlags,
-    __in ACCESS_MASK AccessMask,
-    __in_opt PGUID ObjectTypeGuid,
-    __in_opt PGUID InheritedObjectTypeGuid,
-    __in PSID Sid,
-    __in BOOLEAN AuditSuccess,
-    __in BOOLEAN AuditFailure
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ACCESS_MASK AccessMask,
+    _In_opt_ PGUID ObjectTypeGuid,
+    _In_opt_ PGUID InheritedObjectTypeGuid,
+    _In_ PSID Sid,
+    _In_ BOOLEAN AuditSuccess,
+    _In_ BOOLEAN AuditFailure
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddCompoundAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in UCHAR AceType,
-    __in ACCESS_MASK AccessMask,
-    __in PSID ServerSid,
-    __in PSID ClientSid
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ UCHAR AceType,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID ServerSid,
+    _In_ PSID ClientSid
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -5429,12 +5429,12 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddMandatoryAce(
-    __inout PACL Acl,
-    __in ULONG AceRevision,
-    __in ULONG AceFlags,
-    __in PSID Sid,
-    __in UCHAR AceType,
-    __in ACCESS_MASK AccessMask
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ PSID Sid,
+    _In_ UCHAR AceType,
+    _In_ ACCESS_MASK AccessMask
     );
 #endif
 
@@ -5444,118 +5444,118 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlNewSecurityObject(
-    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
-    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
-    __out PSECURITY_DESCRIPTOR *NewDescriptor,
-    __in BOOLEAN IsDirectoryObject,
-    __in_opt HANDLE Token,
-    __in PGENERIC_MAPPING GenericMapping
+    _In_opt_ PSECURITY_DESCRIPTOR ParentDescriptor,
+    _In_opt_ PSECURITY_DESCRIPTOR CreatorDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR *NewDescriptor,
+    _In_ BOOLEAN IsDirectoryObject,
+    _In_opt_ HANDLE Token,
+    _In_ PGENERIC_MAPPING GenericMapping
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlNewSecurityObjectEx(
-    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
-    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
-    __out PSECURITY_DESCRIPTOR *NewDescriptor,
-    __in_opt GUID *ObjectType,
-    __in BOOLEAN IsDirectoryObject,
-    __in ULONG AutoInheritFlags, // SEF_*
-    __in_opt HANDLE Token,
-    __in PGENERIC_MAPPING GenericMapping
+    _In_opt_ PSECURITY_DESCRIPTOR ParentDescriptor,
+    _In_opt_ PSECURITY_DESCRIPTOR CreatorDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR *NewDescriptor,
+    _In_opt_ GUID *ObjectType,
+    _In_ BOOLEAN IsDirectoryObject,
+    _In_ ULONG AutoInheritFlags, // SEF_*
+    _In_opt_ HANDLE Token,
+    _In_ PGENERIC_MAPPING GenericMapping
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlNewSecurityObjectWithMultipleInheritance(
-    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
-    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
-    __out PSECURITY_DESCRIPTOR *NewDescriptor,
-    __in_opt GUID **ObjectType,
-    __in ULONG GuidCount,
-    __in BOOLEAN IsDirectoryObject,
-    __in ULONG AutoInheritFlags, // SEF_*
-    __in_opt HANDLE Token,
-    __in PGENERIC_MAPPING GenericMapping
+    _In_opt_ PSECURITY_DESCRIPTOR ParentDescriptor,
+    _In_opt_ PSECURITY_DESCRIPTOR CreatorDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR *NewDescriptor,
+    _In_opt_ GUID **ObjectType,
+    _In_ ULONG GuidCount,
+    _In_ BOOLEAN IsDirectoryObject,
+    _In_ ULONG AutoInheritFlags, // SEF_*
+    _In_opt_ HANDLE Token,
+    _In_ PGENERIC_MAPPING GenericMapping
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteSecurityObject(
-    __inout PSECURITY_DESCRIPTOR *ObjectDescriptor
+    _Inout_ PSECURITY_DESCRIPTOR *ObjectDescriptor
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQuerySecurityObject(
-     __in PSECURITY_DESCRIPTOR ObjectDescriptor,
-     __in SECURITY_INFORMATION SecurityInformation,
-     __out_opt PSECURITY_DESCRIPTOR ResultantDescriptor,
-     __in ULONG DescriptorLength,
-     __out PULONG ReturnLength
+     _In_ PSECURITY_DESCRIPTOR ObjectDescriptor,
+     _In_ SECURITY_INFORMATION SecurityInformation,
+     _Out_opt_ PSECURITY_DESCRIPTOR ResultantDescriptor,
+     _In_ ULONG DescriptorLength,
+     _Out_ PULONG ReturnLength
      );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetSecurityObject(
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR ModificationDescriptor,
-    __inout PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
-    __in PGENERIC_MAPPING GenericMapping,
-    __in_opt HANDLE Token
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR ModificationDescriptor,
+    _Inout_ PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_opt_ HANDLE Token
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetSecurityObjectEx(
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR ModificationDescriptor,
-    __inout PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
-    __in ULONG AutoInheritFlags, // SEF_*
-    __in PGENERIC_MAPPING GenericMapping,
-    __in_opt HANDLE Token
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR ModificationDescriptor,
+    _Inout_ PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
+    _In_ ULONG AutoInheritFlags, // SEF_*
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _In_opt_ HANDLE Token
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlConvertToAutoInheritSecurityObject(
-    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
-    __in PSECURITY_DESCRIPTOR CurrentSecurityDescriptor,
-    __out PSECURITY_DESCRIPTOR *NewSecurityDescriptor,
-    __in_opt GUID *ObjectType,
-    __in BOOLEAN IsDirectoryObject,
-    __in PGENERIC_MAPPING GenericMapping
+    _In_opt_ PSECURITY_DESCRIPTOR ParentDescriptor,
+    _In_ PSECURITY_DESCRIPTOR CurrentSecurityDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR *NewSecurityDescriptor,
+    _In_opt_ GUID *ObjectType,
+    _In_ BOOLEAN IsDirectoryObject,
+    _In_ PGENERIC_MAPPING GenericMapping
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlNewInstanceSecurityObject(
-    __in BOOLEAN ParentDescriptorChanged,
-    __in BOOLEAN CreatorDescriptorChanged,
-    __in PLUID OldClientTokenModifiedId,
-    __out PLUID NewClientTokenModifiedId,
-    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
-    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
-    __out PSECURITY_DESCRIPTOR *NewDescriptor,
-    __in BOOLEAN IsDirectoryObject,
-    __in HANDLE Token,
-    __in PGENERIC_MAPPING GenericMapping
+    _In_ BOOLEAN ParentDescriptorChanged,
+    _In_ BOOLEAN CreatorDescriptorChanged,
+    _In_ PLUID OldClientTokenModifiedId,
+    _Out_ PLUID NewClientTokenModifiedId,
+    _In_opt_ PSECURITY_DESCRIPTOR ParentDescriptor,
+    _In_opt_ PSECURITY_DESCRIPTOR CreatorDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR *NewDescriptor,
+    _In_ BOOLEAN IsDirectoryObject,
+    _In_ HANDLE Token,
+    _In_ PGENERIC_MAPPING GenericMapping
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCopySecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR InputSecurityDescriptor,
-    __out PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
+    _In_ PSECURITY_DESCRIPTOR InputSecurityDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
     );
 
 // Misc. security
@@ -5564,23 +5564,23 @@ NTSYSAPI
 VOID
 NTAPI
 RtlRunEncodeUnicodeString(
-    __inout PUCHAR Seed,
-    __in PUNICODE_STRING String
+    _Inout_ PUCHAR Seed,
+    _In_ PUNICODE_STRING String
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlRunDecodeUnicodeString(
-    __in UCHAR Seed,
-    __in PUNICODE_STRING String
+    _In_ UCHAR Seed,
+    _In_ PUNICODE_STRING String
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlImpersonateSelf(
-    __in SECURITY_IMPERSONATION_LEVEL ImpersonationLevel
+    _In_ SECURITY_IMPERSONATION_LEVEL ImpersonationLevel
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -5589,9 +5589,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlImpersonateSelfEx(
-    __in SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
-    __in_opt ACCESS_MASK AdditionalAccess,
-    __out_opt PHANDLE ThreadToken
+    _In_ SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+    _In_opt_ ACCESS_MASK AdditionalAccess,
+    _Out_opt_ PHANDLE ThreadToken
     );
 #endif
 
@@ -5599,10 +5599,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAdjustPrivilege(
-    __in ULONG Privilege,
-    __in BOOLEAN Enable,
-    __in BOOLEAN Client,
-    __out PBOOLEAN WasEnabled
+    _In_ ULONG Privilege,
+    _In_ BOOLEAN Enable,
+    _In_ BOOLEAN Client,
+    _Out_ PBOOLEAN WasEnabled
     );
 
 #define RTL_ACQUIRE_PRIVILEGE_REVERT 0x00000001
@@ -5612,17 +5612,17 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAcquirePrivilege(
-    __in PULONG Privilege,
-    __in ULONG NumPriv,
-    __in ULONG Flags,
-    __out PVOID *ReturnedState
+    _In_ PULONG Privilege,
+    _In_ ULONG NumPriv,
+    _In_ ULONG Flags,
+    _Out_ PVOID *ReturnedState
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlReleasePrivilege(
-    __in PVOID StatePointer
+    _In_ PVOID StatePointer
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -5631,9 +5631,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRemovePrivileges(
-    __in HANDLE hToken,
-    __in PULONG PrivilegesToKeep,
-    __in ULONG PrivilegeCount
+    _In_ HANDLE hToken,
+    _In_ PULONG PrivilegesToKeep,
+    _In_ ULONG PrivilegeCount
     );
 #endif
 
@@ -5647,23 +5647,23 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlCreateBoundaryDescriptor(
-    __in PUNICODE_STRING Name,
-    __in ULONG Flags
+    _In_ PUNICODE_STRING Name,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 VOID
 NTAPI
 RtlDeleteBoundaryDescriptor(
-    __in PVOID BoundaryDescriptor
+    _In_ PVOID BoundaryDescriptor
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddSIDToBoundaryDescriptor(
-    __inout PVOID *BoundaryDescriptor,
-    __in PSID RequiredSid
+    _Inout_ PVOID *BoundaryDescriptor,
+    _In_ PSID RequiredSid
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -5672,8 +5672,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddIntegrityLabelToBoundaryDescriptor(
-    __inout PVOID *BoundaryDescriptor,
-    __in PSID IntegrityLabel
+    _Inout_ PVOID *BoundaryDescriptor,
+    _In_ PSID IntegrityLabel
     );
 #endif
 
@@ -5687,16 +5687,16 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetVersion(
-    __out PRTL_OSVERSIONINFOW lpVersionInformation
+    _Out_ PRTL_OSVERSIONINFOW lpVersionInformation
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlVerifyVersionInfo(
-    __in PRTL_OSVERSIONINFOEXW VersionInfo,
-    __in ULONG TypeMask,
-    __in ULONGLONG ConditionMask
+    _In_ PRTL_OSVERSIONINFOEXW VersionInfo,
+    _In_ ULONG TypeMask,
+    _In_ ULONGLONG ConditionMask
     );
 
 // System information
@@ -5712,7 +5712,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlGetNtProductType(
-    __out PNT_PRODUCT_TYPE NtProductType
+    _Out_ PNT_PRODUCT_TYPE NtProductType
     );
 
 // rev
@@ -5720,9 +5720,9 @@ NTSYSAPI
 VOID
 NTAPI
 RtlGetNtVersionNumbers(
-    __out_opt PULONG pNtMajorVersion,
-    __out_opt PULONG pNtMinorVersion,
-    __out_opt PULONG pNtBuildNumber
+    _Out_opt_ PULONG pNtMajorVersion,
+    _Out_opt_ PULONG pNtMinorVersion,
+    _Out_opt_ PULONG pNtBuildNumber
     );
 
 // Thread pool (old)
@@ -5731,99 +5731,99 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRegisterWait(
-    __out PHANDLE WaitHandle,
-    __in HANDLE Handle,
-    __in WAITORTIMERCALLBACKFUNC Function,
-    __in PVOID Context,
-    __in ULONG Milliseconds,
-    __in ULONG Flags
+    _Out_ PHANDLE WaitHandle,
+    _In_ HANDLE Handle,
+    _In_ WAITORTIMERCALLBACKFUNC Function,
+    _In_ PVOID Context,
+    _In_ ULONG Milliseconds,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeregisterWait(
-    __in HANDLE WaitHandle
+    _In_ HANDLE WaitHandle
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeregisterWaitEx(
-    __in HANDLE WaitHandle,
-    __in HANDLE Event
+    _In_ HANDLE WaitHandle,
+    _In_ HANDLE Event
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueueWorkItem(
-    __in WORKERCALLBACKFUNC Function,
-    __in PVOID Context,
-    __in ULONG Flags
+    _In_ WORKERCALLBACKFUNC Function,
+    _In_ PVOID Context,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetIoCompletionCallback(
-    __in HANDLE FileHandle,
-    __in APC_CALLBACK_FUNCTION CompletionProc,
-    __in ULONG Flags
+    _In_ HANDLE FileHandle,
+    _In_ APC_CALLBACK_FUNCTION CompletionProc,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateTimerQueue(
-    __out PHANDLE TimerQueueHandle
+    _Out_ PHANDLE TimerQueueHandle
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateTimer(
-    __in HANDLE TimerQueueHandle,
-    __out PHANDLE Handle,
-    __in WAITORTIMERCALLBACKFUNC Function,
-    __in PVOID Context,
-    __in ULONG DueTime,
-    __in ULONG Period,
-    __in ULONG Flags
+    _In_ HANDLE TimerQueueHandle,
+    _Out_ PHANDLE Handle,
+    _In_ WAITORTIMERCALLBACKFUNC Function,
+    _In_ PVOID Context,
+    _In_ ULONG DueTime,
+    _In_ ULONG Period,
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpdateTimer(
-    __in HANDLE TimerQueueHandle,
-    __in HANDLE TimerHandle,
-    __in ULONG DueTime,
-    __in ULONG Period
+    _In_ HANDLE TimerQueueHandle,
+    _In_ HANDLE TimerHandle,
+    _In_ ULONG DueTime,
+    _In_ ULONG Period
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteTimer(
-    __in HANDLE TimerQueueHandle,
-    __in HANDLE TimerToCancel,
-    __in HANDLE Event
+    _In_ HANDLE TimerQueueHandle,
+    _In_ HANDLE TimerToCancel,
+    _In_ HANDLE Event
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteTimerQueue(
-    __in HANDLE TimerQueueHandle
+    _In_ HANDLE TimerQueueHandle
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteTimerQueueEx(
-    __in HANDLE TimerQueueHandle,
-    __in HANDLE Event
+    _In_ HANDLE TimerQueueHandle,
+    _In_ HANDLE Event
     );
 
 // Registry access
@@ -5832,15 +5832,15 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFormatCurrentUserKeyPath(
-    __out PUNICODE_STRING CurrentUserKeyPath
+    _Out_ PUNICODE_STRING CurrentUserKeyPath
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlOpenCurrentUser(
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE CurrentUserKey
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE CurrentUserKey
     );
 
 #define RTL_REGISTRY_ABSOLUTE 0
@@ -5857,25 +5857,25 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateRegistryKey(
-    __in ULONG RelativeTo,
-    __in PWSTR Path
+    _In_ ULONG RelativeTo,
+    _In_ PWSTR Path
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCheckRegistryKey(
-    __in ULONG RelativeTo,
-    __in PWSTR Path
+    _In_ ULONG RelativeTo,
+    _In_ PWSTR Path
     );
 
 typedef NTSTATUS (NTAPI *PRTL_QUERY_REGISTRY_ROUTINE)(
-    __in PWSTR ValueName,
-    __in ULONG ValueType,
-    __in PVOID ValueData,
-    __in ULONG ValueLength,
-    __in PVOID Context,
-    __in PVOID EntryContext
+    _In_ PWSTR ValueName,
+    _In_ ULONG ValueType,
+    _In_ PVOID ValueData,
+    _In_ ULONG ValueLength,
+    _In_ PVOID Context,
+    _In_ PVOID EntryContext
     );
 
 typedef struct _RTL_QUERY_REGISTRY_TABLE
@@ -5901,32 +5901,32 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryRegistryValues(
-    __in ULONG RelativeTo,
-    __in PWSTR Path,
-    __in PRTL_QUERY_REGISTRY_TABLE QueryTable,
-    __in PVOID Context,
-    __in_opt PVOID Environment
+    _In_ ULONG RelativeTo,
+    _In_ PWSTR Path,
+    _In_ PRTL_QUERY_REGISTRY_TABLE QueryTable,
+    _In_ PVOID Context,
+    _In_opt_ PVOID Environment
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWriteRegistryValue(
-    __in ULONG RelativeTo,
-    __in PWSTR Path,
-    __in PWSTR ValueName,
-    __in ULONG ValueType,
-    __in PVOID ValueData,
-    __in ULONG ValueLength
+    _In_ ULONG RelativeTo,
+    _In_ PWSTR Path,
+    _In_ PWSTR ValueName,
+    _In_ ULONG ValueType,
+    _In_ PVOID ValueData,
+    _In_ ULONG ValueLength
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteRegistryValue(
-    __in ULONG RelativeTo,
-    __in PWSTR Path,
-    __in PWSTR ValueName
+    _In_ ULONG RelativeTo,
+    _In_ PWSTR Path,
+    _In_ PWSTR ValueName
     );
 
 // Debugging
@@ -5949,7 +5949,7 @@ NTSYSAPI
 VOID
 NTAPI
 DbgBreakPointWithStatus(
-    __in ULONG Status
+    _In_ ULONG Status
     );
 
 #define DBG_STATUS_CONTROL_C 1
@@ -5964,7 +5964,7 @@ NTSYSAPI
 ULONG
 __cdecl
 DbgPrint(
-    __in_z __format_string PSTR Format,
+    _In_z_ _Printf_format_string_ PSTR Format,
     ...
     );
 
@@ -5972,9 +5972,9 @@ NTSYSAPI
 ULONG
 __cdecl
 DbgPrintEx(
-    __in ULONG ComponentId,
-    __in ULONG Level,
-    __in_z __format_string PSTR Format,
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_z_ _Printf_format_string_ PSTR Format,
     ...
     );
 
@@ -5982,47 +5982,47 @@ NTSYSAPI
 ULONG
 NTAPI
 vDbgPrintEx(
-    __in ULONG ComponentId,
-    __in ULONG Level,
-    __in_z PCH Format,
-    __in va_list arglist
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_z_ PCH Format,
+    _In_ va_list arglist
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 vDbgPrintExWithPrefix(
-    __in_z PCH Prefix,
-    __in ULONG ComponentId,
-    __in ULONG Level,
-    __in_z PCH Format,
-    __in va_list arglist
+    _In_z_ PCH Prefix,
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_z_ PCH Format,
+    _In_ va_list arglist
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgQueryDebugFilterState(
-    __in ULONG ComponentId,
-    __in ULONG Level
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgSetDebugFilterState(
-    __in ULONG ComponentId,
-    __in ULONG Level,
-    __in BOOLEAN State
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_ BOOLEAN State
     );
 
 NTSYSAPI
 ULONG
 NTAPI
 DbgPrompt(
-    __in PCH Prompt,
-    __out_bcount(Length) PCH Response,
-    __in ULONG Length
+    _In_ PCH Prompt,
+    _Out_writes_bytes_(Length) PCH Response,
+    _In_ ULONG Length
     );
 
 // Thread profiling
@@ -6035,34 +6035,34 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlEnableThreadProfiling(
-    __in HANDLE ThreadHandle,
-    __in ULONG Flags,
-    __in ULONG64 HardwareCounters,
-    __out PVOID *PerformanceDataHandle
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG64 HardwareCounters,
+    _Out_ PVOID *PerformanceDataHandle
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDisableThreadProfiling(
-    __in PVOID PerformanceDataHandle
+    _In_ PVOID PerformanceDataHandle
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryThreadProfiling(
-    __in HANDLE ThreadHandle,
-    __out PBOOLEAN Enabled
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN Enabled
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlReadThreadProfilingData(
-    __in HANDLE PerformanceDataHandle,
-    __in ULONG Flags,
-    __out PPERFORMANCE_DATA PerformanceData
+    _In_ HANDLE PerformanceDataHandle,
+    _In_ ULONG Flags,
+    _Out_ PPERFORMANCE_DATA PerformanceData
     );
 
 // end_rev
@@ -6082,37 +6082,37 @@ NTSYSAPI
 ULONG32
 NTAPI
 RtlComputeCrc32(
-    __in ULONG32 PartialCrc,
-    __in PVOID Buffer,
-    __in ULONG Length
+    _In_ ULONG32 PartialCrc,
+    _In_ PVOID Buffer,
+    _In_ ULONG Length
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlEncodePointer(
-    __in PVOID Ptr
+    _In_ PVOID Ptr
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlDecodePointer(
-    __in PVOID Ptr
+    _In_ PVOID Ptr
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlEncodeSystemPointer(
-    __in PVOID Ptr
+    _In_ PVOID Ptr
     );
 
 NTSYSAPI
 PVOID
 NTAPI
 RtlDecodeSystemPointer(
-    __in PVOID Ptr
+    _In_ PVOID Ptr
     );
 
 NTSYSAPI
@@ -6141,7 +6141,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryElevationFlags(
-    __out PRTL_ELEVATION_FLAGS Flags
+    _Out_ PRTL_ELEVATION_FLAGS Flags
     );
 #endif
 
@@ -6183,7 +6183,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLockModuleSection(
-    __in PVOID Address
+    _In_ PVOID Address
     );
 #endif
 
@@ -6193,7 +6193,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnlockModuleSection(
-    __in PVOID Address
+    _In_ PVOID Address
     );
 #endif
 
@@ -6223,9 +6223,9 @@ NTSYSAPI
 VOID
 NTAPI
 RtlGetUnloadEventTraceEx(
-    __out PULONG *ElementSize,
-    __out PULONG *ElementCount,
-    __out PVOID *EventTrace // works across all processes
+    _Out_ PULONG *ElementSize,
+    _Out_ PULONG *ElementCount,
+    _Out_ PVOID *EventTrace // works across all processes
     );
 #endif
 
@@ -6237,7 +6237,7 @@ NTSYSAPI
 LOGICAL
 NTAPI
 RtlQueryPerformanceCounter(
-    __out PLARGE_INTEGER PerformanceCounter
+    _Out_ PLARGE_INTEGER PerformanceCounter
     );
 #endif
 
@@ -6247,7 +6247,7 @@ NTSYSAPI
 LOGICAL
 NTAPI
 RtlQueryPerformanceFrequency(
-    __out PLARGE_INTEGER PerformanceFrequency
+    _Out_ PLARGE_INTEGER PerformanceFrequency
     );
 #endif
 

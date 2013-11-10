@@ -83,10 +83,10 @@ BOOLEAN PhTreeNewInitialization(
 }
 
 LRESULT CALLBACK PhTnpWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPH_TREENEW_CONTEXT context;
@@ -308,18 +308,18 @@ LRESULT CALLBACK PhTnpWndProc(
 }
 
 BOOLEAN NTAPI PhTnpNullCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     return FALSE;
 }
 
 VOID PhTnpCreateTreeNewContext(
-    __out PPH_TREENEW_CONTEXT *Context
+    _Out_ PPH_TREENEW_CONTEXT *Context
     )
 {
     PPH_TREENEW_CONTEXT context;
@@ -341,7 +341,7 @@ VOID PhTnpCreateTreeNewContext(
 }
 
 VOID PhTnpDestroyTreeNewContext(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     ULONG i;
@@ -384,9 +384,9 @@ VOID PhTnpDestroyTreeNewContext(
 }
 
 BOOLEAN PhTnpOnCreate(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in CREATESTRUCT *CreateStruct
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ CREATESTRUCT *CreateStruct
     )
 {
     ULONG headerStyle;
@@ -502,8 +502,8 @@ BOOLEAN PhTnpOnCreate(
 }
 
 VOID PhTnpOnSize(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     GetClientRect(hwnd, &Context->ClientRect);
@@ -532,10 +532,10 @@ VOID PhTnpOnSize(
 }
 
 VOID PhTnpOnSetFont(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt HFONT Font,
-    __in LOGICAL Redraw
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ HFONT Font,
+    _In_ LOGICAL Redraw
     )
 {
     PhTnpSetFont(Context, Font, !!Redraw);
@@ -543,10 +543,10 @@ VOID PhTnpOnSetFont(
 }
 
 VOID PhTnpOnStyleChanged(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Type,
-    __in STYLESTRUCT *StyleStruct
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Type,
+    _In_ STYLESTRUCT *StyleStruct
     )
 {
     if (Type == GWL_EXSTYLE)
@@ -554,8 +554,8 @@ VOID PhTnpOnStyleChanged(
 }
 
 VOID PhTnpOnSettingChange(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     PhTnpUpdateSystemMetrics(Context);
@@ -564,18 +564,18 @@ VOID PhTnpOnSettingChange(
 }
 
 VOID PhTnpOnThemeChanged(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     PhTnpUpdateThemeData(Context);
 }
 
 ULONG PhTnpOnGetDlgCode(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey,
-    __in_opt PMSG Message
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey,
+    _In_opt_ PMSG Message
     )
 {
     ULONG code;
@@ -589,8 +589,8 @@ ULONG PhTnpOnGetDlgCode(
 }
 
 VOID PhTnpOnPaint(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     RECT updateRect;
@@ -661,19 +661,19 @@ VOID PhTnpOnPaint(
 }
 
 VOID PhTnpOnPrintClient(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in ULONG Flags
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ ULONG Flags
     )
 {
     PhTnpPaint(hwnd, Context, hdc, &Context->ClientRect);
 }
 
 BOOLEAN PhTnpOnNcPaint(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt HRGN UpdateRegion
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ HRGN UpdateRegion
     )
 {
     PhTnpInitializeThemeData(Context);
@@ -706,9 +706,9 @@ BOOLEAN PhTnpOnNcPaint(
 }
 
 BOOLEAN PhTnpOnSetCursor(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HWND CursorWindowHandle
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HWND CursorWindowHandle
     )
 {
     POINT point;
@@ -734,9 +734,9 @@ BOOLEAN PhTnpOnSetCursor(
 }
 
 VOID PhTnpOnTimer(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id
     )
 {
     if (Id == TNP_TIMER_ANIMATE_DIVIDER)
@@ -780,11 +780,11 @@ VOID PhTnpOnTimer(
 }
 
 VOID PhTnpOnMouseMove(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     )
 {
     TRACKMOUSEEVENT trackMouseEvent;
@@ -807,8 +807,8 @@ VOID PhTnpOnMouseMove(
 }
 
 VOID PhTnpOnMouseLeave(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     RECT rect;
@@ -837,12 +837,12 @@ VOID PhTnpOnMouseLeave(
 }
 
 VOID PhTnpOnXxxButtonXxx(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Message,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Message,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     )
 {
     BOOLEAN startingTracking;
@@ -1133,8 +1133,8 @@ VOID PhTnpOnXxxButtonXxx(
 }
 
 VOID PhTnpOnCaptureChanged(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     Context->Tracking = FALSE;
@@ -1142,10 +1142,10 @@ VOID PhTnpOnCaptureChanged(
 }
 
 VOID PhTnpOnKeyDown(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey,
-    __in ULONG Data
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey,
+    _In_ ULONG Data
     )
 {
     PH_TREENEW_KEY_EVENT keyEvent;
@@ -1165,10 +1165,10 @@ VOID PhTnpOnKeyDown(
 }
 
 VOID PhTnpOnChar(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Character,
-    __in ULONG Data
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Character,
+    _In_ ULONG Data
     )
 {
     // Make sure the character is printable.
@@ -1179,12 +1179,12 @@ VOID PhTnpOnChar(
 }
 
 VOID PhTnpOnMouseWheel(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     )
 {
     // The normal mouse wheel can affect both the vertical scrollbar and the horizontal scrollbar,
@@ -1200,22 +1200,22 @@ VOID PhTnpOnMouseWheel(
 }
 
 VOID PhTnpOnMouseHWheel(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance,
-    __in ULONG VirtualKeys,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance,
+    _In_ ULONG VirtualKeys,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     )
 {
     PhTnpProcessMouseHWheel(Context, Distance);
 }
 
 VOID PhTnpOnContextMenu(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorScreenX,
-    __in LONG CursorScreenY
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorScreenX,
+    _In_ LONG CursorScreenY
     )
 {
     POINT clientPoint;
@@ -1291,9 +1291,9 @@ VOID PhTnpOnContextMenu(
 }
 
 VOID PhTnpOnVScroll(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Request
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Request
     )
 {
     SCROLLINFO scrollInfo;
@@ -1341,9 +1341,9 @@ VOID PhTnpOnVScroll(
 }
 
 VOID PhTnpOnHScroll(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Request
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Request
     )
 {
     SCROLLINFO scrollInfo;
@@ -1391,10 +1391,10 @@ VOID PhTnpOnHScroll(
 }
 
 BOOLEAN PhTnpOnNotify(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in NMHDR *Header,
-    __out LRESULT *Result
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ NMHDR *Header,
+    _Out_ LRESULT *Result
     )
 {
     switch (Header->code)
@@ -1590,11 +1590,11 @@ BOOLEAN PhTnpOnNotify(
 }
 
 ULONG_PTR PhTnpOnUserMessage(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Message,
-    __in ULONG_PTR WParam,
-    __in ULONG_PTR LParam
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Message,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam
     )
 {
     switch (Message)
@@ -1909,9 +1909,9 @@ ULONG_PTR PhTnpOnUserMessage(
 }
 
 VOID PhTnpSetFont(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt HFONT Font,
-    __in BOOLEAN Redraw
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ HFONT Font,
+    _In_ BOOLEAN Redraw
     )
 {
     if (Context->FontOwned)
@@ -1946,7 +1946,7 @@ VOID PhTnpSetFont(
 }
 
 VOID PhTnpUpdateSystemMetrics(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     Context->VScrollWidth = GetSystemMetrics(SM_CXVSCROLL);
@@ -1965,7 +1965,7 @@ VOID PhTnpUpdateSystemMetrics(
 }
 
 VOID PhTnpUpdateTextMetrics(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     HDC hdc;
@@ -2002,7 +2002,7 @@ VOID PhTnpUpdateTextMetrics(
 }
 
 VOID PhTnpUpdateThemeData(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     if (
@@ -2048,7 +2048,7 @@ VOID PhTnpUpdateThemeData(
 }
 
 VOID PhTnpInitializeThemeData(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     if (!Context->ThemeInitialized)
@@ -2059,7 +2059,7 @@ VOID PhTnpInitializeThemeData(
 }
 
 VOID PhTnpCancelTrack(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     PhTnpSetFixedWidth(Context, Context->TrackOldFixedWidth);
@@ -2067,7 +2067,7 @@ VOID PhTnpCancelTrack(
 }
 
 VOID PhTnpLayout(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     RECT clientRect;
@@ -2125,7 +2125,7 @@ VOID PhTnpLayout(
 }
 
 VOID PhTnpLayoutHeader(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     RECT rect;
@@ -2171,8 +2171,8 @@ VOID PhTnpLayoutHeader(
 }
 
 VOID PhTnpSetFixedWidth(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG FixedWidth
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG FixedWidth
     )
 {
     HDITEM item;
@@ -2198,8 +2198,8 @@ VOID PhTnpSetFixedWidth(
 }
 
 VOID PhTnpSetRedraw(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Redraw
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Redraw
     )
 {
     if (Redraw)
@@ -2241,13 +2241,13 @@ VOID PhTnpSetRedraw(
 }
 
 VOID PhTnpSendMouseEvent(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PH_TREENEW_MESSAGE Message,
-    __in LONG CursorX,
-    __in LONG CursorY,
-    __in PPH_TREENEW_NODE Node,
-    __in PPH_TREENEW_COLUMN Column,
-    __in ULONG VirtualKeys
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG VirtualKeys
     )
 {
     PH_TREENEW_MOUSE_EVENT mouseEvent;
@@ -2261,8 +2261,8 @@ VOID PhTnpSendMouseEvent(
 }
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id
     )
 {
     if (Id >= Context->AllocatedColumns)
@@ -2272,8 +2272,8 @@ PPH_TREENEW_COLUMN PhTnpLookupColumnById(
 }
 
 BOOLEAN PhTnpAddColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column
     )
 {
     PPH_TREENEW_COLUMN realColumn;
@@ -2339,8 +2339,8 @@ BOOLEAN PhTnpAddColumn(
 }
 
 BOOLEAN PhTnpRemoveColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id
     )
 {
     PPH_TREENEW_COLUMN realColumn;
@@ -2368,9 +2368,9 @@ BOOLEAN PhTnpRemoveColumn(
 }
 
 BOOLEAN PhTnpCopyColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Id,
-    __out PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Id,
+    _Out_ PPH_TREENEW_COLUMN Column
     )
 {
     PPH_TREENEW_COLUMN realColumn;
@@ -2384,10 +2384,10 @@ BOOLEAN PhTnpCopyColumn(
 }
 
 BOOLEAN PhTnpChangeColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Mask,
-    __in ULONG Id,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Mask,
+    _In_ ULONG Id,
+    _In_ PPH_TREENEW_COLUMN Column
     )
 {
     PPH_TREENEW_COLUMN realColumn;
@@ -2511,7 +2511,7 @@ BOOLEAN PhTnpChangeColumn(
 }
 
 VOID PhTnpExpandAllocatedColumns(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     if (Context->Columns)
@@ -2551,7 +2551,7 @@ VOID PhTnpExpandAllocatedColumns(
 }
 
 VOID PhTnpUpdateColumnMaps(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     ULONG i;
@@ -2611,8 +2611,8 @@ VOID PhTnpUpdateColumnMaps(
 }
 
 LONG PhTnpInsertColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column
     )
 {
     HDITEM item;
@@ -2669,9 +2669,9 @@ LONG PhTnpInsertColumnHeader(
 }
 
 VOID PhTnpChangeColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Mask,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Mask,
+    _In_ PPH_TREENEW_COLUMN Column
     )
 {
     HDITEM item;
@@ -2732,8 +2732,8 @@ VOID PhTnpChangeColumnHeader(
 }
 
 VOID PhTnpDeleteColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_TREENEW_COLUMN Column
     )
 {
     if (Column->Fixed)
@@ -2756,7 +2756,7 @@ VOID PhTnpDeleteColumnHeader(
 }
 
 VOID PhTnpUpdateColumnHeaders(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     ULONG count;
@@ -2794,9 +2794,9 @@ VOID PhTnpUpdateColumnHeaders(
 }
 
 VOID PhTnpProcessResizeColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN Column,
-    __in LONG Delta
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ LONG Delta
     )
 {
     RECT rect;
@@ -2856,8 +2856,8 @@ VOID PhTnpProcessResizeColumn(
 }
 
 VOID PhTnpProcessSortColumn(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_COLUMN NewColumn
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN NewColumn
     )
 {
     if (NewColumn->Id == Context->SortColumn)
@@ -2911,8 +2911,8 @@ VOID PhTnpProcessSortColumn(
 }
 
 BOOLEAN PhTnpSetColumnHeaderSortIcon(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt PPH_TREENEW_COLUMN SortColumnPointer
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ PPH_TREENEW_COLUMN SortColumnPointer
     )
 {
     if (Context->SortOrder == NoSortOrder)
@@ -2968,9 +2968,9 @@ BOOLEAN PhTnpSetColumnHeaderSortIcon(
 }
 
 VOID PhTnpAutoSizeColumnHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HWND HeaderHandle,
-    __in PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HWND HeaderHandle,
+    _In_ PPH_TREENEW_COLUMN Column
     )
 {
     ULONG i;
@@ -3009,10 +3009,10 @@ VOID PhTnpAutoSizeColumnHeader(
 }
 
 BOOLEAN PhTnpGetNodeChildren(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt PPH_TREENEW_NODE Node,
-    __out PPH_TREENEW_NODE **Children,
-    __out PULONG NumberOfChildren
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ PPH_TREENEW_NODE Node,
+    _Out_ PPH_TREENEW_NODE **Children,
+    _Out_ PULONG NumberOfChildren
     )
 {
     PH_TREENEW_GET_CHILDREN getChildren;
@@ -3040,8 +3040,8 @@ BOOLEAN PhTnpGetNodeChildren(
 }
 
 BOOLEAN PhTnpIsNodeLeaf(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node
     )
 {
     PH_TREENEW_IS_LEAF isLeaf;
@@ -3066,10 +3066,10 @@ BOOLEAN PhTnpIsNodeLeaf(
 }
 
 BOOLEAN PhTnpGetCellText(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in ULONG Id,
-    __out PPH_STRINGREF Text
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ ULONG Id,
+    _Out_ PPH_STRINGREF Text
     )
 {
     PH_TREENEW_GET_CELL_TEXT getCellText;
@@ -3105,7 +3105,7 @@ BOOLEAN PhTnpGetCellText(
 }
 
 VOID PhTnpRestructureNodes(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     PPH_TREENEW_NODE *children;
@@ -3140,9 +3140,9 @@ VOID PhTnpRestructureNodes(
 }
 
 VOID PhTnpInsertNodeChildren(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in ULONG Level
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ ULONG Level
     )
 {
     PPH_TREENEW_NODE *children;
@@ -3188,9 +3188,9 @@ VOID PhTnpInsertNodeChildren(
 }
 
 VOID PhTnpSetExpandedNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in BOOLEAN Expanded
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ BOOLEAN Expanded
     )
 {
     if (Node->Expanded != Expanded)
@@ -3246,11 +3246,11 @@ VOID PhTnpSetExpandedNode(
 }
 
 BOOLEAN PhTnpGetCellParts(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Index,
-    __in_opt PPH_TREENEW_COLUMN Column,
-    __in ULONG Flags,
-    __out PPH_TREENEW_CELL_PARTS Parts
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Index,
+    _In_opt_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG Flags,
+    _Out_ PPH_TREENEW_CELL_PARTS Parts
     )
 {
     PPH_TREENEW_NODE node;
@@ -3388,11 +3388,11 @@ BOOLEAN PhTnpGetCellParts(
 }
 
 BOOLEAN PhTnpGetRowRects(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Start,
-    __in ULONG End,
-    __in BOOLEAN Clip,
-    __out PRECT Rect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Start,
+    _In_ ULONG End,
+    _In_ BOOLEAN Clip,
+    _Out_ PRECT Rect
     )
 {
     LONG startY;
@@ -3429,8 +3429,8 @@ BOOLEAN PhTnpGetRowRects(
 }
 
 VOID PhTnpHitTest(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_HIT_TEST HitTest
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_TREENEW_HIT_TEST HitTest
     )
 {
     RECT clientRect;
@@ -3553,12 +3553,12 @@ VOID PhTnpHitTest(
 }
 
 VOID PhTnpSelectRange(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Start,
-    __in ULONG End,
-    __in ULONG Flags,
-    __out_opt PULONG ChangedStart,
-    __out_opt PULONG ChangedEnd
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Start,
+    _In_ ULONG End,
+    _In_ ULONG Flags,
+    _Out_opt_ PULONG ChangedStart,
+    _Out_opt_ PULONG ChangedEnd
     )
 {
     ULONG maximum;
@@ -3653,9 +3653,9 @@ VOID PhTnpSelectRange(
 }
 
 VOID PhTnpSetHotNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in_opt PPH_TREENEW_NODE NewHotNode,
-    __in BOOLEAN NewPlusMinusHot
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ PPH_TREENEW_NODE NewHotNode,
+    _In_ BOOLEAN NewPlusMinusHot
     )
 {
     ULONG newHotNodeIndex;
@@ -3704,11 +3704,11 @@ VOID PhTnpSetHotNode(
 }
 
 VOID PhTnpProcessSelectNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE Node,
-    __in LOGICAL ControlKey,
-    __in LOGICAL ShiftKey,
-    __in LOGICAL RightButton
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ LOGICAL ControlKey,
+    _In_ LOGICAL ShiftKey,
+    _In_ LOGICAL RightButton
     )
 {
     ULONG changedStart;
@@ -3785,8 +3785,8 @@ VOID PhTnpProcessSelectNode(
 }
 
 BOOLEAN PhTnpEnsureVisibleNode(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Index
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Index
     )
 {
     LONG viewTop;
@@ -3828,9 +3828,9 @@ BOOLEAN PhTnpEnsureVisibleNode(
 }
 
 VOID PhTnpProcessMoveMouse(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     )
 {
     PH_TREENEW_HIT_TEST hitTest;
@@ -3899,8 +3899,8 @@ VOID PhTnpProcessMoveMouse(
 }
 
 VOID PhTnpProcessMouseVWheel(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance
     )
 {
     ULONG wheelScrollLines;
@@ -3962,8 +3962,8 @@ VOID PhTnpProcessMouseVWheel(
 }
 
 VOID PhTnpProcessMouseHWheel(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG Distance
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Distance
     )
 {
     ULONG wheelScrollChars;
@@ -4002,8 +4002,8 @@ VOID PhTnpProcessMouseHWheel(
 }
 
 BOOLEAN PhTnpProcessFocusKey(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey
     )
 {
     ULONG count;
@@ -4176,8 +4176,8 @@ BOOLEAN PhTnpProcessFocusKey(
 }
 
 BOOLEAN PhTnpProcessNodeKey(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKey
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKey
     )
 {
     BOOLEAN controlKey;
@@ -4327,8 +4327,8 @@ BOOLEAN PhTnpProcessNodeKey(
 }
 
 VOID PhTnpProcessSearchKey(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Character
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Character
     )
 {
     LONG messageTime;
@@ -4460,10 +4460,10 @@ VOID PhTnpProcessSearchKey(
 }
 
 BOOLEAN PhTnpDefaultIncrementalSearch(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_SEARCH_EVENT SearchEvent,
-    __in BOOLEAN Partial,
-    __in BOOLEAN Wrap
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_TREENEW_SEARCH_EVENT SearchEvent,
+    _In_ BOOLEAN Partial,
+    _In_ BOOLEAN Wrap
     )
 {
     LONG startIndex;
@@ -4531,7 +4531,7 @@ BOOLEAN PhTnpDefaultIncrementalSearch(
 }
 
 VOID PhTnpUpdateScrollBars(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     RECT clientRect;
@@ -4644,9 +4644,9 @@ VOID PhTnpUpdateScrollBars(
 }
 
 VOID PhTnpScroll(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG DeltaRows,
-    __in LONG DeltaX
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG DeltaRows,
+    _In_ LONG DeltaX
     )
 {
     SCROLLINFO scrollInfo;
@@ -4701,9 +4701,9 @@ VOID PhTnpScroll(
 }
 
 VOID PhTnpProcessScroll(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG DeltaRows,
-    __in LONG DeltaX
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG DeltaRows,
+    _In_ LONG DeltaX
     )
 {
     RECT rect;
@@ -4768,9 +4768,9 @@ VOID PhTnpProcessScroll(
 }
 
 BOOLEAN PhTnpCanScroll(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Horizontal,
-    __in BOOLEAN Positive
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Horizontal,
+    _In_ BOOLEAN Positive
     )
 {
     SCROLLINFO scrollInfo;
@@ -4797,10 +4797,10 @@ BOOLEAN PhTnpCanScroll(
 }
 
 VOID PhTnpPaint(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT PaintRect
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ PRECT PaintRect
     )
 {
     RECT viewRect;
@@ -5051,9 +5051,9 @@ VOID PhTnpPaint(
 }
 
 VOID PhTnpPrepareRowForDraw(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __inout PPH_TREENEW_NODE Node
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _Inout_ PPH_TREENEW_NODE Node
     )
 {
     if (!Node->s.CachedColorValid)
@@ -5158,13 +5158,13 @@ VOID PhTnpPrepareRowForDraw(
 }
 
 VOID PhTnpDrawCell(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT CellRect,
-    __in PPH_TREENEW_NODE Node,
-    __in PPH_TREENEW_COLUMN Column,
-    __in LONG RowIndex,
-    __in LONG ColumnIndex
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ PRECT CellRect,
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ LONG RowIndex,
+    _In_ LONG ColumnIndex
     )
 {
     HFONT font; // font to use
@@ -5350,8 +5350,8 @@ VOID PhTnpDrawCell(
 }
 
 VOID PhTnpDrawDivider(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc
     )
 {
     POINT points[2];
@@ -5416,9 +5416,9 @@ VOID PhTnpDrawDivider(
 }
 
 VOID PhTnpDrawPlusMinusGlyph(
-    __in HDC hdc,
-    __in PRECT Rect,
-    __in BOOLEAN Plus
+    _In_ HDC hdc,
+    _In_ PRECT Rect,
+    _In_ BOOLEAN Plus
     )
 {
     INT savedDc;
@@ -5462,9 +5462,9 @@ VOID PhTnpDrawPlusMinusGlyph(
 }
 
 VOID PhTnpDrawSelectionRectangle(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT Rect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc,
+    _In_ PRECT Rect
     )
 {
     RECT rect;
@@ -5551,8 +5551,8 @@ VOID PhTnpDrawSelectionRectangle(
 }
 
 VOID PhTnpDrawThemedBorder(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC hdc
     )
 {
     RECT windowRect;
@@ -5603,7 +5603,7 @@ VOID PhTnpDrawThemedBorder(
 }
 
 VOID PhTnpInitializeTooltips(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     TOOLINFO toolInfo;
@@ -5667,9 +5667,9 @@ VOID PhTnpInitializeTooltips(
 }
 
 VOID PhTnpGetTooltipText(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PPOINT Point,
-    __out PWSTR *Text
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPOINT Point,
+    _Out_ PWSTR *Text
     )
 {
     PH_TREENEW_HIT_TEST hitTest;
@@ -5777,7 +5777,7 @@ VOID PhTnpGetTooltipText(
 }
 
 BOOLEAN PhTnpPrepareTooltipShow(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     RECT rect;
@@ -5820,7 +5820,7 @@ BOOLEAN PhTnpPrepareTooltipShow(
 }
 
 VOID PhTnpPrepareTooltipPop(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     Context->TooltipIndex = -1;
@@ -5829,7 +5829,7 @@ VOID PhTnpPrepareTooltipPop(
 }
 
 VOID PhTnpPopTooltip(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     if (Context->TooltipsHandle)
@@ -5840,10 +5840,10 @@ VOID PhTnpPopTooltip(
 }
 
 PPH_TREENEW_COLUMN PhTnpHitTestHeader(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Fixed,
-    __in PPOINT Point,
-    __out_opt PRECT ItemRect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Fixed,
+    _In_ PPOINT Point,
+    _Out_opt_ PRECT ItemRect
     )
 {
     PPH_TREENEW_COLUMN column;
@@ -5894,10 +5894,10 @@ PPH_TREENEW_COLUMN PhTnpHitTestHeader(
 }
 
 VOID PhTnpGetHeaderTooltipText(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in BOOLEAN Fixed,
-    __in PPOINT Point,
-    __out PWSTR *Text
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ BOOLEAN Fixed,
+    _In_ PPOINT Point,
+    _Out_ PWSTR *Text
     )
 {
     LOGICAL result;
@@ -5954,10 +5954,10 @@ PWSTR PhTnpMakeContextAtom(
 }
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PPH_TREENEW_CONTEXT context;
@@ -6067,11 +6067,11 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 }
 
 BOOLEAN PhTnpDetectDrag(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorX,
-    __in LONG CursorY,
-    __in BOOLEAN DispatchMessages,
-    __out_opt PULONG CancelledByMessage
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY,
+    _In_ BOOLEAN DispatchMessages,
+    _Out_opt_ PULONG CancelledByMessage
     )
 {
     RECT dragRect;
@@ -6137,9 +6137,9 @@ BOOLEAN PhTnpDetectDrag(
 }
 
 VOID PhTnpDragSelect(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in LONG CursorX,
-    __in LONG CursorY
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
     )
 {
     MSG msg;
@@ -6393,11 +6393,11 @@ EndOfLoop:
 }
 
 VOID PhTnpProcessDragSelect(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG VirtualKeys,
-    __in PRECT OldRect,
-    __in PRECT NewRect,
-    __in PRECT TotalRect
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG VirtualKeys,
+    _In_ PRECT OldRect,
+    _In_ PRECT NewRect,
+    _In_ PRECT TotalRect
     )
 {
     LONG firstRow;
@@ -6481,7 +6481,7 @@ VOID PhTnpProcessDragSelect(
 }
 
 VOID PhTnpCreateBufferedContext(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     HDC hdc;
@@ -6513,7 +6513,7 @@ VOID PhTnpCreateBufferedContext(
 }
 
 VOID PhTnpDestroyBufferedContext(
-    __in PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context
     )
 {
     // The original bitmap must be selected back into the context, otherwise
@@ -6527,8 +6527,8 @@ VOID PhTnpDestroyBufferedContext(
 }
 
 VOID PhTnpGetMessagePos(
-    __in HWND hwnd,
-    __out PPOINT ClientPoint
+    _In_ HWND hwnd,
+    _Out_ PPOINT ClientPoint
     )
 {
     ULONG position;

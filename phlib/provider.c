@@ -57,8 +57,8 @@ PH_QUEUED_LOCK PhDbgProviderListLock = PH_QUEUED_LOCK_INIT;
  * \param Interval The interval between each run, in milliseconds.
  */
 VOID PhInitializeProviderThread(
-    __out PPH_PROVIDER_THREAD ProviderThread,
-    __in ULONG Interval
+    _Out_ PPH_PROVIDER_THREAD ProviderThread,
+    _In_ ULONG Interval
     )
 {
     ProviderThread->ThreadHandle = NULL;
@@ -83,7 +83,7 @@ VOID PhInitializeProviderThread(
  * \param ProviderThread A pointer to a provider thread object.
  */
 VOID PhDeleteProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread
     )
 {
     // Nothing
@@ -96,7 +96,7 @@ VOID PhDeleteProviderThread(
 }
 
 NTSTATUS NTAPI PhpProviderThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PROVIDER_THREAD providerThread = (PPH_PROVIDER_THREAD)Parameter;
@@ -236,7 +236,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
  * \param ProviderThread A pointer to a provider thread object.
  */
 VOID PhStartProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread
     )
 {
     if (ProviderThread->State != ProviderThreadStopped)
@@ -262,7 +262,7 @@ VOID PhStartProviderThread(
  * \param ProviderThread A pointer to a provider thread object.
  */
 VOID PhStopProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread
     )
 {
     if (ProviderThread->State != ProviderThreadRunning)
@@ -290,8 +290,8 @@ VOID PhStopProviderThread(
  * \param Interval The interval between each run, in milliseconds.
  */
 VOID PhSetIntervalProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
-    __in ULONG Interval
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread,
+    _In_ ULONG Interval
     )
 {
     ProviderThread->Interval = Interval;
@@ -320,10 +320,10 @@ VOID PhSetIntervalProviderThread(
  * PhSetEnabledProvider() to enable it.
  */
 VOID PhRegisterProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
-    __in PPH_PROVIDER_FUNCTION Function,
-    __in_opt PVOID Object,
-    __out PPH_PROVIDER_REGISTRATION Registration
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread,
+    _In_ PPH_PROVIDER_FUNCTION Function,
+    _In_opt_ PVOID Object,
+    _Out_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
     Registration->ProviderThread = ProviderThread;
@@ -352,7 +352,7 @@ VOID PhRegisterProvider(
  * once this function returns.
  */
 VOID PhUnregisterProvider(
-    __inout PPH_PROVIDER_REGISTRATION Registration
+    _Inout_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
     PPH_PROVIDER_THREAD providerThread;
@@ -402,8 +402,8 @@ VOID PhUnregisterProvider(
  * runs.
  */
 BOOLEAN PhBoostProvider(
-    __inout PPH_PROVIDER_REGISTRATION Registration,
-    __out_opt PULONG FutureRunId
+    _Inout_ PPH_PROVIDER_REGISTRATION Registration,
+    _Out_opt_ PULONG FutureRunId
     )
 {
     PPH_PROVIDER_THREAD providerThread;
@@ -453,7 +453,7 @@ BOOLEAN PhBoostProvider(
  * a provider.
  */
 ULONG PhGetRunIdProvider(
-    __in PPH_PROVIDER_REGISTRATION Registration
+    _In_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
     return Registration->RunId;
@@ -466,7 +466,7 @@ ULONG PhGetRunIdProvider(
  * a provider.
  */
 BOOLEAN PhGetEnabledProvider(
-    __in PPH_PROVIDER_REGISTRATION Registration
+    _In_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
     return Registration->Enabled;
@@ -481,8 +481,8 @@ BOOLEAN PhGetEnabledProvider(
  * FALSE.
  */
 VOID PhSetEnabledProvider(
-    __inout PPH_PROVIDER_REGISTRATION Registration,
-    __in BOOLEAN Enabled
+    _Inout_ PPH_PROVIDER_REGISTRATION Registration,
+    _In_ BOOLEAN Enabled
     )
 {
     Registration->Enabled = Enabled;

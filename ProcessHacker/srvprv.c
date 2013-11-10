@@ -26,24 +26,24 @@
 #include <extmgri.h>
 
 typedef DWORD (WINAPI *_NotifyServiceStatusChangeW)(
-    __in SC_HANDLE hService,
-    __in DWORD dwNotifyMask,
-    __in PSERVICE_NOTIFYW pNotifyBuffer
+    _In_ SC_HANDLE hService,
+    _In_ DWORD dwNotifyMask,
+    _In_ PSERVICE_NOTIFYW pNotifyBuffer
     );
 
 typedef BOOL (WINAPI *_EvtClose)(
-    __in EVT_HANDLE Object
+    _In_ EVT_HANDLE Object
     );
 
 typedef EVT_HANDLE (WINAPI *_EvtSubscribe)(
-    __in EVT_HANDLE Session,
-    __in HANDLE SignalEvent,
-    __in LPCWSTR ChannelPath,
-    __in LPCWSTR Query,
-    __in EVT_HANDLE Bookmark,
-    __in PVOID context,
-    __in EVT_SUBSCRIBE_CALLBACK Callback,
-    __in DWORD Flags
+    _In_ EVT_HANDLE Session,
+    _In_ HANDLE SignalEvent,
+    _In_ LPCWSTR ChannelPath,
+    _In_ LPCWSTR Query,
+    _In_ EVT_HANDLE Bookmark,
+    _In_ PVOID context,
+    _In_ EVT_SUBSCRIBE_CALLBACK Callback,
+    _In_ DWORD Flags
     );
 
 typedef struct _PHP_SERVICE_NAME_ENTRY
@@ -54,27 +54,27 @@ typedef struct _PHP_SERVICE_NAME_ENTRY
 } PHP_SERVICE_NAME_ENTRY, *PPHP_SERVICE_NAME_ENTRY;
 
 VOID NTAPI PhpServiceItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     );
 
 BOOLEAN NTAPI PhpServiceHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG NTAPI PhpServiceHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID PhpAddProcessItemService(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 VOID PhpRemoveProcessItemService(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 VOID PhpInitializeServiceNonPoll(
@@ -123,7 +123,7 @@ BOOLEAN PhServiceProviderInitialization(
 }
 
 PPH_SERVICE_ITEM PhCreateServiceItem(
-    __in_opt LPENUM_SERVICE_STATUS_PROCESS Information
+    _In_opt_ LPENUM_SERVICE_STATUS_PROCESS Information
     )
 {
     PPH_SERVICE_ITEM serviceItem;
@@ -159,8 +159,8 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
 }
 
 VOID PhpServiceItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Object;
@@ -178,8 +178,8 @@ VOID PhpServiceItemDeleteProcedure(
  * \param Count The number of characters to hash.
  */
 FORCEINLINE ULONG PhpHashStringIgnoreCase(
-    __in PWSTR String,
-    __in SIZE_T Count
+    _In_ PWSTR String,
+    _In_ SIZE_T Count
     )
 {
     ULONG hash = (ULONG)Count;
@@ -197,8 +197,8 @@ FORCEINLINE ULONG PhpHashStringIgnoreCase(
 }
 
 BOOLEAN PhpServiceHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PPH_SERVICE_ITEM serviceItem1 = *(PPH_SERVICE_ITEM *)Entry1;
@@ -208,7 +208,7 @@ BOOLEAN PhpServiceHashtableCompareFunction(
 }
 
 ULONG PhpServiceHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     PPH_SERVICE_ITEM serviceItem = *(PPH_SERVICE_ITEM *)Entry;
@@ -216,8 +216,8 @@ ULONG PhpServiceHashtableHashFunction(
     return PhpHashStringIgnoreCase(serviceItem->Key.Buffer, serviceItem->Key.Length / sizeof(WCHAR));
 }
 
-__assumeLocked PPH_SERVICE_ITEM PhpLookupServiceItem(
-    __in PPH_STRINGREF Name
+PPH_SERVICE_ITEM PhpLookupServiceItem(
+    _In_ PPH_STRINGREF Name
     )
 {
     PH_SERVICE_ITEM lookupServiceItem;
@@ -238,7 +238,7 @@ __assumeLocked PPH_SERVICE_ITEM PhpLookupServiceItem(
 }
 
 PPH_SERVICE_ITEM PhReferenceServiceItem(
-    __in PWSTR Name
+    _In_ PWSTR Name
     )
 {
     PPH_SERVICE_ITEM serviceItem;
@@ -260,14 +260,14 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
 }
 
 VOID PhMarkNeedsConfigUpdateServiceItem(
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     ServiceItem->NeedsConfigUpdate = TRUE;
 }
 
-__assumeLocked VOID PhpRemoveServiceItem(
-    __in PPH_SERVICE_ITEM ServiceItem
+VOID PhpRemoveServiceItem(
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     PhRemoveEntryHashtable(PhServiceHashtable, &ServiceItem);
@@ -275,7 +275,7 @@ __assumeLocked VOID PhpRemoveServiceItem(
 }
 
 PH_SERVICE_CHANGE PhGetServiceChange(
-    __in PPH_SERVICE_MODIFIED_DATA Data
+    _In_ PPH_SERVICE_MODIFIED_DATA Data
     )
 {
     if (
@@ -326,7 +326,7 @@ PH_SERVICE_CHANGE PhGetServiceChange(
 }
 
 VOID PhUpdateProcessItemServices(
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
@@ -351,8 +351,8 @@ VOID PhUpdateProcessItemServices(
 }
 
 VOID PhpAddProcessItemService(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     PhAcquireQueuedLockExclusive(&ProcessItem->ServiceListLock);
@@ -373,8 +373,8 @@ VOID PhpAddProcessItemService(
 }
 
 VOID PhpRemoveProcessItemService(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     HANDLE pointerHandle;
@@ -396,8 +396,8 @@ VOID PhpRemoveProcessItemService(
 }
 
 VOID PhpUpdateServiceItemConfig(
-    __in SC_HANDLE ScManagerHandle,
-    __in PPH_SERVICE_ITEM ServiceItem
+    _In_ SC_HANDLE ScManagerHandle,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
     SC_HANDLE serviceHandle;
@@ -423,22 +423,22 @@ VOID PhpUpdateServiceItemConfig(
 }
 
 static BOOLEAN PhpCompareServiceNameEntry(
-    __in PPHP_SERVICE_NAME_ENTRY Value1,
-    __in PPHP_SERVICE_NAME_ENTRY Value2
+    _In_ PPHP_SERVICE_NAME_ENTRY Value1,
+    _In_ PPHP_SERVICE_NAME_ENTRY Value2
     )
 {
     return PhEqualStringRef(&Value1->Name, &Value2->Name, TRUE);
 }
 
 static ULONG PhpHashServiceNameEntry(
-    __in PPHP_SERVICE_NAME_ENTRY Value
+    _In_ PPHP_SERVICE_NAME_ENTRY Value
     )
 {
     return PhHashBytes((PUCHAR)Value->Name.Buffer, Value->Name.Length);
 }
 
 VOID PhServiceProviderUpdate(
-    __in PVOID Object
+    _In_ PVOID Object
     )
 {
     static SC_HANDLE scManagerHandle = NULL;
@@ -768,9 +768,9 @@ UpdateEnd:
 }
 
 DWORD WINAPI PhpServiceNonPollSubscribeCallback(
-    __in EVT_SUBSCRIBE_NOTIFY_ACTION Action,
-    __in PVOID UserContext,
-    __in EVT_HANDLE Event
+    _In_ EVT_SUBSCRIBE_NOTIFY_ACTION Action,
+    _In_ PVOID UserContext,
+    _In_ EVT_HANDLE Event
     )
 {
     PhpNonPollGate = 1;
@@ -778,7 +778,7 @@ DWORD WINAPI PhpServiceNonPollSubscribeCallback(
 }
 
 VOID CALLBACK PhpServiceNonPollScNotifyCallback(
-    __in PVOID pParameter
+    _In_ PVOID pParameter
     )
 {
     PSERVICE_NOTIFYW notifyBuffer = pParameter;
@@ -797,7 +797,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
 }
 
 NTSTATUS PhpServiceNonPollThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     EVT_HANDLE subscriptionHandle;

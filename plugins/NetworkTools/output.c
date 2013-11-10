@@ -26,10 +26,10 @@
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 static INT_PTR CALLBACK NetworkOutputDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PNETWORK_OUTPUT_CONTEXT context;
@@ -261,7 +261,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 }
 
 static NTSTATUS PhNetworkOutputDialogThreadStart(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     BOOL result;
@@ -303,7 +303,7 @@ static NTSTATUS PhNetworkOutputDialogThreadStart(
 }
 
 static HFONT InitializeFont(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     LOGFONT logFont = { 0 };
@@ -326,8 +326,8 @@ static HFONT InitializeFont(
 }
 
 VOID PerformNetworkAction(
-    __in PH_NETWORK_ACTION Action,
-    __in PPH_NETWORK_ITEM NetworkItem
+    _In_ PH_NETWORK_ACTION Action,
+    _In_ PPH_NETWORK_ITEM NetworkItem
     )
 { 
     HANDLE dialogThread = INVALID_HANDLE_VALUE;

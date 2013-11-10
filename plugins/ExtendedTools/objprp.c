@@ -30,33 +30,33 @@ typedef struct _COMMON_PAGE_CONTEXT
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
 
 HPROPSHEETPAGE EtpCommonCreatePage(
-    __in PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
-    __in PWSTR Template,
-    __in DLGPROC DlgProc
+    _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DlgProc
     );
 
 INT CALLBACK EtpCommonPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     );
 
 INT_PTR CALLBACK EtpAlpcPortPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EtHandlePropertiesInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
@@ -100,9 +100,9 @@ VOID EtHandlePropertiesInitializing(
 }
 
 static HPROPSHEETPAGE EtpCommonCreatePage(
-    __in PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
-    __in PWSTR Template,
-    __in DLGPROC DlgProc
+    _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DlgProc
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
@@ -132,9 +132,9 @@ static HPROPSHEETPAGE EtpCommonCreatePage(
 }
 
 INT CALLBACK EtpCommonPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
     )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
@@ -150,9 +150,9 @@ INT CALLBACK EtpCommonPropPageProc(
 }
 
 static NTSTATUS EtpDuplicateHandleFromProcess(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PCOMMON_PAGE_CONTEXT Context
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PCOMMON_PAGE_CONTEXT Context
     )
 {
     NTSTATUS status;
@@ -180,10 +180,10 @@ static NTSTATUS EtpDuplicateHandleFromProcess(
 }
 
 INT_PTR CALLBACK EtpAlpcPortPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -231,8 +231,8 @@ INT_PTR CALLBACK EtpAlpcPortPageDlgProc(
 }
 
 static BOOLEAN NTAPI EnumGenericModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
     )
 {
     if (Module->Type == PH_MODULE_TYPE_MODULE || Module->Type == PH_MODULE_TYPE_WOW64_MODULE)
@@ -245,10 +245,10 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
 }
 
 INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)

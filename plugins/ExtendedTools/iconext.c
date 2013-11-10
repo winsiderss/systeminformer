@@ -28,27 +28,27 @@
 #define NETWORK_ICON_ID 3
 
 VOID EtpGpuIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     );
 
 VOID EtpDiskIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     );
 
 VOID EtpNetworkIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     );
 
 VOID EtRegisterNotifyIcons(
@@ -91,11 +91,11 @@ VOID EtRegisterNotifyIcons(
 }
 
 VOID EtpGpuIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -176,11 +176,11 @@ VOID EtpGpuIconUpdateCallback(
 }
 
 VOID EtpDiskIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -278,11 +278,11 @@ VOID EtpDiskIconUpdateCallback(
 }
 
 VOID EtpNetworkIconUpdateCallback(
-    __in struct _PH_NF_ICON *Icon,
-    __out PVOID *NewIconOrBitmap,
-    __out PULONG Flags,
-    __out PPH_STRING *NewText,
-    __in_opt PVOID Context
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =

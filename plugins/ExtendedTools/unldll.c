@@ -31,15 +31,15 @@ typedef struct _UNLOADED_DLLS_CONTEXT
 } UNLOADED_DLLS_CONTEXT, *PUNLOADED_DLLS_CONTEXT;
 
 INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID EtShowUnloadedDllsDialog(
-    __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     UNLOADED_DLLS_CONTEXT context;
@@ -60,8 +60,8 @@ VOID EtShowUnloadedDllsDialog(
 }
 
 BOOLEAN EtpRefreshUnloadedDlls(
-    __in HWND hwndDlg,
-    __in PUNLOADED_DLLS_CONTEXT Context
+    _In_ HWND hwndDlg,
+    _In_ PUNLOADED_DLLS_CONTEXT Context
     )
 {
     NTSTATUS status;
@@ -216,9 +216,9 @@ CleanupExit:
 }
 
 static INT NTAPI EtpNumberCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
@@ -228,9 +228,9 @@ static INT NTAPI EtpNumberCompareFunction(
 }
 
 static INT NTAPI EtpBaseAddressCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
@@ -240,9 +240,9 @@ static INT NTAPI EtpBaseAddressCompareFunction(
 }
 
 static INT NTAPI EtpSizeCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
@@ -252,9 +252,9 @@ static INT NTAPI EtpSizeCompareFunction(
 }
 
 static INT NTAPI EtpTimeStampCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
@@ -264,9 +264,9 @@ static INT NTAPI EtpTimeStampCompareFunction(
 }
 
 static INT NTAPI EtpCheckSumCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
     )
 {
     PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
@@ -276,10 +276,10 @@ static INT NTAPI EtpCheckSumCompareFunction(
 }
 
 INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PUNLOADED_DLLS_CONTEXT context;

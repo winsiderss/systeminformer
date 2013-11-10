@@ -52,26 +52,26 @@ typedef struct _MEMORY_EDITOR_CONTEXT
 } MEMORY_EDITOR_CONTEXT, *PMEMORY_EDITOR_CONTEXT;
 
 INT NTAPI PhpMemoryEditorCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     );
 
 INT_PTR CALLBACK PhpMemoryEditorDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 PH_AVL_TREE PhMemoryEditorSet = PH_AVL_TREE_INIT(PhpMemoryEditorCompareFunction);
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID PhShowMemoryEditorDialog(
-    __in HANDLE ProcessId,
-    __in PVOID BaseAddress,
-    __in SIZE_T RegionSize,
-    __in ULONG SelectOffset,
-    __in ULONG SelectLength
+    _In_ HANDLE ProcessId,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T RegionSize,
+    _In_ ULONG SelectOffset,
+    _In_ ULONG SelectLength
     )
 {
     PMEMORY_EDITOR_CONTEXT context;
@@ -132,8 +132,8 @@ VOID PhShowMemoryEditorDialog(
 }
 
 INT NTAPI PhpMemoryEditorCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
     )
 {
     PMEMORY_EDITOR_CONTEXT context1 = CONTAINING_RECORD(Links1, MEMORY_EDITOR_CONTEXT, Links);
@@ -143,10 +143,10 @@ INT NTAPI PhpMemoryEditorCompareFunction(
 }
 
 INT_PTR CALLBACK PhpMemoryEditorDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PMEMORY_EDITOR_CONTEXT context;

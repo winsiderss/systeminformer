@@ -28,7 +28,7 @@ typedef PVOID *PPVOID;
 typedef ULONG LOGICAL;
 typedef ULONG *PLOGICAL;
 
-typedef __success(return >= 0) LONG NTSTATUS;
+typedef _Success_(return >= 0) LONG NTSTATUS;
 typedef NTSTATUS *PNTSTATUS;
 
 // Cardinal types
@@ -97,7 +97,7 @@ typedef struct _STRING
 {
     USHORT Length;
     USHORT MaximumLength;
-    __field_bcount_part_opt(MaximumLength, Length) PCHAR Buffer;
+    _Field_size_bytes_part_opt_(MaximumLength, Length) PCHAR Buffer;
 } STRING, *PSTRING, ANSI_STRING, *PANSI_STRING, OEM_STRING, *POEM_STRING;
 
 typedef const STRING *PCSTRING;
@@ -108,7 +108,7 @@ typedef struct _UNICODE_STRING
 {
     USHORT Length;
     USHORT MaximumLength;
-    __field_bcount_part(MaximumLength, Length) PWCH Buffer;
+    _Field_size_bytes_part_(MaximumLength, Length) PWCH Buffer;
 } UNICODE_STRING, *PUNICODE_STRING;
 
 typedef const UNICODE_STRING *PCUNICODE_STRING;

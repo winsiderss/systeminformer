@@ -35,10 +35,10 @@ typedef struct _PH_CM_SORT_CONTEXT
 } PH_CM_SORT_CONTEXT, *PPH_CM_SORT_CONTEXT;
 
 VOID PhCmInitializeManager(
-    __out PPH_CM_MANAGER Manager,
-    __in HWND Handle,
-    __in ULONG MinId,
-    __in PPH_CM_POST_SORT_FUNCTION PostSortFunction
+    _Out_ PPH_CM_MANAGER Manager,
+    _In_ HWND Handle,
+    _In_ ULONG MinId,
+    _In_ PPH_CM_POST_SORT_FUNCTION PostSortFunction
     )
 {
     Manager->Handle = Handle;
@@ -50,7 +50,7 @@ VOID PhCmInitializeManager(
 }
 
 VOID PhCmDeleteManager(
-    __in PPH_CM_MANAGER Manager
+    _In_ PPH_CM_MANAGER Manager
     )
 {
     PLIST_ENTRY listEntry;
@@ -71,12 +71,12 @@ VOID PhCmDeleteManager(
 }
 
 PPH_CM_COLUMN PhCmCreateColumn(
-    __inout PPH_CM_MANAGER Manager,
-    __in PPH_TREENEW_COLUMN Column,
-    __in struct _PH_PLUGIN *Plugin,
-    __in ULONG SubId,
-    __in_opt PVOID Context,
-    __in PVOID SortFunction
+    _Inout_ PPH_CM_MANAGER Manager,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_ PVOID SortFunction
     )
 {
     PPH_CM_COLUMN column;
@@ -108,9 +108,9 @@ PPH_CM_COLUMN PhCmCreateColumn(
 }
 
 PPH_CM_COLUMN PhCmFindColumn(
-    __in PPH_CM_MANAGER Manager,
-    __in PPH_STRINGREF PluginName,
-    __in ULONG SubId
+    _In_ PPH_CM_MANAGER Manager,
+    _In_ PPH_STRINGREF PluginName,
+    _In_ ULONG SubId
     )
 {
     PLIST_ENTRY listEntry;
@@ -132,8 +132,8 @@ PPH_CM_COLUMN PhCmFindColumn(
 }
 
 VOID PhCmSetNotifyPlugin(
-    __in PPH_CM_MANAGER Manager,
-    __in struct _PH_PLUGIN *Plugin
+    _In_ PPH_CM_MANAGER Manager,
+    _In_ struct _PH_PLUGIN *Plugin
     )
 {
     if (!Manager->NotifyList)
@@ -150,11 +150,11 @@ VOID PhCmSetNotifyPlugin(
 }
 
 BOOLEAN PhCmForwardMessage(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in PPH_CM_MANAGER Manager
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_ PPH_CM_MANAGER Manager
     )
 {
     PH_PLUGIN_TREENEW_MESSAGE pluginMessage;
@@ -247,9 +247,9 @@ BOOLEAN PhCmForwardMessage(
 }
 
 static int __cdecl PhCmpSortFunction(
-    __in void *context,
-    __in const void *elem1,
-    __in const void *elem2
+    _In_ void *context,
+    _In_ const void *elem1,
+    _In_ const void *elem2
     )
 {
     PPH_CM_SORT_CONTEXT sortContext = context;
@@ -263,11 +263,11 @@ static int __cdecl PhCmpSortFunction(
 }
 
 BOOLEAN PhCmForwardSort(
-    __in PPH_TREENEW_NODE *Nodes,
-    __in ULONG NumberOfNodes,
-    __in ULONG SortColumn,
-    __in PH_SORT_ORDER SortOrder,
-    __in PPH_CM_MANAGER Manager
+    _In_ PPH_TREENEW_NODE *Nodes,
+    _In_ ULONG NumberOfNodes,
+    _In_ ULONG SortColumn,
+    _In_ PH_SORT_ORDER SortOrder,
+    _In_ PPH_CM_MANAGER Manager
     )
 {
     PH_TREENEW_COLUMN tnColumn;
@@ -296,19 +296,19 @@ BOOLEAN PhCmForwardSort(
 }
 
 BOOLEAN PhCmLoadSettings(
-    __in HWND TreeNewHandle,
-    __in PPH_STRINGREF Settings
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_STRINGREF Settings
     )
 {
     return PhCmLoadSettingsEx(TreeNewHandle, NULL, 0, Settings, NULL);
 }
 
 BOOLEAN PhCmLoadSettingsEx(
-    __in HWND TreeNewHandle,
-    __in_opt PPH_CM_MANAGER Manager,
-    __in ULONG Flags,
-    __in PPH_STRINGREF Settings,
-    __in_opt PPH_STRINGREF SortSettings
+    _In_ HWND TreeNewHandle,
+    _In_opt_ PPH_CM_MANAGER Manager,
+    _In_ ULONG Flags,
+    _In_ PPH_STRINGREF Settings,
+    _In_opt_ PPH_STRINGREF SortSettings
     )
 {
     BOOLEAN result = FALSE;
@@ -545,17 +545,17 @@ CleanupExit:
 }
 
 PPH_STRING PhCmSaveSettings(
-    __in HWND TreeNewHandle
+    _In_ HWND TreeNewHandle
     )
 {
     return PhCmSaveSettingsEx(TreeNewHandle, NULL, 0, NULL);
 }
 
 PPH_STRING PhCmSaveSettingsEx(
-    __in HWND TreeNewHandle,
-    __in_opt PPH_CM_MANAGER Manager,
-    __in ULONG Flags,
-    __out_opt PPH_STRING *SortSettings
+    _In_ HWND TreeNewHandle,
+    _In_opt_ PPH_CM_MANAGER Manager,
+    _In_ ULONG Flags,
+    _Out_opt_ PPH_STRING *SortSettings
     )
 {
     PH_STRING_BUILDER stringBuilder;
