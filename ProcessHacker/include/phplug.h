@@ -272,7 +272,7 @@ typedef struct _PH_PLUGIN_INFORMATION
     BOOLEAN Reserved1[3];
 } PH_PLUGIN_INFORMATION, *PPH_PLUGIN_INFORMATION;
 
-#define PH_PLUGIN_FLAG_IS_CLR 0x1 // plugin is .NET
+#define PH_PLUGIN_FLAG_RESERVED 0x1
 
 typedef struct _PH_PLUGIN
 {
