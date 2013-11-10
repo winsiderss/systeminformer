@@ -1087,11 +1087,23 @@ INT_PTR CALLBACK UploadDlgProc(
 
         if (uMsg == WM_NCDESTROY)
         {
-            //if (!PhIsNullOrEmptyString(context->FileName))
-            //{
-            //    PhDereferenceObject(context->FileName);
-            //    context->FileName = NULL;
-            //}
+            if (!context->FileName)
+            {
+                PhDereferenceObject(context->FileName);
+                context->FileName = NULL;
+            }
+
+            if (context->BaseFileName)
+            {
+                PhDereferenceObject(context->BaseFileName);
+                context->BaseFileName = NULL;
+            }
+
+            if (context->WindowFileName)
+            {
+                PhDereferenceObject(context->WindowFileName);
+                context->WindowFileName = NULL;
+            }
 
             if (context->MessageFont)
             {

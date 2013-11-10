@@ -96,9 +96,6 @@ NTSTATUS NetworkWhoisThreadStart(
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
-        
-    Static_SetText(context->WindowHandle,   
-        PhFormatString(L"Whois %s...", context->addressString)->Buffer);
 
     //4.4.3. IP Addresses and Networks
     // https://www.arin.net/resources/whoisrws/whois_api.html   
@@ -175,10 +172,15 @@ NTSTATUS NetworkWhoisThreadStart(
         isSuccess = TRUE;
     }
     __finally
-    {    
-        PhSwapReference2(&phVersion, NULL);
-        PhSwapReference2(&userAgent, NULL);
-        PhSwapReference2(&whoisHttpGetString, NULL);
+    {
+        if (phVersion)
+            PhDereferenceObject(phVersion);
+
+        if (userAgent)
+            PhDereferenceObject(userAgent);
+
+        if (whoisHttpGetString)
+            PhDereferenceObject(whoisHttpGetString);
 
         if (requestHandle)
             WinHttpCloseHandle(requestHandle);

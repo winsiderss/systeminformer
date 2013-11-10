@@ -105,14 +105,30 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             {
             case NETWORK_ACTION_TRACEROUTE:
                 {
+                    PPH_STRING messageText = PhFormatString(L"Tracing route to %s...", 
+                        context->addressString
+                        );
+
+                    Static_SetText(context->WindowHandle, messageText->Buffer);
+
                     if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkTracertThreadStart, (PVOID)context))
                         NtClose(dialogThread);
+
+                    PhDereferenceObject(messageText);
                 }
                 break;
             case NETWORK_ACTION_WHOIS:
                 {
+                    PPH_STRING messageText = PhFormatString(L"Whois %s...",
+                        context->addressString
+                        );
+
+                    Static_SetText(context->WindowHandle, messageText->Buffer);
+
                     if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkWhoisThreadStart, (PVOID)context))
                         NtClose(dialogThread);
+
+                    PhDereferenceObject(messageText);
                 }
                 break;
             }
