@@ -51,7 +51,11 @@ static NTSTATUS StdOutNetworkTracertThreadStart(
 
             if (windowText)
             {
-                Static_SetText(context->WindowHandle, PhFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
+                PPH_STRING messageText = PhFormatString(L"%s Finished.", windowText->Buffer);
+
+                Static_SetText(context->WindowHandle, messageText->Buffer);
+
+                PhDereferenceObject(messageText);
                 PhDereferenceObject(windowText);
             }
 
@@ -73,9 +77,6 @@ NTSTATUS NetworkTracertThreadStart(
 {
     HANDLE pipeWriteHandle = INVALID_HANDLE_VALUE;
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
-        
-    Static_SetText(context->WindowHandle,   
-        PhFormatString(L"Tracing route to %s...", context->addressString)->Buffer);
 
     if (CreatePipe(&context->PipeReadHandle, &pipeWriteHandle, NULL, 0))
     {
