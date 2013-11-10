@@ -128,7 +128,7 @@ static PPH_ANSI_STRING PhFormatAnsiString(
     return PhFormatAnsiString_V(Format, argptr);
 }
 
-static NTSTATUS PhNetworkPingThreadStart(
+static ULONG PhNetworkPingThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -527,12 +527,13 @@ static VOID NTAPI NetworkPingUpdateHandler(
     )
 {
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Context;
-    HANDLE dialogThread = INVALID_HANDLE_VALUE;
 
-    // Queue up the next ping...
-    // This needs to be done to prevent slow-links from blocking the interval update.
-    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkPingThreadStart, (PVOID)context))
-        NtClose(dialogThread);
+	// Queue the ping worker thread...
+	PhQueueItemWorkQueue(
+		&context->PingWorkQueue, 
+		PhNetworkPingThreadStart, 
+		(PVOID)context
+		);
 
     PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
 }
@@ -580,6 +581,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 context->FontHandle = NULL;
             }
 
+			PhDeleteWorkQueue(&context->PingWorkQueue);
             PhDeleteGraphState(&context->PingGraphState);
             PhDeleteLayoutManager(&context->LayoutManager);
             RemoveProp(hwndDlg, L"Context");
@@ -641,6 +643,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             if (context->IconHandle) 
                 SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
           
+			PhInitializeWorkQueue(&context->PingWorkQueue, 0, 3, 1000);
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhInitializeCircularBuffer_ULONG(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
@@ -908,8 +911,6 @@ NTSTATUS PhNetworkPingDialogThreadStart(
 
     ShowWindow(context->WindowHandle, SW_SHOW);
     SetForegroundWindow(context->WindowHandle);
-
-    PostMessage(context->WindowHandle, WM_SIZE, 0, 0);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
