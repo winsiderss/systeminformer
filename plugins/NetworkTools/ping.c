@@ -785,30 +785,8 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-       
-                    // Check if old graph colors are enabled.
-                    if (PhGetIntegerSetting(L"GraphColorMode"))
-                    {                      
-                        drawInfo->BackColor = RGB(0x00, 0x00, 0x00);
-                        drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
-                        drawInfo->LineBackColor1 = PhHalveColorBrightness(drawInfo->LineColor1);
-                        drawInfo->LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
-                        drawInfo->LineBackColor2 = PhHalveColorBrightness(drawInfo->LineColor2);
-                        drawInfo->GridColor = RGB(0x00, 0x57, 0x00);
-                        drawInfo->TextColor = RGB(0x00, 0xff, 0x00);
-                        drawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
-                    }
-                    else
-                    {              
-                        drawInfo->BackColor = RGB(0xef, 0xef, 0xef);
-                        drawInfo->LineColor1 = PhHalveColorBrightness(PhGetIntegerSetting(L"ColorCpuKernel"));
-                        drawInfo->LineBackColor1 = PhMakeColorBrighter(drawInfo->LineColor1, 125);
-                        drawInfo->LineColor2 = PhHalveColorBrightness(PhGetIntegerSetting(L"ColorCpuUser"));
-                        drawInfo->LineBackColor2 = PhMakeColorBrighter(drawInfo->LineColor2, 125);
-                        drawInfo->GridColor = RGB(0xc7, 0xc7, 0xc7);
-                        drawInfo->TextColor = RGB(0x00, 0x00, 0x00);
-                        drawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
-                    }
+
+                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
 
                     if (header->hwndFrom == context->PingGraphHandle)
                     {
