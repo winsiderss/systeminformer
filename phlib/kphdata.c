@@ -70,8 +70,6 @@ NTSTATUS KphInitializeDynamicPackage(
 
         Package->StructData.EgeGuid = 0x14;
         Package->StructData.EpObjectTable = 0x160;
-        Package->StructData.EpProtectedProcessOff = 0x36c;
-        Package->StructData.EpProtectedProcessBit = 0xb;
         Package->StructData.EpRundownProtect = 0xd8;
         Package->StructData.EreGuidEntry = 0x10;
     }
@@ -93,8 +91,6 @@ NTSTATUS KphInitializeDynamicPackage(
 
         Package->StructData.EgeGuid = 0x14;
         Package->StructData.EpObjectTable = 0x200;
-        Package->StructData.EpProtectedProcessOff = 0x43c;
-        Package->StructData.EpProtectedProcessBit = 0xb;
         Package->StructData.EpRundownProtect = 0x178;
         Package->StructData.EreGuidEntry = 0x10;
         Package->StructData.OtName = 0x10;
@@ -108,8 +104,6 @@ NTSTATUS KphInitializeDynamicPackage(
 
         Package->StructData.EgeGuid = 0x14;
         Package->StructData.EpObjectTable = 0x408;
-        Package->StructData.EpProtectedProcessOff = -1; // now SE_SIGNING_LEVEL, no longer relevant
-        Package->StructData.EpProtectedProcessBit = -1;
         Package->StructData.EpRundownProtect = 0x2d8;
         Package->StructData.EreGuidEntry = 0x10;
         Package->StructData.HtHandleContentionEvent = 0x30;
@@ -126,8 +120,6 @@ NTSTATUS KphInitializeDynamicPackage(
 
         Package->StructData.EgeGuid = 0x18;
         Package->StructData.EpObjectTable = 0x408;
-        Package->StructData.EpProtectedProcessOff = -1; // now SE_SIGNING_LEVEL, no longer relevant
-        Package->StructData.EpProtectedProcessBit = -1;
         Package->StructData.EpRundownProtect = 0x2d8;
         Package->StructData.EreGuidEntry = 0x10;
         Package->StructData.HtHandleContentionEvent = 0x30;
