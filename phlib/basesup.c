@@ -435,7 +435,7 @@ PVOID PhAllocateExSafe(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFree(
-    _In_ _Post_invalid_ PVOID Memory
+    _Frees_ptr_opt_ PVOID Memory
     )
 {
     RtlFreeHeap(PhHeapHandle, 0, Memory);
@@ -459,7 +459,7 @@ VOID PhFree(
 _May_raise_
 _Post_writable_byte_size_(Size)
 PVOID PhReAllocate(
-    _In_ _Post_invalid_ PVOID Memory,
+    _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
     )
 {
@@ -535,7 +535,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    _In_ _Post_invalid_ PVOID Memory
+    _Frees_ptr_opt_ PVOID Memory
     )
 {
     SIZE_T size;
@@ -4383,19 +4383,43 @@ BOOLEAN PhHexStringToBuffer(
  * \return A string containing a sequence of hexadecimal digits.
  */
 PPH_STRING PhBufferToHexString(
-    _In_ PUCHAR Buffer,
+    _In_reads_bytes_(Length) PUCHAR Buffer,
     _In_ ULONG Length
     )
 {
+    return PhBufferToHexStringEx(Buffer, Length, FALSE);
+}
+
+/**
+ * Converts a byte array into a sequence of hexadecimal digits.
+ *
+ * \param Buffer The input buffer.
+ * \param Length The number of bytes to convert.
+ * \param UpperCase TRUE to use uppercase characters, otherwise FALSE.
+ *
+ * \return A string containing a sequence of hexadecimal digits.
+ */
+PPH_STRING PhBufferToHexStringEx(
+    _In_reads_bytes_(Length) PUCHAR Buffer,
+    _In_ ULONG Length,
+    _In_ BOOLEAN UpperCase
+    )
+{
+    PCHAR table;
     PPH_STRING string;
     ULONG i;
+
+    if (UpperCase)
+        table = PhIntegerToCharUpper;
+    else
+        table = PhIntegerToChar;
 
     string = PhCreateStringEx(NULL, Length * 2 * sizeof(WCHAR));
 
     for (i = 0; i < Length; i++)
     {
-        string->Buffer[i * 2] = PhIntegerToChar[Buffer[i] >> 4];
-        string->Buffer[i * 2 + 1] = PhIntegerToChar[Buffer[i] & 0xf];
+        string->Buffer[i * 2] = table[Buffer[i] >> 4];
+        string->Buffer[i * 2 + 1] = table[Buffer[i] & 0xf];
     }
 
     return string;

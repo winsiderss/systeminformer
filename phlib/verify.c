@@ -316,7 +316,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     ULONG fileSizeLimit;
     PUCHAR fileHash;
     ULONG fileHashLength;
-    PWSTR fileHashTag;
+    PPH_STRING fileHashTag;
     HANDLE catAdminHandle;
     HANDLE catInfoHandle;
     ULONG i;
@@ -343,15 +343,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 
     if (PhpCalculateFileHash(FileHandle, HashAlgorithm, &fileHash, &fileHashLength, &catAdminHandle))
     {
-        fileHashTag = PhAllocate((fileHashLength * 2 + 1) * sizeof(WCHAR));
-
-        for (i = 0; i < fileHashLength; i++)
-        {
-            fileHashTag[i * 2] = PhIntegerToCharUpper[fileHash[i] >> 4];
-            fileHashTag[i * 2 + 1] = PhIntegerToCharUpper[fileHash[i] & 0xf];
-        }
-
-        fileHashTag[fileHashLength * 2] = 0;
+        fileHashTag = PhBufferToHexStringEx(fileHash, fileHashLength, TRUE);
 
         // Search the system catalogs.
 
@@ -372,7 +364,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
-                catalogInfo.pcwszMemberTag = fileHashTag;
+                catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
                 catalogInfo.hCatAdmin = catAdminHandle;
                 verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &signatures, &numberOfSignatures);
             }
@@ -390,7 +382,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
-                catalogInfo.pcwszMemberTag = fileHashTag;
+                catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
                 catalogInfo.hCatAdmin = catAdminHandle;
                 verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, &signatures, &numberOfSignatures);
 
@@ -399,7 +391,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             }
         }
 
-        PhFree(fileHashTag);
+        PhDereferenceObject(fileHashTag);
         PhFree(fileHash);
         CryptCATAdminReleaseContext(catAdminHandle, 0);
     }
