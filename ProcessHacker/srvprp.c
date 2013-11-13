@@ -165,6 +165,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             PSERVICE_PROPERTIES_CONTEXT context = (PSERVICE_PROPERTIES_CONTEXT)propSheetPage->lParam;
             PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
             SC_HANDLE serviceHandle;
+            ULONG startType;
+            ULONG errorControl;
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
@@ -181,11 +183,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_DESCRIPTION, serviceItem->DisplayName->Buffer);
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE),
                 PhGetServiceTypeString(serviceItem->Type), FALSE);
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE),
-                PhGetServiceStartTypeString(serviceItem->StartType), FALSE);
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL),
-                PhGetServiceErrorControlString(serviceItem->ErrorControl), FALSE);
 
+            startType = serviceItem->StartType;
+            errorControl = serviceItem->ErrorControl;
             serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG);
 
             if (serviceHandle)
@@ -199,6 +199,13 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     SetDlgItemText(hwndDlg, IDC_GROUP, config->lpLoadOrderGroup);
                     SetDlgItemText(hwndDlg, IDC_BINARYPATH, config->lpBinaryPathName);
                     SetDlgItemText(hwndDlg, IDC_USERACCOUNT, config->lpServiceStartName);
+
+                    if (startType != config->dwStartType || errorControl != config->dwErrorControl)
+                    {
+                        startType = config->dwStartType;
+                        errorControl = config->dwErrorControl;
+                        PhMarkNeedsConfigUpdateServiceItem(serviceItem);
+                    }
 
                     PhFree(config);
                 }
@@ -222,6 +229,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                 CloseServiceHandle(serviceHandle);
             }
+
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE),
+                PhGetServiceStartTypeString(startType), FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL),
+                PhGetServiceErrorControlString(errorControl), FALSE);
 
             SetDlgItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);

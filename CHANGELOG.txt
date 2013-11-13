@@ -9,6 +9,8 @@ Process Hacker
    * Updated DotNetTools plugin:
      * Improved .NET assembly enumeration timeout handling
  * FIXED:
+   * Service start type and error control are never updated if
+     modified outside of Process Hacker
 
 2.32
  * NOTE:
