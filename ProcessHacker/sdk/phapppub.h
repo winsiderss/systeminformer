@@ -954,6 +954,13 @@ typedef struct _PH_SYSINFO_SECTION
     // ...
 } PH_SYSINFO_SECTION, *PPH_SYSINFO_SECTION;
 
+PHAPPAPI
+VOID PhSiSetColorsGraphDrawInfo(
+    _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ COLORREF Color1,
+    _In_ COLORREF Color2
+    );
+
 // log
 
 #define PH_LOG_ENTRY_MESSAGE 9

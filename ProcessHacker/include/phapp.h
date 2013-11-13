@@ -996,6 +996,7 @@ VOID PhSiNotifyChangeSettings(
     VOID
     );
 
+PHAPPAPI
 VOID PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
