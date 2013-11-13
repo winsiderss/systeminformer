@@ -269,7 +269,7 @@ FORCEINLINE void *_InterlockedExchangePointer(
 #endif
 
 FORCEINLINE LONG_PTR _InterlockedExchangeAddPointer(
-    _Inout_ LONG_PTR volatile *Addend,
+    _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend,
     _In_ LONG_PTR Value
     )
 {
@@ -281,7 +281,7 @@ FORCEINLINE LONG_PTR _InterlockedExchangeAddPointer(
 }
 
 FORCEINLINE LONG_PTR _InterlockedIncrementPointer(
-    _Inout_ LONG_PTR volatile *Addend
+    _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend
     )
 {
 #ifdef _M_IX86
@@ -292,7 +292,7 @@ FORCEINLINE LONG_PTR _InterlockedIncrementPointer(
 }
 
 FORCEINLINE LONG_PTR _InterlockedDecrementPointer(
-    _Inout_ LONG_PTR volatile *Addend
+    _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend
     )
 {
 #ifdef _M_IX86
@@ -303,7 +303,7 @@ FORCEINLINE LONG_PTR _InterlockedDecrementPointer(
 }
 
 FORCEINLINE BOOLEAN _InterlockedBitTestAndResetPointer(
-    _Inout_ LONG_PTR volatile *Base,
+    _Inout_ _Interlocked_operand_ LONG_PTR volatile *Base,
     _In_ LONG_PTR Bit
     )
 {
@@ -315,7 +315,7 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndResetPointer(
 }
 
 FORCEINLINE BOOLEAN _InterlockedBitTestAndSetPointer(
-    _Inout_ LONG_PTR volatile *Base,
+    _Inout_ _Interlocked_operand_ LONG_PTR volatile *Base,
     _In_ LONG_PTR Bit
     )
 {
@@ -327,7 +327,7 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndSetPointer(
 }
 
 FORCEINLINE BOOLEAN _InterlockedIncrementNoZero(
-    _Inout_ LONG volatile *Addend
+    _Inout_ _Interlocked_operand_ LONG volatile *Addend
     )
 {
     LONG value;

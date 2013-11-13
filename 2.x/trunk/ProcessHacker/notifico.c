@@ -352,7 +352,7 @@ PPH_NF_ICON PhNfRegisterIcon(
     _In_ ULONG SubId,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
-    _Reserved_ ULONG Flags,
+    _In_ ULONG Flags,
     _In_opt_ PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback,
     _In_opt_ PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback
     )

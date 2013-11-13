@@ -185,6 +185,7 @@ PhfWaitForWakeEvent(
 
 // Inline functions
 
+_Acquires_exclusive_lock_(*QueuedLock)
 FORCEINLINE VOID PhAcquireQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
@@ -196,6 +197,7 @@ FORCEINLINE VOID PhAcquireQueuedLockExclusive(
     }
 }
 
+_Acquires_shared_lock_(*QueuedLock)
 FORCEINLINE VOID PhAcquireQueuedLockShared(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
@@ -210,6 +212,7 @@ FORCEINLINE VOID PhAcquireQueuedLockShared(
     }
 }
 
+_When_(return != 0, _Acquires_exclusive_lock_(*QueuedLock))
 FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
@@ -224,6 +227,7 @@ FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
     }
 }
 
+_Releases_exclusive_lock_(*QueuedLock)
 FORCEINLINE VOID PhReleaseQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
@@ -238,6 +242,7 @@ FORCEINLINE VOID PhReleaseQueuedLockExclusive(
     }
 }
 
+_Releases_shared_lock_(*QueuedLock)
 FORCEINLINE VOID PhReleaseQueuedLockShared(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )

@@ -36,6 +36,7 @@ PhDeleteFastLock(
 
 #define PhAcquireFastLockExclusive PhfAcquireFastLockExclusive
 _May_raise_
+_Acquires_exclusive_lock_(*FastLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -45,6 +46,7 @@ PhfAcquireFastLockExclusive(
 
 #define PhAcquireFastLockShared PhfAcquireFastLockShared
 _May_raise_
+_Acquires_shared_lock_(*FastLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -53,6 +55,7 @@ PhfAcquireFastLockShared(
     );
 
 #define PhReleaseFastLockExclusive PhfReleaseFastLockExclusive
+_Releases_exclusive_lock_(*FastLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -61,6 +64,7 @@ PhfReleaseFastLockExclusive(
     );
 
 #define PhReleaseFastLockShared PhfReleaseFastLockShared
+_Releases_shared_lock_(*FastLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -69,6 +73,7 @@ PhfReleaseFastLockShared(
     );
 
 #define PhTryAcquireFastLockExclusive PhfTryAcquireFastLockExclusive
+_When_(return != 0, _Acquires_exclusive_lock_(*FastLock))
 PHLIBAPI
 BOOLEAN
 FASTCALL
@@ -77,6 +82,7 @@ PhfTryAcquireFastLockExclusive(
     );
 
 #define PhTryAcquireFastLockShared PhfTryAcquireFastLockShared
+_When_(return != 0, _Acquires_shared_lock_(*FastLock))
 PHLIBAPI
 BOOLEAN
 FASTCALL

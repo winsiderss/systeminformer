@@ -338,7 +338,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFree(
-    _In_ _Post_invalid_ PVOID Memory
+    _Frees_ptr_opt_ PVOID Memory
     );
 
 _May_raise_
@@ -347,7 +347,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhReAllocate(
-    _In_ _Post_invalid_ PVOID Memory,
+    _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
     );
 
@@ -373,7 +373,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
-    _In_ _Post_invalid_ PVOID Memory
+    _Frees_ptr_opt_ PVOID Memory
     );
 
 FORCEINLINE PVOID PhAllocateAligned(
@@ -2888,8 +2888,16 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhBufferToHexString(
-    _In_ PUCHAR Buffer,
+    _In_reads_bytes_(Length) PUCHAR Buffer,
     _In_ ULONG Length
+    );
+
+PPH_STRING
+NTAPI
+PhBufferToHexStringEx(
+    _In_reads_bytes_(Length) PUCHAR Buffer,
+    _In_ ULONG Length,
+    _In_ BOOLEAN UpperCase
     );
 
 PHLIBAPI

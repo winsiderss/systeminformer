@@ -45,7 +45,7 @@ int __cdecl main(int argc, char *argv[])
     if (!NT_SUCCESS(PhInitializePhLib()))
         return 1;
 
-    commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
 
     if (!PhParseCommandLine(
         &commandLine,
