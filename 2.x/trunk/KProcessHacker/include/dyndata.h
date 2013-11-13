@@ -69,8 +69,6 @@ EXT RTL_OSVERSIONINFOEXW KphDynOsVersionInfo;
 // ObAttributesShift: shift value in ObpGetHandleAttributes
 EXT ULONG KphDynEgeGuid OFFDEFAULT;
 EXT ULONG KphDynEpObjectTable OFFDEFAULT;
-EXT ULONG KphDynEpProtectedProcessOff OFFDEFAULT;
-EXT ULONG KphDynEpProtectedProcessBit OFFDEFAULT;
 EXT ULONG KphDynEpRundownProtect OFFDEFAULT;
 EXT ULONG KphDynEreGuidEntry OFFDEFAULT;
 EXT ULONG KphDynHtHandleContentionEvent OFFDEFAULT;
