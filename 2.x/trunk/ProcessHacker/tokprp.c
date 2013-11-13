@@ -760,8 +760,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 if (!PhShowContinueStatus(
                                     hwndDlg,
                                     PhaFormatString(L"Unable to %s %s", action, privilegeName->Buffer)->Buffer,
-                                    0,
-                                    GetLastError()
+                                    STATUS_UNSUCCESSFUL,
+                                    0
                                     ))
                                     break;
                             }
