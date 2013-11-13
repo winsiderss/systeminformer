@@ -104,8 +104,9 @@ PPH_STRING PhapGetAlpcInformation(
     );
 
 static PH_INITONCE ServiceNumbersInitOnce = PH_INITONCE_INIT;
-static USHORT WfsoNumber = -1;
-static USHORT WfmoNumber = -1;
+static USHORT NumberForWfso = -1;
+static USHORT NumberForWfmo = -1;
+static USHORT NumberForRf = -1;
 
 VOID PhUiAnalyzeWaitThread(
     _In_ HWND hWnd,
@@ -228,16 +229,23 @@ VOID PhpAnalyzeWaitPassive(
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    if (lastSystemCall.SystemCallNumber == WfsoNumber)
+    if (lastSystemCall.SystemCallNumber == NumberForWfso)
     {
         string = PhapGetHandleString(processHandle, lastSystemCall.FirstArgument);
 
         PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for:\r\n");
         PhAppendStringBuilder(&stringBuilder, string);
     }
-    else if (lastSystemCall.SystemCallNumber == WfmoNumber)
+    else if (lastSystemCall.SystemCallNumber == NumberForWfmo)
     {
-        PhAppendStringBuilder2(&stringBuilder, L"Thread is waiting for multiple objects.");
+        PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for multiple (%u) objects.", (ULONG)lastSystemCall.FirstArgument);
+    }
+    else if (lastSystemCall.SystemCallNumber == NumberForRf)
+    {
+        string = PhapGetHandleString(processHandle, lastSystemCall.FirstArgument);
+
+        PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for file I/O:\r\n");
+        PhAppendStringBuilder(&stringBuilder, string);
     }
     else
     {
@@ -672,7 +680,8 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
                 if (
                     processInfo->Threads[i].ClientId.UniqueThread == basicInfo.ClientId.UniqueThread &&
                     processInfo->Threads[i].ThreadState == Waiting &&
-                    processInfo->Threads[i].WaitReason == UserRequest
+                    (processInfo->Threads[i].WaitReason == UserRequest ||
+                    processInfo->Threads[i].WaitReason == Executive)
                     )
                 {
                     isWaiting = TRUE;
@@ -742,6 +751,21 @@ static NTSTATUS PhpWfmoThreadStart(
     return STATUS_SUCCESS;
 }
 
+static NTSTATUS PhpRfThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+    ULONG data;
+
+    fileHandle = Parameter;
+
+    NtReadFile(fileHandle, NULL, NULL, NULL, &isb, &data, sizeof(ULONG), NULL, NULL);
+
+    return STATUS_SUCCESS;
+}
+
 static VOID PhpInitializeServiceNumbers(
     VOID
     )
@@ -751,6 +775,8 @@ static VOID PhpInitializeServiceNumbers(
         NTSTATUS status;
         HANDLE eventHandle;
         HANDLE threadHandle;
+        HANDLE pipeReadHandle;
+        HANDLE pipeWriteHandle;
 
         // The ThreadLastSystemCall info class only works when the thread is in the Waiting
         // state. We'll create a thread which blocks on an event object we create, then wait
@@ -767,7 +793,7 @@ static VOID PhpInitializeServiceNumbers(
             {
                 if (PhpWaitUntilThreadIsWaiting(threadHandle))
                 {
-                    PhpGetThreadLastSystemCallNumber(threadHandle, &WfsoNumber);
+                    PhpGetThreadLastSystemCallNumber(threadHandle, &NumberForWfso);
                 }
 
                 // Allow the thread to exit.
@@ -788,7 +814,7 @@ static VOID PhpInitializeServiceNumbers(
             {
                 if (PhpWaitUntilThreadIsWaiting(threadHandle))
                 {
-                    PhpGetThreadLastSystemCallNumber(threadHandle, &WfmoNumber);
+                    PhpGetThreadLastSystemCallNumber(threadHandle, &NumberForWfmo);
                 }
 
                 NtSetEvent(eventHandle, NULL);
@@ -796,6 +822,28 @@ static VOID PhpInitializeServiceNumbers(
             }
 
             NtClose(eventHandle);
+        }
+
+        // NtReadFile
+
+        if (CreatePipe(&pipeReadHandle, &pipeWriteHandle, NULL, 0))
+        {
+            if (threadHandle = PhCreateThread(0, PhpRfThreadStart, pipeReadHandle))
+            {
+                ULONG data = 0;
+                IO_STATUS_BLOCK isb;
+
+                if (PhpWaitUntilThreadIsWaiting(threadHandle))
+                {
+                    PhpGetThreadLastSystemCallNumber(threadHandle, &NumberForRf);
+                }
+
+                NtWriteFile(pipeWriteHandle, NULL, NULL, NULL, &isb, &data, sizeof(data), NULL, NULL);
+                NtClose(threadHandle);
+            }
+
+            NtClose(pipeReadHandle);
+            NtClose(pipeWriteHandle);
         }
 
         PhEndInitOnce(&ServiceNumbersInitOnce);
