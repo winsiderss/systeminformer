@@ -177,6 +177,12 @@ INT WINAPI WinMain(
 
     if (PhStartupParameters.PhSvc)
     {
+        MSG message;
+
+        // Turn the feedback cursor off.
+        PostMessage(NULL, WM_NULL, 0, 0);
+        GetMessage(&message, NULL, 0, 0);
+
         RtlExitUserProcess(PhSvcMain(NULL, NULL, NULL));
     }
 
