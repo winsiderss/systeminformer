@@ -275,8 +275,6 @@ NTSTATUS KphpLoadDynamicConfiguration(
 
             KphDynEgeGuid = C_2sTo4(package->StructData.EgeGuid);
             KphDynEpObjectTable = C_2sTo4(package->StructData.EpObjectTable);
-            KphDynEpProtectedProcessOff = C_2sTo4(package->StructData.EpProtectedProcessOff);
-            KphDynEpProtectedProcessBit = C_2sTo4(package->StructData.EpProtectedProcessBit);
             KphDynEpRundownProtect = C_2sTo4(package->StructData.EpRundownProtect);
             KphDynEreGuidEntry = C_2sTo4(package->StructData.EreGuidEntry);
             KphDynHtHandleContentionEvent = C_2sTo4(package->StructData.HtHandleContentionEvent);
@@ -443,8 +441,6 @@ static NTSTATUS KphpX86DataInitialization(
 
         KphDynEgeGuid = 0xc;
         KphDynEpObjectTable = 0xdc;
-        KphDynEpProtectedProcessOff = 0x224;
-        KphDynEpProtectedProcessBit = 0xb;
         KphDynEpRundownProtect = 0x98;
         KphDynEreGuidEntry = 0x8;
 
@@ -487,8 +483,6 @@ static NTSTATUS KphpX86DataInitialization(
 
         KphDynEgeGuid = 0xc;
         KphDynEpObjectTable = 0xf4;
-        KphDynEpProtectedProcessOff = 0x26c;
-        KphDynEpProtectedProcessBit = 0xb;
         KphDynEpRundownProtect = 0xb0;
         KphDynEreGuidEntry = 0x8;
         KphDynOtName = 0x8;

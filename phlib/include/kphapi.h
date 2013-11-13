@@ -8,7 +8,7 @@
 
 typedef enum _KPH_PROCESS_INFORMATION_CLASS
 {
-    KphProcessProtectionInformation = 1, // qs: KPH_PROCESS_PROTECTION_INFORMATION
+    KphProcessProtectionInformation = 1, // q: KPH_PROCESS_PROTECTION_INFORMATION
     KphProcessExecuteFlags = 2, // s: ULONG
     KphProcessIoPriority = 3, // qs: ULONG
     MaxKphProcessInfoClass
@@ -131,8 +131,8 @@ typedef struct _KPH_DYN_STRUCT_DATA
 {
     SHORT EgeGuid;
     SHORT EpObjectTable;
-    SHORT EpProtectedProcessOff;
-    SHORT EpProtectedProcessBit;
+    SHORT Reserved0;
+    SHORT Reserved1;
     SHORT EpRundownProtect;
     SHORT EreGuidEntry;
     SHORT HtHandleContentionEvent;

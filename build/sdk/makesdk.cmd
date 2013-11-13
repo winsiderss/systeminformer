@@ -99,6 +99,8 @@ rem Symbols
 
 copy ..\..\bin\Release32\ProcessHacker.pdb ..\..\sdk\dbg\i386\
 copy ..\..\bin\Release64\ProcessHacker.pdb ..\..\sdk\dbg\amd64\
+copy ..\..\KProcessHacker\bin\i386\kprocesshacker.pdb ..\..\sdk\dbg\i386\
+copy ..\..\KProcessHacker\bin\amd64\kprocesshacker.pdb ..\..\sdk\dbg\amd64\
 
 rem Libraries
 

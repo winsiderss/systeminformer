@@ -763,9 +763,6 @@ NTSTATUS KpiSetInformationProcess(
 
         switch (ProcessInformationClass)
         {
-        case KphProcessProtectionInformation:
-            alignment = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
-            break;
         default:
             alignment = sizeof(ULONG);
             break;
@@ -795,48 +792,6 @@ NTSTATUS KpiSetInformationProcess(
 
     switch (ProcessInformationClass)
     {
-    case KphProcessProtectionInformation:
-        {
-#if defined(KPH_CONFIG_CLEAN)
-            status = STATUS_IMPLEMENTATION_LIMIT;
-#else
-            BOOLEAN protectedProcess = FALSE; // stupid x64 compiler
-            BOOLEAN change;
-
-            if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
-            {
-                if (ProcessInformationLength == sizeof(KPH_PROCESS_PROTECTION_INFORMATION))
-                {
-                    __try
-                    {
-                        protectedProcess = ((PKPH_PROCESS_PROTECTION_INFORMATION)ProcessInformation)->IsProtectedProcess;
-                        change = TRUE;
-                    }
-                    __except (EXCEPTION_EXECUTE_HANDLER)
-                    {
-                        status = GetExceptionCode();
-                    }
-                }
-                else
-                {
-                    status = STATUS_INFO_LENGTH_MISMATCH;
-                }
-            }
-            else
-            {
-                status = STATUS_NOT_SUPPORTED;
-            }
-
-            if (NT_SUCCESS(status))
-            {
-                if (protectedProcess)
-                    InterlockedOr((PLONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff), (ULONG)(1 << KphDynEpProtectedProcessBit));
-                else
-                    InterlockedAnd((PLONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff), ~(ULONG)(1 << KphDynEpProtectedProcessBit));
-            }
-#endif
-        }
-        break;
     case KphProcessExecuteFlags:
         {
             ULONG executeFlags;
