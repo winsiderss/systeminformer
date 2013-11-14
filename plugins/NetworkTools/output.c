@@ -45,6 +45,9 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
+            PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             if (context->ProcessHandle)
             {
                 // Terminate the child process.
@@ -58,7 +61,10 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             if (context->PipeReadHandle)
                 NtClose(context->PipeReadHandle);
 
-            PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg); 
+            // Close the pipe output thread.
+            if (context->ThreadHandle)
+                NtClose(context->ThreadHandle);
+
             RemoveProp(hwndDlg, L"Context");
         }
     }
