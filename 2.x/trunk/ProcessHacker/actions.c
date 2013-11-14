@@ -857,6 +857,7 @@ BOOLEAN PhUiTerminateProcesses(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN cancelled = FALSE;
     ULONG i;
 
     if (!PhpShowContinueMessageProcesses(
@@ -894,7 +895,7 @@ BOOLEAN PhUiTerminateProcesses(
 
             success = FALSE;
 
-            if (NumberOfProcesses == 1 && PhpShowErrorAndConnectToPhSvc(
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
                 PhaConcatStrings2(L"Unable to terminate ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
@@ -903,12 +904,16 @@ BOOLEAN PhUiTerminateProcesses(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessTerminate, 0)))
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessTerminate, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"terminate", Processes[0], status, 0);
+                        PhpShowErrorProcess(hWnd, L"terminate", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
                 }
             }
             else
@@ -1037,6 +1042,7 @@ BOOLEAN PhUiSuspendProcesses(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN cancelled = FALSE;
     ULONG i;
 
     if (!PhpShowContinueMessageProcesses(
@@ -1070,7 +1076,7 @@ BOOLEAN PhUiSuspendProcesses(
 
             success = FALSE;
 
-            if (NumberOfProcesses == 1 && PhpShowErrorAndConnectToPhSvc(
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
                 PhaConcatStrings2(L"Unable to suspend ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
@@ -1079,12 +1085,16 @@ BOOLEAN PhUiSuspendProcesses(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessSuspend, 0)))
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessSuspend, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"suspend", Processes[0], status, 0);
+                        PhpShowErrorProcess(hWnd, L"suspend", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
                 }
             }
             else
@@ -1105,6 +1115,7 @@ BOOLEAN PhUiResumeProcesses(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN cancelled = FALSE;
     ULONG i;
 
     if (!PhpShowContinueMessageProcesses(
@@ -1138,7 +1149,7 @@ BOOLEAN PhUiResumeProcesses(
 
             success = FALSE;
 
-            if (NumberOfProcesses == 1 && PhpShowErrorAndConnectToPhSvc(
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
                 PhaConcatStrings2(L"Unable to resume ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
@@ -1147,12 +1158,16 @@ BOOLEAN PhUiResumeProcesses(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessResume, 0)))
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessResume, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"resume", Processes[0], status, 0);
+                        PhpShowErrorProcess(hWnd, L"resume", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
                 }
             }
             else
@@ -2240,6 +2255,7 @@ BOOLEAN PhUiCloseConnections(
 {
 
     BOOLEAN success = TRUE;
+    BOOLEAN cancelled = FALSE;
     ULONG result;
     ULONG i;
     _SetTcpEntry SetTcpEntry_I;
@@ -2281,7 +2297,7 @@ BOOLEAN PhUiCloseConnections(
             if (result == ERROR_MR_MID_NOT_FOUND)
                 result = ERROR_ACCESS_DENIED;
 
-            if (NumberOfConnections == 1 && PhpShowErrorAndConnectToPhSvc(
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
                 L"Unable to close the TCP connection",
                 NTSTATUS_FROM_WIN32(result),
@@ -2296,6 +2312,10 @@ BOOLEAN PhUiCloseConnections(
                         PhShowStatus(hWnd, L"Unable to close the TCP connection", status, 0);
 
                     PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
                 }
             }
             else
@@ -2385,6 +2405,7 @@ BOOLEAN PhUiTerminateThreads(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN cancelled = FALSE;
     ULONG i;
 
     if (!PhpShowContinueMessageThreads(
@@ -2418,7 +2439,7 @@ BOOLEAN PhUiTerminateThreads(
 
             success = FALSE;
 
-            if (NumberOfThreads == 1 && PhpShowErrorAndConnectToPhSvc(
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
                 PhaFormatString(L"Unable to terminate thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
                 status,
@@ -2427,12 +2448,16 @@ BOOLEAN PhUiTerminateThreads(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadTerminate, 0)))
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[i]->ThreadId, PhSvcControlThreadTerminate, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorThread(hWnd, L"terminate", Threads[0], status, 0);
+                        PhpShowErrorThread(hWnd, L"terminate", Threads[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
                 }
             }
             else
@@ -2521,6 +2546,7 @@ BOOLEAN PhUiSuspendThreads(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN cancelled = FALSE;
     ULONG i;
 
     for (i = 0; i < NumberOfThreads; i++)
@@ -2544,7 +2570,7 @@ BOOLEAN PhUiSuspendThreads(
 
             success = FALSE;
 
-            if (NumberOfThreads == 1 && PhpShowErrorAndConnectToPhSvc(
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
                 PhaFormatString(L"Unable to suspend thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
                 status,
@@ -2553,12 +2579,16 @@ BOOLEAN PhUiSuspendThreads(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadSuspend, 0)))
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[i]->ThreadId, PhSvcControlThreadSuspend, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorThread(hWnd, L"suspend", Threads[0], status, 0);
+                        PhpShowErrorThread(hWnd, L"suspend", Threads[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
                 }
             }
             else
@@ -2579,6 +2609,7 @@ BOOLEAN PhUiResumeThreads(
     )
 {
     BOOLEAN success = TRUE;
+    BOOLEAN cancelled = FALSE;
     ULONG i;
 
     for (i = 0; i < NumberOfThreads; i++)
@@ -2602,7 +2633,7 @@ BOOLEAN PhUiResumeThreads(
 
             success = FALSE;
 
-            if (NumberOfThreads == 1 && PhpShowErrorAndConnectToPhSvc(
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
                 PhaFormatString(L"Unable to resume thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
                 status,
@@ -2611,12 +2642,16 @@ BOOLEAN PhUiResumeThreads(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadResume, 0)))
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[i]->ThreadId, PhSvcControlThreadResume, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorThread(hWnd, L"resume", Threads[0], status, 0);
+                        PhpShowErrorThread(hWnd, L"resume", Threads[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
                 }
             }
             else
