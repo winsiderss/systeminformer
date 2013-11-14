@@ -141,6 +141,7 @@ static ULONG PhNetworkPingThreadStart(
     PPH_STRING phVersion = NULL;
     PPH_ANSI_STRING icmpEchoBuffer = NULL;
     PNETWORK_OUTPUT_CONTEXT context = NULL;
+
     static IP_OPTION_INFORMATION pingOptions = 
     { 
         255,         // Time To Live
@@ -151,10 +152,11 @@ static ULONG PhNetworkPingThreadStart(
 
     __try
     {
-        context = (PNETWORK_OUTPUT_CONTEXT) Parameter;
-        if (context == NULL)
+        // Query thread context.
+        if ((context = (PNETWORK_OUTPUT_CONTEXT)Parameter) == NULL)
             __leave;
 
+        // Query PH version.
         if ((phVersion = PhGetPhVersion()) == NULL)
             __leave;
 
@@ -373,7 +375,7 @@ static ULONG PhNetworkPingThreadStart(
                 );
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
-            if (icmpReplyCount > 0 && icmpReplyStruct)
+            if (icmpReplyStruct && icmpReplyCount > 0)
             { 
                 BOOLEAN icmpPacketSignature = FALSE;
 
@@ -525,7 +527,7 @@ static VOID NTAPI NetworkPingUpdateHandler(
 {
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Context;
 
-	// Queue the ping worker thread...
+	// Queue up the next ping into our work queue...
 	PhQueueItemWorkQueue(
 		&context->PingWorkQueue, 
 		PhNetworkPingThreadStart, 
