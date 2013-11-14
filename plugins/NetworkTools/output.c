@@ -195,12 +195,12 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                 inputString.Buffer = (PCHAR)lParam;
                 inputString.Length = (USHORT)wParam;
 
-                PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
-
                 if (NT_SUCCESS(RtlOemStringToUnicodeString(&convertedString, &inputString, TRUE)))
                 {
                     USHORT i;
                     PPH_STRING windowText = NULL;
+
+                    PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
 
                     // Get the current output text.
                     windowText = PhGetWindowText(context->OutputHandle);
@@ -242,6 +242,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     SendMessage(context->OutputHandle, WM_VSCROLL, SB_BOTTOM, 0);
 
                     PhDeleteStringBuilder(&receivedString);
+                    RtlFreeUnicodeString(&convertedString);
                     return TRUE;
                 }
             }
@@ -258,11 +259,11 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                 inputString.Buffer = (PCHAR)lParam;
                 inputString.Length = (USHORT)wParam;
 
-                PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
-
                 if (NT_SUCCESS(RtlOemStringToUnicodeString(&convertedString, &inputString, TRUE)))
                 {
                     USHORT i;
+
+                    PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
 
                     // Remove leading newlines.                  
                     for (i = 0; i < inputString.Length; i++)
@@ -281,6 +282,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                         }
                     }
 
+                    // Remove leading newlines.  
                     if (receivedString.String->Length >= 2 * 2 &&
                         receivedString.String->Buffer[0] == '\r' && 
                         receivedString.String->Buffer[1] == '\n')
@@ -298,6 +300,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     SendMessage(context->OutputHandle, WM_VSCROLL, SB_TOP, 0);
 
                     PhDeleteStringBuilder(&receivedString);
+                    RtlFreeUnicodeString(&convertedString);
                     return TRUE;
                 }
             }
