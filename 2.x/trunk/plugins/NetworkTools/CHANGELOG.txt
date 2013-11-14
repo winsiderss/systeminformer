@@ -1,3 +1,8 @@
+1.4
+ * Fixed whois scrolling issue
+ * Fixed ping threading issues
+ * Fixed various memory leaks
+
 1.3
  * Added plugin options for ping/tracert/whois
  * Added native pint/tracert/whois support

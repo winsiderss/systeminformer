@@ -48,13 +48,14 @@ typedef enum _PH_NETWORK_ACTION
 {
     NETWORK_ACTION_PING = 1,
     NETWORK_ACTION_TRACEROUTE = 2,
-    NETWORK_ACTION_WHOIS = 3
+    NETWORK_ACTION_WHOIS = 3,
+    NETWORK_ACTION_FINISH
 } PH_NETWORK_ACTION;
 
 // output
-#define NTM_RECEIVEDPING (WM_APP + NETWORK_ACTION_PING)
 #define NTM_RECEIVEDTRACE (WM_APP + NETWORK_ACTION_TRACEROUTE)
 #define NTM_RECEIVEDWHOIS (WM_APP + NETWORK_ACTION_WHOIS)
+#define NTM_RECEIVEDFINISH (WM_APP + NETWORK_ACTION_FINISH)
 
 typedef struct _NETWORK_OUTPUT_CONTEXT
 {
@@ -69,6 +70,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HWND ParentHandle;
     HWND StatusHandle;
     HWND PingGraphHandle;
+    HWND OutputHandle;
     HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
@@ -84,10 +86,9 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     ULONG PingSentCount;
     ULONG PingRecvCount;
     ULONG PingLossCount;
-
+    
     PPH_NETWORK_ITEM NetworkItem;
     PH_IP_ADDRESS IpAddress;
-    PH_STRING_BUILDER ReceivedString;
     WCHAR addressString[65];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
