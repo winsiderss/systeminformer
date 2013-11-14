@@ -32,11 +32,11 @@ static BOOLEAN ReadRequestString(
     _Out_ ULONG *DataLength
     )
 {
-    BYTE buffer[PAGE_SIZE];
     PSTR data;
     ULONG allocatedLength;
     ULONG dataLength;
     ULONG returnLength;
+    BYTE buffer[PAGE_SIZE];
 
     allocatedLength = sizeof(buffer);
     data = (PSTR)PhAllocate(allocatedLength);

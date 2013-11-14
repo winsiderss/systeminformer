@@ -375,6 +375,7 @@ static ULONG PhNetworkPingThreadStart(
                 );
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
+
             if (icmpReplyStruct && icmpReplyCount > 0)
             { 
                 BOOLEAN icmpPacketSignature = FALSE;
@@ -398,93 +399,17 @@ static ULONG PhNetworkPingThreadStart(
                         ) == 0);
                 }
 
-                if (icmpPacketSignature != TRUE)
-                {
-                    InterlockedIncrement(&context->HashFailCount);
-                }
-
                 icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
                 icmpCurrentPingTtl = icmpReplyStruct->Options.Ttl;
 
-                switch (icmpReplyStruct->Status) 
+                if (!icmpPacketSignature)
                 {
-                case IP_DEST_HOST_UNREACHABLE:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp destination host unreachable. ErrCode: %u [%s]", 
-                            icmpReplyStruct->Status,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                case IP_DEST_NET_UNREACHABLE:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp destination network unreachable. ErrCode: %u [%s]", 
-                            icmpReplyStruct->Status,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                case IP_REQ_TIMED_OUT:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp request timed-out. ErrCode: %u [%s]", 
-                            icmpReplyStruct->Status,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
+                    InterlockedIncrement(&context->HashFailCount);
                 }
             }
             else
             {
-                ULONG icmpErrorCode = GetLastError();
-
                 InterlockedIncrement(&context->PingLossCount);
-
-                switch (icmpErrorCode) 
-                {
-                case IP_BUF_TOO_SMALL:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp reply buffer too small. ErrCode: %u [%s]", 
-                            icmpErrorCode,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                case IP_REQ_TIMED_OUT:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp request timed-out. ErrCode: %u [%s]", 
-                            icmpErrorCode,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                default:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp generic failure. ErrCode: %u [%s]", 
-                            icmpErrorCode,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                }
             }
         }
 
@@ -567,25 +492,15 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             if (context->PingGraphHandle)
-            {
                 DestroyWindow(context->PingGraphHandle);
-                context->PingGraphHandle = NULL;
-            }
 
             if (context->IconHandle)
-            {
                 DestroyIcon(context->IconHandle);
-                context->IconHandle = NULL;
-            }
 
             if (context->FontHandle)
-            {
                 DeleteObject(context->FontHandle);
-                context->FontHandle = NULL;
-            }
 
             RemoveProp(hwndDlg, L"Context");
-            context = NULL;
         }
     }
 
@@ -605,6 +520,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             // It's a good tradeoff since no one stares at the group boxes.
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
+            context->WindowHandle = hwndDlg;
             context->ParentHandle = GetParent(hwndDlg);
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
             context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
@@ -833,7 +749,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->PingGraphState.Data1,
-                                (FLOAT)context->MaxPingTimeout,
+                                (FLOAT)context->MaxPingTimeout, // maxGraphHeight
                                 drawInfo->LineDataCount
                                 );
 
@@ -878,12 +794,13 @@ NTSTATUS PhNetworkPingDialogThreadStart(
 {
     BOOL result;
     MSG message;
+    HWND windowHandle;
     PH_AUTO_POOL autoPool;
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
 
     PhInitializeAutoPool(&autoPool);
 
-    context->WindowHandle = CreateDialogParam(
+    windowHandle = CreateDialogParam(
         (HINSTANCE)PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PINGDIALOG),
         PhMainWndHandle,
@@ -891,15 +808,15 @@ NTSTATUS PhNetworkPingDialogThreadStart(
         (LPARAM)Parameter
         );
 
-    ShowWindow(context->WindowHandle, SW_SHOW);
-    SetForegroundWindow(context->WindowHandle);
+    ShowWindow(windowHandle, SW_SHOW);
+    SetForegroundWindow(windowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(context->WindowHandle, &message))
+        if (!IsDialogMessage(windowHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -909,7 +826,7 @@ NTSTATUS PhNetworkPingDialogThreadStart(
     }
 
     PhDeleteAutoPool(&autoPool);
-    DestroyWindow(context->WindowHandle);
+    DestroyWindow(windowHandle);
 
     PhFree(context);
 
