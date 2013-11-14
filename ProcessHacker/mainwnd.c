@@ -568,57 +568,38 @@ PPH_STRING PhMwpFindDbghelpPath(
     VOID
     )
 {
+    static struct
+    {
+        ULONG Folder;
+        PWSTR AppendPath;
+    } locations[] =
+    {
+#ifdef _M_IX86
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
+#else
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
+#endif
+    };
+
     PPH_STRING path;
+    ULONG i;
 
-    path = PhGetKnownLocation(
-        CSIDL_PROGRAM_FILES,
-#ifdef _M_IX86
-        L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
-#else
-        L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
-#endif
-        );
+    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
+    {
+        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
 
-    if (path && RtlDoesFileExists_U(path->Buffer))
-        return path;
-    if (path)
-        PhDereferenceObject(path);
+        if (path)
+        {
+            if (RtlDoesFileExists_U(path->Buffer))
+                return path;
 
-    path = PhGetKnownLocation(
-#ifdef _M_IX86
-        CSIDL_PROGRAM_FILES,
-#else
-        CSIDL_PROGRAM_FILESX86,
-#endif
-#ifdef _M_IX86
-        L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll"
-#else
-        L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll"
-#endif
-        );
-
-    if (path && RtlDoesFileExists_U(path->Buffer))
-        return path;
-    if (path)
-        PhDereferenceObject(path);
-
-    path = PhGetKnownLocation(
-#ifdef _M_IX86
-        CSIDL_PROGRAM_FILES,
-#else
-        CSIDL_PROGRAM_FILESX86,
-#endif
-#ifdef _M_IX86
-        L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll"
-#else
-        L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll"
-#endif
-        );
-
-    if (path && RtlDoesFileExists_U(path->Buffer))
-        return path;
-    if (path)
-        PhDereferenceObject(path);
+            PhDereferenceObject(path);
+        }
+    }
 
     return NULL;
 }
