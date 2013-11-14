@@ -43,12 +43,13 @@ static NTSTATUS PhUploadToDialogThreadStart(
 {
     BOOL result;
     MSG message;
+    HWND dialogHandle;
     PH_AUTO_POOL autoPool;
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
     PhInitializeAutoPool(&autoPool);
 
-    context->DialogHandle = CreateDialogParam(
+    dialogHandle = CreateDialogParam(
         (HINSTANCE)PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PROGRESS),
         PhMainWndHandle,
@@ -56,15 +57,15 @@ static NTSTATUS PhUploadToDialogThreadStart(
         (LPARAM)Parameter
         );
 
-    ShowWindow(context->DialogHandle, SW_SHOW);
-    SetForegroundWindow(context->DialogHandle);
+    ShowWindow(dialogHandle, SW_SHOW);
+    SetForegroundWindow(dialogHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(context->DialogHandle, &message))
+        if (!IsDialogMessage(dialogHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -74,7 +75,7 @@ static NTSTATUS PhUploadToDialogThreadStart(
     }
 
     PhDeleteAutoPool(&autoPool);
-    DestroyWindow(context->DialogHandle);
+    DestroyWindow(dialogHandle);
     PhFree(context);
     return STATUS_SUCCESS;
 }
@@ -1087,56 +1088,29 @@ INT_PTR CALLBACK UploadDlgProc(
 
         if (uMsg == WM_NCDESTROY)
         {
-            if (!context->FileName)
-            {
+            if (context->FileName)
                 PhDereferenceObject(context->FileName);
-                context->FileName = NULL;
-            }
 
             if (context->BaseFileName)
-            {
                 PhDereferenceObject(context->BaseFileName);
-                context->BaseFileName = NULL;
-            }
 
             if (context->WindowFileName)
-            {
                 PhDereferenceObject(context->WindowFileName);
-                context->WindowFileName = NULL;
-            }
 
             if (context->MessageFont)
-            {
                 DeleteObject(context->MessageFont);
-                context->MessageFont = NULL;
-            }
 
             if (context->HttpHandle)
-            {
                 WinHttpCloseHandle(context->HttpHandle);
-                context->HttpHandle = NULL;
-            }
 
-            //if (context->ObjectName)
-            //{
-            //    PhDereferenceObject(context->ObjectName);
-            //}
-            //if (context->FileHandle)
-            //{
-            //    NtClose(context->FileHandle);
-            //}
+            if (context->ObjectName)
+                PhDereferenceObject(context->ObjectName);
 
-            //if (!context->LaunchCommand)
-            //{
-            //    PhDereferenceObject(context->LaunchCommand);
-            //    context->LaunchCommand = NULL;
-            //}
+            if (context->FileHandle)
+                NtClose(context->FileHandle);
 
-            //if (!context->ErrorMessage)
-            //{
-            //    PhDereferenceObject(context->ErrorMessage);
-            //    context->ErrorMessage = NULL;
-            //}
+            if (context->LaunchCommand)
+                PhDereferenceObject(context->LaunchCommand);
 
             RemoveProp(hwndDlg, L"Context");
         }
@@ -1281,14 +1255,16 @@ INT_PTR CALLBACK UploadDlgProc(
 
             Static_SetText(GetDlgItem(hwndDlg, IDNO), L"Close");
 
-            if (!PhIsNullOrEmptyString(context->ErrorMessage))
+            if (context->ErrorMessage)
             {
                 Static_SetText(context->MessageHandle, context->ErrorMessage->Buffer);
+                PhDereferenceObject(context->ErrorMessage);
             }
 
-            if (!PhIsNullOrEmptyString(context->ErrorStatusMessage))
+            if (context->ErrorStatusMessage)
             {
                 Static_SetText(context->StatusHandle, context->ErrorStatusMessage->Buffer);
+                PhDereferenceObject(context->ErrorStatusMessage);
             }
             else
             {
