@@ -93,9 +93,8 @@ NTSTATUS NetworkWhoisThreadStart(
     HINTERNET requestHandle = NULL;
     HINTERNET sessionHandle = NULL;
     mxml_node_t* xmlNode = NULL;
+    PNETWORK_OUTPUT_CONTEXT context = NULL;
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
 
     //4.4.3. IP Addresses and Networks
     // https://www.arin.net/resources/whoisrws/whois_api.html   
@@ -103,13 +102,19 @@ NTSTATUS NetworkWhoisThreadStart(
     // or use CIDR string from /rest/ip/ lookup for querying the IP network: "/rest/cidr/216.34.181.0/24?showDetails=true
     //WinHttpAddRequestHeaders(requestHandle, L"application/arin.whoisrws-v1+xml", -1L, 0);
 
-    whoisHttpGetString = PhFormatString(L"/rest/ip/%s.txt", context->addressString);
-
     __try
     {
+        // Query thread context.
+        if ((context = (PNETWORK_OUTPUT_CONTEXT)Parameter) == NULL)
+            __leave;
+
+        // Query PH version.
+        if ((phVersion = PhGetPhVersion()) == NULL)
+            __leave;
+
         // Create a user agent string.
-        phVersion = PhGetPhVersion();
-        userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer);
+        if ((userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer)) == NULL)
+            __leave;
 
         // Query the current system proxy
         WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
@@ -135,6 +140,9 @@ NTSTATUS NetworkWhoisThreadStart(
         {
             __leave;
         }
+
+        if (!(whoisHttpGetString = PhFormatString(L"/rest/ip/%s.txt", context->addressString)))
+            __leave;
 
         if (!(requestHandle = WinHttpOpenRequest(
             connectionHandle,
@@ -168,6 +176,7 @@ NTSTATUS NetworkWhoisThreadStart(
             __leave;
 
         SendMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, (WPARAM)xmlLength, (LPARAM)xmlBuffer);
+        SendMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
 
         isSuccess = TRUE;
     }

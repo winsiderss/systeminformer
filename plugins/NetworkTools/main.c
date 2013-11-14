@@ -155,6 +155,3 @@ LOGICAL DllMain(
 
     return TRUE;
 }
-
-
-

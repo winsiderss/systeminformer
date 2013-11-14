@@ -46,27 +46,12 @@ static NTSTATUS StdOutNetworkTracertThreadStart(
             );
 
         if (!NT_SUCCESS(status))
-        {
-            PPH_STRING windowText = PhGetWindowText(context->WindowHandle);
-
-            if (windowText)
-            {
-                PPH_STRING messageText = PhFormatString(L"%s Finished.", windowText->Buffer);
-
-                Static_SetText(context->WindowHandle, messageText->Buffer);
-
-                PhDereferenceObject(messageText);
-                PhDereferenceObject(windowText);
-            }
-
-            goto ExitCleanup;
-        }
+            break;
 
         SendMessage(context->WindowHandle, NTM_RECEIVEDTRACE, (WPARAM)isb.Information, (LPARAM)buffer);
     }
 
-ExitCleanup:
-    NtClose(context->PipeReadHandle);
+    SendMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
 
     return STATUS_SUCCESS;
 }

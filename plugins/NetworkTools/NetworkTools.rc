@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,3,0,0
- PRODUCTVERSION 1,3,0,0
+ FILEVERSION 1,4,0,0
+ PRODUCTVERSION 1,4,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.3.0.0"
+            VALUE "FileVersion", "1.4.0.0"
             VALUE "InternalName", "NetworkTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetworkTools.dll"
             VALUE "ProductName", "Network Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.3.0.0"
+            VALUE "ProductVersion", "1.4.0.0"
         END
     END
     BLOCK "VarFileInfo"
