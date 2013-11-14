@@ -84,10 +84,10 @@ static PPH_LIST DialogList = NULL;
 static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
 
-INT WINAPI WinMain(
+INT WINAPI wWinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
-    _In_ LPSTR lpCmdLine,
+    _In_ PWSTR lpCmdLine,
     _In_ INT nCmdShow
     )
 {
@@ -219,7 +219,7 @@ INT WINAPI WinMain(
 
 #ifdef DEBUG
     dbg.ClientId = NtCurrentTeb()->ClientId;
-    dbg.StartAddress = WinMain;
+    dbg.StartAddress = wWinMain;
     dbg.Parameter = NULL;
     InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
     TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
