@@ -847,7 +847,7 @@ typedef struct _PH_STRINGREF
     /** The length, in bytes, of the string. */
     SIZE_T Length;
     /** The buffer containing the contents of the string. */
-    PWSTR Buffer;
+    PWCH Buffer;
 } PH_STRINGREF, *PPH_STRINGREF;
 
 typedef struct _PH_ANSI_STRINGREF
@@ -861,7 +861,7 @@ typedef struct _PH_ANSI_STRINGREF
             /** Unused and of an undefined value. */
             USHORT Reserved;
             /** The buffer containing the contents of the string. */
-            PSTR Buffer;
+            PCHAR Buffer;
         };
         ANSI_STRING as;
     };
@@ -1085,7 +1085,7 @@ FORCEINLINE BOOLEAN PhEndsWithStringRef(
     if (String2->Length > String1->Length)
         return FALSE;
 
-    sr1.Buffer = (PWSTR)((PCHAR)String1->Buffer + String1->Length - String2->Length);
+    sr1.Buffer = (PWCHAR)((PCHAR)String1->Buffer + String1->Length - String2->Length);
     sr1.Length = String2->Length;
 
     return PhEqualStringRef(&sr1, String2, IgnoreCase);
@@ -1141,7 +1141,7 @@ typedef struct _PH_STRING
             /** The length, in bytes, of the string. */
             SIZE_T Length;
             /** The buffer containing the contents of the string. */
-            PWSTR Buffer;
+            PWCH Buffer;
         };
     };
 
@@ -1170,7 +1170,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhCreateStringEx(
-    _In_opt_ PWSTR Buffer,
+    _In_opt_ PWCHAR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -1185,7 +1185,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhCreateStringFromAnsiEx(
-    _In_ PSTR Buffer,
+    _In_ PCHAR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -1789,7 +1789,7 @@ PHLIBAPI
 PPH_ANSI_STRING
 NTAPI
 PhCreateAnsiStringEx(
-    _In_opt_ PSTR Buffer,
+    _In_opt_ PCHAR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -1804,7 +1804,7 @@ PHLIBAPI
 PPH_ANSI_STRING
 NTAPI
 PhCreateAnsiStringFromUnicodeEx(
-    _In_ PWSTR Buffer,
+    _In_ PWCHAR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -1879,7 +1879,7 @@ VOID
 NTAPI
 PhAppendStringBuilderEx(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_opt_ PWSTR String,
+    _In_opt_ PWCHAR String,
     _In_ SIZE_T Length
     );
 
@@ -1941,7 +1941,7 @@ NTAPI
 PhInsertStringBuilderEx(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_opt_ PWSTR String,
+    _In_opt_ PWCHAR String,
     _In_ SIZE_T Length
     );
 

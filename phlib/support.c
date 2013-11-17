@@ -265,11 +265,11 @@ PPH_STRING PhGetMessage(
 
     if (messageEntry->Flags & MESSAGE_RESOURCE_UNICODE)
     {
-        return PhCreateStringEx((PWSTR)messageEntry->Text, messageEntry->Length);
+        return PhCreateStringEx((PWCHAR)messageEntry->Text, messageEntry->Length);
     }
     else
     {
-        return PhCreateStringFromAnsiEx((PSTR)messageEntry->Text, messageEntry->Length);
+        return PhCreateStringFromAnsiEx((PCHAR)messageEntry->Text, messageEntry->Length);
     }
 }
 
@@ -1550,7 +1550,7 @@ PPH_STRING PhGetFileVersionInfoString(
     {
         PPH_STRING string;
 
-        string = PhCreateStringEx((PWSTR)buffer, length * sizeof(WCHAR));
+        string = PhCreateStringEx((PWCHAR)buffer, length * sizeof(WCHAR));
         // length may include the null terminator.
         PhTrimToNullTerminatorString(string);
 
@@ -3539,7 +3539,7 @@ PPH_STRING PhQueryRegistryString(
             )
         {
             if (buffer->DataLength >= sizeof(WCHAR))
-                string = PhCreateStringEx((PWSTR)buffer->Data, buffer->DataLength - sizeof(WCHAR));
+                string = PhCreateStringEx((PWCHAR)buffer->Data, buffer->DataLength - sizeof(WCHAR));
             else
                 string = PhReferenceEmptyString();
         }
