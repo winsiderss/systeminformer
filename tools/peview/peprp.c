@@ -209,7 +209,7 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
 
     memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
     info.FileName = FileName->Buffer;
-    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS | Flags;
+    info.Flags = Flags;
     info.hWnd = hWnd;
 
     windowsAppsPath = PhGetKnownLocation(CSIDL_PROGRAM_FILES, L"\\WindowsApps\\");
@@ -274,7 +274,7 @@ static NTSTATUS VerifyImageThreadStart(
     HWND windowHandle;
 
     windowHandle = Parameter;
-    PvImageVerifyResult = PvpVerifyFileWithAdditionalCatalog(PvFileName, 0, NULL, &PvImageSignerName);
+    PvImageVerifyResult = PvpVerifyFileWithAdditionalCatalog(PvFileName, PH_VERIFY_PREVENT_NETWORK_ACCESS, NULL, &PvImageSignerName);
     PostMessage(windowHandle, PVM_VERIFY_DONE, 0, 0);
 
     return STATUS_SUCCESS;
