@@ -3844,7 +3844,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         {
             baseDllNameBuffer = NULL;
 
-            Entry->BaseDllName.Buffer = (PWSTR)((ULONG_PTR)Entry->FullDllName.Buffer +
+            Entry->BaseDllName.Buffer = (PWCHAR)((ULONG_PTR)Entry->FullDllName.Buffer +
                 ((ULONG_PTR)baseDllNameOriginal - (ULONG_PTR)fullDllNameOriginal));
         }
         else
@@ -4215,7 +4215,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
                     if (PhStartsWithStringRef(&fullDllName, &systemRootString, TRUE))
                     {
-                        fullDllName.Buffer = (PWSTR)((PCHAR)fullDllName.Buffer + systemRootString.Length);
+                        fullDllName.Buffer = (PWCHAR)((PCHAR)fullDllName.Buffer + systemRootString.Length);
                         fullDllName.Length -= systemRootString.Length;
 
                         if (PhStartsWithStringRef(&fullDllName, &system32String, TRUE))
@@ -5132,12 +5132,12 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
 
         if (RtlPrefixUnicodeString(&systemRoot, &fileName, TRUE))
         {
-            fileName.Buffer = (PWSTR)((PCHAR)fileName.Buffer + systemRoot.Length);
+            fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + systemRoot.Length);
             fileName.Length -= systemRoot.Length;
 
             if (RtlPrefixUnicodeString(frameworkPart, &fileName, TRUE))
             {
-                fileName.Buffer = (PWSTR)((PCHAR)fileName.Buffer + frameworkPart->Length);
+                fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + frameworkPart->Length);
                 fileName.Length -= frameworkPart->Length;
 
                 if (fileName.Length >= 4 * sizeof(WCHAR)) // vx.x
@@ -5586,7 +5586,7 @@ VOID PhInitializeDevicePrefixes(
     {
         PhDevicePrefixes[i].Length = 0;
         PhDevicePrefixes[i].MaximumLength = PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
-        PhDevicePrefixes[i].Buffer = (PWSTR)buffer;
+        PhDevicePrefixes[i].Buffer = (PWCHAR)buffer;
         buffer += PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
     }
 }

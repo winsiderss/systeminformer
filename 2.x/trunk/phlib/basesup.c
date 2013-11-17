@@ -1059,11 +1059,11 @@ LONG PhCompareStringRef(
 {
     SIZE_T l1;
     SIZE_T l2;
-    PWSTR s1;
-    PWSTR s2;
+    PWCHAR s1;
+    PWCHAR s2;
     WCHAR c1;
     WCHAR c2;
-    PWSTR end;
+    PWCHAR end;
 
     // Note: this function assumes that the difference between the lengths of
     // the two strings can fit inside a LONG.
@@ -1075,7 +1075,7 @@ LONG PhCompareStringRef(
     s1 = String1->Buffer;
     s2 = String2->Buffer;
 
-    end = (PWSTR)((PCHAR)s1 + (l1 <= l2 ? l1 : l2));
+    end = (PWCHAR)((PCHAR)s1 + (l1 <= l2 ? l1 : l2));
 
     if (!IgnoreCase)
     {
@@ -1366,10 +1366,10 @@ ULONG_PTR PhFindLastCharInStringRef(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PWSTR buffer;
+    PWCHAR buffer;
     SIZE_T length;
 
-    buffer = (PWSTR)((PCHAR)String->Buffer + String->Length);
+    buffer = (PWCHAR)((PCHAR)String->Buffer + String->Length);
     length = String->Length / sizeof(WCHAR);
 
     if (!IgnoreCase)
@@ -1554,7 +1554,7 @@ BOOLEAN PhSplitStringRefAtChar(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
@@ -1603,7 +1603,7 @@ BOOLEAN PhSplitStringRefAtLastChar(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
@@ -1655,7 +1655,7 @@ BOOLEAN PhSplitStringRefAtString(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + Separator->Length);
+    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + Separator->Length);
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - Separator->Length;
 
     return TRUE;
@@ -1709,14 +1709,14 @@ BOOLEAN PhSplitStringRefEx(
     PH_STRINGREF input;
     SIZE_T separatorIndex;
     SIZE_T separatorLength;
-    PWSTR charSet;
+    PWCHAR charSet;
     SIZE_T charSetCount;
     BOOLEAN charSetTable[256];
     BOOLEAN charSetTableComplete;
     SIZE_T i;
     SIZE_T j;
     USHORT c;
-    PWSTR s;
+    PWCHAR s;
     LONG_PTR direction;
 
     input = *Input; // get a copy of the input because FirstPart/SecondPart/SeparatorPart may alias Input
@@ -1798,7 +1798,7 @@ BOOLEAN PhSplitStringRefEx(
     }
     else
     {
-        s = (PWSTR)((PCHAR)input.Buffer + input.Length - sizeof(WCHAR));
+        s = (PWCHAR)((PCHAR)input.Buffer + input.Length - sizeof(WCHAR));
         direction = -1;
     }
 
@@ -1888,7 +1888,7 @@ CharFound:
 SeparatorFound:
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = separatorIndex * sizeof(WCHAR);
-    SecondPart->Buffer = (PWSTR)((PCHAR)input.Buffer + separatorIndex * sizeof(WCHAR) + separatorLength);
+    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + separatorIndex * sizeof(WCHAR) + separatorLength);
     SecondPart->Length = input.Length - separatorIndex * sizeof(WCHAR) - separatorLength;
 
     if (SeparatorPart)
@@ -1934,7 +1934,7 @@ PPH_STRING PhCreateString(
  * \param Length The length, in bytes, of the string.
  */
 PPH_STRING PhCreateStringEx(
-    _In_opt_ PWSTR Buffer,
+    _In_opt_ PWCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -1985,7 +1985,7 @@ PPH_STRING PhCreateStringFromAnsi(
  * \param Length The number of bytes to use.
  */
 PPH_STRING PhCreateStringFromAnsiEx(
-    _In_ PSTR Buffer,
+    _In_ PCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -2288,7 +2288,7 @@ PPH_ANSI_STRING PhCreateAnsiString(
  * \param Length The length, in bytes, of the string.
  */
 PPH_ANSI_STRING PhCreateAnsiStringEx(
-    _In_opt_ PSTR Buffer,
+    _In_opt_ PCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -2338,7 +2338,7 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
  * \param Length The number of bytes to use.
  */
 PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
-    _In_ PWSTR Buffer,
+    _In_ PWCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -2566,7 +2566,7 @@ VOID PhAppendStringBuilder2(
  */
 VOID PhAppendStringBuilderEx(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_opt_ PWSTR String,
+    _In_opt_ PWCHAR String,
     _In_ SIZE_T Length
     )
 {
@@ -2755,7 +2755,7 @@ VOID PhInsertStringBuilder2(
 VOID PhInsertStringBuilderEx(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_opt_ PWSTR String,
+    _In_opt_ PWCHAR String,
     _In_ SIZE_T Length
     )
 {

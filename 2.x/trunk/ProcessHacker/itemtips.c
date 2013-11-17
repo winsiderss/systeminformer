@@ -69,7 +69,7 @@ VOID PhpAppendStringWithLineBreaks(
         PhAppendStringBuilderEx(StringBuilder, line.Buffer, bytesToAppend);
         afterFirstLine = TRUE;
 
-        line.Buffer = (PWSTR)((PCHAR)line.Buffer + bytesToAppend);
+        line.Buffer = (PWCHAR)((PCHAR)line.Buffer + bytesToAppend);
         line.Length -= bytesToAppend;
     }
 }
