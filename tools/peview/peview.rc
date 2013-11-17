@@ -114,22 +114,29 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "General"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Target machine:",IDC_STATIC,7,7,53,8
-    LTEXT           "Static",IDC_TARGETMACHINE,78,7,215,8
-    LTEXT           "Checksum:",IDC_STATIC,7,40,36,8
-    LTEXT           "Static",IDC_CHECKSUM,78,40,215,8
-    LTEXT           "Subsystem:",IDC_STATIC,7,51,38,8
-    LTEXT           "Subsystem version:",IDC_STATIC,7,62,64,8
-    LTEXT           "Characteristics:",IDC_STATIC,7,73,51,8
-    LTEXT           "Static",IDC_SUBSYSTEM,78,51,215,8
-    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,62,215,8
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,99,286,174
-    LTEXT           "Sections:",IDC_STATIC,7,88,30,8
-    EDITTEXT        IDC_CHARACTERISTICS,76,73,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Time stamp:",IDC_STATIC,7,18,40,8
-    LTEXT           "Static",IDC_TIMESTAMP,78,18,215,8
-    LTEXT           "Image base:",IDC_STATIC,7,29,41,8
-    LTEXT           "Static",IDC_IMAGEBASE,78,29,215,8
+    LTEXT           "Target machine:",IDC_STATIC,7,62,53,8
+    LTEXT           "Static",IDC_TARGETMACHINE,78,62,215,8
+    LTEXT           "Checksum:",IDC_STATIC,7,95,36,8
+    LTEXT           "Static",IDC_CHECKSUM,78,95,215,8
+    LTEXT           "Subsystem:",IDC_STATIC,7,106,38,8
+    LTEXT           "Subsystem version:",IDC_STATIC,7,117,64,8
+    LTEXT           "Characteristics:",IDC_STATIC,7,129,51,8
+    LTEXT           "Static",IDC_SUBSYSTEM,78,106,215,8
+    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,117,215,8
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,153,286,119
+    LTEXT           "Sections:",IDC_STATIC,7,143,30,8
+    EDITTEXT        IDC_CHARACTERISTICS,76,129,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Time stamp:",IDC_STATIC,7,73,40,8
+    LTEXT           "Static",IDC_TIMESTAMP,78,73,215,8
+    LTEXT           "Image base:",IDC_STATIC,7,84,41,8
+    LTEXT           "Static",IDC_IMAGEBASE,78,84,215,8
+    ICON            "",IDC_FILEICON,14,18,21,20
+    GROUPBOX        "File",IDC_FILE,7,7,286,51
+    EDITTEXT        IDC_NAME,44,17,182,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    EDITTEXT        IDC_COMPANYNAME,44,29,183,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Version:",IDC_STATIC,15,41,27,8
+    EDITTEXT        IDC_VERSION,44,41,183,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    CONTROL         "<a>Company Name Link</a>",IDC_COMPANYNAME_LINK,"SysLink",LWS_NOPREFIX | NOT WS_VISIBLE | WS_TABSTOP,46,29,183,9
 END
 
 IDD_PEIMPORTS DIALOGEX 0, 0, 300, 280

@@ -15,12 +15,18 @@
 #define IDC_SUBSYSTEMVERSION            1006
 #define IDC_CHARACTERISTICS             1007
 #define IDC_LIST                        1008
+#define IDC_FILEICON                    1009
 #define IDC_TIMESTAMP                   1010
 #define IDC_RUNTIMEVERSION              1011
+#define IDC_FILE                        1011
 #define IDC_FLAGS                       1012
+#define IDC_COMPANYNAME                 1012
 #define IDC_EDIT1                       1013
+#define IDC_VERSION                     1013
 #define IDC_VERSIONSTRING               1014
 #define IDC_IMAGEBASE                   1015
+#define IDC_NAME                        1044
+#define IDC_COMPANYNAME_LINK            1279
 
 // Next default values for new objects
 // 

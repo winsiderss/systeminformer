@@ -22,8 +22,11 @@
 
 #include <peview.h>
 #include <cpysave.h>
+#include <verify.h>
+#include <shlobj.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
+#define PVM_VERIFY_DONE (WM_APP + 2)
 
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -62,6 +65,11 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header;
+
+HICON PvImageLargeIcon;
+PH_IMAGE_VERSION_INFO PvImageVersionInfo;
+VERIFY_RESULT PvImageVerifyResult;
+PPH_STRING PvImageSignerName;
 
 VOID PvPeProperties(
     VOID
@@ -183,6 +191,105 @@ static NTSTATUS CheckSumImageThreadStart(
     return STATUS_SUCCESS;
 }
 
+VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Flags,
+    _In_opt_ HWND hWnd,
+    _Out_opt_ PPH_STRING *SignerName
+    )
+{
+    static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
+
+    VERIFY_RESULT result;
+    PH_VERIFY_FILE_INFO info;
+    PPH_STRING windowsAppsPath;
+    PPH_STRING additionalCatalogFileName = NULL;
+    PCERT_CONTEXT *signatures;
+    ULONG numberOfSignatures;
+
+    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+    info.FileName = FileName->Buffer;
+    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS | Flags;
+    info.hWnd = hWnd;
+
+    windowsAppsPath = PhGetKnownLocation(CSIDL_PROGRAM_FILES, L"\\WindowsApps\\");
+
+    if (windowsAppsPath)
+    {
+        if (PhStartsWithStringRef(&FileName->sr, &windowsAppsPath->sr, TRUE))
+        {
+            PH_STRINGREF remainingFileName;
+            ULONG_PTR indexOfBackslash;
+            PH_STRINGREF baseFileName;
+
+            remainingFileName = FileName->sr;
+            remainingFileName.Buffer = (PWSTR)((PCHAR)remainingFileName.Buffer + windowsAppsPath->Length);
+            remainingFileName.Length -= windowsAppsPath->Length;
+            indexOfBackslash = PhFindCharInStringRef(&remainingFileName, '\\', FALSE);
+
+            if (indexOfBackslash != -1)
+            {
+                baseFileName.Buffer = FileName->Buffer;
+                baseFileName.Length = windowsAppsPath->Length + indexOfBackslash * sizeof(WCHAR);
+                additionalCatalogFileName = PhConcatStringRef2(&baseFileName, &codeIntegrityFileName);
+            }
+        }
+
+        PhDereferenceObject(windowsAppsPath);
+    }
+
+    if (additionalCatalogFileName)
+    {
+        info.NumberOfCatalogFileNames = 1;
+        info.CatalogFileNames = &additionalCatalogFileName->Buffer;
+    }
+
+    if (!NT_SUCCESS(PhVerifyFileEx(&info, &result, &signatures, &numberOfSignatures)))
+    {
+        result = VrNoSignature;
+        signatures = NULL;
+        numberOfSignatures = 0;
+    }
+
+    if (additionalCatalogFileName)
+        PhDereferenceObject(additionalCatalogFileName);
+
+    if (SignerName)
+    {
+        if (numberOfSignatures != 0)
+            *SignerName = PhGetSignerNameFromCertificate(signatures[0]);
+        else
+            *SignerName = NULL;
+    }
+
+    PhFreeVerifySignatures(signatures, numberOfSignatures);
+
+    return result;
+}
+
+static NTSTATUS VerifyImageThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    HWND windowHandle;
+
+    windowHandle = Parameter;
+    PvImageVerifyResult = PvpVerifyFileWithAdditionalCatalog(PvFileName, 0, NULL, &PvImageSignerName);
+    PostMessage(windowHandle, PVM_VERIFY_DONE, 0, 0);
+
+    return STATUS_SUCCESS;
+}
+
+FORCEINLINE PWSTR PvpGetStringOrNa(
+    _In_ PPH_STRING String
+    )
+{
+    if (String)
+        return String->Buffer;
+    else
+        return L"N/A";
+}
+
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -201,6 +308,35 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PH_STRING_BUILDER stringBuilder;
 
             PhCenterWindow(GetParent(hwndDlg), NULL);
+
+            // File version information
+
+            {
+                PhInitializeImageVersionInfo(&PvImageVersionInfo, PvFileName->Buffer);
+
+                if (ExtractIconEx(
+                    PvFileName->Buffer,
+                    0,
+                    &PvImageLargeIcon,
+                    NULL,
+                    1
+                    ) == 0)
+                {
+                    PvImageLargeIcon = PhGetFileShellIcon(PvFileName->Buffer, NULL, TRUE);
+                }
+
+                SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)PvImageLargeIcon, 0);
+
+                SetDlgItemText(hwndDlg, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));
+                string = PhConcatStrings2(L"(Verifying...) ", PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
+                SetDlgItemText(hwndDlg, IDC_COMPANYNAME, string->Buffer);
+                PhDereferenceObject(string);
+                SetDlgItemText(hwndDlg, IDC_VERSION, PvpGetStringOrNa(PvImageVersionInfo.FileVersion));
+
+                PhQueueItemGlobalWorkQueue(VerifyImageThreadStart, hwndDlg);
+            }
+
+            // PE properties
 
             switch (PvMappedImage.NtHeaders->FileHeader.Machine)
             {
@@ -394,8 +530,59 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             }
         }
         break;
+    case PVM_VERIFY_DONE:
+        {
+            PPH_STRING string;
+
+            if (PvImageVerifyResult == VrTrusted)
+            {
+                if (PvImageSignerName)
+                {
+                    string = PhFormatString(L"<a>(Verified) %s</a>", PvImageSignerName->Buffer);
+                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME_LINK, string->Buffer);
+                    PhDereferenceObject(string);
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME), SW_HIDE);
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), SW_SHOW);
+                }
+                else
+                {
+                    string = PhConcatStrings2(L"(Verified) ", PhGetStringOrEmpty(PvImageVersionInfo.CompanyName));
+                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME, string->Buffer);
+                    PhDereferenceObject(string);
+                }
+            }
+            else if (PvImageVerifyResult != VrUnknown)
+            {
+                string = PhConcatStrings2(L"(UNVERIFIED) ", PhGetStringOrEmpty(PvImageVersionInfo.CompanyName));
+                SetDlgItemText(hwndDlg, IDC_COMPANYNAME, string->Buffer);
+                PhDereferenceObject(string);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case NM_CLICK:
+                {
+                    switch (header->idFrom)
+                    {
+                    case IDC_COMPANYNAME_LINK:
+                        {
+                            PvpVerifyFileWithAdditionalCatalog(PvFileName, PH_VERIFY_VIEW_PROPERTIES, hwndDlg, NULL);
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
