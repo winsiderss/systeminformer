@@ -107,7 +107,7 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
 }
 
 FORCEINLINE VOID PhpRotateLeftAvlLinks(
-    __inout PPH_AVL_LINKS *Root
+    _Inout_ PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -153,7 +153,7 @@ FORCEINLINE VOID PhpRotateLeftAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
-    __inout PPH_AVL_LINKS *Root
+    _Inout_ PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -222,7 +222,7 @@ FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateRightAvlLinks(
-    __inout PPH_AVL_LINKS *Root
+    _Inout_ PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS Q;
@@ -268,7 +268,7 @@ FORCEINLINE VOID PhpRotateRightAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
-    __inout PPH_AVL_LINKS *Root
+    _Inout_ PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -337,7 +337,7 @@ FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
 }
 
 ULONG PhpRebalanceAvlLinks(
-    __inout PPH_AVL_LINKS *Root
+    _Inout_ PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;

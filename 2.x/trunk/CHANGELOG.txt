@@ -2,15 +2,14 @@ Process Hacker
 
 2.33
  * NEW/IMPROVED:
-   * View digital signature information from process properties
+   * View digital signature information from process properties and peview
    * Signatures for Windows 8 apps are now detected
    * Added DPI Awareness column
    * Improved file, key, process and thread handle properties
    * Updated DotNetTools plugin:
      * Improved .NET assembly enumeration timeout handling
  * FIXED:
-   * Service start type and error control are never updated if
-     modified outside of Process Hacker
+   * Service start type and error control are never updated if modified outside of Process Hacker
 
 2.32
  * NOTE:
@@ -57,10 +56,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Added App ID column for processes
    * Added new ASLR information for Windows 8
-   * Added Restart to Boot Options and Hybrid Shutdown menu items for
-     Windows 8
-   * Added ability to specify processes by their names and inject and
-     unload DLLs in command line
+   * Added Restart to Boot Options and Hybrid Shutdown menu items for Windows 8
+   * Added ability to specify processes by their names and inject and unload DLLs in command line
    * Removed 512 character limit when copying text
    * Moved Terminator to Miscellaneous menu
    * Updated default dbghelp.dll path for Windows SDK v8
@@ -89,10 +86,8 @@ Process Hacker
 2.28
  * NEW/IMPROVED:
    * peview now resolves .lnk targets
-   * Fixed Ctrl+A for processes, services and network connections and
-     added Ctrl+A for other windows
-   * Changed confirmation prompts to select the destructive action by
-     default
+   * Fixed Ctrl+A for processes, services and network connections and added Ctrl+A for other windows
+   * Changed confirmation prompts to select the destructive action by default
    * Updated DotNetTools plugin:
      * Fixed inaccurate stack traces for certain .NET programs
    * Updated ExtendedTools plugin:
@@ -116,8 +111,7 @@ Process Hacker
 
 2.26
  * NEW/IMPROVED:
-   * Added option to show Commit Charge in system information
-     summary view
+   * Added option to show Commit Charge in system information summary view
    * Added -priority and -selectpid command line options
    * Updated ExtendedTools plugin:
      * Improved support for multiple GPUs
@@ -137,8 +131,7 @@ Process Hacker
 
 2.24
  * NOTE:
-   * This release has significant internal code changes. Please
-     make sure all plugins are up-to-date.
+   * This release has significant internal code changes. Please make sure all plugins are up-to-date.
  * NEW/IMPROVED:
    * Completely new system information window
    * Added option to scroll to new processes
@@ -161,8 +154,7 @@ Process Hacker
 
 2.23
  * NEW/IMPROVED:
-   * Added display of token capabilities, user/device claims
-     and security attributes
+   * Added display of token capabilities, user/device claims and security attributes
    * Added ability to change token integrity levels
    * Added Description column to service list
    * Added option to reset all settings
@@ -176,8 +168,7 @@ Process Hacker
      * Added rate columns for disk and network I/O
  * FIXED:
    * Fixed copying lists when plugin columns are enabled
-   * Freezing when viewing the tooltip for a process with a
-     very long command line
+   * Freezing when viewing the tooltip for a process with a very long command line
    * Disabled Hidden Processes feature on 64-bit systems
 
 2.22
@@ -194,8 +185,7 @@ Process Hacker
      * Fixed hook support for low integrity processes
  * FIXED:
    * Fixed memory leaks
-   * Fixed bug preventing Interrupts/DPCs from being shown
-     as the max. CPU process on 64-bit systems
+   * Fixed bug preventing Interrupts/DPCs from being shown as the max. CPU process on 64-bit systems
    * Fixed DEP Status column on 64-bit systems
 
 2.21
@@ -220,17 +210,14 @@ Process Hacker
    * Extended header context menu
    * Removed tooltip text truncation
    * Improved cycle-based CPU usage calculation
-   * Set default KProcessHacker security level to only allow
-     connections when Process Hacker is running as administrator.
-     See README.txt for instructions on how to restore the old
-     behavior.
+   * Set default KProcessHacker security level to only allow connections when Process Hacker is running as administrator.
+     See README.txt for instructions on how to restore the old behavior.
    * Added Updater plugin
    * Updated DotNetTools plugin:
      * Added managed symbol resolution for thread stacks
    * Updated ExtendedTools plugin:
      * Added Disk tab
-     * Added Hard Faults, Hard Faults Delta and Peak Threads
-       columns to process tree list
+     * Added Hard Faults, Hard Faults Delta and Peak Threads columns to process tree list
      * Added Firewall Status column
  * FIXED:
    * Fixed file name resolution bug
@@ -246,10 +233,8 @@ Process Hacker
    * Added Show CPU Below 0.01
    * Added OS Context column
    * Rewrote graph drawing code for improved performance
-   * Optimized retrieval of cycle time and private working set
-     information for Windows 7
-   * Added Open File Location to process context menu and
-     reorganized some items
+   * Optimized retrieval of cycle time and private working set information for Windows 7
+   * Added Open File Location to process context menu and reorganized some items
    * Added checkboxes to Terminator
  * FIXED:
    * Crash when sorting by Time Stamp
@@ -264,8 +249,7 @@ Process Hacker
      * Bug fixes
    * Added more process tree list columns
    * Added Time stamp column to network list
-   * Date/time display is now swapped (so time is shown before
-     date)
+   * Date/time display is now swapped (so time is shown before date)
    * Added W3 terminator test
    * Added DotNetTools plugin
    * Updated ExtendedServices plugin:
@@ -284,8 +268,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Added support for setting page priority
    * Added elevation support for setting priority
-   * Added support for automatically using a settings file in
-     the program directory (e.g. ProcessHacker.exe.settings.xml)
+   * Added support for automatically using a settings file in the program directory (e.g. ProcessHacker.exe.settings.xml)
    * Improved Run As mechanism
    * Updated ExtendedServices plugin:
      * Added support for editing triggers
@@ -304,8 +287,7 @@ Process Hacker
    * PE viewer: Added display of delay imports
    * PE viewer: Added Load Config tab
    * Improved wait analysis
-   * Added arrows to the service list to indicate whether a
-     service is running
+   * Added arrows to the service list to indicate whether a service is running
  * FIXED:
    * Fixed the IPv6-related workaround causing crashes
    * Incorrect handling of window positions
@@ -325,19 +307,15 @@ Process Hacker
 
 2.14
  * NEW/IMPROVED:
-   * ExtendedServices plugin: Option to add a Services menu
-     for processes
-   * Command line support for setting process priority and
-     I/O priority
+   * ExtendedServices plugin: Option to add a Services menu for processes
+   * Command line support for setting process priority and I/O priority
    * Improved termination of explorer.exe
  * FIXED:
    * Icon should restore the main window if it is minimized
    * System Information window crashes
-   * Hide Processes From Other Users and Hide Signed Processes
-     settings are now saved
+   * Hide Processes From Other Users and Hide Signed Processes settings are now saved
    * Font selection on Windows XP
-   * ToolStatus plugin: Always on Top status being reset by
-     Find Window
+   * ToolStatus plugin: Always on Top status being reset by Find Window
    * Service-related crashes
    * WindowExplorer plugin: sorting in tree list
    * Process minidump creation with old versions of dbghelp.dll
@@ -345,8 +323,7 @@ Process Hacker
 2.13
  * NEW/IMPROVED:
    * Added copy support to PE viewer
-   * Added Connect Time, Disconnect Time and Last Input Time
-     to session properties
+   * Added Connect Time, Disconnect Time and Last Input Time to session properties
    * Added more working set counters to the Statistics tab
  * FIXED:
    * Column sort arrows
@@ -366,13 +343,11 @@ Process Hacker
 
 2.11
  * NEW/IMPROVED:
-   * Added WS Watch and other features to ExtendedTools
-     plugin
+   * Added WS Watch and other features to ExtendedTools plugin
    * Added WindowExplorer plugin
    * Properties for hidden processes
    * Improved menus
-   * Debug console can now be closed without affecting the
-     entire program
+   * Debug console can now be closed without affecting the entire program
  * FIXED:
    * Always on Top issues
    * Hang when setting DEP status of a terminating process
@@ -382,8 +357,7 @@ Process Hacker
 
 2.10
  * NEW/IMPROVED:
-   * KProcessHacker is now signed, so it works on 64-bit
-     systems. Thank you to the ReactOS Foundation.
+   * KProcessHacker is now signed, so it works on 64-bit systems. Thank you to the ReactOS Foundation.
    * Added Run As Limited User
    * Added CPU, private bytes and I/O history columns
    * Added font selection
@@ -402,16 +376,11 @@ Process Hacker
    * Added column selection for modules list
    * Added wait analysis for 64-bit systems
    * Added signature verification for modules
-   * Added ExtendedTools plugin (Vista and above only)
-     with Disk and Network information
-   * Updated ExtendedNotifications plugin: added ability
-     to log events to a file
-   * Updated ExtendedServices plugin: new tab on Vista
-     and above
-   * Updated ToolStatus plugin: resolves ghost windows
-     to hung windows
-   * Environment variables and current directory are
-     now correctly shown for WOW64 processes
+   * Added ExtendedTools plugin (Vista and above only) with Disk and Network information
+   * Updated ExtendedNotifications plugin: added ability to log events to a file
+   * Updated ExtendedServices plugin: new tab on Vista and above
+   * Updated ToolStatus plugin: resolves ghost windows to hung windows
+   * Environment variables and current directory are now correctly shown for WOW64 processes
    * I/O priority names are now used instead of numbers
  * FIXED:
    * Network list bug
@@ -424,8 +393,7 @@ Process Hacker
    * Process tree sorting is now preserved
    * Save works for services and network connections
    * Pausing now works correctly with the Network tab
-   * Added option to display inclusive CPU usages for
-     collapsed processes
+   * Added option to display inclusive CPU usages for collapsed processes
    * Added CLR tab to peview
    * Added ability to destroy heaps
    * Improved process tree list appearance
@@ -439,8 +407,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Vastly improved startup time and lower memory usage
    * Added Cycles and Cycles Delta columns
-   * Added option to disable address resolution for
-     network connections
+   * Added option to disable address resolution for network connections
    * Added Logon Time to session properties
    * Added time stamp display to peview
  * FIXED:
@@ -452,8 +419,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Sorting for most lists is now much faster
    * Hide Signed Processes option
-   * Added plugin for uploading files to online virus
-     scanners
+   * Added plugin for uploading files to online virus scanners
    * Added Network tools plugin
    * Updated ExtendedServices plugin
    * PE viewer now verifies checksums
@@ -464,8 +430,7 @@ Process Hacker
 2.5
  * NEW/IMPROVED:
    * Unmap section views in Memory tab
-   * Plugin for extended service information (including
-     recovery information, dependencies and dependents)
+   * Plugin for extended service information (including recovery information, dependencies and dependents)
  * FIXED:
    * Critical bug for file dialogs on Windows XP
    * Esc couldn't close Service Properties on open
@@ -493,8 +458,7 @@ Process Hacker
 2.3
  * NEW/IMPROVED:
    * Can add processes to jobs
-   * Double-clicking in the system information graphs now opens
-     information for the relevant process
+   * Double-clicking in the system information graphs now opens information for the relevant process
    * Setting I/O priority doesn't need KProcessHacker anymore
    * Elevation for certain actions
  * FIXED:
@@ -523,8 +487,7 @@ Process Hacker
    * Add Pause key shortcut to pause/resume updates
    * Added Ctrl+Tab and Ctrl+Shift+Tab shortcuts
    * Grid is a bit darker
-   * Checks for digital signatures and packing is now
-     off by default and optional
+   * Checks for digital signatures and packing is now off by default and optional
  * FIXED:
    * MD5 calculation code for files was wrong
    * Process record bugs
