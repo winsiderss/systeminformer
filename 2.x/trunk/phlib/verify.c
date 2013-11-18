@@ -310,7 +310,6 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     VERIFY_RESULT verifyResult = VrNoSignature;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
-    WINTRUST_DATA trustData = { 0 };
     WINTRUST_CATALOG_INFO catalogInfo = { 0 };
     LARGE_INTEGER fileSize;
     ULONG fileSizeLimit;
@@ -365,6 +364,8 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
                 catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
+                catalogInfo.pbCalculatedFileHash = fileHash;
+                catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
                 verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &signatures, &numberOfSignatures);
             }
@@ -383,6 +384,8 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
                 catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
+                catalogInfo.pbCalculatedFileHash = fileHash;
+                catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
                 verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, &signatures, &numberOfSignatures);
 
