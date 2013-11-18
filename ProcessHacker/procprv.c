@@ -784,6 +784,9 @@ VERIFY_RESULT PhVerifyFileCached(
             info.FileName = FileName->Buffer;
             info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
             result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
+
+            if (result != VrTrusted)
+                PhSwapReference(&signerName, NULL);
         }
         else
         {
@@ -831,12 +834,29 @@ VERIFY_RESULT PhVerifyFileCached(
         return result;
     }
 #else
+    VERIFY_RESULT result;
+    PPH_STRING signerName;
     PH_VERIFY_FILE_INFO info;
 
     memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
     info.FileName = FileName->Buffer;
     info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
-    return PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, SignerName);
+    result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
+
+    if (result != VrTrusted)
+        PhSwapReference(&signerName, NULL);
+
+    if (SignerName)
+    {
+        *SignerName = signerName;
+    }
+    else
+    {
+        if (signerName)
+            PhDereferenceObject(signerName);
+    }
+
+    return result;
 #endif
 }
 
