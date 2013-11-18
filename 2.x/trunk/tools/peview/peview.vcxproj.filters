@@ -49,9 +49,4 @@
       <Filter>Resource Files</Filter>
     </Manifest>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="rt_manif.bin">
-      <Filter>Resource Files</Filter>
-    </None>
-  </ItemGroup>
 </Project>

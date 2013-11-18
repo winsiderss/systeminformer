@@ -193,6 +193,7 @@ VERIFY_RESULT PhpVerifyFile(
     _In_ ULONG UnionChoice,
     _In_ PVOID UnionData,
     _In_ PGUID ActionId,
+    _In_opt_ PVOID PolicyCallbackData,
     _Out_ PCERT_CONTEXT **Signatures,
     _Out_ PULONG NumberOfSignatures
     )
@@ -201,6 +202,7 @@ VERIFY_RESULT PhpVerifyFile(
     WINTRUST_DATA trustData = { 0 };
 
     trustData.cbStruct = sizeof(WINTRUST_DATA);
+    trustData.pPolicyCallbackData = PolicyCallbackData;
     trustData.dwUIChoice = WTD_UI_NONE;
     trustData.fdwRevocationChecks = WTD_REVOKE_WHOLECHAIN;
     trustData.dwUnionChoice = UnionChoice;
@@ -357,9 +359,13 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         if (catInfoHandle)
         {
             CATALOG_INFO ci = { 0 };
+            DRIVER_VER_INFO verInfo = { 0 };
 
             if (CryptCATCatalogInfoFromContext(catInfoHandle, &ci, 0))
             {
+                // Disable OS version checking by passing in a DRIVER_VER_INFO structure.
+                verInfo.cbStruct = sizeof(DRIVER_VER_INFO);
+
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
@@ -367,7 +373,10 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.pbCalculatedFileHash = fileHash;
                 catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &signatures, &numberOfSignatures);
+                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &verInfo, &signatures, &numberOfSignatures);
+
+                if (verInfo.pcSignerCertContext)
+                    CertFreeCertificateContext_I(verInfo.pcSignerCertContext);
             }
 
             CryptCATAdminReleaseCatalogContext(catAdminHandle, catInfoHandle, 0);
@@ -387,7 +396,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.pbCalculatedFileHash = fileHash;
                 catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, &signatures, &numberOfSignatures);
+                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
 
                 if (verifyResult == VrTrusted)
                     break;
@@ -458,7 +467,7 @@ NTSTATUS PhVerifyFileEx(
     fileInfo.pcwszFilePath = Information->FileName;
     fileInfo.hFile = fileHandle;
 
-    verifyResult = PhpVerifyFile(Information, fileHandle, WTD_CHOICE_FILE, &fileInfo, &WinTrustActionGenericVerifyV2, &signatures, &numberOfSignatures);
+    verifyResult = PhpVerifyFile(Information, fileHandle, WTD_CHOICE_FILE, &fileInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
 
     if (verifyResult == VrNoSignature)
     {
