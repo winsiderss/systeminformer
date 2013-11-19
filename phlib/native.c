@@ -814,11 +814,50 @@ NTSTATUS PhGetProcessPebString(
 }
 
 /**
+ * Gets a process' command line.
+ *
+ * \param ProcessHandle A handle to a process. The handle must
+ * have PROCESS_QUERY_LIMITED_INFORMATION. Before Windows 8.1,
+ * the handle must also have PROCESS_VM_READ access.
+ * \param String A variable which receives a pointer to a
+ * string containing the command line. You must free the string
+ * using PhDereferenceObject() when you no longer need it.
+ */
+NTSTATUS PhGetProcessCommandLine(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_STRING *CommandLine
+    )
+{
+    NTSTATUS status;
+
+    if (WindowsVersion >= WINDOWS_81)
+    {
+        PUNICODE_STRING commandLine;
+
+        status = PhpQueryProcessVariableSize(
+            ProcessHandle,
+            ProcessCommandLineInformation,
+            &commandLine
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *CommandLine = PhCreateStringEx(commandLine->Buffer, commandLine->Length);
+            PhFree(commandLine);
+
+            return status;
+        }
+    }
+
+    return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
+}
+
+/**
  * Gets the window flags and window title of a process.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_LIMITED_INFORMATION. Before
- * Windows 7 SP1, the handle must also have PROCESS_VM_READ access.
+ * \param ProcessHandle A handle to a process. The handle must
+ * have PROCESS_QUERY_LIMITED_INFORMATION. Before Windows 7 SP1,
+ * the handle must also have PROCESS_VM_READ access.
  * \param WindowFlags A variable which receives the window
  * flags.
  * \param WindowTitle A variable which receives a pointer to the
@@ -4625,18 +4664,54 @@ NTSTATUS PhEnumProcesses(
     _Out_ PVOID *Processes
     )
 {
-    static ULONG initialBufferSize = 0x4000;
+    return PhEnumProcessesEx(Processes, SystemProcessInformation);
+}
+
+/**
+ * Enumerates the running processes.
+ *
+ * \param Processes A variable which receives a
+ * pointer to a buffer containing process
+ * information. You must free the buffer using
+ * PhFree() when you no longer need it.
+ *
+ * \remarks You can use the \ref PH_FIRST_PROCESS
+ * and \ref PH_NEXT_PROCESS macros to process the
+ * information contained in the buffer.
+ */
+NTSTATUS PhEnumProcessesEx(
+    _Out_ PVOID *Processes,
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
+    )
+{
+    static ULONG initialBufferSize[3] = { 0x4000, 0x4000, 0x4000 };
     NTSTATUS status;
+    ULONG classIndex;
     PVOID buffer;
     ULONG bufferSize;
 
-    bufferSize = initialBufferSize;
+    switch (SystemInformationClass)
+    {
+    case SystemProcessInformation:
+        classIndex = 0;
+        break;
+    case SystemExtendedProcessInformation:
+        classIndex = 1;
+        break;
+    case SystemFullProcessInformation:
+        classIndex = 2;
+        break;
+    default:
+        return STATUS_INVALID_INFO_CLASS;
+    }
+
+    bufferSize = initialBufferSize[classIndex];
     buffer = PhAllocate(bufferSize);
 
     while (TRUE)
     {
         status = NtQuerySystemInformation(
-            SystemProcessInformation,
+            SystemInformationClass,
             buffer,
             bufferSize,
             &bufferSize
@@ -4659,7 +4734,7 @@ NTSTATUS PhEnumProcesses(
         return status;
     }
 
-    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
+    if (bufferSize <= 0x40000) initialBufferSize[classIndex] = bufferSize;
     *Processes = buffer;
 
     return status;
@@ -4704,62 +4779,6 @@ NTSTATUS PhEnumProcessesForSession(
             &sessionProcessInfo,
             sizeof(SYSTEM_SESSION_PROCESS_INFORMATION),
             &bufferSize // size of the inner buffer gets returned
-            );
-
-        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
-        {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
-    *Processes = buffer;
-
-    return status;
-}
-
-/**
- * Enumerates the running processes.
- *
- * \param Processes A variable which receives a
- * pointer to a buffer containing process
- * information. You must free the buffer using
- * PhFree() when you no longer need it.
- *
- * \remarks You can use the \ref PH_FIRST_PROCESS
- * and \ref PH_NEXT_PROCESS macros to process the
- * information contained in the buffer.
- */
-NTSTATUS PhEnumProcessesEx(
-    _Out_ PVOID *Processes
-    )
-{
-    static ULONG initialBufferSize = 0x4000;
-    NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferSize;
-
-    bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
-
-    while (TRUE)
-    {
-        status = NtQuerySystemInformation(
-            SystemExtendedProcessInformation,
-            buffer,
-            bufferSize,
-            &bufferSize
             );
 
         if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)

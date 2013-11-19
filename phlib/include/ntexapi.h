@@ -874,7 +874,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemScrubPhysicalMemoryInformation,
     SystemBadPageInformation,
     SystemProcessorProfileControlArea,
-    SystemCombinePhysicalMemoryInformation,
+    SystemCombinePhysicalMemoryInformation, // 130
     SystemEntropyInterruptTimingCallback,
     SystemConsoleInformation,
     SystemPlatformBinaryInformation,
@@ -884,7 +884,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemDeviceDataEnumerationInformation,
     SystemMemoryTopologyInformation,
     SystemMemoryChannelInformation,
-    SystemBootLogoInformation,
+    SystemBootLogoInformation, // 140
     SystemProcessorPerformanceInformationEx, // since WINBLUE
     SystemSpare0,
     SystemSecureBootPolicyInformation,
@@ -892,9 +892,9 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecureBootInformation,
     SystemEntropyInterruptTimingRawInformation,
     SystemPortableWorkspaceEfiLauncherInformation,
-    SystemFullProcessInformation, // q: SYSTEM_PROCESS_INFORMATION with SYSTEM_PROCESS_INFORMATION_EXTENSION
+    SystemFullProcessInformation, // q: SYSTEM_PROCESS_INFORMATION with SYSTEM_PROCESS_INFORMATION_EXTENSION (requires admin)
     SystemKernelDebuggerInformationEx,
-    SystemBootMetadataInformation,
+    SystemBootMetadataInformation, // 150
     SystemSoftRebootInformation,
     SystemElamCertificateInformation,
     SystemOfflineDumpConfigInformation,

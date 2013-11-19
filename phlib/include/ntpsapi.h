@@ -157,7 +157,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessWorkingSetControl,
     ProcessHandleTable, // since WINBLUE
     ProcessCheckStackExtentsMode,
-    ProcessCommandLineInformation,
+    ProcessCommandLineInformation, // 60
     ProcessProtectionInformation,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
