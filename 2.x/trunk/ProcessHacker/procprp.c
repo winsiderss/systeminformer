@@ -38,7 +38,7 @@ PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
-static PWSTR ProtectedSignerStrings[] = { L"", L": Authenticode", L": CodeGen", L": Antimalware", L": Lsa", L": Windows", L": WinTcb" };
+static PWSTR ProtectedSignerStrings[] = { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)" };
 
 BOOLEAN PhProcessPropInitialization(
     VOID
