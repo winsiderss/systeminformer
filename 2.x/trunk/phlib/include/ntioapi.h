@@ -232,6 +232,8 @@ typedef enum _FILE_INFORMATION_CLASS
     FileVolumeNameInformation,
     FileIdInformation,
     FileIdExtdDirectoryInformation,
+    FileReplaceCompletionInformation, // since WINBLUE
+    FileHardLinkFullIdInformation,
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
