@@ -170,18 +170,11 @@ NTSTATUS PhGetProcessPebString(
     _Out_ PPH_STRING *String
     );
 
-/**
- * Gets a process' command line.
- *
- * \param ProcessHandle A handle to a process. The handle must
- * have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ
- * access.
- * \param String A variable which receives a pointer to a
- * string containing the command line. You must free the string
- * using PhDereferenceObject() when you no longer need it.
- */
-#define PhGetProcessCommandLine(ProcessHandle, String) \
-    PhGetProcessPebString(ProcessHandle, PhpoCommandLine, String)
+PHLIBAPI
+NTSTATUS PhGetProcessCommandLine(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_STRING *CommandLine
+    );
 
 PHLIBAPI
 NTSTATUS PhGetProcessWindowTitle(
@@ -657,14 +650,15 @@ NTSTATUS PhEnumProcesses(
     );
 
 PHLIBAPI
-NTSTATUS PhEnumProcessesForSession(
+NTSTATUS PhEnumProcessesEx(
     _Out_ PVOID *Processes,
-    _In_ ULONG SessionId
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
 PHLIBAPI
-NTSTATUS PhEnumProcessesEx(
-    _Out_ PVOID *Processes
+NTSTATUS PhEnumProcessesForSession(
+    _Out_ PVOID *Processes,
+    _In_ ULONG SessionId
     );
 
 PHLIBAPI

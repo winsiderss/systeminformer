@@ -940,6 +940,12 @@ VOID PhpThreadProviderUpdate(
                     threadItem->IsGuiThread = win32Thread != NULL;
                 }
             }
+            else
+            {
+                GUITHREADINFO info = { sizeof(GUITHREADINFO) };
+
+                threadItem->IsGuiThread = !!GetGUIThreadInfo((ULONG)threadItem->ThreadId, &info);
+            }
 
             // Add the thread item to the hashtable.
             PhAcquireFastLockExclusive(&threadProvider->ThreadHashtableLock);
@@ -1097,6 +1103,16 @@ VOID PhpThreadProviderUpdate(
                     if (threadItem->IsGuiThread != oldIsGuiThread)
                         modified = TRUE;
                 }
+            }
+            else
+            {
+                GUITHREADINFO info = { sizeof(GUITHREADINFO) };
+                BOOLEAN oldIsGuiThread = threadItem->IsGuiThread;
+
+                threadItem->IsGuiThread = !!GetGUIThreadInfo((ULONG)threadItem->ThreadId, &info);
+
+                if (threadItem->IsGuiThread != oldIsGuiThread)
+                    modified = TRUE;
             }
 
             threadItem->JustResolved = FALSE;
