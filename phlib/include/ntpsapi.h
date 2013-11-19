@@ -158,7 +158,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleTable, // since WINBLUE
     ProcessCheckStackExtentsMode,
     ProcessCommandLineInformation, // 60
-    ProcessProtectionInformation,
+    ProcessProtectionInformation, // q: PS_PROTECTION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -525,6 +525,44 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
 {
     UNICODE_STRING TargetDevicePath;
 } PROCESS_REVOKE_FILE_HANDLES_INFORMATION, *PPROCESS_REVOKE_FILE_HANDLES_INFORMATION;
+
+// begin_private
+
+typedef enum _PS_PROTECTED_TYPE
+{
+    PsProtectedTypeNone,
+    PsProtectedTypeProtectedLight,
+    PsProtectedTypeProtected,
+    PsProtectedTypeMax
+} PS_PROTECTED_TYPE;
+
+typedef enum _PS_PROTECTED_SIGNER
+{
+    PsProtectedSignerNone,
+    PsProtectedSignerAuthenticode,
+    PsProtectedSignerCodeGen,
+    PsProtectedSignerAntimalware,
+    PsProtectedSignerLsa,
+    PsProtectedSignerWindows,
+    PsProtectedSignerWinTcb,
+    PsProtectedSignerMax
+} PS_PROTECTED_SIGNER;
+
+typedef struct _PS_PROTECTION
+{
+    union
+    {
+        UCHAR Level;
+        struct
+        {
+            UCHAR Type : 3;
+            UCHAR Audit : 1;
+            UCHAR Signer : 4;
+        };
+    };
+} PS_PROTECTION, *PPS_PROTECTION;
+
+// end_private
 
 #endif
 

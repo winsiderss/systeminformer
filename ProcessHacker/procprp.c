@@ -38,6 +38,7 @@ PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
+static PWSTR ProtectedSignerStrings[] = { L"", L": Authenticode", L": CodeGen", L": Antimalware", L": Lsa", L": Windows", L": WinTcb" };
 
 BOOLEAN PhProcessPropInitialization(
     VOID
@@ -718,7 +719,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 SET_BUTTON_BITMAP(IDC_OPENFILENAME, folder);
                 SET_BUTTON_BITMAP(IDC_VIEWPARENTPROCESS, magnifier);
                 SET_BUTTON_BITMAP(IDC_EDITDEP, pencil);
-                SET_BUTTON_BITMAP(IDC_EDITPROTECTION, pencil);
             }
 
             // File
@@ -895,13 +895,56 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 #endif
             }
 
-            // Protected
+            // Protection
 
             SetDlgItemText(hwndDlg, IDC_PROTECTION, L"N/A");
 
             if (WINDOWS_HAS_LIMITED_ACCESS && processHandle)
             {
-                if (KphIsConnected())
+                if (WindowsVersion >= WINDOWS_81)
+                {
+                    PS_PROTECTION protection;
+
+                    if (NT_SUCCESS(NtQueryInformationProcess(
+                        processHandle,
+                        ProcessProtectionInformation,
+                        &protection,
+                        sizeof(PS_PROTECTION),
+                        NULL
+                        )))
+                    {
+                        if (protection.Type != PsProtectedTypeNone)
+                        {
+                            PWSTR type;
+                            PWSTR signer;
+
+                            switch (protection.Type)
+                            {
+                            case PsProtectedTypeProtectedLight:
+                                type = L"Light";
+                                break;
+                            case PsProtectedTypeProtected:
+                                type = L"Full";
+                                break;
+                            default:
+                                type = L"Unknown";
+                                break;
+                            }
+
+                            if (protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
+                                signer = ProtectedSignerStrings[protection.Signer];
+                            else
+                                signer = L"";
+
+                            SetDlgItemText(hwndDlg, IDC_PROTECTION, PhaConcatStrings2(type, signer)->Buffer);
+                        }
+                        else
+                        {
+                            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"None");
+                        }
+                    }
+                }
+                else if (KphIsConnected())
                 {
                     KPH_PROCESS_PROTECTION_INFORMATION protectionInfo;
 
@@ -913,7 +956,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         NULL
                         )))
                     {
-                        SetDlgItemText(hwndDlg, IDC_PROTECTION, protectionInfo.IsProtectedProcess ? L"Yes" : L"No");
+                        SetDlgItemText(hwndDlg, IDC_PROTECTION, protectionInfo.IsProtectedProcess ? L"Yes" : L"None");
                         EnableWindow(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), TRUE);
                     }
                 }
@@ -926,8 +969,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         &extendedBasicInfo
                         )))
                     {
-                        SetDlgItemText(hwndDlg, IDC_PROTECTION,
-                            extendedBasicInfo.IsProtectedProcess ? L"Yes" : L"No");
+                        SetDlgItemText(hwndDlg, IDC_PROTECTION, extendedBasicInfo.IsProtectedProcess ? L"Yes" : L"None");
                     }
                 }
             }
