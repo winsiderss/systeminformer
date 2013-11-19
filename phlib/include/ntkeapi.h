@@ -63,6 +63,8 @@ typedef enum _KWAIT_REASON
     WrFastMutex,
     WrGuardedMutex,
     WrRundown,
+    WrAlertByThreadId,
+    WrDeferredPreempt,
     MaximumWaitReason
 } KWAIT_REASON, *PKWAIT_REASON;
 
