@@ -885,6 +885,22 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemMemoryTopologyInformation,
     SystemMemoryChannelInformation,
     SystemBootLogoInformation,
+    SystemProcessorPerformanceInformationEx, // since WINBLUE
+    SystemSpare0,
+    SystemSecureBootPolicyInformation,
+    SystemPageFileInformationEx,
+    SystemSecureBootInformation,
+    SystemEntropyInterruptTimingRawInformation,
+    SystemPortableWorkspaceEfiLauncherInformation,
+    SystemFullProcessInformation, // q: SYSTEM_PROCESS_INFORMATION with SYSTEM_PROCESS_INFORMATION_EXTENSION
+    SystemKernelDebuggerInformationEx,
+    SystemBootMetadataInformation,
+    SystemSoftRebootInformation,
+    SystemElamCertificateInformation,
+    SystemOfflineDumpConfigInformation,
+    SystemProcessorFeaturesInformation,
+    SystemRegistryReconciliationInformation,
+    SystemEdidInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -1708,6 +1724,31 @@ typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
     QUERY_PERFORMANCE_COUNTER_FLAGS Flags;
     QUERY_PERFORMANCE_COUNTER_FLAGS ValidFlags;
 } SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION, *PSYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION;
+
+typedef struct _PROCESS_DISK_COUNTERS
+{
+    ULONGLONG BytesRead;
+    ULONGLONG BytesWritten;
+    ULONGLONG ReadOperationCount;
+    ULONGLONG WriteOperationCount;
+    ULONGLONG FlushOperationCount;
+} PROCESS_DISK_COUNTERS, *PPROCESS_DISK_COUNTERS;
+
+typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
+{
+    PROCESS_DISK_COUNTERS DiskCounters;
+    ULONGLONG ContextSwitches;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG HasStrongId : 1;
+            ULONG Spare : 31;
+        };
+    };
+    ULONG UserSidOffset;
+} SYSTEM_PROCESS_INFORMATION_EXTENSION, *PSYSTEM_PROCESS_INFORMATION_EXTENSION;
 
 // end_msdn
 
