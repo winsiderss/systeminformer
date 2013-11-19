@@ -21,6 +21,7 @@ typedef enum _KEY_INFORMATION_CLASS
     KeyFlagsInformation,
     KeyVirtualizationInformation,
     KeyHandleTagsInformation,
+    KeyTrustInformation,
     MaxKeyInfoClass
 } KEY_INFORMATION_CLASS;
 
@@ -92,6 +93,13 @@ typedef struct _KEY_VIRTUALIZATION_INFORMATION
     ULONG VirtualSource : 1; // Tells if the key has ever been virtualized, can be 1 only if VirtualizationCandidate is 1.
     ULONG Reserved : 27;
 } KEY_VIRTUALIZATION_INFORMATION, *PKEY_VIRTUALIZATION_INFORMATION;
+
+// private
+typedef struct _KEY_TRUST_INFORMATION
+{
+    ULONG TrustedKey : 1;
+    ULONG Reserved : 31;
+} KEY_TRUST_INFORMATION, *PKEY_TRUST_INFORMATION;
 
 typedef enum _KEY_SET_INFORMATION_CLASS
 {

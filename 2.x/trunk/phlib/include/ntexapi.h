@@ -552,10 +552,11 @@ typedef enum _WORKERFACTORYINFOCLASS
     WorkerFactoryThreadMinimum,
     WorkerFactoryThreadMaximum,
     WorkerFactoryPaused,
-    WorkerFactoryBasicInformation, // name:wow64:whNtQueryInformationWorkerFactory_WorkerFactoryBasicInformation
+    WorkerFactoryBasicInformation,
     WorkerFactoryAdjustThreadGoal,
     WorkerFactoryCallbackType,
-    WorkerFactoryStackInformation, // name:wow64:whNtQueryInformationWorkerFactory_WorkerFactoryStackInformation
+    WorkerFactoryStackInformation,
+    WorkerFactoryThreadBasePriority,
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 
@@ -1725,6 +1726,9 @@ typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
     QUERY_PERFORMANCE_COUNTER_FLAGS ValidFlags;
 } SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION, *PSYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION;
 
+// end_msdn
+
+// private
 typedef struct _PROCESS_DISK_COUNTERS
 {
     ULONGLONG BytesRead;
@@ -1734,6 +1738,7 @@ typedef struct _PROCESS_DISK_COUNTERS
     ULONGLONG FlushOperationCount;
 } PROCESS_DISK_COUNTERS, *PPROCESS_DISK_COUNTERS;
 
+// private
 typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
 {
     PROCESS_DISK_COUNTERS DiskCounters;
@@ -1749,8 +1754,6 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
     };
     ULONG UserSidOffset;
 } SYSTEM_PROCESS_INFORMATION_EXTENSION, *PSYSTEM_PROCESS_INFORMATION_EXTENSION;
-
-// end_msdn
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 

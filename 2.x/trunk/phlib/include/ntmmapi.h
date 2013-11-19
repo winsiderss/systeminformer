@@ -1,13 +1,15 @@
 #ifndef _NTMMAPI_H
 #define _NTMMAPI_H
 
+// private
 typedef enum _MEMORY_INFORMATION_CLASS
 {
     MemoryBasicInformation,
     MemoryWorkingSetInformation,
     MemoryMappedFilenameInformation,
     MemoryRegionInformation,
-    MemoryWorkingSetExInformation
+    MemoryWorkingSetExInformation,
+    MemorySharedCommitInformation
 } MEMORY_INFORMATION_CLASS;
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
@@ -86,6 +88,12 @@ typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
         ULONG Long;
     } u1;
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
+
+// private
+typedef struct _MEMORY_SHARED_COMMIT_INFORMATION
+{
+    SIZE_T CommitSize;
+} MEMORY_SHARED_COMMIT_INFORMATION, *PMEMORY_SHARED_COMMIT_INFORMATION;
 
 #define MMPFNLIST_ZERO 0
 #define MMPFNLIST_FREE 1

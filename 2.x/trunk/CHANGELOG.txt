@@ -7,6 +7,7 @@ Process Hacker
    * Added DPI Awareness column
    * Improved file, key, process and thread handle properties
    * KProcessHacker is no longer needed for highlighting of GUI threads
+   * Added new Windows 8.1 process protection information
    * Updated DotNetTools plugin:
      * Improved .NET assembly enumeration timeout handling
  * FIXED:
