@@ -925,12 +925,23 @@ VOID PhpProcessQueryStage1(
     // POSIX, command line, .NET
     {
         HANDLE processHandle;
+        BOOLEAN queryAccess = FALSE;
 
         status = PhOpenProcess(
             &processHandle,
             ProcessQueryAccess | PROCESS_VM_READ,
             processId
             );
+
+        if (!NT_SUCCESS(status) && WindowsVersion >= WINDOWS_81)
+        {
+            queryAccess = TRUE;
+            status = PhOpenProcess(
+                &processHandle,
+                ProcessQueryAccess,
+                processId
+                );
+        }
 
         if (NT_SUCCESS(status))
         {
@@ -939,8 +950,11 @@ VOID PhpProcessQueryStage1(
             PPH_STRING commandLine;
             ULONG i;
 
-            status = PhGetProcessIsPosix(processHandle, &isPosix);
-            Data->IsPosix = isPosix;
+            if (!queryAccess)
+            {
+                status = PhGetProcessIsPosix(processHandle, &isPosix);
+                Data->IsPosix = isPosix;
+            }
 
             if (!NT_SUCCESS(status) || !isPosix)
             {
@@ -969,18 +983,21 @@ VOID PhpProcessQueryStage1(
                 Data->CommandLine = commandLine;
             }
 
-            PhGetProcessIsDotNetEx(
-                processId,
-                processHandle,
+            if (!queryAccess)
+            {
+                PhGetProcessIsDotNetEx(
+                    processId,
+                    processHandle,
 #ifdef _M_X64
-                PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
+                    PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
 #else
-                0,
+                    0,
 #endif
-                &isDotNet,
-                NULL
-                );
-            Data->IsDotNet = isDotNet;
+                    &isDotNet,
+                    NULL
+                    );
+                Data->IsDotNet = isDotNet;
+            }
 
             NtClose(processHandle);
         }
