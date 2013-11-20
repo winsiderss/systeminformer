@@ -6201,6 +6201,7 @@ RtlUnlockModuleSection(
 
 #define RTL_UNLOAD_EVENT_TRACE_NUMBER 64
 
+// private
 typedef struct _RTL_UNLOAD_EVENT_TRACE
 {
     PVOID BaseAddress;
@@ -6209,6 +6210,7 @@ typedef struct _RTL_UNLOAD_EVENT_TRACE
     ULONG TimeDateStamp;
     ULONG CheckSum;
     WCHAR ImageName[32];
+    ULONG Version[2];
 } RTL_UNLOAD_EVENT_TRACE, *PRTL_UNLOAD_EVENT_TRACE;
 
 NTSYSAPI
