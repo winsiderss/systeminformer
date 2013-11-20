@@ -2301,6 +2301,7 @@ VOID PhpUpdateThreadDetails(
     ULONG ioPriorityInteger;
     ULONG pagePriorityInteger;
     PROCESSOR_NUMBER idealProcessorNumber;
+    ULONG suspendCount;
 
     PhGetSelectedThreadItems(&Context->ListContext, &threads, &numberOfThreads);
 
@@ -2366,6 +2367,17 @@ VOID PhpUpdateThreadDetails(
                 PhInitFormatC(&format[1], ':');
                 PhInitFormatU(&format[2], idealProcessorNumber.Number);
                 PhFormatToBuffer(format, 3, idealProcessor, sizeof(idealProcessor), NULL);
+            }
+
+            if (threadItem->WaitReason == Suspended && NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadSuspendCount, &suspendCount, sizeof(ULONG), NULL)))
+            {
+                PH_FORMAT format[4];
+
+                PhInitFormatSR(&format[0], state->sr);
+                PhInitFormatS(&format[1], L" (");
+                PhInitFormatU(&format[2], suspendCount);
+                PhInitFormatS(&format[3], L")");
+                state = PHA_DEREFERENCE(PhFormat(format, 4, 30));
             }
 
             NtClose(threadHandle);
