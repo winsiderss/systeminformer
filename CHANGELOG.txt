@@ -4,10 +4,11 @@ Process Hacker
  * NEW/IMPROVED:
    * View digital signature information from process properties and peview
    * Signatures for Windows 8 apps are now detected
-   * Added DPI Awareness column
    * Improved file, key, process and thread handle properties
-   * KProcessHacker is no longer needed for highlighting of GUI threads
+   * Added DPI Awareness column
    * Added new Windows 8.1 process protection information
+   * KProcessHacker is no longer needed for highlighting of GUI threads
+   * Added suspend count for threads on Windows 8.1
    * Updated DotNetTools plugin:
      * Improved .NET assembly enumeration timeout handling
  * FIXED:

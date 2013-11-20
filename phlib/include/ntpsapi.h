@@ -135,7 +135,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessResourceManagement,
     ProcessCookie, // q: ULONG
     ProcessImageInformation, // q: SECTION_IMAGE_INFORMATION
-    ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION
+    ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
     ProcessPagePriority, // q: ULONG
     ProcessInstrumentationCallback, // 40
     ProcessThreadStackAllocation, // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
@@ -154,10 +154,10 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleCheckingMode,
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
-    ProcessWorkingSetControl,
+    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL
     ProcessHandleTable, // since WINBLUE
     ProcessCheckStackExtentsMode,
-    ProcessCommandLineInformation, // 60
+    ProcessCommandLineInformation, // 60, q: UNICODE_STRING
     ProcessProtectionInformation, // q: PS_PROTECTION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
@@ -503,22 +503,39 @@ typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // private
+typedef struct _PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG EnableControlFlowGuard : 1;
+            ULONG ReservedFlags : 31;
+        };
+    };
+} PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY, *PPROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY;
+
+// private
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 {
     PROCESS_MITIGATION_POLICY Policy;
     union
     {
-        //PROCESS_MITIGATION_DEP_POLICY DEPPolicy;
         PROCESS_MITIGATION_ASLR_POLICY ASLRPolicy;
         PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY StrictHandleCheckPolicy;
         PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY SystemCallDisablePolicy;
         PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY ExtensionPointDisablePolicy;
+        PROCESS_MITIGATION_DYNAMIC_CODE_POLICY DynamicCodePolicy;
+        PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY ControlFlowGuardPolicy;
+        PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY SignaturePolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
 typedef struct _PROCESS_KEEPALIVE_COUNT_INFORMATION
 {
-    ULONG Count;
+    ULONG WakeCount;
+    ULONG NoWakeCount;
 } PROCESS_KEEPALIVE_COUNT_INFORMATION, *PPROCESS_KEEPALIVE_COUNT_INFORMATION;
 
 typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
@@ -527,6 +544,20 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
 } PROCESS_REVOKE_FILE_HANDLES_INFORMATION, *PPROCESS_REVOKE_FILE_HANDLES_INFORMATION;
 
 // begin_private
+
+typedef enum _PROCESS_WORKING_SET_OPERATION
+{
+    ProcessWorkingSetSwap,
+    ProcessWorkingSetEmpty,
+    ProcessWorkingSetOperationMax
+} PROCESS_WORKING_SET_OPERATION;
+
+typedef struct _PROCESS_WORKING_SET_CONTROL
+{
+    ULONG Version;
+    PROCESS_WORKING_SET_OPERATION Operation;
+    ULONG Flags;
+} PROCESS_WORKING_SET_CONTROL, *PPROCESS_WORKING_SET_CONTROL;
 
 typedef enum _PS_PROTECTED_TYPE
 {

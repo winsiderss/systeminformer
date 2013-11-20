@@ -349,6 +349,9 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             case IMAGE_FILE_MACHINE_IA64:
                 type = L"IA64";
                 break;
+            case IMAGE_FILE_MACHINE_ARMNT:
+                type = L"ARM Thumb-2";
+                break;
             default:
                 type = L"Unknown";
                 break;
