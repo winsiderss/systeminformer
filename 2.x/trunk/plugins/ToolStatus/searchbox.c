@@ -31,7 +31,6 @@
 #include <vssym32.h>
 
 DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
-DEFINE_GUID(IID_IWICBitmapDecoder, 0x9edde9e7, 0x8dee, 0x47ea, 0x99, 0xdf, 0xe6, 0xfa, 0xf2, 0xed, 0x44, 0xbf);
 
 static _IsThemeActive IsThemeActive_I;
 static _OpenThemeData OpenThemeData_I;
@@ -446,10 +445,6 @@ HBITMAP LoadImageFromResources(
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
             __leave;
 
-        // Create the PNG decoder.
-        if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, (PVOID*)&wicDecoder)))
-            __leave;
-
         // Find the resource.
         if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
@@ -470,6 +465,10 @@ HBITMAP LoadImageFromResources(
 
         // Initialize the Stream from Memory.
         if (FAILED(IWICStream_InitializeFromMemory(wicStream, resBuffer, resLength)))
+            __leave;
+
+        // Create the PNG decoder.
+        if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng,  NULL, &wicDecoder)))
             __leave;
 
         // Initialize the HBITMAP decoder from memory.
@@ -493,10 +492,10 @@ HBITMAP LoadImageFromResources(
             __leave;
 
         // Check if the image format is supported:
-        //if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+        //if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppPBGRA))
         //{
         // // Convert the image to the correct format:
-        // if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+        // if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
         // __leave;
         // IWICBitmapFrameDecode_Release(wicFrame);
         //}
