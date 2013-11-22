@@ -371,7 +371,7 @@ INT PhShowMessage_V(
     return MessageBox(hWnd, message, PhApplicationName, Type);
 }
 
-PPH_STRING PhpGetStatusMessage(
+PPH_STRING PhGetStatusMessage(
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
     )
@@ -416,7 +416,7 @@ VOID PhShowStatus(
 {
     PPH_STRING statusMessage;
 
-    statusMessage = PhpGetStatusMessage(Status, Win32Result);
+    statusMessage = PhGetStatusMessage(Status, Win32Result);
 
     if (!statusMessage)
     {
@@ -466,7 +466,7 @@ BOOLEAN PhShowContinueStatus(
     PPH_STRING statusMessage;
     INT result;
 
-    statusMessage = PhpGetStatusMessage(Status, Win32Result);
+    statusMessage = PhGetStatusMessage(Status, Win32Result);
 
     if (!statusMessage)
     {

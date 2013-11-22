@@ -88,7 +88,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     handleProvider->ProcessId = ProcessId;
     handleProvider->ProcessHandle = NULL;
 
-    PhOpenProcess(
+    handleProvider->RunStatus = PhOpenProcess(
         &handleProvider->ProcessHandle,
         PROCESS_DUP_HANDLE,
         ProcessId
@@ -436,15 +436,15 @@ VOID PhHandleProviderUpdate(
     PPH_KEY_VALUE_PAIR handlePair;
 
     if (!handleProvider->ProcessHandle)
-        return;
+        goto UpdateExit;
 
-    if (!NT_SUCCESS(PhEnumHandlesGeneric(
+    if (!NT_SUCCESS(handleProvider->RunStatus = PhEnumHandlesGeneric(
         handleProvider->ProcessId,
         handleProvider->ProcessHandle,
         &handleInfo,
         &filterNeeded
         )))
-        return;
+        goto UpdateExit;
 
     handles = handleInfo->Handles;
     numberOfHandles = (ULONG)handleInfo->NumberOfHandles;
@@ -640,5 +640,6 @@ VOID PhHandleProviderUpdate(
         PhClearHashtable(handleProvider->TempListHashtable);
     }
 
+UpdateExit:
     PhInvokeCallback(&handleProvider->UpdatedEvent, NULL);
 }

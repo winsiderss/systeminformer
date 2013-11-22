@@ -83,6 +83,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     _In_ HANDLE ProcessId
     )
 {
+    NTSTATUS status;
     PPH_MODULE_PROVIDER moduleProvider;
 
     if (!NT_SUCCESS(PhCreateObject(
@@ -109,11 +110,12 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     moduleProvider->ProcessId = ProcessId;
     moduleProvider->ProcessHandle = NULL;
     moduleProvider->PackageFullName = NULL;
+    moduleProvider->RunStatus = STATUS_SUCCESS;
 
     // It doesn't matter if we can't get a process handle.
 
     // Try to get a handle with query information + vm read access.
-    if (!NT_SUCCESS(PhOpenProcess(
+    if (!NT_SUCCESS(status = PhOpenProcess(
         &moduleProvider->ProcessHandle,
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
         ProcessId
@@ -122,12 +124,14 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         if (WINDOWS_HAS_LIMITED_ACCESS)
         {
             // Try to get a handle with query limited information + vm read access.
-            PhOpenProcess(
+            status = PhOpenProcess(
                 &moduleProvider->ProcessHandle,
                 PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
                 ProcessId
                 );
         }
+
+        moduleProvider->RunStatus = status;
     }
 
     if (moduleProvider->ProcessHandle)
@@ -364,11 +368,11 @@ VOID PhModuleProviderUpdate(
     // abort (unless this is the System process - in that case
     // we don't need a handle).
     if (!moduleProvider->ProcessHandle && moduleProvider->ProcessId != SYSTEM_PROCESS_ID)
-        return;
+        goto UpdateExit;
 
     modules = PhCreateList(20);
 
-    PhEnumGenericModules(
+    moduleProvider->RunStatus = PhEnumGenericModules(
         moduleProvider->ProcessId,
         moduleProvider->ProcessHandle,
         PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES,
@@ -574,5 +578,6 @@ VOID PhModuleProviderUpdate(
 
     PhDereferenceObject(modules);
 
+UpdateExit:
     PhInvokeCallback(&moduleProvider->UpdatedEvent, NULL);
 }
