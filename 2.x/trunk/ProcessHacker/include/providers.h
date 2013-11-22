@@ -556,6 +556,7 @@ typedef struct _PH_MODULE_PROVIDER
     HANDLE ProcessHandle;
     PPH_STRING PackageFullName;
     SLIST_HEADER QueryListHead;
+    NTSTATUS RunStatus;
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 
 BOOLEAN PhModuleProviderInitialization(
@@ -732,6 +733,7 @@ typedef struct _PH_HANDLE_PROVIDER
     HANDLE ProcessHandle;
 
     PPH_HASHTABLE TempListHashtable;
+    NTSTATUS RunStatus;
 } PH_HANDLE_PROVIDER, *PPH_HANDLE_PROVIDER;
 
 BOOLEAN PhHandleProviderInitialization(

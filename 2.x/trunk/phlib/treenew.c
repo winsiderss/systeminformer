@@ -1466,6 +1466,10 @@ BOOLEAN PhTnpOnNotify(
                             }
 
                             Context->ResizingColumn = NULL;
+
+                            // Redraw the entire window if we are displaying empty text.
+                            if (Context->FlatList->Count == 0 && Context->EmptyText.Length != 0)
+                                InvalidateRect(Context->Handle, NULL, FALSE);
                         }
                         else
                         {
@@ -1901,6 +1905,14 @@ ULONG_PTR PhTnpOnUserMessage(
                 return FALSE;
 
             PhTnpAutoSizeColumnHeader(Context, column->Fixed ? Context->FixedHeaderHandle : Context->HeaderHandle, column);
+        }
+        return TRUE;
+    case TNM_SETEMPTYTEXT:
+        {
+            PPH_STRINGREF text = (PPH_STRINGREF)LParam;
+            ULONG flags = (ULONG)WParam;
+
+            Context->EmptyText = *text;
         }
         return TRUE;
     }
@@ -4729,18 +4741,35 @@ VOID PhTnpProcessScroll(
     }
     else
     {
-        deltaY = DeltaRows * Context->RowHeight;
-
-        // If we're scrolling vertically as well, we need to scroll the fixed part and the normal part
-        // separately.
-
-        if (DeltaRows != 0)
+        // Don't scroll if there are no rows. This is especially important if the user wants us to display empty text.
+        if (Context->FlatList->Count != 0)
         {
-            rect.left = 0;
-            rect.right = Context->NormalLeft;
+            deltaY = DeltaRows * Context->RowHeight;
+
+            // If we're scrolling vertically as well, we need to scroll the fixed part and the normal part
+            // separately.
+
+            if (DeltaRows != 0)
+            {
+                rect.left = 0;
+                rect.right = Context->NormalLeft;
+                ScrollWindowEx(
+                    Context->Handle,
+                    0,
+                    -deltaY,
+                    &rect,
+                    &rect,
+                    NULL,
+                    NULL,
+                    SW_INVALIDATE
+                    );
+            }
+
+            rect.left = Context->NormalLeft;
+            rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
             ScrollWindowEx(
                 Context->Handle,
-                0,
+                -DeltaX,
                 -deltaY,
                 &rect,
                 &rect,
@@ -4749,19 +4778,6 @@ VOID PhTnpProcessScroll(
                 SW_INVALIDATE
                 );
         }
-
-        rect.left = Context->NormalLeft;
-        rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-        ScrollWindowEx(
-            Context->Handle,
-            -DeltaX,
-            -deltaY,
-            &rect,
-            &rect,
-            NULL,
-            NULL,
-            SW_INVALIDATE
-            );
 
         PhTnpLayoutHeader(Context);
     }
@@ -5037,6 +5053,25 @@ VOID PhTnpPaint(
         rowRect.right = viewRect.right;
         rowRect.bottom = viewRect.bottom;
         FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+    }
+
+    if (Context->FlatList->Count == 0 && Context->EmptyText.Length != 0)
+    {
+        RECT textRect;
+
+        textRect.left = 20;
+        textRect.top = Context->HeaderHeight + 10;
+        textRect.right = viewRect.right - 20;
+        textRect.bottom = viewRect.bottom - 5;
+
+        SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
+        DrawText(
+            hdc,
+            Context->EmptyText.Buffer,
+            (ULONG)Context->EmptyText.Length / 2,
+            &textRect,
+            DT_NOPREFIX | DT_CENTER | DT_END_ELLIPSIS
+            );
     }
 
     if (Context->FixedDividerVisible && Context->FixedWidth >= PaintRect->left && Context->FixedWidth < PaintRect->right)

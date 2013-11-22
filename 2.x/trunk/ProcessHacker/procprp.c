@@ -40,6 +40,11 @@ PPH_OBJECT_TYPE PhpProcessPropPageContextType;
 static RECT MinimumSize = { -1, -1, -1, -1 };
 static PWSTR ProtectedSignerStrings[] = { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)" };
 
+static PH_STRINGREF LoadingText = PH_STRINGREF_INIT(L"Loading...");
+static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");
+static PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
+static PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
+
 BOOLEAN PhProcessPropInitialization(
     VOID
     )
@@ -913,35 +918,31 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         NULL
                         )))
                     {
-                        if (protection.Type != PsProtectedTypeNone)
+                        PWSTR type;
+                        PWSTR signer;
+
+                        switch (protection.Type)
                         {
-                            PWSTR type;
-                            PWSTR signer;
-
-                            switch (protection.Type)
-                            {
-                            case PsProtectedTypeProtectedLight:
-                                type = L"Light";
-                                break;
-                            case PsProtectedTypeProtected:
-                                type = L"Full";
-                                break;
-                            default:
-                                type = L"Unknown";
-                                break;
-                            }
-
-                            if (protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
-                                signer = ProtectedSignerStrings[protection.Signer];
-                            else
-                                signer = L"";
-
-                            SetDlgItemText(hwndDlg, IDC_PROTECTION, PhaConcatStrings2(type, signer)->Buffer);
+                        case PsProtectedTypeNone:
+                            type = L"None";
+                            break;
+                        case PsProtectedTypeProtectedLight:
+                            type = L"Light";
+                            break;
+                        case PsProtectedTypeProtected:
+                            type = L"Full";
+                            break;
+                        default:
+                            type = L"Unknown";
+                            break;
                         }
+
+                        if (protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
+                            signer = ProtectedSignerStrings[protection.Signer];
                         else
-                        {
-                            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"None");
-                        }
+                            signer = L"";
+
+                        SetDlgItemText(hwndDlg, IDC_PROTECTION, PhaConcatStrings2(type, signer)->Buffer);
                     }
                 }
                 else if (KphIsConnected())
@@ -2545,6 +2546,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             tnHandle = threadsContext->ListContext.TreeNewHandle;
             BringWindowToTop(tnHandle);
             PhInitializeThreadList(hwndDlg, tnHandle, processItem, &threadsContext->ListContext);
+            TreeNew_SetEmptyText(tnHandle, &EmptyThreadsText, 0);
             threadsContext->NeedsRedraw = FALSE;
 
             // Use Cycles instead of Context Switches on Vista and above, but only when we can
@@ -3428,7 +3430,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             tnHandle = modulesContext->ListContext.TreeNewHandle;
             BringWindowToTop(tnHandle);
             PhInitializeModuleList(hwndDlg, tnHandle, processItem, &modulesContext->ListContext);
+            TreeNew_SetEmptyText(tnHandle, &LoadingText, 0);
             modulesContext->NeedsRedraw = FALSE;
+            modulesContext->LastRunStatus = -1;
+            modulesContext->ErrorMessage = NULL;
 
             PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectCreate);
 
@@ -3483,6 +3488,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhSaveSettingsModuleList(&modulesContext->ListContext);
             PhDeleteModuleList(&modulesContext->ListContext);
 
+            PhSwapReference(&modulesContext->ErrorMessage, NULL);
             PhFree(modulesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
@@ -3646,6 +3652,32 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     case WM_PH_MODULES_UPDATED:
         {
             PhTickModuleNodes(&modulesContext->ListContext);
+
+            if (modulesContext->LastRunStatus != modulesContext->Provider->RunStatus)
+            {
+                NTSTATUS status;
+                PPH_STRING message;
+
+                status = modulesContext->Provider->RunStatus;
+                modulesContext->LastRunStatus = status;
+
+                if (!PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+                    status = STATUS_SUCCESS;
+
+                if (NT_SUCCESS(status))
+                {
+                    TreeNew_SetEmptyText(tnHandle, &EmptyModulesText, 0);
+                }
+                else
+                {
+                    message = PhGetStatusMessage(status, 0);
+                    PhSwapReference2(&modulesContext->ErrorMessage, PhFormatString(L"Unable to query module information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
+                    PhSwapReference(&message, NULL);
+                    TreeNew_SetEmptyText(tnHandle, &modulesContext->ErrorMessage->sr, 0);
+                }
+
+                InvalidateRect(tnHandle, NULL, FALSE);
+            }
 
             if (modulesContext->NeedsRedraw)
             {
@@ -4858,7 +4890,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             tnHandle = handlesContext->ListContext.TreeNewHandle;
             BringWindowToTop(tnHandle);
             PhInitializeHandleList(hwndDlg, tnHandle, processItem, &handlesContext->ListContext);
+            TreeNew_SetEmptyText(tnHandle, &EmptyHandlesText, 0);
             handlesContext->NeedsRedraw = FALSE;
+            handlesContext->LastRunStatus = -1;
+            handlesContext->ErrorMessage = NULL;
 
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectCreate);
 
@@ -5106,6 +5141,32 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     case WM_PH_HANDLES_UPDATED:
         {
             PhTickHandleNodes(&handlesContext->ListContext);
+
+            if (handlesContext->LastRunStatus != handlesContext->Provider->RunStatus)
+            {
+                NTSTATUS status;
+                PPH_STRING message;
+
+                status = handlesContext->Provider->RunStatus;
+                handlesContext->LastRunStatus = status;
+
+                if (!PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+                    status = STATUS_SUCCESS;
+
+                if (NT_SUCCESS(status))
+                {
+                    TreeNew_SetEmptyText(tnHandle, &EmptyHandlesText, 0);
+                }
+                else
+                {
+                    message = PhGetStatusMessage(status, 0);
+                    PhSwapReference2(&handlesContext->ErrorMessage, PhFormatString(L"Unable to query handle information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
+                    PhSwapReference(&message, NULL);
+                    TreeNew_SetEmptyText(tnHandle, &handlesContext->ErrorMessage->sr, 0);
+                }
+
+                InvalidateRect(tnHandle, NULL, FALSE);
+            }
 
             if (handlesContext->NeedsRedraw)
             {

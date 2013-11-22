@@ -179,6 +179,8 @@ typedef struct _PH_MODULES_CONTEXT
 
     PH_MODULE_LIST_CONTEXT ListContext;
     BOOLEAN NeedsRedraw;
+    NTSTATUS LastRunStatus;
+    PPH_STRING ErrorMessage;
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
@@ -201,6 +203,8 @@ typedef struct _PH_HANDLES_CONTEXT
     BOOLEAN NeedsRedraw;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
+    NTSTATUS LastRunStatus;
+    PPH_STRING ErrorMessage;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 
 typedef struct _PH_MEMORY_CONTEXT
