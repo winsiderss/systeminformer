@@ -2144,6 +2144,11 @@ INT PhShowMessage_V(
 #define PhShowWarning(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONWARNING, Format, __VA_ARGS__)
 #define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
+PPH_STRING PhGetStatusMessage(
+    _In_ NTSTATUS Status,
+    _In_opt_ ULONG Win32Result
+    );
+
 PHLIBAPI
 VOID PhShowStatus(
     _In_ HWND hWnd,

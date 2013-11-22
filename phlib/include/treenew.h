@@ -381,7 +381,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_HITTEST (WM_USER + 40)
 #define TNM_GETVISIBLECOLUMNCOUNT (WM_USER + 41)
 #define TNM_AUTOSIZECOLUMN (WM_USER + 42)
-#define TNM_LAST (WM_USER + 42)
+#define TNM_SETEMPTYTEXT (WM_USER + 43)
+#define TNM_LAST (WM_USER + 43)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -502,6 +503,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_AutoSizeColumn(hWnd, Id) \
     SendMessage((hWnd), TNM_AUTOSIZECOLUMN, (WPARAM)(Id), 0)
+
+#define TreeNew_SetEmptyText(hWnd, Text, Flags) \
+    SendMessage((hWnd), TNM_SETEMPTYTEXT, (WPARAM)(Flags), (LPARAM)(Text))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {

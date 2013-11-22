@@ -150,6 +150,8 @@ typedef struct _PH_TREENEW_CONTEXT
 
     LONG EnableRedraw;
     HRGN SuspendUpdateRegion;
+
+    PH_STRINGREF EmptyText;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
