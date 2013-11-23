@@ -311,12 +311,12 @@ static NTSTATUS HashFileAndResetPosition(
     )
 {
     NTSTATUS status;
-    UCHAR buffer[PAGE_SIZE * 4];
     IO_STATUS_BLOCK iosb;
     PH_HASH_CONTEXT hashContext;
     sha256_context sha256;
     ULONG64 bytesRemaining;
     FILE_POSITION_INFORMATION positionInfo;
+    UCHAR buffer[PAGE_SIZE];
 
     bytesRemaining = FileSize->QuadPart;
 
