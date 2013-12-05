@@ -22,22 +22,6 @@
 
 #include "nettools.h"
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
-#include <icmpapi.h>
-
-#pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "ws2_32.lib")
-
-// ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
-// The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure 
-//       + the number of bytes of data specified in the RequestSize parameter.
-// This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message) 
-//       + space for an IO_STATUS_BLOCK structure.
-#define ICMP_IPv4_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMP_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
-#define ICMP_IPv6_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMPV6_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
-
 #define WM_PING_UPDATE (WM_APP + 151)
 #define IDC_PING_GRAPH (55050)
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
@@ -215,10 +199,15 @@ static ULONG PhNetworkPingThreadStart(
                     InterlockedIncrement(&context->PingLossCount);
                 }
 
-                //if (icmp6ReplyStruct->Address.sin6_addr != context->IpAddress.In6Addr.u.Word)
-                //{
-                //    InterlockedIncrement(&context->UnknownAddrCount);
-                //}
+                if (_memicmp(
+                    icmp6ReplyStruct->Address.sin6_addr, 
+                    context->IpAddress.In6Addr.u.Word, 
+                    sizeof(icmp6ReplyStruct->Address.sin6_addr)
+                    ) != 0)
+                {
+                    InterlockedIncrement(&context->UnknownAddrCount);
+                }
+
                 //if (icmp6ReplyStruct->DataSize == icmpEchoBuffer->MaximumLength)
                 //{
                 //    icmpPacketSignature = (_memicmp(
@@ -227,6 +216,7 @@ static ULONG PhNetworkPingThreadStart(
                 //        icmp6ReplyStruct->DataSize
                 //        ) == 0);
                 //}
+
                 //if (icmpPacketSignature != TRUE)
                 //{
                 //    InterlockedIncrement(&context->HashFailCount);
@@ -234,86 +224,10 @@ static ULONG PhNetworkPingThreadStart(
 
                 icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
                 //icmpCurrentPingTtl = icmp6ReplyStruct->Options.Ttl;
-
-                switch (icmp6ReplyStruct->Status) 
-                {
-                case IP_DEST_HOST_UNREACHABLE:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp destination host unreachable. ErrCode: %u [%s]", 
-                            icmp6ReplyStruct->Status,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                case IP_DEST_NET_UNREACHABLE:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp destination network unreachable. ErrCode: %u [%s]", 
-                            icmp6ReplyStruct->Status,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                case IP_REQ_TIMED_OUT:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp request timed-out. ErrCode: %u [%s]", 
-                            icmp6ReplyStruct->Status,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                }
             }
             else
             {
-                ULONG icmpErrorCode = GetLastError();
-
                 InterlockedIncrement(&context->PingLossCount);
-
-                switch (icmpErrorCode) 
-                {
-                case IP_BUF_TOO_SMALL:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp reply buffer too small. ErrCode: %u [%s]", 
-                            icmpErrorCode,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                case IP_REQ_TIMED_OUT:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp request timed-out. ErrCode: %u [%s]", 
-                            icmpErrorCode,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                default:
-                    {
-                        PPH_STRING errorMessage = PhFormatString(
-                            L"Icmp generic failure. ErrCode: %u [%s]", 
-                            icmpErrorCode,
-                            context->addressString
-                            );
-                        PhLogMessageEntry(PH_LOG_ENTRY_MESSAGE, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-                    break;
-                }
             }
         }
         else
@@ -452,12 +366,12 @@ static VOID NTAPI NetworkPingUpdateHandler(
 {
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Context;
 
-	// Queue up the next ping into our work queue...
-	PhQueueItemWorkQueue(
-		&context->PingWorkQueue, 
-		PhNetworkPingThreadStart, 
-		(PVOID)context
-		);
+    // Queue up the next ping into our work queue...
+    PhQueueItemWorkQueue(
+        &context->PingWorkQueue, 
+        PhNetworkPingThreadStart, 
+        (PVOID)context
+        );
 
     PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
 }
