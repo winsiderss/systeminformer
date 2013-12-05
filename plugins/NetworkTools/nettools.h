@@ -24,6 +24,9 @@
 #ifndef NETTOOLS_H
 #define NETTOOLS_H
 
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
+
 #define CINTERFACE
 #define COBJMACROS
 #include <windowsx.h>
@@ -32,6 +35,10 @@
 #include <phplug.h>
 #include <phappresource.h>
 #include <windowsx.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <icmpapi.h>
 
 #include "resource.h"
 
@@ -41,6 +48,14 @@
 #define SETTING_NAME_PING_WINDOW_POSITION (SETTING_PREFIX L"PingWindowPosition")
 #define SETTING_NAME_PING_WINDOW_SIZE (SETTING_PREFIX L"PingWindowSize")
 #define SETTING_NAME_PING_TIMEOUT (SETTING_PREFIX L"PingMaxTimeout")
+
+// ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
+// The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure 
+//       + the number of bytes of data specified in the RequestSize parameter.
+// This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message) 
+//       + space for an IO_STATUS_BLOCK structure.
+#define ICMP_IPv4_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMP_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
+#define ICMP_IPv6_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMPV6_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
 
 extern PPH_PLUGIN PluginInstance;
 
