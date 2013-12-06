@@ -415,6 +415,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 DeleteObject(context->FontHandle);
 
             RemoveProp(hwndDlg, L"Context");
+            context = NULL;
         }
     }
 
@@ -599,7 +600,9 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             SetDlgItemText(hwndDlg, IDC_PINGS_SENT, PhaFormatString(
                 L"Pings Sent: %u", context->PingSentCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
-                L"Pings Lost: %u (0%%)", context->PingLossCount)->Buffer);   
+                L"Pings Lost: %u (%.0f%%)", context->PingLossCount, 
+                ((FLOAT)context->PingLossCount / context->PingSentCount * 100)
+                )->Buffer);
 
             SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
                 L"Bad Hashes: %u", context->HashFailCount)->Buffer);  
