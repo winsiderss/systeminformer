@@ -16,16 +16,29 @@
 
 #include "resource.h"
 
-#define Control_Visible(hWnd, visible) \
-    ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
+// Force update checks to succeed with debug builds
+//#define DEBUG_UPDATE
+#define UPDATE_MENUITEM    1001
+#define PH_UPDATEISERRORED (WM_APP + 101)
+#define PH_UPDATEAVAILABLE (WM_APP + 102)
+#define PH_UPDATEISCURRENT (WM_APP + 103)
+#define PH_UPDATENEWER     (WM_APP + 104)
+#define PH_HASHSUCCESS     (WM_APP + 105)
+#define PH_HASHFAILURE     (WM_APP + 106)
+#define PH_INETFAILURE     (WM_APP + 107)
+#define WM_SHOWDIALOG      (WM_APP + 150)
 
-#define UPDATE_MENUITEM 101
+DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
+
 #define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
-#define MAKEDLLVERULL(major, minor, build, sp) \
+#define MAKEDLLVERULL(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \
     ((ULONGLONG)(minor) << 32) | \
     ((ULONGLONG)(build) << 16) | \
-    ((ULONGLONG)(sp) <<  0))
+    ((ULONGLONG)(revision) <<  0))
+
+#define Control_Visible(hWnd, visible) \
+    ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
 
 extern PPH_PLUGIN PluginInstance;
 
@@ -40,6 +53,13 @@ typedef enum _PH_UPDATER_STATE
 typedef struct _PH_UPDATER_CONTEXT
 {
     BOOLEAN HaveData;
+    PH_UPDATER_STATE UpdaterState;
+    HBITMAP SourceforgeBitmap;
+    HICON IconHandle;
+    HFONT FontHandle;
+    HWND StatusHandle;
+    HWND ProgressHandle;
+    HWND DialogHandle;
 
     ULONG MinorVersion;
     ULONG MajorVersion;
@@ -47,21 +67,15 @@ typedef struct _PH_UPDATER_CONTEXT
     ULONG CurrentMinorVersion;
     ULONG CurrentMajorVersion;
     ULONG CurrentRevisionVersion;
+    PPH_STRING UserAgent;
     PPH_STRING Version;
     PPH_STRING RevVersion;
     PPH_STRING RelDate;
     PPH_STRING Size;
     PPH_STRING Hash;
     PPH_STRING ReleaseNotesUrl;
+    PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFilePath;
-
-    PH_UPDATER_STATE UpdaterState;
-    HINTERNET HttpSessionHandle;
-    HBITMAP SourceforgeBitmap;
-    HICON IconHandle;
-    HFONT FontHandle;
-    HWND StatusHandle;
-    HWND ProgressHandle;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID ShowUpdateDialog(
