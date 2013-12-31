@@ -153,6 +153,12 @@ typedef BOOL (WINAPI *_IsThemeBackgroundPartiallyTransparent)(
     _In_ INT iStateId
     );
 
+typedef HRESULT (WINAPI *_DrawThemeParentBackground)(
+    _In_ HWND hwnd,
+    _In_ HDC hdc,
+    _In_opt_ const RECT* prc
+    );
+
 typedef HRESULT (WINAPI *_GetThemeBackgroundContentRect)(
     _In_ HTHEME hTheme,
     _In_ HDC hdc,
