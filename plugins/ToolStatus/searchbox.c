@@ -38,6 +38,7 @@ static _SetWindowTheme SetWindowTheme_I;
 static _CloseThemeData CloseThemeData_I;
 static _IsThemePartDefined IsThemePartDefined_I;
 static _DrawThemeBackground DrawThemeBackground_I;
+static _DrawThemeParentBackground DrawThemeParentBackground_I;
 static _IsThemeBackgroundPartiallyTransparent IsThemeBackgroundPartiallyTransparent_I;
 static _GetThemeColor GetThemeColor_I;
 
@@ -58,6 +59,7 @@ static VOID NcAreaInitializeUxTheme(
         GetThemeColor_I = (_GetThemeColor)GetProcAddress(Context->UxThemeModule, "GetThemeColor");
         IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(Context->UxThemeModule, "IsThemePartDefined");
         DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(Context->UxThemeModule, "DrawThemeBackground");
+        DrawThemeParentBackground_I = (_DrawThemeParentBackground)GetProcAddress(Context->UxThemeModule, "DrawThemeParentBackground");
         IsThemeBackgroundPartiallyTransparent_I = (_IsThemeBackgroundPartiallyTransparent)GetProcAddress(Context->UxThemeModule, "IsThemeBackgroundPartiallyTransparent");
     }
 
@@ -243,6 +245,15 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
                 if (isFocused)
                 {
+                    if (IsThemeBackgroundPartiallyTransparent_I(
+                        context->UxThemeHandle, 
+                        EP_EDITBORDER_NOSCROLL, 
+                        EPSN_FOCUSED
+                        ))
+                    {
+                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
+                    }
+
                     DrawThemeBackground_I(
                         context->UxThemeHandle,
                         hdc,
@@ -254,6 +265,15 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 }
                 else
                 {
+                    if (IsThemeBackgroundPartiallyTransparent_I(
+                        context->UxThemeHandle, 
+                        EP_EDITBORDER_NOSCROLL, 
+                        EPSN_NORMAL
+                        ))
+                    {
+                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
+                    }
+
                     DrawThemeBackground_I(
                         context->UxThemeHandle,
                         hdc,
@@ -267,9 +287,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             else
             {
                 // Fill in the text box.
+                SetBkMode(hdc, TRANSPARENT);
                 //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
                 FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));   
-                SetBkMode(hdc, TRANSPARENT);
             }
 
             // Get the position of the inserted button.
@@ -363,12 +383,13 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         }
         break;
     case WM_LBUTTONUP:
-        {
+        {               
+            if (GetCapture() == hwndDlg)
+                ReleaseCapture();
+
             if (context->HasCapture)
             {
-                ReleaseCapture();
                 context->HasCapture = FALSE;
-
                 // Invalidate the nonclient area.
                 RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
                 return FALSE;
