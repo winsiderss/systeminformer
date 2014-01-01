@@ -157,28 +157,20 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
     if (uMsg == WM_NCDESTROY)
     {
-        // Cleanup the subclass data...
+        if (context->FontHandle)
+            DeleteObject(context->FontHandle);
 
         if (context->ImageList)
-        {
             ImageList_Destroy(context->ImageList);
-            context->ImageList = NULL;
-        }
 
         if (context->UxThemeHandle)
         {
             if (CloseThemeData_I)
-            {
                 CloseThemeData_I(context->UxThemeHandle);
-                context->UxThemeHandle = NULL;
-            }
         }
 
         if (context->UxThemeModule)
-        {
             FreeLibrary(context->UxThemeModule);
-            context->UxThemeModule = NULL;
-        }
 
         RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
 
@@ -365,16 +357,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             // Check that the mouse is within the button rect.
             if (PtInRect(&windowRect, windowPoint))
             {
-                context->HasCapture = TRUE;
                 SetCapture(hwndDlg);
 
-                // Send the click notification to the parent window.
-                PostMessage(
-                    context->ParentWindow,
-                    WM_COMMAND,
-                    MAKEWPARAM(context->CommandID, BN_CLICKED),
-                    0
-                    );
+                // Send click notification
+                SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
 
                 // Invalidate the nonclient area.
                 RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -383,13 +369,11 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         }
         break;
     case WM_LBUTTONUP:
-        {               
+        {
             if (GetCapture() == hwndDlg)
+            {
                 ReleaseCapture();
 
-            if (context->HasCapture)
-            {
-                context->HasCapture = FALSE;
                 // Invalidate the nonclient area.
                 RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
                 return FALSE;
@@ -414,15 +398,16 @@ static HFONT InitializeFont(
     _In_ HWND hwndDlg
     )
 {
-    LOGFONT logFont = { 0 };
     HFONT fontHandle = NULL;
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
 
-    logFont.lfHeight = 14;
-    logFont.lfWeight = FW_NORMAL;
-    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-    
-    // GDI uses the first font that matches the above attributes.
-    fontHandle = CreateFontIndirect(&logFont);
+    SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
+
+    metrics.lfMenuFont.lfHeight = 14;
+    metrics.lfMenuFont.lfWeight = FW_NORMAL;
+    //metrics.lfMenuFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+
+    fontHandle = CreateFontIndirect(&metrics.lfMenuFont);
 
     if (fontHandle)
     {
@@ -590,7 +575,6 @@ BOOLEAN InsertButton(
 
     context->cxImgSize = 22;
     context->CommandID = CommandID;
-    context->ParentWindow = GetParent(hwndDlg);
     context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
     ImageList_SetImageCount(context->ImageList, 2);
 
@@ -616,7 +600,7 @@ BOOLEAN InsertButton(
     NcAreaInitializeUxTheme(context, hwndDlg);
 
     // Set Searchbox control font
-    SearchboxFontHandle = InitializeFont(hwndDlg);
+    context->FontHandle = InitializeFont(hwndDlg);
 
     // Set our window context data.
     SetProp(hwndDlg, L"Context", (HANDLE)context);
