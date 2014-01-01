@@ -74,7 +74,6 @@ extern HWND ToolBarHandle;
 extern HWND TextboxHandle;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
-extern HFONT SearchboxFontHandle;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
@@ -170,27 +169,25 @@ typedef HRESULT (WINAPI *_GetThemeBackgroundContentRect)(
 
 typedef struct _NC_CONTEXT
 {
-    UINT CommandID; // sent in a WM_COMMAND message
-
-    INT cxLeftEdge; // size of the current window borders.
-    INT cxRightEdge;  // size of the current window borders.
+    INT cxLeftEdge;
+    INT cxRightEdge;
     INT cyTopEdge;
     INT cyBottomEdge;
     LONG cxImgSize;
+
+    BOOL IsThemeActive;
+    BOOL IsThemeBackgroundActive;
+    COLORREF clrUxThemeFillRef;
+    COLORREF clrUxThemeBackgroundRef;
+   
+    UINT CommandID;
+    HFONT FontHandle;
+    HIMAGELIST ImageList;
     HBITMAP ActiveBitmap;
     HBITMAP InactiveBitmap;
 
-    BOOLEAN HasCapture;
-    BOOL IsThemeActive;
-    BOOL IsThemeBackgroundActive;
     HTHEME UxThemeHandle;
     HMODULE UxThemeModule;
-    COLORREF clrUxThemeFillRef;
-    COLORREF clrUxThemeBackgroundRef;
-
-    HIMAGELIST ImageList;
-    HWND ParentWindow;
-    HWND HwndWindow;
 } NC_CONTEXT;
 
 HBITMAP LoadImageFromResources(
