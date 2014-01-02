@@ -1,7 +1,7 @@
 ;* Process Hacker 2 - Installer script
 ;*
 ;* Copyright (C) 2011 wj32
-;* Copyright (C) 2010-2013 XhmikosR
+;* Copyright (C) 2010-2014 XhmikosR
 ;*
 ;* This file is part of Process Hacker.
 ;*
@@ -34,7 +34,7 @@
 #include "Services.iss"
 
 #define installer_build_number "13"
-#define copyright              "Copyright © 2010-2013, Process Hacker Team. Licensed under the GNU GPL, v3."
+#define copyright              "Copyright © 2010-2014, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
   #define app_version          str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
