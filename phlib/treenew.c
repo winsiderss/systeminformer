@@ -2134,6 +2134,10 @@ VOID PhTnpLayout(
     }
 
     PhTnpLayoutHeader(Context);
+
+    // Redraw the entire window if we are displaying empty text.
+    if (Context->FlatList->Count == 0 && Context->EmptyText.Length != 0)
+        InvalidateRect(Context->Handle, NULL, FALSE);
 }
 
 VOID PhTnpLayoutHeader(
