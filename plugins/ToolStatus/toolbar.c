@@ -89,6 +89,7 @@ static VOID RebarLoadSettings(
         if (arrowIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
         {
             ImageList_Replace(ToolBarImageList, 0, arrowIconBitmap, NULL);
+            DeleteObject(arrowIconBitmap);
         }
         else
         {
@@ -98,6 +99,7 @@ static VOID RebarLoadSettings(
         if (cogIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))  
         {
             ImageList_Replace(ToolBarImageList, 1, cogIconBitmap, NULL);
+            DeleteObject(cogIconBitmap);
         }
         else
         {
@@ -107,6 +109,7 @@ static VOID RebarLoadSettings(
         if (findIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
         {
             ImageList_Replace(ToolBarImageList, 2, findIconBitmap, NULL);
+            DeleteObject(findIconBitmap);
         }
         else
         {
@@ -116,6 +119,7 @@ static VOID RebarLoadSettings(
         if (chartIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)))
         {
             ImageList_Replace(ToolBarImageList, 3, chartIconBitmap, NULL);
+            DeleteObject(chartIconBitmap);
         }
         else
         {
@@ -125,6 +129,7 @@ static VOID RebarLoadSettings(
         if (appIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)))
         {
             ImageList_Replace(ToolBarImageList, 4, appIconBitmap, NULL);
+            DeleteObject(appIconBitmap);
         }
         else
         {
@@ -134,6 +139,7 @@ static VOID RebarLoadSettings(
         if (goIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
         {
             ImageList_Replace(ToolBarImageList, 5, goIconBitmap, NULL);
+            DeleteObject(goIconBitmap);
         }
         else
         {
@@ -143,6 +149,7 @@ static VOID RebarLoadSettings(
         if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)))
         {
             ImageList_Replace(ToolBarImageList, 6, crossIconBitmap, NULL);
+            DeleteObject(crossIconBitmap);
         }
         else
         {
