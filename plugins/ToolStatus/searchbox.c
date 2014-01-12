@@ -582,14 +582,17 @@ BOOLEAN InsertButton(
     if (context->ActiveBitmap = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE)))
     {
         ImageList_Replace(context->ImageList, 0, context->ActiveBitmap, NULL);
+        DeleteObject(context->ActiveBitmap);
     }
     else
     {
         PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
     }
+
     if (context->InactiveBitmap = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)))
     {
         ImageList_Replace(context->ImageList, 1, context->InactiveBitmap, NULL);
+        DeleteObject(context->InactiveBitmap);
     }
     else
     {
