@@ -1,12 +1,34 @@
+/*
+* Process Hacker Extra Plugins -
+*   Wait Chain Traversal (WCT) Plugin
+*
+* Copyright (C) 2014 dmex
+*
+* This file is part of Process Hacker.
+*
+* Process Hacker is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Process Hacker is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef WNDTREE_H
 #define WNDTREE_H
 
-#define ID_WCTSHOWCONTEXTMENU 19584
-#define SETTING_PREFIX L"dmex.WaitChainPlugin."
-#define SETTING_NAME_SHOW_DESKTOP_WINDOWS (SETTING_PREFIX L"ShowDesktopWindows")
-#define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (SETTING_PREFIX L"WindowTreeListColumns")
-#define SETTING_NAME_WINDOWS_WINDOW_POSITION (SETTING_PREFIX L"WindowsWindowPosition")
-#define SETTING_NAME_WINDOWS_WINDOW_SIZE (SETTING_PREFIX L"WindowsWindowSize")
+#define ID_WCTSHOWCONTEXTMENU 19000
+#define SETTING_PREFIX L"dmex.WaitChainPlugin"
+#define SETTING_NAME_SHOW_DESKTOP_WINDOWS (SETTING_PREFIX L".ShowDesktopWindows")
+#define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (SETTING_PREFIX L".WindowTreeListColumns")
+#define SETTING_NAME_WINDOWS_WINDOW_POSITION (SETTING_PREFIX L".WindowsWindowPosition")
+#define SETTING_NAME_WINDOWS_WINDOW_SIZE (SETTING_PREFIX L".WindowsWindowSize")
 
 typedef enum _WCT_TREE_COLUMN_ITEM_NAME
 {
