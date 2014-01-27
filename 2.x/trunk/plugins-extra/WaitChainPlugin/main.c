@@ -102,8 +102,19 @@ static VOID WaitChainCheckThread(
             rootNode->WaitTimeString = PhFormatString(L"%u", wctNode.ThreadObject.WaitTime);
             rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode.ThreadObject.ContextSwitches);
           
-            if (wctNode.LockObject.ObjectName[0] != L'\0')
+            if (wctNode.LockObject.ObjectName[0] != '\0')
             {
+                // LockObject.ObjectName includes undocumented data.
+
+                // -- ProcessID --
+                //wctNode.LockObject.ObjectName[0]
+                // -- ThreadID --
+                //wctNode.LockObject.ObjectName[2]
+                // -- Unknown --
+                //wctNode.LockObject.ObjectName[4]
+                //wctNode.LockObject.ObjectName[5]
+                //wctNode.LockObject.ObjectName[6]
+                
                 rootNode->ObjectNameString = PhFormatString(L"%s", wctNode.LockObject.ObjectName);
             }
 
@@ -186,7 +197,7 @@ static NTSTATUS WaitChainCallbackThread(
     return status;
 }
 
-static INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
+static INT_PTR CALLBACK WaitChainDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -384,7 +395,7 @@ static VOID NTAPI MenuItemCallback(
                 (HINSTANCE)PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_WCT_DIALOG),
                 NULL,
-                EtpUnloadedDllsDlgProc,
+                WaitChainDlgProc,
                 (LPARAM)menuItem->Context
                 );
         }
@@ -480,14 +491,14 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"dmex.WaitChainPlugin", Instance, &info);
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
 
             info->DisplayName = L"Wait Chain Traversal";
             info->Author = L"dmex";
-            info->Description = L"Plugin for viewing the thread Wait Chain Traversal";
+            info->Description = L"Plugin for viewing the current thread or process Wait Chain";
             info->HasOptions = FALSE;
                         
             PhRegisterCallback(

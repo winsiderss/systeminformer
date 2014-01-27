@@ -2,7 +2,7 @@
  * Process Hacker Extra Plugins -
  *   Wait Chain Traversal (WCT) Plugin
  *
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2014 dmex
  *
  * This file is part of Process Hacker.
  *
