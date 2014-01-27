@@ -74,14 +74,14 @@ static VOID PhpUpdateLogList(
     )
 {
     ListViewCount = PhLogBuffer.Count;
-    ListView_SetItemCount(ListViewHandle, ListViewCount);
+    ListView_SetItemCountEx(ListViewHandle, ListViewCount, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
 
     if (ListViewCount >= 2 && Button_GetCheck(GetDlgItem(PhLogWindowHandle, IDC_AUTOSCROLL)) == BST_CHECKED)
     {
-        // This is a real WTF. EnsureVisible doesn't work if IsItemVisible is used and there is
-        // an item selected.
-        //if (ListView_IsItemVisible(ListViewHandle, ListViewCount - 2))
-        ListView_EnsureVisible(ListViewHandle, ListViewCount - 1, FALSE);
+        if (ListView_IsItemVisible(ListViewHandle, ListViewCount - 2))
+        {
+            ListView_EnsureVisible(ListViewHandle, ListViewCount - 1, FALSE);
+        }
     }
 }
 
