@@ -1,7 +1,7 @@
 /*
  * Running Object Table Plugin
  *
- * Copyright (C) 2012 dmex
+ * Copyright (C) 2014 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,27 +21,181 @@
 
 #include "main.h"
 
-VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-INT_PTR CALLBACK RotViewDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
-
-static HWND ListViewWndHandle;
-static PH_LAYOUT_MANAGER LayoutManager;
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+
+static NTSTATUS EnumRunningObjectTable(
+    __in PVOID ThreadParam
+    )
+{
+    IRunningObjectTable* iRunningObjectTable = NULL;
+    IEnumMoniker* iEnumMoniker = NULL;
+    IMoniker* iMoniker = NULL;
+    IBindCtx* iBindCtx = NULL;
+    IMalloc* iMalloc = NULL;
+    ULONG count = 0;
+
+    HWND listViewHandle = (HWND)ThreadParam;
+
+    if (!SUCCEEDED(CoGetMalloc(1, &iMalloc)))
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    // Query the running object table address
+    if (SUCCEEDED(GetRunningObjectTable(0, &iRunningObjectTable)))
+    {
+        // Enum the objects registered
+        if (SUCCEEDED(IRunningObjectTable_EnumRunning(iRunningObjectTable, &iEnumMoniker)))
+        {
+            while (IEnumMoniker_Next(iEnumMoniker, 1, &iMoniker, &count) == S_OK)
+            {
+                if (SUCCEEDED(CreateBindCtx(0, &iBindCtx)))
+                {
+                    OLECHAR* displayName = NULL;
+
+                    // Query the object name
+                    if (SUCCEEDED(IMoniker_GetDisplayName(iMoniker, iBindCtx, NULL, &displayName)))
+                    {
+                        // Set the items name column
+                        PhAddListViewItem(listViewHandle, MAXINT, displayName, NULL);
+
+                        // Free the object name
+                        IMalloc_Free(iMalloc, displayName);
+                    }
+
+                    IBindCtx_Release(iBindCtx);
+                }
+
+                IEnumMoniker_Release(iMoniker);
+            }
+
+            IEnumMoniker_Release(iEnumMoniker);
+        }
+
+        IRunningObjectTable_Release(iRunningObjectTable);
+    }
+
+    IMalloc_Release(iMalloc); 
+    
+    return STATUS_SUCCESS;
+}
+
+static INT_PTR CALLBACK RotViewDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PROT_WINDOW_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PROT_WINDOW_CONTEXT)PhAllocate(sizeof(ROT_WINDOW_CONTEXT));
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PROT_WINDOW_CONTEXT)GetProp(hwndDlg, L"Context");
+
+        if (uMsg == WM_DESTROY)
+        {               
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhUnregisterDialog(hwndDlg); 
+            RemoveProp(hwndDlg, L"Context");
+            PhFree(context);
+        }
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST1);
+
+            PhRegisterDialog(hwndDlg);
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 420, L"Display Name");
+            PhSetExtendedListView(context->ListViewHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ROTREFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+
+            HANDLE threadHandle = PhCreateThread(0, EnumRunningObjectTable, context->ListViewHandle);
+            if (threadHandle)
+            {
+                NtClose(threadHandle);
+            }
+        }
+        break;
+    case WM_SIZE:
+        PhLayoutManagerLayout(&context->LayoutManager);
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_ROTREFRESH:
+                {
+                    ListView_DeleteAllItems(context->ListViewHandle);
+
+                    HANDLE threadHandle = PhCreateThread(0, EnumRunningObjectTable, context->ListViewHandle);
+                    if (threadHandle)
+                    {
+                        NtClose(threadHandle);
+                    }
+                }
+                break;
+            case IDCANCEL:
+            case IDOK:
+                EndDialog(hwndDlg, IDOK);
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+static VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+
+    switch (menuItem->Id)
+    {
+        case ROT_TABLE_MENUITEM:
+        {
+            DialogBox(
+                (HINSTANCE)PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_ROTVIEW),
+                NULL,
+                RotViewDlgProc
+                );
+        }
+            break;
+    }
+}
+
+static VOID NTAPI MainWindowShowingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ROT_TABLE_MENUITEM, L"Running Object Table", NULL);
+}
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -52,10 +206,11 @@ LOGICAL DllMain(
     switch (Reason)
     {
     case DLL_PROCESS_ATTACH:
+        ;
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.RunningObjectTable", Instance, &info);
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
@@ -77,150 +232,18 @@ LOGICAL DllMain(
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
-        }
+            {
+                PH_SETTING_CREATE settings[] =
+                {
+                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"490,340" }
+                };
+
+                PhAddSettings(settings, _countof(settings));
+            }
+        }  
         break;
     }
 
     return TRUE;
-}
-
-static VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ROT_TABLE_MENUITEM, L"Running Object Table", NULL);
-}
-
-static VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
-
-    switch (menuItem->Id)
-    {
-    case ROT_TABLE_MENUITEM:
-        {
-            DialogBox(
-                (HINSTANCE)PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_ROTVIEW),
-                NULL,
-                RotViewDlgProc
-                );
-        }
-        break;
-    }
-}
-
-static VOID EnumRunningObjectTable(
-    __in HWND hwndDlg
-    )
-{
-    IRunningObjectTable* table = NULL;
-    IEnumMoniker* moniker = NULL;
-    IMoniker* pmkObjectNames = NULL;
-    IBindCtx* ctx = NULL;
-    IMalloc* iMalloc = NULL;
-    ULONG count = 0;
-
-    CoGetMalloc(1, &iMalloc);
-
-    // Query the running object table address
-    if (SUCCEEDED(GetRunningObjectTable(0, &table)))
-    {
-        // Enum the objects registered
-        if (SUCCEEDED(IRunningObjectTable_EnumRunning(table, &moniker)))
-        {
-            while (IEnumMoniker_Next(moniker, 1, &pmkObjectNames, &count) == S_OK)
-            {
-                if (SUCCEEDED(CreateBindCtx(0, &ctx)))
-                {
-                    OLECHAR* name = NULL;
-
-                    // Query the object name
-                    if (SUCCEEDED(IMoniker_GetDisplayName(pmkObjectNames, ctx, NULL, &name)))
-                    {
-                        // Set the items name column
-                        PhAddListViewItem(hwndDlg, MAXINT, name, NULL);
-
-                        // Free the object name
-                        IMalloc_Free(iMalloc, name);
-                    }
-
-                    IBindCtx_Release(ctx);
-                    ctx = NULL;
-                }
-
-                IEnumMoniker_Release(pmkObjectNames);
-                pmkObjectNames = NULL;
-            }
-
-            IEnumMoniker_Release(moniker);
-            moniker = NULL;
-        }
-
-        IRunningObjectTable_Release(table);
-        table = NULL;
-    }
-
-    IMalloc_Release(iMalloc);
-    iMalloc = NULL;
-}
-
-INT_PTR CALLBACK RotViewDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_LIST1);
-
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
-
-            PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
-            PhSetControlTheme(ListViewWndHandle, L"explorer");
-            PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 420, L"Display Name");
-            PhSetExtendedListView(ListViewWndHandle);
-
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ROTREFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-
-            EnumRunningObjectTable(ListViewWndHandle);
-        }
-        break;
-    case WM_SIZE:
-        PhLayoutManagerLayout(&LayoutManager);
-        break;
-    case WM_DESTROY:
-        PhDeleteLayoutManager(&LayoutManager);
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDC_ROTREFRESH:
-                {
-                    ListView_DeleteAllItems(ListViewWndHandle);
-                    EnumRunningObjectTable(ListViewWndHandle);
-                }
-                break;
-            case IDCANCEL:
-            case IDOK:
-                EndDialog(hwndDlg, IDOK);
-                break;
-            }
-        }
-        break;
-    }
-
-    return FALSE;
 }
