@@ -19,23 +19,24 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _ROTHEADER_
-#define _ROTHEADER_
+#ifndef _ROT_H_
+#define _ROT_H_
+
+#define ROT_TABLE_MENUITEM 1000
+#define SETTING_PREFIX L"dmex.RunningObjectTable"
+#define SETTING_NAME_WINDOWS_WINDOW_POSITION (SETTING_PREFIX L".WindowsWindowPosition")
+#define SETTING_NAME_WINDOWS_WINDOW_SIZE (SETTING_PREFIX L".WindowsWindowSize")
 
 #define CINTERFACE
 #define COBJMACROS
-
-#define ROT_TABLE_MENUITEM 1000
-
 #include "phdk.h"
 #include "phappresource.h"
 #include "resource.h"
 
-INT_PTR CALLBACK PropDialogProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
+typedef struct _ROT_WINDOW_CONTEXT
+{
+    HWND ListViewHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
+} ROT_WINDOW_CONTEXT, *PROT_WINDOW_CONTEXT;
 
-#endif _ROTHEADER_
+#endif _ROT_H_
