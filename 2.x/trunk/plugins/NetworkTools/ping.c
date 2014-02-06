@@ -23,7 +23,6 @@
 #include "nettools.h"
 
 #define WM_PING_UPDATE (WM_APP + 151)
-#define IDC_PING_GRAPH (55050)
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
@@ -415,6 +414,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 DeleteObject(context->FontHandle);
 
             RemoveProp(hwndDlg, L"Context");
+            PhFree(context);
             context = NULL;
         }
     }
@@ -450,13 +450,13 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
-                WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_DRAW_PANEL, // GC_STYLE_FADEOUT
+                WS_CLIPSIBLINGS | WS_VISIBLE | WS_CHILD | WS_BORDER | GC_STYLE_DRAW_PANEL,
                 0,
                 0,
                 3,
                 3,
                 hwndDlg,
-                (HMENU)IDC_PING_GRAPH,
+                NULL,
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
@@ -591,23 +591,23 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             }
 
             SetDlgItemText(hwndDlg, IDC_ICMP_AVG, PhaFormatString(
-                L"Average: %ums", pingAvgValue)->Buffer);
+                L"Average: %lums", pingAvgValue)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ICMP_MIN, PhaFormatString(
-                L"Minimum: %ums", context->PingMinMs)->Buffer);
+                L"Minimum: %lums", context->PingMinMs)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ICMP_MAX, PhaFormatString(
-                L"Maximum: %ums", context->PingMaxMs)->Buffer);
+                L"Maximum: %lums", context->PingMaxMs)->Buffer);
                         
             SetDlgItemText(hwndDlg, IDC_PINGS_SENT, PhaFormatString(
-                L"Pings Sent: %u", context->PingSentCount)->Buffer);
+                L"Pings Sent: %lu", context->PingSentCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
-                L"Pings Lost: %u (%.0f%%)", context->PingLossCount, 
+                L"Pings Lost: %lu (%.0f%%)", context->PingLossCount, 
                 ((FLOAT)context->PingLossCount / context->PingSentCount * 100)
                 )->Buffer);
 
             SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
-                L"Bad Hashes: %u", context->HashFailCount)->Buffer);  
+                L"Bad Hashes: %lu", context->HashFailCount)->Buffer);  
             SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
-                L"Anon Replies: %u", context->UnknownAddrCount)->Buffer);   
+                L"Anon Replies: %lu", context->UnknownAddrCount)->Buffer);   
         }
         break;
     case WM_NOTIFY:
@@ -744,8 +744,6 @@ NTSTATUS PhNetworkPingDialogThreadStart(
 
     PhDeleteAutoPool(&autoPool);
     DestroyWindow(windowHandle);
-
-    PhFree(context);
 
     return STATUS_SUCCESS;
 }
