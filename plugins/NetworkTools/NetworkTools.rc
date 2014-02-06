@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,0,0
- PRODUCTVERSION 1,4,0,0
+ FILEVERSION 1,5,0,0
+ PRODUCTVERSION 1,5,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.4.0.0"
+            VALUE "FileVersion", "1.5.0.0"
             VALUE "InternalName", "NetworkTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetworkTools.dll"
             VALUE "ProductName", "Network Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.4.0.0"
+            VALUE "ProductVersion", "1.5.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -96,31 +96,33 @@ BEGIN
     EDITTEXT        IDC_NETOUTPUTEDIT,7,7,305,152,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER | WS_VSCROLL,WS_EX_CLIENTEDGE
 END
 
-IDD_OPTIONS DIALOGEX 0, 0, 215, 55
+IDD_OPTIONS DIALOGEX 0, 0, 215, 79
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,104,34,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,158,34,50,14
+    DEFPUSHBUTTON   "OK",IDOK,104,58,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,158,58,50,14
     EDITTEXT        IDC_MAXTIMEOUTTEXT,7,17,79,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Timeout (milliseconds):",IDC_STATIC,9,7,73,8
+    LTEXT           "Ping Size (bytes):",IDC_STATIC,7,34,57,8
+    EDITTEXT        IDC_ICMP_BYTE_SIZE,7,45,79,14,ES_AUTOHSCROLL | ES_NUMBER
 END
 
-IDD_PINGDIALOG DIALOGEX 0, 0, 269, 130
+IDD_PINGDIALOG DIALOGEX 0, 0, 323, 115
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,213,109,50,14
-    LTEXT           "Pinging X with X bytes of data:",IDC_MAINTEXT,7,7,255,16
-    GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,58,255,49,0,WS_EX_TRANSPARENT
+    DEFPUSHBUTTON   "OK",IDOK,266,94,50,14
+    LTEXT           "Pinging X with X bytes of data:",IDC_MAINTEXT,7,7,309,16
+    GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,59,255,49,0,WS_EX_TRANSPARENT
     LTEXT           "Pings Lost: 0 (0%)",IDC_PINGS_LOST,92,81,89,8
     LTEXT           "Minimum: 0ms",IDC_ICMP_MIN,13,81,73,8
     LTEXT           "Maximum: 0ms",IDC_ICMP_MAX,13,93,73,8
     LTEXT           "Average: 0ms",IDC_ICMP_AVG,13,69,73,8
-    LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,255,27,NOT WS_VISIBLE | WS_BORDER
+    LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,309,27,NOT WS_VISIBLE | WS_BORDER
     LTEXT           "Bad Hashes: 0",IDC_BAD_HASH,188,69,70,8
     LTEXT           "Anon Replies: 0",IDC_ANON_ADDR,188,81,70,8
     LTEXT           "Pings Sent: 0",IDC_PINGS_SENT,92,69,89,8
@@ -148,15 +150,15 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 208
         TOPMARGIN, 7
-        BOTTOMMARGIN, 48
+        BOTTOMMARGIN, 72
     END
 
     IDD_PINGDIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 262
+        RIGHTMARGIN, 316
         TOPMARGIN, 7
-        BOTTOMMARGIN, 123
+        BOTTOMMARGIN, 108
     END
 END
 #endif    // APSTUDIO_INVOKED
