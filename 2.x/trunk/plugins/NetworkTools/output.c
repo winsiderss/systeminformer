@@ -65,7 +65,9 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             if (context->ThreadHandle)
                 NtClose(context->ThreadHandle);
 
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, L"Context"); 
+            PhFree(context);
+            context = NULL;
         }
     }
 
@@ -318,11 +320,10 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
             if (windowText)
             {
-                PPH_STRING messageText = PhFormatString(L"%s Finished.", windowText->Buffer);
-
-                Static_SetText(context->WindowHandle, messageText->Buffer);
-
-                PhDereferenceObject(messageText);
+                Static_SetText(
+                    context->WindowHandle, 
+                    PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer
+                    );
                 PhDereferenceObject(windowText);
             }
         }
@@ -371,7 +372,7 @@ static NTSTATUS PhNetworkOutputDialogThreadStart(
 
     PhDeleteAutoPool(&autoPool);
     DestroyWindow(windowHandle);
-    PhFree(context);
+
     return STATUS_SUCCESS;
 }
 
