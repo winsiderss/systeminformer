@@ -141,23 +141,24 @@ NTSTATUS NetworkWhoisThreadStart(
             __leave;
         }
 
-        if (!(whoisHttpGetString = PhFormatString(L"/rest/ip/%s.txt", context->addressString)))
+        if (!(whoisHttpGetString = PhFormatString(L"/rest/ip/%s", context->addressString)))
             __leave;
 
         if (!(requestHandle = WinHttpOpenRequest(
             connectionHandle,
-            NULL, // GET
+            NULL,
             whoisHttpGetString->Buffer,
             NULL,
             WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,
-            0 // WINHTTP_FLAG_REFRESH
+            WINHTTP_FLAG_REFRESH
             )))
         {
             __leave;
         }
 
-        //WinHttpAddRequestHeaders(requestHandle, L"Accept: text/plain", -1L, 0);
+        if (!WinHttpAddRequestHeaders(requestHandle, L"Accept: text/plain", -1L, 0))
+            __leave;
 
         if (!WinHttpSendRequest(
             requestHandle,
@@ -175,8 +176,8 @@ NTSTATUS NetworkWhoisThreadStart(
         if (!ReadRequestString(requestHandle, &xmlBuffer, &xmlLength))
             __leave;
 
-        SendMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, (WPARAM)xmlLength, (LPARAM)xmlBuffer);
-        SendMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
+        PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, (WPARAM)xmlLength, (LPARAM)xmlBuffer);
+        PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
 
         isSuccess = TRUE;
     }
