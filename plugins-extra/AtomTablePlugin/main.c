@@ -26,6 +26,10 @@
 #include "resource.h"
 
 #define ATOM_TABLE_MENUITEM 1000
+#define SETTING_PREFIX L"dmex.AtomTablePlugin"
+#define SETTING_NAME_TREE_LIST_COLUMNS (SETTING_PREFIX L".TreeListColumns")
+#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
+#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
 
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
@@ -61,7 +65,7 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"dmex.AtomTablePlugin", Instance, &info);
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
@@ -87,9 +91,9 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
-                    { IntegerPairSettingType, L"AtomTableWindowPosition", L"350,350" },
-                    { IntegerPairSettingType, L"AtomTableWindowSize", L"510,380" },
-                    { StringSettingType, L"AtomTableListViewColumns", L"" }
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
+                    { StringSettingType, SETTING_NAME_TREE_LIST_COLUMNS, L"" }
                 };
 
                 PhAddSettings(settings, _countof(settings));
@@ -192,13 +196,12 @@ static VOID LoadAtomTable(
     VOID
     )
 {
-    ULONG i = 0;
     PATOM_TABLE_INFORMATION atomTable = NULL;
 
     if (!NT_SUCCESS(PhEnumAtomTable(&atomTable)))
         return;
 
-    for (i = 0; i < atomTable->NumberOfAtoms; i++)
+    for (ULONG i = 0; i < atomTable->NumberOfAtoms; i++)
     {
         PATOM_BASIC_INFORMATION atomInfo = NULL;
 
@@ -396,14 +399,14 @@ INT_PTR CALLBACK MainWindowDlgProc(
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             PhRegisterDialog(hwndDlg);
-            PhLoadWindowPlacementFromSetting(L"AtomTableWindowPosition", L"AtomTableWindowSize", hwndDlg);
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
 
             PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
             PhSetControlTheme(ListViewWndHandle, L"explorer");
             PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 370, L"Atom Name");
             PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 70, L"Ref Count");
             PhSetExtendedListView(ListViewWndHandle);
-            PhLoadListViewColumnsFromSetting(L"AtomTableListViewColumns", ListViewWndHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_TREE_LIST_COLUMNS, ListViewWndHandle);
 
             LoadAtomTable();
         }
@@ -412,8 +415,8 @@ INT_PTR CALLBACK MainWindowDlgProc(
         PhLayoutManagerLayout(&LayoutManager);
         break;
     case WM_DESTROY:
-        PhSaveWindowPlacementToSetting(L"AtomTableWindowPosition", L"AtomTableWindowSize", hwndDlg);
-        PhSaveListViewColumnsToSetting(L"AtomTableListViewColumns", ListViewWndHandle);
+        PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
+        PhSaveListViewColumnsToSetting(SETTING_NAME_TREE_LIST_COLUMNS, ListViewWndHandle);
         PhDeleteLayoutManager(&LayoutManager);
         PhUnregisterDialog(hwndDlg);
         break;

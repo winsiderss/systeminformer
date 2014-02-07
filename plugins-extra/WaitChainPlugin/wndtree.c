@@ -83,7 +83,7 @@ VOID WtcInitializeWindowTree(
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
-    settings = PhGetStringSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS);
+    settings = PhGetStringSetting(SETTING_NAME_TREE_LIST_COLUMNS);
     PhCmLoadSettings(hwnd, &settings->sr);
     PhDereferenceObject(settings);
 }
@@ -93,13 +93,12 @@ VOID WtcDeleteWindowTree(
     )
 {
     PPH_STRING settings;
-    ULONG i;
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_NAME_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 
-    for (i = 0; i < Context->NodeList->Count; i++)
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         WepDestroyWindowNode(Context->NodeList->Items[i]);
     }
