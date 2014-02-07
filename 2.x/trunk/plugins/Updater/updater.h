@@ -2,6 +2,7 @@
 #define __UPDATER_H__
 
 #pragma comment(lib, "Winhttp.lib")
+#pragma comment(lib, "WindowsCodecs.lib")
 
 #define CINTERFACE
 #define COBJMACROS
@@ -25,7 +26,6 @@
 #define PH_UPDATENEWER     (WM_APP + 104)
 #define PH_HASHSUCCESS     (WM_APP + 105)
 #define PH_HASHFAILURE     (WM_APP + 106)
-#define PH_INETFAILURE     (WM_APP + 107)
 #define WM_SHOWDIALOG      (WM_APP + 150)
 
 DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
@@ -91,10 +91,6 @@ PPH_STRING PhGetOpaqueXmlNodeText(
     );
 
 BOOL PhInstalledUsingSetup(
-    VOID
-    );
-
-BOOL ConnectionAvailable(
     VOID
     );
 
