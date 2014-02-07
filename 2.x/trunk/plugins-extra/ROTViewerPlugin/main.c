@@ -101,7 +101,7 @@ static INT_PTR CALLBACK RotViewDlgProc(
 
         if (uMsg == WM_DESTROY)
         {               
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg); 
             RemoveProp(hwndDlg, L"Context");
@@ -128,7 +128,7 @@ static INT_PTR CALLBACK RotViewDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ROTREFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
 
             HANDLE threadHandle = PhCreateThread(0, EnumRunningObjectTable, context->ListViewHandle);
             if (threadHandle)
@@ -235,8 +235,8 @@ LOGICAL DllMain(
             {
                 PH_SETTING_CREATE settings[] =
                 {
-                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
-                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"490,340" }
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"100,100" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"490,340" }
                 };
 
                 PhAddSettings(settings, _countof(settings));
