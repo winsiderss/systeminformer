@@ -23,6 +23,11 @@
 #define INET_ADDRSTRLEN     22
 #define INET6_ADDRSTRLEN    65
 
+#define SETTING_PREFIX L"dmex.DnsCachePlugin."
+#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L"WindowPosition")
+#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L"WindowSize")
+#define SETTING_NAME_COLUMNS (SETTING_PREFIX L".WindowColumns")
+
 #include <phdk.h>
 #include <phappresource.h>
 #include "resource.h"
@@ -103,7 +108,7 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.DnsCachePlugin", Instance, &info);
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
@@ -129,9 +134,9 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
-                    { IntegerPairSettingType, L"DnsCacheWindowPosition", L"350,350" },
-                    { IntegerPairSettingType, L"DnsCacheWindowSize", L"510,380" },
-                    { StringSettingType, L"DnsCacheListViewColumns", L"" }
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
+                    { StringSettingType, SETTING_NAME_COLUMNS, L"" }
                 };
 
                 PhAddSettings(settings, _countof(settings));
@@ -383,7 +388,7 @@ INT_PTR CALLBACK DnsCacheDlgProc(
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             PhRegisterDialog(hwndDlg);
-            PhLoadWindowPlacementFromSetting(L"DnsCacheWindowPosition", L"DnsCacheWindowSize", hwndDlg);
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
 
             PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
             PhSetControlTheme(ListViewWndHandle, L"explorer");
@@ -391,9 +396,9 @@ INT_PTR CALLBACK DnsCacheDlgProc(
             PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"IP Address");
             PhAddListViewColumn(ListViewWndHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"TTL");
             PhSetExtendedListView(ListViewWndHandle);
-            PhLoadListViewColumnsFromSetting(L"DnsCacheListViewColumns", ListViewWndHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_COLUMNS, ListViewWndHandle);
 
-            DnsApiHandle = LoadLibrary(TEXT("dnsapi.dll"));
+            DnsApiHandle = LoadLibrary(L"dnsapi.dll");
             if (DnsApiHandle)
             {
                 DnsQuery_I = (_DnsQuery_W)GetProcAddress(DnsApiHandle, "DnsQuery_W");
@@ -414,8 +419,8 @@ INT_PTR CALLBACK DnsCacheDlgProc(
                 DnsApiHandle = NULL;
             }
 
-            PhSaveWindowPlacementToSetting(L"DnsCacheWindowPosition", L"DnsCacheWindowSize", hwndDlg);
-            PhSaveListViewColumnsToSetting(L"DnsCacheListViewColumns", ListViewWndHandle);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
+            PhSaveListViewColumnsToSetting(SETTING_NAME_COLUMNS, ListViewWndHandle);
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
