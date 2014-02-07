@@ -58,13 +58,12 @@ static VOID WaitChainCheckThread(
     __in HANDLE ThreadId
     )
 {
-    ULONG i = 0;
-    BOOL isCycle = FALSE;
-    ULONG nodeLength = WCT_MAX_NODE_COUNT;
-    WAITCHAIN_NODE_INFO NodeInfoArray[WCT_MAX_NODE_COUNT];
+    BOOL isDeadLocked = FALSE;
+    ULONG nodeInfoLength = WCT_MAX_NODE_COUNT;
+    WAITCHAIN_NODE_INFO nodeInfoArray[WCT_MAX_NODE_COUNT];
     PWCT_ROOT_NODE rootNode = NULL;
 
-    memset(NodeInfoArray, 0, sizeof(WAITCHAIN_NODE_INFO)* WCT_MAX_NODE_COUNT);
+    memset(nodeInfoArray, 0, sizeof(nodeInfoArray));
 
     // Retrieve the thread wait chain.
     if (!GetThreadWaitChain(
@@ -72,24 +71,24 @@ static VOID WaitChainCheckThread(
         0,
         WCT_GETINFO_ALL_FLAGS,
         HandleToUlong(ThreadId),
-        &nodeLength,
-        NodeInfoArray,
-        &isCycle
+        &nodeInfoLength,
+        nodeInfoArray,
+        &isDeadLocked
         ))
     {
         return;
     }
 
     // Check if the wait chain is too big for the array we passed in.
-    if (nodeLength > WCT_MAX_NODE_COUNT)
-        nodeLength = WCT_MAX_NODE_COUNT;
+    if (nodeInfoLength > WCT_MAX_NODE_COUNT)
+        nodeInfoLength = WCT_MAX_NODE_COUNT;
 
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 
-    for (i = 0; i < nodeLength; i++)
+    for (ULONG i = 0; i < nodeInfoLength; i++)
     {
-        WAITCHAIN_NODE_INFO wctNode = NodeInfoArray[i];
+        WAITCHAIN_NODE_INFO wctNode = nodeInfoArray[i];
 
         if (wctNode.ObjectType == WctThreadType)
         {
@@ -100,28 +99,29 @@ static VOID WaitChainCheckThread(
             rootNode->ThreadIdString = PhFormatString(L"%u", wctNode.ThreadObject.ThreadId);
             rootNode->ProcessIdString = PhFormatString(L"%u", wctNode.ThreadObject.ProcessId);
             rootNode->WaitTimeString = PhFormatString(L"%u", wctNode.ThreadObject.WaitTime);
-            rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode.ThreadObject.ContextSwitches);
-          
+            rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode.ThreadObject.ContextSwitches);  
+            rootNode->TimeoutString = PhFormatString(L"%I64d", wctNode.LockObject.Timeout.QuadPart);
+       
             if (wctNode.LockObject.ObjectName[0] != '\0')
             {
-                // LockObject.ObjectName includes undocumented data.
-
                 // -- ProcessID --
                 //wctNode.LockObject.ObjectName[0]
                 // -- ThreadID --
                 //wctNode.LockObject.ObjectName[2]
                 // -- Unknown --
                 //wctNode.LockObject.ObjectName[4]
-                //wctNode.LockObject.ObjectName[5]
-                //wctNode.LockObject.ObjectName[6]
-                
-                rootNode->ObjectNameString = PhFormatString(L"%s", wctNode.LockObject.ObjectName);
-            }
 
-            // Not implemented in v1.
-            if (wctNode.LockObject.Timeout.QuadPart > 0)
-            {
-                rootNode->TimeoutString = PhFormatString(L"%u", wctNode.LockObject.Timeout.QuadPart);
+                if (PhIsDigitCharacter(wctNode.LockObject.ObjectName[0]))
+                {
+                    rootNode->ObjectNameString = PhFormatString(L"%s", wctNode.LockObject.ObjectName);
+                }
+                //else
+                //{
+                //    rootNode->ObjectNameString = PhFormatString(L"[%u, %u]",
+                //        wctNode.LockObject.ObjectName[0], 
+                //        wctNode.LockObject.ObjectName[2]
+                //        );
+                //}
             }
 
             rootNode->Node.Expanded = TRUE;
@@ -132,7 +132,7 @@ static VOID WaitChainCheckThread(
         }
         else
         {
-            WctAddChildWindowNode(&Context->TreeContext, rootNode, wctNode, isCycle);
+            WctAddChildWindowNode(&Context->TreeContext, rootNode, wctNode, isDeadLocked);
         }
     }
 
@@ -170,9 +170,7 @@ static NTSTATUS WaitChainCallbackThread(
         {
             if (process->UniqueProcessId == context->ProcessItem->ProcessId)
             {
-                ULONG i;
-
-                for (i = 0; i < process->NumberOfThreads; i++)
+                for (ULONG i = 0; i < process->NumberOfThreads; i++)
                 {   
                     WaitChainCheckThread(context, process->Threads[i].ClientId.UniqueThread);
                 }
@@ -217,11 +215,13 @@ static INT_PTR CALLBACK WaitChainDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
+            PhUnregisterDialog(hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
+            PhDeleteLayoutManager(&context->LayoutManager);
             WtcDeleteWindowTree(&context->TreeContext);
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
-            context = NULL;
         }
     }
 
@@ -235,23 +235,16 @@ static INT_PTR CALLBACK WaitChainDlgProc(
             HANDLE threadHandle = INVALID_HANDLE_VALUE;
 
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_CUSTOM1);
-
-            WtcInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
+            
             PhRegisterDialog(hwndDlg);
+            WtcInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
          
             if (threadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WaitChainCallbackThread, (PVOID)context))
                 NtClose(threadHandle);
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
-            PhDeleteLayoutManager(&context->LayoutManager);
-            PhUnregisterDialog(hwndDlg);
         }
         break;
     case WM_SIZE:
@@ -263,12 +256,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                {
-                    PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
-                    PhDeleteLayoutManager(&context->LayoutManager);
-                    PhUnregisterDialog(hwndDlg);
-                    EndDialog(hwndDlg, IDOK);
-                }
+                EndDialog(hwndDlg, IDOK);
                 break;
             case ID_WCTSHOWCONTEXTMENU:
                 {
@@ -314,13 +302,12 @@ static INT_PTR CALLBACK WaitChainDlgProc(
                 break;    
             case ID_MENU_GOTOPROCESS:
                 {
-                    ULONG processID = 0;
                     PWCT_ROOT_NODE selectedNode = NULL;
                     PPH_PROCESS_NODE processNode = NULL;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        processID = _wtol(selectedNode->ProcessIdString->Buffer);
+                        ULONG processID = _wtol(selectedNode->ProcessIdString->Buffer);
 
                         if (processNode = PhFindProcessNode(UlongToHandle(processID)))
                         {
@@ -331,15 +318,14 @@ static INT_PTR CALLBACK WaitChainDlgProc(
                 }
                 break;
             case ID_MENU_GOTOTHREAD:
-                {               
-                    ULONG processID = 0;
+                {
                     PWCT_ROOT_NODE selectedNode = NULL;
                     PPH_PROCESS_ITEM processItem = NULL;
                     PPH_PROCESS_PROPCONTEXT propContext = NULL;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        processID = _wtol(selectedNode->ProcessIdString->Buffer);
+                        ULONG processID = _wtol(selectedNode->ProcessIdString->Buffer);
 
                         if (processItem = PhReferenceProcessItem(UlongToHandle(processID)))
                         {
@@ -523,10 +509,9 @@ LOGICAL DllMain(
             {
                 PH_SETTING_CREATE settings[] =
                 {           
-                    { IntegerSettingType, SETTING_NAME_SHOW_DESKTOP_WINDOWS, L"0" },
-                    { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
-                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
-                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"690,540" }
+                    { StringSettingType, SETTING_NAME_TREE_LIST_COLUMNS, L"" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"100,100" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"690,540" }
                 };
 
                 PhAddSettings(settings, _countof(settings));
