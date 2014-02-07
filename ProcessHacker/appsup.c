@@ -940,7 +940,7 @@ VOID PhHandleListViewNotifyBehaviors(
     _In_ ULONG Behaviors
     )
 {
-    if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle)
+    if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle && ((LPNMHDR)lParam)->code == LVN_KEYDOWN)
     {
         LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)lParam;
 
