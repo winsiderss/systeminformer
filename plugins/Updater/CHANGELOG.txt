@@ -1,3 +1,6 @@
+1.5
+ * Added dynamic URL support
+
 1.4
  * Added PNG images
  * Fixed offline crash

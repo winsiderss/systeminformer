@@ -86,7 +86,7 @@ static HBITMAP LoadImageFromResources(
             __leave;
 
         // Initialize the HBITMAP decoder from memory.
-        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
+        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnDemand)))
             __leave;
 
         // Get the Frame count.
@@ -106,15 +106,18 @@ static HBITMAP LoadImageFromResources(
             __leave;
 
         // Check if the image format is supported:
-        //if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppPBGRA))
-        //{
-        // // Convert the image to the correct format:
-        // if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
-        // __leave;
-        // IWICBitmapFrameDecode_Release(wicFrame);
-        //}
-        //else
-        wicBitmapSource = (IWICBitmapSource*)wicFrame;
+        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGR))
+        {
+            // Convert the image to the correct format:
+            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGR, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+                __leave;
+
+            IWICBitmapFrameDecode_Release(wicFrame);
+        }
+        else
+        {
+            wicBitmapSource = (IWICBitmapSource*)wicFrame;
+        }
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         bitmapInfo.bmiHeader.biWidth = Width;
@@ -503,9 +506,6 @@ static NTSTATUS UpdateCheckSilentThread(
 
     __try
     {
-        if (!ConnectionAvailable())
-            __leave;
-
         context = CreateUpdateContext();
         if (!QueryUpdateData(context))
             __leave;
@@ -569,12 +569,6 @@ static NTSTATUS UpdateCheckThread(
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
     
-    if (!ConnectionAvailable())
-    {
-        PostMessage(context->DialogHandle, PH_INETFAILURE, 0, 0);
-        return STATUS_SUCCESS;
-    }
-
     // Check if we have cached update data
     if (!context->HaveData)
         context->HaveData = QueryUpdateData(context);
@@ -1243,17 +1237,6 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Enable the Install button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
             // Hash failed, reset state to downloading so user can redownload the file.
-        }
-        break;
-    case PH_INETFAILURE:
-        {
-            context->UpdaterState = PhUpdateDefault;
-
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
-            SetDlgItemText(hwndDlg, IDC_RELDATE, L"No internet connection detected.");
-
-            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
-            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
     case WM_NOTIFY:
