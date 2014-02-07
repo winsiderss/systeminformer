@@ -23,9 +23,9 @@
 #define INET_ADDRSTRLEN     22
 #define INET6_ADDRSTRLEN    65
 
-#define SETTING_PREFIX L"dmex.DnsCachePlugin."
-#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L"WindowPosition")
-#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L"WindowSize")
+#define SETTING_PREFIX L"dmex.DnsCachePlugin"
+#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
+#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
 #define SETTING_NAME_COLUMNS (SETTING_PREFIX L".WindowColumns")
 
 #include <phdk.h>
