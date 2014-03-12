@@ -2,7 +2,7 @@
  * Process Hacker Update Checker -
  *   Update Window
  *
- * Copyright (C) 2011-2013 dmex
+ * Copyright (C) 2011-2014 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -35,13 +35,15 @@ static HBITMAP LoadImageFromResources(
     UINT width = 0;
     UINT height = 0;
     UINT frameCount = 0;
-    ULONG resLength = 0;
-    HRSRC resHandleSrc = NULL;
-    HGLOBAL resHandle = NULL;
-    WICInProcPointer resBuffer = NULL;
+    BOOLEAN isSuccess = FALSE;
+    ULONG resourceLength = 0;
+    HGLOBAL resourceHandle = NULL;
+    HRSRC resourceHandleSource = NULL;
+    WICInProcPointer resourceBuffer = NULL;
+
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
-    BYTE* bitmapBuffer = NULL;
+    PBYTE bitmapBuffer = NULL;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
@@ -51,97 +53,92 @@ static HBITMAP LoadImageFromResources(
     IWICBitmapScaler* wicScaler = NULL;
     WICPixelFormatGUID pixelFormat;
 
-    HDC hdcScreen = GetDC(NULL);
+    WICRect rect = { 0, 0, Width, Height };
 
     __try
     {
-        // Create the ImagingFactory.
+        // Create the ImagingFactory
         if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
             __leave;
 
-        // Find the resource.
-        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
+        // Find the resource
+        if ((resourceHandleSource = FindResource(PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
 
-        // Get the resource length.
-        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
+        // Get the resource length
+        resourceLength = SizeofResource(PluginInstance->DllBase, resourceHandleSource);
 
-        // Load the resource.
-        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
+        // Load the resource
+        if ((resourceHandle = LoadResource(PluginInstance->DllBase, resourceHandleSource)) == NULL)
             __leave;
 
-        if ((resBuffer = (WICInProcPointer)LockResource(resHandle)) == NULL)
+        if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
             __leave;
 
-        // Create the Stream.
+        // Create the Stream
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
 
-        // Initialize the Stream from Memory.
-        if (FAILED(IWICStream_InitializeFromMemory(wicStream, resBuffer, resLength)))
+        // Initialize the Stream from Memory
+        if (FAILED(IWICStream_InitializeFromMemory(wicStream, resourceBuffer, resourceLength)))
             __leave;
 
-        // Create the PNG decoder.
-        if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng,  NULL, &wicDecoder)))
+        if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
             __leave;
 
-        // Initialize the HBITMAP decoder from memory.
-        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnDemand)))
+        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
             __leave;
 
-        // Get the Frame count.
+        // Get the Frame count
         if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
             __leave;
 
-        // Get the Frame.
+        // Get the Frame
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
 
-        // Get the WicFrame width and height.
-        if (FAILED(IWICBitmapFrameDecode_GetSize(wicFrame, &width, &height)) || width == 0 || height == 0)
-            __leave;
-
-        // Get the WicFrame image format.
-        if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
-            __leave;
-
-        // Check if the image format is supported:
-        if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGR))
+        // Get the WicFrame image format
+        if (SUCCEEDED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
         {
-            // Convert the image to the correct format:
-            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGR, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
-                __leave;
+            // Check if the image format is supported:
+            if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGR))
+            {
+                wicBitmapSource = (IWICBitmapSource*)wicFrame;
+            }
+            else
+            {
+                // Convert the image to the correct format:
+                if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGR, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+                    __leave;
 
-            IWICBitmapFrameDecode_Release(wicFrame);
-        }
-        else
-        {
-            wicBitmapSource = (IWICBitmapSource*)wicFrame;
+                IWICBitmapFrameDecode_Release(wicFrame);
+            }
         }
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
+        bitmapInfo.bmiHeader.biWidth = rect.Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)rect.Height);
         bitmapInfo.bmiHeader.biPlanes = 1;
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
-        {
-            WICRect rect = { 0, 0, Width, Height };
+        HDC hdc = CreateCompatibleDC(NULL);
+        bitmapHandle = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0);
+        ReleaseDC(NULL, hdc);
 
-            if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
-                __leave;
-            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, Width, Height, WICBitmapInterpolationModeFant)))
-                __leave;
-            if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
-                __leave;
-        }
+        // Check if it's the same rect as the requested size.
+        //if (width != rect.Width || height != rect.Height)
+        if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
+            __leave;
+        if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
+            __leave;
+        if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, bitmapBuffer)))
+            __leave;
+
+        isSuccess = TRUE;
     }
     __finally
     {
-        ReleaseDC(NULL, hdcScreen);
-
         if (wicScaler)
         {
             IWICBitmapScaler_Release(wicScaler);
@@ -167,9 +164,9 @@ static HBITMAP LoadImageFromResources(
             IWICImagingFactory_Release(wicFactory);
         }
 
-        if (resHandle)
+        if (resourceHandle)
         {
-            FreeResource(resHandle);
+            FreeResource(resourceHandle);
         }
     }
 

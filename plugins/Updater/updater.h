@@ -108,9 +108,4 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ LPARAM lParam
     );
 
-typedef BOOL (WINAPI *_InternetGetConnectedState)(
-    _Out_ PULONG Flags,
-    _Reserved_ ULONG Reserved
-    );
-
 #endif
