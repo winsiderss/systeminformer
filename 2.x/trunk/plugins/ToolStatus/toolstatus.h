@@ -24,6 +24,8 @@
 #ifndef TOOLSTATUS_H
 #define TOOLSTATUS_H
 
+#pragma comment(lib, "WindowsCodecs.lib")
+
 #define CINTERFACE
 #define COBJMACROS
 #define INITGUID
