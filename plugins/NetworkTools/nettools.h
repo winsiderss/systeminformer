@@ -42,28 +42,27 @@
 
 #include "resource.h"
 
-#define SETTING_PREFIX L"ProcessHacker.NetworkTools."
-#define SETTING_NAME_TRACERT_WINDOW_POSITION (SETTING_PREFIX L"WindowPosition")
-#define SETTING_NAME_TRACERT_WINDOW_SIZE (SETTING_PREFIX L"WindowSize")
-#define SETTING_NAME_PING_WINDOW_POSITION (SETTING_PREFIX L"PingWindowPosition")
-#define SETTING_NAME_PING_WINDOW_SIZE (SETTING_PREFIX L"PingWindowSize")
-#define SETTING_NAME_PING_TIMEOUT (SETTING_PREFIX L"PingMaxTimeout")
+#define SETTING_PREFIX L"ProcessHacker.NetworkTools"
+#define SETTING_NAME_TRACERT_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
+#define SETTING_NAME_TRACERT_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
+#define SETTING_NAME_PING_WINDOW_POSITION (SETTING_PREFIX L".PingWindowPosition")
+#define SETTING_NAME_PING_WINDOW_SIZE (SETTING_PREFIX L".PingWindowSize")
+#define SETTING_NAME_PING_TIMEOUT (SETTING_PREFIX L".PingMaxTimeout")
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
 // The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure 
 //       + the number of bytes of data specified in the RequestSize parameter.
 // This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message) 
 //       + space for an IO_STATUS_BLOCK structure.
-#define ICMP_IPv4_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMP_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
-#define ICMP_IPv6_BUFFER_SIZE(icmpEchoBuffer) ((sizeof(ICMPV6_ECHO_REPLY) + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
+#define ICMP_BUFFER_SIZE(Length, Buffer) ((Length + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
 
 extern PPH_PLUGIN PluginInstance;
 
 typedef enum _PH_NETWORK_ACTION
 {
-    NETWORK_ACTION_PING = 1,
-    NETWORK_ACTION_TRACEROUTE = 2,
-    NETWORK_ACTION_WHOIS = 3,
+    NETWORK_ACTION_PING,
+    NETWORK_ACTION_TRACEROUTE,
+    NETWORK_ACTION_WHOIS,
     NETWORK_ACTION_FINISH
 } PH_NETWORK_ACTION;
 

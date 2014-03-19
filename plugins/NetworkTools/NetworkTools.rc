@@ -94,6 +94,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     PUSHBUTTON      "Close",IDOK,263,162,50,14
     EDITTEXT        IDC_NETOUTPUTEDIT,7,7,305,152,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER | WS_VSCROLL,WS_EX_CLIENTEDGE
+    CONTROL         "<a>APNIC Whois Database</a>",IDC_MORE_INFO,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,7,163,77,12
 END
 
 IDD_OPTIONS DIALOGEX 0, 0, 215, 79
@@ -115,16 +116,14 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,266,94,50,14
+    DEFPUSHBUTTON   "Close",IDOK,266,94,50,14
     LTEXT           "Pinging X with X bytes of data:",IDC_MAINTEXT,7,7,309,16
-    GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,59,255,49,0,WS_EX_TRANSPARENT
+    GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,56,185,52,0,WS_EX_TRANSPARENT
     LTEXT           "Pings Lost: 0 (0%)",IDC_PINGS_LOST,92,81,89,8
     LTEXT           "Minimum: 0ms",IDC_ICMP_MIN,13,81,73,8
     LTEXT           "Maximum: 0ms",IDC_ICMP_MAX,13,93,73,8
     LTEXT           "Average: 0ms",IDC_ICMP_AVG,13,69,73,8
     LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,309,27,NOT WS_VISIBLE | WS_BORDER
-    LTEXT           "Bad Hashes: 0",IDC_BAD_HASH,188,69,70,8
-    LTEXT           "Anon Replies: 0",IDC_ANON_ADDR,188,81,70,8
     LTEXT           "Pings Sent: 0",IDC_PINGS_SENT,92,69,89,8
 END
 
