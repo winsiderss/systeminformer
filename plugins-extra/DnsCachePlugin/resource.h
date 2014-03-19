@@ -4,13 +4,13 @@
 //
 #define IDD_DNSVIEW                     101
 #define IDR_MAIN_MENU                   111
-#define IDC_LIST1                       1021
-#define IDC_DNSCLEAR                    4355
+#define IDC_DNSLIST                     1021
+#define IDC_DNS_REFRESH                 4355
+#define IDC_DNS_CLEAR                   4356
 #define ID_DNSENTRY_FLUSH               40004
-#define ID_DNSENTRY_PROPERTIES          40005
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        112
