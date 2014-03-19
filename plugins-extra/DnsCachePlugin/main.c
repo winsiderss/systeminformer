@@ -1,7 +1,8 @@
 /*
- * Dns Cache Plugin
+ * Process Hacker Extra Plugins -
+ *   DNS Cache Plugin
  *
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2014 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -19,68 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define UPDATE_MENUITEM     1000
-#define INET_ADDRSTRLEN     22
-#define INET6_ADDRSTRLEN    65
-
-#define SETTING_PREFIX L"dmex.DnsCachePlugin"
-#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
-#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
-#define SETTING_NAME_COLUMNS (SETTING_PREFIX L".WindowColumns")
-
-#include <phdk.h>
-#include <phappresource.h>
-#include "resource.h"
-
-#pragma comment(lib, "Ws2_32.lib")
-#include <windns.h>
-#include <Winsock2.h>
-
-typedef struct _DNS_CACHE_ENTRY
-{
-    struct _DNS_CACHE_ENTRY* Next;  // Pointer to next entry
-    LPCWSTR Name;                   // DNS Record Name
-    WORD Type;                      // DNS Record Type
-    WORD DataLength;                // Not referenced
-    ULONG Flags;                    // DNS Record Flags
-} DNS_CACHE_ENTRY, *PDNS_CACHE_ENTRY;
-
-typedef DNS_STATUS (WINAPI* _DnsGetCacheDataTable)(
-    __inout PDNS_CACHE_ENTRY* DnsCacheEntry
-    );
-typedef BOOL (WINAPI* _DnsFlushResolverCache)(
-    VOID
-    );
-typedef BOOL (WINAPI* _DnsFlushResolverCacheEntry)(
-    __in LPCWSTR Name
-    );
-typedef DNS_STATUS (WINAPI* _DnsQuery_W)(
-    __in LPCWSTR Name,
-    __in WORD Type,
-    __in DWORD Options,
-    __inout_opt PVOID Extra,
-    __out __maybenull PDNS_RECORD* QueryResults,
-    __out_opt __maybenull PVOID* Reserved
-    );
-typedef VOID (WINAPI* _DnsFree)(
-    __inout PVOID Data,
-    __in DNS_FREE_TYPE FreeType
-    );
-
-VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-INT_PTR CALLBACK DnsCacheDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
+#include "main.h"
 
 static HINSTANCE DnsApiHandle;
 static _DnsQuery_W DnsQuery_I;
@@ -96,110 +36,24 @@ static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
-LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-
-            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->DisplayName = L"DNS Cache Viewer";
-            info->Author = L"dmex";
-            info->Description = L"Plugin for viewing the DNS Resolver Cache via the Tools menu";
-            info->HasOptions = FALSE;
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
-                NULL,
-                &MainWindowShowingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
-
-            {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
-                    { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
-                    { StringSettingType, SETTING_NAME_COLUMNS, L"" }
-                };
-
-                PhAddSettings(settings, _countof(settings));
-            }
-        }
-        break;
-    }
-
-    return TRUE;
-}
-
-static VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", UPDATE_MENUITEM, L"Resolver Cache", NULL);
-}
-
-static VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
-    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
-
-    switch (menuItem->Id)
-    {
-    case UPDATE_MENUITEM:
-        {
-            DialogBox(
-                (HINSTANCE)PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_DNSVIEW),
-                NULL,
-                DnsCacheDlgProc
-                );
-        }
-        break;
-    }
-}
-
 static VOID EnumDnsCacheTable(
     __in HWND hwndDlg
     )
 {
-    WSADATA wsaData;
-    PDNS_CACHE_ENTRY dnsCacheRecordPtr = NULL;
+    PDNS_CACHE_ENTRY dnsCacheDataTable = NULL;
 
     __try
     {
-        // Start Winsock (required for WSAAddressToString)
-        WSAStartup(WINSOCK_VERSION, &wsaData);
-
-        if (!DnsGetCacheDataTable_I(&dnsCacheRecordPtr))
+        if (!DnsGetCacheDataTable_I(&dnsCacheDataTable))
             __leave;
 
-        while (dnsCacheRecordPtr)
+        while (dnsCacheDataTable)
         {
             PDNS_RECORD dnsQueryResultPtr = NULL;
 
             DNS_STATUS dnsStatus = DnsQuery_I(
-                dnsCacheRecordPtr->Name,
-                dnsCacheRecordPtr->Type,
+                dnsCacheDataTable->Name,
+                dnsCacheDataTable->Type,
                 DNS_QUERY_NO_WIRE_QUERY | 32768, // Undocumented flags
                 NULL,
                 &dnsQueryResultPtr,
@@ -208,67 +62,79 @@ static VOID EnumDnsCacheTable(
 
             if (dnsStatus == ERROR_SUCCESS)
             {
-                ULONG dnsRecordCount = 0;
                 PDNS_RECORD dnsRecordPtr = dnsQueryResultPtr;
 
                 while (dnsRecordPtr)
                 {
-                    INT itemIndex = 0;
-                    SOCKADDR_IN sockaddr;
-                    TCHAR ipAddrString[INET6_ADDRSTRLEN];
+                    INT itemIndex = MAXINT;
                     ULONG ipAddrStringLength = INET6_ADDRSTRLEN;
+                    TCHAR ipAddrString[INET6_ADDRSTRLEN] = { '\0' };
+                           
+                    itemIndex = PhAddListViewItem(hwndDlg, MAXINT,
+                        PhaFormatString(L"%s", dnsCacheDataTable->Name)->Buffer,
+                        NULL
+                        );
 
-                    // Convert the Internet network address into a string in Internet standard dotted format.
-                    sockaddr.sin_family = AF_INET;
-                    sockaddr.sin_addr.s_addr = dnsRecordPtr->Data.A.IpAddress;
-                    sockaddr.sin_port = htons(0);
-
-                    // Add the item to the listview (it might be nameless)...
-                    if (dnsRecordCount)
+                    if (dnsRecordPtr->wType == DNS_TYPE_A)
                     {
-                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT,
-                            PhaFormatString(L"%s [%d]", dnsCacheRecordPtr->Name, dnsRecordCount)->Buffer,
-                            NULL
+                        IN_ADDR ipv4Address = { 0 };
+
+                        ipv4Address.s_addr = dnsRecordPtr->Data.A.IpAddress;
+
+                        RtlIpv4AddressToString(&ipv4Address, ipAddrString);
+                       
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"A")->Buffer);
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", ipAddrString)->Buffer);
+                    }
+                    else if (dnsRecordPtr->wType == DNS_TYPE_AAAA)
+                    {
+                        IN6_ADDR ipv6Address = { 0 };
+
+                        memcpy_s(
+                            ipv6Address.s6_addr, 
+                            sizeof(ipv6Address.s6_addr),
+                            dnsRecordPtr->Data.AAAA.Ip6Address.IP6Byte, 
+                            sizeof(dnsRecordPtr->Data.AAAA.Ip6Address.IP6Byte)
                             );
+
+                        RtlIpv6AddressToString(&ipv6Address, ipAddrString);
+
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"AAAA")->Buffer);
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", ipAddrString)->Buffer);              
+                    }
+                    else if (dnsRecordPtr->wType == DNS_TYPE_PTR)
+                    {
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"PTR")->Buffer);
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", dnsRecordPtr->Data.PTR.pNameHost)->Buffer);
+                    }
+                    else if (dnsRecordPtr->wType == DNS_TYPE_CNAME)
+                    {
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"CNAME")->Buffer);
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", dnsRecordPtr->Data.CNAME.pNameHost)->Buffer);
                     }
                     else
-                    {
-                        itemIndex = PhAddListViewItem(hwndDlg, MAXINT,
-                            PhaFormatString(L"%s", dnsCacheRecordPtr->Name)->Buffer,
-                            NULL
-                            );
-                    }
+                    {          
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"UNKNOWN")->Buffer);
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L""));
+                    }   
+                                                  
+                    PhSetListViewSubItem(hwndDlg, itemIndex, 3, PhaFormatString(L"%d", dnsRecordPtr->dwTtl)->Buffer);
 
-                    PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%d", dnsRecordPtr->dwTtl)->Buffer);
-
-                    if (WSAAddressToString((SOCKADDR*)&sockaddr, sizeof(SOCKADDR_IN), NULL, ipAddrString, &ipAddrStringLength) != SOCKET_ERROR)
-                    {
-                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"%s", ipAddrString)->Buffer);
-                    }
-                    else
-                    {
-                        //inet_ntoa(ipaddr));
-                        PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"Error %d", WSAGetLastError())->Buffer);
-                    }
-
-                    dnsRecordCount++;
                     dnsRecordPtr = dnsRecordPtr->pNext;
                 }
 
                 DnsFree_I(dnsQueryResultPtr, DnsFreeRecordList);
             }
 
-            dnsCacheRecordPtr = dnsCacheRecordPtr->Next;
+            dnsCacheDataTable = dnsCacheDataTable->Next;
         }
     }
     __finally
     {
-        if (dnsCacheRecordPtr)
+        if (dnsCacheDataTable)
         {
-            DnsFree_I(dnsCacheRecordPtr, DnsFreeRecordList);
+            DnsFree_I(dnsCacheDataTable, DnsFreeRecordList);
         }
-
-        WSACleanup();
     }
 }
 
@@ -284,7 +150,7 @@ static PPH_STRING PhGetSelectedListViewItemText(
 
     if (index != -1)
     {
-        WCHAR textBuffer[MAX_PATH + 1];
+        WCHAR textBuffer[MAX_PATH + 1] = { '\0' };
 
         LVITEM item;
         item.mask = LVIF_TEXT;
@@ -337,30 +203,30 @@ static VOID ShowStatusMenu(
         switch (id)
         {
         case ID_DNSENTRY_FLUSH:
-            {
-                INT lvItemIndex = PhFindListViewItemByFlags(
-                    ListViewWndHandle,
-                    -1,
-                    LVNI_SELECTED
-                    );
+        {
+            INT lvItemIndex = PhFindListViewItemByFlags(
+                ListViewWndHandle,
+                -1,
+                LVNI_SELECTED
+                );
 
-                if (lvItemIndex != -1)
+            if (lvItemIndex != -1)
+            {
+                if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                    hwndDlg,
+                    L"remove",
+                    cacheEntryName->Buffer,
+                    NULL,
+                    FALSE
+                    ))
                 {
-                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-                        hwndDlg,
-                        L"remove",
-                        cacheEntryName->Buffer,
-                        NULL,
-                        FALSE
-                        ))
+                    if (DnsFlushResolverCacheEntry_I(cacheEntryName->Buffer))
                     {
-                        if (DnsFlushResolverCacheEntry_I(cacheEntryName->Buffer))
-                        {
-                            ListView_DeleteItem(ListViewWndHandle, lvItemIndex);
-                        }
+                        ListView_DeleteItem(ListViewWndHandle, lvItemIndex);
                     }
                 }
             }
+        }
             break;
         }
 
@@ -368,7 +234,7 @@ static VOID ShowStatusMenu(
     }
 }
 
-INT_PTR CALLBACK DnsCacheDlgProc(
+static INT_PTR CALLBACK DnsCacheDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -380,22 +246,23 @@ INT_PTR CALLBACK DnsCacheDlgProc(
     case WM_INITDIALOG:
         {
             PhCenterWindow(hwndDlg, PhMainWndHandle);
-            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_LIST1);
+            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_DNSLIST);
+                   
+            PhRegisterDialog(hwndDlg);          
+            PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
+            PhSetControlTheme(ListViewWndHandle, L"explorer");
+            PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 280, L"Host Name");
+            PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 70, L"Type");
+            PhAddListViewColumn(ListViewWndHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"IP Address");
+            PhAddListViewColumn(ListViewWndHandle, 3, 3, 3, LVCFMT_LEFT, 50, L"TTL");
+            PhSetExtendedListView(ListViewWndHandle);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNSCLEAR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-
-            PhRegisterDialog(hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNS_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNS_CLEAR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);     
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
-
-            PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
-            PhSetControlTheme(ListViewWndHandle, L"explorer");
-            PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 280, L"Name");
-            PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"IP Address");
-            PhAddListViewColumn(ListViewWndHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"TTL");
-            PhSetExtendedListView(ListViewWndHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_COLUMNS, ListViewWndHandle);
 
             DnsApiHandle = LoadLibrary(L"dnsapi.dll");
@@ -405,9 +272,9 @@ INT_PTR CALLBACK DnsCacheDlgProc(
                 DnsFree_I = (_DnsFree)GetProcAddress(DnsApiHandle, "DnsFree");
                 DnsGetCacheDataTable_I = (_DnsGetCacheDataTable)GetProcAddress(DnsApiHandle, "DnsGetCacheDataTable");
                 DnsFlushResolverCache_I = (_DnsFlushResolverCache)GetProcAddress(DnsApiHandle, "DnsFlushResolverCache");
-                DnsFlushResolverCacheEntry_I = (_DnsFlushResolverCacheEntry)GetProcAddress(DnsApiHandle, "DnsFlushResolverCacheEntry_W");
+                DnsFlushResolverCacheEntry_I = (_DnsFlushResolverCacheEntry)GetProcAddress(DnsApiHandle, "DnsFlushResolverCacheEntry_W");  
             }
-
+            
             EnumDnsCacheTable(ListViewWndHandle);
         }
         break;
@@ -433,7 +300,7 @@ INT_PTR CALLBACK DnsCacheDlgProc(
         {
             switch (LOWORD(wParam))
             {
-            case IDC_DNSCLEAR:
+            case IDC_DNS_CLEAR:
                 {
                     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
                         hwndDlg,
@@ -450,6 +317,10 @@ INT_PTR CALLBACK DnsCacheDlgProc(
                         EnumDnsCacheTable(ListViewWndHandle);
                     }
                 }
+                break;
+            case IDC_DNS_REFRESH:
+                ListView_DeleteAllItems(ListViewWndHandle);
+                EnumDnsCacheTable(ListViewWndHandle);
                 break;
             case IDCANCEL:
             case IDOK:
@@ -476,4 +347,83 @@ INT_PTR CALLBACK DnsCacheDlgProc(
     }
 
     return FALSE;
+}
+
+static VOID NTAPI MainWindowShowingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", DNSCACHE_MENUITEM, L"DNS Resolver Cache", NULL);
+}
+
+static VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+
+    switch (menuItem->Id)
+    {
+    case DNSCACHE_MENUITEM:
+        {
+            DialogBox(
+                (HINSTANCE)PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_DNSVIEW),
+                NULL,
+                DnsCacheDlgProc
+                );
+        }
+        break;
+    }
+}
+
+LOGICAL DllMain(
+    __in HINSTANCE Instance,
+    __in ULONG Reason,
+    __reserved PVOID Reserved
+    )
+{
+    switch (Reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        {
+            PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
+                { StringSettingType, SETTING_NAME_COLUMNS, L"" }
+            };
+
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->DisplayName = L"DNS Cache Viewer";
+            info->Author = L"dmex";
+            info->Description = L"Plugin for viewing the DNS Resolver Cache via the Tools menu";
+            info->HasOptions = FALSE;
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+
+            PhAddSettings(settings, _countof(settings));
+        }
+        break;
+    }
+
+    return TRUE;
 }
