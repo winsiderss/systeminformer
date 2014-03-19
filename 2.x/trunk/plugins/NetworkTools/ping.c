@@ -166,7 +166,7 @@ static ULONG PhNetworkPingThreadStart(
             icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 message.
-            icmpReplyLength = ICMP_IPv6_BUFFER_SIZE(icmpEchoBuffer);
+            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -246,46 +246,47 @@ static ULONG PhNetworkPingThreadStart(
             icmpRemoteAddr = context->IpAddress.InAddr.S_un.S_addr;
 
             // Allocate ICMPv4 message.
-            icmpReplyLength = ICMP_IPv4_BUFFER_SIZE(icmpEchoBuffer);
+            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
    
             InterlockedIncrement(&context->PingSentCount);
 
             // Send ICMPv4 ping...
-            //if (WindowsVersion > WINDOWS_VISTA)
-            //{
-            //    // Vista SP1 and up we can specify the source address:
-            //    icmpReplyCount = IcmpSendEcho2Ex(
-            //        icmpHandle,
-            //        NULL,
-            //        NULL,
-            //        NULL,
-            //        icmpLocalAddr,
-            //        icmpRemoteAddr,
-            //        icmpEchoBuffer->Buffer, 
-            //        icmpEchoBuffer->MaximumLength,
-            //        &pingOptions,
-            //        icmpReplyBuffer,
-            //        icmpReplyLength,
-            //        context->MaxPingTimeout
-            //        );
-            //}
-            //else
-
-            icmpReplyCount = IcmpSendEcho2(
-                icmpHandle,
-                NULL,
-                NULL,
-                NULL, 
-                icmpRemoteAddr,
-                icmpEchoBuffer->Buffer, 
-                icmpEchoBuffer->MaximumLength,
-                &pingOptions,
-                icmpReplyBuffer,
-                icmpReplyLength,
-                context->MaxPingTimeout
-                );
+            if (WindowsVersion > WINDOWS_VISTA)
+            {
+                // Vista SP1 and up we can specify the source address:
+                icmpReplyCount = IcmpSendEcho2Ex(
+                    icmpHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    icmpLocalAddr,
+                    icmpRemoteAddr,
+                    icmpEchoBuffer->Buffer, 
+                    icmpEchoBuffer->MaximumLength,
+                    &pingOptions,
+                    icmpReplyBuffer,
+                    icmpReplyLength,
+                    context->MaxPingTimeout
+                    );
+            }
+            else
+            {
+                icmpReplyCount = IcmpSendEcho2(
+                    icmpHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    icmpRemoteAddr,
+                    icmpEchoBuffer->Buffer,
+                    icmpEchoBuffer->MaximumLength,
+                    &pingOptions,
+                    icmpReplyBuffer,
+                    icmpReplyLength,
+                    context->MaxPingTimeout
+                    );
+            }
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
@@ -355,6 +356,8 @@ static ULONG PhNetworkPingThreadStart(
         }
     }
 
+    PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
+
     return STATUS_SUCCESS;
 }
 
@@ -371,8 +374,6 @@ static VOID NTAPI NetworkPingUpdateHandler(
         PhNetworkPingThreadStart, 
         (PVOID)context
         );
-
-    PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
 }
 
 static INT_PTR CALLBACK NetworkPingWndProc(
@@ -392,31 +393,6 @@ static INT_PTR CALLBACK NetworkPingWndProc(
     else
     {
         context = (PNETWORK_OUTPUT_CONTEXT)GetProp(hwndDlg, L"Context");
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhSaveWindowPlacementToSetting(
-                SETTING_NAME_PING_WINDOW_POSITION,
-                SETTING_NAME_PING_WINDOW_SIZE,
-                hwndDlg
-                );
-
-            PhDeleteWorkQueue(&context->PingWorkQueue);
-            PhDeleteGraphState(&context->PingGraphState);
-            PhDeleteLayoutManager(&context->LayoutManager);
-
-            if (context->PingGraphHandle)
-                DestroyWindow(context->PingGraphHandle);
-
-            if (context->IconHandle)
-                DestroyIcon(context->IconHandle);
-
-            if (context->FontHandle)
-                DeleteObject(context->FontHandle);
-
-            RemoveProp(hwndDlg, L"Context");
-            PhFree(context);
-            context = NULL;
-        }
     }
 
     if (context == NULL)
@@ -486,8 +462,8 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_MAX), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_SENT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_LOST), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            //PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            //PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);        
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);      
             PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
@@ -545,9 +521,31 @@ static INT_PTR CALLBACK NetworkPingWndProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated), 
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
                 &context->ProcessesUpdatedRegistration
+                );  
+            
+            PhSaveWindowPlacementToSetting(
+                SETTING_NAME_PING_WINDOW_POSITION,
+                SETTING_NAME_PING_WINDOW_SIZE,
+                hwndDlg
                 );
+
+            if (context->PingGraphHandle)
+                DestroyWindow(context->PingGraphHandle);
+
+            if (context->IconHandle)
+                DestroyIcon(context->IconHandle);
+
+            if (context->FontHandle)
+                DeleteObject(context->FontHandle);
+
+            PhDeleteWorkQueue(&context->PingWorkQueue);
+            PhDeleteGraphState(&context->PingGraphState);
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            RemoveProp(hwndDlg, L"Context");
+            PhFree(context);
         }
         break;
     case WM_SIZE:
@@ -604,10 +602,10 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 ((FLOAT)context->PingLossCount / context->PingSentCount * 100)
                 )->Buffer);
 
-            SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
-                L"Bad Hashes: %lu", context->HashFailCount)->Buffer);  
-            SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
-                L"Anon Replies: %lu", context->UnknownAddrCount)->Buffer);   
+            //SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
+            //    L"Bad Hashes: %lu", context->HashFailCount)->Buffer);  
+            //SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
+            //    L"Anon Replies: %lu", context->UnknownAddrCount)->Buffer);   
         }
         break;
     case WM_NOTIFY:
