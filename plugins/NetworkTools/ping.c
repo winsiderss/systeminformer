@@ -123,22 +123,18 @@ static ULONG PhNetworkPingThreadStart(
     PVOID icmpReplyBuffer = NULL;
     PPH_STRING phVersion = NULL;
     PPH_ANSI_STRING icmpEchoBuffer = NULL;
-    PNETWORK_OUTPUT_CONTEXT context = NULL;
-
-    static IP_OPTION_INFORMATION pingOptions = 
-    { 
+    IP_OPTION_INFORMATION pingOptions =
+    {
         255,         // Time To Live
         0,           // Type Of Service
         IP_FLAG_DF,  // IP header flags
         0            // Size of options data
     };
 
-    __try
-    {
-        // Query thread context.
-        if ((context = (PNETWORK_OUTPUT_CONTEXT)Parameter) == NULL)
-            __leave;
+    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
 
+    __try
+    {       
         // Query PH version.
         if ((phVersion = PhGetPhVersion()) == NULL)
             __leave;
@@ -350,7 +346,7 @@ static ULONG PhNetworkPingThreadStart(
             PhDereferenceObject(icmpEchoBuffer);
         }
 
-        if (icmpHandle)
+        if (icmpHandle != INVALID_HANDLE_VALUE)
         {
             IcmpCloseHandle(icmpHandle);
         }
