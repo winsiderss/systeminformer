@@ -501,9 +501,10 @@ static NTSTATUS UpdateCheckSilentThread(
     ULONGLONG currentVersion = 0;
     ULONGLONG latestVersion = 0;
 
+    context = CreateUpdateContext();
+
     __try
     {
-        context = CreateUpdateContext();
         if (!QueryUpdateData(context))
             __leave;
 
@@ -549,7 +550,7 @@ static NTSTATUS UpdateCheckSilentThread(
     __finally
     {
         // Check the dialog doesn't own the window context...
-        if (context && !context->HaveData)
+        if (context->HaveData == FALSE)
             FreeUpdateContext(context);
     }
 
@@ -631,11 +632,10 @@ static NTSTATUS UpdateDownloadThread(
     PPH_STRING setupTempPath = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
-    PPH_UPDATER_CONTEXT context = NULL; 
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
-    context = (PPH_UPDATER_CONTEXT)Parameter;
+    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
 
     __try
     {
