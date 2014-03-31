@@ -289,6 +289,70 @@ BOOLEAN ProcessTreeFilterCallback(
         showItem = TRUE;
     }
 
+    if (processNode->ProcessItem->ServiceList && processNode->ProcessItem->ServiceList->Count != 0)
+    {
+        ULONG enumerationKey = 0;
+        PPH_SERVICE_ITEM serviceItem;
+        PPH_LIST serviceList;
+        ULONG i;
+
+        // Copy the service list so we can search it.
+        serviceList = PhCreateList(processNode->ProcessItem->ServiceList->Count);
+
+        PhAcquireQueuedLockShared(&processNode->ProcessItem->ServiceListLock);
+
+        while (PhEnumPointerList(
+            processNode->ProcessItem->ServiceList,
+            &enumerationKey,
+            &serviceItem
+            ))
+        {
+            PhReferenceObject(serviceItem);
+            PhAddItemList(serviceList, serviceItem);
+        }
+
+        PhReleaseQueuedLockShared(&processNode->ProcessItem->ServiceListLock);
+
+        // Add the services.
+        for (i = 0; i < serviceList->Count; i++)
+        {
+            serviceItem = serviceList->Items[i];
+
+            if (WordMatchString(PhGetServiceTypeString(serviceItem->Type)))
+                showItem = TRUE;
+
+            if (WordMatchString(PhGetServiceStateString(serviceItem->State)))
+                showItem = TRUE;
+
+            if (WordMatchString(PhGetServiceStartTypeString(serviceItem->StartType)))
+                showItem = TRUE;
+
+            if (WordMatchString(PhGetServiceErrorControlString(serviceItem->ErrorControl)))
+                showItem = TRUE;
+
+            if (serviceItem->Name)
+            {
+                if (WordMatchStringRef(&serviceItem->Name->sr))
+                    showItem = TRUE;
+            }
+
+            if (serviceItem->DisplayName)
+            {
+                if (WordMatchStringRef(&serviceItem->DisplayName->sr))
+                    showItem = TRUE;
+            }
+
+            if (serviceItem->ProcessIdString)
+            {
+                if (WordMatchString(serviceItem->ProcessIdString))
+                    showItem = TRUE;
+            }
+        }
+
+        PhDereferenceObjects(serviceList->Items, serviceList->Count);
+        PhDereferenceObject(serviceList);
+    }
+
     return showItem;
 }
 
