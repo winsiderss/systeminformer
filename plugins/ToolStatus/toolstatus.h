@@ -21,8 +21,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TOOLSTATUS_H
-#define TOOLSTATUS_H
+#ifndef _TOOLSTATUS_H
+#define _TOOLSTATUS_H
 
 #pragma comment(lib, "WindowsCodecs.lib")
 
@@ -34,24 +34,21 @@
 #include <phplug.h>
 #include <phappresource.h>
 #include <windowsx.h>
+#include <Wincodec.h>
 
 #include "resource.h"
 
-typedef enum _TOOLBAR_DISPLAY_STYLE
-{
-    ImageOnly = 0,
-    SelectiveText = 1,
-    AllText = 2
-} TOOLBAR_DISPLAY_STYLE;
+#define _HOTTRACK_ENABLED_
+//#define _UXTHEME_ENABLED_
 
-#define IDC_MENU_REBAR 55400
-#define IDC_MENU_REBAR_TOOLBAR 55401
-#define IDC_MENU_REBAR_SEARCH 55402
+#ifndef _UXTHEME_ENABLED_
+#define _CUSTOM_THEME_
+#endif
+
 #define ID_SEARCH_CLEAR (WM_USER + 1)
-
-#define TIDC_FINDWINDOW (WM_USER + 1)
-#define TIDC_FINDWINDOWTHREAD (WM_USER + 2)
-#define TIDC_FINDWINDOWKILL (WM_USER + 3)
+#define TIDC_FINDWINDOW (WM_USER + 2)
+#define TIDC_FINDWINDOWTHREAD (WM_USER + 3)
+#define TIDC_FINDWINDOWKILL (WM_USER + 4)
 
 #define STATUS_COUNT 10
 #define STATUS_MINIMUM 0x1
@@ -67,23 +64,31 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 #define STATUS_MAXIOPROCESS 0x200
 #define STATUS_MAXIMUM 0x400
 
+typedef enum _TOOLBAR_DISPLAY_STYLE
+{
+    ToolbarDisplayImageOnly,
+    ToolbarDisplaySelectiveText,
+    ToolbarDisplayAllText
+} TOOLBAR_DISPLAY_STYLE;
+
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
+extern ULONG StatusMask;
+extern ULONG ProcessesUpdatedCount;
+
 extern HWND ReBarHandle;
 extern HWND ToolBarHandle;
 extern HWND TextboxHandle;
+extern HWND StatusBarHandle;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
+
+extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
-extern PPH_PLUGIN PluginInstance;
-
-extern HWND StatusBarHandle;
-extern ULONG StatusMask;
-extern ULONG ProcessesUpdatedCount;
 
 VOID UpdateStatusBar(
     VOID
@@ -120,76 +125,40 @@ BOOLEAN InsertButton(
     _In_ UINT CmdId
     );
 
-typedef HRESULT (WINAPI *_GetThemeColor)(
-    _In_ HTHEME hTheme,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
-    _In_ INT iPropId,
-    _Out_ COLORREF *pColor
-    );
-typedef HRESULT (WINAPI *_SetWindowTheme)(
-    _In_ HWND hwnd,
-    _In_ LPCWSTR pszSubAppName,
-    _In_ LPCWSTR pszSubIdList
-    );
-
-typedef HRESULT (WINAPI *_GetThemeFont)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
-    _In_ INT iPropId,
-    _Out_ LOGFONTW *pFont
-    );
-
-typedef HRESULT (WINAPI *_GetThemeSysFont)(
-    _In_ HTHEME hTheme,
-    _In_ INT iFontId,
-    _Out_ LOGFONTW *plf
-    );
-
-typedef BOOL (WINAPI *_IsThemeBackgroundPartiallyTransparent)(
-    _In_ HTHEME hTheme,
-    _In_ INT iPartId,
-    _In_ INT iStateId
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeParentBackground)(
-    _In_ HWND hwnd,
-    _In_ HDC hdc,
-    _In_opt_ const RECT* prc
-    );
-
-typedef HRESULT (WINAPI *_GetThemeBackgroundContentRect)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
-    _Inout_ LPCRECT pBoundingRect,
-    _Out_ LPRECT pContentRect
-    );
-
 typedef struct _NC_CONTEXT
 {
-    INT cxLeftEdge;
+#ifdef _HOTTRACK_ENABLED_
+    BOOLEAN MouseInClient;
+#endif
+
+    UINT CommandID;
+    LONG cxImgSize;
+    COLORREF clrUxThemeFillRef;
+    COLORREF clrUxThemeBackgroundRef;
+    COLORREF ThemeBorderColor;
+
+    INT CXBorder;
+    INT CYBorder;
+    INT CxLeftEdge;
     INT cxRightEdge;
     INT cyTopEdge;
     INT cyBottomEdge;
-    LONG cxImgSize;
-
-    BOOL IsThemeActive;
-    BOOL IsThemeBackgroundActive;
-    COLORREF clrUxThemeFillRef;
-    COLORREF clrUxThemeBackgroundRef;
-   
-    UINT CommandID;
-    HFONT FontHandle;
+ 
     HIMAGELIST ImageList;
     HBITMAP ActiveBitmap;
     HBITMAP InactiveBitmap;
 
+#ifdef _CUSTOM_THEME_
+    HPEN FocusedBorderPen;
+    HPEN NormalBorderPen;
+#endif
+
+#ifdef _UXTHEME_ENABLED_
+    BOOL IsThemeActive;
+    BOOL IsThemeBackgroundActive;
     HTHEME UxThemeHandle;
     HMODULE UxThemeModule;
+#endif
 } NC_CONTEXT;
 
 HBITMAP LoadImageFromResources(
