@@ -38,12 +38,10 @@
 
 #include "resource.h"
 
+// Enable Searchbox HotTracking
 #define _HOTTRACK_ENABLED_
+// Enable Searchbox UxTheme drawing
 //#define _UXTHEME_ENABLED_
-
-#ifndef _UXTHEME_ENABLED_
-#define _CUSTOM_THEME_
-#endif
 
 #define ID_SEARCH_CLEAR (WM_USER + 1)
 #define TIDC_FINDWINDOW (WM_USER + 2)
@@ -125,41 +123,32 @@ BOOLEAN InsertButton(
     _In_ UINT CmdId
     );
 
-typedef struct _NC_CONTEXT
+typedef struct _EDIT_CONTEXT
 {
+    UINT CommandID;  
+    INT CXBorder;
+    INT CYBorder;
+    LONG cxImgSize;
+
+    HWND WindowHandle;
+    HIMAGELIST ImageList;
+
+    HBRUSH BrushNormal;
+    HBRUSH BrushFocused;
+    HBRUSH BrushHot;
+    HBRUSH BrushBackground;
+    COLORREF BackgroundColorRef;
+
 #ifdef _HOTTRACK_ENABLED_
     BOOLEAN MouseInClient;
 #endif
-
-    UINT CommandID;
-    LONG cxImgSize;
-    COLORREF clrUxThemeFillRef;
-    COLORREF clrUxThemeBackgroundRef;
-    COLORREF ThemeBorderColor;
-
-    INT CXBorder;
-    INT CYBorder;
-    INT CxLeftEdge;
-    INT cxRightEdge;
-    INT cyTopEdge;
-    INT cyBottomEdge;
- 
-    HIMAGELIST ImageList;
-    HBITMAP ActiveBitmap;
-    HBITMAP InactiveBitmap;
-
-#ifdef _CUSTOM_THEME_
-    HPEN FocusedBorderPen;
-    HPEN NormalBorderPen;
-#endif
-
 #ifdef _UXTHEME_ENABLED_
     BOOL IsThemeActive;
     BOOL IsThemeBackgroundActive;
     HTHEME UxThemeHandle;
     HMODULE UxThemeModule;
 #endif
-} NC_CONTEXT;
+} EDIT_CONTEXT, *PEDIT_CONTEXT;
 
 HBITMAP LoadImageFromResources(
     _In_ UINT Width,

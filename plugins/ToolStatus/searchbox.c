@@ -1,29 +1,32 @@
 /*
-* Process Hacker -
-*   Subclassed Edit control
-*
-* Copyright (C) 2012-2013 dmex
-*
-* This file is part of Process Hacker.
-*
-* Process Hacker is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Process Hacker is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
-*
-* dmex: The non-client area subclassing code has been modified based on the following guide:
-* http://www.catch22.net/tuts/insert-buttons-edit-control
-*/
+ * Process Hacker -
+ *   Subclassed Edit control
+ *
+ * Copyright (C) 2012-2013 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include "toolstatus.h"
+
+//NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+//metrics.lfMenuFont.lfHeight = 14;
+//metrics.lfMenuFont.lfWeight = FW_NORMAL;
+//metrics.lfMenuFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
 #ifdef _UXTHEME_ENABLED_
 #include <uxtheme.h>
@@ -125,22 +128,6 @@ static VOID NcAreaInitializeUxTheme(
                 EP_EDITBORDER_NOSCROLL,
                 0
                 );
-
-            GetThemeColor_I(
-                Context->UxThemeHandle,
-                EP_EDITBORDER_NOSCROLL,
-                EPSN_NORMAL,
-                TMT_FILLCOLOR,
-                &Context->clrUxThemeFillRef
-                );
-
-            GetThemeColor_I(
-                Context->UxThemeHandle,
-                EP_EDITBORDER_NOSCROLL,
-                EPSN_NORMAL,
-                TMT_BORDERCOLOR,
-                &Context->clrUxThemeBackgroundRef
-                );
         }
         else
         {
@@ -156,43 +143,77 @@ static VOID NcAreaInitializeUxTheme(
 }
 #endif _UXTHEME_ENABLED_
 
-static HFONT InitializeFont(
-    _In_ HWND hwndDlg
+static VOID NcAreaFreeGdiTheme(
+    _Inout_ PEDIT_CONTEXT Context
     )
 {
-    HFONT fontHandle = NULL;
-    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+    if (Context->BrushNormal)
+        DeleteObject(Context->BrushNormal);
 
-    SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
+    if (Context->BrushHot)
+        DeleteObject(Context->BrushHot);
 
-    metrics.lfMenuFont.lfHeight = 14;
-    metrics.lfMenuFont.lfWeight = FW_NORMAL;
-    //metrics.lfMenuFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    if (Context->BrushFocused)
+        DeleteObject(Context->BrushFocused);
 
-    fontHandle = CreateFontIndirect(&metrics.lfMenuFont);
+    if (Context->BrushBackground)
+        DeleteObject(Context->BrushBackground);
+}
 
-    if (fontHandle)
+static VOID NcAreaInitializeGdiTheme(
+    _Inout_ PEDIT_CONTEXT Context
+    )
+{
+    Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+    Context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
+
+    Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
+    Context->BrushNormal = GetSysColorBrush(COLOR_GRAYTEXT);
+    Context->BrushHot = WindowsVersion < WINDOWS_VISTA ? CreateSolidBrush(RGB(50, 150, 255)) : GetSysColorBrush(COLOR_HIGHLIGHT);
+    Context->BrushFocused = Context->BrushHot;
+    Context->BrushBackground = GetSysColorBrush(Context->BackgroundColorRef);
+}
+
+static VOID NcAreaInitializeImageList(
+    _Inout_ PEDIT_CONTEXT Context
+    )
+{
+    HBITMAP bitmapActive = NULL;
+    HBITMAP bitmapInactive = NULL;
+
+    Context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
+
+    ImageList_SetBkColor(Context->ImageList, Context->BackgroundColorRef);
+    ImageList_SetImageCount(Context->ImageList, 2);
+
+    // Add the images to the imagelist
+    if (bitmapActive = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE)))
     {
-        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
-        return fontHandle;
+        ImageList_Replace(Context->ImageList, 0, bitmapActive, NULL);
+        DeleteObject(bitmapActive);
+    }
+    else
+    {
+        PhSetImageListBitmap(Context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
     }
 
-    return NULL;
+    if (bitmapInactive = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)))
+    {
+        ImageList_Replace(Context->ImageList, 1, bitmapInactive, NULL);
+        DeleteObject(bitmapInactive);
+    }
+    else
+    {
+        PhSetImageListBitmap(Context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
+    }
 }
 
 static VOID NcAreaGetButtonRect(
-    _Inout_ NC_CONTEXT* Context,
+    _Inout_ PEDIT_CONTEXT Context,
     _In_ RECT* rect
     )
 {
-    // retrieve the coordinates of an inserted button, given the specified window rectangle.
-    rect->right -= Context->cxRightEdge;
-    rect->top += Context->cyTopEdge; // GetSystemMetrics(SM_CYBORDER);
-    rect->bottom -= Context->cyBottomEdge;
     rect->left = rect->right - Context->cxImgSize; // GetSystemMetrics(SM_CXBORDER)
-
-    if (Context->cxRightEdge > Context->CxLeftEdge)
-        OffsetRect(rect, Context->cxRightEdge - Context->CxLeftEdge, 0);
 }
 
 static LRESULT CALLBACK NcAreaWndSubclassProc(
@@ -204,25 +225,17 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     _In_ DWORD_PTR dwRefData
     )
 {
-    NC_CONTEXT* context = (NC_CONTEXT*)GetProp(hwndDlg, L"Context");
+    PEDIT_CONTEXT context = (PEDIT_CONTEXT)GetProp(hwndDlg, L"Context");
     
     if (context == NULL)
         return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 
     if (uMsg == WM_NCDESTROY)
     {
-        RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
+        NcAreaFreeGdiTheme(context);
 
         if (context->ImageList)
             ImageList_Destroy(context->ImageList);
-
-#ifdef _CUSTOM_THEME_
-        if (context->FocusedBorderPen)
-            DeleteObject(context->FocusedBorderPen);
- 
-        if (context->NormalBorderPen)
-            DeleteObject(context->NormalBorderPen);       
-#endif
 
 #ifdef _UXTHEME_ENABLED_
         if (CloseThemeData_I && context->UxThemeHandle)
@@ -232,6 +245,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             FreeLibrary(context->UxThemeModule);
 #endif
 
+        RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
         RemoveProp(hwndDlg, L"Context");
         PhFree(context);
     }
@@ -239,17 +253,24 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     switch (uMsg)
     {
 #ifdef _UXTHEME_ENABLED_
-    case WM_SYSCOLORCHANGE:
     case WM_STYLECHANGED:
     case WM_THEMECHANGED:
-        NcAreaInitializeUxTheme(context, hwndDlg);
+        NcAreaFreeGdiTheme(context);
+        NcAreaInitializeGdiTheme(context);
+        NcAreaInitializeUxTheme(context);
         break; 
 #endif
+    case WM_ERASEBKGND:
+        return TRUE;
+    case WM_SYSCOLORCHANGE:
+        NcAreaFreeGdiTheme(context);
+        NcAreaInitializeGdiTheme(context);
+        break;
     case WM_NCCALCSIZE:
         {
-            PRECT newClientRect = (PRECT)lParam;
+            PRECT clientRect = (PRECT)lParam;
 
-            newClientRect->right -= context->cxImgSize; // GetSystemMetrics(SM_CXVSCROLL);
+            clientRect->right -= context->cxImgSize;
         }
         break;
     case WM_NCPAINT:
@@ -266,7 +287,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             SetBkMode(hdc, TRANSPARENT);
 
             // Get the screen coordinates of the client window.
-            GetClientRect(hwndDlg, &clientRect);      
+            GetClientRect(hwndDlg, &clientRect);
             // Get the screen coordinates of the window.
             GetWindowRect(hwndDlg, &windowRect);
             // Adjust the coordinates (start from border edge).
@@ -281,7 +302,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 clientRect.top,
                 clientRect.right,
                 clientRect.bottom
-                );      
+                );
 
             // Draw the themed background. 
 #ifdef _UXTHEME_ENABLED_
@@ -350,43 +371,21 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             else
 #endif _UXTHEME_ENABLED_
             {
-#ifndef _CUSTOM_THEME_
-                FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
-#else
-                SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff)); // GetSysColor(COLOR_WINDOW)
-                FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
-#endif _CUSTOM_THEME_
+                FillRect(hdc, &windowRect, context->BrushBackground);
+
                 if (isFocused)
                 {
-#ifndef _CUSTOM_THEME_
-                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-#else
-                    HGDIOBJ oldPen = SelectObject(hdc, context->FocusedBorderPen);
-                    Rectangle(hdc, windowRect.left, windowRect.top, windowRect.right, windowRect.bottom);
-                    SelectObject(hdc, oldPen);
-#endif _CUSTOM_THEME_
+                    FrameRect(hdc, &windowRect, context->BrushFocused);
                 }
 #ifdef _HOTTRACK_ENABLED_
                 else if (context->MouseInClient)
                 {
-#ifndef _CUSTOM_THEME_
-                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-#else
-                    HGDIOBJ oldPen = SelectObject(hdc, context->FocusedBorderPen);
-                    Rectangle(hdc, windowRect.left, windowRect.top, windowRect.right, windowRect.bottom);
-                    SelectObject(hdc, oldPen);          
-#endif
+                    FrameRect(hdc, &windowRect, context->BrushHot);
                 }
 #endif
                 else
                 {
-#ifndef _CUSTOM_THEME_
-                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_GRAYTEXT));
-#else
-                    HGDIOBJ oldPen = SelectObject(hdc, context->NormalBorderPen);
-                    Rectangle(hdc, windowRect.left, windowRect.top, windowRect.right, windowRect.bottom);
-                    SelectObject(hdc, oldPen); 
-#endif
+                    FrameRect(hdc, &windowRect, context->BrushNormal);
                 }
             }
 
@@ -394,7 +393,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             NcAreaGetButtonRect(context, &windowRect);
 
             // Draw the button.
-            if (GetWindowTextLength(hwndDlg) > 0)
+            if (SearchboxText->Length > 0)
             {
                 ImageList_DrawEx(
                     context->ImageList,
@@ -404,8 +403,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     windowRect.top,
                     0,
                     0,
-                    RGB(0xff, 0xff, 0xff),
-                    RGB(0xff, 0xff, 0xff),
+                    context->BackgroundColorRef,
+                    context->BackgroundColorRef,
                     ILD_NORMAL | ILD_TRANSPARENT
                     );
             }
@@ -419,8 +418,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     windowRect.top + 1,
                     0,
                     0,
-                    RGB(0xff, 0xff, 0xff),
-                    RGB(0xff, 0xff, 0xff),
+                    context->BackgroundColorRef,
+                    context->BackgroundColorRef,
                     ILD_NORMAL | ILD_TRANSPARENT
                     );
             }
@@ -558,8 +557,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 }
-
-
 
 HBITMAP LoadImageFromResources(
     _In_ UINT Width,
@@ -724,54 +721,21 @@ BOOLEAN InsertButton(
     _In_ UINT CommandID
     )
 {
-    NC_CONTEXT* context = (NC_CONTEXT*)PhAllocate(sizeof(NC_CONTEXT));
-    memset(context, 0, sizeof(NC_CONTEXT));
+    PEDIT_CONTEXT context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
+    memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->cxImgSize = 22;
     context->CommandID = CommandID;
-    context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
-    context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
+    context->WindowHandle = hwndDlg;
 
-    context->ImageList = ImageList_Create(23, 20, ILC_COLOR32 | ILC_MASK, 2, 0);
-    ImageList_SetImageCount(context->ImageList, 2);
-
-    // Add the images to the imagelist
-    if (context->ActiveBitmap = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE)))
-    {
-        ImageList_Replace(context->ImageList, 0, context->ActiveBitmap, NULL);
-        DeleteObject(context->ActiveBitmap);
-    }
-    else
-    {
-        PhSetImageListBitmap(context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
-    }
-
-    if (context->InactiveBitmap = LoadImageFromResources(23, 20, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)))
-    {
-        ImageList_Replace(context->ImageList, 1, context->InactiveBitmap, NULL);
-        DeleteObject(context->InactiveBitmap);
-    }
-    else
-    {
-        PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
-    }
-
-#ifdef _CUSTOM_THEME_
-    ImageList_SetBkColor(context->ImageList, GetSysColor(COLOR_WINDOW));
-    context->FocusedBorderPen = CreatePen(PS_SOLID, GetSystemMetrics(SM_CXBORDER), RGB(50, 150, 0xff));
-    context->NormalBorderPen = CreatePen(PS_SOLID, GetSystemMetrics(SM_CXBORDER), RGB(160, 160, 160));
-#else
-    ImageList_SetBkColor(context->ImageList, RGB(0xff, 0xff, 0xff));   
-#endif _CUSTOM_THEME_
-
-    // Set Searchbox control font
-    InitializeFont(hwndDlg);
+    NcAreaInitializeGdiTheme(context);
+    NcAreaInitializeImageList(context);
 
     // Set our window context data.
     SetProp(hwndDlg, L"Context", (HANDLE)context);
 
     // Subclass the Edit control window procedure.
-    SetWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0, (DWORD_PTR)context);
+    SetWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);
 
 #ifdef _UXTHEME_ENABLED_
     SendMessage(hwndDlg, WM_THEMECHANGED, 0, 0);
