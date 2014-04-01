@@ -234,12 +234,17 @@ static VOID RebarLoadSettings(
                 NULL
                 );
 
+            SearchboxText = PhReferenceEmptyString();
+
             // Insert a paint region into the edit control NC window area
             InsertButton(TextboxHandle, ID_SEARCH_CLEAR);            
+   
+            // Set  font
+            SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
             // Reset the client area margins.
             SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
             // Set initial text
-            Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");       
+            Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
 
             // Insert the edit control into the rebar control
             RebarAddMenuItem(ReBarHandle, TextboxHandle, 20, 180);
