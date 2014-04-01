@@ -27,7 +27,7 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN EnableWicImaging = FALSE;
-TOOLBAR_DISPLAY_STYLE DisplayStyle = SelectiveText;
+TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
 HWND ReBarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND TextboxHandle = NULL;
@@ -96,26 +96,29 @@ static VOID NTAPI LayoutPaddingCallback(
     )
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
-          
-    static RECT rbRect = { 0, 0, 0, 0 };
-    static RECT sbRect = { 0, 0, 0, 0 };
 
-    if (EnableToolBar && ReBarHandle)
+    if (ReBarHandle)
     {
+        RECT rebarRect = { 0 };
+
         SendMessage(ReBarHandle, WM_SIZE, 0, 0);
-        GetClientRect(ReBarHandle, &rbRect);
+
+        GetClientRect(ReBarHandle, &rebarRect);
 
         // Adjust the PH client area and exclude the rebar width.
-        data->Padding.top += rbRect.bottom;
+        data->Padding.top += rebarRect.bottom;
     }
 
-    if (EnableStatusBar && StatusBarHandle)
+    if (StatusBarHandle)
     {
+        RECT statusBarRect = { 0 };
+
         SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
-        GetClientRect(StatusBarHandle, &sbRect);
+
+        GetClientRect(StatusBarHandle, &statusBarRect);
 
         // Adjust the PH client area and exclude the StatusBar width.
-        data->Padding.bottom += sbRect.bottom;
+        data->Padding.bottom += statusBarRect.bottom;
     }
 }
 
