@@ -25,12 +25,59 @@
 
 #include "toolstatus.h"
 
-#include <Wincodec.h>
+#ifdef _UXTHEME_ENABLED_
 #include <uxtheme.h>
 #include <vsstyle.h>
 #include <vssym32.h>
 
-DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
+typedef HRESULT (WINAPI *_GetThemeColor)(
+    _In_ HTHEME hTheme,
+    _In_ INT iPartId,
+    _In_ INT iStateId,
+    _In_ INT iPropId,
+    _Out_ COLORREF *pColor
+    );
+typedef HRESULT (WINAPI *_SetWindowTheme)(
+    _In_ HWND hwnd,
+    _In_ LPCWSTR pszSubAppName,
+    _In_ LPCWSTR pszSubIdList
+    );
+
+typedef HRESULT (WINAPI *_GetThemeFont)(
+    _In_ HTHEME hTheme,
+    _In_ HDC hdc,
+    _In_ INT iPartId,
+    _In_ INT iStateId,
+    _In_ INT iPropId,
+    _Out_ LOGFONTW *pFont
+    );
+
+typedef HRESULT (WINAPI *_GetThemeSysFont)(
+    _In_ HTHEME hTheme,
+    _In_ INT iFontId,
+    _Out_ LOGFONTW *plf
+    );
+
+typedef BOOL (WINAPI *_IsThemeBackgroundPartiallyTransparent)(
+    _In_ HTHEME hTheme,
+    _In_ INT iPartId,
+    _In_ INT iStateId
+    );
+
+typedef HRESULT (WINAPI *_DrawThemeParentBackground)(
+    _In_ HWND hwnd,
+    _In_ HDC hdc,
+    _In_opt_ const RECT* prc
+    );
+
+typedef HRESULT (WINAPI *_GetThemeBackgroundContentRect)(
+    _In_ HTHEME hTheme,
+    _In_ HDC hdc,
+    _In_ INT iPartId,
+    _In_ INT iStateId,
+    _Inout_ LPCRECT pBoundingRect,
+    _Out_ LPRECT pContentRect
+    );
 
 static _IsThemeActive IsThemeActive_I;
 static _OpenThemeData OpenThemeData_I;
@@ -65,29 +112,11 @@ static VOID NcAreaInitializeUxTheme(
 
     if (IsThemeActive_I && OpenThemeData_I && CloseThemeData_I && IsThemePartDefined_I && DrawThemeBackground_I)
     {
-        // UxTheme classes and themes (not all listed):
-        // OpenThemeData_I:
-        //    SearchBox
-        //    SearchEditBox,
-        //    Edit::SearchBox
-        //    Edit::SearchEditBox
         if (Context->UxThemeHandle)
             CloseThemeData_I(Context->UxThemeHandle);
 
         Context->IsThemeActive = IsThemeActive_I();
         Context->UxThemeHandle = OpenThemeData_I(hwndDlg, VSCLASS_EDIT);
-
-        // Edit control classes and themes (not all listed):
-        // SetWindowTheme_I:
-        //    InactiveSearchBoxEdit
-        //    InactiveSearchBoxEditComposited
-        //    MaxInactiveSearchBoxEdit
-        //    MaxInactiveSearchBoxEditComposited
-        //    MaxSearchBoxEdit
-        //    MaxSearchBoxEditComposited
-        //    SearchBoxEdit
-        //    SearchBoxEditComposited
-        //SetWindowTheme_I(hwndDlg, L"SearchBoxEdit", NULL);
 
         if (Context->UxThemeHandle)
         {
@@ -125,274 +154,7 @@ static VOID NcAreaInitializeUxTheme(
         Context->IsThemeBackgroundActive = FALSE;
     }
 }
-
-static VOID NcAreaGetButtonRect(
-    _Inout_ NC_CONTEXT* Context,
-    _In_ RECT* rect
-    )
-{
-    // retrieve the coordinates of an inserted button, given the specified window rectangle.
-    rect->right -= Context->cxRightEdge;
-    rect->top += Context->cyTopEdge; // GetSystemMetrics(SM_CYBORDER);
-    rect->bottom -= Context->cyBottomEdge;
-    rect->left = rect->right - Context->cxImgSize; // GetSystemMetrics(SM_CXBORDER)
-
-    if (Context->cxRightEdge > Context->cxLeftEdge)
-        OffsetRect(rect, Context->cxRightEdge - Context->cxLeftEdge, 0);
-}
-
-static LRESULT CALLBACK NcAreaWndSubclassProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ DWORD_PTR dwRefData
-    )
-{
-    NC_CONTEXT* context = (NC_CONTEXT*)GetProp(hwndDlg, L"Context");
-
-    if (context == NULL)
-        return FALSE;
-
-    if (uMsg == WM_NCDESTROY)
-    {
-        if (context->FontHandle)
-            DeleteObject(context->FontHandle);
-
-        if (context->ImageList)
-            ImageList_Destroy(context->ImageList);
-
-        if (context->UxThemeHandle)
-        {
-            if (CloseThemeData_I)
-                CloseThemeData_I(context->UxThemeHandle);
-        }
-
-        if (context->UxThemeModule)
-            FreeLibrary(context->UxThemeModule);
-
-        RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
-
-        RemoveProp(hwndDlg, L"Context");
-        PhFree(context);
-        return FALSE;
-    }
-
-    switch (uMsg)
-    {   
-    case WM_ERASEBKGND:
-        return 1;
-    case WM_STYLECHANGED:
-    case WM_THEMECHANGED:
-        NcAreaInitializeUxTheme(context, hwndDlg);
-        break;
-    case WM_NCCALCSIZE:
-        {
-            RECT* newClientRect = NULL;
-            RECT oldClientRect = { 0, 0, 0, 0 };
-
-            newClientRect = (RECT*)lParam;
-            oldClientRect = *newClientRect;
-
-            // calculate what the size of each window border is, so we can position the button...
-            context->cxLeftEdge = newClientRect->left - oldClientRect.left;
-            context->cxRightEdge = oldClientRect.right - newClientRect->right;
-            context->cyTopEdge = newClientRect->top - oldClientRect.top;
-            context->cyBottomEdge = oldClientRect.bottom - newClientRect->bottom;
-
-            // allocate space for the image by deflating the client window rectangle.
-            newClientRect->right -= context->cxImgSize;
-        }
-        break;
-    case WM_NCPAINT:
-        {
-            HDC hdc = NULL;
-            RECT clientRect = { 0, 0, 0, 0 };
-            RECT windowRect = { 0, 0, 0, 0 };
-
-            if (!(hdc = GetWindowDC(hwndDlg)))
-                return FALSE;
-
-            // Get the screen coordinates of the client window.
-            GetClientRect(hwndDlg, &clientRect);
-            // Get the screen coordinates of the window.
-            GetWindowRect(hwndDlg, &windowRect);
-            // Adjust the coordinates (start from 0,0).
-            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
-
-            // Exclude the client area.
-            ExcludeClipRect(
-                hdc,
-                clientRect.left,
-                clientRect.top,
-                clientRect.right,
-                clientRect.bottom
-                );
-
-            // Draw the themed background.
-            if (context->IsThemeActive && context->IsThemeBackgroundActive)
-            {
-                BOOL isFocused = (GetFocus() == hwndDlg);
-
-                if (isFocused)
-                {
-                    if (IsThemeBackgroundPartiallyTransparent_I(
-                        context->UxThemeHandle, 
-                        EP_EDITBORDER_NOSCROLL, 
-                        EPSN_FOCUSED
-                        ))
-                    {
-                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
-                    }
-
-                    DrawThemeBackground_I(
-                        context->UxThemeHandle,
-                        hdc,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_FOCUSED,
-                        &windowRect,
-                        NULL
-                        );
-                }
-                else
-                {
-                    if (IsThemeBackgroundPartiallyTransparent_I(
-                        context->UxThemeHandle, 
-                        EP_EDITBORDER_NOSCROLL, 
-                        EPSN_NORMAL
-                        ))
-                    {
-                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
-                    }
-
-                    DrawThemeBackground_I(
-                        context->UxThemeHandle,
-                        hdc,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_NORMAL,
-                        &windowRect,
-                        NULL
-                        );
-                }
-            }
-            else
-            {
-                // Fill in the text box.
-                SetBkMode(hdc, TRANSPARENT);
-                //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-                FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));   
-            }
-
-            // Get the position of the inserted button.
-            NcAreaGetButtonRect(context, &windowRect);
-
-            // Draw the button.
-            if (GetWindowTextLength(hwndDlg) > 0)
-            {
-                ImageList_Draw(
-                    context->ImageList,
-                    0,
-                    hdc,
-                    windowRect.left,
-                    windowRect.top,
-                    ILD_TRANSPARENT
-                    );
-            }
-            else
-            {
-                ImageList_Draw(
-                    context->ImageList,
-                    1,
-                    hdc,
-                    windowRect.left,
-                    windowRect.top + 1,
-                    ILD_TRANSPARENT
-                    );
-            }
-
-            // Restore the the client area.
-            IntersectClipRect(
-                hdc,
-                clientRect.left,
-                clientRect.top,
-                clientRect.right,
-                clientRect.bottom
-                );
-
-            ReleaseDC(hwndDlg, hdc);
-        }
-        break;
-    case WM_NCHITTEST:
-        {
-            POINT windowPoint = { 0, 0 };
-            RECT windowRect = { 0, 0, 0, 0 };
-
-            // Get the screen coordinates of the mouse.
-            windowPoint.x = GET_X_LPARAM(lParam);
-            windowPoint.y = GET_Y_LPARAM(lParam);
-
-            // Get the position of the inserted button.
-            GetWindowRect(hwndDlg, &windowRect);
-            NcAreaGetButtonRect(context, &windowRect);
-
-            // Check that the mouse is within the inserted button.
-            if (PtInRect(&windowRect, windowPoint))
-                return HTBORDER;
-        }
-        break;
-    case WM_NCLBUTTONDOWN:
-        {
-            POINT windowPoint = { 0, 0 };
-            RECT windowRect = { 0, 0, 0, 0 };
-
-            // Get the screen coordinates of the mouse.
-            windowPoint.x = GET_X_LPARAM(lParam);
-            windowPoint.y = GET_Y_LPARAM(lParam);
-
-            // Get the position of the inserted button.
-            GetWindowRect(hwndDlg, &windowRect);
-            NcAreaGetButtonRect(context, &windowRect);
-
-            // Check that the mouse is within the button rect.
-            if (PtInRect(&windowRect, windowPoint))
-            {
-                SetCapture(hwndDlg);
-
-                // Send click notification
-                SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
-
-                // Invalidate the nonclient area.
-                RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-                return FALSE;
-            }
-        }
-        break;
-    case WM_LBUTTONUP:
-        {
-            if (GetCapture() == hwndDlg)
-            {
-                ReleaseCapture();
-
-                // Invalidate the nonclient area.
-                RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-                return FALSE;
-            }
-        }
-        break;
-    case WM_CUT:
-    case WM_CLEAR:   
-    case WM_PASTE: 
-    case WM_UNDO:
-        RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-        break;
-    case WM_KEYUP:
-        RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-        return FALSE;
-    }
-
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
-}
+#endif _UXTHEME_ENABLED_
 
 static HFONT InitializeFont(
     _In_ HWND hwndDlg
@@ -418,6 +180,387 @@ static HFONT InitializeFont(
     return NULL;
 }
 
+static VOID NcAreaGetButtonRect(
+    _Inout_ NC_CONTEXT* Context,
+    _In_ RECT* rect
+    )
+{
+    // retrieve the coordinates of an inserted button, given the specified window rectangle.
+    rect->right -= Context->cxRightEdge;
+    rect->top += Context->cyTopEdge; // GetSystemMetrics(SM_CYBORDER);
+    rect->bottom -= Context->cyBottomEdge;
+    rect->left = rect->right - Context->cxImgSize; // GetSystemMetrics(SM_CXBORDER)
+
+    if (Context->cxRightEdge > Context->CxLeftEdge)
+        OffsetRect(rect, Context->cxRightEdge - Context->CxLeftEdge, 0);
+}
+
+static LRESULT CALLBACK NcAreaWndSubclassProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ DWORD_PTR dwRefData
+    )
+{
+    NC_CONTEXT* context = (NC_CONTEXT*)GetProp(hwndDlg, L"Context");
+    
+    if (context == NULL)
+        return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+
+    if (uMsg == WM_NCDESTROY)
+    {
+        RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
+
+        if (context->ImageList)
+            ImageList_Destroy(context->ImageList);
+
+#ifdef _CUSTOM_THEME_
+        if (context->FocusedBorderPen)
+            DeleteObject(context->FocusedBorderPen);
+ 
+        if (context->NormalBorderPen)
+            DeleteObject(context->NormalBorderPen);       
+#endif
+
+#ifdef _UXTHEME_ENABLED_
+        if (CloseThemeData_I && context->UxThemeHandle)
+            CloseThemeData_I(context->UxThemeHandle);
+
+        if (context->UxThemeModule)
+            FreeLibrary(context->UxThemeModule);
+#endif
+
+        RemoveProp(hwndDlg, L"Context");
+        PhFree(context);
+    }
+
+    switch (uMsg)
+    {
+#ifdef _UXTHEME_ENABLED_
+    case WM_SYSCOLORCHANGE:
+    case WM_STYLECHANGED:
+    case WM_THEMECHANGED:
+        NcAreaInitializeUxTheme(context, hwndDlg);
+        break; 
+#endif
+    case WM_NCCALCSIZE:
+        {
+            PRECT newClientRect = (PRECT)lParam;
+
+            newClientRect->right -= context->cxImgSize; // GetSystemMetrics(SM_CXVSCROLL);
+        }
+        break;
+    case WM_NCPAINT:
+        {
+            HDC hdc = NULL;
+            RECT clientRect = { 0 };
+            RECT windowRect = { 0 };
+
+            BOOL isFocused = (GetFocus() == hwndDlg);
+
+            if (!(hdc = GetWindowDC(hwndDlg)))
+                return FALSE;
+
+            SetBkMode(hdc, TRANSPARENT);
+
+            // Get the screen coordinates of the client window.
+            GetClientRect(hwndDlg, &clientRect);      
+            // Get the screen coordinates of the window.
+            GetWindowRect(hwndDlg, &windowRect);
+            // Adjust the coordinates (start from border edge).
+            OffsetRect(&clientRect, context->CXBorder, context->CYBorder);
+            // Adjust the coordinates (start from 0,0).
+            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+
+            // Exclude the client area.
+            ExcludeClipRect(
+                hdc,
+                clientRect.left,
+                clientRect.top,
+                clientRect.right,
+                clientRect.bottom
+                );      
+
+            // Draw the themed background. 
+#ifdef _UXTHEME_ENABLED_
+            if (context->IsThemeActive && context->IsThemeBackgroundActive)
+            {
+                if (isFocused)
+                {
+                    if (IsThemeBackgroundPartiallyTransparent_I(
+                        context->UxThemeHandle,
+                        EP_EDITBORDER_NOSCROLL,
+                        EPSN_FOCUSED
+                        ))
+                    {
+                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
+                    }
+                    DrawThemeBackground_I(
+                        context->UxThemeHandle,
+                        hdc,
+                        EP_EDITBORDER_NOSCROLL,
+                        EPSN_FOCUSED,
+                        &windowRect,
+                        NULL
+                        );
+                }
+#ifdef _HOTTRACK_ENABLED_
+                else if (context->MouseInClient)
+                {            
+                    if (IsThemeBackgroundPartiallyTransparent_I(
+                        context->UxThemeHandle,
+                        EP_EDITBORDER_NOSCROLL,
+                        EPSN_HOT
+                        ))
+                    {
+                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
+                    }
+                    DrawThemeBackground_I(
+                        context->UxThemeHandle,
+                        hdc,
+                        EP_EDITBORDER_NOSCROLL,
+                        EPSN_HOT,
+                        &windowRect,
+                        NULL
+                        );
+                }
+#endif _HOTTRACK_ENABLED_
+                else
+                {
+                    if (IsThemeBackgroundPartiallyTransparent_I(
+                        context->UxThemeHandle,
+                        EP_EDITBORDER_NOSCROLL,
+                        EPSN_NORMAL
+                        ))
+                    {
+                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
+                    }
+                    DrawThemeBackground_I(
+                        context->UxThemeHandle,
+                        hdc,
+                        EP_EDITBORDER_NOSCROLL,
+                        EPSN_NORMAL,
+                        &windowRect,
+                        NULL
+                        );
+                }
+            }
+            else
+#endif _UXTHEME_ENABLED_
+            {
+#ifndef _CUSTOM_THEME_
+                FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+#else
+                SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff)); // GetSysColor(COLOR_WINDOW)
+                FillRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
+#endif _CUSTOM_THEME_
+                if (isFocused)
+                {
+#ifndef _CUSTOM_THEME_
+                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+#else
+                    HGDIOBJ oldPen = SelectObject(hdc, context->FocusedBorderPen);
+                    Rectangle(hdc, windowRect.left, windowRect.top, windowRect.right, windowRect.bottom);
+                    SelectObject(hdc, oldPen);
+#endif _CUSTOM_THEME_
+                }
+#ifdef _HOTTRACK_ENABLED_
+                else if (context->MouseInClient)
+                {
+#ifndef _CUSTOM_THEME_
+                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+#else
+                    HGDIOBJ oldPen = SelectObject(hdc, context->FocusedBorderPen);
+                    Rectangle(hdc, windowRect.left, windowRect.top, windowRect.right, windowRect.bottom);
+                    SelectObject(hdc, oldPen);          
+#endif
+                }
+#endif
+                else
+                {
+#ifndef _CUSTOM_THEME_
+                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_GRAYTEXT));
+#else
+                    HGDIOBJ oldPen = SelectObject(hdc, context->NormalBorderPen);
+                    Rectangle(hdc, windowRect.left, windowRect.top, windowRect.right, windowRect.bottom);
+                    SelectObject(hdc, oldPen); 
+#endif
+                }
+            }
+
+            // Get the position of the inserted button.
+            NcAreaGetButtonRect(context, &windowRect);
+
+            // Draw the button.
+            if (GetWindowTextLength(hwndDlg) > 0)
+            {
+                ImageList_DrawEx(
+                    context->ImageList,
+                    0,
+                    hdc,
+                    windowRect.left,
+                    windowRect.top,
+                    0,
+                    0,
+                    RGB(0xff, 0xff, 0xff),
+                    RGB(0xff, 0xff, 0xff),
+                    ILD_NORMAL | ILD_TRANSPARENT
+                    );
+            }
+            else
+            {
+                ImageList_DrawEx(
+                    context->ImageList,
+                    1,
+                    hdc,
+                    windowRect.left,
+                    windowRect.top + 1,
+                    0,
+                    0,
+                    RGB(0xff, 0xff, 0xff),
+                    RGB(0xff, 0xff, 0xff),
+                    ILD_NORMAL | ILD_TRANSPARENT
+                    );
+            }
+            
+            // Restore the the client area.
+            IntersectClipRect(
+                hdc,
+                clientRect.left,
+                clientRect.top,
+                clientRect.right,
+                clientRect.bottom
+                );
+
+            ReleaseDC(hwndDlg, hdc);
+        }
+        return FALSE;
+    case WM_NCHITTEST:
+        {
+            POINT windowPoint = { 0 };
+            RECT windowRect = { 0 };
+
+            // Get the screen coordinates of the mouse.
+            windowPoint.x = GET_X_LPARAM(lParam);
+            windowPoint.y = GET_Y_LPARAM(lParam);
+
+            // Get the position of the inserted button.
+            GetWindowRect(hwndDlg, &windowRect);
+            NcAreaGetButtonRect(context, &windowRect);
+
+            // Check that the mouse is within the inserted button.
+            if (PtInRect(&windowRect, windowPoint))
+                return HTBORDER;
+        }
+        break;
+    case WM_NCLBUTTONDOWN:
+        {
+            POINT windowPoint = { 0 };
+            RECT windowRect = { 0 };
+
+            // Get the screen coordinates of the mouse.
+            windowPoint.x = GET_X_LPARAM(lParam);
+            windowPoint.y = GET_Y_LPARAM(lParam);
+
+            // Get the position of the inserted button.
+            GetWindowRect(hwndDlg, &windowRect);
+            NcAreaGetButtonRect(context, &windowRect);
+
+            // Check that the mouse is within the button rect.
+            if (PtInRect(&windowRect, windowPoint))
+            {
+                SetCapture(hwndDlg);
+
+                // Send click notification
+                SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
+
+                RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+                return FALSE;
+            }
+        }
+        break;
+    case WM_LBUTTONUP:
+        {
+            if (GetCapture() == hwndDlg)
+            {
+                ReleaseCapture();
+
+                RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+                return FALSE;
+            }
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            if (WindowsVersion < WINDOWS_VISTA)
+            {
+                // Handle CTRL+A below Vista.
+                if (GetKeyState(VK_CONTROL) & VK_LCONTROL && wParam == 'A')
+                {
+                    Edit_SetSel(hwndDlg, 0, -1);
+                    return FALSE;
+                }
+            }
+        }
+        break;
+    case WM_CUT:
+    case WM_CLEAR:
+    case WM_PASTE:
+    case WM_UNDO:
+    case WM_KEYUP:
+    case WM_SETTEXT:
+    case WM_SETFOCUS:
+    case WM_KILLFOCUS:
+        RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        break;
+#ifdef _HOTTRACK_ENABLED_
+    case WM_MOUSELEAVE:
+        {
+            context->MouseInClient = FALSE;
+
+            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            POINT windowPoint = { 0 };
+            RECT windowRect = { 0 };
+
+            // Get the screen coordinates of the mouse.
+            windowPoint.x = GET_X_LPARAM(lParam);
+            windowPoint.y = GET_Y_LPARAM(lParam);
+
+            GetWindowRect(hwndDlg, &windowRect);
+            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+
+            if (PtInRect(&windowRect, windowPoint))
+            {
+                TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT) };
+                tme.dwFlags = TME_LEAVE;// | TME_NONCLIENT;
+                tme.hwndTrack = hwndDlg;
+
+                context->MouseInClient = TRUE;
+                RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+                TrackMouseEvent(&tme);
+            }
+            else
+            {
+                //context->MouseInClient = FALSE;
+                //RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            }
+        }
+        break;
+#endif _HOTTRACK_ENABLED_
+    }
+
+    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+}
+
+
+
 HBITMAP LoadImageFromResources(
     _In_ UINT Width,
     _In_ UINT Height,
@@ -427,110 +570,121 @@ HBITMAP LoadImageFromResources(
     UINT width = 0;
     UINT height = 0;
     UINT frameCount = 0;
-    ULONG resLength = 0;
-    HRSRC resHandleSrc = NULL;
-    HGLOBAL resHandle = NULL;
-    WICInProcPointer resBuffer = NULL;
+    BOOLEAN isSuccess = FALSE;
+    ULONG resourceLength = 0;
+    HGLOBAL resourceHandle = NULL;
+    HRSRC resourceHandleSource = NULL;
+    WICInProcPointer resourceBuffer = NULL;
+
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
-    BYTE* bitmapBuffer = NULL;
+    PBYTE bitmapBuffer = NULL;
 
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
-    IWICImagingFactory* wicFactory = NULL;
+    
     IWICBitmapScaler* wicScaler = NULL;
     WICPixelFormatGUID pixelFormat;
 
-    HDC hdcScreen = GetDC(NULL);
+    WICRect rect = { 0, 0, Width, Height };
+
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static IWICImagingFactory* wicFactory = NULL;
 
     __try
     {
-        // Create the ImagingFactory.
-        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+        if (PhBeginInitOnce(&initOnce))
+        {
+            // Create the ImagingFactory
+            if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+            {
+                PhEndInitOnce(&initOnce);
+                __leave;
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        // Find the resource
+        if ((resourceHandleSource = FindResource(PluginInstance->DllBase, Name, L"PNG")) == NULL)
             __leave;
 
-        // Find the resource.
-        if ((resHandleSrc = FindResource((HINSTANCE)PluginInstance->DllBase, Name, L"PNG")) == NULL)
+        // Get the resource length
+        resourceLength = SizeofResource(PluginInstance->DllBase, resourceHandleSource);
+
+        // Load the resource
+        if ((resourceHandle = LoadResource(PluginInstance->DllBase, resourceHandleSource)) == NULL)
             __leave;
 
-        // Get the resource length.
-        resLength = SizeofResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc);
-
-        // Load the resource.
-        if ((resHandle = LoadResource((HINSTANCE)PluginInstance->DllBase, resHandleSrc)) == NULL)
+        if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
             __leave;
 
-        if ((resBuffer = (WICInProcPointer)LockResource(resHandle)) == NULL)
-            __leave;
-
-        // Create the Stream.
+        // Create the Stream
         if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
             __leave;
 
-        // Initialize the Stream from Memory.
-        if (FAILED(IWICStream_InitializeFromMemory(wicStream, resBuffer, resLength)))
+        // Initialize the Stream from Memory
+        if (FAILED(IWICStream_InitializeFromMemory(wicStream, resourceBuffer, resourceLength)))
             __leave;
 
-        // Create the PNG decoder.
-        if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng,  NULL, &wicDecoder)))
+        if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
             __leave;
 
-        // Initialize the HBITMAP decoder from memory.
         if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
             __leave;
 
-        // Get the Frame count.
+        // Get the Frame count
         if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
             __leave;
 
-        // Get the Frame.
+        // Get the Frame
         if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
             __leave;
 
-        // Get the WicFrame width and height.
-        if (FAILED(IWICBitmapFrameDecode_GetSize(wicFrame, &width, &height)) || width == 0 || height == 0)
-            __leave;
-
-        // Get the WicFrame image format.
+        // Get the WicFrame image format
         if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
             __leave;
 
         // Check if the image format is supported:
-        //if (!IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppPBGRA))
-        //{
-        // // Convert the image to the correct format:
-        // if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
-        // __leave;
-        // IWICBitmapFrameDecode_Release(wicFrame);
-        //}
-        //else
-        wicBitmapSource = (IWICBitmapSource*)wicFrame;
+        if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppPBGRA)) // GUID_WICPixelFormat32bppRGB
+        {
+            wicBitmapSource = (IWICBitmapSource*)wicFrame;
+        }
+        else
+        {
+            // Convert the image to the correct format:
+            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+                __leave;
+
+            IWICBitmapFrameDecode_Release(wicFrame);
+        }
 
         bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
+        bitmapInfo.bmiHeader.biWidth = rect.Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)rect.Height);
         bitmapInfo.bmiHeader.biPlanes = 1;
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        if ((bitmapHandle = CreateDIBSection(hdcScreen, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0)) != NULL)
-        {
-            WICRect rect = { 0, 0, Width, Height };
+        HDC hdc = CreateCompatibleDC(NULL);
+        bitmapHandle = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0);
+        ReleaseDC(NULL, hdc);
 
-            if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
-                __leave;
-            if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, Width, Height, WICBitmapInterpolationModeFant)))
-                __leave;
-            if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, Width * 4, Width * Height * 4, bitmapBuffer)))
-                __leave;
-        }
+        // Check if it's the same rect as the requested size.
+        //if (width != rect.Width || height != rect.Height)
+        if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
+            __leave;
+        if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
+            __leave;
+        if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, bitmapBuffer)))
+            __leave;
+
+        isSuccess = TRUE;
     }
     __finally
     {
-        ReleaseDC(NULL, hdcScreen);
-
         if (wicScaler)
         {
             IWICBitmapScaler_Release(wicScaler);
@@ -553,12 +707,12 @@ HBITMAP LoadImageFromResources(
 
         if (wicFactory)
         {
-            IWICImagingFactory_Release(wicFactory);
+           // IWICImagingFactory_Release(wicFactory);
         }
 
-        if (resHandle)
+        if (resourceHandle)
         {
-            FreeResource(resHandle);
+            FreeResource(resourceHandle);
         }
     }
 
@@ -575,7 +729,10 @@ BOOLEAN InsertButton(
 
     context->cxImgSize = 22;
     context->CommandID = CommandID;
-    context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
+    context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+    context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
+
+    context->ImageList = ImageList_Create(23, 20, ILC_COLOR32 | ILC_MASK, 2, 0);
     ImageList_SetImageCount(context->ImageList, 2);
 
     // Add the images to the imagelist
@@ -598,18 +755,27 @@ BOOLEAN InsertButton(
     {
         PhSetImageListBitmap(context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
     }
-            
-    // Initialize the window UxTheme data.
-    NcAreaInitializeUxTheme(context, hwndDlg);
+
+#ifdef _CUSTOM_THEME_
+    ImageList_SetBkColor(context->ImageList, GetSysColor(COLOR_WINDOW));
+    context->FocusedBorderPen = CreatePen(PS_SOLID, GetSystemMetrics(SM_CXBORDER), RGB(50, 150, 0xff));
+    context->NormalBorderPen = CreatePen(PS_SOLID, GetSystemMetrics(SM_CXBORDER), RGB(160, 160, 160));
+#else
+    ImageList_SetBkColor(context->ImageList, RGB(0xff, 0xff, 0xff));   
+#endif _CUSTOM_THEME_
 
     // Set Searchbox control font
-    context->FontHandle = InitializeFont(hwndDlg);
+    InitializeFont(hwndDlg);
 
     // Set our window context data.
     SetProp(hwndDlg, L"Context", (HANDLE)context);
 
     // Subclass the Edit control window procedure.
     SetWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0, (DWORD_PTR)context);
+
+#ifdef _UXTHEME_ENABLED_
+    SendMessage(hwndDlg, WM_THEMECHANGED, 0, 0);
+#endif _UXTHEME_ENABLED_
 
     // Force the edit control to update its non-client area.
     RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);

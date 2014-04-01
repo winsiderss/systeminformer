@@ -39,16 +39,17 @@ static TBBUTTON ButtonArray[9] =
 static VOID RebarAddMenuItem(
     _In_ HWND WindowHandle,
     _In_ HWND HwndHandle,
-    _In_ UINT BandID,
     _In_ UINT cyMinChild,
     _In_ UINT cxMinChild
     )
 {
+    static UINT bandID = 0;
+
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
     rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_FIXEDSIZE;
 
-    rebarBandInfo.wID = BandID;
+    rebarBandInfo.wID = bandID++;
     rebarBandInfo.hwndChild = HwndHandle;
     rebarBandInfo.cyMinChild = cyMinChild;
     rebarBandInfo.cxMinChild = cxMinChild;
@@ -167,10 +168,10 @@ static VOID RebarLoadSettings(
             WS_EX_TOOLWINDOW,
             REBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_FIXEDORDER | RBS_VARHEIGHT, // | RBS_DBLCLKTOGGLE 
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, //RBS_FIXEDORDER | RBS_DBLCLKTOGGLE 
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
-            (HMENU)IDC_MENU_REBAR,
+            NULL,
             (HINSTANCE)PluginInstance->DllBase,
             NULL
             );
@@ -180,10 +181,10 @@ static VOID RebarLoadSettings(
             0,
             TOOLBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS,
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             ReBarHandle,
-            (HMENU)IDC_MENU_REBAR_TOOLBAR,
+            NULL,
             (HINSTANCE)PluginInstance->DllBase,
             NULL
             );
@@ -199,42 +200,49 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
-
         // Enable theming:
         //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
         //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
-        // Inset the toolbar into the rebar control
-        RebarAddMenuItem(ReBarHandle, ToolBarHandle, IDC_MENU_REBAR_TOOLBAR, 23, 0); // Toolbar width 400
+        // HACK: Query the toolbar width/height.
+        ULONG_PTR toolbarButtonSize = SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+        
+        // Inset the toolbar into the rebar control.
+        RebarAddMenuItem(
+            ReBarHandle, 
+            ToolBarHandle, 
+            HIWORD(toolbarButtonSize), 
+            LOWORD(toolbarButtonSize)
+            );
 
         if (EnableSearchBox && !TextboxHandle)
-        {
+        {    
+            ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
+            ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
+            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
+
             // Create the SearchBox window.
             TextboxHandle = CreateWindowEx(
                 WS_EX_CLIENTEDGE,
                 WC_EDIT,
                 NULL,
-                WS_CHILD | WS_VISIBLE | ES_LEFT,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT,
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 ReBarHandle,
-                (HMENU)IDC_MENU_REBAR_SEARCH,
+                NULL,
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
 
             // Insert a paint region into the edit control NC window area
-            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);
+            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);            
             // Reset the client area margins.
-            SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(0, 0));
+            SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
             // Set initial text
-            SendMessage(TextboxHandle, EM_SETCUEBANNER, 0, (LPARAM)L"Search Processes (Ctrl+K)");
+            Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");       
 
             // Insert the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, IDC_MENU_REBAR_SEARCH, 20, 180);
-
-            ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
-            ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
-            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
+            RebarAddMenuItem(ReBarHandle, TextboxHandle, 20, 180);
         }
     }
 
@@ -254,7 +262,7 @@ static VOID RebarLoadSettings(
             NULL
             );
     }
-
+  
     // Hide or show controls (Note: don't unload or remove at runtime).
     if (EnableToolBar)
     {
@@ -316,7 +324,8 @@ VOID LoadToolbarSettings(
             button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
 
             // Get settings for first button
-            SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button);
+            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
+                break;
 
             // Skip separator buttons
             if (button.fsStyle == BTNS_SEP)
@@ -349,10 +358,10 @@ VOID LoadToolbarSettings(
 
             switch (DisplayStyle)
             {
-            case ImageOnly:
+            case ToolbarDisplayImageOnly:
                 button.fsStyle = BTNS_AUTOSIZE;
                 break;
-            case SelectiveText:
+            case ToolbarDisplaySelectiveText:
                 {
                     switch (button.idCommand)
                     {
@@ -360,7 +369,7 @@ VOID LoadToolbarSettings(
                     case PHAPP_ID_HACKER_OPTIONS:
                     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
                     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-                        button.fsStyle = BTNS_SHOWTEXT;
+                        button.fsStyle = BTNS_AUTOSIZE | BTNS_SHOWTEXT;
                         break;
                     default:
                         button.fsStyle = BTNS_AUTOSIZE;
@@ -369,7 +378,7 @@ VOID LoadToolbarSettings(
                 }
                 break;
             default:
-                button.fsStyle = BTNS_SHOWTEXT;
+                button.fsStyle = BTNS_AUTOSIZE | BTNS_SHOWTEXT;
                 break;
             }
 
