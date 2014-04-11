@@ -603,7 +603,7 @@ static NTSTATUS UploadFileThreadStart(
                         if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Buffer, &bufferLength))
                         {
                             // Format the retrieved URL...
-                            context->LaunchCommand = PhFormatString(L"%s", buffer->Buffer);
+                            context->LaunchCommand = PhDuplicateString(buffer);
                         }
 
                         PhDereferenceObject(buffer);
