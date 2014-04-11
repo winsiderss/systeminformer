@@ -1,9 +1,9 @@
 /*
  * Process Hacker Online Checks -
- *   uploader
+ *   Uploader Window
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2012-2014 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -29,56 +29,6 @@ static SERVICE_INFO UploadServiceInfo[] =
     { UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTP_PORT, 0, L"/processupload.php", L"scanfile" },
     { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
-
-static PPH_STRING PhGetWinHttpMessage(
-    _In_ ULONG Result
-    )
-{
-    return PhGetMessage(GetModuleHandle(L"winhttp.dll"), 0xb, GetUserDefaultLangID(), Result);
-}
-
-static NTSTATUS PhUploadToDialogThreadStart(
-    _In_ PVOID Parameter
-    )
-{
-    BOOL result;
-    MSG message;
-    HWND dialogHandle;
-    PH_AUTO_POOL autoPool;
-    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
-
-    PhInitializeAutoPool(&autoPool);
-
-    dialogHandle = CreateDialogParam(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_PROGRESS),
-        PhMainWndHandle,
-        UploadDlgProc,
-        (LPARAM)Parameter
-        );
-
-    ShowWindow(dialogHandle, SW_SHOW);
-    SetForegroundWindow(dialogHandle);
-
-    while (result = GetMessage(&message, NULL, 0, 0))
-    {
-        if (result == -1)
-            break;
-
-        if (!IsDialogMessage(dialogHandle, &message))
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-
-        PhDrainAutoPool(&autoPool);
-    }
-
-    PhDeleteAutoPool(&autoPool);
-    DestroyWindow(dialogHandle);
-    PhFree(context);
-    return STATUS_SUCCESS;
-}
 
 static HFONT InitializeFont(
     _In_ HWND hwndDlg
@@ -165,15 +115,14 @@ static VOID RaiseUploadError(
     _In_ ULONG ErrorCode
     )
 {
-    PhSwapReference(&Context->ErrorMessage, NULL);
-    PhSwapReference(&Context->ErrorStatusMessage, NULL);
-
-    Context->ErrorMessage = PhFormatString(L"Error: [%u] %s", ErrorCode, Error);
-    Context->ErrorStatusMessage = PhGetWinHttpMessage(ErrorCode);
-
     if (Context->DialogHandle)
     {
-        PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
+        PostMessage(
+            Context->DialogHandle,
+            UM_ERROR,
+            0,
+            (LPARAM)PhFormatString(L"Error: [%u] %s", ErrorCode, Error)
+            );
     }
 }
 
@@ -376,7 +325,13 @@ static NTSTATUS HashFileAndResetPosition(
         }
 
         positionInfo.CurrentByteOffset.QuadPart = 0;
-        status = NtSetInformationFile(FileHandle, &iosb, &positionInfo, sizeof(FILE_POSITION_INFORMATION), FilePositionInformation);
+        status = NtSetInformationFile(
+            FileHandle, 
+            &iosb, 
+            &positionInfo, 
+            sizeof(FILE_POSITION_INFORMATION), 
+            FilePositionInformation
+            );
     }
 
     return status;
@@ -386,30 +341,33 @@ static NTSTATUS UploadFileThreadStart(
     _In_ PVOID Parameter
     )
 {
-    time_t timeStart = 0;
-    time_t timeTransferred = 0;
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG httpStatus = 0;
+    ULONG httpStatusLength = sizeof(ULONG);
     ULONG httpPostSeed = 0;
     ULONG totalUploadLength = 0;
     ULONG totalUploadedLength = 0;
     ULONG totalPostHeaderWritten = 0;
     ULONG totalPostFooterWritten = 0;
-    ULONG totalWriteLength = 0;
-    BYTE buffer[PAGE_SIZE];
-
+    ULONG totalWriteLength = 0;  
+    LARGE_INTEGER timeNow;
+    LARGE_INTEGER timeStart;
+    ULONG64 timeTicks = 0;
+    ULONG64 timeBitsPerSecond = 0;
+   
+    HANDLE fileHandle;
     IO_STATUS_BLOCK isb;
-    NTSTATUS status = STATUS_SUCCESS;
     PSERVICE_INFO serviceInfo = NULL;
-               
-    ULONG httpStatus = 0;
-    ULONG httpStatusLength = sizeof(ULONG);
     HINTERNET connectHandle = NULL;
     HINTERNET requestHandle = NULL;
-    PPH_STRING postBoundary = NULL;   
+
+    PPH_STRING postBoundary = NULL;
     PPH_ANSI_STRING ansiPostData = NULL;
     PPH_ANSI_STRING ansiFooterData = NULL;
     PH_STRING_BUILDER httpRequestHeaders = { 0 };
     PH_STRING_BUILDER httpPostHeader = { 0 };
     PH_STRING_BUILDER httpPostFooter = { 0 };
+    BYTE buffer[PAGE_SIZE];
 
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
@@ -417,6 +375,23 @@ static NTSTATUS UploadFileThreadStart(
 
     __try
     {
+        // Open the file and check its size.
+        status = PhCreateFileWin32(
+            &fileHandle,
+            context->FileName->Buffer,
+            FILE_GENERIC_READ,
+            0,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
+            __leave;
+        }
+
         // Connect to the online service.
         if (!(connectHandle = WinHttpConnect(
             context->HttpHandle,
@@ -512,8 +487,7 @@ static NTSTATUS UploadFileThreadStart(
         ansiFooterData = PhCreateAnsiStringFromUnicode(httpPostFooter.String->Buffer);
 
         // Start the clock.
-        timeStart = time(NULL);
-        timeTransferred = timeStart;
+        PhQuerySystemTime(&timeStart);
 
         // Write the header
         if (!WinHttpWriteData(
@@ -531,12 +505,12 @@ static NTSTATUS UploadFileThreadStart(
         while (TRUE)
         {
             status = NtReadFile(
-                context->FileHandle,
+                fileHandle,
                 NULL,
                 NULL,
                 NULL,
                 &isb,
-                &buffer,
+                buffer,
                 PAGE_SIZE,
                 NULL,
                 NULL
@@ -545,28 +519,24 @@ static NTSTATUS UploadFileThreadStart(
             if (!NT_SUCCESS(status))
                 break;
 
-            // Check bytes read.
-            if (isb.Information == 0)
-                break;
-
             if (!WinHttpWriteData(requestHandle, buffer, (ULONG)isb.Information, &totalWriteLength))
             {
                 RaiseUploadError(context, L"Unable to upload the file data", GetLastError());
                 __leave;
             }
 
-            // Zero our uploaded file buffer.
-            memset(buffer, 0, PAGE_SIZE);
-
             totalUploadedLength += totalWriteLength;
-            {
-                time_t time_taken = (time(NULL) - timeTransferred);
-                time_t bps = totalUploadedLength / __max(time_taken, 1);
-                //time_t remain = (MulDiv((INT)time_taken, totalFileLength, totalFileReadLength) - time_taken);
 
+            PhQuerySystemTime(&timeNow);
+
+            timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+            timeBitsPerSecond = totalUploadedLength / __max(timeTicks, 1);
+
+            {
+                FLOAT percent = ((FLOAT)totalUploadedLength / context->TotalFileLength * 100);
                 PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, -1);
                 PPH_STRING totalDownloadedLength = PhFormatSize(totalUploadedLength, -1);
-                PPH_STRING totalSpeed = PhFormatSize(bps, -1);
+                PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);
 
                 PPH_STRING dlLengthString = PhFormatString(
                     L"%s of %s @ %s/s",
@@ -583,7 +553,7 @@ static NTSTATUS UploadFileThreadStart(
                 PhDereferenceObject(totalDownloadedLength);
 
                 // Update the progress bar position
-                PostMessage(context->ProgressHandle, PBM_SETPOS, MulDiv(100, totalUploadedLength, context->TotalFileLength), 0);
+                PostMessage(context->ProgressHandle, PBM_SETPOS, (INT)percent, 0);
             }
         }
 
@@ -743,10 +713,6 @@ static NTSTATUS UploadFileThreadStart(
     }
     __finally
     {
-        //assert(ansiFooterData->Length == totalPostFooterWritten); 
-        //assert(ansiPostData->Length == totalPostHeaderWritten);
-        //assert(totalUploadedLength == context->TotalFileLength);
-
         if (postBoundary)
         {
             PhDereferenceObject(postBoundary);
@@ -754,12 +720,12 @@ static NTSTATUS UploadFileThreadStart(
 
         if (ansiFooterData)
         {
-            PhReferenceObject(ansiFooterData);
+            PhDereferenceObject(ansiFooterData);
         }
 
         if (ansiPostData)
         {
-            PhReferenceObject(ansiPostData);
+            PhDereferenceObject(ansiPostData);
         }        
         
         if (httpPostFooter.String)
@@ -794,6 +760,7 @@ static NTSTATUS UploadCheckThreadStart(
     PSERVICE_INFO serviceInfo = NULL;           
     PPH_STRING hashString = NULL;     
     PPH_STRING subObjectName = NULL;
+    HANDLE fileHandle;
 
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
@@ -803,7 +770,7 @@ static NTSTATUS UploadCheckThreadStart(
     {
         // Open the file and check its size.
         status = PhCreateFileWin32(
-            &context->FileHandle,
+            &fileHandle,
             context->FileName->Buffer,
             FILE_GENERIC_READ,
             0,
@@ -812,24 +779,21 @@ static NTSTATUS UploadCheckThreadStart(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
 
-        if (NT_SUCCESS(status))
-        {
-            if (NT_SUCCESS(status = PhGetFileSize(context->FileHandle, &fileSize64)))
-            {
-                if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
-                {
-                    RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
-                    __leave;
-                }
-
-                context->TotalFileLength = fileSize64.LowPart;
-            }
-        }
-
         if (!NT_SUCCESS(status))
         {
             RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
             __leave;
+        }
+
+        if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
+        {
+            if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
+            {
+                RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
+                __leave;
+            }
+
+            context->TotalFileLength = fileSize64.LowPart;
         }
 
         // Get proxy configuration and create winhttp handle (used for all winhttp sessions + requests).
@@ -840,7 +804,7 @@ static NTSTATUS UploadCheckThreadStart(
 
             // Create a user agent string.
             phVersion = PhGetPhVersion();
-            userAgent = PhConcatStrings2(L"Process Hacker ", phVersion->Buffer);
+            userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
 
             // Query the current system proxy
             WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
@@ -870,7 +834,7 @@ static NTSTATUS UploadCheckThreadStart(
                 ULONG bufferLength = 0;
                 UCHAR hash[32];
 
-                status = HashFileAndResetPosition(context->FileHandle, &fileSize64, HASH_SHA256, hash);
+                status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA256, hash);
                 if (!NT_SUCCESS(status))
                 {
                     RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
@@ -918,7 +882,7 @@ static NTSTATUS UploadCheckThreadStart(
                 ULONG bufferLength = 0;
                 UCHAR hash[20];
 
-                status = HashFileAndResetPosition(context->FileHandle, &fileSize64, HASH_SHA1, hash);
+                status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA1, hash);
                 if (!NT_SUCCESS(status))
                 {
                     RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
@@ -956,7 +920,7 @@ static NTSTATUS UploadCheckThreadStart(
                 ULONG status = 0;
                 ULONG statusLength = sizeof(statusLength);
 
-                status = HashFileAndResetPosition(context->FileHandle, &fileSize64, HASH_SHA256, hash);
+                status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA256, hash);
                 if (!NT_SUCCESS(status))
                 {
                     RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
@@ -1044,15 +1008,8 @@ static NTSTATUS UploadCheckThreadStart(
     }
     __finally
     {
-        if (hashString)
-        {
-            PhDereferenceObject(hashString);
-        }
-
-        if (subObjectName)
-        {
-            PhDereferenceObject(subObjectName);
-        }
+        PhSwapReference2(&hashString, NULL);
+        PhSwapReference2(&subObjectName, NULL);
 
         if (requestHandle)
         {
@@ -1063,12 +1020,15 @@ static NTSTATUS UploadCheckThreadStart(
         {
             WinHttpCloseHandle(connectHandle);
         }
+
+        if (fileHandle)
+            NtClose(fileHandle);
     }
 
     return status;
 }
 
-INT_PTR CALLBACK UploadDlgProc(
+static INT_PTR CALLBACK UploadDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1088,14 +1048,11 @@ INT_PTR CALLBACK UploadDlgProc(
 
         if (uMsg == WM_NCDESTROY)
         {
-            if (context->FileName)
-                PhDereferenceObject(context->FileName);
-
-            if (context->BaseFileName)
-                PhDereferenceObject(context->BaseFileName);
-
-            if (context->WindowFileName)
-                PhDereferenceObject(context->WindowFileName);
+            PhSwapReference2(&context->FileName, NULL);
+            PhSwapReference2(&context->BaseFileName, NULL);
+            PhSwapReference2(&context->WindowFileName, NULL);
+            PhSwapReference2(&context->LaunchCommand, NULL);
+            PhSwapReference2(&context->ObjectName, NULL);
 
             if (context->MessageFont)
                 DeleteObject(context->MessageFont);
@@ -1103,16 +1060,8 @@ INT_PTR CALLBACK UploadDlgProc(
             if (context->HttpHandle)
                 WinHttpCloseHandle(context->HttpHandle);
 
-            if (context->ObjectName)
-                PhDereferenceObject(context->ObjectName);
-
-            if (context->FileHandle)
-                NtClose(context->FileHandle);
-
-            if (context->LaunchCommand)
-                PhDereferenceObject(context->LaunchCommand);
-
             RemoveProp(hwndDlg, L"Context");
+            PhFree(context);
         }
     }
 
@@ -1133,7 +1082,9 @@ INT_PTR CALLBACK UploadDlgProc(
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS1);
             context->MessageHandle = GetDlgItem(hwndDlg, IDC_MESSAGE);
             context->MessageFont = InitializeFont(context->MessageHandle);
-                                   
+            context->WindowFileName = PhFormatString(L"Uploading: %s", context->BaseFileName->Buffer);
+            context->UploadServiceState = PhUploadServiceChecking;
+
             // Reset the window status...
             Static_SetText(context->MessageHandle, context->WindowFileName->Buffer);
 
@@ -1149,8 +1100,6 @@ INT_PTR CALLBACK UploadDlgProc(
                 Static_SetText(hwndDlg, L"Uploading to Comodo...");
                 break;
             }
-
-            context->UploadServiceState = PhUploadServiceChecking;
 
             if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UploadCheckThreadStart, (PVOID)context))
                 NtClose(dialogThread);
@@ -1251,30 +1200,70 @@ INT_PTR CALLBACK UploadDlgProc(
         break;
     case UM_ERROR:
         {
+            PPH_STRING errorMessage = (PPH_STRING)lParam;
+
             context->UploadServiceState = PhUploadServiceMaximum;
 
-            Static_SetText(GetDlgItem(hwndDlg, IDNO), L"Close");
-
-            if (context->ErrorMessage)
+            if (errorMessage)
             {
-                Static_SetText(context->MessageHandle, context->ErrorMessage->Buffer);
-                PhDereferenceObject(context->ErrorMessage);
-            }
-
-            if (context->ErrorStatusMessage)
-            {
-                Static_SetText(context->StatusHandle, context->ErrorStatusMessage->Buffer);
-                PhDereferenceObject(context->ErrorStatusMessage);
+                Static_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), errorMessage->Buffer);
+                PhSwapReference2(&errorMessage, NULL);
             }
             else
             {
-                Static_SetText(context->StatusHandle, L"");
-            }
+                Static_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), L"Error");
+            }  
+            
+            Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS), L"");
+            Static_SetText(GetDlgItem(hwndDlg, IDNO), L"Close");
         }
         break;
     }
 
     return FALSE;
+}
+
+static NTSTATUS PhUploadToDialogThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    BOOL result;
+    MSG message;
+    HWND dialogHandle;
+    PH_AUTO_POOL autoPool;
+    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
+
+    PhInitializeAutoPool(&autoPool);
+
+    dialogHandle = CreateDialogParam(
+        (HINSTANCE)PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_PROGRESS),
+        PhMainWndHandle,
+        UploadDlgProc,
+        (LPARAM)Parameter
+        );
+
+    ShowWindow(dialogHandle, SW_SHOW);
+    SetForegroundWindow(dialogHandle);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(dialogHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    DestroyWindow(dialogHandle);
+    
+    return STATUS_SUCCESS;
 }
 
 VOID UploadToOnlineService(
@@ -1283,13 +1272,13 @@ VOID UploadToOnlineService(
     )
 {
     HANDLE dialogThread = NULL;
+
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)PhAllocate(sizeof(UPLOAD_CONTEXT));
     memset(context, 0, sizeof(UPLOAD_CONTEXT));
 
     context->Service = Service;
-    context->FileName = PhFormatString(L"%s", FileName->Buffer);
+    context->FileName = PhDuplicateString(FileName);
     context->BaseFileName = PhGetBaseName(context->FileName);
-    context->WindowFileName = PhFormatString(L"Uploading: %s", context->BaseFileName->Buffer);
 
     if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhUploadToDialogThreadStart, (PVOID)context))
         NtClose(dialogThread);

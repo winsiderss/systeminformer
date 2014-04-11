@@ -1,9 +1,9 @@
 /*
  * Process Hacker Online Checks -
- *   main program
+ *   Main Program
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2012-2014 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,103 +21,16 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
 #include "onlnchk.h"
-#include "resource.h"
-
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ModuleMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
 
 PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 
-LOGICAL DllMain(
-    _In_ HINSTANCE Instance,
-    _In_ ULONG Reason,
-    _Reserved_ PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.OnlineChecks", Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->DisplayName = L"Online Checks";
-            info->Author = L"dmex & wj32";
-            info->Description = L"Allows files to be checked with online services.";
-            info->HasOptions = FALSE;
-
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
-                ProcessMenuInitializingCallback,
-                NULL,
-                &ProcessMenuInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing),
-                ModuleMenuInitializingCallback,
-                NULL,
-                &ModuleMenuInitializingCallbackRegistration
-                );
-        }
-        break;
-    }
-
-    return TRUE;
-}
-
-VOID NTAPI LoadCallback(
+static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -125,7 +38,7 @@ VOID NTAPI LoadCallback(
     // Nothing
 }
 
-VOID NTAPI ShowOptionsCallback(
+static VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -133,7 +46,7 @@ VOID NTAPI ShowOptionsCallback(
     // Nothing
 }
 
-VOID NTAPI MenuItemCallback(
+static VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -158,7 +71,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
-PPH_EMENU_ITEM CreateSendToMenu(
+static PPH_EMENU_ITEM CreateSendToMenu(
     _In_ PPH_EMENU_ITEM Parent,
     _In_ PWSTR InsertAfter,
     _In_ PPH_STRING FileName
@@ -186,7 +99,7 @@ PPH_EMENU_ITEM CreateSendToMenu(
     return sendToMenu;
 }
 
-VOID NTAPI ProcessMenuInitializingCallback(
+static VOID NTAPI ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -210,7 +123,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
-VOID NTAPI ModuleMenuInitializingCallback(
+static VOID NTAPI ModuleMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -230,4 +143,64 @@ VOID NTAPI ModuleMenuInitializingCallback(
     {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
     }
+}
+
+LOGICAL DllMain(
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
+    )
+{
+    switch (Reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        {
+            PPH_PLUGIN_INFORMATION info;
+
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->DisplayName = L"Online Checks";
+            info->Author = L"dmex, wj32";
+            info->Description = L"Allows files to be checked with online services.";
+            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=1118";
+            info->HasOptions = FALSE;
+
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
+                ProcessMenuInitializingCallback,
+                NULL,
+                &ProcessMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing),
+                ModuleMenuInitializingCallback,
+                NULL,
+                &ModuleMenuInitializingCallbackRegistration
+                );
+        }
+        break;
+    }
+
+    return TRUE;
 }
