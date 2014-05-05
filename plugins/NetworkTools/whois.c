@@ -92,7 +92,6 @@ NTSTATUS NetworkWhoisThreadStart(
     HINTERNET connectionHandle = NULL;
     HINTERNET requestHandle = NULL;
     HINTERNET sessionHandle = NULL;
-    mxml_node_t* xmlNode = NULL;
     PNETWORK_OUTPUT_CONTEXT context = NULL;
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
@@ -200,12 +199,6 @@ NTSTATUS NetworkWhoisThreadStart(
 
         if (sessionHandle)
             WinHttpCloseHandle(sessionHandle);
-
-        if (xmlNode)
-            mxmlDelete(xmlNode);
-
-        if (xmlBuffer)
-            PhFree(xmlBuffer);
     }
 
     return STATUS_SUCCESS;
