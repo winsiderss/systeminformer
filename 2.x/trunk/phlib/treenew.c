@@ -2,7 +2,7 @@
  * Process Hacker -
  *   tree new (tree list control)
  *
- * Copyright (C) 2011-2012 wj32
+ * Copyright (C) 2011-2014 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -1318,6 +1318,7 @@ VOID PhTnpOnVScroll(
     case SB_PAGEDOWN:
         scrollInfo.nPos += scrollInfo.nPage;
         break;
+    case SB_THUMBPOSITION:
     case SB_THUMBTRACK:
         scrollInfo.nPos = scrollInfo.nTrackPos;
         break;
@@ -1368,6 +1369,7 @@ VOID PhTnpOnHScroll(
     case SB_PAGERIGHT:
         scrollInfo.nPos += scrollInfo.nPage;
         break;
+    case SB_THUMBPOSITION:
     case SB_THUMBTRACK:
         scrollInfo.nPos = scrollInfo.nTrackPos;
         break;
