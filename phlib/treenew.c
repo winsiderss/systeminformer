@@ -257,12 +257,12 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_VSCROLL:
         {
-            PhTnpOnVScroll(hwnd, context, LOWORD(wParam));
+            PhTnpOnVScroll(hwnd, context, LOWORD(wParam), HIWORD(wParam));
         }
         return 0;
     case WM_HSCROLL:
         {
-            PhTnpOnHScroll(hwnd, context, LOWORD(wParam));
+            PhTnpOnHScroll(hwnd, context, LOWORD(wParam), HIWORD(wParam));
         }
         return 0;
     case WM_NOTIFY:
@@ -1293,7 +1293,8 @@ VOID PhTnpOnContextMenu(
 VOID PhTnpOnVScroll(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ ULONG Request
+    _In_ ULONG Request,
+    _In_ USHORT Position
     )
 {
     SCROLLINFO scrollInfo;
@@ -1319,6 +1320,11 @@ VOID PhTnpOnVScroll(
         scrollInfo.nPos += scrollInfo.nPage;
         break;
     case SB_THUMBPOSITION:
+        // Touch scrolling seems to give us Position but not nTrackPos. The problem is that
+        // Position is a 16-bit value, so don't use it if we have too many rows.
+        if (Context->FlatList->Count <= 0xffff)
+            scrollInfo.nPos = Position;
+        break;
     case SB_THUMBTRACK:
         scrollInfo.nPos = scrollInfo.nTrackPos;
         break;
@@ -1344,7 +1350,8 @@ VOID PhTnpOnVScroll(
 VOID PhTnpOnHScroll(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ ULONG Request
+    _In_ ULONG Request,
+    _In_ USHORT Position
     )
 {
     SCROLLINFO scrollInfo;
@@ -1370,6 +1377,11 @@ VOID PhTnpOnHScroll(
         scrollInfo.nPos += scrollInfo.nPage;
         break;
     case SB_THUMBPOSITION:
+        // Touch scrolling seems to give us Position but not nTrackPos. The problem is that
+        // Position is a 16-bit value, so don't use it if we have too many rows.
+        if (Context->FlatList->Count <= 0xffff)
+            scrollInfo.nPos = Position;
+        break;
     case SB_THUMBTRACK:
         scrollInfo.nPos = scrollInfo.nTrackPos;
         break;

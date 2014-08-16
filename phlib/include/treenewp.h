@@ -320,13 +320,15 @@ VOID PhTnpOnContextMenu(
 VOID PhTnpOnVScroll(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ ULONG Request
+    _In_ ULONG Request,
+    _In_ USHORT Position
     );
 
 VOID PhTnpOnHScroll(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ ULONG Request
+    _In_ ULONG Request,
+    _In_ USHORT Position
     );
 
 BOOLEAN PhTnpOnNotify(
