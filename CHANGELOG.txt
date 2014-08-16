@@ -3,6 +3,7 @@ Process Hacker
 2.34
  * NEW/IMPROVED:
  * FIXED:
+   * Fixed touch scrolling
 
 2.33
  * NEW/IMPROVED:
