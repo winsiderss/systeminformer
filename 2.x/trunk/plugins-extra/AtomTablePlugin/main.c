@@ -1,7 +1,7 @@
 /*
  * NT Atom Table Plugin
  *
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -27,9 +27,9 @@
 
 #define ATOM_TABLE_MENUITEM 1000
 #define SETTING_PREFIX L"dmex.AtomTablePlugin"
-#define SETTING_NAME_TREE_LIST_COLUMNS (SETTING_PREFIX L".TreeListColumns")
 #define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
 #define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
+#define SETTING_NAME_LISTVIEW_COLUMNS (SETTING_PREFIX L".ListViewColumns")
 
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
@@ -88,16 +88,14 @@ LOGICAL DllMain(
                 &PluginMenuItemCallbackRegistration
                 );
 
+            PH_SETTING_CREATE settings [] =
             {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
-                    { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
-                    { StringSettingType, SETTING_NAME_TREE_LIST_COLUMNS, L"" }
-                };
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
+                { StringSettingType, SETTING_NAME_LISTVIEW_COLUMNS, L"" }
+            };
 
-                PhAddSettings(settings, _countof(settings));
-            }
+            PhAddSettings(settings, _countof(settings));
         }
         break;
     }
@@ -110,7 +108,7 @@ static VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ATOM_TABLE_MENUITEM, L"Atom Table", NULL);
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ATOM_TABLE_MENUITEM, L"Global Atom Table", NULL);
 }
 
 static VOID NTAPI MenuItemCallback(
@@ -144,6 +142,8 @@ static NTSTATUS PhEnumAtomTable(
     ULONG bufferSize = 0x1000;
 
     buffer = PhAllocate(bufferSize);
+    memset(buffer, 0, bufferSize);
+
     status = NtQueryInformationAtom(
         RTL_ATOM_INVALID_ATOM,
         AtomTableInformation,
@@ -173,6 +173,8 @@ static NTSTATUS PhQueryAtomTableEntry(
     ULONG bufferSize = 0x1000;
 
     buffer = PhAllocate(bufferSize);
+    memset(buffer, 0, bufferSize);
+
     status = NtQueryInformationAtom(
         Atom,
         AtomBasicInformation,
@@ -192,11 +194,11 @@ static NTSTATUS PhQueryAtomTableEntry(
     return status;
 }
 
-static VOID LoadAtomTable(
-    VOID
-    )
+static VOID LoadAtomTable(VOID)
 {
     PATOM_TABLE_INFORMATION atomTable = NULL;
+
+    ListView_DeleteAllItems(ListViewWndHandle);
 
     if (!NT_SUCCESS(PhEnumAtomTable(&atomTable)))
         return;
@@ -260,7 +262,7 @@ static PPH_STRING PhGetSelectedListViewItemText(
 
     if (index != -1)
     {
-        WCHAR textBuffer[MAX_PATH + 1];
+        WCHAR textBuffer[MAX_PATH] = L"";
 
         LVITEM item;
         item.mask = LVIF_TEXT;
@@ -330,20 +332,19 @@ static VOID ShowStatusMenu(
                         FALSE
                         ))
                     {
-                        ULONG i = 0;
                         PATOM_TABLE_INFORMATION atomTable = NULL;
 
                         if (!NT_SUCCESS(PhEnumAtomTable(&atomTable)))
                             return;
 
-                        for (i = 0; i < atomTable->NumberOfAtoms; i++)
+                        for (ULONG i = 0; i < atomTable->NumberOfAtoms; i++)
                         {
                             PATOM_BASIC_INFORMATION atomInfo = NULL;
 
                             if (!NT_SUCCESS(PhQueryAtomTableEntry(atomTable->Atoms[i], &atomInfo)))
                                 continue;
-
-                            if (_wcsicmp(atomInfo->Name, cacheEntryName->Buffer))
+                            
+                            if (!PhEqualStringZ(atomInfo->Name, cacheEntryName->Buffer, TRUE))
                                 continue;
 
                             do
@@ -396,6 +397,7 @@ INT_PTR CALLBACK MainWindowDlgProc(
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             PhRegisterDialog(hwndDlg);
@@ -406,7 +408,7 @@ INT_PTR CALLBACK MainWindowDlgProc(
             PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 370, L"Atom Name");
             PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 70, L"Ref Count");
             PhSetExtendedListView(ListViewWndHandle);
-            PhLoadListViewColumnsFromSetting(SETTING_NAME_TREE_LIST_COLUMNS, ListViewWndHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_LISTVIEW_COLUMNS, ListViewWndHandle);
 
             LoadAtomTable();
         }
@@ -416,7 +418,7 @@ INT_PTR CALLBACK MainWindowDlgProc(
         break;
     case WM_DESTROY:
         PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
-        PhSaveListViewColumnsToSetting(SETTING_NAME_TREE_LIST_COLUMNS, ListViewWndHandle);
+        PhSaveListViewColumnsToSetting(SETTING_NAME_LISTVIEW_COLUMNS, ListViewWndHandle);
         PhDeleteLayoutManager(&LayoutManager);
         PhUnregisterDialog(hwndDlg);
         break;
@@ -427,6 +429,9 @@ INT_PTR CALLBACK MainWindowDlgProc(
             case IDCANCEL:
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
+                break;
+            case IDRETRY:
+                LoadAtomTable();
                 break;
             }
         }
