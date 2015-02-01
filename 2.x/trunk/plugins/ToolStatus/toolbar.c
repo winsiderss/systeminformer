@@ -191,7 +191,6 @@ static VOID RebarLoadSettings(
 
         // Set the toolbar info with no imagelist.
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
-
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
@@ -200,12 +199,13 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
+
         // Enable theming:
         //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
         //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
         // HACK: Query the toolbar width/height.
-        ULONG_PTR toolbarButtonSize = SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+        ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
         
         // Inset the toolbar into the rebar control.
         RebarAddMenuItem(
@@ -221,25 +221,10 @@ static VOID RebarLoadSettings(
             ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
             NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-            // Create the SearchBox window.
-            TextboxHandle = CreateWindowEx(
-                WS_EX_CLIENTEDGE,
-                WC_EDIT,
-                NULL,
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT,
-                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                ReBarHandle,
-                NULL,
-                (HINSTANCE)PluginInstance->DllBase,
-                NULL
-                );
-
-            SearchboxText = PhReferenceEmptyString();
-
             // Insert a paint region into the edit control NC window area
-            InsertButton(TextboxHandle, ID_SEARCH_CLEAR);            
+            TextboxHandle = CreateSearchControl(ID_SEARCH_CLEAR);
    
-            // Set  font
+            // Set font
             SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
             // Reset the client area margins.
             SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));

@@ -26,7 +26,6 @@
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
-BOOLEAN EnableWicImaging = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
 HWND ReBarHandle = NULL;
 HWND ToolBarHandle = NULL;
@@ -387,7 +386,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         DrawWindowBorderForTargeting(TargetingCurrentWindow);
                     }
 
-                    if (PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows"))
+                    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS))
                     {
                         // This is an undocumented function exported by user32.dll that
                         // retrieves the hung window represented by a ghost window.
@@ -529,13 +528,12 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar");
-    EnableSearchBox = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearchBox");
-    EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar");
-    EnableWicImaging = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableWicImaging");
+    EnableToolBar = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR);
+    EnableSearchBox = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX);
+    EnableStatusBar = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR);
 
-    StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
-    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle");
+    StatusMask = PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK);
+    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE);
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -564,16 +562,15 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableToolBar", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableSearchBox", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableStatusBar", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableWicImaging", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.ResolveGhostWindows", L"1" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" },
-                { IntegerSettingType, L"ProcessHacker.ToolStatus.ToolbarDisplayStyle", L"1" }
+                { IntegerSettingType, SETTING_NAME_ENABLE_TOOLBAR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_SEARCHBOX, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_STATUSBAR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE, L"1" }
             };
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.ToolStatus", Instance, &info);
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;

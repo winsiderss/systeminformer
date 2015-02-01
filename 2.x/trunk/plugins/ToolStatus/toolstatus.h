@@ -39,14 +39,22 @@
 #include "resource.h"
 
 // Enable Searchbox HotTracking
-#define _HOTTRACK_ENABLED_
+//#define _HOTTRACK_ENABLED_
 // Enable Searchbox UxTheme drawing
 //#define _UXTHEME_ENABLED_
 
-#define ID_SEARCH_CLEAR (WM_USER + 1)
-#define TIDC_FINDWINDOW (WM_USER + 2)
-#define TIDC_FINDWINDOWTHREAD (WM_USER + 3)
-#define TIDC_FINDWINDOWKILL (WM_USER + 4)
+#define SETTING_PREFIX L"ProcessHacker.ToolStatus"
+#define SETTING_NAME_ENABLE_TOOLBAR (SETTING_PREFIX L".EnableToolBar")
+#define SETTING_NAME_ENABLE_SEARCHBOX (SETTING_PREFIX L".EnableSearchBox")
+#define SETTING_NAME_ENABLE_STATUSBAR (SETTING_PREFIX L".EnableStatusBar")
+#define SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS (SETTING_PREFIX L".ResolveGhostWindows")
+#define SETTING_NAME_ENABLE_STATUSMASK (SETTING_PREFIX L".StatusMask")
+#define SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE (SETTING_PREFIX L".ToolbarDisplayStyle")
+
+#define ID_SEARCH_CLEAR (WM_APP + 1)
+#define TIDC_FINDWINDOW (WM_APP + 2)
+#define TIDC_FINDWINDOWTHREAD (WM_APP + 3)
+#define TIDC_FINDWINDOWKILL (WM_APP + 4)
 
 #define STATUS_COUNT 10
 #define STATUS_MINIMUM 0x1
@@ -118,8 +126,7 @@ BOOLEAN NetworkTreeFilterCallback(
     _In_opt_ PVOID Context
     );
 
-BOOLEAN InsertButton(
-    _In_ HWND WindowHandle,
+HWND CreateSearchControl(
     _In_ UINT CmdId
     );
 
@@ -128,22 +135,24 @@ typedef struct _EDIT_CONTEXT
     UINT CommandID;  
     INT CXBorder;
     INT CYBorder;
+    INT ImageWidth;
+    INT ImageHeight;
     LONG cxImgSize;
 
     HWND WindowHandle;
     HIMAGELIST ImageList;
+    RECT SearchButtonRect;
 
     HBRUSH BrushNormal;
     HBRUSH BrushFocused;
     HBRUSH BrushHot;
-    HBRUSH BrushBackground;
+    HBRUSH BrushFill;
     COLORREF BackgroundColorRef;
 
-#ifdef _HOTTRACK_ENABLED_
     BOOLEAN MouseInClient;
-#endif
+
 #ifdef _UXTHEME_ENABLED_
-    BOOL IsThemeActive;
+    BOOLEAN IsThemeActive;
     BOOL IsThemeBackgroundActive;
     HTHEME UxThemeHandle;
     HMODULE UxThemeModule;
