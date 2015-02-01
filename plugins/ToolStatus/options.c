@@ -39,16 +39,16 @@ INT_PTR CALLBACK OptionsDlgProc(
             ComboBox_AddString(comboHandle, L"Images only");
             ComboBox_AddString(comboHandle, L"Selective text");
             ComboBox_AddString(comboHandle, L"All text");
-            ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"));
+            ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE));
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR), 
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar") ? BST_CHECKED : BST_UNCHECKED);
+                PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_SEARCHBOX), 
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearchBox") ? BST_CHECKED : BST_UNCHECKED);
+                PhGetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR), 
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar") ? BST_CHECKED : BST_UNCHECKED);
+                PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows") ? BST_CHECKED : BST_UNCHECKED);
+                PhGetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_COMMAND:
@@ -60,15 +60,15 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle",
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE,
                         (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar",
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR,
                         (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableSearchBox",
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX,
                         (EnableSearchBox = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_SEARCHBOX)) == BST_CHECKED));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar",
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR,
                         (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED));
-                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows",
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 
                     LoadToolbarSettings();
