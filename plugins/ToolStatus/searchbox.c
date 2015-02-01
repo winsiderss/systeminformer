@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Subclassed Edit control
  *
- * Copyright (C) 2012-2013 dmex
+ * Copyright (C) 2012-2015 dmex
  *
  * This file is part of Process Hacker.
  *

@@ -1,3 +1,6 @@
+2.0
+ * Added Toolbar customization
+
 1.9
  * Added PNG images
  * Fixed search box fonts

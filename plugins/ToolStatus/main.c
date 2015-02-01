@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   main program
  *
- * Copyright (C) 2011-2013 dmex
+ * Copyright (C) 2011-2015 dmex
  * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
@@ -294,6 +294,49 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         }
                     }
                     break;
+                case TBN_INITCUSTOMIZE:
+                    return TBNRF_HIDEHELP;
+                case TBN_QUERYINSERT:
+                case TBN_QUERYDELETE:
+                    return TRUE;
+                case TBN_GETBUTTONINFO:
+                    {
+                        LPTBNOTIFY tbNotify = (LPTBNOTIFY)lParam;
+
+                        if (tbNotify->iItem < _countof(ToolbarButtons))
+                        {
+                            tbNotify->tbButton = ToolbarButtons[tbNotify->iItem];
+                            return TRUE;
+                        }
+                    }
+                    return FALSE;
+                case TBN_ENDADJUST:
+                    {
+                        // Save the customization settings.
+                        SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
+
+                        LoadToolbarSettings();
+
+                        InvalidateRect(ToolBarHandle, NULL, TRUE);
+                    }
+                    break;
+                case TBN_RESET:
+                    {
+                        // Remove all the user customizations.
+                        INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+                        while (buttonCount--)
+                            SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+
+                        // Re-add the original buttons.
+                        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ToolbarButtons), (LPARAM)ToolbarButtons);
+                        
+                        // Re-load the original button settings.
+                        LoadToolbarSettings();
+
+                        // Save the new settings as defaults.
+                        SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
+                    }
+                    return TBNRF_ENDCUSTOMIZE;
                 }
 
                 goto DefaultWndProc;

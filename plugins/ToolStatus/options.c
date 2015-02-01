@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   rebar code
  *
- * Copyright (C) 2011-2013 dmex
+ * Copyright (C) 2011-2015 dmex
  * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
@@ -57,6 +57,9 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDC_CUSTOMIZETOOLBAR:
+                PostMessage(ToolBarHandle, TB_CUSTOMIZE, 0, 0);
                 break;
             case IDOK:
                 {
