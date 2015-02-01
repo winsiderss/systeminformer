@@ -91,6 +91,9 @@ extern HWND StatusBarHandle;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
 
+extern TBBUTTON ToolbarButtons[9];
+extern TBSAVEPARAMSW ToolbarSaveParams;
+
 extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;

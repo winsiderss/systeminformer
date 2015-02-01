@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   main toolbar
  *
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2011-2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,18 +22,27 @@
 
 #include "toolstatus.h"
 
-static HIMAGELIST ToolBarImageList;
-static TBBUTTON ButtonArray[9] =
+static HIMAGELIST ToolBarImageList = NULL;
+
+TBBUTTON ToolbarButtons[] =
 {
-    { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-    { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-    { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-    { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
+    { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-    { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-    { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 },
-    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE, { 0 }, 0, 0 }
+    { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 }
+};
+
+// NOTE: This Registry key is never created or used unless the Toolbar is customized.
+TBSAVEPARAMSW ToolbarSaveParams =
+{
+    HKEY_CURRENT_USER,
+    L"Software\\ProcessHacker",
+    L"ToolbarSettings"
 };
 
 static VOID RebarAddMenuItem(
@@ -181,13 +190,22 @@ static VOID RebarLoadSettings(
             0,
             TOOLBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS,
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NODIVIDER | CCS_ADJUSTABLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             ReBarHandle,
             NULL,
             (HINSTANCE)PluginInstance->DllBase,
             NULL
             );
+
+        // Manually add button strings (Fixes some exceptions under x64 Windows)
+        ToolbarButtons[0].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Refresh");
+        ToolbarButtons[1].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Options");
+        ToolbarButtons[3].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Handles or DLLs");
+        ToolbarButtons[4].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"System Information");
+        ToolbarButtons[6].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window");
+        ToolbarButtons[7].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Thread");
+        ToolbarButtons[8].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Kill");
 
         // Set the toolbar info with no imagelist.
         SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
@@ -198,7 +216,9 @@ static VOID RebarLoadSettings(
         // Configure the toolbar imagelist.
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ButtonArray), (LPARAM)ButtonArray);
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ToolbarButtons), (LPARAM)ToolbarButtons);
+        // Restore the toolbar settings.
+        SendMessage(ToolBarHandle, TB_SAVERESTORE, FALSE, (LPARAM)&ToolbarSaveParams);
 
         // Enable theming:
         //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
@@ -208,12 +228,7 @@ static VOID RebarLoadSettings(
         ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
         
         // Inset the toolbar into the rebar control.
-        RebarAddMenuItem(
-            ReBarHandle, 
-            ToolBarHandle, 
-            HIWORD(toolbarButtonSize), 
-            LOWORD(toolbarButtonSize)
-            );
+        RebarAddMenuItem(ReBarHandle, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
 
         if (EnableSearchBox && !TextboxHandle)
         {    
@@ -311,7 +326,7 @@ VOID LoadToolbarSettings(
         for (index = 0; index < buttonCount; index++)
         {
             TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
+            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND;
 
             // Get settings for first button
             if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
@@ -320,31 +335,6 @@ VOID LoadToolbarSettings(
             // Skip separator buttons
             if (button.fsStyle == BTNS_SEP)
                 continue;
-
-            switch (button.idCommand)
-            {
-            case PHAPP_ID_VIEW_REFRESH:
-                button.pszText = L"Refresh";
-                break;
-            case PHAPP_ID_HACKER_OPTIONS:
-                button.pszText = L"Options";
-                break;
-            case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
-                button.pszText = L"Find Handles or DLLs";
-                break;
-            case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-                button.pszText = L"System Information";
-                break;
-            case TIDC_FINDWINDOW:
-                button.pszText = L"Find Window";
-                break;
-            case TIDC_FINDWINDOWTHREAD:
-                button.pszText = L"Find Window and Thread";
-                break;
-            case TIDC_FINDWINDOWKILL:
-                button.pszText = L"Find Window and Kill";
-                break;
-            }
 
             switch (DisplayStyle)
             {
