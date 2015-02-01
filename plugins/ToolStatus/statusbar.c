@@ -137,7 +137,7 @@ VOID ShowStatusMenu(
     }
 
     StatusMask ^= bit;
-    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask", StatusMask);
+    PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK, StatusMask);
 
     UpdateStatusBar();
 }
