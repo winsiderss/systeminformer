@@ -23,156 +23,6 @@
 
 #include "toolstatus.h"
 
-//NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-//metrics.lfMenuFont.lfHeight = 14;
-//metrics.lfMenuFont.lfWeight = FW_NORMAL;
-//metrics.lfMenuFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-
-#ifdef _UXTHEME_ENABLED_
-#include <uxtheme.h>
-#include <vsstyle.h>
-#include <vssym32.h>
-
-typedef HRESULT (WINAPI *_GetThemeColor)(
-    _In_ HTHEME hTheme,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
-    _In_ INT iPropId,
-    _Out_ COLORREF *pColor
-    );
-typedef HRESULT (WINAPI *_SetWindowTheme)(
-    _In_ HWND hwnd,
-    _In_ LPCWSTR pszSubAppName,
-    _In_ LPCWSTR pszSubIdList
-    );
-
-typedef HRESULT (WINAPI *_GetThemeFont)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
-    _In_ INT iPropId,
-    _Out_ LOGFONTW *pFont
-    );
-
-typedef HRESULT (WINAPI *_GetThemeSysFont)(
-    _In_ HTHEME hTheme,
-    _In_ INT iFontId,
-    _Out_ LOGFONTW *plf
-    );
-
-typedef BOOL (WINAPI *_IsThemeBackgroundPartiallyTransparent)(
-    _In_ HTHEME hTheme,
-    _In_ INT iPartId,
-    _In_ INT iStateId
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeParentBackground)(
-    _In_ HWND hwnd,
-    _In_ HDC hdc,
-    _In_opt_ const RECT* prc
-    );
-
-typedef HRESULT (WINAPI *_GetThemeBackgroundContentRect)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
-    _Inout_ LPCRECT pBoundingRect,
-    _Out_ LPRECT pContentRect
-    );
-
-static _IsThemeActive IsThemeActive_I;
-static _OpenThemeData OpenThemeData_I;
-static _SetWindowTheme SetWindowTheme_I;
-static _CloseThemeData CloseThemeData_I;
-static _IsThemePartDefined IsThemePartDefined_I;
-static _DrawThemeBackground DrawThemeBackground_I;
-static _DrawThemeParentBackground DrawThemeParentBackground_I;
-static _IsThemeBackgroundPartiallyTransparent IsThemeBackgroundPartiallyTransparent_I;
-static _GetThemeColor GetThemeColor_I;
-static _GetThemeInt GetThemeInt_I;
-
-static VOID NcAreaInitializeUxTheme(
-    _Inout_ PEDIT_CONTEXT Context
-    )
-{
-    if (!Context->UxThemeModule)
-        Context->UxThemeModule = LoadLibrary(L"uxtheme.dll");
-
-    if (Context->UxThemeModule)
-    {
-        IsThemeActive_I = (_IsThemeActive)GetProcAddress(Context->UxThemeModule, "IsThemeActive");
-        OpenThemeData_I = (_OpenThemeData)GetProcAddress(Context->UxThemeModule, "OpenThemeData");
-        SetWindowTheme_I = (_SetWindowTheme)GetProcAddress(Context->UxThemeModule, "SetWindowTheme");
-        CloseThemeData_I = (_CloseThemeData)GetProcAddress(Context->UxThemeModule, "CloseThemeData");
-        GetThemeColor_I = (_GetThemeColor)GetProcAddress(Context->UxThemeModule, "GetThemeColor");
-        GetThemeInt_I = (_GetThemeInt)GetProcAddress(Context->UxThemeModule, "GetThemeInt");
-        IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(Context->UxThemeModule, "IsThemePartDefined");
-        DrawThemeBackground_I = (_DrawThemeBackground)GetProcAddress(Context->UxThemeModule, "DrawThemeBackground");
-        DrawThemeParentBackground_I = (_DrawThemeParentBackground)GetProcAddress(Context->UxThemeModule, "DrawThemeParentBackground");
-        IsThemeBackgroundPartiallyTransparent_I = (_IsThemeBackgroundPartiallyTransparent)GetProcAddress(Context->UxThemeModule, "IsThemeBackgroundPartiallyTransparent");
-    }
-
-    if (IsThemeActive_I && OpenThemeData_I && CloseThemeData_I && IsThemePartDefined_I && DrawThemeBackground_I)
-    {
-        INT borderSize = 0;
-
-        if (Context->UxThemeHandle)
-            CloseThemeData_I(Context->UxThemeHandle);
-
-        Context->IsThemeActive = IsThemeActive_I();
-        Context->UxThemeHandle = OpenThemeData_I(Context->WindowHandle, VSCLASS_EDIT);
-
-        if (Context->UxThemeHandle)
-        {
-            Context->IsThemeBackgroundActive = IsThemePartDefined_I(
-                Context->UxThemeHandle,
-                EP_EDITBORDER_NOSCROLL,
-                0
-                );
-
-            // Get the border size from the theme
-            GetThemeInt_I(
-                Context->UxThemeHandle, 
-                EP_EDITBORDER_NOSCROLL, 
-                EPSN_NORMAL, 
-                TMT_BORDERSIZE, 
-                &borderSize
-                );
-
-            //GetThemeColor_I(
-            //    Context->UxThemeHandle,
-            //    EP_EDITBORDER_NOSCROLL,
-            //    EPSN_NORMAL,
-            //    TMT_FILLCOLOR,
-            //    &Context->BackgroundColorRef
-            //    );
-            //GetThemeColor_I(
-            //    Context->UxThemeHandle,
-            //    EP_EDITBORDER_NOSCROLL,
-            //    EPSN_NORMAL,
-            //    TMT_BORDERCOLOR,
-            //    &Context->clrUxThemeBackgroundRef
-            //    );
-
-            Context->CXBorder = borderSize * 2;
-            Context->CYBorder = borderSize * 2;
-        }
-        else
-        {
-            Context->IsThemeBackgroundActive = FALSE;
-        }
-    }
-    else
-    {
-        Context->UxThemeHandle = NULL;
-        Context->IsThemeActive = FALSE;
-        Context->IsThemeBackgroundActive = FALSE;
-    }
-}
-#endif _UXTHEME_ENABLED_
-
 static VOID NcAreaFreeGdiTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
@@ -257,7 +107,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ UINT_PTR uIdSubclass,
-    _In_ DWORD_PTR dwRefData
+    _In_ ULONG_PTR dwRefData
     )
 {
     PEDIT_CONTEXT context = (PEDIT_CONTEXT)GetProp(hwndDlg, L"EditSubclassContext");
@@ -272,14 +122,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         if (context->ImageList)
             ImageList_Destroy(context->ImageList);
 
-#ifdef _UXTHEME_ENABLED_
-        if (CloseThemeData_I && context->UxThemeHandle)
-            CloseThemeData_I(context->UxThemeHandle);
-
-        if (context->UxThemeModule)
-            FreeLibrary(context->UxThemeModule);
-#endif
-
         RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
         RemoveProp(hwndDlg, L"EditSubclassContext");
         PhFree(context);
@@ -291,31 +133,27 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_ERASEBKGND:
         return TRUE;
     case WM_SYSCOLORCHANGE:
-    case WM_STYLECHANGED:
     case WM_THEMECHANGED:
-        {    
-        NcAreaFreeGdiTheme(context);
-        NcAreaInitializeGdiTheme(context);
-
-#ifdef _UXTHEME_ENABLED_
-            NcAreaInitializeUxTheme(context);
-#endif _UXTHEME_ENABLED_
+        {
+            NcAreaFreeGdiTheme(context);
+            NcAreaInitializeGdiTheme(context);
         }
         break;
     case WM_NCCALCSIZE:
         {
-            if (wParam)
-            {
-                LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
+            LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
 
-                ncCalcSize->rgrc[0].right -= context->cxImgSize;
-            }            
+            DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+
+            ncCalcSize->rgrc[0].right -= context->cxImgSize;                
         }
-        break;
+        return 0;
     case WM_NCPAINT:
         {
             HDC hdc = NULL;
             RECT clientRect = { 0 };
+
+            DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 
             // Get the screen coordinates of the client window.
             GetClientRect(hwndDlg, &clientRect);
@@ -335,79 +173,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 break;
 
             SetBkMode(hdc, TRANSPARENT);
-
-            // Draw the themed background. 
-#ifdef _UXTHEME_ENABLED_
-            if (context->IsThemeActive)
-            {
-                if (isFocused)
-                {
-                    if (IsThemeBackgroundPartiallyTransparent_I(
-                        context->UxThemeHandle,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_FOCUSED
-                        ))
-                    {
-                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
-                    }
-
-                    DrawThemeBackground_I(
-                        context->UxThemeHandle,
-                        hdc,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_FOCUSED,
-                        &windowRect,
-                        NULL
-                        );
-                }
-#ifdef _HOTTRACK_ENABLED_
-                else if (context->MouseInClient)
-                {            
-                    if (IsThemeBackgroundPartiallyTransparent_I(
-                        context->UxThemeHandle,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_HOT
-                        ))
-                    {
-                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
-                    }
-
-                    DrawThemeBackground_I(
-                        context->UxThemeHandle,
-                        hdc,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_HOT,
-                        &windowRect,
-                        NULL
-                        );
-                }
-#endif _HOTTRACK_ENABLED_
-                else
-                {
-                    if (IsThemeBackgroundPartiallyTransparent_I(
-                        context->UxThemeHandle,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_NORMAL
-                        ))
-                    {
-                        DrawThemeParentBackground_I(hwndDlg, hdc, NULL);
-                    }
-
-                    DrawThemeBackground_I(
-                        context->UxThemeHandle,
-                        hdc,
-                        EP_EDITBORDER_NOSCROLL,
-                        EPSN_NORMAL,
-                        &windowRect,
-                        NULL
-                        );
-                }
-            }
-            else
-#endif _UXTHEME_ENABLED_
-            {
- 
-            }
 
             FillRect(hdc, &context->SearchButtonRect, context->BrushFill);
 
@@ -458,7 +223,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
             ReleaseDC(hwndDlg, hdc);
         }
-        break;
+        return 0;
     case WM_NCHITTEST:
         {
             POINT windowPoint = { 0 };
@@ -725,13 +490,13 @@ HWND CreateSearchControl(
     _In_ UINT CommandID
     )
 {
-    PEDIT_CONTEXT context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
+    PEDIT_CONTEXT context;
+
+    context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->cxImgSize = 22;
     context->CommandID = CommandID;
-
-    SearchboxText = PhReferenceEmptyString();
 
     NcAreaInitializeGdiTheme(context);
     NcAreaInitializeImageList(context);
@@ -743,11 +508,20 @@ HWND CreateSearchControl(
         NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        ReBarHandle,
+        RebarHandle,
         NULL,
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
+
+    // Set Searchbox font.
+    SendMessage(context->WindowHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), FALSE);
+
+    // Reset the client area margins.
+    SendMessage(context->WindowHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
+
+    // Set initial text
+    Edit_SetCueBannerText(context->WindowHandle, L"Search Processes (Ctrl+K)");
 
     // Set our window context data.
     SetProp(context->WindowHandle, L"EditSubclassContext", (HANDLE)context);
@@ -755,12 +529,8 @@ HWND CreateSearchControl(
     // Subclass the Edit control window procedure.
     SetWindowSubclass(context->WindowHandle, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);
 
-#ifdef _UXTHEME_ENABLED_
-    SendMessage(context->WindowHandle, WM_THEMECHANGED, 0, 0);
-#endif _UXTHEME_ENABLED_
-
     // Force the edit control to update its non-client area.
-    RedrawWindow(context->WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW);
+    SetWindowPos(context->WindowHandle, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
 
     return context->WindowHandle;
 }

@@ -27,12 +27,11 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
-HWND ReBarHandle = NULL;
+HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
-HWND TextboxHandle = NULL;
+HWND SearchboxHandle = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
-HFONT SearchboxFontHandle = NULL;
 PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry = NULL;
 PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry = NULL;
 PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry = NULL;
@@ -68,24 +67,24 @@ static VOID NTAPI TabPageUpdatedCallback(
 {
     INT tabIndex = (INT)Parameter;
 
-    if (TextboxHandle)
+    if (!SearchboxHandle)
+        return;
+
+    switch (tabIndex)
     {
-        switch (tabIndex)
-        {
-        case 0:
-            Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
-            break;
-        case 1:
-            Edit_SetCueBannerText(TextboxHandle, L"Search Services (Ctrl+K)");
-            break;
-        case 2:
-            Edit_SetCueBannerText(TextboxHandle, L"Search Network (Ctrl+K)");
-            break;
-        default:
-            // Disable the textbox if we're on an unsupported tab.
-            Edit_SetCueBannerText(TextboxHandle, L"Search Disabled");
-            break;
-        }
+    case 0:
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Processes (Ctrl+K)");
+        break;
+    case 1:
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Services (Ctrl+K)");
+        break;
+    case 2:
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Network (Ctrl+K)");
+        break;
+    default:
+        // Disable the textbox if we're on an unsupported tab.
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Disabled");
+        break;
     }
 }
 
@@ -96,13 +95,13 @@ static VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
 
-    if (ReBarHandle)
+    if (RebarHandle)
     {
         RECT rebarRect = { 0 };
 
-        SendMessage(ReBarHandle, WM_SIZE, 0, 0);
+        SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
-        GetClientRect(ReBarHandle, &rebarRect);
+        GetClientRect(RebarHandle, &rebarRect);
 
         // Adjust the PH client area and exclude the rebar width.
         data->Padding.top += rebarRect.bottom;
@@ -195,7 +194,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             case EN_CHANGE:
                 {
                     // Cache the current search text for our callback.
-                    PhSwapReference2(&SearchboxText, PhGetWindowText(TextboxHandle));
+                    PhSwapReference2(&SearchboxText, PhGetWindowText(SearchboxHandle));
 
                     // Expand the nodes so we can search them
                     PhExpandAllProcessNodes(TRUE);
@@ -230,8 +229,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     // handle keybind Ctrl + K
                     if (EnableToolBar && EnableSearchBox)
                     {
-                        SetFocus(TextboxHandle);
-                        Edit_SetSel(TextboxHandle, 0, -1);
+                        SetFocus(SearchboxHandle);
+                        Edit_SetSel(SearchboxHandle, 0, -1);
                     }
 
                     goto DefaultWndProc;
@@ -241,8 +240,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 {            
                     if (EnableToolBar && EnableSearchBox)
                     {
-                        SetFocus(TextboxHandle);
-                        Static_SetText(TextboxHandle, L"");
+                        SetFocus(SearchboxHandle);
+                        Static_SetText(SearchboxHandle, L"");
                     }
 
                     goto DefaultWndProc;
@@ -255,7 +254,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
         {
             LPNMHDR hdr = (LPNMHDR)lParam;
 
-            if (hdr->hwndFrom == ReBarHandle)
+            if (hdr->hwndFrom == RebarHandle)
             {
                 if (hdr->code == RBN_HEIGHTCHANGE)
                 {
@@ -295,6 +294,13 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     }
                     break;
                 case TBN_INITCUSTOMIZE:
+                    {
+                        struct
+                        {
+                            NMHDR hdr;
+                            HWND hDlg;     // handle of the customization dialog.
+                        } *initcustomize = (PVOID)lParam;
+                    }
                     return TBNRF_HIDEHELP;
                 case TBN_QUERYINSERT:
                 case TBN_QUERYDELETE:
@@ -535,11 +541,13 @@ static LRESULT CALLBACK MainWndSubclassProc(
             }
         }
         break;
-    case WM_SIZE:
-        {
-            // Resize PH main window client-area.
-            ProcessHacker_InvalidateLayoutPadding(hWnd);
-        }
+    case WM_SIZE:           
+        // Resize PH main window client-area. 
+        ProcessHacker_InvalidateLayoutPadding(hWnd);
+        break;
+    case WM_SETTINGCHANGE:
+        // Reinitilize the fonts.
+        SendMessage(SearchboxHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), TRUE);
         break;
     }
 
