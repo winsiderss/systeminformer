@@ -80,6 +80,7 @@ static VOID RebarLoadSettings(
     VOID
     )
 {
+    // Initialize the Toolbar Imagelist.
     if (!ToolBarImageList)
     {
         HBITMAP arrowIconBitmap = NULL;
@@ -168,12 +169,12 @@ static VOID RebarLoadSettings(
     }
 
     // Load the Rebar, Toolbar and Searchbox controls.
-    if (EnableToolBar && !ReBarHandle)
+    if (EnableToolBar && !RebarHandle)
     {
         REBARINFO rebarInfo = { sizeof(REBARINFO) };
 
         // Create the ReBar window.
-        ReBarHandle = CreateWindowEx(
+        RebarHandle = CreateWindowEx(
             WS_EX_TOOLWINDOW,
             REBARCLASSNAME,
             NULL,
@@ -185,6 +186,9 @@ static VOID RebarLoadSettings(
             NULL
             );
 
+        // Set the toolbar info with no imagelist.
+        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
+
         // Create the ToolBar window.
         ToolBarHandle = CreateWindowEx(
             0,
@@ -192,13 +196,16 @@ static VOID RebarLoadSettings(
             NULL,
             WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NODIVIDER | CCS_ADJUSTABLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            ReBarHandle,
+            RebarHandle,
             NULL,
             (HINSTANCE)PluginInstance->DllBase,
             NULL
             );
 
-        // Manually add button strings (Fixes some exceptions under x64 Windows)
+        // Manually add button strings via TB_ADDSTRING.
+        // NOTE: The Toolbar will sometimes decide to free strings hard-coded via (INT_PTR)L"String" 
+        //       in the ToolbarButtons array causing random crashes unless we manually add the strings 
+        //       into the Toolbar string pool (this bug only affects 64bit Windows)... WTF???
         ToolbarButtons[0].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Refresh");
         ToolbarButtons[1].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Options");
         ToolbarButtons[3].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Handles or DLLs");
@@ -207,8 +214,6 @@ static VOID RebarLoadSettings(
         ToolbarButtons[7].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Thread");
         ToolbarButtons[8].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Kill");
 
-        // Set the toolbar info with no imagelist.
-        SendMessage(ReBarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
@@ -225,29 +230,24 @@ static VOID RebarLoadSettings(
         //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
 
         // HACK: Query the toolbar width/height.
-        ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
-        
-        // Inset the toolbar into the rebar control.
-        RebarAddMenuItem(ReBarHandle, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
+        ULONG_PTR toolbarButtonSize = (ULONG_PTR)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
-        if (EnableSearchBox && !TextboxHandle)
-        {    
+        // Inset the toolbar into the rebar control.
+        RebarAddMenuItem(RebarHandle, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
+
+        if (EnableSearchBox && !SearchboxHandle)
+        {  
+            SearchboxText = PhReferenceEmptyString();
+
             ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
             ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
             NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
             // Insert a paint region into the edit control NC window area
-            TextboxHandle = CreateSearchControl(ID_SEARCH_CLEAR);
-   
-            // Set font
-            SendMessage(TextboxHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
-            // Reset the client area margins.
-            SendMessage(TextboxHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
-            // Set initial text
-            Edit_SetCueBannerText(TextboxHandle, L"Search Processes (Ctrl+K)");
+            SearchboxHandle = CreateSearchControl(ID_SEARCH_CLEAR);
 
             // Insert the edit control into the rebar control
-            RebarAddMenuItem(ReBarHandle, TextboxHandle, 20, 180);
+            RebarAddMenuItem(RebarHandle, SearchboxHandle, 20, 180);
         }
     }
 
@@ -271,30 +271,30 @@ static VOID RebarLoadSettings(
     // Hide or show controls (Note: don't unload or remove at runtime).
     if (EnableToolBar)
     {
-        if (ReBarHandle && !IsWindowVisible(ReBarHandle))
-            ShowWindow(ReBarHandle, SW_SHOW);
+        if (RebarHandle && !IsWindowVisible(RebarHandle))
+            ShowWindow(RebarHandle, SW_SHOW);
     }
     else
     {
-        if (ReBarHandle && IsWindowVisible(ReBarHandle))
-            ShowWindow(ReBarHandle, SW_HIDE);
+        if (RebarHandle && IsWindowVisible(RebarHandle))
+            ShowWindow(RebarHandle, SW_HIDE);
     }
 
     if (EnableSearchBox)
     {
-        if (TextboxHandle && !IsWindowVisible(TextboxHandle))
-            ShowWindow(TextboxHandle, SW_SHOW);
+        if (SearchboxHandle && !IsWindowVisible(SearchboxHandle))
+            ShowWindow(SearchboxHandle, SW_SHOW);
     }
     else
     {
-        if (TextboxHandle)
+        if (SearchboxHandle)
         {
             // Clear search text and reset search filters.
-            SetFocus(TextboxHandle);
-            Static_SetText(TextboxHandle, L"");
+            SetFocus(SearchboxHandle);
+            Static_SetText(SearchboxHandle, L"");
 
-            if (IsWindowVisible(TextboxHandle))
-                ShowWindow(TextboxHandle, SW_HIDE);
+            if (IsWindowVisible(SearchboxHandle))
+                ShowWindow(SearchboxHandle, SW_HIDE);
         }
     }
 
@@ -309,6 +309,7 @@ static VOID RebarLoadSettings(
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
 }
+
 
 VOID LoadToolbarSettings(
     VOID

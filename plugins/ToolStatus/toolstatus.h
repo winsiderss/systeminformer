@@ -38,11 +38,6 @@
 
 #include "resource.h"
 
-// Enable Searchbox HotTracking
-//#define _HOTTRACK_ENABLED_
-// Enable Searchbox UxTheme drawing
-//#define _UXTHEME_ENABLED_
-
 #define SETTING_PREFIX L"ProcessHacker.ToolStatus"
 #define SETTING_NAME_ENABLE_TOOLBAR (SETTING_PREFIX L".EnableToolBar")
 #define SETTING_NAME_ENABLE_SEARCHBOX (SETTING_PREFIX L".EnableSearchBox")
@@ -84,9 +79,9 @@ extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
 
-extern HWND ReBarHandle;
+extern HWND RebarHandle;
 extern HWND ToolBarHandle;
-extern HWND TextboxHandle;
+extern HWND SearchboxHandle;
 extern HWND StatusBarHandle;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
@@ -102,9 +97,11 @@ extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
 VOID UpdateStatusBar(
     VOID
     );
+
 VOID ShowStatusMenu(
     _In_ PPOINT Point
     );
+
 VOID LoadToolbarSettings(
     VOID
     );
@@ -153,13 +150,6 @@ typedef struct _EDIT_CONTEXT
     COLORREF BackgroundColorRef;
 
     BOOLEAN MouseInClient;
-
-#ifdef _UXTHEME_ENABLED_
-    BOOLEAN IsThemeActive;
-    BOOL IsThemeBackgroundActive;
-    HTHEME UxThemeHandle;
-    HMODULE UxThemeModule;
-#endif
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
 HBITMAP LoadImageFromResources(
