@@ -38,6 +38,35 @@ static VOID NcAreaFreeGdiTheme(
 
     if (Context->BrushFill)
         DeleteObject(Context->BrushFill);
+
+    if (Context->WindowFont)
+        DeleteObject(Context->WindowFont);
+}
+
+static VOID NcAreaInitializeFont(
+    _Inout_ PEDIT_CONTEXT Context
+    )
+{
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+
+    // Cleanup existing Font handle.
+    if (Context->WindowFont)
+        DeleteObject(Context->WindowFont);
+
+    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+    {
+        metrics.lfMessageFont.lfHeight = -11;
+        //metrics.lfMessageFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+
+        Context->WindowFont = CreateFontIndirect(&metrics.lfMessageFont);
+    }
+    else
+    {
+        // Windows XP fallback.
+        Context->WindowFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    }
+
+    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
 }
 
 static VOID NcAreaInitializeGdiTheme(
@@ -48,7 +77,7 @@ static VOID NcAreaInitializeGdiTheme(
     Context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
 
     Context->BackgroundColorRef = RGB(0, 0, 0);//GetSysColor(COLOR_WINDOW);
-    Context->BrushFill = GetSysColorBrush(COLOR_WINDOW);     
+    Context->BrushFill = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushNormal = GetStockBrush(BLACK_BRUSH);
     Context->BrushHot = WindowsVersion < WINDOWS_VISTA ? CreateSolidBrush(RGB(50, 150, 255)) : GetSysColorBrush(COLOR_HIGHLIGHT);
     Context->BrushFocused = WindowsVersion < WINDOWS_VISTA ? CreateSolidBrush(RGB(50, 150, 255)) : GetSysColorBrush(COLOR_HIGHLIGHT);
@@ -92,13 +121,78 @@ static VOID NcAreaInitializeImageList(
 
 static VOID NcAreaGetButtonRect(
     _Inout_ PEDIT_CONTEXT Context,
-    _In_ RECT* rect
+    _Inout_ PRECT ButtonRect
     )
 {
-    rect->left = (rect->right - Context->cxImgSize) - 2; // GetSystemMetrics(SM_CXBORDER)
-    rect->bottom -= 2;
-    rect->right -= 2;
-    rect->top += 2;
+    ButtonRect->left = (ButtonRect->right - Context->cxImgSize) - 2; // GetSystemMetrics(SM_CXBORDER)
+    ButtonRect->bottom -= 2;
+    ButtonRect->right -= 2;
+    ButtonRect->top += 2;
+}
+
+static VOID NcAreaDrawButton(
+    _Inout_ PEDIT_CONTEXT Context,
+    _In_ RECT ButtonRect
+    )
+{
+    HDC hdc;
+
+    if (!(hdc = GetWindowDC(Context->WindowHandle)))
+        return;
+
+    SetBkMode(hdc, TRANSPARENT);
+
+    FillRect(hdc, &ButtonRect, Context->BrushFill);
+
+//#ifdef _DEBUG
+//    BOOL isFocused = (GetFocus() == Context->WindowHandle);
+//    if (isFocused)
+//    {
+//        FrameRect(hdc, &ButtonRect, Context->BrushFocused);
+//    }
+//    else if (Context->MouseInClient)
+//    {
+//        FrameRect(hdc, &ButtonRect, Context->BrushHot);
+//    }
+//    else
+//    {
+//        FrameRect(hdc, &ButtonRect, Context->BrushNormal);
+//    }
+//#endif
+
+    // Draw the image centered within the rect.
+    if (SearchboxText->Length > 0)
+    {
+        ImageList_DrawEx(
+            Context->ImageList,
+            0,
+            hdc,
+            ButtonRect.left,
+            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - Context->ImageHeight) / 2,
+            0,
+            0,
+            Context->BackgroundColorRef,
+            Context->BackgroundColorRef,
+            ILD_NORMAL | ILD_TRANSPARENT
+            );
+    }
+    else
+    {
+        ImageList_DrawEx(
+            Context->ImageList,
+            1,
+            hdc,
+            ButtonRect.left,
+            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - (Context->ImageHeight - 1)) / 2, // Fix image offset by 1
+            0,
+            0,
+            Context->BackgroundColorRef,
+            Context->BackgroundColorRef,
+            ILD_NORMAL | ILD_TRANSPARENT
+            );
+    }
+
+    ReleaseDC(Context->WindowHandle, hdc);
 }
 
 static LRESULT CALLBACK NcAreaWndSubclassProc(
@@ -110,10 +204,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     _In_ ULONG_PTR dwRefData
     )
 {
-    PEDIT_CONTEXT context = (PEDIT_CONTEXT)GetProp(hwndDlg, L"EditSubclassContext");
+    PEDIT_CONTEXT context;
     
-    if (context == NULL)
-        return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    context = (PEDIT_CONTEXT)GetProp(hwndDlg, L"EditSubclassContext");
 
     if (uMsg == WM_DESTROY)
     {
@@ -137,97 +230,44 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         {
             NcAreaFreeGdiTheme(context);
             NcAreaInitializeGdiTheme(context);
+            NcAreaInitializeFont(context);
         }
         break;
     case WM_NCCALCSIZE:
         {
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
-
+            
+            // Let Windows handle the non-client defaults.
             DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 
+            // Deflate the client area to accommodate the custom button.
             ncCalcSize->rgrc[0].right -= context->cxImgSize;                
         }
         return 0;
     case WM_NCPAINT:
         {
-            HDC hdc = NULL;
-            RECT clientRect = { 0 };
+            RECT windowRect;
 
+            // Let Windows handle the non-client defaults.
             DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 
-            // Get the screen coordinates of the client window.
-            GetClientRect(hwndDlg, &clientRect);
-            // Adjust the coordinates (start from border edge).
-            InflateRect(&clientRect, -context->CXBorder, -context->CYBorder);
-   
             // Get the screen coordinates of the window.
-            GetWindowRect(hwndDlg, &context->SearchButtonRect);
+            GetWindowRect(hwndDlg, &windowRect);
+
             // Adjust the coordinates (start from 0,0).
-            OffsetRect(&context->SearchButtonRect, -context->SearchButtonRect.left, -context->SearchButtonRect.top); 
+            OffsetRect(&windowRect, -windowRect.left, -windowRect.top); 
+
             // Get the position of the inserted button.
-            NcAreaGetButtonRect(context, &context->SearchButtonRect);
+            NcAreaGetButtonRect(context, &windowRect);
 
-            BOOL isFocused = (GetFocus() == hwndDlg);
-
-            if (!(hdc = GetWindowDC(hwndDlg)))
-                break;
-
-            SetBkMode(hdc, TRANSPARENT);
-
-            FillRect(hdc, &context->SearchButtonRect, context->BrushFill);
-
-            //if (isFocused)
-            //{
-            //    FrameRect(hdc, &context->SearchButtonRect, context->BrushFocused);
-            //}
-            //else if (context->MouseInClient)
-            //{
-            //    FrameRect(hdc, &context->SearchButtonRect, context->BrushHot);
-            //}
-            //else
-            //{
-            //    FrameRect(hdc, &context->SearchButtonRect, context->BrushNormal);
-            //}
-
-            // Draw the image centered within the rect.
-            if (SearchboxText->Length > 0)
-            {
-                ImageList_DrawEx(
-                    context->ImageList,
-                    0,
-                    hdc,
-                    context->SearchButtonRect.left,
-                    context->SearchButtonRect.top + ((context->SearchButtonRect.bottom - context->SearchButtonRect.top) - context->ImageHeight) / 2,
-                    0,
-                    0,
-                    context->BackgroundColorRef,
-                    context->BackgroundColorRef,
-                    ILD_NORMAL | ILD_TRANSPARENT
-                    );
-            }
-            else
-            {
-                ImageList_DrawEx(
-                    context->ImageList,
-                    1,
-                    hdc,
-                    context->SearchButtonRect.left,
-                    context->SearchButtonRect.top + ((context->SearchButtonRect.bottom - context->SearchButtonRect.top) - (context->ImageHeight - 1)) / 2, // Fix image offset by 1
-                    0,
-                    0,
-                    context->BackgroundColorRef,
-                    context->BackgroundColorRef,
-                    ILD_NORMAL | ILD_TRANSPARENT
-                    );
-            }
-
-            ReleaseDC(hwndDlg, hdc);
+            // Draw the button.
+            NcAreaDrawButton(context, windowRect);
         }
         return 0;
     case WM_NCHITTEST:
         {
-            POINT windowPoint = { 0 };
-            RECT windowRect = { 0 };
+            POINT windowPoint;
+            RECT windowRect;
 
             // Get the screen coordinates of the mouse.
             windowPoint.x = GET_X_LPARAM(lParam);
@@ -239,13 +279,15 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
             // Check that the mouse is within the inserted button.
             if (PtInRect(&windowRect, windowPoint))
+            {
                 return HTBORDER;
+            }
         }
         break;
     case WM_NCLBUTTONDOWN:
         {
-            POINT windowPoint = { 0 };
-            RECT windowRect = { 0 };
+            POINT windowPoint;
+            RECT windowRect;
 
             // Get the screen coordinates of the mouse.
             windowPoint.x = GET_X_LPARAM(lParam);
@@ -260,35 +302,53 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             {
                 SetCapture(hwndDlg);
 
-                // Forward click notification.
-                SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
-
                 RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-                return FALSE;
             }
         }
         break;
     case WM_LBUTTONUP:
-        {
+        {           
+            POINT windowPoint;
+            RECT windowRect;
+
+            // Get the screen coordinates of the mouse.
+            windowPoint.x = GET_X_LPARAM(lParam);
+            windowPoint.y = GET_Y_LPARAM(lParam);
+
+            // Get the screen coordinates of the window.
+            GetWindowRect(hwndDlg, &windowRect);
+
+            // Adjust the coordinates (start from 0,0).
+            OffsetRect(&windowRect, -windowRect.left, -windowRect.top); 
+
+            // Get the position of the inserted button.
+            NcAreaGetButtonRect(context, &windowRect);
+
+            // Check that the mouse is within the inserted button.
+            if (PtInRect(&windowRect, windowPoint))
+            {
+                // Forward click notification.
+                SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
+            }
+
             if (GetCapture() == hwndDlg)
             {
                 ReleaseCapture();
-
-                RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
-                return FALSE;
             }
+
+            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
     case WM_KEYDOWN:
         {
-            if (WindowsVersion < WINDOWS_VISTA)
+            if (WindowsVersion > WINDOWS_VISTA)
+                break;
+
+            // Handle CTRL+A below Vista.
+            if (GetKeyState(VK_CONTROL) & VK_LCONTROL && wParam == 'A')
             {
-                // Handle CTRL+A below Vista.
-                if (GetKeyState(VK_CONTROL) & VK_LCONTROL && wParam == 'A')
-                {
-                    Edit_SetSel(hwndDlg, 0, -1);
-                    return FALSE;
-                }
+                Edit_SetSel(hwndDlg, 0, -1);
+                return FALSE;
             }
         }
         break;
@@ -301,28 +361,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_KILLFOCUS:
         RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
-#ifdef _HOTTRACK_ENABLED_
-    case WM_MOUSELEAVE:
-        {
-            context->MouseInClient = FALSE;
-
-            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-        }
+    case WM_SETTINGCHANGE:
+        NcAreaInitializeFont(context);
         break;
-    case WM_MOUSEMOVE:
-        {
-            //if (!context->MouseInClient)
-            TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT) };
-            tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
-            tme.hwndTrack = hwndDlg;
-
-            context->MouseInClient = TRUE;
-            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-
-            TrackMouseEvent(&tme);
-        }
-        break;
-#endif _HOTTRACK_ENABLED_
     }
 
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
@@ -497,9 +538,7 @@ HWND CreateSearchControl(
 
     context->cxImgSize = 22;
     context->CommandID = CommandID;
-
-    NcAreaInitializeGdiTheme(context);
-    NcAreaInitializeImageList(context);
+    
 
     // Create the SearchBox window.
     context->WindowHandle = CreateWindowEx(
@@ -513,9 +552,10 @@ HWND CreateSearchControl(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
-
-    // Set Searchbox font.
-    SendMessage(context->WindowHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), FALSE);
+ 
+    NcAreaInitializeGdiTheme(context);
+    NcAreaInitializeImageList(context);
+    NcAreaInitializeFont(context);
 
     // Reset the client area margins.
     SendMessage(context->WindowHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
