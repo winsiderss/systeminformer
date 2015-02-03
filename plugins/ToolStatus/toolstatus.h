@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   toolstatus header
  *
- * Copyright (C) 2011-2013 dmex
+ * Copyright (C) 2011-2015 dmex
  * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
@@ -140,8 +140,8 @@ typedef struct _EDIT_CONTEXT
     LONG cxImgSize;
 
     HWND WindowHandle;
+    HFONT WindowFont;
     HIMAGELIST ImageList;
-    RECT SearchButtonRect;
 
     HBRUSH BrushNormal;
     HBRUSH BrushFocused;

@@ -546,8 +546,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
         ProcessHacker_InvalidateLayoutPadding(hWnd);
         break;
     case WM_SETTINGCHANGE:
-        // Reinitilize the fonts.
-        SendMessage(SearchboxHandle, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), TRUE);
+        // Forward to the Searchbox so we can reinitialize the settings...
+        SendMessage(SearchboxHandle, WM_SETTINGCHANGE, 0, 0);
         break;
     }
 
