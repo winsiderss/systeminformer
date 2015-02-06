@@ -310,7 +310,6 @@ static VOID RebarLoadSettings(
     }
 }
 
-
 VOID LoadToolbarSettings(
     VOID
     )
@@ -368,7 +367,8 @@ VOID LoadToolbarSettings(
         }
        
         // Resize the toolbar
-        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);    
+        //InvalidateRect(ToolBarHandle, NULL, TRUE);
     }
 
     // Invoke the LayoutPaddingCallback.
