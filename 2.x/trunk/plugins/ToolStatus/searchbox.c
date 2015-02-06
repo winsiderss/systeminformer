@@ -208,21 +208,20 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     
     context = (PEDIT_CONTEXT)GetProp(hwndDlg, L"EditSubclassContext");
 
-    if (uMsg == WM_DESTROY)
-    {
-        NcAreaFreeGdiTheme(context);
-
-        if (context->ImageList)
-            ImageList_Destroy(context->ImageList);
-
-        RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, 0);
-        RemoveProp(hwndDlg, L"EditSubclassContext");
-        PhFree(context);
-        return TRUE;
-    }
-
     switch (uMsg)
     {
+    case WM_NCDESTROY:
+        {
+            NcAreaFreeGdiTheme(context);
+
+            if (context->ImageList)
+                ImageList_Destroy(context->ImageList);
+
+            RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, uIdSubclass);
+            RemoveProp(hwndDlg, L"EditSubclassContext");
+            PhFree(context);
+        }
+        break;
     case WM_ERASEBKGND:
         return TRUE;
     case WM_SYSCOLORCHANGE:
@@ -539,7 +538,6 @@ HWND CreateSearchControl(
     context->cxImgSize = 22;
     context->CommandID = CommandID;
     
-
     // Create the SearchBox window.
     context->WindowHandle = CreateWindowEx(
         WS_EX_CLIENTEDGE,

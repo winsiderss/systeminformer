@@ -155,7 +155,7 @@ typedef struct _EDIT_CONTEXT
 HBITMAP LoadImageFromResources(
     _In_ UINT Width,
     _In_ UINT Height,
-    _In_ LPCTSTR Name
+    _In_ PCWSTR Name
     );
 
 #endif

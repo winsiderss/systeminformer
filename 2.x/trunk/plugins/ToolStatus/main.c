@@ -95,9 +95,9 @@ static VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
 
-    if (RebarHandle)
+    if (RebarHandle && EnableToolBar)
     {
-        RECT rebarRect = { 0 };
+        RECT rebarRect;
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
@@ -107,9 +107,9 @@ static VOID NTAPI LayoutPaddingCallback(
         data->Padding.top += rebarRect.bottom;
     }
 
-    if (StatusBarHandle)
+    if (StatusBarHandle && EnableStatusBar)
     {
-        RECT statusBarRect = { 0 };
+        RECT statusBarRect;
 
         SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
 
