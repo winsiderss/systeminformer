@@ -326,7 +326,7 @@ VOID LoadToolbarSettings(
         for (index = 0; index < buttonCount; index++)
         {
             TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND;
+            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
 
             // Get settings for first button
             if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
@@ -336,10 +336,37 @@ VOID LoadToolbarSettings(
             if (button.fsStyle == BTNS_SEP)
                 continue;
 
+            // TODO: We manually add the text above using TB_ADDSTRING,
+            //       why do we need to set the button text again when changing TBIF_STYLE?
+            switch (button.idCommand)
+            {
+            case PHAPP_ID_VIEW_REFRESH:
+                button.pszText = L"Refresh";
+                break;
+            case PHAPP_ID_HACKER_OPTIONS:
+                button.pszText = L"Options";
+                break;
+            case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+                button.pszText = L"Find Handles or DLLs";
+                break;
+            case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+                button.pszText = L"System Information";
+                break;
+            case TIDC_FINDWINDOW:
+                button.pszText = L"Find Window";
+                break;
+            case TIDC_FINDWINDOWTHREAD:
+                button.pszText = L"Find Window and Thread";
+                break;
+            case TIDC_FINDWINDOWKILL:
+                button.pszText = L"Find Window and Kill";
+                break;
+            }
+
             switch (DisplayStyle)
             {
             case ToolbarDisplayImageOnly:
-                button.fsStyle = BTNS_AUTOSIZE;
+                button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
                 break;
             case ToolbarDisplaySelectiveText:
                 {
@@ -349,16 +376,16 @@ VOID LoadToolbarSettings(
                     case PHAPP_ID_HACKER_OPTIONS:
                     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
                     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-                        button.fsStyle = BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+                        button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
                         break;
                     default:
-                        button.fsStyle = BTNS_AUTOSIZE;
+                        button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
                         break;
                     }
                 }
                 break;
-            default:
-                button.fsStyle = BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+            case ToolbarDisplayAllText:
+                button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
                 break;
             }
 

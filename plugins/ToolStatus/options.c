@@ -36,9 +36,9 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             HWND comboHandle = GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO);
 
-            ComboBox_AddString(comboHandle, L"Images only");
-            ComboBox_AddString(comboHandle, L"Selective text");
-            ComboBox_AddString(comboHandle, L"All text");
+            ComboBox_AddString(comboHandle, L"No Text Labels"); // Displays no text label for the toolbar buttons.
+            ComboBox_AddString(comboHandle, L"Selective Text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
+            ComboBox_AddString(comboHandle, L"Show Text Labels"); // Displays text labels for the toolbar buttons.
             ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE));
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR), 
@@ -76,6 +76,8 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                     LoadToolbarSettings();
 
+                    InvalidateRect(ToolBarHandle, NULL, TRUE);
+                    
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;

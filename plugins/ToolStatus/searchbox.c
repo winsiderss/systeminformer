@@ -56,14 +56,18 @@ static VOID NcAreaInitializeFont(
     if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
     {
         metrics.lfMessageFont.lfHeight = -11;
-        //metrics.lfMessageFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
         Context->WindowFont = CreateFontIndirect(&metrics.lfMessageFont);
     }
     else
     {
-        // Windows XP fallback.
-        Context->WindowFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        LOGFONT font;
+
+        GetObject((HFONT)GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &font);
+
+        font.lfHeight = -11;
+
+        Context->WindowFont = CreateFontIndirect(&font);
     }
 
     SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
@@ -535,7 +539,7 @@ HWND CreateSearchControl(
     context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
-    context->cxImgSize = 22;
+    context->cxImgSize = 22; // GetSystemMetrics(SM_CXVSCROLL)
     context->CommandID = CommandID;
     
     // Create the SearchBox window.
