@@ -1,3 +1,4 @@
+#define _CRT_RAND_S
 #include <phdk.h>
 #include <winsock2.h>
 #include <stdio.h>
@@ -25,43 +26,53 @@ static char* string_to_hex_alloc(const char* str, int len) {
 
 int growl_init_ = 0;
 
+/* dmex: modified to use latest Winsock version */
 int growl_init()
 {
-        if( growl_init_ == 0)
+    if (growl_init_ == 0)
+    {
+#ifdef _WIN32
+        WSADATA wsaData;
+        if (WSAStartup(WINSOCK_VERSION, &wsaData) != 0)
         {
-                #ifdef _WIN32
-                WSADATA wsaData;
-                if( WSAStartup( MAKEWORD( 2 , 0 ) , &wsaData) != 0 )
-                {
-                        return -1;
-                }
-                #endif
-
-                srand((unsigned int)time(NULL));
-                growl_init_ = 1;
+            return -1;
         }
-        return 1;
+#endif
+
+        growl_init_ = 1;
+    }
+    return 1;
 }
 
 
 void growl_shutdown()
 {
-        if( growl_init_ == 1 )
-        {
-                #ifdef _WIN32
-                WSACleanup();
-                #endif
-        }
+    if (growl_init_ == 1)
+    {
+#ifdef _WIN32
+        WSACleanup();
+#endif
+    }
 }
 
-
-char* gen_salt_alloc(int count) {
+/* dmex: modified to use a version of rand with security enhancements */
+char* gen_salt_alloc(int count)
+{
     char* salt = (char*)PhAllocateSafe(count + 1);
-    if (salt) {
+
+    if (salt)
+    {
         int n;
-        for (n = 0; n < count; n++) salt[n] = (((int)rand()) % 255) + 1;
+        int randSeed = 0;
+
+        rand_s(&randSeed);
+
+        for (n = 0; n < count; n++)
+            salt[n] = (randSeed % 255) + 1;
+
         salt[n] = 0;
     }
+
     return salt;
 }
 
