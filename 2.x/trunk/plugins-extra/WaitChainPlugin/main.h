@@ -55,12 +55,12 @@ typedef struct _WCT_CONTEXT
 } WCT_CONTEXT, *PWCT_CONTEXT;    
 
 BOOLEAN WaitChainRegisterCallbacks(
-    __inout PWCT_CONTEXT Context
+    _Inout_ PWCT_CONTEXT Context
     );
 
 VOID WaitChainCheckThread(
-    __inout PWCT_CONTEXT Context,
-    __in HANDLE ThreadId
+    _Inout_ PWCT_CONTEXT Context,
+    _In_ HANDLE ThreadId
     );
 
 #endif

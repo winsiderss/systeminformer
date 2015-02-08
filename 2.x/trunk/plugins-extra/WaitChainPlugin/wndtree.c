@@ -23,30 +23,30 @@
 #include "main.h"
 
 BOOLEAN WepWindowNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     );
 
 ULONG WepWindowNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     );
 
 VOID WepDestroyWindowNode(
-    __in PWCT_ROOT_NODE WindowNode
+    _In_ PWCT_ROOT_NODE WindowNode
     );
 
 BOOLEAN NTAPI WepWindowTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     );
 
 VOID WtcInitializeWindowTree(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __out PWCT_TREE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _Out_ PWCT_TREE_CONTEXT Context
     )
 {
     HWND hwnd;
@@ -89,7 +89,7 @@ VOID WtcInitializeWindowTree(
 }
 
 VOID WtcDeleteWindowTree(
-    __in PWCT_TREE_CONTEXT Context
+    _In_ PWCT_TREE_CONTEXT Context
     )
 {
     PPH_STRING settings;
@@ -109,8 +109,8 @@ VOID WtcDeleteWindowTree(
 }
 
 BOOLEAN WepWindowNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
     PWCT_ROOT_NODE windowNode1 = *(PWCT_ROOT_NODE *)Entry1;
@@ -120,14 +120,14 @@ BOOLEAN WepWindowNodeHashtableCompareFunction(
 }
 
 ULONG WepWindowNodeHashtableHashFunction(
-    __in PVOID Entry
+    _In_ PVOID Entry
     )
 {
     return (*(PWCT_ROOT_NODE*)Entry)->Node.Index;
 }
 
 PWCT_ROOT_NODE WeAddWindowNode(
-    __inout PWCT_TREE_CONTEXT Context
+    _Inout_ PWCT_TREE_CONTEXT Context
     )
 {
     PWCT_ROOT_NODE windowNode;
@@ -151,10 +151,10 @@ PWCT_ROOT_NODE WeAddWindowNode(
 }
 
 VOID WctAddChildWindowNode(
-    __in PWCT_TREE_CONTEXT Context,
-    __in_opt PWCT_ROOT_NODE ParentNode,
-    __in WAITCHAIN_NODE_INFO WctNode,
-    __in BOOLEAN IsDeadLocked
+    _In_ PWCT_TREE_CONTEXT Context,
+    _In_opt_ PWCT_ROOT_NODE ParentNode,
+    _In_ WAITCHAIN_NODE_INFO WctNode,
+    _In_ BOOLEAN IsDeadLocked
     )
 {
     PWCT_ROOT_NODE childNode = NULL;
@@ -209,8 +209,8 @@ VOID WctAddChildWindowNode(
 }
 
 PWCT_ROOT_NODE WeFindWindowNode(
-    __in PWCT_TREE_CONTEXT Context,
-    __in HWND WindowHandle
+    _In_ PWCT_TREE_CONTEXT Context,
+    _In_ HWND WindowHandle
     )
 {
     WCT_ROOT_NODE lookupWindowNode;
@@ -231,8 +231,8 @@ PWCT_ROOT_NODE WeFindWindowNode(
 }
 
 VOID WeRemoveWindowNode(
-    __in PWCT_TREE_CONTEXT Context,
-    __in PWCT_ROOT_NODE WindowNode
+    _In_ PWCT_TREE_CONTEXT Context,
+    _In_ PWCT_ROOT_NODE WindowNode
     )
 {
     ULONG index = 0;
@@ -251,7 +251,7 @@ VOID WeRemoveWindowNode(
 }
 
 VOID WepDestroyWindowNode(
-    __in PWCT_ROOT_NODE WindowNode
+    _In_ PWCT_ROOT_NODE WindowNode
     )
 {
     PhDereferenceObject(WindowNode->Children);
@@ -266,11 +266,11 @@ VOID WepDestroyWindowNode(
 }
 
 BOOLEAN NTAPI WepWindowTreeNewCallback(
-    __in HWND hwnd,
-    __in PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PWCT_TREE_CONTEXT context;
@@ -523,7 +523,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 }
 
 VOID WeClearWindowTree(
-    __in PWCT_TREE_CONTEXT Context
+    _In_ PWCT_TREE_CONTEXT Context
     )
 {
     ULONG i;
@@ -537,7 +537,7 @@ VOID WeClearWindowTree(
 }
 
 PWCT_ROOT_NODE WeGetSelectedWindowNode(
-    __in PWCT_TREE_CONTEXT Context
+    _In_ PWCT_TREE_CONTEXT Context
     )
 {
     PWCT_ROOT_NODE windowNode = NULL;
@@ -555,9 +555,9 @@ PWCT_ROOT_NODE WeGetSelectedWindowNode(
 }
 
 VOID WeGetSelectedWindowNodes(
-    __in PWCT_TREE_CONTEXT Context,
-    __out PWCT_ROOT_NODE **Windows,
-    __out PULONG NumberOfWindows
+    _In_ PWCT_TREE_CONTEXT Context,
+    _Out_ PWCT_ROOT_NODE **Windows,
+    _Out_ PULONG NumberOfWindows
     )
 {
     PPH_LIST list;

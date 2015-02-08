@@ -37,7 +37,7 @@ static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 static VOID EnumDnsCacheTable(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     PDNS_CACHE_ENTRY dnsCacheDataTable = NULL;
@@ -139,7 +139,7 @@ static VOID EnumDnsCacheTable(
 }
 
 static PPH_STRING PhGetSelectedListViewItemText(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     INT index = PhFindListViewItemByFlags(
@@ -167,7 +167,7 @@ static PPH_STRING PhGetSelectedListViewItemText(
 }
 
 static VOID ShowStatusMenu(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     HMENU menu;
@@ -235,10 +235,10 @@ static VOID ShowStatusMenu(
 }
 
 static INT_PTR CALLBACK DnsCacheDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
@@ -350,16 +350,16 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
 }
 
 static VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", DNSCACHE_MENUITEM, L"DNS Resolver Cache", NULL);
 }
 
 static VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
@@ -380,9 +380,9 @@ static VOID NTAPI MenuItemCallback(
 }
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)
