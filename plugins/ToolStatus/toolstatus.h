@@ -46,10 +46,12 @@
 #define SETTING_NAME_ENABLE_STATUSMASK (SETTING_PREFIX L".StatusMask")
 #define SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE (SETTING_PREFIX L".ToolbarDisplayStyle")
 
-#define ID_SEARCH_CLEAR (WM_APP + 1)
-#define TIDC_FINDWINDOW (WM_APP + 2)
-#define TIDC_FINDWINDOWTHREAD (WM_APP + 3)
-#define TIDC_FINDWINDOWKILL (WM_APP + 4)
+#define MAX_DEFAULT_TOOLBAR_ITEMS 9
+
+#define TIDC_FINDWINDOW (WM_APP + 1)
+#define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
+#define TIDC_FINDWINDOWKILL (WM_APP + 3)
+#define ID_SEARCH_CLEAR (WM_APP + 4)
 
 #define STATUS_COUNT 10
 #define STATUS_MINIMUM 0x1
@@ -86,7 +88,7 @@ extern HWND StatusBarHandle;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
 
-extern TBBUTTON ToolbarButtons[9];
+extern TBBUTTON ToolbarButtons[10];
 extern TBSAVEPARAMSW ToolbarSaveParams;
 
 extern PPH_PLUGIN PluginInstance;

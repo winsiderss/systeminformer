@@ -105,5 +105,11 @@
     <Image Include="resources\inactive_search.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\application_get.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\application_get.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
