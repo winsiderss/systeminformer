@@ -108,6 +108,10 @@ VOID LoadToolbarSettings(
     VOID
     );
 
+VOID ResetToolbarSettings(
+    VOID
+    );
+
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

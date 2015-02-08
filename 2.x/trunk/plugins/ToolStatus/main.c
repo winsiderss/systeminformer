@@ -342,16 +342,12 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     break;
                 case TBN_RESET:
                     {
-                        // Remove all the user customizations.
-                        INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-                        while (buttonCount--)
-                            SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
-
-                        // Re-add the original buttons.
-                        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+                        ResetToolbarSettings();
                         
                         // Re-load the original button settings.
                         LoadToolbarSettings();
+
+                        InvalidateRect(ToolBarHandle, NULL, TRUE);
 
                         // Save the new settings as defaults.
                         SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
