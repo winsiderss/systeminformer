@@ -72,10 +72,9 @@ static VOID RebarLoadSettings(
     )
 {
     static HIMAGELIST toolBarImageList = NULL;
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     // Initialize the Toolbar Imagelist.
-    if (EnableToolBar && PhBeginInitOnce(&initOnce))
+    if (EnableToolBar && !toolBarImageList)
     {
         HBITMAP arrowIconBitmap = NULL;
         HBITMAP cogIconBitmap = NULL;
@@ -170,8 +169,6 @@ static VOID RebarLoadSettings(
         {
             PhSetImageListBitmap(toolBarImageList, 7, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP));
         }
-
-        PhEndInitOnce(&initOnce);
     }
 
     // Load the Rebar, Toolbar and Searchbox controls.
@@ -421,4 +418,18 @@ VOID LoadToolbarSettings(
 
     // Invoke the LayoutPaddingCallback.
     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+}
+
+VOID ResetToolbarSettings(
+    VOID
+    )
+{
+    // Remove all the user customizations.
+    INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+    while (buttonCount--)
+        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+
+    // Re-add the original buttons.
+    SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+
 }
