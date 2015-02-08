@@ -8,7 +8,6 @@
  * Updated Searchbox UI
  * Updated Searchbox commands
  * Updated plugin settings
- * Removed BMP images
 
 1.8
  * Added search box
