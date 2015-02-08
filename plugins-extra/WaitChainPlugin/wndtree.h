@@ -79,48 +79,48 @@ typedef struct _WCT_TREE_CONTEXT
 } WCT_TREE_CONTEXT, *PWCT_TREE_CONTEXT;
 
 VOID WtcInitializeWindowTree(
-    __in HWND ParentWindowHandle,
-    __in HWND TreeNewHandle,
-    __out PWCT_TREE_CONTEXT Context
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle,
+    _Out_ PWCT_TREE_CONTEXT Context
     );
 
 VOID WtcDeleteWindowTree(
-    __in PWCT_TREE_CONTEXT Context
+    _In_ PWCT_TREE_CONTEXT Context
     );
 
 VOID WctAddChildWindowNode(
-    __in PWCT_TREE_CONTEXT Context,
-    __in_opt PWCT_ROOT_NODE ParentNode,
-    __in WAITCHAIN_NODE_INFO WctNode,
-    __in BOOLEAN IsDeadLocked
+    _In_ PWCT_TREE_CONTEXT Context,
+    _In_opt_ PWCT_ROOT_NODE ParentNode,
+    _In_ WAITCHAIN_NODE_INFO WctNode,
+    _In_ BOOLEAN IsDeadLocked
     );
 
 PWCT_ROOT_NODE WeAddWindowNode(
-    __inout PWCT_TREE_CONTEXT Context
+    _Inout_ PWCT_TREE_CONTEXT Context
     );
 
 PWCT_ROOT_NODE WeFindWindowNode(
-    __in PWCT_TREE_CONTEXT Context,
-    __in HWND WindowHandle
+    _In_ PWCT_TREE_CONTEXT Context,
+    _In_ HWND WindowHandle
     );
 
 VOID WeRemoveWindowNode(
-    __in PWCT_TREE_CONTEXT Context,
-    __in PWCT_ROOT_NODE WindowNode
+    _In_ PWCT_TREE_CONTEXT Context,
+    _In_ PWCT_ROOT_NODE WindowNode
     );
 
 VOID WeClearWindowTree(
-    __in PWCT_TREE_CONTEXT Context
+    _In_ PWCT_TREE_CONTEXT Context
     );
 
 PWCT_ROOT_NODE WeGetSelectedWindowNode(
-    __in PWCT_TREE_CONTEXT Context
+    _In_ PWCT_TREE_CONTEXT Context
     );
 
 VOID WeGetSelectedWindowNodes(
-    __in PWCT_TREE_CONTEXT Context,
-    __out PWCT_ROOT_NODE **Windows,
-    __out PULONG NumberOfWindows
+    _In_ PWCT_TREE_CONTEXT Context,
+    _Out_ PWCT_ROOT_NODE **Windows,
+    _Out_ PULONG NumberOfWindows
     );
 
 #endif

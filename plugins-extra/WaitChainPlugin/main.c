@@ -31,7 +31,7 @@ static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 
 static BOOLEAN WaitChainRegisterCallbacks(
-    __inout PWCT_CONTEXT Context
+    _Inout_ PWCT_CONTEXT Context
     )
 {
     PCOGETCALLSTATE coGetCallStateCallback = NULL;
@@ -54,8 +54,8 @@ static BOOLEAN WaitChainRegisterCallbacks(
 }
 
 static VOID WaitChainCheckThread(
-    __inout PWCT_CONTEXT Context,
-    __in HANDLE ThreadId
+    _Inout_ PWCT_CONTEXT Context,
+    _In_ HANDLE ThreadId
     )
 {
     BOOL isDeadLocked = FALSE;
@@ -141,7 +141,7 @@ static VOID WaitChainCheckThread(
 }
 
 static NTSTATUS WaitChainCallbackThread(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -196,10 +196,10 @@ static NTSTATUS WaitChainCallbackThread(
 }
 
 static INT_PTR CALLBACK WaitChainDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PWCT_CONTEXT context = NULL;
@@ -367,8 +367,8 @@ static INT_PTR CALLBACK WaitChainDlgProc(
 }
 
 static VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
@@ -390,8 +390,8 @@ static VOID NTAPI MenuItemCallback(
 }
 
 static VOID NTAPI ProcessMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     ULONG insertIndex = 0;
@@ -433,8 +433,8 @@ static VOID NTAPI ProcessMenuInitializingCallback(
 }
 
 static VOID NTAPI ThreadMenuInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 { 
     PWCT_CONTEXT context = NULL;
@@ -466,9 +466,9 @@ static VOID NTAPI ThreadMenuInitializingCallback(
 }
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)
