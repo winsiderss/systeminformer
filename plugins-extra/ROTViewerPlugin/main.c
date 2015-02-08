@@ -27,7 +27,7 @@ static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 static NTSTATUS EnumRunningObjectTable(
-    __in PVOID ThreadParam
+    _In_ PVOID ThreadParam
     )
 {
     IRunningObjectTable* iRunningObjectTable = NULL;
@@ -82,10 +82,10 @@ static NTSTATUS EnumRunningObjectTable(
 }
 
 static INT_PTR CALLBACK RotViewDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     PROT_WINDOW_CONTEXT context;
@@ -168,8 +168,8 @@ static INT_PTR CALLBACK RotViewDlgProc(
 }
 
 static VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
@@ -190,17 +190,17 @@ static VOID NTAPI MenuItemCallback(
 }
 
 static VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ROT_TABLE_MENUITEM, L"Running Object Table", NULL);
 }
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)

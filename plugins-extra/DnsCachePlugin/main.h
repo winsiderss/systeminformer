@@ -56,7 +56,7 @@ typedef struct _DNS_CACHE_ENTRY
 } DNS_CACHE_ENTRY, *PDNS_CACHE_ENTRY;
 
 typedef DNS_STATUS (WINAPI* _DnsGetCacheDataTable)(
-    __inout PDNS_CACHE_ENTRY* DnsCacheEntry
+    _Inout_ PDNS_CACHE_ENTRY* DnsCacheEntry
     );
 
 typedef BOOL (WINAPI* _DnsFlushResolverCache)(
@@ -77,7 +77,7 @@ typedef DNS_STATUS (WINAPI* _DnsQuery_W)(
     );
 
 typedef VOID (WINAPI* _DnsFree)(
-    __inout PVOID Data,
+    _Inout_ PVOID Data,
     _In_ _Deref_out_ DNS_FREE_TYPE FreeType
     );
 

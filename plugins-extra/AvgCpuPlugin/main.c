@@ -29,8 +29,8 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 LIST_ENTRY ProcessListHead = { &ProcessListHead, &ProcessListHead };
 
 VOID TreeNewMessageCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
@@ -91,10 +91,10 @@ VOID TreeNewMessageCallback(
 }
 
 LONG NTAPI AvgCpuSortFunction(
-    __in PVOID Node1,
-    __in PVOID Node2,
-    __in ULONG SubId,
-    __in PVOID Context
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_NODE node1 = Node1;
@@ -114,8 +114,8 @@ LONG NTAPI AvgCpuSortFunction(
 }
 
 VOID ProcessTreeNewInitializingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
@@ -134,9 +134,9 @@ VOID ProcessTreeNewInitializingCallback(
 }
 
 VOID ProcessItemCreateCallback(
-    __in PVOID Object,
-    __in PH_EM_OBJECT_TYPE ObjectType,
-    __in PVOID Extension
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     )
 {
     PPH_PROCESS_ITEM processItem = Object;
@@ -147,8 +147,8 @@ VOID ProcessItemCreateCallback(
 }
 
 VOID ProcessAddedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = Parameter;
@@ -158,8 +158,8 @@ VOID ProcessAddedHandler(
 }
 
 VOID ProcessRemovedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = Parameter;
@@ -169,8 +169,8 @@ VOID ProcessRemovedHandler(
 }
 
 VOID ProcessesUpdatedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     static ULONG runCount = 0;
@@ -258,9 +258,9 @@ VOID ProcessesUpdatedHandler(
 }
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     if (Reason == DLL_PROCESS_ATTACH)

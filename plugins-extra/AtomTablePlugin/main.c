@@ -21,8 +21,8 @@
 
 #define CINTERFACE
 #define COBJMACROS
-#include "phdk.h"
-#include "phappresource.h"
+#include <phdk.h>
+#include <phappresource.h>
 #include "resource.h"
 
 #define ATOM_TABLE_MENUITEM 1000
@@ -32,18 +32,18 @@
 #define SETTING_NAME_LISTVIEW_COLUMNS (SETTING_PREFIX L".ListViewColumns")
 
 VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 INT_PTR CALLBACK MainWindowDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
@@ -54,9 +54,9 @@ static PH_LAYOUT_MANAGER LayoutManager;
 static PPH_PLUGIN PluginInstance;
 
 LOGICAL DllMain(
-    __in HINSTANCE Instance,
-    __in ULONG Reason,
-    __reserved PVOID Reserved
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
     switch (Reason)
@@ -104,16 +104,16 @@ LOGICAL DllMain(
 }
 
 static VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ATOM_TABLE_MENUITEM, L"Global Atom Table", NULL);
 }
 
 static VOID NTAPI MenuItemCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
@@ -134,7 +134,7 @@ static VOID NTAPI MenuItemCallback(
 }
 
 static NTSTATUS PhEnumAtomTable(
-    __out PATOM_TABLE_INFORMATION* AtomTable
+    _Out_ PATOM_TABLE_INFORMATION* AtomTable
     )
 {
     NTSTATUS status;
@@ -164,8 +164,8 @@ static NTSTATUS PhEnumAtomTable(
 }
 
 static NTSTATUS PhQueryAtomTableEntry(
-    __in RTL_ATOM Atom,
-    __out PATOM_BASIC_INFORMATION* AtomInfo
+    _In_ RTL_ATOM Atom,
+    _Out_ PATOM_BASIC_INFORMATION* AtomInfo
     )
 {
     NTSTATUS status;
@@ -251,7 +251,7 @@ static VOID LoadAtomTable(VOID)
 }
 
 static PPH_STRING PhGetSelectedListViewItemText(
-    __in HWND hWnd
+    _In_ HWND hWnd
     )
 {
     INT index = PhFindListViewItemByFlags(
@@ -279,7 +279,7 @@ static PPH_STRING PhGetSelectedListViewItemText(
 }
 
 static VOID ShowStatusMenu(
-    __in HWND hwndDlg
+    _In_ HWND hwndDlg
     )
 {
     HMENU menu;
@@ -382,10 +382,10 @@ static VOID ShowStatusMenu(
 }
 
 INT_PTR CALLBACK MainWindowDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
