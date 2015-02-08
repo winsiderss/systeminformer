@@ -22,10 +22,9 @@
 
 #include "toolstatus.h"
 
-static HIMAGELIST ToolBarImageList = NULL;
-
 TBBUTTON ToolbarButtons[] =
 {
+    // Default toolbar buttons (displayed)
     { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
@@ -34,7 +33,9 @@ TBBUTTON ToolbarButtons[] =
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
     { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
-    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 }
+    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    // Available toolbar buttons (hidden)
+    { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 }
 };
 
 // NOTE: This Registry key is never created or used unless the Toolbar is customized.
@@ -66,22 +67,15 @@ static VOID RebarAddMenuItem(
     SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
 
-static VOID RebarRemoveMenuItem(
-    _In_ HWND WindowHandle,
-    _In_ UINT ID
-    )
-{
-    INT bandId = (INT)SendMessage(WindowHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
-
-    SendMessage(WindowHandle, RB_DELETEBAND, (WPARAM)bandId, 0);
-}
-
 static VOID RebarLoadSettings(
     VOID
     )
 {
+    static HIMAGELIST toolBarImageList = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
     // Initialize the Toolbar Imagelist.
-    if (!ToolBarImageList)
+    if (EnableToolBar && PhBeginInitOnce(&initOnce))
     {
         HBITMAP arrowIconBitmap = NULL;
         HBITMAP cogIconBitmap = NULL;
@@ -92,80 +86,92 @@ static VOID RebarLoadSettings(
         HBITMAP crossIconBitmap = NULL;
 
         // Create the toolbar imagelist
-        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
+        toolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images
-        ImageList_SetImageCount(ToolBarImageList, 7);
+        ImageList_SetImageCount(toolBarImageList, 8);
 
         // Add the images to the imagelist
         if (arrowIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
         {
-            ImageList_Replace(ToolBarImageList, 0, arrowIconBitmap, NULL);
+            ImageList_Replace(toolBarImageList, 0, arrowIconBitmap, NULL);
             DeleteObject(arrowIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
+            PhSetImageListBitmap(toolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
         }
 
         if (cogIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))  
         {
-            ImageList_Replace(ToolBarImageList, 1, cogIconBitmap, NULL);
+            ImageList_Replace(toolBarImageList, 1, cogIconBitmap, NULL);
             DeleteObject(cogIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));  
+            PhSetImageListBitmap(toolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));  
         }
 
         if (findIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
         {
-            ImageList_Replace(ToolBarImageList, 2, findIconBitmap, NULL);
+            ImageList_Replace(toolBarImageList, 2, findIconBitmap, NULL);
             DeleteObject(findIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
+            PhSetImageListBitmap(toolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
         }
 
         if (chartIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)))
         {
-            ImageList_Replace(ToolBarImageList, 3, chartIconBitmap, NULL);
+            ImageList_Replace(toolBarImageList, 3, chartIconBitmap, NULL);
             DeleteObject(chartIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
+            PhSetImageListBitmap(toolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
         }
 
         if (appIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)))
         {
-            ImageList_Replace(ToolBarImageList, 4, appIconBitmap, NULL);
+            ImageList_Replace(toolBarImageList, 4, appIconBitmap, NULL);
             DeleteObject(appIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
+            PhSetImageListBitmap(toolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
         }
 
         if (goIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
         {
-            ImageList_Replace(ToolBarImageList, 5, goIconBitmap, NULL);
+            ImageList_Replace(toolBarImageList, 5, goIconBitmap, NULL);
             DeleteObject(goIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
+            PhSetImageListBitmap(toolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
         }
 
         if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)))
         {
-            ImageList_Replace(ToolBarImageList, 6, crossIconBitmap, NULL);
+            ImageList_Replace(toolBarImageList, 6, crossIconBitmap, NULL);
             DeleteObject(crossIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
+            PhSetImageListBitmap(toolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
+        }       
+
+        if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
+        {
+            ImageList_Replace(toolBarImageList, 7, crossIconBitmap, NULL);
+            DeleteObject(crossIconBitmap);
         }
+        else
+        {
+            PhSetImageListBitmap(toolBarImageList, 7, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP));
+        }
+
+        PhEndInitOnce(&initOnce);
     }
 
     // Load the Rebar, Toolbar and Searchbox controls.
@@ -175,7 +181,7 @@ static VOID RebarLoadSettings(
 
         // Create the ReBar window.
         RebarHandle = CreateWindowEx(
-            WS_EX_TOOLWINDOW,
+            0,
             REBARCLASSNAME,
             NULL,
             WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, //RBS_FIXEDORDER | RBS_DBLCLKTOGGLE 
@@ -194,7 +200,7 @@ static VOID RebarLoadSettings(
             0,
             TOOLBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NODIVIDER | CCS_ADJUSTABLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NODIVIDER | CCS_ADJUSTABLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE, // TBSTYLE_ALTDRAG
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             RebarHandle,
             NULL,
@@ -213,15 +219,16 @@ static VOID RebarLoadSettings(
         ToolbarButtons[6].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window");
         ToolbarButtons[7].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Thread");
         ToolbarButtons[8].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Kill");
+        ToolbarButtons[9].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Always on Top");
 
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
         SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
         // Configure the toolbar imagelist.
-        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
-        // Add the buttons to the toolbar.
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ToolbarButtons), (LPARAM)ToolbarButtons);
+        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)toolBarImageList);
+        // Add the buttons to the toolbar (also specifying the default number of items to display).
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
         // Restore the toolbar settings.
         SendMessage(ToolBarHandle, TB_SAVERESTORE, FALSE, (LPARAM)&ToolbarSaveParams);
 
@@ -326,7 +333,7 @@ VOID LoadToolbarSettings(
         for (index = 0; index < buttonCount; index++)
         {
             TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT;
+            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT | TBIF_STATE;
 
             // Get settings for first button
             if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
@@ -361,6 +368,20 @@ VOID LoadToolbarSettings(
             case TIDC_FINDWINDOWKILL:
                 button.pszText = L"Find Window and Kill";
                 break;
+            case PHAPP_ID_VIEW_ALWAYSONTOP:
+                button.pszText = L"Always on Top";
+                break;
+            }
+
+            if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
+            {
+                BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
+
+                // Set the pressed state
+                if (isAlwaysOnTopEnabled)  
+                {
+                    button.fsState |= TBSTATE_PRESSED;
+                }
             }
 
             switch (DisplayStyle)

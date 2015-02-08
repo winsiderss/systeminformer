@@ -247,6 +247,20 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     goto DefaultWndProc;
                 }
                 break;
+            case PHAPP_ID_VIEW_ALWAYSONTOP:
+                {
+                    // Let Process Hacker perform the default processing.
+                    DefSubclassProc(hWnd, uMsg, wParam, lParam);
+
+                    // Query the settings.
+                    BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
+
+                    // Set the pressed button state.
+                    SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0)));
+
+                    goto DefaultWndProc;
+                }
+                break;
             }
         }
         break;
@@ -334,7 +348,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 
                         // Re-add the original buttons.
-                        SendMessage(ToolBarHandle, TB_ADDBUTTONS, _countof(ToolbarButtons), (LPARAM)ToolbarButtons);
+                        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
                         
                         // Re-load the original button settings.
                         LoadToolbarSettings();

@@ -179,6 +179,8 @@
     <Image Include="resources\active_search.png" />
     <Image Include="resources\application.bmp" />
     <Image Include="resources\application.png" />
+    <Image Include="resources\application_get.bmp" />
+    <Image Include="resources\application_get.png" />
     <Image Include="resources\application_go.bmp" />
     <Image Include="resources\application_go.png" />
     <Image Include="resources\arrow_refresh.bmp" />
