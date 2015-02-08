@@ -115,7 +115,7 @@ static VOID EnumDnsCacheTable(
                     else
                     {          
                         PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"UNKNOWN")->Buffer);
-                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L""));
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"")->Buffer);
                     }   
                                                   
                     PhSetListViewSubItem(hwndDlg, itemIndex, 3, PhaFormatString(L"%d", dnsRecordPtr->dwTtl)->Buffer);
