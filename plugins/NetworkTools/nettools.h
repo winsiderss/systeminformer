@@ -85,7 +85,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HWND StatusHandle;
     HWND PingGraphHandle;
     HWND OutputHandle;
-    HANDLE ThreadHandle;
     HANDLE PipeReadHandle;
     HANDLE ProcessHandle;
     HFONT FontHandle;
