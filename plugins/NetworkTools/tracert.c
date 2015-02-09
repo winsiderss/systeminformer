@@ -65,6 +65,7 @@ NTSTATUS NetworkTracertThreadStart(
 
     if (CreatePipe(&context->PipeReadHandle, &pipeWriteHandle, NULL, 0))
     {
+        HANDLE threadHandle = NULL;
         STARTUPINFO startupInfo = { sizeof(startupInfo) };
         OBJECT_HANDLE_FLAG_INFORMATION flagInfo;
         PPH_STRING command = NULL;
@@ -121,7 +122,8 @@ NTSTATUS NetworkTracertThreadStart(
         NtClose(pipeWriteHandle);
 
         // Create a thread which will wait for output and display it.
-        context->ThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)StdOutNetworkTracertThreadStart, context);
+        if (threadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)StdOutNetworkTracertThreadStart, context))
+            NtClose(threadHandle);
     }
 
     return STATUS_SUCCESS;

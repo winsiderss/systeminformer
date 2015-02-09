@@ -7,7 +7,6 @@
 #define IDD_OPTIONS                     103
 #define IDC_MAXTIMEOUTTEXT              1008
 #define IDC_NETOUTPUTEDIT               1009
-#define IDC_ICMP_BYTE_SIZE              1010
 #define IDC_ICMP_PANEL                  1011
 #define IDC_PINGS_LOST                  1012
 #define IDC_ICMP_MIN                    1013
