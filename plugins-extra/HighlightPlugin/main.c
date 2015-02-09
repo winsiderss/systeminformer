@@ -412,7 +412,6 @@ LOGICAL DllMain(
     switch (Reason)
     {
     case DLL_PROCESS_ATTACH:
-        ;
         {
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
