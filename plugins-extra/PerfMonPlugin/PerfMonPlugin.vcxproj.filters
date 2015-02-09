@@ -36,8 +36,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHANGELOG.txt">
-      <Filter>Resource Files</Filter>
-    </None>
+    <None Include="CHANGELOG.txt" />
   </ItemGroup>
 </Project>
