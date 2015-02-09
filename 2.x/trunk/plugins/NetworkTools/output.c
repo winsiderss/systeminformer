@@ -61,13 +61,8 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             if (context->PipeReadHandle)
                 NtClose(context->PipeReadHandle);
 
-            // Close the pipe output thread.
-            if (context->ThreadHandle)
-                NtClose(context->ThreadHandle);
-
             RemoveProp(hwndDlg, L"Context"); 
             PhFree(context);
-            context = NULL;
         }
     }
 
