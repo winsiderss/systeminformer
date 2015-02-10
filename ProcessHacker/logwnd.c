@@ -74,7 +74,7 @@ static VOID PhpUpdateLogList(
     )
 {
     ListViewCount = PhLogBuffer.Count;
-    ListView_SetItemCountEx(ListViewHandle, ListViewCount, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
+    ListView_SetItemCountEx(ListViewHandle, ListViewCount, LVSICF_NOSCROLL);
 
     if (ListViewCount >= 2 && Button_GetCheck(GetDlgItem(PhLogWindowHandle, IDC_AUTOSCROLL)) == BST_CHECKED)
     {
