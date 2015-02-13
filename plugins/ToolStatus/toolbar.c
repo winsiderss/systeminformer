@@ -73,9 +73,12 @@ static VOID RebarBandRemove(
     _In_ UINT ID
     )
 {
-    INT bandId = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
+    INT index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
+    
+    if (index == -1)
+        return;
 
-    SendMessage(RebarHandle, RB_DELETEBAND, (WPARAM)bandId, 0);
+    SendMessage(RebarHandle, RB_DELETEBAND, (WPARAM)index, 0);
 }
 
 static BOOLEAN RebarBandExists(
