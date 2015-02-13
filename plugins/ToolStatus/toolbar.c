@@ -22,6 +22,7 @@
 
 #include "toolstatus.h"
 
+BOOLEAN ToolbarInitialized = FALSE;
 HIMAGELIST ToolBarImageList = NULL;
 
 TBBUTTON ToolbarButtons[] =
@@ -48,10 +49,9 @@ TBSAVEPARAMSW ToolbarSaveParams =
     L"ToolbarSettings"
 };
 
-static VOID RebarAddMenuItem(
-    _In_ HWND WindowHandle,
-    _In_ HWND HwndHandle,
+static VOID RebarBandInsert(
     _In_ UINT BandID,
+    _In_ HWND HwndChild,
     _In_ UINT cyMinChild,
     _In_ UINT cxMinChild
     )
@@ -62,11 +62,32 @@ static VOID RebarAddMenuItem(
 
     rebarBandInfo.wID = BandID;
     //rebarBandInfo.cxIdeal = cxIdeal;
-    rebarBandInfo.hwndChild = HwndHandle;
+    rebarBandInfo.hwndChild = HwndChild;
     rebarBandInfo.cyMinChild = cyMinChild;
     rebarBandInfo.cxMinChild = cxMinChild;
 
-    SendMessage(WindowHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+    SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+}
+
+static VOID RebarBandRemove(
+    _In_ UINT ID
+    )
+{
+    INT bandId = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
+
+    SendMessage(RebarHandle, RB_DELETEBAND, (WPARAM)bandId, 0);
+}
+
+static BOOLEAN RebarBandExists(
+    _In_ UINT ID
+    )
+{
+    INT bandId = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
+
+    if (bandId != -1)
+        return TRUE;
+
+    return FALSE;
 }
 
 static VOID RebarLoadSettings(
@@ -171,7 +192,7 @@ static VOID RebarLoadSettings(
         }
     }
 
-    // Load the Rebar, Toolbar and Searchbox controls.
+    // Initialize the Rebar and Toolbar controls.
     if (EnableToolBar && !RebarHandle)
     {
         REBARINFO rebarInfo = { sizeof(REBARINFO) };
@@ -226,7 +247,7 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar (also specifying the default number of items to display).
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
-        // Restore the toolbar settings.
+        // Restore the toolbar settings (Note: This will invoke the TBN_ENDADJUST notification).
         SendMessage(ToolBarHandle, TB_SAVERESTORE, FALSE, (LPARAM)&ToolbarSaveParams);
 
         // Enable theming:
@@ -237,37 +258,25 @@ static VOID RebarLoadSettings(
         ULONG_PTR toolbarButtonSize = (ULONG_PTR)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
         // Inset the toolbar into the rebar control.
-        RebarAddMenuItem(
-            RebarHandle, 
-            ToolBarHandle,
-            BandID_ToolBar,
-            HIWORD(toolbarButtonSize), 
-            LOWORD(toolbarButtonSize)
-            );
+        RebarBandInsert(BandID_ToolBar, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
 
-        if (EnableSearchBox && !SearchboxHandle)
-        {  
-            SearchboxText = PhReferenceEmptyString();
+        ToolbarInitialized = TRUE;
+    }
+    
+    // Initialize the Searchbox and TreeNewFilters.
+    if (EnableSearchBox && !SearchboxHandle)
+    {
+        SearchboxText = PhReferenceEmptyString();
 
-            ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
-            ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
-            NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
+        ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
+        ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
+        NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-            // Insert a paint region into the edit control NC window area
-            SearchboxHandle = CreateSearchControl(ID_SEARCH_CLEAR);
-
-            // Insert the edit control into the rebar control
-            RebarAddMenuItem(
-                RebarHandle, 
-                SearchboxHandle, 
-                BandID_SearchBox, 
-                20, 
-                180
-                );
-        }
+        // Create the Searchbox control.
+        SearchboxHandle = CreateSearchControl(ID_SEARCH_CLEAR);
     }
 
-    // Load the Statusbar control.
+    // Initialize the Statusbar control.
     if (EnableStatusBar && !StatusBarHandle)
     {
         // Create the StatusBar window.
@@ -298,11 +307,19 @@ static VOID RebarLoadSettings(
 
     if (EnableSearchBox)
     {
+        // Add the Searchbox band into the rebar control.
+        if (!RebarBandExists(BandID_SearchBox))
+            RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+
         if (SearchboxHandle && !IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
     }
     else
     {
+        // Remove the Searchbox band from the rebar control.
+        if (RebarBandExists(BandID_SearchBox))   
+            RebarBandRemove(BandID_SearchBox);
+
         if (SearchboxHandle)
         {
             // Clear search text and reset search filters.

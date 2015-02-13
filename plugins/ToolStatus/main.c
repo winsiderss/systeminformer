@@ -299,14 +299,14 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         // Get settings for first button
                         if (SendMessage(ToolBarHandle, TB_GETITEMRECT, index, (LPARAM)&buttonRect) == -1)
-                            continue;
+                            break;
 
                         if (buttonRect.right < toolbarRect.right)
                             continue;
                      
                         // Get settings for first button
                         if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
-                            continue;
+                            break;
 
                         // Add separators to menu
                         if (button.fsStyle == BTNS_SEP)
@@ -423,6 +423,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     return FALSE;
                 case TBN_ENDADJUST:
                     {
+                        if (!ToolbarInitialized)
+                            break;
+
                         // Save the customization settings.
                         SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
 
