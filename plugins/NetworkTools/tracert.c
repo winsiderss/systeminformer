@@ -122,7 +122,7 @@ NTSTATUS NetworkTracertThreadStart(
         NtClose(pipeWriteHandle);
 
         // Create a thread which will wait for output and display it.
-        if (threadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)StdOutNetworkTracertThreadStart, context))
+        if (threadHandle = PhCreateThread(0, StdOutNetworkTracertThreadStart, context))
             NtClose(threadHandle);
     }
 

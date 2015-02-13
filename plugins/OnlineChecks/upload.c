@@ -1101,7 +1101,7 @@ static INT_PTR CALLBACK UploadDlgProc(
                 break;
             }
 
-            if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UploadCheckThreadStart, (PVOID)context))
+            if (dialogThread = PhCreateThread(0, UploadCheckThreadStart, (PVOID)context))
                 NtClose(dialogThread);
         }
         break;
@@ -1136,7 +1136,7 @@ static INT_PTR CALLBACK UploadDlgProc(
                         Control_Visible(GetDlgItem(hwndDlg, IDYES), FALSE);
 
                         // Start the upload thread...
-                        if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UploadFileThreadStart, (PVOID)context))
+                        if (dialogThread = PhCreateThread(0, UploadFileThreadStart, (PVOID)context))
                             NtClose(dialogThread);
                     }
                     else
@@ -1272,14 +1272,15 @@ VOID UploadToOnlineService(
     )
 {
     HANDLE dialogThread = NULL;
-
-    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)PhAllocate(sizeof(UPLOAD_CONTEXT));
+    PUPLOAD_CONTEXT context;
+    
+    context = (PUPLOAD_CONTEXT)PhAllocate(sizeof(UPLOAD_CONTEXT));
     memset(context, 0, sizeof(UPLOAD_CONTEXT));
 
     context->Service = Service;
     context->FileName = PhDuplicateString(FileName);
     context->BaseFileName = PhGetBaseName(context->FileName);
 
-    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhUploadToDialogThreadStart, (PVOID)context))
+    if (dialogThread = PhCreateThread(0, PhUploadToDialogThreadStart, (PVOID)context))
         NtClose(dialogThread);
 }
