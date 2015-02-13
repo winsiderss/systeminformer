@@ -981,14 +981,11 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Show new version info (from the background update check)
             if (context->HaveData)
             {
-                // Create the update check thread.
                 HANDLE updateCheckThread = NULL;
 
-                if (updateCheckThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateCheckThread, context))
-                {
-                    // Close the thread handle, we don't use it.
+                // Create the update check thread.
+                if (updateCheckThread = PhCreateThread(0, UpdateCheckThread, context))
                     NtClose(updateCheckThread);
-                }
             }
         }
         break;
@@ -1043,7 +1040,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                             SetDlgItemText(hwndDlg, IDC_RELDATE, L"");
                             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
 
-                            if (updateCheckThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateCheckThread, context))
+                            if (updateCheckThread = PhCreateThread(0, UpdateCheckThread, context))
                                 NtClose(updateCheckThread);
                         }
                         break;
@@ -1320,7 +1317,7 @@ VOID ShowUpdateDialog(
 {
     if (!UpdateDialogThreadHandle)
     {
-        if (!(UpdateDialogThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)ShowUpdateDialogThread, Context)))
+        if (!(UpdateDialogThreadHandle = PhCreateThread(0, ShowUpdateDialogThread, Context)))
         {
             PhShowStatus(PhMainWndHandle, L"Unable to create the updater window.", 0, GetLastError());
             return;
@@ -1338,9 +1335,6 @@ VOID StartInitialCheck(
 {
     HANDLE silentCheckThread = NULL;
 
-    if (silentCheckThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateCheckSilentThread, NULL))
-    {
-        // Close the thread handle right away since we don't use it
+    if (silentCheckThread = PhCreateThread(0, UpdateCheckSilentThread, NULL))
         NtClose(silentCheckThread);
-    }
 }

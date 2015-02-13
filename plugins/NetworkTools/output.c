@@ -128,7 +128,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                         PhaFormatString(L"Tracing route to %s...", context->addressString)->Buffer
                         );
 
-                    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkTracertThreadStart, (PVOID)context))
+                    if (dialogThread = PhCreateThread(0, NetworkTracertThreadStart, (PVOID)context))
                         NtClose(dialogThread);
                 }
                 break;
@@ -142,7 +142,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
                     ShowWindow(GetDlgItem(hwndDlg, IDC_MORE_INFO), SW_SHOW);
 
-                    if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)NetworkWhoisThreadStart, (PVOID)context))
+                    if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
                         NtClose(dialogThread);
                 }
                 break;
@@ -432,12 +432,12 @@ VOID PerformNetworkAction(
 
     if (context->Action == NETWORK_ACTION_PING)
     {
-        if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkPingDialogThreadStart, (PVOID)context))
+        if (dialogThread = PhCreateThread(0, PhNetworkPingDialogThreadStart, (PVOID)context))
             NtClose(dialogThread);
     }
     else
     {
-        if (dialogThread = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)PhNetworkOutputDialogThreadStart, (PVOID)context)) 
+        if (dialogThread = PhCreateThread(0, PhNetworkOutputDialogThreadStart, (PVOID)context)) 
             NtClose(dialogThread);
     }
 }
