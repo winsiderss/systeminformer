@@ -359,12 +359,12 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         rebar->rc.bottom
                         );
 
-                    PhDestroyEMenu(menu);
-
                     if (selectedItem && selectedItem->Id != -1)
                     {
                         SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
                     }
+                  
+                    PhDestroyEMenu(menu);
                 }
 
                 goto DefaultWndProc;
