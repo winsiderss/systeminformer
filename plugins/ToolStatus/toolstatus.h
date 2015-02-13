@@ -83,6 +83,7 @@ typedef enum _REBAR_BAND_ID
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
+extern BOOLEAN ToolbarInitialized;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
