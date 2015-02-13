@@ -1,5 +1,6 @@
 2.0
  * Added Toolbar customization
+ * Added Rebar Chevron support
 
 1.9
  * Added PNG images
