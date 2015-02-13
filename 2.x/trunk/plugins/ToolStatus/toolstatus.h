@@ -74,6 +74,12 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
     ToolbarDisplayAllText
 } TOOLBAR_DISPLAY_STYLE;
 
+typedef enum _REBAR_BAND_ID
+{
+    BandID_ToolBar = 0,
+    BandID_SearchBox = 1
+} REBAR_BAND_ID;
+
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
@@ -88,6 +94,7 @@ extern HWND StatusBarHandle;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
 
+extern HIMAGELIST ToolBarImageList;
 extern TBBUTTON ToolbarButtons[10];
 extern TBSAVEPARAMSW ToolbarSaveParams;
 
@@ -110,6 +117,10 @@ VOID LoadToolbarSettings(
 
 VOID ResetToolbarSettings(
     VOID
+    );
+
+PWSTR ToolbarGetText(
+    _In_ INT CommandID
     );
 
 INT_PTR CALLBACK OptionsDlgProc(

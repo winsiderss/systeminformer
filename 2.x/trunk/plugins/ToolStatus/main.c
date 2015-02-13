@@ -275,6 +275,97 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     // Invoke the LayoutPaddingCallback.
                     PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
                 }
+                else if (hdr->code == RBN_CHEVRONPUSHED)
+                {
+                    LPNMREBARCHEVRON rebar;
+                    ULONG index = 0;
+                    ULONG buttonCount = 0;
+                    RECT toolbarRect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM selectedItem;
+                 
+                    rebar = (LPNMREBARCHEVRON)lParam;
+                    menu = PhCreateEMenu();
+
+                    GetClientRect(ToolBarHandle, &toolbarRect);
+
+                    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+                    for (index = 0; index < buttonCount; index++)
+                    {
+                        RECT buttonRect;
+                        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
+                        button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_IMAGE;
+
+                        // Get settings for first button
+                        if (SendMessage(ToolBarHandle, TB_GETITEMRECT, index, (LPARAM)&buttonRect) == -1)
+                            continue;
+
+                        if (buttonRect.right < toolbarRect.right)
+                            continue;
+                     
+                        // Get settings for first button
+                        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
+                            continue;
+
+                        // Add separators to menu
+                        if (button.fsStyle == BTNS_SEP)
+                        {
+                            PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                            continue;
+                        }
+                        else
+                        {
+                            HICON menuIcon;
+                            PPH_EMENU_ITEM menuItem;
+                            
+                            menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
+                            menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL | ILD_TRANSPARENT);
+
+                            menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
+                            menuItem->Bitmap = PhIconToBitmap(menuIcon, 16, 16);
+                            DestroyIcon(menuIcon);
+
+                            if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
+                            {
+                                // Query the settings.
+                                BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
+
+                                // Set the pressed state.
+                                if (isAlwaysOnTopEnabled)
+                                    menuItem->Flags |= PH_EMENU_CHECKED;
+                            }
+
+                            // TODO: Temporarily disable some unsupported buttons.
+                            if (button.idCommand == TIDC_FINDWINDOW ||
+                                button.idCommand == TIDC_FINDWINDOWTHREAD ||
+                                button.idCommand == TIDC_FINDWINDOWKILL)
+                            {
+                                menuItem->Flags |= PH_EMENU_DISABLED;
+                            }
+
+                            PhInsertEMenuItem(menu, menuItem, -1);
+                        }
+                    }
+
+                    MapWindowPoints(RebarHandle, NULL, (LPPOINT)&rebar->rc, 2);
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hWnd,
+                        PH_EMENU_SHOW_NONOTIFY | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rebar->rc.left,
+                        rebar->rc.bottom
+                        );
+
+                    PhDestroyEMenu(menu);
+
+                    if (selectedItem && selectedItem->Id != -1)
+                    {
+                        SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
+                    }
+                }
 
                 goto DefaultWndProc;
             }
