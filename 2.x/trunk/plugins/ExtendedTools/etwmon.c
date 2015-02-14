@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   ETW monitoring
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2013 wj32
  * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
@@ -392,7 +392,7 @@ NTSTATUS EtpEtwMonitorThreadStart(
     TRACEHANDLE traceHandle;
 
     memset(&logFile, 0, sizeof(EVENT_TRACE_LOGFILE));
-    logFile.LoggerName = WindowsVersion >= WINDOWS_8 ? EtpLoggerName_WIN8.Buffer : EtpLoggerName.Buffer;
+    logFile.LoggerName = WindowsVersion >= WINDOWS_8 ? PhEtpLoggerName.Buffer : EtpLoggerName.Buffer;
     logFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME;
     logFile.BufferCallback = EtpEtwBufferCallback;
     logFile.EventCallback = EtpEtwEventCallback;
