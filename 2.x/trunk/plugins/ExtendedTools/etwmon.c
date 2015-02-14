@@ -2,8 +2,7 @@
  * Process Hacker Extended Tools -
  *   ETW monitoring
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2010-2011 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -48,7 +47,6 @@ NTSTATUS EtpRundownEtwMonitorThreadStart(
     _In_ PVOID Parameter
     );
 
-static GUID ProcessHackerControlGuid_I = { 0xad17898e, 0x5a4c, 0x43c5, { 0xbe, 0xb9, 0xd4, 0x3a, 0xff, 0x3e, 0x94, 0x2c } };
 static GUID SystemTraceControlGuid_I = { 0x9e814aad, 0x3204, 0x11d2, { 0x9a, 0x82, 0x00, 0x60, 0x08, 0xa8, 0x69, 0x39 } };
 static GUID KernelRundownGuid_I = { 0x3b9c9951, 0x3480, 0x4220, { 0x93, 0x77, 0x9c, 0x8e, 0x51, 0x84, 0xf5, 0xcd } };
 static GUID DiskIoGuid_I = { 0x3d6fa8d4, 0xfe05, 0x11d0, { 0x9d, 0xda, 0x00, 0xc0, 0x4f, 0xd7, 0xba, 0x7c } };
@@ -59,7 +57,6 @@ static GUID UdpIpGuid_I = { 0xbf3a50c5, 0xa9c9, 0x4988, { 0xa0, 0x05, 0x2d, 0xf0
 // ETW tracing layer
 
 BOOLEAN EtEtwEnabled;
-static UNICODE_STRING PhEtpLoggerName = RTL_CONSTANT_STRING(L"PhRtTraceSession");
 static UNICODE_STRING EtpLoggerName = RTL_CONSTANT_STRING(KERNEL_LOGGER_NAME);
 static TRACEHANDLE EtpSessionHandle;
 static PEVENT_TRACE_PROPERTIES EtpTraceProperties;
@@ -113,14 +110,7 @@ VOID EtStartEtwSession(
     ULONG result;
     ULONG bufferSize;
 
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + PhEtpLoggerName.Length + sizeof(WCHAR);
-    }
-    else
-    {
-        bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + EtpLoggerName.Length + sizeof(WCHAR);
-    }
+    bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + EtpLoggerName.Length + sizeof(WCHAR);
 
     if (!EtpTraceProperties)
         EtpTraceProperties = PhAllocate(bufferSize);
@@ -128,21 +118,17 @@ VOID EtStartEtwSession(
     memset(EtpTraceProperties, 0, sizeof(EVENT_TRACE_PROPERTIES));
 
     EtpTraceProperties->Wnode.BufferSize = bufferSize;
-    EtpTraceProperties->Wnode.Guid = WindowsVersion >= WINDOWS_8 ? ProcessHackerControlGuid_I : SystemTraceControlGuid_I;
+    EtpTraceProperties->Wnode.Guid = SystemTraceControlGuid_I;
     EtpTraceProperties->Wnode.ClientContext = 1;
     EtpTraceProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     EtpTraceProperties->MinimumBuffers = 1;
-    EtpTraceProperties->LogFileMode = WindowsVersion >= WINDOWS_8 ? EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE : EVENT_TRACE_REAL_TIME_MODE;
+    EtpTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
     EtpTraceProperties->FlushTimer = 1;
     EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_DISK_FILE_IO | EVENT_TRACE_FLAG_NETWORK_TCPIP;
     EtpTraceProperties->LogFileNameOffset = 0;
     EtpTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
-    result = StartTrace(
-        &EtpSessionHandle,
-        WindowsVersion >= WINDOWS_8 ? PhEtpLoggerName.Buffer : EtpLoggerName.Buffer,
-        EtpTraceProperties
-        );
+    result = StartTrace(&EtpSessionHandle, EtpLoggerName.Buffer, EtpTraceProperties);
 
     if (result == ERROR_SUCCESS)
     {
@@ -173,24 +159,12 @@ ULONG EtpControlEtwSession(
 
     EtpTraceProperties->LogFileNameOffset = 0; // make sure it is 0, otherwise ControlTrace crashes
 
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        return ControlTrace(
-            EtpStartedSession ? EtpSessionHandle : 0,
-            EtpStartedSession ? NULL : PhEtpLoggerName.Buffer,
-            EtpTraceProperties,
-            ControlCode
-            );
-    }
-    else
-    {
-        return ControlTrace(
-            EtpStartedSession ? EtpSessionHandle : 0,
-            EtpStartedSession ? NULL : EtpLoggerName.Buffer,
-            EtpTraceProperties,
-            ControlCode
-            );
-    }
+    return ControlTrace(
+        EtpStartedSession ? EtpSessionHandle : 0,
+        EtpStartedSession ? NULL : EtpLoggerName.Buffer,
+        EtpTraceProperties,
+        ControlCode
+        );
 }
 
 VOID EtStopEtwSession(
@@ -392,7 +366,7 @@ NTSTATUS EtpEtwMonitorThreadStart(
     TRACEHANDLE traceHandle;
 
     memset(&logFile, 0, sizeof(EVENT_TRACE_LOGFILE));
-    logFile.LoggerName = WindowsVersion >= WINDOWS_8 ? PhEtpLoggerName.Buffer : EtpLoggerName.Buffer;
+    logFile.LoggerName = EtpLoggerName.Buffer;
     logFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME;
     logFile.BufferCallback = EtpEtwBufferCallback;
     logFile.EventCallback = EtpEtwEventCallback;
@@ -466,17 +440,7 @@ ULONG EtStartEtwRundown(
     if (result != ERROR_SUCCESS)
         return result;
 
-    result = EnableTraceEx(
-        WindowsVersion >= WINDOWS_8 ? &ProcessHackerControlGuid_I : &KernelRundownGuid_I, 
-        NULL, 
-        EtpRundownSessionHandle, 
-        1, 
-        0, 
-        0x10, 
-        0, 
-        0, 
-        NULL
-        );
+    result = EnableTraceEx(&KernelRundownGuid_I, NULL, EtpRundownSessionHandle, 1, 0, 0x10, 0, 0, NULL);
 
     if (result != ERROR_SUCCESS)
     {
