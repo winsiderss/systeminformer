@@ -757,7 +757,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
-                { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYSTYLE, L"0" }
+                { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYSTYLE, L"1" }
             };
 
             PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
