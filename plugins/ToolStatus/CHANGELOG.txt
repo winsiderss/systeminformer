@@ -1,6 +1,7 @@
 2.0
  * Added Toolbar customization
  * Added Rebar Chevron support
+ * Added Auto-hide Searchbox
 
 1.9
  * Added PNG images
