@@ -34,12 +34,18 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND comboHandle = GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO);
+            HWND toolbarCombo = GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO);
+            HWND searchboxCombo = GetDlgItem(hwndDlg, IDC_SEARCHBOX_DISPLAYSTYLECOMBO);
 
-            ComboBox_AddString(comboHandle, L"No Text Labels"); // Displays no text label for the toolbar buttons.
-            ComboBox_AddString(comboHandle, L"Selective Text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
-            ComboBox_AddString(comboHandle, L"Show Text Labels"); // Displays text labels for the toolbar buttons.
-            ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE));
+            ComboBox_AddString(toolbarCombo, L"No Text Labels"); // Displays no text label for the toolbar buttons.
+            ComboBox_AddString(toolbarCombo, L"Selective Text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
+            ComboBox_AddString(toolbarCombo, L"Show Text Labels"); // Displays text labels for the toolbar buttons.
+            ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
+           
+            ComboBox_AddString(searchboxCombo, L"Auto-hide");
+            ComboBox_AddString(searchboxCombo, L"Always show");
+            //ComboBox_AddString(searchboxCombo, L"Hide when inactive");
+            ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE));
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR), 
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR) ? BST_CHECKED : BST_UNCHECKED);
@@ -62,9 +68,11 @@ INT_PTR CALLBACK OptionsDlgProc(
                 PostMessage(ToolBarHandle, TB_CUSTOMIZE, 0, 0);
                 break;
             case IDOK:
-                {
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE,
-                        (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
+                {            
+                    PhSetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE,
+                        (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));                 
+                    PhSetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE,
+                        (SearchBoxDisplayStyle = (SEARCHBOX_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_SEARCHBOX_DISPLAYSTYLECOMBO))));
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR,
                         (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED));
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX,
@@ -73,9 +81,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                         (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED));
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
-
+                    
                     LoadToolbarSettings();
-
                     InvalidateRect(ToolBarHandle, NULL, TRUE);
                     
                     EndDialog(hwndDlg, IDOK);
