@@ -49,7 +49,7 @@ TBSAVEPARAMSW ToolbarSaveParams =
     L"ToolbarSettings"
 };
 
-static VOID RebarBandInsert(
+VOID RebarBandInsert(
     _In_ UINT BandID,
     _In_ HWND HwndChild,
     _In_ UINT cyMinChild,
@@ -69,11 +69,11 @@ static VOID RebarBandInsert(
     SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
 
-static VOID RebarBandRemove(
-    _In_ UINT ID
+VOID RebarBandRemove(
+    _In_ UINT BandID
     )
 {
-    INT index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
+    INT index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
     
     if (index == -1)
         return;
@@ -81,13 +81,13 @@ static VOID RebarBandRemove(
     SendMessage(RebarHandle, RB_DELETEBAND, (WPARAM)index, 0);
 }
 
-static BOOLEAN RebarBandExists(
-    _In_ UINT ID
+BOOLEAN RebarBandExists(
+    _In_ UINT BandID
     )
 {
-    INT bandId = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)ID, 0);
+    INT index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
 
-    if (bandId != -1)
+    if (index != -1)
         return TRUE;
 
     return FALSE;
@@ -444,12 +444,12 @@ VOID LoadToolbarSettings(
                 continue;
             else
             {
-                SIZE sizeStatic = { 0 };
+                SIZE idealWidth;
 
                 // Reset the IdealSize for the Chevron
-                SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&sizeStatic);
+                SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth);
 
-                band.cxIdeal = sizeStatic.cx;
+                band.cxIdeal = idealWidth.cx;
 
                 SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&band);
             }

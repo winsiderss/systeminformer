@@ -44,7 +44,8 @@
 #define SETTING_NAME_ENABLE_STATUSBAR (SETTING_PREFIX L".EnableStatusBar")
 #define SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS (SETTING_PREFIX L".ResolveGhostWindows")
 #define SETTING_NAME_ENABLE_STATUSMASK (SETTING_PREFIX L".StatusMask")
-#define SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE (SETTING_PREFIX L".ToolbarDisplayStyle")
+#define SETTING_NAME_TOOLBARDISPLAYSTYLE (SETTING_PREFIX L".ToolbarDisplayStyle")
+#define SETTING_NAME_SEARCHBOXDISPLAYSTYLE (SETTING_PREFIX L".SearchBoxDisplayStyle")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 
@@ -74,6 +75,13 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
     ToolbarDisplayAllText
 } TOOLBAR_DISPLAY_STYLE;
 
+typedef enum _SEARCHBOX_DISPLAY_STYLE
+{
+    SearchBoxDisplayAutoHide,
+    SearchBoxDisplayAlwaysShow,
+    SearchBoxDisplayHideInactive
+} SEARCHBOX_DISPLAY_STYLE;
+
 typedef enum _REBAR_BAND_ID
 {
     BandID_ToolBar = 0,
@@ -85,6 +93,7 @@ extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
 extern BOOLEAN ToolbarInitialized;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
+extern SEARCHBOX_DISPLAY_STYLE SearchBoxDisplayStyle;
 extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
 
@@ -110,6 +119,21 @@ VOID UpdateStatusBar(
 
 VOID ShowStatusMenu(
     _In_ PPOINT Point
+    );
+
+VOID RebarBandInsert(
+    _In_ UINT BandID,
+    _In_ HWND HwndChild,
+    _In_ UINT cyMinChild,
+    _In_ UINT cxMinChild
+    );
+
+VOID RebarBandRemove(
+    _In_ UINT BandID
+    );
+
+BOOLEAN RebarBandExists(
+    _In_ UINT BandID
     );
 
 VOID LoadToolbarSettings(

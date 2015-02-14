@@ -27,6 +27,7 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
+SEARCHBOX_DISPLAY_STYLE SearchBoxDisplayStyle = SearchBoxDisplayAutoHide;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
@@ -105,6 +106,39 @@ static VOID NTAPI LayoutPaddingCallback(
 
         // Adjust the PH client area and exclude the rebar width.
         data->Padding.top += rebarRect.bottom;
+      
+        if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
+        {
+            static BOOLEAN isSearchboxVisible = FALSE;  
+            SIZE idealWidth;
+
+            // Query the the Toolbar ideal width
+            SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth);
+
+            // Hide the Searcbox band if the window size is too small...
+            if (rebarRect.right > idealWidth.cx)
+            {
+                if (isSearchboxVisible)
+                {
+                    if (!RebarBandExists(BandID_SearchBox))
+                        RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+
+                    //SendMessage(RebarHandle, RB_SHOWBAND, (WPARAM)index, (LPARAM)TRUE);
+                    isSearchboxVisible = FALSE;
+                }
+            }
+            else
+            {
+                if (!isSearchboxVisible)
+                { 
+                    if (RebarBandExists(BandID_SearchBox))   
+                        RebarBandRemove(BandID_SearchBox);
+
+                    //SendMessage(RebarHandle, RB_SHOWBAND, (WPARAM)index, (LPARAM)FALSE);
+                    isSearchboxVisible = TRUE;
+                }
+            }
+        }
     }
 
     if (StatusBarHandle && EnableStatusBar)
@@ -430,7 +464,6 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
 
                         LoadToolbarSettings();
-
                         InvalidateRect(ToolBarHandle, NULL, TRUE);
                     }
                     break;
@@ -688,7 +721,8 @@ static VOID NTAPI LoadCallback(
     EnableStatusBar = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR);
 
     StatusMask = PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK);
-    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE);
+    DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
+    SearchBoxDisplayStyle = (SEARCHBOX_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE);
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -722,7 +756,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSBAR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_TOOLBARDISPLAYSTYLE, L"1" }
+                { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
+                { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYSTYLE, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
