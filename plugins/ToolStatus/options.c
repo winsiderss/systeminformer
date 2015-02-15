@@ -47,6 +47,9 @@ INT_PTR CALLBACK OptionsDlgProc(
             //ComboBox_AddString(searchboxCombo, L"Hide when inactive");
             ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE));
 
+            if (WindowsVersion < WINDOWS_VISTA)
+                EnableWindow(searchboxCombo, FALSE);
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR), 
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_SEARCHBOX), 
