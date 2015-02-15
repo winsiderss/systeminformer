@@ -28,6 +28,7 @@ BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
 SEARCHBOX_DISPLAY_STYLE SearchBoxDisplayStyle = SearchBoxDisplayAutoHide;
+REBAR_DISPLAY_LOCATION RebarDisplayLocation = RebarLocationTop;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
@@ -99,14 +100,50 @@ static VOID NTAPI LayoutPaddingCallback(
     if (RebarHandle && EnableToolBar)
     {
         RECT rebarRect;
+        RECT clientRect;
+        INT x, y, cx, cy;
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
-
+        
+        GetClientRect(PhMainWndHandle, &clientRect);
         GetClientRect(RebarHandle, &rebarRect);
+        
+        switch (RebarDisplayLocation)
+        {
+        case RebarLocationLeft:
+            //x = 0;
+            //y = 0;
+            //cx = rebarRect.right - rebarRect.left;
+            //cy = clientRect.bottom - clientRect.top;
+            break;
+        case RebarLocationTop:
+            x = 0;
+            y = 0;
+            cx = clientRect.right - clientRect.left;
+            cy = clientRect.bottom - clientRect.top;
 
-        // Adjust the PH client area and exclude the rebar width.
-        data->Padding.top += rebarRect.bottom;
-      
+            // Adjust the PH client area and exclude the rebar width.
+            data->Padding.top += rebarRect.bottom;
+            break;
+        case RebarLocationRight:
+            //x = clientRect.right - (rebarRect.right - rebarRect.left);
+            //y = 0;
+            //cx = rebarRect.right - rebarRect.left;
+            //cy = clientRect.bottom - clientRect.top;
+            break;
+        case RebarLocationBottom:
+            x = 0;
+            y = clientRect.bottom - (rebarRect.bottom - rebarRect.top) - (EnableStatusBar ? rebarRect.bottom + 1 : 0);
+            cx = clientRect.right - clientRect.left;
+            cy = rebarRect.bottom - rebarRect.top;
+
+            // Adjust the PH client area and exclude the rebar width.
+            data->Padding.bottom += rebarRect.bottom;
+            break;
+        }
+
+        MoveWindow(RebarHandle, x, y, cx, cy, TRUE);  
+  
         if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
         {
             static BOOLEAN isSearchboxVisible = FALSE;  
@@ -151,6 +188,11 @@ static VOID NTAPI LayoutPaddingCallback(
 
         // Adjust the PH client area and exclude the StatusBar width.
         data->Padding.bottom += statusBarRect.bottom;
+
+        if (RebarDisplayLocation == RebarLocationBottom)
+        {
+            InvalidateRect(StatusBarHandle, &statusBarRect, TRUE);
+        }
     }
 }
 
@@ -723,6 +765,7 @@ static VOID NTAPI LoadCallback(
     StatusMask = PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK);
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayStyle = (SEARCHBOX_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE);
+    RebarDisplayLocation = (REBAR_DISPLAY_LOCATION)PhGetIntegerSetting(SETTING_NAME_REBARDISPLAYLOCATION);
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -757,7 +800,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
-                { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYSTYLE, L"1" }
+                { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYSTYLE, L"1" },
+                { IntegerSettingType, SETTING_NAME_REBARDISPLAYLOCATION, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);

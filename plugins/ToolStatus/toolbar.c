@@ -205,7 +205,7 @@ static VOID RebarLoadSettings(
             0,
             REBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, //RBS_FIXEDORDER | RBS_DBLCLKTOGGLE 
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_NOPARENTALIGN | RBS_VARHEIGHT, //RBS_FIXEDORDER | RBS_DBLCLKTOGGLE 
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             NULL,
@@ -254,8 +254,8 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SAVERESTORE, FALSE, (LPARAM)&ToolbarSaveParams);
 
         // Enable theming:
-        //SendMessage(ReBarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help   
-        //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications"); //Media/Communications/BrowserTabBar/Help
+        //SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help   
+        //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
         // HACK: Query the toolbar width/height.
         ULONG_PTR toolbarButtonSize = (ULONG_PTR)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
