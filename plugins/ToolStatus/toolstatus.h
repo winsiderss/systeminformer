@@ -46,6 +46,7 @@
 #define SETTING_NAME_ENABLE_STATUSMASK (SETTING_PREFIX L".StatusMask")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (SETTING_PREFIX L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYSTYLE (SETTING_PREFIX L".SearchBoxDisplayStyle")
+#define SETTING_NAME_REBARDISPLAYLOCATION (SETTING_PREFIX L".RebarDisplayLocation")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 
@@ -88,12 +89,21 @@ typedef enum _REBAR_BAND_ID
     BandID_SearchBox = 1
 } REBAR_BAND_ID;
 
+typedef enum _REBAR_DISPLAY_LOCATION
+{
+    RebarLocationTop = 0,
+    RebarLocationLeft = 1,
+    RebarLocationBottom = 2,
+    RebarLocationRight = 3,
+} REBAR_DISPLAY_LOCATION;
+
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
 extern BOOLEAN ToolbarInitialized;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_STYLE SearchBoxDisplayStyle;
+extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
 
