@@ -100,14 +100,20 @@ static VOID NTAPI LayoutPaddingCallback(
     if (RebarHandle && EnableToolBar)
     {
         RECT rebarRect;
-        RECT clientRect;
-        INT x, y, cx, cy;
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
         
-        GetClientRect(PhMainWndHandle, &clientRect);
         GetClientRect(RebarHandle, &rebarRect);
-        
+          
+        // Adjust the PH client area and exclude the rebar width. 
+        data->Padding.top += rebarRect.bottom;
+
+#ifdef _REBAR_LOCATION_
+        RECT clientRect;
+        INT x, y, cx, cy;
+
+        GetClientRect(PhMainWndHandle, &clientRect);
+
         switch (RebarDisplayLocation)
         {
         case RebarLocationLeft:
@@ -143,8 +149,9 @@ static VOID NTAPI LayoutPaddingCallback(
         }
 
         MoveWindow(RebarHandle, x, y, cx, cy, TRUE);  
-  
-        if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
+#endif
+
+        if (WindowsVersion >= WINDOWS_VISTA && SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
         {
             static BOOLEAN isSearchboxVisible = FALSE;  
             SIZE idealWidth;
@@ -158,7 +165,7 @@ static VOID NTAPI LayoutPaddingCallback(
                 if (isSearchboxVisible)
                 {
                     if (!RebarBandExists(BandID_SearchBox))
-                        RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+                        RebarBandInsert(BandID_SearchBox, SearchboxHandle, 180, 20);
 
                     //SendMessage(RebarHandle, RB_SHOWBAND, (WPARAM)index, (LPARAM)TRUE);
                     isSearchboxVisible = FALSE;
@@ -189,10 +196,12 @@ static VOID NTAPI LayoutPaddingCallback(
         // Adjust the PH client area and exclude the StatusBar width.
         data->Padding.bottom += statusBarRect.bottom;
 
+#ifdef _REBAR_LOCATION_
         if (RebarDisplayLocation == RebarLocationBottom)
         {
             InvalidateRect(StatusBarHandle, &statusBarRect, TRUE);
         }
+#endif
     }
 }
 
@@ -396,11 +405,14 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             PPH_EMENU_ITEM menuItem;
                             
                             menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
-                            menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL | ILD_TRANSPARENT);
-
-                            menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
-                            menuItem->Bitmap = PhIconToBitmap(menuIcon, 16, 16);
-                            DestroyIcon(menuIcon);
+                            
+                            if (WindowsVersion >= WINDOWS_VISTA)
+                            {
+                                menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL);
+                                menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
+                                menuItem->Bitmap = PhIconToBitmap(menuIcon, 16, 16);
+                                DestroyIcon(menuIcon);
+                            }
 
                             if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
                             {
@@ -741,6 +753,14 @@ static VOID NTAPI MainWindowShowingCallback(
      _In_opt_ PVOID Context
     )
 {
+    INITCOMMONCONTROLSEX icex;
+
+    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    icex.dwICC = ICC_COOL_CLASSES | ICC_BAR_CLASSES;
+
+    InitCommonControlsEx(&icex);
+
+
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
     PhRegisterCallback(
         ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle),
