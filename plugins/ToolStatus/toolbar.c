@@ -57,14 +57,17 @@ VOID RebarBandInsert(
     )
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
-    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;// | RBBIM_IDEALSIZE;
-    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_USECHEVRON;// | RBBS_FIXEDSIZE;// | RBBS_HIDETITLE | RBBS_TOPALIGN;
+    rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
+    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_USECHEVRON; // | RBBS_HIDETITLE | RBBS_TOPALIGN;
 
     rebarBandInfo.wID = BandID;
-    //rebarBandInfo.cxIdeal = cxIdeal;
     rebarBandInfo.hwndChild = HwndChild;
     rebarBandInfo.cyMinChild = cyMinChild;
     rebarBandInfo.cxMinChild = cxMinChild;
+
+    // Hack for Rebar band sizing bugs
+    if (WindowsVersion < WINDOWS_VISTA)
+        rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
 
     SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
@@ -205,7 +208,7 @@ static VOID RebarLoadSettings(
             0,
             REBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_NOPARENTALIGN | RBS_VARHEIGHT, //RBS_FIXEDORDER | RBS_DBLCLKTOGGLE 
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, // CCS_NOPARENTALIGN | RBS_FIXEDORDER 
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             NULL,
