@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _WCT_H_
-#define _WCT_H_
+#ifndef _HIGHLIGHT_H_
+#define _HIGHLIGHT_H_
 
 #define SETTING_PREFIX L"dmex.HighlightPlugin"
 #define SETTING_NAME_COLOR_LIST (SETTING_PREFIX L".ColorProcessList")
