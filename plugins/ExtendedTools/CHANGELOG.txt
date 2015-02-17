@@ -1,3 +1,6 @@
+1.13
+ * Added GPU graphs for all processes
+
 1.12
  * Improved support for multiple GPUs (again)
  * GPU column now respects "Include CPU usage of children" option

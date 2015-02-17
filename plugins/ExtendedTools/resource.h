@@ -12,11 +12,9 @@
 #define ID_VIEW_MEMORYLISTS             104
 #define IDD_MEMLISTS                    105
 #define IDC_DISK                        105
-#define IDD_DIALOG1                     106
 #define IDD_PROCDISKNET                 106
 #define IDC_NETWORK                     106
 #define ID_VIEW_DISKANDNETWORK          107
-#define IDD_SYSDISKNET_PANEL            108
 #define ID_PROCESS_WSWATCH              108
 #define IDD_SYSINFO_DISKPANEL           108
 #define IDD_OPTIONS                     109
@@ -24,12 +22,9 @@
 #define IDD_WSWATCH                     110
 #define IDC_DEDICATED                   110
 #define IDR_EMPTYMEMLISTS               111
-#define IDD_SYSGPUINFO                  111
 #define IDC_SHARED                      111
 #define IDD_SYSINFO_GPU                 111
-#define IDR_MENU1                       112
 #define IDR_DISK                        112
-#define IDD_SYSGPUINFO_PANEL            112
 #define ID_VIEW_GPUINFORMATION          112
 #define IDD_SYSINFO_GPUPANEL            112
 #define IDD_PROCGPU                     113
@@ -37,6 +32,7 @@
 #define IDD_GPUNODES                    115
 #define IDD_SYSINFO_NETPANEL            116
 #define IDD_SYSINFO_NET                 117
+#define IDD_PROCGPU_PANEL               118
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -71,7 +67,6 @@
 #define IDC_ZSENDS_V                    1032
 #define IDC_ZSENDBYTES_V                1033
 #define IDC_ZSENDBYTESDELTA_V           1034
-#define IDC_ENABLEETW                   1038
 #define IDC_ENABLEETWMONITOR            1038
 #define IDC_ENABLE                      1039
 #define IDC_WSWATCHENABLED              1041
@@ -84,20 +79,17 @@
 #define IDC_ZREPURPOSED5_V              1048
 #define IDC_ZREPURPOSED6_V              1049
 #define IDC_ZREPURPOSED7_V              1050
-#define IDC_BUTTON1                     1051
 #define IDC_EMPTY                       1051
 #define IDC_NODES                       1051
-#define IDC_CHECK1                      1052
 #define IDC_ENABLEGPUMONITOR            1052
 #define IDC_EXAMPLE                     1052
 #define IDC_GROUPGPU                    1053
-#define IDC_GROUPDEDICATED              1054
+#define IDC_GROUPMEM                    1054
 #define IDC_GROUPSHARED                 1055
 #define IDC_ZDEDICATEDCURRENT_V         1055
 #define IDC_ZDEDICATEDLIMIT_V           1056
 #define IDC_ZSHAREDCURRENT_V            1057
 #define IDC_ZSHAREDLIMIT_V              1058
-#define IDC_ZDEDICATEDCOMMITTED_V       1059
 #define IDC_ZSHAREDCOMMITTED_V          1060
 #define IDC_ZRUNNINGTIME_V              1063
 #define IDC_ZCONTEXTSWITCHES_V          1064
@@ -105,8 +97,6 @@
 #define IDC_ZTOTALRESERVED_V            1066
 #define IDC_ZWRITECOMBINEDALLOCATED_V   1067
 #define IDC_ZWRITECOMBINEDRESERVED_V    1068
-#define IDC_ZCACHEDALLOCATED_V          1069
-#define IDC_ZCACHEDRESERVED_V           1070
 #define IDC_ZSECTIONALLOCATED_V         1071
 #define IDC_ZSECTIONRESERVED_V          1072
 #define IDC_ZTOTALSEGMENTS_V            1073
@@ -136,7 +126,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        116
+#define _APS_NEXT_RESOURCE_VALUE        119
 #define _APS_NEXT_COMMAND_VALUE         40009
 #define _APS_NEXT_CONTROL_VALUE         1087
 #define _APS_NEXT_SYMED_VALUE           113
