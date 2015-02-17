@@ -2,7 +2,7 @@
 Process Hacker is licensed under the GNU GPL v3, with exceptions. A full
 copy of the license is provided in LICENSE.txt.
 
-    Copyright (C) 2009-2012 wj32 and various authors
+    Copyright (C) 2009-2015 wj32 and various authors
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

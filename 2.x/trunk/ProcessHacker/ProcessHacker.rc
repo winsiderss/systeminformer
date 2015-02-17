@@ -590,7 +590,7 @@ BEGIN
     ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,20,20
     LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,192,8
     LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,193,8
-    LTEXT           "Copyright (c) 2008-2013 Wen Jia Liu (wj32)",IDC_STATIC,15,40,140,8
+    LTEXT           "Copyright (c) 2008-2015 Wen Jia Liu (wj32)",IDC_STATIC,15,40,140,8
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,174,50,14
     CONTROL         "<a href=""http://processhacker.sourceforge.net"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
                     "SysLink",WS_TABSTOP,7,177,130,11
