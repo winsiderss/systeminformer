@@ -48,16 +48,16 @@ typedef struct _ET_GPU_CONTEXT
     HWND GpuPanelWindowHandle;
 
     FLOAT CurrentGpuUsage;
-    ULONG64 CurrentMemUsage;
-    ULONG64 CurrentMemSharedUsage;
+    ULONG CurrentMemUsage;
+    ULONG CurrentMemSharedUsage;
 
     PH_GRAPH_STATE GpuGraphState;
     PH_GRAPH_STATE MemoryGraphState;
     PH_GRAPH_STATE MemorySharedGraphState;
 
     PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
-    PH_CIRCULAR_BUFFER_ULONG64 MemoryHistory;
-    PH_CIRCULAR_BUFFER_ULONG64 MemorySharedHistory;
+    PH_CIRCULAR_BUFFER_ULONG MemoryHistory;
+    PH_CIRCULAR_BUFFER_ULONG MemorySharedHistory;
 } ET_GPU_CONTEXT, *PET_GPU_CONTEXT;
 
 static INT_PTR CALLBACK GpuPanelDialogProc(
@@ -315,12 +315,12 @@ static VOID GpuPropUpdateProcessInfo(
     PET_PROCESS_BLOCK block = Context->Block;
 
     Context->CurrentGpuUsage = block->GpuNodeUsage;
-    Context->CurrentMemUsage = block->GpuDedicatedUsage;
-    Context->CurrentMemSharedUsage = block->GpuSharedUsage;
+    Context->CurrentMemUsage = (ULONG)(block->GpuDedicatedUsage / PAGE_SIZE);
+    Context->CurrentMemSharedUsage = (ULONG)(block->GpuSharedUsage / PAGE_SIZE);
 
     PhAddItemCircularBuffer_FLOAT(&Context->GpuHistory, Context->CurrentGpuUsage);
-    PhAddItemCircularBuffer_ULONG64(&Context->MemoryHistory, Context->CurrentMemUsage);
-    PhAddItemCircularBuffer_ULONG64(&Context->MemorySharedHistory, Context->CurrentMemSharedUsage);
+    PhAddItemCircularBuffer_ULONG(&Context->MemoryHistory, Context->CurrentMemUsage);
+    PhAddItemCircularBuffer_ULONG(&Context->MemorySharedHistory, Context->CurrentMemSharedUsage);
 }
 
 static VOID NTAPI ProcessesUpdatedHandler(
@@ -364,6 +364,10 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
     {
     case WM_INITDIALOG:
         {
+            ULONG sampleCount;
+
+            sampleCount = PhGetIntegerSetting(L"SampleCount");
+
             context = PhAllocate(sizeof(ET_GPU_CONTEXT));
             memset(context, 0, sizeof(ET_GPU_CONTEXT));
 
@@ -380,10 +384,10 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             PhInitializeGraphState(&context->GpuGraphState);
             PhInitializeGraphState(&context->MemoryGraphState);
             PhInitializeGraphState(&context->MemorySharedGraphState);
-
-            PhInitializeCircularBuffer_FLOAT(&context->GpuHistory, PhGetIntegerSetting(L"SampleCount"));
-            PhInitializeCircularBuffer_ULONG64(&context->MemoryHistory, PhGetIntegerSetting(L"SampleCount"));
-            PhInitializeCircularBuffer_ULONG64(&context->MemorySharedHistory, PhGetIntegerSetting(L"SampleCount"));
+            
+            PhInitializeCircularBuffer_FLOAT(&context->GpuHistory, sampleCount);
+            PhInitializeCircularBuffer_ULONG(&context->MemoryHistory, sampleCount);
+            PhInitializeCircularBuffer_ULONG(&context->MemorySharedHistory, sampleCount);
             
             GpuPropCreateGraphs(context);
             //GpuPropCreatePanel(context);
@@ -407,8 +411,8 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             PhDeleteGraphState(&context->MemorySharedGraphState);
             
             PhDeleteCircularBuffer_FLOAT(&context->GpuHistory);
-            PhDeleteCircularBuffer_ULONG64(&context->MemoryHistory);
-            PhDeleteCircularBuffer_ULONG64(&context->MemorySharedHistory);
+            PhDeleteCircularBuffer_ULONG(&context->MemoryHistory);
+            PhDeleteCircularBuffer_ULONG(&context->MemorySharedHistory);
             
             if (context->GpuGraphHandle)
                 DestroyWindow(context->GpuGraphHandle);       
@@ -487,9 +491,9 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             PhSwapReference2(&context->MemoryGraphState.Text, PhFormatString(
                                 L"%s / %s (%.2f%%)",
-                                PhaFormatSize(context->CurrentMemUsage, -1)->Buffer,
+                                PhaFormatSize(UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE), -1)->Buffer,
                                 PhaFormatSize(EtGpuDedicatedLimit, -1)->Buffer,
-                                (FLOAT)context->CurrentMemUsage / EtGpuDedicatedLimit * 100
+                                (FLOAT)UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE) / EtGpuDedicatedLimit * 100
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->MemGraphHandle);
@@ -519,21 +523,20 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         if (!context->MemoryGraphState.Valid)
                         {
                             ULONG i = 0;
-                            FLOAT maxGraphHeight = 0;
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
-                                context->MemoryGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->MemoryHistory, i);
-                    
-                                if (context->MemoryGraphState.Data1[i] > maxGraphHeight)
-                                    maxGraphHeight = context->MemoryGraphState.Data1[i];
+                                context->MemoryGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->MemoryHistory, i);
                             }
 
-                            PhxfDivideSingle2U(
-                                context->MemoryGraphState.Data1,
-                                (FLOAT)EtGpuDedicatedLimit, // maxGraphHeight
-                                drawInfo->LineDataCount
-                                );
+                            if (EtGpuDedicatedLimit != 0)
+                            {
+                                PhxfDivideSingle2U(
+                                    context->MemoryGraphState.Data1,
+                                    (FLOAT)EtGpuDedicatedLimit / PAGE_SIZE,
+                                    drawInfo->LineDataCount
+                                    );
+                            }
 
                             context->MemoryGraphState.Valid = TRUE;
                         }
@@ -546,9 +549,9 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             PhSwapReference2(&context->MemorySharedGraphState.Text, PhFormatString(
                                 L"%s / %s (%.2f%%)",                       
-                                PhaFormatSize(context->CurrentMemSharedUsage, -1)->Buffer,
+                                PhaFormatSize(UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE), -1)->Buffer,
                                 PhaFormatSize(EtGpuSharedLimit, -1)->Buffer,
-                                (FLOAT)context->CurrentMemSharedUsage / EtGpuSharedLimit * 100
+                                (FLOAT)UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE) / EtGpuSharedLimit * 100
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->SharedGraphHandle);
@@ -572,21 +575,20 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         if (!context->MemorySharedGraphState.Valid)
                         {
                             ULONG i = 0;
-                            FLOAT maxGraphHeight = 0;
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
-                                context->MemorySharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->MemorySharedHistory, i);
-
-                                if (context->MemorySharedGraphState.Data1[i] > maxGraphHeight)
-                                    maxGraphHeight = context->MemorySharedGraphState.Data1[i];
+                                context->MemorySharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->MemorySharedHistory, i);
                             }
 
-                            PhxfDivideSingle2U(
-                                context->MemorySharedGraphState.Data1,
-                                (FLOAT)EtGpuSharedLimit, // maxGraphHeight
-                                drawInfo->LineDataCount
-                                );
+                            if (EtGpuSharedLimit != 0)
+                            {
+                                PhxfDivideSingle2U(
+                                    context->MemorySharedGraphState.Data1,
+                                    (FLOAT)EtGpuSharedLimit / PAGE_SIZE,
+                                    drawInfo->LineDataCount
+                                    );
+                            }
 
                             context->MemorySharedGraphState.Valid = TRUE;
                         }
@@ -620,13 +622,13 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         {
                             if (context->MemoryGraphState.TooltipIndex != getTooltipText->Index)
                             {
-                                ULONG64 gpuMemory = PhGetItemCircularBuffer_ULONG64(
-                                    &context->MemoryHistory, 
+                                ULONG gpuMemory = PhGetItemCircularBuffer_ULONG(
+                                    &context->MemoryHistory,
                                     getTooltipText->Index
-                                    );     
+                                    );
 
                                 PhSwapReference2(&context->MemoryGraphState.TooltipText, 
-                                    PhFormatSize(gpuMemory, -1)
+                                    PhFormatSize(UInt32x32To64(gpuMemory, PAGE_SIZE), -1)
                                     );
                             }
 
@@ -636,13 +638,13 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         {
                             if (context->MemorySharedGraphState.TooltipIndex != getTooltipText->Index)
                             {
-                                ULONG64 gpuSharedMemory = PhGetItemCircularBuffer_ULONG64(
+                                ULONG gpuSharedMemory = PhGetItemCircularBuffer_ULONG(
                                     &context->MemorySharedHistory, 
                                     getTooltipText->Index
                                     );     
 
                                 PhSwapReference2(&context->MemorySharedGraphState.TooltipText, 
-                                    PhFormatSize(gpuSharedMemory, -1)
+                                    PhFormatSize(UInt32x32To64(gpuSharedMemory, PAGE_SIZE), -1)
                                     );
                             }
 
