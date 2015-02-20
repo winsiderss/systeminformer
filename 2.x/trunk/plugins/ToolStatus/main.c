@@ -165,7 +165,7 @@ static VOID NTAPI LayoutPaddingCallback(
                 if (isSearchboxVisible)
                 {
                     if (!RebarBandExists(BandID_SearchBox))
-                        RebarBandInsert(BandID_SearchBox, SearchboxHandle, 180, 20);
+                        RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
 
                     //SendMessage(RebarHandle, RB_SHOWBAND, (WPARAM)index, (LPARAM)TRUE);
                     isSearchboxVisible = FALSE;
