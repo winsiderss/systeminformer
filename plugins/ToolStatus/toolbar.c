@@ -365,7 +365,7 @@ VOID LoadToolbarSettings(
         for (index = 0; index < buttonCount; index++)
         {
             TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_TEXT | TBIF_STATE;
+            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_STATE;
 
             // Get settings for first button
             if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
@@ -378,6 +378,7 @@ VOID LoadToolbarSettings(
 
             // TODO: We manually add the text above using TB_ADDSTRING,
             //       why do we need to set the button text again when changing TBIF_STYLE?
+            button.dwMask |= TBIF_TEXT;
             button.pszText = ToolbarGetText(button.idCommand);
 
 
