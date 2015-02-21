@@ -84,7 +84,7 @@ VOID PhShowProcessTerminatorDialog(
                     );
 
                 if (!NT_SUCCESS(status = NtRemoveProcessDebug(processHandle, debugObjectHandle)))
-                    PhShowStatus(ParentWindowHandle, L"Unable to deatch the process", status, 0);
+                    PhShowStatus(ParentWindowHandle, L"Unable to detach the process", status, 0);
             }
 
             NtClose(debugObjectHandle);
