@@ -22,6 +22,18 @@
 
 #include "perfmon.h"
 
+#define MSG_UPDATE (WM_APP + 1)
+
+static VOID NTAPI ProcessesUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PERFMON_SYSINFO_CONTEXT context = Context;
+
+    PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);  
+}
+
 static VOID PerfCounterUpdateGraphs(
     _Inout_ PPH_PERFMON_SYSINFO_CONTEXT Context
     )
@@ -32,16 +44,6 @@ static VOID PerfCounterUpdateGraphs(
     Graph_Draw(Context->GraphHandle);
     Graph_UpdateTooltip(Context->GraphHandle);
     InvalidateRect(Context->GraphHandle, NULL, FALSE);
-}
-
-static VOID PerfCounterUpdatePanel(
-    VOID
-    )
-{
-    //SetDlgItemText(GpuPanel, IDC_ZDEDICATEDCURRENT_V, PhaFormatSize(EtGpuDedicatedUsage, -1)->Buffer);
-    //SetDlgItemText(GpuPanel, IDC_ZDEDICATEDLIMIT_V, PhaFormatSize(EtGpuDedicatedLimit, -1)->Buffer);
-    //SetDlgItemText(GpuPanel, IDC_ZSHAREDCURRENT_V, PhaFormatSize(EtGpuSharedUsage, -1)->Buffer);
-    //SetDlgItemText(GpuPanel, IDC_ZSHAREDLIMIT_V, PhaFormatSize(EtGpuSharedLimit, -1)->Buffer);
 }
 
 static INT_PTR CALLBACK PerfCounterDialogProc(
@@ -66,10 +68,13 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
         if (uMsg == WM_DESTROY)
         {      
             PhDeleteLayoutManager(&context->LayoutManager);
+
             PhDeleteGraphState(&context->GraphState);
 
             if (context->GraphHandle)
                 DestroyWindow(context->GraphHandle);
+
+            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
 
             RemoveProp(hwndDlg, L"Context");
         }
@@ -84,13 +89,13 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
         {
             PPH_LAYOUT_ITEM panelItem;
 
-            context->PanelDialog = hwndDlg; 
+            context->WindowHandle = hwndDlg; 
 
             // Create the graph control.
             context->GraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
-                WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_DRAW_PANEL, // GC_STYLE_FADEOUT
+                WS_VISIBLE | WS_CHILD | WS_BORDER,
                 0,
                 0,
                 3,
@@ -101,17 +106,23 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                 NULL
                 );
             Graph_SetTooltip(context->GraphHandle, TRUE);
-            BringWindowToTop(context->GraphHandle);
 
             PhInitializeGraphState(&context->GraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COUNTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);      
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_COUNTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetDlgItemText(hwndDlg, IDC_COUNTERNAME, context->SysinfoSection->Name.Buffer);
+                       
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                ProcessesUpdatedHandler,
+                context,
+                &context->ProcessesUpdatedRegistration
+                );
 
             PerfCounterUpdateGraphs(context);
             PerfCounterUpdatePanel();
@@ -132,29 +143,6 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                     {
                         PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                         PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-
-                        //if (context->UseOldColors)
-                        //{                      
-                        //    drawInfo->BackColor = RGB(0x00, 0x00, 0x00);
-                        //    drawInfo->LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
-                        //    drawInfo->LineBackColor1 = PhHalveColorBrightness(drawInfo->LineColor1);
-                        //    drawInfo->LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
-                        //    drawInfo->LineBackColor2 = PhHalveColorBrightness(drawInfo->LineColor2);
-                        //    drawInfo->GridColor = RGB(0x00, 0x57, 0x00);
-                        //    drawInfo->TextColor = RGB(0x00, 0xff, 0x00);
-                        //    drawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
-                        //}
-                        //else
-                        //{              
-                        //    drawInfo->BackColor = RGB(0xef, 0xef, 0xef);
-                        //    drawInfo->LineColor1 = PhHalveColorBrightness(PhGetIntegerSetting(L"ColorCpuKernel"));
-                        //    drawInfo->LineBackColor1 = PhMakeColorBrighter(drawInfo->LineColor1, 125);
-                        //    drawInfo->LineColor2 = PhHalveColorBrightness(PhGetIntegerSetting(L"ColorCpuUser"));
-                        //    drawInfo->LineBackColor2 = PhMakeColorBrighter(drawInfo->LineColor2, 125);
-                        //    drawInfo->GridColor = RGB(0xc7, 0xc7, 0xc7);
-                        //    drawInfo->TextColor = RGB(0x00, 0x00, 0x00);
-                        //    drawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
-                        //}
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
                         context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
@@ -184,12 +172,6 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                                 drawInfo->LineDataCount
                                 );
 
-                            //PhCopyCircularBuffer_ULONG(
-                            //    &GraphHistoryBuffer, 
-                            //    (PULONG)GpuGraphState.Data1, 
-                            //    drawInfo->LineDataCount
-                            //    );
-
                             context->GraphState.Valid = TRUE;
                         }
                     }
@@ -207,10 +189,10 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(
-                                    &context->GraphState.TooltipText, 
-                                    PhFormatString(L"%lld", itemUsage)
-                                    );
+                                PhSwapReference2(&context->GraphState.TooltipText, PhFormatString(
+                                    L"%lld",
+                                    itemUsage
+                                    ));
                             }
 
                             getTooltipText->Text = context->GraphState.TooltipText->sr;
@@ -219,6 +201,12 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                     break;
                 }
             }
+        }
+        break;
+    case MSG_UPDATE:
+        {
+            PerfCounterUpdateGraphs(context);
+            PerfCounterUpdatePanel();
         }
         break;
     }
@@ -281,6 +269,8 @@ static BOOLEAN EtpGpuSectionCallback(
                 PdhCloseQuery(context->PerfQueryHandle);
                 context->PerfQueryHandle = NULL;
             }
+
+            PhFree(context);
         }
         return TRUE;
     case SysInfoTick:
@@ -300,11 +290,7 @@ static BOOLEAN EtpGpuSectionCallback(
                 &displayValue
                 );
 
-            if (counterType == PERF_COUNTER_COUNTER)
-            {
-
-            
-            }
+            //if (counterType == PERF_COUNTER_COUNTER) {  }
             
             PhAddItemCircularBuffer_ULONG(
                 &context->HistoryBuffer, 
@@ -312,12 +298,6 @@ static BOOLEAN EtpGpuSectionCallback(
                 );
 
             context->GraphValue = displayValue.longValue;
-
-            if (context->PanelDialog)
-            {
-                PerfCounterUpdateGraphs(context);
-                PerfCounterUpdatePanel();
-            }
         }
         return TRUE;
     case SysInfoCreateDialog:
