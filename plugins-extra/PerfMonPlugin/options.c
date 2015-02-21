@@ -57,9 +57,9 @@ VOID CopyCounterList(
         PPH_PERFMON_ENTRY newEntry;
 
         newEntry = (PPH_PERFMON_ENTRY)PhAllocate(sizeof(PH_PERFMON_ENTRY));
-        newEntry->Name = entry->Name;
 
-        PhReferenceObject(newEntry->Name);
+        PhReferenceObject(entry->Name);
+        newEntry->Name = entry->Name;
 
         PhAddItemList(Destination, newEntry);
     }
@@ -161,21 +161,16 @@ static VOID AddCounterToListView(
     entry = (PPH_PERFMON_ENTRY)PhAllocate(sizeof(PH_PERFMON_ENTRY));
     memset(entry, 0, sizeof(PH_PERFMON_ENTRY));
 
-    if (entry->Name = PhCreateString(CounterName))
-    {
-        PhAddListViewItem(
-            Context->ListViewHandle, 
-            MAXINT, 
-            entry->Name->Buffer, 
-            entry
-            );
+    entry->Name = PhCreateString(CounterName);
 
-        PhAddItemList(Context->CountersListEdited, entry);
-    }
-    else
-    {
-        FreeCounterEntry(entry);
-    }
+    PhAddListViewItem(
+        Context->ListViewHandle,
+        MAXINT,
+        entry->Name->Buffer,
+        entry
+        );
+
+    PhAddItemList(Context->CountersListEdited, entry);
 }
 
 static VOID LoadCountersToListView(
@@ -246,8 +241,6 @@ static INT_PTR CALLBACK OptionsDlgProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 400, L"Counter");
-            //PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Instance");
-            //PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Computer");
             PhSetExtendedListView(context->ListViewHandle);
 
             ClearCounterList(context->CountersListEdited);

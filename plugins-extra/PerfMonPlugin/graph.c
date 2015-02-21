@@ -31,7 +31,10 @@ static VOID NTAPI ProcessesUpdatedHandler(
 {
     PPH_PERFMON_SYSINFO_CONTEXT context = Context;
 
-    PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);  
+    if (context->WindowHandle)
+    {
+        PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+    }
 }
 
 static VOID PerfCounterUpdateGraphs(
@@ -125,7 +128,6 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                 );
 
             PerfCounterUpdateGraphs(context);
-            PerfCounterUpdatePanel();
         }
         break;
     case WM_SIZE:
@@ -190,7 +192,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                                     );
 
                                 PhSwapReference2(&context->GraphState.TooltipText, PhFormatString(
-                                    L"%lld",
+                                    L"%u",
                                     itemUsage
                                     ));
                             }
@@ -204,10 +206,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
         }
         break;
     case MSG_UPDATE:
-        {
-            PerfCounterUpdateGraphs(context);
-            PerfCounterUpdatePanel();
-        }
+        PerfCounterUpdateGraphs(context);
         break;
     }
 
@@ -229,7 +228,9 @@ static BOOLEAN EtpGpuSectionCallback(
         {
             ULONG counterLength = 0;
             PDH_STATUS counterStatus = 0;
-            PPDH_COUNTER_INFO counterInfo;
+            //PPDH_COUNTER_INFO counterInfo;
+
+            PhInitializeCircularBuffer_ULONG(&context->HistoryBuffer, PhGetIntegerSetting(L"SampleCount"));
 
             // Create the query handle.
             if ((counterStatus = PdhOpenQuery(NULL, (ULONG_PTR)NULL, &context->PerfQueryHandle)) != ERROR_SUCCESS)
@@ -243,20 +244,16 @@ static BOOLEAN EtpGpuSectionCallback(
                 PhShowError(NULL, L"PdhAddCounter failed with status 0x%x.", counterStatus);
             }
 
-            PdhGetCounterInfo(context->PerfCounterHandle, TRUE, &counterLength, NULL);
+            //if ((counterStatus = PdhGetCounterInfo(context->PerfCounterHandle, TRUE, &counterLength, NULL)) == PDH_MORE_DATA)
+            //{
+            //    counterInfo = PhAllocate(counterLength);
+            //    memset(counterInfo, 0, counterLength);
+            //}
 
-            counterInfo = PhAllocate(counterLength);
-            memset(counterInfo, 0, counterLength);
-
-            if ((counterStatus = PdhGetCounterInfo(context->PerfCounterHandle, TRUE, &counterLength, counterInfo)))
-            {
-                PhShowError(NULL, L"PdhGetCounterInfo failed with status 0x%x.", counterStatus);
-            }
-
-            PhInitializeCircularBuffer_ULONG(
-                &context->HistoryBuffer, 
-                PhGetIntegerSetting(L"SampleCount")
-                );
+            //if ((counterStatus = PdhGetCounterInfo(context->PerfCounterHandle, TRUE, &counterLength, counterInfo)))
+            //{
+            //    PhShowError(NULL, L"PdhGetCounterInfo failed with status 0x%x.", counterStatus);
+            //}
         }
         return TRUE;
     case SysInfoDestroy:
@@ -264,10 +261,9 @@ static BOOLEAN EtpGpuSectionCallback(
             PhDeleteCircularBuffer_ULONG(&context->HistoryBuffer);
 
             // Close the query handle.
-            if (context->PerfQueryHandle) 
+            if (context->PerfQueryHandle)
             {
                 PdhCloseQuery(context->PerfQueryHandle);
-                context->PerfQueryHandle = NULL;
             }
 
             PhFree(context);
@@ -291,13 +287,10 @@ static BOOLEAN EtpGpuSectionCallback(
                 );
 
             //if (counterType == PERF_COUNTER_COUNTER) {  }
-            
-            PhAddItemCircularBuffer_ULONG(
-                &context->HistoryBuffer, 
-                displayValue.longValue
-                );
 
             context->GraphValue = displayValue.longValue;
+
+            PhAddItemCircularBuffer_ULONG(&context->HistoryBuffer, displayValue.longValue);
         }
         return TRUE;
     case SysInfoCreateDialog:
@@ -351,10 +344,10 @@ static BOOLEAN EtpGpuSectionCallback(
                 getTooltipText->Index
                 );
 
-            PhSwapReference2(
-                &Section->GraphState.TooltipText, 
-                PhFormatString(L"%lld", counterValue)
-                );
+            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                L"%u", 
+                counterValue
+                ));
 
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
         }
@@ -363,15 +356,12 @@ static BOOLEAN EtpGpuSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
-            PhSwapReference2(
-                &drawPanel->Title, 
-                PhCreateString(Section->Name.Buffer)
-                );
-
-            PhSwapReference2(
-                &drawPanel->SubTitle, 
-                PhFormatUInt64(context->GraphValue, TRUE)
-                );
+            PhSwapReference2(&drawPanel->Title, PhCreateString(Section->Name.Buffer));
+        
+            PhSwapReference2(&drawPanel->SubTitle, PhFormatString(
+                L"%u", 
+                context->GraphValue
+                ));
         }
         return TRUE;
     }
@@ -384,13 +374,12 @@ VOID PerfCounterSysInfoInitializing(
     _In_ PPH_STRING CounterName
     )
 {
-    PH_SYSINFO_SECTION section = { 0 };
+    PH_SYSINFO_SECTION section;
     PPH_PERFMON_SYSINFO_CONTEXT context;
     
-    context = (PPH_PERFMON_SYSINFO_CONTEXT)PhAllocate(sizeof(PH_PERFMON_SYSINFO_CONTEXT));    
+    context = (PPH_PERFMON_SYSINFO_CONTEXT)PhAllocate(sizeof(PH_PERFMON_SYSINFO_CONTEXT));
     memset(context, 0, sizeof(PH_PERFMON_SYSINFO_CONTEXT));
-
-    //memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
+    memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     
     section.Context = context;
     section.Callback = EtpGpuSectionCallback;
