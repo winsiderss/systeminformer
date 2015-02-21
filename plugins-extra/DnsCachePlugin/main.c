@@ -150,7 +150,7 @@ static PPH_STRING PhGetSelectedListViewItemText(
 
     if (index != -1)
     {
-        WCHAR textBuffer[MAX_PATH + 1] = { '\0' };
+        WCHAR textBuffer[MAX_PATH + 1] = L"";
 
         LVITEM item;
         item.mask = LVIF_TEXT;
@@ -182,7 +182,7 @@ static VOID ShowStatusMenu(
         GetCursorPos(&cursorPos);
 
         menu = LoadMenu(
-            (HINSTANCE)PluginInstance->DllBase,
+            PluginInstance->DllBase,
             MAKEINTRESOURCE(IDR_MAIN_MENU)
             );
 
@@ -292,9 +292,7 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
         }
         break;
     case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
-        }
+        PhLayoutManagerLayout(&LayoutManager);
         break;
     case WM_COMMAND:
         {
@@ -369,7 +367,7 @@ static VOID NTAPI MenuItemCallback(
     case DNSCACHE_MENUITEM:
         {
             DialogBox(
-                (HINSTANCE)PluginInstance->DllBase,
+                PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_DNSVIEW),
                 NULL,
                 DnsCacheDlgProc

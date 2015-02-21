@@ -243,7 +243,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
          
-            if (threadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)WaitChainCallbackThread, (PVOID)context))
+            if (threadHandle = PhCreateThread(0, WaitChainCallbackThread, (PVOID)context))
                 NtClose(threadHandle);
         }
         break;
