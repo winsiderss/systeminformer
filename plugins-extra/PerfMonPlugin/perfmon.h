@@ -26,7 +26,6 @@
 #pragma comment(lib, "pdh.lib")
 
 #define SETTING_PREFIX L"dmex.PerfMonPlugin"
-#define SETTING_NAME_ENABLE_PLUGIN (SETTING_PREFIX L".Enable")
 #define SETTING_NAME_PERFMON_LIST (SETTING_PREFIX L".CountersList")
 
 #define CINTERFACE
@@ -58,13 +57,14 @@ typedef struct _PH_PERFMON_SYSINFO_CONTEXT
     HCOUNTER PerfCounterHandle;
 
     ULONG GraphValue;
-    HWND PanelDialog;
+    HWND WindowHandle;
     HWND GraphHandle;
-    RECT GraphMargin;
 
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
     PH_CIRCULAR_BUFFER_ULONG HistoryBuffer;
 } PH_PERFMON_SYSINFO_CONTEXT, *PPH_PERFMON_SYSINFO_CONTEXT;
 
