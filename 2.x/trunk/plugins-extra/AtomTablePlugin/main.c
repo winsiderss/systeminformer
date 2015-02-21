@@ -64,6 +64,12 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings [] =
+            {
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
+                { StringSettingType, SETTING_NAME_LISTVIEW_COLUMNS, L"" }
+            };
 
             PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
@@ -87,13 +93,6 @@ LOGICAL DllMain(
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
-
-            PH_SETTING_CREATE settings [] =
-            {
-                { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
-                { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
-                { StringSettingType, SETTING_NAME_LISTVIEW_COLUMNS, L"" }
-            };
 
             PhAddSettings(settings, _countof(settings));
         }
