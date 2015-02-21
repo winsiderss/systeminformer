@@ -28,7 +28,6 @@ static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -49,7 +48,7 @@ static VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
-
+    NOTHING;
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -75,14 +74,6 @@ static VOID NTAPI SystemInformationInitializingCallback(
     }
 }
 
-static VOID NTAPI UpdateIntervalHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-
-}
-
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
     _In_ ULONG Reason,
@@ -96,7 +87,6 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;        
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_ENABLE_PLUGIN, L"0" },
                 { StringSettingType, SETTING_NAME_PERFMON_LIST, L"" }
             };
 
@@ -127,12 +117,6 @@ LOGICAL DllMain(
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
-                UpdateIntervalHandler,
-                NULL,
-                &ProcessesUpdatedRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing),
