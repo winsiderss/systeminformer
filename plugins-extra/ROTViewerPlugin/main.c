@@ -116,6 +116,8 @@ static INT_PTR CALLBACK RotViewDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HANDLE threadHandle;
+
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST1);
 
             PhRegisterDialog(hwndDlg);
@@ -130,8 +132,7 @@ static INT_PTR CALLBACK RotViewDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
 
-            HANDLE threadHandle = PhCreateThread(0, EnumRunningObjectTable, context->ListViewHandle);
-            if (threadHandle)
+            if (threadHandle = PhCreateThread(0, EnumRunningObjectTable, context->ListViewHandle))
             {
                 NtClose(threadHandle);
             }
@@ -148,8 +149,9 @@ static INT_PTR CALLBACK RotViewDlgProc(
                 {
                     ListView_DeleteAllItems(context->ListViewHandle);
 
-                    HANDLE threadHandle = PhCreateThread(0, EnumRunningObjectTable, context->ListViewHandle);
-                    if (threadHandle)
+                    HANDLE threadHandle;
+
+                    if (threadHandle = PhCreateThread(0, EnumRunningObjectTable, context->ListViewHandle))
                     {
                         NtClose(threadHandle);
                     }
@@ -179,7 +181,7 @@ static VOID NTAPI MenuItemCallback(
         case ROT_TABLE_MENUITEM:
         {
             DialogBox(
-                (HINSTANCE)PluginInstance->DllBase,
+                PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_ROTVIEW),
                 NULL,
                 RotViewDlgProc
