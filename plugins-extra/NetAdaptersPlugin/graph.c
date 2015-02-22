@@ -188,8 +188,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        ;
-        { 
+        {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
 
@@ -201,7 +200,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ADAPTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-     
+
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->SysinfoSection->Name.Buffer);
 
@@ -243,7 +242,6 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_NOTIFY:
-        ;
         {
             NMHDR* header = (NMHDR*)lParam;
 
@@ -252,7 +250,6 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                 switch (header->code)
                 {
                 case GCN_GETDRAWINFO:
-                    ;
                     {
                         PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                         PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
@@ -302,7 +299,6 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                     }
                     break;
                 case GCN_GETTOOLTIPTEXT:
-                    ;
                     {
                         PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)header;
 
@@ -376,7 +372,7 @@ static BOOLEAN NetAdapterSectionCallback(
 
             PhDeleteCircularBuffer_ULONG64(&context->InboundBuffer);
             PhDeleteCircularBuffer_ULONG64(&context->OutboundBuffer);
-                       
+
             if (context->IphlpHandle)
                 FreeLibrary(context->IphlpHandle);
 
@@ -384,7 +380,6 @@ static BOOLEAN NetAdapterSectionCallback(
         }
         return TRUE;
     case SysInfoTick:
-        ;
         {
             if (WindowsVersion >= WINDOWS_VISTA)
             {
@@ -422,7 +417,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 context->MaxReceiveSpeed = interfaceRow.ReceiveLinkSpeed;
             }
             else
-            {       
+            {
                 MIB_IFROW interfaceRow;
                 ULONG64 networkInboundSpeed;
                 ULONG64 networkOutboundSpeed;
@@ -460,7 +455,6 @@ static BOOLEAN NetAdapterSectionCallback(
         }
         return TRUE;
     case SysInfoCreateDialog:
-        ;
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = (PPH_SYSINFO_CREATE_DIALOG)Parameter1;
 
@@ -471,7 +465,6 @@ static BOOLEAN NetAdapterSectionCallback(
         }
         return TRUE;
     case SysInfoGraphGetDrawInfo:
-        ;
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
@@ -513,10 +506,9 @@ static BOOLEAN NetAdapterSectionCallback(
         }
         return TRUE;
     case SysInfoGraphGetTooltipText:
-        ;
         {
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = (PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT)Parameter1;
-           
+
             ULONG64 adapterInboundValue = PhGetItemCircularBuffer_ULONG64(
                 &context->InboundBuffer,
                 getTooltipText->Index
@@ -537,7 +529,6 @@ static BOOLEAN NetAdapterSectionCallback(
         }
         return TRUE;
     case SysInfoGraphDrawPanel:
-        ;
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
