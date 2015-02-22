@@ -112,9 +112,9 @@ static PPH_STRING SaveAdaptersList(
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)FilterList->Items[i];
 
         PhAppendFormatStringBuilder(&stringBuilder, 
-            L"%u,%I64u,", 
-            entry->IfIndex, 
-            entry->Luid64
+            L"%u,%I64u,",
+            entry->IfIndex, // This value is UNSAFE and may change after reboot.
+            entry->Luid64 // This value is SAFE and does not change (Vista+).
             );
     }
 
