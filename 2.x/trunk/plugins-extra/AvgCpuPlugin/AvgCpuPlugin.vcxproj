@@ -93,7 +93,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CallingConvention>StdCall</CallingConvention>
       <AdditionalIncludeDirectories>../../sdk/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
