@@ -113,7 +113,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
             PhInitializeGraphState(&context->GraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COUNTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COUNTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);      
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
 
