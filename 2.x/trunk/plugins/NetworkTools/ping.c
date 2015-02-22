@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Ping dialog
  *
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,33 +23,39 @@
 #include "nettools.h"
 
 #define WM_PING_UPDATE (WM_APP + 151)
+
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
 static HFONT InitializeFont(
-    _In_ HWND hwndDlg
+    _In_ HWND hwnd
     )
 {
-    LOGFONT logFont = { 0 };
-    HFONT fontHandle = NULL;
-        
-    logFont.lfHeight = -15;
-    logFont.lfWeight = FW_MEDIUM;
-    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+    HFONT fontHandle;
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
 
-    wcscpy_s(logFont.lfFaceName, _countof(logFont.lfFaceName),
-        WindowsVersion > WINDOWS_XP ? L"Segoe UI" : L"MS Shell Dlg 2"
-        );
-
-    fontHandle = CreateFontIndirect(&logFont);
-
-    if (fontHandle)
+    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
     {
-        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
-        return fontHandle;
+        metrics.lfMessageFont.lfHeight = -15;
+        //metrics.lfMessageFont.lfWeight = FW_MEDIUM;
+        //metrics.lfMessageFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+
+        fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+    }
+    else
+    {
+        LOGFONT font;
+
+        GetObject((HFONT)GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &font);
+
+        font.lfHeight = -15;
+
+        fontHandle = CreateFontIndirect(&font);
     }
 
-    return NULL;
+    SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
+
+    return fontHandle;
 }
 
 static VOID PhNetworkPingUpdateGraph(
@@ -249,40 +255,38 @@ static ULONG PhNetworkPingThreadStart(
             InterlockedIncrement(&context->PingSentCount);
 
             // Send ICMPv4 ping...
-            if (WindowsVersion > WINDOWS_VISTA)
-            {
-                // Vista SP1 and up we can specify the source address:
-                icmpReplyCount = IcmpSendEcho2Ex(
-                    icmpHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    icmpLocalAddr,
-                    icmpRemoteAddr,
-                    icmpEchoBuffer->Buffer, 
-                    icmpEchoBuffer->MaximumLength,
-                    &pingOptions,
-                    icmpReplyBuffer,
-                    icmpReplyLength,
-                    context->MaxPingTimeout
-                    );
-            }
-            else
-            {
-                icmpReplyCount = IcmpSendEcho2(
-                    icmpHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    icmpRemoteAddr,
-                    icmpEchoBuffer->Buffer,
-                    icmpEchoBuffer->MaximumLength,
-                    &pingOptions,
-                    icmpReplyBuffer,
-                    icmpReplyLength,
-                    context->MaxPingTimeout
-                    );
-            }
+            //if (WindowsVersion > WINDOWS_VISTA)
+            //{
+            //    // Vista SP1 and up we can specify the source address:
+            //    icmpReplyCount = IcmpSendEcho2Ex(
+            //        icmpHandle,
+            //        NULL,
+            //        NULL,
+            //        NULL,
+            //        icmpLocalAddr,
+            //        icmpRemoteAddr,
+            //        icmpEchoBuffer->Buffer, 
+            //        icmpEchoBuffer->MaximumLength,
+            //        &pingOptions,
+            //        icmpReplyBuffer,
+            //        icmpReplyLength,
+            //        context->MaxPingTimeout
+            //        );
+            //}
+
+            icmpReplyCount = IcmpSendEcho2(
+                icmpHandle,
+                NULL,
+                NULL,
+                NULL,
+                icmpRemoteAddr,
+                icmpEchoBuffer->Buffer,
+                icmpEchoBuffer->MaximumLength,
+                &pingOptions,
+                icmpReplyBuffer,
+                icmpReplyLength,
+                context->MaxPingTimeout
+                );
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
@@ -422,7 +426,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
-                WS_CLIPSIBLINGS | WS_VISIBLE | WS_CHILD | WS_BORDER | GC_STYLE_DRAW_PANEL,
+                WS_VISIBLE | WS_CHILD | WS_BORDER,
                 0,
                 0,
                 3,
@@ -432,6 +436,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 (HINSTANCE)PluginInstance->DllBase,
                 NULL
                 );
+            Graph_SetTooltip(context->PingGraphHandle, TRUE);
 
             // Load the Process Hacker icon.
             context->IconHandle = (HICON)LoadImage(
@@ -478,22 +483,15 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             // Convert IP Address to string format.
             if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
             {
-                RtlIpv4AddressToString(
-                    &context->IpAddress.InAddr, 
-                    context->addressString
-                    );
+                RtlIpv4AddressToString(&context->IpAddress.InAddr, context->addressString);
             }
             else
             {
-                RtlIpv6AddressToString(
-                    &context->IpAddress.In6Addr, 
-                    context->addressString
-                    );
+                RtlIpv6AddressToString(&context->IpAddress.In6Addr, context->addressString);
             }
 
             SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->addressString)->Buffer);
             SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with 32 bytes of data:", context->addressString)->Buffer);
-            Graph_SetTooltip(context->PingGraphHandle, TRUE);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
@@ -645,22 +643,20 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                         if (!context->PingGraphState.Valid)
                         {
                             ULONG i = 0;
-                            //FLOAT maxGraphHeight = 0;
+                            FLOAT maxGraphHeight = 0;
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
-                                context->PingGraphState.Data1[i] =
-                                    (FLOAT)PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
-                                //if (maxGraphHeight == 0)
-                                //    maxGraphHeight = context->PingGraphState.Data1[i];
-                                //if (context->PingGraphState.Data1[i] > maxGraphHeight)
-                                //    maxGraphHeight = context->PingGraphState.Data1[i];
+                                context->PingGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
+
+                                if (context->PingGraphState.Data1[i] > maxGraphHeight)
+                                    maxGraphHeight = context->PingGraphState.Data1[i];
                             }
 
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->PingGraphState.Data1,
-                                (FLOAT)context->MaxPingTimeout, // maxGraphHeight
+                                maxGraphHeight, //(FLOAT)context->MaxPingTimeout,
                                 drawInfo->LineDataCount
                                 );
 
