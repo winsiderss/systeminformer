@@ -255,9 +255,10 @@ static INT_PTR CALLBACK OptionsDlgProc(
             case IDC_ADD_BUTTON:
                 {
                     PDH_STATUS counterStatus = 0;
+                    PPH_STRING counterPathString = NULL;
+                    PPH_STRING counterWildCardString = NULL;
                     PDH_BROWSE_DLG_CONFIG browseConfig = { 0 };
                     WCHAR counterPathBuffer[PDH_MAX_COUNTER_PATH] = L"";
-
 
                     browseConfig.bIncludeInstanceIndex = FALSE;
                     browseConfig.bSingleCounterPerAdd = FALSE;// Fix empty CounterPathBuffer
@@ -276,31 +277,94 @@ static INT_PTR CALLBACK OptionsDlgProc(
                     browseConfig.dwDefaultDetailLevel = PERF_DETAIL_WIZARD;
                     browseConfig.szDialogBoxCaption = L"Select a counter to monitor.";
 
-                    // Display the counter browser window. 
-                    if ((counterStatus = PdhBrowseCounters(&browseConfig)) != ERROR_SUCCESS)
+                    __try
                     {
-                        if (counterStatus != PDH_DIALOG_CANCELLED)
+                        // Display the counter browser window. 
+                        if ((counterStatus = PdhBrowseCounters(&browseConfig)) != ERROR_SUCCESS)
                         {
-                            PhShowError(hwndDlg, L"PdhBrowseCounters failed with status 0x%x.", counterStatus);
+                            if (counterStatus != PDH_DIALOG_CANCELLED)
+                            {
+                                PhShowError(hwndDlg, L"PdhBrowseCounters failed with status 0x%x.", counterStatus);
+                            }
+
+                            __leave;
+                        }
+                        else if (wcslen(counterPathBuffer) == 0)
+                        {
+                            // This gets called when pressing the X on the BrowseCounters dialog.
+                            __leave;
                         }
 
-                        break;
+                        counterPathString = PhCreateString(counterPathBuffer);
+
+                        // Check if we need to expand any wildcards...
+                        if (PhFindCharInString(counterPathString, 0, '*') != -1)
+                        {
+                            ULONG counterWildCardLength = 0;
+
+                            // Query WildCard buffer length...
+                            PdhExpandWildCardPath(
+                                NULL,
+                                counterPathString->Buffer,
+                                NULL,
+                                &counterWildCardLength,
+                                0
+                                );
+
+                            counterWildCardString = PhCreateStringEx(NULL, counterWildCardLength * sizeof(WCHAR));
+
+                            if ((counterStatus = PdhExpandWildCardPath(
+                                NULL,
+                                counterPathString->Buffer,
+                                counterWildCardString->Buffer,
+                                &counterWildCardLength,
+                                0
+                                )) == ERROR_SUCCESS)
+                            {
+                                PH_STRINGREF part;
+                                PH_STRINGREF remaining = counterWildCardString->sr;
+
+                                while (remaining.Length != 0)
+                                {
+                                    // Split the results
+                                    if (!PhSplitStringRefAtChar(&remaining, '\0', &part, &remaining))
+                                        break;
+                                    if (remaining.Length == 0)
+                                        break;
+
+                                    if ((counterStatus = PdhValidatePath(part.Buffer)) != ERROR_SUCCESS)
+                                    {
+                                        PhShowError(hwndDlg, L"PdhValidatePath failed with status 0x%x.", counterStatus);
+                                        __leave;
+                                    }
+
+                                    AddCounterToListView(context, part.Buffer);
+                                }
+                            }
+                            else
+                            {
+                                PhShowError(hwndDlg, L"PdhExpandWildCardPath failed with status 0x%x.", counterStatus);
+                            }
+                        }
+                        else
+                        {
+                            if ((counterStatus = PdhValidatePath(counterPathString->Buffer)) != ERROR_SUCCESS)
+                            {
+                                PhShowError(hwndDlg, L"PdhValidatePath failed with status 0x%x.", counterStatus);
+                                __leave;
+                            }
+
+                            AddCounterToListView(context, counterPathString->Buffer);
+                        }
                     }
-                    else if (wcslen(counterPathBuffer) == 0)
+                    __finally
                     {
-                        //PhShowError(hwndDlg, L"No counter selected.");
-                        break;
+                        if (counterWildCardString)
+                            PhDereferenceObject(counterWildCardString);
+
+                        if (counterPathString)
+                            PhDereferenceObject(counterPathString);
                     }
-
-                    //PhShowInformation(hwndDlg, L"Counter selected: %s\n", counterPathBuffer);
-
-                    if ((counterStatus = PdhValidatePath(counterPathBuffer)) != ERROR_SUCCESS)
-                    {
-                        PhShowError(hwndDlg, L"PdhValidatePath failed with status 0x%x.", counterStatus);
-                        break;
-                    }
-
-                    AddCounterToListView(context, counterPathBuffer);
                 }
                 break;
             case IDC_REMOVE_BUTTON:
