@@ -213,7 +213,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
     return FALSE;
 }
 
-static BOOLEAN EtpGpuSectionCallback(
+static BOOLEAN PerfCounterSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
@@ -382,7 +382,7 @@ VOID PerfCounterSysInfoInitializing(
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     
     section.Context = context;
-    section.Callback = EtpGpuSectionCallback;
+    section.Callback = PerfCounterSectionCallback;
 
     PhInitializeStringRef(&section.Name, CounterName->Buffer);
 
