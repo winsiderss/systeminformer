@@ -97,7 +97,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Network Adapters Plugin";
             info->Author = L"dmex";
-            info->Description = L"";
+            info->Description = L"Plugin for monitoring specific network adapter throughput via the System Information window";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(
