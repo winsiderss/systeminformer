@@ -254,144 +254,59 @@ static INT_PTR CALLBACK OptionsDlgProc(
             {
             case IDC_ADD_BUTTON:
                 {
-                    ULONG counterType = 0;
                     PDH_STATUS counterStatus = 0;
-                    HQUERY counterQuery = NULL;
-                    HCOUNTER counterHandle = NULL;
-                    ULONG counterWildCardLength = 0;
-                    PPH_STRING counterWildCardString = NULL;
                     PDH_BROWSE_DLG_CONFIG browseConfig = { 0 };
-
                     WCHAR counterPathBuffer[PDH_MAX_COUNTER_PATH] = L"";
 
-                    __try
+
+                    browseConfig.bIncludeInstanceIndex = FALSE;
+                    browseConfig.bSingleCounterPerAdd = FALSE;// Fix empty CounterPathBuffer
+                    browseConfig.bSingleCounterPerDialog = TRUE;
+                    browseConfig.bLocalCountersOnly = FALSE;
+                    browseConfig.bWildCardInstances = TRUE; // Seems to cause a lot of crashes
+                    browseConfig.bHideDetailBox = TRUE;
+                    browseConfig.bInitializePath = FALSE;
+                    browseConfig.bDisableMachineSelection = FALSE;
+                    browseConfig.bIncludeCostlyObjects = FALSE;
+                    browseConfig.bShowObjectBrowser = FALSE;
+                    browseConfig.hWndOwner = hwndDlg;
+                    browseConfig.szReturnPathBuffer = counterPathBuffer;
+                    browseConfig.cchReturnPathLength = PDH_MAX_COUNTER_PATH;
+                    browseConfig.CallBackStatus = ERROR_SUCCESS;
+                    browseConfig.dwDefaultDetailLevel = PERF_DETAIL_WIZARD;
+                    browseConfig.szDialogBoxCaption = L"Select a counter to monitor.";
+
+                    // Display the counter browser window. 
+                    if ((counterStatus = PdhBrowseCounters(&browseConfig)) != ERROR_SUCCESS)
                     {
-                        // Create a query.
-                        if ((counterStatus = PdhOpenQuery(NULL, (ULONG_PTR)NULL, &counterQuery)) != ERROR_SUCCESS) 
+                        if (counterStatus != PDH_DIALOG_CANCELLED)
                         {
-                            PhShowError(hwndDlg, L"PdhOpenQuery failed with status 0x%x.", counterStatus);
-                            __leave;
+                            PhShowError(hwndDlg, L"PdhBrowseCounters failed with status 0x%x.", counterStatus);
                         }
 
-                        browseConfig.bIncludeInstanceIndex = FALSE;
-                        browseConfig.bSingleCounterPerAdd = FALSE;// Fix empty CounterPathBuffer
-                        browseConfig.bSingleCounterPerDialog = TRUE;
-                        browseConfig.bLocalCountersOnly = TRUE;//FALSE;
-                        browseConfig.bWildCardInstances = TRUE; // Seems to cause a lot of crashes
-                        browseConfig.bHideDetailBox = TRUE;
-                        browseConfig.bInitializePath = FALSE;
-                        browseConfig.bDisableMachineSelection = FALSE;
-                        browseConfig.bIncludeCostlyObjects = FALSE;
-                        browseConfig.bShowObjectBrowser = FALSE;
-                        browseConfig.hWndOwner = hwndDlg;
-                        browseConfig.szReturnPathBuffer = counterPathBuffer;
-                        browseConfig.cchReturnPathLength = PDH_MAX_COUNTER_PATH;
-                        browseConfig.CallBackStatus = ERROR_SUCCESS;
-                        browseConfig.dwDefaultDetailLevel = PERF_DETAIL_WIZARD;
-                        browseConfig.szDialogBoxCaption = L"Select a counter to monitor.";
-
-                        // Display the counter browser window. 
-                        if ((counterStatus = PdhBrowseCounters(&browseConfig)) != ERROR_SUCCESS) 
-                        {
-                            if (counterStatus != PDH_DIALOG_CANCELLED) 
-                            {
-                                PhShowError(hwndDlg, L"PdhBrowseCounters failed with status 0x%x.", counterStatus);
-                            }
-
-                            __leave;
-                        } 
-                        else if (wcslen(counterPathBuffer) == 0) 
-                        {
-                            //PhShowError(hwndDlg, L"No counter selected.");
-                            __leave;
-                        }
-
-                        //PhShowInformation(hwndDlg, L"Counter selected: %s\n", counterPathBuffer);
-
-                        if ((counterStatus = PdhValidatePath(counterPathBuffer)) != ERROR_SUCCESS)
-                        {
-                            PhShowError(hwndDlg, L"PdhValidatePath failed with status 0x%x.", counterStatus);
-                            __leave;
-                        }
-
-                        // Add the selected counter to the query.
-                        if ((counterStatus = PdhAddCounter(counterQuery, counterPathBuffer, 0, &counterHandle)) != ERROR_SUCCESS)
-                        {
-                            PhShowError(hwndDlg, L"PdhAddCounter failed with status 0x%x.", counterStatus);
-                            __leave;
-                        }
-
-                        AddCounterToListView(context, counterPathBuffer);
-
-                        // Query expanded buffer length
-                        //PdhExpandWildCardPath(
-                        //    NULL, 
-                        //    counterPathBuffer, 
-                        //    NULL, 
-                        //    &counterWildCardLength, 
-                        //    0
-                        //    );
-
-                        //counterWildCardString = PhCreateStringEx(NULL, counterWildCardLength * sizeof(WCHAR));
-
-                        //if ((counterStatus = PdhExpandWildCardPath(
-                        //    NULL, 
-                        //    counterPathBuffer, 
-                        //    counterWildCardString->Buffer, 
-                        //    &counterWildCardLength, 
-                        //    0
-                        //    )) == ERROR_SUCCESS)
-                        //{
-                        //    PH_STRINGREF part;
-                        //    PH_STRINGREF remaining = counterWildCardString->sr;
-
-                        //    while (remaining.Length != 0)
-                        //    {
-                        //        // Split the results
-                        //        if (!PhSplitStringRefAtChar(&remaining, '\0', &part, &remaining))
-                        //            break;
-                        //        if (remaining.Length == 0)
-                        //            break;
-
-                        //        if ((counterStatus = PdhValidatePath(part.Buffer)) != ERROR_SUCCESS)
-                        //        {
-                        //            PhShowError(hwndDlg, L"PdhValidatePath failed with status 0x%x.", counterStatus);
-                        //            __leave;
-                        //        }
-
-                        //        // Add the selected counter to the query.
-                        //        if ((counterStatus = PdhAddCounter(counterQuery, part.Buffer, 0, &counterHandle)) != ERROR_SUCCESS)
-                        //        {
-                        //            PhShowError(hwndDlg, L"PdhAddCounter failed with status 0x%x.", counterStatus);
-                        //            __leave;
-                        //        }
-
-                        //        AddCounterToListView(context, part.Buffer);
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    PhShowError(hwndDlg, L"PdhExpandWildCardPath failed with status 0x%x.", counterStatus);
-                        //}
+                        break;
                     }
-                    __finally
+                    else if (wcslen(counterPathBuffer) == 0)
                     {
-                        if (counterWildCardString)
-                        {
-                            PhDereferenceObject(counterWildCardString);
-                        }
-
-                        if (counterQuery) 
-                        {
-                            PdhCloseQuery(counterQuery);
-                        }
+                        //PhShowError(hwndDlg, L"No counter selected.");
+                        break;
                     }
+
+                    //PhShowInformation(hwndDlg, L"Counter selected: %s\n", counterPathBuffer);
+
+                    if ((counterStatus = PdhValidatePath(counterPathBuffer)) != ERROR_SUCCESS)
+                    {
+                        PhShowError(hwndDlg, L"PdhValidatePath failed with status 0x%x.", counterStatus);
+                        break;
+                    }
+
+                    AddCounterToListView(context, counterPathBuffer);
                 }
                 break;
             case IDC_REMOVE_BUTTON:
                 {
                     INT itemIndex;
-                    
+
                     // Get the first selected item
                     itemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
 
