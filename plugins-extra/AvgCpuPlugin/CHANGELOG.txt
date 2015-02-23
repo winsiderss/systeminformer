@@ -1,0 +1,7 @@
+1.1
+ * Fixed calculation bug
+
+1.0
+ * Initial release
+
+

@@ -240,7 +240,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 400, L"Counter");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 420, L"Counter");
             PhSetExtendedListView(context->ListViewHandle);
 
             ClearCounterList(context->CountersListEdited);

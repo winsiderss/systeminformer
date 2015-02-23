@@ -1,5 +1,6 @@
 /*
- * NT Atom Table Plugin
+ * Process Hacker Extra Plugins -
+ *   NT Atom Table Plugin
  *
  * Copyright (C) 2015 dmex
  *
