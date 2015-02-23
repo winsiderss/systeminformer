@@ -264,7 +264,7 @@ VOID EtpCreateGpuGraphs(
         3,
         3,
         GpuDialog,
-        (HMENU)IDC_GPU,
+        NULL,
         PluginInstance->DllBase,
         NULL
         );
@@ -279,7 +279,7 @@ VOID EtpCreateGpuGraphs(
         3,
         3,
         GpuDialog,
-        (HMENU)IDC_DEDICATED,
+        NULL,
         PluginInstance->DllBase,
         NULL
         );
@@ -294,7 +294,7 @@ VOID EtpCreateGpuGraphs(
         3,
         3,
         GpuDialog,
-        (HMENU)IDC_DEDICATED,
+        NULL,
         PluginInstance->DllBase,
         NULL
         );

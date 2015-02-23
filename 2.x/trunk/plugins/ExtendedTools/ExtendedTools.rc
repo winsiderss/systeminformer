@@ -51,13 +51,13 @@ END
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,13,0,0
  PRODUCTVERSION 1,13,0,0
- FILEFLAGSMASK 0x17L
+ FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
 #else
  FILEFLAGS 0x0L
 #endif
- FILEOS 0x4L
+ FILEOS 0x40004L
  FILETYPE 0x2L
  FILESUBTYPE 0x0L
 BEGIN
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.13.0.0"
+            VALUE "FileVersion", "1.13"
             VALUE "InternalName", "ExtendedTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedTools.dll"
             VALUE "ProductName", "Extended Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.13.0.0"
+            VALUE "ProductVersion", "1.13"
         END
     END
     BLOCK "VarFileInfo"
@@ -296,7 +296,6 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Disk",IDC_TITLE,0,0,72,21
     LTEXT           "Panel layout",IDC_LAYOUT,0,124,315,61,NOT WS_VISIBLE
-    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,99,NOT WS_VISIBLE
 END
 
 IDD_SYSINFO_NETPANEL DIALOGEX 0, 0, 145, 58

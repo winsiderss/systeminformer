@@ -16,7 +16,6 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -51,13 +50,13 @@ END
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,5,0,0
  PRODUCTVERSION 1,5,0,0
- FILEFLAGSMASK 0x17L
+ FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
 #else
  FILEFLAGS 0x0L
 #endif
- FILEOS 0x4L
+ FILEOS 0x40004L
  FILETYPE 0x2L
  FILESUBTYPE 0x0L
 BEGIN
@@ -67,12 +66,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Online Checks plugin for Process Hacker"
-            VALUE "FileVersion", "1.5.0.0"
+            VALUE "FileVersion", "1.5"
             VALUE "InternalName", "OnlineChecks"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "OnlineChecks.dll"
             VALUE "ProductName", "Online Checks plugin for Process Hacker"
-            VALUE "ProductVersion", "1.5.0.0"
+            VALUE "ProductVersion", "1.5"
         END
     END
     BLOCK "VarFileInfo"
