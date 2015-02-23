@@ -13,9 +13,11 @@
 #define IDC_ICMP_MAX                    1014
 #define IDC_ICMP_AVG                    1015
 #define IDC_MAINTEXT                    1016
+#define IDC_ANON_ADDR                   1017
 #define IDC_MORE_INFO                   1019
 #define IDC_PINGS_SENT                  1020
 #define IDC_PING_LAYOUT                 1021
+#define IDC_BAD_HASH                    1022
 
 // Next default values for new objects
 // 

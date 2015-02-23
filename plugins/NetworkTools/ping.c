@@ -463,8 +463,8 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_MAX), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_SENT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_LOST), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            //PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            //PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);        
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);      
             PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
@@ -596,10 +596,10 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 ((FLOAT)context->PingLossCount / context->PingSentCount * 100)
                 )->Buffer);
 
-            //SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
-            //    L"Bad Hashes: %lu", context->HashFailCount)->Buffer);  
-            //SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
-            //    L"Anon Replies: %lu", context->UnknownAddrCount)->Buffer);   
+            SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
+                L"Bad Hashes: %lu", context->HashFailCount)->Buffer);  
+            SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
+                L"Anon Replies: %lu", context->UnknownAddrCount)->Buffer);   
         }
         break;
     case WM_NOTIFY:
@@ -656,7 +656,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->PingGraphState.Data1,
-                                maxGraphHeight, //(FLOAT)context->MaxPingTimeout,
+                                (FLOAT)context->MaxPingTimeout, // maxGraphHeight
                                 drawInfo->LineDataCount
                                 );
 
