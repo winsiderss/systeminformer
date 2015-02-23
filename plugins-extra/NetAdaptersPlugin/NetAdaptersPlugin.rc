@@ -12,11 +12,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English resources
+// English (Australia) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
-#pragma code_page(1252)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -26,46 +25,36 @@ LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0
  PRODUCTVERSION 1,0,0,0
- FILEFLAGSMASK 0x17L
+ FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
 #else
  FILEFLAGS 0x0L
 #endif
- FILEOS 0x4L
+ FILEOS 0x40004L
  FILETYPE 0x2L
  FILESUBTYPE 0x0L
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "000904b0"
+        BLOCK "0c0904b0"
         BEGIN
             VALUE "CompanyName", "dmex"
-            VALUE "FileDescription", "NetworkAdaptersPlugin plugin for Process Hacker"
-            VALUE "FileVersion", "1.0.0.0"
+            VALUE "FileDescription", "Network adapters plugin for Process Hacker"
+            VALUE "FileVersion", "1.0"
             VALUE "InternalName", "NetworkAdaptersPlugin"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetworkAdaptersPlugin.dll"
-            VALUE "ProductName", "NetworkAdaptersPlugin plugin for Process Hacker"
-            VALUE "ProductVersion", "1.0.0.0"
+            VALUE "ProductName", "Network adapters plugin for Process Hacker"
+            VALUE "ProductVersion", "1.0"
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x9, 1200
+        VALUE "Translation", 0xc09, 1200
     END
 END
 
-#endif    // English resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -103,7 +92,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,198,156,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,252,156,50,14
-    CONTROL         "",IDC_NETADAPTERS_LISTVIEW,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,295,146
+    CONTROL         "",IDC_NETADAPTERS_LISTVIEW,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,7,7,295,146
 END
 
 IDD_NETADAPTER_DIALOG DIALOGEX 0, 0, 269, 130
