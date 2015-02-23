@@ -12,11 +12,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English resources
+// English (Australia) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
-#pragma code_page(1252)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -26,28 +25,28 @@ LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,5,0,0
  PRODUCTVERSION 1,5,0,0
- FILEFLAGSMASK 0x17L
+ FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
 #else
  FILEFLAGS 0x0L
 #endif
- FILEOS 0x4L
+ FILEOS 0x40004L
  FILETYPE 0x2L
  FILESUBTYPE 0x0L
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "000904b0"
+        BLOCK "0c0904b0"
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Update Checker plugin for Process Hacker"
-            VALUE "FileVersion", "1.5.0.0"
+            VALUE "FileVersion", "1.5"
             VALUE "InternalName", "UpdateChecker"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "Updater.dll"
             VALUE "ProductName", "Update Checker plugin for Process Hacker"
-            VALUE "ProductVersion", "1.5.0.0"
+            VALUE "ProductVersion", "1.5"
         END
     END
     BLOCK "VarFileInfo"
@@ -116,16 +115,6 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-#endif    // English resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
