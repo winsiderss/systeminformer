@@ -402,7 +402,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"DNS Cache Viewer";
             info->Author = L"dmex";
-            info->Description = L"Plugin for viewing the DNS Resolver Cache via the Tools menu";
+            info->Description = L"Plugin for viewing the DNS Resolver Cache via the Tools menu.";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(

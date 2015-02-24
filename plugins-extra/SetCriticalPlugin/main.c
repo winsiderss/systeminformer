@@ -147,7 +147,7 @@ LOGICAL DllMain(
         if (!PluginInstance)
             return FALSE;
 
-        info->DisplayName = L"Set process critical status plugin";
+        info->DisplayName = L"Set process critical status";
         info->Description = L"Adds Miscellaneous > Critical menu item.";
         info->Author = L"wj32";
 

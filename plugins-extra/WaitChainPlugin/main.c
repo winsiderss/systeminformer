@@ -484,7 +484,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Wait Chain Traversal";
             info->Author = L"dmex";
-            info->Description = L"Plugin for viewing the current thread or process Wait Chain";
+            info->Description = L"Plugin for Wait Chain analysis via right-click Miscellaneous > Wait Chain Traversal or individual threads via Process properties > Threads tab > Analyze > Wait Chain Traversal.";
             info->HasOptions = FALSE;
                         
             PhRegisterCallback(

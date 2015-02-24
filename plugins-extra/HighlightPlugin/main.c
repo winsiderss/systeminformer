@@ -149,7 +149,7 @@ static PPH_STRING SaveCustomColors(
     {
         PhAppendFormatStringBuilder(&stringBuilder, L"%u,", ProcessCustomColors[i]);
     }
-       
+
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
@@ -425,9 +425,9 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"Highlight Plugin";
+            info->DisplayName = L"Process Highlight";
             info->Author = L"dmex";
-            info->Description = L"Process Highlight Plugin";
+            info->Description = L"Plugin for individual process highlighting via the Process > Miscellaneous menu.";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(
