@@ -216,9 +216,9 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"RunningObjectTable Viewer";
+            info->DisplayName = L"Running Object Table";
             info->Author = L"dmex";
-            info->Description = L"Plugin for viewing the RunningObjectTable via the Tools menu";
+            info->Description = L"Plugin for viewing the Running Object Table via the Tools menu.";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(

@@ -78,8 +78,8 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->Author = L"dmex";
-            info->DisplayName = L"Atom Table Plugin";
-            info->Description = L"Plugin for viewing the NT Atom Table via the Tools menu";
+            info->DisplayName = L"Global Atom Table";
+            info->Description = L"Plugin for viewing the Global Atom Table via the Tools menu.";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(

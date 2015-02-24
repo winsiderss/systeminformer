@@ -126,7 +126,7 @@ LOGICAL DllMain(
         if (!PluginInstance)
             return FALSE;
 
-        info->DisplayName = L"Hexadecimal PID plugin";
+        info->DisplayName = L"Hexadecimal PID";
         info->Description = L"Adds a column to display PIDs in hexadecimal.";
         info->Author = L"wj32";
 
