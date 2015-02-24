@@ -11,9 +11,7 @@
 #define IDD_MODSERVICES                 104
 #define ID_VIEW_MEMORYLISTS             104
 #define IDD_MEMLISTS                    105
-#define IDC_DISK                        105
 #define IDD_PROCDISKNET                 106
-#define IDC_NETWORK                     106
 #define ID_VIEW_DISKANDNETWORK          107
 #define ID_PROCESS_WSWATCH              108
 #define IDD_SYSINFO_DISKPANEL           108
@@ -102,6 +100,7 @@
 #define IDC_ZWRITESDELTA_V              1084
 #define IDC_ZREADSDELTA_V               1085
 #define IDC_INSTRUCTION                 1086
+#define IDC_PANEL_LAYOUT                1089
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -117,7 +116,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        119
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1088
+#define _APS_NEXT_CONTROL_VALUE         1092
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

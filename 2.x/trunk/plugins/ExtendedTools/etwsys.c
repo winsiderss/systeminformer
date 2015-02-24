@@ -199,7 +199,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             DiskDialog = hwndDlg;
             PhInitializeLayoutManager(&DiskLayoutManager, hwndDlg);
             graphItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
-            panelItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            panelItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)DiskSection->Parameters->LargeFont, FALSE);
 
@@ -216,7 +216,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
                 3,
                 3,
                 hwndDlg,
-                (HMENU)IDC_DISK,
+                NULL,
                 PluginInstance->DllBase,
                 NULL
                 );
@@ -571,7 +571,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             NetworkDialog = hwndDlg;
             PhInitializeLayoutManager(&NetworkLayoutManager, hwndDlg);
             graphItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
-            panelItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            panelItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)NetworkSection->Parameters->LargeFont, FALSE);
 
@@ -588,7 +588,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
                 3,
                 3,
                 hwndDlg,
-                (HMENU)IDC_NETWORK,
+                NULL,
                 PluginInstance->DllBase,
                 NULL
                 );
