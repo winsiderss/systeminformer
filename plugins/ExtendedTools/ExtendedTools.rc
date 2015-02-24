@@ -254,7 +254,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "GPU",IDC_TITLE,0,0,72,21
     RTEXT           "GPU Name",IDC_GPUNAME,83,4,232,16,SS_WORDELLIPSIS
-    LTEXT           "Panel layout",IDC_LAYOUT,0,130,315,55,NOT WS_VISIBLE
+    LTEXT           "Panel layout",IDC_PANEL_LAYOUT,0,130,315,55,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,102,NOT WS_VISIBLE
     LTEXT           "GPU:",IDC_GPU_L,73,0,17,8
     LTEXT           "Dedicated Memory:",IDC_DEDICATED_L,73,5,63,8
@@ -295,7 +295,8 @@ CAPTION "Disk"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Disk",IDC_TITLE,0,0,72,21
-    LTEXT           "Panel layout",IDC_LAYOUT,0,124,315,61,NOT WS_VISIBLE
+    LTEXT           "Panel layout",IDC_PANEL_LAYOUT,0,124,315,61,NOT WS_VISIBLE
+    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,99,NOT WS_VISIBLE
 END
 
 IDD_SYSINFO_NETPANEL DIALOGEX 0, 0, 145, 58
@@ -319,7 +320,7 @@ CAPTION "Network"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Network",IDC_TITLE,0,0,72,21
-    LTEXT           "Panel layout",IDC_LAYOUT,0,124,315,61,NOT WS_VISIBLE
+    LTEXT           "Panel layout",IDC_PANEL_LAYOUT,0,124,315,61,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,99,NOT WS_VISIBLE
 END
 
