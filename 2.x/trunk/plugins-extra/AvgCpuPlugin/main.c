@@ -295,7 +295,7 @@ LOGICAL DllMain(
         if (!PluginInstance)
             return FALSE;
 
-        info->DisplayName = L"Average CPU plugin";
+        info->DisplayName = L"Average CPU";
         info->Description = L"Adds a column to display average CPU times.";
         info->Author = L"wj32";
 
