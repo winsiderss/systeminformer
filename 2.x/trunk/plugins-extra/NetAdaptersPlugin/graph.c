@@ -39,6 +39,7 @@ static BOOLEAN NetworkAdapterQuerySupported(
     BOOLEAN adapterNameSupported = FALSE;
     BOOLEAN adapterStatsSupported = FALSE;
     BOOLEAN adapterLinkStateSupported = FALSE;
+    BOOLEAN adapterLinkSpeedSupported = FALSE;
     NDIS_OID ndisObjectIdentifiers[PAGE_SIZE];
 
     // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569642.aspx
@@ -77,6 +78,9 @@ static BOOLEAN NetworkAdapterQuerySupported(
             case OID_GEN_LINK_STATE:
                 adapterLinkStateSupported = TRUE;
                 break;
+            case OID_GEN_LINK_SPEED:
+                adapterLinkSpeedSupported = TRUE;
+                break;
             }
         }
     }
@@ -86,6 +90,8 @@ static BOOLEAN NetworkAdapterQuerySupported(
     if (!adapterStatsSupported)
         ndisQuerySupported = FALSE;
     if (!adapterLinkStateSupported)
+        ndisQuerySupported = FALSE;
+    if (!adapterLinkSpeedSupported)
         ndisQuerySupported = FALSE;
 
     return ndisQuerySupported;
@@ -317,10 +323,12 @@ static PPH_STRING NetworkAdapterQueryLinkSpeed(
 {
     NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
-    ULONG64 result = 0;
+    NDIS_CO_LINK_SPEED result;
 
     // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569593.aspx
-    opcode = OID_GEN_LINK_SPEED;
+    opcode = OID_GEN_LINK_SPEED; // OID_GEN_CO_LINK_SPEED
+
+    memset(&result, 0, sizeof(NDIS_CO_LINK_SPEED));
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
@@ -335,32 +343,7 @@ static PPH_STRING NetworkAdapterQueryLinkSpeed(
         sizeof(result)
         )))
     {
-        return PhFormatSize(result * NDIS_UNIT_OF_MEASUREMENT / BITS_IN_ONE_BYTE, -1);
-    }
-    else
-    {
-        NDIS_CO_LINK_SPEED linkSpeed;
-
-        // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569453.aspx
-        opcode = OID_GEN_CO_LINK_SPEED;
-
-        memset(&result, 0, sizeof(NDIS_CO_LINK_SPEED));
-
-        if (NT_SUCCESS(NtDeviceIoControlFile(
-            DeviceHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
-            IOCTL_NDIS_QUERY_GLOBAL_STATS,
-            &opcode,
-            sizeof(NDIS_OID),
-            &linkSpeed,
-            sizeof(linkSpeed)
-            )))
-        {
-            return PhFormatSize(linkSpeed.Outbound * NDIS_UNIT_OF_MEASUREMENT / BITS_IN_ONE_BYTE, -1);
-        }
+        return PhFormatSize(UInt32x32To64(result.Outbound, NDIS_UNIT_OF_MEASUREMENT) / BITS_IN_ONE_BYTE, -1);
     }
 
     return PhReferenceEmptyString();
@@ -791,13 +774,8 @@ static BOOLEAN NetAdapterSectionCallback(
 
                 if (context->DeviceHandle)
                 {
-                    if (NetworkAdapterQuerySupported(context->DeviceHandle))
-                    {
-                        NetworkAdapterQueryMediaType(context);
-                        NetworkAdapterQueryNdisVersion(context);
-                    }
-                    else
-                    {            
+                    if (!NetworkAdapterQuerySupported(context->DeviceHandle))
+                    {       
                         NtClose(context->DeviceHandle);
                         context->DeviceHandle = NULL;
                     }
