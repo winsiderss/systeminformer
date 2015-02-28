@@ -87,6 +87,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
+                { IntegerSettingType, SETTING_NAME_ENABLE_NDIS, L"1" },
                 { StringSettingType, SETTING_NAME_INTERFACE_LIST, L"" }
             };
 
@@ -95,9 +96,9 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"Network Adapters Plugin";
+            info->DisplayName = L"Network Adapters";
             info->Author = L"dmex";
-            info->Description = L"Plugin for monitoring specific network adapter throughput via the System Information window";
+            info->Description = L"Plugin for monitoring specific network adapter throughput via the System Information window.";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(

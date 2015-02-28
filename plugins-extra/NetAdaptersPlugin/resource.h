@@ -14,6 +14,7 @@
 #define IDC_STAT_BSENT                  1028
 #define IDC_STAT_BRECIEVED              1029
 #define IDC_STAT_BTOTAL                 1030
+#define IDC_DETAILS_BUTTON              1031
 
 // Next default values for new objects
 // 
@@ -21,7 +22,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40006
-#define _APS_NEXT_CONTROL_VALUE         1028
+#define _APS_NEXT_CONTROL_VALUE         1032
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif

@@ -16,6 +16,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
+#pragma code_page(1252)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -23,8 +24,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,1,0,0
+ PRODUCTVERSION 1,1,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -41,12 +42,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network adapters plugin for Process Hacker"
-            VALUE "FileVersion", "1.0"
+            VALUE "FileVersion", "1.1"
             VALUE "InternalName", "NetworkAdaptersPlugin"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetworkAdaptersPlugin.dll"
             VALUE "ProductName", "Network adapters plugin for Process Hacker"
-            VALUE "ProductVersion", "1.0"
+            VALUE "ProductVersion", "1.1"
         END
     END
     BLOCK "VarFileInfo"
@@ -106,22 +107,23 @@ BEGIN
     LTEXT           "Panel layout",IDC_LAYOUT,0,91,268,36,NOT WS_VISIBLE
 END
 
-IDD_NETADAPTER_PANEL DIALOGEX 0, 0, 248, 50
+IDD_NETADAPTER_PANEL DIALOGEX 0, 0, 257, 50
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Link Speed",IDC_STATIC,9,12,35,8
-    RTEXT           "Static",IDC_LINK_SPEED,56,12,54,8,SS_ENDELLIPSIS
-    GROUPBOX        "Adapter",IDC_STATIC,2,0,118,48
+    RTEXT           "Static",IDC_LINK_SPEED,52,12,54,8,SS_ENDELLIPSIS
+    GROUPBOX        "Adapter",IDC_STATIC,2,0,111,34
     LTEXT           "Link State",IDC_STATIC,9,23,32,8
-    RTEXT           "Static",IDC_LINK_STATE,56,23,54,8,SS_ENDELLIPSIS
-    GROUPBOX        "Statistics",IDC_STATIC,126,0,119,48
-    LTEXT           "Bytes Sent",IDC_STATIC,135,12,36,8
-    LTEXT           "Bytes Recieved",IDC_STATIC,135,23,50,8
-    RTEXT           "Static",IDC_STAT_BSENT,181,12,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_STAT_BRECIEVED,197,23,38,8,SS_ENDELLIPSIS
-    LTEXT           "Bytes Total",IDC_STATIC,135,33,37,8
-    RTEXT           "Static",IDC_STAT_BTOTAL,197,33,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_LINK_STATE,52,23,54,8,SS_ENDELLIPSIS
+    GROUPBOX        "Statistics",IDC_STATIC,118,0,136,45
+    LTEXT           "Bytes Sent",IDC_STATIC,127,11,36,8
+    LTEXT           "Bytes Recieved",IDC_STATIC,127,22,50,8
+    RTEXT           "Static",IDC_STAT_BSENT,184,11,62,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_STAT_BRECIEVED,184,22,62,8,SS_ENDELLIPSIS
+    LTEXT           "Bytes Total",IDC_STATIC,127,32,37,8
+    RTEXT           "Static",IDC_STAT_BTOTAL,184,32,62,8,SS_ENDELLIPSIS
+    PUSHBUTTON      "Details",IDC_DETAILS_BUTTON,1,35,50,14
 END
 
 
@@ -147,6 +149,7 @@ BEGIN
 
     IDD_NETADAPTER_PANEL, DIALOG
     BEGIN
+        RIGHTMARGIN, 256
         TOPMARGIN, 1
     END
 END
