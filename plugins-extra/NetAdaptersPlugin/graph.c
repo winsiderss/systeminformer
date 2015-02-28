@@ -166,7 +166,7 @@ static PPH_STRING NetworkAdapterQueryName(
             SIZE_T adapterDescriptionLength = 0;
             WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
 
-            adapterDescriptionLength = sizeof(adapterDescription); // This is what the API expects aparently... 
+            adapterDescriptionLength = sizeof(adapterDescription); // This is what the API expects apparently... 
 
             if (SUCCEEDED(Context->GetInterfaceDescriptionFromGuid_I(&deviceGuid, adapterDescription, &adapterDescriptionLength, NULL, NULL)))
             {
@@ -495,7 +495,7 @@ static VOID NetAdapterUpdatePanel(
         }
         else
         {
-            // The above code should return statistics however some drivers bypassed Microsoft driver testing requrements...
+            // The above code should return statistics however some drivers bypassed Microsoft driver testing requirements...
             //  NDIS handles these two OIDs for all miniport drivers reguardless.
             inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
             outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
