@@ -29,6 +29,9 @@ static VOID FreeAdaptersEntry(
     _In_ PPH_NETADAPTER_ENTRY Entry
     )
 {
+    if (Entry->InterfaceGuid)
+        PhDereferenceObject(Entry->InterfaceGuid);
+
     PhFree(Entry);
 }
 
@@ -57,9 +60,10 @@ static VOID CopyAdaptersList(
         newEntry = (PPH_NETADAPTER_ENTRY)PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
         memset(newEntry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
-        newEntry->IfIndex = entry->IfIndex;
-        newEntry->Luid64 = entry->Luid64;
-
+        newEntry->InterfaceIndex = entry->InterfaceIndex;
+        newEntry->InterfaceLuid = entry->InterfaceLuid;
+        newEntry->InterfaceGuid = entry->InterfaceGuid;
+        
         PhAddItemList(Destination, newEntry);
     }
 }
@@ -79,20 +83,26 @@ VOID LoadAdaptersList(
         ULONG64 luid64;
         PH_STRINGREF part1;
         PH_STRINGREF part2;
+        PH_STRINGREF part3;
 
         entry = (PPH_NETADAPTER_ENTRY)PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
         memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
         PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
         PhSplitStringRefAtChar(&remaining, ',', &part2, &remaining);
+        PhSplitStringRefAtChar(&remaining, ',', &part3, &remaining);
 
         if (PhStringToInteger64(&part1, 10, &ifindex))
         {
-            entry->IfIndex = (IF_INDEX)ifindex;
+            entry->InterfaceIndex = (IF_INDEX)ifindex;
         }
         if (PhStringToInteger64(&part2, 10, &luid64))
         {
-            entry->Luid64 = luid64;
+            entry->InterfaceLuid.Value = luid64;
+        }
+        if (part3.Buffer)
+        {
+            entry->InterfaceGuid = PhCreateString(part3.Buffer);
         }
 
         PhAddItemList(FilterList, entry);
@@ -112,9 +122,10 @@ static PPH_STRING SaveAdaptersList(
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)FilterList->Items[i];
 
         PhAppendFormatStringBuilder(&stringBuilder, 
-            L"%u,%I64u,",
-            entry->IfIndex, // This value is UNSAFE and may change after reboot.
-            entry->Luid64 // This value is SAFE and does not change (Vista+).
+            L"%u,%I64u,%s,",
+            entry->InterfaceIndex,    // This value is UNSAFE and may change after reboot.
+            entry->InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
+            entry->InterfaceGuid->Buffer
             );
     }
 
@@ -134,8 +145,9 @@ static VOID AddNetworkAdapterToListView(
     entry = (PPH_NETADAPTER_ENTRY)PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
     memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
-    entry->IfIndex = Adapter->IfIndex;
-    entry->Luid64 = Adapter->Luid.Value;
+    entry->InterfaceIndex = Adapter->IfIndex;
+    entry->InterfaceLuid = Adapter->Luid;
+    entry->InterfaceGuid = PhCreateStringFromAnsi(Adapter->AdapterName);
 
     INT index = PhAddListViewItem(
         Context->ListViewHandle,
@@ -148,7 +160,7 @@ static VOID AddNetworkAdapterToListView(
     {
         PPH_NETADAPTER_ENTRY currentEntry = (PPH_NETADAPTER_ENTRY)Context->NetworkAdaptersListEdited->Items[i];
 
-        if (entry->IfIndex == currentEntry->IfIndex)
+        if (entry->InterfaceIndex == currentEntry->InterfaceIndex)
         {
             ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK); 
             break;
@@ -163,31 +175,36 @@ static VOID FindNetworkAdapters(
     ULONG bufferLength = 0;
     PVOID buffer = NULL;
 
-    ULONG flags = GAA_FLAG_SKIP_DNS_SERVER;
+    ULONG flags = GAA_FLAG_SKIP_UNICAST | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-        flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    //if (WindowsVersion >= WINDOWS_VISTA)
+    //    flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
 
-    if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
-        return;
-
-    buffer = PhAllocate(bufferLength);
-    memset(buffer, 0, bufferLength);
-
-    if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
+    __try
     {
-        PIP_ADAPTER_ADDRESSES addressesBuffer = buffer;
+        if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
+            __leave;
 
-        while (addressesBuffer)
+        buffer = PhAllocate(bufferLength);
+        memset(buffer, 0, bufferLength);
+
+        if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
         {
-            AddNetworkAdapterToListView(Context, addressesBuffer);
-            addressesBuffer = addressesBuffer->Next;
+            PIP_ADAPTER_ADDRESSES addressesBuffer = buffer;
+
+            while (addressesBuffer)
+            {
+                AddNetworkAdapterToListView(Context, addressesBuffer);
+                addressesBuffer = addressesBuffer->Next;
+            }
         }
     }
-
-    if (buffer)
+    __finally
     {
-        PhFree(buffer);
+        if (buffer)
+        {
+            PhFree(buffer);
+        }
     }
 }
 

@@ -22,10 +22,380 @@
 
 #include "main.h"
 
+#define BITS_IN_ONE_BYTE 8
+#define NDIS_UNIT_OF_MEASUREMENT 100
+
 #define MSG_UPDATE (WM_APP + 1)
 #define MSG_UPDATE_PANEL (WM_APP + 2)
 
-static _GetIfEntry2 GetIfEntry2_I = NULL;
+
+static BOOLEAN NetworkAdapterQuerySupported(
+    _In_ HANDLE DeviceHandle
+    )
+{
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    BOOLEAN ndisQuerySupported = FALSE;
+    BOOLEAN adapterNameSupported = FALSE;
+    BOOLEAN adapterStatsSupported = FALSE;
+    BOOLEAN adapterLinkStateSupported = FALSE;
+    NDIS_OID ndisObjectIdentifiers[PAGE_SIZE];
+
+    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569642.aspx
+    opcode = OID_GEN_SUPPORTED_LIST;
+    //opcode = OID_GEN_CO_SUPPORTED_LIST;
+
+    memset(ndisObjectIdentifiers, 0, sizeof(ndisObjectIdentifiers));
+
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        ndisObjectIdentifiers,
+        sizeof(ndisObjectIdentifiers)
+        )))
+    {
+        ndisQuerySupported = TRUE;
+
+        for (ULONG i = 0; i < (ULONG)isb.Information; i++)
+        {
+            NDIS_OID opcode = ndisObjectIdentifiers[i];
+
+            switch (opcode)
+            {
+            case OID_GEN_FRIENDLY_NAME:
+                adapterNameSupported = TRUE;
+                break;
+            case OID_GEN_STATISTICS:
+                adapterStatsSupported = TRUE;
+                break;
+            case OID_GEN_LINK_STATE:
+                adapterLinkStateSupported = TRUE;
+                break;
+            }
+        }
+    }
+
+    if (!adapterNameSupported)
+        ndisQuerySupported = FALSE;
+    if (!adapterStatsSupported)
+        ndisQuerySupported = FALSE;
+    if (!adapterLinkStateSupported)
+        ndisQuerySupported = FALSE;
+
+    return ndisQuerySupported;
+}
+
+static BOOLEAN NetworkAdapterQueryNdisVersion(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PUINT MajorVersion,
+    _Out_ PUINT MinorVersion
+    )
+{
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    ULONG versionResult = 0;
+
+    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569582.aspx
+    opcode = OID_GEN_DRIVER_VERSION;
+
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &versionResult,
+        sizeof(versionResult)
+        )))
+    {
+        *MajorVersion = HIBYTE(versionResult);
+        *MinorVersion = LOBYTE(versionResult);
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static PPH_STRING NetworkAdapterQueryName(
+    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    WCHAR adapterNameBuffer[MAX_PATH] = L"";
+
+    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569584.aspx
+    opcode = OID_GEN_FRIENDLY_NAME;
+
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        Context->DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        adapterNameBuffer,
+        sizeof(adapterNameBuffer)
+        )))
+    {
+        return PhCreateString(adapterNameBuffer);
+    }
+
+    // HACK: Query adapter description using undocumented function.
+    if (Context->GetInterfaceDescriptionFromGuid_I)
+    {
+        GUID deviceGuid = GUID_NULL;
+        UNICODE_STRING guidStringUs;
+
+        PhStringRefToUnicodeString(&Context->AdapterEntry->InterfaceGuid->sr, &guidStringUs);
+
+        if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
+        {
+            SIZE_T adapterDescriptionLength = 0;
+            WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
+
+            adapterDescriptionLength = sizeof(adapterDescription); // This is what the API expects aparently... 
+
+            if (SUCCEEDED(Context->GetInterfaceDescriptionFromGuid_I(&deviceGuid, adapterDescription, &adapterDescriptionLength, NULL, NULL)))
+            {
+                return PhCreateString(adapterDescription);
+            }
+        }
+    }
+
+    return PhCreateString(L"Unknown");
+}
+
+static NTSTATUS NetworkAdapterQueryStatistics(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNDIS_STATISTICS_INFO Info
+    )
+{
+    NTSTATUS status;
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    NDIS_STATISTICS_INFO result;
+
+    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569640.aspx
+    opcode = OID_GEN_STATISTICS;
+
+    memset(&result, 0, sizeof(NDIS_STATISTICS_INFO));
+    result.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
+    result.Header.Revision = NDIS_STATISTICS_INFO_REVISION_1;
+    result.Header.Size = NDIS_SIZEOF_STATISTICS_INFO_REVISION_1;
+
+    status = NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &result,
+        sizeof(result)
+        );
+
+    *Info = result;
+
+    //if (isb.Information != NDIS_SIZEOF_STATISTICS_INFO_REVISION_1)
+    //    return STATUS_INFO_LENGTH_MISMATCH;
+    
+    return status;
+}
+
+static NTSTATUS NetworkAdapterQueryLinkState(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNDIS_LINK_STATE State
+    )
+{
+    NTSTATUS status;
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    NDIS_LINK_STATE result;
+
+    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569595.aspx
+    opcode = OID_GEN_LINK_STATE;
+
+    memset(&result, 0, sizeof(NDIS_LINK_STATE));
+    result.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
+    result.Header.Revision = NDIS_LINK_STATE_REVISION_1;
+    result.Header.Size = NDIS_SIZEOF_LINK_STATE_REVISION_1;
+
+    status = NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &result,
+        sizeof(result)
+        );
+
+    *State = result;
+
+    //if (isb.Information != NDIS_SIZEOF_LINK_STATE_REVISION_1)
+    //    return STATUS_INFO_LENGTH_MISMATCH;
+
+    return status;
+}
+
+static BOOLEAN NetworkAdapterQueryMediaType(
+    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    NDIS_PHYSICAL_MEDIUM adapterMediaType = NdisPhysicalMediumUnspecified;
+
+    opcode = OID_GEN_PHYSICAL_MEDIUM_EX;
+
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        Context->DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &adapterMediaType,
+        sizeof(adapterMediaType)
+        )))
+    {
+        Context->NdisAdapterType = adapterMediaType;
+    }
+
+    if (Context->NdisAdapterType != NdisPhysicalMediumUnspecified)
+        return TRUE;
+
+    opcode = OID_GEN_PHYSICAL_MEDIUM;
+    memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
+
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        Context->DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &adapterMediaType,
+        sizeof(adapterMediaType)
+        )))
+    {
+        Context->NdisAdapterType = adapterMediaType;
+    }
+       
+    if (Context->NdisAdapterType != NdisPhysicalMediumUnspecified)
+        return TRUE;
+
+    //NDIS_MEDIUM adapterMediaType = NdisMediumMax;
+    //opcode = OID_GEN_MEDIA_IN_USE;
+
+    return FALSE;
+}
+
+static PPH_STRING NetworkAdapterQueryLinkSpeed(
+    _In_ HANDLE DeviceHandle
+    )
+{
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    ULONG64 result = 0;
+
+    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569593.aspx
+    opcode = OID_GEN_LINK_SPEED;
+
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &result,
+        sizeof(result)
+        )))
+    {
+        return PhFormatSize(result * NDIS_UNIT_OF_MEASUREMENT / BITS_IN_ONE_BYTE, -1);
+    }
+    else
+    {
+        NDIS_CO_LINK_SPEED linkSpeed;
+
+        // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569453.aspx
+        opcode = OID_GEN_CO_LINK_SPEED;
+
+        memset(&result, 0, sizeof(NDIS_CO_LINK_SPEED));
+
+        if (NT_SUCCESS(NtDeviceIoControlFile(
+            DeviceHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            IOCTL_NDIS_QUERY_GLOBAL_STATS,
+            &opcode,
+            sizeof(NDIS_OID),
+            &linkSpeed,
+            sizeof(linkSpeed)
+            )))
+        {
+            return PhFormatSize(linkSpeed.Outbound * NDIS_UNIT_OF_MEASUREMENT / BITS_IN_ONE_BYTE, -1);
+        }
+    }
+
+    return PhReferenceEmptyString();
+}
+
+static ULONG64 NetworkAdapterQueryValue(
+    _In_ HANDLE DeviceHandle,
+    _In_ NDIS_OID OpCode
+    )
+{
+    IO_STATUS_BLOCK isb;
+    ULONG64 result = 0;
+
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &OpCode,
+        sizeof(NDIS_OID),
+        &result,
+        sizeof(result)
+        )))
+    {
+        return result;
+    }
+
+    return 0;
+}
+
+
 
 static MIB_IF_ROW2 QueryInterfaceRowVista(
     _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
@@ -35,12 +405,20 @@ static MIB_IF_ROW2 QueryInterfaceRowVista(
 
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
 
-    interfaceRow.InterfaceLuid.Value = Context->AdapterEntry->Luid64;     
+    interfaceRow.InterfaceLuid = Context->AdapterEntry->InterfaceLuid;
+    //interfaceRow.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
 
-    if (GetIfEntry2_I)
+    if (Context->GetIfEntry2_I)
     {
-        GetIfEntry2_I(&interfaceRow);
+        Context->GetIfEntry2_I(&interfaceRow);
     }
+
+    //MIB_IPINTERFACE_ROW table;
+    //memset(&table, 0, sizeof(MIB_IPINTERFACE_ROW));
+    //table.Family = AF_INET;
+    //table.InterfaceLuid.Value = Context->AdapterEntry->InterfaceLuidValue;
+    //table.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
+    //GetIpInterfaceEntry(&table);
 
     return interfaceRow;
 }
@@ -53,12 +431,20 @@ static MIB_IFROW QueryInterfaceRowXP(
 
     memset(&interfaceRow, 0, sizeof(MIB_IFROW));
 
-    interfaceRow.dwIndex = Context->AdapterEntry->IfIndex;
+    interfaceRow.dwIndex = Context->AdapterEntry->InterfaceIndex;
 
     GetIfEntry(&interfaceRow);
 
+    //MIB_IPINTERFACE_ROW table;
+    //memset(&table, 0, sizeof(MIB_IPINTERFACE_ROW));
+    //table.Family = AF_INET;
+    //table.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
+    //GetIpInterfaceEntry(&table);
+
     return interfaceRow;
 }
+
+
 
 static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
@@ -91,48 +477,86 @@ static VOID NetAdapterUpdatePanel(
     _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
+    ULONG64 inOctets = 0;
+    ULONG64 outOctets = 0;
+    ULONG64 xmitLinkSpeed = 0;
+    NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
+    PPH_STRING linkSpeed = NULL;
+
+    if (Context->DeviceHandle)
     {
-        MIB_IF_ROW2 interfaceRow;
+        NDIS_STATISTICS_INFO interfaceStats;
+        NDIS_LINK_STATE interfaceState;
 
-        interfaceRow = QueryInterfaceRowVista(Context);
-
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatSize(interfaceRow.ReceiveLinkSpeed, -1)->Buffer);
-
-        if (interfaceRow.MediaConnectState == MediaConnectStateConnected)
+        if (NT_SUCCESS(NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats)))
         {
-            SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
+            inOctets = interfaceStats.ifHCInOctets;
+            outOctets = interfaceStats.ifHCOutOctets;
         }
         else
         {
-            SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
+            // The above code should return statistics however some drivers bypassed Microsoft driver testing requrements...
+            //  NDIS handles these two OIDs for all miniport drivers reguardless.
+            inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
+            outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
         }
 
-        SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(interfaceRow.OutOctets, -1)->Buffer);
-        SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(interfaceRow.InOctets, -1)->Buffer);
-        SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(interfaceRow.OutOctets + interfaceRow.InOctets, -1)->Buffer);
+        if (NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
+        {
+            mediaState = interfaceState.MediaConnectState;
+            xmitLinkSpeed = interfaceState.XmitLinkSpeed;
+        }
+
+        linkSpeed = NetworkAdapterQueryLinkSpeed(Context->DeviceHandle);
     }
     else
     {
-        MIB_IFROW interfaceRow;
-
-        interfaceRow = QueryInterfaceRowXP(Context);
-
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatSize(interfaceRow.dwSpeed, -1)->Buffer);
-
-        if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
+        if (Context->GetIfEntry2_I)
         {
-            SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
+            MIB_IF_ROW2 interfaceRow;
+
+            interfaceRow = QueryInterfaceRowVista(Context);
+
+            inOctets = interfaceRow.InOctets;
+            outOctets = interfaceRow.OutOctets;
+            mediaState = interfaceRow.MediaConnectState;
+            xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
         }
         else
         {
-            SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
-        }
+            MIB_IFROW interfaceRow;
 
-        SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(interfaceRow.dwOutOctets, -1)->Buffer);
-        SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(interfaceRow.dwInOctets, -1)->Buffer);
-        SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(interfaceRow.dwOutOctets + interfaceRow.dwInOctets, -1)->Buffer);
+            interfaceRow = QueryInterfaceRowXP(Context);
+
+            inOctets = interfaceRow.dwInOctets;
+            outOctets = interfaceRow.dwOutOctets;
+            xmitLinkSpeed = interfaceRow.dwSpeed;
+
+            if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
+                mediaState = MediaConnectStateConnected;
+            else
+                mediaState = MediaConnectStateDisconnected;
+        }
     }
+    
+    if (linkSpeed)
+    {
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, linkSpeed->Buffer);
+        PhDereferenceObject(linkSpeed);
+    }
+    else
+    {
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatSize(xmitLinkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer);
+    }
+
+    if (mediaState == MediaConnectStateConnected)
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
+    else
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
+
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctets, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(inOctets, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
 }
 
 static INT_PTR CALLBACK NetAdapterPanelDialogProc(
@@ -233,7 +657,6 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            
             NetAdapterUpdateGraphs(context);
             NetAdapterUpdatePanel(context);
         }
@@ -317,9 +740,10 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                                     );
 
                                 PhSwapReference2(&context->GraphState.TooltipText, PhFormatString(
-                                    L"R: %s\nS: %s",
+                                    L"R: %s\nS: %s\n%s",
                                     PhaFormatSize(adapterInboundValue, -1)->Buffer,
-                                    PhaFormatSize(adapterOutboundValue, -1)->Buffer
+                                    PhaFormatSize(adapterOutboundValue, -1)->Buffer,
+                                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
 
@@ -355,10 +779,37 @@ static BOOLEAN NetAdapterSectionCallback(
     {
     case SysInfoCreate:
         {
-            if (WindowsVersion > WINDOWS_VISTA)
+            if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
             {
-                if ((context->IphlpHandle = LoadLibrary(L"Iphlpapi.dll")))
-                    GetIfEntry2_I = (_GetIfEntry2)GetProcAddress(context->IphlpHandle, "GetIfEntry2");
+                PhCreateFileWin32(
+                    &context->DeviceHandle,
+                    PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
+                    FILE_GENERIC_READ,
+                    FILE_ATTRIBUTE_NORMAL, // FILE_ATTRIBUTE_DEVICE
+                    FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    FILE_OPEN,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                    );
+
+                if (context->DeviceHandle)
+                {
+                    if (NetworkAdapterQuerySupported(context->DeviceHandle))
+                    {
+                        NetworkAdapterQueryMediaType(context);
+                        NetworkAdapterQueryNdisVersion(context->DeviceHandle, &context->NdisMajorVersion, &context->NdisMinorVersion);
+                    }
+                    else
+                    {            
+                        NtClose(context->DeviceHandle);
+                        context->DeviceHandle = NULL;
+                    }
+                }
+            }
+
+            if ((context->IphlpHandle = LoadLibrary(L"iphlpapi.dll")))
+            {
+                context->GetIfEntry2_I = (_GetIfEntry2)GetProcAddress(context->IphlpHandle, "GetIfEntry2");
+                context->GetInterfaceDescriptionFromGuid_I = (_GetInterfaceDescriptionFromGuid)GetProcAddress(context->IphlpHandle, "NhGetInterfaceDescriptionFromGuid");
             }
 
             PhInitializeCircularBuffer_ULONG64(&context->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
@@ -376,82 +827,124 @@ static BOOLEAN NetAdapterSectionCallback(
             if (context->IphlpHandle)
                 FreeLibrary(context->IphlpHandle);
 
+            if (context->DeviceHandle)
+                NtClose(context->DeviceHandle);
+
             PhFree(context);
         }
         return TRUE;
     case SysInfoTick:
-        {
-            if (WindowsVersion >= WINDOWS_VISTA)
+        {              
+            ULONG64 networkInboundSpeed = 0;
+            ULONG64 networkOutboundSpeed = 0;
+            ULONG64 networkInOctets = 0;
+            ULONG64 networkOutOctets = 0;
+            ULONG64 xmitLinkSpeed = 0;
+            ULONG64 rcvLinkSpeed = 0;
+
+            if (context->DeviceHandle)
             {
-                MIB_IF_ROW2 interfaceRow;
-                ULONG64 networkInboundSpeed;
-                ULONG64 networkOutboundSpeed;
+                NDIS_STATISTICS_INFO interfaceStats;
+                NDIS_LINK_STATE interfaceState;
 
-                interfaceRow = QueryInterfaceRowVista(context);
+                if (NT_SUCCESS(NetworkAdapterQueryStatistics(context->DeviceHandle, &interfaceStats)))
+                {          
+                    networkInboundSpeed = interfaceStats.ifHCInOctets - context->LastInboundValue;
+                    networkOutboundSpeed = interfaceStats.ifHCOutOctets - context->LastOutboundValue;    
+                    networkInOctets = interfaceStats.ifHCInOctets;
+                    networkOutOctets = interfaceStats.ifHCOutOctets;
+                }
+                else
+                {
+                    ULONG64 inOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
+                    ULONG64 outOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
 
-                networkInboundSpeed = interfaceRow.InOctets - context->LastInboundValue;
-                networkOutboundSpeed = interfaceRow.OutOctets - context->LastOutboundValue;
+                    networkInboundSpeed = inOctets - context->LastInboundValue;
+                    networkOutboundSpeed = outOctets - context->LastOutboundValue;    
+                    networkInOctets = inOctets;
+                    networkOutOctets = outOctets;
+                }
 
-                // HACK: Pull the Adapter name from the current query persisted adapter name might change.
+                if (NT_SUCCESS(NetworkAdapterQueryLinkState(context, &interfaceState)))
+                {
+                    xmitLinkSpeed = interfaceState.XmitLinkSpeed;
+                    rcvLinkSpeed = interfaceState.RcvLinkSpeed;
+                }
+
+                // HACK: Pull the Adapter name from the current query.
                 if (context->SysinfoSection->Name.Length == 0)
                 {
-                    context->AdapterName = PhCreateString(interfaceRow.Description);
-                    context->SysinfoSection->Name = context->AdapterName->sr;
+                    if (context->AdapterName = NetworkAdapterQueryName(context))
+                    {
+                        context->SysinfoSection->Name = context->AdapterName->sr;
+                    }
                 }
-
-                if (!context->HaveFirstSample)
-                {
-                    networkInboundSpeed = 0;
-                    networkOutboundSpeed = 0;
-                    context->HaveFirstSample = TRUE;
-                }
-
-                PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkInboundSpeed);
-                PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkOutboundSpeed);
-
-                context->InboundValue = networkInboundSpeed;
-                context->OutboundValue = networkOutboundSpeed;
-                context->LastInboundValue = interfaceRow.InOctets;
-                context->LastOutboundValue = interfaceRow.OutOctets;
-                context->MaxSendSpeed = interfaceRow.TransmitLinkSpeed;
-                context->MaxReceiveSpeed = interfaceRow.ReceiveLinkSpeed;
             }
             else
             {
-                MIB_IFROW interfaceRow;
-                ULONG64 networkInboundSpeed;
-                ULONG64 networkOutboundSpeed;
-
-                interfaceRow = QueryInterfaceRowXP(context);
-
-                networkInboundSpeed = interfaceRow.dwInOctets - context->LastInboundValue;
-                networkOutboundSpeed = interfaceRow.dwOutOctets - context->LastOutboundValue;
-
-                // HACK: Pull the Adapter name from the current query since persisted adapter name might change.
-                if (context->SysinfoSection->Name.Length == 0)
+                if (context->GetIfEntry2_I)
                 {
-                    context->AdapterName = PhCreateStringFromAnsi(interfaceRow.bDescr);
-                    context->SysinfoSection->Name = context->AdapterName->sr;
-                }
+                    MIB_IF_ROW2 interfaceRow;
 
-                if (!context->HaveFirstSample)
+                    interfaceRow = QueryInterfaceRowVista(context);
+
+                    networkInboundSpeed = interfaceRow.InOctets - context->LastInboundValue;
+                    networkOutboundSpeed = interfaceRow.OutOctets - context->LastOutboundValue;     
+                    networkInOctets = interfaceRow.InOctets;
+                    networkOutOctets = interfaceRow.OutOctets;   
+                    xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
+                    rcvLinkSpeed = interfaceRow.ReceiveLinkSpeed;
+
+                    // HACK: Pull the Adapter name from the current query.
+                    if (context->SysinfoSection->Name.Length == 0)
+                    {
+                        if (context->AdapterName = PhCreateString(interfaceRow.Description))
+                        {
+                            context->SysinfoSection->Name = context->AdapterName->sr;
+                        }
+                    }
+                }
+                else
                 {
-                    networkInboundSpeed = 0;
-                    networkOutboundSpeed = 0;
-                    context->HaveFirstSample = TRUE;
+                    MIB_IFROW interfaceRow;
+
+                    interfaceRow = QueryInterfaceRowXP(context);
+
+                    networkInboundSpeed = interfaceRow.dwInOctets - context->LastInboundValue;
+                    networkOutboundSpeed = interfaceRow.dwOutOctets - context->LastOutboundValue;
+                    networkInOctets = interfaceRow.dwInOctets;
+                    networkOutOctets = interfaceRow.dwOutOctets;
+                    xmitLinkSpeed = interfaceRow.dwSpeed;
+                    rcvLinkSpeed = interfaceRow.dwSpeed;
+
+                    // HACK: Pull the Adapter name from the current query.
+                    if (context->SysinfoSection->Name.Length == 0)
+                    {
+                        if (context->AdapterName = PhCreateStringFromAnsi(interfaceRow.bDescr))
+                        {
+                            context->SysinfoSection->Name = context->AdapterName->sr;
+                        }
+                    }
                 }
-
-                PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkInboundSpeed);
-                PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkOutboundSpeed);
-
-                context->InboundValue = networkInboundSpeed;
-                context->OutboundValue = networkOutboundSpeed;
-                context->LastInboundValue = interfaceRow.dwInOctets;
-                context->LastOutboundValue = interfaceRow.dwOutOctets;
-                context->MaxSendSpeed = interfaceRow.dwSpeed; // TODO: Use the value we get from GetAdaptersAddresses 
-                context->MaxReceiveSpeed = interfaceRow.dwSpeed; // TODO: Use the value we get from GetAdaptersAddresses 
-
             }
+
+            if (!context->HaveFirstSample)
+            {
+                networkInboundSpeed = 0;
+                networkOutboundSpeed = 0;
+                context->HaveFirstSample = TRUE;
+            }
+
+            PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkInboundSpeed);
+            PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkOutboundSpeed);
+
+            context->InboundValue = networkInboundSpeed;
+            context->OutboundValue = networkOutboundSpeed;
+            context->LastInboundValue = networkInOctets;
+            context->LastOutboundValue = networkOutOctets;
+
+            context->MaxSendSpeed = xmitLinkSpeed;
+            context->MaxReceiveSpeed = rcvLinkSpeed;
         }
         return TRUE;
     case SysInfoCreateDialog:
@@ -520,9 +1013,10 @@ static BOOLEAN NetAdapterSectionCallback(
                 );
 
             PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
-                L"R: %s\nS: %s",
+                L"R: %s\nS: %s\n%s",
                 PhaFormatSize(adapterInboundValue, -1)->Buffer,
-                PhaFormatSize(adapterOutboundValue, -1)->Buffer
+                PhaFormatSize(adapterOutboundValue, -1)->Buffer,
+                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
 
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
@@ -532,12 +1026,12 @@ static BOOLEAN NetAdapterSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
-            PhSwapReference2(&drawPanel->Title, PhCreateString(Section->Name.Buffer));
-            PhSwapReference2(&drawPanel->SubTitle, PhFormatString(
+            drawPanel->Title = PhCreateString(Section->Name.Buffer);
+            drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nS: %s",
                 PhaFormatSize(context->InboundValue, -1)->Buffer,
                 PhaFormatSize(context->OutboundValue, -1)->Buffer
-                ));
+                );
         }
         return TRUE;
     }
