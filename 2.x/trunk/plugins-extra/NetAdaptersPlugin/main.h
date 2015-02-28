@@ -26,18 +26,20 @@
 #pragma comment(lib, "Iphlpapi.lib")
 
 #define SETTING_PREFIX L"dmex.NetworkAdaptersPlugin"
-#define SETTING_NAME_INTERFACE_LIST (SETTING_PREFIX L".NetworkInterfaceList")
+#define SETTING_NAME_ENABLE_NDIS (SETTING_PREFIX L".EnableNDIS")
+#define SETTING_NAME_INTERFACE_LIST (SETTING_PREFIX L".InterfaceList")
 
 #define CINTERFACE
 #define COBJMACROS
 #include <phdk.h>
 #include <phappresource.h>
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <nldef.h>
+#include <netioapi.h>
 
 #include "resource.h"
 
@@ -48,10 +50,20 @@ typedef ULONG (WINAPI* _GetIfEntry2)(
     _Inout_ PMIB_IF_ROW2 Row
     );
 
+// dmex: rev
+typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
+    _In_ PGUID InterfaceGuid, 
+    _Out_ PCWSTR InterfaceDescription, 
+    _Inout_ PSIZE_T LengthAddress, 
+    PVOID Unknown1, 
+    PVOID Unknown2
+    );
+
 typedef struct _PH_NETADAPTER_ENTRY
 {
-    IF_INDEX IfIndex;
-    ULONG64 Luid64;
+    NET_IFINDEX InterfaceIndex;           
+    IF_LUID InterfaceLuid;
+    PPH_STRING InterfaceGuid;
 } PH_NETADAPTER_ENTRY, *PPH_NETADAPTER_ENTRY;
 
 typedef struct _PH_NETADAPTER_CONTEXT
@@ -63,6 +75,10 @@ typedef struct _PH_NETADAPTER_CONTEXT
 typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
 {
     BOOLEAN HaveFirstSample;
+    
+    NDIS_PHYSICAL_MEDIUM NdisAdapterType;        
+    UINT NdisMajorVersion;
+    UINT NdisMinorVersion;
 
     ULONG64 InboundValue;
     ULONG64 OutboundValue;
@@ -77,7 +93,12 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
     HWND WindowHandle;
     HWND PanelWindowHandle;
     HWND GraphHandle;
+
+    HANDLE DeviceHandle;
     HMODULE IphlpHandle;
+
+    _GetIfEntry2 GetIfEntry2_I;
+    _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I;
 
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
