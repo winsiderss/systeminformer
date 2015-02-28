@@ -92,9 +92,7 @@ static BOOLEAN NetworkAdapterQuerySupported(
 }
 
 static BOOLEAN NetworkAdapterQueryNdisVersion(
-    _In_ HANDLE DeviceHandle,
-    _Out_ PUINT MajorVersion,
-    _Out_ PUINT MinorVersion
+    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
     NDIS_OID opcode;
@@ -105,7 +103,7 @@ static BOOLEAN NetworkAdapterQueryNdisVersion(
     opcode = OID_GEN_DRIVER_VERSION;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
-        DeviceHandle,
+        Context->DeviceHandle,
         NULL,
         NULL,
         NULL,
@@ -117,8 +115,8 @@ static BOOLEAN NetworkAdapterQueryNdisVersion(
         sizeof(versionResult)
         )))
     {
-        *MajorVersion = HIBYTE(versionResult);
-        *MinorVersion = LOBYTE(versionResult);
+        Context->NdisMajorVersion = HIBYTE(versionResult);
+        Context->NdisMinorVersion = LOBYTE(versionResult);
 
         return TRUE;
     }
@@ -785,7 +783,7 @@ static BOOLEAN NetAdapterSectionCallback(
                     &context->DeviceHandle,
                     PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
                     FILE_GENERIC_READ,
-                    FILE_ATTRIBUTE_NORMAL, // FILE_ATTRIBUTE_DEVICE
+                    FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,
                     FILE_OPEN,
                     FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
@@ -796,7 +794,7 @@ static BOOLEAN NetAdapterSectionCallback(
                     if (NetworkAdapterQuerySupported(context->DeviceHandle))
                     {
                         NetworkAdapterQueryMediaType(context);
-                        NetworkAdapterQueryNdisVersion(context->DeviceHandle, &context->NdisMajorVersion, &context->NdisMinorVersion);
+                        NetworkAdapterQueryNdisVersion(context);
                     }
                     else
                     {            
@@ -806,10 +804,13 @@ static BOOLEAN NetAdapterSectionCallback(
                 }
             }
 
-            if ((context->IphlpHandle = LoadLibrary(L"iphlpapi.dll")))
+            if (WindowsVersion > WINDOWS_VISTA)
             {
-                context->GetIfEntry2_I = (_GetIfEntry2)GetProcAddress(context->IphlpHandle, "GetIfEntry2");
-                context->GetInterfaceDescriptionFromGuid_I = (_GetInterfaceDescriptionFromGuid)GetProcAddress(context->IphlpHandle, "NhGetInterfaceDescriptionFromGuid");
+                if ((context->IphlpHandle = LoadLibrary(L"iphlpapi.dll")))
+                {
+                    context->GetIfEntry2_I = (_GetIfEntry2)GetProcAddress(context->IphlpHandle, "GetIfEntry2");
+                    context->GetInterfaceDescriptionFromGuid_I = (_GetInterfaceDescriptionFromGuid)GetProcAddress(context->IphlpHandle, "NhGetInterfaceDescriptionFromGuid");
+                }
             }
 
             PhInitializeCircularBuffer_ULONG64(&context->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
