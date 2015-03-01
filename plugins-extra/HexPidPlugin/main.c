@@ -108,7 +108,7 @@ VOID ProcessItemCreateCallback(
     PPH_PROCESS_ITEM processItem = Object;
     PPROCESS_EXTENSION extension = Extension;
 
-    _ultow((ULONG)processItem->ProcessId, extension->PidHexText, 16);
+    _ultow(HandleToUlong(processItem->ProcessId), extension->PidHexText, 16);
 }
 
 LOGICAL DllMain(
