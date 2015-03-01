@@ -24,10 +24,8 @@
 
 #define BITS_IN_ONE_BYTE 8
 #define NDIS_UNIT_OF_MEASUREMENT 100
-
 #define MSG_UPDATE (WM_APP + 1)
 #define MSG_UPDATE_PANEL (WM_APP + 2)
-
 
 static BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
@@ -42,7 +40,7 @@ static BOOLEAN NetworkAdapterQuerySupported(
     BOOLEAN adapterLinkSpeedSupported = FALSE;
     NDIS_OID ndisObjectIdentifiers[PAGE_SIZE];
 
-    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569642.aspx
+    // https://msdn.microsoft.com/en-us/library/ff569642.aspx
     opcode = OID_GEN_SUPPORTED_LIST;
     //opcode = OID_GEN_CO_SUPPORTED_LIST;
 
@@ -105,7 +103,7 @@ static BOOLEAN NetworkAdapterQueryNdisVersion(
     IO_STATUS_BLOCK isb;
     ULONG versionResult = 0;
 
-    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569582.aspx
+    // https://msdn.microsoft.com/en-us/library/ff569582.aspx
     opcode = OID_GEN_DRIVER_VERSION;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
@@ -138,7 +136,7 @@ static PPH_STRING NetworkAdapterQueryName(
     IO_STATUS_BLOCK isb;
     WCHAR adapterNameBuffer[MAX_PATH] = L"";
 
-    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569584.aspx
+    // https://msdn.microsoft.com/en-us/library/ff569584.aspx
     opcode = OID_GEN_FRIENDLY_NAME;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
@@ -192,7 +190,7 @@ static NTSTATUS NetworkAdapterQueryStatistics(
     IO_STATUS_BLOCK isb;
     NDIS_STATISTICS_INFO result;
 
-    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569640.aspx
+    // https://msdn.microsoft.com/en-us/library/ff569640.aspx
     opcode = OID_GEN_STATISTICS;
 
     memset(&result, 0, sizeof(NDIS_STATISTICS_INFO));
@@ -231,8 +229,9 @@ static NTSTATUS NetworkAdapterQueryLinkState(
     IO_STATUS_BLOCK isb;
     NDIS_LINK_STATE result;
 
-    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569595.aspx
+    // https://msdn.microsoft.com/en-us/library/ff569595.aspx
     opcode = OID_GEN_LINK_STATE;
+    //opcode = OID_GEN_MEDIA_CONNECT_STATUS;
 
     memset(&result, 0, sizeof(NDIS_LINK_STATE));
     result.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
@@ -325,7 +324,7 @@ static PPH_STRING NetworkAdapterQueryLinkSpeed(
     IO_STATUS_BLOCK isb;
     NDIS_CO_LINK_SPEED result;
 
-    // https://msdn.microsoft.com/en-us/library/windows/hardware/ff569593.aspx
+    // https://msdn.microsoft.com/en-us/library/ff569593.aspx
     opcode = OID_GEN_LINK_SPEED; // OID_GEN_CO_LINK_SPEED
 
     memset(&result, 0, sizeof(NDIS_CO_LINK_SPEED));
@@ -471,6 +470,9 @@ static VOID NetAdapterUpdatePanel(
 
         if (NT_SUCCESS(NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats)))
         {
+            //if (interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV)
+            //if (interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT)
+
             inOctets = interfaceStats.ifHCInOctets;
             outOctets = interfaceStats.ifHCOutOctets;
         }
@@ -478,8 +480,11 @@ static VOID NetAdapterUpdatePanel(
         {
             // The above code should return statistics however some drivers bypassed Microsoft driver testing requirements...
             //  NDIS handles these two OIDs for all miniport drivers reguardless.
-            inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
-            outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
+            inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV); // OID_GEN_RCV_OK
+            outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT); // OID_GEN_XMIT_OK
+
+            //NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_RCV_ERROR);
+            //NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_XMIT_ERROR);
         }
 
         if (NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
@@ -490,35 +495,33 @@ static VOID NetAdapterUpdatePanel(
 
         linkSpeed = NetworkAdapterQueryLinkSpeed(Context->DeviceHandle);
     }
+    else if (Context->GetIfEntry2_I)
+    {
+        MIB_IF_ROW2 interfaceRow;
+
+        interfaceRow = QueryInterfaceRowVista(Context);
+
+        inOctets = interfaceRow.InOctets;
+        outOctets = interfaceRow.OutOctets;
+        mediaState = interfaceRow.MediaConnectState;
+        xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
+    }
     else
     {
-        if (Context->GetIfEntry2_I)
-        {
-            MIB_IF_ROW2 interfaceRow;
+        MIB_IFROW interfaceRow;
 
-            interfaceRow = QueryInterfaceRowVista(Context);
+        interfaceRow = QueryInterfaceRowXP(Context);
 
-            inOctets = interfaceRow.InOctets;
-            outOctets = interfaceRow.OutOctets;
-            mediaState = interfaceRow.MediaConnectState;
-            xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
-        }
+        inOctets = interfaceRow.dwInOctets;
+        outOctets = interfaceRow.dwOutOctets;
+        xmitLinkSpeed = interfaceRow.dwSpeed;
+
+        if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
+            mediaState = MediaConnectStateConnected;
         else
-        {
-            MIB_IFROW interfaceRow;
-
-            interfaceRow = QueryInterfaceRowXP(Context);
-
-            inOctets = interfaceRow.dwInOctets;
-            outOctets = interfaceRow.dwOutOctets;
-            xmitLinkSpeed = interfaceRow.dwSpeed;
-
-            if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
-                mediaState = MediaConnectStateConnected;
-            else
-                mediaState = MediaConnectStateDisconnected;
-        }
+            mediaState = MediaConnectStateDisconnected;
     }
+
     
     if (linkSpeed)
     {
@@ -813,7 +816,7 @@ static BOOLEAN NetAdapterSectionCallback(
         }
         return TRUE;
     case SysInfoTick:
-        {              
+        {
             ULONG64 networkInboundSpeed = 0;
             ULONG64 networkOutboundSpeed = 0;
             ULONG64 networkInOctets = 0;
@@ -827,19 +830,19 @@ static BOOLEAN NetAdapterSectionCallback(
                 NDIS_LINK_STATE interfaceState;
 
                 if (NT_SUCCESS(NetworkAdapterQueryStatistics(context->DeviceHandle, &interfaceStats)))
-                {          
+                {
                     networkInboundSpeed = interfaceStats.ifHCInOctets - context->LastInboundValue;
-                    networkOutboundSpeed = interfaceStats.ifHCOutOctets - context->LastOutboundValue;    
+                    networkOutboundSpeed = interfaceStats.ifHCOutOctets - context->LastOutboundValue;
                     networkInOctets = interfaceStats.ifHCInOctets;
                     networkOutOctets = interfaceStats.ifHCOutOctets;
                 }
                 else
                 {
-                    ULONG64 inOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
-                    ULONG64 outOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
+                    ULONG64 inOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV); // OID_GEN_RCV_OK
+                    ULONG64 outOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT); // OID_GEN_XMIT_OK
 
                     networkInboundSpeed = inOctets - context->LastInboundValue;
-                    networkOutboundSpeed = outOctets - context->LastOutboundValue;    
+                    networkOutboundSpeed = outOctets - context->LastOutboundValue;
                     networkInOctets = inOctets;
                     networkOutOctets = outOctets;
                 }
@@ -859,50 +862,47 @@ static BOOLEAN NetAdapterSectionCallback(
                     }
                 }
             }
-            else
+            else if (context->GetIfEntry2_I)
             {
-                if (context->GetIfEntry2_I)
+                MIB_IF_ROW2 interfaceRow;
+
+                interfaceRow = QueryInterfaceRowVista(context);
+
+                networkInboundSpeed = interfaceRow.InOctets - context->LastInboundValue;
+                networkOutboundSpeed = interfaceRow.OutOctets - context->LastOutboundValue;
+                networkInOctets = interfaceRow.InOctets;
+                networkOutOctets = interfaceRow.OutOctets;
+                xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
+                rcvLinkSpeed = interfaceRow.ReceiveLinkSpeed;
+
+                // HACK: Pull the Adapter name from the current query.
+                if (context->SysinfoSection->Name.Length == 0)
                 {
-                    MIB_IF_ROW2 interfaceRow;
-
-                    interfaceRow = QueryInterfaceRowVista(context);
-
-                    networkInboundSpeed = interfaceRow.InOctets - context->LastInboundValue;
-                    networkOutboundSpeed = interfaceRow.OutOctets - context->LastOutboundValue;     
-                    networkInOctets = interfaceRow.InOctets;
-                    networkOutOctets = interfaceRow.OutOctets;   
-                    xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
-                    rcvLinkSpeed = interfaceRow.ReceiveLinkSpeed;
-
-                    // HACK: Pull the Adapter name from the current query.
-                    if (context->SysinfoSection->Name.Length == 0)
+                    if (context->AdapterName = PhCreateString(interfaceRow.Description))
                     {
-                        if (context->AdapterName = PhCreateString(interfaceRow.Description))
-                        {
-                            context->SysinfoSection->Name = context->AdapterName->sr;
-                        }
+                        context->SysinfoSection->Name = context->AdapterName->sr;
                     }
                 }
-                else
+            }
+            else
+            {
+                MIB_IFROW interfaceRow;
+
+                interfaceRow = QueryInterfaceRowXP(context);
+
+                networkInboundSpeed = interfaceRow.dwInOctets - context->LastInboundValue;
+                networkOutboundSpeed = interfaceRow.dwOutOctets - context->LastOutboundValue;
+                networkInOctets = interfaceRow.dwInOctets;
+                networkOutOctets = interfaceRow.dwOutOctets;
+                xmitLinkSpeed = interfaceRow.dwSpeed;
+                rcvLinkSpeed = interfaceRow.dwSpeed;
+
+                // HACK: Pull the Adapter name from the current query.
+                if (context->SysinfoSection->Name.Length == 0)
                 {
-                    MIB_IFROW interfaceRow;
-
-                    interfaceRow = QueryInterfaceRowXP(context);
-
-                    networkInboundSpeed = interfaceRow.dwInOctets - context->LastInboundValue;
-                    networkOutboundSpeed = interfaceRow.dwOutOctets - context->LastOutboundValue;
-                    networkInOctets = interfaceRow.dwInOctets;
-                    networkOutOctets = interfaceRow.dwOutOctets;
-                    xmitLinkSpeed = interfaceRow.dwSpeed;
-                    rcvLinkSpeed = interfaceRow.dwSpeed;
-
-                    // HACK: Pull the Adapter name from the current query.
-                    if (context->SysinfoSection->Name.Length == 0)
+                    if (context->AdapterName = PhCreateStringFromAnsi(interfaceRow.bDescr))
                     {
-                        if (context->AdapterName = PhCreateStringFromAnsi(interfaceRow.bDescr))
-                        {
-                            context->SysinfoSection->Name = context->AdapterName->sr;
-                        }
+                        context->SysinfoSection->Name = context->AdapterName->sr;
                     }
                 }
             }
