@@ -2,30 +2,30 @@
 // Microsoft Visual C++ generated include file.
 // Used by NvGpuPlugin.rc
 //
-#define IDD_GPU_PANEL                   9
-#define IDD_GPU_DIALOG                  113
-#define IDC_GRAPH_LAYOUT                114
-#define IDC_TITLE                       116
-#define IDC_GPUNAME                     117
-#define IDC_PANEL_LAYOUT                118
-#define IDC_GPU_L                       119
-#define IDC_MEMORY_L                    120
-#define IDC_SHARED_L                    121
-#define IDC_SHARED_BUS                  122
-#define IDC_BUS_L                       122
-#define IDC_CLOCK_CORE                  123
-#define IDC_CLOCK_MEMORY                124
-#define IDC_FAN_PERCENT                 125
-#define IDC_TEMP_VALUE                  126
-#define IDC_CLOCK_SHADER                127
+#define IDD_GPU_PANEL                   100
+#define IDD_GPU_DIALOG                  101
+#define IDC_GRAPH_LAYOUT                102
+#define IDC_TITLE                       103
+#define IDC_GPUNAME                     104
+#define IDC_PANEL_LAYOUT                105
+#define IDC_GPU_L                       106
+#define IDC_MEMORY_L                    107
+#define IDC_SHARED_L                    108
+#define IDC_SHARED_BUS                  109
+#define IDC_BUS_L                       110
+#define IDC_CLOCK_CORE                  111
+#define IDC_CLOCK_MEMORY                112
+#define IDC_FAN_PERCENT                 113
+#define IDC_TEMP_VALUE                  114
+#define IDC_CLOCK_SHADER                115
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        127
-#define _APS_NEXT_COMMAND_VALUE         40006
-#define _APS_NEXT_CONTROL_VALUE         1029
-#define _APS_NEXT_SYMED_VALUE           108
+#define _APS_NEXT_RESOURCE_VALUE        116
+#define _APS_NEXT_COMMAND_VALUE         40001
+#define _APS_NEXT_CONTROL_VALUE         1001
+#define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
