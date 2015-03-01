@@ -123,4 +123,4 @@ VOID NetAdapterSysInfoInitializing(
     _In_ PPH_NETADAPTER_ENTRY AdapterInfo
     );
 
-#endif _ROTHEADER_
+#endif _NETADAPTER_H_
