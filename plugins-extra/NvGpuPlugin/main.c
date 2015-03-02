@@ -22,7 +22,7 @@
 
 #include "main.h"
 
-BOOLEAN NvApiSupported = FALSE;
+BOOLEAN NvApiInitialized = FALSE;
 PPH_PLUGIN PluginInstance = NULL;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -34,15 +34,18 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    NvApiSupported = InitializeNvApi();
+    NvApiInitialized = InitializeNvApi();
 }
 
 static VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
-{ 
-    DestroyNvApi();
+{
+    if (NvApiInitialized)
+    {
+        DestroyNvApi();
+    }
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -60,7 +63,7 @@ static VOID NTAPI SystemInformationInitializingCallback(
 {
     PPH_PLUGIN_SYSINFO_POINTERS pluginEntry = (PPH_PLUGIN_SYSINFO_POINTERS)Parameter;
 
-    if (NvApiSupported)
+    if (NvApiInitialized)
     {
         NvGpuSysInfoInitializing(pluginEntry);
     }
