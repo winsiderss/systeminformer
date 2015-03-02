@@ -24,6 +24,7 @@
 #define _NVGPU_H_
 
 #define SETTING_PREFIX L"dmex.NvGpuPlugin"
+#define SETTING_NAME_ENABLE_FAHRENHEIT (SETTING_PREFIX L".EnableFahrenheit")
 
 #define CINTERFACE
 #define COBJMACROS
