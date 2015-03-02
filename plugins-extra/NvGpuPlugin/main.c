@@ -80,6 +80,10 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" }
+            };
 
             PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
@@ -115,6 +119,8 @@ LOGICAL DllMain(
                 NULL,
                 &SystemInformationInitializingCallbackRegistration
                 );
+
+            PhAddSettings(settings, _countof(settings));
         }
         break;
     }
