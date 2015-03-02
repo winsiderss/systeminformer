@@ -32,7 +32,7 @@
 
 #include "resource.h"
 
-extern BOOLEAN NvApiSupported;
+extern BOOLEAN NvApiInitialized;
 extern PPH_PLUGIN PluginInstance;
 
 extern ULONG GpuMemoryLimit;
@@ -48,7 +48,7 @@ extern FLOAT GpuCurrentMemoryClock;
 extern FLOAT GpuCurrentShaderClock;
 
 BOOLEAN InitializeNvApi(VOID);
-VOID DestroyNvApi(VOID);
+BOOLEAN DestroyNvApi(VOID);
 PPH_STRING NvGpuQueryDriverVersion(VOID);
 PPH_STRING NvGpuQueryName(VOID);
 PPH_STRING NvGpuQueryFanSpeed(VOID);

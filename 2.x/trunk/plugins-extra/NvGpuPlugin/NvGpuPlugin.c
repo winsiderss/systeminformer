@@ -24,8 +24,8 @@
 #include "nvapi\nvapi.h"
 #include "NvGpuPlugin.h"
 
-static NvPhysicalGpuHandle physHandle = NULL;
-static NvDisplayHandle dispHandle = NULL;
+static NvPhysicalGpuHandle GpuPhysicalHandle = NULL;
+static NvDisplayHandle GpuDisplayHandle = NULL;
 
 ULONG GpuMemoryLimit = 0;
 FLOAT GpuCurrentGpuUsage = 0.0f;
@@ -125,8 +125,8 @@ BOOLEAN InitializeNvApi(VOID)
 
         if (NvAPI_Initialize() == NVAPI_OK)
         {
-            physHandle = EnumNvidiaGpuHandles();
-            dispHandle = EnumNvidiaDisplayHandles();
+            GpuPhysicalHandle = EnumNvidiaGpuHandles();
+            GpuDisplayHandle = EnumNvidiaDisplayHandles();
 
             return TRUE;
         }
@@ -135,12 +135,15 @@ BOOLEAN InitializeNvApi(VOID)
     return FALSE;
 }
 
-VOID DestroyNvApi(VOID)
+BOOLEAN DestroyNvApi(VOID)
 {
     if (NvAPI_Unload)
     {
-        NvAPI_Unload();
+        if (NvAPI_Unload() == NVAPI_OK)
+            return TRUE;
     }
+
+    return FALSE;
 }
 
 PPH_STRING NvGpuQueryDriverVersion(VOID)
@@ -150,40 +153,40 @@ PPH_STRING NvGpuQueryDriverVersion(VOID)
 
     if (NvAPI_SYS_GetDriverAndBranchVersion(&driverVersion, driverAndBranchString) == NVAPI_OK)
     {
-        return PhFormatString(L"Driver Version: %u.%u", driverVersion / 100, driverVersion % 100);
+        return PhFormatString(L"%u.%u", driverVersion / 100, driverVersion % 100);
     }
 
-    return PhReferenceEmptyString();
+    return PhCreateString(L"N/A");
 }
 
 PPH_STRING NvGpuQueryName(VOID)
 {
     NvAPI_ShortString nvNameAnsiString = "";
 
-    if (NvAPI_GPU_GetFullName(physHandle, nvNameAnsiString) == NVAPI_OK)
+    if (NvAPI_GPU_GetFullName(GpuPhysicalHandle, nvNameAnsiString) == NVAPI_OK)
     {
         return PhCreateStringFromAnsi(nvNameAnsiString);
     }
 
-    return PhReferenceEmptyString();
+    return PhCreateString(L"N/A");
 }
 
 PPH_STRING NvGpuQueryFanSpeed(VOID)
 {
     NvU32 tachValue = 0;
-    NV_GPU_COOLER_SETTINGS context = { NV_GPU_COOLER_SETTINGS_VER };
+    NV_GPU_COOLER_SETTINGS coolerInfo = { NV_GPU_COOLER_SETTINGS_VER };
 
-    if (NvAPI_GPU_GetTachReading(physHandle, &tachValue) == NVAPI_OK)
+    if (NvAPI_GPU_GetTachReading(GpuPhysicalHandle, &tachValue) == NVAPI_OK)
     {
-        if (NvAPI_GPU_GetCoolerSettings(physHandle, NVAPI_COOLER_TARGET_ALL, &context) == NVAPI_OK)
+        if (NvAPI_GPU_GetCoolerSettings(GpuPhysicalHandle, NVAPI_COOLER_TARGET_ALL, &coolerInfo) == NVAPI_OK)
         {
-            return PhFormatString(L"%u RPM (%u%%)", tachValue, context.cooler[0].currentLevel);
+            return PhFormatString(L"%u RPM (%u%%)", tachValue, coolerInfo.cooler[0].currentLevel);
         }
 
         return PhFormatString(L"%u RPM", tachValue);
     }
 
-    return PhReferenceEmptyString();
+    return PhCreateString(L"N/A");
 }
 
 VOID NvGpuUpdateValues(VOID)
@@ -193,14 +196,7 @@ VOID NvGpuUpdateValues(VOID)
     NV_GPU_THERMAL_SETTINGS thermalSettings = { NV_GPU_THERMAL_SETTINGS_VER };
     NV_GPU_CLOCK_FREQUENCIES clkFreqs  = { NV_GPU_CLOCK_FREQUENCIES_VER };
 
-    if (NvAPI_GPU_GetUsages(physHandle, &usagesInfo) == NVAPI_OK)
-    {
-        GpuCurrentGpuUsage = (FLOAT)usagesInfo.Values[2] / 100;
-        GpuCurrentCoreUsage = (FLOAT)usagesInfo.Values[6] / 100;
-        GpuCurrentBusUsage = (FLOAT)usagesInfo.Values[14] / 100;
-    }
-
-    if (NvAPI_GPU_GetMemoryInfo(dispHandle, &memoryInfo) == NVAPI_OK)
+    if (NvAPI_GPU_GetMemoryInfo(GpuDisplayHandle, &memoryInfo) == NVAPI_OK)
     {
         ULONG totalMemory = memoryInfo.dedicatedVideoMemory;
         ULONG sharedMemory = memoryInfo.sharedSystemMemory;
@@ -212,13 +208,20 @@ VOID NvGpuUpdateValues(VOID)
         GpuCurrentMemSharedUsage = sharedMemory;
     }
 
-    if (NvAPI_GPU_GetThermalSettings(physHandle, NVAPI_THERMAL_TARGET_ALL, &thermalSettings) == NVAPI_OK)
+    if (NvAPI_GPU_GetUsages(GpuPhysicalHandle, &usagesInfo) == NVAPI_OK)
+    {
+        GpuCurrentGpuUsage = (FLOAT)usagesInfo.Values[2] / 100;
+        GpuCurrentCoreUsage = (FLOAT)usagesInfo.Values[6] / 100;
+        GpuCurrentBusUsage = (FLOAT)usagesInfo.Values[14] / 100;
+    }
+
+    if (NvAPI_GPU_GetThermalSettings(GpuPhysicalHandle, NVAPI_THERMAL_TARGET_ALL, &thermalSettings) == NVAPI_OK)
     {
         GpuCurrentCoreTemp = thermalSettings.sensor[0].currentTemp;
         GpuCurrentBoardTemp = thermalSettings.sensor[1].currentTemp;
     }
 
-    if (NvAPI_GPU_GetAllClockFrequencies(physHandle, &clkFreqs) == NVAPI_OK)
+    if (NvAPI_GPU_GetAllClockFrequencies(GpuPhysicalHandle, &clkFreqs) == NVAPI_OK)
     {
         GpuCurrentCoreClock = (FLOAT)clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].frequency * 0.001f;
         GpuCurrentMemoryClock = (FLOAT)clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency * 0.001f;
