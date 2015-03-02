@@ -208,7 +208,7 @@ VOID NvGpuUpdateValues(VOID)
     if (!NvApiInitialized)
         return;
 
-    if (NvAPI_GPU_GetMemoryInfo(NvGpuPhysicalHandleList->Items[0], &memoryInfo) == NVAPI_OK)
+    if (NvAPI_GPU_GetMemoryInfo(NvGpuDisplayHandleList->Items[0], &memoryInfo) == NVAPI_OK)
     {
         ULONG totalMemory = memoryInfo.dedicatedVideoMemory;
         ULONG sharedMemory = memoryInfo.sharedSystemMemory;
