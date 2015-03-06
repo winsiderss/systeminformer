@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   search filter callbacks
  *
- * Copyright (C) 2011-2013 dmex
+ * Copyright (C) 2011-2015 dmex
  * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
@@ -149,19 +149,19 @@ BOOLEAN ProcessTreeFilterCallback(
             showItem = TRUE;
     }
 
-    if (processNode->ProcessItem->ProcessIdString)
+    if (processNode->ProcessItem->ProcessIdString[0] != 0)
     {
         if (WordMatchString(processNode->ProcessItem->ProcessIdString))
             showItem = TRUE;
     }
 
-    if (processNode->ProcessItem->ParentProcessIdString)
+    if (processNode->ProcessItem->ParentProcessIdString[0] != 0)
     {
         if (WordMatchString(processNode->ProcessItem->ParentProcessIdString))
             showItem = TRUE;
     }
 
-    if (processNode->ProcessItem->SessionIdString)
+    if (processNode->ProcessItem->SessionIdString[0] != 0)
     {
         if (WordMatchString(processNode->ProcessItem->SessionIdString))
             showItem = TRUE;
@@ -342,7 +342,7 @@ BOOLEAN ProcessTreeFilterCallback(
                     showItem = TRUE;
             }
 
-            if (serviceItem->ProcessIdString)
+            if (serviceItem->ProcessIdString[0] != 0)
             {
                 if (WordMatchString(serviceItem->ProcessIdString))
                     showItem = TRUE;
@@ -391,7 +391,7 @@ BOOLEAN ServiceTreeFilterCallback(
             showItem = TRUE;
     }
 
-    if (serviceNode->ServiceItem->ProcessIdString)
+    if (serviceNode->ServiceItem->ProcessIdString[0] != 0)
     {
         if (WordMatchString(serviceNode->ServiceItem->ProcessIdString))
             showItem = TRUE;
@@ -423,13 +423,13 @@ BOOLEAN NetworkTreeFilterCallback(
             showItem = TRUE;
     }
 
-    if (networkNode->NetworkItem->LocalAddressString)
+    if (networkNode->NetworkItem->LocalAddressString[0] != 0)
     {
         if (WordMatchString(networkNode->NetworkItem->LocalAddressString))
             showItem = TRUE;
     }
 
-    if (networkNode->NetworkItem->LocalPortString)
+    if (networkNode->NetworkItem->LocalPortString[0] != 0)
     {
         if (WordMatchString(networkNode->NetworkItem->LocalPortString))
             showItem = TRUE;
@@ -441,13 +441,13 @@ BOOLEAN NetworkTreeFilterCallback(
             showItem = TRUE;
     }
 
-    if (networkNode->NetworkItem->RemoteAddressString)
+    if (networkNode->NetworkItem->RemoteAddressString[0] != 0)
     {
         if (WordMatchString(networkNode->NetworkItem->RemoteAddressString))
             showItem = TRUE;
     }
 
-    if (networkNode->NetworkItem->RemotePortString)
+    if (networkNode->NetworkItem->RemotePortString[0] != 0)
     {
         if (WordMatchString(networkNode->NetworkItem->RemotePortString))
             showItem = TRUE;
