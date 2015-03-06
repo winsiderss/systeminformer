@@ -68,8 +68,8 @@ static VOID EnumDnsCacheTable(
                 {
                     INT itemIndex = MAXINT;
                     ULONG ipAddrStringLength = INET6_ADDRSTRLEN;
-                    TCHAR ipAddrString[INET6_ADDRSTRLEN] = { '\0' };
-                           
+                    TCHAR ipAddrString[INET6_ADDRSTRLEN] = L"";
+
                     itemIndex = PhAddListViewItem(hwndDlg, MAXINT,
                         PhaFormatString(L"%s", dnsCacheDataTable->Name)->Buffer,
                         NULL
@@ -118,7 +118,7 @@ static VOID EnumDnsCacheTable(
                         PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"")->Buffer);
                     }   
                                                   
-                    PhSetListViewSubItem(hwndDlg, itemIndex, 3, PhaFormatString(L"%d", dnsRecordPtr->dwTtl)->Buffer);
+                    PhSetListViewSubItem(hwndDlg, itemIndex, 3, PhaFormatString(L"%u", dnsRecordPtr->dwTtl)->Buffer);
 
                     dnsRecordPtr = dnsRecordPtr->pNext;
                 }
