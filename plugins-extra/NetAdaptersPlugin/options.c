@@ -35,7 +35,7 @@ static VOID FreeAdaptersEntry(
     PhFree(Entry);
 }
 
-static  VOID ClearAdaptersList(
+static VOID ClearAdaptersList(
     _Inout_ PPH_LIST FilterList
     )
 {
@@ -102,7 +102,7 @@ VOID LoadAdaptersList(
         }
         if (part3.Buffer)
         {
-            entry->InterfaceGuid = PhCreateString(part3.Buffer);
+            entry->InterfaceGuid = PhCreateStringEx(part3.Buffer, part3.Length);
         }
 
         PhAddItemList(FilterList, entry);
@@ -177,8 +177,8 @@ static VOID FindNetworkAdapters(
 
     ULONG flags = GAA_FLAG_SKIP_UNICAST | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
 
-    //if (WindowsVersion >= WINDOWS_VISTA)
-    //    flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    if (WindowsVersion >= WINDOWS_VISTA)
+        flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
 
     __try
     {
