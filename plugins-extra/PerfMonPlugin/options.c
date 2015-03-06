@@ -22,49 +22,6 @@
 
 #include "perfmon.h"
 
-static VOID FreeCounterEntry(
-    _In_ PPH_PERFMON_ENTRY Entry
-    )
-{
-    if (Entry->Name)
-    {
-        PhDereferenceObject(Entry->Name);
-    }
-
-    PhFree(Entry);
-}
-
-VOID ClearCounterList(
-    _Inout_ PPH_LIST FilterList
-    )
-{
-    for (ULONG i = 0; i < FilterList->Count; i++)
-    {
-        FreeCounterEntry((PPH_PERFMON_ENTRY)FilterList->Items[i]);
-    }
-
-    PhClearList(FilterList);
-}
-
-VOID CopyCounterList(
-    _Inout_ PPH_LIST Destination,
-    _In_ PPH_LIST Source
-    )
-{
-    for (ULONG i = 0; i < Source->Count; i++)
-    {
-        PPH_PERFMON_ENTRY entry = (PPH_PERFMON_ENTRY)Source->Items[i];
-        PPH_PERFMON_ENTRY newEntry;
-
-        newEntry = (PPH_PERFMON_ENTRY)PhAllocate(sizeof(PH_PERFMON_ENTRY));
-
-        PhReferenceObject(entry->Name);
-        newEntry->Name = entry->Name;
-
-        PhAddItemList(Destination, newEntry);
-    }
-}
-
 VOID LoadCounterList(
     _Inout_ PPH_LIST FilterList,
     _In_ PPH_STRING String
@@ -112,7 +69,50 @@ VOID LoadCounterList(
     }
 }
 
-PPH_STRING SaveCounterList(
+static VOID FreeCounterEntry(
+    _In_ PPH_PERFMON_ENTRY Entry
+    )
+{
+    if (Entry->Name)
+    {
+        PhDereferenceObject(Entry->Name);
+    }
+
+    PhFree(Entry);
+}
+
+static VOID ClearCounterList(
+    _Inout_ PPH_LIST FilterList
+    )
+{
+    for (ULONG i = 0; i < FilterList->Count; i++)
+    {
+        FreeCounterEntry((PPH_PERFMON_ENTRY)FilterList->Items[i]);
+    }
+
+    PhClearList(FilterList);
+}
+
+static VOID CopyCounterList(
+    _Inout_ PPH_LIST Destination,
+    _In_ PPH_LIST Source
+    )
+{
+    for (ULONG i = 0; i < Source->Count; i++)
+    {
+        PPH_PERFMON_ENTRY entry = (PPH_PERFMON_ENTRY)Source->Items[i];
+        PPH_PERFMON_ENTRY newEntry;
+
+        newEntry = (PPH_PERFMON_ENTRY)PhAllocate(sizeof(PH_PERFMON_ENTRY));
+        memset(newEntry, 0, sizeof(PH_PERFMON_ENTRY));
+
+        newEntry->Name = entry->Name;
+
+        PhAddItemList(Destination, newEntry);
+    }
+}
+
+static PPH_STRING SaveCounterList(
     _Inout_ PPH_LIST FilterList
     )
 {
