@@ -168,7 +168,7 @@ static PPH_STRING NetworkAdapterQueryName(
             SIZE_T adapterDescriptionLength = 0;
             WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
 
-            adapterDescriptionLength = sizeof(adapterDescription); // This is what the API expects apparently... 
+            adapterDescriptionLength = sizeof(adapterDescription);
 
             if (SUCCEEDED(Context->GetInterfaceDescriptionFromGuid_I(&deviceGuid, adapterDescription, &adapterDescriptionLength, NULL, NULL)))
             {
