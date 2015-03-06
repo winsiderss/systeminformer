@@ -2,7 +2,7 @@
  * Process Hacker Extra Plugins -
  *   Wait Chain Traversal (WCT) Plugin
  *
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -110,6 +110,8 @@ static VOID WaitChainCheckThread(
                 //wctNode.LockObject.ObjectName[2]
                 // -- Unknown --
                 //wctNode.LockObject.ObjectName[4]
+                // -- ContextSwitches --
+                //wctNode.LockObject.ObjectName[6]
 
                 if (PhIsDigitCharacter(wctNode.LockObject.ObjectName[0]))
                 {
@@ -145,7 +147,7 @@ static NTSTATUS WaitChainCallbackThread(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PWCT_CONTEXT context = (PWCT_CONTEXT)Parameter;
+    PWCT_CONTEXT context = (PWCT_CONTEXT)Parameter;  
 
     if (!WaitChainRegisterCallbacks(context))
         return NTSTATUS_FROM_WIN32(GetLastError());
@@ -232,7 +234,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HANDLE threadHandle = INVALID_HANDLE_VALUE;
+            HANDLE threadHandle = NULL;
 
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_CUSTOM1);
             
@@ -271,7 +273,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        menu = LoadMenu((HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAIN_MENU));
+                        menu = LoadMenu(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAIN_MENU));
                         subMenu = GetSubMenu(menu, 0);
                         SetMenuDefaultItem(subMenu, ID_MENU_PROPERTIES, FALSE);
                         
@@ -307,9 +309,12 @@ static INT_PTR CALLBACK WaitChainDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        ULONG processID = _wtol(selectedNode->ProcessIdString->Buffer);
+                        ULONG64 processId64;
+                 
+                        if (!PhStringToInteger64(&selectedNode->ProcessIdString->sr, 10, &processId64))
+                            break;
 
-                        if (processNode = PhFindProcessNode(UlongToHandle(processID)))
+                        if (processNode = PhFindProcessNode((HANDLE)processId64))
                         {
                             ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
                             PhSelectAndEnsureVisibleProcessNode(processNode);
@@ -325,9 +330,12 @@ static INT_PTR CALLBACK WaitChainDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        ULONG processID = _wtol(selectedNode->ProcessIdString->Buffer);
+                        ULONG64 processId64;
 
-                        if (processItem = PhReferenceProcessItem(UlongToHandle(processID)))
+                        if (!PhStringToInteger64(&selectedNode->ProcessIdString->sr, 10, &processId64))
+                            break;
+
+                        if (processItem = PhReferenceProcessItem((HANDLE)processId64))
                         {
                             if (propContext = PhCreateProcessPropContext(NULL, processItem))
                             {
@@ -457,12 +465,15 @@ static VOID NTAPI ThreadMenuInitializingCallback(
     context->ThreadItem = threadItem;
 
     miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Analyze", 0);
-    menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, IDD_WCT_MENUITEM, L"Wait Chain Traversal", context);
-    PhInsertEMenuItem(miscMenuItem, menuItem, -1);
+    if (miscMenuItem)
+    {
+        menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, IDD_WCT_MENUITEM, L"Wait Chain Traversal", context);
+        PhInsertEMenuItem(miscMenuItem, menuItem, -1);
 
-    // Disable menu if current process selected.
-    if (threadItem == NULL  || menuInfo->u.Thread.ProcessId == NtCurrentProcessId()) 
-        menuItem->Flags |= PH_EMENU_DISABLED;
+        // Disable menu if current process selected.
+        if (threadItem == NULL || menuInfo->u.Thread.ProcessId == NtCurrentProcessId())
+            menuItem->Flags |= PH_EMENU_DISABLED;
+    }
 }
 
 LOGICAL DllMain(
