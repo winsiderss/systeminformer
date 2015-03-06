@@ -63,9 +63,10 @@ VOID LoadCounterList(
         }
 
         entry->Name = PhCreateString(stringBuilder.String->Buffer);
+        
+        PhDeleteStringBuilder(&stringBuilder);
 
         PhAddItemList(FilterList, entry);
-        PhDeleteStringBuilder(&stringBuilder);
     }
 }
 
@@ -106,6 +107,7 @@ static VOID CopyCounterList(
         newEntry = (PPH_PERFMON_ENTRY)PhAllocate(sizeof(PH_PERFMON_ENTRY));
         memset(newEntry, 0, sizeof(PH_PERFMON_ENTRY));
 
+        PhReferenceObject(entry->Name);
         newEntry->Name = entry->Name;
 
         PhAddItemList(Destination, newEntry);
@@ -384,9 +386,9 @@ static INT_PTR CALLBACK OptionsDlgProc(
 
                             if (index != -1)
                             {
-                                FreeCounterEntry(entry);
                                 PhRemoveItemList(context->CountersListEdited, index);
                                 PhRemoveListViewItem(context->ListViewHandle, itemIndex);
+                                FreeCounterEntry(entry);
                             }
                         }
 
