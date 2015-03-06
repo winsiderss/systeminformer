@@ -53,6 +53,16 @@ static PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 
+static VOID FreeColorEntry(
+    _In_ PITEM_COLOR Entry
+    )
+{
+    if (Entry->ProcessName)
+        PhDereferenceObject(Entry->ProcessName);
+
+    PhFree(Entry);
+}
+
 static VOID LoadColorList(
     _Inout_ PPH_LIST ColorList,
     _In_ PPH_STRING String
@@ -152,6 +162,8 @@ static PPH_STRING SaveCustomColors(
 
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+   
+    //PhDeleteStringBuilder(&stringBuilder);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
@@ -228,7 +240,7 @@ static VOID ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-
+    NOTHING;
 }
 
 static VOID MenuItemCallback(
@@ -302,10 +314,7 @@ static VOID MenuItemCallback(
                 {
                     PhRemoveItemList(ProcessHighlightList, i);
 
-                    if (itemHighlight->ProcessName)
-                        PhDereferenceObject(itemHighlight->ProcessName);
-
-                    PhFree(itemHighlight);
+                    FreeColorEntry(itemHighlight);
                 }
             }
 
