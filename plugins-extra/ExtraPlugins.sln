@@ -30,6 +30,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetAdaptersPlugin", "NetAda
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NvGpuPlugin", "NvGpuPlugin\NvGpuPlugin.vcxproj", "{B509BF8F-6007-4173-B05E-5037B958C12F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DbgViewPlugin", "DbgViewPlugin\DbgViewPlugin.vcxproj", "{AAD42A11-92A7-4918-A76A-862528185199}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -130,6 +132,14 @@ Global
 		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|Win32.Build.0 = Release|Win32
 		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|x64.ActiveCfg = Release|x64
 		{B509BF8F-6007-4173-B05E-5037B958C12F}.Release|x64.Build.0 = Release|x64
+		{AAD42A11-92A7-4918-A76A-862528185199}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AAD42A11-92A7-4918-A76A-862528185199}.Debug|Win32.Build.0 = Debug|Win32
+		{AAD42A11-92A7-4918-A76A-862528185199}.Debug|x64.ActiveCfg = Debug|x64
+		{AAD42A11-92A7-4918-A76A-862528185199}.Debug|x64.Build.0 = Debug|x64
+		{AAD42A11-92A7-4918-A76A-862528185199}.Release|Win32.ActiveCfg = Release|Win32
+		{AAD42A11-92A7-4918-A76A-862528185199}.Release|Win32.Build.0 = Release|Win32
+		{AAD42A11-92A7-4918-A76A-862528185199}.Release|x64.ActiveCfg = Release|x64
+		{AAD42A11-92A7-4918-A76A-862528185199}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
