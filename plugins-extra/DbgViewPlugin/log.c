@@ -104,9 +104,9 @@ static VOID DbgProcessLogMessageEntry(
     HANDLE processHandle = NULL;
     PPH_STRING fileName = NULL;
     HICON icon = NULL;
-       
+
     debugMessageBuffer = GlobalEvents ? Context->GlobalDebugBuffer : Context->LocalDebugBuffer;
-    
+
     entry = PhAllocate(sizeof(DEBUG_LOG_ENTRY));
     memset(entry, 0, sizeof(DEBUG_LOG_ENTRY));
 
@@ -155,7 +155,7 @@ static VOID DbgProcessLogMessageEntry(
                 DbgFreeLogEntry(entry);
                 return;
             }
-        } 
+        }
         else if (filterEntry->Type == FilterByPid)
         {
             if (filterEntry->ProcessId == entry->ProcessId)
