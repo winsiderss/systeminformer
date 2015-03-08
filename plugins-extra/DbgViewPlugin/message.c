@@ -49,7 +49,7 @@ INT_PTR CALLBACK DbgPropDlgProc(
         return TRUE;
     case WM_DESTROY:
         PhDeleteLayoutManager(&LayoutManager);
-        break;    
+        break;
     case WM_SIZE:
         PhLayoutManagerLayout(&LayoutManager);
         break;
@@ -79,7 +79,7 @@ INT_PTR CALLBACK DbgPropDlgProc(
                 // set window background color.
                 return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
             }
-        }       
+        }
         break;
     }
 
