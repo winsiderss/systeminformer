@@ -84,7 +84,7 @@ static PPH_STRING DbgGetStringForSelectedLogEntries(
             }
         }
 
-        entry =  Context->LogMessageList->Items[i];
+        entry = Context->LogMessageList->Items[i];
 
         if (!entry)
             goto ContinueLoop;
@@ -95,7 +95,7 @@ static PPH_STRING DbgGetStringForSelectedLogEntries(
         PhDereferenceObject(temp);
         PhAppendStringBuilder2(&stringBuilder, L": ");
 
-        temp = PhFormatString( 
+        temp = PhFormatString(
             L"%s (%u): %s",
             entry->ProcessName->Buffer, // entry->FilePath->Buffer;
             HandleToUlong(entry->ProcessId),
@@ -293,7 +293,7 @@ static VOID ShowDropdownMenu(
             break;
         case ID_SAVE_EVENTS:
             {
-                static PH_FILETYPE_FILTER filters [] =
+                static PH_FILETYPE_FILTER filters[] =
                 {
                     { L"Text files (*.txt)", L"*.txt" },
                     { L"All files (*.*)", L"*.*" }
@@ -385,7 +385,7 @@ static INT_PTR CALLBACK DbgViewDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DEBUGLISTVIEW);
             context->AutoScrollHandle = GetDlgItem(hwndDlg, IDC_AUTOSCROLL);
             context->OptionsHandle = GetDlgItem(hwndDlg, IDC_OPTIONS);
-           
+
             context->LogMessageList = PhCreateList(1);
             context->ExcludeList = PhCreateList(1);
 
@@ -413,7 +413,7 @@ static INT_PTR CALLBACK DbgViewDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCLOSE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_COLUMNS, context->ListViewHandle);
-                       
+
             if (PhGetIntegerSetting(SETTING_NAME_ALWAYSONTOP))
             {
                 context->AlwaysOnTop = TRUE;
@@ -454,7 +454,7 @@ static INT_PTR CALLBACK DbgViewDlgProc(
                 DbgClearLogEntries(context);
                 PhDereferenceObject(context->LogMessageList);
             }
-            
+
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_COLUMNS, context->ListViewHandle);
 
@@ -613,7 +613,6 @@ static INT_PTR CALLBACK DbgViewDlgProc(
     case WM_DEBUG_LOG_UPDATED:
         DbgUpdateLogList(context);
         break;
-
     }
 
     return FALSE;
