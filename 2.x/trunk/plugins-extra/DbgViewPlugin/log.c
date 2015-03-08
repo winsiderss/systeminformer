@@ -28,7 +28,7 @@ static VOID DbgFreeLogEntry(
     _Inout_ PDEBUG_LOG_ENTRY Entry
     )
 {
-    //ImageList_Remove(ListViewImgList, Entry->ImageIndex);
+    //ImageList_Remove(ListViewImageList, Entry->ImageIndex);
 
     if (Entry->FilePath)
     {
@@ -80,7 +80,7 @@ VOID DbgClearLogEntries(
 
 static VOID DbgShowErrorMessage(
     _Inout_ PPH_DBGEVENTS_CONTEXT Context,
-    _In_ PWSTR Format
+    _In_ PWSTR Type
     )
 {
     ULONG errorCode = GetLastError();
@@ -88,7 +88,7 @@ static VOID DbgShowErrorMessage(
 
     if (errorMessage)
     {
-        PhShowError(Context->DialogHandle, PhaFormatString(L"%s: [%u] %s", Format, errorCode, errorMessage->Buffer)->Buffer);
+        PhShowError(Context->DialogHandle, PhaFormatString(L"%s: [%u] %s", Type, errorCode, errorMessage->Buffer)->Buffer);
         PhDereferenceObject(errorMessage);
     }
 }
