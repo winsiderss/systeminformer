@@ -485,8 +485,6 @@ static INT_PTR CALLBACK DbgViewDlgProc(
                 ShowDropdownMenu(context);
                 break;
             case IDCLOSE:
-                OutputDebugStringA("TEST");
-                break;
             case IDCANCEL:
                 PostQuitMessage(0);
                 break;
