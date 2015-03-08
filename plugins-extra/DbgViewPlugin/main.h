@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DNS_H_
-#define _DNS_H_
+#ifndef _DBG_H_
+#define _DBG_H_
 
 #define SETTING_PREFIX L"dmex.DbgView"
 #define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
