@@ -155,7 +155,7 @@ static VOID ShowListViewMenu(
 
         switch (id)
         {
-        case ID_DBGEVENT_GOTOOWNINGPROCESS:
+        case ID_GOTOOWNINGPROCESS:
             {
                 PPH_PROCESS_NODE processNode;
 
@@ -167,7 +167,7 @@ static VOID ShowListViewMenu(
                 }
             }
             break;
-        case ID_DBGEVENT_PROPERTIES:
+        case ID_PROPERTIES:
             {
                 DialogBoxParam(
                     PluginInstance->DllBase,
@@ -178,7 +178,7 @@ static VOID ShowListViewMenu(
                     );
             }
             break;
-        case ID_DBGEVENT_COPY:
+        case ID_COPY:
             {
                 PPH_STRING string;
 
@@ -382,7 +382,7 @@ static INT_PTR CALLBACK DbgViewDlgProc(
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             context->DialogHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DNSLIST);
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DEBUGLISTVIEW);
             context->AutoScrollHandle = GetDlgItem(hwndDlg, IDC_AUTOSCROLL);
             context->OptionsHandle = GetDlgItem(hwndDlg, IDC_OPTIONS);
            

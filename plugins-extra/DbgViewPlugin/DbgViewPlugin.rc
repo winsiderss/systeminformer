@@ -121,9 +121,9 @@ IDR_MAIN_MENU MENU
 BEGIN
     POPUP "DBGEVENT"
     BEGIN
-        MENUITEM "View Message",                ID_DBGEVENT_PROPERTIES
+        MENUITEM "View Message",                ID_PROPERTIES
         MENUITEM SEPARATOR
-        MENUITEM "Go to Owning &Process",       ID_DBGEVENT_GOTOOWNINGPROCESS
+        MENUITEM "Go to Owning &Process",       ID_GOTOOWNINGPROCESS
         MENUITEM SEPARATOR
         POPUP "E&xclude Process"
         BEGIN
@@ -131,7 +131,7 @@ BEGIN
             MENUITEM "By Name",                     ID_EXCLUDEPROCESS_BYNAME
         END
         MENUITEM SEPARATOR
-        MENUITEM "&Copy",                       ID_DBGEVENT_COPY
+        MENUITEM "&Copy",                       ID_COPY
     END
 END
 
