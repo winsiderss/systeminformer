@@ -177,10 +177,10 @@ static NTSTATUS DbgEventsLocalThread(
     NTSTATUS status;
     PPH_DBGEVENTS_CONTEXT context = (PPH_DBGEVENTS_CONTEXT)Parameter;
 
-    NtSetEvent(context->LocalBufferReadyEvent, NULL);
-
     while (TRUE)
     {
+        NtSetEvent(context->LocalBufferReadyEvent, NULL);
+
         status = NtWaitForSingleObject(
             context->LocalDataReadyEvent,
             FALSE,
@@ -195,8 +195,6 @@ static NTSTATUS DbgEventsLocalThread(
         // The process calling OutputDebugString is blocked here...
         // This gives us some time to extract information without the process exiting.
         DbgProcessLogMessageEntry(context, FALSE);
-
-        NtSetEvent(context->LocalBufferReadyEvent, NULL);
     }
 
     return STATUS_SUCCESS;
@@ -210,10 +208,10 @@ static NTSTATUS DbgEventsGlobalThread(
     NTSTATUS status;
     PPH_DBGEVENTS_CONTEXT context = (PPH_DBGEVENTS_CONTEXT)Parameter;
 
-    NtSetEvent(context->GlobalBufferReadyEvent, NULL);
-
     while (TRUE)
     {
+        NtSetEvent(context->GlobalBufferReadyEvent, NULL);
+
         status = NtWaitForSingleObject(
             context->GlobalDataReadyEvent,
             FALSE,
@@ -228,8 +226,6 @@ static NTSTATUS DbgEventsGlobalThread(
         // The process calling OutputDebugString is blocked here...
         // This gives us some time to extract information without the process exiting.
         DbgProcessLogMessageEntry(context, TRUE);
-
-        NtSetEvent(context->GlobalBufferReadyEvent, NULL);
     }
 
     return STATUS_SUCCESS;
@@ -365,10 +361,10 @@ VOID DbgEventsCleanup(
             Context->GlobalDebugBuffer = NULL;
         }
 
-        if (Context->GlobalDebugBuffer)
+        if (Context->GlobalDataBufferHandle)
         {
-            NtClose(Context->GlobalDebugBuffer);
-            Context->GlobalDebugBuffer = NULL;
+            NtClose(Context->GlobalDataBufferHandle);
+            Context->GlobalDataBufferHandle = NULL;
         }
 
         if (Context->GlobalBufferReadyEvent)
