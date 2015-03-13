@@ -193,6 +193,13 @@ PPH_STRING NvGpuQueryFanSpeed(VOID)
 
             return PhFormatString(L"%u RPM", tachValue);
         }
+        else
+        { 
+            if (NvAPI_GPU_GetCoolerSettings(NvGpuPhysicalHandleList->Items[0], NVAPI_COOLER_TARGET_ALL, &coolerInfo) == NVAPI_OK)
+            {
+                return PhFormatString(L"%u%%", coolerInfo.cooler[0].currentLevel);
+            }
+        }
     }
 
     return PhCreateString(L"N/A");
@@ -204,7 +211,8 @@ VOID NvGpuUpdateValues(VOID)
     NV_DISPLAY_DRIVER_MEMORY_INFO memoryInfo = { NV_DISPLAY_DRIVER_MEMORY_INFO_VER };
     NV_GPU_THERMAL_SETTINGS thermalSettings = { NV_GPU_THERMAL_SETTINGS_VER };
     NV_GPU_CLOCK_FREQUENCIES clkFreqs  = { NV_GPU_CLOCK_FREQUENCIES_VER };
-       
+    NV_CLOCKS_INFO_V2 clocksInfo = { NV_CLOCKS_INFO_VER };
+
     if (!NvApiInitialized)
         return;
 
@@ -239,4 +247,26 @@ VOID NvGpuUpdateValues(VOID)
         GpuCurrentMemoryClock = (FLOAT)clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency * 0.001f;
         GpuCurrentShaderClock = (FLOAT)clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_PROCESSOR].frequency * 0.001f;
     }
+
+    if (NvAPI_GPU_GetAllClocks(NvGpuPhysicalHandleList->Items[0], &clocksInfo) == NVAPI_OK)
+    {
+        if (GpuCurrentCoreClock == 0)
+            GpuCurrentCoreClock = (FLOAT)clocksInfo.Values[0] * 0.001f;
+
+        if (GpuCurrentMemoryClock == 0)       
+            GpuCurrentMemoryClock = (FLOAT)clocksInfo.Values[1] * 0.001f;
+
+        if (GpuCurrentShaderClock == 0)
+            GpuCurrentShaderClock = (FLOAT)clocksInfo.Values[2] * 0.001f;
+
+        if (clocksInfo.Values[30] != 0)
+        {
+            if (GpuCurrentCoreClock == 0)
+                GpuCurrentCoreClock = clocksInfo.Values[30] * 0.0005f;
+
+            if (GpuCurrentShaderClock == 0)
+                GpuCurrentShaderClock = clocksInfo.Values[30] * 0.001f;
+        }
+    }
+
 }

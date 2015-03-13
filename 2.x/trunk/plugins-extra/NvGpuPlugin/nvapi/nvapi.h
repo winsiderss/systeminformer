@@ -1470,7 +1470,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetConnectedSLIOutputs(NvPhysicalGpuHandle hPhysicalGp
 
 
 //! \ingroup gpu
-typedef enum
+typedef enum _NV_MONITOR_CONN_TYPE
 {
     NV_MONITOR_CONN_TYPE_UNINITIALIZED = 0,
     NV_MONITOR_CONN_TYPE_VGA,
@@ -1671,12 +1671,11 @@ NVAPI_INTERFACE NvAPI_GPU_GetConnectedSLIOutputsWithLidState(NvPhysicalGpuHandle
 
 //! \ingroup gpu
 //! Used in NvAPI_GPU_GetSystemType()
-typedef enum
+typedef enum _NV_SYSTEM_TYPE
 {
     NV_SYSTEM_TYPE_UNKNOWN = 0,
     NV_SYSTEM_TYPE_LAPTOP  = 1,
     NV_SYSTEM_TYPE_DESKTOP = 2,
-
 } NV_SYSTEM_TYPE;
 
 
@@ -2971,7 +2970,7 @@ _NvAPI_GPU_GetThermalSettings NvAPI_GPU_GetThermalSettings;
 #define NVAPI_DISPLAY_DEVICE_MASK_MAX         24
 #define NVAPI_I2C_SPEED_DEPRECATED        0xFFFF
 
-typedef enum
+typedef enum _NV_I2C_SPEED
 {
     NVAPI_I2C_SPEED_DEFAULT,    //!< Set i2cSpeedKhz to I2C_SPEED_DEFAULT if default I2C speed is to be chosen, ie.use the current frequency setting.
     NVAPI_I2C_SPEED_3KHZ,
