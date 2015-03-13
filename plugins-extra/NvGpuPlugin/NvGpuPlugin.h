@@ -238,7 +238,7 @@ typedef NvAPI_Status (__cdecl *_NvAPI_GPU_SetCoolerPolicyTable)(NvPhysicalGpuHan
 ///////////////////////////////////////////////////////////////////////////////
 typedef NvAPI_Status (__cdecl *_NvAPI_GPU_RestoreCoolerPolicyTable)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pCoolerIndex, NvU32 coolerCount, NV_COOLER_POLICY policy);
 
-// rev
+// NOTE: This structure is incorrect and has many missing fields.
 typedef struct _NV_CLOCKS_INFO_V2
 {
     NvU32 Version;
@@ -247,6 +247,7 @@ typedef struct _NV_CLOCKS_INFO_V2
 
 typedef NV_CLOCKS_INFO_V2 NV_CLOCKS_INFO;
 
+// NOTE: This is the wrong version but required due to the incorrect structure.
 #define NV_CLOCKS_INFO_VER MAKE_NVAPI_VERSION(NV_CLOCKS_INFO, 2)
 
 // rev
