@@ -23,7 +23,7 @@
 
 #include "toolstatus.h"
 
-static VOID NcAreaFreeGdiTheme(
+static VOID NcAreaFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
@@ -73,14 +73,14 @@ static VOID NcAreaInitializeFont(
     SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
 }
 
-static VOID NcAreaInitializeGdiTheme(
+static VOID NcAreaInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
     Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
-    Context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
+    //Context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
 
-    Context->BackgroundColorRef = RGB(0, 0, 0);//GetSysColor(COLOR_WINDOW);
+    Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
     Context->BrushFill = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushNormal = GetStockBrush(BLACK_BRUSH);
     Context->BrushHot = WindowsVersion < WINDOWS_VISTA ? CreateSolidBrush(RGB(50, 150, 255)) : GetSysColorBrush(COLOR_HIGHLIGHT);
@@ -128,7 +128,7 @@ static VOID NcAreaGetButtonRect(
     _Inout_ PRECT ButtonRect
     )
 {
-    ButtonRect->left = (ButtonRect->right - Context->cxImgSize) - 2; // GetSystemMetrics(SM_CXBORDER)
+    ButtonRect->left = (ButtonRect->right - Context->cxImgSize) - Context->CXBorder;
     ButtonRect->bottom -= 2;
     ButtonRect->right -= 2;
     ButtonRect->top += 2;
@@ -216,7 +216,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            NcAreaFreeGdiTheme(context);
+            NcAreaFreeTheme(context);
 
             if (context->ImageList)
                 ImageList_Destroy(context->ImageList);
@@ -228,14 +228,6 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         break;
     case WM_ERASEBKGND:
         return TRUE;
-    case WM_SYSCOLORCHANGE:
-    case WM_THEMECHANGED:
-        {
-            NcAreaFreeGdiTheme(context);
-            NcAreaInitializeGdiTheme(context);
-            NcAreaInitializeFont(context);
-        }
-        break;
     case WM_NCCALCSIZE:
         {
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
@@ -365,7 +357,20 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
     case WM_SETTINGCHANGE:
-        NcAreaInitializeFont(context);
+    case WM_SYSCOLORCHANGE:
+    case WM_THEMECHANGED:
+        {
+            NcAreaFreeTheme(context);
+            NcAreaInitializeTheme(context);
+            NcAreaInitializeFont(context);
+
+            // Reset the client area margins.
+            SendMessage(hwndDlg, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
+
+            // Force the edit control to update its non-client area.
+            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            //SetWindowPos(hwndDlg, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+        }
         break;
     }
 
@@ -401,21 +406,15 @@ HBITMAP LoadImageFromResources(
 
     WICRect rect = { 0, 0, Width, Height };
 
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static IWICImagingFactory* wicFactory = NULL;
 
     __try
     {
-        if (PhBeginInitOnce(&initOnce))
+        if (!wicFactory)
         {
             // Create the ImagingFactory
             if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
-            {
-                PhEndInitOnce(&initOnce);
                 __leave;
-            }
-
-            PhEndInitOnce(&initOnce);
         }
 
         // Find the resource
@@ -539,7 +538,7 @@ HWND CreateSearchControl(
     context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
-    context->cxImgSize = 22; // GetSystemMetrics(SM_CXVSCROLL)
+    context->cxImgSize = 22; // GetSystemMetrics(SM_CXVSCROLL);
     context->CommandID = CommandID;
     
     // Create the SearchBox window.
@@ -555,12 +554,8 @@ HWND CreateSearchControl(
         NULL
         );
  
-    NcAreaInitializeGdiTheme(context);
+    NcAreaInitializeTheme(context);
     NcAreaInitializeImageList(context);
-    NcAreaInitializeFont(context);
-
-    // Reset the client area margins.
-    SendMessage(context->WindowHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
 
     // Set initial text
     Edit_SetCueBannerText(context->WindowHandle, L"Search Processes (Ctrl+K)");
@@ -571,8 +566,8 @@ HWND CreateSearchControl(
     // Subclass the Edit control window procedure.
     SetWindowSubclass(context->WindowHandle, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);
 
-    // Force the edit control to update its non-client area.
-    SetWindowPos(context->WindowHandle, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+    // Initialize the theme parameters.
+    SendMessage(context->WindowHandle, WM_THEMECHANGED, 0, 0);
 
     return context->WindowHandle;
 }
