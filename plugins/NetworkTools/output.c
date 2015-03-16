@@ -225,7 +225,6 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
                 if (NT_SUCCESS(RtlOemStringToUnicodeString(&convertedString, &inputString, TRUE)))
                 {
-                    USHORT i;
                     PPH_STRING windowText = NULL;
 
                     PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
@@ -237,21 +236,8 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     if (!PhIsNullOrEmptyString(windowText))
                         PhAppendStringBuilder(&receivedString, windowText);
 
-                    PhDereferenceObject(windowText);
-
-                    // Skip unwanted characters
-                    for (i = 0; i < convertedString.Length; i++)
-                    {
-                        if (convertedString.Buffer[i] == '#')
-                        {
-                            // Skip
-                        }
-                        else
-                        {
-                            PhAppendCharStringBuilder(&receivedString, convertedString.Buffer[i]);
-                        }
-                    }
-
+                    PhAppendFormatStringBuilder(&receivedString, L"%s", convertedString.Buffer);
+                    
                     // Remove leading newlines.
                     if (receivedString.String->Length >= 2 * 2 &&
                         receivedString.String->Buffer[0] == '\r' &&
@@ -268,7 +254,8 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                         receivedString.String->Length / 2 - 1
                         );
                     SendMessage(context->OutputHandle, WM_VSCROLL, SB_BOTTOM, 0);
-
+ 
+                    PhDereferenceObject(windowText);
                     PhDeleteStringBuilder(&receivedString);
                     RtlFreeUnicodeString(&convertedString);
                     return TRUE;
@@ -293,7 +280,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
                     PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
 
-                    // Remove leading newlines.                  
+                    // Convert carriage returns.                  
                     for (i = 0; i < convertedString.Length; i++)
                     {
                         if (convertedString.Buffer[i] == '\n')
