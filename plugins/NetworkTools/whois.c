@@ -85,7 +85,7 @@ NTSTATUS NetworkWhoisThreadStart(
 {
     BOOLEAN isSuccess = FALSE;
     ULONG xmlLength = 0;
-    PSTR xmlBuffer = NULL; 
+    PSTR xmlBuffer = NULL;
     PPH_STRING phVersion = NULL;
     PPH_STRING userAgent = NULL;
     PPH_STRING whoisHttpGetString = NULL;
