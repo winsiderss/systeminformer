@@ -49,7 +49,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     ULONG maxPingTimeout = GetDlgItemInt(hwndDlg, IDC_MAXTIMEOUTTEXT, NULL, FALSE);
 
                     PhSetIntegerSetting(SETTING_NAME_PING_TIMEOUT, maxPingTimeout);
-          
+
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
