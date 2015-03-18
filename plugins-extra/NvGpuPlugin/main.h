@@ -54,7 +54,6 @@ BOOLEAN DestroyNvApi(VOID);
 PPH_STRING NvGpuQueryDriverVersion(VOID);
 PPH_STRING NvGpuQueryVbiosVersionString(VOID);
 PPH_STRING NvGpuQueryName(VOID);
-PPH_STRING NvGpuQueryIRQ(VOID);
 PPH_STRING NvGpuQueryFanSpeed(VOID);
 
 VOID NvGpuUpdateValues(VOID);
