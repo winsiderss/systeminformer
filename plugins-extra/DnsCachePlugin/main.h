@@ -50,8 +50,8 @@ typedef struct _DNS_CACHE_ENTRY
 {
     struct _DNS_CACHE_ENTRY* Next;  // Pointer to next entry
     PCWSTR Name;                    // DNS Record Name
-    WORD Type;                      // DNS Record Type
-    WORD DataLength;                // Not referenced
+    USHORT Type;                    // DNS Record Type
+    USHORT DataLength;              // Not referenced
     ULONG Flags;                    // DNS Record Flags
 } DNS_CACHE_ENTRY, *PDNS_CACHE_ENTRY;
 
@@ -67,18 +67,18 @@ typedef BOOL (WINAPI* _DnsFlushResolverCacheEntry)(
     _In_ LPCWSTR Name
     );
 
-typedef DNS_STATUS (WINAPI* _DnsQuery_W)(
-    _In_ LPCWSTR Name,
-    _In_ WORD Type,
-    _In_ DWORD Options,
+typedef DNS_STATUS (WINAPI* _DnsQuery)(
+    _In_ PCTSTR Name,
+    _In_ USHORT Type,
+    _In_ ULONG Options,
     _Inout_opt_ PVOID Extra,
-    _Out_ _Maybenull_ PDNS_RECORD* QueryResults,
-    _Out_opt_ _Maybenull_ PVOID* Reserved
+    _Out_opt_ PDNS_RECORD* QueryResultsSet,
+    _Out_opt_ PVOID* Reserved
     );
 
 typedef VOID (WINAPI* _DnsFree)(
     _Inout_ PVOID Data,
-    _In_ _Deref_out_ DNS_FREE_TYPE FreeType
+    _In_ DNS_FREE_TYPE FreeType
     );
 
 #endif
