@@ -38,13 +38,15 @@ static BOOLEAN NetworkAdapterQuerySupported(
     BOOLEAN adapterStatsSupported = FALSE;
     BOOLEAN adapterLinkStateSupported = FALSE;
     BOOLEAN adapterLinkSpeedSupported = FALSE;
-    NDIS_OID ndisObjectIdentifiers[PAGE_SIZE];
+    PNDIS_OID ndisObjectIdentifiers = NULL;
 
     // https://msdn.microsoft.com/en-us/library/ff569642.aspx
     opcode = OID_GEN_SUPPORTED_LIST;
     //opcode = OID_GEN_CO_SUPPORTED_LIST;
 
-    memset(ndisObjectIdentifiers, 0, sizeof(ndisObjectIdentifiers));
+    // TODO: 4096 objects might be too small...
+    ndisObjectIdentifiers = PhAllocate(sizeof(NDIS_OID) * PAGE_SIZE);
+    memset(ndisObjectIdentifiers, 0, sizeof(NDIS_OID) * PAGE_SIZE);
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
@@ -56,7 +58,7 @@ static BOOLEAN NetworkAdapterQuerySupported(
         &opcode,
         sizeof(NDIS_OID),
         ndisObjectIdentifiers,
-        sizeof(ndisObjectIdentifiers)
+        sizeof(NDIS_OID) * PAGE_SIZE
         )))
     {
         ndisQuerySupported = TRUE;
@@ -82,6 +84,8 @@ static BOOLEAN NetworkAdapterQuerySupported(
             }
         }
     }
+
+    PhFree(ndisObjectIdentifiers);
 
     if (!adapterNameSupported)
         ndisQuerySupported = FALSE;
