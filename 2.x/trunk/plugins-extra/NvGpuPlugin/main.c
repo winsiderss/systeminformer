@@ -42,10 +42,7 @@ static VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (NvApiInitialized)
-    {
-        DestroyNvApi();
-    }
+    DestroyNvApi();
 }
 
 static VOID NTAPI ShowOptionsCallback(
