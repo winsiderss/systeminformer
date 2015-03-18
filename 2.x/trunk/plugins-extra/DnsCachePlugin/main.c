@@ -22,12 +22,12 @@
 
 #include "main.h"
 
-static HINSTANCE DnsApiHandle;
-static _DnsQuery_W DnsQuery_I;
-static _DnsFree DnsFree_I;
-static _DnsGetCacheDataTable DnsGetCacheDataTable_I;
-static _DnsFlushResolverCache DnsFlushResolverCache_I;
-static _DnsFlushResolverCacheEntry DnsFlushResolverCacheEntry_I;
+static HINSTANCE DnsApiHandle = NULL;
+static _DnsQuery DnsQuery_I = NULL;
+static _DnsFree DnsFree_I = NULL;
+static _DnsGetCacheDataTable DnsGetCacheDataTable_I = NULL;
+static _DnsFlushResolverCache DnsFlushResolverCache_I = NULL;
+static _DnsFlushResolverCacheEntry DnsFlushResolverCacheEntry_I = NULL;
 
 static HWND ListViewWndHandle;
 static PH_LAYOUT_MANAGER LayoutManager;
@@ -150,14 +150,14 @@ static PPH_STRING PhGetSelectedListViewItemText(
 
     if (index != -1)
     {
-        WCHAR textBuffer[MAX_PATH + 1] = L"";
+        WCHAR textBuffer[MAX_PATH] = L"";
 
         LVITEM item;
         item.mask = LVIF_TEXT;
         item.iItem = index;
         item.iSubItem = 0;
         item.pszText = textBuffer;
-        item.cchTextMax = MAX_PATH;
+        item.cchTextMax = _countof(textBuffer);
 
         if (ListView_GetItem(hWnd, &item))
             return PhCreateString(textBuffer);
@@ -268,7 +268,7 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
             DnsApiHandle = LoadLibrary(L"dnsapi.dll");
             if (DnsApiHandle)
             {
-                DnsQuery_I = (_DnsQuery_W)GetProcAddress(DnsApiHandle, "DnsQuery_W");
+                DnsQuery_I = (_DnsQuery)GetProcAddress(DnsApiHandle, "DnsQuery_W");
                 DnsFree_I = (_DnsFree)GetProcAddress(DnsApiHandle, "DnsFree");
                 DnsGetCacheDataTable_I = (_DnsGetCacheDataTable)GetProcAddress(DnsApiHandle, "DnsGetCacheDataTable");
                 DnsFlushResolverCache_I = (_DnsFlushResolverCache)GetProcAddress(DnsApiHandle, "DnsFlushResolverCache");
