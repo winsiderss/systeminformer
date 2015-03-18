@@ -218,7 +218,7 @@ static VOID LoadAtomTable(VOID)
             INT index = PhAddListViewItem(
                 ListViewWndHandle,
                 MAXINT,
-                PhaFormatString(L"#%u (Pinned)", atomInfo->Name)->Buffer,
+                PhaFormatString(L"%s (Pinned)", atomInfo->Name)->Buffer,
                 NULL
                 );
             PhSetListViewSubItem(
