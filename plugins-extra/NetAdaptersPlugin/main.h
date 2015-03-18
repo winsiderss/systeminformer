@@ -53,7 +53,7 @@ typedef ULONG (WINAPI* _GetIfEntry2)(
 // dmex: rev
 typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
     _In_ PGUID InterfaceGuid, 
-    _Out_ PCWSTR InterfaceDescription, 
+    _Out_opt_ PWSTR InterfaceDescription, 
     _Inout_ PSIZE_T LengthAddress, 
     PVOID Unknown1, 
     PVOID Unknown2
