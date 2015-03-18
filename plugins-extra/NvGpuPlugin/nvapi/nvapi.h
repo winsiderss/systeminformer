@@ -1549,7 +1549,7 @@ typedef struct _NV_GPU_DISPLAYIDS
 //! \endcode
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetConnectedDisplayIds(_In_ NvPhysicalGpuHandle hPhysicalGpu,  __inout_ecount_part_opt(*pDisplayIdCount, *pDisplayIdCount) NV_GPU_DISPLAYIDS* pDisplayIds, __inout NvU32* pDisplayIdCount, _In_ NvU32 flags);
+NVAPI_INTERFACE NvAPI_GPU_GetConnectedDisplayIds(_In_ NvPhysicalGpuHandle hPhysicalGpu,  __inout_ecount_part_opt(*pDisplayIdCount, *pDisplayIdCount) NV_GPU_DISPLAYIDS* pDisplayIds, _Inout_ NvU32* pDisplayIdCount, _In_ NvU32 flags);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1591,7 +1591,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetConnectedDisplayIds(_In_ NvPhysicalGpuHandle hPhysi
 //!
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetAllDisplayIds(_In_ NvPhysicalGpuHandle hPhysicalGpu, __inout_ecount_part_opt(*pDisplayIdCount, *pDisplayIdCount) NV_GPU_DISPLAYIDS* pDisplayIds, __inout NvU32* pDisplayIdCount);
+NVAPI_INTERFACE NvAPI_GPU_GetAllDisplayIds(_In_ NvPhysicalGpuHandle hPhysicalGpu, __inout_ecount_part_opt(*pDisplayIdCount, *pDisplayIdCount) NV_GPU_DISPLAYIDS* pDisplayIds, _Inout_ NvU32* pDisplayIdCount);
 
 
 
@@ -1886,7 +1886,7 @@ typedef enum _NV_GPU_TYPE
 //!
 //!  \ingroup gpu 
 ///////////////////////////////////////////////////////////////////////////////     
-NVAPI_INTERFACE NvAPI_GPU_GetGPUType(_In_ NvPhysicalGpuHandle hPhysicalGpu, __inout NV_GPU_TYPE *pGpuType);
+NVAPI_INTERFACE NvAPI_GPU_GetGPUType(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NV_GPU_TYPE *pGpuType);
 
 
 
@@ -1902,6 +1902,7 @@ typedef enum _NV_GPU_BUS_TYPE
     NVAPI_GPU_BUS_TYPE_FPCI         = 4,
     NVAPI_GPU_BUS_TYPE_AXI          = 5,
 } NV_GPU_BUS_TYPE;
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // FUNCTION NAME: NvAPI_GPU_GetBusType
@@ -1921,8 +1922,10 @@ typedef enum _NV_GPU_BUS_TYPE
 //! \retval      NVAPI_OK                          *pBusType contains bus identifier.
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetBusType(NvPhysicalGpuHandle hPhysicalGpu,NV_GPU_BUS_TYPE *pBusType);
+//NVAPI_INTERFACE NvAPI_GPU_GetBusType(NvPhysicalGpuHandle hPhysicalGpu,NV_GPU_BUS_TYPE *pBusType);
 
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetBusType)(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_BUS_TYPE* pBusType);
+_NvAPI_GPU_GetBusType NvAPI_GPU_GetBusType;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1989,8 +1992,11 @@ NVAPI_INTERFACE NvAPI_GPU_GetBusSlotId(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *
 //! \retval  NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE  hPhysicalGpu was not a physical GPU handle.
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetIRQ(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pIRQ);
-    
+//NVAPI_INTERFACE NvAPI_GPU_GetIRQ(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pIRQ);
+
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetIRQ)(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pIRQ);
+_NvAPI_GPU_GetIRQ NvAPI_GPU_GetIRQ;
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // FUNCTION NAME: NvAPI_GPU_GetVbiosRevision
@@ -2010,7 +2016,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetIRQ(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pIRQ);
 //! \retval    NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE   hPhysicalGpu was not a physical GPU handle.
 //! \ingroup   gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetVbiosRevision(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pBiosRevision);
+NVAPI_INTERFACE NvAPI_GPU_GetVbiosRevision(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pBiosRevision);
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -2029,7 +2035,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetVbiosRevision(NvPhysicalGpuHandle hPhysicalGpu,NvU3
 //! \retval    NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE  hPhysicalGpu was not a physical GPU handle
 //! \ingroup   gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetVbiosOEMRevision(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pBiosRevision);
+NVAPI_INTERFACE NvAPI_GPU_GetVbiosOEMRevision(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pBiosRevision);
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -2052,8 +2058,10 @@ NVAPI_INTERFACE NvAPI_GPU_GetVbiosOEMRevision(NvPhysicalGpuHandle hPhysicalGpu,N
 //! \retval   NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE  hPhysicalGpu was not a physical GPU handle.
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetVbiosVersionString(NvPhysicalGpuHandle hPhysicalGpu,NvAPI_ShortString szBiosRevision);
+//NVAPI_INTERFACE NvAPI_GPU_GetVbiosVersionString(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szBiosRevision);
 
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetVbiosVersionString)(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szBiosRevision);
+_NvAPI_GPU_GetVbiosVersionString NvAPI_GPU_GetVbiosVersionString;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -2111,7 +2119,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetCurrentAGPRate(NvPhysicalGpuHandle hPhysicalGpu,NvU
 //! \retval  NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE  hPhysicalGpu was not a physical GPU handle.
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetCurrentPCIEDownstreamWidth(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pWidth);
+NVAPI_INTERFACE NvAPI_GPU_GetCurrentPCIEDownstreamWidth(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pWidth);
 
 
 
@@ -2135,7 +2143,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetCurrentPCIEDownstreamWidth(NvPhysicalGpuHandle hPhy
 //! \retval  NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE  hPhysicalGpu was not a physical GPU handle
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetPhysicalFrameBufferSize(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pSize);
+NVAPI_INTERFACE NvAPI_GPU_GetPhysicalFrameBufferSize(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pSize);
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -2157,10 +2165,8 @@ NVAPI_INTERFACE NvAPI_GPU_GetPhysicalFrameBufferSize(NvPhysicalGpuHandle hPhysic
 //! \retval  NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE  hPhysicalGpu was not a physical GPU handle.
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetVirtualFrameBufferSize(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pSize);
+NVAPI_INTERFACE NvAPI_GPU_GetVirtualFrameBufferSize(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pSize);
 
-
- 
 
 
 //! \ingroup gpu
@@ -2168,7 +2174,6 @@ typedef struct _NV_BOARD_INFO
 {
     NvU32 version;                   //!< structure version
     NvU8 BoardNum[16];               //!< Board Serial Number
-
 }NV_BOARD_INFO_V1;
 
 //! \ingroup gpu
@@ -2200,9 +2205,10 @@ typedef NV_BOARD_INFO_V1    NV_BOARD_INFO;
 //! 
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetBoardInfo(NvPhysicalGpuHandle hPhysicalGpu, NV_BOARD_INFO *pBoardInfo);
+//NVAPI_INTERFACE NvAPI_GPU_GetBoardInfo(NvPhysicalGpuHandle hPhysicalGpu, NV_BOARD_INFO *pBoardInfo);
 
-
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetBoardInfo)(NvPhysicalGpuHandle hPhysicalGpu, NV_BOARD_INFO *pBoardInfo);
+_NvAPI_GPU_GetBoardInfo NvAPI_GPU_GetBoardInfo;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2824,7 +2830,7 @@ typedef struct _NV_GPU_DYNAMIC_PSTATES_INFO_EX
 ///////////////////////////////////////////////////////////////////////////////
 //NVAPI_INTERFACE NvAPI_GPU_GetDynamicPstatesInfoEx(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetDynamicPstatesInfoEx)(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetDynamicPstatesInfoEx)(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX* pDynamicPstatesInfoEx);
 _NvAPI_GPU_GetDynamicPstatesInfoEx NvAPI_GPU_GetDynamicPstatesInfoEx;
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -3191,7 +3197,7 @@ NVAPI_INTERFACE NvAPI_GPU_WorkstationFeatureSetup(_In_ NvPhysicalGpuHandle hPhys
 ///////////////////////////////////////////////////////////////////////////////
 
 //! \ingroup gpu
-NVAPI_INTERFACE NvAPI_GPU_WorkstationFeatureQuery(_In_ NvPhysicalGpuHandle hPhysicalGpu, __out_opt NvU32 *pConfiguredFeatureMask, __out_opt NvU32 *pConsistentFeatureMask);
+NVAPI_INTERFACE NvAPI_GPU_WorkstationFeatureQuery(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Out_opt_ NvU32 *pConfiguredFeatureMask, _Out_opt_ NvU32 *pConsistentFeatureMask);
 
 /////////////////////////////////////////////////////////////////////////////// 
 // 
@@ -3396,7 +3402,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetECCStatusInfo(NvPhysicalGpuHandle hPhysicalGpu,
 
 //! \ingroup gpuecc
 //! Used in NvAPI_GPU_GetECCErrorInfo()/
-typedef struct
+typedef struct _NV_GPU_ECC_ERROR_INFO
 {
     NvU32   version;             //!< Structure version
     struct {
@@ -3411,7 +3417,7 @@ typedef struct
 
 //! \ingroup gpuecc
 //! Macro for constructing the version field of NV_GPU_ECC_ERROR_INFO
-#define NV_GPU_ECC_ERROR_INFO_VER MAKE_NVAPI_VERSION(NV_GPU_ECC_ERROR_INFO,1)
+#define NV_GPU_ECC_ERROR_INFO_VER MAKE_NVAPI_VERSION(NV_GPU_ECC_ERROR_INFO, 1)
 
 //! \ingroup gpuecc
 NVAPI_INTERFACE NvAPI_GPU_GetECCErrorInfo(NvPhysicalGpuHandle hPhysicalGpu, 
@@ -3477,7 +3483,7 @@ NVAPI_INTERFACE NvAPI_GPU_ResetECCErrorInfo(NvPhysicalGpuHandle hPhysicalGpu, Nv
 
 //! \ingroup gpuecc
 //! Used in NvAPI_GPU_GetECCConfigurationInfo(). 
-typedef struct
+typedef struct _NV_GPU_ECC_CONFIGURATION_INFO
 {
     NvU32  version;                 //! Structure version
     NvU32  isEnabled : 1;           //! Current ECC configuration stored in non-volatile memory
@@ -3607,7 +3613,7 @@ typedef struct _NV_SCANOUT_INTENSITY_STATE_DATA
 //!
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetScanoutIntensityState(_In_ NvU32 displayId, __inout NV_SCANOUT_INTENSITY_STATE_DATA* scanoutIntensityStateData);
+NVAPI_INTERFACE NvAPI_GPU_GetScanoutIntensityState(_In_ NvU32 displayId, _Inout_ NV_SCANOUT_INTENSITY_STATE_DATA* scanoutIntensityStateData);
 
 
 //! \ingroup gpu
@@ -3689,7 +3695,7 @@ typedef struct _NV_SCANOUT_WARPING_STATE_DATA
 //!
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetScanoutWarpingState(_In_ NvU32 displayId, __inout NV_SCANOUT_WARPING_STATE_DATA* scanoutWarpingStateData);
+NVAPI_INTERFACE NvAPI_GPU_GetScanoutWarpingState(_In_ NvU32 displayId, _Inout_ NV_SCANOUT_WARPING_STATE_DATA* scanoutWarpingStateData);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3749,7 +3755,7 @@ typedef struct _NV_SCANOUT_INFORMATION
 //!
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetScanoutConfigurationEx(_In_ NvU32 displayId, __inout NV_SCANOUT_INFORMATION *pScanoutInformation);
+NVAPI_INTERFACE NvAPI_GPU_GetScanoutConfigurationEx(_In_ NvU32 displayId, _Inout_ NV_SCANOUT_INFORMATION *pScanoutInformation);
 
 
 //! Used in NvAPI_GPU_GetPerfDecreaseInfo.
@@ -3781,9 +3787,9 @@ typedef enum _NVAPI_GPU_PERF_DECREASE
 //!
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-//NVAPI_INTERFACE NvAPI_GPU_GetPerfDecreaseInfo(_In_ NvPhysicalGpuHandle hPhysicalGpu, __inout NvU32 *pPerfDecrInfo);
+//NVAPI_INTERFACE NvAPI_GPU_GetPerfDecreaseInfo(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NvU32 *pPerfDecrInfo);
 
-typedef __success(return == NVAPI_OK) NvAPI_Status (__cdecl *_NvAPI_GPU_GetPerfDecreaseInfo)(_In_ NvPhysicalGpuHandle hPhysicalGpu, __inout NVAPI_GPU_PERF_DECREASE* pPerfDecrInfo);
+typedef __success(return == NVAPI_OK) NvAPI_Status (__cdecl *_NvAPI_GPU_GetPerfDecreaseInfo)(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NVAPI_GPU_PERF_DECREASE* pPerfDecrInfo);
 _NvAPI_GPU_GetPerfDecreaseInfo NvAPI_GPU_GetPerfDecreaseInfo;
 
 
@@ -3799,7 +3805,7 @@ typedef enum _NV_GPU_ILLUMINATION_ATTRIB
 //
 // FUNCTION NAME: NvAPI_GPU_QueryIlluminationSupport
 //
-//! \fn NvAPI_GPU_QueryIlluminationSupport(__inout  NV_GPU_QUERY_ILLUMINATION_SUPPORT_PARM *pIlluminationSupportInfo)
+//! \fn NvAPI_GPU_QueryIlluminationSupport(_Inout_  NV_GPU_QUERY_ILLUMINATION_SUPPORT_PARM *pIlluminationSupportInfo)
 //! DESCRIPTION:   This function reports if the specified illumination attribute is supported.
 //!
 //! \note Only a single GPU can manage an given attribute on a given HW element,
@@ -3847,7 +3853,7 @@ typedef NV_GPU_QUERY_ILLUMINATION_SUPPORT_PARM_V1      NV_GPU_QUERY_ILLUMINATION
 #define NV_GPU_QUERY_ILLUMINATION_SUPPORT_PARM_VER     NV_GPU_QUERY_ILLUMINATION_SUPPORT_PARM_VER_1
 
 //! \ingroup gpu 
-NVAPI_INTERFACE NvAPI_GPU_QueryIlluminationSupport(__inout NV_GPU_QUERY_ILLUMINATION_SUPPORT_PARM *pIlluminationSupportInfo);
+NVAPI_INTERFACE NvAPI_GPU_QueryIlluminationSupport(_Inout_ NV_GPU_QUERY_ILLUMINATION_SUPPORT_PARM *pIlluminationSupportInfo);
 
 
 
@@ -3871,7 +3877,7 @@ NVAPI_INTERFACE NvAPI_GPU_QueryIlluminationSupport(__inout NV_GPU_QUERY_ILLUMINA
 //!
 //! \param [in]  hPhysicalGpu        Physical GPU handle
 //! \param       Attribute           An enumeration value specifying the Illumination attribute to be querried
-//! \param [out] Value               A DWORD containing the current value for the specified attribute.
+//! \param [out] Value               A ULONG containing the current value for the specified attribute.
 //!                                  This is specified as a percentage of the full range of the attribute
 //!                                  (0-100; 0 = off, 100 = full brightness)
 //! 
@@ -3897,7 +3903,7 @@ typedef struct _NV_GPU_GET_ILLUMINATION_PARM_V1 {
                                             //!< refer to enum \ref NV_GPU_ILLUMINATION_ATTRIB.
     
     // OUT
-    NvU32    Value;                         //!< A DWORD that will contain the current value of the specified attribute.
+    NvU32    Value;                         //!< A ULONG that will contain the current value of the specified attribute.
                                             //! This is specified as a percentage of the full range of the attribute
                                             //! (0-100; 0 = off, 100 = full brightness)
                                     
@@ -3960,7 +3966,7 @@ typedef struct _NV_GPU_SET_ILLUMINATION_PARM_V1 {
                                             //!< You enumerate thru the GPUs with this call to determine which GPU is managing the attribute.
     NV_GPU_ILLUMINATION_ATTRIB Attribute;   //!< An enumeration value specifying the Illumination attribute to be querried.
                                             //!< refer to enum \ref NV_GPU_ILLUMINATION_ATTRIB.
-    NvU32    Value;                         //!< A DWORD containing the new value for the specified attribute.
+    NvU32    Value;                         //!< A ULONG containing the new value for the specified attribute.
                                             //!< This should be specified as a percentage of the full range of the attribute
                                             //!< (0-100; 0 = off, 100 = full brightness)
                                             //!< If a value is specified outside this range, NVAPI_INVALID_ARGUMENT will be returned.
@@ -4277,7 +4283,7 @@ typedef struct
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTION NAME:   NvAPI_GetDisplayPortInfo
 //
-//! \fn NvAPI_GetDisplayPortInfo(__in_opt NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, __inout NV_DISPLAY_PORT_INFO *pInfo)
+//! \fn NvAPI_GetDisplayPortInfo(_In_opt_ NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, _Inout_ NV_DISPLAY_PORT_INFO *pInfo)
 //! DESCRIPTION:     This function returns the current DisplayPort-related information on the specified device (monitor).
 //!
 //! SUPPORTED OS:  Windows XP and higher
@@ -4298,7 +4304,7 @@ typedef struct
 //
 ///////////////////////////////////////////////////////////////////////////////
 //! \ingroup        dispcontrol
-NVAPI_INTERFACE NvAPI_GetDisplayPortInfo(__in_opt NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, __inout NV_DISPLAY_PORT_INFO *pInfo);
+NVAPI_INTERFACE NvAPI_GetDisplayPortInfo(_In_opt_ NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, _Inout_ NV_DISPLAY_PORT_INFO *pInfo);
 
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTION NAME:   NvAPI_SetDisplayPort
@@ -4417,7 +4423,7 @@ typedef NV_HDMI_SUPPORT_INFO_V2    NV_HDMI_SUPPORT_INFO;
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTION NAME:   NvAPI_GetHDMISupportInfo
 //
-//! \fn NvAPI_GetHDMISupportInfo(__in_opt NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, __inout NV_HDMI_SUPPORT_INFO *pInfo)
+//! \fn NvAPI_GetHDMISupportInfo(_In_opt_ NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, _Inout_ NV_HDMI_SUPPORT_INFO *pInfo)
 //!   This API returns the current infoframe data on the specified device(monitor).
 //!
 //! \since Release: 95
@@ -4436,7 +4442,7 @@ typedef NV_HDMI_SUPPORT_INFO_V2    NV_HDMI_SUPPORT_INFO;
 
 
 //! \ingroup dispcontrol
-NVAPI_INTERFACE NvAPI_GetHDMISupportInfo(__in_opt NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, __inout NV_HDMI_SUPPORT_INFO *pInfo);
+NVAPI_INTERFACE NvAPI_GetHDMISupportInfo(_In_opt_ NvDisplayHandle hNvDisplay, _In_ NvU32 outputId, _Inout_ NV_HDMI_SUPPORT_INFO *pInfo);
 
 
 //! \ingroup dispcontrol
@@ -4921,7 +4927,7 @@ typedef struct
 //!
 //! \ingroup dispcontrol
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_Disp_InfoFrameControl(_In_ NvU32 displayId, __inout NV_INFOFRAME_DATA *pInfoframeData);
+NVAPI_INTERFACE NvAPI_Disp_InfoFrameControl(_In_ NvU32 displayId, _Inout_ NV_INFOFRAME_DATA *pInfoframeData);
 
 
 
@@ -5174,7 +5180,7 @@ typedef struct _NV_MONITOR_CAPABILITIES
 //! SUPPORTED OS:  Windows Vista and higher
 //!
 //! \ingroup dispcontrol
-NVAPI_INTERFACE NvAPI_DISP_GetMonitorCapabilities(_In_ NvU32 displayId, __inout NV_MONITOR_CAPABILITIES *pMonitorCapabilities);
+NVAPI_INTERFACE NvAPI_DISP_GetMonitorCapabilities(_In_ NvU32 displayId, _Inout_ NV_MONITOR_CAPABILITIES *pMonitorCapabilities);
 
 //! \ingroup dispcontrol
 typedef struct _NV_MONITOR_COLOR_DATA
@@ -5230,7 +5236,7 @@ typedef NV_MONITOR_COLOR_CAPS_V1 NV_MONITOR_COLOR_CAPS;
 //! \ingroup dispcontrol
 //!
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DISP_GetMonitorColorCapabilities(_In_ NvU32 displayId, __inout_ecount_part_opt(*pColorCapsCount, *pColorCapsCount) NV_MONITOR_COLOR_CAPS *pMonitorColorCapabilities, __inout NvU32 *pColorCapsCount);
+NVAPI_INTERFACE NvAPI_DISP_GetMonitorColorCapabilities(_In_ NvU32 displayId, __inout_ecount_part_opt(*pColorCapsCount, *pColorCapsCount) NV_MONITOR_COLOR_CAPS *pMonitorColorCapabilities, _Inout_ NvU32 *pColorCapsCount);
 
 //! \ingroup dispcontrol
 //! Used in NvAPI_DISP_EnumCustomDisplay() and NvAPI_DISP_TryCustomDisplay().
@@ -5279,7 +5285,7 @@ typedef struct
 //!
 //! \ingroup dispcontrol
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DISP_EnumCustomDisplay( _In_ NvU32 displayId, _In_ NvU32 index, __inout NV_CUSTOM_DISPLAY *pCustDisp);
+NVAPI_INTERFACE NvAPI_DISP_EnumCustomDisplay( _In_ NvU32 displayId, _In_ NvU32 index, _Inout_ NV_CUSTOM_DISPLAY *pCustDisp);
 
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTION NAME:   NvAPI_DISP_TryCustomDisplay
@@ -5530,7 +5536,7 @@ NVAPI_INTERFACE NvAPI_DISP_GetDisplayIdByDisplayName(const char *displayName, Nv
 //!                                       
 //! \ingroup dispcontrol
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_DISP_GetDisplayConfig(__inout NvU32 *pathInfoCount, __out_ecount_full_opt(*pathInfoCount) NV_DISPLAYCONFIG_PATH_INFO *pathInfo);
+NVAPI_INTERFACE NvAPI_DISP_GetDisplayConfig(_Inout_ NvU32 *pathInfoCount, __out_ecount_full_opt(*pathInfoCount) NV_DISPLAYCONFIG_PATH_INFO *pathInfo);
 
 
 
@@ -6129,7 +6135,7 @@ typedef struct _NV_GSYNC_CAPABILITIES
 //!
 //! \ingroup gsyncapi
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GSync_QueryCapabilities(_In_ NvGSyncDeviceHandle hNvGSyncDevice, __inout NV_GSYNC_CAPABILITIES *pNvGSyncCapabilities);
+NVAPI_INTERFACE NvAPI_GSync_QueryCapabilities(_In_ NvGSyncDeviceHandle hNvGSyncDevice, _Inout_ NV_GSYNC_CAPABILITIES *pNvGSyncCapabilities);
 
 
 
@@ -6321,7 +6327,7 @@ typedef struct _NV_GSYNC_CONTROL_PARAMS
 //!
 //! \ingroup gsyncapi
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GSync_GetControlParameters(_In_ NvGSyncDeviceHandle hNvGSyncDevice, __inout NV_GSYNC_CONTROL_PARAMS *pGsyncControls);
+NVAPI_INTERFACE NvAPI_GSync_GetControlParameters(_In_ NvGSyncDeviceHandle hNvGSyncDevice, _Inout_ NV_GSYNC_CONTROL_PARAMS *pGsyncControls);
 
 
 
@@ -6347,7 +6353,7 @@ NVAPI_INTERFACE NvAPI_GSync_GetControlParameters(_In_ NvGSyncDeviceHandle hNvGSy
 //!
 //! \ingroup gsyncapi
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GSync_SetControlParameters(_In_ NvGSyncDeviceHandle hNvGSyncDevice, __inout NV_GSYNC_CONTROL_PARAMS *pGsyncControls);
+NVAPI_INTERFACE NvAPI_GSync_SetControlParameters(_In_ NvGSyncDeviceHandle hNvGSyncDevice, _Inout_ NV_GSYNC_CONTROL_PARAMS *pGsyncControls);
 
 
 
@@ -6381,7 +6387,7 @@ typedef enum _NVAPI_GSYNC_DELAY_TYPE
 //!
 //! \ingroup gsyncapi
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GSync_AdjustSyncDelay(_In_ NvGSyncDeviceHandle hNvGSyncDevice, _In_ NVAPI_GSYNC_DELAY_TYPE delayType, __inout NV_GSYNC_DELAY *pGsyncDelay, __out_opt NvU32* syncSteps);
+NVAPI_INTERFACE NvAPI_GSync_AdjustSyncDelay(_In_ NvGSyncDeviceHandle hNvGSyncDevice, _In_ NVAPI_GSYNC_DELAY_TYPE delayType, _Inout_ NV_GSYNC_DELAY *pGsyncDelay, _Out_opt_ NvU32* syncSteps);
 
 
 
@@ -6420,7 +6426,7 @@ typedef struct _NV_GSYNC_STATUS
 //!
 //! \ingroup gsyncapi
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GSync_GetSyncStatus(_In_ NvGSyncDeviceHandle hNvGSyncDevice, _In_ NvPhysicalGpuHandle hPhysicalGpu, __inout NV_GSYNC_STATUS *status);
+NVAPI_INTERFACE NvAPI_GSync_GetSyncStatus(_In_ NvGSyncDeviceHandle hNvGSyncDevice, _In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NV_GSYNC_STATUS *status);
 
 
 //! \ingroup gsyncapi
@@ -7789,7 +7795,7 @@ typedef NVVIOPCIINFO_V1                                         NVVIOPCIINFO;
 //
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_VIO_GetPCIInfo(_In_ NvVioHandle hVioHandle, 
-                                            __inout NVVIOPCIINFO* pVioPCIInfo);
+                                            _Inout_ NVVIOPCIINFO* pVioPCIInfo);
 
 ////////////////////////////////////////////////////////////////////////////////
 //!   Function:    NvAPI_VIO_IsRunning
@@ -8091,9 +8097,9 @@ NVAPI_INTERFACE NvAPI_Stereo_DeleteConfigurationProfileRegistryKey(NV_STEREO_REG
 //! \param [in]     valueRegistryID      ID of the value that is being set. It should be one of the symbolic constants defined in
 //!                                      ::NV_STEREO_REGISTRY_PROFILE_TYPE. Any other value will cause function to do nothing
 //!                                      and return ::NVAPI_STEREO_REGISTRY_VALUE_NOT_SUPPORTED.
-//! \param [in]     pValue               Address of the value that is being set. It should be either address of a DWORD or of a float,
+//! \param [in]     pValue               Address of the value that is being set. It should be either address of a ULONG or of a float,
 //!                                      dependent on the type of the stereo parameter whose value is being set. The API will then cast that
-//!                                      address to DWORD* and write whatever is in those 4 bytes as a DWORD to the registry.
+//!                                      address to ULONG* and write whatever is in those 4 bytes as a ULONG to the registry.
 //!
 //! \retval ::NVAPI_OK                                           Value is written to registry.
 //! \retval ::NVAPI_STEREO_REGISTRY_PROFILE_TYPE_NOT_SUPPORTED   This profile type is not supported.
@@ -8290,16 +8296,16 @@ typedef struct _NVDRS_SETTING_VALUES
      NvU32                      version;                //!< Structure Version
      NvU32                      numSettingValues;       //!< Total number of values available in a setting.
      NVDRS_SETTING_TYPE         settingType;            //!< Type of setting value.  
-     union                                              //!< Setting can hold either DWORD or Binary value or string. Not mixed types.
+     union                                              //!< Setting can hold either ULONG or Binary value or string. Not mixed types.
      {
-         NvU32                      u32DefaultValue;    //!< Accessing default DWORD value of this setting.
+         NvU32                      u32DefaultValue;    //!< Accessing default ULONG value of this setting.
          NVDRS_BINARY_SETTING       binaryDefaultValue; //!< Accessing default Binary value of this setting.
                                                         //!< Must be allocated by caller with valueLength specifying buffer size, or only valueLength will be filled in.
          NvAPI_UnicodeString        wszDefaultValue;    //!< Accessing default unicode string value of this setting.
      };
-     union                                                //!< Setting values can be of either DWORD, Binary values or String type,
+     union                                                //!< Setting values can be of either ULONG, Binary values or String type,
      {                                                    //!< NOT mixed types.
-         NvU32                      u32Value;           //!< All possible DWORD values for a setting
+         NvU32                      u32Value;           //!< All possible ULONG values for a setting
          NVDRS_BINARY_SETTING       binaryValue;        //!< All possible Binary values for a setting
          NvAPI_UnicodeString        wszValue;           //!< Accessing current unicode string value of this setting.
      }settingValues[NVAPI_SETTING_MAX_VALUES];
@@ -8318,17 +8324,17 @@ typedef struct _NVDRS_SETTING
      NvU32                      isCurrentPredefined;    //!< It is different than 0 if the currentValue is a predefined Value, 
                                                         //!< 0 if the currentValue is a user value. 
      NvU32                      isPredefinedValid;      //!< It is different than 0 if the PredefinedValue union contains a valid value. 
-     union                                              //!< Setting can hold either DWORD or Binary value or string. Not mixed types.
+     union                                              //!< Setting can hold either ULONG or Binary value or string. Not mixed types.
      {
-         NvU32                      u32PredefinedValue;    //!< Accessing default DWORD value of this setting.
+         NvU32                      u32PredefinedValue;    //!< Accessing default ULONG value of this setting.
          NVDRS_BINARY_SETTING       binaryPredefinedValue; //!< Accessing default Binary value of this setting.
                                                            //!< Must be allocated by caller with valueLength specifying buffer size, 
                                                            //!< or only valueLength will be filled in.
          NvAPI_UnicodeString        wszPredefinedValue;    //!< Accessing default unicode string value of this setting.
      };
-     union                                              //!< Setting can hold either DWORD or Binary value or string. Not mixed types.
+     union                                              //!< Setting can hold either ULONG or Binary value or string. Not mixed types.
      {
-         NvU32                      u32CurrentValue;    //!< Accessing current DWORD value of this setting.
+         NvU32                      u32CurrentValue;    //!< Accessing current ULONG value of this setting.
          NVDRS_BINARY_SETTING       binaryCurrentValue; //!< Accessing current Binary value of this setting.
                                                         //!< Must be allocated by caller with valueLength specifying buffer size, 
                                                         //!< or only valueLength will be filled in.
@@ -9165,8 +9171,10 @@ typedef struct _NV_CHIPSET_INFO_v1
 //! \retval  NVAPI_INCOMPATIBLE_STRUCT_VERSION   NV_CHIPSET_INFO version not compatible with driver.
 //! \ingroup sysgeneral
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_SYS_GetChipSetInfo(NV_CHIPSET_INFO *pChipSetInfo);
+//NVAPI_INTERFACE NvAPI_SYS_GetChipSetInfo(NV_CHIPSET_INFO *pChipSetInfo);
 
+typedef NvAPI_Status (__cdecl *_NvAPI_SYS_GetChipSetInfo)(NV_CHIPSET_INFO* pChipSetInfo);
+_NvAPI_SYS_GetChipSetInfo NvAPI_SYS_GetChipSetInfo;
 
 //! \ingroup sysgeneral
 //! Lid and dock information - used in NvAPI_GetLidDockInfo()

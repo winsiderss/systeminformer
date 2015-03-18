@@ -39,6 +39,7 @@ ULONG GpuCurrentBoardTemp = 0;
 FLOAT GpuCurrentCoreClock = 0.0f;
 FLOAT GpuCurrentMemoryClock = 0.0f;
 FLOAT GpuCurrentShaderClock = 0.0f;
+//NVAPI_GPU_PERF_DECREASE GpuPerfDecreaseReason = NV_GPU_PERF_DECREASE_NONE;
 
 static VOID NvGpuEnumPhysicalHandles(VOID)
 {
@@ -116,6 +117,12 @@ BOOLEAN InitializeNvApi(VOID)
     NvAPI_GPU_GetTachReading = (_NvAPI_GPU_GetTachReading)NvAPI_QueryInterface(0x5F608315);
     NvAPI_GPU_GetAllClockFrequencies = (_NvAPI_GPU_GetAllClockFrequencies)NvAPI_QueryInterface(0xDCB616C3);
 
+    //NvAPI_GPU_GetBoardInfo = (_NvAPI_GPU_GetBoardInfo)NvAPI_QueryInterface(0x22D54523);
+    //NvAPI_SYS_GetChipSetInfo = (_NvAPI_SYS_GetChipSetInfo)NvAPI_QueryInterface(0x53DABBCA);
+    //NvAPI_GPU_GetBusType = (_NvAPI_GPU_GetBusType)NvAPI_QueryInterface(0x1BB18724);
+    NvAPI_GPU_GetVbiosVersionString = (_NvAPI_GPU_GetVbiosVersionString)NvAPI_QueryInterface(0xA561FD7D);
+    NvAPI_GPU_GetIRQ = (_NvAPI_GPU_GetIRQ)NvAPI_QueryInterface(0xE4715417);
+
     if (NvAPI_Initialize() == NVAPI_OK)
     {
         NvGpuEnumPhysicalHandles();
@@ -162,6 +169,21 @@ PPH_STRING NvGpuQueryDriverVersion(VOID)
     return PhCreateString(L"N/A");
 }
 
+PPH_STRING NvGpuQueryVbiosVersionString(VOID)
+{
+    NvAPI_ShortString biosRevision = "";
+
+    if (NvApiInitialized)
+    {
+        if (NvAPI_GPU_GetVbiosVersionString(NvGpuPhysicalHandleList->Items[0], biosRevision) == NVAPI_OK)
+        {
+            return PhFormatString(L"Video BIOS version: %hs", biosRevision);
+        }
+    }
+
+    return PhCreateString(L"Video BIOS version: N/A");
+}
+
 PPH_STRING NvGpuQueryName(VOID)
 {
     NvAPI_ShortString nvNameAnsiString = "";
@@ -175,6 +197,21 @@ PPH_STRING NvGpuQueryName(VOID)
     }
 
     return PhCreateString(L"N/A");
+}
+
+PPH_STRING NvGpuQueryIRQ(VOID)
+{
+    NvU32 irq = 0;
+
+    if (NvApiInitialized)
+    {
+        if (NvAPI_GPU_GetIRQ(NvGpuPhysicalHandleList->Items[0], &irq) == NVAPI_OK)
+        {
+            return PhFormatString(L"IRQ: %u", irq);
+        }
+    }
+
+    return PhCreateString(L"IRQ: N/A");
 }
 
 PPH_STRING NvGpuQueryFanSpeed(VOID)
@@ -269,4 +306,8 @@ VOID NvGpuUpdateValues(VOID)
         }
     }
 
+    //if (NvAPI_GPU_GetPerfDecreaseInfo(NvGpuPhysicalHandleList->Items[0], &GpuPerfDecreaseReason) != NVAPI_OK)
+    //{
+    //    GpuPerfDecreaseReason = NV_GPU_PERF_DECREASE_REASON_UNKNOWN;
+    //}
 }
