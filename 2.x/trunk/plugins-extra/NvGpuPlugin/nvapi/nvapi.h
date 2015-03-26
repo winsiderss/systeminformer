@@ -1850,9 +1850,10 @@ _NvAPI_GPU_GetFullName NvAPI_GPU_GetFullName;
 //! \retval  NVAPI_EXPECTED_PHYSICAL_GPU_HANDLE  hPhysicalGpu was not a physical GPU handle
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pDeviceId,NvU32 *pSubSystemId,NvU32 *pRevisionId,NvU32 *pExtDeviceId);
+//NVAPI_INTERFACE NvAPI_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle hPhysicalGpu,NvU32 *pDeviceId,NvU32 *pSubSystemId,NvU32 *pRevisionId,NvU32 *pExtDeviceId);
     
-
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetPCIIdentifiers)(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pDeviceId, NvU32* pSubSystemId, NvU32* pRevisionId, NvU32* pExtDeviceId);
+_NvAPI_GPU_GetPCIIdentifiers NvAPI_GPU_GetPCIIdentifiers;
 
 
 //! \ingroup gpu
@@ -1886,9 +1887,10 @@ typedef enum _NV_GPU_TYPE
 //!
 //!  \ingroup gpu 
 ///////////////////////////////////////////////////////////////////////////////     
-NVAPI_INTERFACE NvAPI_GPU_GetGPUType(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NV_GPU_TYPE *pGpuType);
+//NVAPI_INTERFACE NvAPI_GPU_GetGPUType(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NV_GPU_TYPE *pGpuType);
 
-
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetGPUType)(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NV_GPU_TYPE *pGpuType);
+_NvAPI_GPU_GetGPUType NvAPI_GPU_GetGPUType;
 
 
 //! \ingroup gpu
@@ -1947,7 +1949,10 @@ _NvAPI_GPU_GetBusType NvAPI_GPU_GetBusType;
 //!
 //!  \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetBusId(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusId);
+//NVAPI_INTERFACE NvAPI_GPU_GetBusId(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusId);
+
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetBusId)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusId);
+_NvAPI_GPU_GetBusId NvAPI_GPU_GetBusId;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1969,9 +1974,10 @@ NVAPI_INTERFACE NvAPI_GPU_GetBusId(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBus
 //!
 //!  \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
-NVAPI_INTERFACE NvAPI_GPU_GetBusSlotId(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusSlotId);
+//NVAPI_INTERFACE NvAPI_GPU_GetBusSlotId(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusSlotId);
 
-
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetBusSlotId)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusSlotId);
+_NvAPI_GPU_GetBusSlotId NvAPI_GPU_GetBusSlotId;
 
 ///////////////////////////////////////////////////////////////////////////////
 //

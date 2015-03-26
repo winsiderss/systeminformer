@@ -16,6 +16,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
+#pragma code_page(1252)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -101,7 +102,7 @@ BEGIN
     LTEXT           "Bus Interface:",IDC_BUS_L,74,18,47,8
 END
 
-IDD_GPU_PANEL DIALOGEX 0, 0, 246, 47
+IDD_GPU_PANEL DIALOGEX 0, 0, 372, 47
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -118,6 +119,10 @@ BEGIN
     GROUPBOX        "Temperature",IDC_STATIC,122,22,124,21
     LTEXT           "Core",IDC_STATIC,130,32,16,8
     RTEXT           "Static",IDC_TEMP_VALUE,158,32,78,8,SS_ENDELLIPSIS
+    GROUPBOX        "Voltage",IDC_STATIC,248,0,124,22
+    LTEXT           "Core",IDC_STATIC,256,10,16,8
+    RTEXT           "Static",IDC_VOLTAGE,284,10,78,8,SS_ENDELLIPSIS
+    PUSHBUTTON      "Details",IDC_DETAILS,249,27,50,14
 END
 
 
@@ -142,3 +147,5 @@ END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
+
+

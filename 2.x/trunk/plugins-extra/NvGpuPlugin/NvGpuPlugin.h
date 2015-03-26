@@ -22,7 +22,7 @@
 
 #include "main.h"
 
-#pragma pack(push, 8)
+#pragma pack(push, 8) // Make sure we have consistent structure packings
 
 // rev
 #define NVAPI_MAX_USAGES_PER_GPU    33
@@ -31,15 +31,33 @@
 #define NVAPI_MIN_COOLER_LEVEL      0
 #define NVAPI_MAX_COOLER_LEVEL      100
 #define NVAPI_MAX_COOLER_LEVELS     24
+#define NVAPI_MAX_PROCESSES         128
 
 // rev
-typedef struct _NV_USAGES_INFO_V
-{
-    NvU32 Version; // structure version
-    NvU32 Values[NVAPI_MAX_USAGES_PER_GPU];
-} NV_USAGES_INFO_V1, NV_USAGES_INFO, *PNV_USAGES_INFO_V1;
+typedef PVOID (__cdecl *_NvAPI_QueryInterface)(NvU32 FunctionOffset);
+_NvAPI_QueryInterface NvAPI_QueryInterface;
 
-#define NV_USAGES_INFO_VER  MAKE_NVAPI_VERSION(NV_USAGES_INFO, 1)
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetShaderPipeCount)(_In_ NvPhysicalGpuHandle hPhysicalGPU, NvU32* pShaderPipeCount);
+_NvAPI_GPU_GetShaderPipeCount NvAPI_GPU_GetShaderPipeCount;
+
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetShaderSubPipeCount)(_In_ NvPhysicalGpuHandle hPhysicalGPU, NvU32* pShaderSubPipeCount);
+_NvAPI_GPU_GetShaderSubPipeCount NvAPI_GPU_GetShaderSubPipeCount;
+
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetRamType)(_In_ NvPhysicalGpuHandle hPhysicalGPU, NvU32* pRamType);
+_NvAPI_GPU_GetRamType NvAPI_GPU_GetRamType;
+
+// rev
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetFBWidthAndLocation)(_In_ NvPhysicalGpuHandle hPhysicalGPU, NvU32* pWidth, NvU32* pLocation);
+_NvAPI_GPU_GetFBWidthAndLocation NvAPI_GPU_GetFBWidthAndLocation;
+
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GetDisplayDriverMemoryInfo)(_In_ NvDisplayHandle NvDispHandle, _Inout_ NV_DISPLAY_DRIVER_MEMORY_INFO* pMemoryInfo);
+_NvAPI_GetDisplayDriverMemoryInfo NvAPI_GetDisplayDriverMemoryInfo;
+
+
 
 // rev
 typedef enum _NV_COOLER_TYPE
@@ -144,7 +162,7 @@ typedef struct _NV_GPU_COOLER_POLICY_TABLE
     } policyCoolerLevel[NVAPI_MAX_COOLER_LEVELS];
 } NV_GPU_COOLER_POLICY_TABLE;
 
-#define NV_GPU_COOLER_POLICY_TABLE_VER MAKE_NVAPI_VERSION(NV_GPU_COOLER_POLICY_TABLE, 1)
+#define NV_GPU_COOLER_POLICY_TABLE_VER  MAKE_NVAPI_VERSION(NV_GPU_COOLER_POLICY_TABLE, 1)
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -160,7 +178,7 @@ typedef struct _NV_GPU_COOLER_POLICY_TABLE
 //                  pCoolerInfo(OUT) - Array of cooler settings.
 //
 ///////////////////////////////////////////////////////////////////////////////
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetCoolerSettings)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS* pCoolerInfo);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetCoolerSettings)(_In_ NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS* pCoolerInfo);
 _NvAPI_GPU_GetCoolerSettings NvAPI_GPU_GetCoolerSettings;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -180,7 +198,7 @@ _NvAPI_GPU_GetCoolerSettings NvAPI_GPU_GetCoolerSettings;
 //                  pCoolerLevels(IN) - Updated cooler level and cooler policy.
 //
 ///////////////////////////////////////////////////////////////////////////////
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_SetCoolerLevels)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_SETCOOLER_LEVEL *pCoolerLevels);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_SetCoolerLevels)(_In_ NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_SETCOOLER_LEVEL *pCoolerLevels);
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -193,7 +211,7 @@ typedef NvAPI_Status (__cdecl *_NvAPI_GPU_SetCoolerLevels)(NvPhysicalGpuHandle h
 //                  CoolerCount - Number of coolers to restore.
 //
 ///////////////////////////////////////////////////////////////////////////////
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_RestoreCoolerSettings)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pCoolerIndex, NvU32 coolerCount);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_RestoreCoolerSettings)(_In_ NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pCoolerIndex, NvU32 coolerCount);
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -207,7 +225,7 @@ typedef NvAPI_Status (__cdecl *_NvAPI_GPU_RestoreCoolerSettings)(NvPhysicalGpuHa
 //                  count(OUT) - Count of the number of valid levels for the selected policy.
 //
 ///////////////////////////////////////////////////////////////////////////////
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetCoolerPolicyTable)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_POLICY_TABLE *pCoolerTable, NvU32 *count);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetCoolerPolicyTable)(_In_ NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_POLICY_TABLE *pCoolerTable, NvU32 *count);
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -221,7 +239,7 @@ typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetCoolerPolicyTable)(NvPhysicalGpuHan
 //                  count(IN) - Number of valid levels in the policy table.
 //
 ///////////////////////////////////////////////////////////////////////////////
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_SetCoolerPolicyTable)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_POLICY_TABLE *pCoolerTable, NvU32 count);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_SetCoolerPolicyTable)(_In_ NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_POLICY_TABLE *pCoolerTable, NvU32 count);
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -236,30 +254,177 @@ typedef NvAPI_Status (__cdecl *_NvAPI_GPU_SetCoolerPolicyTable)(NvPhysicalGpuHan
 //                  policy - restore for the selected policy
 //
 ///////////////////////////////////////////////////////////////////////////////
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_RestoreCoolerPolicyTable)(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pCoolerIndex, NvU32 coolerCount, NV_COOLER_POLICY policy);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_RestoreCoolerPolicyTable)(_In_ NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pCoolerIndex, NvU32 coolerCount, NV_COOLER_POLICY policy);
 
-// NOTE: This structure is incorrect and has many missing fields.
-typedef struct _NV_CLOCKS_INFO_V2
+
+
+// rev - NvAPI_GPU_GetUsages
+typedef struct _NV_USAGES_INFO
 {
-    NvU32 Version;
-    NvU32 Values[NVAPI_MAX_CLOCKS_PER_GPU];
-} NV_CLOCKS_INFO_V2, *PNV_CLOCKS_INFO_V2;
+    NvU32 version;                              //!< Structure version
+    NvU32 usages[NVAPI_MAX_USAGES_PER_GPU];
+} NV_USAGES_INFO;
 
-typedef NV_CLOCKS_INFO_V2 NV_CLOCKS_INFO;
-
-// NOTE: This is the wrong version but required due to the incorrect structure.
-#define NV_CLOCKS_INFO_VER MAKE_NVAPI_VERSION(NV_CLOCKS_INFO, 2)
+#define NV_USAGES_INFO_VER  MAKE_NVAPI_VERSION(NV_USAGES_INFO, 1)
 
 // rev
-typedef PVOID (__cdecl *_NvAPI_QueryInterface)(NvU32 FunctionOffset);
-_NvAPI_QueryInterface NvAPI_QueryInterface;
-
-// rev
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetUsages)(NvPhysicalGpuHandle Handle, PNV_USAGES_INFO_V1);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetUsages)(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NV_USAGES_INFO* pUsagesInfo);
 _NvAPI_GPU_GetUsages NvAPI_GPU_GetUsages;
 
+
+
+// rev - NvAPI_GPU_GetAllClocks
+typedef struct _NV_CLOCKS_INFO
+{
+    NvU32 version;                              //!< Structure version
+    NvU32 clocks[NVAPI_MAX_CLOCKS_PER_GPU];
+} NV_CLOCKS_INFO;
+
+#define NV_CLOCKS_INFO_VER  MAKE_NVAPI_VERSION(NV_CLOCKS_INFO, 2)
+
 // rev
-typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetAllClocks)(NvPhysicalGpuHandle Handle, PNV_CLOCKS_INFO_V2);
+typedef NvAPI_Status (__cdecl *_NvAPI_GPU_GetAllClocks)(_In_ NvPhysicalGpuHandle hPhysicalGpu, _Inout_ NV_CLOCKS_INFO* pClocksInfo);
 _NvAPI_GPU_GetAllClocks NvAPI_GPU_GetAllClocks;
+
+
+
+// rev - NvAPI_GPU_GetVoltageDomainsStatus
+typedef struct _NV_VOLTAGE_DOMAINS
+{
+    NvU32                                   version;        //!< Structure version
+    NvU32                                   flags;          //!< Reserved for future use. Must be set to 0
+    NvU32                                   max;
+    struct
+    {
+        NV_GPU_PERF_VOLTAGE_INFO_DOMAIN_ID  domainId;       //!< ID of the voltage domain
+        NvU32                               mvolt;          //!< Voltage in mV  
+    } domain[NVAPI_MAX_GPU_PERF_VOLTAGES];
+} NV_VOLTAGE_DOMAINS;
+
+#define NV_VOLTAGE_DOMAIN_INFO_VER  MAKE_NVAPI_VERSION(NV_VOLTAGE_DOMAINS, 1)
+
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetVoltageDomainsStatus)(_In_ NvPhysicalGpuHandle hPhysicalGPU, _Inout_ NV_VOLTAGE_DOMAINS* pVoltageDomainsStatus);
+_NvAPI_GPU_GetVoltageDomainsStatus NvAPI_GPU_GetVoltageDomainsStatus;
+
+
+
+// rev - NvAPI_GPU_GetVoltages
+typedef struct _NV_VOLTAGES_INFO
+{
+    NV_GPU_PERF_VOLTAGE_INFO_DOMAIN_ID      domainId;       //!< ID of the voltage domain
+    NvU32                                   unknown1;
+    NvU32                                   max;
+
+    struct
+    {
+        NvU32                               unknown2;
+        NvU32                               mvolt;          //!< Voltage in mV  
+    } info[128];
+} NV_VOLTAGES_INFO;
+
+// rev
+typedef struct _NV_VOLTAGES
+{
+    NvU32                                   version;        //!< Structure version
+    NvU32                                   flags;          //!< Reserved for future use. Must be set to 0
+    NvU32                                   max;
+    NV_VOLTAGES_INFO voltages[NVAPI_MAX_GPU_PERF_VOLTAGES];
+} NV_VOLTAGES;
+
+#define NV_VOLTAGES_INFO_VER  MAKE_NVAPI_VERSION(NV_VOLTAGES, 1)
+
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetVoltages)(_In_ NvPhysicalGpuHandle hPhysicalGPU, _Inout_ NV_VOLTAGES* pPerfVoltages);
+_NvAPI_GPU_GetVoltages NvAPI_GPU_GetVoltages;
+
+
+
+// rev - NvAPI_GPU_GetPerfClocks
+typedef struct _NV_PERF_CLOCKS_UNKNOWN_2
+{
+    NvU32   unknown1;
+    NvU32   unknown2;
+    NvU32   unknown3;
+    NvU32   unknown4;
+    NvU32   unknown5;
+    NvU32   unknown6;
+    NvU32   unknown7;
+} NV_PERF_CLOCKS_UNKNOWN_2;
+
+// rev
+typedef struct _NV_PERF_CLOCKS_UNKNOWN_1
+{
+    NvU32                       unknown1;
+    NvU32                       unknown2;
+    NV_PERF_CLOCKS_UNKNOWN_2    unknown3[32];
+} NV_PERF_CLOCKS_UNKNOWN_1;
+
+// rev
+typedef struct _NV_PERF_CLOCKS
+{
+    NvU32                           version;        //!< Structure version
+    NvU32                           unknown1;
+    NvU32                           unknown2;
+    NvU32                           unknown3;
+    NvU32                           unknown4;
+    NV_PERF_CLOCKS_UNKNOWN_1        unknown5[12];
+} NV_PERF_CLOCKS;
+
+#define NV_PERF_CLOCKS_INFO_VER   MAKE_NVAPI_VERSION(NV_PERF_CLOCKS, 1)
+
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetPerfClocks)(_In_ NvPhysicalGpuHandle hPhysicalGPU, INT i, _Inout_ NV_PERF_CLOCKS* pPerfClocks);
+_NvAPI_GPU_GetPerfClocks NvAPI_GPU_GetPerfClocks;
+
+
+
+// rev - NvAPI_GPU_QueryActiveApps
+typedef struct _NV_ACTIVE_APP
+{
+    NvU32                                 version;        //!< Structure version
+    NvU32                                 processPID;
+    NvAPI_LongString                      processName;
+} NV_ACTIVE_APP;
+
+#define NV_ACTIVE_APPS_INFO_VER	  MAKE_NVAPI_VERSION(NV_ACTIVE_APP, 2)
+
+// rev
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_QueryActiveApps)(_In_ NvPhysicalGpuHandle hPhysicalGPU, _Inout_ NV_ACTIVE_APP pActiveApps[NVAPI_MAX_PROCESSES], _Inout_ NvU32* pTotal);
+_NvAPI_GPU_QueryActiveApps NvAPI_GPU_QueryActiveApps;
+
+
+
+// rev
+typedef enum _PowerSourceInfo
+{
+    PowerSourceInfo_Unknown1 = 1,
+    PowerSourceInfo_Unknown2,
+    PowerSourceInfo_Unknown3 = 8738
+} PowerSourceInfo;
+
+// rev
+typedef enum _SelectSource
+{
+    SelectSource_Unknown1 = 1,
+    SelectSource_Unknown2,
+    SelectSource_Unknown3
+} SelectSource;
+
+// rev
+typedef enum _LevelInfo
+{
+    LevelInfo_Unknown1 = 1,
+    LevelInfo_Unknown2,
+    LevelInfo_Unknown3,
+    LevelInfo_Unknown4,
+    LevelInfo_Unknown5,
+    LevelInfo_Unknown6,
+    LevelInfo_Unknown7
+} LevelInfo;
+
+typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetPowerMizerInfo)(_In_ NvPhysicalGpuHandle hPhysicalGPU, PowerSourceInfo powerSourceInfo, SelectSource select, LevelInfo* pLevelInfo);
+_NvAPI_GPU_GetPowerMizerInfo NvAPI_GPU_GetPowerMizerInfo;
+
 
 #pragma pack(pop)
