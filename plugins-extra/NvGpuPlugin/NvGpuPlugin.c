@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Process Hacker Extra Plugins -
  *   Nvidia GPU Plugin
  *
@@ -36,9 +36,10 @@ ULONG GpuCurrentMemUsage = 0;
 ULONG GpuCurrentMemSharedUsage = 0;
 ULONG GpuCurrentCoreTemp = 0;
 ULONG GpuCurrentBoardTemp = 0;
-FLOAT GpuCurrentCoreClock = 0.0f;
-FLOAT GpuCurrentMemoryClock = 0.0f;
-FLOAT GpuCurrentShaderClock = 0.0f;
+ULONG GpuCurrentCoreClock = 0;
+ULONG GpuCurrentMemoryClock = 0;
+ULONG GpuCurrentShaderClock = 0;
+ULONG GpuCurrentVoltage = 0;
 //NVAPI_GPU_PERF_DECREASE GpuPerfDecreaseReason = NV_GPU_PERF_DECREASE_NONE;
 
 static VOID NvGpuEnumPhysicalHandles(VOID)
@@ -128,9 +129,18 @@ BOOLEAN InitializeNvApi(VOID)
         return FALSE;
     if (!(NvAPI_GPU_GetAllClocks = (_NvAPI_GPU_GetAllClocks)NvAPI_QueryInterface(0x1BD69F49)))
         return FALSE;
-        
-    //NvAPI_GPU_GetVoltages
-    //NvAPI_GPU_QueryActiveApps
+    if (!(NvAPI_GPU_GetVoltageDomainsStatus = (_NvAPI_GPU_GetVoltageDomainsStatus)NvAPI_QueryInterface(0xC16C7E2C)))
+        return FALSE;
+    
+    //NvAPI_GPU_GetPerfClocks = (_NvAPI_GPU_GetPerfClocks)NvAPI_QueryInterface(0x1EA54A3B);
+    //NvAPI_GPU_GetVoltages = (_NvAPI_GPU_GetVoltages)NvAPI_QueryInterface(0x7D656244);
+    //NvAPI_GPU_QueryActiveApps = (_NvAPI_GPU_QueryActiveApps)NvAPI_QueryInterface(0x65B1C5F5);
+
+    //NvAPI_GPU_GetShaderPipeCount = (_NvAPI_GPU_GetShaderPipeCount)NvAPI_QueryInterface(0x63E2F56F);
+    //NvAPI_GPU_GetShaderSubPipeCount = (_NvAPI_GPU_GetShaderSubPipeCount)NvAPI_QueryInterface(0x0BE17923);
+    //NvAPI_GPU_GetRamType = (_NvAPI_GPU_GetRamType)NvAPI_QueryInterface(0x57F7CAAC);
+
+    //NvAPI_GetDisplayDriverMemoryInfo = (_NvAPI_GetDisplayDriverMemoryInfo)NvAPI_QueryInterface(0x774AA982);
 
     //if (!(NvAPI_GetPhysicalGPUsFromDisplay = (_NvAPI_GetPhysicalGPUsFromDisplay)NvAPI_QueryInterface(0x34EF9506)))
     //    return FALSE;
@@ -255,7 +265,8 @@ VOID NvGpuUpdateValues(VOID)
     NV_DISPLAY_DRIVER_MEMORY_INFO memoryInfo = { NV_DISPLAY_DRIVER_MEMORY_INFO_VER };
     NV_GPU_THERMAL_SETTINGS thermalSettings = { NV_GPU_THERMAL_SETTINGS_VER };
     NV_GPU_CLOCK_FREQUENCIES clkFreqs  = { NV_GPU_CLOCK_FREQUENCIES_VER };
-    NV_CLOCKS_INFO_V2 clocksInfo = { NV_CLOCKS_INFO_VER };
+    NV_CLOCKS_INFO clocksInfo = { NV_CLOCKS_INFO_VER };
+    NV_VOLTAGE_DOMAINS voltageDomains = { NV_VOLTAGE_DOMAIN_INFO_VER };
 
     if (!NvApiInitialized)
         return;
@@ -274,9 +285,9 @@ VOID NvGpuUpdateValues(VOID)
 
     if (NvAPI_GPU_GetUsages(NvGpuPhysicalHandleList->Items[0], &usagesInfo) == NVAPI_OK)
     {
-        GpuCurrentGpuUsage = (FLOAT)usagesInfo.Values[2] / 100;
-        GpuCurrentCoreUsage = (FLOAT)usagesInfo.Values[6] / 100;
-        GpuCurrentBusUsage = (FLOAT)usagesInfo.Values[14] / 100;
+        GpuCurrentGpuUsage = (FLOAT)usagesInfo.usages[2] / 100;
+        GpuCurrentCoreUsage = (FLOAT)usagesInfo.usages[6] / 100;
+        GpuCurrentBusUsage = (FLOAT)usagesInfo.usages[14] / 100;
     }
 
     if (NvAPI_GPU_GetThermalSettings(NvGpuPhysicalHandleList->Items[0], NVAPI_THERMAL_TARGET_ALL, &thermalSettings) == NVAPI_OK)
@@ -287,34 +298,57 @@ VOID NvGpuUpdateValues(VOID)
 
     if (NvAPI_GPU_GetAllClockFrequencies(NvGpuPhysicalHandleList->Items[0], &clkFreqs) == NVAPI_OK)
     {
-        GpuCurrentCoreClock = (FLOAT)clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].frequency * 0.001f;
-        GpuCurrentMemoryClock = (FLOAT)clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency * 0.001f;
-        GpuCurrentShaderClock = (FLOAT)clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_PROCESSOR].frequency * 0.001f;
+        GpuCurrentCoreClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].frequency / 1000;
+        GpuCurrentMemoryClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency / 1000;
+        GpuCurrentShaderClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_PROCESSOR].frequency / 1000;
     }
 
     if (NvAPI_GPU_GetAllClocks(NvGpuPhysicalHandleList->Items[0], &clocksInfo) == NVAPI_OK)
     {
         if (GpuCurrentCoreClock == 0)
-            GpuCurrentCoreClock = (FLOAT)clocksInfo.Values[0] * 0.001f;
+            GpuCurrentCoreClock = clocksInfo.clocks[0] / 1000;
 
-        if (GpuCurrentMemoryClock == 0)       
-            GpuCurrentMemoryClock = (FLOAT)clocksInfo.Values[1] * 0.001f;
+        if (GpuCurrentMemoryClock == 0)
+            GpuCurrentMemoryClock = clocksInfo.clocks[1] / 1000;
 
         if (GpuCurrentShaderClock == 0)
-            GpuCurrentShaderClock = (FLOAT)clocksInfo.Values[2] * 0.001f;
+            GpuCurrentShaderClock = clocksInfo.clocks[2] / 1000;
 
-        if (clocksInfo.Values[30] != 0)
+        if (clocksInfo.clocks[30] != 0)
         {
             if (GpuCurrentCoreClock == 0)
-                GpuCurrentCoreClock = clocksInfo.Values[30] * 0.0005f;
+                GpuCurrentCoreClock = (ULONG)(clocksInfo.clocks[30] * 0.0005f);
 
             if (GpuCurrentShaderClock == 0)
-                GpuCurrentShaderClock = clocksInfo.Values[30] * 0.001f;
+                GpuCurrentShaderClock = (ULONG)(clocksInfo.clocks[30] * 0.001f);
         }
+    }
+
+    if (NvAPI_GPU_GetVoltageDomainsStatus(NvGpuPhysicalHandleList->Items[0], &voltageDomains) == NVAPI_OK)
+    {
+        GpuCurrentVoltage = voltageDomains.domain[0].mvolt / 1000;
+
+        //for (NvU32 i = 0; i < voltageDomains.max; i++)
+        //{
+        //    if (voltageDomains.domain[i].domainId == NVAPI_GPU_PERF_VOLTAGE_INFO_DOMAIN_CORE)
+        //    {
+        //        OutputDebugString(PhaFormatString(L"Voltage: [%u] %u\r\n", i, voltageDomains.domain[0].mvolt / 1000))->Buffer);
+        //    }
+        //}
     }
 
     //if (NvAPI_GPU_GetPerfDecreaseInfo(NvGpuPhysicalHandleList->Items[0], &GpuPerfDecreaseReason) != NVAPI_OK)
     //{
     //    GpuPerfDecreaseReason = NV_GPU_PERF_DECREASE_REASON_UNKNOWN;
     //}
+
+    //NvU32 totalApps = 0;
+    //NV_ACTIVE_APPS activeApps[NVAPI_MAX_PROCESSES] = { NV_ACTIVE_APPS_INFO_VER };
+    //NvAPI_GPU_QueryActiveApps(NvGpuPhysicalHandleList->Items[0], activeApps, &totalApps);
+
+    //NV_VOLTAGES voltages = { NV_VOLTAGES_INFO_VER };
+    //NvAPI_GPU_GetVoltages(NvGpuPhysicalHandleList->Items[0], &voltages);
+
+    //Nv120 clockInfo = { NV_PERF_CLOCKS_INFO_VER };
+    //NvAPI_GPU_GetPerfClocks(NvGpuPhysicalHandleList->Items[0], 0, &clockInfo);
 }
