@@ -44,9 +44,10 @@ extern ULONG GpuCurrentMemUsage;
 extern ULONG GpuCurrentMemSharedUsage;
 extern ULONG GpuCurrentCoreTemp;
 extern ULONG GpuCurrentBoardTemp;
-extern FLOAT GpuCurrentCoreClock;
-extern FLOAT GpuCurrentMemoryClock;
-extern FLOAT GpuCurrentShaderClock;
+extern ULONG GpuCurrentCoreClock;
+extern ULONG GpuCurrentMemoryClock;
+extern ULONG GpuCurrentShaderClock;
+extern ULONG GpuCurrentVoltage;
 
 BOOLEAN InitializeNvApi(VOID);
 BOOLEAN DestroyNvApi(VOID);
