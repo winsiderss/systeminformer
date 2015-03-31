@@ -58,7 +58,7 @@ static HBITMAP LoadImageFromResources(
     __try
     {
         // Create the ImagingFactory
-        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
             __leave;
 
         // Find the resource
@@ -86,7 +86,7 @@ static HBITMAP LoadImageFromResources(
         if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
             __leave;
 
-        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
+        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnDemand)))
             __leave;
 
         // Get the Frame count
@@ -101,14 +101,14 @@ static HBITMAP LoadImageFromResources(
         if (SUCCEEDED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
         {
             // Check if the image format is supported:
-            if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGR))
+            if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
             {
                 wicBitmapSource = (IWICBitmapSource*)wicFrame;
             }
             else
             {
                 // Convert the image to the correct format:
-                if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGR, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+                if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
                     __leave;
 
                 IWICBitmapFrameDecode_Release(wicFrame);
@@ -624,7 +624,9 @@ static NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     )
 {
-    BOOLEAN isSuccess = FALSE;
+    BOOLEAN downloadSuccess = FALSE;
+    BOOLEAN hashSuccess = FALSE;
+    BOOLEAN verifySuccess = FALSE;
     HANDLE tempFileHandle = NULL;
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
@@ -863,22 +865,14 @@ static NTSTATUS UpdateDownloadThread(
 
                 if (PhEqualString(hexString, context->Hash, TRUE))
                 {
-                    PostMessage(context->DialogHandle, PH_HASHSUCCESS, 0, 0);
-                }
-                else
-                {
-                    PostMessage(context->DialogHandle, PH_HASHFAILURE, 0, 0);
+                    hashSuccess = TRUE;
                 }
 
                 PhDereferenceObject(hexString);
             }
-            else
-            {
-                PostMessage(context->DialogHandle, PH_HASHFAILURE, 0, 0);
-            }
         }
 
-        isSuccess = TRUE;
+        downloadSuccess = TRUE;
     }
     __finally
     {
@@ -899,8 +893,23 @@ static NTSTATUS UpdateDownloadThread(
         PhSwapReference(&downloadUrlPath, NULL);
     }
 
-    if (!isSuccess) // Display error info
+    if (context->SetupFilePath && PhVerifyFile(context->SetupFilePath->Buffer, NULL) == VrTrusted)
+    {
+        verifySuccess = TRUE;
+    }
+
+    if (downloadSuccess & hashSuccess && verifySuccess)
+    {
+        PostMessage(context->DialogHandle, PH_HASHSUCCESS, 0, 0);
+    }
+    else if (downloadSuccess)
+    {
+        PostMessage(context->DialogHandle, PH_HASHFAILURE, verifySuccess, hashSuccess);
+    }
+    else
+    {
         PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+    }
 
     return STATUS_SUCCESS;
 }
@@ -1018,6 +1027,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // set window background color.
             return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
+        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
@@ -1104,17 +1114,6 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 break;
             }
             break;
-        }
-        break;
-    case PH_UPDATEISERRORED:
-        {
-            context->UpdaterState = PhUpdateDefault;
-
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
-            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");
-
-            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
-            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
     case PH_UPDATEAVAILABLE:
@@ -1224,13 +1223,30 @@ static INT_PTR CALLBACK UpdaterWndProc(
             if (WindowsVersion > WINDOWS_XP)
                 SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
 
-            SetDlgItemText(hwndDlg, IDC_STATUS, L"SHA1 Hash failed...");
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");
+
+            if ((BOOLEAN)wParam)
+                SetDlgItemText(hwndDlg, IDC_STATUS, L"Hash check failed.");
+            else if ((BOOLEAN)lParam)
+                SetDlgItemText(hwndDlg, IDC_STATUS, L"Signature check failed.");
 
             // Set button text for next action
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
             // Enable the Install button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
             // Hash failed, reset state to downloading so user can redownload the file.
+        }
+        break;
+    case PH_UPDATEISERRORED:
+        {
+            context->UpdaterState = PhUpdateDefault;
+
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");
+
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
     case WM_NOTIFY:
