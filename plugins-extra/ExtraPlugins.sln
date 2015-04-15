@@ -32,6 +32,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NvGpuPlugin", "NvGpuPlugin\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DbgViewPlugin", "DbgViewPlugin\DbgViewPlugin.vcxproj", "{AAD42A11-92A7-4918-A76A-862528185199}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UMDFHostPlugin", "UMDFHostPlugin\UMDFHostPlugin.vcxproj", "{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -140,6 +142,14 @@ Global
 		{AAD42A11-92A7-4918-A76A-862528185199}.Release|Win32.Build.0 = Release|Win32
 		{AAD42A11-92A7-4918-A76A-862528185199}.Release|x64.ActiveCfg = Release|x64
 		{AAD42A11-92A7-4918-A76A-862528185199}.Release|x64.Build.0 = Release|x64
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Debug|Win32.Build.0 = Debug|Win32
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Debug|x64.ActiveCfg = Debug|x64
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Debug|x64.Build.0 = Debug|x64
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Release|Win32.ActiveCfg = Release|Win32
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Release|Win32.Build.0 = Release|Win32
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Release|x64.ActiveCfg = Release|x64
+		{BAABD35D-CA68-4393-84FB-22C3ECFC52B6}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
