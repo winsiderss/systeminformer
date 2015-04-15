@@ -298,8 +298,13 @@ VOID NvGpuUpdateValues(VOID)
 
     if (NvAPI_GPU_GetAllClockFrequencies(NvGpuPhysicalHandleList->Items[0], &clkFreqs) == NVAPI_OK)
     {
+        //if (clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].bIsPresent)
         GpuCurrentCoreClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].frequency / 1000;
+
+        //if (clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].bIsPresent)
         GpuCurrentMemoryClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency / 1000;
+        
+        //if (clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_PROCESSOR].bIsPresent)
         GpuCurrentShaderClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_PROCESSOR].frequency / 1000;
     }
 
