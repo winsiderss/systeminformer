@@ -81,7 +81,7 @@ NTSTATUS NetworkTracertThreadStart(
             command = PhFormatString(
                 L"%s\\system32\\tracert.exe %s",
                 USER_SHARED_DATA->NtSystemRoot,
-                context->addressString
+                context->IpAddressString
                 );
         }
         else
@@ -90,7 +90,7 @@ NTSTATUS NetworkTracertThreadStart(
             command = PhFormatString(
                 L"%s\\system32\\tracert.exe -d %s",
                 USER_SHARED_DATA->NtSystemRoot,
-                context->addressString
+                context->IpAddressString
                 );
         }
 

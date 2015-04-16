@@ -111,11 +111,11 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
             if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
             {
-                RtlIpv4AddressToString(&context->IpAddress.InAddr, context->addressString);
+                RtlIpv4AddressToString(&context->IpAddress.InAddr, context->IpAddressString);
             }
             else
             {
-                RtlIpv6AddressToString(&context->IpAddress.In6Addr, context->addressString);
+                RtlIpv6AddressToString(&context->IpAddress.In6Addr, context->IpAddressString);
             }
 
             switch (context->Action)
@@ -125,7 +125,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     HANDLE dialogThread = INVALID_HANDLE_VALUE;
 
                     Static_SetText(context->WindowHandle,
-                        PhaFormatString(L"Tracing route to %s...", context->addressString)->Buffer
+                        PhaFormatString(L"Tracing route to %s...", context->IpAddressString)->Buffer
                         );
 
                     if (dialogThread = PhCreateThread(0, NetworkTracertThreadStart, (PVOID)context))
@@ -137,7 +137,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     HANDLE dialogThread = INVALID_HANDLE_VALUE;
 
                     Static_SetText(context->WindowHandle,
-                        PhaFormatString(L"Whois %s...", context->addressString)->Buffer
+                        PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer
                         );
 
                     ShowWindow(GetDlgItem(hwndDlg, IDC_MORE_INFO), SW_SHOW);
@@ -203,7 +203,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     {
                         PhShellExecute(
                             PhMainWndHandle,
-                            PhaConcatStrings2(L"http://wq.apnic.net/apnic-bin/whois.pl?searchtext=", context->addressString)->Buffer,
+                            PhaConcatStrings2(L"http://wq.apnic.net/apnic-bin/whois.pl?searchtext=", context->IpAddressString)->Buffer,
                             NULL
                             );
                     }
@@ -258,7 +258,6 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     PhDereferenceObject(windowText);
                     PhDeleteStringBuilder(&receivedString);
                     RtlFreeUnicodeString(&convertedString);
-                    return TRUE;
                 }
             }
         }
@@ -269,7 +268,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             UNICODE_STRING convertedString;
             PH_STRING_BUILDER receivedString;
 
-            if (wParam != 0)
+            if (lParam != 0)
             {
                 inputString.Buffer = (PCHAR)lParam;
                 inputString.Length = (USHORT)wParam;
@@ -312,8 +311,9 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
                     PhDeleteStringBuilder(&receivedString);
                     RtlFreeUnicodeString(&convertedString);
-                    return TRUE;
                 }
+
+                PhFree((PVOID)lParam);
             }
         }
         break;

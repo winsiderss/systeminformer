@@ -140,7 +140,7 @@ NTSTATUS NetworkWhoisThreadStart(
             __leave;
         }
 
-        if (!(whoisHttpGetString = PhFormatString(L"/rest/ip/%s", context->addressString)))
+        if (!(whoisHttpGetString = PhFormatString(L"/rest/ip/%s", context->IpAddressString)))
             __leave;
 
         if (!(requestHandle = WinHttpOpenRequest(
