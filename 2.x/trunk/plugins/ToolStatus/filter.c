@@ -34,7 +34,7 @@ static BOOLEAN WordMatchStringRef(
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, ' ', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
 
         if (part.Length != 0)
         {
@@ -60,7 +60,7 @@ static BOOLEAN WordMatchString(
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, ' ', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
 
         if (part.Length != 0)
         {
