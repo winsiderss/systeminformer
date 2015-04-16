@@ -102,7 +102,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     
     PPH_NETWORK_ITEM NetworkItem;
     PH_IP_ADDRESS IpAddress;
-    WCHAR addressString[65];
+    WCHAR IpAddressString[INET6_ADDRSTRLEN];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
 NTSTATUS PhNetworkPingDialogThreadStart(

@@ -242,10 +242,10 @@ static ULONG PhNetworkPingThreadStart(
                 __leave;
 
             // Set Local IPv4-ANY address.
-            icmpLocalAddr = in4addr_any.S_un.S_addr;
+            icmpLocalAddr = in4addr_any.s_addr;
 
             // Set Remote IPv4 address.
-            icmpRemoteAddr = context->IpAddress.InAddr.S_un.S_addr;
+            icmpRemoteAddr = context->IpAddress.InAddr.s_addr;
 
             // Allocate ICMPv4 message.
             icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
@@ -299,7 +299,7 @@ static ULONG PhNetworkPingThreadStart(
                     InterlockedIncrement(&context->PingLossCount);
                 }
 
-                if (icmpReplyStruct->Address != context->IpAddress.InAddr.S_un.S_addr)
+                if (icmpReplyStruct->Address != context->IpAddress.InAddr.s_addr)
                 {
                     InterlockedIncrement(&context->UnknownAddrCount);
                 }
@@ -483,15 +483,15 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             // Convert IP Address to string format.
             if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
             {
-                RtlIpv4AddressToString(&context->IpAddress.InAddr, context->addressString);
+                RtlIpv4AddressToString(&context->IpAddress.InAddr, context->IpAddressString);
             }
             else
             {
-                RtlIpv6AddressToString(&context->IpAddress.In6Addr, context->addressString);
+                RtlIpv6AddressToString(&context->IpAddress.In6Addr, context->IpAddressString);
             }
 
-            SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->addressString)->Buffer);
-            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with 32 bytes of data:", context->addressString)->Buffer);
+            SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->IpAddressString)->Buffer);
+            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with 32 bytes of data:", context->IpAddressString)->Buffer);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
