@@ -267,7 +267,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ UINT_PTR uIdSubclass,
-    _In_ DWORD_PTR dwRefData
+    _In_ ULONG_PTR dwRefData
     )
 {
     switch (uMsg)
@@ -753,14 +753,6 @@ static VOID NTAPI MainWindowShowingCallback(
      _In_opt_ PVOID Context
     )
 {
-    INITCOMMONCONTROLSEX icex;
-
-    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-    icex.dwICC = ICC_COOL_CLASSES | ICC_BAR_CLASSES;
-
-    InitCommonControlsEx(&icex);
-
-
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
     PhRegisterCallback(
         ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle),
