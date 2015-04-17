@@ -34,7 +34,7 @@
     <None Include="CHANGELOG.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="NetAdaptersPlugin.rc">
+    <ResourceCompile Include="NetAdapters.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

@@ -177,8 +177,8 @@ static VOID FindNetworkAdapters(
 
     ULONG flags = GAA_FLAG_SKIP_UNICAST | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-        flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    //if (WindowsVersion >= WINDOWS_VISTA)
+    //    flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
 
     __try
     {

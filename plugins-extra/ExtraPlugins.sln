@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HexPidPlugin", "HexPidPlugin\HexPidPlugin.vcxproj", "{50691784-4EB0-4B5E-B428-BD37E52F8D2E}"
 EndProject
@@ -25,8 +25,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		ExtraPlugins.props = ExtraPlugins.props
 	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetAdaptersPlugin", "NetAdaptersPlugin\NetAdaptersPlugin.vcxproj", "{5F0D72C4-8319-4B61-9E13-6084B680EB90}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NvGpuPlugin", "NvGpuPlugin\NvGpuPlugin.vcxproj", "{B509BF8F-6007-4173-B05E-5037B958C12F}"
 EndProject
@@ -118,14 +116,6 @@ Global
 		{495CAE45-1CAF-4FC1-9FCF-9B05A47D560E}.Release|Win32.Build.0 = Release|Win32
 		{495CAE45-1CAF-4FC1-9FCF-9B05A47D560E}.Release|x64.ActiveCfg = Release|x64
 		{495CAE45-1CAF-4FC1-9FCF-9B05A47D560E}.Release|x64.Build.0 = Release|x64
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|Win32.ActiveCfg = Debug|Win32
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|Win32.Build.0 = Debug|Win32
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|x64.ActiveCfg = Debug|x64
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|x64.Build.0 = Debug|x64
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|Win32.ActiveCfg = Release|Win32
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|Win32.Build.0 = Release|Win32
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|x64.ActiveCfg = Release|x64
-		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|x64.Build.0 = Release|x64
 		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|Win32.ActiveCfg = Debug|Win32
 		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|Win32.Build.0 = Debug|Win32
 		{B509BF8F-6007-4173-B05E-5037B958C12F}.Debug|x64.ActiveCfg = Debug|x64

@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
+VisualStudioVersion = 12.0.30723.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SbieSupport", "SbieSupport\SbieSupport.vcxproj", "{EEF1E81D-D286-422A-89E6-C6C8F3BE648A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedNotifications", "ExtendedNotifications\ExtendedNotifications.vcxproj", "{80E791B8-AC98-407E-8FF9-5154AF50E887}"
@@ -27,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Plugins.props = Plugins.props
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetAdapters", "NetAdapters\NetAdapters.vcxproj", "{5F0D72C4-8319-4B61-9E13-6084B680EB90}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -124,6 +128,14 @@ Global
 		{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}.Release|Win32.Build.0 = Release|Win32
 		{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}.Release|x64.ActiveCfg = Release|x64
 		{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}.Release|x64.Build.0 = Release|x64
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|Win32.Build.0 = Debug|Win32
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|x64.ActiveCfg = Debug|x64
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Debug|x64.Build.0 = Debug|x64
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|Win32.ActiveCfg = Release|Win32
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|Win32.Build.0 = Release|Win32
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|x64.ActiveCfg = Release|x64
+		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
