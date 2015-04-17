@@ -25,6 +25,30 @@
 
 #ifdef _M_X64
 
+ULONG KphpGetKernelRevisionNumber(
+    VOID
+    )
+{
+    ULONG result;
+    PPH_STRING kernelFileName;
+    PVOID versionInfo;
+    VS_FIXEDFILEINFO *rootBlock;
+    ULONG rootBlockLength;
+
+    result = 0;
+    kernelFileName = PhGetKernelFileName();
+    PhSwapReference2(&kernelFileName, PhGetFileName(kernelFileName));
+    versionInfo = PhGetFileVersionInfo(kernelFileName->Buffer);
+    PhDereferenceObject(kernelFileName);
+
+    if (versionInfo && VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+        result = rootBlock->dwFileVersionLS & 0xffff;
+
+    PhFree(versionInfo);
+
+    return result;
+}
+
 NTSTATUS KphInitializeDynamicPackage(
     _Out_ PKPH_DYN_PACKAGE Package
     )
@@ -115,13 +139,15 @@ NTSTATUS KphInitializeDynamicPackage(
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3 && buildNumber == 9600)
     {
+        ULONG revisionNumber = KphpGetKernelRevisionNumber();
+
         Package->BuildNumber = 9600;
         Package->ResultingNtVersion = PHNT_WINBLUE;
 
         Package->StructData.EgeGuid = 0x18;
         Package->StructData.EpObjectTable = 0x408;
         Package->StructData.EpRundownProtect = 0x2d8;
-        Package->StructData.EreGuidEntry = 0x10;
+        Package->StructData.EreGuidEntry = revisionNumber >= 17736 ? 0x20 : 0x10;
         Package->StructData.HtHandleContentionEvent = 0x30;
         Package->StructData.OtName = 0x10;
         Package->StructData.OtIndex = 0x28;

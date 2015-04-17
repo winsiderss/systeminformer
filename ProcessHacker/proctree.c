@@ -297,6 +297,16 @@ FORCEINLINE ULONG PhHashProcessNode(
     return (ULONG)Value->ProcessId / 4;
 }
 
+FORCEINLINE BOOLEAN PhpValidateParentCreateTime(
+    _In_ PPH_PROCESS_NODE Child,
+    _In_ PPH_PROCESS_NODE Parent
+    )
+{
+    return
+        PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
+        Parent->ProcessItem->CreateTime.QuadPart <= Child->ProcessItem->CreateTime.QuadPart;
+}
+
 PPH_PROCESS_NODE PhAddProcessNode(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG RunId
@@ -335,7 +345,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
     // Find this process' parent and add the process to it if we found it.
     if (
         (parentNode = PhFindProcessNode(ProcessItem->ParentProcessId)) &&
-        parentNode->ProcessItem->CreateTime.QuadPart <= ProcessItem->CreateTime.QuadPart
+        PhpValidateParentCreateTime(processNode, parentNode)
         )
     {
         PhAddItemList(parentNode->Children, processNode);
@@ -357,7 +367,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
         if (
             node != processNode && // for cases where the parent PID = PID (e.g. System Idle Process)
             node->ProcessItem->ParentProcessId == ProcessItem->ProcessId &&
-            ProcessItem->CreateTime.QuadPart <= node->ProcessItem->CreateTime.QuadPart
+            PhpValidateParentCreateTime(node, processNode)
             )
         {
             node->Parent = processNode;
