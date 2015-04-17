@@ -574,7 +574,6 @@ static NTSTATUS KphpX86DataInitialization(
         KphDynEgeGuid = 0xc;
         KphDynEpObjectTable = 0x150;
         KphDynEpRundownProtect = 0xb0;
-        KphDynEreGuidEntry = 0x8;
         KphDynOtName = 0x8;
         KphDynOtIndex = 0x14;
 
