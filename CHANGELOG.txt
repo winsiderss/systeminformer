@@ -5,7 +5,7 @@ Process Hacker
    * CPU graphs are displayed in a grid now (thanks pavel_kv!)
  * FIXED:
    * Fixed touch scrolling
-   * Fixed EtwRegistration object names for 64-bit
+   * Fixed EtwRegistration object names for 64-bit Windows 8.1
 
 2.33
  * NEW/IMPROVED:
