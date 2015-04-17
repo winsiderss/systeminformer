@@ -3,6 +3,7 @@ Process Hacker
 2.34
  * NEW/IMPROVED:
    * CPU graphs are displayed in a grid now (thanks pavel_kv!)
+   * Added NetAdapters plugin: adds graphs for selected network adapters to the System Information window
  * FIXED:
    * Fixed touch scrolling
    * Fixed EtwRegistration object names for 64-bit Windows 8.1

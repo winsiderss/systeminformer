@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by NetAdaptersPlugin.rc
+// Used by NetAdapters.rc
 //
 #define IDD_NETADAPTER_OPTIONS          112
 #define IDD_NETADAPTER_DIALOG           113
