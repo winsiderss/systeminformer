@@ -2,6 +2,7 @@
  * Added Toolbar customization
  * Added Rebar Chevron support
  * Added Auto-hide Searchbox
+ * Fixed searching multiple processes
 
 1.9
  * Added PNG images
