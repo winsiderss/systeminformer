@@ -2,7 +2,7 @@
  * Process Hacker -
  *   application support functions
  *
- * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -445,6 +445,8 @@ NTSTATUS PhGetProcessKnownType(
                 knownProcessType = TaskHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\taskhostex.exe", TRUE))
                 knownProcessType = TaskHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\wudfhost.exe", TRUE))
+                knownProcessType = UmdfHostProcessType;
         }
     }
 

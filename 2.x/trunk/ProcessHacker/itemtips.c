@@ -2,7 +2,7 @@
  * Process Hacker -
  *   item tooltips
  *
- * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -25,6 +25,11 @@
 #define CINTERFACE
 #define COBJMACROS
 #include <taskschd.h>
+
+VOID PhpFillUmdfDrivers(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Drivers
+    );
 
 VOID PhpFillRunningTasks(
     _In_ PPH_PROCESS_ITEM Process,
@@ -86,11 +91,14 @@ static int __cdecl ServiceForTooltipCompare(
 }
 
 PPH_STRING PhGetProcessTooltipText(
-    _In_ PPH_PROCESS_ITEM Process
+    _In_ PPH_PROCESS_ITEM Process,
+    _Out_opt_ PULONG ValidToTickCount
     )
 {
     PH_STRING_BUILDER stringBuilder;
+    ULONG validForMs = 60 * 60 * 1000; // 1 hour
     PPH_STRING tempString;
+    PH_KNOWN_PROCESS_TYPE knownProcessType = UnknownProcessType;
 
     PhInitializeStringBuilder(&stringBuilder, 200);
 
@@ -129,15 +137,14 @@ PPH_STRING PhGetProcessTooltipText(
 
     // Known command line information
 
+    if (Process->QueryHandle)
+        PhGetProcessKnownType(Process->QueryHandle, &knownProcessType);
+
     if (Process->CommandLine && Process->QueryHandle)
     {
-        PH_KNOWN_PROCESS_TYPE knownProcessType;
         PH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine;
 
-        if (NT_SUCCESS(PhGetProcessKnownType(
-            Process->QueryHandle,
-            &knownProcessType
-            )) && PhaGetProcessKnownCommandLine(
+        if (knownProcessType != UnknownProcessType && PhaGetProcessKnownCommandLine(
             Process->CommandLine,
             knownProcessType,
             &knownCommandLine
@@ -279,26 +286,45 @@ PPH_STRING PhGetProcessTooltipText(
         PhDereferenceObject(serviceList);
     }
 
-    // Tasks
-    if (WindowsVersion >= WINDOWS_VISTA && (
-        PhEqualString2(Process->ProcessName, L"taskeng.exe", TRUE) ||
-        PhEqualString2(Process->ProcessName, L"taskhost.exe", TRUE) ||
-        PhEqualString2(Process->ProcessName, L"taskhostex.exe", TRUE)
-        ))
+    // Tasks, Drivers
+    switch (knownProcessType & KnownProcessTypeMask)
     {
-        PH_STRING_BUILDER tasks;
-
-        PhInitializeStringBuilder(&tasks, 40);
-
-        PhpFillRunningTasks(Process, &tasks);
-
-        if (tasks.String->Length != 0)
+    case TaskHostProcessType:
         {
-            PhAppendStringBuilder2(&stringBuilder, L"Tasks:\n");
-            PhAppendStringBuilder(&stringBuilder, tasks.String);
-        }
+            PH_STRING_BUILDER tasks;
 
-        PhDeleteStringBuilder(&tasks);
+            PhInitializeStringBuilder(&tasks, 40);
+
+            PhpFillRunningTasks(Process, &tasks);
+
+            if (tasks.String->Length != 0)
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"Tasks:\n");
+                PhAppendStringBuilder(&stringBuilder, tasks.String);
+            }
+
+            PhDeleteStringBuilder(&tasks);
+        }
+        break;
+    case UmdfHostProcessType:
+        {
+            PH_STRING_BUILDER drivers;
+
+            PhInitializeStringBuilder(&drivers, 40);
+
+            PhpFillUmdfDrivers(Process, &drivers);
+
+            if (drivers.String->Length != 0)
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"Drivers:\n");
+                PhAppendStringBuilder(&stringBuilder, drivers.String);
+            }
+
+            PhDeleteStringBuilder(&drivers);
+
+            validForMs = 10 * 1000; // 10 seconds
+        }
+        break;
     }
 
     // Plugin
@@ -308,8 +334,10 @@ PPH_STRING PhGetProcessTooltipText(
 
         getTooltipText.Parameter = Process;
         getTooltipText.StringBuilder = &stringBuilder;
+        getTooltipText.ValidForMs = validForMs;
 
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackGetProcessTooltipText), &getTooltipText);
+        validForMs = getTooltipText.ValidForMs;
     }
 
     // Notes
@@ -375,7 +403,7 @@ PPH_STRING PhGetProcessTooltipText(
         if (Process->IsElevated)
             PhAppendStringBuilder2(&notes, L"    Process is elevated.\n");
         if (Process->IsImmersive)
-            PhAppendStringBuilder2(&notes, L"    Process is a Metro style app.\n");
+            PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
             PhAppendStringBuilder2(&notes, L"    Process is in a job.\n");
         if (Process->IsPosix)
@@ -392,11 +420,130 @@ PPH_STRING PhGetProcessTooltipText(
         PhDeleteStringBuilder(&notes);
     }
 
+    if (ValidToTickCount)
+        *ValidToTickCount = GetTickCount() + validForMs;
+
     // Remove the trailing newline.
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
     return PhFinalStringBuilderString(&stringBuilder);
+}
+
+VOID PhpFillUmdfDrivers(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Drivers
+    )
+{
+    static PH_STRINGREF activeDevices = PH_STRINGREF_INIT(L"ACTIVE_DEVICES");
+    static PH_STRINGREF currentControlSetEnum = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
+
+    HANDLE processHandle;
+    ULONG flags = 0;
+    PVOID environment;
+    ULONG environmentLength;
+    ULONG enumerationKey;
+    PH_ENVIRONMENT_VARIABLE variable;
+
+    if (!NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        Process->ProcessId
+        )))
+        return;
+
+#ifdef _M_X64
+    // Just in case.
+    if (Process->IsWow64)
+        flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
+#endif
+
+    if (NT_SUCCESS(PhGetProcessEnvironment(
+        processHandle,
+        flags,
+        &environment,
+        &environmentLength
+        )))
+    {
+        enumerationKey = 0;
+
+        while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
+        {
+            PH_STRINGREF part;
+            PH_STRINGREF remainingPart;
+
+            if (!PhEqualStringRef(&variable.Name, &activeDevices, TRUE))
+                continue;
+
+            remainingPart = variable.Value;
+
+            while (remainingPart.Length != 0)
+            {
+                PhSplitStringRefAtChar(&remainingPart, ';', &part, &remainingPart);
+
+                if (part.Length != 0)
+                {
+                    HANDLE driverKeyHandle;
+                    PPH_STRING driverKeyPath;
+
+                    driverKeyPath = PhConcatStringRef2(&currentControlSetEnum, &part);
+
+                    if (NT_SUCCESS(PhOpenKey(
+                        &driverKeyHandle,
+                        KEY_READ,
+                        PH_KEY_LOCAL_MACHINE,
+                        &driverKeyPath->sr,
+                        0
+                        )))
+                    {
+                        PPH_STRING deviceDesc;
+                        PH_STRINGREF deviceName;
+                        PPH_STRING hardwareId;
+
+                        if (deviceDesc = PhQueryRegistryString(driverKeyHandle, L"DeviceDesc"))
+                        {
+                            PH_STRINGREF firstPart;
+                            PH_STRINGREF secondPart;
+
+                            if (PhSplitStringRefAtLastChar(&deviceDesc->sr, ';', &firstPart, &secondPart))
+                                deviceName = secondPart;
+                            else
+                                deviceName = deviceDesc->sr;
+                        }
+                        else
+                        {
+                            PhInitializeStringRef(&deviceName, L"Unknown Device");
+                        }
+
+                        hardwareId = PhQueryRegistryString(driverKeyHandle, L"HardwareID");
+                        PhTrimToNullTerminatorString(hardwareId);
+
+                        PhAppendStringBuilder2(Drivers, L"    ");
+                        PhAppendStringBuilderEx(Drivers, deviceName.Buffer, deviceName.Length);
+
+                        if (!PhIsNullOrEmptyString(hardwareId))
+                        {
+                            PhAppendStringBuilder2(Drivers, L" (");
+                            PhAppendStringBuilder(Drivers, hardwareId);
+                            PhAppendCharStringBuilder(Drivers, ')');
+                        }
+
+                        PhAppendCharStringBuilder(Drivers, '\n');
+
+                        PhSwapReference(&hardwareId, NULL);
+                        PhSwapReference(&deviceDesc, NULL);
+                        NtClose(driverKeyHandle);
+                    }
+
+                    PhDereferenceObject(driverKeyPath);
+                }
+            }
+        }
+
+        PhFreePage(environment);
+    }
+
+    NtClose(processHandle);
 }
 
 VOID PhpFillRunningTasks(

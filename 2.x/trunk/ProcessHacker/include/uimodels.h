@@ -263,6 +263,7 @@ typedef struct _PH_PROCESS_NODE
     ULONG DpiAwareness;
 
     PPH_STRING TooltipText;
+    ULONG TooltipTextValidToTickCount;
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];

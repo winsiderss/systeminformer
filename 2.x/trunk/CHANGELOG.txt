@@ -3,6 +3,7 @@ Process Hacker
 2.34
  * NEW/IMPROVED:
    * CPU graphs are displayed in a grid now (thanks pavel_kv!)
+   * Tooltip information for user-mode driver framework (UMDF) host processes
    * Added NetAdapters plugin: adds graphs for selected network adapters to the System Information window
  * FIXED:
    * Fixed touch scrolling

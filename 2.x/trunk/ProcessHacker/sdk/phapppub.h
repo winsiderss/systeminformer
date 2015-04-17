@@ -368,6 +368,7 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     ComSurrogateProcessType, // dllhost
     TaskHostProcessType, // taskeng, taskhost, taskhostex
     ExplorerProcessType, // explorer
+    UmdfHostProcessType, // wudfhost
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,
 
