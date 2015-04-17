@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
  * FIXED:
    * Fixed touch scrolling
+   * Fixed EtwRegistration object names for 64-bit
 
 2.33
  * NEW/IMPROVED:
