@@ -2,7 +2,7 @@
  * Process Hacker -
  *   network list
  *
- * Copyright (C) 2011-2012 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -580,7 +580,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             {
                 if (processItem = PhReferenceProcessItem(node->NetworkItem->ProcessId))
                 {
-                    node->TooltipText = PhGetProcessTooltipText(processItem);
+                    node->TooltipText = PhGetProcessTooltipText(processItem, NULL);
                     PhDereferenceObject(processItem);
                 }
             }

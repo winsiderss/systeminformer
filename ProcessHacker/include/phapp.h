@@ -181,6 +181,7 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     ComSurrogateProcessType, // dllhost
     TaskHostProcessType, // taskeng, taskhost, taskhostex
     ExplorerProcessType, // explorer
+    UmdfHostProcessType, // wudfhost
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,
 
@@ -1383,7 +1384,8 @@ BOOLEAN PhUiDestroyHeap(
 // itemtips
 
 PPH_STRING PhGetProcessTooltipText(
-    _In_ PPH_PROCESS_ITEM Process
+    _In_ PPH_PROCESS_ITEM Process,
+    _Out_opt_ PULONG ValidToTickCount
     );
 
 PPH_STRING PhGetServiceTooltipText(
