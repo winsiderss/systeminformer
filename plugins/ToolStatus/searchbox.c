@@ -400,22 +400,17 @@ HBITMAP LoadImageFromResources(
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
-    
+    IWICImagingFactory* wicFactory = NULL;
     IWICBitmapScaler* wicScaler = NULL;
     WICPixelFormatGUID pixelFormat;
 
     WICRect rect = { 0, 0, Width, Height };
 
-    static IWICImagingFactory* wicFactory = NULL;
-
     __try
     {
-        if (!wicFactory)
-        {
-            // Create the ImagingFactory
-            if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (PVOID*)&wicFactory)))
-                __leave;
-        }
+        // Create the ImagingFactory
+        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
+            __leave;
 
         // Find the resource
         if ((resourceHandleSource = FindResource(PluginInstance->DllBase, Name, L"PNG")) == NULL)
@@ -517,7 +512,7 @@ HBITMAP LoadImageFromResources(
 
         if (wicFactory)
         {
-           // IWICImagingFactory_Release(wicFactory);
+           IWICImagingFactory_Release(wicFactory);
         }
 
         if (resourceHandle)
@@ -546,7 +541,7 @@ HWND CreateSearchControl(
         WS_EX_CLIENTEDGE,
         WC_EDIT,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT,
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         RebarHandle,
         NULL,
