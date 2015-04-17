@@ -2,6 +2,7 @@ Process Hacker
 
 2.34
  * NEW/IMPROVED:
+   * CPU graphs are displayed in a grid now (thanks pavel_kv!)
  * FIXED:
    * Fixed touch scrolling
    * Fixed EtwRegistration object names for 64-bit

@@ -2,7 +2,7 @@
  * Process Hacker -
  *   system information window
  *
- * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -2383,33 +2383,59 @@ VOID PhSipLayoutCpuGraphs(
     }
     else
     {
-        ULONG i;
-        ULONG graphWidth;
-        ULONG x;
+        ULONG numRows = 1;
+        ULONG numColumns = NumberOfProcessors;
 
-        graphWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - PH_SYSINFO_CPU_PADDING * (NumberOfProcessors - 1)) / NumberOfProcessors;
-        x = CpuGraphMargin.left;
-
-        for (i = 0; i < NumberOfProcessors; i++)
+        for (ULONG numRowsCandidate = 2; numRowsCandidate <= NumberOfProcessors / numRowsCandidate; numRowsCandidate++)
         {
-            // Give the last graph the remaining space; the width we calculated might be off by a few
+            if (NumberOfProcessors % numRowsCandidate)
+                continue;
+
+            numRows = numRowsCandidate;
+            numColumns = NumberOfProcessors / numRows;
+        }
+
+        ULONG numYPaddings = numRows - 1;
+        ULONG numXPaddings = numColumns - 1;
+
+        ULONG graphHeight = (clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom - PH_SYSINFO_CPU_PADDING * numYPaddings) / numRows;
+        ULONG y = CpuGraphMargin.top;
+
+        for (ULONG row = 0; row < numRows; ++row)
+        {
+            // Give the last graph the remaining space; the height we calculated might be off by a few
             // pixels due to integer division.
-            if (i == NumberOfProcessors - 1)
+            if (row == numRows - 1)
             {
-                graphWidth = clientRect.right - CpuGraphMargin.right - x;
+                graphHeight = clientRect.bottom - CpuGraphMargin.bottom - y;
             }
 
-            deferHandle = DeferWindowPos(
-                deferHandle,
-                CpusGraphHandle[i],
-                NULL,
-                x,
-                CpuGraphMargin.top,
-                graphWidth,
-                clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom,
-                SWP_NOACTIVATE | SWP_NOZORDER
-                );
-            x += graphWidth + PH_SYSINFO_CPU_PADDING;
+            ULONG graphWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - PH_SYSINFO_CPU_PADDING * numXPaddings) / numColumns;
+            ULONG x = CpuGraphMargin.left;
+
+            for (ULONG col = 0; col < numColumns; col++)
+            {
+                // Give the last graph the remaining space; the width we calculated might be off by a few
+                // pixels due to integer division.
+                if (col == numColumns - 1)
+                {
+                    graphWidth = clientRect.right - CpuGraphMargin.right - x;
+                }
+
+                deferHandle = DeferWindowPos(
+                    deferHandle,
+                    CpusGraphHandle[row * numColumns + col],
+                    NULL,
+                    x,
+                    y,
+                    graphWidth,
+                    graphHeight,
+                    SWP_NOACTIVATE | SWP_NOZORDER
+                    );
+                x += graphWidth + PH_SYSINFO_CPU_PADDING;
+            }
+
+            y += graphHeight + PH_SYSINFO_CPU_PADDING;
         }
     }
 
