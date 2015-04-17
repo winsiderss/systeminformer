@@ -119,6 +119,7 @@ Name: plugins\dotnettools;           Description: {cm:comp_DotNetTools};        
 Name: plugins\extendednotifications; Description: {cm:comp_ExtendedNotifications}; Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\extendedservices;      Description: {cm:comp_ExtendedServices};      Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\extendedtools;         Description: {cm:comp_ExtendedTools};         Types: full custom;         Flags: disablenouninstallwarning; MinVersion: 6.0
+Name: plugins\netadapters;           Description: {cm:comp_NetAdapters};           Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\networktools;          Description: {cm:comp_NetworkTools};          Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\onlinechecks;          Description: {cm:comp_OnlineChecks};          Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\sbiesupport;           Description: {cm:comp_SbieSupport};           Types: full custom;         Flags: disablenouninstallwarning
@@ -170,6 +171,8 @@ Source: ..\..\bin\Release32\plugins\ExtendedServices.dll;         DestDir: {app}
 Source: ..\..\bin\Release64\plugins\ExtendedServices.dll;         DestDir: {app}\plugins; Components: plugins\extendedservices;      Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\ExtendedTools.dll;            DestDir: {app}\plugins; Components: plugins\extendedtools;         Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\ExtendedTools.dll;            DestDir: {app}\plugins; Components: plugins\extendedtools;         Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\bin\Release32\plugins\NetAdapters.dll;              DestDir: {app}\plugins; Components: plugins\netadapters;           Flags: ignoreversion; Check: not Is64BitInstallMode()
+Source: ..\..\bin\Release64\plugins\NetAdapters.dll;              DestDir: {app}\plugins; Components: plugins\netadapters;           Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\NetworkTools.dll;             DestDir: {app}\plugins; Components: plugins\networktools;          Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\NetworkTools.dll;             DestDir: {app}\plugins; Components: plugins\networktools;          Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\OnlineChecks.dll;             DestDir: {app}\plugins; Components: plugins\onlinechecks;          Flags: ignoreversion; Check: not Is64BitInstallMode()
@@ -216,6 +219,7 @@ Type: files;      Name: {app}\plugins\DotNetTools.dll;               Check: not 
 Type: files;      Name: {app}\plugins\ExtendedNotifications.dll;     Check: not IsComponentSelected('plugins\extendednotifications') and IsUpgrade()
 Type: files;      Name: {app}\plugins\ExtendedServices.dll;          Check: not IsComponentSelected('plugins\extendedservices')      and IsUpgrade()
 Type: files;      Name: {app}\plugins\ExtendedTools.dll;             Check: not IsComponentSelected('plugins\extendedtools')         and IsUpgrade()
+Type: files;      Name: {app}\plugins\NetAdapters.dll;               Check: not IsComponentSelected('plugins\netadapters')           and IsUpgrade()
 Type: files;      Name: {app}\plugins\NetworkTools.dll;              Check: not IsComponentSelected('plugins\networktools')          and IsUpgrade()
 Type: files;      Name: {app}\plugins\OnlineChecks.dll;              Check: not IsComponentSelected('plugins\onlinechecks')          and IsUpgrade()
 Type: files;      Name: {app}\plugins\SbieSupport.dll;               Check: not IsComponentSelected('plugins\sbiesupport')           and IsUpgrade()
