@@ -25,7 +25,7 @@
 
 #pragma comment(lib, "Iphlpapi.lib")
 
-#define SETTING_PREFIX L"dmex.NetworkAdaptersPlugin"
+#define SETTING_PREFIX L"ProcessHacker.NetAdapters"
 #define SETTING_NAME_ENABLE_NDIS (SETTING_PREFIX L".EnableNDIS")
 #define SETTING_NAME_INTERFACE_LIST (SETTING_PREFIX L".InterfaceList")
 
