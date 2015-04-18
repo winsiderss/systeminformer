@@ -671,32 +671,35 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
 
                         if (!context->GraphState.Valid)
                         {
-                            FLOAT maxGraphHeight1 = 0;
-                            FLOAT maxGraphHeight2 = 0;
+                            FLOAT max = 0;
 
                             for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                             {
-                                context->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->InboundBuffer, i);
-                                context->GraphState.Data2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->OutboundBuffer, i);
+                                FLOAT data1;
+                                FLOAT data2;
 
-                                if (context->GraphState.Data1[i] > maxGraphHeight1)
-                                    maxGraphHeight1 = context->GraphState.Data1[i];
+                                context->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->InboundBuffer, i);
+                                context->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->OutboundBuffer, i);
 
-                                if (context->GraphState.Data2[i] > maxGraphHeight2)
-                                    maxGraphHeight2 = context->GraphState.Data2[i];
+                                if (max < data1 + data2)
+                                    max = data1 + data2;
                             }
+
+                            // Minimum scaling of 1 MB.
+                            if (max < 1024 * 1024)
+                                max = 1024 * 1024;
 
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->GraphState.Data1,
-                                maxGraphHeight1,
+                                max,
                                 drawInfo->LineDataCount
                                 );
 
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->GraphState.Data2,
-                                maxGraphHeight2,
+                                max,
                                 drawInfo->LineDataCount
                                 );
 
@@ -954,31 +957,35 @@ static BOOLEAN NetAdapterSectionCallback(
 
             if (!Section->GraphState.Valid)
             {
-                FLOAT maxGraphHeight1 = 0;
-                FLOAT maxGraphHeight2 = 0;
+                FLOAT max = 0;
 
                 for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->InboundBuffer, i);
-                    Section->GraphState.Data2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->OutboundBuffer, i);
+                    FLOAT data1;
+                    FLOAT data2;
 
-                    if (Section->GraphState.Data1[i] > maxGraphHeight1)
-                        maxGraphHeight1 = Section->GraphState.Data1[i];
-                    if (Section->GraphState.Data2[i] > maxGraphHeight2)
-                        maxGraphHeight2 = Section->GraphState.Data2[i];
+                    Section->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->InboundBuffer, i);
+                    Section->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->OutboundBuffer, i);
+
+                    if (max < data1 + data2)
+                        max = data1 + data2;
                 }
+
+                // Minimum scaling of 1 MB.
+                if (max < 1024 * 1024)
+                    max = 1024 * 1024;
 
                 // Scale the data.
                 PhxfDivideSingle2U(
                     Section->GraphState.Data1,
-                    maxGraphHeight1, // (FLOAT)context->MaxReceiveSpeed,
+                    max, // (FLOAT)context->MaxReceiveSpeed,
                     drawInfo->LineDataCount
                     );
 
                 // Scale the data.
                 PhxfDivideSingle2U(
                     Section->GraphState.Data2,
-                    maxGraphHeight2, // (FLOAT)context->MaxSendSpeed,
+                    max, // (FLOAT)context->MaxSendSpeed,
                     drawInfo->LineDataCount
                     );
                 Section->GraphState.Valid = TRUE;
