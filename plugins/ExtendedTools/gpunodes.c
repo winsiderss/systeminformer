@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   GPU nodes window
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -23,6 +23,7 @@
 #include "exttools.h"
 #include "resource.h"
 #include <windowsx.h>
+#include <math.h>
 
 #define UPDATE_MSG (WM_APP + 1)
 #define GRAPH_PADDING 5
@@ -119,6 +120,8 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             PPH_STRING nodeString;
             RECT labelRect;
             RECT tempRect;
+            ULONG numberOfRows;
+            ULONG numberOfColumns;
 
             WindowHandle = hwndDlg;
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -148,7 +151,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     3,
                     3,
                     hwndDlg,
-                    (HMENU)10000 + i,
+                    (HMENU)(10000 + i),
                     PluginInstance->DllBase,
                     NULL
                     );
@@ -162,7 +165,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     3,
                     3,
                     hwndDlg,
-                    (HMENU)20000 + i,
+                    (HMENU)(20000 + i),
                     PluginInstance->DllBase,
                     NULL
                     );
@@ -174,12 +177,16 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             // Calculate the minimum size.
 
+            numberOfRows = (ULONG)sqrt(EtGpuTotalNodeCount);
+            numberOfColumns = (EtGpuTotalNodeCount + numberOfRows - 1) / numberOfRows;
+
             MinimumSize.left = 0;
             MinimumSize.top = 0;
             MinimumSize.right = 45;
-            MinimumSize.bottom = 170;
+            MinimumSize.bottom = 60;
             MapDialogRect(hwndDlg, &MinimumSize);
-            MinimumSize.right += (MinimumSize.right + GRAPH_PADDING) * EtGpuTotalNodeCount;
+            MinimumSize.right += (MinimumSize.right + GRAPH_PADDING) * numberOfColumns;
+            MinimumSize.bottom += (MinimumSize.bottom + GRAPH_PADDING) * numberOfRows;
 
             GetWindowRect(GetDlgItem(hwndDlg, IDC_INSTRUCTION), &labelRect);
             MapWindowPoints(NULL, hwndDlg, (POINT *)&labelRect, 2);
@@ -225,10 +232,15 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             HDWP deferHandle;
             RECT clientRect;
             RECT checkBoxRect;
-            ULONG i;
-            ULONG availableWidth;
-            ULONG graphWidth;
+            ULONG numberOfRows = (ULONG)sqrt(EtGpuTotalNodeCount);
+            ULONG numberOfColumns = (EtGpuTotalNodeCount + numberOfRows - 1) / numberOfRows;
+            ULONG numberOfYPaddings = numberOfRows - 1;
+            ULONG numberOfXPaddings = numberOfColumns - 1;
+            ULONG cellHeight;
+            ULONG y;
+            ULONG cellWidth;
             ULONG x;
+            ULONG i;
 
             PhLayoutManagerLayout(&LayoutManager);
 
@@ -236,39 +248,55 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             GetClientRect(hwndDlg, &clientRect);
             GetClientRect(GetDlgItem(hwndDlg, IDC_EXAMPLE), &checkBoxRect);
-            availableWidth = clientRect.right - LayoutMargin.left - LayoutMargin.right;
-            graphWidth = (availableWidth - GRAPH_PADDING * (EtGpuTotalNodeCount - 1)) / EtGpuTotalNodeCount;
-            x = LayoutMargin.left;
+            cellHeight = (clientRect.bottom - LayoutMargin.top - LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
+            y = LayoutMargin.top;
+            i = 0;
 
-            for (i = 0; i < EtGpuTotalNodeCount; i++)
+            for (ULONG row = 0; row < numberOfRows; ++row)
             {
-                if (i == EtGpuTotalNodeCount - 1)
+                // Give the last row the remaining space; the height we calculated might be off by a few
+                // pixels due to integer division.
+                if (row == numberOfRows - 1)
+                    cellHeight = clientRect.bottom - LayoutMargin.bottom - y;
+
+                cellWidth = (clientRect.right - LayoutMargin.left - LayoutMargin.right - GRAPH_PADDING * numberOfXPaddings) / numberOfColumns;
+                x = LayoutMargin.left;
+
+                for (ULONG column = 0; column < numberOfColumns; column++)
                 {
-                    graphWidth = clientRect.right - LayoutMargin.right - x;
+                    // Give the last cell the remaining space; the width we calculated might be off by a few
+                    // pixels due to integer division.
+                    if (column == numberOfColumns - 1)
+                        cellWidth = clientRect.right - LayoutMargin.right - x;
+
+                    if (i < EtGpuTotalNodeCount)
+                    {
+                        deferHandle = DeferWindowPos(
+                            deferHandle,
+                            GraphHandle[i],
+                            NULL,
+                            x,
+                            y,
+                            cellWidth,
+                            cellHeight - checkBoxRect.bottom - CHECKBOX_PADDING,
+                            SWP_NOACTIVATE | SWP_NOZORDER
+                            );
+                        deferHandle = DeferWindowPos(
+                            deferHandle,
+                            CheckBoxHandle[i],
+                            NULL,
+                            x,
+                            y + cellHeight - checkBoxRect.bottom,
+                            cellWidth,
+                            checkBoxRect.bottom,
+                            SWP_NOACTIVATE | SWP_NOZORDER
+                            );
+                        i++;
+                    }
+                    x += cellWidth + GRAPH_PADDING;
                 }
 
-                deferHandle = DeferWindowPos(
-                    deferHandle,
-                    GraphHandle[i],
-                    NULL,
-                    x,
-                    LayoutMargin.top,
-                    graphWidth,
-                    clientRect.bottom - LayoutMargin.top - LayoutMargin.bottom - checkBoxRect.bottom - CHECKBOX_PADDING,
-                    SWP_NOACTIVATE | SWP_NOZORDER
-                    );
-                deferHandle = DeferWindowPos(
-                    deferHandle,
-                    CheckBoxHandle[i],
-                    NULL,
-                    x,
-                    clientRect.bottom - LayoutMargin.bottom - checkBoxRect.bottom,
-                    graphWidth,
-                    checkBoxRect.bottom,
-                    SWP_NOACTIVATE | SWP_NOZORDER
-                    );
-
-                x += graphWidth + GRAPH_PADDING;
+                y += cellHeight + GRAPH_PADDING;
             }
 
             EndDeferWindowPos(deferHandle);

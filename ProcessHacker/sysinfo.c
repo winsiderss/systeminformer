@@ -62,6 +62,7 @@
 #include <windowsx.h>
 #include <uxtheme.h>
 #include <vssym32.h>
+#include <math.h>
 #include <sysinfop.h>
 
 static HANDLE PhSipThread = NULL;
@@ -2383,59 +2384,69 @@ VOID PhSipLayoutCpuGraphs(
     }
     else
     {
-        ULONG numRows = 1;
-        ULONG numColumns = NumberOfProcessors;
+        ULONG numberOfRows = 1;
+        ULONG numberOfColumns = NumberOfProcessors;
 
-        for (ULONG numRowsCandidate = 2; numRowsCandidate <= NumberOfProcessors / numRowsCandidate; numRowsCandidate++)
+        for (ULONG rows = 2; rows <= NumberOfProcessors / rows; rows++)
         {
-            if (NumberOfProcessors % numRowsCandidate)
+            if (NumberOfProcessors % rows != 0)
                 continue;
 
-            numRows = numRowsCandidate;
-            numColumns = NumberOfProcessors / numRows;
+            numberOfRows = rows;
+            numberOfColumns = NumberOfProcessors / rows;
         }
 
-        ULONG numYPaddings = numRows - 1;
-        ULONG numXPaddings = numColumns - 1;
-
-        ULONG graphHeight = (clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom - PH_SYSINFO_CPU_PADDING * numYPaddings) / numRows;
-        ULONG y = CpuGraphMargin.top;
-
-        for (ULONG row = 0; row < numRows; ++row)
+        if (numberOfRows == 1)
         {
-            // Give the last graph the remaining space; the height we calculated might be off by a few
+            numberOfRows = (ULONG)sqrt(NumberOfProcessors);
+            numberOfColumns = (NumberOfProcessors + numberOfRows - 1) / numberOfRows;
+        }
+
+        ULONG numberOfYPaddings = numberOfRows - 1;
+        ULONG numberOfXPaddings = numberOfColumns - 1;
+
+        ULONG cellHeight = (clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom - PH_SYSINFO_CPU_PADDING * numberOfYPaddings) / numberOfRows;
+        ULONG y = CpuGraphMargin.top;
+        ULONG cellWidth;
+        ULONG x;
+        ULONG i = 0;
+
+        for (ULONG row = 0; row < numberOfRows; row++)
+        {
+            // Give the last row the remaining space; the height we calculated might be off by a few
             // pixels due to integer division.
-            if (row == numRows - 1)
-            {
-                graphHeight = clientRect.bottom - CpuGraphMargin.bottom - y;
-            }
+            if (row == numberOfRows - 1)
+                cellHeight = clientRect.bottom - CpuGraphMargin.bottom - y;
 
-            ULONG graphWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - PH_SYSINFO_CPU_PADDING * numXPaddings) / numColumns;
-            ULONG x = CpuGraphMargin.left;
+            cellWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - PH_SYSINFO_CPU_PADDING * numberOfXPaddings) / numberOfColumns;
+            x = CpuGraphMargin.left;
 
-            for (ULONG col = 0; col < numColumns; col++)
+            for (ULONG column = 0; column < numberOfColumns; column++)
             {
-                // Give the last graph the remaining space; the width we calculated might be off by a few
+                // Give the last cell the remaining space; the width we calculated might be off by a few
                 // pixels due to integer division.
-                if (col == numColumns - 1)
+                if (column == numberOfColumns - 1)
+                    cellWidth = clientRect.right - CpuGraphMargin.right - x;
+
+                if (i < NumberOfProcessors)
                 {
-                    graphWidth = clientRect.right - CpuGraphMargin.right - x;
+                    deferHandle = DeferWindowPos(
+                        deferHandle,
+                        CpusGraphHandle[i],
+                        NULL,
+                        x,
+                        y,
+                        cellWidth,
+                        cellHeight,
+                        SWP_NOACTIVATE | SWP_NOZORDER
+                        );
+                    i++;
                 }
 
-                deferHandle = DeferWindowPos(
-                    deferHandle,
-                    CpusGraphHandle[row * numColumns + col],
-                    NULL,
-                    x,
-                    y,
-                    graphWidth,
-                    graphHeight,
-                    SWP_NOACTIVATE | SWP_NOZORDER
-                    );
-                x += graphWidth + PH_SYSINFO_CPU_PADDING;
+                x += cellWidth + PH_SYSINFO_CPU_PADDING;
             }
 
-            y += graphHeight + PH_SYSINFO_CPU_PADDING;
+            y += cellHeight + PH_SYSINFO_CPU_PADDING;
         }
     }
 

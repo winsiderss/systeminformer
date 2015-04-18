@@ -639,8 +639,6 @@ VOID PhNfpBeginBitmap(
     )
 {
     static BOOLEAN initialized = FALSE;
-    static ULONG iconWidth;
-    static ULONG iconHeight;
     static HDC hdc;
     static BITMAPINFOHEADER header;
     static HBITMAP bitmap;
