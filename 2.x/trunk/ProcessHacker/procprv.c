@@ -1112,7 +1112,6 @@ VOID PhpProcessQueryStage2(
 {
     NTSTATUS status;
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
-    HANDLE processId = processItem->ProcessId;
 
     if (PhEnableProcessQueryStage2 && processItem->FileName)
     {

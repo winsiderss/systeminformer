@@ -487,11 +487,13 @@ VOID PhSetClipboardStringEx(
 #define PH_ANCHOR_BOTTOM 0x8
 #define PH_ANCHOR_ALL 0xf
 
+// This interface is horrible and should be rewritten, but it works for now.
+
 #define PH_LAYOUT_FORCE_INVALIDATE 0x1000 // invalidate the control when it is resized
 #define PH_LAYOUT_TAB_CONTROL 0x2000 // this is a dummy item, a hack for the tab control
 #define PH_LAYOUT_IMMEDIATE_RESIZE 0x4000 // needed for the tab control hack
 
-#define PH_LAYOUT_DUMMY_MASK (PH_LAYOUT_TAB_CONTROL) // determines which items don't get resized at all; just dummy
+#define PH_LAYOUT_DUMMY_MASK (PH_LAYOUT_TAB_CONTROL) // items that don't have a window handle, or don't actually get their window resized
 
 typedef struct _PH_LAYOUT_ITEM
 {
