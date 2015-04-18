@@ -45,7 +45,7 @@ ULONG GpuCurrentVoltage = 0;
 static VOID NvGpuEnumPhysicalHandles(VOID)
 {
     NvU32 gpuCount = 0;
-    NvPhysicalGpuHandle gpuHandles[NVAPI_MAX_PHYSICAL_GPUS];     
+    NvPhysicalGpuHandle gpuHandles[NVAPI_MAX_PHYSICAL_GPUS];
 
     memset(gpuHandles, 0, sizeof(gpuHandles));
 
@@ -84,7 +84,7 @@ BOOLEAN InitializeNvApi(VOID)
     if (!NvApiLibrary)
         return FALSE;
 
-    // Retrieve the NvAPI_QueryInterface function address 
+    // Retrieve the NvAPI_QueryInterface function address
     if (!(NvAPI_QueryInterface = (_NvAPI_QueryInterface)GetProcAddress(NvApiLibrary, "nvapi_QueryInterface")))
         return FALSE;
 
@@ -131,7 +131,7 @@ BOOLEAN InitializeNvApi(VOID)
         return FALSE;
     if (!(NvAPI_GPU_GetVoltageDomainsStatus = (_NvAPI_GPU_GetVoltageDomainsStatus)NvAPI_QueryInterface(0xC16C7E2C)))
         return FALSE;
-    
+
     //NvAPI_GPU_GetPerfClocks = (_NvAPI_GPU_GetPerfClocks)NvAPI_QueryInterface(0x1EA54A3B);
     //NvAPI_GPU_GetVoltages = (_NvAPI_GPU_GetVoltages)NvAPI_QueryInterface(0x7D656244);
     //NvAPI_GPU_QueryActiveApps = (_NvAPI_GPU_QueryActiveApps)NvAPI_QueryInterface(0x65B1C5F5);
@@ -167,7 +167,7 @@ BOOLEAN InitializeNvApi(VOID)
 }
 
 BOOLEAN DestroyNvApi(VOID)
-{   
+{
     NvApiInitialized = FALSE;
 
     if (NvAPI_Unload)
@@ -235,7 +235,7 @@ PPH_STRING NvGpuQueryFanSpeed(VOID)
 {
     NvU32 tachValue = 0;
     NV_GPU_COOLER_SETTINGS coolerInfo = { NV_GPU_COOLER_SETTINGS_VER };
-        
+
     if (NvApiInitialized)
     {
         if (NvAPI_GPU_GetTachReading(NvGpuPhysicalHandleList->Items[0], &tachValue) == NVAPI_OK)
@@ -248,7 +248,7 @@ PPH_STRING NvGpuQueryFanSpeed(VOID)
             return PhFormatString(L"%u RPM", tachValue);
         }
         else
-        { 
+        {
             if (NvAPI_GPU_GetCoolerSettings(NvGpuPhysicalHandleList->Items[0], NVAPI_COOLER_TARGET_ALL, &coolerInfo) == NVAPI_OK)
             {
                 return PhFormatString(L"%u%%", coolerInfo.cooler[0].currentLevel);
@@ -303,7 +303,7 @@ VOID NvGpuUpdateValues(VOID)
 
         //if (clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].bIsPresent)
         GpuCurrentMemoryClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency / 1000;
-        
+
         //if (clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_PROCESSOR].bIsPresent)
         GpuCurrentShaderClock = clkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_PROCESSOR].frequency / 1000;
     }

@@ -76,8 +76,8 @@ static NTSTATUS EnumRunningObjectTable(
         IRunningObjectTable_Release(iRunningObjectTable);
     }
 
-    IMalloc_Release(iMalloc); 
-    
+    IMalloc_Release(iMalloc);
+
     return STATUS_SUCCESS;
 }
 
@@ -100,10 +100,10 @@ static INT_PTR CALLBACK RotViewDlgProc(
         context = (PROT_WINDOW_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
-        {               
+        {
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
-            PhUnregisterDialog(hwndDlg); 
+            PhUnregisterDialog(hwndDlg);
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
         }
@@ -242,7 +242,7 @@ LOGICAL DllMain(
 
                 PhAddSettings(settings, _countof(settings));
             }
-        }  
+        }
         break;
     }
 

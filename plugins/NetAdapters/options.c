@@ -63,7 +63,7 @@ static VOID CopyAdaptersList(
         newEntry->InterfaceIndex = entry->InterfaceIndex;
         newEntry->InterfaceLuid = entry->InterfaceLuid;
         newEntry->InterfaceGuid = entry->InterfaceGuid;
-        
+
         PhAddItemList(Destination, newEntry);
     }
 }
@@ -77,7 +77,7 @@ VOID LoadAdaptersList(
 
     while (remaining.Length != 0)
     {
-        PPH_NETADAPTER_ENTRY entry = NULL; 
+        PPH_NETADAPTER_ENTRY entry = NULL;
 
         ULONG64 ifindex;
         ULONG64 luid64;
@@ -121,7 +121,7 @@ static PPH_STRING SaveAdaptersList(
     {
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)FilterList->Items[i];
 
-        PhAppendFormatStringBuilder(&stringBuilder, 
+        PhAppendFormatStringBuilder(&stringBuilder,
             L"%u,%I64u,%s,",
             entry->InterfaceIndex,    // This value is UNSAFE and may change after reboot.
             entry->InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
@@ -274,7 +274,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
             string = SaveAdaptersList(NetworkAdaptersList);
             PhSetStringSetting2(SETTING_NAME_INTERFACE_LIST, &string->sr);
             PhDereferenceObject(string);
-            
+
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
         }

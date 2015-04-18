@@ -82,7 +82,7 @@ static VOID EnumDnsCacheTable(
                         ipv4Address.s_addr = dnsRecordPtr->Data.A.IpAddress;
 
                         RtlIpv4AddressToString(&ipv4Address, ipAddrString);
-                       
+
                         PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"A")->Buffer);
                         PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", ipAddrString)->Buffer);
                     }
@@ -91,16 +91,16 @@ static VOID EnumDnsCacheTable(
                         IN6_ADDR ipv6Address = { 0 };
 
                         memcpy_s(
-                            ipv6Address.s6_addr, 
+                            ipv6Address.s6_addr,
                             sizeof(ipv6Address.s6_addr),
-                            dnsRecordPtr->Data.AAAA.Ip6Address.IP6Byte, 
+                            dnsRecordPtr->Data.AAAA.Ip6Address.IP6Byte,
                             sizeof(dnsRecordPtr->Data.AAAA.Ip6Address.IP6Byte)
                             );
 
                         RtlIpv6AddressToString(&ipv6Address, ipAddrString);
 
                         PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"AAAA")->Buffer);
-                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", ipAddrString)->Buffer);              
+                        PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", ipAddrString)->Buffer);
                     }
                     else if (dnsRecordPtr->wType == DNS_TYPE_PTR)
                     {
@@ -113,11 +113,11 @@ static VOID EnumDnsCacheTable(
                         PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"%s", dnsRecordPtr->Data.CNAME.pNameHost)->Buffer);
                     }
                     else
-                    {          
+                    {
                         PhSetListViewSubItem(hwndDlg, itemIndex, 1, PhaFormatString(L"UNKNOWN")->Buffer);
                         PhSetListViewSubItem(hwndDlg, itemIndex, 2, PhaFormatString(L"")->Buffer);
-                    }   
-                                                  
+                    }
+
                     PhSetListViewSubItem(hwndDlg, itemIndex, 3, PhaFormatString(L"%u", dnsRecordPtr->dwTtl)->Buffer);
 
                     dnsRecordPtr = dnsRecordPtr->pNext;
@@ -247,8 +247,8 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
         {
             PhCenterWindow(hwndDlg, PhMainWndHandle);
             ListViewWndHandle = GetDlgItem(hwndDlg, IDC_DNSLIST);
-                   
-            PhRegisterDialog(hwndDlg);          
+
+            PhRegisterDialog(hwndDlg);
             PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
             PhSetControlTheme(ListViewWndHandle, L"explorer");
             PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 280, L"Host Name");
@@ -261,7 +261,7 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
             PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNS_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DNS_CLEAR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);     
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_COLUMNS, ListViewWndHandle);
 
@@ -272,9 +272,9 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
                 DnsFree_I = (_DnsFree)GetProcAddress(DnsApiHandle, "DnsFree");
                 DnsGetCacheDataTable_I = (_DnsGetCacheDataTable)GetProcAddress(DnsApiHandle, "DnsGetCacheDataTable");
                 DnsFlushResolverCache_I = (_DnsFlushResolverCache)GetProcAddress(DnsApiHandle, "DnsFlushResolverCache");
-                DnsFlushResolverCacheEntry_I = (_DnsFlushResolverCacheEntry)GetProcAddress(DnsApiHandle, "DnsFlushResolverCacheEntry_W");  
+                DnsFlushResolverCacheEntry_I = (_DnsFlushResolverCacheEntry)GetProcAddress(DnsApiHandle, "DnsFlushResolverCacheEntry_W");
             }
-            
+
             EnumDnsCacheTable(ListViewWndHandle);
         }
         break;

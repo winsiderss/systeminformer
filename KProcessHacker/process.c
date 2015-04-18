@@ -413,7 +413,7 @@ NTSTATUS KphTerminateProcessInternal(
         )
     {
         dprintf("Calling XP/03/8-style PsTerminateProcess\n");
-        
+
         // PspTerminateProcess on XP and Server 2003 is normal.
         // PsTerminateProcess on 8 is also normal.
         status = PsTerminateProcess_I(Process, ExitStatus);
@@ -424,7 +424,7 @@ NTSTATUS KphTerminateProcessInternal(
         )
     {
         dprintf("Calling Vista/7-style PsTerminateProcess\n");
-        
+
         // PsTerminateProcess on Vista and 7 has its first argument
         // in ecx.
         __asm

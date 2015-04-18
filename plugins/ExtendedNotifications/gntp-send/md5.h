@@ -6,7 +6,7 @@
 typedef struct {
     PH_HASH_CONTEXT hc;
 } md5_context;
- 
+
 __forceinline void md5_starts(md5_context *ctx)
 {
     PhInitializeHash(&ctx->hc, Md5HashAlgorithm);

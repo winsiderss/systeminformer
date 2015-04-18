@@ -318,8 +318,8 @@ static VOID NvGpuNotifyMemoryGraph(
                 {
                     // Scale the data.
                     PhxfDivideSingle2U(
-                        Context->MemGraphState.Data1, 
-                        (FLOAT)GpuMemoryLimit, 
+                        Context->MemGraphState.Data1,
+                        (FLOAT)GpuMemoryLimit,
                         drawInfo->LineDataCount
                         );
                 }
@@ -503,7 +503,7 @@ static VOID NvGpuUpdatePanel(
 {
     SetDlgItemText(Context->GpuPanel, IDC_CLOCK_CORE, PhaFormatString(L"%u MHz", GpuCurrentCoreClock)->Buffer);
     SetDlgItemText(Context->GpuPanel, IDC_CLOCK_MEMORY, PhaFormatString(L"%u MHz", GpuCurrentMemoryClock)->Buffer);
-    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_SHADER, PhaFormatString(L"%u MHz", GpuCurrentShaderClock)->Buffer);   
+    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_SHADER, PhaFormatString(L"%u MHz", GpuCurrentShaderClock)->Buffer);
     SetDlgItemText(Context->GpuPanel, IDC_FAN_PERCENT, ((PPH_STRING)PHA_DEREFERENCE(NvGpuQueryFanSpeed()))->Buffer);
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
@@ -516,7 +516,7 @@ static VOID NvGpuUpdatePanel(
     {
         SetDlgItemText(Context->GpuPanel, IDC_TEMP_VALUE, PhaFormatString(L"%u\u00b0C", GpuCurrentCoreTemp)->Buffer);
     }
-    
+
     //SetDlgItemText(Context->GpuPanel, IDC_TEMP_VALUE, PhaFormatString(L"%s\u00b0C", PhaFormatUInt64(GpuCurrentBoardTemp, TRUE)->Buffer)->Buffer);
 
     SetDlgItemText(Context->GpuPanel, IDC_VOLTAGE, PhaFormatString(L"%umV", GpuCurrentVoltage)->Buffer);
@@ -550,13 +550,13 @@ static INT_PTR CALLBACK NvGpuDialogProc(
             PhDeleteGraphState(&context->SharedGraphState);
             PhDeleteGraphState(&context->BusGraphState);
 
-            if (context->GpuGraphHandle) 
+            if (context->GpuGraphHandle)
                 DestroyWindow(context->GpuGraphHandle);
-            if (context->MemGraphHandle) 
+            if (context->MemGraphHandle)
                 DestroyWindow(context->MemGraphHandle);
-            if (context->SharedGraphHandle) 
+            if (context->SharedGraphHandle)
                 DestroyWindow(context->SharedGraphHandle);
-            if (context->BusGraphHandle) 
+            if (context->BusGraphHandle)
                 DestroyWindow(context->BusGraphHandle);
             if (context->GpuPanel)
                 DestroyWindow(context->GpuPanel);
@@ -608,7 +608,7 @@ static INT_PTR CALLBACK NvGpuDialogProc(
             NvGpuUpdateValues();
             NvGpuUpdateGraphs(context);
             NvGpuUpdatePanel(context);
-        
+
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 ProcessesUpdatedHandler,
@@ -617,13 +617,13 @@ static INT_PTR CALLBACK NvGpuDialogProc(
                 );
         }
         break;
-    case WM_SIZE: 
+    case WM_SIZE:
         NvGpuLayoutGraphs(context);
         break;
     case WM_NOTIFY:
         {
             NMHDR* header = (NMHDR*)lParam;
-                       
+
             if (header->hwndFrom == context->GpuGraphHandle)
             {
                 NvGpuNotifyUsageGraph(context, header);
@@ -673,7 +673,7 @@ static BOOLEAN NvGpuSectionCallback(
             PhInitializeCircularBuffer_FLOAT(&context->GpuUtilizationHistory, sampleCount);
             PhInitializeCircularBuffer_ULONG(&context->GpuMemoryHistory, sampleCount);
             PhInitializeCircularBuffer_FLOAT(&context->GpuBoardHistory, sampleCount);
-            PhInitializeCircularBuffer_FLOAT(&context->GpuBusHistory, sampleCount); 
+            PhInitializeCircularBuffer_FLOAT(&context->GpuBusHistory, sampleCount);
         }
         return TRUE;
     case SysInfoDestroy:
@@ -696,7 +696,7 @@ static BOOLEAN NvGpuSectionCallback(
             PhAddItemCircularBuffer_FLOAT(&context->GpuUtilizationHistory, GpuCurrentGpuUsage);
             PhAddItemCircularBuffer_ULONG(&context->GpuMemoryHistory, GpuCurrentMemUsage);
             PhAddItemCircularBuffer_FLOAT(&context->GpuBoardHistory, GpuCurrentCoreUsage);
-            PhAddItemCircularBuffer_FLOAT(&context->GpuBusHistory, GpuCurrentBusUsage); 
+            PhAddItemCircularBuffer_FLOAT(&context->GpuBusHistory, GpuCurrentBusUsage);
         }
         return TRUE;
     case SysInfoCreateDialog:

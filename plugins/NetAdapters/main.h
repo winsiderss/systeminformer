@@ -52,16 +52,16 @@ typedef ULONG (WINAPI* _GetIfEntry2)(
 
 // dmex: rev
 typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
-    _Inout_ PGUID InterfaceGuid, 
-    _Out_opt_ PWSTR InterfaceDescription, 
-    _Inout_ PSIZE_T LengthAddress, 
-    PVOID Unknown1, 
+    _Inout_ PGUID InterfaceGuid,
+    _Out_opt_ PWSTR InterfaceDescription,
+    _Inout_ PSIZE_T LengthAddress,
+    PVOID Unknown1,
     PVOID Unknown2
     );
 
 typedef struct _PH_NETADAPTER_ENTRY
 {
-    NET_IFINDEX InterfaceIndex;           
+    NET_IFINDEX InterfaceIndex;
     IF_LUID InterfaceLuid;
     PPH_STRING InterfaceGuid;
 } PH_NETADAPTER_ENTRY, *PPH_NETADAPTER_ENTRY;
@@ -76,7 +76,7 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
 {
     BOOLEAN HaveFirstSample;
 
-    NDIS_PHYSICAL_MEDIUM NdisAdapterType;        
+    NDIS_PHYSICAL_MEDIUM NdisAdapterType;
     UINT NdisMajorVersion;
     UINT NdisMinorVersion;
 

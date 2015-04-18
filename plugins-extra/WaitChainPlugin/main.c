@@ -99,9 +99,9 @@ static VOID WaitChainCheckThread(
             rootNode->ThreadIdString = PhFormatString(L"%u", wctNode.ThreadObject.ThreadId);
             rootNode->ProcessIdString = PhFormatString(L"%u", wctNode.ThreadObject.ProcessId);
             rootNode->WaitTimeString = PhFormatString(L"%u", wctNode.ThreadObject.WaitTime);
-            rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode.ThreadObject.ContextSwitches);  
+            rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode.ThreadObject.ContextSwitches);
             rootNode->TimeoutString = PhFormatString(L"%I64d", wctNode.LockObject.Timeout.QuadPart);
-       
+
             if (wctNode.LockObject.ObjectName[0] != '\0')
             {
                 // -- ProcessID --
@@ -120,7 +120,7 @@ static VOID WaitChainCheckThread(
                 //else
                 //{
                 //    rootNode->ObjectNameString = PhFormatString(L"[%u, %u]",
-                //        wctNode.LockObject.ObjectName[0], 
+                //        wctNode.LockObject.ObjectName[0],
                 //        wctNode.LockObject.ObjectName[2]
                 //        );
                 //}
@@ -147,7 +147,7 @@ static NTSTATUS WaitChainCallbackThread(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PWCT_CONTEXT context = (PWCT_CONTEXT)Parameter;  
+    PWCT_CONTEXT context = (PWCT_CONTEXT)Parameter;
 
     if (!WaitChainRegisterCallbacks(context))
         return NTSTATUS_FROM_WIN32(GetLastError());
@@ -159,7 +159,7 @@ static NTSTATUS WaitChainCallbackThread(
         return NTSTATUS_FROM_WIN32(GetLastError());
 
     if (context->IsProcessItem)
-    {  
+    {
         PVOID processes = NULL;
         PSYSTEM_PROCESS_INFORMATION process = NULL;
 
@@ -173,7 +173,7 @@ static NTSTATUS WaitChainCallbackThread(
             if (process->UniqueProcessId == context->ProcessItem->ProcessId)
             {
                 for (ULONG i = 0; i < process->NumberOfThreads; i++)
-                {   
+                {
                     WaitChainCheckThread(context, process->Threads[i].ClientId.UniqueThread);
                 }
             }
@@ -237,14 +237,14 @@ static INT_PTR CALLBACK WaitChainDlgProc(
             HANDLE threadHandle = NULL;
 
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_CUSTOM1);
-            
+
             PhRegisterDialog(hwndDlg);
             WtcInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
-         
+
             if (threadHandle = PhCreateThread(0, WaitChainCallbackThread, (PVOID)context))
                 NtClose(threadHandle);
         }
@@ -276,7 +276,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
                         menu = LoadMenu(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAIN_MENU));
                         subMenu = GetSubMenu(menu, 0);
                         SetMenuDefaultItem(subMenu, ID_MENU_PROPERTIES, FALSE);
-                        
+
                         if (selectedNode->ThreadId > 0)
                         {
                             PhEnableMenuItem(subMenu, ID_MENU_GOTOTHREAD, TRUE);
@@ -301,7 +301,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
                         DestroyMenu(menu);
                     }
                 }
-                break;    
+                break;
             case ID_MENU_GOTOPROCESS:
                 {
                     PWCT_ROOT_NODE selectedNode = NULL;
@@ -310,7 +310,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
                         ULONG64 processId64;
-                 
+
                         if (!PhStringToInteger64(&selectedNode->ProcessIdString->sr, 10, &processId64))
                             break;
 
@@ -356,7 +356,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
                         }
                     }
                 }
-                break;    
+                break;
             case ID_MENU_COPY:
                 {
                     PPH_STRING text;
@@ -424,7 +424,7 @@ static VOID NTAPI ProcessMenuInitializingCallback(
 
     context = (PWCT_CONTEXT)PhAllocate(sizeof(WCT_CONTEXT));
     memset(context, 0, sizeof(WCT_CONTEXT));
- 
+
     context->IsProcessItem = TRUE;
     context->ProcessItem = processItem;
 
@@ -444,7 +444,7 @@ static VOID NTAPI ThreadMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
-{ 
+{
     PWCT_CONTEXT context = NULL;
     PPH_PLUGIN_MENU_INFORMATION menuInfo = NULL;
     PPH_THREAD_ITEM threadItem = NULL;
@@ -460,7 +460,7 @@ static VOID NTAPI ThreadMenuInitializingCallback(
 
     context = (PWCT_CONTEXT)PhAllocate(sizeof(WCT_CONTEXT));
     memset(context, 0, sizeof(WCT_CONTEXT));
-    
+
     context->IsProcessItem = FALSE;
     context->ThreadItem = threadItem;
 
@@ -497,7 +497,7 @@ LOGICAL DllMain(
             info->Author = L"dmex";
             info->Description = L"Plugin for Wait Chain analysis via right-click Miscellaneous > Wait Chain Traversal or individual threads via Process properties > Threads tab > Analyze > Wait Chain Traversal.";
             info->HasOptions = FALSE;
-                        
+
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,
@@ -519,7 +519,7 @@ LOGICAL DllMain(
 
             {
                 PH_SETTING_CREATE settings[] =
-                {           
+                {
                     { StringSettingType, SETTING_NAME_TREE_LIST_COLUMNS, L"" },
                     { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"100,100" },
                     { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"690,540" }

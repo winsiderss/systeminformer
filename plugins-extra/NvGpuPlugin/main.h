@@ -64,7 +64,7 @@ typedef struct _PH_NVGPU_SYSINFO_CONTEXT
     PPH_STRING GpuName;
     HWND WindowHandle;
     PPH_SYSINFO_SECTION Section;
-    PH_LAYOUT_MANAGER LayoutManager;   
+    PH_LAYOUT_MANAGER LayoutManager;
 
     RECT GpuGraphMargin;
     HWND GpuPanel;
