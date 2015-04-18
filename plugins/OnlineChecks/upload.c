@@ -1,4 +1,4 @@
-/*
+  /*
  * Process Hacker Online Checks -
  *   Uploader Window
  *
@@ -31,29 +31,34 @@ static SERVICE_INFO UploadServiceInfo[] =
 };
 
 static HFONT InitializeFont(
-    _In_ HWND hwndDlg
+    _In_ HWND hwnd
     )
 {
-    LOGFONT logFont = { 0 };
-    HFONT fontHandle = NULL;
+    HFONT fontHandle;
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
 
-    logFont.lfHeight = -15;
-    logFont.lfWeight = FW_MEDIUM;
-    logFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
-
-    wcscpy_s(logFont.lfFaceName, _countof(logFont.lfFaceName),
-        WindowsVersion > WINDOWS_XP ? L"Segoe UI" : L"MS Shell Dlg 2"
-        );
-
-    fontHandle = CreateFontIndirect(&logFont);
-
-    if (fontHandle)
+    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
     {
-        SendMessage(hwndDlg, WM_SETFONT, (WPARAM)fontHandle, FALSE);
-        return fontHandle;
+        metrics.lfMessageFont.lfHeight = -15;
+        //metrics.lfMessageFont.lfWeight = FW_MEDIUM;
+        //metrics.lfMessageFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+
+        fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+    }
+    else
+    {
+        LOGFONT font;
+
+        GetObject((HFONT)GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &font);
+
+        font.lfHeight = -15;
+
+        fontHandle = CreateFontIndirect(&font);
     }
 
-    return NULL;
+    SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
+
+    return fontHandle;
 }
 
 static BOOL ReadRequestString(
@@ -787,10 +792,21 @@ static NTSTATUS UploadCheckThreadStart(
 
         if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
         {
-            if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
+            if (context->Service == UPLOAD_SERVICE_VIRUSTOTAL)
+            {        
+                if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
+                {
+                    RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
+                    __leave;
+                }
+            }
+            else
             {
-                RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
-                __leave;
+                if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
+                {
+                    RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
+                    __leave;
+                }
             }
 
             context->TotalFileLength = fileSize64.LowPart;
