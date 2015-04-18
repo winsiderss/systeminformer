@@ -158,7 +158,7 @@ VOID WctAddChildWindowNode(
     )
 {
     PWCT_ROOT_NODE childNode = NULL;
-    
+
     childNode = WeAddWindowNode(Context);
 
     childNode->WctInfo = WctNode;
@@ -175,7 +175,7 @@ VOID WctAddChildWindowNode(
 
     if (WctNode.LockObject.Timeout.QuadPart > 0)
     {
-        SYSTEMTIME systemTime;  
+        SYSTEMTIME systemTime;
         PPH_STRING dateString = NULL;
         PPH_STRING timeString = NULL;
 
@@ -256,10 +256,10 @@ VOID WepDestroyWindowNode(
 {
     PhDereferenceObject(WindowNode->Children);
 
-    //if (WindowNode->TypeString) 
+    //if (WindowNode->TypeString)
     //    PhDereferenceObject(WindowNode->TypeString);
 
-    //if (WindowNode->ThreadString) 
+    //if (WindowNode->ThreadString)
     //    PhDereferenceObject(WindowNode->ThreadString);
 
     PhFree(WindowNode);
@@ -356,7 +356,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                         break;
                     case WctThreadType:
                         PhInitializeStringRef(&getCellText->Text, L"Thread");
-                        break;               
+                        break;
                     case WctThreadWaitType:
                         PhInitializeStringRef(&getCellText->Text, L"ThreadWait");
                         break;
@@ -439,15 +439,15 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                     }
                 }
                 break;
-            case TREE_COLUMN_ITEM_THREADID:       
+            case TREE_COLUMN_ITEM_THREADID:
                 {
                     if (node->WctInfo.ObjectType == WctThreadType)
                     {
                         getCellText->Text = PhGetStringRef(node->ThreadIdString);
                     }
-                } 
+                }
                 break;
-            case TREE_COLUMN_ITEM_WAITTIME:          
+            case TREE_COLUMN_ITEM_WAITTIME:
                 {
                     if (node->WctInfo.ObjectType == WctThreadType)
                     {
@@ -455,7 +455,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                     }
                 }
                 break;
-            case TREE_COLUMN_ITEM_CONTEXTSWITCH:          
+            case TREE_COLUMN_ITEM_CONTEXTSWITCH:
                 {
                     if (node->WctInfo.ObjectType == WctThreadType)
                     {
@@ -500,7 +500,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WCTSHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
         }
-        return TRUE;   
+        return TRUE;
     case TreeNewHeaderRightClick:
         {
             PH_TN_COLUMN_MENU_DATA data;

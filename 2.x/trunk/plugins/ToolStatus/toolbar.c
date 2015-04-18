@@ -77,7 +77,7 @@ VOID RebarBandRemove(
     )
 {
     INT index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
-    
+
     if (index == -1)
         return;
 
@@ -124,17 +124,17 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));  
+            PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
         }
 
-        if (cogIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))  
+        if (cogIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))
         {
             ImageList_Replace(ToolBarImageList, 1, cogIconBitmap, NULL);
             DeleteObject(cogIconBitmap);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));  
+            PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
         }
 
         if (findIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
@@ -185,7 +185,7 @@ static VOID RebarLoadSettings(
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
-        }       
+        }
 
         if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
         {
@@ -208,7 +208,7 @@ static VOID RebarLoadSettings(
             0,
             REBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, // CCS_NOPARENTALIGN | RBS_FIXEDORDER 
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, // CCS_NOPARENTALIGN | RBS_FIXEDORDER
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             NULL,
@@ -233,8 +233,8 @@ static VOID RebarLoadSettings(
             );
 
         // Manually add button strings via TB_ADDSTRING.
-        // NOTE: The Toolbar will sometimes decide to free strings hard-coded via (INT_PTR)L"String" 
-        //       in the ToolbarButtons array causing random crashes unless we manually add the strings 
+        // NOTE: The Toolbar will sometimes decide to free strings hard-coded via (INT_PTR)L"String"
+        //       in the ToolbarButtons array causing random crashes unless we manually add the strings
         //       into the Toolbar string pool (this bug only affects 64bit Windows)... WTF???
         ToolbarButtons[0].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Refresh");
         ToolbarButtons[1].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Options");
@@ -257,7 +257,7 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SAVERESTORE, FALSE, (LPARAM)&ToolbarSaveParams);
 
         // Enable theming:
-        //SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help   
+        //SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
         //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
         // HACK: Query the toolbar width/height.
@@ -268,7 +268,7 @@ static VOID RebarLoadSettings(
 
         ToolbarInitialized = TRUE;
     }
-    
+
     // Initialize the Searchbox and TreeNewFilters.
     if (EnableSearchBox && !SearchboxHandle)
     {
@@ -298,7 +298,7 @@ static VOID RebarLoadSettings(
             NULL
             );
     }
-  
+
     // Hide or show controls (Note: don't unload or remove at runtime).
     if (EnableToolBar)
     {
@@ -323,7 +323,7 @@ static VOID RebarLoadSettings(
     else
     {
         // Remove the Searchbox band from the rebar control.
-        if (RebarBandExists(BandID_SearchBox))   
+        if (RebarBandExists(BandID_SearchBox))
             RebarBandRemove(BandID_SearchBox);
 
         if (SearchboxHandle)
@@ -338,12 +338,12 @@ static VOID RebarLoadSettings(
     }
 
     if (EnableStatusBar)
-    {  
+    {
         if (StatusBarHandle && !IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_SHOW);
     }
     else
-    {        
+    {
         if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
@@ -387,7 +387,7 @@ VOID LoadToolbarSettings(
                 BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
 
                 // Set the pressed state
-                if (isAlwaysOnTopEnabled)  
+                if (isAlwaysOnTopEnabled)
                 {
                     button.fsState |= TBSTATE_PRESSED;
                 }
@@ -422,9 +422,9 @@ VOID LoadToolbarSettings(
             // Set updated button info
             SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&button);
         }
-       
+
         // Resize the toolbar
-        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);    
+        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
         //InvalidateRect(ToolBarHandle, NULL, TRUE);
     }
 
@@ -434,7 +434,7 @@ VOID LoadToolbarSettings(
         ULONG buttonCount = 0;
 
         buttonCount = (ULONG)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
-        
+
         for (index = 0; index < buttonCount; index++)
         {
             REBARBANDINFO band = { sizeof(REBARBANDINFO) };
@@ -457,7 +457,7 @@ VOID LoadToolbarSettings(
 
                 SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&band);
             }
-        } 
+        }
     }
 
     // Invoke the LayoutPaddingCallback.

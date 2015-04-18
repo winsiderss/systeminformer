@@ -23,8 +23,8 @@
 #include "main.h"
 
 static PPH_LIST ProcessHighlightList = NULL;
-static COLORREF ProcessCustomColors[16] = 
-{ 
+static COLORREF ProcessCustomColors[16] =
+{
     RGB(255, 255, 255),
     RGB(255, 255, 255),
     RGB(255, 255, 255),
@@ -102,7 +102,7 @@ static VOID LoadColorList(
 }
 
 static PPH_STRING SaveColorList(
-    _Inout_ PPH_LIST ColorList                                          
+    _Inout_ PPH_LIST ColorList
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -112,7 +112,7 @@ static PPH_STRING SaveColorList(
     for (SIZE_T i = 0; i < ColorList->Count; i++)
     {
         PITEM_COLOR colorEntry = (PITEM_COLOR)ColorList->Items[i];
-        
+
         PhAppendFormatStringBuilder(
             &stringBuilder,
             L"%s,%u,",
@@ -120,7 +120,7 @@ static PPH_STRING SaveColorList(
             colorEntry->BackColor
             );
     }
-        
+
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
@@ -162,7 +162,7 @@ static PPH_STRING SaveCustomColors(
 
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
-   
+
     //PhDeleteStringBuilder(&stringBuilder);
 
     return PhFinalStringBuilderString(&stringBuilder);
@@ -444,7 +444,7 @@ LOGICAL DllMain(
                 LoadCallback,
                 NULL,
                 &PluginLoadCallbackRegistration
-                );      
+                );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
                 UnloadCallback,

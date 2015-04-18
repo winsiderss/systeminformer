@@ -343,7 +343,7 @@ static VOID ShowStatusMenu(
 
                             if (!NT_SUCCESS(PhQueryAtomTableEntry(atomTable->Atoms[i], &atomInfo)))
                                 continue;
-                            
+
                             if (!PhEqualStringZ(atomInfo->Name, cacheEntryName->Buffer, TRUE))
                                 continue;
 

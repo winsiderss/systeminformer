@@ -23,7 +23,7 @@ void growl_tcp_write_raw( SOCKET sock, const unsigned char * data, const int dat
     send(sock, data, data_length, 0);
 }
 
-void growl_tcp_write( SOCKET sock , const char *const format , ... ) 
+void growl_tcp_write( SOCKET sock , const char *const format , ... )
 {
     int length;
     char *output;
@@ -131,7 +131,7 @@ int growl_tcp_parse_hostname( const char *const server , int default_port , stru
         port++;
         default_port = atoi(port);
     }
-    
+
     host_ent = gethostbyname(hostname);
     if( host_ent == NULL )
     {
@@ -139,12 +139,12 @@ int growl_tcp_parse_hostname( const char *const server , int default_port , stru
         PhFree(hostname);
         return -1;
     }
-    
+
     memset( sockaddr , 0 , sizeof(sockaddr) );
     sockaddr->sin_family = AF_INET;
     memcpy( &sockaddr->sin_addr , host_ent->h_addr , host_ent->h_length );
     sockaddr->sin_port = htons(default_port);
-     
+
     PhFree(hostname);
     return 0;
 }
@@ -159,13 +159,13 @@ int growl_tcp_datagram( const char *server , const unsigned char *data , const i
     {
         return -1;
     }
-    
+
     sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if( sock == INVALID_SOCKET )
     {
         return -1;
     }
-    
+
     if( sendto(sock, (char*)data , data_length , 0 , (struct sockaddr*)&serv_addr , sizeof(serv_addr) ) > 0 )
     {
         result = 0;

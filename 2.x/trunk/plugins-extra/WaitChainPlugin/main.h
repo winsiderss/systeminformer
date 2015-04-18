@@ -40,19 +40,19 @@ typedef struct _WCT_CONTEXT
 {
     HWND DialogHandle;
     HWND TreeNewHandle;
-    
+
     HWND HighlightingWindow;
     ULONG HighlightingWindowCount;
     WCT_TREE_CONTEXT TreeContext;
     PH_LAYOUT_MANAGER LayoutManager;
-        
+
     BOOLEAN IsProcessItem;
     PPH_THREAD_ITEM ThreadItem;
     PPH_PROCESS_ITEM ProcessItem;
 
     HWCT WctSessionHandle;
     HMODULE Ole32ModuleHandle;
-} WCT_CONTEXT, *PWCT_CONTEXT;    
+} WCT_CONTEXT, *PWCT_CONTEXT;
 
 BOOLEAN WaitChainRegisterCallbacks(
     _Inout_ PWCT_CONTEXT Context

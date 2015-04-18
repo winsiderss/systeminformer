@@ -184,7 +184,7 @@ HWND CreateSearchControl(
 
 typedef struct _EDIT_CONTEXT
 {
-    UINT CommandID;  
+    UINT CommandID;
     INT CXBorder;
     //INT CYBorder;
     INT ImageWidth;

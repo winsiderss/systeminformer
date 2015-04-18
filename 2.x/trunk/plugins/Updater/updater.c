@@ -566,7 +566,7 @@ static NTSTATUS UpdateCheckThread(
     ULONGLONG latestVersion = 0;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
-    
+
     // Check if we have cached update data
     if (!context->HaveData)
         context->HaveData = QueryUpdateData(context);
@@ -684,8 +684,8 @@ static NTSTATUS UpdateDownloadThread(
 
         if (!WinHttpCrackUrl(
             context->SetupFileDownloadUrl->Buffer,
-            (ULONG)context->SetupFileDownloadUrl->Length, 
-            0, 
+            (ULONG)context->SetupFileDownloadUrl->Length,
+            0,
             &httpUrlComponents
             ))
         {
@@ -884,7 +884,7 @@ static NTSTATUS UpdateDownloadThread(
 
         if (httpConnectionHandle)
             WinHttpCloseHandle(httpConnectionHandle);
-               
+
         if (httpSessionHandle)
             WinHttpCloseHandle(httpSessionHandle);
 

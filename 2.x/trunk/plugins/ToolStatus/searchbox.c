@@ -209,7 +209,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     )
 {
     PEDIT_CONTEXT context;
-    
+
     context = (PEDIT_CONTEXT)GetProp(hwndDlg, L"EditSubclassContext");
 
     switch (uMsg)
@@ -231,12 +231,12 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_NCCALCSIZE:
         {
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
-            
+
             // Let Windows handle the non-client defaults.
             DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 
             // Deflate the client area to accommodate the custom button.
-            ncCalcSize->rgrc[0].right -= context->cxImgSize;                
+            ncCalcSize->rgrc[0].right -= context->cxImgSize;
         }
         return 0;
     case WM_NCPAINT:
@@ -250,7 +250,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             GetWindowRect(hwndDlg, &windowRect);
 
             // Adjust the coordinates (start from 0,0).
-            OffsetRect(&windowRect, -windowRect.left, -windowRect.top); 
+            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
             // Get the position of the inserted button.
             NcAreaGetButtonRect(context, &windowRect);
@@ -302,7 +302,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         }
         break;
     case WM_LBUTTONUP:
-        {           
+        {
             POINT windowPoint;
             RECT windowRect;
 
@@ -314,7 +314,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             GetWindowRect(hwndDlg, &windowRect);
 
             // Adjust the coordinates (start from 0,0).
-            OffsetRect(&windowRect, -windowRect.left, -windowRect.top); 
+            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
             // Get the position of the inserted button.
             NcAreaGetButtonRect(context, &windowRect);
@@ -535,7 +535,7 @@ HWND CreateSearchControl(
 
     context->cxImgSize = 22; // GetSystemMetrics(SM_CXVSCROLL);
     context->CommandID = CommandID;
-    
+
     // Create the SearchBox window.
     context->WindowHandle = CreateWindowEx(
         WS_EX_CLIENTEDGE,
@@ -548,7 +548,7 @@ HWND CreateSearchControl(
         (HINSTANCE)PluginInstance->DllBase,
         NULL
         );
- 
+
     NcAreaInitializeTheme(context);
     NcAreaInitializeImageList(context);
 

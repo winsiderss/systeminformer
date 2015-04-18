@@ -166,7 +166,7 @@ static BOOLEAN PerformSubRequest(
             RaiseUploadError(Context, L"Unable to connect to the service", GetLastError());
             __leave;
         }
-        
+
         // Create the request.
         if (!(requestHandle = WinHttpOpenRequest(
             connectHandle,
@@ -326,10 +326,10 @@ static NTSTATUS HashFileAndResetPosition(
 
         positionInfo.CurrentByteOffset.QuadPart = 0;
         status = NtSetInformationFile(
-            FileHandle, 
-            &iosb, 
-            &positionInfo, 
-            sizeof(FILE_POSITION_INFORMATION), 
+            FileHandle,
+            &iosb,
+            &positionInfo,
+            sizeof(FILE_POSITION_INFORMATION),
             FilePositionInformation
             );
     }
@@ -349,12 +349,12 @@ static NTSTATUS UploadFileThreadStart(
     ULONG totalUploadedLength = 0;
     ULONG totalPostHeaderWritten = 0;
     ULONG totalPostFooterWritten = 0;
-    ULONG totalWriteLength = 0;  
+    ULONG totalWriteLength = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
     ULONG64 timeBitsPerSecond = 0;
-   
+
     HANDLE fileHandle;
     IO_STATUS_BLOCK isb;
     PSERVICE_INFO serviceInfo = NULL;
@@ -726,8 +726,8 @@ static NTSTATUS UploadFileThreadStart(
         if (ansiPostData)
         {
             PhDereferenceObject(ansiPostData);
-        }        
-        
+        }
+
         if (httpPostFooter.String)
         {
             PhDeleteStringBuilder(&httpPostFooter);
@@ -757,8 +757,8 @@ static NTSTATUS UploadCheckThreadStart(
     PSTR subRequestBuffer = NULL;
     HINTERNET connectHandle = NULL;
     HINTERNET requestHandle = NULL;
-    PSERVICE_INFO serviceInfo = NULL;           
-    PPH_STRING hashString = NULL;     
+    PSERVICE_INFO serviceInfo = NULL;
+    PPH_STRING hashString = NULL;
     PPH_STRING subObjectName = NULL;
     HANDLE fileHandle;
 
@@ -928,7 +928,7 @@ static NTSTATUS UploadCheckThreadStart(
                 }
 
                 hashString = PhBufferToHexString(hash, 32);
-                subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);        
+                subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);
                 context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
 
                 // Connect to the CIMA online service.
@@ -967,7 +967,7 @@ static NTSTATUS UploadCheckThreadStart(
 
                 // Wait for the send request to complete and recieve the response.
                 if (!WinHttpReceiveResponse(requestHandle, NULL))
-                {        
+                {
                     RaiseUploadError(context, L"Unable to recieve the CIMA response", GetLastError());
                     __leave;
                 }
@@ -1076,7 +1076,7 @@ static INT_PTR CALLBACK UploadDlgProc(
             HWND parentWindow = GetParent(hwndDlg);
 
             PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
-            
+
             context->DialogHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS1);
@@ -1173,17 +1173,17 @@ static INT_PTR CALLBACK UploadDlgProc(
 
             // set window background color.
             return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
-        }       
+        }
         break;
     case UM_EXISTS:
         {
             context->UploadServiceState = PhUploadServiceViewReport;
-      
+
             Static_SetText(GetDlgItem(hwndDlg, IDNO), L"No");
             Control_Visible(GetDlgItem(hwndDlg, IDYES), TRUE);
 
             Static_SetText(context->MessageHandle, L"File already analysed.");
-            Static_SetText(context->StatusHandle, L"View existing report?"); 
+            Static_SetText(context->StatusHandle, L"View existing report?");
         }
         break;
     case UM_LAUNCH:
@@ -1212,8 +1212,8 @@ static INT_PTR CALLBACK UploadDlgProc(
             else
             {
                 Static_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), L"Error");
-            }  
-            
+            }
+
             Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS), L"");
             Static_SetText(GetDlgItem(hwndDlg, IDNO), L"Close");
         }
@@ -1262,7 +1262,7 @@ static NTSTATUS PhUploadToDialogThreadStart(
 
     PhDeleteAutoPool(&autoPool);
     DestroyWindow(dialogHandle);
-    
+
     return STATUS_SUCCESS;
 }
 
@@ -1273,7 +1273,7 @@ VOID UploadToOnlineService(
 {
     HANDLE dialogThread = NULL;
     PUPLOAD_CONTEXT context;
-    
+
     context = (PUPLOAD_CONTEXT)PhAllocate(sizeof(UPLOAD_CONTEXT));
     memset(context, 0, sizeof(UPLOAD_CONTEXT));
 

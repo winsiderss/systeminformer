@@ -299,7 +299,7 @@ NTSTATUS KphTerminateThreadByPointerInternal(
     {
         NTSTATUS status;
         ULONG directTerminate;
-        
+
         dprintf("Calling 8-style PspTerminateThreadByPointer\n");
         directTerminate = Thread == PsGetCurrentThread();
 
