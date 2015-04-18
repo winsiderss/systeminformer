@@ -160,10 +160,21 @@ static VOID AddNetworkAdapterToListView(
     {
         PPH_NETADAPTER_ENTRY currentEntry = (PPH_NETADAPTER_ENTRY)Context->NetworkAdaptersListEdited->Items[i];
 
-        if (entry->InterfaceIndex == currentEntry->InterfaceIndex)
+        if (WindowsVersion > WINDOWS_XP)
         {
-            ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK); 
-            break;
+            if (entry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
+            {
+                ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+                break;
+            }
+        }
+        else
+        {
+            if (entry->InterfaceIndex == currentEntry->InterfaceIndex)
+            {
+                ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+                break;
+            }
         }
     }
 }
@@ -194,6 +205,7 @@ static VOID FindNetworkAdapters(
 
             while (addressesBuffer)
             {
+                //if (addressesBuffer->IfType != IF_TYPE_SOFTWARE_LOOPBACK)
                 AddNetworkAdapterToListView(Context, addressesBuffer);
                 addressesBuffer = addressesBuffer->Next;
             }
