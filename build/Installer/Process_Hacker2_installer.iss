@@ -231,7 +231,7 @@ Type: dirifempty; Name: {app}\plugins
 
 
 [Run]
-Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent runascurrentuser
+Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent
 Filename: {app}\CHANGELOG.txt;                   Description: {cm:run_ViewChangelog};              Flags: nowait postinstall skipifsilent unchecked shellexec
 Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite};               Flags: nowait postinstall skipifsilent unchecked shellexec
 
