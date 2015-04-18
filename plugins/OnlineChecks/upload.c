@@ -3,7 +3,7 @@
  *   Uploader Window
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2014 dmex
+ * Copyright (C) 2012-2015 dmex
  *
  * This file is part of Process Hacker.
  *
