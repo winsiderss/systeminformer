@@ -115,9 +115,9 @@ typedef enum _NV_COOLER_ACTIVITY_LEVEL
 // rev
 typedef struct _NV_GPU_COOLER_SETTINGS
 {
-    NvU32 version;                           // structure version 
+    NvU32 version;                           // structure version
     NvU32 count;                             // number of associated coolers with the selected GPU
-    struct 
+    struct
     {
         NV_COOLER_TYPE type;                 // type of cooler - FAN, WATER, LIQUID_NO2...
         NV_COOLER_CONTROLLER controller;     // internal, ADI...
@@ -139,8 +139,8 @@ typedef struct _NV_GPU_COOLER_SETTINGS
 // rev
 typedef struct _NV_GPU_SETCOOLER_LEVEL
 {
-    NvU32 version;                       //structure version 
-    struct 
+    NvU32 version;                       //structure version
+    struct
     {
         NvU32 currentLevel;              // the new value % of the cooler
         NV_COOLER_POLICY currentPolicy;  // the new cooler control policy - auto-perf, auto-thermal, manual, hybrid...
@@ -154,7 +154,7 @@ typedef struct _NV_GPU_COOLER_POLICY_TABLE
 {
     NvU32 version;                   //structure version
     NV_COOLER_POLICY policy;         //selected policy to update the cooler levels for, example NVAPI_COOLER_POLICY_PERF
-    struct 
+    struct
     {
         NvU32 levelId;      // level indicator for a policy
         NvU32 currentLevel; // new cooler level for the selected policy level indicator.
@@ -170,11 +170,11 @@ typedef struct _NV_GPU_COOLER_POLICY_TABLE
 //
 // DESCRIPTION:     Retrieves the cooler information of all coolers or a specific cooler associated with the selected GPU.
 //                  Coolers are indexed 0 to NVAPI_MAX_COOLERS_PER_GPU-1.
-//                  To retrieve specific cooler info set the coolerIndex to the appropriate cooler index. 
-//                  To retrieve info for all cooler set coolerIndex to NVAPI_COOLER_TARGET_ALL. 
+//                  To retrieve specific cooler info set the coolerIndex to the appropriate cooler index.
+//                  To retrieve info for all cooler set coolerIndex to NVAPI_COOLER_TARGET_ALL.
 //
 // PARAMETERS :     hPhysicalGPU(IN) - GPU selection.
-//                  coolerIndex(IN)  - Explict cooler index selection. 
+//                  coolerIndex(IN)  - Explict cooler index selection.
 //                  pCoolerInfo(OUT) - Array of cooler settings.
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,12 +186,12 @@ _NvAPI_GPU_GetCoolerSettings NvAPI_GPU_GetCoolerSettings;
 // FUNCTION NAME:   NvAPI_GPU_SetCoolerLevels
 //
 // DESCRIPTION:     Set the cooler levels for all coolers or a specific cooler associated with the selected GPU.
-//                  Coolers are indexed 0 to NVAPI_MAX_COOLERS_PER_GPU-1. Every cooler level with non-zero currentpolicy gets applied.           
-//                  The new level should be in the range of minlevel and maxlevel retrieved from GetCoolerSettings API or between 
+//                  Coolers are indexed 0 to NVAPI_MAX_COOLERS_PER_GPU-1. Every cooler level with non-zero currentpolicy gets applied.
+//                  The new level should be in the range of minlevel and maxlevel retrieved from GetCoolerSettings API or between
 //                  and NVAPI_MIN_COOLER_LEVEL to MAX_COOLER_LEVEL.
-//                  To set level for a specific cooler set the coolerIndex to the appropriate cooler index. 
-//                  To set level for all coolers set coolerIndex to NVAPI_COOLER_TARGET_ALL. 
-// NOTE:            To lock the fan speed independent of the temperature or performance changes set the cooler currentPolicy to 
+//                  To set level for a specific cooler set the coolerIndex to the appropriate cooler index.
+//                  To set level for all coolers set coolerIndex to NVAPI_COOLER_TARGET_ALL.
+// NOTE:            To lock the fan speed independent of the temperature or performance changes set the cooler currentPolicy to
 //                  NVAPI_COOLER_POLICY_MANUAL else set it to the current policy retrieved from the GetCoolerSettings API.
 // PARAMETERS:      hPhysicalGPU(IN) - GPU selection.
 //                  coolerIndex(IN)  - Explict cooler index selection.
@@ -297,7 +297,7 @@ typedef struct _NV_VOLTAGE_DOMAINS
     struct
     {
         NV_GPU_PERF_VOLTAGE_INFO_DOMAIN_ID  domainId;       //!< ID of the voltage domain
-        NvU32                               mvolt;          //!< Voltage in mV  
+        NvU32                               mvolt;          //!< Voltage in mV
     } domain[NVAPI_MAX_GPU_PERF_VOLTAGES];
 } NV_VOLTAGE_DOMAINS;
 
@@ -319,7 +319,7 @@ typedef struct _NV_VOLTAGES_INFO
     struct
     {
         NvU32                               unknown2;
-        NvU32                               mvolt;          //!< Voltage in mV  
+        NvU32                               mvolt;          //!< Voltage in mV
     } info[128];
 } NV_VOLTAGES_INFO;
 
@@ -387,7 +387,7 @@ typedef struct _NV_ACTIVE_APP
     NvAPI_LongString                      processName;
 } NV_ACTIVE_APP;
 
-#define NV_ACTIVE_APPS_INFO_VER	  MAKE_NVAPI_VERSION(NV_ACTIVE_APP, 2)
+#define NV_ACTIVE_APPS_INFO_VER   MAKE_NVAPI_VERSION(NV_ACTIVE_APP, 2)
 
 // rev
 typedef NvAPI_Status(__cdecl *_NvAPI_GPU_QueryActiveApps)(_In_ NvPhysicalGpuHandle hPhysicalGPU, _Inout_ NV_ACTIVE_APP pActiveApps[NVAPI_MAX_PROCESSES], _Inout_ NvU32* pTotal);

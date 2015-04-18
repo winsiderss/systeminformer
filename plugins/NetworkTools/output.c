@@ -237,7 +237,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                         PhAppendStringBuilder(&receivedString, windowText);
 
                     PhAppendFormatStringBuilder(&receivedString, L"%s", convertedString.Buffer);
-                    
+
                     // Remove leading newlines.
                     if (receivedString.String->Length >= 2 * 2 &&
                         receivedString.String->Buffer[0] == '\r' &&
@@ -254,7 +254,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                         receivedString.String->Length / 2 - 1
                         );
                     SendMessage(context->OutputHandle, WM_VSCROLL, SB_BOTTOM, 0);
- 
+
                     PhDereferenceObject(windowText);
                     PhDeleteStringBuilder(&receivedString);
                     RtlFreeUnicodeString(&convertedString);
@@ -279,7 +279,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
                     PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
 
-                    // Convert carriage returns.                  
+                    // Convert carriage returns.
                     for (i = 0; i < convertedString.Length; i++)
                     {
                         if (convertedString.Buffer[i] == '\n')
@@ -292,7 +292,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                         }
                     }
 
-                    // Remove leading newlines.  
+                    // Remove leading newlines.
                     if (receivedString.String->Length >= 2 * 2 &&
                         receivedString.String->Buffer[0] == '\r' &&
                         receivedString.String->Buffer[1] == '\n')

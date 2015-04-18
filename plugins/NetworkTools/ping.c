@@ -212,8 +212,8 @@ static ULONG PhNetworkPingThreadStart(
                 //if (icmp6ReplyStruct->DataSize == icmpEchoBuffer->MaximumLength)
                 //{
                 //    icmpPacketSignature = (_memicmp(
-                //        icmpEchoBuffer->Buffer, 
-                //        icmp6ReplyStruct->Data, 
+                //        icmpEchoBuffer->Buffer,
+                //        icmp6ReplyStruct->Data,
                 //        icmp6ReplyStruct->DataSize
                 //        ) == 0);
                 //}
@@ -265,7 +265,7 @@ static ULONG PhNetworkPingThreadStart(
             //        NULL,
             //        icmpLocalAddr,
             //        icmpRemoteAddr,
-            //        icmpEchoBuffer->Buffer, 
+            //        icmpEchoBuffer->Buffer,
             //        icmpEchoBuffer->MaximumLength,
             //        &pingOptions,
             //        icmpReplyBuffer,

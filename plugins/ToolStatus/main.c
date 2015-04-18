@@ -102,10 +102,10 @@ static VOID NTAPI LayoutPaddingCallback(
         RECT rebarRect;
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
-        
+
         GetClientRect(RebarHandle, &rebarRect);
-          
-        // Adjust the PH client area and exclude the rebar width. 
+
+        // Adjust the PH client area and exclude the rebar width.
         data->Padding.top += rebarRect.bottom;
 
 #ifdef _REBAR_LOCATION_
@@ -148,12 +148,12 @@ static VOID NTAPI LayoutPaddingCallback(
             break;
         }
 
-        MoveWindow(RebarHandle, x, y, cx, cy, TRUE);  
+        MoveWindow(RebarHandle, x, y, cx, cy, TRUE);
 #endif
 
         if (WindowsVersion >= WINDOWS_VISTA && SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
         {
-            static BOOLEAN isSearchboxVisible = FALSE;  
+            static BOOLEAN isSearchboxVisible = FALSE;
             SIZE idealWidth;
 
             // Query the the Toolbar ideal width
@@ -174,8 +174,8 @@ static VOID NTAPI LayoutPaddingCallback(
             else
             {
                 if (!isSearchboxVisible)
-                { 
-                    if (RebarBandExists(BandID_SearchBox))   
+                {
+                    if (RebarBandExists(BandID_SearchBox))
                         RebarBandRemove(BandID_SearchBox);
 
                     //SendMessage(RebarHandle, RB_SHOWBAND, (WPARAM)index, (LPARAM)FALSE);
@@ -322,7 +322,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 }
                 break;
             case ID_SEARCH_CLEAR:
-                {            
+                {
                     if (EnableToolBar && EnableSearchBox)
                     {
                         SetFocus(SearchboxHandle);
@@ -368,7 +368,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     RECT toolbarRect;
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM selectedItem;
-                 
+
                     rebar = (LPNMREBARCHEVRON)lParam;
                     menu = PhCreateEMenu();
 
@@ -388,7 +388,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         if (buttonRect.right < toolbarRect.right)
                             continue;
-                     
+
                         // Get settings for first button
                         if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
                             break;
@@ -403,9 +403,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         {
                             HICON menuIcon;
                             PPH_EMENU_ITEM menuItem;
-                            
+
                             menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
-                            
+
                             if (WindowsVersion >= WINDOWS_VISTA)
                             {
                                 menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL);
@@ -451,7 +451,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     {
                         SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
                     }
-                  
+
                     PhDestroyEMenu(menu);
                 }
 
@@ -524,7 +524,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 case TBN_RESET:
                     {
                         ResetToolbarSettings();
-                        
+
                         // Re-load the original button settings.
                         LoadToolbarSettings();
 
@@ -732,8 +732,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
             }
         }
         break;
-    case WM_SIZE:           
-        // Resize PH main window client-area. 
+    case WM_SIZE:
+        // Resize PH main window client-area.
         ProcessHacker_InvalidateLayoutPadding(hWnd);
         break;
     case WM_SETTINGCHANGE:

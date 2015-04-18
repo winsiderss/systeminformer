@@ -29,7 +29,7 @@ static BOOLEAN WordMatchStringRef(
 {
     PH_STRINGREF part;
     PH_STRINGREF remainingPart;
- 
+
     remainingPart = SearchboxText->sr;
 
     while (remainingPart.Length != 0)

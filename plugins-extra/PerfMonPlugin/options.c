@@ -28,7 +28,7 @@ VOID LoadCounterList(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    PPH_PERFMON_ENTRY entry = NULL; 
+    PPH_PERFMON_ENTRY entry = NULL;
 
     PH_STRINGREF part;
     PH_STRINGREF remaining = String->sr;
@@ -37,33 +37,33 @@ VOID LoadCounterList(
     {
         entry = (PPH_PERFMON_ENTRY)PhAllocate(sizeof(PH_PERFMON_ENTRY));
         memset(entry, 0, sizeof(PH_PERFMON_ENTRY));
-       
+
         PhInitializeStringBuilder(&stringBuilder, 20);
         PhSplitStringRefAtChar(&remaining, ',', &part, &remaining);
 
         for (SIZE_T i = 0; i < part.Length / sizeof(WCHAR); i++)
         {
-            if (part.Buffer[i] == '\\') 
+            if (part.Buffer[i] == '\\')
             {
                 if (i != part.Length - 1)
                 {
                     i++;
                     PhAppendCharStringBuilder(&stringBuilder, part.Buffer[i]);
-                } 
+                }
                 else
                 {
                     // Unescape backslashes - Just ignore chars.
                     break;
                 }
             }
-            else 
+            else
             {
                 PhAppendCharStringBuilder(&stringBuilder, part.Buffer[i]);
             }
         }
 
         entry->Name = PhCreateString(stringBuilder.String->Buffer);
-        
+
         PhDeleteStringBuilder(&stringBuilder);
 
         PhAddItemList(FilterList, entry);
@@ -128,7 +128,7 @@ static PPH_STRING SaveCounterList(
     for (SIZE_T i = 0; i < FilterList->Count; i++)
     {
         PPH_PERFMON_ENTRY entry = (PPH_PERFMON_ENTRY)FilterList->Items[i];
-        
+
         SIZE_T length = entry->Name->Length / 2;
 
         for (SIZE_T ii = 0; ii < length; ii++)
@@ -179,15 +179,15 @@ static VOID LoadCountersToListView(
     _In_ PPH_PERFMON_CONTEXT Context,
     _In_ PPH_LIST Source
     )
-{ 
+{
     for (ULONG i = 0; i < Source->Count; i++)
     {
         PPH_PERFMON_ENTRY entry = (PPH_PERFMON_ENTRY)Source->Items[i];
-            
+
         PhAddListViewItem(
-            Context->ListViewHandle, 
-            MAXINT, 
-            entry->Name->Buffer, 
+            Context->ListViewHandle,
+            MAXINT,
+            entry->Name->Buffer,
             entry
             );
     }
@@ -224,7 +224,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
             string = SaveCounterList(CountersList);
             PhSetStringSetting2(SETTING_NAME_PERFMON_LIST, &string->sr);
             PhDereferenceObject(string);
-            
+
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
         }
@@ -281,7 +281,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
 
                     __try
                     {
-                        // Display the counter browser window. 
+                        // Display the counter browser window.
                         if ((counterStatus = PdhBrowseCounters(&browseConfig)) != ERROR_SUCCESS)
                         {
                             if (counterStatus != PDH_DIALOG_CANCELLED)

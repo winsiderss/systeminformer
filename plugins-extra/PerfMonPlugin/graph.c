@@ -55,7 +55,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
-{ 
+{
     PPH_PERFMON_SYSINFO_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
@@ -69,7 +69,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
         context = (PPH_PERFMON_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
-        {      
+        {
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhDeleteGraphState(&context->GraphState);
@@ -92,7 +92,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
         {
             PPH_LAYOUT_ITEM panelItem;
 
-            context->WindowHandle = hwndDlg; 
+            context->WindowHandle = hwndDlg;
 
             // Create the graph control.
             context->GraphHandle = CreateWindow(
@@ -114,12 +114,12 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COUNTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);      
+            panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_COUNTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetDlgItemText(hwndDlg, IDC_COUNTERNAME, context->SysinfoSection->Name.Buffer);
-                       
+
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 ProcessesUpdatedHandler,
@@ -138,7 +138,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
             NMHDR* header = (NMHDR*)lParam;
 
             if (header->hwndFrom == context->GraphHandle)
-            {  
+            {
                 switch (header->code)
                 {
                 case GCN_GETDRAWINFO:
@@ -162,7 +162,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                             for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 context->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->HistoryBuffer, i);
-                                
+
                                 if (context->GraphState.Data1[i] > maxGraphHeight)
                                     maxGraphHeight = context->GraphState.Data1[i];
                             }
@@ -274,16 +274,16 @@ static BOOLEAN PerfCounterSectionCallback(
         {
             ULONG counterType = 0;
             PDH_FMT_COUNTERVALUE displayValue = { 0 };
-            
+
             // TODO: Handle this on a different thread.
             PdhCollectQueryData(context->PerfQueryHandle);
 
             //PdhSetCounterScaleFactor(context->PerfCounterHandle, PDH_MAX_SCALE);
 
             PdhGetFormattedCounterValue(
-                context->PerfCounterHandle, 
-                PDH_FMT_LONG | PDH_FMT_NOSCALE | PDH_FMT_NOCAP100, 
-                &counterType, 
+                context->PerfCounterHandle,
+                PDH_FMT_LONG | PDH_FMT_NOSCALE | PDH_FMT_NOCAP100,
+                &counterType,
                 &displayValue
                 );
 
@@ -297,10 +297,10 @@ static BOOLEAN PerfCounterSectionCallback(
     case SysInfoCreateDialog:
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = (PPH_SYSINFO_CREATE_DIALOG)Parameter1;
-            
+
             createDialog->Instance = PluginInstance->DllBase;
             createDialog->Template = MAKEINTRESOURCE(IDD_PERFMON_DIALOG);
-            createDialog->DialogProc = PerfCounterDialogProc;  
+            createDialog->DialogProc = PerfCounterDialogProc;
             createDialog->Parameter = context;
         }
         return TRUE;
@@ -320,8 +320,8 @@ static BOOLEAN PerfCounterSectionCallback(
                 for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                 {
                     Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->HistoryBuffer, i);
-                    
-                    if (Section->GraphState.Data1[i] > maxGraphHeight)                   
+
+                    if (Section->GraphState.Data1[i] > maxGraphHeight)
                         maxGraphHeight = Section->GraphState.Data1[i];
                 }
 
@@ -339,14 +339,14 @@ static BOOLEAN PerfCounterSectionCallback(
     case SysInfoGraphGetTooltipText:
         {
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = (PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT)Parameter1;
-            
+
             ULONG counterValue = PhGetItemCircularBuffer_ULONG(
-                &context->HistoryBuffer, 
+                &context->HistoryBuffer,
                 getTooltipText->Index
                 );
 
             PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
-                L"%u\n%s", 
+                L"%u\n%s",
                 counterValue,
                 ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
@@ -358,7 +358,7 @@ static BOOLEAN PerfCounterSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
-            drawPanel->Title = PhCreateString(Section->Name.Buffer); 
+            drawPanel->Title = PhCreateString(Section->Name.Buffer);
             drawPanel->SubTitle = PhFormatString(
                 L"%u",
                 context->GraphValue
@@ -377,11 +377,11 @@ VOID PerfCounterSysInfoInitializing(
 {
     PH_SYSINFO_SECTION section;
     PPH_PERFMON_SYSINFO_CONTEXT context;
-    
+
     context = (PPH_PERFMON_SYSINFO_CONTEXT)PhAllocate(sizeof(PH_PERFMON_SYSINFO_CONTEXT));
     memset(context, 0, sizeof(PH_PERFMON_SYSINFO_CONTEXT));
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-    
+
     section.Context = context;
     section.Callback = PerfCounterSectionCallback;
 

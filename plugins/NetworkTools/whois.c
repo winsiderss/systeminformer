@@ -96,7 +96,7 @@ NTSTATUS NetworkWhoisThreadStart(
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     //4.4.3. IP Addresses and Networks
-    // https://www.arin.net/resources/whoisrws/whois_api.html   
+    // https://www.arin.net/resources/whoisrws/whois_api.html
     //TODO: use REF string from /rest/ip/ lookup for querying the IP network: "/rest/net/NET-74-125-0-0-1?showDetails=true"
     // or use CIDR string from /rest/ip/ lookup for querying the IP network: "/rest/cidr/216.34.181.0/24?showDetails=true
     //WinHttpAddRequestHeaders(requestHandle, L"application/arin.whoisrws-v1+xml", -1L, 0);

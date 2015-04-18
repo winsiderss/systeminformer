@@ -163,9 +163,9 @@ VOID DbgEventsCleanup(
 // Filter.c
 
 VOID AddFilterType(
-    _Inout_ PPH_DBGEVENTS_CONTEXT Context, 
-    _In_ FILTER_BY_TYPE Type, 
-    _In_ HANDLE ProcessID, 
+    _Inout_ PPH_DBGEVENTS_CONTEXT Context,
+    _In_ FILTER_BY_TYPE Type,
+    _In_ HANDLE ProcessID,
     _In_ PPH_STRING ProcessName
     );
 

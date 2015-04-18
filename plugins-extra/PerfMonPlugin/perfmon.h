@@ -52,8 +52,8 @@ typedef struct _PH_PERFMON_CONTEXT
 } PH_PERFMON_CONTEXT, *PPH_PERFMON_CONTEXT;
 
 typedef struct _PH_PERFMON_SYSINFO_CONTEXT
-{       
-    HQUERY PerfQueryHandle;       
+{
+    HQUERY PerfQueryHandle;
     HCOUNTER PerfCounterHandle;
 
     ULONG GraphValue;

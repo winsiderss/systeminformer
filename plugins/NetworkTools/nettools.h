@@ -50,9 +50,9 @@
 #define SETTING_NAME_PING_TIMEOUT (SETTING_PREFIX L".PingMaxTimeout")
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
-// The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure 
+// The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure
 //       + the number of bytes of data specified in the RequestSize parameter.
-// This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message) 
+// This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message)
 //       + space for an IO_STATUS_BLOCK structure.
 #define ICMP_BUFFER_SIZE(Length, Buffer) ((Length + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
 
@@ -99,7 +99,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     ULONG PingSentCount;
     ULONG PingRecvCount;
     ULONG PingLossCount;
-    
+
     PPH_NETWORK_ITEM NetworkItem;
     PH_IP_ADDRESS IpAddress;
     WCHAR IpAddressString[INET6_ADDRSTRLEN];
