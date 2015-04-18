@@ -42,7 +42,6 @@ static BOOLEAN NetworkAdapterQuerySupported(
 
     // https://msdn.microsoft.com/en-us/library/ff569642.aspx
     opcode = OID_GEN_SUPPORTED_LIST;
-    //opcode = OID_GEN_CO_SUPPORTED_LIST;
 
     // TODO: 4096 objects might be too small...
     ndisObjectIdentifiers = PhAllocate(sizeof(NDIS_OID) * PAGE_SIZE);
@@ -217,9 +216,6 @@ static NTSTATUS NetworkAdapterQueryStatistics(
 
     *Info = result;
 
-    //if (isb.Information != NDIS_SIZEOF_STATISTICS_INFO_REVISION_1)
-    //    return STATUS_INFO_LENGTH_MISMATCH;
-    
     return status;
 }
 
@@ -234,8 +230,7 @@ static NTSTATUS NetworkAdapterQueryLinkState(
     NDIS_LINK_STATE result;
 
     // https://msdn.microsoft.com/en-us/library/ff569595.aspx
-    opcode = OID_GEN_LINK_STATE;
-    //opcode = OID_GEN_MEDIA_CONNECT_STATUS;
+    opcode = OID_GEN_LINK_STATE; // OID_GEN_MEDIA_CONNECT_STATUS;
 
     memset(&result, 0, sizeof(NDIS_LINK_STATE));
     result.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
@@ -257,9 +252,6 @@ static NTSTATUS NetworkAdapterQueryLinkState(
 
     *State = result;
 
-    //if (isb.Information != NDIS_SIZEOF_LINK_STATE_REVISION_1)
-    //    return STATUS_INFO_LENGTH_MISMATCH;
-
     return status;
 }
 
@@ -271,6 +263,7 @@ static BOOLEAN NetworkAdapterQueryMediaType(
     IO_STATUS_BLOCK isb;
     NDIS_PHYSICAL_MEDIUM adapterMediaType = NdisPhysicalMediumUnspecified;
 
+    // https://msdn.microsoft.com/en-us/library/ff569622.aspx
     opcode = OID_GEN_PHYSICAL_MEDIUM_EX;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
@@ -292,7 +285,9 @@ static BOOLEAN NetworkAdapterQueryMediaType(
     if (Context->NdisAdapterType != NdisPhysicalMediumUnspecified)
         return TRUE;
 
+    // https://msdn.microsoft.com/en-us/library/ff569621.aspx
     opcode = OID_GEN_PHYSICAL_MEDIUM;
+    adapterMediaType = NdisPhysicalMediumUnspecified;
     memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
@@ -310,7 +305,7 @@ static BOOLEAN NetworkAdapterQueryMediaType(
     {
         Context->NdisAdapterType = adapterMediaType;
     }
-       
+
     if (Context->NdisAdapterType != NdisPhysicalMediumUnspecified)
         return TRUE;
 
@@ -329,7 +324,7 @@ static PPH_STRING NetworkAdapterQueryLinkSpeed(
     NDIS_CO_LINK_SPEED result;
 
     // https://msdn.microsoft.com/en-us/library/ff569593.aspx
-    opcode = OID_GEN_LINK_SPEED; // OID_GEN_CO_LINK_SPEED
+    opcode = OID_GEN_LINK_SPEED;
 
     memset(&result, 0, sizeof(NDIS_CO_LINK_SPEED));
 
@@ -379,30 +374,28 @@ static ULONG64 NetworkAdapterQueryValue(
     return 0;
 }
 
-
-
 static MIB_IF_ROW2 QueryInterfaceRowVista(
     _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
     )
-{    
+{
     MIB_IF_ROW2 interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
 
     interfaceRow.InterfaceLuid = Context->AdapterEntry->InterfaceLuid;
-    //interfaceRow.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
+    interfaceRow.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
 
     if (Context->GetIfEntry2_I)
     {
         Context->GetIfEntry2_I(&interfaceRow);
     }
 
-    //MIB_IPINTERFACE_ROW table;
-    //memset(&table, 0, sizeof(MIB_IPINTERFACE_ROW));
-    //table.Family = AF_INET;
-    //table.InterfaceLuid.Value = Context->AdapterEntry->InterfaceLuidValue;
-    //table.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
-    //GetIpInterfaceEntry(&table);
+    //MIB_IPINTERFACE_ROW interfaceTable;
+    //memset(&interfaceTable, 0, sizeof(MIB_IPINTERFACE_ROW));
+    //interfaceTable.Family = AF_INET;
+    //interfaceTable.InterfaceLuid.Value = Context->AdapterEntry->InterfaceLuidValue;
+    //interfaceTable.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
+    //GetIpInterfaceEntry(&interfaceTable);
 
     return interfaceRow;
 }
@@ -410,7 +403,7 @@ static MIB_IF_ROW2 QueryInterfaceRowVista(
 static MIB_IFROW QueryInterfaceRowXP(
     _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
     )
-{    
+{
     MIB_IFROW interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IFROW));
@@ -419,16 +412,14 @@ static MIB_IFROW QueryInterfaceRowXP(
 
     GetIfEntry(&interfaceRow);
 
-    //MIB_IPINTERFACE_ROW table;
-    //memset(&table, 0, sizeof(MIB_IPINTERFACE_ROW));
-    //table.Family = AF_INET;
-    //table.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
-    //GetIpInterfaceEntry(&table);
+    //MIB_IPINTERFACE_ROW interfaceTable;
+    //memset(&interfaceTable, 0, sizeof(MIB_IPINTERFACE_ROW));
+    //interfaceTable.Family = AF_INET;
+    //interfaceTable.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
+    //GetIpInterfaceEntry(&interfaceTable);
 
     return interfaceRow;
 }
-
-
 
 static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
@@ -474,21 +465,26 @@ static VOID NetAdapterUpdatePanel(
 
         if (NT_SUCCESS(NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats)))
         {
-            //if (interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV)
-            //if (interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT)
+            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
+                inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
+            else
+                inOctets = interfaceStats.ifHCInOctets;
 
-            inOctets = interfaceStats.ifHCInOctets;
-            outOctets = interfaceStats.ifHCOutOctets;
+            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
+                outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
+            else
+                outOctets = interfaceStats.ifHCOutOctets;
         }
         else
         {
-            // The above code should return statistics however some drivers bypassed Microsoft driver testing requirements...
-            //  NDIS handles these two OIDs for all miniport drivers reguardless.
-            inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV); // OID_GEN_RCV_OK
-            outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT); // OID_GEN_XMIT_OK
+            // Note: The above code fails for some drivers that don't implement statistics (even though statistics are mandatory).
+            // NDIS handles these two OIDs for all miniport drivers and we can use these for those special cases.
 
-            //NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_RCV_ERROR);
-            //NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_XMIT_ERROR);
+            // https://msdn.microsoft.com/en-us/library/ff569443.aspx
+            inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
+
+            // https://msdn.microsoft.com/en-us/library/ff569445.aspx
+            outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
         }
 
         if (NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
@@ -526,7 +522,6 @@ static VOID NetAdapterUpdatePanel(
             mediaState = MediaConnectStateDisconnected;
     }
 
-    
     if (linkSpeed)
     {
         SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, linkSpeed->Buffer);
@@ -581,7 +576,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhDeleteGraphState(&context->GraphState);
-                 
+
             if (context->GraphHandle)
                 DestroyWindow(context->GraphHandle);
 
@@ -637,7 +632,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             Graph_SetTooltip(context->GraphHandle, TRUE);
 
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
-                        
+
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 ProcessesUpdatedHandler,
@@ -769,6 +764,7 @@ static BOOLEAN NetAdapterSectionCallback(
         {
             if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
             {
+                // Create the handle to the network device
                 PhCreateFileWin32(
                     &context->DeviceHandle,
                     PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
@@ -781,8 +777,10 @@ static BOOLEAN NetAdapterSectionCallback(
 
                 if (context->DeviceHandle)
                 {
+                    // Check the network adapter supports the OIDs we're going to be using.
                     if (!NetworkAdapterQuerySupported(context->DeviceHandle))
-                    {       
+                    {
+                        // Device is faulty. Close the handle so we can fallback to GetIfEntry.
                         NtClose(context->DeviceHandle);
                         context->DeviceHandle = NULL;
                     }
@@ -821,10 +819,10 @@ static BOOLEAN NetAdapterSectionCallback(
         return TRUE;
     case SysInfoTick:
         {
-            ULONG64 networkInboundSpeed = 0;
-            ULONG64 networkOutboundSpeed = 0;
             ULONG64 networkInOctets = 0;
             ULONG64 networkOutOctets = 0;
+            ULONG64 networkRcvSpeed = 0;
+            ULONG64 networkXmitSpeed = 0;
             ULONG64 xmitLinkSpeed = 0;
             ULONG64 rcvLinkSpeed = 0;
 
@@ -835,20 +833,25 @@ static BOOLEAN NetAdapterSectionCallback(
 
                 if (NT_SUCCESS(NetworkAdapterQueryStatistics(context->DeviceHandle, &interfaceStats)))
                 {
-                    networkInboundSpeed = interfaceStats.ifHCInOctets - context->LastInboundValue;
-                    networkOutboundSpeed = interfaceStats.ifHCOutOctets - context->LastOutboundValue;
-                    networkInOctets = interfaceStats.ifHCInOctets;
-                    networkOutOctets = interfaceStats.ifHCOutOctets;
+                    if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
+                        networkInOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
+                    else
+                        networkInOctets = interfaceStats.ifHCInOctets;
+
+                    if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
+                        networkOutOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
+                    else
+                        networkOutOctets = interfaceStats.ifHCOutOctets;
+
+                    networkRcvSpeed = networkInOctets - context->LastInboundValue;
+                    networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
                 }
                 else
                 {
-                    ULONG64 inOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV); // OID_GEN_RCV_OK
-                    ULONG64 outOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT); // OID_GEN_XMIT_OK
-
-                    networkInboundSpeed = inOctets - context->LastInboundValue;
-                    networkOutboundSpeed = outOctets - context->LastOutboundValue;
-                    networkInOctets = inOctets;
-                    networkOutOctets = outOctets;
+                    networkInOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
+                    networkOutOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
+                    networkRcvSpeed = networkInOctets - context->LastInboundValue;
+                    networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
                 }
 
                 if (NT_SUCCESS(NetworkAdapterQueryLinkState(context, &interfaceState)))
@@ -872,10 +875,10 @@ static BOOLEAN NetAdapterSectionCallback(
 
                 interfaceRow = QueryInterfaceRowVista(context);
 
-                networkInboundSpeed = interfaceRow.InOctets - context->LastInboundValue;
-                networkOutboundSpeed = interfaceRow.OutOctets - context->LastOutboundValue;
                 networkInOctets = interfaceRow.InOctets;
                 networkOutOctets = interfaceRow.OutOctets;
+                networkRcvSpeed = networkInOctets - context->LastInboundValue;
+                networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
                 xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
                 rcvLinkSpeed = interfaceRow.ReceiveLinkSpeed;
 
@@ -894,10 +897,11 @@ static BOOLEAN NetAdapterSectionCallback(
 
                 interfaceRow = QueryInterfaceRowXP(context);
 
-                networkInboundSpeed = interfaceRow.dwInOctets - context->LastInboundValue;
-                networkOutboundSpeed = interfaceRow.dwOutOctets - context->LastOutboundValue;
                 networkInOctets = interfaceRow.dwInOctets;
                 networkOutOctets = interfaceRow.dwOutOctets;
+                networkRcvSpeed = networkInOctets - context->LastInboundValue;
+                networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
+
                 xmitLinkSpeed = interfaceRow.dwSpeed;
                 rcvLinkSpeed = interfaceRow.dwSpeed;
 
@@ -913,16 +917,16 @@ static BOOLEAN NetAdapterSectionCallback(
 
             if (!context->HaveFirstSample)
             {
-                networkInboundSpeed = 0;
-                networkOutboundSpeed = 0;
+                networkRcvSpeed = 0;
+                networkXmitSpeed = 0;
                 context->HaveFirstSample = TRUE;
             }
 
-            PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkInboundSpeed);
-            PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkOutboundSpeed);
+            PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkRcvSpeed);
+            PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkXmitSpeed);
 
-            context->InboundValue = networkInboundSpeed;
-            context->OutboundValue = networkOutboundSpeed;
+            context->InboundValue = networkRcvSpeed;
+            context->OutboundValue = networkXmitSpeed;
             context->LastInboundValue = networkInOctets;
             context->LastOutboundValue = networkOutOctets;
 
