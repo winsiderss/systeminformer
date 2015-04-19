@@ -841,8 +841,6 @@ FORCEINLINE BOOLEAN PhEqualStringZ(
     }
 }
 
-#define PH_STRING_MAXLEN MAXUINT16
-
 typedef struct _PH_STRINGREF
 {
     /** The length, in bytes, of the string. */

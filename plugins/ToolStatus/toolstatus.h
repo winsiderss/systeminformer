@@ -35,10 +35,11 @@
 #include <phappresource.h>
 #include <windowsx.h>
 #include <Wincodec.h>
+#include <toolstatusintf.h>
 
 #include "resource.h"
 
-#define SETTING_PREFIX L"ProcessHacker.ToolStatus"
+#define SETTING_PREFIX TOOLSTATUS_PLUGIN_NAME
 #define SETTING_NAME_ENABLE_TOOLBAR (SETTING_PREFIX L".EnableToolBar")
 #define SETTING_NAME_ENABLE_SEARCHBOX (SETTING_PREFIX L".EnableSearchBox")
 #define SETTING_NAME_ENABLE_STATUSBAR (SETTING_PREFIX L".EnableStatusBar")
@@ -163,6 +164,10 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+BOOLEAN WordMatchStringRef(
+    _In_ PPH_STRINGREF Text
     );
 
 BOOLEAN ProcessTreeFilterCallback(

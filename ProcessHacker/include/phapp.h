@@ -417,12 +417,14 @@ typedef struct _PH_TN_FILTER_ENTRY
     PVOID Context;
 } PH_TN_FILTER_ENTRY, *PPH_TN_FILTER_ENTRY;
 
+PHAPPAPI
 VOID PhInitializeTreeNewFilterSupport(
     _Out_ PPH_TN_FILTER_SUPPORT Support,
     _In_ HWND TreeNewHandle,
     _In_ PPH_LIST NodeList
     );
 
+PHAPPAPI
 VOID PhDeleteTreeNewFilterSupport(
     _In_ PPH_TN_FILTER_SUPPORT Support
     );
@@ -440,6 +442,7 @@ VOID PhRemoveTreeNewFilter(
     _In_ PPH_TN_FILTER_ENTRY Entry
     );
 
+PHAPPAPI
 BOOLEAN PhApplyTreeNewFiltersToNode(
     _In_ PPH_TN_FILTER_SUPPORT Support,
     _In_ PPH_TREENEW_NODE Node
