@@ -84,7 +84,6 @@
 #define IDB_BRICKS                      170
 #define IDB_APPLICATION                 171
 #define IDD_OPTADVANCED                 171
-#define IDI_BLACK                       172
 #define IDR_ICON                        173
 #define IDD_GDIHANDLES                  175
 #define IDD_LOG                         178

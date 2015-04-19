@@ -8,6 +8,7 @@ Process Hacker
  * FIXED:
    * Fixed touch scrolling
    * Fixed EtwRegistration object names for 64-bit Windows 8.1
+   * Fixed tray icons being clipped in high DPI environments
 
 2.33
  * NEW/IMPROVED:
