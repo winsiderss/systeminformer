@@ -143,4 +143,14 @@ VOID NTAPI EtpOnDiskItemsUpdated(
     _In_ PVOID Parameter
     );
 
+VOID NTAPI EtpSearchChangedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    );
+
 #endif

@@ -271,6 +271,7 @@ typedef struct _PH_PLUGIN_INFORMATION
     PWSTR Url;
     BOOLEAN HasOptions;
     BOOLEAN Reserved1[3];
+    PVOID Interface;
 } PH_PLUGIN_INFORMATION, *PPH_PLUGIN_INFORMATION;
 
 #define PH_PLUGIN_FLAG_RESERVED 0x1
@@ -304,6 +305,13 @@ PPH_PLUGIN
 NTAPI
 PhFindPlugin(
     _In_ PWSTR Name
+    );
+
+PHAPPAPI
+PPH_PLUGIN_INFORMATION
+NTAPI
+PhGetPluginInformation(
+    _In_ PPH_PLUGIN Plugin
     );
 
 PHAPPAPI

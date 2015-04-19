@@ -23,6 +23,15 @@
 
 #include "toolstatus.h"
 
+PPH_STRING GetSearchboxText(
+    VOID
+    );
+
+VOID RegisterTabSearch(
+    _In_ INT TabIndex,
+    _In_ PWSTR BannerText
+    );
+
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
@@ -34,10 +43,20 @@ HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
+PH_CALLBACK_DECLARE(SearchChangedEvent);
+PPH_HASHTABLE SearchBannerTextHashtable;
 PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry = NULL;
 PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry = NULL;
 PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry = NULL;
 PPH_PLUGIN PluginInstance = NULL;
+TOOLSTATUS_INTERFACE PluginInterface =
+{
+    TOOLSTATUS_INTERFACE_VERSION,
+    GetSearchboxText,
+    WordMatchStringRef,
+    RegisterTabSearch,
+    &SearchChangedEvent
+};
 
 static ULONG TargetingMode = 0;
 static BOOLEAN TargetingWindow = FALSE;
@@ -51,6 +70,13 @@ static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 
+static PPH_STRING GetSearchboxText(
+    VOID
+    )
+{
+    return SearchboxText;
+}
+
 static VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -60,6 +86,23 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
     if (EnableStatusBar)
         UpdateStatusBar();
+}
+
+static VOID RegisterTabSearch(
+    _In_ INT TabIndex,
+    _In_ PWSTR BannerText
+    )
+{
+    PPH_STRING bannerText = PhCreateString(BannerText);
+    PVOID *entry;
+
+    if (!PhAddItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)TabIndex, bannerText))
+    {
+        if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)TabIndex))
+            PhSwapReference2(entry, bannerText);
+        else
+            PhDereferenceObject(bannerText);
+    }
 }
 
 static VOID NTAPI TabPageUpdatedCallback(
@@ -84,8 +127,19 @@ static VOID NTAPI TabPageUpdatedCallback(
         Edit_SetCueBannerText(SearchboxHandle, L"Search Network (Ctrl+K)");
         break;
     default:
-        // Disable the textbox if we're on an unsupported tab.
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Disabled");
+        {
+            PVOID *entry;
+
+            if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)tabIndex))
+            {
+                Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(((PPH_STRING)*entry)->Buffer, L" (Ctrl+K)")->Buffer);
+            }
+            else
+            {
+                // Disable the textbox if we're on an unsupported tab.
+                Edit_SetCueBannerText(SearchboxHandle, L"Search Disabled");
+            }
+        }
         break;
     }
 }
@@ -289,6 +343,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
+                    PhInvokeCallback(&SearchChangedEvent, SearchboxText);
+
                     goto DefaultWndProc;
                 }
                 break;
@@ -826,6 +882,7 @@ LOGICAL DllMain(
             info->Description = L"Adds a toolbar and a status bar.";
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=1119";
             info->HasOptions = TRUE;
+            info->Interface = &PluginInterface;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
@@ -864,6 +921,8 @@ LOGICAL DllMain(
                 Instance,
                 MAKEINTRESOURCE(IDR_MAINWND_ACCEL)
                 );
+
+            SearchBannerTextHashtable = PhCreateSimpleHashtable(3);
         }
         break;
     }

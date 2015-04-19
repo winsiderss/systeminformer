@@ -484,6 +484,20 @@ PPH_PLUGIN PhFindPlugin(
 }
 
 /**
+ * Gets a pointer to a plugin's additional information block.
+ *
+ * \param Plugin The plugin instance structure.
+ *
+ * \return The plugin's additional information block.
+ */
+PPH_PLUGIN_INFORMATION PhGetPluginInformation(
+    _In_ PPH_PLUGIN Plugin
+    )
+{
+    return &Plugin->Information;
+}
+
+/**
  * Retrieves a pointer to a plugin callback.
  *
  * \param Plugin A plugin instance structure.

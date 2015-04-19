@@ -24,6 +24,7 @@
 #include "etwmon.h"
 #include "resource.h"
 #include <colmgr.h>
+#include <toolstatusintf.h>
 #include "disktabp.h"
 
 static BOOLEAN DiskTreeNewCreated = FALSE;
@@ -40,11 +41,25 @@ static PH_CALLBACK_REGISTRATION DiskItemRemovedRegistration;
 static PH_CALLBACK_REGISTRATION DiskItemsUpdatedRegistration;
 static BOOLEAN DiskNeedsRedraw = FALSE;
 
+static PH_TN_FILTER_SUPPORT FilterSupport;
+static PTOOLSTATUS_INTERFACE ToolStatusInterface;
+static PH_CALLBACK_REGISTRATION SearchChangedRegistration;
+
 VOID EtInitializeDiskTab(
     VOID
     )
 {
     PH_ADDITIONAL_TAB_PAGE tabPage;
+    PPH_ADDITIONAL_TAB_PAGE addedTabPage;
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
+    {
+        ToolStatusInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
+
+        if (ToolStatusInterface->Version < TOOLSTATUS_INTERFACE_VERSION)
+            ToolStatusInterface = NULL;
+    }
 
     memset(&tabPage, 0, sizeof(PH_ADDITIONAL_TAB_PAGE));
     tabPage.Text = L"Disk";
@@ -53,7 +68,12 @@ VOID EtInitializeDiskTab(
     tabPage.SelectionChangedCallback = EtpDiskTabSelectionChangedCallback;
     tabPage.SaveContentCallback = EtpDiskTabSaveContentCallback;
     tabPage.FontChangedCallback = EtpDiskTabFontChangedCallback;
-    ProcessHacker_AddTabPage(PhMainWndHandle, &tabPage);
+    addedTabPage = ProcessHacker_AddTabPage(PhMainWndHandle, &tabPage);
+
+    if (ToolStatusInterface)
+    {
+        ToolStatusInterface->RegisterTabSearch(addedTabPage->Index, L"Search Disk");
+    }
 }
 
 HWND NTAPI EtpDiskTabCreateFunction(
@@ -208,6 +228,14 @@ VOID EtInitializeDiskTreeList(
     TreeNew_SetSort(hwnd, ETDSTNC_TOTALRATEAVERAGE, DescendingSortOrder);
 
     EtLoadSettingsDiskTreeList();
+
+    PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, DiskNodeList);
+
+    if (ToolStatusInterface)
+    {
+        PhRegisterCallback(ToolStatusInterface->SearchChangedEvent, EtpSearchChangedHandler, NULL, &SearchChangedRegistration);
+        PhAddTreeNewFilter(&FilterSupport, EtpSearchDiskListFilterCallback, NULL);
+    }
 }
 
 VOID EtLoadSettingsDiskTreeList(
@@ -268,6 +296,9 @@ PET_DISK_NODE EtAddDiskNode(
 
     PhAddEntryHashtable(DiskNodeHashtable, &diskNode);
     PhAddItemList(DiskNodeList, diskNode);
+
+    if (FilterSupport.NodeList)
+        diskNode->Node.Visible = PhApplyTreeNewFiltersToNode(&FilterSupport, &diskNode->Node);
 
     TreeNew_NodesStructured(DiskTreeNewHandle);
 
@@ -1016,4 +1047,32 @@ static VOID NTAPI EtpOnDiskItemsUpdated(
     }
 
     InvalidateRect(DiskTreeNewHandle, NULL, FALSE);
+}
+
+static VOID NTAPI EtpSearchChangedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PhApplyTreeNewFilters(&FilterSupport);
+}
+
+static BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PET_DISK_NODE diskNode = (PET_DISK_NODE)Node;
+    PTOOLSTATUS_WORD_MATCH wordMatch = ToolStatusInterface->WordMatch;
+
+    if (PhIsNullOrEmptyString(ToolStatusInterface->GetSearchboxText()))
+        return TRUE;
+
+    if (wordMatch(&diskNode->ProcessNameText->sr))
+        return TRUE;
+
+    if (wordMatch(&diskNode->DiskItem->FileNameWin32->sr))
+        return TRUE;
+
+    return FALSE;
 }
