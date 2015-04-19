@@ -70,7 +70,7 @@ PPH_STRING PhapGetRelativeTimeString(
     PhLargeIntegerToLocalSystemTime(&timeFields, &time);
     timeString = PhaFormatDateTime(&timeFields);
 
-    return PhaFormatString(L"%s (%s)", timeRelativeString->Buffer, timeString->Buffer);
+    return PhaFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
