@@ -660,7 +660,7 @@ PHAPPAPI extern HWND PhMainWndHandle;
 #define ProcessHacker_AddMenuItem(hWnd, AddMenuItem) \
     ((BOOLEAN)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
 #define ProcessHacker_AddTabPage(hWnd, TabPage) \
-    SendMessage(hWnd, WM_PH_ADD_TAB_PAGE, 0, (LPARAM)(TabPage))
+    ((PPH_ADDITIONAL_TAB_PAGE)SendMessage(hWnd, WM_PH_ADD_TAB_PAGE, 0, (LPARAM)(TabPage)))
 #define ProcessHacker_Refresh(hWnd) \
     SendMessage(hWnd, WM_PH_REFRESH, 0, 0)
 #define ProcessHacker_GetUpdateAutomatically(hWnd) \

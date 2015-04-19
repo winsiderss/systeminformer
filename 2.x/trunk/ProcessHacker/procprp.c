@@ -835,7 +835,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 startTimeString = PhaFormatDateTime(&startTimeFields);
 
                 SetDlgItemText(hwndDlg, IDC_STARTED,
-                    PhaFormatString(L"%s (%s)", startTimeRelativeString->Buffer, startTimeString->Buffer)->Buffer);
+                    PhaFormatString(L"%s ago (%s)", startTimeRelativeString->Buffer, startTimeString->Buffer)->Buffer);
             }
             else
             {
