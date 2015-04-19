@@ -99,7 +99,9 @@ static BOOLEAN NetworkAdapterQuerySupported(
 }
 
 static BOOLEAN NetworkAdapterQueryNdisVersion(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ HANDLE DeviceHandle,
+    _Out_opt_ PUINT MajorVersion,
+    _Out_opt_ PUINT MinorVersion
     )
 {
     NDIS_OID opcode;
@@ -107,10 +109,10 @@ static BOOLEAN NetworkAdapterQueryNdisVersion(
     ULONG versionResult = 0;
 
     // https://msdn.microsoft.com/en-us/library/ff569582.aspx
-    opcode = OID_GEN_DRIVER_VERSION;
+    opcode = OID_GEN_DRIVER_VERSION; // OID_GEN_VENDOR_DRIVER_VERSION
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
-        Context->DeviceHandle,
+        DeviceHandle,
         NULL,
         NULL,
         NULL,
@@ -122,8 +124,15 @@ static BOOLEAN NetworkAdapterQueryNdisVersion(
         sizeof(versionResult)
         )))
     {
-        Context->NdisMajorVersion = HIBYTE(versionResult);
-        Context->NdisMinorVersion = LOBYTE(versionResult);
+        if (MajorVersion)
+        {
+            *MajorVersion = HIBYTE(versionResult);
+        }
+
+        if (MinorVersion)
+        {
+            *MinorVersion = LOBYTE(versionResult);
+        }
 
         return TRUE;
     }
@@ -256,7 +265,8 @@ static NTSTATUS NetworkAdapterQueryLinkState(
 }
 
 static BOOLEAN NetworkAdapterQueryMediaType(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNDIS_PHYSICAL_MEDIUM Medium
     )
 {
     NDIS_OID opcode;
@@ -267,7 +277,7 @@ static BOOLEAN NetworkAdapterQueryMediaType(
     opcode = OID_GEN_PHYSICAL_MEDIUM_EX;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
-        Context->DeviceHandle,
+        DeviceHandle,
         NULL,
         NULL,
         NULL,
@@ -279,54 +289,16 @@ static BOOLEAN NetworkAdapterQueryMediaType(
         sizeof(adapterMediaType)
         )))
     {
-        Context->NdisAdapterType = adapterMediaType;
+        *Medium = adapterMediaType;
     }
 
-    if (Context->NdisAdapterType != NdisPhysicalMediumUnspecified)
+    if (adapterMediaType != NdisPhysicalMediumUnspecified)
         return TRUE;
 
     // https://msdn.microsoft.com/en-us/library/ff569621.aspx
     opcode = OID_GEN_PHYSICAL_MEDIUM;
     adapterMediaType = NdisPhysicalMediumUnspecified;
     memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
-
-    if (NT_SUCCESS(NtDeviceIoControlFile(
-        Context->DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
-        IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
-        sizeof(NDIS_OID),
-        &adapterMediaType,
-        sizeof(adapterMediaType)
-        )))
-    {
-        Context->NdisAdapterType = adapterMediaType;
-    }
-
-    if (Context->NdisAdapterType != NdisPhysicalMediumUnspecified)
-        return TRUE;
-
-    //NDIS_MEDIUM adapterMediaType = NdisMediumMax;
-    //opcode = OID_GEN_MEDIA_IN_USE;
-
-    return FALSE;
-}
-
-static PPH_STRING NetworkAdapterQueryLinkSpeed(
-    _In_ HANDLE DeviceHandle
-    )
-{
-    NDIS_OID opcode;
-    IO_STATUS_BLOCK isb;
-    NDIS_CO_LINK_SPEED result;
-
-    // https://msdn.microsoft.com/en-us/library/ff569593.aspx
-    opcode = OID_GEN_LINK_SPEED;
-
-    memset(&result, 0, sizeof(NDIS_CO_LINK_SPEED));
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
@@ -337,14 +309,53 @@ static PPH_STRING NetworkAdapterQueryLinkSpeed(
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &opcode,
         sizeof(NDIS_OID),
-        &result,
-        sizeof(result)
+        &adapterMediaType,
+        sizeof(adapterMediaType)
         )))
     {
-        return PhFormatSize(UInt32x32To64(result.Outbound, NDIS_UNIT_OF_MEASUREMENT) / BITS_IN_ONE_BYTE, -1);
+        *Medium = adapterMediaType;
     }
 
-    return PhReferenceEmptyString();
+    if (adapterMediaType != NdisPhysicalMediumUnspecified)
+        return TRUE;
+
+    //NDIS_MEDIUM adapterMediaType = NdisMediumMax;
+    //opcode = OID_GEN_MEDIA_IN_USE;
+
+    return FALSE;
+}
+
+static NTSTATUS NetworkAdapterQueryLinkSpeed(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PULONG64 LinkSpeed
+    )
+{
+    NTSTATUS status;
+    NDIS_OID opcode;
+    IO_STATUS_BLOCK isb;
+    NDIS_CO_LINK_SPEED result;
+
+    // https://msdn.microsoft.com/en-us/library/ff569593.aspx
+    opcode = OID_GEN_LINK_SPEED;
+
+    memset(&result, 0, sizeof(NDIS_CO_LINK_SPEED));
+
+    status = NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &result,
+        sizeof(result)
+        );
+
+    *LinkSpeed = UInt32x32To64(result.Outbound, NDIS_UNIT_OF_MEASUREMENT);
+    
+    return status;
 }
 
 static ULONG64 NetworkAdapterQueryValue(
@@ -411,7 +422,7 @@ static MIB_IFROW QueryInterfaceRowXP(
     interfaceRow.dwIndex = Context->AdapterEntry->InterfaceIndex;
 
     GetIfEntry(&interfaceRow);
-
+    
     //MIB_IPINTERFACE_ROW interfaceTable;
     //memset(&interfaceTable, 0, sizeof(MIB_IPINTERFACE_ROW));
     //interfaceTable.Family = AF_INET;
@@ -454,9 +465,8 @@ static VOID NetAdapterUpdatePanel(
 {
     ULONG64 inOctets = 0;
     ULONG64 outOctets = 0;
-    ULONG64 xmitLinkSpeed = 0;
+    ULONG64 linkSpeed = 0;
     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
-    PPH_STRING linkSpeed = NULL;
 
     if (Context->DeviceHandle)
     {
@@ -490,10 +500,12 @@ static VOID NetAdapterUpdatePanel(
         if (NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
         {
             mediaState = interfaceState.MediaConnectState;
-            xmitLinkSpeed = interfaceState.XmitLinkSpeed;
+            linkSpeed = interfaceState.XmitLinkSpeed;
         }
-
-        linkSpeed = NetworkAdapterQueryLinkSpeed(Context->DeviceHandle);
+        else
+        {
+            NetworkAdapterQueryLinkSpeed(Context->DeviceHandle, &linkSpeed);
+        }
     }
     else if (Context->GetIfEntry2_I)
     {
@@ -504,7 +516,7 @@ static VOID NetAdapterUpdatePanel(
         inOctets = interfaceRow.InOctets;
         outOctets = interfaceRow.OutOctets;
         mediaState = interfaceRow.MediaConnectState;
-        xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
+        linkSpeed = interfaceRow.TransmitLinkSpeed;
     }
     else
     {
@@ -514,7 +526,7 @@ static VOID NetAdapterUpdatePanel(
 
         inOctets = interfaceRow.dwInOctets;
         outOctets = interfaceRow.dwOutOctets;
-        xmitLinkSpeed = interfaceRow.dwSpeed;
+        linkSpeed = interfaceRow.dwSpeed;
 
         if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
             mediaState = MediaConnectStateConnected;
@@ -522,21 +534,12 @@ static VOID NetAdapterUpdatePanel(
             mediaState = MediaConnectStateDisconnected;
     }
 
-    if (linkSpeed)
-    {
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, linkSpeed->Buffer);
-        PhDereferenceObject(linkSpeed);
-    }
-    else
-    {
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatSize(xmitLinkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer);
-    }
-
     if (mediaState == MediaConnectStateConnected)
         SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
     else
         SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
 
+    SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatSize(linkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctets, -1)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(inOctets, -1)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
@@ -686,8 +689,8 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                             }
 
                             // Minimum scaling of 1 MB.
-                            if (max < 1024 * 1024)
-                                max = 1024 * 1024;
+                            //if (max < 1024 * 1024)
+                            //    max = 1024 * 1024;
 
                             // Scale the data.
                             PhxfDivideSingle2U(
@@ -826,8 +829,7 @@ static BOOLEAN NetAdapterSectionCallback(
             ULONG64 networkOutOctets = 0;
             ULONG64 networkRcvSpeed = 0;
             ULONG64 networkXmitSpeed = 0;
-            ULONG64 xmitLinkSpeed = 0;
-            ULONG64 rcvLinkSpeed = 0;
+            ULONG64 networkLinkSpeed = 0;
 
             if (context->DeviceHandle)
             {
@@ -853,14 +855,18 @@ static BOOLEAN NetAdapterSectionCallback(
                 {
                     networkInOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
                     networkOutOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
+
                     networkRcvSpeed = networkInOctets - context->LastInboundValue;
                     networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
                 }
 
-                if (NT_SUCCESS(NetworkAdapterQueryLinkState(context, &interfaceState)))
+                if (NT_SUCCESS(NetworkAdapterQueryLinkState(context->DeviceHandle, &interfaceState)))
                 {
-                    xmitLinkSpeed = interfaceState.XmitLinkSpeed;
-                    rcvLinkSpeed = interfaceState.RcvLinkSpeed;
+                    networkLinkSpeed = interfaceState.XmitLinkSpeed;
+                }
+                else
+                {
+                    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);                   
                 }
 
                 // HACK: Pull the Adapter name from the current query.
@@ -882,8 +888,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 networkOutOctets = interfaceRow.OutOctets;
                 networkRcvSpeed = networkInOctets - context->LastInboundValue;
                 networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-                xmitLinkSpeed = interfaceRow.TransmitLinkSpeed;
-                rcvLinkSpeed = interfaceRow.ReceiveLinkSpeed;
+                networkLinkSpeed = interfaceRow.TransmitLinkSpeed; // interfaceRow.ReceiveLinkSpeed
 
                 // HACK: Pull the Adapter name from the current query.
                 if (context->SysinfoSection->Name.Length == 0)
@@ -904,9 +909,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 networkOutOctets = interfaceRow.dwOutOctets;
                 networkRcvSpeed = networkInOctets - context->LastInboundValue;
                 networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-
-                xmitLinkSpeed = interfaceRow.dwSpeed;
-                rcvLinkSpeed = interfaceRow.dwSpeed;
+                networkLinkSpeed = interfaceRow.dwSpeed;
 
                 // HACK: Pull the Adapter name from the current query.
                 if (context->SysinfoSection->Name.Length == 0)
@@ -928,13 +931,11 @@ static BOOLEAN NetAdapterSectionCallback(
             PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkRcvSpeed);
             PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkXmitSpeed);
 
+            context->LinkSpeed = networkLinkSpeed;
             context->InboundValue = networkRcvSpeed;
             context->OutboundValue = networkXmitSpeed;
             context->LastInboundValue = networkInOctets;
             context->LastOutboundValue = networkOutOctets;
-
-            context->MaxSendSpeed = xmitLinkSpeed;
-            context->MaxReceiveSpeed = rcvLinkSpeed;
         }
         return TRUE;
     case SysInfoCreateDialog:
@@ -972,20 +973,20 @@ static BOOLEAN NetAdapterSectionCallback(
                 }
 
                 // Minimum scaling of 1 MB.
-                if (max < 1024 * 1024)
-                    max = 1024 * 1024;
+                //if (max < 1024 * 1024)
+                //    max = 1024 * 1024;
 
                 // Scale the data.
                 PhxfDivideSingle2U(
                     Section->GraphState.Data1,
-                    max, // (FLOAT)context->MaxReceiveSpeed,
+                    max,
                     drawInfo->LineDataCount
                     );
 
                 // Scale the data.
                 PhxfDivideSingle2U(
                     Section->GraphState.Data2,
-                    max, // (FLOAT)context->MaxSendSpeed,
+                    max,
                     drawInfo->LineDataCount
                     );
                 Section->GraphState.Valid = TRUE;
