@@ -1334,8 +1334,7 @@ PPH_STRING PhFormatTimeSpanRelative(
             string = PhaConcatStrings2(L"an ", &string->Buffer[2]);
     }
 
-    string = PhConcatStrings2(string->Buffer, L" ago");
-
+    PhReferenceObject(string);
     PhDeleteAutoPool(&autoPool);
 
     return string;
