@@ -246,35 +246,6 @@ PhSelectAndEnsureVisibleProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
 
-typedef BOOLEAN (NTAPI *PPH_PROCESS_TREE_FILTER)(
-    _In_ PPH_PROCESS_NODE ProcessNode,
-    _In_opt_ PVOID Context
-    );
-
-typedef struct _PH_PROCESS_TREE_FILTER_ENTRY *PPH_PROCESS_TREE_FILTER_ENTRY;
-
-PHAPPAPI
-PPH_PROCESS_TREE_FILTER_ENTRY
-NTAPI
-PhAddProcessTreeFilter(
-    _In_ PPH_PROCESS_TREE_FILTER Filter,
-    _In_opt_ PVOID Context
-    );
-
-PHAPPAPI
-VOID
-NTAPI
-PhRemoveProcessTreeFilter(
-    _In_ PPH_PROCESS_TREE_FILTER_ENTRY Entry
-    );
-
-PHAPPAPI
-VOID
-NTAPI
-PhApplyProcessTreeFilters(
-    VOID
-    );
-
 // srvlist
 
 PHAPPAPI
@@ -583,6 +554,22 @@ typedef struct _PH_TN_FILTER_ENTRY
 } PH_TN_FILTER_ENTRY, *PPH_TN_FILTER_ENTRY;
 
 PHAPPAPI
+VOID
+NTAPI
+PhInitializeTreeNewFilterSupport(
+    _Out_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_LIST NodeList
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDeleteTreeNewFilterSupport(
+    _In_ PPH_TN_FILTER_SUPPORT Support
+    );
+
+PHAPPAPI
 PPH_TN_FILTER_ENTRY
 NTAPI
 PhAddTreeNewFilter(
@@ -597,6 +584,14 @@ NTAPI
 PhRemoveTreeNewFilter(
     _In_ PPH_TN_FILTER_SUPPORT Support,
     _In_ PPH_TN_FILTER_ENTRY Entry
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhApplyTreeNewFiltersToNode(
+    _In_ PPH_TN_FILTER_SUPPORT Support,
+    _In_ PPH_TREENEW_NODE Node
     );
 
 PHAPPAPI
