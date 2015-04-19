@@ -76,14 +76,9 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
 {
     BOOLEAN HaveFirstSample;
 
-    NDIS_PHYSICAL_MEDIUM NdisAdapterType;
-    UINT NdisMajorVersion;
-    UINT NdisMinorVersion;
-
+    ULONG64 LinkSpeed;
     ULONG64 InboundValue;
     ULONG64 OutboundValue;
-    ULONG64 MaxSendSpeed;
-    ULONG64 MaxReceiveSpeed;
     ULONG64 LastInboundValue;
     ULONG64 LastOutboundValue;
 
