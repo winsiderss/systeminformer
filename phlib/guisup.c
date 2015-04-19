@@ -790,7 +790,7 @@ VOID PhGetStockApplicationIcon(
         PPH_STRING systemDirectory;
         PPH_STRING dllFileName;
 
-        // user32,0 (Vista and above) or shell32,2 (XP) contains the default application icon.
+        // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains the default application icon.
 
         if (systemDirectory = PhGetSystemDirectory())
         {
@@ -798,8 +798,12 @@ VOID PhGetStockApplicationIcon(
             ULONG index;
 
             // TODO: Find a better solution.
-
-            if (WindowsVersion >= WINDOWS_VISTA)
+            if (WindowsVersion >= WINDOWS_10)
+            {
+                PhInitializeStringRef(&dllBaseName, L"\\imageres.dll");
+                index = 11;
+            }
+            else if (WindowsVersion >= WINDOWS_VISTA)
             {
                 PhInitializeStringRef(&dllBaseName, L"\\user32.dll");
                 index = 0;
