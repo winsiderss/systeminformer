@@ -550,7 +550,7 @@
 #define ID_VIEW_REFRESH                 40098
 #define ID_TOOLS_CREATESERVICE          40101
 #define ID_TOOLS_HIDDENPROCESSES        40102
-#define ID_TOOLS_VERIFYFILESIGNATURE    40103
+#define ID_TOOLS_INSPECTEXECUTABLEFILE  40103
 #define ID_HELP_LOG                     40104
 #define ID_HELP_DONATE                  40105
 #define ID_HELP_ABOUT                   40106
