@@ -5,6 +5,8 @@ Process Hacker
    * CPU and GPU graphs are displayed in a grid now (thanks pavel_kv!)
    * Tooltip information for user-mode driver framework (UMDF) host processes
    * Added NetAdapters plugin: adds graphs for selected network adapters to the System Information window
+   * Updated ExtendedTools plugin:
+     * Can now use the search box in the Disk tab
  * FIXED:
    * Fixed touch scrolling
    * Fixed EtwRegistration object names for 64-bit Windows 8.1
