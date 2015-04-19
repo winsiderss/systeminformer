@@ -1032,6 +1032,35 @@ VOID PhMwpOnCommand(
             PhShowHiddenProcessesDialog();
         }
         break;
+    case ID_TOOLS_INSPECTEXECUTABLEFILE:
+        {
+            static PH_FILETYPE_FILTER filters[] =
+            {
+                { L"Executable files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl" },
+                { L"All files (*.*)", L"*.*" }
+            };
+            PVOID fileDialog = PhCreateOpenFileDialog();
+
+            PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+            if (PhShowFileDialog(PhMainWndHandle, fileDialog))
+            {
+                PPH_STRING fileName;
+
+                fileName = PhGetFileDialogFileName(fileDialog);
+                PhShellExecuteUserString(
+                    PhMainWndHandle,
+                    L"ProgramInspectExecutables",
+                    fileName->Buffer,
+                    FALSE,
+                    L"Make sure the PE Viewer executable file is present."
+                    );
+                PhDereferenceObject(fileName);
+            }
+
+            PhFreeFileDialog(fileDialog);
+        }
+        break;
     case ID_TOOLS_PAGEFILES:
         {
             PhShowPagefilesDialog(PhMainWndHandle);
@@ -1047,51 +1076,6 @@ VOID PhMwpOnCommand(
             PhDereferenceObject(systemDirectory);
             PhCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
             PhDereferenceObject(taskmgrFileName);
-        }
-        break;
-    case ID_TOOLS_VERIFYFILESIGNATURE:
-        {
-            static PH_FILETYPE_FILTER filters[] =
-            {
-                { L"Executable files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl" },
-                { L"All files (*.*)", L"*.*" }
-            };
-            PVOID fileDialog = PhCreateOpenFileDialog();
-
-            PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-
-            if (PhShowFileDialog(PhMainWndHandle, fileDialog))
-            {
-                PPH_STRING fileName;
-                VERIFY_RESULT result;
-                PPH_STRING signerName;
-
-                fileName = PhGetFileDialogFileName(fileDialog);
-                result = PhVerifyFile(fileName->Buffer, &signerName);
-
-                if (result == VrTrusted)
-                {
-                    PhShowInformation(PhMainWndHandle, L"\"%s\" is trusted and signed by \"%s\".",
-                        fileName->Buffer, signerName->Buffer);
-                }
-                else if (result == VrNoSignature)
-                {
-                    PhShowInformation(PhMainWndHandle, L"\"%s\" does not have a digital signature.",
-                        fileName->Buffer);
-                }
-                else
-                {
-                    PhShowInformation(PhMainWndHandle, L"\"%s\" is not trusted.",
-                        fileName->Buffer);
-                }
-
-                if (signerName)
-                    PhDereferenceObject(signerName);
-
-                PhDereferenceObject(fileName);
-            }
-
-            PhFreeFileDialog(fileDialog);
         }
         break;
     case ID_USER_CONNECT:
