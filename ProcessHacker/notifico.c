@@ -27,6 +27,15 @@
 #include <notifico.h>
 #include <windowsx.h>
 
+typedef struct _PH_NF_BITMAP
+{
+    BOOLEAN Initialized;
+    HDC Hdc;
+    BITMAPINFOHEADER Header;
+    HBITMAP Bitmap;
+    PVOID Bits;
+} PH_NF_BITMAP, *PPH_NF_BITMAP;
+
 HICON PhNfpGetBlackIcon(
     VOID
     );
@@ -64,6 +73,16 @@ VOID PhNfpBeginBitmap(
     _Out_ HBITMAP *OldBitmap
     );
 
+VOID PhNfpBeginBitmap2(
+    _Inout_ PPH_NF_BITMAP Context,
+    _Out_ PULONG Width,
+    _Out_ PULONG Height,
+    _Out_ HBITMAP *Bitmap,
+    _Out_opt_ PVOID *Bits,
+    _Out_ HDC *Hdc,
+    _Out_ HBITMAP *OldBitmap
+    );
+
 VOID PhNfpUpdateIconCpuHistory(
     VOID
     );
@@ -92,8 +111,10 @@ PPH_NF_ICON PhNfRegisteredIcons[32] = { 0 };
 
 PH_NF_POINTERS PhNfpPointers;
 PH_CALLBACK_REGISTRATION PhNfpProcessesUpdatedRegistration;
+PH_NF_BITMAP PhNfpDefaultBitmapContext = { 0 };
+PH_NF_BITMAP PhNfpBlackBitmapContext = { 0 };
+HBITMAP PhNfpBlackBitmap = NULL;
 HICON PhNfpBlackIcon = NULL;
-HBITMAP PhNfpBlackIconMask = NULL;
 
 VOID PhNfLoadStage1(
     VOID
@@ -341,7 +362,7 @@ HICON PhNfBitmapToIcon(
     iconInfo.fIcon = TRUE;
     iconInfo.xHotspot = 0;
     iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = PhNfpBlackIconMask;
+    iconInfo.hbmMask = PhNfpBlackBitmap;
     iconInfo.hbmColor = Bitmap;
 
     return CreateIconIndirect(&iconInfo);
@@ -434,16 +455,24 @@ HICON PhNfpGetBlackIcon(
 {
     if (!PhNfpBlackIcon)
     {
+        ULONG width;
+        ULONG height;
+        PVOID bits;
+        HDC hdc;
+        HBITMAP oldBitmap;
         ICONINFO iconInfo;
 
-        // It doesn't really matter what resolution the icon is at because when it's scaled up, it will
-        // still be all black.
-        PhNfpBlackIcon = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_BLACK), IMAGE_ICON, 16, 16, 0);
+        PhNfpBeginBitmap2(&PhNfpBlackBitmapContext, &width, &height, &PhNfpBlackBitmap, &bits, &hdc, &oldBitmap);
+        memset(bits, 0, width * height * sizeof(ULONG));
 
-        GetIconInfo(PhNfpBlackIcon, &iconInfo);
+        iconInfo.fIcon = TRUE;
+        iconInfo.xHotspot = 0;
+        iconInfo.yHotspot = 0;
+        iconInfo.hbmMask = PhNfpBlackBitmap;
+        iconInfo.hbmColor = PhNfpBlackBitmap;
+        PhNfpBlackIcon = CreateIconIndirect(&iconInfo);
 
-        PhNfpBlackIconMask = iconInfo.hbmMask;
-        DeleteObject(iconInfo.hbmColor);
+        SelectObject(hdc, oldBitmap);
     }
 
     return PhNfpBlackIcon;
@@ -638,38 +667,45 @@ VOID PhNfpBeginBitmap(
     _Out_ HBITMAP *OldBitmap
     )
 {
-    static BOOLEAN initialized = FALSE;
-    static HDC hdc;
-    static BITMAPINFOHEADER header;
-    static HBITMAP bitmap;
-    static PVOID bits;
+    PhNfpBeginBitmap2(&PhNfpDefaultBitmapContext, Width, Height, Bitmap, Bits, Hdc, OldBitmap);
+}
 
-    if (!initialized)
+VOID PhNfpBeginBitmap2(
+    _Inout_ PPH_NF_BITMAP Context,
+    _Out_ PULONG Width,
+    _Out_ PULONG Height,
+    _Out_ HBITMAP *Bitmap,
+    _Out_opt_ PVOID *Bits,
+    _Out_ HDC *Hdc,
+    _Out_ HBITMAP *OldBitmap
+    )
+{
+    if (!Context->Initialized)
     {
         HDC screenHdc;
 
         screenHdc = GetDC(NULL);
-        hdc = CreateCompatibleDC(screenHdc);
+        Context->Hdc = CreateCompatibleDC(screenHdc);
 
-        memset(&header, 0, sizeof(BITMAPINFOHEADER));
-        header.biSize = sizeof(BITMAPINFOHEADER);
-        header.biWidth = PhSmallIconSize.X;
-        header.biHeight = PhSmallIconSize.Y;
-        header.biPlanes = 1;
-        header.biBitCount = 32;
-        bitmap = CreateDIBSection(screenHdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &bits, NULL, 0);
+        memset(&Context->Header, 0, sizeof(BITMAPINFOHEADER));
+        Context->Header.biSize = sizeof(BITMAPINFOHEADER);
+        Context->Header.biWidth = PhSmallIconSize.X;
+        Context->Header.biHeight = PhSmallIconSize.Y;
+        Context->Header.biPlanes = 1;
+        Context->Header.biBitCount = 32;
+        Context->Bitmap = CreateDIBSection(screenHdc, (BITMAPINFO *)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
 
         ReleaseDC(NULL, screenHdc);
 
-        initialized = TRUE;
+        Context->Initialized = TRUE;
     }
 
     *Width = PhSmallIconSize.X;
     *Height = PhSmallIconSize.Y;
-    *Bitmap = bitmap;
-    if (Bits) *Bits = bits;
-    *Hdc = hdc;
-    *OldBitmap = SelectObject(hdc, bitmap);
+    *Bitmap = Context->Bitmap;
+    if (Bits) *Bits = Context->Bits;
+    *Hdc = Context->Hdc;
+    *OldBitmap = SelectObject(Context->Hdc, Context->Bitmap);
 }
 
 VOID PhNfpUpdateIconCpuHistory(
