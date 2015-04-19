@@ -562,9 +562,6 @@
     <None Include="resources\application.bmp">
       <Filter>Resources</Filter>
     </None>
-    <None Include="resources\black.ico">
-      <Filter>Resources</Filter>
-    </None>
     <None Include="resources\bricks.bmp">
       <Filter>Resources</Filter>
     </None>

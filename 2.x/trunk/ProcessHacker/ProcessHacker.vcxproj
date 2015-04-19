@@ -389,7 +389,6 @@
     <None Include="resources\application.bmp" />
     <None Include="resources\application.ico" />
     <None Include="resources\application_go.ico" />
-    <None Include="resources\black.ico" />
     <None Include="resources\bricks.bmp" />
     <None Include="resources\cog.ico" />
     <None Include="resources\cog_edit.bmp" />
