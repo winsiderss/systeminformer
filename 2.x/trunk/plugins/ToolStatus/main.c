@@ -880,7 +880,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Toolbar and Status Bar";
             info->Author = L"dmex, wj32";
             info->Description = L"Adds a toolbar and a status bar.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=1119";
+            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1119";
             info->HasOptions = TRUE;
             info->Interface = &PluginInterface;
 

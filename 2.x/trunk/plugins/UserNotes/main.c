@@ -683,8 +683,9 @@ LOGICAL DllMain(
             return FALSE;
 
         info->DisplayName = L"User Notes";
-        info->Description = L"Allows the user to add comments for processes and services. Also allows the user to save process priority.";
         info->Author = L"wj32";
+        info->Description = L"Allows the user to add comments for processes and services. Also allows the user to save process priority.";
+        info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1120";
         info->HasOptions = TRUE;
 
         InitializeDb();

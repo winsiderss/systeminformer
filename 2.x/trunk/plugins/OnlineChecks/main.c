@@ -165,7 +165,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Online Checks";
             info->Author = L"dmex, wj32";
             info->Description = L"Allows files to be checked with online services.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?f=18&t=1118";
+            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1118";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(
