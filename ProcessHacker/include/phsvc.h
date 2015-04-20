@@ -191,4 +191,9 @@ NTSTATUS PhSvcApiSendMessage(
     _Inout_ PPHSVC_API_MSG Message
     );
 
+NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
+    );
+
 #endif

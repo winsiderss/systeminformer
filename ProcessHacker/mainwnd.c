@@ -25,6 +25,7 @@
 #include <kphuser.h>
 #include <settings.h>
 #include <emenu.h>
+#include <phsvccl.h>
 #include <phplug.h>
 #include <cpysave.h>
 #include <mainwndp.h>
@@ -1074,7 +1075,20 @@ VOID PhMwpOnCommand(
             systemDirectory = PhGetSystemDirectory();
             taskmgrFileName = PhConcatStrings2(systemDirectory->Buffer, L"\\taskmgr.exe");
             PhDereferenceObject(systemDirectory);
-            PhCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
+
+            if (WindowsVersion >= WINDOWS_8 && !PhElevated)
+            {
+                if (PhUiConnectToPhSvc(PhMainWndHandle, FALSE))
+                {
+                    PhSvcCallCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
+                    PhUiDisconnectFromPhSvc();
+                }
+            }
+            else
+            {
+                PhCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
+            }
+
             PhDereferenceObject(taskmgrFileName);
         }
         break;
@@ -2809,6 +2823,35 @@ ULONG_PTR PhMwpLegacyAddPluginMenuItem(
     return TRUE;
 }
 
+HBITMAP PhMwpGetShieldBitmap(
+    VOID
+    )
+{
+    static HBITMAP shieldBitmap = NULL;
+
+    if (!shieldBitmap)
+    {
+        _LoadIconMetric loadIconMetric;
+        HICON shieldIcon = NULL;
+
+        // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
+        // resolution and look very bad when scaled down to the small icon size.
+
+        loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
+
+        if (loadIconMetric)
+        {
+            if (SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
+            {
+                shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+                DestroyIcon(shieldIcon);
+            }
+        }
+    }
+
+    return shieldBitmap;
+}
+
 VOID PhMwpInitializeSubMenu(
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
@@ -2828,29 +2871,9 @@ VOID PhMwpInitializeSubMenu(
         }
         else
         {
-            static HBITMAP shieldBitmap = NULL;
+            HBITMAP shieldBitmap;
 
-            if (!shieldBitmap)
-            {
-                _LoadIconMetric loadIconMetric;
-                HICON shieldIcon = NULL;
-
-                // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
-                // resolution and look very bad when scaled down to the small icon size.
-
-                loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
-
-                if (loadIconMetric)
-                {
-                    if (SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
-                    {
-                        shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-                        DestroyIcon(shieldIcon);
-                    }
-                }
-            }
-
-            if (shieldBitmap)
+            if (shieldBitmap = PhMwpGetShieldBitmap())
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
                     menuItem->Bitmap = shieldBitmap;
@@ -2993,8 +3016,13 @@ VOID PhMwpInitializeSubMenu(
         // Windows 8 Task Manager requires elevation.
         if (WindowsVersion >= WINDOWS_8 && !PhElevated)
         {
-            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
-                PhDestroyEMenuItem(menuItem);
+            HBITMAP shieldBitmap;
+
+            if (shieldBitmap = PhMwpGetShieldBitmap())
+            {
+                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
+                    menuItem->Bitmap = shieldBitmap;
+            }
         }
     }
 
