@@ -1,6 +1,6 @@
 ;* Process Hacker 2 - Installer custom messages
 ;*
-;* Copyright (C) 2010-2012 XhmikosR
+;* Copyright (C) 2010-2015 XhmikosR
 ;*
 ;* This file is part of Process Hacker.
 ;*

@@ -332,7 +332,7 @@ begin
     if (KPHServiceCheck() and not IsTaskSelected('delete_KPH_service') or (IsTaskSelected('create_KPH_service'))) then begin
       StopService('KProcessHacker2');
       RemoveService('KProcessHacker2');
- 
+
       if not Exec(ExpandConstant('{app}\ProcessHacker.exe'), '-installkph -s', '', SW_HIDE, ewWaitUntilTerminated, iResultCode) then begin
         // handle failure if necessary; iResultCode contains the error code
       end;
