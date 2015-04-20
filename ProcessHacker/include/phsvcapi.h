@@ -20,6 +20,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcIssueMemoryListCommandApiNumber = 13,
     PhSvcPostMessageApiNumber = 14,
     PhSvcSendMessageApiNumber = 15,
+    PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber = 16,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -205,6 +206,14 @@ typedef union _PHSVC_API_POSTMESSAGE
     } i;
 } PHSVC_API_POSTMESSAGE, *PPHSVC_API_POSTMESSAGE;
 
+typedef union _PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER
+{
+    struct
+    {
+        PH_RELATIVE_STRINGREF FileName;
+    } i;
+} PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER, *PPHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
@@ -230,6 +239,7 @@ typedef struct _PHSVC_API_MSG
                 PHSVC_API_ADDACCOUNTRIGHT AddAccountRight;
                 PHSVC_API_ISSUEMEMORYLISTCOMMAND IssueMemoryListCommand;
                 PHSVC_API_POSTMESSAGE PostMessage;
+                PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER CreateProcessIgnoreIfeoDebugger;
             } u;
         };
     };

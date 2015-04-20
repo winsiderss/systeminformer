@@ -233,6 +233,10 @@ ULONG_PTR PhMwpLegacyAddPluginMenuItem(
     _In_ PPH_ADDMENUITEM AddMenuItem
     );
 
+HBITMAP PhMwpGetShieldBitmap(
+    VOID
+    );
+
 VOID PhMwpInitializeSubMenu(
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
