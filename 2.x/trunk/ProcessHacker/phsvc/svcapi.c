@@ -50,7 +50,8 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiInvokeRunAsService,
     PhSvcApiIssueMemoryListCommand,
     PhSvcApiPostMessage,
-    PhSvcApiSendMessage
+    PhSvcApiSendMessage,
+    PhSvcApiCreateProcessIgnoreIfeoDebugger
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -927,4 +928,21 @@ NTSTATUS PhSvcApiSendMessage(
     {
         return PhGetLastWin32ErrorAsNtStatus();
     }
+}
+
+NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
+
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateProcessIgnoreIfeoDebugger.i.FileName, FALSE, &fileName)))
+    {
+        if (!PhCreateProcessIgnoreIfeoDebugger(fileName->Buffer))
+            status = STATUS_UNSUCCESSFUL;
+    }
+
+    return status;
 }

@@ -779,3 +779,30 @@ NTSTATUS PhSvcCallSendMessage(
 
     return PhSvcpCallServer(&m);
 }
+
+NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
+    _In_ PWSTR FileName
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID fileName = NULL;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber;
+    fileName = PhSvcpCreateString(FileName, -1, &m.u.CreateProcessIgnoreIfeoDebugger.i.FileName);
+
+    if (!fileName)
+        return STATUS_NO_MEMORY;
+
+    status = PhSvcpCallServer(&m);
+
+    if (fileName)
+        PhSvcpFreeHeap(fileName);
+
+    return status;
+}

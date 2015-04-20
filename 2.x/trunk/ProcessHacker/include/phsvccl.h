@@ -103,4 +103,8 @@ NTSTATUS PhSvcCallSendMessage(
     _In_ LPARAM lParam
     );
 
+NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
+    _In_ PWSTR FileName
+    );
+
 #endif
