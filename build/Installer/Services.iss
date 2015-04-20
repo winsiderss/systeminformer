@@ -76,7 +76,7 @@ external 'OpenServiceA@advapi32.dll stdcall';
 function CloseServiceHandle(hSCObject: HANDLE): Boolean;
 external 'CloseServiceHandle@advapi32.dll stdcall';
 
-function CreateService(hSCManager: HANDLE; lpServiceName, lpDisplayName: AnsiString; dwDesiredAccess,dwServiceType,dwStartType,dwErrorControl: cardinal; lpBinaryPathName,lpLoadOrderGroup: AnsiString; lpdwTagId: cardinal; lpDependencies,lpServiceStartName,lpPassword: AnsiString): cardinal;
+function CreateService(hSCManager: HANDLE; lpServiceName, lpDisplayName: AnsiString; dwDesiredAccess, dwServiceType, dwStartType, dwErrorControl: cardinal; lpBinaryPathName, lpLoadOrderGroup: AnsiString; lpdwTagId: cardinal; lpDependencies, lpServiceStartName, lpPassword: AnsiString): cardinal;
 external 'CreateServiceA@advapi32.dll stdcall';
 
 function DeleteService(hService: HANDLE): Boolean;
@@ -97,26 +97,26 @@ external 'QueryServiceStatus@advapi32.dll stdcall';
 
 function OpenServiceManager(): HANDLE;
 begin
-  Result := OpenSCManager('','ServicesActive',SC_MANAGER_ALL_ACCESS);
+  Result := OpenSCManager('', 'ServicesActive', SC_MANAGER_ALL_ACCESS);
   if Result = 0 then
     SuppressibleMsgBox(CustomMessage('msg_ServiceManager'), mbError, MB_OK, MB_OK);
 end;
 
 
-function InstallService(FileName, ServiceName, DisplayName, Description: AnsiString; ServiceType,StartType: cardinal): Boolean;
+function InstallService(FileName, ServiceName, DisplayName, Description: AnsiString; ServiceType, StartType: cardinal): Boolean;
 var
-  hSCM    : HANDLE;
-  hService: HANDLE;
+  hSCM     : HANDLE;
+  hService : HANDLE;
 begin
   hSCM   := OpenServiceManager();
   Result := False;
   if hSCM <> 0 then begin
-    hService := CreateService(hSCM,ServiceName,DisplayName,SERVICE_ALL_ACCESS,ServiceType,StartType,0,FileName,'',0,'','','');
+    hService := CreateService(hSCM, ServiceName, DisplayName, SERVICE_ALL_ACCESS, ServiceType, StartType, 0, FileName, '', 0, '', '', '');
     if hService <> 0 then begin
       Result := True;
       // Win2K & WinXP supports aditional description text for services
       if Description <> '' then
-        RegWriteStringValue(HKLM,'System\CurrentControlSet\Services\' + ServiceName,'Description',Description);
+        RegWriteStringValue(HKLM, 'System\CurrentControlSet\Services\' + ServiceName, 'Description', Description);
       CloseServiceHandle(hService);
     end;
     CloseServiceHandle(hSCM);
@@ -126,13 +126,13 @@ end;
 
 function RemoveService(ServiceName: String): Boolean;
 var
-  hSCM    : HANDLE;
-  hService: HANDLE;
+  hSCM     : HANDLE;
+  hService : HANDLE;
 begin
   hSCM   := OpenServiceManager();
   Result := False;
   if hSCM <> 0 then begin
-    hService := OpenService(hSCM,ServiceName,SERVICE_DELETE);
+    hService := OpenService(hSCM, ServiceName, SERVICE_DELETE);
     if hService <> 0 then begin
       Result := DeleteService(hService);
       CloseServiceHandle(hService);
@@ -144,15 +144,15 @@ end;
 
 function StartService(ServiceName: String): Boolean;
 var
-  hSCM    : HANDLE;
-  hService: HANDLE;
+  hSCM     : HANDLE;
+  hService : HANDLE;
 begin
   hSCM   := OpenServiceManager();
   Result := False;
   if hSCM <> 0 then begin
-    hService := OpenService(hSCM,ServiceName,SERVICE_START);
+    hService := OpenService(hSCM, ServiceName, SERVICE_START);
     if hService <> 0 then begin
-      Result := StartNTService(hService,0,0);
+      Result := StartNTService(hService, 0, 0);
       CloseServiceHandle(hService);
     end;
     CloseServiceHandle(hSCM);
@@ -162,16 +162,16 @@ end;
 
 function StopService(ServiceName: String): Boolean;
 var
-  hSCM    : HANDLE;
-  hService: HANDLE;
-  Status  : SERVICE_STATUS;
+  hSCM     : HANDLE;
+  hService : HANDLE;
+  Status   : SERVICE_STATUS;
 begin
   hSCM   := OpenServiceManager();
   Result := False;
   if hSCM <> 0 then begin
-    hService := OpenService(hSCM,ServiceName,SERVICE_STOP);
+    hService := OpenService(hSCM, ServiceName, SERVICE_STOP);
     if hService <> 0 then begin
-      Result := ControlService(hService,SERVICE_CONTROL_STOP,Status);
+      Result := ControlService(hService, SERVICE_CONTROL_STOP, Status);
       CloseServiceHandle(hService);
     end;
     CloseServiceHandle(hSCM);
@@ -181,20 +181,20 @@ end;
 
 function IsServiceRunning(ServiceName: String): Boolean;
 var
-  hSCM    : HANDLE;
-  hService: HANDLE;
-  Status  : SERVICE_STATUS;
+  hSCM     : HANDLE;
+  hService : HANDLE;
+  Status   : SERVICE_STATUS;
 begin
   hSCM   := OpenServiceManager();
   Result := False;
   if hSCM <> 0 then begin
-    hService := OpenService(hSCM,ServiceName,SERVICE_QUERY_STATUS);
+    hService := OpenService(hSCM, ServiceName, SERVICE_QUERY_STATUS);
     if hService <> 0 then begin
-      if QueryServiceStatus(hService,Status) then begin
+      if QueryServiceStatus(hService, Status) then begin
         Result := (Status.dwCurrentState = SERVICE_RUNNING);
       end;
       CloseServiceHandle(hService);
-      end;
+    end;
     CloseServiceHandle(hSCM);
   end;
 end;
