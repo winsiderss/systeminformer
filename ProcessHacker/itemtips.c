@@ -520,12 +520,16 @@ VOID PhpFillUmdfDrivers(
                         PhAppendStringBuilder2(Drivers, L"    ");
                         PhAppendStringBuilderEx(Drivers, deviceName.Buffer, deviceName.Length);
 
-                        if (!PhIsNullOrEmptyString(hardwareId))
+                        if (hardwareId)
                         {
                             PhTrimToNullTerminatorString(hardwareId);
-                            PhAppendStringBuilder2(Drivers, L" (");
-                            PhAppendStringBuilder(Drivers, hardwareId);
-                            PhAppendCharStringBuilder(Drivers, ')');
+
+                            if (hardwareId->Length != 0)
+                            {
+                                PhAppendStringBuilder2(Drivers, L" (");
+                                PhAppendStringBuilder(Drivers, hardwareId);
+                                PhAppendCharStringBuilder(Drivers, ')');
+                            }
                         }
 
                         PhAppendCharStringBuilder(Drivers, '\n');
