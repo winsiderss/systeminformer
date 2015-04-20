@@ -516,13 +516,13 @@ VOID PhpFillUmdfDrivers(
                         }
 
                         hardwareId = PhQueryRegistryString(driverKeyHandle, L"HardwareID");
-                        PhTrimToNullTerminatorString(hardwareId);
 
                         PhAppendStringBuilder2(Drivers, L"    ");
                         PhAppendStringBuilderEx(Drivers, deviceName.Buffer, deviceName.Length);
 
                         if (!PhIsNullOrEmptyString(hardwareId))
                         {
+                            PhTrimToNullTerminatorString(hardwareId);
                             PhAppendStringBuilder2(Drivers, L" (");
                             PhAppendStringBuilder(Drivers, hardwareId);
                             PhAppendCharStringBuilder(Drivers, ')');
