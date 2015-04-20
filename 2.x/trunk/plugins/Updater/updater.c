@@ -32,8 +32,6 @@ static HBITMAP LoadImageFromResources(
     _In_ PCWSTR Name
     )
 {
-    UINT width = 0;
-    UINT height = 0;
     UINT frameCount = 0;
     BOOLEAN isSuccess = FALSE;
     ULONG resourceLength = 0;
