@@ -117,6 +117,7 @@ LOGICAL DllMain(
             info->DisplayName = L".NET Tools";
             info->Author = L"wj32";
             info->Description = L"Adds .NET performance counters, assembly information, thread stack support, and more.";
+            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1111";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(

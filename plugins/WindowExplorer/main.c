@@ -120,6 +120,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Window Explorer";
             info->Author = L"wj32";
             info->Description = L"View and manipulate windows.";
+            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1116";
             info->HasOptions = FALSE;
 
             PhRegisterCallback(

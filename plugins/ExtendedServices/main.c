@@ -83,6 +83,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Extended Services";
             info->Author = L"wj32";
             info->Description = L"Extends service management capabilities.";
+            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1113";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(
