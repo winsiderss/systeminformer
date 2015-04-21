@@ -10,6 +10,7 @@ Process Hacker
    * Added NetAdapters plugin: adds graphs for selected network adapters to the System Information window
    * Updated ExtendedTools plugin:
      * Can now use the search box in the Disk tab
+     * Improved kernel logger handling on Windows 8
  * FIXED:
    * Fixed touch scrolling
    * Fixed EtwRegistration object names for 64-bit Windows 8.1

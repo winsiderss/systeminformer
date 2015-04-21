@@ -1,5 +1,7 @@
 1.13
  * Added GPU graphs for all processes
+ * Can now use the search box in the Disk tab
+ * Improved kernel logger handling on Windows 8
 
 1.12
  * Improved support for multiple GPUs (again)
