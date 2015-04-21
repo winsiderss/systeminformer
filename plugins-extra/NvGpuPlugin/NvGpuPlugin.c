@@ -224,7 +224,7 @@ PPH_STRING NvGpuQueryName(VOID)
     {
         if (NvAPI_GPU_GetFullName(NvGpuPhysicalHandleList->Items[0], nvNameAnsiString) == NVAPI_OK)
         {
-            return PhCreateStringFromAnsi(nvNameAnsiString);
+            return PhConvertMultiByteToUtf16(nvNameAnsiString);
         }
     }
 

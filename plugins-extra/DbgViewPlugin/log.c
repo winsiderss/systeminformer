@@ -112,7 +112,7 @@ static VOID DbgProcessLogMessageEntry(
 
     PhQuerySystemTime(&entry->Time);
     entry->ProcessId = UlongToHandle(debugMessageBuffer->ProcessId);
-    entry->Message = PhCreateStringFromAnsi(debugMessageBuffer->Buffer);
+    entry->Message = PhConvertMultiByteToUtf16(debugMessageBuffer->Buffer);
 
     if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID)
     {
