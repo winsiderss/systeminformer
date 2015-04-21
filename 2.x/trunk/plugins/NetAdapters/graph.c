@@ -914,7 +914,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 // HACK: Pull the Adapter name from the current query.
                 if (context->SysinfoSection->Name.Length == 0)
                 {
-                    if (context->AdapterName = PhCreateStringFromAnsi(interfaceRow.bDescr))
+                    if (context->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr))
                     {
                         context->SysinfoSection->Name = context->AdapterName->sr;
                     }

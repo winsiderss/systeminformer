@@ -149,7 +149,7 @@ PPH_STRING PhGetOpaqueXmlNodeText(
 {
     if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
     {
-        return PhCreateStringFromAnsi(xmlNode->child->value.opaque);
+        return PhConvertMultiByteToUtf16(xmlNode->child->value.opaque);
     }
 
     return PhReferenceEmptyString();

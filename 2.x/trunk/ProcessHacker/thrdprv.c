@@ -360,7 +360,7 @@ NTSTATUS PhpThreadProviderLoadSymbols(
                 PPH_STRING fileName;
                 PPH_STRING newFileName;
 
-                fileName = PhCreateStringFromAnsi(kernelModules->Modules[0].FullPathName);
+                fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
                 newFileName = PhGetFileName(fileName);
                 PhDereferenceObject(fileName);
 

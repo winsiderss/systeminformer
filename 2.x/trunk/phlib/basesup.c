@@ -72,11 +72,6 @@ typedef struct _PHP_BASE_THREAD_CONTEXT
     PVOID Parameter;
 } PHP_BASE_THREAD_CONTEXT, *PPHP_BASE_THREAD_CONTEXT;
 
-VOID NTAPI PhpFullStringDeleteProcedure(
-    _In_ PVOID Object,
-    _In_ ULONG Flags
-    );
-
 VOID NTAPI PhpListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -100,8 +95,7 @@ VOID NTAPI PhpHashtableDeleteProcedure(
 // Types
 
 PPH_OBJECT_TYPE PhStringType;
-PPH_OBJECT_TYPE PhAnsiStringType;
-PPH_OBJECT_TYPE PhFullStringType;
+PPH_OBJECT_TYPE PhBytesType;
 PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhHashtableType;
@@ -154,8 +148,8 @@ BOOLEAN PhInitializeBase(
         return FALSE;
 
     if (!NT_SUCCESS(PhCreateObjectType(
-        &PhAnsiStringType,
-        L"AnsiString",
+        &PhBytesType,
+        L"Bytes",
         0,
         NULL
         )))
@@ -551,13 +545,13 @@ VOID PhFreePage(
 }
 
 /**
- * Allocates space for and copies a string.
+ * Allocates space for and copies a byte string.
  *
  * \param String The string to duplicate.
  *
  * \return The new string, which can be freed using PhFree().
  */
-PSTR PhDuplicateAnsiStringZ(
+PSTR PhDuplicateBytesZ(
     _In_ PSTR String
     )
 {
@@ -573,14 +567,14 @@ PSTR PhDuplicateAnsiStringZ(
 }
 
 /**
- * Allocates space for and copies a string.
+ * Allocates space for and copies a byte string.
  *
  * \param String The string to duplicate.
  *
  * \return The new string, which can be freed using PhFree(), or
  * NULL if storage could not be allocated.
  */
-PSTR PhDuplicateAnsiStringZSafe(
+PSTR PhDuplicateBytesZSafe(
     _In_ PSTR String
     )
 {
@@ -600,13 +594,13 @@ PSTR PhDuplicateAnsiStringZSafe(
 }
 
 /**
- * Allocates space for and copies a string.
+ * Allocates space for and copies a 16-bit string.
  *
  * \param String The string to duplicate.
  *
  * \return The new string, which can be freed using PhFree().
  */
-PWSTR PhDuplicateUnicodeStringZ(
+PWSTR PhDuplicateStringZ(
     _In_ PWSTR String
     )
 {
@@ -647,7 +641,7 @@ PWSTR PhDuplicateUnicodeStringZ(
  * the character count specified in \a InputCount, if
  * \a InputCount is not -1.
  */
-BOOLEAN PhCopyAnsiStringZ(
+BOOLEAN PhCopyBytesZ(
     _In_ PSTR InputBuffer,
     _In_ ULONG InputCount,
     _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
@@ -717,7 +711,7 @@ BOOLEAN PhCopyAnsiStringZ(
  * the character count specified in \a InputCount, if
  * \a InputCount is not -1.
  */
-BOOLEAN PhCopyUnicodeStringZ(
+BOOLEAN PhCopyStringZ(
     _In_ PWSTR InputBuffer,
     _In_ ULONG InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
@@ -787,7 +781,7 @@ BOOLEAN PhCopyUnicodeStringZ(
  * the character count specified in \a InputCount, if
  * \a InputCount is not -1.
  */
-BOOLEAN PhCopyUnicodeStringZFromAnsi(
+BOOLEAN PhCopyStringZFromMultiByte(
     _In_ PSTR InputBuffer,
     _In_ ULONG InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
@@ -936,7 +930,7 @@ FORCEINLINE LONG PhpCompareLeftNatural(
     return 0;
 }
 
-FORCEINLINE LONG PhpCompareUnicodeStringZNatural(
+FORCEINLINE LONG PhpCompareStringZNatural(
     _In_ PWSTR A,
     _In_ PWSTR B,
     _In_ BOOLEAN IgnoreCase
@@ -1031,16 +1025,16 @@ FORCEINLINE LONG PhpCompareUnicodeStringZNatural(
  * \param B The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-LONG PhCompareUnicodeStringZNatural(
+LONG PhCompareStringZNatural(
     _In_ PWSTR A,
     _In_ PWSTR B,
     _In_ BOOLEAN IgnoreCase
     )
 {
     if (!IgnoreCase)
-        return PhpCompareUnicodeStringZNatural(A, B, FALSE);
+        return PhpCompareStringZNatural(A, B, FALSE);
     else
-        return PhpCompareUnicodeStringZNatural(A, B, TRUE);
+        return PhpCompareStringZNatural(A, B, TRUE);
 }
 
 /**
@@ -1962,66 +1956,6 @@ PPH_STRING PhCreateStringEx(
 }
 
 /**
- * Creates a string object from an existing
- * null-terminated ANSI string.
- *
- * \param Buffer A null-terminated ANSI string.
- */
-PPH_STRING PhCreateStringFromAnsi(
-    _In_ PSTR Buffer
-    )
-{
-    return PhCreateStringFromAnsiEx(
-        Buffer,
-        strlen(Buffer)
-        );
-}
-
-/**
- * Creates a string object from an existing
- * null-terminated ANSI string.
- *
- * \param Buffer A null-terminated ANSI string.
- * \param Length The number of bytes to use.
- */
-PPH_STRING PhCreateStringFromAnsiEx(
-    _In_ PCHAR Buffer,
-    _In_ SIZE_T Length
-    )
-{
-    NTSTATUS status;
-    PPH_STRING string;
-    ULONG unicodeBytes;
-
-    status = RtlMultiByteToUnicodeSize(
-        &unicodeBytes,
-        Buffer,
-        (ULONG)Length
-        );
-
-    if (!NT_SUCCESS(status))
-        return NULL;
-
-    string = PhCreateStringEx(NULL, unicodeBytes);
-
-    status = RtlMultiByteToUnicodeN(
-        string->Buffer,
-        (ULONG)string->Length,
-        NULL,
-        Buffer,
-        (ULONG)Length
-        );
-
-    if (!NT_SUCCESS(status))
-    {
-        PhDereferenceObject(string);
-        return NULL;
-    }
-
-    return string;
-}
-
-/**
  * Obtains a reference to a zero-length string.
  */
 PPH_STRING PhReferenceEmptyString(
@@ -2269,85 +2203,494 @@ PPH_STRING PhFormatString_V(
 }
 
 /**
- * Creates an ANSI string object from an existing
- * null-terminated string.
+ * Creates a bytes object from an existing
+ * null-terminated string of bytes.
  *
- * \param Buffer A null-terminated ANSI string.
+ * \param Buffer A null-terminated byte string.
  */
-PPH_ANSI_STRING PhCreateAnsiString(
+PPH_BYTES PhCreateBytes(
     _In_ PSTR Buffer
     )
 {
-    return PhCreateAnsiStringEx(Buffer, strlen(Buffer));
+    return PhCreateBytesEx(Buffer, strlen(Buffer) * sizeof(CHAR));
 }
 
 /**
- * Creates an ANSI string object using a specified length.
+ * Creates a bytes object.
  *
- * \param Buffer A null-terminated ANSI string.
- * \param Length The length, in bytes, of the string.
+ * \param Buffer An array of bytes.
+ * \param Length The length of \a Buffer, in bytes.
  */
-PPH_ANSI_STRING PhCreateAnsiStringEx(
+PPH_BYTES PhCreateBytesEx(
     _In_opt_ PCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
-    PPH_ANSI_STRING string;
+    PPH_BYTES bytes;
 
     if (!NT_SUCCESS(PhCreateObject(
-        &string,
-        FIELD_OFFSET(PH_ANSI_STRING, Buffer) + Length + sizeof(CHAR), // null terminator
+        &bytes,
+        FIELD_OFFSET(PH_BYTES, Data) + Length + sizeof(CHAR), // null terminator for compatibility
         0,
-        PhAnsiStringType
+        PhBytesType
         )))
         return NULL;
 
-    string->as.MaximumLength = string->as.Length = (USHORT)Length;
-    string->as.Buffer = string->Buffer;
-    string->Buffer[Length] = 0;
+    bytes->Length = Length;
+    bytes->Buffer = bytes->Data;
+    bytes->Buffer[Length] = 0;
 
     if (Buffer)
     {
-        memcpy(string->Buffer, Buffer, Length);
+        memcpy(bytes->Buffer, Buffer, Length);
     }
 
-    return string;
+    return bytes;
+}
+
+BOOLEAN PhWriteUnicodeDecoder(
+    _Inout_ PPH_UNICODE_DECODER Decoder,
+    _In_ ULONG CodeUnit
+    )
+{
+    switch (Decoder->Encoding)
+    {
+    case PH_UNICODE_UTF8:
+        if (Decoder->InputCount >= 4)
+            return FALSE;
+        Decoder->u.Utf8.Input[Decoder->InputCount] = (UCHAR)CodeUnit;
+        Decoder->InputCount++;
+        return TRUE;
+    case PH_UNICODE_UTF16:
+        if (Decoder->InputCount >= 2)
+            return FALSE;
+        Decoder->u.Utf16.Input[Decoder->InputCount] = (USHORT)CodeUnit;
+        Decoder->InputCount++;
+        return TRUE;
+    case PH_UNICODE_UTF32:
+        if (Decoder->InputCount >= 1)
+            return FALSE;
+        Decoder->u.Utf32.Input = CodeUnit;
+        Decoder->InputCount = 1;
+        return TRUE;
+    default:
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
+    }
+}
+
+BOOLEAN PhpReadUnicodeDecoder(
+    _Inout_ PPH_UNICODE_DECODER Decoder,
+    _Out_ PULONG CodeUnit
+    )
+{
+    switch (Decoder->Encoding)
+    {
+    case PH_UNICODE_UTF8:
+        if (Decoder->InputCount == 0)
+            return FALSE;
+        *CodeUnit = Decoder->u.Utf8.Input[0];
+        Decoder->u.Utf8.Input[0] = Decoder->u.Utf8.Input[1];
+        Decoder->u.Utf8.Input[1] = Decoder->u.Utf8.Input[2];
+        Decoder->u.Utf8.Input[2] = Decoder->u.Utf8.Input[3];
+        Decoder->InputCount--;
+        return TRUE;
+    case PH_UNICODE_UTF16:
+        if (Decoder->InputCount == 0)
+            return FALSE;
+        *CodeUnit = Decoder->u.Utf16.Input[0];
+        Decoder->u.Utf16.Input[0] = Decoder->u.Utf16.Input[1];
+        Decoder->InputCount--;
+        return TRUE;
+    case PH_UNICODE_UTF32:
+        if (Decoder->InputCount == 0)
+            return FALSE;
+        *CodeUnit = Decoder->u.Utf32.Input;
+        Decoder->InputCount--;
+        return TRUE;
+    default:
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
+    }
+}
+
+VOID PhpUnreadUnicodeDecoder(
+    _Inout_ PPH_UNICODE_DECODER Decoder,
+    _In_ ULONG CodeUnit
+    )
+{
+    switch (Decoder->Encoding)
+    {
+    case PH_UNICODE_UTF8:
+        if (Decoder->InputCount >= 4)
+            PhRaiseStatus(STATUS_UNSUCCESSFUL);
+        Decoder->u.Utf8.Input[3] = Decoder->u.Utf8.Input[2];
+        Decoder->u.Utf8.Input[2] = Decoder->u.Utf8.Input[1];
+        Decoder->u.Utf8.Input[1] = Decoder->u.Utf8.Input[0];
+        Decoder->u.Utf8.Input[0] = (UCHAR)CodeUnit;
+        Decoder->InputCount++;
+        break;
+    case PH_UNICODE_UTF16:
+        if (Decoder->InputCount >= 2)
+            PhRaiseStatus(STATUS_UNSUCCESSFUL);
+        Decoder->u.Utf16.Input[1] = Decoder->u.Utf16.Input[0];
+        Decoder->u.Utf16.Input[0] = (USHORT)CodeUnit;
+        Decoder->InputCount++;
+        break;
+    case PH_UNICODE_UTF32:
+        if (Decoder->InputCount >= 1)
+            PhRaiseStatus(STATUS_UNSUCCESSFUL);
+        Decoder->u.Utf32.Input = CodeUnit;
+        Decoder->InputCount = 1;
+        break;
+    default:
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
+    }
+}
+
+BOOLEAN PhpDecodeUtf8Error(
+    _Inout_ PPH_UNICODE_DECODER Decoder,
+    _Out_ PULONG CodePoint,
+    _In_ ULONG Which
+    )
+{
+    if (Which >= 4)
+        PhpUnreadUnicodeDecoder(Decoder, Decoder->u.Utf8.CodeUnit4);
+    if (Which >= 3)
+        PhpUnreadUnicodeDecoder(Decoder, Decoder->u.Utf8.CodeUnit3);
+    if (Which >= 2)
+        PhpUnreadUnicodeDecoder(Decoder, Decoder->u.Utf8.CodeUnit2);
+
+    *CodePoint = (ULONG)Decoder->u.Utf8.CodeUnit1 + 0xdc00;
+    Decoder->State = 0;
+
+    return TRUE;
+}
+
+BOOLEAN PhDecodeUnicodeDecoder(
+    _Inout_ PPH_UNICODE_DECODER Decoder,
+    _Out_ PULONG CodePoint
+    )
+{
+    ULONG codeUnit;
+
+    switch (Decoder->Encoding)
+    {
+    case PH_UNICODE_UTF8:
+        {
+            if (!PhpReadUnicodeDecoder(Decoder, &codeUnit))
+                return FALSE;
+
+            switch (Decoder->State)
+            {
+            case 0:
+                Decoder->u.Utf8.CodeUnit1 = (UCHAR)codeUnit;
+
+                if (codeUnit < 0x80)
+                {
+                    *CodePoint = codeUnit;
+                    return TRUE;
+                }
+                else if (codeUnit < 0xc2)
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 1);
+                }
+                else if (codeUnit < 0xe0)
+                {
+                    Decoder->State = 1; // 2 byte sequence
+                    return FALSE;
+                }
+                else if (codeUnit < 0xf0)
+                {
+                    Decoder->State = 2; // 3 byte sequence
+                    return FALSE;
+                }
+                else if (codeUnit < 0xf5)
+                {
+                    Decoder->State = 3; // 4 byte sequence
+                    return FALSE;
+                }
+                else
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 1);
+                }
+
+                break;
+            case 1: // 2 byte sequence
+                Decoder->u.Utf8.CodeUnit2 = (UCHAR)codeUnit;
+
+                if ((codeUnit & 0xc0) == 0x80)
+                {
+                    *CodePoint = ((ULONG)Decoder->u.Utf8.CodeUnit1 << 6) + codeUnit - 0x3080;
+                    Decoder->State = 0;
+                    return TRUE;
+                }
+                else
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 2);
+                }
+
+                break;
+            case 2: // 3 byte sequence (1)
+                Decoder->u.Utf8.CodeUnit2 = (UCHAR)codeUnit;
+
+                if (((codeUnit & 0xc0) == 0x80) &&
+                    (Decoder->u.Utf8.CodeUnit1 != 0xe0 || codeUnit >= 0xa0))
+                {
+                    Decoder->State = 4; // 3 byte sequence (2)
+                    return FALSE;
+                }
+                else
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 2);
+                }
+
+                break;
+            case 3: // 4 byte sequence (1)
+                Decoder->u.Utf8.CodeUnit2 = (UCHAR)codeUnit;
+
+                if (((codeUnit & 0xc0) == 0x80) &&
+                    (Decoder->u.Utf8.CodeUnit1 != 0xf0 || codeUnit >= 0x90) &&
+                    (Decoder->u.Utf8.CodeUnit1 != 0xf4 || codeUnit < 0x90))
+                {
+                    Decoder->State = 5; // 4 byte sequence (2)
+                    return FALSE;
+                }
+                else
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 2);
+                }
+
+                break;
+            case 4: // 3 byte sequence (2)
+                Decoder->u.Utf8.CodeUnit3 = (UCHAR)codeUnit;
+
+                if ((codeUnit & 0xc0) == 0x80)
+                {
+                    *CodePoint =
+                        ((ULONG)Decoder->u.Utf8.CodeUnit1 << 12) +
+                        ((ULONG)Decoder->u.Utf8.CodeUnit2 << 6) +
+                        codeUnit - 0xe2080;
+                    Decoder->State = 0;
+                    return TRUE;
+                }
+                else
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 3);
+                }
+
+                break;
+            case 5: // 4 byte sequence (2)
+                Decoder->u.Utf8.CodeUnit3 = (UCHAR)codeUnit;
+
+                if ((codeUnit & 0xc0) == 0x80)
+                {
+                    Decoder->State = 6; // 4 byte sequence (3)
+                    return FALSE;
+                }
+                else
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 3);
+                }
+
+                break;
+            case 6: // 4 byte sequence (3)
+                Decoder->u.Utf8.CodeUnit4 = (UCHAR)codeUnit;
+
+                if ((codeUnit & 0xc0) == 0x80)
+                {
+                    *CodePoint =
+                        ((ULONG)Decoder->u.Utf8.CodeUnit1 << 18) +
+                        ((ULONG)Decoder->u.Utf8.CodeUnit2 << 12) +
+                        ((ULONG)Decoder->u.Utf8.CodeUnit3 << 6) +
+                        codeUnit - 0x3c82080;
+                    Decoder->State = 0;
+                    return TRUE;
+                }
+                else
+                {
+                    return PhpDecodeUtf8Error(Decoder, CodePoint, 4);
+                }
+
+                break;
+            }
+        }
+        return FALSE;
+    case PH_UNICODE_UTF16:
+        {
+            if (!PhpReadUnicodeDecoder(Decoder, &codeUnit))
+                return FALSE;
+
+            switch (Decoder->State)
+            {
+            case 0:
+                if (PH_UNICODE_UTF16_IS_HIGH_SURROGATE(codeUnit))
+                {
+                    Decoder->u.Utf16.CodeUnit = (USHORT)codeUnit;
+                    Decoder->State = 1;
+                    return FALSE;
+                }
+                else
+                {
+                    *CodePoint = codeUnit;
+                    return TRUE;
+                }
+                break;
+            case 1:
+                if (PH_UNICODE_UTF16_IS_LOW_SURROGATE(codeUnit))
+                {
+                    *CodePoint = PH_UNICODE_UTF16_TO_CODE_POINT(Decoder->u.Utf16.CodeUnit, codeUnit);
+                    Decoder->State = 0;
+                    return TRUE;
+                }
+                else
+                {
+                    *CodePoint = Decoder->u.Utf16.CodeUnit;
+                    PhpUnreadUnicodeDecoder(Decoder, codeUnit);
+                    Decoder->State = 0;
+                    return TRUE;
+                }
+                break;
+            }
+        }
+        return FALSE;
+    case PH_UNICODE_UTF32:
+        {
+            if (PhpReadUnicodeDecoder(Decoder, CodePoint))
+                return TRUE;
+        }
+        return FALSE;
+    default:
+        return FALSE;
+    }
+}
+
+BOOLEAN PhEncodeUnicode(
+    _In_ UCHAR Encoding,
+    _In_ ULONG CodePoint,
+    _Out_opt_ PVOID CodeUnits,
+    _Out_ PULONG NumberOfCodeUnits
+    )
+{
+    switch (Encoding)
+    {
+    case PH_UNICODE_UTF8:
+        {
+            PUCHAR codeUnits = CodeUnits;
+
+            if (CodePoint < 0x80)
+            {
+                *NumberOfCodeUnits = 1;
+
+                if (codeUnits)
+                    codeUnits[0] = (UCHAR)CodePoint;
+            }
+            else if (CodePoint <= 0x7ff)
+            {
+                *NumberOfCodeUnits = 2;
+
+                if (codeUnits)
+                {
+                    codeUnits[0] = (UCHAR)(CodePoint >> 6) + 0xc0;
+                    codeUnits[1] = (UCHAR)(CodePoint & 0x3f) + 0x80;
+                }
+            }
+            else if (CodePoint <= 0xffff)
+            {
+                *NumberOfCodeUnits = 3;
+
+                if (codeUnits)
+                {
+                    codeUnits[0] = (UCHAR)(CodePoint >> 12) + 0xe0;
+                    codeUnits[1] = (UCHAR)((CodePoint >> 6) & 0x3f) + 0x80;
+                    codeUnits[2] = (UCHAR)(CodePoint & 0x3f) + 0x80;
+                }
+            }
+            else if (CodePoint <= PH_UNICODE_MAX_CODE_POINT)
+            {
+                *NumberOfCodeUnits = 4;
+
+                if (codeUnits)
+                {
+                    codeUnits[0] = (UCHAR)(CodePoint >> 18) + 0xf0;
+                    codeUnits[1] = (UCHAR)((CodePoint >> 12) & 0x3f) + 0x80;
+                    codeUnits[2] = (UCHAR)((CodePoint >> 6) & 0x3f) + 0x80;
+                    codeUnits[3] = (UCHAR)(CodePoint & 0x3f) + 0x80;
+                }
+            }
+            else
+            {
+                return FALSE;
+            }
+        }
+        return TRUE;
+    case PH_UNICODE_UTF16:
+        {
+            PUSHORT codeUnits = CodeUnits;
+
+            if (CodePoint < 0x10000)
+            {
+                *NumberOfCodeUnits = 1;
+
+                if (codeUnits)
+                    codeUnits[0] = (USHORT)CodePoint;
+            }
+            else if (CodePoint <= PH_UNICODE_MAX_CODE_POINT)
+            {
+                *NumberOfCodeUnits = 2;
+
+                if (codeUnits)
+                {
+                    codeUnits[0] = PH_UNICODE_UTF16_TO_HIGH_SURROGATE(CodePoint);
+                    codeUnits[1] = PH_UNICODE_UTF16_TO_LOW_SURROGATE(CodePoint);
+                }
+            }
+            else
+            {
+                return FALSE;
+            }
+        }
+        return TRUE;
+    case PH_UNICODE_UTF32:
+        *NumberOfCodeUnits = 1;
+        if (CodeUnits)
+            *(PULONG)CodeUnits = CodePoint;
+        return TRUE;
+    default:
+        return FALSE;
+    }
 }
 
 /**
- * Creates an ANSI string object from an existing
- * null-terminated Unicode string.
+ * Creates a string object from an existing null-terminated multi-byte string.
  *
- * \param Buffer A null-terminated Unicode string.
+ * \param Buffer A null-terminated multi-byte string.
  */
-PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
-    _In_ PWSTR Buffer
+PPH_STRING PhConvertMultiByteToUtf16(
+    _In_ PSTR Buffer
     )
 {
-    return PhCreateAnsiStringFromUnicodeEx(
+    return PhConvertMultiByteToUtf16Ex(
         Buffer,
-        wcslen(Buffer) * sizeof(WCHAR)
+        strlen(Buffer)
         );
 }
 
 /**
- * Creates an ANSI string object from an existing
- * null-terminated Unicode string.
+ * Creates a string object from an existing null-terminated multi-byte string.
  *
- * \param Buffer A null-terminated Unicode string.
+ * \param Buffer A null-terminated multi-byte string.
  * \param Length The number of bytes to use.
  */
-PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
-    _In_ PWCHAR Buffer,
+PPH_STRING PhConvertMultiByteToUtf16Ex(
+    _In_ PCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
     NTSTATUS status;
-    PPH_ANSI_STRING string;
-    ULONG ansiBytes;
+    PPH_STRING string;
+    ULONG unicodeBytes;
 
-    status = RtlUnicodeToMultiByteSize(
-        &ansiBytes,
+    status = RtlMultiByteToUnicodeSize(
+        &unicodeBytes,
         Buffer,
         (ULONG)Length
         );
@@ -2355,11 +2698,11 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
     if (!NT_SUCCESS(status))
         return NULL;
 
-    string = PhCreateAnsiStringEx(NULL, ansiBytes);
+    string = PhCreateStringEx(NULL, unicodeBytes);
 
-    status = RtlUnicodeToMultiByteN(
+    status = RtlMultiByteToUnicodeN(
         string->Buffer,
-        string->Length,
+        (ULONG)string->Length,
         NULL,
         Buffer,
         (ULONG)Length
@@ -2372,6 +2715,368 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
     }
 
     return string;
+}
+
+/**
+ * Creates a multi-byte string from an existing null-terminated UTF-16 string.
+ *
+ * \param Buffer A null-terminated UTF-16 string.
+ */
+PPH_BYTES PhConvertUtf16ToMultiByte(
+    _In_ PWSTR Buffer
+    )
+{
+    return PhConvertUtf16ToMultiByteEx(
+        Buffer,
+        wcslen(Buffer) * sizeof(WCHAR)
+        );
+}
+
+/**
+ * Creates a multi-byte string from an existing null-terminated UTF-16 string.
+ *
+ * \param Buffer A null-terminated UTF-16 string.
+ * \param Length The number of bytes to use.
+ */
+PPH_BYTES PhConvertUtf16ToMultiByteEx(
+    _In_ PWCHAR Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    NTSTATUS status;
+    PPH_BYTES bytes;
+    ULONG multiByteLength;
+
+    status = RtlUnicodeToMultiByteSize(
+        &multiByteLength,
+        Buffer,
+        (ULONG)Length
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    bytes = PhCreateBytesEx(NULL, multiByteLength);
+
+    status = RtlUnicodeToMultiByteN(
+        bytes->Buffer,
+        (ULONG)bytes->Length,
+        NULL,
+        Buffer,
+        (ULONG)Length
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(bytes);
+        return NULL;
+    }
+
+    return bytes;
+}
+
+BOOLEAN PhConvertUtf8ToUtf16Size(
+    _Out_ PSIZE_T BytesInUtf16String,
+    _In_reads_bytes_(BytesInUtf8String) PCH Utf8String,
+    _In_ SIZE_T BytesInUtf8String
+    )
+{
+    BOOLEAN result;
+    PH_UNICODE_DECODER decoder;
+    PCH in;
+    SIZE_T inRemaining;
+    SIZE_T bytesInUtf16String;
+    ULONG codePoint;
+    ULONG numberOfCodeUnits;
+
+    result = TRUE;
+    PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF8);
+    in = Utf8String;
+    inRemaining = BytesInUtf8String;
+    bytesInUtf16String = 0;
+
+    while (inRemaining != 0)
+    {
+        PhWriteUnicodeDecoder(&decoder, (UCHAR)*in);
+        in++;
+        inRemaining--;
+
+        while (PhDecodeUnicodeDecoder(&decoder, &codePoint))
+        {
+            if (PhEncodeUnicode(PH_UNICODE_UTF16, codePoint, NULL, &numberOfCodeUnits))
+                bytesInUtf16String += numberOfCodeUnits * sizeof(WCHAR);
+            else
+                result = FALSE;
+        }
+    }
+
+    *BytesInUtf16String = bytesInUtf16String;
+
+    return result;
+}
+
+BOOLEAN PhConvertUtf8ToUtf16InPlace(
+    _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
+    _In_ SIZE_T MaxBytesInUtf16String,
+    _Out_opt_ PSIZE_T BytesInUtf16String,
+    _In_reads_bytes_(BytesInUtf8String) PCH Utf8String,
+    _In_ SIZE_T BytesInUtf8String
+    )
+{
+    BOOLEAN result;
+    PH_UNICODE_DECODER decoder;
+    PCH in;
+    SIZE_T inRemaining;
+    PWCH out;
+    SIZE_T outRemaining;
+    SIZE_T bytesInUtf16String;
+    ULONG codePoint;
+    USHORT codeUnits[2];
+    ULONG numberOfCodeUnits;
+
+    result = TRUE;
+    PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF8);
+    in = Utf8String;
+    inRemaining = BytesInUtf8String;
+    out = Utf16String;
+    outRemaining = MaxBytesInUtf16String / sizeof(WCHAR);
+    bytesInUtf16String = 0;
+
+    while (inRemaining != 0)
+    {
+        PhWriteUnicodeDecoder(&decoder, (UCHAR)*in);
+        in++;
+        inRemaining--;
+
+        while (PhDecodeUnicodeDecoder(&decoder, &codePoint))
+        {
+            if (PhEncodeUnicode(PH_UNICODE_UTF16, codePoint, codeUnits, &numberOfCodeUnits))
+            {
+                bytesInUtf16String += numberOfCodeUnits * sizeof(WCHAR);
+
+                if (outRemaining >= numberOfCodeUnits)
+                {
+                    *out++ = codeUnits[0];
+
+                    if (numberOfCodeUnits >= 2)
+                        *out++ = codeUnits[1];
+
+                    outRemaining -= numberOfCodeUnits;
+                }
+                else
+                {
+                    result = FALSE;
+                }
+            }
+            else
+            {
+                result = FALSE;
+            }
+        }
+    }
+
+    if (BytesInUtf16String)
+        *BytesInUtf16String = bytesInUtf16String;
+
+    return result;
+}
+
+PPH_STRING PhConvertUtf8ToUtf16(
+    _In_ PSTR Buffer
+    )
+{
+    return PhConvertUtf8ToUtf16Ex(
+        Buffer,
+        strlen(Buffer)
+        );
+}
+
+PPH_STRING PhConvertUtf8ToUtf16Ex(
+    _In_ PCHAR Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    PPH_STRING string;
+    SIZE_T utf16Bytes;
+
+    if (!PhConvertUtf8ToUtf16Size(
+        &utf16Bytes,
+        Buffer,
+        Length
+        ))
+    {
+        return NULL;
+    }
+
+    string = PhCreateStringEx(NULL, utf16Bytes);
+
+    if (!PhConvertUtf8ToUtf16InPlace(
+        string->Buffer,
+        string->Length,
+        NULL,
+        Buffer,
+        Length
+        ))
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+
+    return string;
+}
+
+BOOLEAN PhConvertUtf16ToUtf8Size(
+    _Out_ PSIZE_T BytesInUtf8String,
+    _In_reads_bytes_(BytesInUtf16String) PWCH Utf16String,
+    _In_ SIZE_T BytesInUtf16String
+    )
+{
+    BOOLEAN result;
+    PH_UNICODE_DECODER decoder;
+    PWCH in;
+    SIZE_T inRemaining;
+    SIZE_T bytesInUtf8String;
+    ULONG codePoint;
+    ULONG numberOfCodeUnits;
+
+    result = TRUE;
+    PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF16);
+    in = Utf16String;
+    inRemaining = BytesInUtf16String / sizeof(WCHAR);
+    bytesInUtf8String = 0;
+
+    while (inRemaining != 0)
+    {
+        PhWriteUnicodeDecoder(&decoder, (USHORT)*in);
+        in++;
+        inRemaining--;
+
+        while (PhDecodeUnicodeDecoder(&decoder, &codePoint))
+        {
+            if (PhEncodeUnicode(PH_UNICODE_UTF8, codePoint, NULL, &numberOfCodeUnits))
+                bytesInUtf8String += numberOfCodeUnits;
+            else
+                result = FALSE;
+        }
+    }
+
+    *BytesInUtf8String = bytesInUtf8String;
+
+    return result;
+}
+
+BOOLEAN PhConvertUtf16ToUtf8InPlace(
+    _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
+    _In_ SIZE_T MaxBytesInUtf8String,
+    _Out_opt_ PSIZE_T BytesInUtf8String,
+    _In_reads_bytes_(BytesInUtf16String) PWCH Utf16String,
+    _In_ SIZE_T BytesInUtf16String
+    )
+{
+    BOOLEAN result;
+    PH_UNICODE_DECODER decoder;
+    PWCH in;
+    SIZE_T inRemaining;
+    PCH out;
+    SIZE_T outRemaining;
+    SIZE_T bytesInUtf8String;
+    ULONG codePoint;
+    UCHAR codeUnits[4];
+    ULONG numberOfCodeUnits;
+
+    result = TRUE;
+    PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF16);
+    in = Utf16String;
+    inRemaining = BytesInUtf16String / sizeof(WCHAR);
+    out = Utf8String;
+    outRemaining = MaxBytesInUtf8String;
+    bytesInUtf8String = 0;
+
+    while (inRemaining != 0)
+    {
+        PhWriteUnicodeDecoder(&decoder, (USHORT)*in);
+        in++;
+        inRemaining--;
+
+        while (PhDecodeUnicodeDecoder(&decoder, &codePoint))
+        {
+            if (PhEncodeUnicode(PH_UNICODE_UTF8, codePoint, codeUnits, &numberOfCodeUnits))
+            {
+                bytesInUtf8String += numberOfCodeUnits;
+
+                if (outRemaining >= numberOfCodeUnits)
+                {
+                    *out++ = codeUnits[0];
+
+                    if (numberOfCodeUnits >= 2)
+                        *out++ = codeUnits[1];
+                    if (numberOfCodeUnits >= 3)
+                        *out++ = codeUnits[2];
+                    if (numberOfCodeUnits >= 4)
+                        *out++ = codeUnits[3];
+
+                    outRemaining -= numberOfCodeUnits;
+                }
+                else
+                {
+                    result = FALSE;
+                }
+            }
+            else
+            {
+                result = FALSE;
+            }
+        }
+    }
+
+    if (BytesInUtf8String)
+        *BytesInUtf8String = bytesInUtf8String;
+
+    return result;
+}
+
+PPH_BYTES PhConvertUtf16ToUtf8(
+    _In_ PWSTR Buffer
+    )
+{
+    return PhConvertUtf16ToUtf8Ex(
+        Buffer,
+        wcslen(Buffer) * sizeof(WCHAR)
+        );
+}
+
+PPH_BYTES PhConvertUtf16ToUtf8Ex(
+    _In_ PWCHAR Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    PPH_BYTES bytes;
+    SIZE_T utf8Bytes;
+
+    if (!PhConvertUtf16ToUtf8Size(
+        &utf8Bytes,
+        Buffer,
+        Length
+        ))
+    {
+        return NULL;
+    }
+
+    bytes = PhCreateBytesEx(NULL, utf8Bytes);
+
+    if (!PhConvertUtf16ToUtf8InPlace(
+        bytes->Buffer,
+        bytes->Length,
+        NULL,
+        Buffer,
+        Length
+        ))
+    {
+        PhDereferenceObject(bytes);
+        return NULL;
+    }
+
+    return bytes;
 }
 
 /**

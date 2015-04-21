@@ -641,7 +641,7 @@ VOID PhHMenuToEMenuItem(
             menuItem = PhCreateEMenuItem(
                 PH_EMENU_TEXT_OWNED,
                 menuItemInfo.wID,
-                PhDuplicateUnicodeStringZ(buffer),
+                PhDuplicateStringZ(buffer),
                 NULL,
                 NULL
                 );

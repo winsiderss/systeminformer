@@ -91,28 +91,28 @@
                 ADVANCE_BUFFER(count * sizeof(WCHAR));
             }
             break;
-        case AnsiStringFormatType:
-        case AnsiStringZFormatType:
+        case MultiByteStringFormatType:
+        case MultiByteStringZFormatType:
             {
                 ULONG bytesInUnicodeString;
-                PSTR ansiBuffer;
-                SIZE_T ansiLength;
+                PSTR multiByteBuffer;
+                SIZE_T multiByteLength;
 
-                if (format->Type == AnsiStringFormatType)
+                if (format->Type == MultiByteStringFormatType)
                 {
-                    ansiBuffer = format->u.AnsiString.Buffer;
-                    ansiLength = format->u.AnsiString.Length;
+                    multiByteBuffer = format->u.MultiByteString.Buffer;
+                    multiByteLength = format->u.MultiByteString.Length;
                 }
                 else
                 {
-                    ansiBuffer = format->u.AnsiStringZ;
-                    ansiLength = strlen(ansiBuffer);
+                    multiByteBuffer = format->u.MultiByteStringZ;
+                    multiByteLength = strlen(multiByteBuffer);
                 }
 
                 if (NT_SUCCESS(RtlMultiByteToUnicodeSize(
                     &bytesInUnicodeString,
-                    ansiBuffer,
-                    (ULONG)ansiLength
+                    multiByteBuffer,
+                    (ULONG)multiByteLength
                     )))
                 {
                     ENSURE_BUFFER(bytesInUnicodeString);
@@ -121,8 +121,8 @@
                         buffer,
                         bytesInUnicodeString,
                         NULL,
-                        ansiBuffer,
-                        (ULONG)ansiLength
+                        multiByteBuffer,
+                        (ULONG)multiByteLength
                         )))
                     {
                         ADVANCE_BUFFER(bytesInUnicodeString);
@@ -409,7 +409,7 @@ CommonInt64Format:
             \
             if (OK_BUFFER) \
             { \
-                PhZeroExtendToUnicode(decimalPoint, copyCount, buffer); \
+                PhZeroExtendToUtf16(decimalPoint, copyCount, buffer); \
                 ADVANCE_BUFFER(copyCount * sizeof(WCHAR)); \
             } \
         } \
@@ -456,7 +456,7 @@ CommonInt64Format:
             \
             if (OK_BUFFER) \
             { \
-                PhZeroExtendToUnicode((PSTR)temp, length, buffer); \
+                PhZeroExtendToUtf16((PSTR)temp, length, buffer); \
                 ADVANCE_BUFFER(length * sizeof(WCHAR)); \
             } \
         } \

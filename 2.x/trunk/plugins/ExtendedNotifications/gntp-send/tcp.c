@@ -122,7 +122,7 @@ void growl_tcp_close(SOCKET sock) {
 
 int growl_tcp_parse_hostname( const char *const server , int default_port , struct sockaddr_in *const sockaddr )
 {
-    char *hostname = PhDuplicateAnsiStringZSafe((PSTR)server);
+    char *hostname = PhDuplicateBytesZSafe((PSTR)server);
     char *port = strchr( hostname, ':' );
     struct hostent* host_ent;
     if( port != NULL )

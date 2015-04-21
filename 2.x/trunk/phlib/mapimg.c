@@ -321,7 +321,7 @@ BOOLEAN PhGetMappedImageSectionName(
     _Out_opt_ PULONG ReturnCount
     )
 {
-    return PhCopyAnsiStringZ(
+    return PhCopyBytesZ(
         Section->Name,
         IMAGE_SIZEOF_SHORT_NAME,
         Buffer,

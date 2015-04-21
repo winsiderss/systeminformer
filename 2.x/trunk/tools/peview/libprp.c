@@ -110,11 +110,11 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
                     WCHAR number[PH_INT32_STR_LEN_1];
                     PWSTR type;
 
-                    name = PhCreateStringFromAnsi(importEntry.DllName);
+                    name = PhConvertMultiByteToUtf16(importEntry.DllName);
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, NULL);
                     PhDereferenceObject(name);
 
-                    name = PhCreateStringFromAnsi(importEntry.Name);
+                    name = PhConvertMultiByteToUtf16(importEntry.Name);
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 1, name->Buffer);
                     PhDereferenceObject(name);
 

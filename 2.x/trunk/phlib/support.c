@@ -269,7 +269,7 @@ PPH_STRING PhGetMessage(
     }
     else
     {
-        return PhCreateStringFromAnsiEx((PCHAR)messageEntry->Text, messageEntry->Length);
+        return PhConvertMultiByteToUtf16Ex((PCHAR)messageEntry->Text, messageEntry->Length);
     }
 }
 

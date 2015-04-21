@@ -1208,7 +1208,7 @@ NTSTATUS PhGetProcessPosixCommandLine(
             }
         }
 
-        *CommandLine = PhCreateStringFromAnsiEx(
+        *CommandLine = PhConvertMultiByteToUtf16Ex(
             commandLineChunk,
             commandLineChunkSize
             );
@@ -4640,7 +4640,7 @@ PPH_STRING PhGetKernelFileName(
 
     if (modules->NumberOfModules >= 1)
     {
-        fileName = PhCreateStringFromAnsi(modules->Modules[0].FullPathName);
+        fileName = PhConvertMultiByteToUtf16(modules->Modules[0].FullPathName);
     }
 
     PhFree(modules);
@@ -6035,7 +6035,7 @@ VOID PhpRtlModulesToGenericModules(
             PhAddEntryHashtable(BaseAddressHashtable, &module->ImageBase);
         }
 
-        fileName = PhCreateStringFromAnsi(module->FullPathName);
+        fileName = PhConvertMultiByteToUtf16(module->FullPathName);
 
         if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
@@ -6046,7 +6046,7 @@ VOID PhpRtlModulesToGenericModules(
         moduleInfo.Size = module->ImageSize;
         moduleInfo.EntryPoint = NULL;
         moduleInfo.Flags = module->Flags;
-        moduleInfo.Name = PhCreateStringFromAnsi(&module->FullPathName[module->OffsetToFileName]);
+        moduleInfo.Name = PhConvertMultiByteToUtf16(&module->FullPathName[module->OffsetToFileName]);
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
         moduleInfo.LoadOrderIndex = module->LoadOrderIndex;
         moduleInfo.LoadCount = module->LoadCount;
@@ -6104,7 +6104,7 @@ VOID PhpRtlModulesExToGenericModules(
             PhAddEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase);
         }
 
-        fileName = PhCreateStringFromAnsi(module->BaseInfo.FullPathName);
+        fileName = PhConvertMultiByteToUtf16(module->BaseInfo.FullPathName);
 
         if ((ULONG_PTR)module->BaseInfo.ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
@@ -6115,7 +6115,7 @@ VOID PhpRtlModulesExToGenericModules(
         moduleInfo.Size = module->BaseInfo.ImageSize;
         moduleInfo.EntryPoint = NULL;
         moduleInfo.Flags = module->BaseInfo.Flags;
-        moduleInfo.Name = PhCreateStringFromAnsi(&module->BaseInfo.FullPathName[module->BaseInfo.OffsetToFileName]);
+        moduleInfo.Name = PhConvertMultiByteToUtf16(&module->BaseInfo.FullPathName[module->BaseInfo.OffsetToFileName]);
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
         moduleInfo.LoadOrderIndex = module->BaseInfo.LoadOrderIndex;
         moduleInfo.LoadCount = module->BaseInfo.LoadCount;

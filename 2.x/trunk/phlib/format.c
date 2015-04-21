@@ -70,14 +70,14 @@ static WCHAR PhpFormatThousandSeparator = ',';
 static _locale_t PhpFormatUserLocale = NULL;
 
 /**
- * Converts an ANSI string to a Unicode string by zero-extending
+ * Converts an ASCII string to a UTF-16 string by zero-extending
  * each byte.
  *
- * \param Input The original ANSI string.
+ * \param Input The original ASCII string.
  * \param InputLength The length of \a Input.
  * \param Output A buffer which will contain the converted string.
  */
-VOID PhZeroExtendToUnicode(
+VOID PhZeroExtendToUtf16(
     _In_reads_bytes_(InputLength) PSTR Input,
     _In_ ULONG InputLength,
     _Out_writes_bytes_(InputLength * 2) PWSTR Output

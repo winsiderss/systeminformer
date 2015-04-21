@@ -179,9 +179,9 @@ static VOID PhpPrintObjectInfo(
     {
         wprintf(L"\t%.32s", ((PPH_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
     }
-    else if (ObjectHeader->Type == PhAnsiStringType)
+    else if (ObjectHeader->Type == PhBytesType)
     {
-        wprintf(L"\t%.32S", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+        wprintf(L"\t%.32S", ((PPH_BYTES)PhObjectHeaderToObject(ObjectHeader))->Buffer);
     }
     else if (ObjectHeader->Type == PhListType)
     {
@@ -237,9 +237,9 @@ static VOID PhpDumpObjectInfo(
         {
             wprintf(L"%s\n", ((PPH_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
         }
-        else if (ObjectHeader->Type == PhAnsiStringType)
+        else if (ObjectHeader->Type == PhBytesType)
         {
-            wprintf(L"%S\n", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+            wprintf(L"%S\n", ((PPH_BYTES)PhObjectHeaderToObject(ObjectHeader))->Buffer);
         }
         else if (ObjectHeader->Type == PhHashtableType)
         {

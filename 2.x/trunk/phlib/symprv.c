@@ -429,7 +429,7 @@ BOOLEAN PhGetLineFromAddress(
 
         if (result)
         {
-            fileName = PhCreateStringFromAnsi(lineA.FileName);
+            fileName = PhConvertMultiByteToUtf16(lineA.FileName);
             line.LineNumber = lineA.LineNumber;
             line.Address = lineA.Address;
         }
@@ -556,7 +556,7 @@ VOID PhpSymbolInfoAnsiToUnicode(
 
         copyCount = min(SymbolInfoA->NameLen, SymbolInfoW->MaxNameLen - 1);
 
-        if (PhCopyUnicodeStringZFromAnsi(
+        if (PhCopyStringZFromMultiByte(
             SymbolInfoA->Name,
             copyCount,
             SymbolInfoW->Name,
@@ -858,14 +858,14 @@ BOOLEAN PhGetSymbolFromName(
     {
         UCHAR buffer[FIELD_OFFSET(SYMBOL_INFO, Name) + PH_MAX_SYMBOL_NAME_LEN];
         PSYMBOL_INFO symbolInfoA;
-        PPH_ANSI_STRING name;
+        PPH_BYTES name;
 
         symbolInfoA = (PSYMBOL_INFO)buffer;
         memset(symbolInfoA, 0, sizeof(SYMBOL_INFO));
         symbolInfoA->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbolInfoA->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
 
-        name = PhCreateAnsiStringFromUnicode(Name);
+        name = PhConvertUtf16ToMultiByte(Name);
 
         if (result = SymFromName_I(
             SymbolProvider->ProcessHandle,
@@ -903,7 +903,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
     _In_ ULONG Size
     )
 {
-    PPH_ANSI_STRING fileName;
+    PPH_BYTES fileName;
     ULONG64 baseAddress;
 
     if (!SymLoadModule64_I)
@@ -913,7 +913,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
     PhpRegisterSymbolProvider(SymbolProvider);
 #endif
 
-    fileName = PhCreateAnsiStringFromUnicode(FileName);
+    fileName = PhConvertUtf16ToMultiByte(FileName);
 
     if (!fileName)
         return FALSE;
@@ -1014,9 +1014,9 @@ VOID PhSetSearchPathSymbolProvider(
     }
     else if (SymSetSearchPath_I)
     {
-        PPH_ANSI_STRING path;
+        PPH_BYTES path;
 
-        path = PhCreateAnsiStringFromUnicode(Path);
+        path = PhConvertUtf16ToMultiByte(Path);
         SymSetSearchPath_I(SymbolProvider->ProcessHandle, path->Buffer);
         PhDereferenceObject(path);
     }

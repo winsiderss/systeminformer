@@ -81,7 +81,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
     * Hey, the formatted string fits in the tiny buffer, so just dup that...
     */
 
-    return (PhDuplicateAnsiStringZSafe(temp));
+    return (PhDuplicateBytesZSafe(temp));
   }
 
  /*
