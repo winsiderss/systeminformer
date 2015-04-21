@@ -367,8 +367,8 @@ static NTSTATUS UploadFileThreadStart(
     HINTERNET requestHandle = NULL;
 
     PPH_STRING postBoundary = NULL;
-    PPH_BYTES ansiPostData = NULL;
-    PPH_BYTES ansiFooterData = NULL;
+    PPH_BYTES asciiPostData = NULL;
+    PPH_BYTES asciiFooterData = NULL;
     PH_STRING_BUILDER httpRequestHeaders = { 0 };
     PH_STRING_BUILDER httpPostHeader = { 0 };
     PH_STRING_BUILDER httpPostFooter = { 0 };
@@ -487,9 +487,9 @@ static NTSTATUS UploadFileThreadStart(
             __leave;
         }
 
-        // Convert to ANSI
-        ansiPostData = PhConvertUtf16ToMultiByte(httpPostHeader.String->Buffer);
-        ansiFooterData = PhConvertUtf16ToMultiByte(httpPostFooter.String->Buffer);
+        // Convert to ASCII
+        asciiPostData = PhConvertUtf16ToAscii(httpPostHeader.String->Buffer, '-');
+        asciiFooterData = PhConvertUtf16ToAscii(httpPostFooter.String->Buffer, '-');
 
         // Start the clock.
         PhQuerySystemTime(&timeStart);
@@ -497,8 +497,8 @@ static NTSTATUS UploadFileThreadStart(
         // Write the header
         if (!WinHttpWriteData(
             requestHandle,
-            ansiPostData->Buffer,
-            (ULONG)ansiPostData->Length,
+            asciiPostData->Buffer,
+            (ULONG)asciiPostData->Length,
             &totalPostHeaderWritten
             ))
         {
@@ -565,8 +565,8 @@ static NTSTATUS UploadFileThreadStart(
         // Write the footer bytes
         if (!WinHttpWriteData(
             requestHandle,
-            ansiFooterData->Buffer,
-            (ULONG)ansiFooterData->Length,
+            asciiFooterData->Buffer,
+            (ULONG)asciiFooterData->Length,
             &totalPostFooterWritten
             ))
         {
@@ -723,14 +723,14 @@ static NTSTATUS UploadFileThreadStart(
             PhDereferenceObject(postBoundary);
         }
 
-        if (ansiFooterData)
+        if (asciiFooterData)
         {
-            PhDereferenceObject(ansiFooterData);
+            PhDereferenceObject(asciiFooterData);
         }
 
-        if (ansiPostData)
+        if (asciiPostData)
         {
-            PhDereferenceObject(ansiPostData);
+            PhDereferenceObject(asciiPostData);
         }
 
         if (httpPostFooter.String)
@@ -884,7 +884,7 @@ static NTSTATUS UploadCheckThreadStart(
                     __leave;
                 }
 
-                context->ObjectName = PhConvertMultiByteToUtf16Ex(uploadUrl, quote - uploadUrl);
+                context->ObjectName = PhZeroExtendToUtf16Ex(uploadUrl, quote - uploadUrl);
 
                 // Create the default upload URL
                 if (!context->ObjectName)

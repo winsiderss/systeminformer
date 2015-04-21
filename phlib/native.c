@@ -1208,10 +1208,7 @@ NTSTATUS PhGetProcessPosixCommandLine(
             }
         }
 
-        *CommandLine = PhConvertMultiByteToUtf16Ex(
-            commandLineChunk,
-            commandLineChunkSize
-            );
+        *CommandLine = PhZeroExtendToUtf16Ex(commandLineChunk, commandLineChunkSize);
         PhFree(commandLineChunk);
 
         return status;

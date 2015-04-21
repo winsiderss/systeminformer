@@ -69,49 +69,6 @@ static WCHAR PhpFormatDecimalSeparator = '.';
 static WCHAR PhpFormatThousandSeparator = ',';
 static _locale_t PhpFormatUserLocale = NULL;
 
-/**
- * Converts an ASCII string to a UTF-16 string by zero-extending
- * each byte.
- *
- * \param Input The original ASCII string.
- * \param InputLength The length of \a Input.
- * \param Output A buffer which will contain the converted string.
- */
-VOID PhZeroExtendToUtf16(
-    _In_reads_bytes_(InputLength) PSTR Input,
-    _In_ ULONG InputLength,
-    _Out_writes_bytes_(InputLength * 2) PWSTR Output
-    )
-{
-    ULONG inputLength;
-
-    inputLength = InputLength & -4;
-
-    if (inputLength)
-    {
-        do
-        {
-            Output[0] = C_1uTo2(Input[0]);
-            Output[1] = C_1uTo2(Input[1]);
-            Output[2] = C_1uTo2(Input[2]);
-            Output[3] = C_1uTo2(Input[3]);
-            Input += 4;
-            Output += 4;
-            inputLength -= 4;
-        } while (inputLength != 0);
-    }
-
-    switch (InputLength & 3)
-    {
-    case 3:
-        *Output++ = C_1uTo2(*Input++);
-    case 2:
-        *Output++ = C_1uTo2(*Input++);
-    case 1:
-        *Output++ = C_1uTo2(*Input++);
-    }
-}
-
 PPH_STRING PhpResizeFormatBuffer(
     _In_ PPH_STRING String,
     _Inout_ PSIZE_T AllocatedLength,

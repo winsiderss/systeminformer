@@ -748,10 +748,10 @@ BOOLEAN
 NTAPI
 PhCopyBytesZ(
     _In_ PSTR InputBuffer,
-    _In_ ULONG InputCount,
+    _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
-    _In_ ULONG OutputCount,
-    _Out_opt_ PULONG ReturnCount
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
     );
 
 PHLIBAPI
@@ -759,10 +759,21 @@ BOOLEAN
 NTAPI
 PhCopyStringZ(
     _In_ PWSTR InputBuffer,
-    _In_ ULONG InputCount,
+    _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
-    _In_ ULONG OutputCount,
-    _Out_opt_ PULONG ReturnCount
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCopyStringZFromBytes(
+    _In_ PSTR InputBuffer,
+    _In_ SIZE_T InputCount,
+    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
     );
 
 PHLIBAPI
@@ -770,10 +781,10 @@ BOOLEAN
 NTAPI
 PhCopyStringZFromMultiByte(
     _In_ PSTR InputBuffer,
-    _In_ ULONG InputCount,
+    _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
-    _In_ ULONG OutputCount,
-    _Out_opt_ PULONG ReturnCount
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
     );
 
 PHLIBAPI
@@ -1869,6 +1880,51 @@ PhEncodeUnicode(
     _Out_opt_ PVOID CodeUnits,
     _Out_ PULONG NumberOfCodeUnits
     );
+
+// 8-bit to UTF-16
+
+PHLIBAPI
+VOID
+NTAPI
+PhZeroExtendToUtf16InPlace(
+    _In_reads_bytes_(InputLength) PCH Input,
+    _In_ SIZE_T InputLength,
+    _Out_writes_bytes_(InputLength * sizeof(WCHAR)) PWCH Output
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhZeroExtendToUtf16Ex(
+    _In_reads_bytes_(InputLength) PCH Input,
+    _In_ SIZE_T InputLength
+    );
+
+FORCEINLINE PPH_STRING PhZeroExtendToUtf16(
+    _In_ PSTR Input
+    )
+{
+    return PhZeroExtendToUtf16Ex(Input, strlen(Input));
+}
+
+// UTF-16 to ASCII
+
+PHLIBAPI
+PPH_BYTES
+NTAPI
+PhConvertUtf16ToAsciiEx(
+    _In_ PWCH Buffer,
+    _In_ SIZE_T Length,
+    _In_opt_ CHAR Replacement
+    );
+
+FORCEINLINE PPH_BYTES PhConvertUtf16ToAscii(
+    _In_ PWSTR Buffer,
+    _In_opt_ CHAR Replacement
+    )
+{
+    return PhConvertUtf16ToAsciiEx(Buffer, wcslen(Buffer) * sizeof(WCHAR), Replacement);
+}
 
 // Multi-byte to UTF-16
 // In-place: RtlMultiByteToUnicodeN, RtlMultiByteToUnicodeSize
@@ -3108,13 +3164,6 @@ PhPrintTimeSpan(
 
 // format
 
-VOID
-PhZeroExtendToUtf16(
-    _In_reads_bytes_(InputLength) PSTR Input,
-    _In_ ULONG InputLength,
-    _Out_writes_bytes_(InputLength * 2) PWSTR Output
-    );
-
 typedef enum _PH_FORMAT_TYPE
 {
     CharFormatType,
@@ -3217,7 +3266,7 @@ typedef struct _PH_FORMAT
 #define PhInitFormatC(f, v) do { (f)->Type = CharFormatType; (f)->u.Char = (v); } while (0)
 #define PhInitFormatS(f, v) do { (f)->Type = StringFormatType; PhInitializeStringRef(&(f)->u.String, (v)); } while (0)
 #define PhInitFormatSR(f, v) do { (f)->Type = StringFormatType; (f)->u.String = (v); } while (0)
-#define PhInitFormatAnsiS(f, v) do { (f)->Type = AnsiStringFormatType; PhInitializeAnsiStringRef(&(f)->u.AnsiString, (v)); } while (0)
+#define PhInitFormatMultiByteS(f, v) do { (f)->Type = MultiByteStringFormatType; PhInitializeBytesRef(&(f)->u.MultiByteString, (v)); } while (0)
 #define PhInitFormatD(f, v) do { (f)->Type = Int32FormatType; (f)->u.Int32 = (v); } while (0)
 #define PhInitFormatU(f, v) do { (f)->Type = UInt32FormatType; (f)->u.UInt32 = (v); } while (0)
 #define PhInitFormatX(f, v) do { (f)->Type = UInt32FormatType | FormatUseRadix; (f)->u.UInt32 = (v); (f)->Radix = 16; } while (0)

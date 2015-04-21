@@ -762,7 +762,7 @@ PPH_STRING PhGetOpaqueXmlNodeText(
 {
     if (node->child && node->child->type == MXML_OPAQUE && node->child->value.opaque)
     {
-        return PhConvertMultiByteToUtf16(node->child->value.opaque);
+        return PhConvertUtf8ToUtf16(node->child->value.opaque);
     }
     else
     {
