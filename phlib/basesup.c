@@ -643,13 +643,13 @@ PWSTR PhDuplicateStringZ(
  */
 BOOLEAN PhCopyBytesZ(
     _In_ PSTR InputBuffer,
-    _In_ ULONG InputCount,
+    _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
-    _In_ ULONG OutputCount,
-    _Out_opt_ PULONG ReturnCount
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
     )
 {
-    ULONG i;
+    SIZE_T i;
     BOOLEAN copied;
 
     // Determine the length of the input string.
@@ -663,7 +663,7 @@ BOOLEAN PhCopyBytesZ(
     }
     else
     {
-        i = (ULONG)strlen(InputBuffer);
+        i = strlen(InputBuffer);
     }
 
     // Copy the string if there is enough room.
@@ -713,13 +713,13 @@ BOOLEAN PhCopyBytesZ(
  */
 BOOLEAN PhCopyStringZ(
     _In_ PWSTR InputBuffer,
-    _In_ ULONG InputCount,
+    _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
-    _In_ ULONG OutputCount,
-    _Out_opt_ PULONG ReturnCount
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
     )
 {
-    ULONG i;
+    SIZE_T i;
     BOOLEAN copied;
 
     // Determine the length of the input string.
@@ -733,7 +733,7 @@ BOOLEAN PhCopyStringZ(
     }
     else
     {
-        i = (ULONG)wcslen(InputBuffer);
+        i = wcslen(InputBuffer);
     }
 
     // Copy the string if there is enough room.
@@ -781,16 +781,86 @@ BOOLEAN PhCopyStringZ(
  * the character count specified in \a InputCount, if
  * \a InputCount is not -1.
  */
+BOOLEAN PhCopyStringZFromBytes(
+    _In_ PSTR InputBuffer,
+    _In_ SIZE_T InputCount,
+    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
+    )
+{
+    SIZE_T i;
+    BOOLEAN copied;
+
+    // Determine the length of the input string.
+
+    if (InputCount != -1)
+    {
+        i = 0;
+
+        while (i < InputCount && InputBuffer[i])
+            i++;
+    }
+    else
+    {
+        i = strlen(InputBuffer);
+    }
+
+    // Copy the string if there is enough room.
+
+    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
+    {
+        PhZeroExtendToUtf16InPlace(InputBuffer, i, OutputBuffer);
+        OutputBuffer[i] = 0;
+        copied = TRUE;
+    }
+    else
+    {
+        copied = FALSE;
+    }
+
+    if (ReturnCount)
+        *ReturnCount = i + 1;
+
+    return copied;
+}
+
+/**
+ * Copies a string with optional null termination and
+ * a maximum number of characters.
+ *
+ * \param InputBuffer A pointer to the input string.
+ * \param InputCount The maximum number of characters
+ * to copy, not including the null terminator. Specify
+ * -1 for no limit.
+ * \param OutputBuffer A pointer to the output buffer.
+ * \param OutputCount The number of characters in the
+ * output buffer, including the null terminator.
+ * \param ReturnCount A variable which receives the
+ * number of characters required to contain the input
+ * string, including the null terminator. If the
+ * function returns TRUE, this variable contains the
+ * number of characters written to the output buffer.
+ *
+ * \return TRUE if the input string was copied to
+ * the output string, otherwise FALSE.
+ *
+ * \remarks The function stops copying when it
+ * encounters the first null character in the input
+ * string. It will also stop copying when it reaches
+ * the character count specified in \a InputCount, if
+ * \a InputCount is not -1.
+ */
 BOOLEAN PhCopyStringZFromMultiByte(
     _In_ PSTR InputBuffer,
-    _In_ ULONG InputCount,
+    _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
-    _In_ ULONG OutputCount,
-    _Out_opt_ PULONG ReturnCount
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
     )
 {
     NTSTATUS status;
-    ULONG i;
+    SIZE_T i;
     ULONG unicodeBytes;
     BOOLEAN copied;
 
@@ -805,7 +875,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
     }
     else
     {
-        i = (ULONG)strlen(InputBuffer);
+        i = strlen(InputBuffer);
     }
 
     // Determine the length of the output string.
@@ -813,7 +883,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
     status = RtlMultiByteToUnicodeSize(
         &unicodeBytes,
         InputBuffer,
-        i
+        (ULONG)i
         );
 
     if (!NT_SUCCESS(status))
@@ -833,7 +903,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
             unicodeBytes,
             NULL,
             InputBuffer,
-            i
+            (ULONG)i
             );
 
         if (NT_SUCCESS(status))
@@ -2660,6 +2730,110 @@ BOOLEAN PhEncodeUnicode(
 }
 
 /**
+ * Converts an ASCII string to a UTF-16 string by zero-extending
+ * each byte.
+ *
+ * \param Input The original ASCII string.
+ * \param InputLength The length of \a Input.
+ * \param Output A buffer which will contain the converted string.
+ */
+VOID PhZeroExtendToUtf16InPlace(
+    _In_reads_bytes_(InputLength) PSTR Input,
+    _In_ SIZE_T InputLength,
+    _Out_writes_bytes_(InputLength * sizeof(WCHAR)) PWSTR Output
+    )
+{
+    SIZE_T inputLength;
+
+    inputLength = InputLength & -4;
+
+    if (inputLength)
+    {
+        do
+        {
+            Output[0] = C_1uTo2(Input[0]);
+            Output[1] = C_1uTo2(Input[1]);
+            Output[2] = C_1uTo2(Input[2]);
+            Output[3] = C_1uTo2(Input[3]);
+            Input += 4;
+            Output += 4;
+            inputLength -= 4;
+        } while (inputLength != 0);
+    }
+
+    switch (InputLength & 3)
+    {
+    case 3:
+        *Output++ = C_1uTo2(*Input++);
+    case 2:
+        *Output++ = C_1uTo2(*Input++);
+    case 1:
+        *Output++ = C_1uTo2(*Input++);
+    }
+}
+
+PPH_STRING PhZeroExtendToUtf16Ex(
+    _In_reads_bytes_(InputLength) PCH Input,
+    _In_ SIZE_T InputLength
+    )
+{
+    PPH_STRING string;
+
+    string = PhCreateStringEx(NULL, InputLength * sizeof(WCHAR));
+    PhZeroExtendToUtf16InPlace(Input, InputLength, string->Buffer);
+
+    return string;
+}
+
+PPH_BYTES PhConvertUtf16ToAsciiEx(
+    _In_ PWCH Buffer,
+    _In_ SIZE_T Length,
+    _In_opt_ CHAR Replacement
+    )
+{
+    PPH_BYTES bytes;
+    PH_UNICODE_DECODER decoder;
+    PWCH in;
+    SIZE_T inRemaining;
+    PCH out;
+    SIZE_T outLength;
+    ULONG codePoint;
+
+    bytes = PhCreateBytesEx(NULL, Length / sizeof(WCHAR));
+    PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF16);
+    in = Buffer;
+    inRemaining = Length / sizeof(WCHAR);
+    out = bytes->Buffer;
+    outLength = 0;
+
+    while (inRemaining != 0)
+    {
+        PhWriteUnicodeDecoder(&decoder, (USHORT)*in);
+        in++;
+        inRemaining--;
+
+        while (PhDecodeUnicodeDecoder(&decoder, &codePoint))
+        {
+            if (codePoint < 0x80)
+            {
+                *out++ = (CHAR)codePoint;
+                outLength++;
+            }
+            else if (Replacement)
+            {
+                *out++ = Replacement;
+                outLength++;
+            }
+        }
+    }
+
+    bytes->Length = outLength;
+    bytes->Buffer[outLength] = 0;
+
+    return bytes;
+}
+
+/**
  * Creates a string object from an existing null-terminated multi-byte string.
  *
  * \param Buffer A null-terminated multi-byte string.
@@ -2699,7 +2873,6 @@ PPH_STRING PhConvertMultiByteToUtf16Ex(
         return NULL;
 
     string = PhCreateStringEx(NULL, unicodeBytes);
-
     status = RtlMultiByteToUnicodeN(
         string->Buffer,
         (ULONG)string->Length,
@@ -2757,7 +2930,6 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
         return NULL;
 
     bytes = PhCreateBytesEx(NULL, multiByteLength);
-
     status = RtlUnicodeToMultiByteN(
         bytes->Buffer,
         (ULONG)bytes->Length,

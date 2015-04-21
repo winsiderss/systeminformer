@@ -489,7 +489,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 WCHAR sectionName[9];
                 WCHAR pointer[PH_PTR_STR_LEN_1];
 
-                if (PhCopyStringZFromMultiByte(PvMappedImage.Sections[i].Name,
+                if (PhCopyStringZFromBytes(PvMappedImage.Sections[i].Name,
                     IMAGE_SIZEOF_SHORT_NAME, sectionName, 9, NULL))
                 {
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, sectionName, NULL);
@@ -618,7 +618,7 @@ VOID PvpProcessImports(
                     WCHAR number[PH_INT32_STR_LEN_1];
 
                     if (!DelayImports)
-                        name = PhConvertMultiByteToUtf16(importDll.Name);
+                        name = PhZeroExtendToUtf16(importDll.Name);
                     else
                         name = PhFormatString(L"%S (Delay)", importDll.Name);
 
@@ -627,7 +627,7 @@ VOID PvpProcessImports(
 
                     if (importEntry.Name)
                     {
-                        name = PhConvertMultiByteToUtf16(importEntry.Name);
+                        name = PhZeroExtendToUtf16(importEntry.Name);
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
                         PhDereferenceObject(name);
 
@@ -734,7 +734,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (exportEntry.Name)
                         {
-                            name = PhConvertMultiByteToUtf16(exportEntry.Name);
+                            name = PhZeroExtendToUtf16(exportEntry.Name);
                             lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, NULL);
                             PhDereferenceObject(name);
                         }
@@ -757,7 +757,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         }
                         else
                         {
-                            name = PhConvertMultiByteToUtf16(exportFunction.ForwardedName);
+                            name = PhZeroExtendToUtf16(exportFunction.ForwardedName);
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, name->Buffer);
                             PhDereferenceObject(name);
                         }
@@ -943,7 +943,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
             if (versionStringLength != 0)
             {
-                string = PhConvertMultiByteToUtf16Ex((PCHAR)metaData + 12 + 4, versionStringLength);
+                string = PhZeroExtendToUtf16Ex((PCHAR)metaData + 12 + 4, versionStringLength);
                 SetDlgItemText(hwndDlg, IDC_VERSIONSTRING, string->Buffer);
                 PhDereferenceObject(string);
             }
