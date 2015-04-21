@@ -6,6 +6,7 @@ Process Hacker
    * CPU and GPU graphs are displayed in a grid now (thanks pavel_kv!)
    * Tooltip information for user-mode driver framework (UMDF) host processes
    * Start Task Manager now elevates when necessary
+   * Option to reduce row height (set ThinRows to 1 in settings.xml)
    * Added NetAdapters plugin: adds graphs for selected network adapters to the System Information window
    * Updated ExtendedTools plugin:
      * Can now use the search box in the Disk tab
