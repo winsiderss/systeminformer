@@ -329,7 +329,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   }
 
   if (attr)
-    ind->attr = PhDuplicateAnsiStringZSafe((char *)attr);
+    ind->attr = PhDuplicateBytesZSafe((char *)attr);
 
   if (!element && !attr)
     current = node;

@@ -789,7 +789,7 @@ NTSTATUS PhLoadSettings(
             stricmp(currentNode->value.element.attrs[0].name, "name") == 0
             )
         {
-            settingName = PhCreateStringFromAnsi(currentNode->value.element.attrs[0].value);
+            settingName = PhConvertMultiByteToUtf16(currentNode->value.element.attrs[0].value);
         }
 
         if (settingName)
@@ -881,20 +881,20 @@ mxml_node_t *PhpCreateSettingElement(
 {
     mxml_node_t *settingNode;
     mxml_node_t *textNode;
-    PPH_ANSI_STRING settingNameAnsi;
-    PPH_ANSI_STRING settingValueAnsi;
+    PPH_BYTES settingNameAnsi;
+    PPH_BYTES settingValueAnsi;
 
     // Create the setting element.
 
     settingNode = mxmlNewElement(ParentNode, "setting");
 
-    settingNameAnsi = PhCreateAnsiStringFromUnicodeEx(SettingName->Buffer, SettingName->Length);
+    settingNameAnsi = PhConvertUtf16ToMultiByteEx(SettingName->Buffer, SettingName->Length);
     mxmlElementSetAttr(settingNode, "name", settingNameAnsi->Buffer);
     PhDereferenceObject(settingNameAnsi);
 
     // Set the value.
 
-    settingValueAnsi = PhCreateAnsiStringFromUnicodeEx(SettingValue->Buffer, SettingValue->Length);
+    settingValueAnsi = PhConvertUtf16ToMultiByteEx(SettingValue->Buffer, SettingValue->Length);
     textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
     PhDereferenceObject(settingValueAnsi);
 

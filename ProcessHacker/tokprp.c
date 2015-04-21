@@ -1177,7 +1177,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 if (NT_SUCCESS(PhGetTokenSource(tokenHandle, &tokenSource)))
                 {
-                    PhCopyUnicodeStringZFromAnsi(
+                    PhCopyStringZFromMultiByte(
                         tokenSource.SourceName,
                         TOKEN_SOURCE_LENGTH,
                         tokenSourceName,

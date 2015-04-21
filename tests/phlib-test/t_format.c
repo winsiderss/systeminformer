@@ -54,10 +54,10 @@ static VOID Test_string(
     PhInitializeStringRef(&format[0].u.String, L"This ");
     format[1].Type = StringZFormatType;
     format[1].u.StringZ = L"is ";
-    format[2].Type = AnsiStringFormatType;
-    RtlInitAnsiString(&format[2].u.AnsiString.as, "a ");
-    format[3].Type = AnsiStringZFormatType;
-    format[3].u.AnsiStringZ = "string.";
+    format[2].Type = MultiByteStringFormatType;
+    PhInitializeBytesRef(&format[2].u.MultiByteString, "a ");
+    format[3].Type = MultiByteStringZFormatType;
+    format[3].u.MultiByteStringZ = "string.";
     result = PhFormatToBuffer(format, 4, buffer, sizeof(buffer), NULL);
     assert(result && wcscmp(buffer, L"This is a string.") == 0);
 }

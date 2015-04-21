@@ -128,7 +128,7 @@ mxmlSetElement(mxml_node_t *node,	/* I - Node to set */
   if (node->value.element.name)
     PhFree(node->value.element.name);
 
-  node->value.element.name = PhDuplicateAnsiStringZSafe((char *)name);
+  node->value.element.name = PhDuplicateBytesZSafe((char *)name);
 
   return (0);
 }
@@ -185,7 +185,7 @@ mxmlSetOpaque(mxml_node_t *node,	/* I - Node to set */
   if (node->value.opaque)
     PhFree(node->value.opaque);
 
-  node->value.opaque = PhDuplicateAnsiStringZSafe((char *)opaque);
+  node->value.opaque = PhDuplicateBytesZSafe((char *)opaque);
 
   return (0);
 }
@@ -244,7 +244,7 @@ mxmlSetText(mxml_node_t *node,		/* I - Node to set */
     PhFree(node->value.text.string);
 
   node->value.text.whitespace = whitespace;
-  node->value.text.string     = PhDuplicateAnsiStringZSafe((char *)string);
+  node->value.text.string     = PhDuplicateBytesZSafe((char *)string);
 
   return (0);
 }

@@ -155,7 +155,7 @@ PPH_STRING PhGetDiagnosticsString(
 
     // basesup
     OBJECT_TYPE_COUNT(PhStringType);
-    OBJECT_TYPE_COUNT(PhAnsiStringType);
+    OBJECT_TYPE_COUNT(PhBytesType);
     OBJECT_TYPE_COUNT(PhListType);
     OBJECT_TYPE_COUNT(PhPointerListType);
     OBJECT_TYPE_COUNT(PhHashtableType);

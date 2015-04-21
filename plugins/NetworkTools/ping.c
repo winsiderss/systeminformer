@@ -76,12 +76,12 @@ static VOID PhNetworkPingUpdateGraph(
  * \param Format The format-control string.
  * \param ArgPtr A pointer to the list of arguments.
  */
-static PPH_ANSI_STRING PhFormatAnsiString_V(
+static PPH_BYTES PhFormatAnsiString_V(
     _In_ _Printf_format_string_ PSTR Format,
     _In_ va_list ArgPtr
     )
 {
-    PPH_ANSI_STRING string;
+    PPH_BYTES string;
     int length;
 
     length = _vscprintf(Format, ArgPtr);
@@ -89,7 +89,7 @@ static PPH_ANSI_STRING PhFormatAnsiString_V(
     if (length == -1)
         return NULL;
 
-    string = PhCreateAnsiStringEx(NULL, length * sizeof(CHAR));
+    string = PhCreateBytesEx(NULL, length * sizeof(CHAR));
 
     _vsnprintf(
         string->Buffer,
@@ -105,7 +105,7 @@ static PPH_ANSI_STRING PhFormatAnsiString_V(
  *
  * \param Format The format-control string.
  */
-static PPH_ANSI_STRING PhFormatAnsiString(
+static PPH_BYTES PhFormatAnsiString(
     _In_ _Printf_format_string_ PSTR Format,
     ...
     )
@@ -128,7 +128,7 @@ static ULONG PhNetworkPingThreadStart(
     ULONG icmpReplyLength = 0;
     PVOID icmpReplyBuffer = NULL;
     PPH_STRING phVersion = NULL;
-    PPH_ANSI_STRING icmpEchoBuffer = NULL;
+    PPH_BYTES icmpEchoBuffer = NULL;
     IP_OPTION_INFORMATION pingOptions =
     {
         255,         // Time To Live
@@ -168,7 +168,7 @@ static ULONG PhNetworkPingThreadStart(
             icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 message.
-            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
+            icmpReplyLength = (ULONG)ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -183,7 +183,7 @@ static ULONG PhNetworkPingThreadStart(
                 &icmp6LocalAddr,
                 &icmp6RemoteAddr,
                 icmpEchoBuffer->Buffer,
-                icmpEchoBuffer->MaximumLength,
+                (USHORT)icmpEchoBuffer->Length,
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
@@ -248,7 +248,7 @@ static ULONG PhNetworkPingThreadStart(
             icmpRemoteAddr = context->IpAddress.InAddr.s_addr;
 
             // Allocate ICMPv4 message.
-            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
+            icmpReplyLength = (ULONG)ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -281,7 +281,7 @@ static ULONG PhNetworkPingThreadStart(
                 NULL,
                 icmpRemoteAddr,
                 icmpEchoBuffer->Buffer,
-                icmpEchoBuffer->MaximumLength,
+                (USHORT)icmpEchoBuffer->Length,
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
@@ -304,7 +304,7 @@ static ULONG PhNetworkPingThreadStart(
                     InterlockedIncrement(&context->UnknownAddrCount);
                 }
 
-                if (icmpReplyStruct->DataSize == icmpEchoBuffer->MaximumLength)
+                if (icmpReplyStruct->DataSize == icmpEchoBuffer->Length)
                 {
                     icmpPacketSignature = (_memicmp(
                         icmpEchoBuffer->Buffer,

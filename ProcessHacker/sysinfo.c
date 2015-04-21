@@ -2764,7 +2764,7 @@ VOID PhSipGetCpuBrandString(
     __cpuid(&brandString[4], 0x80000003);
     __cpuid(&brandString[8], 0x80000004);
 
-    PhZeroExtendToUnicode((PSTR)brandString, 48, BrandString);
+    PhZeroExtendToUtf16((PSTR)brandString, 48, BrandString);
     BrandString[48] = 0;
 }
 
@@ -3686,7 +3686,7 @@ NTSTATUS PhSipLoadMmAddresses(
             symbolProvider = PhCreateSymbolProvider(NULL);
             PhLoadSymbolProviderOptions(symbolProvider);
 
-            kernelFileName = PhCreateStringFromAnsi(kernelModules->Modules[0].FullPathName);
+            kernelFileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
             newFileName = PhGetFileName(kernelFileName);
             PhDereferenceObject(kernelFileName);
 

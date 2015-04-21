@@ -492,9 +492,9 @@ VOID NotifyGrowl(
 {
     PSTR notification;
     PPH_STRING title;
-    PPH_ANSI_STRING titleAnsi;
+    PPH_BYTES titleAnsi;
     PPH_STRING message;
-    PPH_ANSI_STRING messageAnsi;
+    PPH_BYTES messageAnsi;
     PPH_PROCESS_ITEM processItem;
     PPH_SERVICE_ITEM serviceItem;
     PPH_PROCESS_ITEM parentProcessItem;
@@ -591,8 +591,8 @@ VOID NotifyGrowl(
         return;
     }
 
-    titleAnsi = PhCreateAnsiStringFromUnicodeEx(title->Buffer, title->Length);
-    messageAnsi = PhCreateAnsiStringFromUnicodeEx(message->Buffer, message->Length);
+    titleAnsi = PhConvertUtf16ToMultiByteEx(title->Buffer, title->Length);
+    messageAnsi = PhConvertUtf16ToMultiByteEx(message->Buffer, message->Length);
 
     RegisterGrowl(TRUE);
 
@@ -1109,7 +1109,7 @@ INT_PTR CALLBACK GrowlDlgProc(
         {
             PPH_STRING licenseText;
 
-            licenseText = PhCreateStringFromAnsi(gntp_send_license_text);
+            licenseText = PhConvertMultiByteToUtf16(gntp_send_license_text);
             SetDlgItemText(hwndDlg, IDC_LICENSE, licenseText->Buffer);
             PhDereferenceObject(licenseText);
 

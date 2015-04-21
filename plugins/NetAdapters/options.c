@@ -147,7 +147,7 @@ static VOID AddNetworkAdapterToListView(
 
     entry->InterfaceIndex = Adapter->IfIndex;
     entry->InterfaceLuid = Adapter->Luid;
-    entry->InterfaceGuid = PhCreateStringFromAnsi(Adapter->AdapterName);
+    entry->InterfaceGuid = PhConvertMultiByteToUtf16(Adapter->AdapterName);
 
     INT index = PhAddListViewItem(
         Context->ListViewHandle,

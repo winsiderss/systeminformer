@@ -271,7 +271,7 @@ mxmlSaveAllocString(
     * return...
     */
 
-    return (PhDuplicateAnsiStringZSafe(buffer));
+    return (PhDuplicateBytesZSafe(buffer));
   }
 
  /*

@@ -391,7 +391,7 @@ mxmlNewElement(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
   */
 
   if ((node = mxml_new(parent, MXML_ELEMENT)) != NULL)
-    node->value.element.name = PhDuplicateAnsiStringZSafe((char *)name);
+    node->value.element.name = PhDuplicateBytesZSafe((char *)name);
 
   return (node);
 }
@@ -460,7 +460,7 @@ mxmlNewOpaque(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
   */
 
   if ((node = mxml_new(parent, MXML_OPAQUE)) != NULL)
-    node->value.opaque = PhDuplicateAnsiStringZSafe((char *)opaque);
+    node->value.opaque = PhDuplicateBytesZSafe((char *)opaque);
 
   return (node);
 }
@@ -533,7 +533,7 @@ mxmlNewText(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
   if ((node = mxml_new(parent, MXML_TEXT)) != NULL)
   {
     node->value.text.whitespace = whitespace;
-    node->value.text.string     = PhDuplicateAnsiStringZSafe((char *)string);
+    node->value.text.string     = PhDuplicateBytesZSafe((char *)string);
   }
 
   return (node);

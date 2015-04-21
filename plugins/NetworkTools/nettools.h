@@ -54,7 +54,7 @@
 //       + the number of bytes of data specified in the RequestSize parameter.
 // This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message)
 //       + space for an IO_STATUS_BLOCK structure.
-#define ICMP_BUFFER_SIZE(Length, Buffer) ((Length + icmpEchoBuffer->MaximumLength) + 8 + sizeof(IO_STATUS_BLOCK))
+#define ICMP_BUFFER_SIZE(EchoReplyLength, Buffer) (((EchoReplyLength) + (Buffer)->Length) + 8 + sizeof(IO_STATUS_BLOCK))
 
 extern PPH_PLUGIN PluginInstance;
 
