@@ -485,6 +485,8 @@ BOOLEAN PhNfpAddNotifyIcon(
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
     PPH_NF_ICON icon;
 
+    if (PhNfTerminating)
+        return FALSE;
     if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
         return FALSE;
 
@@ -539,6 +541,8 @@ BOOLEAN PhNfpModifyNotifyIcon(
     PPH_NF_ICON icon;
     ULONG notifyId;
 
+    if (PhNfTerminating)
+        return FALSE;
     if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
         return FALSE;
 
