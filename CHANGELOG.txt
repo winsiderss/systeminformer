@@ -2,7 +2,7 @@ Process Hacker
 
 2.34
  * NEW/IMPROVED:
-   * Proper Unicode support (for settings and text files)
+   * Proper Unicode support
    * CPU and GPU graphs are displayed in a grid now (thanks pavel_kv!)
    * Tooltip information for user-mode driver framework (UMDF) host processes
    * Start Task Manager now elevates when necessary
