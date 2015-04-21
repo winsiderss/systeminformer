@@ -9,8 +9,9 @@ Process Hacker
    * Option to reduce row height (set ThinRows to 1 in settings.xml)
    * Added NetAdapters plugin: adds graphs for selected network adapters to the System Information window
    * Updated ExtendedTools plugin:
+     * Added GPU graphs for all processes
      * Can now use the search box in the Disk tab
-     * Improved kernel logger handling on Windows 8
+     * Improved kernel logger handling
  * FIXED:
    * Fixed touch scrolling
    * Fixed EtwRegistration object names for 64-bit Windows 8.1
