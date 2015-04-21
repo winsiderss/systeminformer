@@ -2014,13 +2014,13 @@ VOID PhTnpUpdateTextMetrics(
         }
         else
         {
-            if (WindowsVersion >= WINDOWS_VISTA)
+            if (WindowsVersion >= WINDOWS_VISTA && !(Context->Style & TN_STYLE_THIN_ROWS))
                 Context->RowHeight += 1; // HACK
         }
 
         Context->RowHeight += 1; // HACK
 
-        if (WindowsVersion >= WINDOWS_VISTA)
+        if (WindowsVersion >= WINDOWS_VISTA && !(Context->Style & TN_STYLE_THIN_ROWS))
             Context->RowHeight += 2; // HACK
 
         ReleaseDC(Context->Handle, hdc);
