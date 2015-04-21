@@ -739,9 +739,41 @@ VOID PhMwpOnCommand(
                 { L"All files (*.*)", L"*.*" }
             };
             PVOID fileDialog = PhCreateSaveFileDialog();
+            ULONG selectedTab = TabCtrl_GetCurSel(TabControlHandle);
+            PWSTR tabText = L"Output";
+            PPH_ADDITIONAL_TAB_PAGE selectedTabPage = NULL;
+
+            if (selectedTab == ProcessesTabIndex)
+            {
+                tabText = L"Processes";
+            }
+            else if (selectedTab == ServicesTabIndex)
+            {
+                tabText = L"Services";
+            }
+            else if (selectedTab == NetworkTabIndex)
+            {
+                tabText = L"Network";
+            }
+            else if (AdditionalTabPageList)
+            {
+                ULONG i;
+
+                for (i = 0; i < AdditionalTabPageList->Count; i++)
+                {
+                    PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+
+                    if (tabPage->Index == selectedTab)
+                    {
+                        selectedTabPage = tabPage;
+                        tabText = selectedTabPage->Text;
+                        break;
+                    }
+                }
+            }
 
             PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-            PhSetFileDialogFileName(fileDialog, L"Process Hacker.txt");
+            PhSetFileDialogFileName(fileDialog, PhaFormatString(L"Process Hacker %s.txt", tabText)->Buffer);
 
             if (PhShowFileDialog(PhMainWndHandle, fileDialog))
             {
@@ -764,7 +796,6 @@ VOID PhMwpOnCommand(
                     )))
                 {
                     ULONG mode;
-                    ULONG selectedTab;
 
                     if (filterIndex == 2)
                         mode = PH_EXPORT_MODE_CSV;
@@ -772,8 +803,6 @@ VOID PhMwpOnCommand(
                         mode = PH_EXPORT_MODE_TABS;
 
                     PhWritePhTextHeader(fileStream);
-
-                    selectedTab = TabCtrl_GetCurSel(TabControlHandle);
 
                     if (selectedTab == ProcessesTabIndex)
                     {
@@ -787,23 +816,11 @@ VOID PhMwpOnCommand(
                     {
                         PhWriteNetworkList(fileStream, mode);
                     }
-                    else if (AdditionalTabPageList)
+                    else if (selectedTabPage)
                     {
-                        ULONG i;
-
-                        for (i = 0; i < AdditionalTabPageList->Count; i++)
+                        if (selectedTabPage->SaveContentCallback)
                         {
-                            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
-
-                            if (tabPage->Index == selectedTab)
-                            {
-                                if (tabPage->SaveContentCallback)
-                                {
-                                    tabPage->SaveContentCallback(fileStream, UlongToPtr(mode), NULL, tabPage->Context);
-                                }
-
-                                break;
-                            }
+                            selectedTabPage->SaveContentCallback(fileStream, UlongToPtr(mode), NULL, selectedTabPage->Context);
                         }
                     }
 
