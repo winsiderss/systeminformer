@@ -39,46 +39,46 @@ static VOID Test_stringz(
     WCHAR outputW[16];
     ULONG returnCount;
 
-    result = PhCopyAnsiStringZ(inputA, 4, outputA, 4, &returnCount);
+    result = PhCopyBytesZ(inputA, 4, outputA, 4, &returnCount);
     assert(!result && returnCount == 5);
-    result = PhCopyAnsiStringZ(inputA, 100, outputA, 4, &returnCount);
+    result = PhCopyBytesZ(inputA, 100, outputA, 4, &returnCount);
     assert(!result && returnCount == 5);
-    result = PhCopyAnsiStringZ(inputA, 3, outputA, 4, &returnCount);
+    result = PhCopyBytesZ(inputA, 3, outputA, 4, &returnCount);
     assert(result && returnCount == 4);
-    result = PhCopyAnsiStringZ(inputA, 4, outputA, 5, &returnCount);
+    result = PhCopyBytesZ(inputA, 4, outputA, 5, &returnCount);
     assert(result && returnCount == 5);
-    result = PhCopyAnsiStringZ(inputA, 100, outputA, 5, &returnCount);
-    assert(result && returnCount == 5);
-
-    result = PhCopyUnicodeStringZ(inputW, 100, outputW, 4, &returnCount);
-    assert(!result && returnCount == 5);
-    result = PhCopyUnicodeStringZ(inputW, 4, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
-    result = PhCopyUnicodeStringZ(inputW, 100, outputW, 5, &returnCount);
+    result = PhCopyBytesZ(inputA, 100, outputA, 5, &returnCount);
     assert(result && returnCount == 5);
 
-    result = PhCopyUnicodeStringZFromAnsi(inputA, 4, outputW, 4, &returnCount);
+    result = PhCopyStringZ(inputW, 100, outputW, 4, &returnCount);
     assert(!result && returnCount == 5);
-    result = PhCopyUnicodeStringZFromAnsi(inputA, 100, outputW, 4, &returnCount);
+    result = PhCopyStringZ(inputW, 4, outputW, 5, &returnCount);
+    assert(result && returnCount == 5);
+    result = PhCopyStringZ(inputW, 100, outputW, 5, &returnCount);
+    assert(result && returnCount == 5);
+
+    result = PhCopyStringZFromMultiByte(inputA, 4, outputW, 4, &returnCount);
     assert(!result && returnCount == 5);
-    result = PhCopyUnicodeStringZFromAnsi(inputA, 3, outputW, 4, &returnCount);
+    result = PhCopyStringZFromMultiByte(inputA, 100, outputW, 4, &returnCount);
+    assert(!result && returnCount == 5);
+    result = PhCopyStringZFromMultiByte(inputA, 3, outputW, 4, &returnCount);
     assert(result && returnCount == 4);
-    result = PhCopyUnicodeStringZFromAnsi(inputA, 4, outputW, 5, &returnCount);
+    result = PhCopyStringZFromMultiByte(inputA, 4, outputW, 5, &returnCount);
     assert(result && returnCount == 5);
-    result = PhCopyUnicodeStringZFromAnsi(inputA, 100, outputW, 5, &returnCount);
+    result = PhCopyStringZFromMultiByte(inputA, 100, outputW, 5, &returnCount);
     assert(result && returnCount == 5);
 
-    assert(PhCompareUnicodeStringZNatural(L"abc", L"abc", FALSE) == 0);
-    assert(PhCompareUnicodeStringZNatural(L"abc", L"abc", TRUE) == 0);
-    assert(PhCompareUnicodeStringZNatural(L"abc", L"ABC", FALSE) != 0);
-    assert(PhCompareUnicodeStringZNatural(L"abc", L"ABC", TRUE) == 0);
-    assert(PhCompareUnicodeStringZNatural(L"abc", L"abd", FALSE) < 0);
-    assert(PhCompareUnicodeStringZNatural(L"abe", L"abd", FALSE) > 0);
-    assert(PhCompareUnicodeStringZNatural(L"1", L"2", FALSE) < 0);
-    assert(PhCompareUnicodeStringZNatural(L"12", L"9", FALSE) > 0);
-    assert(PhCompareUnicodeStringZNatural(L"file-1", L"file-9", FALSE) < 0);
-    assert(PhCompareUnicodeStringZNatural(L"file-12", L"file-9", FALSE) > 0);
-    assert(PhCompareUnicodeStringZNatural(L"file-12", L"file-90", FALSE) < 0);
+    assert(PhCompareStringZNatural(L"abc", L"abc", FALSE) == 0);
+    assert(PhCompareStringZNatural(L"abc", L"abc", TRUE) == 0);
+    assert(PhCompareStringZNatural(L"abc", L"ABC", FALSE) != 0);
+    assert(PhCompareStringZNatural(L"abc", L"ABC", TRUE) == 0);
+    assert(PhCompareStringZNatural(L"abc", L"abd", FALSE) < 0);
+    assert(PhCompareStringZNatural(L"abe", L"abd", FALSE) > 0);
+    assert(PhCompareStringZNatural(L"1", L"2", FALSE) < 0);
+    assert(PhCompareStringZNatural(L"12", L"9", FALSE) > 0);
+    assert(PhCompareStringZNatural(L"file-1", L"file-9", FALSE) < 0);
+    assert(PhCompareStringZNatural(L"file-12", L"file-9", FALSE) > 0);
+    assert(PhCompareStringZNatural(L"file-12", L"file-90", FALSE) < 0);
 }
 
 VOID Test_stringref(
@@ -254,6 +254,57 @@ VOID Test_strint(
     assert(wcscmp(string->Buffer, L"18446744073709551493") == 0);
 }
 
+VOID Test_unicode(
+    VOID
+    )
+{
+    BOOLEAN result;
+    ULONG codePoints[6];
+    SIZE_T i;
+    WCHAR utf16[sizeof(codePoints) / sizeof(WCHAR)];
+    CHAR utf8[sizeof(codePoints) / sizeof(CHAR)];
+    ULONG numberOfCodePoints;
+    SIZE_T utf16Position = 0;
+    SIZE_T utf8Position = 0;
+    PPH_STRING utf16_1, utf16_2, utf16_3;
+    PPH_BYTES utf8_1, utf8_2, utf8_3;
+
+    codePoints[0] = 0;
+    codePoints[1] = 0x50;
+    codePoints[2] = 0x312;
+    codePoints[3] = 0x3121;
+    codePoints[4] = 0x31212;
+    codePoints[5] = PH_UNICODE_MAX_CODE_POINT;
+
+    for (i = 0; i < sizeof(codePoints) / sizeof(ULONG); i++)
+    {
+        result = PhEncodeUnicode(PH_UNICODE_UTF16, codePoints[i], utf16 + utf16Position, &numberOfCodePoints);
+        assert(result);
+        utf16Position += numberOfCodePoints;
+
+        result = PhEncodeUnicode(PH_UNICODE_UTF8, codePoints[i], utf8 + utf8Position, &numberOfCodePoints);
+        assert(result);
+        utf8Position += numberOfCodePoints;
+    }
+
+    utf16_1 = PhCreateStringEx(utf16, utf16Position * sizeof(WCHAR));
+    utf8_1 = PhCreateBytesEx(utf8, utf8Position);
+    utf16_2 = PhConvertUtf8ToUtf16Ex(utf8_1->Buffer, utf8_1->Length);
+    utf8_2 = PhConvertUtf16ToUtf8Ex(utf16_1->Buffer, utf16_1->Length);
+    utf16_3 = PhConvertUtf8ToUtf16Ex(utf8_2->Buffer, utf8_2->Length);
+    utf8_3 = PhConvertUtf16ToUtf8Ex(utf16_2->Buffer, utf16_2->Length);
+
+    assert(utf16_1->Length = utf16_2->Length);
+    assert(memcmp(utf16_1->Buffer, utf16_2->Buffer, utf16_1->Length) == 0);
+    assert(utf16_2->Length = utf16_3->Length);
+    assert(memcmp(utf16_2->Buffer, utf16_3->Buffer, utf16_2->Length) == 0);
+
+    assert(utf8_1->Length = utf8_2->Length);
+    assert(memcmp(utf8_1->Buffer, utf8_2->Buffer, utf8_1->Length) == 0);
+    assert(utf8_2->Length = utf8_3->Length);
+    assert(memcmp(utf8_2->Buffer, utf8_3->Buffer, utf8_2->Length) == 0);
+}
+
 VOID Test_basesup(
     VOID
     )
@@ -263,4 +314,5 @@ VOID Test_basesup(
     Test_stringref();
     Test_hexstring();
     Test_strint();
+    Test_unicode();
 }

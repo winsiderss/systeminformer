@@ -189,7 +189,7 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
     return;
 
   if (value)
-    valuec = PhDuplicateAnsiStringZSafe((char *)value);
+    valuec = PhDuplicateBytesZSafe((char *)value);
   else
     valuec = NULL;
 
@@ -302,7 +302,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
   node->value.element.attrs = attr;
   attr += node->value.element.num_attrs;
 
-  if ((attr->name = PhDuplicateAnsiStringZSafe((char *)name)) == NULL)
+  if ((attr->name = PhDuplicateBytesZSafe((char *)name)) == NULL)
   {
     mxml_error("Unable to allocate memory for attribute '%s' in element %s!",
                name, node->value.element.name);

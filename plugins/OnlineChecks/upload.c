@@ -367,8 +367,8 @@ static NTSTATUS UploadFileThreadStart(
     HINTERNET requestHandle = NULL;
 
     PPH_STRING postBoundary = NULL;
-    PPH_ANSI_STRING ansiPostData = NULL;
-    PPH_ANSI_STRING ansiFooterData = NULL;
+    PPH_BYTES ansiPostData = NULL;
+    PPH_BYTES ansiFooterData = NULL;
     PH_STRING_BUILDER httpRequestHeaders = { 0 };
     PH_STRING_BUILDER httpPostHeader = { 0 };
     PH_STRING_BUILDER httpPostFooter = { 0 };
@@ -488,8 +488,8 @@ static NTSTATUS UploadFileThreadStart(
         }
 
         // Convert to ANSI
-        ansiPostData = PhCreateAnsiStringFromUnicode(httpPostHeader.String->Buffer);
-        ansiFooterData = PhCreateAnsiStringFromUnicode(httpPostFooter.String->Buffer);
+        ansiPostData = PhConvertUtf16ToMultiByte(httpPostHeader.String->Buffer);
+        ansiFooterData = PhConvertUtf16ToMultiByte(httpPostFooter.String->Buffer);
 
         // Start the clock.
         PhQuerySystemTime(&timeStart);
@@ -498,7 +498,7 @@ static NTSTATUS UploadFileThreadStart(
         if (!WinHttpWriteData(
             requestHandle,
             ansiPostData->Buffer,
-            ansiPostData->Length,
+            (ULONG)ansiPostData->Length,
             &totalPostHeaderWritten
             ))
         {
@@ -566,7 +566,7 @@ static NTSTATUS UploadFileThreadStart(
         if (!WinHttpWriteData(
             requestHandle,
             ansiFooterData->Buffer,
-            ansiFooterData->Length,
+            (ULONG)ansiFooterData->Length,
             &totalPostFooterWritten
             ))
         {
@@ -884,7 +884,7 @@ static NTSTATUS UploadCheckThreadStart(
                     __leave;
                 }
 
-                context->ObjectName = PhCreateStringFromAnsiEx(uploadUrl, quote - uploadUrl);
+                context->ObjectName = PhConvertMultiByteToUtf16Ex(uploadUrl, quote - uploadUrl);
 
                 // Create the default upload URL
                 if (!context->ObjectName)

@@ -162,7 +162,7 @@ BOOLEAN EtpRefreshUnloadedDlls(
         lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, buffer, rtlEvent);
 
         // Name
-        if (PhCopyUnicodeStringZ(rtlEvent->ImageName, sizeof(rtlEvent->ImageName) / sizeof(WCHAR),
+        if (PhCopyStringZ(rtlEvent->ImageName, sizeof(rtlEvent->ImageName) / sizeof(WCHAR),
             buffer, sizeof(buffer) / sizeof(WCHAR), NULL))
         {
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, buffer);

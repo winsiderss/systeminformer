@@ -183,12 +183,12 @@ static VOID FilterResults(
         }
         else if (Type == FILTER_REGEX || Type == FILTER_REGEX_IGNORECASE)
         {
-            PPH_ANSI_STRING patternString;
+            PPH_BYTES patternString;
             char *errorString;
             int errorOffset;
             PCHAR ansiBuffer;
 
-            patternString = PhCreateAnsiStringFromUnicodeEx(
+            patternString = PhConvertUtf16ToMultiByteEx(
                 selectedChoice->Buffer,
                 selectedChoice->Length
                 );
