@@ -321,13 +321,21 @@ BOOLEAN PhGetMappedImageSectionName(
     _Out_opt_ PULONG ReturnCount
     )
 {
-    return PhCopyBytesZ(
+    BOOLEAN result;
+    SIZE_T returnCount;
+
+    result = PhCopyBytesZ(
         Section->Name,
         IMAGE_SIZEOF_SHORT_NAME,
         Buffer,
         Count,
-        ReturnCount
+        &returnCount
         );
+
+    if (ReturnCount)
+        *ReturnCount = (ULONG)returnCount;
+
+    return result;
 }
 
 NTSTATUS PhGetMappedImageDataEntry(

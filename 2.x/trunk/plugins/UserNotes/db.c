@@ -191,7 +191,7 @@ PPH_STRING GetOpaqueXmlNodeText(
 {
     if (node->child && node->child->type == MXML_OPAQUE && node->child->value.opaque)
     {
-        return PhConvertMultiByteToUtf16(node->child->value.opaque);
+        return PhConvertUtf8ToUtf16(node->child->value.opaque);
     }
     else
     {
@@ -260,11 +260,11 @@ NTSTATUS LoadDb(
             for (i = 0; i < (ULONG)currentNode->value.element.num_attrs; i++)
             {
                 if (stricmp(currentNode->value.element.attrs[i].name, "tag") == 0)
-                    PhSwapReference2(&tag, PhConvertMultiByteToUtf16(currentNode->value.element.attrs[i].value));
+                    PhSwapReference2(&tag, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
-                    PhSwapReference2(&name, PhConvertMultiByteToUtf16(currentNode->value.element.attrs[i].value));
+                    PhSwapReference2(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
-                    PhSwapReference2(&priorityClass, PhConvertMultiByteToUtf16(currentNode->value.element.attrs[i].value));
+                    PhSwapReference2(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
             }
         }
 
@@ -331,32 +331,32 @@ mxml_node_t *CreateObjectElement(
 {
     mxml_node_t *objectNode;
     mxml_node_t *textNode;
-    PPH_BYTES tagAnsi;
-    PPH_BYTES nameAnsi;
-    PPH_BYTES priorityClassAnsi;
-    PPH_BYTES valueAnsi;
+    PPH_BYTES tagUtf8;
+    PPH_BYTES nameUtf8;
+    PPH_BYTES priorityClassUtf8;
+    PPH_BYTES valueUtf8;
 
     // Create the setting element.
 
     objectNode = mxmlNewElement(ParentNode, "object");
 
-    tagAnsi = PhConvertUtf16ToMultiByteEx(Tag->Buffer, Tag->Length);
-    mxmlElementSetAttr(objectNode, "tag", tagAnsi->Buffer);
-    PhDereferenceObject(tagAnsi);
+    tagUtf8 = PhConvertUtf16ToUtf8Ex(Tag->Buffer, Tag->Length);
+    mxmlElementSetAttr(objectNode, "tag", tagUtf8->Buffer);
+    PhDereferenceObject(tagUtf8);
 
-    nameAnsi = PhConvertUtf16ToMultiByteEx(Name->Buffer, Name->Length);
-    mxmlElementSetAttr(objectNode, "name", nameAnsi->Buffer);
-    PhDereferenceObject(nameAnsi);
+    nameUtf8 = PhConvertUtf16ToUtf8Ex(Name->Buffer, Name->Length);
+    mxmlElementSetAttr(objectNode, "name", nameUtf8->Buffer);
+    PhDereferenceObject(nameUtf8);
 
-    priorityClassAnsi = PhConvertUtf16ToMultiByteEx(PriorityClass->Buffer, PriorityClass->Length);
-    mxmlElementSetAttr(objectNode, "priorityclass", priorityClassAnsi->Buffer);
-    PhDereferenceObject(priorityClassAnsi);
+    priorityClassUtf8 = PhConvertUtf16ToUtf8Ex(PriorityClass->Buffer, PriorityClass->Length);
+    mxmlElementSetAttr(objectNode, "priorityclass", priorityClassUtf8->Buffer);
+    PhDereferenceObject(priorityClassUtf8);
 
     // Set the value.
 
-    valueAnsi = PhConvertUtf16ToMultiByteEx(Comment->Buffer, Comment->Length);
-    textNode = mxmlNewOpaque(objectNode, valueAnsi->Buffer);
-    PhDereferenceObject(valueAnsi);
+    valueUtf8 = PhConvertUtf16ToUtf8Ex(Comment->Buffer, Comment->Length);
+    textNode = mxmlNewOpaque(objectNode, valueUtf8->Buffer);
+    PhDereferenceObject(valueUtf8);
 
     return objectNode;
 }

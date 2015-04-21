@@ -492,9 +492,9 @@ VOID NotifyGrowl(
 {
     PSTR notification;
     PPH_STRING title;
-    PPH_BYTES titleAnsi;
+    PPH_BYTES titleUtf8;
     PPH_STRING message;
-    PPH_BYTES messageAnsi;
+    PPH_BYTES messageUtf8;
     PPH_PROCESS_ITEM processItem;
     PPH_SERVICE_ITEM serviceItem;
     PPH_PROCESS_ITEM parentProcessItem;
@@ -591,16 +591,16 @@ VOID NotifyGrowl(
         return;
     }
 
-    titleAnsi = PhConvertUtf16ToMultiByteEx(title->Buffer, title->Length);
-    messageAnsi = PhConvertUtf16ToMultiByteEx(message->Buffer, message->Length);
+    titleUtf8 = PhConvertUtf16ToUtf8Ex(title->Buffer, title->Length);
+    messageUtf8 = PhConvertUtf16ToUtf8Ex(message->Buffer, message->Length);
 
     RegisterGrowl(TRUE);
 
-    if (growl_tcp_notify("127.0.0.1", "Process Hacker", notification, titleAnsi->Buffer, messageAnsi->Buffer, NULL, NULL, NULL) == 0)
+    if (growl_tcp_notify("127.0.0.1", "Process Hacker", notification, titleUtf8->Buffer, messageUtf8->Buffer, NULL, NULL, NULL) == 0)
         NotifyEvent->Handled = TRUE;
 
-    PhDereferenceObject(messageAnsi);
-    PhDereferenceObject(titleAnsi);
+    PhDereferenceObject(messageUtf8);
+    PhDereferenceObject(titleUtf8);
     PhDereferenceObject(message);
     PhDereferenceObject(title);
 }

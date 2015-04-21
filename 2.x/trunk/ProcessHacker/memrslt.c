@@ -186,9 +186,10 @@ static VOID FilterResults(
             PPH_BYTES patternString;
             char *errorString;
             int errorOffset;
-            PCHAR ansiBuffer;
+            PCHAR asciiBuffer;
 
-            patternString = PhConvertUtf16ToMultiByteEx(
+            // Assume that everything is plain ASCII.
+            patternString = PhConvertUtf16ToUtf8Ex(
                 selectedChoice->Buffer,
                 selectedChoice->Length
                 );
@@ -214,21 +215,21 @@ static VOID FilterResults(
 
             expression_extra = pcre_study(expression, 0, &errorString);
 
-            ansiBuffer = PhAllocatePage(PH_DISPLAY_BUFFER_COUNT + 1, NULL);
+            asciiBuffer = PhAllocatePage(PH_DISPLAY_BUFFER_COUNT + 1, NULL);
             newResults = PhCreateList(1024);
 
             for (i = 0; i < results->Count; i++)
             {
                 PPH_MEMORY_RESULT result = results->Items[i];
-                ULONG ansiLength;
+                SIZE_T asciiLength;
                 int r;
 
-                if (!NT_SUCCESS(RtlUnicodeToMultiByteN(
-                    ansiBuffer,
+                if (!NT_SUCCESS(PhConvertUtf16ToUtf8InPlace(
+                    asciiBuffer,
                     PH_DISPLAY_BUFFER_COUNT,
-                    &ansiLength,
+                    &asciiLength,
                     result->Display.Buffer,
-                    (ULONG)result->Display.Length
+                    result->Display.Length
                     )))
                     continue;
 
@@ -238,8 +239,8 @@ static VOID FilterResults(
                     r = pcre_exec(
                         expression,
                         expression_extra,
-                        ansiBuffer,
-                        ansiLength,
+                        asciiBuffer,
+                        (ULONG)asciiLength,
                         0,
                         0,
                         NULL,
@@ -263,7 +264,7 @@ static VOID FilterResults(
                 }
             }
 
-            PhFreePage(ansiBuffer);
+            PhFreePage(asciiBuffer);
 
             pcre_free(expression_extra);
             pcre_free(expression);

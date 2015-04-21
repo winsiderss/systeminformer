@@ -789,7 +789,7 @@ NTSTATUS PhLoadSettings(
             stricmp(currentNode->value.element.attrs[0].name, "name") == 0
             )
         {
-            settingName = PhConvertMultiByteToUtf16(currentNode->value.element.attrs[0].value);
+            settingName = PhConvertUtf8ToUtf16(currentNode->value.element.attrs[0].value);
         }
 
         if (settingName)
@@ -881,22 +881,22 @@ mxml_node_t *PhpCreateSettingElement(
 {
     mxml_node_t *settingNode;
     mxml_node_t *textNode;
-    PPH_BYTES settingNameAnsi;
-    PPH_BYTES settingValueAnsi;
+    PPH_BYTES settingNameUtf8;
+    PPH_BYTES settingValueUtf8;
 
     // Create the setting element.
 
     settingNode = mxmlNewElement(ParentNode, "setting");
 
-    settingNameAnsi = PhConvertUtf16ToMultiByteEx(SettingName->Buffer, SettingName->Length);
-    mxmlElementSetAttr(settingNode, "name", settingNameAnsi->Buffer);
-    PhDereferenceObject(settingNameAnsi);
+    settingNameUtf8 = PhConvertUtf16ToUtf8Ex(SettingName->Buffer, SettingName->Length);
+    mxmlElementSetAttr(settingNode, "name", settingNameUtf8->Buffer);
+    PhDereferenceObject(settingNameUtf8);
 
     // Set the value.
 
-    settingValueAnsi = PhConvertUtf16ToMultiByteEx(SettingValue->Buffer, SettingValue->Length);
-    textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
-    PhDereferenceObject(settingValueAnsi);
+    settingValueUtf8 = PhConvertUtf16ToUtf8Ex(SettingValue->Buffer, SettingValue->Length);
+    textNode = mxmlNewOpaque(settingNode, settingValueUtf8->Buffer);
+    PhDereferenceObject(settingValueUtf8);
 
     return settingNode;
 }
