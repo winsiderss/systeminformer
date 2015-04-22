@@ -682,6 +682,8 @@ VOID PhpInitializeSettings(
 #define PH_ARG_HELP 23
 #define PH_ARG_SELECTPID 24
 #define PH_ARG_PRIORITY 25
+#define PH_ARG_PLUGIN 26
+#define PH_ARG_SELECTTAB 27
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
@@ -794,6 +796,15 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             else if (PhEqualString2(Value, L"l", TRUE))
                 PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
             break;
+        case PH_ARG_PLUGIN:
+            if (!PhStartupParameters.PluginParameters)
+                PhStartupParameters.PluginParameters = PhCreateList(3);
+            PhReferenceObject(Value);
+            PhAddItemList(PhStartupParameters.PluginParameters, Value);
+            break;
+        case PH_ARG_SELECTTAB:
+            PhSwapReference(&PhStartupParameters.SelectTab, Value);
+            break;
         }
     }
     else
@@ -846,7 +857,9 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_SILENT, L"s", NoArgumentType },
         { PH_ARG_HELP, L"help", NoArgumentType },
         { PH_ARG_SELECTPID, L"selectpid", MandatoryArgumentType },
-        { PH_ARG_PRIORITY, L"priority", MandatoryArgumentType }
+        { PH_ARG_PRIORITY, L"priority", MandatoryArgumentType },
+        { PH_ARG_PLUGIN, L"plugin", MandatoryArgumentType },
+        { PH_ARG_SELECTTAB, L"selecttab", MandatoryArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -880,9 +893,11 @@ VOID PhpProcessStartupParameters(
             L"-nokph\n"
             L"-noplugins\n"
             L"-nosettings\n"
+            L"-plugin pluginname:value\n"
             L"-priority r|h|n|l\n"
             L"-s\n"
             L"-selectpid pid-to-select\n"
+            L"-selecttab name-of-tab-to-select\n"
             L"-settings filename\n"
             L"-uninstallkph\n"
             L"-v\n"

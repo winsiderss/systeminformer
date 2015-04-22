@@ -249,6 +249,14 @@ BOOLEAN PhMainWndInitialization(
     if (PhPluginsEnabled)
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), (PVOID)ShowCommand);
 
+    if (PhStartupParameters.SelectTab)
+    {
+        INT tabIndex = PhMwpFindTabPageIndex(PhStartupParameters.SelectTab->Buffer);
+
+        if (tabIndex != -1)
+            PhMwpSelectTabPage(tabIndex);
+    }
+
     if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
 
@@ -3384,6 +3392,38 @@ VOID PhMwpSelectTabPage(
     oldIndex = TabCtrl_GetCurSel(TabControlHandle);
     TabCtrl_SetCurSel(TabControlHandle, Index);
     PhMwpSelectionChangedTabControl(oldIndex);
+}
+
+INT PhMwpFindTabPageIndex(
+    _In_ PWSTR Text
+    )
+{
+    if (PhEqualStringZ(Text, L"Processes", TRUE))
+    {
+        return ProcessesTabIndex;
+    }
+    else if (PhEqualStringZ(Text, L"Services", TRUE))
+    {
+        return ServicesTabIndex;
+    }
+    else if (PhEqualStringZ(Text, L"Network", TRUE))
+    {
+        return NetworkTabIndex;
+    }
+    else if (AdditionalTabPageList)
+    {
+        ULONG i;
+
+        for (i = 0; i < AdditionalTabPageList->Count; i++)
+        {
+            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+
+            if (PhEqualStringZ(tabPage->Text, Text, TRUE))
+                return tabPage->Index;
+        }
+    }
+
+    return -1;
 }
 
 static int __cdecl IconProcessesCpuUsageCompare(

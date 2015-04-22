@@ -28,6 +28,8 @@
 #define IDD_SYSINFO_NETPANEL            116
 #define IDD_SYSINFO_NET                 117
 #define IDD_PROCGPU_PANEL               118
+#define IDD_DISKTABRESTART              119
+#define IDD_DISKTABERROR                119
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -101,6 +103,8 @@
 #define IDC_ZREADSDELTA_V               1085
 #define IDC_INSTRUCTION                 1086
 #define IDC_PANEL_LAYOUT                1089
+#define IDC_RESTART                     1092
+#define IDC_ERROR                       1093
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -114,9 +118,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        119
+#define _APS_NEXT_RESOURCE_VALUE        120
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1092
+#define _APS_NEXT_CONTROL_VALUE         1094
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

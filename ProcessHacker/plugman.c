@@ -77,7 +77,7 @@ PWSTR PhpGetPluginBaseName(
     else
     {
         // Fake disabled plugin.
-        baseName = Plugin->Name;
+        baseName = Plugin->Name.Buffer;
     }
 
     return baseName;
@@ -109,7 +109,7 @@ VOID PhpRefreshPluginDetails(
         fileName = SelectedPlugin->FileName;
 
         SetDlgItemText(hwndDlg, IDC_NAME, SelectedPlugin->Information.DisplayName ? SelectedPlugin->Information.DisplayName : L"(unnamed)");
-        SetDlgItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name);
+        SetDlgItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name.Buffer);
         SetDlgItemText(hwndDlg, IDC_AUTHOR, SelectedPlugin->Information.Author);
         SetDlgItemText(hwndDlg, IDC_FILENAME, fileName->Buffer);
         SetDlgItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Information.Description);
@@ -146,7 +146,7 @@ VOID PhpRefreshPluginDetails(
         {
             // This is a disabled plugin.
             EnableWindow(GetDlgItem(hwndDlg, IDC_DISABLE), TRUE);
-            SetDlgItemText(hwndDlg, IDC_DISABLE, PhpGetPluginDisableButtonText(SelectedPlugin->Name));
+            SetDlgItemText(hwndDlg, IDC_DISABLE, PhpGetPluginDisableButtonText(SelectedPlugin->Name.Buffer));
         }
         else
         {
@@ -194,9 +194,10 @@ PPH_PLUGIN PhpCreateDisabledPlugin(
     plugin = PhAllocate(sizeof(PH_PLUGIN));
     memset(plugin, 0, sizeof(PH_PLUGIN));
 
-    plugin->Name = PhAllocate(BaseName->Length + sizeof(WCHAR));
-    memcpy(plugin->Name, BaseName->Buffer, BaseName->Length);
-    plugin->Name[BaseName->Length / 2] = 0;
+    plugin->Name.Length = BaseName->Length;
+    plugin->Name.Buffer = PhAllocate(BaseName->Length + sizeof(WCHAR));
+    memcpy(plugin->Name.Buffer, BaseName->Buffer, BaseName->Length);
+    plugin->Name.Buffer[BaseName->Length / 2] = 0;
 
     return plugin;
 }
@@ -205,7 +206,7 @@ VOID PhpFreeDisabledPlugin(
     _In_ PPH_PLUGIN Plugin
     )
 {
-    PhFree(Plugin->Name);
+    PhFree(Plugin->Name.Buffer);
     PhFree(Plugin);
 }
 
@@ -320,7 +321,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
 
                 lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, PhpGetPluginBaseName(plugin), plugin);
 
-                PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Information.DisplayName ? plugin->Information.DisplayName : plugin->Name);
+                PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Information.DisplayName ? plugin->Information.DisplayName : plugin->Name.Buffer);
 
                 if (plugin->Information.Author)
                     PhSetListViewSubItem(PluginsLv, lvItemIndex, 2, plugin->Information.Author);

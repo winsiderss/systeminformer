@@ -1223,9 +1223,6 @@ BOOLEAN PhShellProcessHacker(
     {
         PhInitializeStringBuilder(&sb, 128);
 
-        if (Parameters)
-            PhAppendStringBuilder2(&sb, Parameters);
-
         // Propagate parameters.
 
         if (PhStartupParameters.NoSettings)
@@ -1261,6 +1258,15 @@ BOOLEAN PhShellProcessHacker(
             PhAppendStringBuilder2(&sb, L" -newinstance");
         }
 
+        if (PhStartupParameters.SelectTab)
+        {
+            PhAppendStringBuilder2(&sb, L" -selecttab \"");
+            temp = PhEscapeCommandLinePart(&PhStartupParameters.SelectTab->sr);
+            PhAppendStringBuilder(&sb, temp);
+            PhDereferenceObject(temp);
+            PhAppendCharStringBuilder(&sb, '\"');
+        }
+
         if (!(AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY))
         {
             if (PhStartupParameters.ShowVisible)
@@ -1273,6 +1279,10 @@ BOOLEAN PhShellProcessHacker(
                 PhAppendStringBuilder2(&sb, L" -hide");
             }
         }
+
+        // Add user-specified parameters last so they can override the propagated parameters.
+        if (Parameters)
+            PhAppendStringBuilder2(&sb, Parameters);
 
         parameters = sb.String->Buffer;
     }

@@ -254,7 +254,7 @@ typedef LONG (NTAPI *PPH_PLUGIN_TREENEW_SORT_FUNCTION)(
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
-    PluginCallbackLoad = 0, // [main thread]
+    PluginCallbackLoad = 0, // PPH_LIST Parameters [main thread] // list of strings, might be NULL
     PluginCallbackUnload = 1, // [main thread]
     PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
     PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
@@ -280,11 +280,14 @@ typedef struct _PH_PLUGIN
 {
     PH_AVL_LINKS Links;
 
-    PWSTR Name;
+    PVOID Reserved;
     PVOID DllBase;
+
+    // Everything below is private and should not be accessed by plugins.
+
     PPH_STRING FileName;
     ULONG Flags;
-
+    PH_STRINGREF Name;
     PH_PLUGIN_INFORMATION Information;
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
