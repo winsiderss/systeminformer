@@ -1175,23 +1175,23 @@ VOID PhWritePhTextHeader(
     PPH_STRING dateString;
     PPH_STRING timeString;
 
-    PhWriteStringAsAnsiFileStream2(FileStream, L"Process Hacker ");
+    PhWriteStringAsUtf8FileStream2(FileStream, L"Process Hacker ");
 
     if (version = PhGetPhVersion())
     {
-        PhWriteStringAsAnsiFileStream(FileStream, &version->sr);
+        PhWriteStringAsUtf8FileStream(FileStream, &version->sr);
         PhDereferenceObject(version);
     }
 
-    PhWriteStringFormatFileStream(FileStream, L"\r\nWindows NT %u.%u", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
+    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %u.%u", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
 
     if (PhOsVersion.szCSDVersion[0] != 0)
-        PhWriteStringFormatFileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
+        PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
 
 #ifdef _M_IX86
-    PhWriteStringAsAnsiFileStream2(FileStream, L" (32-bit)");
+    PhWriteStringAsUtf8FileStream2(FileStream, L" (32-bit)");
 #else
-    PhWriteStringAsAnsiFileStream2(FileStream, L" (64-bit)");
+    PhWriteStringAsUtf8FileStream2(FileStream, L" (64-bit)");
 #endif
 
     PhQuerySystemTime(&time);
@@ -1199,7 +1199,7 @@ VOID PhWritePhTextHeader(
 
     dateString = PhFormatDate(&systemTime, NULL);
     timeString = PhFormatTime(&systemTime, NULL);
-    PhWriteStringFormatFileStream(FileStream, L"\r\n%s %s\r\n\r\n", dateString->Buffer, timeString->Buffer);
+    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\n%s %s\r\n\r\n", dateString->Buffer, timeString->Buffer);
     PhDereferenceObject(dateString);
     PhDereferenceObject(timeString);
 }

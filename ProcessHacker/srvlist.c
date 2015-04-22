@@ -797,9 +797,9 @@ VOID PhWriteServiceList(
         PPH_STRING line;
 
         line = lines->Items[i];
-        PhWriteStringAsAnsiFileStream(FileStream, &line->sr);
+        PhWriteStringAsUtf8FileStream(FileStream, &line->sr);
         PhDereferenceObject(line);
-        PhWriteStringAsAnsiFileStream2(FileStream, L"\r\n");
+        PhWriteStringAsUtf8FileStream2(FileStream, L"\r\n");
     }
 
     PhDereferenceObject(lines);

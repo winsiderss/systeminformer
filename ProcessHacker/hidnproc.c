@@ -357,11 +357,12 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             0
                             )))
                         {
+                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
                             PhWritePhTextHeader(fileStream);
-                            PhWriteStringAsAnsiFileStream2(fileStream, L"Method: ");
-                            PhWriteStringAsAnsiFileStream2(fileStream,
+                            PhWriteStringAsUtf8FileStream2(fileStream, L"Method: ");
+                            PhWriteStringAsUtf8FileStream2(fileStream,
                                 ProcessesMethod == BruteForceScanMethod ? L"Brute Force\r\n" : L"CSR Handles\r\n");
-                            PhWriteStringFormatFileStream(
+                            PhWriteStringFormatAsUtf8FileStream(
                                 fileStream,
                                 L"Hidden: %u\r\nTerminated: %u\r\n\r\n",
                                 NumberOfHiddenProcesses,
@@ -377,13 +378,13 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                                     PPH_HIDDEN_PROCESS_ENTRY entry = ProcessesList->Items[i];
 
                                     if (entry->Type == HiddenProcess)
-                                        PhWriteStringAsAnsiFileStream2(fileStream, L"[HIDDEN] ");
+                                        PhWriteStringAsUtf8FileStream2(fileStream, L"[HIDDEN] ");
                                     else if (entry->Type == TerminatedProcess)
-                                        PhWriteStringAsAnsiFileStream2(fileStream, L"[Terminated] ");
+                                        PhWriteStringAsUtf8FileStream2(fileStream, L"[Terminated] ");
                                     else if (entry->Type != NormalProcess)
                                         continue;
 
-                                    PhWriteStringFormatFileStream(
+                                    PhWriteStringFormatAsUtf8FileStream(
                                         fileStream,
                                         L"%s (%u)\r\n",
                                         entry->FileName->Buffer,

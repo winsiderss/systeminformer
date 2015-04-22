@@ -1550,33 +1550,33 @@ NTSTATUS PhUnlockFileStream(
 #define PH_FILE_STREAM_STRING_BLOCK_SIZE (PAGE_SIZE / 2)
 
 PHLIBAPI
-NTSTATUS PhWriteStringAsAnsiFileStream(
+NTSTATUS PhWriteStringAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PPH_STRINGREF String
     );
 
 PHLIBAPI
-NTSTATUS PhWriteStringAsAnsiFileStream2(
+NTSTATUS PhWriteStringAsUtf8FileStream2(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PWSTR String
     );
 
 PHLIBAPI
-NTSTATUS PhWriteStringAsAnsiFileStreamEx(
+NTSTATUS PhWriteStringAsUtf8FileStreamEx(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PWSTR Buffer,
     _In_ SIZE_T Length
     );
 
 PHLIBAPI
-NTSTATUS PhWriteStringFormatFileStream_V(
+NTSTATUS PhWriteStringFormatAsUtf8FileStream_V(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ _Printf_format_string_ PWSTR Format,
     _In_ va_list ArgPtr
     );
 
 PHLIBAPI
-NTSTATUS PhWriteStringFormatFileStream(
+NTSTATUS PhWriteStringFormatAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ _Printf_format_string_ PWSTR Format,
     ...
