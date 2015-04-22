@@ -497,6 +497,21 @@ PhWritePhTextHeader(
     _Inout_ PPH_FILE_STREAM FileStream
     );
 
+#define PH_SHELL_APP_PROPAGATE_PARAMETERS 0x1
+#define PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY 0x2
+#define PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS 0x4
+
+PHAPPAPI
+BOOLEAN PhShellProcessHacker(
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Parameters,
+    _In_ ULONG ShowWindowType,
+    _In_ ULONG Flags,
+    _In_ ULONG AppFlags,
+    _In_opt_ ULONG Timeout,
+    _Out_opt_ PHANDLE ProcessHandle
+    );
+
 typedef struct _PH_TN_COLUMN_MENU_DATA
 {
     HWND TreeNewHandle;

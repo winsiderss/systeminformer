@@ -81,25 +81,38 @@ HWND NTAPI EtpDiskTabCreateFunction(
     )
 {
     HWND hwnd;
-    ULONG thinRows;
 
-    thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-    hwnd = CreateWindow(
-        PH_TREENEW_CLASSNAME,
-        NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
-        0,
-        0,
-        3,
-        3,
-        PhMainWndHandle,
-        (HMENU)PhPluginReserveIds(1),
-        PluginInstance->DllBase,
-        NULL
-        );
+    if (EtEtwEnabled)
+    {
+        ULONG thinRows;
 
-    if (!hwnd)
-        return NULL;
+        thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
+        hwnd = CreateWindow(
+            PH_TREENEW_CLASSNAME,
+            NULL,
+            WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+            0,
+            0,
+            3,
+            3,
+            PhMainWndHandle,
+            (HMENU)PhPluginReserveIds(1),
+            PluginInstance->DllBase,
+            NULL
+            );
+
+        if (!hwnd)
+            return NULL;
+        }
+    else
+    {
+        return CreateDialog(
+            PluginInstance->DllBase,
+            MAKEINTRESOURCE(IDD_DISKTABERROR),
+            PhMainWndHandle,
+            EtpDiskTabErrorDialogProc
+            );
+    }
 
     DiskTreeNewCreated = TRUE;
 
@@ -154,7 +167,8 @@ VOID NTAPI EtpDiskTabSelectionChangedCallback(
 {
     if ((BOOLEAN)Parameter1)
     {
-        SetFocus(DiskTreeNewHandle);
+        if (DiskTreeNewHandle)
+            SetFocus(DiskTreeNewHandle);
     }
 }
 
@@ -167,6 +181,9 @@ VOID NTAPI EtpDiskTabSaveContentCallback(
 {
     PPH_FILE_STREAM fileStream = Parameter1;
     ULONG mode = PtrToUlong(Parameter2);
+
+    if (!EtEtwEnabled)
+        return;
 
     EtWriteDiskList(fileStream, mode);
 }
@@ -1056,6 +1073,9 @@ static VOID NTAPI EtpSearchChangedHandler(
     _In_opt_ PVOID Context
     )
 {
+    if (!EtEtwEnabled)
+        return;
+
     PhApplyTreeNewFilters(&FilterSupport);
 }
 
@@ -1075,6 +1095,68 @@ static BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
 
     if (wordMatch(&diskNode->DiskItem->FileNameWin32->sr))
         return TRUE;
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            if (!PhElevated)
+            {
+                SendMessage(GetDlgItem(hwndDlg, IDC_RESTART), BCM_SETSHIELD, 0, TRUE);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
+                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
+            }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_RESTART:
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+
+                if (PhShellProcessHacker(
+                    PhMainWndHandle,
+                    L"-v -selecttab Disk",
+                    SW_SHOW,
+                    PH_SHELL_EXECUTE_ADMIN,
+                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                    0,
+                    NULL
+                    ))
+                {
+                    ProcessHacker_Destroy(PhMainWndHandle);
+                }
+                else
+                {
+                    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+                }
+
+                break;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORSTATIC:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+        }
+        break;
+    }
 
     return FALSE;
 }

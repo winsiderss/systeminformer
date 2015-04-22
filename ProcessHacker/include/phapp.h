@@ -84,6 +84,9 @@ typedef struct _PH_STARTUP_PARAMETERS
 
     ULONG SelectPid;
     ULONG PriorityClass;
+
+    PPH_LIST PluginParameters;
+    PPH_STRING SelectTab;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 PHAPPAPI
@@ -346,6 +349,7 @@ VOID PhWritePhTextHeader(
 #define PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY 0x2
 #define PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS 0x4
 
+PHAPPAPI
 BOOLEAN PhShellProcessHacker(
     _In_ HWND hWnd,
     _In_opt_ PWSTR Parameters,

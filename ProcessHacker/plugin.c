@@ -74,7 +74,7 @@ INT NTAPI PhpPluginsCompareFunction(
     PPH_PLUGIN plugin1 = CONTAINING_RECORD(Links1, PH_PLUGIN, Links);
     PPH_PLUGIN plugin2 = CONTAINING_RECORD(Links2, PH_PLUGIN, Links);
 
-    return wcscmp(plugin1->Name, plugin2->Name);
+    return PhCompareStringRef(&plugin1->Name, &plugin2->Name, FALSE);
 }
 
 BOOLEAN PhpLocateDisabledPlugin(
@@ -364,8 +364,42 @@ VOID PhpExecuteCallbackForAllPlugins(
     while (links)
     {
         PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
+        PPH_LIST parameters = NULL;
 
-        PhInvokeCallback(PhGetPluginCallback(plugin, Callback), NULL);
+        // Find relevant startup parameters for this plugin.
+        if (PhStartupParameters.PluginParameters)
+        {
+            ULONG i;
+
+            for (i = 0; i < PhStartupParameters.PluginParameters->Count; i++)
+            {
+                PPH_STRING string = PhStartupParameters.PluginParameters->Items[i];
+                PH_STRINGREF pluginName;
+                PH_STRINGREF parameter;
+
+                if (PhSplitStringRefAtChar(&string->sr, ':', &pluginName, &parameter) &&
+                    PhEqualStringRef(&pluginName, &plugin->Name, FALSE) &&
+                    parameter.Length != 0)
+                {
+                    if (!parameters)
+                        parameters = PhCreateList(3);
+
+                    PhAddItemList(parameters, PhCreateStringEx(parameter.Buffer, parameter.Length));
+                }
+            }
+        }
+
+        PhInvokeCallback(PhGetPluginCallback(plugin, Callback), parameters);
+
+        if (parameters)
+        {
+            ULONG i;
+
+            for (i = 0; i < parameters->Count; i++)
+                PhDereferenceObject(parameters->Items[i]);
+
+            PhDereferenceObject(parameters);
+        }
 
         links = PhSuccessorElementAvlTree(links);
     }
@@ -434,7 +468,7 @@ PPH_PLUGIN PhRegisterPlugin(
     plugin = PhAllocate(sizeof(PH_PLUGIN));
     memset(plugin, 0, sizeof(PH_PLUGIN));
 
-    plugin->Name = Name;
+    PhInitializeStringRef(&plugin->Name, Name);
     plugin->DllBase = DllBase;
 
     plugin->FileName = fileName;
@@ -474,7 +508,7 @@ PPH_PLUGIN PhFindPlugin(
     PPH_AVL_LINKS links;
     PH_PLUGIN lookupPlugin;
 
-    lookupPlugin.Name = Name;
+    PhInitializeStringRef(&lookupPlugin.Name, Name);
     links = PhFindElementAvlTree(&PhPluginsByName, &lookupPlugin.Links);
 
     if (links)
