@@ -808,17 +808,17 @@ static BOOLEAN NetAdapterSectionCallback(
         return TRUE;
     case SysInfoDestroy:
         {
+            PhDeleteCircularBuffer_ULONG64(&context->InboundBuffer);
+            PhDeleteCircularBuffer_ULONG64(&context->OutboundBuffer);
+   
             if (context->AdapterName)
                 PhDereferenceObject(context->AdapterName);
 
-            PhDeleteCircularBuffer_ULONG64(&context->InboundBuffer);
-            PhDeleteCircularBuffer_ULONG64(&context->OutboundBuffer);
+            if (context->DeviceHandle)
+                NtClose(context->DeviceHandle);
 
             if (context->IphlpHandle)
                 FreeLibrary(context->IphlpHandle);
-
-            if (context->DeviceHandle)
-                NtClose(context->DeviceHandle);
 
             PhFree(context);
         }
