@@ -829,7 +829,7 @@ static BOOLEAN NetAdapterSectionCallback(
             ULONG64 networkOutOctets = 0;
             ULONG64 networkRcvSpeed = 0;
             ULONG64 networkXmitSpeed = 0;
-            ULONG64 networkLinkSpeed = 0;
+            //ULONG64 networkLinkSpeed = 0;
 
             if (context->DeviceHandle)
             {
@@ -860,14 +860,14 @@ static BOOLEAN NetAdapterSectionCallback(
                     networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
                 }
 
-                if (NT_SUCCESS(NetworkAdapterQueryLinkState(context->DeviceHandle, &interfaceState)))
-                {
-                    networkLinkSpeed = interfaceState.XmitLinkSpeed;
-                }
-                else
-                {
-                    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);                   
-                }
+                //if (NT_SUCCESS(NetworkAdapterQueryLinkState(context->DeviceHandle, &interfaceState)))
+                //{
+                //    networkLinkSpeed = interfaceState.XmitLinkSpeed;
+                //}
+                //else
+                //{
+                //    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);                   
+                //}
 
                 // HACK: Pull the Adapter name from the current query.
                 if (context->SysinfoSection->Name.Length == 0)
@@ -888,7 +888,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 networkOutOctets = interfaceRow.OutOctets;
                 networkRcvSpeed = networkInOctets - context->LastInboundValue;
                 networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-                networkLinkSpeed = interfaceRow.TransmitLinkSpeed; // interfaceRow.ReceiveLinkSpeed
+                //networkLinkSpeed = interfaceRow.TransmitLinkSpeed; // interfaceRow.ReceiveLinkSpeed
 
                 // HACK: Pull the Adapter name from the current query.
                 if (context->SysinfoSection->Name.Length == 0)
@@ -909,7 +909,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 networkOutOctets = interfaceRow.dwOutOctets;
                 networkRcvSpeed = networkInOctets - context->LastInboundValue;
                 networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-                networkLinkSpeed = interfaceRow.dwSpeed;
+                //networkLinkSpeed = interfaceRow.dwSpeed;
 
                 // HACK: Pull the Adapter name from the current query.
                 if (context->SysinfoSection->Name.Length == 0)
@@ -931,7 +931,7 @@ static BOOLEAN NetAdapterSectionCallback(
             PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkRcvSpeed);
             PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkXmitSpeed);
 
-            context->LinkSpeed = networkLinkSpeed;
+            //context->LinkSpeed = networkLinkSpeed;
             context->InboundValue = networkRcvSpeed;
             context->OutboundValue = networkXmitSpeed;
             context->LastInboundValue = networkInOctets;
