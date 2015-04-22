@@ -1282,9 +1282,15 @@ BOOLEAN PhShellProcessHacker(
 
         // Add user-specified parameters last so they can override the propagated parameters.
         if (Parameters)
+        {
+            PhAppendCharStringBuilder(&sb, ' ');
             PhAppendStringBuilder2(&sb, Parameters);
+        }
 
-        parameters = sb.String->Buffer;
+        if (sb.String->Length != 0 && sb.String->Buffer[0] == ' ')
+            parameters = sb.String->Buffer + 1;
+        else
+            parameters = sb.String->Buffer;
     }
     else
     {
