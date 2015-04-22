@@ -600,7 +600,7 @@ PPH_STRING PhCmSaveSettingsEx(
                         PhAppendFormatStringBuilder(
                             &stringBuilder,
                             L"+%s+%u,%u,%u|",
-                            cmColumn->Plugin->Name,
+                            cmColumn->Plugin->Name.Buffer,
                             cmColumn->SubId,
                             column.DisplayIndex + increment,
                             column.Width
@@ -627,7 +627,7 @@ PPH_STRING PhCmSaveSettingsEx(
                     PhAppendFormatStringBuilder(
                         &stringBuilder,
                         L"+%s+%u,,%u|",
-                        cmColumn->Plugin->Name,
+                        cmColumn->Plugin->Name.Buffer,
                         cmColumn->SubId,
                         column.Width
                         );
@@ -664,7 +664,7 @@ PPH_STRING PhCmSaveSettingsEx(
                     if (TreeNew_GetColumn(TreeNewHandle, sortColumn, &column))
                     {
                         cmColumn = column.Context;
-                        *SortSettings = PhFormatString(L"+%s+%u,%u", cmColumn->Plugin->Name, cmColumn->SubId, sortOrder);
+                        *SortSettings = PhFormatString(L"+%s+%u,%u", cmColumn->Plugin->Name.Buffer, cmColumn->SubId, sortOrder);
                     }
                     else
                     {

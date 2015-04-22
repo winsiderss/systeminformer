@@ -202,7 +202,7 @@ VOID PhNfSaveSettings(
                     PhAppendFormatStringBuilder(
                         &iconListBuilder,
                         L"+%s+%u|",
-                        PhNfRegisteredIcons[i]->Plugin->Name,
+                        PhNfRegisteredIcons[i]->Plugin->Name.Buffer,
                         PhNfRegisteredIcons[i]->SubId
                         );
                 }
