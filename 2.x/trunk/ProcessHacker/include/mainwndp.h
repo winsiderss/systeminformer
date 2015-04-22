@@ -273,6 +273,10 @@ VOID PhMwpSelectTabPage(
     _In_ ULONG Index
     );
 
+INT PhMwpFindTabPageIndex(
+    _In_ PWSTR Text
+    );
+
 // Notifications
 
 VOID PhMwpAddIconProcesses(

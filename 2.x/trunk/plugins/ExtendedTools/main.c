@@ -392,10 +392,7 @@ VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (EtEtwEnabled)
-    {
-        EtInitializeDiskTab();
-    }
+    EtInitializeDiskTab();
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(

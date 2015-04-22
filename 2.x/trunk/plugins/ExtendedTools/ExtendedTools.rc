@@ -348,6 +348,15 @@ BEGIN
     RTEXT           "Static",IDC_ZTOTALNODES_V,78,33,38,8,SS_ENDELLIPSIS
 END
 
+IDD_DISKTABERROR DIALOGEX 0, 0, 309, 176
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_TRANSPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Disk monitoring requires Process Hacker to be restarted with administrative privileges.",IDC_ERROR,16,14,275,8
+    PUSHBUTTON      "Restart",IDC_RESTART,20,28,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -463,6 +472,14 @@ BEGIN
 
     IDD_PROCGPU_PANEL, DIALOG
     BEGIN
+    END
+
+    IDD_DISKTABERROR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
     END
 END
 #endif    // APSTUDIO_INVOKED
