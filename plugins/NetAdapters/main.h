@@ -76,7 +76,7 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
 {
     BOOLEAN HaveFirstSample;
 
-    ULONG64 LinkSpeed;
+    //ULONG64 LinkSpeed;
     ULONG64 InboundValue;
     ULONG64 OutboundValue;
     ULONG64 LastInboundValue;
