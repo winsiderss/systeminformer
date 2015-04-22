@@ -834,7 +834,7 @@ static BOOLEAN NetAdapterSectionCallback(
             if (context->DeviceHandle)
             {
                 NDIS_STATISTICS_INFO interfaceStats;
-                NDIS_LINK_STATE interfaceState;
+                //NDIS_LINK_STATE interfaceState;
 
                 if (NT_SUCCESS(NetworkAdapterQueryStatistics(context->DeviceHandle, &interfaceStats)))
                 {
