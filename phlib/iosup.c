@@ -1273,14 +1273,14 @@ NTSTATUS PhWriteStringAsUtf8FileStreamEx(
     if (Length > PAGE_SIZE)
     {
         // In UTF-8, the maximum number of bytes per code point is 4.
-        inPlaceUtf8Size = Length / sizeof(WCHAR) * 4;
+        inPlaceUtf8Size = PAGE_SIZE / sizeof(WCHAR) * 4;
         inPlaceUtf8 = PhAllocatePage(inPlaceUtf8Size, NULL);
     }
 
     while (Length != 0)
     {
         block.Buffer = Buffer;
-        block.Length = PH_FILE_STREAM_STRING_BLOCK_SIZE;
+        block.Length = PAGE_SIZE;
 
         if (block.Length > Length)
             block.Length = Length;
@@ -1318,7 +1318,7 @@ NTSTATUS PhWriteStringAsUtf8FileStreamEx(
         }
 
         if (!NT_SUCCESS(status))
-            return status;
+            goto CleanupExit;
 
         Buffer += block.Length / sizeof(WCHAR);
         Length -= block.Length;
