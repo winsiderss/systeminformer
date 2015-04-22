@@ -1547,8 +1547,6 @@ NTSTATUS PhUnlockFileStream(
     _In_ PLARGE_INTEGER Length
     );
 
-#define PH_FILE_STREAM_STRING_BLOCK_SIZE (PAGE_SIZE / 2)
-
 PHLIBAPI
 NTSTATUS PhWriteStringAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
