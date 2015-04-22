@@ -93,51 +93,6 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_HAS_SERVICE_TAGS (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_UAC (WindowsVersion >= WINDOWS_VISTA)
 
-// data
-
-// SIDs
-
-extern SID PhSeNobodySid;
-
-extern SID PhSeEveryoneSid;
-
-extern SID PhSeLocalSid;
-
-extern SID PhSeCreatorOwnerSid;
-extern SID PhSeCreatorGroupSid;
-
-extern SID PhSeDialupSid;
-extern SID PhSeNetworkSid;
-extern SID PhSeBatchSid;
-extern SID PhSeInteractiveSid;
-extern SID PhSeServiceSid;
-extern SID PhSeAnonymousLogonSid;
-extern SID PhSeProxySid;
-extern SID PhSeAuthenticatedUserSid;
-extern SID PhSeRestrictedCodeSid;
-extern SID PhSeTerminalServerUserSid;
-extern SID PhSeRemoteInteractiveLogonSid;
-extern SID PhSeLocalSystemSid;
-extern SID PhSeLocalServiceSid;
-extern SID PhSeNetworkServiceSid;
-
-// Characters
-
-extern BOOLEAN PhCharIsPrintable[256];
-extern ULONG PhCharToInteger[256];
-extern CHAR PhIntegerToChar[69];
-extern CHAR PhIntegerToCharUpper[69];
-
-// CRC32
-
-extern ULONG PhCrc32Table[256];
-
-// Enums
-
-extern WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes];
-extern WCHAR *PhKThreadStateNames[MaximumThreadState];
-extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
-
 // debugging
 
 #ifdef DEBUG
@@ -1800,6 +1755,7 @@ PhCreateBytesEx(
 
 // Unicode
 
+#define PH_UNICODE_BYTE_ORDER_MARK 0xfeff
 #define PH_UNICODE_MAX_CODE_POINT 0x10ffff
 
 #define PH_UNICODE_UTF16_TO_HIGH_SURROGATE(CodePoint) ((USHORT)((CodePoint) >> 10) + 0xd7c0)
@@ -3799,6 +3755,55 @@ PhQueueItemGlobalWorkQueue(
     _In_ PTHREAD_START_ROUTINE Function,
     _In_opt_ PVOID Context
     );
+
+// data
+
+// SIDs
+
+extern SID PhSeNobodySid;
+
+extern SID PhSeEveryoneSid;
+
+extern SID PhSeLocalSid;
+
+extern SID PhSeCreatorOwnerSid;
+extern SID PhSeCreatorGroupSid;
+
+extern SID PhSeDialupSid;
+extern SID PhSeNetworkSid;
+extern SID PhSeBatchSid;
+extern SID PhSeInteractiveSid;
+extern SID PhSeServiceSid;
+extern SID PhSeAnonymousLogonSid;
+extern SID PhSeProxySid;
+extern SID PhSeAuthenticatedUserSid;
+extern SID PhSeRestrictedCodeSid;
+extern SID PhSeTerminalServerUserSid;
+extern SID PhSeRemoteInteractiveLogonSid;
+extern SID PhSeLocalSystemSid;
+extern SID PhSeLocalServiceSid;
+extern SID PhSeNetworkServiceSid;
+
+// Unicode
+
+extern PH_STRINGREF PhUnicodeByteOrderMark;
+
+// Characters
+
+extern BOOLEAN PhCharIsPrintable[256];
+extern ULONG PhCharToInteger[256];
+extern CHAR PhIntegerToChar[69];
+extern CHAR PhIntegerToCharUpper[69];
+
+// CRC32
+
+extern ULONG PhCrc32Table[256];
+
+// Enums
+
+extern WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes];
+extern WCHAR *PhKThreadStateNames[MaximumThreadState];
+extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
 
 #ifdef __cplusplus
 }

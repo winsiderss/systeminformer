@@ -814,6 +814,7 @@ VOID PhMwpOnCommand(
                     else
                         mode = PH_EXPORT_MODE_TABS;
 
+                    PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
                     PhWritePhTextHeader(fileStream);
 
                     if (selectedTab == ProcessesTabIndex)

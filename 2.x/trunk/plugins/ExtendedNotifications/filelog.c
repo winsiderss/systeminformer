@@ -77,7 +77,7 @@ VOID NTAPI LoggedCallback(
     formattedTime = PhFormatDateTime(NULL);
     formatted = PhFormatLogEntry(logEntry);
 
-    PhWriteStringFormatFileStream(LogFileStream, L"%s: %s\r\n", formattedTime->Buffer, formatted->Buffer);
+    PhWriteStringFormatAsUtf8FileStream(LogFileStream, L"%s: %s\r\n", formattedTime->Buffer, formatted->Buffer);
 
     PhDereferenceObject(formatted);
     PhDereferenceObject(formattedTime);
