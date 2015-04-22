@@ -271,10 +271,11 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             0
                             )))
                         {
+                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
                             PhWritePhTextHeader(fileStream);
 
                             string = PhpGetStringForSelectedLogEntries(TRUE);
-                            PhWriteStringAsAnsiFileStreamEx(fileStream, string->Buffer, string->Length);
+                            PhWriteStringAsUtf8FileStreamEx(fileStream, string->Buffer, string->Length);
                             PhDereferenceObject(string);
 
                             PhDereferenceObject(fileStream);

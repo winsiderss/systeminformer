@@ -326,7 +326,7 @@ static VOID ShowDropdownMenu(
                         PhWritePhTextHeader(fileStream);
 
                         string = DbgGetStringForSelectedLogEntries(Context, TRUE);
-                        PhWriteStringAsAnsiFileStreamEx(fileStream, string->Buffer, string->Length);
+                        PhWriteStringAsUtf8FileStreamEx(fileStream, string->Buffer, string->Length);
                         PhDereferenceObject(string);
 
                         PhDereferenceObject(fileStream);
