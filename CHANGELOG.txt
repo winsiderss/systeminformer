@@ -18,6 +18,7 @@ Process Hacker
    * Fixed EtwRegistration object names for 64-bit Windows 8.1
    * Fixed tray icons being clipped in high DPI environments
    * Fixed crash in memory editor
+   * Fixed multi monitor window placement bug
 
 2.33
  * NEW/IMPROVED:
