@@ -4,9 +4,10 @@ Process Hacker
  * NEW/IMPROVED:
    * Proper Unicode support
    * CPU and GPU graphs are displayed in a grid now (thanks pavel_kv!)
-   * Tooltip information for user-mode driver framework (UMDF) host processes
    * Start Task Manager now elevates when necessary
-   * Option to reduce row height (set ThinRows to 1 in settings.xml)
+   * Better names for memory regions in Memory tab (for PEBs, TEBs, thread stacks)
+   * Added tooltip information for user-mode driver framework (UMDF) host processes
+   * Added option to reduce row height (set ThinRows to 1 in settings.xml)
    * Added NetAdapters plugin: adds graphs for selected network adapters to the System Information window
    * Updated ExtendedTools plugin:
      * Added GPU graphs for all processes
@@ -16,6 +17,7 @@ Process Hacker
    * Fixed touch scrolling
    * Fixed EtwRegistration object names for 64-bit Windows 8.1
    * Fixed tray icons being clipped in high DPI environments
+   * Fixed crash in memory editor
 
 2.33
  * NEW/IMPROVED:
