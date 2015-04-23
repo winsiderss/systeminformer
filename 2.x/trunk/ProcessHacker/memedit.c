@@ -2,7 +2,7 @@
  * Process Hacker -
  *   memory editor window
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -48,7 +48,6 @@ typedef struct _MEMORY_EDITOR_CONTEXT
     ULONG SelectOffset;
 
     BOOLEAN LoadCompleted;
-    BOOLEAN CreateFailed;
 } MEMORY_EDITOR_CONTEXT, *PMEMORY_EDITOR_CONTEXT;
 
 INT NTAPI PhpMemoryEditorCompareFunction(
@@ -102,10 +101,9 @@ VOID PhShowMemoryEditorDialog(
             (LPARAM)context
             );
 
-        if (context->CreateFailed)
+        if (!context->LoadCompleted)
         {
             DestroyWindow(context->WindowHandle);
-            context->WindowHandle = NULL;
             return;
         }
 
@@ -187,7 +185,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             if (context->RegionSize > 1024 * 1024 * 1024) // 1 GB
             {
                 PhShowError(NULL, L"Unable to edit the memory region because it is too large.");
-                context->CreateFailed = TRUE;
                 return TRUE;
             }
 
@@ -204,7 +201,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     )))
                 {
                     PhShowStatus(NULL, L"Unable to open the process", status, 0);
-                    context->CreateFailed = TRUE;
                     return TRUE;
                 }
             }
@@ -214,7 +210,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             if (!context->Buffer)
             {
                 PhShowError(NULL, L"Unable to allocate memory for the buffer.");
-                context->CreateFailed = TRUE;
                 return TRUE;
             }
 
@@ -227,7 +222,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 )))
             {
                 PhShowStatus(PhMainWndHandle, L"Unable to read memory", status, 0);
-                context->CreateFailed = TRUE;
                 return TRUE;
             }
 
