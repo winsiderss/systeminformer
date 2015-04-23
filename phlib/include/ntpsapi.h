@@ -107,8 +107,8 @@ typedef enum _PROCESSINFOCLASS
     ProcessDebugPort, // q: HANDLE
     ProcessExceptionPort, // s: HANDLE
     ProcessAccessToken, // s: PROCESS_ACCESS_TOKEN
-    ProcessLdtInformation, // 10
-    ProcessLdtSize,
+    ProcessLdtInformation, // 10, qs: PROCESS_LDT_INFORMATION
+    ProcessLdtSize, // s: PROCESS_LDT_SIZE
     ProcessDefaultHardErrorMode, // qs: ULONG
     ProcessIoPortHandlers, // (kernel-mode only)
     ProcessPooledUsageAndLimits, // q: POOLED_USAGE_AND_LIMITS
@@ -172,7 +172,7 @@ typedef enum _THREADINFOCLASS
     ThreadBasePriority, // s: LONG
     ThreadAffinityMask, // s: KAFFINITY
     ThreadImpersonationToken, // s: HANDLE
-    ThreadDescriptorTableEntry,
+    ThreadDescriptorTableEntry, // q: DESCRIPTOR_TABLE_ENTRY (or WOW64_DESCRIPTOR_TABLE_ENTRY)
     ThreadEnableAlignmentFaultFixup, // s: BOOLEAN
     ThreadEventPair,
     ThreadQuerySetWin32StartAddress, // q: PVOID
@@ -306,6 +306,18 @@ typedef struct _PROCESS_ACCESS_TOKEN
     HANDLE Token; // needs TOKEN_ASSIGN_PRIMARY access
     HANDLE Thread; // handle to initial/only thread; needs THREAD_QUERY_INFORMATION access
 } PROCESS_ACCESS_TOKEN, *PPROCESS_ACCESS_TOKEN;
+
+typedef struct _PROCESS_LDT_INFORMATION
+{
+    ULONG Start;
+    ULONG Length;
+    LDT_ENTRY LdtEntries[1];
+} PROCESS_LDT_INFORMATION, *PPROCESS_LDT_INFORMATION;
+
+typedef struct _PROCESS_LDT_SIZE
+{
+    ULONG Length;
+} PROCESS_LDT_SIZE, *PPROCESS_LDT_SIZE;
 
 typedef struct _PROCESS_WS_WATCH_INFORMATION
 {
