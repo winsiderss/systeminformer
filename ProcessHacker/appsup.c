@@ -1101,7 +1101,7 @@ VOID PhSaveWindowPlacementToSetting(
     windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
 
     // The rectangle is in workspace coordinates. Convert the values back to screen coordinates.
-    if (GetMonitorInfo(MonitorFromRect(&placement.rcNormalPosition, MONITOR_DEFAULTTONEAREST), &monitorInfo))
+    if (GetMonitorInfo(MonitorFromRect(&placement.rcNormalPosition, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
     {
         windowRectangle.Left += monitorInfo.rcWork.left - monitorInfo.rcMonitor.left;
         windowRectangle.Top += monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
