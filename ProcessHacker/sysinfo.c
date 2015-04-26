@@ -2707,7 +2707,7 @@ PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
-    return PhFindProcessRecord(LongToHandle(maxProcessId), &time);
+    return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
 PPH_STRING PhSipGetMaxCpuString(
@@ -4197,7 +4197,7 @@ PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
-    return PhFindProcessRecord((HANDLE)maxProcessId, &time);
+    return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
 PPH_STRING PhSipGetMaxIoString(
