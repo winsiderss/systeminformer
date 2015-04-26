@@ -212,7 +212,7 @@ static VOID RebarLoadSettings(
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             NULL,
-            (HINSTANCE)PluginInstance->DllBase,
+            NULL,
             NULL
             );
 
@@ -224,11 +224,11 @@ static VOID RebarLoadSettings(
             0,
             TOOLBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NODIVIDER | CCS_ADJUSTABLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE, // TBSTYLE_ALTDRAG
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER | CCS_ADJUSTABLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE, // TBSTYLE_ALTDRAG
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             RebarHandle,
             NULL,
-            (HINSTANCE)PluginInstance->DllBase,
+            NULL,
             NULL
             );
 
@@ -294,7 +294,7 @@ static VOID RebarLoadSettings(
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             NULL,
-            (HINSTANCE)PluginInstance->DllBase,
+            NULL,
             NULL
             );
     }
