@@ -545,7 +545,7 @@ HWND CreateSearchControl(
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         RebarHandle,
         NULL,
-        (HINSTANCE)PluginInstance->DllBase,
+        NULL,
         NULL
         );
 
