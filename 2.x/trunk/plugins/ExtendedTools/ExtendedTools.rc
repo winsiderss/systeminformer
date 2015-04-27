@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,13,0,0
- PRODUCTVERSION 1,13,0,0
+ FILEVERSION 1,14,0,0
+ PRODUCTVERSION 1,14,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.13"
+            VALUE "FileVersion", "1.14"
             VALUE "InternalName", "ExtendedTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedTools.dll"
             VALUE "ProductName", "Extended Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.13"
+            VALUE "ProductVersion", "1.14"
         END
     END
     BLOCK "VarFileInfo"
@@ -173,37 +173,13 @@ BEGIN
     PUSHBUTTON      "Empty",IDC_EMPTY,117,165,50,14
 END
 
-IDD_PROCDISKNET DIALOGEX 0, 0, 260, 260
+IDD_PROCDISKNET DIALOGEX 0, 0, 265, 158
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Disk and Network"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Disk I/O",IDC_STATIC,7,7,118,82
-    LTEXT           "Reads",IDC_STATIC,15,18,21,8
-    LTEXT           "Read Bytes",IDC_STATIC,15,29,38,8
-    LTEXT           "Read Bytes Delta",IDC_STATIC,15,40,56,8
-    LTEXT           "Writes",IDC_STATIC,15,51,22,8
-    LTEXT           "Write Bytes",IDC_STATIC,15,62,38,8
-    LTEXT           "Write Bytes Delta",IDC_STATIC,15,73,57,8
-    RTEXT           "Static",IDC_ZREADS_V,62,18,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZREADBYTES_V,78,29,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZREADBYTESDELTA_V,78,40,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZWRITES_V,62,51,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZWRITEBYTES_V,78,62,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZWRITEBYTESDELTA_V,78,73,38,8,SS_ENDELLIPSIS
-    GROUPBOX        "Network I/O",IDC_STATIC,129,7,124,82
-    LTEXT           "Receives",IDC_STATIC,137,18,30,8
-    LTEXT           "Receive Bytes",IDC_STATIC,137,30,46,8
-    LTEXT           "Receive Bytes Delta",IDC_STATIC,137,41,65,8
-    LTEXT           "Sends",IDC_STATIC,137,52,20,8
-    LTEXT           "Send Bytes",IDC_STATIC,137,63,37,8
-    LTEXT           "Send Bytes Delta",IDC_STATIC,137,74,56,8
-    RTEXT           "Static",IDC_ZRECEIVES_V,189,18,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZRECEIVEBYTES_V,205,30,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZRECEIVEBYTESDELTA_V,205,41,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSENDS_V,189,52,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSENDBYTES_V,205,63,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,205,74,38,8,SS_ENDELLIPSIS
+    GROUPBOX        "Disk",IDC_GROUPDISK,7,7,251,69
+    GROUPBOX        "Network",IDC_GROUPNETWORK,7,81,251,69
 END
 
 IDD_SYSINFO_DISKPANEL DIALOGEX 0, 0, 146, 58
@@ -357,6 +333,38 @@ BEGIN
     PUSHBUTTON      "Restart",IDC_RESTART,20,28,50,14
 END
 
+IDD_PROCDISKNET_PANEL DIALOGEX 0, 0, 248, 82
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Disk I/O",IDC_STATIC,2,0,118,82
+    LTEXT           "Reads",IDC_STATIC,10,11,21,8
+    LTEXT           "Read Bytes",IDC_STATIC,10,22,38,8
+    LTEXT           "Read Bytes Delta",IDC_STATIC,10,33,56,8
+    LTEXT           "Writes",IDC_STATIC,10,44,22,8
+    LTEXT           "Write Bytes",IDC_STATIC,10,55,38,8
+    LTEXT           "Write Bytes Delta",IDC_STATIC,10,66,57,8
+    RTEXT           "Static",IDC_ZREADS_V,57,11,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZREADBYTES_V,73,22,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZREADBYTESDELTA_V,73,33,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITES_V,57,44,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITEBYTES_V,73,55,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZWRITEBYTESDELTA_V,73,66,38,8,SS_ENDELLIPSIS
+    GROUPBOX        "Network I/O",IDC_STATIC,123,0,124,82
+    LTEXT           "Receives",IDC_STATIC,132,11,30,8
+    LTEXT           "Receive Bytes",IDC_STATIC,132,23,46,8
+    LTEXT           "Receive Bytes Delta",IDC_STATIC,132,34,65,8
+    LTEXT           "Sends",IDC_STATIC,132,46,20,8
+    LTEXT           "Send Bytes",IDC_STATIC,132,56,37,8
+    LTEXT           "Send Bytes Delta",IDC_STATIC,132,67,56,8
+    RTEXT           "Static",IDC_ZRECEIVES_V,184,11,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZRECEIVEBYTES_V,200,23,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZRECEIVEBYTESDELTA_V,200,34,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDS_V,184,46,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDBYTES_V,200,56,38,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,200,67,38,8,SS_ENDELLIPSIS
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -409,9 +417,9 @@ BEGIN
     IDD_PROCDISKNET, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 253
+        RIGHTMARGIN, 258
         TOPMARGIN, 7
-        BOTTOMMARGIN, 253
+        BOTTOMMARGIN, 151
     END
 
     IDD_SYSINFO_DISKPANEL, DIALOG
@@ -480,6 +488,10 @@ BEGIN
         RIGHTMARGIN, 302
         TOPMARGIN, 7
         BOTTOMMARGIN, 169
+    END
+
+    IDD_PROCDISKNET_PANEL, DIALOG
+    BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
