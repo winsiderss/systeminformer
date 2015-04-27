@@ -1,3 +1,6 @@
+1.14
+ * Added Disk and Network graphs for all processes
+
 1.13
  * Added GPU graphs for all processes
  * Can now use the search box in the Disk tab
