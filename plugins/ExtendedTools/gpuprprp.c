@@ -141,21 +141,6 @@ static VOID GpuPropCreateGraphs(
         );
     Graph_SetTooltip(Context->GpuGraphHandle, TRUE);
 
-    Context->SharedGraphHandle = CreateWindow(
-        PH_GRAPH_CLASSNAME,
-        NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
-        0,
-        0,
-        3,
-        3,
-        Context->WindowHandle,
-        NULL,
-        PluginInstance->DllBase,
-        NULL
-        );
-    Graph_SetTooltip(Context->SharedGraphHandle, TRUE);
-
     Context->MemGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
@@ -170,6 +155,21 @@ static VOID GpuPropCreateGraphs(
         NULL
         );
     Graph_SetTooltip(Context->MemGraphHandle, TRUE);
+
+    Context->SharedGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        Context->WindowHandle,
+        NULL,
+        PluginInstance->DllBase,
+        NULL
+        );
+    Graph_SetTooltip(Context->SharedGraphHandle, TRUE);
 }
 
 static VOID GpuPropCreatePanel(
