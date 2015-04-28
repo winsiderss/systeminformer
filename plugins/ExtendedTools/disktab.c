@@ -103,7 +103,7 @@ HWND NTAPI EtpDiskTabCreateFunction(
 
         if (!hwnd)
             return NULL;
-        }
+    }
     else
     {
         return CreateDialog(
