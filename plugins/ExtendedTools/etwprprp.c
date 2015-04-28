@@ -386,6 +386,26 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                     if (header->hwndFrom == context->DiskGraphHandle)
                     {
+                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        {
+                            HDC hdc;
+
+                            PhSwapReference2(&context->DiskGraphState.Text, PhFormatString(
+                                L"R: %s, W: %s",
+                                PhaFormatSize(context->CurrentDiskRead, -1)->Buffer,
+                                PhaFormatSize(context->CurrentDiskWrite, -1)->Buffer
+                                ));
+
+                            hdc = Graph_GetBufferedContext(context->DiskGraphHandle);
+                            SelectObject(hdc, PhApplicationFont);
+                            PhSetGraphText(hdc, drawInfo, &context->DiskGraphState.Text->sr,
+                                &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
+
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
                         PhGraphStateGetDrawInfo(&context->DiskGraphState, getDrawInfo, context->DiskReadHistory.Count);
@@ -429,6 +449,26 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                     }
                     else if (header->hwndFrom == context->NetworkGraphHandle)
                     {
+                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        {
+                            HDC hdc;
+
+                            PhSwapReference2(&context->NetworkGraphState.Text, PhFormatString(
+                                L"R: %s, S: %s",
+                                PhaFormatSize(context->CurrentNetworkReceive, -1)->Buffer,
+                                PhaFormatSize(context->CurrentNetworkSend, -1)->Buffer
+                                ));
+
+                            hdc = Graph_GetBufferedContext(context->NetworkGraphHandle);
+                            SelectObject(hdc, PhApplicationFont);
+                            PhSetGraphText(hdc, drawInfo, &context->NetworkGraphState.Text->sr,
+                                &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
+
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
                         PhGraphStateGetDrawInfo(&context->NetworkGraphState, getDrawInfo, context->NetworkSendHistory.Count);
