@@ -25,7 +25,6 @@
 #include "resource.h"
 
 #define MSG_UPDATE (WM_APP + 1)
-#define MSG_UPDATE_PANEL (WM_APP + 2)
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
@@ -45,7 +44,7 @@ typedef struct _ET_GPU_CONTEXT
     HWND GpuGraphHandle;
     HWND MemGraphHandle;
     HWND SharedGraphHandle;
-    HWND GpuPanelWindowHandle;
+    HWND PanelHandle;
 
     FLOAT CurrentGpuUsage;
     ULONG CurrentMemUsage;
@@ -67,58 +66,6 @@ static INT_PTR CALLBACK GpuPanelDialogProc(
     _In_ LPARAM lParam
     )
 {
-    PET_GPU_CONTEXT context;
-
-    if (uMsg == WM_INITDIALOG)
-    {
-        context = (PET_GPU_CONTEXT)lParam;
-
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
-    }
-    else
-    {
-        context = (PET_GPU_CONTEXT)GetProp(hwndDlg, L"Context");
-
-        if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"Context");
-    }
-
-    if (!context)
-        return FALSE;
-
-    switch (uMsg)
-    {
-    case MSG_UPDATE_PANEL:
-        {
-            ET_PROCESS_GPU_STATISTICS statistics;
-            WCHAR runningTimeString[PH_TIMESPAN_STR_LEN_1] = L"N/A";
-
-            if (context->Block->ProcessItem->QueryHandle)
-                EtQueryProcessGpuStatistics(context->Block->ProcessItem->QueryHandle, &statistics);
-            else
-                memset(&statistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
-
-            PhPrintTimeSpan(runningTimeString, statistics.RunningTime * 10, PH_TIMESPAN_HMSM);
-
-            SetDlgItemText(hwndDlg, IDC_ZRUNNINGTIME_V, runningTimeString);
-            SetDlgItemText(hwndDlg, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(statistics.ContextSwitches, TRUE)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ZTOTALNODES_V, PhaFormatUInt64(statistics.NodeCount, TRUE)->Buffer);
-
-            //SetDlgItemText(hwndDlg, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(statistics.DedicatedCommitted, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(statistics.SharedCommitted, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(statistics.SegmentCount, TRUE)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZTOTALALLOCATED_V, PhaFormatSize(statistics.BytesAllocated, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZTOTALRESERVED_V, PhaFormatSize(statistics.BytesReserved, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(statistics.WriteCombinedBytesAllocated, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(statistics.WriteCombinedBytesReserved, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(statistics.CachedBytesAllocated, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZCACHEDRESERVED_V, PhaFormatSize(statistics.CachedBytesReserved, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(statistics.SectionBytesAllocated, -1)->Buffer);
-            //SetDlgItemText(hwndDlg, IDC_ZSECTIONRESERVED_V, PhaFormatSize(statistics.SectionBytesReserved, -1)->Buffer);
-        }
-        break;
-    }
-
     return FALSE;
 }
 
@@ -178,7 +125,7 @@ static VOID GpuPropCreatePanel(
 {
     RECT margin;
 
-    Context->GpuPanelWindowHandle = CreateDialogParam(
+    Context->PanelHandle = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PROCGPU_PANEL),
         Context->WindowHandle,
@@ -187,23 +134,23 @@ static VOID GpuPropCreatePanel(
         );
 
     SetWindowPos(
-        Context->GpuPanelWindowHandle,
+        Context->PanelHandle,
         NULL,
         10, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER
         );
 
-    ShowWindow(Context->GpuPanelWindowHandle, SW_SHOW);
+    ShowWindow(Context->PanelHandle, SW_SHOW);
 
     margin.left = 0;
     margin.top = 0;
     margin.right = 0;
-    margin.bottom = 25;
+    margin.bottom = 10;
     MapDialogRect(Context->WindowHandle, &margin);
 
     PhAddLayoutItemEx(
         &Context->LayoutManager,
-        Context->GpuPanelWindowHandle,
+        Context->PanelHandle,
         NULL,
         PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT,
         margin
@@ -218,7 +165,7 @@ static VOID GpuPropLayoutGraphs(
 {
     HDWP deferHandle;
     RECT clientRect;
-    //RECT panelRect;
+    RECT panelRect;
     RECT margin = { 13, 13, 13, 13 };
     RECT innerMargin = { 10, 20, 10, 10 };
     LONG between = 3;
@@ -234,9 +181,9 @@ static VOID GpuPropLayoutGraphs(
     GetClientRect(Context->WindowHandle, &clientRect);
 
     // Limit the rectangle bottom to the top of the panel.
-    //GetWindowRect(Context->GpuPanelWindowHandle, &panelRect);
-    //MapWindowPoints(NULL, Context->WindowHandle, (PPOINT)&panelRect, 2);
-    //clientRect.bottom = panelRect.top;
+    GetWindowRect(Context->PanelHandle, &panelRect);
+    MapWindowPoints(NULL, Context->WindowHandle, (PPOINT)&panelRect, 2);
+    clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
 
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
@@ -308,7 +255,38 @@ static VOID GpuPropUpdateGraphs(
     InvalidateRect(Context->SharedGraphHandle, NULL, FALSE);
 }
 
-static VOID GpuPropUpdateProcessInfo(
+static VOID GpuPropUpdatePanel(
+    _Inout_ PET_GPU_CONTEXT Context
+    )
+{
+    ET_PROCESS_GPU_STATISTICS statistics;
+    WCHAR runningTimeString[PH_TIMESPAN_STR_LEN_1] = L"N/A";
+
+    if (Context->Block->ProcessItem->QueryHandle)
+        EtQueryProcessGpuStatistics(Context->Block->ProcessItem->QueryHandle, &statistics);
+    else
+    memset(&statistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
+
+    PhPrintTimeSpan(runningTimeString, statistics.RunningTime * 10, PH_TIMESPAN_HMSM);
+
+    SetDlgItemText(Context->PanelHandle, IDC_ZRUNNINGTIME_V, runningTimeString);
+    SetDlgItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(statistics.ContextSwitches, TRUE)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALNODES_V, PhaFormatUInt64(statistics.NodeCount, TRUE)->Buffer);
+
+    SetDlgItemText(Context->PanelHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(statistics.DedicatedCommitted, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(statistics.SharedCommitted, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(statistics.SegmentCount, TRUE)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(statistics.BytesAllocated, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(statistics.BytesReserved, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(statistics.WriteCombinedBytesAllocated, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(statistics.WriteCombinedBytesReserved, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(statistics.CachedBytesAllocated, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(statistics.CachedBytesReserved, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(statistics.SectionBytesAllocated, -1)->Buffer);
+    SetDlgItemText(Context->PanelHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(statistics.SectionBytesReserved, -1)->Buffer);
+}
+
+static VOID GpuPropUpdateInfo(
     _In_ PET_GPU_CONTEXT Context
     )
 {
@@ -333,10 +311,10 @@ static VOID NTAPI ProcessesUpdatedHandler(
     if (!context->Enabled)
         return;
 
-    PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
-
-    if (context->GpuPanelWindowHandle)
-        PostMessage(context->GpuPanelWindowHandle, MSG_UPDATE_PANEL, 0, 0);
+    if (context->WindowHandle)
+    {
+        PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+    }
 }
 
 INT_PTR CALLBACK EtpGpuPageDlgProc(
@@ -390,7 +368,9 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             PhInitializeCircularBuffer_ULONG(&context->MemorySharedHistory, sampleCount);
 
             GpuPropCreateGraphs(context);
-            //GpuPropCreatePanel(context);
+            GpuPropCreatePanel(context);
+            GpuPropUpdateInfo(context);
+            GpuPropUpdatePanel(context);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -398,8 +378,6 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
-
-            GpuPropUpdateProcessInfo(context);
         }
         break;
     case WM_DESTROY:
@@ -420,8 +398,8 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 DestroyWindow(context->MemGraphHandle);
             if (context->SharedGraphHandle)
                 DestroyWindow(context->SharedGraphHandle);
-            if (context->GpuPanelWindowHandle)
-                DestroyWindow(context->GpuPanelWindowHandle);
+            if (context->PanelHandle)
+                DestroyWindow(context->PanelHandle);
 
             PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
             PhFree(context);
@@ -658,8 +636,9 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
         break;
     case MSG_UPDATE:
         {
-            GpuPropUpdateProcessInfo(context);
+            GpuPropUpdateInfo(context);
             GpuPropUpdateGraphs(context);
+            GpuPropUpdatePanel(context);
         }
         break;
     case WM_SIZE:
