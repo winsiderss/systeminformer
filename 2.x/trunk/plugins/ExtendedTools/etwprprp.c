@@ -298,7 +298,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        {     
+        {
             ULONG sampleCount;
 
             sampleCount = PhGetIntegerSetting(L"SampleCount");
@@ -308,7 +308,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
             context->WindowHandle = hwndDlg;
             context->Block = EtGetProcessBlock(processItem);
-            context->Enabled = TRUE;             
+            context->Enabled = TRUE;
             context->DiskGroupBox = GetDlgItem(hwndDlg, IDC_GROUPDISK);
             context->NetworkGroupBox = GetDlgItem(hwndDlg, IDC_GROUPNETWORK);
             propPageContext->Context = context;
@@ -378,7 +378,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                 break;
             case PSN_KILLACTIVE:
                 context->Enabled = FALSE;
-                break;            
+                break;
             case GCN_GETDRAWINFO:
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
@@ -543,7 +543,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             getTooltipText->Text = context->DiskGraphState.TooltipText->sr;
                         }
                         else if (header->hwndFrom == context->NetworkGraphHandle)
-                        {                          
+                        {
                             if (context->NetworkGraphState.TooltipIndex != getTooltipText->Index)
                             {
                                 ULONG64 networkSend = PhGetItemCircularBuffer_ULONG64(
@@ -555,7 +555,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                     &context->NetworkReceiveHistory,
                                     getTooltipText->Index
                                     );
-       
+
                                 PhSwapReference2(&context->NetworkGraphState.TooltipText, PhFormatString(
                                     L"S: %s\nR: %s\n%s",
                                     PhaFormatSize(networkSend, -1)->Buffer,
@@ -581,7 +581,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
         break;
     case WM_SIZE:
         {
-           EtwDiskNetworkLayoutGraphs(context);
+            EtwDiskNetworkLayoutGraphs(context);
         }
         break;
     }
