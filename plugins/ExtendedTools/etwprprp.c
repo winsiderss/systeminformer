@@ -482,8 +482,8 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                 FLOAT data1;
                                 FLOAT data2;
 
-                                context->NetworkGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->NetworkSendHistory, i);
-                                context->NetworkGraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->NetworkReceiveHistory, i);
+                                context->NetworkGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->NetworkReceiveHistory, i);
+                                context->NetworkGraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->NetworkSendHistory, i);
 
                                 if (max < data1 + data2)
                                     max = data1 + data2;
