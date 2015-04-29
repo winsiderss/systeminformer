@@ -3,6 +3,8 @@ Process Hacker
 2.35
  * NEW/IMPROVED:
    * Support for up to 64 processors when setting process/thread affinity
+   * Updated ExtendedTools plugin:
+     * Added Disk and Network graphs for all processes
  * FIXED:
 
 2.34
