@@ -510,7 +510,9 @@
 #define IDC_ASLRLABEL                   1363
 #define IDC_ZLISTSTANDBY4_V             1364
 #define IDC_ZLISTSTANDBY5_V             1365
+#define IDC_SELECTALL                   1365
 #define IDC_ZLISTSTANDBY6_V             1366
+#define IDC_DESELECTALL                 1366
 #define IDC_ZLISTSTANDBY7_V             1367
 #define IDC_ZPAGINGPAGEFAULTSDELTA_V    1368
 #define IDC_ZPAGINGPAGEREADSDELTA_V     1369
@@ -721,7 +723,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        206
 #define _APS_NEXT_COMMAND_VALUE         40285
-#define _APS_NEXT_CONTROL_VALUE         1364
+#define _APS_NEXT_CONTROL_VALUE         1367
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
 #endif

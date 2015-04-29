@@ -2,7 +2,7 @@
  * Process Hacker -
  *   process affinity editor
  *
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -23,8 +23,7 @@
 /*
  * The affinity dialog was originally created to support the modification
  * of process affinity masks, but now supports modifying thread affinity
- * and generic masks. It still only supports a maximum of 32 processors
- * though.
+ * and generic masks.
  */
 
 #include <phapp.h>
@@ -206,7 +205,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             // Disable the CPU checkboxes which aren't part of the system affinity mask,
             // and check the CPU checkboxes which are part of the affinity mask.
 
-            for (i = 0; i < 32; i++)
+            for (i = 0; i < sizeof(ULONG_PTR) * 8; i++)
             {
                 if ((systemAffinityMask >> i) & 0x1)
                 {
@@ -245,7 +244,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
                     affinityMask = 0;
 
-                    for (i = 0; i < 32; i++)
+                    for (i = 0; i < sizeof(ULONG_PTR) * 8; i++)
                     {
                         if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_CPU0 + i)) == BST_CHECKED)
                             affinityMask |= (ULONG_PTR)1 << i;
@@ -289,6 +288,20 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                         EndDialog(hwndDlg, IDOK);
                     else
                         PhShowStatus(hwndDlg, L"Unable to set the affinity", status, 0);
+                }
+                break;
+            case IDC_SELECTALL:
+            case IDC_DESELECTALL:
+                {
+                    ULONG i;
+
+                    for (i = 0; i < sizeof(ULONG_PTR) * 8; i++)
+                    {
+                        HWND checkBox = GetDlgItem(hwndDlg, IDC_CPU0 + i);
+
+                        if (IsWindowEnabled(checkBox))
+                            Button_SetCheck(checkBox, LOWORD(wParam) == IDC_SELECTALL ? BST_CHECKED : BST_UNCHECKED);
+                    }
                 }
                 break;
             }
