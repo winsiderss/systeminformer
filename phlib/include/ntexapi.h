@@ -2158,13 +2158,7 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x308);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
 
-#ifdef _M_IX86
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
-#endif
-
-#ifdef _M_X64
-#define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
-#endif
 
 #if (PHNT_VERSION >= PHNT_WS03)
 
@@ -2172,7 +2166,7 @@ FORCEINLINE ULONGLONG NtGetTickCount64()
 {
     ULARGE_INTEGER tickCount;
 
-#ifdef _M_X64
+#ifdef _WIN64
 
     tickCount.QuadPart = USER_SHARED_DATA->TickCountQuad;
 
@@ -2197,7 +2191,7 @@ FORCEINLINE ULONGLONG NtGetTickCount64()
 
 FORCEINLINE ULONG NtGetTickCount()
 {
-#ifdef _M_X64
+#ifdef _WIN64
 
     return (ULONG)((USER_SHARED_DATA->TickCountQuad * USER_SHARED_DATA->TickCountMultiplier) >> 24);
 

@@ -864,7 +864,7 @@ static VOID PhpUpdateProcessNodeDepStatus(
 
         depStatus = 0;
 
-#ifdef _M_X64
+#ifdef _WIN64
         if (ProcessNode->ProcessItem->IsWow64)
 #else
         if (TRUE)
@@ -2277,7 +2277,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_BITS:
-#ifdef _M_X64
+#ifdef _WIN64
                 if (processItem->IsWow64Valid)
                     PhInitializeStringRef(&getCellText->Text, processItem->IsWow64 ? L"32" : L"64");
 #else

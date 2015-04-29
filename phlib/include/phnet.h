@@ -46,16 +46,16 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
     }
     else
     {
-#ifdef _M_IX86
+#ifdef _WIN64
+        return
+            *(PULONG64)(Address1->Ipv6) == *(PULONG64)(Address2->Ipv6) &&
+            *(PULONG64)(Address1->Ipv6 + 8) == *(PULONG64)(Address2->Ipv6 + 8);
+#else
         return
             *(PULONG)(Address1->Ipv6) == *(PULONG)(Address2->Ipv6) &&
             *(PULONG)(Address1->Ipv6 + 4) == *(PULONG)(Address2->Ipv6 + 4) &&
             *(PULONG)(Address1->Ipv6 + 8) == *(PULONG)(Address2->Ipv6 + 8) &&
             *(PULONG)(Address1->Ipv6 + 12) == *(PULONG)(Address2->Ipv6 + 12);
-#else
-        return
-            *(PULONG64)(Address1->Ipv6) == *(PULONG64)(Address2->Ipv6) &&
-            *(PULONG64)(Address1->Ipv6 + 8) == *(PULONG64)(Address2->Ipv6 + 8);
 #endif
     }
 }
@@ -100,11 +100,11 @@ FORCEINLINE BOOLEAN PhIsNullIpAddress(
     }
     else if (Address->Type == PH_IPV6_NETWORK_TYPE)
     {
-#ifdef _M_IX86
+#ifdef _WIN64
+        return (*(PULONG64)(Address->Ipv6) | *(PULONG64)(Address->Ipv6 + 8)) == 0;
+#else
         return (*(PULONG)(Address->Ipv6) | *(PULONG)(Address->Ipv6 + 4) |
             *(PULONG)(Address->Ipv6 + 8) | *(PULONG)(Address->Ipv6 + 12)) == 0;
-#else
-        return (*(PULONG64)(Address->Ipv6) | *(PULONG64)(Address->Ipv6 + 8)) == 0;
 #endif
     }
     else

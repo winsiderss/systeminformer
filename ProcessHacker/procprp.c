@@ -634,7 +634,7 @@ VOID PhpUpdateProcessDep(
     HANDLE processHandle;
     ULONG depStatus;
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (ProcessItem->IsWow64)
 #else
     if (TRUE)
@@ -706,7 +706,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             HANDLE processHandle = NULL;
             PPH_STRING curdir = NULL;
             PROCESS_BASIC_INFORMATION basicInfo;
-#ifdef _M_X64
+#ifdef _WIN64
             PVOID peb32;
 #endif
             PPH_PROCESS_ITEM parentProcess;
@@ -794,7 +794,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
                 pebOffset = PhpoCurrentDirectory;
 
-#ifdef _M_X64
+#ifdef _WIN64
                 // Tell the function to get the WOW64 current directory, because that's
                 // the one that actually gets updated.
                 if (processItem->IsWow64)
@@ -882,7 +882,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             if (processHandle)
             {
                 PhGetProcessBasicInformation(processHandle, &basicInfo);
-#ifdef _M_X64
+#ifdef _WIN64
                 if (processItem->IsWow64)
                 {
                     PhGetProcessPeb32(processHandle, &peb32);
@@ -895,7 +895,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
                 SetDlgItemText(hwndDlg, IDC_PEBADDRESS,
                     PhaFormatString(L"0x%Ix", basicInfo.PebBaseAddress)->Buffer);
-#ifdef _M_X64
+#ifdef _WIN64
                 }
 #endif
             }
@@ -1032,7 +1032,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 ShowWindow(GetDlgItem(hwndDlg, IDC_ASLR), SW_HIDE);
             }
 
-#ifdef _M_X64
+#ifdef _WIN64
             if (processItem->IsWow64Valid)
             {
                 if (processItem->IsWow64)
@@ -2082,14 +2082,14 @@ VOID PhpInitializeThreadMenu(
             PhDestroyEMenuItem(item);
     }
 
-#ifndef _M_X64
+#ifndef _WIN64
     if (!KphIsConnected())
     {
 #endif
         // Remove Force Terminate (this is always done on x64).
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
             PhDestroyEMenuItem(item);
-#ifndef _M_X64
+#ifndef _WIN64
     }
     else
     {
@@ -4320,7 +4320,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
                 flags = 0;
 
-#ifdef _M_X64
+#ifdef _WIN64
                 if (processItem->IsWow64)
                     flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
 #endif

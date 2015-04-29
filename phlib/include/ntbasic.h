@@ -65,7 +65,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 
 // Functions
 
-#ifdef _M_IX86
+#ifndef _WIN64
 #define FASTCALL __fastcall
 #else
 #define FASTCALL

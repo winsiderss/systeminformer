@@ -427,14 +427,14 @@ NTSTATUS PhpGetDllBaseRemote(
 {
     NTSTATUS status;
     GET_DLL_BASE_REMOTE_CONTEXT context;
-#ifdef _M_X64
+#ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
 
     context.BaseDllName = *BaseDllName;
     context.DllBase = NULL;
 
-#ifdef _M_X64
+#ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
     if (isWow64)

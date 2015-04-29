@@ -189,7 +189,7 @@ typedef struct _TEB
     PVOID SystemReserved1[54];
     NTSTATUS ExceptionCode;
     PVOID ActivationContextStackPointer;
-#ifdef _M_X64
+#ifdef _WIN64
     UCHAR SpareBytes[24];
 #else
     UCHAR SpareBytes[36];
@@ -225,7 +225,7 @@ typedef struct _TEB
     PVOID DbgSsReserved[2];
 
     ULONG HardErrorMode;
-#ifdef _M_X64
+#ifdef _WIN64
     PVOID Instrumentation[11];
 #else
     PVOID Instrumentation[9];
@@ -259,7 +259,7 @@ typedef struct _TEB
     ULONG_PTR SoftPatchPtr1;
     PVOID ThreadPoolData;
     PPVOID TlsExpansionSlots;
-#ifdef _M_X64
+#ifdef _WIN64
     PVOID DeallocationBStore;
     PVOID BStoreLimit;
 #endif

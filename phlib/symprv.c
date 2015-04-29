@@ -1024,7 +1024,7 @@ VOID PhSetSearchPathSymbolProvider(
     PH_UNLOCK_SYMBOLS();
 }
 
-#ifdef _M_X64
+#ifdef _WIN64
 
 NTSTATUS PhpLookupDynamicFunctionTable(
     _In_ HANDLE ProcessHandle,
@@ -1378,11 +1378,11 @@ ULONG64 __stdcall PhGetModuleBase64(
     )
 {
     ULONG64 base;
-#ifdef _M_X64
+#ifdef _WIN64
     DYNAMIC_FUNCTION_TABLE functionTable;
 #endif
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (NT_SUCCESS(PhpLookupDynamicFunctionTable(
         hProcess,
         dwAddr,
@@ -1414,13 +1414,13 @@ PVOID __stdcall PhFunctionTableAccess64(
     _In_ DWORD64 AddrBase
     )
 {
-#ifdef _M_X64
+#ifdef _WIN64
     static RUNTIME_FUNCTION lastRuntimeFunction;
 #endif
 
     PVOID entry;
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (NT_SUCCESS(PhAccessOutOfProcessFunctionEntry(hProcess, AddrBase, &lastRuntimeFunction)))
         entry = &lastRuntimeFunction;
     else

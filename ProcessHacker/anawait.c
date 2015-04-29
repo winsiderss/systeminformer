@@ -117,14 +117,14 @@ VOID PhUiAnalyzeWaitThread(
 {
     NTSTATUS status;
     HANDLE threadHandle;
-#ifdef _M_X64
+#ifdef _WIN64
     HANDLE processHandle;
     BOOLEAN isWow64;
 #endif
     CLIENT_ID clientId;
     ANALYZE_WAIT_CONTEXT context;
 
-#ifdef _M_X64
+#ifdef _WIN64
     // Determine if the process is WOW64. If not, we use the passive method.
 
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessId)))
@@ -912,7 +912,7 @@ static VOID PhpGetWfmoInformation(
 
     if (NumberOfHandles <= MAXIMUM_WAIT_OBJECTS)
     {
-#ifdef _M_X64
+#ifdef _WIN64
         if (IsWow64)
         {
             ULONG handles32[MAXIMUM_WAIT_OBJECTS];
@@ -939,7 +939,7 @@ static VOID PhpGetWfmoInformation(
                 NumberOfHandles * sizeof(HANDLE),
                 NULL
                 );
-#ifdef _M_X64
+#ifdef _WIN64
         }
 #endif
 

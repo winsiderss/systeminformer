@@ -29,7 +29,7 @@ typedef struct _THREAD_STACK_CONTEXT
     HANDLE ThreadId;
     HANDLE ThreadHandle;
 
-#ifndef _M_X64
+#ifndef _WIN64
     PVOID PredictedEip;
     PVOID PredictedEbp;
     PVOID PredictedEsp;
@@ -131,7 +131,7 @@ VOID ProcessThreadStackControl(
 
             if (context->Support)
             {
-#ifndef _M_X64
+#ifndef _WIN64
                 PVOID predictedEip;
                 PVOID predictedEbp;
                 PVOID predictedEsp;
@@ -188,7 +188,7 @@ VOID PredictAddressesFromClrData(
     _Out_ PVOID *PredictedEsp
     )
 {
-#ifdef _M_X64
+#ifdef _WIN64
     *PredictedEip = NULL;
     *PredictedEbp = NULL;
     *PredictedEsp = NULL;

@@ -23,7 +23,7 @@
 #include <ph.h>
 #include <kphuser.h>
 
-#ifdef _M_X64
+#ifdef _WIN64
 
 ULONG KphpGetKernelRevisionNumber(
     VOID

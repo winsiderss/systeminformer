@@ -101,11 +101,7 @@ ULONG PhpServiceNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-#ifdef _M_IX86
-    return PhHashInt32((ULONG)(*(PPH_SERVICE_NODE *)Entry)->ServiceItem);
-#else
-    return PhHashInt64((ULONG64)(*(PPH_SERVICE_NODE *)Entry)->ServiceItem);
-#endif
+    return PhHashIntPtr((ULONG_PTR)(*(PPH_SERVICE_NODE *)Entry)->ServiceItem);
 }
 
 VOID PhInitializeServiceTreeList(
