@@ -49,6 +49,7 @@ static HFONT InitializeFont(
         GetObject((HFONT)GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &font);
 
         font.lfHeight = -15;
+        font.lfWeight = FW_MEDIUM;
 
         fontHandle = CreateFontIndirect(&font);
     }
@@ -642,21 +643,27 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
                         if (!context->PingGraphState.Valid)
                         {
-                            ULONG i = 0;
-                            FLOAT maxGraphHeight = 0;
+                            ULONG i;
+                            FLOAT max = 0;
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
-                                context->PingGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
+                                FLOAT data1;
 
-                                if (context->PingGraphState.Data1[i] > maxGraphHeight)
-                                    maxGraphHeight = context->PingGraphState.Data1[i];
+                                context->PingGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
+
+                                if (max < data1)
+                                    max = data1;
                             }
+               
+                            // Minimum scaling of timeout (1000ms default).
+                            if (max < (FLOAT)context->MaxPingTimeout)
+                                max = (FLOAT)context->MaxPingTimeout;
 
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 context->PingGraphState.Data1,
-                                (FLOAT)context->MaxPingTimeout, // maxGraphHeight
+                                max,
                                 drawInfo->LineDataCount
                                 );
 
