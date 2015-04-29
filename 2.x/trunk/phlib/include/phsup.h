@@ -243,7 +243,7 @@ FORCEINLINE int wcsicmp2(
 
 // Synchronization
 
-#ifdef _M_IX86
+#ifndef _WIN64
 
 #ifndef _InterlockedCompareExchangePointer
 void *_InterlockedCompareExchangePointer(
@@ -273,10 +273,10 @@ FORCEINLINE LONG_PTR _InterlockedExchangeAddPointer(
     _In_ LONG_PTR Value
     )
 {
-#ifdef _M_IX86
-    return (LONG_PTR)_InterlockedExchangeAdd((PLONG)Addend, (LONG)Value);
-#else
+#ifdef _WIN64
     return (LONG_PTR)_InterlockedExchangeAdd64((PLONG64)Addend, (LONG64)Value);
+#else
+    return (LONG_PTR)_InterlockedExchangeAdd((PLONG)Addend, (LONG)Value);
 #endif
 }
 
@@ -284,10 +284,10 @@ FORCEINLINE LONG_PTR _InterlockedIncrementPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend
     )
 {
-#ifdef _M_IX86
-    return (LONG_PTR)_InterlockedIncrement((PLONG)Addend);
-#else
+#ifdef _WIN64
     return (LONG_PTR)_InterlockedIncrement64((PLONG64)Addend);
+#else
+    return (LONG_PTR)_InterlockedIncrement((PLONG)Addend);
 #endif
 }
 
@@ -295,10 +295,10 @@ FORCEINLINE LONG_PTR _InterlockedDecrementPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend
     )
 {
-#ifdef _M_IX86
-    return (LONG_PTR)_InterlockedDecrement((PLONG)Addend);
-#else
+#ifdef _WIN64
     return (LONG_PTR)_InterlockedDecrement64((PLONG64)Addend);
+#else
+    return (LONG_PTR)_InterlockedDecrement((PLONG)Addend);
 #endif
 }
 
@@ -307,10 +307,10 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndResetPointer(
     _In_ LONG_PTR Bit
     )
 {
-#ifdef _M_IX86
-    return _interlockedbittestandreset((PLONG)Base, (LONG)Bit);
-#else
+#ifdef _WIN64
     return _interlockedbittestandreset64((PLONG64)Base, (LONG64)Bit);
+#else
+    return _interlockedbittestandreset((PLONG)Base, (LONG)Bit);
 #endif
 }
 
@@ -319,10 +319,10 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndSetPointer(
     _In_ LONG_PTR Bit
     )
 {
-#ifdef _M_IX86
-    return _interlockedbittestandset((PLONG)Base, (LONG)Bit);
-#else
+#ifdef _WIN64
     return _interlockedbittestandset64((PLONG64)Base, (LONG64)Bit);
+#else
+    return _interlockedbittestandset((PLONG)Base, (LONG)Bit);
 #endif
 }
 
@@ -409,10 +409,10 @@ FORCEINLINE VOID PhPrintPointer(
 {
     Destination[0] = '0';
     Destination[1] = 'x';
-#ifdef _M_IX86
-    _ultow((ULONG)Pointer, &Destination[2], 16);
-#else
+#ifdef _WIN64
     _ui64tow((ULONG64)Pointer, &Destination[2], 16);
+#else
+    _ultow((ULONG)Pointer, &Destination[2], 16);
 #endif
 }
 

@@ -230,7 +230,7 @@
         usedLength += (preCount + tempCount) * sizeof(WCHAR); \
     } while (0)
 
-#ifdef _M_IX86
+#ifndef _WIN64
         case IntPtrFormatType:
             int32 = format->u.IntPtr;
 #endif
@@ -244,7 +244,7 @@
             }
 
             goto CommonInt32Format;
-#ifdef _M_IX86
+#ifndef _WIN64
         case UIntPtrFormatType:
             int32 = format->u.UIntPtr;
             goto CommonInt32Format;
@@ -254,7 +254,7 @@
 CommonInt32Format:
             COMMON_INTEGER_FORMAT(int32, format);
             break;
-#ifndef _M_IX86
+#ifdef _WIN64
         case IntPtrFormatType:
             int64 = format->u.IntPtr;
 #endif
@@ -268,7 +268,7 @@ CommonInt32Format:
             }
 
             goto CommonInt64Format;
-#ifndef _M_IX86
+#ifdef _WIN64
         case UIntPtrFormatType:
             int64 = format->u.UIntPtr;
             goto CommonInt64Format;

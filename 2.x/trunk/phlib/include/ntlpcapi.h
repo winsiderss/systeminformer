@@ -67,10 +67,10 @@ typedef struct _PORT_DATA_INFORMATION
 
 #define PORT_VALID_OBJECT_ATTRIBUTES OBJ_CASE_INSENSITIVE
 
-#ifdef _M_IX86
-#define PORT_MAXIMUM_MESSAGE_LENGTH 256
-#else
+#ifdef _WIN64
 #define PORT_MAXIMUM_MESSAGE_LENGTH 512
+#else
+#define PORT_MAXIMUM_MESSAGE_LENGTH 256
 #endif
 
 #define LPC_MAX_CONNECTION_INFO_SIZE (16 * sizeof(ULONG_PTR))
@@ -313,7 +313,7 @@ typedef struct _ALPC_PORT_ATTRIBUTES
     SIZE_T MaxViewSize;
     SIZE_T MaxTotalSectionSize;
     ULONG DupObjectTypes;
-#ifdef _M_X64
+#ifdef _WIN64
     ULONG Reserved;
 #endif
 } ALPC_PORT_ATTRIBUTES, *PALPC_PORT_ATTRIBUTES;

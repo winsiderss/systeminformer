@@ -911,7 +911,7 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-#ifdef _M_X64
+#ifdef _WIN64
     // WOW64
     if (processHandleLimited)
     {
@@ -988,7 +988,7 @@ VOID PhpProcessQueryStage1(
                 PhGetProcessIsDotNetEx(
                     processId,
                     processHandle,
-#ifdef _M_X64
+#ifdef _WIN64
                     PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
 #else
                     0,

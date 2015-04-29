@@ -2817,6 +2817,17 @@ FORCEINLINE ULONG PhHashInt64(
     return (ULONG)Value;
 }
 
+FORCEINLINE ULONG PhHashIntPtr(
+    _In_ ULONG_PTR Value
+    )
+{
+#ifdef _WIN64
+    return PhHashInt64(Value);
+#else
+    return PhHashInt32(Value);
+#endif
+}
+
 // simple hashtable
 
 typedef struct _PH_KEY_VALUE_PAIR
@@ -2874,12 +2885,12 @@ typedef struct _PH_FREE_LIST_ENTRY
     QUAD_PTR Body;
 } PH_FREE_LIST_ENTRY, *PPH_FREE_LIST_ENTRY;
 
-#ifdef _M_IX86
-C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, ListEntry) == 0x0);
-C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) == 0x8);
-#else
+#ifdef _WIN64
 C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, ListEntry) == 0x0);
 C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) == 0x10);
+#else
+C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, ListEntry) == 0x0);
+C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) == 0x8);
 #endif
 
 PHLIBAPI

@@ -95,7 +95,7 @@ NTSTATUS PhGetProcessSwitchContext(
 {
     NTSTATUS status;
     PROCESS_BASIC_INFORMATION basicInfo;
-#ifdef _M_X64
+#ifdef _WIN64
     PVOID peb32;
     ULONG data32;
 #endif
@@ -104,7 +104,7 @@ NTSTATUS PhGetProcessSwitchContext(
     // Reverse-engineered from WdcGetProcessSwitchContext (wdc.dll).
     // On Windows 8, the function is now SdbGetAppCompatData (apphelp.dll).
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (NT_SUCCESS(PhGetProcessPeb32(ProcessHandle, &peb32)) && peb32)
     {
         if (WindowsVersion >= WINDOWS_8)
@@ -160,7 +160,7 @@ NTSTATUS PhGetProcessSwitchContext(
                 )))
                 return status;
         }
-#ifdef _M_X64
+#ifdef _WIN64
     }
 #endif
 
@@ -361,7 +361,7 @@ NTSTATUS PhGetProcessKnownType(
     PPH_STRING fileName;
     PPH_STRING newFileName;
     PH_STRINGREF name;
-#ifdef _M_X64
+#ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
 
@@ -408,7 +408,7 @@ NTSTATUS PhGetProcessKnownType(
         }
         else if (
             PhStartsWithStringRef2(&name, L"\\System32", TRUE)
-#ifdef _M_X64
+#ifdef _WIN64
             || (PhStartsWithStringRef2(&name, L"\\SysWow64", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
 #endif
             )
@@ -452,7 +452,7 @@ NTSTATUS PhGetProcessKnownType(
 
     PhDereferenceObject(newFileName);
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (isWow64)
         knownProcessType |= KnownProcessWow64;
 #endif
@@ -1188,10 +1188,10 @@ VOID PhWritePhTextHeader(
     if (PhOsVersion.szCSDVersion[0] != 0)
         PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
 
-#ifdef _M_IX86
-    PhWriteStringAsUtf8FileStream2(FileStream, L" (32-bit)");
-#else
+#ifdef _WIN64
     PhWriteStringAsUtf8FileStream2(FileStream, L" (64-bit)");
+#else
+    PhWriteStringAsUtf8FileStream2(FileStream, L" (32-bit)");
 #endif
 
     PhQuerySystemTime(&time);

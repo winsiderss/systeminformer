@@ -156,7 +156,7 @@ typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     _In_ ULONG64 data
     );
 
-#ifdef _M_X64
+#ifdef _WIN64
 NTSTATUS PhAccessOutOfProcessFunctionEntry(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 ControlPc,

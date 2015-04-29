@@ -595,7 +595,7 @@ static VOID WepEnsureHookDataValid(
     if (!Context->HookDataValid)
     {
         PWE_HOOK_SHARED_DATA data;
-#ifdef _M_X64
+#ifdef _WIN64
         HANDLE processHandle;
         BOOLEAN isWow64 = FALSE;
 #endif
@@ -607,7 +607,7 @@ static VOID WepEnsureHookDataValid(
             return;
         }
 
-#ifdef _M_X64
+#ifdef _WIN64
         // We can't use the hook on WOW64 processes.
         if (NT_SUCCESS(PhOpenProcess(&processHandle, *(PULONG)WeGetProcedureAddress("ProcessQueryAccess"), Context->ClientId.UniqueProcess)))
         {
