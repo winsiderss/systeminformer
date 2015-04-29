@@ -374,7 +374,7 @@ NTSTATUS PhTerminateThread(
     _In_ NTSTATUS ExitStatus
     )
 {
-#ifndef _M_X64
+#ifndef _WIN64
     NTSTATUS status;
 
     if (KphIsConnected())
@@ -871,7 +871,7 @@ NTSTATUS PhGetProcessWindowTitle(
     )
 {
     NTSTATUS status;
-#ifdef _M_X64
+#ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
     ULONG windowFlags;
@@ -896,7 +896,7 @@ NTSTATUS PhGetProcessWindowTitle(
         }
     }
 
-#ifdef _M_X64
+#ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
     if (!isWow64)
@@ -929,7 +929,7 @@ NTSTATUS PhGetProcessWindowTitle(
             )))
             return status;
     }
-#ifdef _M_X64
+#ifdef _WIN64
     else
     {
         PVOID peb32;
@@ -958,7 +958,7 @@ NTSTATUS PhGetProcessWindowTitle(
     }
 #endif
 
-#ifdef _M_X64
+#ifdef _WIN64
     status = PhGetProcessPebString(ProcessHandle, PhpoWindowTitle | (isWow64 ? PhpoWow64 : 0), WindowTitle);
 #else
     status = PhGetProcessPebString(ProcessHandle, PhpoWindowTitle, WindowTitle);
@@ -1812,12 +1812,12 @@ NTSTATUS PhInjectDllProcess(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-#ifdef _M_X64
+#ifdef _WIN64
     static PVOID loadLibraryW32 = NULL;
 #endif
 
     NTSTATUS status;
-#ifdef _M_X64
+#ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
     BOOLEAN isModule32 = FALSE;
     PH_MAPPED_IMAGE mappedImage;
@@ -1828,7 +1828,7 @@ NTSTATUS PhInjectDllProcess(
     SIZE_T allocSize;
     HANDLE threadHandle;
 
-#ifdef _M_X64
+#ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
     if (isWow64)
@@ -1844,7 +1844,7 @@ NTSTATUS PhInjectDllProcess(
     {
 #endif
         threadStart = PhGetProcAddress(L"kernel32.dll", "LoadLibraryW");
-#ifdef _M_X64
+#ifdef _WIN64
     }
     else
     {
@@ -1962,12 +1962,12 @@ NTSTATUS PhUnloadDllProcess(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-#ifdef _M_X64
+#ifdef _WIN64
     static PVOID ldrUnloadDll32 = NULL;
 #endif
 
     NTSTATUS status;
-#ifdef _M_X64
+#ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
     BOOLEAN isModule32 = FALSE;
 #endif
@@ -1975,7 +1975,7 @@ NTSTATUS PhUnloadDllProcess(
     THREAD_BASIC_INFORMATION basicInfo;
     PVOID threadStart;
 
-#ifdef _M_X64
+#ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 #endif
 
@@ -1989,7 +1989,7 @@ NTSTATUS PhUnloadDllProcess(
             1
             );
 
-#ifdef _M_X64
+#ifdef _WIN64
         if (isWow64 && status == STATUS_DLL_NOT_FOUND)
         {
             // The DLL might be 32-bit.
@@ -2008,12 +2008,12 @@ NTSTATUS PhUnloadDllProcess(
             return status;
     }
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (!isModule32)
     {
 #endif
         threadStart = PhGetProcAddress(L"ntdll.dll", "LdrUnloadDll");
-#ifdef _M_X64
+#ifdef _WIN64
     }
     else
     {
@@ -2300,7 +2300,7 @@ NTSTATUS PhWalkThreadStack(
         }
     }
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (Flags & PH_WALK_AMD64_STACK)
     {
         STACKFRAME64 stackFrame;
@@ -2359,7 +2359,7 @@ SkipAmd64Stack:
     {
         STACKFRAME64 stackFrame;
         PH_THREAD_STACK_FRAME threadStackFrame;
-#ifndef _M_X64
+#ifndef _WIN64
         CONTEXT context;
 
         context.ContextFlags = CONTEXT_ALL;
@@ -4484,7 +4484,7 @@ NTSTATUS PhGetProcedureAddressRemote(
 
     if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-#ifdef _M_X64
+#ifdef _WIN64
         status = PhEnumProcessModules32(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
 #else
         status = PhEnumProcessModules(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
@@ -4492,7 +4492,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     }
     else
     {
-#ifdef _M_X64
+#ifdef _WIN64
         status = PhEnumProcessModules(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
 #else
         status = STATUS_NOT_SUPPORTED;
@@ -5129,12 +5129,12 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
         UNICODE_STRING systemRoot;
         PUNICODE_STRING frameworkPart;
 
-#ifdef _M_X64
+#ifdef _WIN64
         if (*(PULONG)Context & PH_CLR_PROCESS_IS_WOW64)
         {
 #endif
             frameworkPart = &frameworkString;
-#ifdef _M_X64
+#ifdef _WIN64
         }
         else
         {
@@ -5218,7 +5218,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
     NTSTATUS status = STATUS_SUCCESS;
     HANDLE processHandle;
     ULONG flags;
-#ifdef _M_X64
+#ifdef _WIN64
     BOOLEAN isWow64;
 #endif
 
@@ -5321,7 +5321,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
         ProcessHandle = processHandle;
     }
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (InFlags & PH_CLR_NO_WOW64_CHECK)
     {
         isWow64 = !!(InFlags & PH_CLR_KNOWN_IS_WOW64);
@@ -5341,7 +5341,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
     {
 #endif
         PhEnumProcessModules(ProcessHandle, PhpIsDotNetEnumProcessModulesCallback, &flags);
-#ifdef _M_X64
+#ifdef _WIN64
     }
 #endif
 
@@ -6299,11 +6299,7 @@ ULONG NTAPI PhpBaseAddressHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-#ifdef _M_IX86
-    return PhHashInt32((ULONG)*(PVOID *)Entry);
-#else
-    return PhHashInt64((ULONG64)*(PVOID *)Entry);
-#endif
+    return PhHashIntPtr((ULONG_PTR)*(PVOID *)Entry);
 }
 
 /**
@@ -6364,7 +6360,7 @@ NTSTATUS PhEnumGenericModules(
         // Process modules
 
         BOOLEAN opened = FALSE;
-#ifdef _M_X64
+#ifdef _WIN64
         BOOLEAN isWow64 = FALSE;
 #endif
         ENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
@@ -6406,7 +6402,7 @@ NTSTATUS PhEnumGenericModules(
             &parameters
             );
 
-#ifdef _M_X64
+#ifdef _WIN64
         PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
         // 32-bit process modules

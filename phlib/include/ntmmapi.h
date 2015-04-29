@@ -18,7 +18,7 @@ typedef struct _MEMORY_WORKING_SET_BLOCK
     ULONG_PTR ShareCount : 3;
     ULONG_PTR Shared : 1;
     ULONG_PTR Node : 3;
-#ifdef _M_X64
+#ifdef _WIN64
     ULONG_PTR VirtualPage : 52;
 #else
     ULONG VirtualPage : 20;
@@ -57,7 +57,7 @@ typedef struct _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Priority : 3;
             ULONG_PTR Reserved : 4;
             ULONG_PTR Bad : 1;
-#ifdef _M_X64
+#ifdef _WIN64
             ULONG_PTR ReservedUlong : 32;
 #endif
         };
@@ -71,7 +71,7 @@ typedef struct _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Location : 2;
             ULONG_PTR Reserved2 : 7;
             ULONG_PTR Bad : 1;
-#ifdef _M_X64
+#ifdef _WIN64
             ULONG_PTR ReservedUlong : 32;
 #endif
         } Invalid;

@@ -94,7 +94,7 @@ HRESULT CreateCorpubPublish(
             LoadLibrary(L"mscoree.dll");
 
             PhGetSystemRoot(&systemRootString);
-#ifdef _M_X64
+#ifdef _WIN64
             PhInitializeStringRef(&mscordbiPathString, L"\\Microsoft.NET\\Framework64\\v4.0.30319\\mscordbi.dll");
 #else
             PhInitializeStringRef(&mscordbiPathString, L"\\Microsoft.NET\\Framework\\v4.0.30319\\mscordbi.dll");

@@ -939,7 +939,7 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(L"ColorSystemProcesses", L"System Processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
     COLOR_ITEM(L"ColorServiceProcesses", L"Service Processes", L"Processes which host one or more services."),
     COLOR_ITEM(L"ColorJobProcesses", L"Job Processes", L"Processes associated with a job."),
-#ifdef _M_X64
+#ifdef _WIN64
     COLOR_ITEM(L"ColorWow64Processes", L"32-bit Processes", L"Processes running under WOW64, i.e. 32-bit."),
 #endif
     COLOR_ITEM(L"ColorPosixProcesses", L"POSIX Processes", L"Processes running under the POSIX subsystem."),

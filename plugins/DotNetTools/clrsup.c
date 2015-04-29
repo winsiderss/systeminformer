@@ -194,7 +194,7 @@ PVOID LoadMscordacwks(
 
     if (IsClrV4)
     {
-#ifdef _M_X64
+#ifdef _WIN64
         PhInitializeStringRef(&mscordacwksPathString, L"\\Microsoft.NET\\Framework64\\v4.0.30319\\mscordacwks.dll");
 #else
         PhInitializeStringRef(&mscordacwksPathString, L"\\Microsoft.NET\\Framework\\v4.0.30319\\mscordacwks.dll");
@@ -202,7 +202,7 @@ PVOID LoadMscordacwks(
     }
     else
     {
-#ifdef _M_X64
+#ifdef _WIN64
         PhInitializeStringRef(&mscordacwksPathString, L"\\Microsoft.NET\\Framework64\\v2.0.50727\\mscordacwks.dll");
 #else
         PhInitializeStringRef(&mscordacwksPathString, L"\\Microsoft.NET\\Framework\\v2.0.50727\\mscordacwks.dll");
@@ -286,7 +286,7 @@ ICLRDataTarget *DnCLRDataTarget_Create(
     if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
         return NULL;
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (!NT_SUCCESS(PhGetProcessIsWow64(processHandle, &isWow64)))
     {
         NtClose(processHandle);
@@ -365,7 +365,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetMachineType(
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (!this->IsWow64)
         *machineType = IMAGE_FILE_MACHINE_AMD64;
     else
@@ -384,11 +384,11 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (!this->IsWow64)
 #endif
         *pointerSize = sizeof(PVOID);
-#ifdef _M_X64
+#ifdef _WIN64
     else
         *pointerSize = sizeof(ULONG);
 #endif
@@ -426,7 +426,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     context.BaseAddress = NULL;
     PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
 
-#ifdef _M_X64
+#ifdef _WIN64
     if (this->IsWow64)
         PhEnumProcessModules32(this->ProcessHandle, PhpGetImageBaseCallback, &context);
 #endif

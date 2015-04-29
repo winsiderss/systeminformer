@@ -105,11 +105,7 @@ ULONG PhpNetworkNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-#ifdef _M_IX86
-    return PhHashInt32((ULONG)(*(PPH_NETWORK_NODE *)Entry)->NetworkItem);
-#else
-    return PhHashInt64((ULONG64)(*(PPH_NETWORK_NODE *)Entry)->NetworkItem);
-#endif
+    return PhHashIntPtr((ULONG_PTR)(*(PPH_NETWORK_NODE *)Entry)->NetworkItem);
 }
 
 VOID PhInitializeNetworkTreeList(

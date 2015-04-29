@@ -1,5 +1,9 @@
 Process Hacker
 
+2.35
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.34
  * NEW/IMPROVED:
    * Proper Unicode support

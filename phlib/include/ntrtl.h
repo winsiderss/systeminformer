@@ -2600,7 +2600,7 @@ RtlRemoteCall(
     _In_ BOOLEAN AlreadySuspended
     );
 
-#ifdef _M_X64
+#ifdef _WIN64
 // rev
 NTSYSAPI
 NTSTATUS
@@ -2611,7 +2611,7 @@ RtlWow64GetThreadContext(
     );
 #endif
 
-#ifdef _M_X64
+#ifdef _WIN64
 // rev
 NTSYSAPI
 NTSTATUS
@@ -2624,7 +2624,7 @@ RtlWow64SetThreadContext(
 
 // Runtime exception handling
 
-#ifdef _M_X64
+#ifdef _WIN64
 
 // private
 typedef enum _FUNCTION_TABLE_TYPE
@@ -4138,7 +4138,7 @@ RtlInt64ToUnicodeString(
     _Inout_ PUNICODE_STRING String
     );
 
-#ifdef _M_X64
+#ifdef _WIN64
 #define RtlIntPtrToUnicodeString(Value, Base, String) RtlInt64ToUnicodeString(Value, Base, String)
 #else
 #define RtlIntPtrToUnicodeString(Value, Base, String) RtlIntegerToUnicodeString(Value, Base, String)
@@ -4526,10 +4526,10 @@ RtlCheckBit(
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitPosition
     )
 {
-#ifdef _M_IX86
-    return (((PLONG)BitMapHeader->Buffer)[BitPosition / 32] >> (BitPosition % 32)) & 0x1;
-#else
+#ifdef _WIN64
     return BitTest64((LONG64 const *)BitMapHeader->Buffer, (LONG64)BitPosition);
+#else
+    return (((PLONG)BitMapHeader->Buffer)[BitPosition / 32] >> (BitPosition % 32)) & 0x1;
 #endif
 }
 

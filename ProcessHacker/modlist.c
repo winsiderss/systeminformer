@@ -146,11 +146,7 @@ ULONG PhpModuleNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-#ifdef _M_IX86
-    return PhHashInt32((ULONG)(*(PPH_MODULE_NODE *)Entry)->ModuleItem);
-#else
-    return PhHashInt64((ULONG64)(*(PPH_MODULE_NODE *)Entry)->ModuleItem);
-#endif
+    return PhHashIntPtr((ULONG_PTR)(*(PPH_MODULE_NODE *)Entry)->ModuleItem);
 }
 
 VOID PhLoadSettingsModuleList(

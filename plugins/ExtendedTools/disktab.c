@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   ETW disk monitoring
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -214,11 +214,7 @@ ULONG EtpDiskNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-#ifdef _M_IX86
-    return PhHashInt32((ULONG)(*(PET_DISK_NODE *)Entry)->DiskItem);
-#else
-    return PhHashInt64((ULONG64)(*(PET_DISK_NODE *)Entry)->DiskItem);
-#endif
+    return PhHashIntPtr((ULONG_PTR)(*(PET_DISK_NODE *)Entry)->DiskItem);
 }
 
 VOID EtInitializeDiskTreeList(

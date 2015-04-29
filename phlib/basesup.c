@@ -4754,11 +4754,7 @@ ULONG NTAPI PhpSimpleHashtableHashFunction(
 {
     PPH_KEY_VALUE_PAIR entry = Entry;
 
-#ifdef _M_IX86
-    return PhHashInt32((ULONG)entry->Key);
-#else
-    return PhHashInt64((ULONG64)entry->Key);
-#endif
+    return PhHashIntPtr((ULONG_PTR)entry->Key);
 }
 
 PPH_HASHTABLE PhCreateSimpleHashtable(
