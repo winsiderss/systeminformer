@@ -409,7 +409,7 @@ PPH_PROCESS_RECORD EtpReferenceMaxDiskRecord(
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
-    return PhFindProcessRecord((HANDLE)maxProcessId, &time);
+    return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
 PPH_STRING EtpGetMaxDiskString(
@@ -781,7 +781,7 @@ PPH_PROCESS_RECORD EtpReferenceMaxNetworkRecord(
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
-    return PhFindProcessRecord((HANDLE)maxProcessId, &time);
+    return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
 PPH_STRING EtpGetMaxNetworkString(
