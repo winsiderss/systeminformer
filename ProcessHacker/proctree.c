@@ -196,6 +196,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_PACKAGENAME, FALSE, L"Package Name", 160, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_APPID, FALSE, L"App ID", 160, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DPIAWARENESS, FALSE, L"DPI Awareness", 110, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -1792,6 +1793,17 @@ BEGIN_SORT_FUNCTION(DpiAwareness)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CfGuard)
+{
+    PhpUpdateProcessNodeImage(node1);
+    PhpUpdateProcessNodeImage(node2);
+    sortResult = intcmp(
+        node1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF,
+        node2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1906,7 +1918,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Subsystem),
                         SORT_FUNCTION(PackageName),
                         SORT_FUNCTION(AppId),
-                        SORT_FUNCTION(DpiAwareness)
+                        SORT_FUNCTION(DpiAwareness),
+                        SORT_FUNCTION(CfGuard)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2591,6 +2604,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 case 3:
                     PhInitializeStringRef(&getCellText->Text, L"Per-Monitor Aware");
                     break;
+                }
+                break;
+            case PHPRTLC_CFGUARD:
+                PhpUpdateProcessNodeImage(node);
+
+                if (WindowsVersion >= WINDOWS_81)
+                {
+                    if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
+                        PhInitializeStringRef(&getCellText->Text, L"CF Guard");
+                }
+                else
+                {
+                    PhInitializeStringRef(&getCellText->Text, L"N/A");
                 }
                 break;
             default:

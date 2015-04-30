@@ -2,6 +2,7 @@ Process Hacker
 
 2.35
  * NEW/IMPROVED:
+   * Added CF Guard (Control Flow Guard) column
    * Support for up to 64 processors when setting process/thread affinity
    * Updated ExtendedTools plugin:
      * Added Disk and Network graphs for all processes
