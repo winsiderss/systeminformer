@@ -664,7 +664,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                         PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
+                        context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
                         PhGraphStateGetDrawInfo(
                             &context->GraphState,
@@ -674,9 +674,10 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
 
                         if (!context->GraphState.Valid)
                         {
+                            ULONG i;
                             FLOAT max = 0;
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 FLOAT data1;
                                 FLOAT data2;
@@ -953,7 +954,7 @@ static BOOLEAN NetAdapterSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->InboundBuffer.Count);
 
             if (!Section->GraphState.Valid)
