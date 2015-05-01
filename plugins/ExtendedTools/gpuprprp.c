@@ -468,10 +468,8 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             HDC hdc;
 
                             PhSwapReference2(&context->MemoryGraphState.Text, PhFormatString(
-                                L"%s / %s (%.2f%%)",
-                                PhaFormatSize(UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE), -1)->Buffer,
-                                PhaFormatSize(EtGpuDedicatedLimit, -1)->Buffer,
-                                (FLOAT)UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE) / EtGpuDedicatedLimit * 100
+                                L"%s",
+                                PhaFormatSize(UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE), -1)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->MemGraphHandle);
@@ -526,10 +524,8 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             HDC hdc;
 
                             PhSwapReference2(&context->MemorySharedGraphState.Text, PhFormatString(
-                                L"%s / %s (%.2f%%)",
-                                PhaFormatSize(UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE), -1)->Buffer,
-                                PhaFormatSize(EtGpuSharedLimit, -1)->Buffer,
-                                (FLOAT)UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE) / EtGpuSharedLimit * 100
+                                L"%s",
+                                PhaFormatSize(UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE), -1)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->SharedGraphHandle);
