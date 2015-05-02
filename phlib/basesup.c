@@ -2,7 +2,7 @@
  * Process Hacker -
  *   base support functions
  *
- * Copyright (C) 2009-2012 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -2442,10 +2442,11 @@ BOOLEAN PhDecodeUnicodeDecoder(
 {
     ULONG codeUnit;
 
-    switch (Decoder->Encoding)
+    while (TRUE)
     {
-    case PH_UNICODE_UTF8:
+        switch (Decoder->Encoding)
         {
+        case PH_UNICODE_UTF8:
             if (!PhpReadUnicodeDecoder(Decoder, &codeUnit))
                 return FALSE;
 
@@ -2466,17 +2467,17 @@ BOOLEAN PhDecodeUnicodeDecoder(
                 else if (codeUnit < 0xe0)
                 {
                     Decoder->State = 1; // 2 byte sequence
-                    return FALSE;
+                    continue;
                 }
                 else if (codeUnit < 0xf0)
                 {
                     Decoder->State = 2; // 3 byte sequence
-                    return FALSE;
+                    continue;
                 }
                 else if (codeUnit < 0xf5)
                 {
                     Decoder->State = 3; // 4 byte sequence
-                    return FALSE;
+                    continue;
                 }
                 else
                 {
@@ -2506,7 +2507,7 @@ BOOLEAN PhDecodeUnicodeDecoder(
                     (Decoder->u.Utf8.CodeUnit1 != 0xe0 || codeUnit >= 0xa0))
                 {
                     Decoder->State = 4; // 3 byte sequence (2)
-                    return FALSE;
+                    continue;
                 }
                 else
                 {
@@ -2522,7 +2523,7 @@ BOOLEAN PhDecodeUnicodeDecoder(
                     (Decoder->u.Utf8.CodeUnit1 != 0xf4 || codeUnit < 0x90))
                 {
                     Decoder->State = 5; // 4 byte sequence (2)
-                    return FALSE;
+                    continue;
                 }
                 else
                 {
@@ -2554,7 +2555,7 @@ BOOLEAN PhDecodeUnicodeDecoder(
                 if ((codeUnit & 0xc0) == 0x80)
                 {
                     Decoder->State = 6; // 4 byte sequence (3)
-                    return FALSE;
+                    continue;
                 }
                 else
                 {
@@ -2582,10 +2583,9 @@ BOOLEAN PhDecodeUnicodeDecoder(
 
                 break;
             }
-        }
-        return FALSE;
-    case PH_UNICODE_UTF16:
-        {
+
+            return FALSE;
+        case PH_UNICODE_UTF16:
             if (!PhpReadUnicodeDecoder(Decoder, &codeUnit))
                 return FALSE;
 
@@ -2596,7 +2596,7 @@ BOOLEAN PhDecodeUnicodeDecoder(
                 {
                     Decoder->u.Utf16.CodeUnit = (USHORT)codeUnit;
                     Decoder->State = 1;
-                    return FALSE;
+                    continue;
                 }
                 else
                 {
@@ -2620,16 +2620,15 @@ BOOLEAN PhDecodeUnicodeDecoder(
                 }
                 break;
             }
-        }
-        return FALSE;
-    case PH_UNICODE_UTF32:
-        {
+
+            return FALSE;
+        case PH_UNICODE_UTF32:
             if (PhpReadUnicodeDecoder(Decoder, CodePoint))
                 return TRUE;
+            return FALSE;
+        default:
+            return FALSE;
         }
-        return FALSE;
-    default:
-        return FALSE;
     }
 }
 
