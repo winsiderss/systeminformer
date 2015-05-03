@@ -1781,14 +1781,17 @@ PPH_STRING PhGetStatisticsTimeString(
 VOID PhpGetProcessThreadInformation(
     _In_ PSYSTEM_PROCESS_INFORMATION Process,
     _Out_opt_ PBOOLEAN IsSuspended,
+    _Out_opt_ PBOOLEAN IsPartiallySuspended,
     _Out_opt_ PULONG ContextSwitches
     )
 {
     ULONG i;
     BOOLEAN isSuspended;
+    BOOLEAN isPartiallySuspended;
     ULONG contextSwitches;
 
     isSuspended = PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId);
+    isPartiallySuspended = FALSE;
     contextSwitches = 0;
 
     for (i = 0; i < Process->NumberOfThreads; i++)
@@ -1800,12 +1803,18 @@ VOID PhpGetProcessThreadInformation(
         {
             isSuspended = FALSE;
         }
+        else
+        {
+            isPartiallySuspended = TRUE;
+        }
 
         contextSwitches += Process->Threads[i].ContextSwitches;
     }
 
     if (IsSuspended)
         *IsSuspended = isSuspended;
+    if (IsPartiallySuspended)
+        *IsPartiallySuspended = isPartiallySuspended;
     if (ContextSwitches)
         *ContextSwitches = contextSwitches;
 }
@@ -2106,6 +2115,7 @@ VOID PhProcessProviderUpdate(
         {
             PPH_PROCESS_RECORD processRecord;
             BOOLEAN isSuspended;
+            BOOLEAN isPartiallySuspended;
             ULONG contextSwitches;
 
             // Create the process item and fill in basic information.
@@ -2128,7 +2138,7 @@ VOID PhProcessProviderUpdate(
                     PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId);
             }
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 
             // Initialize the deltas.
@@ -2146,6 +2156,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
             processItem->IsSuspended = isSuspended;
+            processItem->IsPartiallySuspended = isPartiallySuspended;
 
             // If this is the first run of the provider, queue the
             // process query tasks. Otherwise, perform stage 1
@@ -2186,12 +2197,13 @@ VOID PhProcessProviderUpdate(
         {
             BOOLEAN modified = FALSE;
             BOOLEAN isSuspended;
+            BOOLEAN isPartiallySuspended;
             ULONG contextSwitches;
             FLOAT newCpuUsage;
             FLOAT kernelCpuUsage;
             FLOAT userCpuUsage;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 
             // Update the deltas.
@@ -2307,6 +2319,8 @@ VOID PhProcessProviderUpdate(
                 processItem->IsSuspended = isSuspended;
                 modified = TRUE;
             }
+
+            processItem->IsPartiallySuspended = isPartiallySuspended;
 
             // .NET
             if (processItem->UpdateIsDotNet)

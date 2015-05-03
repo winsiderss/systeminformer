@@ -1341,39 +1341,6 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_I_0:
-    case ID_I_1:
-    case ID_I_2:
-    case ID_I_3:
-        {
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
-
-            if (processItem)
-            {
-                ULONG ioPriority;
-
-                switch (Id)
-                {
-                    case ID_I_0:
-                        ioPriority = 0;
-                        break;
-                    case ID_I_1:
-                        ioPriority = 1;
-                        break;
-                    case ID_I_2:
-                        ioPriority = 2;
-                        break;
-                    case ID_I_3:
-                        ioPriority = 3;
-                        break;
-                }
-
-                PhReferenceObject(processItem);
-                PhUiSetIoPriorityProcess(PhMainWndHandle, processItem, ioPriority);
-                PhDereferenceObject(processItem);
-            }
-        }
-        break;
     case ID_PAGEPRIORITY_1:
     case ID_PAGEPRIORITY_2:
     case ID_PAGEPRIORITY_3:
@@ -1465,14 +1432,46 @@ VOID PhMwpOnCommand(
     case ID_PRIORITY_BELOWNORMAL:
     case ID_PRIORITY_IDLE:
         {
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
 
-            if (processItem)
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+            PhMwpExecuteProcessPriorityCommand(Id, processes, numberOfProcesses);
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
+        }
+        break;
+    case ID_I_0:
+    case ID_I_1:
+    case ID_I_2:
+    case ID_I_3:
+        {
+            ULONG ioPriority;
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+
+            switch (Id)
             {
-                PhReferenceObject(processItem);
-                PhMwpExecuteProcessPriorityCommand(Id, processItem);
-                PhDereferenceObject(processItem);
+                case ID_I_0:
+                    ioPriority = 0;
+                    break;
+                case ID_I_1:
+                    ioPriority = 1;
+                    break;
+                case ID_I_2:
+                    ioPriority = 2;
+                    break;
+                case ID_I_3:
+                    ioPriority = 3;
+                    break;
             }
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+            PhUiSetIoPriorityProcesses(PhMainWndHandle, processes, numberOfProcesses, ioPriority);
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
         }
         break;
     case ID_WINDOW_BRINGTOFRONT:
@@ -3786,7 +3785,7 @@ VOID PhShowIconContextMenu(
 
                     if (processItem = PhReferenceProcessItem(processId))
                     {
-                        PhMwpExecuteProcessPriorityCommand(item->Id, processItem);
+                        PhMwpExecuteProcessPriorityCommand(item->Id, &processItem, 1);
                         PhDereferenceObject(processItem);
                     }
                     else
@@ -3882,7 +3881,8 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
 
 BOOLEAN PhMwpExecuteProcessPriorityCommand(
     _In_ ULONG Id,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     )
 {
     ULONG priorityClass;
@@ -3911,7 +3911,7 @@ BOOLEAN PhMwpExecuteProcessPriorityCommand(
         return FALSE;
     }
 
-    PhUiSetPriorityProcess(PhMainWndHandle, ProcessItem, priorityClass);
+    PhUiSetPriorityProcesses(PhMainWndHandle, Processes, NumberOfProcesses, priorityClass);
 
     return TRUE;
 }
@@ -4130,6 +4130,14 @@ VOID PhMwpInitializeProcessMenu(
             PhSetFlagsAllEMenuItems(item, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         }
 
+        // Enable the Priority menu item.
+        if (item = PhFindEMenuItem(Menu, 0, L"Priority", 0))
+            item->Flags &= ~PH_EMENU_DISABLED;
+
+        // Enable the I/O Priority menu item.
+        if (item = PhFindEMenuItem(Menu, 0, L"I/O Priority", 0))
+            item->Flags &= ~PH_EMENU_DISABLED;
+
         // These menu items are capable of manipulating
         // multiple processes.
         for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
@@ -4139,7 +4147,6 @@ VOID PhMwpInitializeProcessMenu(
     }
 
     // Remove irrelevant menu items.
-
     if (WindowsVersion < WINDOWS_VISTA)
     {
         // Remove I/O priority.
@@ -4148,6 +4155,22 @@ VOID PhMwpInitializeProcessMenu(
         // Remove page priority.
         if (item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"Page Priority", 0))
             PhDestroyEMenuItem(item);
+    }
+
+    // Suspend/Resume
+    if (NumberOfProcesses == 1)
+    {
+        if (Processes[0]->IsSuspended)
+        {
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_SUSPEND))
+                PhDestroyEMenuItem(item);
+        }
+
+        if (!Processes[0]->IsPartiallySuspended)
+        {
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_RESUME))
+                PhDestroyEMenuItem(item);
+        }
     }
 
     // Virtualization
@@ -4224,7 +4247,6 @@ VOID PhMwpInitializeProcessMenu(
     }
 
     // Remove irrelevant menu items (continued)
-
     if (!WINDOWS_HAS_UAC)
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_VIRTUALIZATION))
