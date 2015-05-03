@@ -311,7 +311,8 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
 
 BOOLEAN PhMwpExecuteProcessPriorityCommand(
     _In_ ULONG Id,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
     );
 
 VOID PhMwpSetProcessMenuPriorityChecks(

@@ -1153,9 +1153,10 @@ PhUiInjectDllProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhUiSetIoPriorityProcess(
+PhUiSetIoPriorityProcesses(
     _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses,
     _In_ ULONG IoPriority
     );
 
@@ -1171,9 +1172,10 @@ PhUiSetPagePriorityProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhUiSetPriorityProcess(
+PhUiSetPriorityProcesses(
     _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses,
     _In_ ULONG PriorityClass
     );
 
