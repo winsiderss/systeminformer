@@ -755,8 +755,9 @@ VOID PhDeselectAllThreadNodes(
 #define PHMOTLC_VERIFIEDSIGNER 10
 #define PHMOTLC_ASLR 11
 #define PHMOTLC_TIMESTAMP 12
+#define PHMOTLC_CFGUARD 13
 
-#define PHMOTLC_MAXIMUM 13
+#define PHMOTLC_MAXIMUM 14
 
 typedef struct _PH_MODULE_NODE
 {
