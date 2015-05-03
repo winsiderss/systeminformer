@@ -502,6 +502,8 @@ VOID PhModuleProviderUpdate(
                 // 1. It (should be) faster than opening the file and mapping it in, and
                 // 2. It contains the correct original image base relocated by ASLR, if present.
 
+                moduleItem->Flags &= ~LDRP_IMAGE_NOT_AT_BASE;
+
                 if (NT_SUCCESS(PhLoadRemoteMappedImage(moduleProvider->ProcessHandle, moduleItem->BaseAddress, &remoteMappedImage)))
                 {
                     moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders->FileHeader.TimeDateStamp;

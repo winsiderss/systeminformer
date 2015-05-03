@@ -459,14 +459,26 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_UP_SYSTEM_ONLY)
                 PhAppendStringBuilder2(&stringBuilder, L"Uni-processor only, ");
 
+            if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA)
+                PhAppendStringBuilder2(&stringBuilder, L"High entropy VA, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
                 PhAppendStringBuilder2(&stringBuilder, L"Dynamic base, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY)
                 PhAppendStringBuilder2(&stringBuilder, L"Force integrity check, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NX_COMPAT)
                 PhAppendStringBuilder2(&stringBuilder, L"NX compatible, ");
+            if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NO_ISOLATION)
+                PhAppendStringBuilder2(&stringBuilder, L"No isolation, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NO_SEH)
                 PhAppendStringBuilder2(&stringBuilder, L"No SEH, ");
+            if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NO_BIND)
+                PhAppendStringBuilder2(&stringBuilder, L"Do not bind, ");
+            if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER)
+                PhAppendStringBuilder2(&stringBuilder, L"AppContainer, ");
+            if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_WDM_DRIVER)
+                PhAppendStringBuilder2(&stringBuilder, L"WDM driver, ");
+            if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
+                PhAppendStringBuilder2(&stringBuilder, L"Control Flow Guard, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE)
                 PhAppendStringBuilder2(&stringBuilder, L"Terminal server aware, ");
 
