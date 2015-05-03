@@ -104,6 +104,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_ASLR, FALSE, L"ASLR", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -454,6 +455,15 @@ BEGIN_SORT_FUNCTION(TimeStamp)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CfGuard)
+{
+    sortResult = intcmp(
+        moduleItem1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF,
+        moduleItem2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -492,7 +502,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(VerificationStatus),
                     SORT_FUNCTION(VerifiedSigner),
                     SORT_FUNCTION(Aslr),
-                    SORT_FUNCTION(TimeStamp)
+                    SORT_FUNCTION(TimeStamp),
+                    SORT_FUNCTION(CfGuard)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -663,6 +674,17 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     }
                 }
                 break;
+            case PHMOTLC_CFGUARD:
+                if (WindowsVersion >= WINDOWS_81)
+                {
+                    if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
+                        PhInitializeStringRef(&getCellText->Text, L"CF Guard");
+                }
+                else
+                {
+                    PhInitializeStringRef(&getCellText->Text, L"N/A");
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -682,6 +704,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 ; // Dummy
             else if (PhCsUseColorDotNet && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
+            else if (PhCsUseColorImmersiveProcesses && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
+                getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (PhCsUseColorRelocatedModules && (moduleItem->Flags & LDRP_IMAGE_NOT_AT_BASE))
                 getNodeColor->BackColor = PhCsColorRelocatedModules;
 
