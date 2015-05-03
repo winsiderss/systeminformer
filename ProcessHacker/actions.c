@@ -1612,54 +1612,66 @@ BOOLEAN PhUiInjectDllProcess(
     return TRUE;
 }
 
-BOOLEAN PhUiSetIoPriorityProcess(
+BOOLEAN PhUiSetIoPriorityProcesses(
     _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses,
     _In_ ULONG IoPriority
     )
 {
-    NTSTATUS status;
     BOOLEAN success = TRUE;
-    HANDLE processHandle;
+    BOOLEAN cancelled = FALSE;
+    ULONG i;
 
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_SET_INFORMATION,
-        Process->ProcessId
-        )))
+    for (i = 0; i < NumberOfProcesses; i++)
     {
-        status = PhSetProcessIoPriority(processHandle, IoPriority);
+        NTSTATUS status;
+        HANDLE processHandle;
 
-        NtClose(processHandle);
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        BOOLEAN connected;
-
-        success = FALSE;
-
-        // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
-        if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
-            PhaConcatStrings2(L"Unable to set the I/O priority of ", Process->ProcessName->Buffer)->Buffer,
-            status,
-            &connected
-            ))
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_SET_INFORMATION,
+            Processes[i]->ProcessId
+            )))
         {
-            if (connected)
-            {
-                if (NT_SUCCESS(status = PhSvcCallControlProcess(Process->ProcessId, PhSvcControlProcessIoPriority, IoPriority)))
-                    success = TRUE;
-                else
-                    PhpShowErrorProcess(hWnd, L"set the I/O priority of", Process, status, 0);
+            status = PhSetProcessIoPriority(processHandle, IoPriority);
 
-                PhUiDisconnectFromPhSvc();
-            }
+            NtClose(processHandle);
         }
-        else
+
+        if (!NT_SUCCESS(status))
         {
-            PhpShowErrorProcess(hWnd, L"set the I/O priority of", Process, status, 0);
+            BOOLEAN connected;
+
+            success = FALSE;
+
+            // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
+                hWnd,
+                PhaConcatStrings2(L"Unable to set the I/O priority of ", Processes[i]->ProcessName->Buffer)->Buffer,
+                status,
+                &connected
+                ))
+            {
+                if (connected)
+                {
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessIoPriority, IoPriority)))
+                        success = TRUE;
+                    else
+                        PhpShowErrorProcess(hWnd, L"set the I/O priority of", Processes[i], status, 0);
+
+                    PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
+                }
+            }
+            else
+            {
+                if (!PhpShowErrorProcess(hWnd, L"set the I/O priority of", Processes[i], status, 0))
+                    break;
+            }
         }
     }
 
@@ -1700,57 +1712,69 @@ BOOLEAN PhUiSetPagePriorityProcess(
     return TRUE;
 }
 
-BOOLEAN PhUiSetPriorityProcess(
+BOOLEAN PhUiSetPriorityProcesses(
     _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses,
     _In_ ULONG PriorityClass
     )
 {
-    NTSTATUS status;
     BOOLEAN success = TRUE;
-    HANDLE processHandle;
-    PROCESS_PRIORITY_CLASS priorityClass;
+    BOOLEAN cancelled = FALSE;
+    ULONG i;
 
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_SET_INFORMATION,
-        Process->ProcessId
-        )))
+    for (i = 0; i < NumberOfProcesses; i++)
     {
-        priorityClass.Foreground = FALSE;
-        priorityClass.PriorityClass = (UCHAR)PriorityClass;
-        status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+        NTSTATUS status;
+        HANDLE processHandle;
+        PROCESS_PRIORITY_CLASS priorityClass;
 
-        NtClose(processHandle);
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        BOOLEAN connected;
-
-        success = FALSE;
-
-        // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
-        if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
-            PhaConcatStrings2(L"Unable to set the priority of ", Process->ProcessName->Buffer)->Buffer,
-            status,
-            &connected
-            ))
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_SET_INFORMATION,
+            Processes[i]->ProcessId
+            )))
         {
-            if (connected)
-            {
-                if (NT_SUCCESS(status = PhSvcCallControlProcess(Process->ProcessId, PhSvcControlProcessPriority, PriorityClass)))
-                    success = TRUE;
-                else
-                    PhpShowErrorProcess(hWnd, L"set the priority of", Process, status, 0);
+            priorityClass.Foreground = FALSE;
+            priorityClass.PriorityClass = (UCHAR)PriorityClass;
+            status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
 
-                PhUiDisconnectFromPhSvc();
-            }
+            NtClose(processHandle);
         }
-        else
+
+        if (!NT_SUCCESS(status))
         {
-            PhpShowErrorProcess(hWnd, L"set the priority of", Process, status, 0);
+            BOOLEAN connected;
+
+            success = FALSE;
+
+            // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
+            if (!cancelled && PhpShowErrorAndConnectToPhSvc(
+                hWnd,
+                PhaConcatStrings2(L"Unable to set the priority of ", Processes[i]->ProcessName->Buffer)->Buffer,
+                status,
+                &connected
+                ))
+            {
+                if (connected)
+                {
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessPriority, PriorityClass)))
+                        success = TRUE;
+                    else
+                        PhpShowErrorProcess(hWnd, L"set the priority of", Processes[i], status, 0);
+
+                    PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    cancelled = TRUE;
+                }
+            }
+            else
+            {
+                if (!PhpShowErrorProcess(hWnd, L"set the priority of", Processes[i], status, 0))
+                    break;
+            }
         }
     }
 

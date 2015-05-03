@@ -266,13 +266,6 @@ BEGIN
             MENUITEM "GDI Handles",                 ID_MISCELLANEOUS_GDIHANDLES
             MENUITEM "Heaps",                       ID_MISCELLANEOUS_HEAPS
             MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
-            POPUP "I/O Priority"
-            BEGIN
-                MENUITEM "High",                        ID_I_3
-                MENUITEM "Normal",                      ID_I_2
-                MENUITEM "Low",                         ID_I_1
-                MENUITEM "Very Low",                    ID_I_0
-            END
             POPUP "Page Priority"
             BEGIN
                 MENUITEM "5",                           ID_PAGEPRIORITY_5
@@ -294,6 +287,13 @@ BEGIN
             MENUITEM "Normal",                      ID_PRIORITY_NORMAL
             MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL
             MENUITEM "Idle",                        ID_PRIORITY_IDLE
+        END
+        POPUP "I/O Priority"
+        BEGIN
+            MENUITEM "High",                        ID_I_3
+            MENUITEM "Normal",                      ID_I_2
+            MENUITEM "Low",                         ID_I_1
+            MENUITEM "Very Low",                    ID_I_0
         END
         POPUP "&Window"
         BEGIN

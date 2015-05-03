@@ -2,6 +2,7 @@ Process Hacker
 
 2.35
  * NEW/IMPROVED:
+   * Set priority and I/O priority for multiple processes at once
    * Added CF Guard (Control Flow Guard) column for processes and modules
    * Added highlighting for AppContainer DLLs
    * Added AppContainer and CF Guard image characteristics to peview
