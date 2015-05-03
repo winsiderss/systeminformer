@@ -250,6 +250,7 @@ NTSTATUS LoadDb(
         PPH_STRING tag = NULL;
         PPH_STRING name = NULL;
         PPH_STRING priorityClass = NULL;
+        PPH_STRING ioPriorityPlusOne = NULL;
         PPH_STRING comment = NULL;
 
         if (currentNode->type == MXML_ELEMENT &&
@@ -265,6 +266,8 @@ NTSTATUS LoadDb(
                     PhSwapReference2(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
                     PhSwapReference2(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
+                    PhSwapReference2(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
             }
         }
 
@@ -275,19 +278,24 @@ NTSTATUS LoadDb(
             PDB_OBJECT object;
             ULONG64 tagInteger;
             ULONG64 priorityClassInteger = 0;
+            ULONG64 ioPriorityPlusOneInteger = 0;
 
             PhStringToInteger64(&tag->sr, 10, &tagInteger);
 
             if (priorityClass)
                 PhStringToInteger64(&priorityClass->sr, 10, &priorityClassInteger);
+            if (ioPriorityPlusOne)
+                PhStringToInteger64(&ioPriorityPlusOne->sr, 10, &ioPriorityPlusOneInteger);
 
             object = CreateDbObject((ULONG)tagInteger, &name->sr, comment);
             object->PriorityClass = (ULONG)priorityClassInteger;
+            object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;
         }
 
         PhSwapReference(&tag, NULL);
         PhSwapReference(&name, NULL);
         PhSwapReference(&priorityClass, NULL);
+        PhSwapReference(&ioPriorityPlusOne, NULL);
         PhSwapReference(&comment, NULL);
 
         currentNode = currentNode->next;
@@ -326,6 +334,7 @@ mxml_node_t *CreateObjectElement(
     _In_ PPH_STRINGREF Tag,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF PriorityClass,
+    _In_ PPH_STRINGREF IoPriorityPlusOne,
     _In_ PPH_STRINGREF Comment
     )
 {
@@ -334,6 +343,7 @@ mxml_node_t *CreateObjectElement(
     PPH_BYTES tagUtf8;
     PPH_BYTES nameUtf8;
     PPH_BYTES priorityClassUtf8;
+    PPH_BYTES ioPriorityPlusOneUtf8;
     PPH_BYTES valueUtf8;
 
     // Create the setting element.
@@ -351,6 +361,10 @@ mxml_node_t *CreateObjectElement(
     priorityClassUtf8 = PhConvertUtf16ToUtf8Ex(PriorityClass->Buffer, PriorityClass->Length);
     mxmlElementSetAttr(objectNode, "priorityclass", priorityClassUtf8->Buffer);
     PhDereferenceObject(priorityClassUtf8);
+
+    ioPriorityPlusOneUtf8 = PhConvertUtf16ToUtf8Ex(IoPriorityPlusOne->Buffer, IoPriorityPlusOne->Length);
+    mxmlElementSetAttr(objectNode, "iopriorityplusone", ioPriorityPlusOneUtf8->Buffer);
+    PhDereferenceObject(ioPriorityPlusOneUtf8);
 
     // Set the value.
 
@@ -379,14 +393,17 @@ NTSTATUS SaveDb(
     {
         PPH_STRING tagString;
         PPH_STRING priorityClassString;
+        PPH_STRING ioPriorityPlusOneString;
 
         tagString = PhIntegerToString64((*object)->Tag, 10, FALSE);
         priorityClassString = PhIntegerToString64((*object)->PriorityClass, 10, FALSE);
+        ioPriorityPlusOneString = PhIntegerToString64((*object)->IoPriorityPlusOne, 10, FALSE);
 
-        CreateObjectElement(topNode, &tagString->sr, &(*object)->Name->sr, &priorityClassString->sr, &(*object)->Comment->sr);
+        CreateObjectElement(topNode, &tagString->sr, &(*object)->Name->sr, &priorityClassString->sr, &ioPriorityPlusOneString->sr, &(*object)->Comment->sr);
 
         PhDereferenceObject(tagString);
         PhDereferenceObject(priorityClassString);
+        PhDereferenceObject(ioPriorityPlusOneString);
     }
 
     UnlockDb();

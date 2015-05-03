@@ -13,6 +13,7 @@ typedef struct _DB_OBJECT
     PPH_STRING Name;
     PPH_STRING Comment;
     ULONG PriorityClass;
+    ULONG IoPriorityPlusOne;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(
