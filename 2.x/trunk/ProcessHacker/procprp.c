@@ -721,6 +721,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 magnifier = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MAGNIFIER), IMAGE_BITMAP);
                 pencil = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_PENCIL), IMAGE_BITMAP);
 
+                SET_BUTTON_BITMAP(IDC_INSPECT, magnifier);
                 SET_BUTTON_BITMAP(IDC_OPENFILENAME, folder);
                 SET_BUTTON_BITMAP(IDC_VIEWPARENTPROCESS, magnifier);
                 SET_BUTTON_BITMAP(IDC_EDITDEP, pencil);
@@ -745,6 +746,19 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (!processItem->FileName)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
+
+            {
+                PPH_STRING inspectExecutables;
+
+                inspectExecutables = PhGetStringSetting(L"ProgramInspectExecutables");
+
+                if (!processItem->FileName || inspectExecutables->Length == 0)
+                {
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
+                }
+
+                PhDereferenceObject(inspectExecutables);
+            }
 
             if (processItem->VerifyResult == VrTrusted)
             {
@@ -1075,6 +1089,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSPECT),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENFILENAME),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE),
@@ -1114,6 +1130,20 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             switch (id)
             {
+            case IDC_INSPECT:
+                {
+                    if (processItem->FileName)
+                    {
+                        PhShellExecuteUserString(
+                            hwndDlg,
+                            L"ProgramInspectExecutables",
+                            processItem->FileName->Buffer,
+                            FALSE,
+                            L"Make sure the PE Viewer executable file is present."
+                            );
+                    }
+                }
+                break;
             case IDC_OPENFILENAME:
                 {
                     if (processItem->FileName)
