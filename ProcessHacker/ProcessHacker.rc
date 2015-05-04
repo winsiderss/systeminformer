@@ -260,25 +260,6 @@ BEGIN
         MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
         MENUITEM "&Affinity",                   ID_PROCESS_AFFINITY
-        POPUP "&Miscellaneous"
-        BEGIN
-            MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
-            MENUITEM "GDI Handles",                 ID_MISCELLANEOUS_GDIHANDLES
-            MENUITEM "Heaps",                       ID_MISCELLANEOUS_HEAPS
-            MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
-            POPUP "Page Priority"
-            BEGIN
-                MENUITEM "5",                           ID_PAGEPRIORITY_5
-                MENUITEM "4",                           ID_PAGEPRIORITY_4
-                MENUITEM "3",                           ID_PAGEPRIORITY_3
-                MENUITEM "2",                           ID_PAGEPRIORITY_2
-                MENUITEM "1",                           ID_PAGEPRIORITY_1
-            END
-            MENUITEM "Reduce Working Set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
-            MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
-            MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
-            MENUITEM "Terminator",                  ID_MISCELLANEOUS_TERMINATOR
-        END
         POPUP "&Priority"
         BEGIN
             MENUITEM "Real Time",                   ID_PRIORITY_REALTIME
@@ -303,6 +284,25 @@ BEGIN
             MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
             MENUITEM SEPARATOR
             MENUITEM "Close",                       ID_WINDOW_CLOSE
+        END
+        POPUP "&Miscellaneous"
+        BEGIN
+            MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
+            MENUITEM "GDI Handles",                 ID_MISCELLANEOUS_GDIHANDLES
+            MENUITEM "Heaps",                       ID_MISCELLANEOUS_HEAPS
+            MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
+            POPUP "Page Priority"
+            BEGIN
+                MENUITEM "5",                           ID_PAGEPRIORITY_5
+                MENUITEM "4",                           ID_PAGEPRIORITY_4
+                MENUITEM "3",                           ID_PAGEPRIORITY_3
+                MENUITEM "2",                           ID_PAGEPRIORITY_2
+                MENUITEM "1",                           ID_PAGEPRIORITY_1
+            END
+            MENUITEM "Reduce Working Set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
+            MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
+            MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
+            MENUITEM "Terminator",                  ID_MISCELLANEOUS_TERMINATOR
         END
         MENUITEM "P&roperties\aEnter",          ID_PROCESS_PROPERTIES
         MENUITEM SEPARATOR
