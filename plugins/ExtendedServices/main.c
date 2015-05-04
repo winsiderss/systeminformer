@@ -381,9 +381,12 @@ VOID NTAPI ProcessMenuInitializingCallback(
         // Destroy the service list (the service items were placed in the auto pool).
         PhDereferenceObject(serviceList);
 
-        // Insert our Services menu after the Priority menu.
+        // Insert our Services menu after the I/O Priority menu.
 
-        priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Priority", 0);
+        priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"I/O Priority", 0);
+
+        if (!priorityMenuItem)
+            priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Priority", 0);
 
         if (priorityMenuItem)
             insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, priorityMenuItem) + 1;
