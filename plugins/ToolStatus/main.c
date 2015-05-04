@@ -442,7 +442,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         if (SendMessage(ToolBarHandle, TB_GETITEMRECT, index, (LPARAM)&buttonRect) == -1)
                             break;
 
-                        if (buttonRect.right < toolbarRect.right)
+                        if (buttonRect.right <= toolbarRect.right)
                             continue;
 
                         // Get settings for first button
