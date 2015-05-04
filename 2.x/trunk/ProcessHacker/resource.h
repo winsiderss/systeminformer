@@ -514,7 +514,6 @@
 #define IDC_ZLISTSTANDBY6_V             1366
 #define IDC_DESELECTALL                 1366
 #define IDC_ZLISTSTANDBY7_V             1367
-#define IDC_BUTTON1                     1367
 #define IDC_INSPECT                     1367
 #define IDC_ZPAGINGPAGEFAULTSDELTA_V    1368
 #define IDC_ZPAGINGPAGEREADSDELTA_V     1369
