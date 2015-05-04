@@ -438,35 +438,39 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
                         button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_IMAGE;
 
-                        // Get settings for first button
+                        // Get the client coordinates of the button.
                         if (SendMessage(ToolBarHandle, TB_GETITEMRECT, index, (LPARAM)&buttonRect) == -1)
                             break;
 
                         if (buttonRect.right <= toolbarRect.right)
                             continue;
 
-                        // Get settings for first button
+                        // Get extended button information.
                         if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
                             break;
 
-                        // Add separators to menu
                         if (button.fsStyle == BTNS_SEP)
                         {
+                            // Add separators to menu.
                             PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
-                            continue;
                         }
                         else
                         {
-                            HICON menuIcon;
                             PPH_EMENU_ITEM menuItem;
 
+                            // Add buttons to menu.
                             menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
-
+                            
+                            // Add Toolbar icons to the menu (doesn't work very well on XP).
                             if (WindowsVersion >= WINDOWS_VISTA)
                             {
+                                HICON menuIcon;
+
                                 menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL);
+
                                 menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
                                 menuItem->Bitmap = PhIconToBitmap(menuIcon, 16, 16);
+
                                 DestroyIcon(menuIcon);
                             }
 
