@@ -91,7 +91,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
             }
 
             memset(&namesReferencingModule, 0, sizeof(TAG_INFO_NAMES_REFERENCING_MODULE));
-            namesReferencingModule.InParams.dwPid = (ULONG)context->ProcessId;
+            namesReferencingModule.InParams.dwPid = HandleToUlong(context->ProcessId);
             namesReferencingModule.InParams.pszModule = context->ModuleName;
 
             win32Result = I_QueryTagInformation(NULL, eTagInfoLevelNamesReferencingModule, &namesReferencingModule);
