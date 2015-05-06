@@ -96,9 +96,9 @@ static VOID RegisterTabSearch(
     PPH_STRING bannerText = PhCreateString(BannerText);
     PVOID *entry;
 
-    if (!PhAddItemSimpleHashtable(SearchBannerTextHashtable, IntToPtr(TabIndex), bannerText))
+    if (!PhAddItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)TabIndex, bannerText))
     {
-        if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, IntToPtr(TabIndex)))
+        if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)TabIndex))
             PhSwapReference2(entry, bannerText);
         else
             PhDereferenceObject(bannerText);
@@ -110,7 +110,7 @@ static VOID NTAPI TabPageUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    INT tabIndex = PtrToInt(Parameter);
+    INT tabIndex = (INT)Parameter;
 
     if (!SearchboxHandle)
         return;
@@ -130,7 +130,7 @@ static VOID NTAPI TabPageUpdatedCallback(
         {
             PVOID *entry;
 
-            if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, IntToPtr(tabIndex)))
+            if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)tabIndex))
             {
                 Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(((PPH_STRING)*entry)->Buffer, L" (Ctrl+K)")->Buffer);
             }

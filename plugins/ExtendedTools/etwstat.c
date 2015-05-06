@@ -293,22 +293,22 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
         if (maxDiskBlock)
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
+            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, (ULONG)maxDiskBlock->ProcessItem->ProcessId);
             PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
         }
         else
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, (ULONG)NULL);
         }
 
         if (maxNetworkBlock)
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
+            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, (ULONG)maxNetworkBlock->ProcessItem->ProcessId);
             PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
         }
         else
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, (ULONG)NULL);
         }
     }
 

@@ -254,7 +254,7 @@ VOID WeShowWindowProperties(
     PhAcquireQueuedLockExclusive(&WePropertiesCreateLock);
     PhAddItemList(WePropertiesCreateList, context);
     PhReleaseQueuedLockExclusive(&WePropertiesCreateLock);
-    PostThreadMessage(HandleToUlong(WePropertiesThreadClientId.UniqueThread), WM_NULL, 0, 0);
+    PostThreadMessage((ULONG)WePropertiesThreadClientId.UniqueThread, WM_NULL, 0, 0);
 }
 
 VOID WepReferenceWindowPropertiesContext(
@@ -1138,10 +1138,10 @@ static BOOL CALLBACK EnumPropsExCallback(
 
     propName = lpszString;
 
-    if ((ULONG_PTR)lpszString < USHRT_MAX)
+    if ((ULONG_PTR)lpszString < 0x10000)
     {
         // This is an integer atom.
-        propName = PhaFormatString(L"#%u", (ULONG_PTR)lpszString)->Buffer;
+        propName = PhaFormatString(L"#%u", (ULONG)lpszString)->Buffer;
     }
 
     lvItemIndex = PhAddListViewItem((HWND)dwData, MAXINT, propName, NULL);

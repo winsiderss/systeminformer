@@ -141,7 +141,7 @@ HRESULT GetCorPublishProcess(
 
     if (SUCCEEDED(result = CreateCorpubPublish(ProcessId, &publish)))
     {
-        result = ICorPublish_GetProcess(publish, HandleToUlong(ProcessId), PublishProcess);
+        result = ICorPublish_GetProcess(publish, (ULONG)ProcessId, PublishProcess);
         ICorPublish_Release(publish);
     }
 
@@ -347,11 +347,11 @@ VOID UpdateCounterData(
                     counterName = FindPerfTextInTextData(textData, counter->CounterNameTitleIndex);
 
                     if (counterName)
-                        lvItemIndex = PhAddListViewItem(countersLv, MAXINT, counterName, UlongToPtr(counter->CounterNameTitleIndex));
+                        lvItemIndex = PhAddListViewItem(countersLv, MAXINT, counterName, (PVOID)counter->CounterNameTitleIndex);
                 }
                 else
                 {
-                    lvItemIndex = PhFindListViewItemByParam(countersLv, -1, UlongToPtr(counter->CounterNameTitleIndex));
+                    lvItemIndex = PhFindListViewItemByParam(countersLv, -1, (PVOID)counter->CounterNameTitleIndex);
                 }
 
                 if (lvItemIndex != -1 && instanceFound)

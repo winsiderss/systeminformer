@@ -204,7 +204,7 @@ ULONG NTAPI BoxedProcessesHashFunction(
     _In_ PVOID Entry
     )
 {
-    return HandleToUlong(((PBOXED_PROCESS)Entry)->ProcessId) / 4;
+    return (ULONG)((PBOXED_PROCESS)Entry)->ProcessId / 4;
 }
 
 VOID NTAPI LoadCallback(
