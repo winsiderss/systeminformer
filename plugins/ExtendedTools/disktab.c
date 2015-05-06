@@ -700,7 +700,7 @@ PPH_STRING EtpGetDiskItemProcessName(
         return PhCreateString(L"No Process");
 
     PhInitFormatS(&format[1], L" (");
-    PhInitFormatU(&format[2], HandleToUlong(DiskItem->ProcessId));
+    PhInitFormatU(&format[2], (ULONG)DiskItem->ProcessId);
     PhInitFormatC(&format[3], ')');
 
     if (DiskItem->ProcessName)
