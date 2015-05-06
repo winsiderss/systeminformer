@@ -896,7 +896,7 @@ static NTSTATUS UpdateDownloadThread(
         verifySuccess = TRUE;
     }
 
-    if (downloadSuccess & hashSuccess && verifySuccess)
+    if (downloadSuccess && hashSuccess && verifySuccess)
     {
         PostMessage(context->DialogHandle, PH_HASHSUCCESS, 0, 0);
     }
