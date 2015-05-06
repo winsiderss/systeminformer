@@ -149,7 +149,7 @@ VOID EtpGpuIconUpdateCallback(
     // Text
 
     if (EtMaxGpuNodeHistory.Count != 0)
-        maxGpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, 0);
+        maxGpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, 0));
     else
         maxGpuProcessId = NULL;
 
@@ -253,7 +253,7 @@ VOID EtpDiskIconUpdateCallback(
     // Text
 
     if (EtMaxDiskHistory.Count != 0)
-        maxDiskProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+        maxDiskProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0));
     else
         maxDiskProcessId = NULL;
 
@@ -355,7 +355,7 @@ VOID EtpNetworkIconUpdateCallback(
     // Text
 
     if (EtMaxNetworkHistory.Count != 0)
-        maxNetworkProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+        maxNetworkProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0));
     else
         maxNetworkProcessId = NULL;
 

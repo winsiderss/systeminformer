@@ -186,7 +186,7 @@ ULONG NTAPI EtpDiskHashtableHashFunction(
 {
     PET_DISK_ITEM diskItem = *(PET_DISK_ITEM *)Entry;
 
-    return ((ULONG)diskItem->ProcessId / 4) ^ EtpHashStringIgnoreCase(diskItem->FileName->Buffer, diskItem->FileName->Length / sizeof(WCHAR));
+    return (HandleToUlong(diskItem->ProcessId) / 4) ^ EtpHashStringIgnoreCase(diskItem->FileName->Buffer, diskItem->FileName->Length / sizeof(WCHAR));
 }
 
 PET_DISK_ITEM EtReferenceDiskItem(
