@@ -1,3 +1,6 @@
+1.5
+ * Improved ping graph scaling
+ 
 1.4
  * Fixed whois scrolling issue
  * Fixed ping threading issues
