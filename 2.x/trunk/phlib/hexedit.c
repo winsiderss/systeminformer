@@ -1512,7 +1512,7 @@ VOID PhpHexEditCopyEdit(
             HGLOBAL hexMemory;
 
             binaryMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, length);
-            hexMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, length * 3 * sizeof(WCHAR));
+            hexMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, (length * 3 + 1) * sizeof(WCHAR));
 
             if (binaryMemory)
             {
@@ -1532,6 +1532,7 @@ VOID PhpHexEditCopyEdit(
                         TO_HEX(pw, Context->Data[Context->SelStart + i]);
                         *pw++ = ' ';
                     }
+                    *pw = 0;
 
                     GlobalUnlock(hexMemory);
 
@@ -1548,7 +1549,7 @@ VOID PhpHexEditCopyEdit(
             HGLOBAL asciiMemory;
 
             binaryMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, length);
-            asciiMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, length);
+            asciiMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, length + 1);
 
             if (binaryMemory)
             {
@@ -1569,6 +1570,7 @@ VOID PhpHexEditCopyEdit(
                             *p = '.';
                         p++;
                     }
+                    *p = 0;
 
                     GlobalUnlock(asciiMemory);
 
