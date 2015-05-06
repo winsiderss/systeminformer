@@ -96,7 +96,7 @@ HWND NTAPI EtpDiskTabCreateFunction(
             3,
             3,
             PhMainWndHandle,
-            (HMENU)PhPluginReserveIds(1),
+            NULL,
             PluginInstance->DllBase,
             NULL
             );
