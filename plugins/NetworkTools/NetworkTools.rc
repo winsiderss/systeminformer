@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.5.0.0"
+            VALUE "FileVersion", "1.5"
             VALUE "InternalName", "NetworkTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetworkTools.dll"
             VALUE "ProductName", "Network Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.5.0.0"
+            VALUE "ProductVersion", "1.5"
         END
     END
     BLOCK "VarFileInfo"
