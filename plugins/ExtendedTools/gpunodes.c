@@ -151,13 +151,13 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     3,
                     3,
                     hwndDlg,
-                    (HMENU)(10000 + i),
+                    NULL,
                     PluginInstance->DllBase,
                     NULL
                     );
                 Graph_SetTooltip(GraphHandle[i], TRUE);
                 CheckBoxHandle[i] = CreateWindow(
-                    L"BUTTON",
+                    WC_BUTTON,
                     nodeString->Buffer,
                     WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,
                     0,
@@ -165,7 +165,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     3,
                     3,
                     hwndDlg,
-                    (HMENU)(20000 + i),
+                    NULL,
                     PluginInstance->DllBase,
                     NULL
                     );
