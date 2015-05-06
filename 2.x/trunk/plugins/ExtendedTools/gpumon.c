@@ -655,13 +655,13 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
         if (maxNodeBlock)
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, HandleToUlong(maxNodeBlock->ProcessItem->ProcessId));
+            PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, (ULONG)maxNodeBlock->ProcessItem->ProcessId);
             PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, maxNodeBlock->GpuNodeUsage);
             PhReferenceProcessRecordForStatistics(maxNodeBlock->ProcessItem->Record);
         }
         else
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, 0);
+            PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, (ULONG)NULL);
             PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, 0);
         }
     }

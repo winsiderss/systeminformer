@@ -424,7 +424,7 @@ PPH_STRING EtpGetMaxDiskString(
         maxUsageString = PhaFormatString(
             L"\n%s (%u)",
             maxProcessRecord->ProcessName->Buffer,
-            HandleToUlong(maxProcessRecord->ProcessId)
+            (ULONG)maxProcessRecord->ProcessId
             );
         PhDereferenceProcessRecord(maxProcessRecord);
     }
@@ -796,7 +796,7 @@ PPH_STRING EtpGetMaxNetworkString(
         maxUsageString = PhaFormatString(
             L"\n%s (%u)",
             maxProcessRecord->ProcessName->Buffer,
-            HandleToUlong(maxProcessRecord->ProcessId)
+            (ULONG)maxProcessRecord->ProcessId
             );
         PhDereferenceProcessRecord(maxProcessRecord);
     }

@@ -675,7 +675,7 @@ PPH_STRING EtpGetMaxNodeString(
         maxUsageString = PhaFormatString(
             L"\n%s (%u): %.2f%%",
             maxProcessRecord->ProcessName->Buffer,
-            HandleToUlong(maxProcessRecord->ProcessId),
+            (ULONG)maxProcessRecord->ProcessId,
             maxGpuUsage * 100
             );
 
