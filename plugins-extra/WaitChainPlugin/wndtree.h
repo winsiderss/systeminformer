@@ -91,7 +91,7 @@ VOID WtcDeleteWindowTree(
 VOID WctAddChildWindowNode(
     _In_ PWCT_TREE_CONTEXT Context,
     _In_opt_ PWCT_ROOT_NODE ParentNode,
-    _In_ WAITCHAIN_NODE_INFO WctNode,
+    _In_ PWAITCHAIN_NODE_INFO WctNode,
     _In_ BOOLEAN IsDeadLocked
     );
 

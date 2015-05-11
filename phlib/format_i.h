@@ -233,10 +233,14 @@
 #ifndef _WIN64
         case IntPtrFormatType:
             int32 = format->u.IntPtr;
+            goto CommonMaybeNegativeInt32Format;
 #endif
         case Int32FormatType:
             int32 = format->u.Int32;
 
+#ifndef _WIN64
+CommonMaybeNegativeInt32Format:
+#endif
             if ((LONG)int32 < 0)
             {
                 int32 = -(LONG)int32;
@@ -257,10 +261,14 @@ CommonInt32Format:
 #ifdef _WIN64
         case IntPtrFormatType:
             int64 = format->u.IntPtr;
+            goto CommonMaybeNegativeInt64Format;
 #endif
         case Int64FormatType:
             int64 = format->u.Int64;
 
+#ifdef _WIN64
+CommonMaybeNegativeInt64Format:
+#endif
             if ((LONG64)int64 < 0)
             {
                 int64 = -(LONG64)int64;
