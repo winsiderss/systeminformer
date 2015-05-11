@@ -2365,6 +2365,8 @@ VOID PhpUpdateThreadDetails(
         {
             if ((ULONG)threadItem->State < MaximumThreadState)
                 state = PhaCreateString(PhKThreadStateNames[(ULONG)threadItem->State]);
+            else
+                state = PhaCreateString(L"Unknown");
         }
         else
         {

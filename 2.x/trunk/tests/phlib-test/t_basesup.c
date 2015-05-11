@@ -294,14 +294,14 @@ VOID Test_unicode(
     utf16_3 = PhConvertUtf8ToUtf16Ex(utf8_2->Buffer, utf8_2->Length);
     utf8_3 = PhConvertUtf16ToUtf8Ex(utf16_2->Buffer, utf16_2->Length);
 
-    assert(utf16_1->Length = utf16_2->Length);
+    assert(utf16_1->Length == utf16_2->Length);
     assert(memcmp(utf16_1->Buffer, utf16_2->Buffer, utf16_1->Length) == 0);
-    assert(utf16_2->Length = utf16_3->Length);
+    assert(utf16_2->Length == utf16_3->Length);
     assert(memcmp(utf16_2->Buffer, utf16_3->Buffer, utf16_2->Length) == 0);
 
-    assert(utf8_1->Length = utf8_2->Length);
+    assert(utf8_1->Length == utf8_2->Length);
     assert(memcmp(utf8_1->Buffer, utf8_2->Buffer, utf8_1->Length) == 0);
-    assert(utf8_2->Length = utf8_3->Length);
+    assert(utf8_2->Length == utf8_3->Length);
     assert(memcmp(utf8_2->Buffer, utf8_3->Buffer, utf8_2->Length) == 0);
 }
 

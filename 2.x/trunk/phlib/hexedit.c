@@ -1512,13 +1512,14 @@ VOID PhpHexEditCopyEdit(
             HGLOBAL hexMemory;
 
             binaryMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, length);
-            hexMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, (length * 3 + 1) * sizeof(WCHAR));
 
             if (binaryMemory)
             {
                 PUCHAR p = GlobalLock(binaryMemory);
                 memcpy(p, &Context->Data[Context->SelStart], length);
                 GlobalUnlock(binaryMemory);
+
+                hexMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, (length * 3 + 1) * sizeof(WCHAR));
 
                 if (hexMemory)
                 {

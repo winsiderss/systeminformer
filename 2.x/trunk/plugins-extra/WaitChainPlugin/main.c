@@ -88,34 +88,34 @@ static VOID WaitChainCheckThread(
 
     for (ULONG i = 0; i < nodeInfoLength; i++)
     {
-        WAITCHAIN_NODE_INFO wctNode = nodeInfoArray[i];
+        PWAITCHAIN_NODE_INFO wctNode = &nodeInfoArray[i];
 
-        if (wctNode.ObjectType == WctThreadType)
+        if (wctNode->ObjectType == WctThreadType)
         {
             rootNode = WeAddWindowNode(&Context->TreeContext);
 
             rootNode->WctInfo = wctNode;
-            rootNode->ThreadId = UlongToHandle(wctNode.ThreadObject.ThreadId);
-            rootNode->ThreadIdString = PhFormatString(L"%u", wctNode.ThreadObject.ThreadId);
-            rootNode->ProcessIdString = PhFormatString(L"%u", wctNode.ThreadObject.ProcessId);
-            rootNode->WaitTimeString = PhFormatString(L"%u", wctNode.ThreadObject.WaitTime);
-            rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode.ThreadObject.ContextSwitches);
-            rootNode->TimeoutString = PhFormatString(L"%I64d", wctNode.LockObject.Timeout.QuadPart);
+            rootNode->ThreadId = UlongToHandle(wctNode->ThreadObject.ThreadId);
+            rootNode->ThreadIdString = PhFormatString(L"%u", wctNode->ThreadObject.ThreadId);
+            rootNode->ProcessIdString = PhFormatString(L"%u", wctNode->ThreadObject.ProcessId);
+            rootNode->WaitTimeString = PhFormatString(L"%u", wctNode->ThreadObject.WaitTime);
+            rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode->ThreadObject.ContextSwitches);
+            rootNode->TimeoutString = PhFormatString(L"%I64d", wctNode->LockObject.Timeout.QuadPart);
 
-            if (wctNode.LockObject.ObjectName[0] != '\0')
+            if (wctNode->LockObject.ObjectName[0] != '\0')
             {
                 // -- ProcessID --
-                //wctNode.LockObject.ObjectName[0]
+                //wctNode->LockObject.ObjectName[0]
                 // -- ThreadID --
-                //wctNode.LockObject.ObjectName[2]
+                //wctNode->LockObject.ObjectName[2]
                 // -- Unknown --
-                //wctNode.LockObject.ObjectName[4]
+                //wctNode->LockObject.ObjectName[4]
                 // -- ContextSwitches --
-                //wctNode.LockObject.ObjectName[6]
+                //wctNode->LockObject.ObjectName[6]
 
-                if (PhIsDigitCharacter(wctNode.LockObject.ObjectName[0]))
+                if (PhIsDigitCharacter(wctNode->LockObject.ObjectName[0]))
                 {
-                    rootNode->ObjectNameString = PhFormatString(L"%s", wctNode.LockObject.ObjectName);
+                    rootNode->ObjectNameString = PhFormatString(L"%s", wctNode->LockObject.ObjectName);
                 }
                 //else
                 //{

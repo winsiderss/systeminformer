@@ -436,7 +436,7 @@ VOID NTAPI NotifyEventCallback(
     PPH_PROCESS_ITEM processItem;
     PPH_SERVICE_ITEM serviceItem;
     FILTER_TYPE filterType;
-    BOOLEAN found;
+    BOOLEAN found = FALSE;
 
     filterType = FilterExclude;
 

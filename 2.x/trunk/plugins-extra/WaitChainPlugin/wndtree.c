@@ -153,7 +153,7 @@ PWCT_ROOT_NODE WeAddWindowNode(
 VOID WctAddChildWindowNode(
     _In_ PWCT_TREE_CONTEXT Context,
     _In_opt_ PWCT_ROOT_NODE ParentNode,
-    _In_ WAITCHAIN_NODE_INFO WctNode,
+    _In_ PWAITCHAIN_NODE_INFO WctNode,
     _In_ BOOLEAN IsDeadLocked
     )
 {
@@ -161,25 +161,25 @@ VOID WctAddChildWindowNode(
 
     childNode = WeAddWindowNode(Context);
 
-    childNode->WctInfo = WctNode;
+    childNode->WctInfo = *WctNode;
     childNode->IsDeadLocked = TRUE;
 
-    childNode->ThreadId = UlongToHandle(WctNode.ThreadObject.ThreadId);
-    childNode->ProcessIdString = PhFormatString(L"%u", WctNode.ThreadObject.ProcessId);
-    childNode->ThreadIdString = PhFormatString(L"%u", WctNode.ThreadObject.ThreadId);
-    childNode->WaitTimeString = PhFormatString(L"%u", WctNode.ThreadObject.WaitTime);
-    childNode->ContextSwitchesString = PhFormatString(L"%u", WctNode.ThreadObject.ContextSwitches);
+    childNode->ThreadId = UlongToHandle(WctNode->ThreadObject.ThreadId);
+    childNode->ProcessIdString = PhFormatString(L"%u", WctNode->ThreadObject.ProcessId);
+    childNode->ThreadIdString = PhFormatString(L"%u", WctNode->ThreadObject.ThreadId);
+    childNode->WaitTimeString = PhFormatString(L"%u", WctNode->ThreadObject.WaitTime);
+    childNode->ContextSwitchesString = PhFormatString(L"%u", WctNode->ThreadObject.ContextSwitches);
 
-    if (WctNode.LockObject.ObjectName[0] != L'\0')
-        childNode->ObjectNameString = PhFormatString(L"%s", WctNode.LockObject.ObjectName);
+    if (WctNode->LockObject.ObjectName[0] != L'\0')
+        childNode->ObjectNameString = PhFormatString(L"%s", WctNode->LockObject.ObjectName);
 
-    if (WctNode.LockObject.Timeout.QuadPart > 0)
+    if (WctNode->LockObject.Timeout.QuadPart > 0)
     {
         SYSTEMTIME systemTime;
         PPH_STRING dateString = NULL;
         PPH_STRING timeString = NULL;
 
-        PhLargeIntegerToLocalSystemTime(&systemTime, &WctNode.LockObject.Timeout);
+        PhLargeIntegerToLocalSystemTime(&systemTime, &WctNode->LockObject.Timeout);
 
         dateString = PhFormatDate(&systemTime, NULL);
         timeString = PhFormatTime(&systemTime, NULL);
