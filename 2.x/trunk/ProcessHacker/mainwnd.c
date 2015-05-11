@@ -1521,17 +1521,6 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_PROCESS_PROPERTIES:
-        {
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
-
-            if (processItem)
-            {
-                // No reference needed; no messages pumped.
-                PhMwpShowProcessProperties(processItem);
-            }
-        }
-        break;
     case ID_PROCESS_OPENFILELOCATION:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
@@ -1551,6 +1540,17 @@ VOID PhMwpOnCommand(
             if (processItem)
             {
                 PhSearchOnlineString(PhMainWndHandle, processItem->ProcessName->Buffer);
+            }
+        }
+        break;
+    case ID_PROCESS_PROPERTIES:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                // No reference needed; no messages pumped.
+                PhMwpShowProcessProperties(processItem);
             }
         }
         break;
@@ -1635,6 +1635,39 @@ VOID PhMwpOnCommand(
                     PhDeselectAllServiceNodes();
 
                 PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    case ID_SERVICE_OPENKEY:
+        {
+            static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+            static PH_STRINGREF hklm = PH_STRINGREF_INIT(L"HKLM\\");
+
+            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+
+            if (serviceItem)
+            {
+                HANDLE keyHandle;
+                PPH_STRING serviceKeyName = PhConcatStringRef2(&servicesKeyName, &serviceItem->Name->sr);
+
+                if (NT_SUCCESS(PhOpenKey(
+                    &keyHandle,
+                    KEY_READ,
+                    PH_KEY_LOCAL_MACHINE,
+                    &serviceKeyName->sr,
+                    0
+                    )))
+                {
+                    PPH_STRING hklmServiceKeyName;
+
+                    hklmServiceKeyName = PhConcatStringRef2(&hklm, &serviceKeyName->sr);
+                    PhShellOpenKey2(PhMainWndHandle, hklmServiceKeyName);
+                    PhDereferenceObject(hklmServiceKeyName);
+
+                    NtClose(keyHandle);
+                }
+
+                PhDereferenceObject(serviceKeyName);
             }
         }
         break;
