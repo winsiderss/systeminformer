@@ -223,8 +223,8 @@ BEGIN
         MENUITEM "&Inspect\aEnter",             ID_MODULE_INSPECT
         MENUITEM "&Search Online\aCtrl+M",      ID_MODULE_SEARCHONLINE
         MENUITEM "Open &File Location\aCtrl+Enter", ID_MODULE_OPENFILELOCATION
-        MENUITEM "&Copy\aCtrl+C",               ID_MODULE_COPY
         MENUITEM "P&roperties",                 ID_MODULE_PROPERTIES
+        MENUITEM "&Copy\aCtrl+C",               ID_MODULE_COPY
     END
 END
 
@@ -304,10 +304,10 @@ BEGIN
             MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
             MENUITEM "Terminator",                  ID_MISCELLANEOUS_TERMINATOR
         END
-        MENUITEM "P&roperties\aEnter",          ID_PROCESS_PROPERTIES
         MENUITEM SEPARATOR
-        MENUITEM "Open &File Location\aCtrl+Enter", ID_PROCESS_OPENFILELOCATION
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
+        MENUITEM "Open &File Location\aCtrl+Enter", ID_PROCESS_OPENFILELOCATION
+        MENUITEM "P&roperties\aEnter",          ID_PROCESS_PROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_PROCESS_COPY
     END
 END
@@ -323,8 +323,9 @@ BEGIN
         MENUITEM "S&top",                       ID_SERVICE_STOP
         MENUITEM "&Delete\aDel",                ID_SERVICE_DELETE
         MENUITEM SEPARATOR
-        MENUITEM "&Copy\aCtrl+C",               ID_SERVICE_COPY
+        MENUITEM "Open Key",                    ID_SERVICE_OPENKEY
         MENUITEM "P&roperties\aEnter",          ID_SERVICE_PROPERTIES
+        MENUITEM "&Copy\aCtrl+C",               ID_SERVICE_COPY
     END
 END
 
@@ -346,9 +347,9 @@ BEGIN
     BEGIN
         MENUITEM "C&lose\aDel",                 ID_OBJECT_CLOSE
         MENUITEM SEPARATOR
-        MENUITEM "&Copy\aCtrl+C",               ID_OBJECT_COPY
         MENUITEM "Go to Owning &Process",       ID_OBJECT_GOTOOWNINGPROCESS
         MENUITEM "Prope&rties",                 ID_OBJECT_PROPERTIES
+        MENUITEM "&Copy\aCtrl+C",               ID_OBJECT_COPY
     END
 END
 
