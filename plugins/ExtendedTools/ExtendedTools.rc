@@ -544,8 +544,8 @@ BEGIN
         MENUITEM "&Go to Process",              ID_DISK_GOTOPROCESS
         MENUITEM SEPARATOR
         MENUITEM "Open &File Location\aEnter",  ID_DISK_OPENFILELOCATION
-        MENUITEM "&Copy\aCtrl+C",               ID_DISK_COPY
         MENUITEM "P&roperties",                 ID_DISK_PROPERTIES
+        MENUITEM "&Copy\aCtrl+C",               ID_DISK_COPY
     END
 END
 

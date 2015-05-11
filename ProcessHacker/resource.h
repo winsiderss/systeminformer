@@ -596,6 +596,7 @@
 #define ID_SERVICE_STOP                 40111
 #define ID_SERVICE_DELETE               40112
 #define ID_SERVICE_PROPERTIES           40113
+#define ID_SERVICE_OPENKEY              40114
 #define ID_PRIVILEGE_ENABLE             40116
 #define ID_PRIVILEGE_DISABLE            40117
 #define ID_PRIVILEGE_REMOVE             40118
