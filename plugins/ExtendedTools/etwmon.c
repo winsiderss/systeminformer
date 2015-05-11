@@ -394,6 +394,7 @@ NTSTATUS EtpEtwMonitorThreadStart(
 
     while (TRUE)
     {
+        result = ERROR_SUCCESS;
         traceHandle = OpenTrace(&logFile);
 
         if (traceHandle != INVALID_PROCESSTRACE_HANDLE)
