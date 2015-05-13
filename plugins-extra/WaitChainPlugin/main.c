@@ -94,7 +94,7 @@ static VOID WaitChainCheckThread(
         {
             rootNode = WeAddWindowNode(&Context->TreeContext);
 
-            rootNode->WctInfo = wctNode;
+            rootNode->WctInfo = *wctNode;
             rootNode->ThreadId = UlongToHandle(wctNode->ThreadObject.ThreadId);
             rootNode->ThreadIdString = PhFormatString(L"%u", wctNode->ThreadObject.ThreadId);
             rootNode->ProcessIdString = PhFormatString(L"%u", wctNode->ThreadObject.ProcessId);
