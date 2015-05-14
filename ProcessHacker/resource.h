@@ -716,6 +716,7 @@
 #define ID_HANDLE_OBJECTPROPERTIES1     40282
 #define ID_HANDLE_OBJECTPROPERTIES2     40283
 #define ID_OBJECT_GOTOOWNINGPROCESS     40284
+#define ID_NETWORK_GOTOSERVICE          40285
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -724,7 +725,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        206
-#define _APS_NEXT_COMMAND_VALUE         40285
+#define _APS_NEXT_COMMAND_VALUE         40286
 #define _APS_NEXT_CONTROL_VALUE         1368
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
