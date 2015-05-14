@@ -756,8 +756,10 @@ VOID PhDeselectAllThreadNodes(
 #define PHMOTLC_ASLR 11
 #define PHMOTLC_TIMESTAMP 12
 #define PHMOTLC_CFGUARD 13
+#define PHMOTLC_LOADTIME 14
+#define PHMOTLC_LOADREASON 15
 
-#define PHMOTLC_MAXIMUM 14
+#define PHMOTLC_MAXIMUM 16
 
 typedef struct _PH_MODULE_NODE
 {
@@ -776,6 +778,7 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING SizeText;
     WCHAR LoadCountText[PH_INT32_STR_LEN_1];
     PPH_STRING TimeStampText;
+    PPH_STRING LoadTimeText;
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 
 typedef struct _PH_MODULE_LIST_CONTEXT

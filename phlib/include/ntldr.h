@@ -93,9 +93,10 @@ typedef enum _LDR_DLL_LOAD_REASON
 #define LDRP_REDIRECTED 0x10000000
 #define LDRP_COMPAT_DATABASE_PROCESSED 0x80000000
 
-// Use the size of the structure as it was in
-// Windows XP.
+// Use the size of the structure as it was in Windows XP.
 #define LDR_DATA_TABLE_ENTRY_SIZE_WINXP FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN7 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN8 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ImplicitPathOptions)
 
 // symbols
 typedef struct _LDR_DATA_TABLE_ENTRY
@@ -151,10 +152,11 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LIST_ENTRY HashLinks;
     ULONG TimeDateStamp;
     struct _ACTIVATION_CONTEXT *EntryPointActivationContext;
-    PVOID PatchInformation;
+    PVOID Spare;
     PLDR_DDAG_NODE DdagNode;
     LIST_ENTRY NodeModuleLink;
     struct _LDRP_DLL_SNAP_CONTEXT *SnapContext;
+    PVOID ParentDllBase;
     PVOID SwitchBackContext;
     RTL_BALANCED_NODE BaseAddressIndexNode;
     RTL_BALANCED_NODE MappingInfoIndexNode;
