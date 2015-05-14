@@ -2,7 +2,7 @@
  * Process Hacker -
  *   module provider
  *
- * Copyright (C) 2009-2013 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -465,8 +465,9 @@ VOID PhModuleProviderUpdate(
             moduleItem->Size = module->Size;
             moduleItem->Flags = module->Flags;
             moduleItem->Type = module->Type;
-            moduleItem->Reserved = 0;
+            moduleItem->LoadReason = module->LoadReason;
             moduleItem->LoadCount = module->LoadCount;
+            moduleItem->LoadTime = module->LoadTime;
 
             moduleItem->Name = module->Name;
             PhReferenceObject(moduleItem->Name);

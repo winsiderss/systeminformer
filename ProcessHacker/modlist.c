@@ -2,7 +2,7 @@
  * Process Hacker -
  *   module list
  *
- * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -105,6 +105,8 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_ASLR, FALSE, L"ASLR", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADTIME, FALSE, L"Load Time", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_LOADREASON, FALSE, L"Load Reason", 80, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -276,6 +278,7 @@ VOID PhpDestroyModuleNode(
 
     if (ModuleNode->SizeText) PhDereferenceObject(ModuleNode->SizeText);
     if (ModuleNode->TimeStampText) PhDereferenceObject(ModuleNode->TimeStampText);
+    if (ModuleNode->LoadTimeText) PhDereferenceObject(ModuleNode->LoadTimeText);
 
     PhDereferenceObject(ModuleNode->ModuleItem);
 
@@ -464,6 +467,18 @@ BEGIN_SORT_FUNCTION(CfGuard)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(LoadTime)
+{
+    sortResult = uint64cmp(moduleItem1->LoadTime.QuadPart, moduleItem2->LoadTime.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LoadReason)
+{
+    sortResult = uintcmp(moduleItem1->LoadReason, moduleItem2->LoadReason);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -503,7 +518,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(VerifiedSigner),
                     SORT_FUNCTION(Aslr),
                     SORT_FUNCTION(TimeStamp),
-                    SORT_FUNCTION(CfGuard)
+                    SORT_FUNCTION(CfGuard),
+                    SORT_FUNCTION(LoadTime),
+                    SORT_FUNCTION(LoadReason)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -683,6 +700,63 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 else
                 {
                     PhInitializeStringRef(&getCellText->Text, L"N/A");
+                }
+                break;
+            case PHMOTLC_LOADTIME:
+                {
+                    SYSTEMTIME systemTime;
+
+                    if (moduleItem->LoadTime.QuadPart != 0)
+                    {
+                        PhLargeIntegerToLocalSystemTime(&systemTime, &moduleItem->LoadTime);
+                        PhSwapReference2(&node->LoadTimeText, PhFormatDateTime(&systemTime));
+                        getCellText->Text = node->LoadTimeText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
+            case PHMOTLC_LOADREASON:
+                {
+                    PWSTR string = L"";
+
+                    if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                    {
+                        switch (moduleItem->LoadReason)
+                        {
+                        case LoadReasonStaticDependency:
+                            string = L"Static Dependency";
+                            break;
+                        case LoadReasonStaticForwarderDependency:
+                            string = L"Static Forwarder Dependency";
+                            break;
+                        case LoadReasonDynamicForwarderDependency:
+                            string = L"Dynamic Forwarder Dependency";
+                            break;
+                        case LoadReasonDelayloadDependency:
+                            string = L"Delay Load Dependency";
+                            break;
+                        case LoadReasonDynamicLoad:
+                            string = L"Dynamic";
+                            break;
+                        case LoadReasonAsImageLoad:
+                            string = L"As Image";
+                            break;
+                        case LoadReasonAsDataLoad:
+                            string = L"As Data";
+                            break;
+                        default:
+                            if (WindowsVersion >= WINDOWS_8)
+                                string = L"Unknown";
+                            else
+                                string = L"N/A";
+                            break;
+                        }
+                    }
+
+                    PhInitializeStringRef(&getCellText->Text, string);
                 }
                 break;
             default:

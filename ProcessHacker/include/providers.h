@@ -525,7 +525,7 @@ typedef struct _PH_MODULE_ITEM
     ULONG Size;
     ULONG Flags;
     ULONG Type;
-    USHORT Reserved;
+    USHORT LoadReason;
     USHORT LoadCount;
     PPH_STRING Name;
     PPH_STRING FileName;
@@ -542,6 +542,8 @@ typedef struct _PH_MODULE_ITEM
     ULONG ImageTimeDateStamp;
     USHORT ImageCharacteristics;
     USHORT ImageDllCharacteristics;
+
+    LARGE_INTEGER LoadTime;
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER

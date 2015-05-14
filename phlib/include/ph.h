@@ -829,6 +829,9 @@ typedef struct _PH_MODULE_INFO
 
     USHORT LoadOrderIndex; // -1 if N/A
     USHORT LoadCount; // -1 if N/A
+    USHORT LoadReason; // -1 if N/A
+    USHORT Reserved;
+    LARGE_INTEGER LoadTime; // 0 if N/A
 } PH_MODULE_INFO, *PPH_MODULE_INFO;
 
 /**
