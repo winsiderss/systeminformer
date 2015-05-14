@@ -1706,6 +1706,24 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_NETWORK_GOTOSERVICE:
+        {
+            PPH_NETWORK_ITEM networkItem = PhGetSelectedNetworkItem();
+            PPH_SERVICE_ITEM serviceItem;
+
+            if (networkItem && networkItem->OwnerName)
+            {
+                if (serviceItem = PhReferenceServiceItem(networkItem->OwnerName->Buffer))
+                {
+                    PhMwpSelectTabPage(ServicesTabIndex);
+                    SetFocus(ServiceTreeListHandle);
+                    ProcessHacker_SelectServiceItem(PhMainWndHandle, serviceItem);
+
+                    PhDereferenceObject(serviceItem);
+                }
+            }
+        }
+        break;
     case ID_NETWORK_VIEWSTACK:
         {
             PPH_NETWORK_ITEM networkItem = PhGetSelectedNetworkItem();
@@ -4943,6 +4961,13 @@ VOID PhMwpInitializeNetworkMenu(
     if (WindowsVersion >= WINDOWS_VISTA)
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_NETWORK_VIEWSTACK))
+            PhDestroyEMenuItem(item);
+    }
+
+    // Go to Service
+    if (NumberOfNetworkItems != 1 || !NetworkItems[0]->OwnerName)
+    {
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_NETWORK_GOTOSERVICE))
             PhDestroyEMenuItem(item);
     }
 

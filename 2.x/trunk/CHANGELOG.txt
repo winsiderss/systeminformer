@@ -12,6 +12,7 @@ Process Hacker
    * Updated UserNotes plugin:
      * Added ability to save I/O priority
  * FIXED:
+   * Fixed memory editor copy bug
 
 2.34
  * NEW/IMPROVED:

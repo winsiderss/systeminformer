@@ -276,15 +276,6 @@ BEGIN
             MENUITEM "Low",                         ID_I_1
             MENUITEM "Very Low",                    ID_I_0
         END
-        POPUP "&Window"
-        BEGIN
-            MENUITEM "Bring to Front",              ID_WINDOW_BRINGTOFRONT
-            MENUITEM "Restore",                     ID_WINDOW_RESTORE
-            MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
-            MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
-            MENUITEM SEPARATOR
-            MENUITEM "Close",                       ID_WINDOW_CLOSE
-        END
         POPUP "&Miscellaneous"
         BEGIN
             MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
@@ -303,6 +294,15 @@ BEGIN
             MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
             MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
             MENUITEM "Terminator",                  ID_MISCELLANEOUS_TERMINATOR
+        END
+        POPUP "&Window"
+        BEGIN
+            MENUITEM "Bring to Front",              ID_WINDOW_BRINGTOFRONT
+            MENUITEM "Restore",                     ID_WINDOW_RESTORE
+            MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
+            MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
+            MENUITEM SEPARATOR
+            MENUITEM "Close",                       ID_WINDOW_CLOSE
         END
         MENUITEM SEPARATOR
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
@@ -371,6 +371,7 @@ BEGIN
     POPUP "Network"
     BEGIN
         MENUITEM "&Go to Process\aEnter",       ID_NETWORK_GOTOPROCESS
+        MENUITEM "Go to Service",               ID_NETWORK_GOTOSERVICE
         MENUITEM "View &Stack",                 ID_NETWORK_VIEWSTACK
         MENUITEM "C&lose",                      ID_NETWORK_CLOSE
         MENUITEM SEPARATOR

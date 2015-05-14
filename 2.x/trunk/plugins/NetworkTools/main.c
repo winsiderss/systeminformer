@@ -72,6 +72,7 @@ VOID NTAPI NetworkMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
     PPH_NETWORK_ITEM networkItem;
     PPH_EMENU_ITEM toolsMenu;
+    PPH_EMENU_ITEM closeMenuItem;
 
     if (menuInfo->u.Network.NumberOfNetworkItems == 1)
         networkItem = menuInfo->u.Network.NetworkItems[0];
@@ -85,7 +86,8 @@ VOID NTAPI NetworkMenuInitializingCallback(
     PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_WHOIS, L"Whois", networkItem), -1);
 
     // Insert the Tools menu into the network menu.
-    PhInsertEMenuItem(menuInfo->Menu, toolsMenu, 1);
+    closeMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Close", 0);
+    PhInsertEMenuItem(menuInfo->Menu, toolsMenu, closeMenuItem ? PhIndexOfEMenuItem(menuInfo->Menu, closeMenuItem) : 1);
 
     toolsMenu->Flags |= PH_EMENU_DISABLED;
 
