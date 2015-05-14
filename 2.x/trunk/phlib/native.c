@@ -2,7 +2,7 @@
  * Process Hacker -
  *   native support functions
  *
- * Copyright (C) 2009-2012 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -3750,8 +3750,10 @@ NTSTATUS PhpEnumProcessModules(
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
-    if (WindowsVersion >= WINDOWS_7)
-        dataTableEntrySize = sizeof(LDR_DATA_TABLE_ENTRY);
+    if (WindowsVersion >= WINDOWS_8)
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
+    else if (WindowsVersion >= WINDOWS_7)
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
     else
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WINXP;
 
@@ -4058,6 +4060,7 @@ NTSTATUS PhpEnumProcessModules32(
     PEB_LDR_DATA32 pebLdrData;
     ULONG startLink; // LIST_ENTRY32 *32
     ULONG currentLink; // LIST_ENTRY32 *32
+    ULONG dataTableEntrySize;
     LDR_DATA_TABLE_ENTRY32 currentEntry;
     ULONG i;
 
@@ -4097,6 +4100,13 @@ NTSTATUS PhpEnumProcessModules32(
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
+    if (WindowsVersion >= WINDOWS_8)
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
+    else if (WindowsVersion >= WINDOWS_7)
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
+    else
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WINXP_32;
+
     // Traverse the linked list (in load order).
 
     i = 0;
@@ -4115,7 +4125,7 @@ NTSTATUS PhpEnumProcessModules32(
             ProcessHandle,
             UlongToPtr(addressOfEntry),
             &currentEntry,
-            LDR_DATA_TABLE_ENTRY_SIZE_WINXP32,
+            dataTableEntrySize,
             NULL
             );
 
@@ -4175,6 +4185,11 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     nativeEntry.Flags = Entry->Flags;
     nativeEntry.ObsoleteLoadCount = Entry->ObsoleteLoadCount;
     nativeEntry.TlsIndex = Entry->TlsIndex;
+    nativeEntry.TimeDateStamp = Entry->TimeDateStamp;
+    nativeEntry.OriginalBase = Entry->OriginalBase;
+    nativeEntry.LoadTime = Entry->LoadTime;
+    nativeEntry.BaseNameHashValue = Entry->BaseNameHashValue;
+    nativeEntry.LoadReason = Entry->LoadReason;
 
     mappedFileName = NULL;
 
@@ -5994,6 +6009,17 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->ObsoleteLoadCount;
 
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        moduleInfo.LoadReason = (USHORT)Module->LoadReason;
+        moduleInfo.LoadTime = Module->LoadTime;
+    }
+    else
+    {
+        moduleInfo.LoadReason = -1;
+        moduleInfo.LoadTime.QuadPart = 0;
+    }
+
     PhDereferenceObject(fileName);
 
     cont = context->Callback(&moduleInfo, context->Context);
@@ -6047,6 +6073,8 @@ VOID PhpRtlModulesToGenericModules(
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
         moduleInfo.LoadOrderIndex = module->LoadOrderIndex;
         moduleInfo.LoadCount = module->LoadCount;
+        moduleInfo.LoadReason = -1;
+        moduleInfo.LoadTime.QuadPart = 0;
 
         PhDereferenceObject(fileName);
 
@@ -6116,6 +6144,8 @@ VOID PhpRtlModulesExToGenericModules(
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
         moduleInfo.LoadOrderIndex = module->BaseInfo.LoadOrderIndex;
         moduleInfo.LoadCount = module->BaseInfo.LoadCount;
+        moduleInfo.LoadReason = -1;
+        moduleInfo.LoadTime.QuadPart = 0;
 
         PhDereferenceObject(fileName);
 
@@ -6153,6 +6183,8 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     moduleInfo.Name = PhGetBaseName(moduleInfo.FileName);
     moduleInfo.LoadOrderIndex = -1;
     moduleInfo.LoadCount = -1;
+    moduleInfo.LoadReason = -1;
+    moduleInfo.LoadTime.QuadPart = 0;
 
     cont = Callback(&moduleInfo, Context);
 
