@@ -402,15 +402,12 @@ typedef struct _ALPC_HANDLE_ATTR
 
 #define ALPC_SECFLG_CREATE_HANDLE 0x20000 // dbg
 
-// name:private
-// rev
+// private
 typedef struct _ALPC_SECURITY_ATTR
 {
     ULONG Flags;
-    PSECURITY_QUALITY_OF_SERVICE SecurityQos;
+    PSECURITY_QUALITY_OF_SERVICE QoS;
     ALPC_HANDLE ContextHandle; // dbg
-    ULONG Reserved1;
-    ULONG Reserved2;
 } ALPC_SECURITY_ATTR, *PALPC_SECURITY_ATTR;
 
 // begin_rev
