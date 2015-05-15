@@ -886,15 +886,15 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemMemoryTopologyInformation,
     SystemMemoryChannelInformation,
     SystemBootLogoInformation, // 140
-    SystemProcessorPerformanceInformationEx, // since WINBLUE
+    SystemProcessorPerformanceInformationEx, // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX // since WINBLUE
     SystemSpare0,
     SystemSecureBootPolicyInformation,
-    SystemPageFileInformationEx,
+    SystemPageFileInformationEx, // q: SYSTEM_PAGEFILE_INFORMATION_EX
     SystemSecureBootInformation,
     SystemEntropyInterruptTimingRawInformation,
     SystemPortableWorkspaceEfiLauncherInformation,
     SystemFullProcessInformation, // q: SYSTEM_PROCESS_INFORMATION with SYSTEM_PROCESS_INFORMATION_EXTENSION (requires admin)
-    SystemKernelDebuggerInformationEx,
+    SystemKernelDebuggerInformationEx, // q: SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX
     SystemBootMetadataInformation, // 150
     SystemSoftRebootInformation,
     SystemElamCertificateInformation,
@@ -1729,6 +1729,29 @@ typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
 // end_msdn
 
 // private
+typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX
+{
+    LARGE_INTEGER IdleTime;
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+    LARGE_INTEGER DpcTime;
+    LARGE_INTEGER InterruptTime;
+    ULONG InterruptCount;
+    ULONG Spare0;
+    LARGE_INTEGER AvailableTime;
+    LARGE_INTEGER Spare1;
+    LARGE_INTEGER Spare2;
+} SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX, *PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX;
+
+// private
+typedef struct _SYSTEM_PAGEFILE_INFORMATION_EX
+{
+    SYSTEM_PAGEFILE_INFORMATION Info;
+    ULONG MinimumSize;
+    ULONG MaximumSize;
+} SYSTEM_PAGEFILE_INFORMATION_EX, *PSYSTEM_PAGEFILE_INFORMATION_EX;
+
+// private
 typedef struct _PROCESS_DISK_COUNTERS
 {
     ULONGLONG BytesRead;
@@ -1754,6 +1777,14 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
     };
     ULONG UserSidOffset;
 } SYSTEM_PROCESS_INFORMATION_EXTENSION, *PSYSTEM_PROCESS_INFORMATION_EXTENSION;
+
+// private
+typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX
+{
+    BOOLEAN DebuggerAllowed;
+    BOOLEAN DebuggerEnabled;
+    BOOLEAN DebuggerPresent;
+} SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION_EX;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 

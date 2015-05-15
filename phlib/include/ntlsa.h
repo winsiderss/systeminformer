@@ -9,17 +9,23 @@
 
 // Basic
 
-NTSTATUS NTAPI LsaDelete(
+NTSTATUS
+NTAPI
+LsaDelete(
     _In_ LSA_HANDLE ObjectHandle
     );
 
-NTSTATUS NTAPI LsaQuerySecurityObject(
+NTSTATUS
+NTAPI
+LsaQuerySecurityObject(
     _In_ LSA_HANDLE ObjectHandle,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
     );
 
-NTSTATUS NTAPI LsaSetSecurityObject(
+NTSTATUS
+NTAPI
+LsaSetSecurityObject(
     _In_ LSA_HANDLE ObjectHandle,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
@@ -75,18 +81,24 @@ typedef struct _POLICY_PRIVILEGE_DEFINITION
     LUID LocalValue;
 } POLICY_PRIVILEGE_DEFINITION, *PPOLICY_PRIVILEGE_DEFINITION;
 
-NTSTATUS NTAPI LsaOpenPolicySce(
+NTSTATUS
+NTAPI
+LsaOpenPolicySce(
     _In_opt_ PLSA_UNICODE_STRING SystemName,
     _In_ PLSA_OBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE PolicyHandle
     );
 
-NTSTATUS NTAPI LsaClearAuditLog(
+NTSTATUS
+NTAPI
+LsaClearAuditLog(
     _In_ LSA_HANDLE PolicyHandle
     );
 
-NTSTATUS NTAPI LsaEnumeratePrivileges(
+NTSTATUS
+NTAPI
+LsaEnumeratePrivileges(
     _In_ LSA_HANDLE PolicyHandle,
     _Inout_ PLSA_ENUMERATION_HANDLE EnumerationContext,
     _Out_ PVOID *Buffer, // PPOLICY_PRIVILEGE_DEFINITION *Buffer
@@ -114,21 +126,27 @@ NTSTATUS NTAPI LsaEnumeratePrivileges(
     ACCOUNT_ADJUST_SYSTEM_ACCESS)
 #define ACCOUNT_EXECUTE (STANDARD_RIGHTS_EXECUTE)
 
-NTSTATUS NTAPI LsaCreateAccount(
+NTSTATUS
+NTAPI
+LsaCreateAccount(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PSID AccountSid,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE AccountHandle
     );
 
-NTSTATUS NTAPI LsaOpenAccount(
+NTSTATUS
+NTAPI
+LsaOpenAccount(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PSID AccountSid,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE AccountHandle
     );
 
-NTSTATUS NTAPI LsaEnumerateAccounts(
+NTSTATUS
+NTAPI
+LsaEnumerateAccounts(
     _In_ LSA_HANDLE PolicyHandle,
     _Inout_ PLSA_ENUMERATION_HANDLE EnumerationContext,
     _Out_ PVOID *Buffer, // PSID **Buffer
@@ -136,38 +154,52 @@ NTSTATUS NTAPI LsaEnumerateAccounts(
     _Out_ PULONG CountReturned
     );
 
-NTSTATUS NTAPI LsaAddPrivilegesToAccount(
+NTSTATUS
+NTAPI
+LsaAddPrivilegesToAccount(
     _In_ LSA_HANDLE AccountHandle,
     _In_ PPRIVILEGE_SET Privileges
     );
 
-NTSTATUS NTAPI LsaRemovePrivilegesFromAccount(
+NTSTATUS
+NTAPI
+LsaRemovePrivilegesFromAccount(
     _In_ LSA_HANDLE AccountHandle,
     _In_ BOOLEAN AllPrivileges,
     _In_opt_ PPRIVILEGE_SET Privileges
     );
 
-NTSTATUS NTAPI LsaEnumeratePrivilegesOfAccount(
+NTSTATUS
+NTAPI
+LsaEnumeratePrivilegesOfAccount(
     _In_ LSA_HANDLE AccountHandle,
     _Out_ PPRIVILEGE_SET *Privileges
     );
 
-NTSTATUS NTAPI LsaGetQuotasForAccount(
+NTSTATUS
+NTAPI
+LsaGetQuotasForAccount(
     _In_ LSA_HANDLE AccountHandle,
     _Out_ PQUOTA_LIMITS QuotaLimits
     );
 
-NTSTATUS NTAPI LsaSetQuotasForAccount(
+NTSTATUS
+NTAPI
+LsaSetQuotasForAccount(
     _In_ LSA_HANDLE AccountHandle,
     _In_ PQUOTA_LIMITS QuotaLimits
     );
 
-NTSTATUS NTAPI LsaGetSystemAccessAccount(
+NTSTATUS
+NTAPI
+LsaGetSystemAccessAccount(
     _In_ LSA_HANDLE AccountHandle,
     _Out_ PULONG SystemAccess
     );
 
-NTSTATUS NTAPI LsaSetSystemAccessAccount(
+NTSTATUS
+NTAPI
+LsaSetSystemAccessAccount(
     _In_ LSA_HANDLE AccountHandle,
     _In_ ULONG SystemAccess
     );
@@ -199,27 +231,35 @@ NTSTATUS NTAPI LsaSetSystemAccessAccount(
     TRUSTED_QUERY_CONTROLLERS | \
     TRUSTED_QUERY_POSIX)
 
-NTSTATUS NTAPI LsaCreateTrustedDomain(
+NTSTATUS
+NTAPI
+LsaCreateTrustedDomain(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PLSA_TRUST_INFORMATION TrustedDomainInformation,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
-NTSTATUS NTAPI LsaOpenTrustedDomain(
+NTSTATUS
+NTAPI
+LsaOpenTrustedDomain(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PSID TrustedDomainSid,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
-NTSTATUS NTAPI LsaQueryInfoTrustedDomain(
+NTSTATUS
+NTAPI
+LsaQueryInfoTrustedDomain(
     _In_ LSA_HANDLE TrustedDomainHandle,
     _In_ TRUSTED_INFORMATION_CLASS InformationClass,
     _Out_ PVOID *Buffer
     );
 
-NTSTATUS NTAPI LsaSetInformationTrustedDomain(
+NTSTATUS
+NTAPI
+LsaSetInformationTrustedDomain(
     _In_ LSA_HANDLE TrustedDomainHandle,
     _In_ TRUSTED_INFORMATION_CLASS InformationClass,
     _In_ PVOID Buffer
@@ -251,29 +291,37 @@ NTSTATUS NTAPI LsaSetInformationTrustedDomain(
 #define LSA_SECRET_MAXIMUM_COUNT 0x00001000L
 #define LSA_SECRET_MAXIMUM_LENGTH 0x00000200L
 
-NTSTATUS NTAPI LsaCreateSecret(
+NTSTATUS
+NTAPI
+LsaCreateSecret(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PLSA_UNICODE_STRING SecretName,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE SecretHandle
     );
 
-NTSTATUS NTAPI LsaOpenSecret(
+NTSTATUS
+NTAPI
+LsaOpenSecret(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PLSA_UNICODE_STRING SecretName,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PLSA_HANDLE SecretHandle
     );
 
-NTSTATUS NTAPI LsaSetSecret(
+NTSTATUS
+NTAPI
+LsaSetSecret(
     _In_ LSA_HANDLE SecretHandle,
     _In_opt_ PLSA_UNICODE_STRING CurrentValue,
     _In_opt_ PLSA_UNICODE_STRING OldValue
     );
 
-NTSTATUS NTAPI LsaQuerySecret(
+NTSTATUS
+NTAPI
+LsaQuerySecret(
     _In_ LSA_HANDLE SecretHandle,
-    _Out_opt_ OPTIONAL PLSA_UNICODE_STRING *CurrentValue,
+    _Out_opt_ PLSA_UNICODE_STRING *CurrentValue,
     _Out_opt_ PLARGE_INTEGER CurrentValueSetTime,
     _Out_opt_ PLSA_UNICODE_STRING *OldValue,
     _Out_opt_ PLARGE_INTEGER OldValueSetTime
@@ -281,19 +329,25 @@ NTSTATUS NTAPI LsaQuerySecret(
 
 // Privilege
 
-NTSTATUS NTAPI LsaLookupPrivilegeValue(
+NTSTATUS
+NTAPI
+LsaLookupPrivilegeValue(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PLSA_UNICODE_STRING Name,
     _Out_ PLUID Value
     );
 
-NTSTATUS NTAPI LsaLookupPrivilegeName(
+NTSTATUS
+NTAPI
+LsaLookupPrivilegeName(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PLUID Value,
     _Out_ PLSA_UNICODE_STRING *Name
     );
 
-NTSTATUS NTAPI LsaLookupPrivilegeDisplayName(
+NTSTATUS
+NTAPI
+LsaLookupPrivilegeDisplayName(
     _In_ LSA_HANDLE PolicyHandle,
     _In_ PLSA_UNICODE_STRING Name,
     _Out_ PLSA_UNICODE_STRING *DisplayName,
@@ -302,7 +356,9 @@ NTSTATUS NTAPI LsaLookupPrivilegeDisplayName(
 
 // Misc.
 
-NTSTATUS NTAPI LsaChangePassword(
+NTSTATUS
+NTAPI
+LsaChangePassword(
     _In_ PLSA_UNICODE_STRING ServerName,
     _In_ PLSA_UNICODE_STRING DomainName,
     _In_ PLSA_UNICODE_STRING AccountName,
@@ -310,12 +366,16 @@ NTSTATUS NTAPI LsaChangePassword(
     _In_ PLSA_UNICODE_STRING NewPassword
     );
 
-NTSTATUS NTAPI LsaGetUserName(
+NTSTATUS
+NTAPI
+LsaGetUserName(
     _Outptr_ PLSA_UNICODE_STRING *UserName,
     _Outptr_opt_ PLSA_UNICODE_STRING *DomainName
     );
 
-NTSTATUS NTAPI LsaGetRemoteUserName(
+NTSTATUS
+NTAPI
+LsaGetRemoteUserName(
     _In_opt_ PLSA_UNICODE_STRING SystemName,
     _Outptr_ PLSA_UNICODE_STRING *UserName,
     _Outptr_opt_ PLSA_UNICODE_STRING *DomainName
