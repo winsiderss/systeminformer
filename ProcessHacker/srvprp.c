@@ -325,12 +325,31 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         { L"All files (*.*)", L"*.*" }
                     };
                     PVOID fileDialog;
+                    PPH_STRING commandLine;
                     PPH_STRING fileName;
 
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BINARYPATH));
+                    commandLine = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BINARYPATH);
+
+                    if (context->ServiceItem->Type == SERVICE_WIN32_OWN_PROCESS || context->ServiceItem->Type == SERVICE_WIN32_SHARE_PROCESS ||
+                        context->ServiceItem->Type == SERVICE_INTERACTIVE_PROCESS)
+                    {
+                        PH_STRINGREF dummyFileName;
+                        PH_STRINGREF dummyArguments;
+
+                        if (!PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName))
+                            fileName = NULL;
+
+                        if (!fileName)
+                            PhSwapReference(&fileName, commandLine);
+                    }
+                    else
+                    {
+                        fileName = PhGetFileName(commandLine);
+                    }
+
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
                     PhDereferenceObject(fileName);
 
