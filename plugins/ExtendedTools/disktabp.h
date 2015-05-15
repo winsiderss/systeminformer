@@ -153,6 +153,10 @@ BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
     _In_opt_ PVOID Context
     );
 
+VOID NTAPI EtpToolStatusActivateContent(
+    _In_ BOOLEAN Select
+    );
+
 INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

@@ -336,16 +336,59 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         break;
     case WM_KEYDOWN:
         {
-            if (WindowsVersion > WINDOWS_VISTA)
-                break;
+            if (wParam == '\t' || wParam == '\r')
+            {
+                HWND tnHandle = NULL;
+
+                switch (SelectedTabIndex)
+                {
+                case 0:
+                    tnHandle = ProcessTreeNewHandle;
+                    break;
+                case 1:
+                    tnHandle = ServiceTreeNewHandle;
+                    break;
+                case 2:
+                    tnHandle = NetworkTreeNewHandle;
+                    break;
+                }
+
+                if (tnHandle)
+                {
+                    SetFocus(tnHandle);
+
+                    if (wParam == '\r')
+                    {
+                        if (TreeNew_GetFlatNodeCount(tnHandle) > 0)
+                        {
+                            TreeNew_SelectRange(tnHandle, 0, 0);
+                            TreeNew_SetFocusNode(tnHandle, TreeNew_GetFlatNode(tnHandle, 0));
+                            TreeNew_SetMarkNode(tnHandle, TreeNew_GetFlatNode(tnHandle, 0));
+                        }
+                    }
+                }
+                else
+                {
+                    PTOOLSTATUS_TAB_INFO tabInfo;
+
+                    if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->ActivateContent)
+                        tabInfo->ActivateContent(wParam == '\r');
+                }
+
+                return FALSE;
+            }
 
             // Handle CTRL+A below Vista.
-            if (GetKeyState(VK_CONTROL) & VK_LCONTROL && wParam == 'A')
+            if (WindowsVersion < WINDOWS_VISTA && (GetKeyState(VK_CONTROL) & VK_LCONTROL) && wParam == 'A')
             {
                 Edit_SetSel(hwndDlg, 0, -1);
                 return FALSE;
             }
         }
+        break;
+    case WM_CHAR:
+        if (wParam == '\t' || wParam == '\r')
+            return FALSE;
         break;
     case WM_CUT:
     case WM_CLEAR:

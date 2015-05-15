@@ -32,6 +32,14 @@ VOID RegisterTabSearch(
     _In_ PWSTR BannerText
     );
 
+PTOOLSTATUS_TAB_INFO RegisterTabInfo(
+    _In_ INT TabIndex
+    );
+
+HWND ProcessTreeNewHandle;
+HWND ServiceTreeNewHandle;
+HWND NetworkTreeNewHandle;
+INT SelectedTabIndex;
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
@@ -44,7 +52,7 @@ HWND SearchboxHandle = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
 PH_CALLBACK_DECLARE(SearchChangedEvent);
-PPH_HASHTABLE SearchBannerTextHashtable;
+PPH_HASHTABLE TabInfoHashtable;
 PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry = NULL;
 PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry = NULL;
 PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry = NULL;
@@ -55,7 +63,8 @@ TOOLSTATUS_INTERFACE PluginInterface =
     GetSearchboxText,
     WordMatchStringRef,
     RegisterTabSearch,
-    &SearchChangedEvent
+    &SearchChangedEvent,
+    RegisterTabInfo
 };
 
 static ULONG TargetingMode = 0;
@@ -69,6 +78,9 @@ static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 
 static PPH_STRING GetSearchboxText(
     VOID
@@ -88,21 +100,56 @@ static VOID NTAPI ProcessesUpdatedCallback(
         UpdateStatusBar();
 }
 
+VOID NTAPI TreeNewInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    *(HWND *)Context = ((PPH_PLUGIN_TREENEW_INFORMATION)Parameter)->TreeNewHandle;
+}
+
 static VOID RegisterTabSearch(
     _In_ INT TabIndex,
     _In_ PWSTR BannerText
     )
 {
-    PPH_STRING bannerText = PhCreateString(BannerText);
+    PTOOLSTATUS_TAB_INFO tabInfo;
+
+    tabInfo = RegisterTabInfo(TabIndex);
+    tabInfo->BannerText = BannerText;
+}
+
+PTOOLSTATUS_TAB_INFO RegisterTabInfo(
+    _In_ INT TabIndex
+    )
+{
+    PTOOLSTATUS_TAB_INFO tabInfoCopy;
     PVOID *entry;
 
-    if (!PhAddItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)TabIndex, bannerText))
+    PhCreateAlloc(&tabInfoCopy, sizeof(TOOLSTATUS_TAB_INFO));
+    memset(tabInfoCopy, 0, sizeof(TOOLSTATUS_TAB_INFO));
+
+    if (!PhAddItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex, tabInfoCopy))
     {
-        if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)TabIndex))
-            PhSwapReference2(entry, bannerText);
-        else
-            PhDereferenceObject(bannerText);
+        PhSwapReference(&tabInfoCopy, NULL);
+
+        if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex))
+            tabInfoCopy = *entry;
     }
+
+    return tabInfoCopy;
+}
+
+PTOOLSTATUS_TAB_INFO FindTabInfo(
+    _In_ INT TabIndex
+    )
+{
+    PVOID *entry;
+
+    if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex))
+        return *entry;
+    else
+        return NULL;
 }
 
 static VOID NTAPI TabPageUpdatedCallback(
@@ -111,6 +158,8 @@ static VOID NTAPI TabPageUpdatedCallback(
     )
 {
     INT tabIndex = (INT)Parameter;
+
+    SelectedTabIndex = tabIndex;
 
     if (!SearchboxHandle)
         return;
@@ -128,11 +177,11 @@ static VOID NTAPI TabPageUpdatedCallback(
         break;
     default:
         {
-            PVOID *entry;
+            PTOOLSTATUS_TAB_INFO tabInfo;
 
-            if (entry = PhFindItemSimpleHashtable(SearchBannerTextHashtable, (PVOID)tabIndex))
+            if ((tabInfo = FindTabInfo(tabIndex)) && tabInfo->BannerText)
             {
-                Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(((PPH_STRING)*entry)->Buffer, L" (Ctrl+K)")->Buffer);
+                Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(tabInfo->BannerText, L" (Ctrl+K)")->Buffer);
             }
             else
             {
@@ -918,6 +967,24 @@ LOGICAL DllMain(
                 NULL,
                 &TabPageCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
+                TreeNewInitializingCallback,
+                &ProcessTreeNewHandle,
+                &ProcessTreeNewInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
+                TreeNewInitializingCallback,
+                &ServiceTreeNewHandle,
+                &ServiceTreeNewInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing),
+                TreeNewInitializingCallback,
+                &NetworkTreeNewHandle,
+                &NetworkTreeNewInitializingCallbackRegistration
+                );
 
             PhAddSettings(settings, _countof(settings));
 
@@ -926,7 +993,7 @@ LOGICAL DllMain(
                 MAKEINTRESOURCE(IDR_MAINWND_ACCEL)
                 );
 
-            SearchBannerTextHashtable = PhCreateSimpleHashtable(3);
+            TabInfoHashtable = PhCreateSimpleHashtable(3);
         }
         break;
     }
