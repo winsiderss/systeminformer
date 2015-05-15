@@ -16,6 +16,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
+#pragma code_page(1252)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -93,14 +94,14 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "You can configure processes for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
     LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Examples:\nnote*.exe\nC:\\Windows\\system32\\cmd.exe\nC:\\Windows\\*",IDC_STATIC,7,186,241,36
+    PUSHBUTTON      "Move Up",IDC_MOVEUP,198,30,50,14
+    PUSHBUTTON      "Move Down",IDC_MOVEDOWN,198,47,50,14
     EDITTEXT        IDC_TEXT,7,152,147,12,ES_AUTOHSCROLL
     CONTROL         "Include",IDC_INCLUDE,"Button",BS_AUTORADIOBUTTON,163,153,39,10
     CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10
-    PUSHBUTTON      "Remove",IDC_REMOVE,198,168,50,14
     PUSHBUTTON      "Add/Update",IDC_ADD,145,168,50,14
-    PUSHBUTTON      "Move Up",IDC_MOVEUP,198,30,50,14
-    PUSHBUTTON      "Move Down",IDC_MOVEDOWN,198,47,50,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,198,168,50,14
+    LTEXT           "Examples:\nnote*.exe\nC:\\Windows\\system32\\cmd.exe\nC:\\Windows\\*",IDC_STATIC,7,186,241,36
 END
 
 IDD_SERVICES DIALOGEX 0, 0, 255, 229
@@ -109,15 +110,15 @@ CAPTION "Services"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "You can configure services for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
-    LTEXT           "Examples:\nWdi*\nseclogon",IDC_STATIC,7,186,241,36
-    EDITTEXT        IDC_TEXT,7,152,147,12,ES_AUTOHSCROLL
-    CONTROL         "Include",IDC_INCLUDE,"Button",BS_AUTORADIOBUTTON,163,153,39,10
-    CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10
-    PUSHBUTTON      "Remove",IDC_REMOVE,198,168,50,14
-    PUSHBUTTON      "Add/Update",IDC_ADD,145,168,50,14
     LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Move Up",IDC_MOVEUP,198,30,50,14
     PUSHBUTTON      "Move Down",IDC_MOVEDOWN,198,47,50,14
+    EDITTEXT        IDC_TEXT,7,152,147,12,ES_AUTOHSCROLL
+    CONTROL         "Include",IDC_INCLUDE,"Button",BS_AUTORADIOBUTTON,163,153,39,10
+    CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10
+    PUSHBUTTON      "Add/Update",IDC_ADD,145,168,50,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,198,168,50,14
+    LTEXT           "Examples:\nWdi*\nseclogon",IDC_STATIC,7,186,241,36
 END
 
 IDD_LOGGING DIALOGEX 0, 0, 255, 229
@@ -137,9 +138,9 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Growl"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_LICENSE,7,34,241,188,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
     CONTROL         "Send notifications to Growl",IDC_ENABLEGROWL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,101,10
     LTEXT           "gntp-send license:",IDC_STATIC,7,23,60,8
+    EDITTEXT        IDC_LICENSE,7,34,241,188,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
 END
 
 

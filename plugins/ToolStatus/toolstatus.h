@@ -98,6 +98,10 @@ typedef enum _REBAR_DISPLAY_LOCATION
     RebarLocationRight = 3,
 } REBAR_DISPLAY_LOCATION;
 
+extern HWND ProcessTreeNewHandle;
+extern HWND ServiceTreeNewHandle;
+extern HWND NetworkTreeNewHandle;
+extern INT SelectedTabIndex;
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
@@ -123,6 +127,10 @@ extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
+
+PTOOLSTATUS_TAB_INFO FindTabInfo(
+    _In_ INT TabIndex
+    );
 
 VOID UpdateStatusBar(
     VOID
