@@ -72,7 +72,11 @@ VOID EtInitializeDiskTab(
 
     if (ToolStatusInterface)
     {
-        ToolStatusInterface->RegisterTabSearch(addedTabPage->Index, L"Search Disk");
+        PTOOLSTATUS_TAB_INFO tabInfo;
+
+        tabInfo = ToolStatusInterface->RegisterTabInfo(addedTabPage->Index);
+        tabInfo->BannerText = L"Search Disk";
+        tabInfo->ActivateContent = EtpToolStatusActivateContent;
     }
 }
 
@@ -1093,6 +1097,19 @@ static BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
         return TRUE;
 
     return FALSE;
+}
+
+VOID NTAPI EtpToolStatusActivateContent(
+    _In_ BOOLEAN Select
+    )
+{
+    SetFocus(DiskTreeNewHandle);
+
+    if (Select)
+    {
+        if (TreeNew_GetFlatNodeCount(DiskTreeNewHandle) > 0)
+            EtSelectAndEnsureVisibleDiskNode((PET_DISK_NODE)TreeNew_GetFlatNode(DiskTreeNewHandle, 0));
+    }
 }
 
 INT_PTR CALLBACK EtpDiskTabErrorDialogProc(

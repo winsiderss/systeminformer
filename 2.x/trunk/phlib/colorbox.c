@@ -27,6 +27,7 @@ typedef struct _PHP_COLORBOX_CONTEXT
 {
     COLORREF SelectedColor;
     BOOLEAN Hot;
+    BOOLEAN HasFocus;
 } PHP_COLORBOX_CONTEXT, *PPHP_COLORBOX_CONTEXT;
 
 LRESULT CALLBACK PhpColorBoxWndProc(
@@ -67,10 +68,7 @@ VOID PhpCreateColorBoxContext(
     PPHP_COLORBOX_CONTEXT context;
 
     context = PhAllocate(sizeof(PHP_COLORBOX_CONTEXT));
-
-    context->SelectedColor = RGB(0x00, 0x00, 0x00);
-    context->Hot = FALSE;
-
+    memset(context, 0, sizeof(PHP_COLORBOX_CONTEXT));
     *Context = context;
 }
 
@@ -79,6 +77,26 @@ VOID PhpFreeColorBoxContext(
     )
 {
     PhFree(Context);
+}
+
+VOID PhpChooseColor(
+    _In_ HWND hwnd,
+    _In_ PPHP_COLORBOX_CONTEXT Context
+    )
+{
+    CHOOSECOLOR chooseColor = { sizeof(chooseColor) };
+    COLORREF customColors[16] = { 0 };
+
+    chooseColor.hwndOwner = hwnd;
+    chooseColor.rgbResult = Context->SelectedColor;
+    chooseColor.lpCustColors = customColors;
+    chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
+
+    if (ChooseColor(&chooseColor))
+    {
+        Context->SelectedColor = chooseColor.rgbResult;
+        InvalidateRect(hwnd, NULL, TRUE);
+    }
 }
 
 LRESULT CALLBACK PhpColorBoxWndProc(
@@ -128,7 +146,7 @@ LRESULT CALLBACK PhpColorBoxWndProc(
                 SetDCPenColor(hdc, RGB(0x44, 0x44, 0x44));
 
                 // Fill color
-                if (!context->Hot)
+                if (!context->Hot && !context->HasFocus)
                     SetDCBrushColor(hdc, context->SelectedColor);
                 else
                     SetDCBrushColor(hdc, PhMakeColorBrighter(context->SelectedColor, 64));
@@ -167,18 +185,33 @@ LRESULT CALLBACK PhpColorBoxWndProc(
         break;
     case WM_LBUTTONDOWN:
         {
-            CHOOSECOLOR chooseColor = { sizeof(chooseColor) };
-            COLORREF customColors[16] = { 0 };
-
-            chooseColor.hwndOwner = hwnd;
-            chooseColor.rgbResult = context->SelectedColor;
-            chooseColor.lpCustColors = customColors;
-            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
-
-            if (ChooseColor(&chooseColor))
+            PhpChooseColor(hwnd, context);
+        }
+        break;
+    case WM_SETFOCUS:
+        {
+            context->HasFocus = TRUE;
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        return 0;
+    case WM_KILLFOCUS:
+        {
+            context->HasFocus = FALSE;
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        return 0;
+    case WM_GETDLGCODE:
+        if (wParam == VK_RETURN)
+            return DLGC_WANTMESSAGE;
+        return 0;
+    case WM_KEYDOWN:
+        {
+            switch (wParam)
             {
-                context->SelectedColor = chooseColor.rgbResult;
-                InvalidateRect(hwnd, NULL, TRUE);
+            case VK_SPACE:
+            case VK_RETURN:
+                PhpChooseColor(hwnd, context);
+                break;
             }
         }
         break;
