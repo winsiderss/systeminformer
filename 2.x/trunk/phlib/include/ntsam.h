@@ -37,30 +37,40 @@ typedef SAM_BYTE_ARRAY_32K SAM_SHELL_OBJECT_PROPERTIES, *PSAM_SHELL_OBJECT_PROPE
 
 // Basic
 
-NTSTATUS NTAPI SamFreeMemory(
+NTSTATUS
+NTAPI
+SamFreeMemory(
     _In_ PVOID Buffer
     );
 
-NTSTATUS NTAPI SamCloseHandle(
+NTSTATUS
+NTAPI
+SamCloseHandle(
     _In_ SAM_HANDLE SamHandle
     );
 
 _Check_return_
-NTSTATUS NTAPI SamSetSecurityObject(
+NTSTATUS
+NTAPI
+SamSetSecurityObject(
     _In_ SAM_HANDLE ObjectHandle,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 _Check_return_
-NTSTATUS NTAPI SamQuerySecurityObject(
+NTSTATUS
+NTAPI
+SamQuerySecurityObject(
     _In_ SAM_HANDLE ObjectHandle,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _Outptr_ PSECURITY_DESCRIPTOR *SecurityDescriptor
     );
 
 _Check_return_
-NTSTATUS NTAPI SamRidToSid(
+NTSTATUS
+NTAPI
+SamRidToSid(
     _In_ SAM_HANDLE ObjectHandle,
     _In_ ULONG Rid,
     _Outptr_ PSID *Sid
@@ -98,7 +108,9 @@ NTSTATUS NTAPI SamRidToSid(
 // Functions
 
 _Check_return_
-NTSTATUS NTAPI SamConnect(
+NTSTATUS
+NTAPI
+SamConnect(
     _In_opt_ PUNICODE_STRING ServerName,
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -106,7 +118,9 @@ NTSTATUS NTAPI SamConnect(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamShutdownSamServer(
+NTSTATUS
+NTAPI
+SamShutdownSamServer(
     _In_ SAM_HANDLE ServerHandle
     );
 
@@ -381,14 +395,18 @@ typedef union _DOMAIN_LOCALIZABLE_INFO_BUFFER
 // Functions
 
 _Check_return_
-NTSTATUS NTAPI SamLookupDomainInSamServer(
+NTSTATUS
+NTAPI
+SamLookupDomainInSamServer(
     _In_ SAM_HANDLE ServerHandle,
     _In_ PUNICODE_STRING Name,
     _Outptr_ PSID *DomainId
     );
 
 _Check_return_
-NTSTATUS NTAPI SamEnumerateDomainsInSamServer(
+NTSTATUS
+NTAPI
+SamEnumerateDomainsInSamServer(
     _In_ SAM_HANDLE ServerHandle,
     _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
     _Outptr_ PVOID *Buffer, // PSAM_SID_ENUMERATION *Buffer
@@ -397,7 +415,9 @@ NTSTATUS NTAPI SamEnumerateDomainsInSamServer(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamOpenDomain(
+NTSTATUS
+NTAPI
+SamOpenDomain(
     _In_ SAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PSID DomainId,
@@ -405,21 +425,27 @@ NTSTATUS NTAPI SamOpenDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamQueryInformationDomain(
+NTSTATUS
+NTAPI
+SamQueryInformationDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ DOMAIN_INFORMATION_CLASS DomainInformationClass,
     _Outptr_ PVOID *Buffer
     );
 
 _Check_return_
-NTSTATUS NTAPI SamSetInformationDomain(
+NTSTATUS
+NTAPI
+SamSetInformationDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ DOMAIN_INFORMATION_CLASS DomainInformationClass,
     _In_ PVOID DomainInformation
     );
 
 _Check_return_
-NTSTATUS NTAPI SamLookupNamesInDomain(
+NTSTATUS
+NTAPI
+SamLookupNamesInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ULONG Count,
     _In_reads_(Count) PUNICODE_STRING Names,
@@ -428,7 +454,9 @@ NTSTATUS NTAPI SamLookupNamesInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamLookupIdsInDomain(
+NTSTATUS
+NTAPI
+SamLookupIdsInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ULONG Count,
     _In_reads_(Count) PULONG RelativeIds,
@@ -437,13 +465,17 @@ NTSTATUS NTAPI SamLookupIdsInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamRemoveMemberFromForeignDomain(
+NTSTATUS
+NTAPI
+SamRemoveMemberFromForeignDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ PSID MemberId
     );
 
 _Check_return_
-NTSTATUS NTAPI SamQueryLocalizableAccountsInDomain(
+NTSTATUS
+NTAPI
+SamQueryLocalizableAccountsInDomain(
     _In_ SAM_HANDLE Domain,
     _In_ ULONG Flags,
     _In_ ULONG LanguageId,
@@ -520,7 +552,9 @@ typedef struct _GROUP_ADM_COMMENT_INFORMATION
 // Functions
 
 _Check_return_
-NTSTATUS NTAPI SamEnumerateGroupsInDomain(
+NTSTATUS
+NTAPI
+SamEnumerateGroupsInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
     _Outptr_ PVOID *Buffer, // PSAM_RID_ENUMERATION *
@@ -529,7 +563,9 @@ NTSTATUS NTAPI SamEnumerateGroupsInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamCreateGroupInDomain(
+NTSTATUS
+NTAPI
+SamCreateGroupInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ PUNICODE_STRING AccountName,
     _In_ ACCESS_MASK DesiredAccess,
@@ -538,7 +574,9 @@ NTSTATUS NTAPI SamCreateGroupInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamOpenGroup(
+NTSTATUS
+NTAPI
+SamOpenGroup(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG GroupId,
@@ -546,39 +584,51 @@ NTSTATUS NTAPI SamOpenGroup(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamDeleteGroup(
+NTSTATUS
+NTAPI
+SamDeleteGroup(
     _In_ SAM_HANDLE GroupHandle
     );
 
 _Check_return_
-NTSTATUS NTAPI SamQueryInformationGroup(
+NTSTATUS
+NTAPI
+SamQueryInformationGroup(
     _In_ SAM_HANDLE GroupHandle,
     _In_ GROUP_INFORMATION_CLASS GroupInformationClass,
     _Outptr_ PVOID *Buffer
     );
 
 _Check_return_
-NTSTATUS NTAPI SamSetInformationGroup(
+NTSTATUS
+NTAPI
+SamSetInformationGroup(
     _In_ SAM_HANDLE GroupHandle,
     _In_ GROUP_INFORMATION_CLASS GroupInformationClass,
     _In_ PVOID Buffer
     );
 
 _Check_return_
-NTSTATUS NTAPI SamAddMemberToGroup(
+NTSTATUS
+NTAPI
+SamAddMemberToGroup(
     _In_ SAM_HANDLE GroupHandle,
     _In_ ULONG MemberId,
     _In_ ULONG Attributes
     );
 
 _Check_return_
-NTSTATUS NTAPI SamRemoveMemberFromGroup(
+NTSTATUS
+NTAPI
+SamRemoveMemberFromGroup(
     _In_ SAM_HANDLE GroupHandle,
     _In_ ULONG MemberId
     );
 
 _Check_return_
-NTSTATUS NTAPI SamGetMembersInGroup(
+NTSTATUS
+NTAPI
+SamGetMembersInGroup(
     _In_ SAM_HANDLE GroupHandle,
     _Out_ _Deref_post_count_(*MemberCount) PULONG *MemberIds,
     _Out_ _Deref_post_count_(*MemberCount) PULONG *Attributes,
@@ -586,7 +636,9 @@ NTSTATUS NTAPI SamGetMembersInGroup(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamSetMemberAttributesOfGroup(
+NTSTATUS
+NTAPI
+SamSetMemberAttributesOfGroup(
     _In_ SAM_HANDLE GroupHandle,
     _In_ ULONG MemberId,
     _In_ ULONG Attributes
@@ -660,7 +712,9 @@ typedef struct _ALIAS_EXTENDED_INFORMATION
 // Functions
 
 _Check_return_
-NTSTATUS NTAPI SamEnumerateAliasesInDomain(
+NTSTATUS
+NTAPI
+SamEnumerateAliasesInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
     _Outptr_ PVOID *Buffer, // PSAM_RID_ENUMERATION *Buffer
@@ -669,7 +723,9 @@ NTSTATUS NTAPI SamEnumerateAliasesInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamCreateAliasInDomain(
+NTSTATUS
+NTAPI
+SamCreateAliasInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ PUNICODE_STRING AccountName,
     _In_ ACCESS_MASK DesiredAccess,
@@ -678,7 +734,9 @@ NTSTATUS NTAPI SamCreateAliasInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamOpenAlias(
+NTSTATUS
+NTAPI
+SamOpenAlias(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG AliasId,
@@ -686,59 +744,77 @@ NTSTATUS NTAPI SamOpenAlias(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamDeleteAlias(
+NTSTATUS
+NTAPI
+SamDeleteAlias(
     _In_ SAM_HANDLE AliasHandle
     );
 
 _Check_return_
-NTSTATUS NTAPI SamQueryInformationAlias(
+NTSTATUS
+NTAPI
+SamQueryInformationAlias(
     _In_ SAM_HANDLE AliasHandle,
     _In_ ALIAS_INFORMATION_CLASS AliasInformationClass,
     _Outptr_ PVOID *Buffer
     );
 
 _Check_return_
-NTSTATUS NTAPI SamSetInformationAlias(
+NTSTATUS
+NTAPI
+SamSetInformationAlias(
     _In_ SAM_HANDLE AliasHandle,
     _In_ ALIAS_INFORMATION_CLASS AliasInformationClass,
     _In_ PVOID Buffer
     );
 
 _Check_return_
-NTSTATUS NTAPI SamAddMemberToAlias(
+NTSTATUS
+NTAPI
+SamAddMemberToAlias(
     _In_ SAM_HANDLE AliasHandle,
     _In_ PSID MemberId
     );
 
 _Check_return_
-NTSTATUS NTAPI SamAddMultipleMembersToAlias(
+NTSTATUS
+NTAPI
+SamAddMultipleMembersToAlias(
     _In_ SAM_HANDLE AliasHandle,
     _In_reads_(MemberCount) PSID *MemberIds,
     _In_ ULONG MemberCount
     );
 
 _Check_return_
-NTSTATUS NTAPI SamRemoveMemberFromAlias(
+NTSTATUS
+NTAPI
+SamRemoveMemberFromAlias(
     _In_ SAM_HANDLE AliasHandle,
     _In_ PSID MemberId
     );
 
 _Check_return_
-NTSTATUS NTAPI SamRemoveMultipleMembersFromAlias(
+NTSTATUS
+NTAPI
+SamRemoveMultipleMembersFromAlias(
     _In_ SAM_HANDLE AliasHandle,
     _In_reads_(MemberCount) PSID *MemberIds,
     _In_ ULONG MemberCount
     );
 
 _Check_return_
-NTSTATUS NTAPI SamGetMembersInAlias(
+NTSTATUS
+NTAPI
+SamGetMembersInAlias(
     _In_ SAM_HANDLE AliasHandle,
     _Out_ _Deref_post_count_(*MemberCount) PSID **MemberIds,
     _Out_ PULONG MemberCount
     );
 
 _Check_return_
-NTSTATUS NTAPI SamGetAliasMembership(
+NTSTATUS
+NTAPI
+SamGetAliasMembership(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ULONG PassedCount,
     _In_reads_(PassedCount) PSID *Sids,
@@ -1281,7 +1357,9 @@ typedef struct _USER_PWD_CHANGE_FAILURE_INFORMATION
 // Functions
 
 _Check_return_
-NTSTATUS NTAPI SamEnumerateUsersInDomain(
+NTSTATUS
+NTAPI
+SamEnumerateUsersInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
     _In_ ULONG UserAccountControl,
@@ -1291,7 +1369,9 @@ NTSTATUS NTAPI SamEnumerateUsersInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamCreateUserInDomain(
+NTSTATUS
+NTAPI
+SamCreateUserInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ PUNICODE_STRING AccountName,
     _In_ ACCESS_MASK DesiredAccess,
@@ -1300,7 +1380,9 @@ NTSTATUS NTAPI SamCreateUserInDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamCreateUser2InDomain(
+NTSTATUS
+NTAPI
+SamCreateUser2InDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ PUNICODE_STRING AccountName,
     _In_ ULONG AccountType,
@@ -1311,7 +1393,9 @@ NTSTATUS NTAPI SamCreateUser2InDomain(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamOpenUser(
+NTSTATUS
+NTAPI
+SamOpenUser(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG UserId,
@@ -1319,40 +1403,52 @@ NTSTATUS NTAPI SamOpenUser(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamDeleteUser(
+NTSTATUS
+NTAPI
+SamDeleteUser(
     _In_ SAM_HANDLE UserHandle
     );
 
 _Check_return_
-NTSTATUS NTAPI SamQueryInformationUser(
+NTSTATUS
+NTAPI
+SamQueryInformationUser(
     _In_ SAM_HANDLE UserHandle,
     _In_ USER_INFORMATION_CLASS UserInformationClass,
     _Outptr_ PVOID *Buffer
     );
 
 _Check_return_
-NTSTATUS NTAPI SamSetInformationUser(
+NTSTATUS
+NTAPI
+SamSetInformationUser(
     _In_ SAM_HANDLE UserHandle,
     _In_ USER_INFORMATION_CLASS UserInformationClass,
     _In_ PVOID Buffer
     );
 
 _Check_return_
-NTSTATUS NTAPI SamGetGroupsForUser(
+NTSTATUS
+NTAPI
+SamGetGroupsForUser(
     _In_ SAM_HANDLE UserHandle,
     _Out_ _Deref_post_count_(*MembershipCount) PGROUP_MEMBERSHIP *Groups,
     _Out_ PULONG MembershipCount
     );
 
 _Check_return_
-NTSTATUS NTAPI SamChangePasswordUser(
+NTSTATUS
+NTAPI
+SamChangePasswordUser(
     _In_ SAM_HANDLE UserHandle,
     _In_ PUNICODE_STRING OldPassword,
     _In_ PUNICODE_STRING NewPassword
     );
 
 _Check_return_
-NTSTATUS NTAPI SamChangePasswordUser2(
+NTSTATUS
+NTAPI
+SamChangePasswordUser2(
     _In_ PUNICODE_STRING ServerName,
     _In_ PUNICODE_STRING UserName,
     _In_ PUNICODE_STRING OldPassword,
@@ -1360,7 +1456,9 @@ NTSTATUS NTAPI SamChangePasswordUser2(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamChangePasswordUser3(
+NTSTATUS
+NTAPI
+SamChangePasswordUser3(
     _In_ PUNICODE_STRING ServerName,
     _In_ PUNICODE_STRING UserName,
     _In_ PUNICODE_STRING OldPassword,
@@ -1370,7 +1468,9 @@ NTSTATUS NTAPI SamChangePasswordUser3(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamQueryDisplayInformation(
+NTSTATUS
+NTAPI
+SamQueryDisplayInformation(
     _In_ SAM_HANDLE DomainHandle,
     _In_ DOMAIN_DISPLAY_INFORMATION DisplayInformation,
     _In_ ULONG Index,
@@ -1383,7 +1483,9 @@ NTSTATUS NTAPI SamQueryDisplayInformation(
     );
 
 _Check_return_
-NTSTATUS NTAPI SamGetDisplayEnumerationIndex(
+NTSTATUS
+NTAPI
+SamGetDisplayEnumerationIndex(
     _In_ SAM_HANDLE DomainHandle,
     _In_ DOMAIN_DISPLAY_INFORMATION DisplayInformation,
     _In_ PUNICODE_STRING Prefix,
@@ -1457,12 +1559,16 @@ typedef NTSTATUS (NTAPI *PSAM_DELTA_NOTIFICATION_ROUTINE)(
 #define SAM_DELTA_NOTIFY_ROUTINE "DeltaNotify"
 
 _Check_return_
-NTSTATUS NTAPI SamRegisterObjectChangeNotification(
+NTSTATUS
+NTAPI
+SamRegisterObjectChangeNotification(
     _In_ SECURITY_DB_OBJECT_TYPE ObjectType,
     _In_ HANDLE NotificationEventHandle
     );
 
-NTSTATUS NTAPI SamUnregisterObjectChangeNotification(
+NTSTATUS
+NTAPI
+SamUnregisterObjectChangeNotification(
     _In_ SECURITY_DB_OBJECT_TYPE ObjectType,
     _In_ HANDLE NotificationEventHandle
     );
@@ -1474,7 +1580,9 @@ NTSTATUS NTAPI SamUnregisterObjectChangeNotification(
 #define SAM_SID_COMPATIBILITY_STRICT 2
 
 _Check_return_
-NTSTATUS NTAPI SamGetCompatibilityMode(
+NTSTATUS
+NTAPI
+SamGetCompatibilityMode(
     _In_ SAM_HANDLE ObjectHandle,
     _Out_ ULONG *Mode
     );
@@ -1575,7 +1683,9 @@ typedef union _SAM_VALIDATE_OUTPUT_ARG
 } SAM_VALIDATE_OUTPUT_ARG, *PSAM_VALIDATE_OUTPUT_ARG;
 
 _Check_return_
-NTSTATUS NTAPI SamValidatePassword(
+NTSTATUS
+NTAPI
+SamValidatePassword(
     _In_opt_ PUNICODE_STRING ServerName,
     _In_ PASSWORD_POLICY_VALIDATION_TYPE ValidationType,
     _In_ PSAM_VALIDATE_INPUT_ARG InputArg,
@@ -1613,7 +1723,9 @@ typedef union _SAM_GENERIC_OPERATION_OUTPUT
 } SAM_GENERIC_OPERATION_OUTPUT, *PSAM_GENERIC_OPERATION_OUTPUT;
 
 _Check_return_
-NTSTATUS NTAPI SamPerformGenericOperation(
+NTSTATUS
+NTAPI
+SamPerformGenericOperation(
     _In_opt_ PWSTR ServerName,
     _In_ SAM_GENERIC_OPERATION_TYPE OperationType,
     _In_ PSAM_GENERIC_OPERATION_INPUT OperationIn,

@@ -4,12 +4,12 @@
 // private
 typedef enum _MEMORY_INFORMATION_CLASS
 {
-    MemoryBasicInformation,
-    MemoryWorkingSetInformation,
-    MemoryMappedFilenameInformation,
-    MemoryRegionInformation,
-    MemoryWorkingSetExInformation,
-    MemorySharedCommitInformation
+    MemoryBasicInformation, // MEMORY_BASIC_INFORMATION
+    MemoryWorkingSetInformation, // MEMORY_WORKING_SET_INFORMATION
+    MemoryMappedFilenameInformation, // UNICODE_STRING
+    MemoryRegionInformation, // MEMORY_REGION_INFORMATION
+    MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION
+    MemorySharedCommitInformation // MEMORY_SHARED_COMMIT_INFORMATION
 } MEMORY_INFORMATION_CLASS;
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
