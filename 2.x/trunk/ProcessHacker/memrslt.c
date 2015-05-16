@@ -620,6 +620,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                     )))
                                 {
                                     showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
+                                    memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
                                     showMemoryEditor->ProcessId = context->ProcessId;
                                     showMemoryEditor->BaseAddress = basicInfo.BaseAddress;
                                     showMemoryEditor->RegionSize = basicInfo.RegionSize;

@@ -2,13 +2,14 @@ Process Hacker
 
 2.35
  * NEW/IMPROVED:
-   * Set priority and I/O priority for multiple processes at once
    * Added Load Time and Load Reason columns for modules (Windows 8 and above)
-   * Improved handle names for Job, Section and Token objects
+   * Added handle names for Job and Section objects
+   * Added Read/Write Memory for Section objects (in process Handles tab)
    * Added CF Guard (Control Flow Guard) column for processes and modules
    * Added highlighting for AppContainer DLLs
    * Added AppContainer and CF Guard image characteristics to peview
    * Support for up to 64 processors when setting process/thread affinity
+   * Set priority and I/O priority for multiple processes at once
    * Updated ExtendedTools plugin:
      * Added Disk and Network graphs for all processes
    * Updated UserNotes plugin:

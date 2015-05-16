@@ -2142,8 +2142,11 @@ ULONG_PTR PhMwpOnUserMessage(
                 showMemoryEditor->BaseAddress,
                 showMemoryEditor->RegionSize,
                 showMemoryEditor->SelectOffset,
-                showMemoryEditor->SelectLength
+                showMemoryEditor->SelectLength,
+                showMemoryEditor->Title,
+                showMemoryEditor->Flags
                 );
+            PhSwapReference(&showMemoryEditor->Title, NULL);
             PhFree(showMemoryEditor);
         }
         break;
