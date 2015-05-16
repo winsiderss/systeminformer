@@ -477,7 +477,7 @@ BOOLEAN PhUiShutdownComputer(
 {
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
         hWnd,
-        L"shutdown",
+        L"shut down",
         L"the computer",
         NULL,
         FALSE
@@ -493,7 +493,7 @@ BOOLEAN PhUiShutdownComputer(
         }
         else
         {
-            PhShowStatus(hWnd, L"Unable to shutdown the computer", 0, GetLastError());
+            PhShowStatus(hWnd, L"Unable to shut down the computer", 0, GetLastError());
         }
     }
 

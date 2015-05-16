@@ -46,6 +46,8 @@ typedef struct _MEMORY_EDITOR_CONTEXT
     HWND HexEditHandle;
     PUCHAR Buffer;
     ULONG SelectOffset;
+    PPH_STRING Title;
+    ULONG Flags;
 
     BOOLEAN LoadCompleted;
 } MEMORY_EDITOR_CONTEXT, *PMEMORY_EDITOR_CONTEXT;
@@ -70,7 +72,9 @@ VOID PhShowMemoryEditorDialog(
     _In_ PVOID BaseAddress,
     _In_ SIZE_T RegionSize,
     _In_ ULONG SelectOffset,
-    _In_ ULONG SelectLength
+    _In_ ULONG SelectLength,
+    _In_opt_ PPH_STRING Title,
+    _In_ ULONG Flags
     )
 {
     PMEMORY_EDITOR_CONTEXT context;
@@ -92,6 +96,8 @@ VOID PhShowMemoryEditorDialog(
         context->BaseAddress = BaseAddress;
         context->RegionSize = RegionSize;
         context->SelectOffset = SelectOffset;
+        PhSwapReference(&context->Title, Title);
+        context->Flags = Flags;
 
         context->WindowHandle = CreateDialogParam(
             PhInstanceHandle,
@@ -126,6 +132,10 @@ VOID PhShowMemoryEditorDialog(
 
         if (SelectOffset != -1)
             PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, SelectLength);
+
+        // Just in case.
+        if ((Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && ProcessId == NtCurrentProcessId())
+            NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
     }
 }
 
@@ -168,6 +178,11 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         {
             NTSTATUS status;
 
+            if (context->Title)
+            {
+                SetWindowText(hwndDlg, context->Title->Buffer);
+            }
+            else
             {
                 PPH_PROCESS_ITEM processItem;
 
@@ -289,6 +304,10 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (context->Buffer) PhFreePage(context->Buffer);
             if (context->ProcessHandle) NtClose(context->ProcessHandle);
+            PhSwapReference(&context->Title, NULL);
+
+            if ((context->Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && context->ProcessId == NtCurrentProcessId())
+                NtUnmapViewOfSection(NtCurrentProcess(), context->BaseAddress);
 
             PhFree(context);
         }
@@ -320,7 +339,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    if (processItem = PhReferenceProcessItem(context->ProcessId))
+                    if (!context->Title && (processItem = PhReferenceProcessItem(context->ProcessId)))
                     {
                         PhSetFileDialogFileName(fileDialog,
                             PhaFormatString(L"%s_0x%Ix-0x%Ix.bin", processItem->ProcessName->Buffer,

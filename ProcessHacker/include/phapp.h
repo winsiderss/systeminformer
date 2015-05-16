@@ -623,6 +623,8 @@ typedef struct _PH_SHOWMEMORYEDITOR
     SIZE_T RegionSize;
     ULONG SelectOffset;
     ULONG SelectLength;
+    PPH_STRING Title;
+    ULONG Flags;
 } PH_SHOWMEMORYEDITOR, *PPH_SHOWMEMORYEDITOR;
 
 typedef struct _PH_SHOWMEMORYRESULTS
@@ -1566,12 +1568,16 @@ VOID PhShowLogDialog(
 
 // memedit
 
+#define PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION 0x1
+
 VOID PhShowMemoryEditorDialog(
     _In_ HANDLE ProcessId,
     _In_ PVOID BaseAddress,
     _In_ SIZE_T RegionSize,
     _In_ ULONG SelectOffset,
-    _In_ ULONG SelectLength
+    _In_ ULONG SelectLength,
+    _In_opt_ PPH_STRING Title,
+    _In_ ULONG Flags
     );
 
 // memlists

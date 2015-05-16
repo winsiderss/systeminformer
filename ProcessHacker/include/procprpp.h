@@ -115,6 +115,8 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     _In_ PPH_HANDLE_ITEM_INFO Info
     );
 
+#define PH_MAX_SECTION_EDIT_SIZE (32 * 1024 * 1024) // 32 MB
+
 VOID PhShowHandleObjectProperties1(
     _In_ HWND hWnd,
     _In_ PPH_HANDLE_ITEM_INFO Info

@@ -3985,6 +3985,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         {
                             PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
 
+                            memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
                             showMemoryEditor->ProcessId = processItem->ProcessId;
                             showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
                             showMemoryEditor->RegionSize = memoryItem->Size;
@@ -4541,6 +4542,10 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Process Properties", EnableShortcut), NULL, NULL), indexInParent);
     }
+    else if (PhEqualString2(Info->TypeName, L"Section", TRUE))
+    {
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Read/Write Memory", EnableShortcut), NULL, NULL), indexInParent);
+    }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Go to Thread", EnableShortcut), NULL, NULL), indexInParent);
@@ -4632,6 +4637,102 @@ VOID PhShowHandleObjectProperties1(
             {
                 PhShowError(hWnd, L"The process does not exist.");
             }
+        }
+    }
+    else if (PhEqualString2(Info->TypeName, L"Section", TRUE))
+    {
+        HANDLE handle = NULL;
+        BOOLEAN readOnly = FALSE;
+
+        if (!NT_SUCCESS(PhpDuplicateHandleFromProcessItem(
+            &handle,
+            SECTION_QUERY | SECTION_MAP_READ | SECTION_MAP_WRITE,
+            Info->ProcessId,
+            Info->Handle
+            )))
+        {
+            PhpDuplicateHandleFromProcessItem(
+                &handle,
+                SECTION_QUERY | SECTION_MAP_READ,
+                Info->ProcessId,
+                Info->Handle
+                );
+            readOnly = TRUE;
+        }
+
+        if (handle)
+        {
+            NTSTATUS status;
+            PPH_STRING sectionName = NULL;
+            SECTION_BASIC_INFORMATION basicInfo;
+            SIZE_T viewSize = PH_MAX_SECTION_EDIT_SIZE;
+            PVOID viewBase = NULL;
+            BOOLEAN tooBig = FALSE;
+
+            PhGetHandleInformation(NtCurrentProcess(), handle, -1, NULL, NULL, NULL, &sectionName);
+
+            if (NT_SUCCESS(PhGetSectionBasicInformation(handle, &basicInfo)))
+            {
+                if (basicInfo.MaximumSize.QuadPart <= PH_MAX_SECTION_EDIT_SIZE)
+                    viewSize = (SIZE_T)basicInfo.MaximumSize.QuadPart;
+                else
+                    tooBig = TRUE;
+
+                status = NtMapViewOfSection(
+                    handle,
+                    NtCurrentProcess(),
+                    &viewBase,
+                    0,
+                    0,
+                    NULL,
+                    &viewSize,
+                    ViewShare,
+                    0,
+                    readOnly ? PAGE_READONLY : PAGE_READWRITE
+                    );
+
+                if (status == STATUS_SECTION_PROTECTION && !readOnly)
+                {
+                    status = NtMapViewOfSection(
+                        handle,
+                        NtCurrentProcess(),
+                        &viewBase,
+                        0,
+                        0,
+                        NULL,
+                        &viewSize,
+                        ViewShare,
+                        0,
+                        PAGE_READONLY
+                        );
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
+
+                    if (tooBig)
+                        PhShowWarning(hWnd, L"The section size is greater than 32 MB. Only the first 32 MB will be available for editing.");
+
+                    memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
+                    showMemoryEditor->ProcessId = NtCurrentProcessId();
+                    showMemoryEditor->BaseAddress = viewBase;
+                    showMemoryEditor->RegionSize = viewSize;
+                    showMemoryEditor->SelectOffset = -1;
+                    showMemoryEditor->SelectLength = 0;
+                    showMemoryEditor->Title = sectionName ? PhConcatStrings2(L"Section - ", sectionName->Buffer) : PhCreateString(L"Section");
+                    showMemoryEditor->Flags = PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION;
+                    ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
+                }
+                else
+                {
+                    PhShowStatus(hWnd, L"Unable to map a view of the section", status, 0);
+                }
+            }
+
+            PhSwapReference(&sectionName, NULL);
+
+            NtClose(handle);
         }
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
