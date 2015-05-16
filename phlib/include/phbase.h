@@ -372,11 +372,6 @@ FORCEINLINE PVOID PhAllocateCopy(
 // basesupx (basic)
 
 PHLIBAPI
-int
-__cdecl
-ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len);
-
-PHLIBAPI
 unsigned long
 __cdecl
 ph_crc32(unsigned long crc, char *buf, size_t len);
