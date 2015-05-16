@@ -239,7 +239,7 @@ BEGIN
         MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
         MENUITEM SEPARATOR
         MENUITEM "R&estart",                    ID_COMPUTER_RESTART
-        MENUITEM "Restart to Boot Options",     ID_COMPUTER_RESTARTBOOTOPTIONS
+        MENUITEM "Restart to Boot &Options",    ID_COMPUTER_RESTARTBOOTOPTIONS
         MENUITEM "Shu&tdown",                   ID_COMPUTER_SHUTDOWN
         MENUITEM "H&ybrid Shutdown",            ID_COMPUTER_SHUTDOWNHYBRID
     END
@@ -269,7 +269,7 @@ BEGIN
             MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL
             MENUITEM "Idle",                        ID_PRIORITY_IDLE
         END
-        POPUP "I/O Priority"
+        POPUP "&I/O Priority"
         BEGIN
             MENUITEM "High",                        ID_I_3
             MENUITEM "Normal",                      ID_I_2
@@ -323,7 +323,8 @@ BEGIN
         MENUITEM "S&top",                       ID_SERVICE_STOP
         MENUITEM "&Delete\aDel",                ID_SERVICE_DELETE
         MENUITEM SEPARATOR
-        MENUITEM "Open Key",                    ID_SERVICE_OPENKEY
+        MENUITEM "Open &Key",                   ID_SERVICE_OPENKEY
+        MENUITEM "Open &File Location\aCtrl+Enter", ID_SERVICE_OPENFILELOCATION
         MENUITEM "P&roperties\aEnter",          ID_SERVICE_PROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_SERVICE_COPY
     END

@@ -1941,6 +1941,11 @@ NTSTATUS PhGetThreadServiceTag(
     _Out_ PVOID *ServiceTag
     );
 
+NTSTATUS PhGetServiceDllParameter(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING *ServiceDll
+    );
+
 // support
 
 extern WCHAR *PhSizeUnitNames[7];
