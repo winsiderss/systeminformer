@@ -307,8 +307,6 @@ BOOLEAN DbgEventsCreate(
     }
     else
     {
-        HANDLE threadHandle = NULL;
-
         if (!(Context->LocalBufferReadyEvent = CreateEvent(&Context->SecurityAttributes, FALSE, FALSE, L"Local\\" DBWIN_BUFFER_READY)))
         {
             DbgShowErrorMessage(Context, L"DBWIN_BUFFER_READY");
