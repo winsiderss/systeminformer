@@ -167,6 +167,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             SC_HANDLE serviceHandle;
             ULONG startType;
             ULONG errorControl;
+            PPH_STRING serviceDll;
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
@@ -238,46 +239,14 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
 
-            SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
-
+            if (NT_SUCCESS(PhGetServiceDllParameter(&serviceItem->Name->sr, &serviceDll)))
             {
-                HANDLE keyHandle;
-                PPH_STRING keyName;
-
-                keyName = PhConcatStrings(
-                    3,
-                    L"System\\CurrentControlSet\\Services\\",
-                    serviceItem->Name->Buffer,
-                    L"\\Parameters"
-                    );
-
-                if (NT_SUCCESS(PhOpenKey(
-                    &keyHandle,
-                    KEY_READ,
-                    PH_KEY_LOCAL_MACHINE,
-                    &keyName->sr,
-                    0
-                    )))
-                {
-                    PPH_STRING serviceDllString;
-
-                    if (serviceDllString = PhQueryRegistryString(keyHandle, L"ServiceDll"))
-                    {
-                        PPH_STRING expandedString;
-
-                        if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
-                        {
-                            SetDlgItemText(hwndDlg, IDC_SERVICEDLL, expandedString->Buffer);
-                            PhDereferenceObject(expandedString);
-                        }
-
-                        PhDereferenceObject(serviceDllString);
-                    }
-
-                    NtClose(keyHandle);
-                }
-
-                PhDereferenceObject(keyName);
+                SetDlgItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
+                PhDereferenceObject(serviceDll);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
             }
 
             PhpRefreshControls(hwndDlg);
@@ -333,8 +302,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                     commandLine = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BINARYPATH);
 
-                    if (context->ServiceItem->Type == SERVICE_WIN32_OWN_PROCESS || context->ServiceItem->Type == SERVICE_WIN32_SHARE_PROCESS ||
-                        context->ServiceItem->Type == SERVICE_INTERACTIVE_PROCESS)
+                    if (context->ServiceItem->Type & SERVICE_WIN32)
                     {
                         PH_STRINGREF dummyFileName;
                         PH_STRINGREF dummyArguments;

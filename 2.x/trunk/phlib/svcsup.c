@@ -471,3 +471,54 @@ NTSTATUS PhGetThreadServiceTag(
 
     return status;
 }
+
+NTSTATUS PhGetServiceDllParameter(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING *ServiceDll
+    )
+{
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static PH_STRINGREF parameters = PH_STRINGREF_INIT(L"\\Parameters");
+
+    NTSTATUS status;
+    HANDLE keyHandle;
+    PPH_STRING keyName;
+
+    keyName = PhConcatStringRef3(&servicesKeyName, ServiceName, &parameters);
+
+    if (NT_SUCCESS(status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING serviceDllString;
+
+        if (serviceDllString = PhQueryRegistryString(keyHandle, L"ServiceDll"))
+        {
+            PPH_STRING expandedString;
+
+            if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
+            {
+                *ServiceDll = expandedString;
+                PhDereferenceObject(serviceDllString);
+            }
+            else
+            {
+                *ServiceDll = serviceDllString;
+            }
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+
+    return status;
+}
