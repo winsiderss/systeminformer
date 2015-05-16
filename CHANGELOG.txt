@@ -8,8 +8,9 @@ Process Hacker
    * Added CF Guard (Control Flow Guard) column for processes and modules
    * Added highlighting for AppContainer DLLs
    * Added AppContainer and CF Guard image characteristics to peview
-   * Support for up to 64 processors when setting process/thread affinity
+   * Added Open Key and Open File Location menu items for services
    * Set priority and I/O priority for multiple processes at once
+   * Support for up to 64 processors when setting process/thread affinity
    * Updated ExtendedTools plugin:
      * Added Disk and Network graphs for all processes
    * Updated UserNotes plugin:

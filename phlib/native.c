@@ -5915,8 +5915,8 @@ PPH_STRING PhGetFileName(
     // "\??\" refers to \GLOBAL??\. Just remove it.
     if (PhStartsWithString2(FileName, L"\\??\\", FALSE))
     {
-        newFileName = PhCreateStringEx(NULL, FileName->Length - 8);
-        memcpy(newFileName->Buffer, &FileName->Buffer[4], FileName->Length - 8);
+        newFileName = PhCreateStringEx(NULL, FileName->Length - 4 * 2);
+        memcpy(newFileName->Buffer, &FileName->Buffer[4], FileName->Length - 4 * 2);
     }
     // "\SystemRoot" means "C:\Windows".
     else if (PhStartsWithString2(FileName, L"\\SystemRoot", TRUE))
@@ -5924,9 +5924,20 @@ PPH_STRING PhGetFileName(
         PH_STRINGREF systemRoot;
 
         PhGetSystemRoot(&systemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 22);
+        newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 11 * 2);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length, &FileName->Buffer[11], FileName->Length - 22);
+        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length, &FileName->Buffer[11], FileName->Length - 11 * 2);
+    }
+    // "system32\" means "C:\Windows\system32\".
+    else if (PhStartsWithString2(FileName, L"system32\\", TRUE))
+    {
+        PH_STRINGREF systemRoot;
+
+        PhGetSystemRoot(&systemRoot);
+        newFileName = PhCreateStringEx(NULL, systemRoot.Length + 2 + FileName->Length);
+        memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
+        newFileName->Buffer[systemRoot.Length / 2] = '\\';
+        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length + 2, FileName->Buffer, FileName->Length);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
     {
@@ -5944,7 +5955,7 @@ PPH_STRING PhGetFileName(
             // If the file name starts with "\Windows", prepend the system drive.
             if (PhStartsWithString2(newFileName, L"\\Windows", TRUE))
             {
-                newFileName = PhCreateStringEx(NULL, FileName->Length + 4);
+                newFileName = PhCreateStringEx(NULL, FileName->Length + 2 * 2);
                 newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
                 newFileName->Buffer[1] = ':';
                 memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);

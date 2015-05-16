@@ -660,7 +660,10 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_DELETE, 0);
                 break;
             case VK_RETURN:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_PROPERTIES, 0);
+                if (GetKeyState(VK_CONTROL) >= 0)
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_PROPERTIES, 0);
+                else
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_OPENFILELOCATION, 0);
                 break;
             }
         }
