@@ -499,7 +499,7 @@ NTSTATUS PhpGetBestObjectName(
 {
     NTSTATUS status;
     PPH_STRING bestObjectName = NULL;
-    PPH_GET_CLIENT_ID_NAME handleGetClientIdName;
+    PPH_GET_CLIENT_ID_NAME handleGetClientIdName = PhHandleGetClientIdName;
 
     if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
@@ -575,6 +575,60 @@ NTSTATUS PhpGetBestObjectName(
             PhReferenceObject(ObjectName);
         }
     }
+    else if (PhEqualString2(TypeName, L"Job", TRUE))
+    {
+        HANDLE dupHandle;
+        PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+
+        status = NtDuplicateObject(
+            ProcessHandle,
+            Handle,
+            NtCurrentProcess(),
+            &dupHandle,
+            JOB_OBJECT_QUERY,
+            0,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        if (handleGetClientIdName && NT_SUCCESS(PhGetJobProcessIdList(dupHandle, &processIdList)))
+        {
+            PH_STRING_BUILDER sb;
+            ULONG i;
+            CLIENT_ID clientId;
+            PPH_STRING name;
+
+            PhInitializeStringBuilder(&sb, 40);
+            clientId.UniqueThread = NULL;
+
+            for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+            {
+                clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
+                name = handleGetClientIdName(&clientId);
+
+                if (name)
+                {
+                    PhAppendStringBuilder(&sb, name);
+                    PhAppendStringBuilder2(&sb, L"; ");
+                    PhDereferenceObject(name);
+                }
+            }
+
+            PhFree(processIdList);
+
+            if (sb.String->Length != 0)
+                PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+
+            if (sb.String->Length == 0)
+                PhAppendStringBuilder2(&sb, L"(No processes)");
+
+            bestObjectName = PhFinalStringBuilderString(&sb);
+        }
+
+        NtClose(dupHandle);
+    }
     else if (PhEqualString2(TypeName, L"Key", TRUE))
     {
         bestObjectName = PhFormatNativeKeyName(ObjectName);
@@ -630,8 +684,6 @@ NTSTATUS PhpGetBestObjectName(
             clientId.UniqueProcess = basicInfo.UniqueProcessId;
         }
 
-        handleGetClientIdName = PhHandleGetClientIdName;
-
         if (handleGetClientIdName)
             bestObjectName = handleGetClientIdName(&clientId);
     }
@@ -683,8 +735,6 @@ NTSTATUS PhpGetBestObjectName(
 
             clientId = basicInfo.ClientId;
         }
-
-        handleGetClientIdName = PhHandleGetClientIdName;
 
         if (handleGetClientIdName)
             bestObjectName = handleGetClientIdName(&clientId);
@@ -881,13 +931,14 @@ NTSTATUS PhpGetBestObjectName(
 
             if (fullName)
             {
-                PH_FORMAT format[3];
+                PH_FORMAT format[4];
 
                 PhInitFormatSR(&format[0], fullName->sr);
                 PhInitFormatS(&format[1], L": 0x");
                 PhInitFormatX(&format[2], statistics.AuthenticationId.LowPart);
+                PhInitFormatS(&format[3], statistics.TokenType == TokenPrimary ? L" (Primary)" : L" (Impersonation)");
 
-                bestObjectName = PhFormat(format, 3, fullName->Length + 8 + 16);
+                bestObjectName = PhFormat(format, 4, fullName->Length + 8 + 16 + 16);
                 PhDereferenceObject(fullName);
             }
 
