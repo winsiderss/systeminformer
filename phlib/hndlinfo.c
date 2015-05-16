@@ -395,6 +395,40 @@ PPH_STRING PhFormatNativeKeyName(
     return newName;
 }
 
+NTSTATUS PhGetSectionFileName(
+    _In_ HANDLE SectionHandle,
+    _Out_ PPH_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    SIZE_T viewSize;
+    PVOID viewBase;
+
+    viewSize = PAGE_SIZE;
+    viewBase = NULL;
+
+    status = NtMapViewOfSection(
+        SectionHandle,
+        NtCurrentProcess(),
+        &viewBase,
+        0,
+        0,
+        NULL,
+        &viewSize,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcessMappedFileName(NtCurrentProcess(), viewBase, FileName);
+    NtUnmapViewOfSection(NtCurrentProcess(), viewBase);
+
+    return status;
+}
+
 _Callback_ PPH_STRING PhStdGetClientIdName(
     _In_ PCLIENT_ID ClientId
     )
@@ -686,6 +720,62 @@ NTSTATUS PhpGetBestObjectName(
 
         if (handleGetClientIdName)
             bestObjectName = handleGetClientIdName(&clientId);
+    }
+    else if (PhEqualString2(TypeName, L"Section", TRUE))
+    {
+        HANDLE dupHandle;
+        PPH_STRING fileName;
+
+        if (!PhIsNullOrEmptyString(ObjectName))
+            goto CleanupExit;
+
+        status = NtDuplicateObject(
+            ProcessHandle,
+            Handle,
+            NtCurrentProcess(),
+            &dupHandle,
+            SECTION_QUERY | SECTION_MAP_READ,
+            0,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhGetSectionFileName(dupHandle, &fileName);
+
+        if (NT_SUCCESS(status))
+        {
+            bestObjectName = PhResolveDevicePrefix(fileName);
+            PhDereferenceObject(fileName);
+        }
+        else
+        {
+            SECTION_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(PhGetSectionBasicInformation(dupHandle, &basicInfo)))
+            {
+                PH_FORMAT format[4];
+                PWSTR sectionType = L"Unknown";
+
+                if (basicInfo.AllocationAttributes & SEC_COMMIT)
+                    sectionType = L"Commit";
+                else if (basicInfo.AllocationAttributes & SEC_FILE)
+                    sectionType = L"File";
+                else if (basicInfo.AllocationAttributes & SEC_IMAGE)
+                    sectionType = L"Image";
+                else if (basicInfo.AllocationAttributes & SEC_RESERVE)
+                    sectionType = L"Reserve";
+
+                PhInitFormatS(&format[0], sectionType);
+                PhInitFormatS(&format[1], L" (");
+                PhInitFormatSize(&format[2], basicInfo.MaximumSize.QuadPart);
+                PhInitFormatC(&format[3], ')');
+                bestObjectName = PhFormat(format, 4, 20);
+            }
+        }
+
+        NtClose(dupHandle);
     }
     else if (PhEqualString2(TypeName, L"Thread", TRUE))
     {
