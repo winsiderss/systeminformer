@@ -974,6 +974,11 @@ PPH_STRING PhFormatNativeKeyName(
     _In_ PPH_STRING Name
     );
 
+NTSTATUS PhGetSectionFileName(
+    _In_ HANDLE SectionHandle,
+    _Out_ PPH_STRING *FileName
+    );
+
 PHLIBAPI
 _Callback_ PPH_STRING PhStdGetClientIdName(
     _In_ PCLIENT_ID ClientId

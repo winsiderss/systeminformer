@@ -463,36 +463,49 @@ static VOID PhpRefreshSectionPageInfo(
     )
 {
     HANDLE sectionHandle;
+    SECTION_BASIC_INFORMATION basicInfo;
+    PWSTR sectionType = L"Unknown";
+    PPH_STRING sectionSize = NULL;
+    PPH_STRING fileName = NULL;
 
-    if (NT_SUCCESS(PageContext->OpenObject(
+    if (!NT_SUCCESS(PageContext->OpenObject(
         &sectionHandle,
-        SECTION_QUERY,
+        SECTION_QUERY | SECTION_MAP_READ,
         PageContext->Context
         )))
     {
-        SECTION_BASIC_INFORMATION basicInfo;
-        PWSTR sectionType = L"Unknown";
-        PPH_STRING sectionSize = NULL;
-
-        if (NT_SUCCESS(PhGetSectionBasicInformation(sectionHandle, &basicInfo)))
+        if (!NT_SUCCESS(PageContext->OpenObject(
+            &sectionHandle,
+            SECTION_QUERY | SECTION_MAP_READ,
+            PageContext->Context
+            )))
         {
-            if (basicInfo.AllocationAttributes & SEC_COMMIT)
-                sectionType = L"Commit";
-            else if (basicInfo.AllocationAttributes & SEC_FILE)
-                sectionType = L"File";
-            else if (basicInfo.AllocationAttributes & SEC_IMAGE)
-                sectionType = L"Image";
-            else if (basicInfo.AllocationAttributes & SEC_RESERVE)
-                sectionType = L"Reserve";
-
-            sectionSize = PhaFormatSize(basicInfo.MaximumSize.QuadPart, -1);
+            return;
         }
-
-        SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);
-        SetDlgItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
-
-        NtClose(sectionHandle);
     }
+
+    if (NT_SUCCESS(PhGetSectionBasicInformation(sectionHandle, &basicInfo)))
+    {
+        if (basicInfo.AllocationAttributes & SEC_COMMIT)
+            sectionType = L"Commit";
+        else if (basicInfo.AllocationAttributes & SEC_FILE)
+            sectionType = L"File";
+        else if (basicInfo.AllocationAttributes & SEC_IMAGE)
+            sectionType = L"Image";
+        else if (basicInfo.AllocationAttributes & SEC_RESERVE)
+            sectionType = L"Reserve";
+
+        sectionSize = PhaFormatSize(basicInfo.MaximumSize.QuadPart, -1);
+    }
+
+    if (NT_SUCCESS(PhGetSectionFileName(sectionHandle, &fileName)))
+        PhSwapReference2(&fileName, PhResolveDevicePrefix(fileName));
+
+    SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);
+    SetDlgItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
+    SetDlgItemText(hwndDlg, IDC_FILE, PhGetStringOrDefault(fileName, L"N/A"));
+
+    NtClose(sectionHandle);
 }
 
 INT_PTR CALLBACK PhpSectionPageProc(
