@@ -360,7 +360,7 @@ static NTSTATUS UploadFileThreadStart(
     ULONG64 timeTicks = 0;
     ULONG64 timeBitsPerSecond = 0;
 
-    HANDLE fileHandle;
+    HANDLE fileHandle = INVALID_HANDLE_VALUE;
     IO_STATUS_BLOCK isb;
     PSERVICE_INFO serviceInfo = NULL;
     HINTERNET connectHandle = NULL;
@@ -746,6 +746,11 @@ static NTSTATUS UploadFileThreadStart(
         if (httpRequestHeaders.String)
         {
             PhDeleteStringBuilder(&httpRequestHeaders);
+        }        
+        
+        if (fileHandle != INVALID_HANDLE_VALUE)
+        {
+            NtClose(fileHandle);
         }
     }
 
@@ -765,7 +770,7 @@ static NTSTATUS UploadCheckThreadStart(
     PSERVICE_INFO serviceInfo = NULL;
     PPH_STRING hashString = NULL;
     PPH_STRING subObjectName = NULL;
-    HANDLE fileHandle;
+    HANDLE fileHandle = INVALID_HANDLE_VALUE;
 
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
@@ -1037,8 +1042,10 @@ static NTSTATUS UploadCheckThreadStart(
             WinHttpCloseHandle(connectHandle);
         }
 
-        if (fileHandle)
+        if (fileHandle != INVALID_HANDLE_VALUE)
+        {
             NtClose(fileHandle);
+        }
     }
 
     return status;
