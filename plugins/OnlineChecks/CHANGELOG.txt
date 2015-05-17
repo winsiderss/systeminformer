@@ -1,19 +1,22 @@
+1.6
+ * Updated VirusTotal executable limit to 128 MB
+
 1.5
  * Added CIMA hash checking
  * Added file analyzed prompt
 
 1.4
- * 2013-07-16: Added upload progress
- * 2012-07-16: Updated UI
+ * Added upload progress
+ * Updated UI
 
 1.3
- * 2012-01-16: Updated VirusTotal uploader and added hash checking
+ * Updated VirusTotal uploader and added hash checking
 
 1.2
- * 2011-06-22: Added Comodo Instant Malware Analysis
+ * Added Comodo Instant Malware Analysis
 
 1.1
- * 2010-09-30: Updated VirusTotal uploader
+ * Updated VirusTotal uploader
 
 1.0
  * Initial release
