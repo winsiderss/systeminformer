@@ -47,7 +47,6 @@
             <FunctionLevelLinking>false</FunctionLevelLinking>
             <IntrinsicFunctions>false</IntrinsicFunctions>
             <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-            <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
 
@@ -59,11 +58,14 @@
             <FunctionLevelLinking>true</FunctionLevelLinking>
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+            <WholeProgramOptimization>true</WholeProgramOptimization>
+            <StringPooling>true</StringPooling>
         </ClCompile>
         <Link>
             <OptimizeReferences>true</OptimizeReferences>
             <EnableCOMDATFolding>true</EnableCOMDATFolding>
             <SetChecksum>true</SetChecksum>
+            <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
         </Link>
     </ItemDefinitionGroup>
 
