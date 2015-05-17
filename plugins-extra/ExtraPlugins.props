@@ -23,10 +23,11 @@
             <AdditionalIncludeDirectories>../../sdk/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
             <TreatWarningAsError>true</TreatWarningAsError>
             <WarningLevel>Level3</WarningLevel>
+            <SDLCheck>true</SDLCheck>
             <CallingConvention>StdCall</CallingConvention>
+            <MinimalRebuild>false</MinimalRebuild>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-            <SDLCheck>true</SDLCheck>
         </ClCompile>
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
