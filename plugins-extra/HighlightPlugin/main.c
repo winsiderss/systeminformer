@@ -163,8 +163,6 @@ static PPH_STRING SaveCustomColors(
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
-    //PhDeleteStringBuilder(&stringBuilder);
-
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
@@ -292,7 +290,7 @@ static VOID MenuItemCallback(
                     itemHighlight = (PITEM_COLOR)PhAllocate(sizeof(ITEM_COLOR));
                     memset(itemHighlight, 0, sizeof(ITEM_COLOR));
 
-                    itemHighlight->ProcessName = PhFormatString(L"%s", processItem->ProcessName->Buffer);
+                    itemHighlight->ProcessName = PhDuplicateString(processItem->ProcessName);
                     itemHighlight->BackColor = chooseColor.rgbResult;
 
                     PhAddItemList(ProcessHighlightList, itemHighlight);
