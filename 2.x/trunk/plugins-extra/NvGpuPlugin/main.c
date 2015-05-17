@@ -34,7 +34,10 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    NvApiInitialized = InitializeNvApi();
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_MONITORING))
+    {
+        NvApiInitialized = InitializeNvApi();
+    }
 }
 
 static VOID NTAPI UnloadCallback(
@@ -79,6 +82,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
+                { IntegerSettingType, SETTING_NAME_ENABLE_MONITORING, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" }
             };
 

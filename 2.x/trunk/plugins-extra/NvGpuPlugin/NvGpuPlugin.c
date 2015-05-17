@@ -170,14 +170,20 @@ BOOLEAN DestroyNvApi(VOID)
 {
     NvApiInitialized = FALSE;
 
+    if (NvGpuDisplayHandleList)
+    {
+        PhClearList(NvGpuDisplayHandleList);
+        PhDereferenceObject(NvGpuDisplayHandleList);
+    }
+
+    if (NvGpuPhysicalHandleList)
+    {
+        PhClearList(NvGpuPhysicalHandleList);
+        PhDereferenceObject(NvGpuPhysicalHandleList);
+    }
+
     if (NvAPI_Unload)
         NvAPI_Unload();
-
-    PhClearList(NvGpuDisplayHandleList);
-    PhClearList(NvGpuPhysicalHandleList);
-
-    PhDereferenceObject(NvGpuDisplayHandleList);
-    PhDereferenceObject(NvGpuPhysicalHandleList);
 
     if (NvApiLibrary)
         FreeLibrary(NvApiLibrary);
