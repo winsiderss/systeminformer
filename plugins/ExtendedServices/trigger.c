@@ -581,7 +581,7 @@ VOID EspFormatTriggerInfo(
     )
 {
     PPH_STRING stringUsed = NULL;
-    PWSTR triggerString;
+    PWSTR triggerString = NULL;
     PWSTR actionString;
     ULONG i;
     BOOLEAN typeFound;

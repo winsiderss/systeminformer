@@ -755,7 +755,7 @@ INT_PTR HandleCommonMessages(
                 {
                     ULONG i;
                     PPH_STRING string;
-                    PFILTER_ENTRY entry;
+                    PFILTER_ENTRY entry = NULL;
                     FILTER_TYPE type;
                     PPH_STRING entryString;
 
