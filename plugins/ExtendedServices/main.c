@@ -246,7 +246,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
         )
     {
         PPH_PROCESS_ITEM processItem;
-        PPH_EMENU_ITEM servicesMenuItem;
+        PPH_EMENU_ITEM servicesMenuItem = NULL;
         ULONG enumerationKey;
         PPH_SERVICE_ITEM serviceItem;
         PPH_LIST serviceList;
