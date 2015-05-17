@@ -290,7 +290,14 @@ BOOLEAN DbgEventsCreate(
             return FALSE;
         }
 
-        if (!(Context->GlobalDebugBuffer = MapViewOfFile(Context->GlobalDataBufferHandle, SECTION_MAP_READ, 0, 0, sizeof(DBWIN_PAGE_BUFFER))))
+        if (!(Context->GlobalDebugBuffer = MapViewOfFileEx(
+            Context->GlobalDataBufferHandle,
+            SECTION_MAP_READ,
+            0,
+            0,
+            sizeof(DBWIN_PAGE_BUFFER),
+            NULL
+            )))
         {
             DbgShowErrorMessage(Context, L"MapViewOfFile");
             return FALSE;
@@ -325,7 +332,14 @@ BOOLEAN DbgEventsCreate(
             return FALSE;
         }
 
-        if (!(Context->LocalDebugBuffer = MapViewOfFile(Context->LocalDataBufferHandle, SECTION_MAP_READ, 0, 0, sizeof(DBWIN_PAGE_BUFFER))))
+        if (!(Context->LocalDebugBuffer = MapViewOfFileEx(
+            Context->LocalDataBufferHandle,
+            SECTION_MAP_READ,
+            0,
+            0,
+            sizeof(DBWIN_PAGE_BUFFER),
+            NULL
+            )))
         {
             DbgShowErrorMessage(Context, L"MapViewOfFile");
             return FALSE;
