@@ -2217,7 +2217,7 @@ NTSTATUS
 NTAPI
 ZwQueryDirectoryObject(
     _In_ HANDLE DirectoryHandle,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
+    _Out_writes_bytes_opt_(Length) PVOID Buffer,
     _In_ ULONG Length,
     _In_ BOOLEAN ReturnSingleEntry,
     _In_ BOOLEAN RestartScan,
