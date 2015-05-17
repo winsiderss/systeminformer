@@ -295,7 +295,7 @@ VOID UpdateCounterData(
     {
         if (objectType->ObjectNameTitleIndex == typeInfo->NameIndex && objectType->NumInstances != PERF_NO_INSTANCES)
         {
-            PPERF_COUNTER_BLOCK counterBlock;
+            PPERF_COUNTER_BLOCK counterBlock = NULL;
             BOOLEAN instanceFound = FALSE;
 
             // Find the instance that corresponds with the process.
