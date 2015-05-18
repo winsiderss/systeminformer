@@ -292,7 +292,7 @@ static VOID PhpPrintHashtableStatistics(
 
         if (count != 0)
         {
-            wprintf(L"%u: ", i);
+            wprintf(L"%lu: ", i);
 
             // Print out the entry indicies.
 
@@ -300,7 +300,7 @@ static VOID PhpPrintHashtableStatistics(
 
             while (index != -1)
             {
-                wprintf(L"%u", index);
+                wprintf(L"%lu", index);
 
                 index = PH_HASHTABLE_GET_ENTRY(Hashtable, index)->Next;
                 count--;
@@ -317,7 +317,7 @@ static VOID PhpPrintHashtableStatistics(
         }
     }
 
-    wprintf(L"\nExpected lookup misses: %u\n", expectedLookupMisses);
+    wprintf(L"\nExpected lookup misses: %lu\n", expectedLookupMisses);
 }
 
 #ifdef DEBUG
@@ -954,7 +954,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             PhReleaseQueuedLockShared(&PhDbgObjectListLock);
 
             wprintf(L"\n");
-            wprintf(L"Total number: %u\n", totalNumberOfObjects);
+            wprintf(L"Total number: %lu\n", totalNumberOfObjects);
             wprintf(L"Total size (excl. header): %s\n",
                 ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(totalNumberOfBytes, 1)))->Buffer);
             wprintf(L"Total overhead (header): %s\n",
@@ -1572,7 +1572,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 rtlDetectHeapLeaks();
                 InLeakDetection = FALSE;
 
-                wprintf(L"\nNumber of leaks: %u (%u displayed)\n", NumberOfLeaks, NumberOfLeaksShown);
+                wprintf(L"\nNumber of leaks: %lu (%lu displayed)\n", NumberOfLeaks, NumberOfLeaksShown);
             }
         }
         else if (WSTR_IEQUAL(command, L"mem"))
