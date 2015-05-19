@@ -16,7 +16,14 @@
         <WholeProgramOptimization Condition="'$(Configuration)'=='Debug'">false</WholeProgramOptimization>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
     </PropertyGroup>
-    
+
+    <!-- Debugging -->
+    <PropertyGroup>
+        <LocalDebuggerCommand>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\ProcessHacker.exe</LocalDebuggerCommand>
+        <LocalDebuggerWorkingDirectory>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
+        <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    </PropertyGroup>
+
     <!-- Global -->
     <ItemDefinitionGroup>
         <ClCompile>
@@ -38,7 +45,7 @@
             <Path>$(IntDir)$(MSBuildProjectName).log</Path>
         </BuildLog>
     </ItemDefinitionGroup>
-    
+
     <!-- Debug Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
         <ClCompile>
