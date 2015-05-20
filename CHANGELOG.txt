@@ -1,5 +1,9 @@
 Process Hacker
 
+2.36
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.35
  * NEW/IMPROVED:
    * Added Load Time and Load Reason columns for modules (Windows 8 and above)
