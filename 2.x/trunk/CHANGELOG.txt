@@ -3,6 +3,7 @@ Process Hacker
 2.36
  * NEW/IMPROVED:
  * FIXED:
+   * Fixed file dialog crash in Windows PE environments
 
 2.35
  * NEW/IMPROVED:
