@@ -912,8 +912,15 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
                 PhAppendStringBuilder2(&stringBuilder, L"32-bit only, ");
             if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_IL_LIBRARY)
                 PhAppendStringBuilder2(&stringBuilder, L"IL library, ");
-            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_STRONGNAMESIGNED)
-                PhAppendStringBuilder2(&stringBuilder, L"Strong-name signed, ");
+
+            if (PvImageCor20Header->StrongNameSignature.VirtualAddress != 0 && PvImageCor20Header->StrongNameSignature.Size != 0)
+            {
+                if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_STRONGNAMESIGNED)
+                    PhAppendStringBuilder2(&stringBuilder, L"Strong-name signed, ");
+                else
+                    PhAppendStringBuilder2(&stringBuilder, L"Strong-name delay signed, ");
+            }
+
             if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_NATIVE_ENTRYPOINT)
                 PhAppendStringBuilder2(&stringBuilder, L"Native entry-point, ");
             if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_TRACKDEBUGDATA)
