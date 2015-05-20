@@ -122,6 +122,7 @@ BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     )
 {
+    PH_STRING_BUILDER stringBuilder;
     PH_RECTANGLE windowRectangle;
 
     if (PhGetIntegerSetting(L"FirstRun"))
@@ -152,9 +153,27 @@ BOOLEAN PhMainWndInitialization(
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
     windowRectangle.Size = PhGetIntegerPairSetting(L"MainWindowSize");
 
+    // Create the window title.
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+    PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
+
+    if (PhCurrentUserName)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L" [");
+        PhAppendStringBuilder(&stringBuilder, PhCurrentUserName);
+        PhAppendCharStringBuilder(&stringBuilder, ']');
+        if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
+    }
+
+    if (WINDOWS_HAS_UAC && PhElevationType == TokenElevationTypeFull)
+        PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+
+    // Create the window.
+
     PhMainWndHandle = CreateWindow(
         PH_MAINWND_CLASSNAME,
-        PhApplicationName,
+        stringBuilder.String->Buffer,
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         windowRectangle.Left,
         windowRectangle.Top,
@@ -165,6 +184,7 @@ BOOLEAN PhMainWndInitialization(
         PhInstanceHandle,
         NULL
         );
+    PhDeleteStringBuilder(&stringBuilder);
     PhMainWndMenuHandle = GetMenu(PhMainWndHandle);
 
     if (!PhMainWndHandle)
@@ -183,29 +203,6 @@ BOOLEAN PhMainWndInitialization(
     // Allow WM_PH_ACTIVATE to pass through UIPI.
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
-
-    // Create the window title.
-    {
-        PH_STRING_BUILDER stringBuilder;
-
-        PhInitializeStringBuilder(&stringBuilder, 100);
-        PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
-
-        if (PhCurrentUserName)
-        {
-            PhAppendStringBuilder2(&stringBuilder, L" [");
-            PhAppendStringBuilder(&stringBuilder, PhCurrentUserName);
-            PhAppendCharStringBuilder(&stringBuilder, ']');
-            if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
-        }
-
-        if (WINDOWS_HAS_UAC && PhElevationType == TokenElevationTypeFull)
-            PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
-
-        SetWindowText(PhMainWndHandle, stringBuilder.String->Buffer);
-
-        PhDeleteStringBuilder(&stringBuilder);
-    }
 
     PhMwpOnSettingChange();
 
