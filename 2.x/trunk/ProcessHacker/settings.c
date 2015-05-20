@@ -109,7 +109,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY
     PhpAddStringSetting(L"IconMaskList", L"");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
-    PhpAddIntegerSetting(L"IconProcesses", L"a"); // 10
+    PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
@@ -156,7 +156,7 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerPairSetting(L"SessionShadowHotkey", L"106,2"); // VK_MULTIPLY,KBDCTRL
-    PhpAddIntegerSetting(L"ShowCommitInSummary", L"0");
+    PhpAddIntegerSetting(L"ShowCommitInSummary", L"1");
     PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
