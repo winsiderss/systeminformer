@@ -3676,14 +3676,13 @@ UINT_PTR CALLBACK PhpOpenFileNameHookProc(
 }
 
 OPENFILENAME *PhpCreateOpenFileName(
-    _In_ ULONG Type
+    VOID
     )
 {
     OPENFILENAME *ofn;
 
-    ofn = PhAllocate(sizeof(OPENFILENAME) + sizeof(ULONG));
+    ofn = PhAllocate(sizeof(OPENFILENAME));
     memset(ofn, 0, sizeof(OPENFILENAME));
-    *(PULONG)PTR_ADD_OFFSET(ofn, sizeof(OPENFILENAME)) = Type;
 
     ofn->lStructSize = sizeof(OPENFILENAME);
     ofn->nMaxFile = 0x400;
@@ -3707,6 +3706,47 @@ VOID PhpFreeOpenFileName(
     PhFree(OpenFileName);
 }
 
+typedef struct _PHP_FILE_DIALOG
+{
+    BOOLEAN UseIFileDialog;
+    BOOLEAN Save;
+    union
+    {
+        OPENFILENAME *OpenFileName;
+        IFileDialog *FileDialog;
+    } u;
+} PHP_FILE_DIALOG, *PPHP_FILE_DIALOG;
+
+PPHP_FILE_DIALOG PhpCreateFileDialog(
+    _In_ BOOLEAN Save,
+    _In_opt_ OPENFILENAME *OpenFileName,
+    _In_opt_ IFileDialog *FileDialog
+    )
+{
+    PPHP_FILE_DIALOG fileDialog;
+
+    assert(!!OpenFileName != !!FileDialog);
+    fileDialog = PhAllocate(sizeof(PHP_FILE_DIALOG));
+    fileDialog->Save = Save;
+
+    if (OpenFileName)
+    {
+        fileDialog->UseIFileDialog = FALSE;
+        fileDialog->u.OpenFileName = OpenFileName;
+    }
+    else if (FileDialog)
+    {
+        fileDialog->UseIFileDialog = TRUE;
+        fileDialog->u.FileDialog = FileDialog;
+    }
+    else
+    {
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
+    }
+
+    return fileDialog;
+}
+
 /**
  * Creates a file dialog for the user to select
  * a file to open.
@@ -3719,6 +3759,8 @@ PVOID PhCreateOpenFileDialog(
     VOID
     )
 {
+    OPENFILENAME *ofn;
+
     if (PHP_USE_IFILEDIALOG)
     {
         IFileDialog *fileDialog;
@@ -3732,22 +3774,14 @@ PVOID PhCreateOpenFileDialog(
             )))
         {
             // The default options are fine.
-            return fileDialog;
-        }
-        else
-        {
-            return NULL;
+            return PhpCreateFileDialog(FALSE, NULL, fileDialog);
         }
     }
-    else
-    {
-        OPENFILENAME *ofn;
 
-        ofn = PhpCreateOpenFileName(1);
-        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_FILEMUSTEXIST | PH_FILEDIALOG_STRICTFILETYPES);
+    ofn = PhpCreateOpenFileName();
+    PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_FILEMUSTEXIST | PH_FILEDIALOG_STRICTFILETYPES);
 
-        return ofn;
-    }
+    return PhpCreateFileDialog(FALSE, ofn, NULL);
 }
 
 /**
@@ -3762,6 +3796,8 @@ PVOID PhCreateSaveFileDialog(
     VOID
     )
 {
+    OPENFILENAME *ofn;
+
     if (PHP_USE_IFILEDIALOG)
     {
         IFileDialog *fileDialog;
@@ -3775,22 +3811,14 @@ PVOID PhCreateSaveFileDialog(
             )))
         {
             // The default options are fine.
-            return fileDialog;
-        }
-        else
-        {
-            return NULL;
+            return PhpCreateFileDialog(TRUE, NULL, fileDialog);
         }
     }
-    else
-    {
-        OPENFILENAME *ofn;
 
-        ofn = PhpCreateOpenFileName(2);
-        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_OVERWRITEPROMPT | PH_FILEDIALOG_STRICTFILETYPES);
+    ofn = PhpCreateOpenFileName();
+    PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_OVERWRITEPROMPT | PH_FILEDIALOG_STRICTFILETYPES);
 
-        return ofn;
-    }
+    return PhpCreateFileDialog(TRUE, ofn, NULL);
 }
 
 /**
@@ -3802,14 +3830,18 @@ VOID PhFreeFileDialog(
     _In_ PVOID FileDialog
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
-        IFileDialog_Release((IFileDialog *)FileDialog);
+        IFileDialog_Release(fileDialog->u.FileDialog);
     }
     else
     {
-        PhpFreeOpenFileName((OPENFILENAME *)FileDialog);
+        PhpFreeOpenFileName(fileDialog->u.OpenFileName);
     }
+
+    PhFree(fileDialog);
 }
 
 /**
@@ -3827,24 +3859,24 @@ BOOLEAN PhShowFileDialog(
     _In_ PVOID FileDialog
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
         // Set a blank default extension. This will have an effect when the user
         // selects a different file type.
-        IFileDialog_SetDefaultExtension((IFileDialog *)FileDialog, L"");
+        IFileDialog_SetDefaultExtension(fileDialog->u.FileDialog, L"");
 
-        return SUCCEEDED(IFileDialog_Show((IFileDialog *)FileDialog, hWnd));
+        return SUCCEEDED(IFileDialog_Show(fileDialog->u.FileDialog, hWnd));
     }
     else
     {
-        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        OPENFILENAME *ofn = fileDialog->u.OpenFileName;
 
         ofn->hwndOwner = hWnd;
 
-        // Determine whether the structure represents
-        // a open or save dialog and call the appropriate
-        // function.
-        if (*(PULONG)PTR_ADD_OFFSET(FileDialog, sizeof(OPENFILENAME)) == 1)
+        // Determine whether the structure represents a open or save dialog and call the appropriate function.
+        if (!fileDialog->Save)
         {
             return GetOpenFileName(ofn);
         }
@@ -3890,12 +3922,14 @@ ULONG PhGetFileDialogOptions(
     _In_ PVOID FileDialog
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
         FILEOPENDIALOGOPTIONS dialogOptions;
         ULONG options;
 
-        if (SUCCEEDED(IFileDialog_GetOptions((IFileDialog *)FileDialog, &dialogOptions)))
+        if (SUCCEEDED(IFileDialog_GetOptions(fileDialog->u.FileDialog, &dialogOptions)))
         {
             options = 0;
 
@@ -3915,7 +3949,7 @@ ULONG PhGetFileDialogOptions(
     }
     else
     {
-        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        OPENFILENAME *ofn = fileDialog->u.OpenFileName;
         ULONG options;
 
         options = 0;
@@ -3959,11 +3993,13 @@ VOID PhSetFileDialogOptions(
     _In_ ULONG Options
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
         FILEOPENDIALOGOPTIONS dialogOptions;
 
-        if (SUCCEEDED(IFileDialog_GetOptions((IFileDialog *)FileDialog, &dialogOptions)))
+        if (SUCCEEDED(IFileDialog_GetOptions(fileDialog->u.FileDialog, &dialogOptions)))
         {
             PhMapFlags1(
                 &dialogOptions,
@@ -3972,12 +4008,12 @@ VOID PhSetFileDialogOptions(
                 sizeof(PhpFileDialogIfdMappings) / sizeof(PH_FLAG_MAPPING)
                 );
 
-            IFileDialog_SetOptions((IFileDialog *)FileDialog, dialogOptions);
+            IFileDialog_SetOptions(fileDialog->u.FileDialog, dialogOptions);
         }
     }
     else
     {
-        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        OPENFILENAME *ofn = fileDialog->u.OpenFileName;
 
         PhMapFlags1(
             &ofn->Flags,
@@ -4001,11 +4037,13 @@ ULONG PhGetFileDialogFilterIndex(
     _In_ PVOID FileDialog
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
         ULONG index;
 
-        if (SUCCEEDED(IFileDialog_GetFileTypeIndex((IFileDialog *)FileDialog, &index)))
+        if (SUCCEEDED(IFileDialog_GetFileTypeIndex(fileDialog->u.FileDialog, &index)))
         {
             return index;
         }
@@ -4016,7 +4054,7 @@ ULONG PhGetFileDialogFilterIndex(
     }
     else
     {
-        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        OPENFILENAME *ofn = fileDialog->u.OpenFileName;
 
         return ofn->nFilterIndex;
     }
@@ -4036,17 +4074,19 @@ VOID PhSetFileDialogFilter(
     _In_ ULONG NumberOfFilters
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
         IFileDialog_SetFileTypes(
-            (IFileDialog *)FileDialog,
+            fileDialog->u.FileDialog,
             NumberOfFilters,
             (COMDLG_FILTERSPEC *)Filters
             );
     }
     else
     {
-        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        OPENFILENAME *ofn = fileDialog->u.OpenFileName;
         PPH_STRING filterString;
         PH_STRING_BUILDER filterBuilder;
         ULONG i;
@@ -4085,12 +4125,14 @@ PPH_STRING PhGetFileDialogFileName(
     _In_ PVOID FileDialog
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
         IShellItem *result;
         PPH_STRING fileName = NULL;
 
-        if (SUCCEEDED(IFileDialog_GetResult((IFileDialog *)FileDialog, &result)))
+        if (SUCCEEDED(IFileDialog_GetResult(fileDialog->u.FileDialog, &result)))
         {
             PWSTR name;
 
@@ -4107,7 +4149,7 @@ PPH_STRING PhGetFileDialogFileName(
         {
             PWSTR name;
 
-            if (SUCCEEDED(IFileDialog_GetFileName((IFileDialog *)FileDialog, &name)))
+            if (SUCCEEDED(IFileDialog_GetFileName(fileDialog->u.FileDialog, &name)))
             {
                 fileName = PhCreateString(name);
                 CoTaskMemFree(name);
@@ -4118,7 +4160,7 @@ PPH_STRING PhGetFileDialogFileName(
     }
     else
     {
-        return PhCreateString(((OPENFILENAME *)FileDialog)->lpstrFile);
+        return PhCreateString(fileDialog->u.OpenFileName->lpstrFile);
     }
 }
 
@@ -4133,7 +4175,9 @@ VOID PhSetFileDialogFileName(
     _In_ PWSTR FileName
     )
 {
-    if (PHP_USE_IFILEDIALOG)
+    PPHP_FILE_DIALOG fileDialog = FileDialog;
+
+    if (fileDialog->UseIFileDialog)
     {
         IShellItem *shellItem = NULL;
         PWSTR baseName;
@@ -4160,18 +4204,18 @@ VOID PhSetFileDialogFileName(
 
         if (shellItem)
         {
-            IFileDialog_SetFolder((IFileDialog *)FileDialog, shellItem);
-            IFileDialog_SetFileName((IFileDialog *)FileDialog, baseName + 1);
+            IFileDialog_SetFolder(fileDialog->u.FileDialog, shellItem);
+            IFileDialog_SetFileName(fileDialog->u.FileDialog, baseName + 1);
             IShellItem_Release(shellItem);
         }
         else
         {
-            IFileDialog_SetFileName((IFileDialog *)FileDialog, FileName);
+            IFileDialog_SetFileName(fileDialog->u.FileDialog, FileName);
         }
     }
     else
     {
-        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        OPENFILENAME *ofn = fileDialog->u.OpenFileName;
         SIZE_T length;
 
         if (wcschr(FileName, '/') || wcschr(FileName, '\"'))
