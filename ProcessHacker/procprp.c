@@ -4531,7 +4531,9 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
         PhEqualString2(Info->TypeName, L"Mapped File", TRUE) || PhEqualString2(Info->TypeName, L"Mapped Image", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES2, L"File Properties", NULL, NULL), indexInParent);
+        if (PhEqualString2(Info->TypeName, L"File", TRUE))
+            PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES2, L"File Properties", NULL, NULL), indexInParent);
+
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Open &File Location", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Key", TRUE))
