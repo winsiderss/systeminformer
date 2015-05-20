@@ -113,7 +113,7 @@ VOID PhpInitializeFindObjMenu(
         info.Handle = Results[0]->Handle;
         info.TypeName = Results[0]->TypeName;
         info.BestObjectName = Results[0]->Name;
-        PhInsertHandleObjectPropertiesEMenuItems(Menu, ID_OBJECT_COPY, FALSE, &info);
+        PhInsertHandleObjectPropertiesEMenuItems(Menu, ID_OBJECT_PROPERTIES, FALSE, &info);
     }
     else
     {
