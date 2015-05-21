@@ -270,7 +270,6 @@ static VOID NTAPI LayoutPaddingCallback(
                     if (!RebarBandExists(BandID_SearchBox))
                         RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
 
-                    //SendMessage(RebarHandle, RB_SHOWBAND, (WPARAM)index, (LPARAM)TRUE);
                     isSearchboxVisible = FALSE;
                 }
             }
@@ -281,7 +280,6 @@ static VOID NTAPI LayoutPaddingCallback(
                     if (RebarBandExists(BandID_SearchBox))
                         RebarBandRemove(BandID_SearchBox);
 
-                    //SendMessage(RebarHandle, RB_SHOWBAND, (WPARAM)index, (LPARAM)FALSE);
                     isSearchboxVisible = TRUE;
                 }
             }
