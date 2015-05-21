@@ -5,9 +5,6 @@
     <PropertyGroup>
         <OutDir>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\plugins\</OutDir>
         <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-        <CharacterSet>Unicode</CharacterSet>
-        <PlatformToolset>v120</PlatformToolset>
-        <ConfigurationType>DynamicLibrary</ConfigurationType>
         <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
         <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
         <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
