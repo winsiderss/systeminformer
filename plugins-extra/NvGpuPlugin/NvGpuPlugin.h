@@ -22,7 +22,7 @@
 
 #include "main.h"
 
-#pragma pack(push, 8) // Make sure we have consistent structure packings
+#include <pshpack8.h> // Make sure we have consistent structure packings
 
 // rev
 #define NVAPI_MAX_USAGES_PER_GPU    33
@@ -426,5 +426,4 @@ typedef enum _LevelInfo
 typedef NvAPI_Status(__cdecl *_NvAPI_GPU_GetPowerMizerInfo)(_In_ NvPhysicalGpuHandle hPhysicalGPU, PowerSourceInfo powerSourceInfo, SelectSource select, LevelInfo* pLevelInfo);
 _NvAPI_GPU_GetPowerMizerInfo NvAPI_GPU_GetPowerMizerInfo;
 
-
-#pragma pack(pop)
+#include <poppack.h>
