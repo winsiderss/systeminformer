@@ -1,4 +1,4 @@
-#include"nvapi_lite_common.h"
+#include "nvapi_lite_common.h"
 
  /***************************************************************************\
 |*                                                                           *|
@@ -54,7 +54,7 @@
 #ifndef _NVAPI_H
 #define _NVAPI_H
 
-#pragma pack(push,8) // Make sure we have consistent structure packings
+#include <pshpack8.h>  // Make sure we have consistent structure packings
 
 #ifdef __cplusplus
 extern "C" {
@@ -9307,6 +9307,6 @@ NVAPI_INTERFACE NvAPI_SYS_GetPhysicalGpuFromDisplayId(NvU32 displayId, NvPhysica
 
 #endif
 
-#pragma pack(pop)
+#include <poppack.h>
 
 #endif // _NVAPI_H

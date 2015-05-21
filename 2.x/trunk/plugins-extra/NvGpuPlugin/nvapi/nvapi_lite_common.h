@@ -1,6 +1,6 @@
 #pragma once
 
-#pragma pack(push,8)
+#include <pshpack8.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -428,4 +428,4 @@ _NvAPI_EnumPhysicalGPUs NvAPI_EnumPhysicalGPUs;
 }
 #endif
 
-#pragma pack(pop)
+#include <poppack.h>
