@@ -124,7 +124,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
         }
 
         if (cogIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))
@@ -134,7 +134,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
         }
 
         if (findIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
@@ -144,7 +144,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 2, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
         }
 
         if (chartIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)))
@@ -154,7 +154,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 3, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
         }
 
         if (appIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)))
@@ -164,7 +164,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 4, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
         }
 
         if (goIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
@@ -174,7 +174,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 5, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
         }
 
         if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)))
@@ -184,7 +184,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 6, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 6, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
         }
 
         if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
@@ -194,7 +194,7 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 7, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 7, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP));
         }
     }
 

@@ -1259,7 +1259,7 @@ static NTSTATUS PhUploadToDialogThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     dialogHandle = CreateDialogParam(
-        (HINSTANCE)PluginInstance->DllBase,
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PROGRESS),
         PhMainWndHandle,
         UploadDlgProc,
