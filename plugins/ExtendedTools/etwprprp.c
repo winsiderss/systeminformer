@@ -83,7 +83,7 @@ static VOID EtwDiskNetworkCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->DiskGraphHandle, TRUE);
@@ -98,7 +98,7 @@ static VOID EtwDiskNetworkCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->NetworkGraphHandle, TRUE);

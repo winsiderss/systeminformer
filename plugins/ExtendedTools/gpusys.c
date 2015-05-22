@@ -265,7 +265,7 @@ VOID EtpCreateGpuGraphs(
         3,
         GpuDialog,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(GpuGraphHandle, TRUE);
@@ -280,7 +280,7 @@ VOID EtpCreateGpuGraphs(
         3,
         GpuDialog,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(DedicatedGraphHandle, TRUE);
@@ -295,7 +295,7 @@ VOID EtpCreateGpuGraphs(
         3,
         GpuDialog,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(SharedGraphHandle, TRUE);
