@@ -64,7 +64,7 @@ static VOID NvGpuCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->GpuGraphHandle, TRUE);
@@ -79,7 +79,7 @@ static VOID NvGpuCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->MemGraphHandle, TRUE);
@@ -94,7 +94,7 @@ static VOID NvGpuCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->SharedGraphHandle, TRUE);
@@ -109,7 +109,7 @@ static VOID NvGpuCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->BusGraphHandle, TRUE);

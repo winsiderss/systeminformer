@@ -105,7 +105,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                 3,
                 hwndDlg,
                 NULL,
-                (HINSTANCE)PluginInstance->DllBase,
+                NULL,
                 NULL
                 );
             Graph_SetTooltip(context->GraphHandle, TRUE);

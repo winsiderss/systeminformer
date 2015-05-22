@@ -156,7 +156,7 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
                 3,
                 hwndDlg,
                 NULL,
-                PluginInstance->DllBase,
+                NULL,
                 NULL
                 );
             Graph_SetTooltip(context->GraphHandle, TRUE);
