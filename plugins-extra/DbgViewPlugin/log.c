@@ -28,22 +28,9 @@ static VOID DbgFreeLogEntry(
     _Inout_ PDEBUG_LOG_ENTRY Entry
     )
 {
-    //ImageList_Remove(ListViewImageList, Entry->ImageIndex);
-
-    if (Entry->FilePath)
-    {
-        PhDereferenceObject(Entry->FilePath);
-    }
-
-    if (Entry->ProcessName)
-    {
-        PhDereferenceObject(Entry->ProcessName);
-    }
-
-    if (Entry->Message)
-    {
-        PhDereferenceObject(Entry->Message);
-    }
+    PhSwapReference2(&Entry->FilePath, NULL);
+    PhSwapReference2(&Entry->ProcessName, NULL);
+    PhSwapReference2(&Entry->Message, NULL);
 
     PhFree(Entry);
 }
@@ -90,6 +77,36 @@ static VOID DbgShowErrorMessage(
     {
         PhShowError(Context->DialogHandle, PhaFormatString(L"%s: [%u] %s", Type, errorCode, errorMessage->Buffer)->Buffer);
         PhDereferenceObject(errorMessage);
+    }
+}
+
+static VOID DbgFormatObjectName(
+    _In_ BOOLEAN LocalName,
+    _In_ PWSTR OriginalName,
+    _Out_ PUNICODE_STRING ObjectName
+    )
+{
+    SIZE_T length;
+    SIZE_T originalNameLength;
+
+    // Sessions other than session 0 require SeCreateGlobalPrivilege.
+    if (LocalName && NtCurrentPeb()->SessionId != 0)
+    {
+        WCHAR buffer[256] = L"";
+
+        memcpy(buffer, L"\\Sessions\\", 10 * sizeof(WCHAR));
+        _ultow(NtCurrentPeb()->SessionId, buffer + 10, 10);
+        length = wcslen(buffer);
+        originalNameLength = wcslen(OriginalName);
+        memcpy(buffer + length, OriginalName, (originalNameLength + 1) * sizeof(WCHAR));
+        length += originalNameLength;
+
+        ObjectName->Buffer = buffer;
+        ObjectName->MaximumLength = (ObjectName->Length = (USHORT)(length * sizeof(WCHAR))) + sizeof(WCHAR);
+    }
+    else
+    {
+        RtlInitUnicodeString(ObjectName, OriginalName);
     }
 }
 
@@ -271,7 +288,16 @@ BOOLEAN DbgEventsCreate(
     )
 {
     if (GlobalEvents)
-    {
+    {  
+        SIZE_T viewSize;
+        LARGE_INTEGER maximumSize;
+        OBJECT_ATTRIBUTES objectAttributes;
+        UNICODE_STRING objectName;
+        HANDLE threadHandle = NULL;
+
+        maximumSize.QuadPart = PAGE_SIZE;
+        viewSize = sizeof(DBWIN_PAGE_BUFFER);
+
         if (!(Context->GlobalBufferReadyEvent = CreateEvent(&Context->SecurityAttributes, FALSE, FALSE, L"Global\\" DBWIN_BUFFER_READY)))
         {
             DbgShowErrorMessage(Context, L"DBWIN_BUFFER_READY");
@@ -284,36 +310,64 @@ BOOLEAN DbgEventsCreate(
             return FALSE;
         }
 
-        if (!(Context->GlobalDataBufferHandle = CreateFileMapping(INVALID_HANDLE_VALUE, &Context->SecurityAttributes, PAGE_READWRITE, 0, PAGE_SIZE, L"Global\\" DBWIN_BUFFER)))
-        {
-            DbgShowErrorMessage(Context, L"DBWIN_BUFFER");
-            return FALSE;
-        }
+        DbgFormatObjectName(FALSE, DBWIN_BUFFER_SECTION_NAME, &objectName);
+        InitializeObjectAttributes(
+            &objectAttributes, 
+            &objectName, 
+            OBJ_CASE_INSENSITIVE, 
+            NULL, 
+            Context->SecurityAttributes.lpSecurityDescriptor
+            );
 
-        if (!(Context->GlobalDebugBuffer = MapViewOfFileEx(
-            Context->GlobalDataBufferHandle,
-            SECTION_MAP_READ,
-            0,
-            0,
-            sizeof(DBWIN_PAGE_BUFFER),
+        if (!NT_SUCCESS(NtCreateSection(
+            &Context->GlobalDataBufferHandle,
+            STANDARD_RIGHTS_REQUIRED | SECTION_QUERY | SECTION_MAP_READ | SECTION_MAP_WRITE,
+            &objectAttributes,
+            &maximumSize,
+            PAGE_READWRITE,
+            SEC_COMMIT,
             NULL
             )))
         {
-            DbgShowErrorMessage(Context, L"MapViewOfFile");
+            DbgShowErrorMessage(Context, L"NtCreateSection");
             return FALSE;
         }
-        else
+        
+        if (!NT_SUCCESS(NtMapViewOfSection(
+            Context->GlobalDataBufferHandle,
+            NtCurrentProcess(),
+            &Context->GlobalDebugBuffer,
+            0,
+            0,
+            NULL,
+            &viewSize,
+            ViewShare,
+            0,
+            PAGE_READONLY
+            )))
         {
-            HANDLE threadHandle = NULL;
+            DbgShowErrorMessage(Context, L"NtMapViewOfSection");
+            return FALSE;
+        }
 
-            Context->CaptureGlobalEnabled = TRUE;
+        Context->CaptureGlobalEnabled = TRUE;
 
-            if (threadHandle = PhCreateThread(0, DbgEventsGlobalThread, Context))
-                NtClose(threadHandle);
+        if (threadHandle = PhCreateThread(0, DbgEventsGlobalThread, Context))
+        {
+            NtClose(threadHandle);
         }
     }
     else
     {
+        SIZE_T viewSize;
+        LARGE_INTEGER maximumSize;
+        OBJECT_ATTRIBUTES objectAttributes;
+        UNICODE_STRING objectName;
+        HANDLE threadHandle = NULL;
+
+        maximumSize.QuadPart = PAGE_SIZE;
+        viewSize = sizeof(DBWIN_PAGE_BUFFER);
+
         if (!(Context->LocalBufferReadyEvent = CreateEvent(&Context->SecurityAttributes, FALSE, FALSE, L"Local\\" DBWIN_BUFFER_READY)))
         {
             DbgShowErrorMessage(Context, L"DBWIN_BUFFER_READY");
@@ -326,32 +380,51 @@ BOOLEAN DbgEventsCreate(
             return FALSE;
         }
 
-        if (!(Context->LocalDataBufferHandle = CreateFileMapping(INVALID_HANDLE_VALUE, &Context->SecurityAttributes, PAGE_READWRITE, 0, PAGE_SIZE, L"Local\\" DBWIN_BUFFER)))
-        {
-            DbgShowErrorMessage(Context, L"DBWIN_BUFFER");
-            return FALSE;
-        }
+        DbgFormatObjectName(TRUE, DBWIN_BUFFER_SECTION_NAME, &objectName);
+        InitializeObjectAttributes(
+            &objectAttributes, 
+            &objectName, 
+            OBJ_CASE_INSENSITIVE, 
+            NULL, 
+            Context->SecurityAttributes.lpSecurityDescriptor
+            );
 
-        if (!(Context->LocalDebugBuffer = MapViewOfFileEx(
-            Context->LocalDataBufferHandle,
-            SECTION_MAP_READ,
-            0,
-            0,
-            sizeof(DBWIN_PAGE_BUFFER),
+        if (!NT_SUCCESS(NtCreateSection(
+            &Context->LocalDataBufferHandle,
+            STANDARD_RIGHTS_REQUIRED | SECTION_QUERY | SECTION_MAP_READ | SECTION_MAP_WRITE,
+            &objectAttributes,
+            &maximumSize,
+            PAGE_READWRITE,
+            SEC_COMMIT,
             NULL
             )))
         {
-            DbgShowErrorMessage(Context, L"MapViewOfFile");
+            DbgShowErrorMessage(Context, L"NtCreateSection");
             return FALSE;
         }
-        else
+
+        if (!NT_SUCCESS(NtMapViewOfSection(
+            Context->LocalDataBufferHandle,
+            NtCurrentProcess(),
+            &Context->LocalDebugBuffer,
+            0,
+            0,
+            NULL,
+            &viewSize,
+            ViewShare,
+            0,
+            PAGE_READONLY
+            )))
         {
-            HANDLE threadHandle = NULL;
+            DbgShowErrorMessage(Context, L"NtMapViewOfSection");
+            return FALSE;
+        }
 
-            Context->CaptureLocalEnabled = TRUE;
+        Context->CaptureLocalEnabled = TRUE;
 
-            if (threadHandle = PhCreateThread(0, DbgEventsLocalThread, Context))
-                NtClose(threadHandle);
+        if (threadHandle = PhCreateThread(0, DbgEventsLocalThread, Context))
+        {
+            NtClose(threadHandle);
         }
     }
 

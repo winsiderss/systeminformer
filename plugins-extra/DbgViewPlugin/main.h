@@ -50,6 +50,10 @@
 #define DBWIN_DATA_READY L"DBWIN_DATA_READY"
 #define DBWIN_BUFFER L"DBWIN_BUFFER"
 
+#define DBWIN_BUFFER_READY_OBJECT_NAME L"\\BaseNamedObjects\\DBWIN_BUFFER_READY"
+#define DBWIN_DATA_READY_OBJECT_NAME L"\\BaseNamedObjects\\DBWIN_DATA_READY"
+#define DBWIN_BUFFER_SECTION_NAME L"\\BaseNamedObjects\\DBWIN_BUFFER"
+
 // The Win32 OutputDebugString buffer.
 typedef struct _DBWIN_PAGE_BUFFER
 {
