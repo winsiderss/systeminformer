@@ -32,8 +32,6 @@ VOID AddFilterType(
     PDBG_FILTER_TYPE newFilterEntry;
 
     newFilterEntry = PhAllocate(sizeof(DBG_FILTER_TYPE));
-    memset(newFilterEntry, 0, sizeof(DBG_FILTER_TYPE));
-
     newFilterEntry->Type = Type;
     newFilterEntry->ProcessId = ProcessID;
     newFilterEntry->ProcessName = ProcessName;
