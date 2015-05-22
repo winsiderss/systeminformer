@@ -124,11 +124,11 @@ char *growl_generate_authheader_alloc(const char*const password)
     return authheader;
 }
 
-
+/* dmex: modified to use INVALID_SOCKET */
 int growl_tcp_register( const char *const server , const char *const appname , const char **const notifications , const int notifications_count ,
         const char *const password, const char* const icon  )
 {
-    SOCKET sock = -1;
+    SOCKET sock = INVALID_SOCKET;
     int i=0;
     char *authheader;
     char *iconid = NULL;
@@ -139,7 +139,7 @@ int growl_tcp_register( const char *const server , const char *const appname , c
     growl_init();
     authheader = growl_generate_authheader_alloc(password);
     sock = growl_tcp_open(server);
-    if (sock == -1) goto leave;
+    if (sock == INVALID_SOCKET) goto leave;
     if (icon) {
         size_t bytes_read;
         md5_context md5ctx;
@@ -211,7 +211,7 @@ int growl_tcp_register( const char *const server , const char *const appname , c
         char* line = growl_tcp_read(sock);
         if (!line) {
             growl_tcp_close(sock);
-            sock = -1;
+            sock = INVALID_SOCKET;
             goto leave;
         }
         else
@@ -239,14 +239,14 @@ int growl_tcp_register( const char *const server , const char *const appname , c
     if (iconid) PhFree(iconid);
     if (authheader) PhFree(authheader);
 
-    return (sock == 0) ? 0 : -1;
+    return (sock == 0) ? 0 : INVALID_SOCKET;
 }
 
-
+/* dmex: modified to use INVALID_SOCKET */
 int growl_tcp_notify( const char *const server,const char *const appname,const char *const notify,const char *const title, const char *const message ,
                                 const char *const password, const char* const url, const char* const icon)
 {
-    SOCKET sock = -1;
+    SOCKET sock = INVALID_SOCKET;
 
     char *authheader = growl_generate_authheader_alloc(password);
     char *iconid = NULL;
@@ -257,7 +257,7 @@ int growl_tcp_notify( const char *const server,const char *const appname,const c
     growl_init();
 
     sock = growl_tcp_open(server);
-    if (sock == -1) goto leave;
+    if (sock == INVALID_SOCKET) goto leave;
 
     if (icon)
     {
@@ -319,7 +319,7 @@ int growl_tcp_notify( const char *const server,const char *const appname,const c
         if (!line)
         {
             growl_tcp_close(sock);
-            sock = -1;
+            sock = INVALID_SOCKET;
             goto leave;
         } else
         {
@@ -346,7 +346,7 @@ leave:
     if (iconid) PhFree(iconid);
     if (authheader) PhFree(authheader);
 
-    return (sock == 0) ? 0 : -1;
+    return (sock == 0) ? 0 : INVALID_SOCKET;
 }
 
 

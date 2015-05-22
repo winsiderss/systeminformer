@@ -79,8 +79,9 @@ char *growl_tcp_read(SOCKET sock) {
     return line;
 }
 
+/* dmex: modified to use INVALID_SOCKET and SOCKET_ERROR */
 SOCKET growl_tcp_open(const char* server) {
-    SOCKET sock = -1;
+    SOCKET sock = INVALID_SOCKET;
 #ifdef _WIN32
     char on;
 #else
@@ -90,31 +91,32 @@ SOCKET growl_tcp_open(const char* server) {
 
     if( growl_tcp_parse_hostname( server , 23053 , &serv_addr ) == -1 )
     {
-        return -1;
+        return INVALID_SOCKET;
     }
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
         perror("create socket");
-        return -1;
+        return INVALID_SOCKET;
     }
 
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == SOCKET_ERROR) {
         perror("connect");
-        return -1;
+        return INVALID_SOCKET;
     }
 
     on = 1;
-    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1) {
+    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == SOCKET_ERROR) {
         perror("setsockopt");
-        return -1;
+        return INVALID_SOCKET;
     }
 
     return sock;
 }
 
+/* dmex: modified to use INVALID_SOCKET */
 void growl_tcp_close(SOCKET sock) {
 #ifdef _WIN32
-    if (sock > 0) closesocket(sock);
+    if (sock != INVALID_SOCKET) closesocket(sock);
 #else
     if (sock > 0) close(sock);
 #endif
