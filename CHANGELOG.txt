@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
  * FIXED:
    * Fixed file dialog crash in Windows PE environments
+   * Fixed Read/Write Address crash
 
 2.35
  * NEW/IMPROVED:
