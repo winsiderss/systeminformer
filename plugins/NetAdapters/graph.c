@@ -629,7 +629,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                 3,
                 hwndDlg,
                 NULL,
-                PluginInstance->DllBase,
+                NULL,
                 NULL
                 );
             Graph_SetTooltip(context->GraphHandle, TRUE);
