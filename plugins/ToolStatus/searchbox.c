@@ -109,7 +109,7 @@ static VOID NcAreaInitializeImageList(
     }
     else
     {
-        PhSetImageListBitmap(Context->ImageList, 0, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
+        PhSetImageListBitmap(Context->ImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
     }
 
     if (bitmapInactive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)))
@@ -119,7 +119,7 @@ static VOID NcAreaInitializeImageList(
     }
     else
     {
-        PhSetImageListBitmap(Context->ImageList, 1, (HINSTANCE)PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
+        PhSetImageListBitmap(Context->ImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
     }
 }
 

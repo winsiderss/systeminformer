@@ -893,7 +893,7 @@ static VOID NTAPI ShowOptionsCallback(
     )
 {
     DialogBox(
-        (HINSTANCE)PluginInstance->DllBase,
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
         (HWND)Parameter,
         OptionsDlgProc
