@@ -152,7 +152,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     3,
                     hwndDlg,
                     NULL,
-                    PluginInstance->DllBase,
+                    NULL,
                     NULL
                     );
                 Graph_SetTooltip(GraphHandle[i], TRUE);
@@ -166,7 +166,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     3,
                     hwndDlg,
                     NULL,
-                    PluginInstance->DllBase,
+                    NULL,
                     NULL
                     );
                 SendMessage(CheckBoxHandle[i], WM_SETFONT, (WPARAM)font, FALSE);

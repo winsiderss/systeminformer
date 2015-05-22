@@ -217,7 +217,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
                 3,
                 hwndDlg,
                 NULL,
-                PluginInstance->DllBase,
+                NULL,
                 NULL
                 );
             Graph_SetTooltip(DiskGraphHandle, TRUE);
@@ -589,7 +589,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
                 3,
                 hwndDlg,
                 NULL,
-                PluginInstance->DllBase,
+                NULL,
                 NULL
                 );
             Graph_SetTooltip(NetworkGraphHandle, TRUE);

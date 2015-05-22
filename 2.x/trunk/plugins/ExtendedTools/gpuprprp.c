@@ -83,7 +83,7 @@ static VOID GpuPropCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->GpuGraphHandle, TRUE);
@@ -98,7 +98,7 @@ static VOID GpuPropCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->MemGraphHandle, TRUE);
@@ -113,7 +113,7 @@ static VOID GpuPropCreateGraphs(
         3,
         Context->WindowHandle,
         NULL,
-        PluginInstance->DllBase,
+        NULL,
         NULL
         );
     Graph_SetTooltip(Context->SharedGraphHandle, TRUE);
