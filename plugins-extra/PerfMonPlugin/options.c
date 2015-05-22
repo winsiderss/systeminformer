@@ -416,7 +416,7 @@ VOID ShowOptionsDialog(
     )
 {
     DialogBox(
-        (HINSTANCE)PluginInstance->DllBase,
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PERFMON_OPTIONS),
         ParentHandle,
         OptionsDlgProc
