@@ -1284,7 +1284,7 @@ static NTSTATUS ShowUpdateDialogThread(
     PhInitializeAutoPool(&autoPool);
 
     UpdateDialogHandle = CreateDialogParam(
-        (HINSTANCE)PluginInstance->DllBase,
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_UPDATE),
         PhMainWndHandle,
         UpdaterWndProc,

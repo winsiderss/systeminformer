@@ -39,7 +39,7 @@ VOID ShowStatusMenu(
     ULONG bit;
 
     menu = LoadMenu(
-        (HINSTANCE)PluginInstance->DllBase,
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDR_STATUS)
         );
 
