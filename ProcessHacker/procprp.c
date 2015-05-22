@@ -4186,6 +4186,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             {
                                 PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
 
+                                memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
                                 showMemoryEditor->ProcessId = processItem->ProcessId;
                                 showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
                                 showMemoryEditor->RegionSize = memoryItem->Size;
