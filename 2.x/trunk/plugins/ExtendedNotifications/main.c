@@ -642,23 +642,19 @@ VOID AddEntriesToListBox(
 PPH_LIST EditingProcessFilterList;
 PPH_LIST EditingServiceFilterList;
 
-static LRESULT CALLBACK TextBoxWndProc(
-    _In_ HWND hwnd,
+static LRESULT CALLBACK TextBoxSubclassProc(
+    _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     )
 {
-    WNDPROC oldWndProc;
-
-    oldWndProc = (WNDPROC)GetProp(hwnd, L"OldWndProc");
-
     switch (uMsg)
     {
-    case WM_DESTROY:
-        {
-            RemoveProp(hwnd, L"OldWndProc");
-        }
+    case WM_NCDESTROY:
+        RemoveWindowSubclass(hWnd, TextBoxSubclassProc, uIdSubclass);
         break;
     case WM_GETDLGCODE:
         {
@@ -670,14 +666,14 @@ static LRESULT CALLBACK TextBoxWndProc(
         {
             if (wParam == VK_RETURN)
             {
-                SendMessage(GetParent(hwnd), WM_COMMAND, IDC_TEXT_RETURN, 0);
+                SendMessage(GetParent(hWnd), WM_COMMAND, IDC_TEXT_RETURN, 0);
                 return 0;
             }
         }
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
 VOID FixControlStates(
@@ -709,13 +705,7 @@ INT_PTR HandleCommonMessages(
     {
     case WM_INITDIALOG:
         {
-            HWND textBoxHandle;
-            WNDPROC oldWndProc;
-
-            textBoxHandle = GetDlgItem(hwndDlg, IDC_TEXT);
-            oldWndProc = (WNDPROC)GetWindowLongPtr(textBoxHandle, GWLP_WNDPROC);
-            SetWindowLongPtr(textBoxHandle, GWLP_WNDPROC, (LONG_PTR)TextBoxWndProc);
-            SetProp(textBoxHandle, L"OldWndProc", (HANDLE)oldWndProc);
+            SetWindowSubclass(GetDlgItem(hwndDlg, IDC_TEXT), TextBoxSubclassProc, 0, 0);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE), BST_CHECKED);
 
