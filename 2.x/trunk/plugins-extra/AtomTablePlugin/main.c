@@ -123,7 +123,7 @@ static VOID NTAPI MenuItemCallback(
     case ATOM_TABLE_MENUITEM:
         {
             DialogBox(
-                (HINSTANCE)PluginInstance->DllBase,
+                PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_ATOMDIALOG),
                 NULL,
                 MainWindowDlgProc
@@ -294,7 +294,7 @@ static VOID ShowStatusMenu(
         GetCursorPos(&cursorPos);
 
         menu = LoadMenu(
-            (HINSTANCE)PluginInstance->DllBase,
+            PluginInstance->DllBase,
             MAKEINTRESOURCE(IDR_MAIN_MENU)
             );
 

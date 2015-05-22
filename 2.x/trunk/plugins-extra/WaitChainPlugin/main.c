@@ -386,7 +386,7 @@ static VOID NTAPI MenuItemCallback(
     case IDD_WCT_MENUITEM:
         {
             DialogBoxParam(
-                (HINSTANCE)PluginInstance->DllBase,
+                PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_WCT_DIALOG),
                 NULL,
                 WaitChainDlgProc,
