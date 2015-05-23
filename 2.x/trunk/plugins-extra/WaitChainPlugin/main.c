@@ -41,11 +41,11 @@ static BOOLEAN WaitChainRegisterCallbacks(
     if (!Context->Ole32ModuleHandle)
         return FALSE;
 
-    coGetCallStateCallback = (PCOGETCALLSTATE)GetProcAddress(Context->Ole32ModuleHandle, "CoGetCallState");
+    coGetCallStateCallback = PhGetProcedureAddress(Context->Ole32ModuleHandle, "CoGetCallState", 0);
     if (!coGetCallStateCallback)
         return FALSE;
 
-    coGetActivationStateCallback = (PCOGETACTIVATIONSTATE)GetProcAddress(Context->Ole32ModuleHandle, "CoGetActivationState");
+    coGetActivationStateCallback = PhGetProcedureAddress(Context->Ole32ModuleHandle, "CoGetActivationState", 0);
     if (!coGetActivationStateCallback)
         return FALSE;
 
@@ -191,7 +191,7 @@ static NTSTATUS WaitChainCallbackThread(
 
     if (context->Ole32ModuleHandle)
     {
-        FreeLibrary(context->Ole32ModuleHandle);
+        LdrUnloadDll(context->Ole32ModuleHandle);
     }
 
     return status;
