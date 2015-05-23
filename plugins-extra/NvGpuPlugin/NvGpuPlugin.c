@@ -85,7 +85,7 @@ BOOLEAN InitializeNvApi(VOID)
         return FALSE;
 
     // Retrieve the NvAPI_QueryInterface function address
-    if (!(NvAPI_QueryInterface = (_NvAPI_QueryInterface)GetProcAddress(NvApiLibrary, "nvapi_QueryInterface")))
+    if (!(NvAPI_QueryInterface = PhGetProcedureAddress(NvApiLibrary, "nvapi_QueryInterface", 0)))
         return FALSE;
 
     // Initialization functions
@@ -186,7 +186,7 @@ BOOLEAN DestroyNvApi(VOID)
         NvAPI_Unload();
 
     if (NvApiLibrary)
-        FreeLibrary(NvApiLibrary);
+        LdrUnloadDll(NvApiLibrary);
 
     return TRUE;
 }

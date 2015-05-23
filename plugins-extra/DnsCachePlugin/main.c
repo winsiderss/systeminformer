@@ -268,11 +268,11 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
             DnsApiHandle = LoadLibrary(L"dnsapi.dll");
             if (DnsApiHandle)
             {
-                DnsQuery_I = (_DnsQuery)GetProcAddress(DnsApiHandle, "DnsQuery_W");
-                DnsFree_I = (_DnsFree)GetProcAddress(DnsApiHandle, "DnsFree");
-                DnsGetCacheDataTable_I = (_DnsGetCacheDataTable)GetProcAddress(DnsApiHandle, "DnsGetCacheDataTable");
-                DnsFlushResolverCache_I = (_DnsFlushResolverCache)GetProcAddress(DnsApiHandle, "DnsFlushResolverCache");
-                DnsFlushResolverCacheEntry_I = (_DnsFlushResolverCacheEntry)GetProcAddress(DnsApiHandle, "DnsFlushResolverCacheEntry_W");
+                DnsQuery_I = PhGetProcedureAddress(DnsApiHandle, "DnsQuery_W", 0);
+                DnsFree_I = PhGetProcedureAddress(DnsApiHandle, "DnsFree", 0);
+                DnsGetCacheDataTable_I = PhGetProcedureAddress(DnsApiHandle, "DnsGetCacheDataTable", 0);
+                DnsFlushResolverCache_I = PhGetProcedureAddress(DnsApiHandle, "DnsFlushResolverCache", 0);
+                DnsFlushResolverCacheEntry_I = PhGetProcedureAddress(DnsApiHandle, "DnsFlushResolverCacheEntry_W", 0);
             }
 
             EnumDnsCacheTable(ListViewWndHandle);
@@ -282,7 +282,7 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
         {
             if (DnsApiHandle)
             {
-                FreeLibrary(DnsApiHandle);
+                LdrUnloadDll(DnsApiHandle);
                 DnsApiHandle = NULL;
             }
 
