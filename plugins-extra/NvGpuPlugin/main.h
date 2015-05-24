@@ -97,4 +97,8 @@ VOID NvGpuSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
+VOID ShowOptionsDialog(
+    _In_ HWND ParentHandle
+    );
+
 #endif _NVGPU_H_

@@ -66,6 +66,7 @@
     <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="NvGpuPlugin.c" />
+    <ClCompile Include="options.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h" />

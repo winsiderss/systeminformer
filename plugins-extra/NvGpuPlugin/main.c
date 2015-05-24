@@ -53,7 +53,7 @@ static VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
+    ShowOptionsDialog((HWND)Parameter);
 }
 
 static VOID NTAPI SystemInformationInitializingCallback(
@@ -94,7 +94,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Nvidia GPU";
             info->Author = L"dmex";
             info->Description = L"Plugin for extended Nvidia GPU monitoring via the System Information window.";
-            info->HasOptions = FALSE;
+            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

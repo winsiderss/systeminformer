@@ -41,6 +41,9 @@
     <ClCompile Include="NvGpuPlugin.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="options.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />

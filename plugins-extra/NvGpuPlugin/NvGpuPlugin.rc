@@ -24,8 +24,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,1,0,0
+ PRODUCTVERSION 1,1,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -42,12 +42,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Nvidia GPU plugin for Process Hacker"
-            VALUE "FileVersion", "1.0"
+            VALUE "FileVersion", "1.1"
             VALUE "InternalName", "NvGpuPlugin"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NvGpuPlugin.dll"
             VALUE "ProductName", "Nvidia GPU plugin for Process Hacker"
-            VALUE "ProductVersion", "1.0"
+            VALUE "ProductVersion", "1.1"
         END
     END
     BLOCK "VarFileInfo"
@@ -125,6 +125,17 @@ BEGIN
     PUSHBUTTON      "Details",IDC_DETAILS,249,27,50,14
 END
 
+IDD_OPTIONS DIALOGEX 0, 0, 211, 58
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,100,37,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,154,37,50,14
+    CONTROL         "Enable Nvidia GPU graphs",IDC_ENABLENVIDIASUPPORT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,98,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -141,6 +152,14 @@ BEGIN
 
     IDD_GPU_PANEL, DIALOG
     BEGIN
+    END
+
+    IDD_OPTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 204
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 51
     END
 END
 #endif    // APSTUDIO_INVOKED
