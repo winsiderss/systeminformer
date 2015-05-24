@@ -56,13 +56,13 @@ static PPH_STRING PhGetServiceProtectionType(
         switch (launchProtectedInfo.dwLaunchProtected)
         {
         case SERVICE_LAUNCH_PROTECTED_NONE:
-            return PhCreateString(L"None");
+            return PhCreateString(PhServiceProtectedTypeStrings[SERVICE_LAUNCH_PROTECTED_NONE]);
         case SERVICE_LAUNCH_PROTECTED_WINDOWS:
-            return PhCreateString(L"Full (Windows)");
+            return PhCreateString(PhServiceProtectedTypeStrings[SERVICE_LAUNCH_PROTECTED_WINDOWS]);
         case SERVICE_LAUNCH_PROTECTED_WINDOWS_LIGHT:
-            return PhCreateString(L"Light (Windows)");
+            return PhCreateString(PhServiceProtectedTypeStrings[SERVICE_LAUNCH_PROTECTED_WINDOWS_LIGHT]);
         case SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT:
-            return PhCreateString(L"Light (Antimalware)");
+            return PhCreateString(PhServiceProtectedTypeStrings[SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT]);
         }
     }
 
@@ -104,11 +104,11 @@ static PPH_STRING PhGetServiceSidInfo(
         switch (serviceSidInfo.dwServiceSidType)
         {
         case SERVICE_SID_TYPE_NONE:
-            return PhCreateString(L"None");
+            return PhCreateString(PhServiceSidTypeStrings[0]);
         case SERVICE_SID_TYPE_RESTRICTED:
-            return PhCreateString(L"Restricted");
+            return PhCreateString(PhServiceSidTypeStrings[1]);
         case SERVICE_SID_TYPE_UNRESTRICTED:
-            return PhCreateString(L"Unrestricted");
+            return PhCreateString(PhServiceSidTypeStrings[2]);
         }
     }
 
@@ -129,6 +129,44 @@ static BOOLEAN PhSetServiceServiceSidInfo(
         SERVICE_CONFIG_SERVICE_SID_INFO,
         &serviceSidInfo
         );
+}
+
+static PPH_STRING PhGetServiceSidString(
+    _In_ PPH_STRING ServiceName
+    )
+{
+    ULONG serviceSidLength = 0;
+    UNICODE_STRING serviceNameString;
+    PSID serviceSid = NULL;
+    PPH_STRING sidString = NULL;
+
+    RtlInitUnicodeString(&serviceNameString, ServiceName->Buffer);
+
+    if (RtlCreateServiceSid_I && RtlCreateServiceSid_I(&serviceNameString, serviceSid, &serviceSidLength) == STATUS_BUFFER_TOO_SMALL)
+    {
+        serviceSid = PhAllocate(serviceSidLength);
+
+        if (NT_SUCCESS(RtlCreateServiceSid_I(&serviceNameString, serviceSid, &serviceSidLength)))
+        {
+            sidString = PhSidToStringSid(serviceSid);
+        }
+
+        PhFree(serviceSid);
+    }
+
+    return sidString;
+}
+
+VOID UpdateServiceSid(
+    _In_ PPH_SERVICE_NODE Node,
+    _In_ PSERVICE_EXTENSION Extension
+    )
+{
+    if (!Extension->Valid)
+    {
+        PhSwapReference(&Extension->ServiceSid, PhGetServiceSidString(Node->ServiceItem->Name));
+        Extension->Valid = TRUE;
+    }
 }
 
 INT_PTR CALLBACK ServiceExtraDlgProc(
