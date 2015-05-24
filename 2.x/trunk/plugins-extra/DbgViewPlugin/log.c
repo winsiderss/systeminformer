@@ -288,7 +288,7 @@ BOOLEAN DbgEventsCreate(
     )
 {
     if (GlobalEvents)
-    {  
+    {
         SIZE_T viewSize;
         LARGE_INTEGER maximumSize;
         OBJECT_ATTRIBUTES objectAttributes;
@@ -312,10 +312,10 @@ BOOLEAN DbgEventsCreate(
 
         DbgFormatObjectName(FALSE, DBWIN_BUFFER_SECTION_NAME, &objectName);
         InitializeObjectAttributes(
-            &objectAttributes, 
-            &objectName, 
-            OBJ_CASE_INSENSITIVE, 
-            NULL, 
+            &objectAttributes,
+            &objectName,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
             Context->SecurityAttributes.lpSecurityDescriptor
             );
 
@@ -332,7 +332,7 @@ BOOLEAN DbgEventsCreate(
             DbgShowErrorMessage(Context, L"NtCreateSection");
             return FALSE;
         }
-        
+
         if (!NT_SUCCESS(NtMapViewOfSection(
             Context->GlobalDataBufferHandle,
             NtCurrentProcess(),
@@ -382,10 +382,10 @@ BOOLEAN DbgEventsCreate(
 
         DbgFormatObjectName(TRUE, DBWIN_BUFFER_SECTION_NAME, &objectName);
         InitializeObjectAttributes(
-            &objectAttributes, 
-            &objectName, 
-            OBJ_CASE_INSENSITIVE, 
-            NULL, 
+            &objectAttributes,
+            &objectName,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
             Context->SecurityAttributes.lpSecurityDescriptor
             );
 

@@ -106,7 +106,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     PSTORAGE_DESCRIPTOR_HEADER buffer = NULL;
 
     query.QueryType = PropertyStandardQuery;
-    query.PropertyId = StorageDeviceProperty; 
+    query.PropertyId = StorageDeviceProperty;
 
     bufferLength = sizeof(STORAGE_DESCRIPTOR_HEADER);
     buffer = PhAllocate(bufferLength);
@@ -263,7 +263,7 @@ NTSTATUS DiskDriveQueryStatistics(
         );
 
     *Info = result;
-    
+
     return status;
 }
 
@@ -351,12 +351,12 @@ static BOOLEAN DiskDriveQueryImminentFailure(
         deviceQuerySupported = TRUE;
     }
 
-    // IOCTL_STORAGE_PREDICT_FAILURE returns a ULONG+ opaque 512-byte vendor-specific information, which 
+    // IOCTL_STORAGE_PREDICT_FAILURE returns a ULONG+ opaque 512-byte vendor-specific information, which
     // in all cases contains SMART attribute information (2 bytes header + 12 bytes each attribute).
 
-    // If ATA pass - through or SMART I / O - controls are unavailable, 
-    //  IOCTL_STORAGE_QUERY_PROPERTY to read part of the IDENTIFY data and 
-    //  IOCTL_STORAGE_PREDICT_FAILURE to read SMART status and attributes (without thresholds). 
+    // If ATA pass - through or SMART I / O - controls are unavailable,
+    //  IOCTL_STORAGE_QUERY_PROPERTY to read part of the IDENTIFY data and
+    //  IOCTL_STORAGE_PREDICT_FAILURE to read SMART status and attributes (without thresholds).
     // This works without admin rights but doesn't support other features like logs and self-tests. It works for (S)ATA devices but not for USB.
 
     return deviceQuerySupported;

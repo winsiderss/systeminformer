@@ -354,7 +354,7 @@ static NTSTATUS NetworkAdapterQueryLinkSpeed(
         );
 
     *LinkSpeed = UInt32x32To64(result.Outbound, NDIS_UNIT_OF_MEASUREMENT);
-    
+
     return status;
 }
 
@@ -422,7 +422,7 @@ static MIB_IFROW QueryInterfaceRowXP(
     interfaceRow.dwIndex = Context->AdapterEntry->InterfaceIndex;
 
     GetIfEntry(&interfaceRow);
-    
+
     //MIB_IPINTERFACE_ROW interfaceTable;
     //memset(&interfaceTable, 0, sizeof(MIB_IPINTERFACE_ROW));
     //interfaceTable.Family = AF_INET;
@@ -811,7 +811,7 @@ static BOOLEAN NetAdapterSectionCallback(
         {
             PhDeleteCircularBuffer_ULONG64(&context->InboundBuffer);
             PhDeleteCircularBuffer_ULONG64(&context->OutboundBuffer);
-   
+
             if (context->AdapterName)
                 PhDereferenceObject(context->AdapterName);
 
@@ -867,7 +867,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 //}
                 //else
                 //{
-                //    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);                   
+                //    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);
                 //}
 
                 // HACK: Pull the Adapter name from the current query.

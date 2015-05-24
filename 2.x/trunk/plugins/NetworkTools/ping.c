@@ -655,7 +655,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                                 if (max < data1)
                                     max = data1;
                             }
-               
+
                             // Minimum scaling of timeout (1000ms default).
                             if (max < (FLOAT)context->MaxPingTimeout)
                                 max = (FLOAT)context->MaxPingTimeout;
