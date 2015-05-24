@@ -490,6 +490,9 @@ PPH_STRING PhSidToStringSid(
         FALSE
         )))
     {
+        string->Length = us.Length;
+        string->Buffer[us.Length / sizeof(WCHAR)] = 0;
+
         return string;
     }
     else
