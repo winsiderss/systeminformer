@@ -33,6 +33,11 @@
 
 #include "resource.h"
 
+#define SERVICE_SID_COLUMN_ID 1
+
+extern HWND ServiceTreeNewHandle;
+extern PPH_PLUGIN PluginInstance;
+
 typedef struct _SERVICE_EXTRA_CONTEXT
 {
     HWND ServiceProtectCombo;
@@ -40,6 +45,25 @@ typedef struct _SERVICE_EXTRA_CONTEXT
     HWND ServiceApplyButton;
     PH_LAYOUT_MANAGER LayoutManager;
 } SERVICE_EXTRA_CONTEXT, *PSERVICE_EXTRA_CONTEXT;
+
+typedef struct _SERVICE_EXTENSION
+{
+    LIST_ENTRY ListEntry;
+    BOOLEAN Valid;
+    PPH_STRING ServiceSid;
+} SERVICE_EXTENSION, *PSERVICE_EXTENSION;
+
+typedef NTSTATUS (NTAPI* _RtlCreateServiceSid)(
+    _In_ PUNICODE_STRING ServiceName,
+    _Out_writes_bytes_(*ServiceSidLength) PSID ServiceSid,
+    _Inout_ PULONG ServiceSidLength
+    );
+extern _RtlCreateServiceSid RtlCreateServiceSid_I;
+
+VOID UpdateServiceSid(
+    _In_ PPH_SERVICE_NODE Node,
+    _In_ PSERVICE_EXTENSION Extension
+    );
 
 INT_PTR CALLBACK ServiceExtraDlgProc(
     _In_ HWND hwndDlg,
