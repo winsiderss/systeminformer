@@ -72,6 +72,9 @@ static VOID NvGpuEnumDisplayHandles(VOID)
 
 BOOLEAN InitializeNvApi(VOID)
 {
+    if (NvApiInitialized)
+        return TRUE;
+
     NvGpuPhysicalHandleList = PhCreateList(1);
     NvGpuDisplayHandleList = PhCreateList(1);
 
@@ -268,26 +271,37 @@ PPH_STRING NvGpuQueryFanSpeed(VOID)
 VOID NvGpuUpdateValues(VOID)
 {
     NV_USAGES_INFO usagesInfo = { NV_USAGES_INFO_VER };
-    NV_DISPLAY_DRIVER_MEMORY_INFO memoryInfo = { NV_DISPLAY_DRIVER_MEMORY_INFO_VER };
     NV_GPU_THERMAL_SETTINGS thermalSettings = { NV_GPU_THERMAL_SETTINGS_VER };
     NV_GPU_CLOCK_FREQUENCIES clkFreqs  = { NV_GPU_CLOCK_FREQUENCIES_VER };
     NV_CLOCKS_INFO clocksInfo = { NV_CLOCKS_INFO_VER };
     NV_VOLTAGE_DOMAINS voltageDomains = { NV_VOLTAGE_DOMAIN_INFO_VER };
+    ULONG totalMemory = 0;
+    ULONG sharedMemory = 0;
+    ULONG freeMemory = 0;
+    ULONG usedMemory = 0;
 
     if (!NvApiInitialized)
         return;
 
-    if (NvAPI_GPU_GetMemoryInfo(NvGpuDisplayHandleList->Items[0], &memoryInfo) == NVAPI_OK)
+    for (ULONG i = 0; i < NvGpuDisplayHandleList->Count; i++)
     {
-        ULONG totalMemory = memoryInfo.dedicatedVideoMemory;
-        ULONG sharedMemory = memoryInfo.sharedSystemMemory;
-        ULONG freeMemory = memoryInfo.curAvailableDedicatedVideoMemory;
-        ULONG usedMemory = totalMemory - freeMemory;
+        NvDisplayHandle nvDisplayHandle;
+        NV_DISPLAY_DRIVER_MEMORY_INFO memoryInfo = { NV_DISPLAY_DRIVER_MEMORY_INFO_VER };
 
-        GpuMemoryLimit = totalMemory;
-        GpuCurrentMemUsage = usedMemory;
-        GpuCurrentMemSharedUsage = sharedMemory;
+        nvDisplayHandle = NvGpuDisplayHandleList->Items[i];
+
+        if (NvAPI_GPU_GetMemoryInfo(nvDisplayHandle, &memoryInfo) == NVAPI_OK)
+        {
+            totalMemory += memoryInfo.dedicatedVideoMemory;
+            sharedMemory += memoryInfo.sharedSystemMemory;
+            freeMemory += memoryInfo.curAvailableDedicatedVideoMemory;
+            usedMemory += totalMemory - freeMemory;
+        }
     }
+
+    GpuMemoryLimit = totalMemory;
+    GpuCurrentMemUsage = usedMemory;
+    GpuCurrentMemSharedUsage = sharedMemory;
 
     if (NvAPI_GPU_GetUsages(NvGpuPhysicalHandleList->Items[0], &usagesInfo) == NVAPI_OK)
     {
