@@ -59,7 +59,7 @@ static VOID CopyDiskDriveList(
 
         newEntry = (PPH_DISK_ENTRY)PhAllocate(sizeof(PH_DISK_ENTRY));
         memset(newEntry, 0, sizeof(PH_DISK_ENTRY));
-        
+
         entry = (PPH_DISK_ENTRY)Source->Items[i];
 
         newEntry->DiskFriendlyName = entry->DiskFriendlyName;
@@ -107,7 +107,7 @@ static PPH_STRING SaveDiskDriveList(
     {
         PPH_DISK_ENTRY entry = (PPH_DISK_ENTRY)FilterList->Items[i];
 
-        PhAppendFormatStringBuilder(&stringBuilder, 
+        PhAppendFormatStringBuilder(&stringBuilder,
             L"%s|%s|",
             entry->DiskFriendlyName->Buffer,
             entry->DiskDevicePath->Buffer
@@ -130,7 +130,7 @@ static VOID AddDiskDriveToListView(
 
     entry = (PPH_DISK_ENTRY)PhAllocate(sizeof(PH_DISK_ENTRY));
     memset(entry, 0, sizeof(PH_DISK_ENTRY));
-    
+
     entry->DiskFriendlyName = DiskFriendlyName;
     entry->DiskDevicePath = DiskDevicePath;
 
@@ -147,7 +147,7 @@ static VOID AddDiskDriveToListView(
 
         if (PhEqualString(currentEntry->DiskDevicePath, entry->DiskDevicePath, TRUE))
         {
-            ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK); 
+            ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
             break;
         }
     }
@@ -172,8 +172,8 @@ static VOID NTAPI DiskDriveCallback(
     //if (deviceHandle != INVALID_HANDLE_VALUE)
     //if (NT_SUCCESS(DiskDriveQueryDeviceInformation(deviceHandle, NULL, &diskModel, NULL, &diskSerial)))
     //if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, NULL, NULL)))
-     
-    AddDiskDriveToListView(Context, PhCreateString(DevicePath), PhCreateString(FriendlyName));    
+
+    AddDiskDriveToListView(Context, PhCreateString(DevicePath), PhCreateString(FriendlyName));
 }
 
 static INT_PTR CALLBACK OptionsDlgProc(
@@ -230,7 +230,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
             string = SaveDiskDriveList(DiskDrivesList);
             PhSetStringSetting2(SETTING_NAME_DISK_LIST, &string->sr);
             PhDereferenceObject(string);
-            
+
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
         }

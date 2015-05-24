@@ -22,17 +22,17 @@
 
 #include "main.h"
 
-static PWSTR PhServiceProtectedTypeStrings[4] = 
-{ 
-    L"None", 
+static PWSTR PhServiceProtectedTypeStrings[4] =
+{
+    L"None",
     L"Full (Windows)",
     L"Light (Windows)",
     L"Light (Antimalware)"
 };
 
-static PWSTR PhServiceSidTypeStrings[3] = 
-{ 
-    L"None", 
+static PWSTR PhServiceSidTypeStrings[3] =
+{
+    L"None",
     L"Restricted",
     L"Unrestricted"
 };
@@ -65,7 +65,7 @@ static PPH_STRING PhGetServiceProtectionType(
             return PhCreateString(L"Light (Antimalware)");
         }
     }
-  
+
     return NULL;
 }
 
@@ -111,7 +111,7 @@ static PPH_STRING PhGetServiceSidInfo(
             return PhCreateString(L"Unrestricted");
         }
     }
-  
+
     return NULL;
 }
 
@@ -139,22 +139,22 @@ INT_PTR CALLBACK ServiceExtraDlgProc(
     )
 {
     PSERVICE_EXTRA_CONTEXT context;
-    
+
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocate(sizeof(SERVICE_EXTRA_CONTEXT));
         memset(context, 0, sizeof(SERVICE_EXTRA_CONTEXT));
-    
+
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
         context = (PSERVICE_EXTRA_CONTEXT)GetProp(hwndDlg, L"Context");
-    
+
         if (uMsg == WM_DESTROY)
             RemoveProp(hwndDlg, L"Context");
     }
-    
+
     if (!context)
         return FALSE;
 
@@ -171,7 +171,7 @@ INT_PTR CALLBACK ServiceExtraDlgProc(
             context->ServiceApplyButton = GetDlgItem(hwndDlg, IDC_APPLY);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            
+
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SRVPROTECTGRPBOX), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ServiceProtectCombo, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SRVSIDTYPEGRPBOX), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
