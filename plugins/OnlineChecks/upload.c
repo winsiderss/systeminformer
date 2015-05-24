@@ -746,8 +746,8 @@ static NTSTATUS UploadFileThreadStart(
         if (httpRequestHeaders.String)
         {
             PhDeleteStringBuilder(&httpRequestHeaders);
-        }        
-        
+        }
+
         if (fileHandle != INVALID_HANDLE_VALUE)
         {
             NtClose(fileHandle);
@@ -798,7 +798,7 @@ static NTSTATUS UploadCheckThreadStart(
         if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
         {
             if (context->Service == UPLOAD_SERVICE_VIRUSTOTAL)
-            {        
+            {
                 if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
                 {
                     RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);

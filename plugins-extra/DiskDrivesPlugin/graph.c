@@ -347,7 +347,7 @@ static BOOLEAN DiskDriveSectionCallback(
                     {
                         // TODO: check math... Task Manager has better precision.
                         context->ResponseTime = (ReadTime + WriteTime / QueryTime) / PH_TICKS_PER_MS; // ReadTime + WriteTime + IdleTime / PhGetIntegerSetting(L"SampleCount")
-                        context->ActiveTime = (FLOAT)(QueryTime - IdleTime) / QueryTime * 100;       
+                        context->ActiveTime = (FLOAT)(QueryTime - IdleTime) / QueryTime * 100;
                     }
                     else
                     {
@@ -355,7 +355,7 @@ static BOOLEAN DiskDriveSectionCallback(
                         context->ResponseTime = 0;
                         context->ActiveTime = 0.0f;
                     }
-  
+
                     if (context->ActiveTime > 100.f)
                         context->ActiveTime = 0.f;
                     if (context->ActiveTime < 0.f)
