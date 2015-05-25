@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <phsvc.h>
+#include <accctrl.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
 {
@@ -51,7 +52,8 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiIssueMemoryListCommand,
     PhSvcApiPostMessage,
     PhSvcApiSendMessage,
-    PhSvcApiCreateProcessIgnoreIfeoDebugger
+    PhSvcApiCreateProcessIgnoreIfeoDebugger,
+    PhSvcApiSetServiceSecurity
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -209,6 +211,59 @@ NTSTATUS PhSvcCaptureSid(
     else
     {
         *CapturedSid = NULL;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhSvcCaptureSecurityDescriptor(
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _In_ SECURITY_INFORMATION RequiredInformation,
+    _Out_ PSECURITY_DESCRIPTOR *CapturedSecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    ULONG bufferSize;
+
+    if (!NT_SUCCESS(status = PhSvcCaptureBuffer(String, AllowNull, &securityDescriptor)))
+        return status;
+
+    if (securityDescriptor)
+    {
+        if (!RtlValidRelativeSecurityDescriptor(securityDescriptor, String->Length, RequiredInformation))
+        {
+            PhFree(securityDescriptor);
+            return STATUS_INVALID_SECURITY_DESCR;
+        }
+
+        bufferSize = String->Length;
+        status = RtlSelfRelativeToAbsoluteSD2(securityDescriptor, &bufferSize);
+
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PVOID newBuffer;
+
+            newBuffer = PhAllocate(bufferSize);
+            memcpy(newBuffer, securityDescriptor, String->Length);
+            PhFree(securityDescriptor);
+            securityDescriptor = newBuffer;
+
+            status = RtlSelfRelativeToAbsoluteSD2(securityDescriptor, &bufferSize);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhFree(securityDescriptor);
+            return status;
+        }
+
+        *CapturedSecurityDescriptor = securityDescriptor;
+    }
+    else
+    {
+        *CapturedSecurityDescriptor = NULL;
     }
 
     return STATUS_SUCCESS;
@@ -942,6 +997,67 @@ NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
     {
         if (!PhCreateProcessIgnoreIfeoDebugger(fileName->Buffer))
             status = STATUS_UNSUCCESSFUL;
+    }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiSetServiceSecurity(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceName;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    ACCESS_MASK desiredAccess;
+    SC_HANDLE serviceHandle;
+
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.SetServiceSecurity.i.ServiceName, FALSE, &serviceName)))
+    {
+        if (NT_SUCCESS(status = PhSvcCaptureSecurityDescriptor(&Message->u.SetServiceSecurity.i.SecurityDescriptor, FALSE, 0, &securityDescriptor)))
+        {
+            desiredAccess = 0;
+
+            if ((Message->u.SetServiceSecurity.i.SecurityInformation & OWNER_SECURITY_INFORMATION) ||
+                (Message->u.SetServiceSecurity.i.SecurityInformation & GROUP_SECURITY_INFORMATION))
+            {
+                desiredAccess |= WRITE_OWNER;
+            }
+
+            if (Message->u.SetServiceSecurity.i.SecurityInformation & DACL_SECURITY_INFORMATION)
+            {
+                desiredAccess |= WRITE_DAC;
+            }
+
+            if (Message->u.SetServiceSecurity.i.SecurityInformation & SACL_SECURITY_INFORMATION)
+            {
+                desiredAccess |= ACCESS_SYSTEM_SECURITY;
+            }
+
+            if (serviceHandle = PhOpenService(serviceName->Buffer, desiredAccess))
+            {
+                if (!PhSetSeObjectSecurity(
+                    serviceHandle,
+                    SE_SERVICE,
+                    Message->u.SetServiceSecurity.i.SecurityInformation,
+                    securityDescriptor
+                    ))
+                {
+                    status = PhGetLastWin32ErrorAsNtStatus();
+                }
+
+                CloseServiceHandle(serviceHandle);
+            }
+            else
+            {
+                status = PhGetLastWin32ErrorAsNtStatus();
+            }
+
+            PhFree(securityDescriptor);
+        }
+
+        PhDereferenceObject(serviceName);
     }
 
     return status;

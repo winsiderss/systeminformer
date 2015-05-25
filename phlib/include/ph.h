@@ -2579,7 +2579,7 @@ VOID PhShellExecute(
 
 PHLIBAPI
 BOOLEAN PhShellExecuteEx(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,

@@ -21,6 +21,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcPostMessageApiNumber = 14,
     PhSvcSendMessageApiNumber = 15,
     PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber = 16,
+    PhSvcSetServiceSecurityApiNumber = 17,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -214,6 +215,16 @@ typedef union _PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER
     } i;
 } PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER, *PPHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER;
 
+typedef union _PHSVC_API_SETSERVICESECURITY
+{
+    struct
+    {
+        PH_RELATIVE_STRINGREF ServiceName;
+        SECURITY_INFORMATION SecurityInformation;
+        PH_RELATIVE_STRINGREF SecurityDescriptor;
+    } i;
+} PHSVC_API_SETSERVICESECURITY, *PPHSVC_API_SETSERVICESECURITY;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
@@ -240,6 +251,7 @@ typedef struct _PHSVC_API_MSG
                 PHSVC_API_ISSUEMEMORYLISTCOMMAND IssueMemoryListCommand;
                 PHSVC_API_POSTMESSAGE PostMessage;
                 PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER CreateProcessIgnoreIfeoDebugger;
+                PHSVC_API_SETSERVICESECURITY SetServiceSecurity;
             } u;
         };
     };
