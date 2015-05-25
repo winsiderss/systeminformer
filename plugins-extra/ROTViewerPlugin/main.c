@@ -1,7 +1,8 @@
 /*
- * Running Object Table Plugin
+ * Process Hacker Extra Plugins -
+ *   Running Object Table Plugin
  *
- * Copyright (C) 2014 dmex
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
