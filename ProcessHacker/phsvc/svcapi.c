@@ -2,7 +2,7 @@
  * Process Hacker -
  *   server API
  *
- * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -1037,16 +1037,12 @@ NTSTATUS PhSvcApiSetServiceSecurity(
 
             if (serviceHandle = PhOpenService(serviceName->Buffer, desiredAccess))
             {
-                if (!PhSetSeObjectSecurity(
+                status = PhSetSeObjectSecurity(
                     serviceHandle,
                     SE_SERVICE,
                     Message->u.SetServiceSecurity.i.SecurityInformation,
                     securityDescriptor
-                    ))
-                {
-                    status = PhGetLastWin32ErrorAsNtStatus();
-                }
-
+                    );
                 CloseServiceHandle(serviceHandle);
             }
             else

@@ -1,5 +1,0 @@
-1.1
- * Added SID column to Services tab
-
-1.0
- * Initial release

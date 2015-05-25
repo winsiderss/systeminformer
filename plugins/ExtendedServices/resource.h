@@ -18,6 +18,7 @@
 #define IDD_OPTIONS                     107
 #define IDD_SRVTRIGGER                  108
 #define IDD_VALUE                       109
+#define IDD_SRVTRIGGERS                 110
 #define IDC_SERVICES_LAYOUT             1001
 #define IDC_MESSAGE                     1002
 #define IDC_FIRSTFAILURE                1003
@@ -55,14 +56,18 @@
 #define IDC_VALUES                      1038
 #define IDC_REMOVE                      1042
 #define IDC_ADD                         1043
+#define IDC_SERVICESID                  1044
+#define IDC_SIDTYPE                     1045
+#define IDC_COMBO2                      1046
+#define IDC_PROTECTION                  1046
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1044
+#define _APS_NEXT_CONTROL_VALUE         1047
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

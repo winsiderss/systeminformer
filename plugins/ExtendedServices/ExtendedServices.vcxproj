@@ -70,6 +70,7 @@
     <ClCompile Include="srvprgrs.c" />
     <ClCompile Include="recovery.c" />
     <ClCompile Include="trigger.c" />
+    <ClCompile Include="triggpg.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extsrv.h" />
