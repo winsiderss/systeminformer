@@ -145,9 +145,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\phsync.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\circbuf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
