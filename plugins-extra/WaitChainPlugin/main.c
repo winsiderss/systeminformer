@@ -96,6 +96,7 @@ static VOID WaitChainCheckThread(
 
             rootNode->WctInfo = *wctNode;
             rootNode->ThreadId = UlongToHandle(wctNode->ThreadObject.ThreadId);
+            rootNode->ProcessId = UlongToHandle(wctNode->ThreadObject.ProcessId);
             rootNode->ThreadIdString = PhFormatString(L"%u", wctNode->ThreadObject.ThreadId);
             rootNode->ProcessIdString = PhFormatString(L"%u", wctNode->ThreadObject.ProcessId);
             rootNode->WaitTimeString = PhFormatString(L"%u", wctNode->ThreadObject.WaitTime);
@@ -265,8 +266,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
                     POINT point;
                     HMENU menu;
                     HMENU subMenu;
-                    PWCT_ROOT_NODE selectedNode = NULL;
-                    PPH_PROCESS_NODE processNode = NULL;
+                    PWCT_ROOT_NODE selectedNode;
 
                     point.x = (SHORT)LOWORD(lParam);
                     point.y = (SHORT)HIWORD(lParam);
@@ -309,12 +309,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        ULONG64 processId64;
-
-                        if (!PhStringToInteger64(&selectedNode->ProcessIdString->sr, 10, &processId64))
-                            break;
-
-                        if (processNode = PhFindProcessNode((HANDLE)processId64))
+                        if (processNode = PhFindProcessNode(selectedNode->ProcessId))
                         {
                             ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
                             PhSelectAndEnsureVisibleProcessNode(processNode);
@@ -330,12 +325,7 @@ static INT_PTR CALLBACK WaitChainDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        ULONG64 processId64;
-
-                        if (!PhStringToInteger64(&selectedNode->ProcessIdString->sr, 10, &processId64))
-                            break;
-
-                        if (processItem = PhReferenceProcessItem((HANDLE)processId64))
+                        if (processItem = PhReferenceProcessItem(selectedNode->ProcessId))
                         {
                             if (propContext = PhCreateProcessPropContext(NULL, processItem))
                             {

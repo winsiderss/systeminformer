@@ -60,6 +60,7 @@ typedef struct _WCT_ROOT_NODE
 
     BOOLEAN IsDeadLocked;
 
+    HANDLE ProcessId;
     HANDLE ThreadId;
 
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
