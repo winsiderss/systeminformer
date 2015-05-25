@@ -35,6 +35,222 @@ NtSetSystemEnvironmentValue(
     _In_ PUNICODE_STRING VariableValue
     );
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySystemEnvironmentValueEx(
+    _In_ PUNICODE_STRING VariableName,
+    _In_ LPGUID VendorGuid,
+    _Out_writes_bytes_opt_(*ValueLength) PVOID Value,
+    _Inout_ PULONG ValueLength,
+    _Out_opt_ PULONG Attributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetSystemEnvironmentValueEx(
+    _In_ PUNICODE_STRING VariableName,
+    _In_ LPGUID VendorGuid,
+    _In_reads_bytes_opt_(ValueLength) PVOID Value,
+    _In_ ULONG ValueLength,
+    _In_ ULONG Attributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtEnumerateSystemEnvironmentValuesEx(
+    _In_ ULONG InformationClass,
+    _Out_ PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    );
+
+#endif
+
+// EFI
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+// private
+typedef struct _BOOT_ENTRY
+{
+    ULONG Version;
+    ULONG Length;
+    ULONG Id;
+    ULONG Attributes;
+    ULONG FriendlyNameOffset;
+    ULONG BootFilePathOffset;
+    ULONG OsOptionsLength;
+    UCHAR OsOptions[1];
+} BOOT_ENTRY, *PBOOT_ENTRY;
+
+// private
+typedef struct _BOOT_ENTRY_LIST
+{
+    ULONG NextEntryOffset;
+    BOOT_ENTRY BootEntry;
+} BOOT_ENTRY_LIST, *PBOOT_ENTRY_LIST;
+
+// private
+typedef struct _BOOT_OPTIONS
+{
+    ULONG Version;
+    ULONG Length;
+    ULONG Timeout;
+    ULONG CurrentBootEntryId;
+    ULONG NextBootEntryId;
+    WCHAR HeadlessRedirection[1];
+} BOOT_OPTIONS, *PBOOT_OPTIONS;
+
+// private
+typedef struct _FILE_PATH
+{
+    ULONG Version;
+    ULONG Length;
+    ULONG Type;
+    WCHAR FilePath[1];
+} FILE_PATH, *PFILE_PATH;
+
+// private
+typedef struct _EFI_DRIVER_ENTRY
+{
+    ULONG Version;
+    ULONG Length;
+    ULONG Id;
+    ULONG FriendlyNameOffset;
+    ULONG DriverFilePathOffset;
+} EFI_DRIVER_ENTRY, *PEFI_DRIVER_ENTRY;
+
+// private
+typedef struct _EFI_DRIVER_ENTRY_LIST
+{
+    ULONG NextEntryOffset;
+    EFI_DRIVER_ENTRY DriverEntry;
+} EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAddBootEntry(
+    _In_ PBOOT_ENTRY BootEntry,
+    _Out_opt_ PULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeleteBootEntry(
+    _In_ ULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtModifyBootEntry(
+    _In_ PBOOT_ENTRY BootEntry
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtEnumerateBootEntries(
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryBootEntryOrder(
+    _Out_writes_opt_(*Count) PULONG Ids,
+    _Inout_ PULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetBootEntryOrder(
+    _In_reads_(Count) PULONG Ids,
+    _In_ ULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryBootOptions(
+    _Out_writes_bytes_opt_(*BootOptionsLength) PBOOT_OPTIONS BootOptions,
+    _Inout_ PULONG BootOptionsLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetBootOptions(
+    _In_ PBOOT_OPTIONS BootOptions,
+    _In_ ULONG FieldsToChange
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtTranslateFilePath(
+    _In_ PFILE_PATH InputFilePath,
+    _In_ ULONG OutputType,
+    _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
+    _Inout_opt_ PULONG OutputFilePathLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAddDriverEntry(
+    _In_ PEFI_DRIVER_ENTRY DriverEntry,
+    _Out_opt_ PULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeleteDriverEntry(
+    _In_ ULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtModifyDriverEntry(
+    _In_ PEFI_DRIVER_ENTRY DriverEntry
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtEnumerateDriverEntries(
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryDriverEntryOrder(
+    _Out_writes_opt_(*Count) PULONG Ids,
+    _Inout_ PULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetDriverEntryOrder(
+    _In_reads_(Count) PULONG Ids,
+    _In_ ULONG Count
+    );
+
+#endif
+
 // Event
 
 #ifndef EVENT_QUERY_STATE
@@ -403,6 +619,68 @@ NtQueryTimer(
     _Out_opt_ PULONG ReturnLength
     );
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateIRTimer(
+    _Out_ PHANDLE TimerHandle,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetIRTimer(
+    _In_ HANDLE TimerHandle,
+    _In_opt_ PLARGE_INTEGER DueTime
+    );
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
+typedef struct _T2_SET_PARAMETERS_V0
+{
+    ULONG Version;
+    ULONG Reserved;
+    LONGLONG NoWakeTolerance;
+} T2_SET_PARAMETERS, *PT2_SET_PARAMETERS;
+
+typedef PVOID PT2_CANCEL_PARAMETERS;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateTimer2(
+    _Out_ PHANDLE TimerHandle,
+    _In_opt_ PVOID Reserved1,
+    _In_opt_ PVOID Reserved2,
+    _In_ ULONG Attributes,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetTimer2(
+    _In_ HANDLE TimerHandle,
+    _In_ PLARGE_INTEGER DueTime,
+    _In_opt_ PLARGE_INTEGER Period,
+    _In_ PT2_SET_PARAMETERS Parameters
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCancelTimer2(
+    _In_ HANDLE TimerHandle,
+    _In_ PT2_CANCEL_PARAMETERS Parameters
+    );
+
+#endif
+
 // Profile
 
 #define PROFILE_CONTROL 0x0001
@@ -417,14 +695,13 @@ NtCreateProfile(
     _In_ PVOID ProfileBase,
     _In_ SIZE_T ProfileSize,
     _In_ ULONG BucketSize,
-    _In_ PULONG Buffer,
+    _In_reads_bytes_(BufferSize) PULONG Buffer,
     _In_ ULONG BufferSize,
     _In_ KPROFILE_SOURCE ProfileSource,
     _In_ KAFFINITY Affinity
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
-// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -434,11 +711,11 @@ NtCreateProfileEx(
     _In_ PVOID ProfileBase,
     _In_ SIZE_T ProfileSize,
     _In_ ULONG BucketSize,
-    _In_ PULONG Buffer,
+    _In_reads_bytes_(BufferSize) PULONG Buffer,
     _In_ ULONG BufferSize,
     _In_ KPROFILE_SOURCE ProfileSource,
-    _In_ ULONG GroupAffinityCount,
-    _In_opt_ PGROUP_AFFINITY GroupAffinity
+    _In_ USHORT GroupCount,
+    _In_reads_(GroupCount) PGROUP_AFFINITY GroupAffinity
     );
 #endif
 
@@ -517,6 +794,182 @@ NtWaitForKeyedEvent(
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
+
+// UMS
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUmsThreadYield(
+    _In_ PVOID SchedulerParam
+    );
+#endif
+
+// WNF
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+// begin_private
+
+typedef struct _WNF_STATE_NAME
+{
+    ULONG Data[2];
+} WNF_STATE_NAME, *PWNF_STATE_NAME;
+
+typedef const WNF_STATE_NAME *PCWNF_STATE_NAME;
+
+typedef enum _WNF_STATE_NAME_LIFETIME
+{
+    WnfWellKnownStateName,
+    WnfPermanentStateName,
+    WnfPersistentStateName,
+    WnfTemporaryStateName
+} WNF_STATE_NAME_LIFETIME;
+
+typedef enum _WNF_STATE_NAME_INFORMATION
+{
+    WnfInfoStateNameExist,
+    WnfInfoSubscribersPresent,
+    WnfInfoIsQuiescent
+} WNF_STATE_NAME_INFORMATION;
+
+typedef enum _WNF_DATA_SCOPE
+{
+    WnfDataScopeSystem,
+    WnfDataScopeSession,
+    WnfDataScopeUser,
+    WnfDataScopeProcess
+} WNF_DATA_SCOPE;
+
+typedef struct _WNF_TYPE_ID
+{
+    GUID TypeId;
+} WNF_TYPE_ID, *PWNF_TYPE_ID;
+
+typedef const WNF_TYPE_ID *PCWNF_TYPE_ID;
+
+// rev
+typedef ULONG WNF_CHANGE_STAMP, *PWNF_CHANGE_STAMP;
+
+typedef struct _WNF_DELIVERY_DESCRIPTOR
+{
+    ULONGLONG SubscriptionId;
+    WNF_STATE_NAME StateName;
+    WNF_CHANGE_STAMP ChangeStamp;
+    ULONG StateDataSize;
+    ULONG EventMask;
+    WNF_TYPE_ID TypeId;
+    ULONG StateDataOffset;
+} WNF_DELIVERY_DESCRIPTOR, *PWNF_DELIVERY_DESCRIPTOR;
+
+// end_private
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateWnfStateName(
+    _Out_ PWNF_STATE_NAME StateName,
+    _In_ WNF_STATE_NAME_LIFETIME NameLifetime,
+    _In_ WNF_DATA_SCOPE DataScope,
+    _In_ BOOLEAN PersistData,
+    _In_opt_ PCWNF_TYPE_ID TypeId,
+    _In_ ULONG MaximumStateSize,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeleteWnfStateName(
+    _In_ PCWNF_STATE_NAME StateName
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUpdateWnfStateData(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_reads_bytes_opt_(Length) const VOID* Buffer,
+    _In_opt_ ULONG Length,
+    _In_opt_ PCWNF_TYPE_ID TypeId,
+    _In_opt_ const PVOID ExplicitScope,
+    _In_ WNF_CHANGE_STAMP MatchingChangeStamp,
+    _In_ LOGICAL CheckStamp
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeleteWnfStateData(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_opt_ const PVOID ExplicitScope
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryWnfStateData(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_opt_ PCWNF_TYPE_ID TypeId,
+    _In_opt_ const VOID* ExplicitScope,
+    _Out_ PWNF_CHANGE_STAMP ChangeStamp,
+    _Out_writes_bytes_to_opt_(*BufferSize, *BufferSize) PVOID Buffer,
+    _Inout_ PULONG BufferSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryWnfStateNameInformation(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
+    _In_opt_ const PVOID ExplicitScope,
+    _Out_writes_bytes_(InfoBufferSize) PVOID InfoBuffer,
+    _In_ ULONG InfoBufferSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSubscribeWnfStateChange(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_opt_ WNF_CHANGE_STAMP ChangeStamp,
+    _In_ ULONG EventMask,
+    _Out_opt_ PULONG64 SubscriptionId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUnsubscribeWnfStateChange(
+    _In_ PCWNF_STATE_NAME StateName
+    );
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetCompleteWnfStateSubscription(
+    _In_opt_ PWNF_STATE_NAME OldDescriptorStateName,
+    _In_opt_ ULONG64 *OldSubscriptionId,
+    _In_opt_ ULONG OldDescriptorEventMask,
+    _In_opt_ ULONG OldDescriptorStatus,
+    _Out_writes_bytes_(DescriptorSize) PWNF_DELIVERY_DESCRIPTOR NewDeliveryDescriptor,
+    _In_ ULONG DescriptorSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetWnfProcessNotificationEvent(
+    _In_ HANDLE NotificationEvent
+    );
+
+#endif
+
+#endif
 
 // Worker factory
 
@@ -902,6 +1355,24 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorFeaturesInformation,
     SystemRegistryReconciliationInformation,
     SystemEdidInformation,
+    SystemManufacturingInformation, // q: SYSTEM_MANUFACTURING_INFORMATION // since THRESHOLD
+    SystemEnergyEstimationConfigInformation, // q: SYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION
+    SystemHypervisorDetailInformation, // q: SYSTEM_HYPERVISOR_DETAIL_INFORMATION
+    SystemProcessorCycleStatsInformation, // q: SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION // 160
+    SystemVmGenerationCountInformation,
+    SystemTrustedPlatformModuleInformation,
+    SystemKernelDebuggerFlags,
+    SystemCodeIntegrityPolicyInformation,
+    SystemIsolatedUserModeInformation,
+    SystemHardwareSecurityTestInterfaceResultsInformation,
+    SystemSingleModuleInformation, // q: SYSTEM_SINGLE_MODULE_INFORMATION
+    SystemAllowedCpuSetsInformation,
+    SystemDmaProtectionInformation,
+    SystemInterruptCpuSetsInformation,
+    SystemSecureBootPolicyFullInformation,
+    SystemCodeIntegrityPolicyFullInformation,
+    SystemAffinitizedInterruptProcessorInformation,
+    SystemRootSiloInformation, // q: SYSTEM_ROOT_SILO_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -1786,6 +2257,57 @@ typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX
     BOOLEAN DebuggerPresent;
 } SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION_EX;
 
+// private
+typedef struct _SYSTEM_MANUFACTURING_INFORMATION
+{
+    ULONG Options;
+    UNICODE_STRING ProfileName;
+} SYSTEM_MANUFACTURING_INFORMATION, *PSYSTEM_MANUFACTURING_INFORMATION;
+
+// private
+typedef struct _SYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION
+{
+    BOOLEAN Enabled;
+} SYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION, *PSYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION;
+
+// private
+typedef struct _HV_DETAILS
+{
+    ULONG Data[4];
+} HV_DETAILS, *PHV_DETAILS;
+
+// private
+typedef struct _SYSTEM_HYPERVISOR_DETAIL_INFORMATION
+{
+    HV_DETAILS HvVendorAndMaxFunction;
+    HV_DETAILS HypervisorInterface;
+    HV_DETAILS HypervisorVersion;
+    HV_DETAILS HvFeatures;
+    HV_DETAILS HwFeatures;
+    HV_DETAILS EnlightenmentInfo;
+    HV_DETAILS ImplementationLimits;
+} SYSTEM_HYPERVISOR_DETAIL_INFORMATION, *PSYSTEM_HYPERVISOR_DETAIL_INFORMATION;
+
+// private
+typedef struct _SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION
+{
+    ULONGLONG Cycles[2][4];
+} SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION, *PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION;
+
+// private
+typedef struct _SYSTEM_SINGLE_MODULE_INFORMATION
+{
+    PVOID TargetModuleAddress;
+    RTL_PROCESS_MODULE_INFORMATION_EX ExInfo;
+} SYSTEM_SINGLE_MODULE_INFORMATION, *PSYSTEM_SINGLE_MODULE_INFORMATION;
+
+// private
+typedef struct _SYSTEM_ROOT_SILO_INFORMATION
+{
+    ULONG NumberOfSilos;
+    HANDLE SiloIdList[1];
+} SYSTEM_ROOT_SILO_INFORMATION, *PSYSTEM_ROOT_SILO_INFORMATION;
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 NTSYSCALLAPI
@@ -1799,14 +2321,13 @@ NtQuerySystemInformation(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
-// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemInformationEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    _In_reads_bytes_(QueryInformationLength) PVOID QueryInformation,
-    _In_ ULONG QueryInformationLength,
+    _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
     _Out_writes_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
     _In_ ULONG SystemInformationLength,
     _Out_opt_ PULONG ReturnLength
@@ -2529,6 +3050,19 @@ NtQueryInformationAtom(
     FLG_DISABLE_DBGPRINT | \
     FLG_ENABLE_HANDLE_EXCEPTIONS)
 
+// Licensing
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryLicenseValue(
+    _In_ PUNICODE_STRING ValueName,
+    _Out_opt_ PULONG Type,
+    _Out_writes_bytes_to_opt_(DataSize, *ResultDataSize) PVOID Data,
+    _In_ ULONG DataSize,
+    _Out_ PULONG ResultDataSize
+    );
+
 // Misc.
 
 NTSYSCALLAPI
@@ -2558,6 +3092,15 @@ NTAPI
 NtDisplayString(
     _In_ PUNICODE_STRING String
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDrawText(
+    _In_ PUNICODE_STRING String
+    );
+#endif
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 

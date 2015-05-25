@@ -32,7 +32,7 @@
 #define PHNT_WIN7 61
 #define PHNT_WIN8 62
 #define PHNT_WINBLUE 63
-#define PHNT_WINTHRESHOLD 100
+#define PHNT_THRESHOLD 100
 
 #ifndef PHNT_MODE
 #define PHNT_MODE PHNT_MODE_USER
@@ -56,6 +56,7 @@ extern "C" {
 #include <ntkeapi.h>
 #endif
 
+#include <ntldr.h>
 #include <ntexapi.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -76,8 +77,6 @@ extern "C" {
 #include <ntregapi.h>
 #include <ntrtl.h>
 #endif
-
-#include <ntldr.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 

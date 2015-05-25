@@ -222,7 +222,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileNetworkPhysicalNameInformation,
     FileIdGlobalTxDirectoryInformation, // 50
     FileIsRemoteDeviceInformation,
-    FileAttributeCacheInformation,
+    FileUnusedInformation,
     FileNumaNodeInformation,
     FileStandardLinkInformation,
     FileRemoteProtocolInformation,
@@ -234,6 +234,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileIdExtdDirectoryInformation,
     FileReplaceCompletionInformation, // since WINBLUE
     FileHardLinkFullIdInformation,
+    FileIdExtdBothDirectoryInformation, // since THRESHOLD
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -256,6 +257,17 @@ typedef struct _FILE_STANDARD_INFORMATION
     BOOLEAN DeletePending;
     BOOLEAN Directory;
 } FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
+
+typedef struct _FILE_STANDARD_INFORMATION_EX
+{
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG NumberOfLinks;
+    BOOLEAN DeletePending;
+    BOOLEAN Directory;
+    BOOLEAN AlternateStream;
+    BOOLEAN MetadataAttribute;
+} FILE_STANDARD_INFORMATION_EX, *PFILE_STANDARD_INFORMATION_EX;
 
 typedef struct _FILE_INTERNAL_INFORMATION
 {
@@ -769,6 +781,7 @@ typedef enum _FSINFOCLASS
     FileFsVolumeFlagsInformation,
     FileFsSectorSizeInformation, // since WIN8
     FileFsDataCopyInformation,
+    FileFsMetadataSizeInformation, // since THRESHOLD
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 
@@ -854,6 +867,13 @@ typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION
     ULONG ByteOffsetForSectorAlignment;
     ULONG ByteOffsetForPartitionAlignment;
 } FILE_FS_SECTOR_SIZE_INFORMATION, *PFILE_FS_SECTOR_SIZE_INFORMATION;
+
+typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
+{
+    LARGE_INTEGER TotalMetadataAllocationUnits;
+    ULONG SectorsPerAllocationUnit;
+    ULONG BytesPerSector;
+} FILE_FS_METADATA_SIZE_INFORMATION, *PFILE_FS_METADATA_SIZE_INFORMATION;
 
 // NtNotifyChangeDirectoryFile
 
@@ -956,6 +976,8 @@ NTAPI
 NtFlushBuffersFileEx(
     _In_ HANDLE FileHandle,
     _In_ ULONG Flags,
+    _In_reads_bytes_(ParametersSize) PVOID Parameters,
+    _In_ ULONG ParametersSize,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 #endif
@@ -1010,7 +1032,7 @@ NtQueryEaFile(
     _In_ BOOLEAN ReturnSingleEntry,
     _In_reads_bytes_opt_(EaListLength) PVOID EaList,
     _In_ ULONG EaListLength,
-    _In_opt_ PULONG EaIndex OPTIONAL,
+    _In_opt_ PULONG EaIndex,
     _In_ BOOLEAN RestartScan
     );
 
@@ -1080,7 +1102,6 @@ NtCancelIoFile(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1092,7 +1113,6 @@ NtCancelIoFileEx(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1318,21 +1338,20 @@ NTSTATUS
 NTAPI
 NtSetIoCompletion(
     _In_ HANDLE IoCompletionHandle,
-    _In_ PVOID KeyContext,
+    _In_opt_ PVOID KeyContext,
     _In_opt_ PVOID ApcContext,
     _In_ NTSTATUS IoStatus,
     _In_ ULONG_PTR IoStatusInformation
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
-// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetIoCompletionEx(
     _In_ HANDLE IoCompletionHandle,
-    _In_ HANDLE IoCompletionReserveHandle,
-    _In_ PVOID KeyContext,
+    _In_ HANDLE IoCompletionPacketHandle,
+    _In_opt_ PVOID KeyContext,
     _In_opt_ PVOID ApcContext,
     _In_ NTSTATUS IoStatus,
     _In_ ULONG_PTR IoStatusInformation
@@ -1351,13 +1370,12 @@ NtRemoveIoCompletion(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRemoveIoCompletionEx(
     _In_ HANDLE IoCompletionHandle,
-    _Out_writes_(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    _Out_writes_to_(Count, *NumEntriesRemoved) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
     _In_ ULONG Count,
     _Out_ PULONG NumEntriesRemoved,
     _In_opt_ PLARGE_INTEGER Timeout,
@@ -1365,25 +1383,83 @@ NtRemoveIoCompletionEx(
     );
 #endif
 
-// Misc.
+// Wait completion packet
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-// rev
+#if (PHNT_VERSION >= PHNT_WIN8)
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtEnableLastKnownGood(
-    VOID
+NtCreateWaitCompletionPacket(
+    _Out_ PHANDLE WaitCompletionPacketHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAssociateWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TargetObjectHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _Out_opt_ PBOOLEAN AlreadySignaled
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCancelWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ BOOLEAN RemoveSignaledPacket
+    );
+
 #endif
 
+// Sessions
+
+typedef enum _IO_SESSION_EVENT
+{
+    IoSessionEventIgnore,
+    IoSessionEventCreated,
+    IoSessionEventTerminated,
+    IoSessionEventConnected,
+    IoSessionEventDisconnected,
+    IoSessionEventLogon,
+    IoSessionEventLogoff,
+    IoSessionEventMax
+} IO_SESSION_EVENT;
+
+typedef enum _IO_SESSION_STATE
+{
+    IoSessionStateCreated,
+    IoSessionStateInitialized,
+    IoSessionStateConnected,
+    IoSessionStateDisconnected,
+    IoSessionStateDisconnectedLoggedOn,
+    IoSessionStateLoggedOn,
+    IoSessionStateLoggedOff,
+    IoSessionStateTerminated,
+    IoSessionStateMax
+} IO_SESSION_STATE;
+
 #if (PHNT_VERSION >= PHNT_WIN7)
-// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtDisableLastKnownGood(
-    VOID
+NtNotifyChangeSession(
+    _In_ HANDLE SessionHandle,
+    _In_ ULONG ChangeSequenceNumber,
+    _In_ PLARGE_INTEGER ChangeTimeStamp,
+    _In_ IO_SESSION_EVENT Event,
+    _In_ IO_SESSION_STATE NewState,
+    _In_ IO_SESSION_STATE PreviousState,
+    _In_reads_bytes_opt_(PayloadSize) PVOID Payload,
+    _In_ ULONG PayloadSize
     );
 #endif
 
