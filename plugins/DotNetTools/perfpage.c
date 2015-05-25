@@ -141,7 +141,7 @@ HRESULT GetCorPublishProcess(
 
     if (SUCCEEDED(result = CreateCorpubPublish(ProcessId, &publish)))
     {
-        result = ICorPublish_GetProcess(publish, (ULONG)ProcessId, PublishProcess);
+        result = ICorPublish_GetProcess(publish, HandleToUlong(ProcessId), PublishProcess);
         ICorPublish_Release(publish);
     }
 
