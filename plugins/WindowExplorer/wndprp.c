@@ -254,7 +254,7 @@ VOID WeShowWindowProperties(
     PhAcquireQueuedLockExclusive(&WePropertiesCreateLock);
     PhAddItemList(WePropertiesCreateList, context);
     PhReleaseQueuedLockExclusive(&WePropertiesCreateLock);
-    PostThreadMessage((ULONG)WePropertiesThreadClientId.UniqueThread, WM_NULL, 0, 0);
+    PostThreadMessage(HandleToUlong(WePropertiesThreadClientId.UniqueThread), WM_NULL, 0, 0);
 }
 
 VOID WepReferenceWindowPropertiesContext(

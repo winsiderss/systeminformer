@@ -201,7 +201,7 @@ VOID PredictAddressesFromClrData(
 
     if (SUCCEEDED(IXCLRDataProcess_GetTaskByOSThreadID(
         Context->Support->DataProcess,
-        (ULONG)Context->ThreadId,
+        HandleToUlong(Context->ThreadId),
         &task
         )))
     {
