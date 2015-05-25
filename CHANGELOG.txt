@@ -2,6 +2,7 @@ Process Hacker
 
 2.36
  * NEW/IMPROVED:
+   * Added trigger and delayed start information to service list
  * FIXED:
    * Fixed file dialog crash in Windows PE environments
    * Fixed Read/Write Address crash

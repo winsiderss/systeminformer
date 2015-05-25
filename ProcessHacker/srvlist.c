@@ -122,11 +122,11 @@ VOID PhInitializeServiceTreeList(
     TreeNew_SetRedraw(hwnd, FALSE);
 
     // Default columns
-    PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display Name", 180, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 110, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display Name", 220, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start Type", 100, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start Type", 130, PH_ALIGN_LEFT, 4, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
 
     PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
@@ -560,7 +560,30 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 PhInitializeStringRef(&getCellText->Text, PhGetServiceStateString(serviceItem->State));
                 break;
             case PHSVTLC_STARTTYPE:
-                PhInitializeStringRef(&getCellText->Text, PhGetServiceStartTypeString(serviceItem->StartType));
+                {
+                    PH_FORMAT format[2];
+                    PWSTR additional = NULL;
+                    SIZE_T returnLength;
+
+                    PhInitFormatS(&format[0], PhGetServiceStartTypeString(serviceItem->StartType));
+
+                    if (serviceItem->DelayedStart && serviceItem->HasTriggers)
+                        additional = L" (Delayed, Trigger)";
+                    else if (serviceItem->DelayedStart)
+                        additional = L" (Delayed)";
+                    else if (serviceItem->HasTriggers)
+                        additional = L" (Trigger)";
+
+                    if (additional)
+                        PhInitFormatS(&format[1], additional);
+
+                    if (PhFormatToBuffer(format, 1 + (additional ? 1 : 0), node->StartTypeText,
+                        sizeof(node->StartTypeText), &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->StartTypeText;
+                        getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
+                    }
+                }
                 break;
             case PHSVTLC_PID:
                 PhInitializeStringRef(&getCellText->Text, serviceItem->ProcessIdString);
