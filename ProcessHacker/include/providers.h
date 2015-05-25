@@ -387,6 +387,8 @@ typedef struct _PH_SERVICE_ITEM
     // Config
     ULONG StartType;
     ULONG ErrorControl;
+    BOOLEAN DelayedStart;
+    BOOLEAN HasTriggers;
 
     BOOLEAN PendingProcess;
     BOOLEAN NeedsConfigUpdate;

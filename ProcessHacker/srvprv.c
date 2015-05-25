@@ -407,6 +407,9 @@ VOID PhpUpdateServiceItemConfig(
     if (serviceHandle)
     {
         LPQUERY_SERVICE_CONFIG config;
+        SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
+        ULONG returnLength;
+        PSERVICE_TRIGGER_INFO triggerInfo;
 
         config = PhGetServiceConfig(serviceHandle);
 
@@ -416,6 +419,31 @@ VOID PhpUpdateServiceItemConfig(
             ServiceItem->ErrorControl = config->dwErrorControl;
 
             PhFree(config);
+        }
+
+        if (QueryServiceConfig2(
+            serviceHandle,
+            SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+            (BYTE *)&delayedAutoStartInfo,
+            sizeof(SERVICE_DELAYED_AUTO_START_INFO),
+            &returnLength
+            ))
+        {
+            ServiceItem->DelayedStart = delayedAutoStartInfo.fDelayedAutostart;
+        }
+        else
+        {
+            ServiceItem->DelayedStart = FALSE;
+        }
+
+        if (triggerInfo = PhQueryServiceVariableSize(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO))
+        {
+            ServiceItem->HasTriggers = triggerInfo->cTriggers != 0;
+            PhFree(triggerInfo);
+        }
+        else
+        {
+            ServiceItem->HasTriggers = FALSE;
         }
 
         CloseServiceHandle(serviceHandle);

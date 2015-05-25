@@ -441,6 +441,7 @@ typedef struct _PH_SERVICE_NODE
 
     ULONG ValidMask;
 
+    WCHAR StartTypeText[12 + 24 + 1];
     // Config
     PPH_STRING BinaryPath;
     PPH_STRING LoadOrderGroup;
