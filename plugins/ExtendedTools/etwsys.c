@@ -158,7 +158,7 @@ BOOLEAN EtpDiskSectionCallback(
                 PhaFormatSize(diskRead, -1)->Buffer,
                 PhaFormatSize(diskWrite, -1)->Buffer,
                 PhGetStringOrEmpty(EtpGetMaxDiskString(getTooltipText->Index)),
-                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
         }
@@ -342,7 +342,7 @@ VOID EtpNotifyDiskGraph(
                         PhaFormatSize(diskRead, -1)->Buffer,
                         PhaFormatSize(diskWrite, -1)->Buffer,
                         PhGetStringOrEmpty(EtpGetMaxDiskString(getTooltipText->Index)),
-                        ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                 }
 
@@ -530,7 +530,7 @@ BOOLEAN EtpNetworkSectionCallback(
                 PhaFormatSize(networkReceive, -1)->Buffer,
                 PhaFormatSize(networkSend, -1)->Buffer,
                 PhGetStringOrEmpty(EtpGetMaxNetworkString(getTooltipText->Index)),
-                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
         }
@@ -714,7 +714,7 @@ VOID EtpNotifyNetworkGraph(
                         PhaFormatSize(networkReceive, -1)->Buffer,
                         PhaFormatSize(networkSend, -1)->Buffer,
                         PhGetStringOrEmpty(EtpGetMaxNetworkString(getTooltipText->Index)),
-                        ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                 }
 

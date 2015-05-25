@@ -536,7 +536,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                     L"R: %s\nW: %s\n%s",
                                     PhaFormatSize(diskRead, -1)->Buffer,
                                     PhaFormatSize(diskWrite, -1)->Buffer,
-                                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                    ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
 
@@ -560,7 +560,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                     L"S: %s\nR: %s\n%s",
                                     PhaFormatSize(networkSend, -1)->Buffer,
                                     PhaFormatSize(networkReceive, -1)->Buffer,
-                                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                    ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
 

@@ -670,7 +670,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             ULONG newAttributes;
 
                             PhLookupPrivilegeName(&privileges[i]->Luid, &privilegeName);
-                            PHA_DEREFERENCE(privilegeName);
+                            PhAutoDereferenceObject(privilegeName);
 
                             switch (LOWORD(wParam))
                             {
@@ -1119,21 +1119,21 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
-                    tokenUserName = PHA_DEREFERENCE(PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL));
-                    tokenUserSid = PHA_DEREFERENCE(PhSidToStringSid(tokenUser->User.Sid));
+                    tokenUserName = PhAutoDereferenceObject(PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL));
+                    tokenUserSid = PhAutoDereferenceObject(PhSidToStringSid(tokenUser->User.Sid));
 
                     PhFree(tokenUser);
                 }
 
                 if (NT_SUCCESS(PhGetTokenOwner(tokenHandle, &tokenOwner)))
                 {
-                    tokenOwnerName = PHA_DEREFERENCE(PhGetSidFullName(tokenOwner->Owner, TRUE, NULL));
+                    tokenOwnerName = PhAutoDereferenceObject(PhGetSidFullName(tokenOwner->Owner, TRUE, NULL));
                     PhFree(tokenOwner);
                 }
 
                 if (NT_SUCCESS(PhGetTokenPrimaryGroup(tokenHandle, &tokenPrimaryGroup)))
                 {
-                    tokenPrimaryGroupName = PHA_DEREFERENCE(PhGetSidFullName(
+                    tokenPrimaryGroupName = PhAutoDereferenceObject(PhGetSidFullName(
                         tokenPrimaryGroup->PrimaryGroup, TRUE, NULL));
                     PhFree(tokenPrimaryGroup);
                 }

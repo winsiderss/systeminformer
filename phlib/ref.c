@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object manager
  *
- * Copyright (C) 2009-2011 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -127,8 +127,8 @@ _May_raise_ NTSTATUS PhCreateObject(
     PPH_OBJECT_HEADER objectHeader;
 
 #ifdef PHOBJ_STRICT_CHECKS
-    /* Check the flags. */
-    if ((Flags & PHOBJ_VALID_FLAGS) != Flags) /* Valid flag mask */
+    // Check the flags.
+    if ((Flags & PHOBJ_VALID_FLAGS) != Flags) // Valid flag mask
     {
         status = STATUS_INVALID_PARAMETER_3;
     }
@@ -140,8 +140,7 @@ _May_raise_ NTSTATUS PhCreateObject(
     if (NT_SUCCESS(status))
     {
 #endif
-        /* Allocate storage for the object. Note that this includes
-         * the object header followed by the object body. */
+        // Allocate storage for the object. Note that this includes the object header followed by the object body.
         objectHeader = PhpAllocateObject(ObjectType, ObjectSize, Flags);
 
 #ifndef PHOBJ_ALLOCATE_NEVER_NULL
@@ -162,10 +161,10 @@ _May_raise_ NTSTATUS PhCreateObject(
     }
 #endif
 
-    /* Object type statistics. */
+    // Object type statistics.
     _InterlockedIncrement((PLONG)&ObjectType->NumberOfObjects);
 
-    /* Initialize the object header. */
+    // Initialize the object header.
     objectHeader->RefCount = 1;
     // objectHeader->Flags is initialized by PhpAllocateObject.
     objectHeader->Size = ObjectSize;
@@ -206,7 +205,7 @@ _May_raise_ NTSTATUS PhCreateObject(
     }
 #endif
 
-    /* Pass a pointer to the object body back to the caller. */
+    // Pass a pointer to the object body back to the caller.
     *Object = PhObjectHeaderToObject(objectHeader);
 
     return status;
@@ -224,7 +223,7 @@ VOID PhReferenceObject(
     PPH_OBJECT_HEADER objectHeader;
 
     objectHeader = PhObjectToObjectHeader(Object);
-    /* Increment the reference count. */
+    // Increment the reference count.
     _InterlockedIncrement(&objectHeader->RefCount);
 }
 
@@ -245,7 +244,7 @@ _May_raise_ LONG PhReferenceObjectEx(
     LONG oldRefCount;
 
 #ifdef PHOBJ_STRICT_CHECKS
-    /* Make sure we're not adding a negative reference count. */
+    // Make sure we're not adding a negative reference count.
     if (RefCount < 0)
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
 #else
@@ -253,7 +252,7 @@ _May_raise_ LONG PhReferenceObjectEx(
 #endif
 
     objectHeader = PhObjectToObjectHeader(Object);
-    /* Increase the reference count. */
+    // Increase the reference count.
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, RefCount);
 
     return oldRefCount + RefCount;
@@ -283,7 +282,7 @@ BOOLEAN PhReferenceObjectSafe(
     BOOLEAN result;
 
     objectHeader = PhObjectToObjectHeader(Object);
-    /* Increase the reference count only if it isn't 0 (atomically). */
+    // Increase the reference count only if it isn't 0 (atomically).
     result = PhpInterlockedIncrementSafe(&objectHeader->RefCount);
 
     return result;
@@ -305,11 +304,11 @@ VOID PhDereferenceObject(
     LONG newRefCount;
 
     objectHeader = PhObjectToObjectHeader(Object);
-    /* Decrement the reference count. */
+    // Decrement the reference count.
     newRefCount = _InterlockedDecrement(&objectHeader->RefCount);
     ASSUME_ASSERT(newRefCount >= 0);
 
-    /* Free the object if it has 0 references. */
+    // Free the object if it has 0 references.
     if (newRefCount == 0)
     {
         PhpFreeObject(objectHeader);
@@ -353,7 +352,7 @@ _May_raise_ LONG PhDereferenceObjectEx(
     LONG newRefCount;
 
 #ifdef PHOBJ_STRICT_CHECKS
-    /* Make sure we're not subtracting a negative reference count. */
+    // Make sure we're not subtracting a negative reference count.
     if (RefCount < 0)
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
 #else
@@ -362,11 +361,11 @@ _May_raise_ LONG PhDereferenceObjectEx(
 
     objectHeader = PhObjectToObjectHeader(Object);
 
-    /* Decrease the reference count. */
+    // Decrease the reference count.
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, -RefCount);
     newRefCount = oldRefCount - RefCount;
 
-    /* Free the object if it has 0 references. */
+    // Free the object if it has 0 references.
     if (newRefCount == 0)
     {
         if (DeferDelete)
@@ -375,7 +374,7 @@ _May_raise_ LONG PhDereferenceObjectEx(
         }
         else
         {
-            /* Free the object. */
+            // Free the object.
             PhpFreeObject(objectHeader);
         }
     }
@@ -460,13 +459,13 @@ NTSTATUS PhCreateObjectTypeEx(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_TYPE objectType;
 
-    /* Check the flags. */
+    // Check the flags.
     if ((Flags & PHOBJTYPE_VALID_FLAGS) != Flags) /* Valid flag mask */
         return STATUS_INVALID_PARAMETER_3;
     if ((Flags & PHOBJTYPE_USE_FREE_LIST) && !Parameters)
         return STATUS_INVALID_PARAMETER_MIX;
 
-    /* Create the type object. */
+    // Create the type object.
     status = PhCreateObject(
         &objectType,
         sizeof(PH_OBJECT_TYPE),
@@ -477,7 +476,7 @@ NTSTATUS PhCreateObjectTypeEx(
     if (!NT_SUCCESS(status))
         return status;
 
-    /* Initialize the type object. */
+    // Initialize the type object.
     objectType->Flags = Flags;
     objectType->DeleteProcedure = DeleteProcedure;
     objectType->Name = Name;
@@ -570,7 +569,7 @@ VOID PhpFreeObject(
     _In_ PPH_OBJECT_HEADER ObjectHeader
     )
 {
-    /* Object type statistics. */
+    // Object type statistics.
     _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
 
 #ifdef DEBUG
@@ -581,7 +580,7 @@ VOID PhpFreeObject(
 
     REF_STAT_UP(RefObjectsDestroyed);
 
-    /* Call the delete procedure if we have one. */
+    // Call the delete procedure if we have one.
     if (ObjectHeader->Type->DeleteProcedure)
     {
         ObjectHeader->Type->DeleteProcedure(
@@ -619,35 +618,30 @@ VOID PhpDeferDeleteObject(
 {
     PPH_OBJECT_HEADER nextToFree;
 
-    /* Add the object to the list while saving the old value, atomically.
-     * Note that it is first-in, last-out.
-     */
+    // Add the object to the list while saving the old value, atomically.
+    // Note that it is first-in, last-out.
     while (TRUE)
     {
         nextToFree = PhObjectNextToFree;
         ObjectHeader->NextToFree = nextToFree;
 
-        /* Attempt to set the global next-to-free variable. */
+        // Attempt to set the global next-to-free variable.
         if (_InterlockedCompareExchangePointer(
             &PhObjectNextToFree,
             ObjectHeader,
             nextToFree
             ) == nextToFree)
         {
-            /* Success. */
+            // Success.
             break;
         }
 
-        /* Someone else changed the next-to-free variable.
-         * Go back and try again.
-         */
+        // Someone else changed the next-to-free variable. Go back and try again.
     }
 
     REF_STAT_UP(RefObjectsDeleteDeferred);
 
-    /* Was the to-free list empty before? If so, we need to queue
-     * a work item.
-     */
+    // Was the to-free list empty before? If so, we need to queue a work item.
     if (!nextToFree)
     {
         PhQueueItemGlobalWorkQueue(PhpDeferDeleteObjectRoutine, NULL);
@@ -680,8 +674,7 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
 /**
  * Creates a reference-counted memory block.
  *
- * \param Alloc A variable which receives a pointer to the
- * memory block.
+ * \param Alloc A variable which receives a pointer to the memory block.
  * \param Size The number of bytes to allocate.
  */
 NTSTATUS PhCreateAlloc(
@@ -698,8 +691,7 @@ NTSTATUS PhCreateAlloc(
 }
 
 /**
- * Gets the current auto-dereference pool for the
- * current thread.
+ * Gets the current auto-dereference pool for the current thread.
  */
 FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool(
     VOID
@@ -709,8 +701,7 @@ FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool(
 }
 
 /**
- * Sets the current auto-dereference pool for the
- * current thread.
+ * Sets the current auto-dereference pool for the current thread.
  */
 _May_raise_ FORCEINLINE VOID PhpSetCurrentAutoPool(
     _In_ PPH_AUTO_POOL AutoPool
@@ -734,14 +725,12 @@ _May_raise_ FORCEINLINE VOID PhpSetCurrentAutoPool(
 }
 
 /**
- * Initializes an auto-dereference pool and sets it
- * as the current pool for the current thread. You
- * must call PhDeleteAutoPool() before storage for
- * the auto-dereference pool is freed.
+ * Initializes an auto-dereference pool and sets it as the current pool
+ * for the current thread. You must call PhDeleteAutoPool() before storage
+ * for the auto-dereference pool is freed.
  *
- * \remarks Always store auto-dereference pools in local
- * variables, and do not share the pool with any other
- * functions.
+ * \remarks Always store auto-dereference pools in local variables, and do
+ * not share the pool with any other functions.
  */
 VOID PhInitializeAutoPool(
     _Out_ PPH_AUTO_POOL AutoPool
@@ -761,9 +750,8 @@ VOID PhInitializeAutoPool(
 
 /**
  * Deletes an auto-dereference pool.
- * The function will dereference any objects
- * currently in the pool. If a pool other than
- * the current pool is passed to the function,
+ * The function will dereference any objects currently in the pool.
+ * If a pool other than the current pool is passed to the function,
  * an exception is raised.
  *
  * \param AutoPool The auto-dereference pool to delete.
@@ -788,65 +776,7 @@ _May_raise_ VOID PhDeleteAutoPool(
 }
 
 /**
- * Adds an object to the current auto-dereference
- * pool for the current thread.
- * If the current thread does not have an auto-dereference
- * pool, the function raises an exception.
- *
- * \param Object A pointer to an object. The object
- * will be dereferenced when the current auto-dereference
- * pool is drained or freed.
- */
-_May_raise_ VOID PhaDereferenceObject(
-    _In_ PVOID Object
-    )
-{
-    PPH_AUTO_POOL autoPool = PhpGetCurrentAutoPool();
-
-#ifdef DEBUG
-    // If we don't have an auto-dereference pool,
-    // we don't want to leak the object (unlike what
-    // Apple does with NSAutoreleasePool).
-    if (!autoPool)
-        PhRaiseStatus(STATUS_UNSUCCESSFUL);
-#endif
-
-    // See if we can use the static array.
-    if (autoPool->StaticCount < PH_AUTO_POOL_STATIC_SIZE)
-    {
-        autoPool->StaticObjects[autoPool->StaticCount++] = Object;
-        return;
-    }
-
-    // Use the dynamic array.
-
-    // Allocate the array if we haven't already.
-    if (!autoPool->DynamicObjects)
-    {
-        autoPool->DynamicAllocated = 64;
-        autoPool->DynamicObjects = PhAllocate(
-            sizeof(PVOID) * autoPool->DynamicAllocated
-            );
-        REF_STAT_UP(RefAutoPoolsDynamicAllocated);
-    }
-
-    // See if we need to resize the array.
-    if (autoPool->DynamicCount == autoPool->DynamicAllocated)
-    {
-        autoPool->DynamicAllocated *= 2;
-        autoPool->DynamicObjects = PhReAllocate(
-            autoPool->DynamicObjects,
-            sizeof(PVOID) * autoPool->DynamicAllocated
-            );
-        REF_STAT_UP(RefAutoPoolsDynamicResized);
-    }
-
-    autoPool->DynamicObjects[autoPool->DynamicCount++] = Object;
-}
-
-/**
- * Dereferences and removes all objects in an
- * auto-release pool.
+ * Dereferences and removes all objects in an auto-release pool.
  *
  * \param AutoPool The auto-release pool to drain.
  */
@@ -877,4 +807,73 @@ VOID PhDrainAutoPool(
             AutoPool->DynamicObjects = NULL;
         }
     }
+}
+
+/**
+ * Adds an object to the current auto-dereference pool for the current thread.
+ * If the current thread does not have an auto-dereference pool, the function
+ * raises an exception.
+ *
+ * \param Object A pointer to an object. The object will be dereferenced when
+ * the current auto-dereference pool is drained or freed.
+ */
+_May_raise_ PVOID PhAutoDereferenceObject(
+    _In_opt_ PVOID Object
+    )
+{
+    PPH_AUTO_POOL autoPool = PhpGetCurrentAutoPool();
+
+#ifdef DEBUG
+    // If we don't have an auto-dereference pool, we don't want to leak the
+    // object (unlike what Apple does with NSAutoreleasePool).
+    if (!autoPool)
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
+#endif
+
+    if (!Object)
+        return NULL;
+
+    // See if we can use the static array.
+    if (autoPool->StaticCount < PH_AUTO_POOL_STATIC_SIZE)
+    {
+        autoPool->StaticObjects[autoPool->StaticCount++] = Object;
+        return Object;
+    }
+
+    // Use the dynamic array.
+
+    // Allocate the array if we haven't already.
+    if (!autoPool->DynamicObjects)
+    {
+        autoPool->DynamicAllocated = 64;
+        autoPool->DynamicObjects = PhAllocate(
+            sizeof(PVOID) * autoPool->DynamicAllocated
+            );
+        REF_STAT_UP(RefAutoPoolsDynamicAllocated);
+    }
+
+    // See if we need to resize the array.
+    if (autoPool->DynamicCount == autoPool->DynamicAllocated)
+    {
+        autoPool->DynamicAllocated *= 2;
+        autoPool->DynamicObjects = PhReAllocate(
+            autoPool->DynamicObjects,
+            sizeof(PVOID) * autoPool->DynamicAllocated
+            );
+        REF_STAT_UP(RefAutoPoolsDynamicResized);
+    }
+
+    autoPool->DynamicObjects[autoPool->DynamicCount++] = Object;
+
+    return Object;
+}
+
+_May_raise_ VOID PhaDereferenceObject(
+    _In_ PVOID Object
+    )
+{
+    if (!Object)
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
+
+    PhAutoDereferenceObject(Object);
 }

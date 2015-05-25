@@ -80,7 +80,7 @@ VOID PhpInitializeServiceNumbers(
     VOID
     );
 
-PPH_STRING PhapGetHandleString(
+PPH_STRING PhpaGetHandleString(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle
     );
@@ -95,11 +95,11 @@ VOID PhpGetWfmoInformation(
     _Inout_ PPH_STRING_BUILDER StringBuilder
     );
 
-PPH_STRING PhapGetSendMessageReceiver(
+PPH_STRING PhpaGetSendMessageReceiver(
     _In_ HANDLE ThreadId
     );
 
-PPH_STRING PhapGetAlpcInformation(
+PPH_STRING PhpaGetAlpcInformation(
     _In_ HANDLE ThreadId
     );
 
@@ -231,7 +231,7 @@ VOID PhpAnalyzeWaitPassive(
 
     if (lastSystemCall.SystemCallNumber == NumberForWfso)
     {
-        string = PhapGetHandleString(processHandle, lastSystemCall.FirstArgument);
+        string = PhpaGetHandleString(processHandle, lastSystemCall.FirstArgument);
 
         PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for:\r\n");
         PhAppendStringBuilder(&stringBuilder, string);
@@ -242,14 +242,14 @@ VOID PhpAnalyzeWaitPassive(
     }
     else if (lastSystemCall.SystemCallNumber == NumberForRf)
     {
-        string = PhapGetHandleString(processHandle, lastSystemCall.FirstArgument);
+        string = PhpaGetHandleString(processHandle, lastSystemCall.FirstArgument);
 
         PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for file I/O:\r\n");
         PhAppendStringBuilder(&stringBuilder, string);
     }
     else
     {
-        string = PhapGetSendMessageReceiver(ThreadId);
+        string = PhpaGetSendMessageReceiver(ThreadId);
 
         if (string)
         {
@@ -258,7 +258,7 @@ VOID PhpAnalyzeWaitPassive(
         }
         else
         {
-            string = PhapGetAlpcInformation(ThreadId);
+            string = PhpaGetAlpcInformation(ThreadId);
 
             if (string)
             {
@@ -363,7 +363,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (NT_FUNC_MATCH("FsControlFile"))
@@ -376,7 +376,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (NT_FUNC_MATCH("QueryObject"))
@@ -393,7 +393,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (NT_FUNC_MATCH("ReadFile") || NT_FUNC_MATCH("WriteFile"))
@@ -406,7 +406,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (NT_FUNC_MATCH("RemoveIoCompletion"))
@@ -419,7 +419,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (
@@ -437,10 +437,10 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
 
-        if (alpcInfo = PhapGetAlpcInformation(context->ThreadId))
+        if (alpcInfo = PhpaGetAlpcInformation(context->ThreadId))
         {
             PhAppendStringBuilder2(
                 &context->StringBuilder,
@@ -471,7 +471,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (
@@ -493,7 +493,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             L"Thread is sending a USER message:\r\n"
             );
 
-        receiverString = PhapGetSendMessageReceiver(context->ThreadId);
+        receiverString = PhpaGetSendMessageReceiver(context->ThreadId);
 
         if (receiverString)
         {
@@ -515,7 +515,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (
@@ -534,7 +534,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (
@@ -586,7 +586,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else if (NT_FUNC_MATCH("WaitForWorkViaWorkerFactory"))
@@ -599,7 +599,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
-            PhapGetHandleString(context->ProcessHandle, handle)
+            PhpaGetHandleString(context->ProcessHandle, handle)
             );
     }
     else
@@ -621,7 +621,7 @@ static VOID PhpAnalyzeWaitFallbacks(
 
     // We didn't detect NtUserMessageCall, but this may still apply due to another
     // win32k system call (e.g. from EnableWindow).
-    if (!Context->Found && (info = PhapGetSendMessageReceiver(Context->ThreadId)))
+    if (!Context->Found && (info = PhpaGetSendMessageReceiver(Context->ThreadId)))
     {
         PhAppendStringBuilder2(
             &Context->StringBuilder,
@@ -634,7 +634,7 @@ static VOID PhpAnalyzeWaitFallbacks(
     }
 
     // Nt(Alpc)ConnectPort doesn't get detected anywhere else.
-    if (!Context->Found && (info = PhapGetAlpcInformation(Context->ThreadId)))
+    if (!Context->Found && (info = PhpaGetAlpcInformation(Context->ThreadId)))
     {
         PhAppendStringBuilder2(
             &Context->StringBuilder,
@@ -850,7 +850,7 @@ static VOID PhpInitializeServiceNumbers(
     }
 }
 
-static PPH_STRING PhapGetHandleString(
+static PPH_STRING PhpaGetHandleString(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle
     )
@@ -956,7 +956,7 @@ static VOID PhpGetWfmoInformation(
             {
                 PhAppendStringBuilder(
                     StringBuilder,
-                    PhapGetHandleString(ProcessHandle, handles[i])
+                    PhpaGetHandleString(ProcessHandle, handles[i])
                     );
                 PhAppendStringBuilder2(
                     StringBuilder,
@@ -975,7 +975,7 @@ static VOID PhpGetWfmoInformation(
     }
 }
 
-static PPH_STRING PhapGetSendMessageReceiver(
+static PPH_STRING PhpaGetSendMessageReceiver(
     _In_ HANDLE ThreadId
     )
 {
@@ -1008,17 +1008,17 @@ static PPH_STRING PhapGetSendMessageReceiver(
 
     clientId.UniqueProcess = UlongToHandle(processId);
     clientId.UniqueThread = UlongToHandle(threadId);
-    clientIdName = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
+    clientIdName = PhAutoDereferenceObject(PhGetClientIdName(&clientId));
 
     if (!GetClassName(windowHandle, windowClass, sizeof(windowClass) / sizeof(WCHAR)))
         windowClass[0] = 0;
 
-    windowText = PHA_DEREFERENCE(PhGetWindowText(windowHandle));
+    windowText = PhAutoDereferenceObject(PhGetWindowText(windowHandle));
 
     return PhaFormatString(L"Window 0x%Ix (%s): %s \"%s\"", windowHandle, clientIdName->Buffer, windowClass, PhGetStringOrEmpty(windowText));
 }
 
-static PPH_STRING PhapGetAlpcInformation(
+static PPH_STRING PhpaGetAlpcInformation(
     _In_ HANDLE ThreadId
     )
 {
@@ -1061,7 +1061,7 @@ static PPH_STRING PhapGetAlpcInformation(
 
         clientId.UniqueProcess = serverInfo->Out.ConnectedProcessId;
         clientId.UniqueThread = NULL;
-        clientIdName = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
+        clientIdName = PhAutoDereferenceObject(PhGetClientIdName(&clientId));
 
         string = PhaFormatString(L"ALPC Port: %.*s (%s)", serverInfo->Out.ConnectionPortName.Length / 2, serverInfo->Out.ConnectionPortName.Buffer, clientIdName->Buffer);
     }

@@ -395,7 +395,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         i,
                                         adapterDescription->Buffer,
                                         gpu * 100,
-                                        ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                         ));
                                     PhDereferenceObject(adapterDescription);
                                 }

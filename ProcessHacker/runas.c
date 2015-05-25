@@ -290,12 +290,12 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             SetDlgItemText(hwndDlg, IDC_DESKTOP, L"WinSta0\\Default");
 
             SetDlgItemText(hwndDlg, IDC_PROGRAM,
-                ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsProgram")))->Buffer);
+                ((PPH_STRING)PhAutoDereferenceObject(PhGetStringSetting(L"RunAsProgram")))->Buffer);
 
             if (!context->ProcessId)
             {
                 SetDlgItemText(hwndDlg, IDC_USERNAME,
-                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsUserName")))->Buffer);
+                    ((PPH_STRING)PhAutoDereferenceObject(PhGetStringSetting(L"RunAsUserName")))->Buffer);
 
                 // Fire the user name changed event so we can fix the logon type.
                 SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);
@@ -394,7 +394,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                             if (newUserName)
                             {
-                                PhaDereferenceObject(newUserName);
+                                PhAutoDereferenceObject(newUserName);
                                 userName = newUserName;
                             }
 
@@ -533,7 +533,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     if (!context->ProcessId && HIWORD(wParam) == CBN_SELCHANGE)
                     {
-                        userName = PHA_DEREFERENCE(PhGetComboBoxString(GetDlgItem(hwndDlg, IDC_USERNAME), -1));
+                        userName = PhAutoDereferenceObject(PhGetComboBoxString(GetDlgItem(hwndDlg, IDC_USERNAME), -1));
                     }
                     else if (!context->ProcessId && (
                         HIWORD(wParam) == CBN_EDITCHANGE ||
@@ -639,7 +639,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                             PhInsertEMenuItem(sessionsMenu,
                                 PhCreateEMenuItem(0, 0, menuString->Buffer, NULL, (PVOID)sessions[i].SessionId), -1);
-                            PhaDereferenceObject(menuString);
+                            PhAutoDereferenceObject(menuString);
                         }
 
                         WinStationFreeMemory(sessions);

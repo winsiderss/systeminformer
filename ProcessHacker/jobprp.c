@@ -180,7 +180,7 @@ static VOID PhpAddJobProcesses(
         for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
         {
             clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
-            name = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
+            name = PhAutoDereferenceObject(PhGetClientIdName(&clientId));
 
             PhAddListViewItem(processesLv, MAXINT, PhGetString(name), NULL);
         }
@@ -252,7 +252,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                     NULL,
                     &jobObjectName
                     );
-                PHA_DEREFERENCE(jobObjectName);
+                PhAutoDereferenceObject(jobObjectName);
 
                 if (jobObjectName && jobObjectName->Length == 0)
                     jobObjectName = NULL;

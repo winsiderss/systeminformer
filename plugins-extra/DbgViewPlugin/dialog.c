@@ -312,7 +312,7 @@ static VOID ShowDropdownMenu(
                     PPH_STRING string;
 
                     fileName = PhGetFileDialogFileName(fileDialog);
-                    PhaDereferenceObject(fileName);
+                    PhAutoDereferenceObject(fileName);
 
                     if (NT_SUCCESS(status = PhCreateFileStream(
                         &fileStream,
