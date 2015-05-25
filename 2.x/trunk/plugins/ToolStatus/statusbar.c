@@ -239,7 +239,7 @@ VOID UpdateStatusBar(
                         text[count] = PhFormatString(
                             L"%s (%u): %.2f%%",
                             processItem->ProcessName->Buffer,
-                            (ULONG)processItem->ProcessId,
+                            HandleToUlong((processItem->ProcessId),
                             processItem->CpuUsage * 100
                             );
                     }
@@ -271,7 +271,7 @@ VOID UpdateStatusBar(
                         text[count] = PhFormatString(
                             L"%s (%u): %s",
                             processItem->ProcessName->Buffer,
-                            (ULONG)processItem->ProcessId,
+                            HandleToUlong(processItem->ProcessId),
                             PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
                             );
                     }
