@@ -60,6 +60,36 @@ static NTSTATUS PhpOpenService(
     return STATUS_SUCCESS;
 }
 
+static _Callback_ NTSTATUS PhpSetServiceSecurity(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PPH_STD_OBJECT_SECURITY stdObjectSecurity;
+
+    stdObjectSecurity = (PPH_STD_OBJECT_SECURITY)Context;
+
+    status = PhStdSetObjectSecurity(SecurityDescriptor, SecurityInformation, Context);
+
+    if ((status == STATUS_ACCESS_DENIED || status == NTSTATUS_FROM_WIN32(ERROR_ACCESS_DENIED)) && !PhElevated)
+    {
+        // Elevate using phsvc.
+        if (PhUiConnectToPhSvc(NULL, FALSE))
+        {
+            status = PhSvcCallSetServiceSecurity(
+                ((PPH_SERVICE_ITEM)stdObjectSecurity->Context)->Name->Buffer,
+                SecurityInformation,
+                SecurityDescriptor
+                );
+            PhUiDisconnectFromPhSvc();
+        }
+    }
+
+    return status;
+}
+
 VOID PhShowServiceProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_SERVICE_ITEM ServiceItem
@@ -108,7 +138,7 @@ VOID PhShowServiceProperties(
         pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
             ServiceItem->Name->Buffer,
             PhStdGetObjectSecurity,
-            PhStdSetObjectSecurity,
+            PhpSetServiceSecurity,
             &stdObjectSecurity,
             accessEntries,
             numberOfAccessEntries

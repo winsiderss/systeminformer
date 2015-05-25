@@ -116,6 +116,13 @@ NTSTATUS PhSvcCaptureSid(
     _Out_ PSID *CapturedSid
     );
 
+NTSTATUS PhSvcCaptureSecurityDescriptor(
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _In_ SECURITY_INFORMATION RequiredInformation,
+    _Out_ PSECURITY_DESCRIPTOR *CapturedSecurityDescriptor
+    );
+
 NTSTATUS PhSvcApiDefault(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_MSG Message
@@ -192,6 +199,11 @@ NTSTATUS PhSvcApiSendMessage(
     );
 
 NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiSetServiceSecurity(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_MSG Message
     );
