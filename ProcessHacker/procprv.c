@@ -933,7 +933,7 @@ VOID PhpProcessQueryStage1(
             processId
             );
 
-        if (!NT_SUCCESS(status) && WindowsVersion >= WINDOWS_81)
+        if (!NT_SUCCESS(status) && WindowsVersion >= WINDOWS_8_1)
         {
             queryAccess = TRUE;
             status = PhOpenProcess(

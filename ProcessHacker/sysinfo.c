@@ -2803,7 +2803,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
         for (j = 0; j < stateDistribution->StateCount; j++)
         {
-            if (WindowsVersion >= WINDOWS_81)
+            if (WindowsVersion >= WINDOWS_8_1)
             {
                 stateDifference->States[j] = stateDistribution->States[j];
             }
@@ -2829,7 +2829,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
         for (j = 0; j < stateDistribution->StateCount; j++)
         {
-            if (WindowsVersion >= WINDOWS_81)
+            if (WindowsVersion >= WINDOWS_8_1)
             {
                 stateDifference->States[j].Hits.QuadPart -= stateDistribution->States[j].Hits.QuadPart;
             }
