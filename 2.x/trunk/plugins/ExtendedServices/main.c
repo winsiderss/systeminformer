@@ -2,7 +2,7 @@
  * Process Hacker Extended Services -
  *   main program
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -21,7 +21,6 @@
  */
 
 #include <phdk.h>
-#define MAIN_PRIVATE
 #include "extsrv.h"
 #include "resource.h"
 
@@ -56,6 +55,7 @@ VOID NTAPI ServiceMenuInitializingCallback(
     );
 
 PPH_PLUGIN PluginInstance;
+_RtlCreateServiceSid RtlCreateServiceSid_I;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
@@ -85,6 +85,8 @@ LOGICAL DllMain(
             info->Description = L"Extends service management capabilities.";
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1113";
             info->HasOptions = TRUE;
+
+            RtlCreateServiceSid_I = PhGetProcAddress(L"ntdll.dll", "RtlCreateServiceSid");
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
@@ -456,6 +458,20 @@ VOID NTAPI ServicePropertiesInitializingCallback(
         propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVLIST);
         propSheetPage.pszTitle = L"Dependents";
         propSheetPage.pfnDlgProc = EspServiceDependentsDlgProc;
+        propSheetPage.lParam = (LPARAM)serviceItem;
+        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+
+    // Other
+    if (WindowsVersion >= WINDOWS_7 && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.dwFlags = PSP_USETITLE;
+        propSheetPage.hInstance = PluginInstance->DllBase;
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVTRIGGERS);
+        propSheetPage.pszTitle = L"Triggers";
+        propSheetPage.pfnDlgProc = EspServiceTriggersDlgProc;
         propSheetPage.lParam = (LPARAM)serviceItem;
         objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
     }

@@ -2,7 +2,7 @@
  * Process Hacker -
  *   service list
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -431,6 +431,11 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(StartType)
 {
     sortResult = intcmp(serviceItem1->StartType, serviceItem2->StartType);
+
+    if (sortResult == 0)
+        sortResult = intcmp(serviceItem1->DelayedStart, serviceItem2->DelayedStart);
+    if (sortResult == 0)
+        sortResult = intcmp(serviceItem1->HasTriggers, serviceItem2->HasTriggers);
 }
 END_SORT_FUNCTION
 

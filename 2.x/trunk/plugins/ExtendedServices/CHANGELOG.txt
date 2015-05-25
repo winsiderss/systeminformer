@@ -1,3 +1,6 @@
+1.10
+ * Added service protection and SID information
+
 1.9
  * Added new trigger data types
 

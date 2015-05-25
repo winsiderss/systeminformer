@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D7078584-1144-4143-8DE8-D6741F6FD685}"
 	ProjectSection(SolutionItems) = preProject
@@ -31,8 +31,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DbgViewPlugin", "DbgViewPlugin\DbgViewPlugin.vcxproj", "{AAD42A11-92A7-4918-A76A-862528185199}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiskDrivesPlugin", "DiskDrivesPlugin\DiskDrivesPlugin.vcxproj", "{A0BC6F35-DD4B-4CDE-B9ED-8F991FBB5DBA}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ServiceExtrasPlugin", "ServiceExtrasPlugin\ServiceExtrasPlugin.vcxproj", "{B2F55139-7984-498F-98CB-AC25A3E08CCC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -142,14 +140,6 @@ Global
 		{A0BC6F35-DD4B-4CDE-B9ED-8F991FBB5DBA}.Release|Win32.Build.0 = Release|Win32
 		{A0BC6F35-DD4B-4CDE-B9ED-8F991FBB5DBA}.Release|x64.ActiveCfg = Release|x64
 		{A0BC6F35-DD4B-4CDE-B9ED-8F991FBB5DBA}.Release|x64.Build.0 = Release|x64
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Debug|Win32.ActiveCfg = Debug|Win32
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Debug|Win32.Build.0 = Debug|Win32
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Debug|x64.ActiveCfg = Debug|x64
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Debug|x64.Build.0 = Debug|x64
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Release|Win32.ActiveCfg = Release|Win32
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Release|Win32.Build.0 = Release|Win32
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Release|x64.ActiveCfg = Release|x64
-		{B2F55139-7984-498F-98CB-AC25A3E08CCC}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
