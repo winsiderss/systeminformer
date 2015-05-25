@@ -503,7 +503,7 @@ PhWritePhTextHeader(
 
 PHAPPAPI
 BOOLEAN PhShellProcessHacker(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
@@ -996,6 +996,21 @@ PhFormatLogEntry(
     );
 
 // actions
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiConnectToPhSvc(
+    _In_opt_ HWND hWnd,
+    _In_ BOOLEAN ConnectOnly
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhUiDisconnectFromPhSvc(
+    VOID
+    );
 
 PHAPPAPI
 BOOLEAN

@@ -3232,7 +3232,7 @@ VOID PhShellExecute(
  * \param ProcessHandle A variable which receives a handle to the new process.
  */
 BOOLEAN PhShellExecuteEx(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,

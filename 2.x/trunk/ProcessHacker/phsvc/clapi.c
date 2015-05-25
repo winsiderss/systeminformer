@@ -806,3 +806,74 @@ NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
 
     return status;
 }
+
+PSECURITY_DESCRIPTOR PhpAbsoluteToSelfRelativeSD(
+    _In_ PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    _Out_ PULONG BufferSize
+    )
+{
+    NTSTATUS status;
+    ULONG bufferSize = 0;
+    PSECURITY_DESCRIPTOR selfRelativeSecurityDescriptor;
+
+    status = RtlAbsoluteToSelfRelativeSD(AbsoluteSecurityDescriptor, NULL, &bufferSize);
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+        return NULL;
+
+    selfRelativeSecurityDescriptor = PhAllocate(bufferSize);
+    status = RtlAbsoluteToSelfRelativeSD(AbsoluteSecurityDescriptor, selfRelativeSecurityDescriptor, &bufferSize);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(selfRelativeSecurityDescriptor);
+        return NULL;
+    }
+
+    *BufferSize = bufferSize;
+
+    return selfRelativeSecurityDescriptor;
+}
+
+NTSTATUS PhSvcCallSetServiceSecurity(
+    _In_ PWSTR ServiceName,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PSECURITY_DESCRIPTOR selfRelativeSecurityDescriptor = NULL;
+    ULONG bufferSize;
+    PVOID serviceName = NULL;
+    PVOID copiedSelfRelativeSecurityDescriptor = NULL;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    selfRelativeSecurityDescriptor = PhpAbsoluteToSelfRelativeSD(SecurityDescriptor, &bufferSize);
+
+    if (!selfRelativeSecurityDescriptor)
+    {
+        status = STATUS_BAD_DESCRIPTOR_FORMAT;
+        goto CleanupExit;
+    }
+
+    m.ApiNumber = PhSvcSetServiceSecurityApiNumber;
+    m.u.SetServiceSecurity.i.SecurityInformation = SecurityInformation;
+    status = STATUS_NO_MEMORY;
+
+    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.u.SetServiceSecurity.i.ServiceName)))
+        goto CleanupExit;
+    if (!(copiedSelfRelativeSecurityDescriptor = PhSvcpCreateString(selfRelativeSecurityDescriptor, bufferSize, &m.u.SetServiceSecurity.i.SecurityDescriptor)))
+        goto CleanupExit;
+
+    status = PhSvcpCallServer(&m);
+
+CleanupExit:
+    if (selfRelativeSecurityDescriptor) PhFree(selfRelativeSecurityDescriptor);
+    if (serviceName) PhSvcpFreeHeap(serviceName);
+    if (copiedSelfRelativeSecurityDescriptor) PhSvcpFreeHeap(copiedSelfRelativeSecurityDescriptor);
+
+    return status;
+}
