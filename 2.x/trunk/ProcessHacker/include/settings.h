@@ -89,7 +89,7 @@ VOID PhResetSettings(
     VOID
     );
 
-#define PHA_GET_STRING_SETTING(Name) ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(Name)))
+#define PHA_GET_STRING_SETTING(Name) ((PPH_STRING)PhAutoDereferenceObject(PhGetStringSetting(Name)))
 
 // High-level settings creation
 

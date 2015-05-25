@@ -193,7 +193,7 @@ static VOID FilterResults(
                 selectedChoice->Buffer,
                 selectedChoice->Length
                 );
-            PhaDereferenceObject(patternString);
+            PhAutoDereferenceObject(patternString);
 
             expression = pcre_compile2(
                 patternString->Buffer,
@@ -451,7 +451,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         PPH_STRING string;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        PhaDereferenceObject(fileName);
+                        PhAutoDereferenceObject(fileName);
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,

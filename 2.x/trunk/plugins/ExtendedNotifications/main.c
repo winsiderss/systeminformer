@@ -1028,7 +1028,7 @@ INT_PTR CALLBACK LoggingDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_LOGFILENAME, ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(SETTING_NAME_LOG_FILENAME)))->Buffer);
+            SetDlgItemText(hwndDlg, IDC_LOGFILENAME, ((PPH_STRING)PhAutoDereferenceObject(PhGetStringSetting(SETTING_NAME_LOG_FILENAME)))->Buffer);
         }
         break;
     case WM_COMMAND:

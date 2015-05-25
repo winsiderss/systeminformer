@@ -508,7 +508,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             if (KnownCommandLine->ServiceHost.GroupName)
             {
-                PhaDereferenceObject(KnownCommandLine->ServiceHost.GroupName);
+                PhAutoDereferenceObject(KnownCommandLine->ServiceHost.GroupName);
                 return TRUE;
             }
             else
@@ -547,7 +547,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             if (!dllName)
                 return FALSE;
 
-            PhaDereferenceObject(dllName);
+            PhAutoDereferenceObject(dllName);
 
             // The procedure name begins after the last comma.
 
@@ -570,7 +570,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             {
                 dllName = PhaConcatStrings(
                     3,
-                    ((PPH_STRING)PHA_DEREFERENCE(PhGetSystemDirectory()))->Buffer,
+                    ((PPH_STRING)PhAutoDereferenceObject(PhGetSystemDirectory()))->Buffer,
                     L"\\",
                     dllName->Buffer
                     );
@@ -617,7 +617,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             if (!argPart)
                 return FALSE;
 
-            PhaDereferenceObject(argPart);
+            PhAutoDereferenceObject(argPart);
 
             // Find "/processid:"; the GUID is just after that.
 
@@ -655,7 +655,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 )))
             {
                 KnownCommandLine->ComSurrogate.Name =
-                    PHA_DEREFERENCE(PhQueryRegistryString(clsidKeyHandle, NULL));
+                    PhAutoDereferenceObject(PhQueryRegistryString(clsidKeyHandle, NULL));
 
                 if (NT_SUCCESS(PhOpenKey(
                     &inprocServer32KeyHandle,
@@ -666,9 +666,9 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                     )))
                 {
                     KnownCommandLine->ComSurrogate.FileName =
-                        PHA_DEREFERENCE(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
+                        PhAutoDereferenceObject(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
 
-                    if (fileName = PHA_DEREFERENCE(PhExpandEnvironmentStrings(
+                    if (fileName = PhAutoDereferenceObject(PhExpandEnvironmentStrings(
                         &KnownCommandLine->ComSurrogate.FileName->sr
                         )))
                     {

@@ -101,17 +101,17 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                     ULONG serviceErrorControl;
                     PPH_STRING serviceBinaryPath;
 
-                    serviceName = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
-                    serviceDisplayName = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_DISPLAYNAME)));
+                    serviceName = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
+                    serviceDisplayName = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_DISPLAYNAME)));
 
-                    serviceTypeString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
-                    serviceStartTypeString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
-                    serviceErrorControlString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
+                    serviceTypeString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
+                    serviceStartTypeString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
+                    serviceErrorControlString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
                     serviceType = PhGetServiceTypeInteger(serviceTypeString->Buffer);
                     serviceStartType = PhGetServiceStartTypeInteger(serviceStartTypeString->Buffer);
                     serviceErrorControl = PhGetServiceErrorControlInteger(serviceErrorControlString->Buffer);
 
-                    serviceBinaryPath = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+                    serviceBinaryPath = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
 
                     if (PhElevated)
                     {

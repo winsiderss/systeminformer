@@ -211,7 +211,7 @@ ContinueLoop:
             if (!success)
             {
                 SetDlgItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependencies: ",
-                    ((PPH_STRING)PHA_DEREFERENCE(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
+                    ((PPH_STRING)PhAutoDereferenceObject(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
             }
         }
@@ -324,7 +324,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
             if (!success)
             {
                 SetDlgItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependents: ",
-                    ((PPH_STRING)PHA_DEREFERENCE(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
+                    ((PPH_STRING)PhAutoDereferenceObject(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
             }
         }

@@ -255,7 +255,7 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
                                     L"R: %s\nW: %s\n%s",
                                     PhaFormatSize(diskReadValue, -1)->Buffer,
                                     PhaFormatSize(diskWriteValue, -1)->Buffer,
-                                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                    ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
 
@@ -464,7 +464,7 @@ static BOOLEAN DiskDriveSectionCallback(
                 L"R: %s\nW: %s\n%s",
                 PhaFormatSize(diskReadValue, -1)->Buffer,
                 PhaFormatSize(diskWriteValue, -1)->Buffer,
-                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
 
             getTooltipText->Text = Section->GraphState.TooltipText->sr;

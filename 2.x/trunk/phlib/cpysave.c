@@ -89,12 +89,12 @@ VOID PhaCreateTextTable(
     ULONG i;
 
     PhCreateAlloc((PVOID *)&table, sizeof(PPH_STRING *) * Rows);
-    PhaDereferenceObject(table);
+    PhAutoDereferenceObject(table);
 
     for (i = 0; i < Rows; i++)
     {
         PhCreateAlloc((PVOID *)&table[i], sizeof(PPH_STRING) * Columns);
-        PhaDereferenceObject(table[i]);
+        PhAutoDereferenceObject(table[i]);
         memset(table[i], 0, sizeof(PPH_STRING) * Columns);
     }
 
@@ -131,7 +131,7 @@ PPH_LIST PhaFormatTextTable(
         // Create the tab count array.
 
         PhCreateAlloc(&tabCount, sizeof(ULONG) * Columns);
-        PhaDereferenceObject(tabCount);
+        PhAutoDereferenceObject(tabCount);
         memset(tabCount, 0, sizeof(ULONG) * Columns); // zero all values
 
         for (i = 0; i < Rows; i++)
@@ -389,7 +389,7 @@ PPH_LIST PhGetGenericTreeNewLines(
         {
             for (j = 0; j < columns; j++)
             {
-                table[i + 1][j] = PHA_DEREFERENCE(PhReferenceEmptyString());
+                table[i + 1][j] = PhAutoDereferenceObject(PhReferenceEmptyString());
             }
         }
     }
@@ -481,7 +481,7 @@ PPH_STRING PhaGetListViewItemText(
     }
 
     PhTrimToNullTerminatorString(buffer);
-    PhaDereferenceObject(buffer);
+    PhAutoDereferenceObject(buffer);
 
     return buffer;
 }

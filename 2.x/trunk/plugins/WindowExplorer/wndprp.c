@@ -770,7 +770,7 @@ static VOID WepRefreshWindowGeneralInfo(
     SetDlgItemText(hwndDlg, IDC_THREAD, clientIdName->Buffer);
     PhDereferenceObject(clientIdName);
 
-    windowText = PHA_DEREFERENCE(PhGetWindowText(Context->WindowHandle));
+    windowText = PhAutoDereferenceObject(PhGetWindowText(Context->WindowHandle));
     SetDlgItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(windowText));
 
     if (GetWindowInfo(Context->WindowHandle, &windowInfo))

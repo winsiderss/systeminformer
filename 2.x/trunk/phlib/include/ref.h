@@ -35,15 +35,15 @@ extern "C" {
 //#define PHOBJ_STRICT_CHECKS
 #define PHOBJ_ALLOCATE_NEVER_NULL
 
-/* Object flags */
+// Object flags
 #define PHOBJ_RAISE_ON_FAIL 0x00000001
 #define PHOBJ_VALID_FLAGS 0x00000001
 
-/* Object type flags */
+// Object type flags
 #define PHOBJTYPE_USE_FREE_LIST 0x00000001
 #define PHOBJTYPE_VALID_FLAGS 0x00000001
 
-/* Object type callbacks */
+// Object type callbacks
 
 /**
  * The delete procedure for an object type, called when
@@ -276,14 +276,6 @@ PhDeleteAutoPool(
     _Inout_ PPH_AUTO_POOL AutoPool
     );
 
-_May_raise_
-PHLIBAPI
-VOID
-NTAPI
-PhaDereferenceObject(
-    _In_ PVOID Object
-    );
-
 PHLIBAPI
 VOID
 NTAPI
@@ -291,23 +283,22 @@ PhDrainAutoPool(
     _In_ PPH_AUTO_POOL AutoPool
     );
 
-/**
- * Calls PhaDereferenceObject() and returns the given object.
- *
- * \param Object A pointer to an object. The value can be
- * null; in that case no action is performed.
- *
- * \return The value of \a Object.
- */
-FORCEINLINE PVOID PHA_DEREFERENCE(
-    _In_ PVOID Object
-    )
-{
-    if (Object)
-        PhaDereferenceObject(Object);
+_May_raise_
+PHLIBAPI
+PVOID
+NTAPI
+PhAutoDereferenceObject(
+    _In_opt_ PVOID Object
+    );
 
-    return Object;
-}
+// Deprecated. Use PhAutoDereferenceObject instead.
+_May_raise_
+PHLIBAPI
+VOID
+NTAPI
+PhaDereferenceObject(
+    _In_ PVOID Object
+    );
 
 #ifdef __cplusplus
 }

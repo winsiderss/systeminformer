@@ -83,7 +83,7 @@ BOOLEAN PhUiCreateDumpFileProcess(
         return FALSE;
     }
 
-    fileName = PHA_DEREFERENCE(PhGetFileDialogFileName(fileDialog));
+    fileName = PhAutoDereferenceObject(PhGetFileDialogFileName(fileDialog));
     PhFreeFileDialog(fileDialog);
 
     return PhpCreateProcessMiniDumpWithProgress(

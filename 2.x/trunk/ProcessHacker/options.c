@@ -897,7 +897,7 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
                     PPH_STRING existingDbgHelpPath;
 
                     dbgHelpPath = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH);
-                    existingDbgHelpPath = PHA_DEREFERENCE(PhGetStringSetting(L"DbgHelpPath"));
+                    existingDbgHelpPath = PhAutoDereferenceObject(PhGetStringSetting(L"DbgHelpPath"));
 
                     if (!PhEqualString(dbgHelpPath, existingDbgHelpPath, TRUE))
                         RestartRequired = TRUE;

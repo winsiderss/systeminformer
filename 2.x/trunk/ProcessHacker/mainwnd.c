@@ -792,7 +792,7 @@ VOID PhMwpOnCommand(
                 PPH_FILE_STREAM fileStream;
 
                 fileName = PhGetFileDialogFileName(fileDialog);
-                PhaDereferenceObject(fileName);
+                PhAutoDereferenceObject(fileName);
                 filterIndex = PhGetFileDialogFilterIndex(fileDialog);
 
                 if (NT_SUCCESS(status = PhCreateFileStream(
@@ -3641,7 +3641,7 @@ VOID PhMwpAddIconProcesses(
         clientIdName = PhGetClientIdName(&clientId);
         escapedName = PhEscapeStringForMenuPrefix(&clientIdName->sr);
         PhDereferenceObject(clientIdName);
-        PhaDereferenceObject(escapedName);
+        PhAutoDereferenceObject(escapedName);
 
         subMenu = PhCreateEMenuItem(
             0,

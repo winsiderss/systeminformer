@@ -351,7 +351,7 @@ INT PhAddTabControlTab(
     );
 
 #define PHA_GET_DLGITEM_TEXT(hwndDlg, id) \
-    ((PPH_STRING)PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, id))))
+    ((PPH_STRING)PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, id))))
 
 PHLIBAPI
 PPH_STRING PhGetWindowText(
