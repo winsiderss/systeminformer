@@ -418,16 +418,16 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         return TRUE;
                     }
 
-                    newServiceTypeString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
-                    newServiceStartTypeString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
-                    newServiceErrorControlString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
+                    newServiceTypeString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
+                    newServiceStartTypeString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
+                    newServiceErrorControlString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
                     newServiceType = PhGetServiceTypeInteger(newServiceTypeString->Buffer);
                     newServiceStartType = PhGetServiceStartTypeInteger(newServiceStartTypeString->Buffer);
                     newServiceErrorControl = PhGetServiceErrorControlInteger(newServiceErrorControlString->Buffer);
 
-                    newServiceGroup = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
-                    newServiceBinaryPath = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
-                    newServiceUserAccount = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_USERACCOUNT)));
+                    newServiceGroup = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
+                    newServiceBinaryPath = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+                    newServiceUserAccount = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_USERACCOUNT)));
 
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK)) == BST_CHECKED)
                     {
@@ -552,7 +552,7 @@ ErrorCase:
                         hwndDlg,
                         MB_ICONERROR | MB_RETRYCANCEL,
                         L"Unable to change service configuration: %s",
-                        ((PPH_STRING)PHA_DEREFERENCE(PhGetWin32Message(GetLastError())))->Buffer
+                        ((PPH_STRING)PhAutoDereferenceObject(PhGetWin32Message(GetLastError())))->Buffer
                         ) == IDRETRY)
                     {
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);

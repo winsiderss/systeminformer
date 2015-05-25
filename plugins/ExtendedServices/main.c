@@ -269,7 +269,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
         {
             PhReferenceObject(serviceItem);
             // We need to use the service item when the user chooses a menu item.
-            PhaDereferenceObject(serviceItem);
+            PhAutoDereferenceObject(serviceItem);
             PhAddItemList(serviceList, serviceItem);
         }
 
@@ -299,7 +299,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
             serviceItem = serviceList->Items[i];
             escapedName = PhEscapeStringForMenuPrefix(&serviceItem->Name->sr);
-            PhaDereferenceObject(escapedName);
+            PhAutoDereferenceObject(escapedName);
 
             if (serviceList->Count == 1)
             {

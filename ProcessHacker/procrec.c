@@ -53,7 +53,7 @@ VOID PhShowProcessRecordDialog(
         );
 }
 
-PPH_STRING PhapGetRelativeTimeString(
+PPH_STRING PhpaGetRelativeTimeString(
     _In_ PLARGE_INTEGER Time
     )
 {
@@ -65,7 +65,7 @@ PPH_STRING PhapGetRelativeTimeString(
 
     time = *Time;
     PhQuerySystemTime(&currentTime);
-    timeRelativeString = PHA_DEREFERENCE(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
+    timeRelativeString = PhAutoDereferenceObject(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
 
     PhLargeIntegerToLocalSystemTime(&timeFields, &time);
     timeString = PhaFormatDateTime(&timeFields);
@@ -150,7 +150,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                     clientId.UniqueThread = NULL;
 
                     SetDlgItemText(hwndDlg, IDC_PARENT,
-                        ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
+                        ((PPH_STRING)PhAutoDereferenceObject(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
 
                     PhDereferenceObject(parentProcess);
                 }
@@ -200,12 +200,12 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             SetDlgItemText(hwndDlg, IDC_CMDLINE, PhpGetStringOrNa(context->Record->CommandLine));
 
             if (context->Record->CreateTime.QuadPart != 0)
-                SetDlgItemText(hwndDlg, IDC_STARTED, PhapGetRelativeTimeString(&context->Record->CreateTime)->Buffer);
+                SetDlgItemText(hwndDlg, IDC_STARTED, PhpaGetRelativeTimeString(&context->Record->CreateTime)->Buffer);
             else
                 SetDlgItemText(hwndDlg, IDC_STARTED, L"N/A");
 
             if (context->Record->ExitTime.QuadPart != 0)
-                SetDlgItemText(hwndDlg, IDC_TERMINATED, PhapGetRelativeTimeString(&context->Record->ExitTime)->Buffer);
+                SetDlgItemText(hwndDlg, IDC_TERMINATED, PhpaGetRelativeTimeString(&context->Record->ExitTime)->Buffer);
             else
                 SetDlgItemText(hwndDlg, IDC_TERMINATED, L"N/A");
 

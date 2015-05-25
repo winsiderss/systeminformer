@@ -93,7 +93,7 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_HAS_SERVICE_TAGS (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_UAC (WindowsVersion >= WINDOWS_VISTA)
 
-// debugging
+// Debugging
 
 #ifdef DEBUG
 #define dprintf(format, ...) DbgPrint(format, __VA_ARGS__)
@@ -147,7 +147,7 @@ BOOLEAN PhInitializeBase(
     _In_ ULONG Flags
     );
 
-// threads
+// Threads
 
 #ifdef DEBUG
 struct _PH_AUTO_POOL;
@@ -230,7 +230,7 @@ FORCEINLINE PVOID PhGetProcedureAddress(
     return procedureAddress;
 }
 
-// misc. system
+// Misc. system
 
 PHLIBAPI
 VOID
@@ -262,7 +262,7 @@ PhLocalTimeToSystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     );
 
-// heap
+// Heap
 
 _May_raise_
 _Check_return_
@@ -332,30 +332,6 @@ PhFreePage(
     _Frees_ptr_opt_ PVOID Memory
     );
 
-FORCEINLINE PVOID PhAllocateAligned(
-    _In_ SIZE_T Size,
-    _In_ ULONG Align,
-    _In_ SIZE_T AllocationBaseOffset
-    )
-{
-    PVOID memory;
-    PVOID allocationBase;
-
-    allocationBase = PhAllocate(Size + Align - 1);
-    memory = PTR_ALIGN(allocationBase, Align);
-    *(PVOID *)PTR_ADD_OFFSET(memory, AllocationBaseOffset) = allocationBase;
-
-    return memory;
-}
-
-FORCEINLINE VOID PhFreeAligned(
-    _In_ _Post_invalid_ PVOID Memory,
-    _In_ SIZE_T AllocationBaseOffset
-    )
-{
-    PhFree(*(PVOID *)PTR_ADD_OFFSET(Memory, AllocationBaseOffset));
-}
-
 FORCEINLINE PVOID PhAllocateCopy(
     _In_ PVOID Data,
     _In_ SIZE_T Size
@@ -380,7 +356,7 @@ unsigned short
 __cdecl
 ph_chksum(unsigned long sum, unsigned short *buf, unsigned long count);
 
-// event
+// Event
 
 #define PH_EVENT_SET 0x1
 #define PH_EVENT_SET_SHIFT 0
@@ -448,8 +424,7 @@ FORCEINLINE VOID PhInitializeEvent(
  *
  * \param Event A pointer to an event object.
  *
- * \return TRUE if the event object is set,
- * otherwise FALSE.
+ * \return TRUE if the event object is set, otherwise FALSE.
  */
 FORCEINLINE BOOLEAN PhTestEvent(
     _In_ PPH_EVENT Event
@@ -458,7 +433,7 @@ FORCEINLINE BOOLEAN PhTestEvent(
     return !!(Event->Value & PH_EVENT_SET);
 }
 
-// barrier
+// Barrier
 
 #define PH_BARRIER_COUNT_SHIFT 0
 #define PH_BARRIER_COUNT_MASK (((LONG_PTR)1 << (sizeof(ULONG_PTR) * 8 / 2 - 1)) - 1)
@@ -506,7 +481,7 @@ FORCEINLINE VOID PhInitializeBarrier(
     PhInitializeQueuedLock(&Barrier->WakeEvent);
 }
 
-// rundown protection
+// Rundown protection
 
 #define PH_RUNDOWN_ACTIVE 0x1
 #define PH_RUNDOWN_REF_SHIFT 1
@@ -588,7 +563,7 @@ FORCEINLINE VOID PhReleaseRundownProtection(
 {
     ULONG_PTR value;
 
-    value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // fail fast path when rundown is active
+    value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // Fail fast path when rundown is active
 
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
         (PVOID *)&Protection->Value,
@@ -616,7 +591,7 @@ FORCEINLINE VOID PhWaitForRundownProtection(
         PhfWaitForRundownProtection(Protection);
 }
 
-// one-time initialization
+// One-time initialization
 
 #define PH_INITONCE_UNINITIALIZED 0
 #define PH_INITONCE_INITIALIZED 1
@@ -670,7 +645,7 @@ FORCEINLINE BOOLEAN PhTestInitOnce(
     return InitOnce->State == PH_INITONCE_INITIALIZED;
 }
 
-// string
+// String
 
 PHLIBAPI
 PSTR
@@ -1987,7 +1962,7 @@ PhConvertUtf16ToUtf8Ex(
     _In_ SIZE_T Length
     );
 
-// stringbuilder
+// String builder
 
 /**
  * A string builder structure.
@@ -2133,7 +2108,7 @@ PhRemoveStringBuilder(
     _In_ SIZE_T Count
     );
 
-// list
+// List
 
 extern PPH_OBJECT_TYPE PhListType;
 
@@ -2254,7 +2229,7 @@ typedef LONG (NTAPI *PPH_COMPARE_FUNCTION)(
     _In_opt_ PVOID Context
     );
 
-// pointer list
+// Pointer list
 
 extern PPH_OBJECT_TYPE PhPointerListType;
 
@@ -2343,7 +2318,7 @@ FORCEINLINE BOOLEAN PhEnumPointerList(
     return FALSE;
 }
 
-// hash
+// Hash
 
 typedef struct _PH_HASH_ENTRY
 {
@@ -2569,7 +2544,7 @@ FORCEINLINE VOID PhResizeHashSet(
     *NumberOfBuckets = NewNumberOfBuckets;
 }
 
-// hashtable
+// Hashtable
 
 extern PPH_OBJECT_TYPE PhHashtableType;
 
@@ -2823,7 +2798,7 @@ FORCEINLINE ULONG PhHashIntPtr(
 #endif
 }
 
-// simple hashtable
+// Simple hashtable
 
 typedef struct _PH_KEY_VALUE_PAIR
 {
@@ -2863,7 +2838,7 @@ PhRemoveItemSimpleHashtable(
     _In_opt_ PVOID Key
     );
 
-// free list
+// Free list
 
 typedef struct _PH_FREE_LIST
 {
@@ -2919,7 +2894,7 @@ PhFreeToFreeList(
     _In_ PVOID Memory
     );
 
-// callback
+// Callback
 
 /**
  * A callback function.
@@ -3027,7 +3002,7 @@ PhInvokeCallback(
     _In_opt_ PVOID Parameter
     );
 
-// general
+// General
 
 PHLIBAPI
 ULONG
@@ -3124,7 +3099,7 @@ PhPrintTimeSpan(
     _In_opt_ ULONG Mode
     );
 
-// format
+// Format
 
 typedef enum _PH_FORMAT_TYPE
 {

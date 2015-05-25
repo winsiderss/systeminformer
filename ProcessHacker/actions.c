@@ -90,7 +90,7 @@ BOOLEAN PhpShowElevatePrompt(
     /*config.pszContent = PhaConcatStrings(
         3,
         L"Unable to perform the action: ",
-        ((PPH_STRING)PHA_DEREFERENCE(PhGetNtMessage(Status)))->Buffer,
+        ((PPH_STRING)PhAutoDereferenceObject(PhGetNtMessage(Status)))->Buffer,
         L"\nYou will need to provide administrator permission. "
         L"Click Continue to complete this operation."
         )->Buffer;*/
@@ -629,9 +629,9 @@ static BOOLEAN PhpIsDangerousProcess(
         return FALSE;
 
     PhSwapReference2(&fileName, PhGetFileName(fileName));
-    PhaDereferenceObject(fileName);
+    PhAutoDereferenceObject(fileName);
 
-    systemDirectory = PHA_DEREFERENCE(PhGetSystemDirectory());
+    systemDirectory = PhAutoDereferenceObject(PhGetSystemDirectory());
 
     for (i = 0; i < sizeof(DangerousProcesses) / sizeof(PWSTR); i++)
     {
@@ -1237,7 +1237,7 @@ BOOLEAN PhUiRestartProcess(
         )))
         goto ErrorExit;
 
-    PhaDereferenceObject(commandLine);
+    PhAutoDereferenceObject(commandLine);
 
     if (!NT_SUCCESS(status = PhGetProcessPebString(
         processHandle,
@@ -1246,7 +1246,7 @@ BOOLEAN PhUiRestartProcess(
         )))
         goto ErrorExit;
 
-    PhaDereferenceObject(currentDirectory);
+    PhAutoDereferenceObject(currentDirectory);
 
     NtClose(processHandle);
     processHandle = NULL;
@@ -1581,7 +1581,7 @@ BOOLEAN PhUiInjectDllProcess(
         return FALSE;
     }
 
-    fileName = PHA_DEREFERENCE(PhGetFileDialogFileName(fileDialog));
+    fileName = PhAutoDereferenceObject(PhGetFileDialogFileName(fileDialog));
     PhFreeFileDialog(fileDialog);
 
     if (NT_SUCCESS(status = PhOpenProcess(

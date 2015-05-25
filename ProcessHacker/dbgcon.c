@@ -144,7 +144,7 @@ static PWSTR PhpGetSymbolForAddress(
     _In_ PVOID Address
     )
 {
-    return ((PPH_STRING)PHA_DEREFERENCE(PhGetSymbolFromAddress(
+    return ((PPH_STRING)PhAutoDereferenceObject(PhGetSymbolFromAddress(
         DebugConsoleSymbolProvider, (ULONG64)Address, NULL, NULL, NULL, NULL
         )))->Buffer;
 }
@@ -956,9 +956,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
             wprintf(L"\n");
             wprintf(L"Total number: %lu\n", totalNumberOfObjects);
             wprintf(L"Total size (excl. header): %s\n",
-                ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(totalNumberOfBytes, 1)))->Buffer);
+                ((PPH_STRING)PhAutoDereferenceObject(PhFormatSize(totalNumberOfBytes, 1)))->Buffer);
             wprintf(L"Total overhead (header): %s\n",
-                ((PPH_STRING)PHA_DEREFERENCE(
+                ((PPH_STRING)PhAutoDereferenceObject(
                 PhFormatSize(PhpAddObjectHeaderSize(0) * totalNumberOfObjects, 1)
                 ))->Buffer);
 #else
@@ -996,7 +996,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     PPH_STRING message;
 
                     message = PhGetNtMessage(GetExceptionCode());
-                    PHA_DEREFERENCE(message);
+                    PhAutoDereferenceObject(message);
                     wprintf(L"Error: %s\n", PhGetString(message));
 
                     goto EndCommand;
@@ -1361,8 +1361,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 PhLargeIntegerToLocalSystemTime(&systemTime, &record->CreateTime);
                 wprintf(L"Records for %s %s:\n",
-                    ((PPH_STRING)PHA_DEREFERENCE(PhFormatDate(&systemTime, NULL)))->Buffer,
-                    ((PPH_STRING)PHA_DEREFERENCE(PhFormatTime(&systemTime, NULL)))->Buffer
+                    ((PPH_STRING)PhAutoDereferenceObject(PhFormatDate(&systemTime, NULL)))->Buffer,
+                    ((PPH_STRING)PhAutoDereferenceObject(PhFormatTime(&systemTime, NULL)))->Buffer
                     );
 
                 startRecord = record;

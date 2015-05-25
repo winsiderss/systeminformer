@@ -358,7 +358,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         PPH_FILE_STREAM fileStream;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        PhaDereferenceObject(fileName);
+                        PhAutoDereferenceObject(fileName);
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,
