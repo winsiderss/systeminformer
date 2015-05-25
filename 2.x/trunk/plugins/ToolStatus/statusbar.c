@@ -239,7 +239,7 @@ VOID UpdateStatusBar(
                         text[count] = PhFormatString(
                             L"%s (%u): %.2f%%",
                             processItem->ProcessName->Buffer,
-                            HandleToUlong((processItem->ProcessId),
+                            HandleToUlong(processItem->ProcessId),
                             processItem->CpuUsage * 100
                             );
                     }
