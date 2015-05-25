@@ -179,11 +179,24 @@ NTSTATUS
 NTAPI
 NtWaitForMultipleObjects(
     _In_ ULONG Count,
-    _In_reads_(Count) PHANDLE Handles,
+    _In_reads_(Count) HANDLE Handles[],
     _In_ WAIT_TYPE WaitType,
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
+
+#if (PHNT_VERSION >= PHNT_WS03)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForMultipleObjects32(
+    _In_ ULONG Count,
+    _In_reads_(Count) LONG Handles[],
+    _In_ WAIT_TYPE WaitType,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -212,6 +225,16 @@ NtClose(
     _In_ HANDLE Handle
     );
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCompareObjects(
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle
+    );
+#endif
+
 #endif
 
 // Directory objects
@@ -226,6 +249,19 @@ NtCreateDirectoryObject(
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateDirectoryObjectEx(
+    _Out_ PHANDLE DirectoryHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ShadowDirectoryHandle,
+    _In_ ULONG Flags
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -263,15 +299,13 @@ NtQueryDirectoryObject(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
-// begin_private
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePrivateNamespace(
     _Out_ PHANDLE NamespaceHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ PVOID BoundaryDescriptor
     );
 
@@ -291,8 +325,6 @@ NTAPI
 NtDeletePrivateNamespace(
     _In_ HANDLE NamespaceHandle
     );
-
-// end_private
 
 #endif
 

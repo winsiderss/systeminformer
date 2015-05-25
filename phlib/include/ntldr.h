@@ -131,9 +131,10 @@ typedef struct _LDR_DATA_TABLE_ENTRY
             ULONG InExceptionTable : 1;
             ULONG ReservedFlags1 : 2;
             ULONG LoadInProgress : 1;
-            ULONG ReservedFlags2 : 1;
+            ULONG LoadConfigProcessed : 1;
             ULONG EntryProcessed : 1;
-            ULONG ReservedFlags3 : 3;
+            ULONG ProtectDelayLoad : 1;
+            ULONG ReservedFlags3 : 2;
             ULONG DontCallForThreads : 1;
             ULONG ProcessAttachCalled : 1;
             ULONG ProcessAttachFailed : 1;
@@ -152,10 +153,10 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LIST_ENTRY HashLinks;
     ULONG TimeDateStamp;
     struct _ACTIVATION_CONTEXT *EntryPointActivationContext;
-    PVOID Spare;
+    PVOID Lock;
     PLDR_DDAG_NODE DdagNode;
     LIST_ENTRY NodeModuleLink;
-    struct _LDRP_DLL_SNAP_CONTEXT *SnapContext;
+    struct _LDRP_LOAD_CONTEXT *LoadContext;
     PVOID ParentDllBase;
     PVOID SwitchBackContext;
     RTL_BALANCED_NODE BaseAddressIndexNode;
@@ -165,6 +166,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     ULONG BaseNameHashValue;
     LDR_DLL_LOAD_REASON LoadReason;
     ULONG ImplicitPathOptions;
+    ULONG ReferenceCount;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(

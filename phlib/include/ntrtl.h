@@ -825,6 +825,35 @@ RtlContractHashTable(
 
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlInitStrongEnumerationHashTable(
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Out_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+
+_Must_inspect_result_
+NTSYSAPI
+PRTL_DYNAMIC_HASH_TABLE_ENTRY
+NTAPI
+RtlStronglyEnumerateEntryHashTable(
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlEndStrongEnumerationHashTable(
+    _In_ PRTL_DYNAMIC_HASH_TABLE HashTable,
+    _Inout_ PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+
+#endif
+
 // end_ntddk
 
 // Critical sections
@@ -1182,6 +1211,16 @@ RtlInitString(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitStringEx(
+    _Out_ PSTRING DestinationString,
+    _In_opt_z_ PCSZ SourceString
+    );
+#endif
+
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitAnsiString(
     _Out_ PANSI_STRING DestinationString,
@@ -1205,13 +1244,15 @@ RtlInitAnsiString(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitAnsiStringEx(
     _Out_ PANSI_STRING DestinationString,
-    _In_opt_ PSTR SourceString
+    _In_opt_z_ PCSZ SourceString
     );
+#endif
 
 NTSYSAPI
 VOID
@@ -1242,6 +1283,7 @@ RtlUpperChar(
     _In_ CHAR Character
     );
 
+_Must_inspect_result_
 NTSYSAPI
 LONG
 NTAPI
@@ -1251,6 +1293,7 @@ RtlCompareString(
     _In_ BOOLEAN CaseInSensitive
     );
 
+_Must_inspect_result_
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1260,6 +1303,7 @@ RtlEqualString(
     _In_ BOOLEAN CaseInSensitive
     );
 
+_Must_inspect_result_
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1381,6 +1425,7 @@ RtlDowncaseUnicodeChar(
     _In_ WCHAR SourceCharacter
     );
 
+_Must_inspect_result_
 NTSYSAPI
 LONG
 NTAPI
@@ -1391,6 +1436,7 @@ RtlCompareUnicodeString(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+_Must_inspect_result_
 NTSYSAPI
 LONG
 NTAPI
@@ -1403,6 +1449,7 @@ RtlCompareUnicodeStrings(
     );
 #endif
 
+_Must_inspect_result_
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1434,14 +1481,27 @@ RtlValidateUnicodeString(
     _In_ PUNICODE_STRING String
     );
 
+_Must_inspect_result_
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlPrefixUnicodeString(
-    _In_ PUNICODE_STRING String1,
-    _In_ PUNICODE_STRING String2,
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2,
     _In_ BOOLEAN CaseInSensitive
     );
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+_Must_inspect_result_
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlSuffixUnicodeString(
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2,
+    _In_ BOOLEAN CaseInSensitive
+    );
+#endif
 
 #define RTL_FIND_CHAR_IN_UNICODE_STRING_START_AT_END 0x00000001
 #define RTL_FIND_CHAR_IN_UNICODE_STRING_COMPLEMENT_CHAR_SET 0x00000002
@@ -2317,6 +2377,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     ULONG EnvironmentVersion;
     PVOID PackageDependencyData;
     ULONG ProcessGroupId;
+    ULONG LoaderThreads;
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
 #define RTL_USER_PROC_PARAMS_NORMALIZED 0x00000001
@@ -4830,6 +4891,18 @@ RtlInitializeSid(
     _In_ UCHAR SubAuthorityCount
     );
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitializeSidEx(
+    _Out_writes_bytes_(SECURITY_SID_SIZE(SubAuthorityCount)) PSID Sid,
+    _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
+    _In_ UCHAR SubAuthorityCount,
+    ...
+    );
+#endif
+
 NTSYSAPI
 PSID_IDENTIFIER_AUTHORITY
 NTAPI
@@ -5637,6 +5710,26 @@ RtlRemovePrivileges(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIsUntrustedObject(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ PVOID Object,
+    _Out_ PBOOLEAN UntrustedObject
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlQueryValidationRunlevel(
+    _In_opt_ PCUNICODE_STRING ComponentName
+    );
+
+#endif
+
 // Private namespaces
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -5724,6 +5817,21 @@ RtlGetNtVersionNumbers(
     _Out_opt_ PULONG pNtMinorVersion,
     _Out_opt_ PULONG pNtBuildNumber
     );
+
+typedef enum _OS_DEPLOYEMENT_STATE_VALUES
+{
+    OS_DEPLOYMENT_STANDARD = 1,
+    OS_DEPLOYMENT_COMPACT
+} OS_DEPLOYEMENT_STATE_VALUES;
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSAPI
+OS_DEPLOYEMENT_STATE_VALUES
+NTAPI
+RtlOsDeploymentState(
+    _In_ ULONG Flags
+    );
+#endif
 
 // Thread pool (old)
 
@@ -6251,6 +6359,28 @@ NTAPI
 RtlQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlCrc32(
+    _In_reads_bytes_(Size) const void *Buffer,
+    _In_ size_t Size,
+    _In_ ULONG InitialCrc
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlCrc64(
+    _In_reads_bytes_(Size) const void *Buffer,
+    _In_ size_t Size,
+    _In_ ULONGLONG InitialCrc
+    );
+
 #endif
 
 #endif
