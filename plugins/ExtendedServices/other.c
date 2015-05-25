@@ -2,7 +2,7 @@
  * Process Hacker Extended Services -
  *   other information
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -29,15 +29,108 @@ typedef struct _SERVICE_OTHER_CONTEXT
 {
     PPH_SERVICE_ITEM ServiceItem;
 
-    BOOLEAN Ready;
-    BOOLEAN Dirty;
-    BOOLEAN PreshutdownTimeoutValid;
-    BOOLEAN RequiredPrivilegesValid;
+    struct
+    {
+        ULONG Ready : 1;
+        ULONG Dirty : 1;
+        ULONG PreshutdownTimeoutValid : 1;
+        ULONG RequiredPrivilegesValid : 1;
+        ULONG SidTypeValid : 1;
+        ULONG LaunchProtectedValid : 1;
+    };
     HWND PrivilegesLv;
     PPH_LIST PrivilegeList;
-    HWND TriggersLv;
-    struct _ES_TRIGGER_CONTEXT *TriggerContext;
+
+    ULONG OriginalLaunchProtected;
 } SERVICE_OTHER_CONTEXT, *PSERVICE_OTHER_CONTEXT;
+
+#define SIP(String, Integer) { (String), (PVOID)(Integer) }
+
+static PH_KEY_VALUE_PAIR EspServiceSidTypePairs[] =
+{
+    SIP(L"None", SERVICE_SID_TYPE_NONE),
+    SIP(L"Restricted", SERVICE_SID_TYPE_RESTRICTED),
+    SIP(L"Unrestricted", SERVICE_SID_TYPE_UNRESTRICTED)
+};
+
+static PH_KEY_VALUE_PAIR EspServiceLaunchProtectedPairs[] =
+{
+    SIP(L"None", SERVICE_LAUNCH_PROTECTED_NONE),
+    SIP(L"Full (Windows)", SERVICE_LAUNCH_PROTECTED_WINDOWS),
+    SIP(L"Light (Windows)", SERVICE_LAUNCH_PROTECTED_WINDOWS_LIGHT),
+    SIP(L"Light (Antimalware)", SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT)
+};
+
+WCHAR *EspServiceSidTypeStrings[3] = { L"None", L"Restricted", L"Unrestricted" };
+WCHAR *EspServiceLaunchProtectedStrings[4] = { L"None", L"Full (Windows)", L"Light (Windows)", L"Light (Antimalware)" };
+
+PWSTR EspGetServiceSidTypeString(
+    _In_ ULONG SidType
+    )
+{
+    PWSTR string;
+
+    if (PhFindStringSiKeyValuePairs(
+        EspServiceSidTypePairs,
+        sizeof(EspServiceSidTypePairs),
+        SidType,
+        &string
+        ))
+        return string;
+    else
+        return L"Unknown";
+}
+
+ULONG EspGetServiceSidTypeInteger(
+    _In_ PWSTR SidType
+    )
+{
+    ULONG integer;
+
+    if (PhFindIntegerSiKeyValuePairs(
+        EspServiceSidTypePairs,
+        sizeof(EspServiceSidTypePairs),
+        SidType,
+        &integer
+        ))
+        return integer;
+    else
+        return -1;
+}
+
+PWSTR EspGetServiceLaunchProtectedString(
+    _In_ ULONG LaunchProtected
+    )
+{
+    PWSTR string;
+
+    if (PhFindStringSiKeyValuePairs(
+        EspServiceLaunchProtectedPairs,
+        sizeof(EspServiceLaunchProtectedPairs),
+        LaunchProtected,
+        &string
+        ))
+        return string;
+    else
+        return L"Unknown";
+}
+
+ULONG EspGetServiceLaunchProtectedInteger(
+    _In_ PWSTR LaunchProtected
+    )
+{
+    ULONG integer;
+
+    if (PhFindIntegerSiKeyValuePairs(
+        EspServiceLaunchProtectedPairs,
+        sizeof(EspServiceLaunchProtectedPairs),
+        LaunchProtected,
+        &integer
+        ))
+        return integer;
+    else
+        return -1;
+}
 
 NTSTATUS EspLoadOtherInfo(
     _In_ HWND hwndDlg,
@@ -46,9 +139,11 @@ NTSTATUS EspLoadOtherInfo(
 {
     NTSTATUS status = STATUS_SUCCESS;
     SC_HANDLE serviceHandle;
+    ULONG returnLength;
     SERVICE_PRESHUTDOWN_INFO preshutdownInfo;
     LPSERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo;
-    ULONG returnLength;
+    SERVICE_SID_INFO sidInfo;
+    SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
 
     if (!(serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
         return NTSTATUS_FROM_WIN32(GetLastError());
@@ -111,16 +206,65 @@ NTSTATUS EspLoadOtherInfo(
         Context->RequiredPrivilegesValid = TRUE;
     }
 
-    // Triggers
+    // SID type
 
-    if (Context->TriggerContext)
+    if (QueryServiceConfig2(serviceHandle,
+        SERVICE_CONFIG_SERVICE_SID_INFO,
+        (PBYTE)&sidInfo,
+        sizeof(SERVICE_SID_INFO),
+        &returnLength
+        ))
     {
-        EsLoadServiceTriggerInfo(Context->TriggerContext, serviceHandle);
+        PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_SIDTYPE),
+            EspGetServiceSidTypeString(sidInfo.dwServiceSidType), FALSE);
+        Context->SidTypeValid = TRUE;
+    }
+
+    // Launch protected
+
+    if (QueryServiceConfig2(serviceHandle,
+        SERVICE_CONFIG_LAUNCH_PROTECTED,
+        (PBYTE)&launchProtectedInfo,
+        sizeof(SERVICE_LAUNCH_PROTECTED_INFO),
+        &returnLength
+        ))
+    {
+        PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_PROTECTION),
+            EspGetServiceLaunchProtectedString(launchProtectedInfo.dwLaunchProtected), FALSE);
+        Context->LaunchProtectedValid = TRUE;
+        Context->OriginalLaunchProtected = launchProtectedInfo.dwLaunchProtected;
     }
 
     CloseServiceHandle(serviceHandle);
 
     return status;
+}
+
+static PPH_STRING EspGetServiceSidString(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    PSID serviceSid = NULL;
+    UNICODE_STRING serviceNameUs;
+    ULONG serviceSidLength = 0;
+    PPH_STRING sidString = NULL;
+
+    if (!RtlCreateServiceSid_I)
+        return NULL;
+
+    PhStringRefToUnicodeString(ServiceName, &serviceNameUs);
+
+    if (RtlCreateServiceSid_I(&serviceNameUs, serviceSid, &serviceSidLength) == STATUS_BUFFER_TOO_SMALL)
+    {
+        serviceSid = PhAllocate(serviceSidLength);
+
+        if (NT_SUCCESS(RtlCreateServiceSid_I(&serviceNameUs, serviceSid, &serviceSidLength)))
+            sidString = PhSidToStringSid(serviceSid);
+
+        PhFree(serviceSid);
+    }
+
+    return sidString;
 }
 
 static int __cdecl PrivilegeNameCompareFunction(
@@ -169,7 +313,6 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
             HWND privilegesLv;
-            HWND triggersLv;
 
             context->ServiceItem = serviceItem;
 
@@ -190,24 +333,16 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_REMOVE), FALSE);
 
-            context->TriggersLv = triggersLv = GetDlgItem(hwndDlg, IDC_TRIGGERS);
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_SIDTYPE),
+                EspServiceSidTypeStrings, sizeof(EspServiceSidTypeStrings) / sizeof(PWSTR));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_PROTECTION),
+                EspServiceLaunchProtectedStrings, sizeof(EspServiceLaunchProtectedStrings) / sizeof(PWSTR));
 
-            if (WindowsVersion >= WINDOWS_7)
-            {
-                context->TriggerContext = EsCreateServiceTriggerContext(
-                    context->ServiceItem,
-                    hwndDlg,
-                    triggersLv
-                    );
-            }
-            else
-            {
-                EnableWindow(GetDlgItem(hwndDlg, IDC_TRIGGERS_LABEL), FALSE);
-                EnableWindow(triggersLv, FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_NEW), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_EDIT), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), FALSE);
-            }
+            if (WindowsVersion < WINDOWS_81)
+                EnableWindow(GetDlgItem(hwndDlg, IDC_PROTECTION), FALSE);
+
+            SetDlgItemText(hwndDlg, IDC_SERVICESID,
+                PhGetStringOrDefault(PHA_DEREFERENCE(EspGetServiceSidString(&serviceItem->Name->sr)), L"N/A"));
 
             status = EspLoadOtherInfo(hwndDlg, context);
 
@@ -227,9 +362,6 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                 PhDereferenceObjects(context->PrivilegeList->Items, context->PrivilegeList->Count);
                 PhDereferenceObject(context->PrivilegeList);
             }
-
-            if (context->TriggerContext)
-                EsDestroyServiceTriggerContext(context->TriggerContext);
 
             PhFree(context);
         }
@@ -378,28 +510,29 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                     }
                 }
                 break;
-            case IDC_NEW:
-                if (context->TriggerContext)
-                    EsHandleEventServiceTrigger(context->TriggerContext, ES_TRIGGER_EVENT_NEW);
-                break;
-            case IDC_EDIT:
-                if (context->TriggerContext)
-                    EsHandleEventServiceTrigger(context->TriggerContext, ES_TRIGGER_EVENT_EDIT);
-                break;
-            case IDC_DELETE:
-                if (context->TriggerContext)
-                    EsHandleEventServiceTrigger(context->TriggerContext, ES_TRIGGER_EVENT_DELETE);
-                break;
             }
 
             switch (HIWORD(wParam))
             {
             case EN_CHANGE:
+            case CBN_SELCHANGE:
                 {
                     if (context->Ready)
                     {
                         context->Dirty = TRUE;
-                        context->PreshutdownTimeoutValid = TRUE;
+
+                        switch (LOWORD(wParam))
+                        {
+                        case IDC_PRESHUTDOWNTIMEOUT:
+                            context->PreshutdownTimeoutValid = TRUE;
+                            break;
+                        case IDC_SIDTYPE:
+                            context->SidTypeValid = TRUE;
+                            break;
+                        case IDC_PROTECTION:
+                            context->LaunchProtectedValid = TRUE;
+                            break;
+                        }
                     }
                 }
                 break;
@@ -421,8 +554,26 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                 {
                     SC_HANDLE serviceHandle;
                     ULONG win32Result = 0;
+                    PPH_STRING launchProtectedString;
+                    ULONG launchProtected;
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+
+                    launchProtectedString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_PROTECTION)));
+                    launchProtected = EspGetServiceLaunchProtectedInteger(launchProtectedString->Buffer);
+
+                    if (context->LaunchProtectedValid && launchProtected != 0 && launchProtected != context->OriginalLaunchProtected)
+                    {
+                        if (PhShowMessage(
+                            hwndDlg,
+                            MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2,
+                            L"Setting service protection will prevent the service from being controlled, modified, or deleted. Do you want to continue?"
+                            ) == IDNO)
+                        {
+                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                            return TRUE;
+                        }
+                    }
 
                     if (context->Dirty)
                     {
@@ -430,6 +581,8 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                         {
                             SERVICE_PRESHUTDOWN_INFO preshutdownInfo;
                             SERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo;
+                            SERVICE_SID_INFO sidInfo;
+                            SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
 
                             if (context->PreshutdownTimeoutValid)
                             {
@@ -464,6 +617,30 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                                 PhDeleteStringBuilder(&sb);
                             }
 
+                            if (context->SidTypeValid)
+                            {
+                                PPH_STRING sidTypeString;
+
+                                sidTypeString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_SIDTYPE)));
+                                sidInfo.dwServiceSidType = EspGetServiceSidTypeInteger(sidTypeString->Buffer);
+
+                                if (win32Result == 0 && !ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_SERVICE_SID_INFO, &sidInfo))
+                                {
+                                    win32Result = GetLastError();
+                                }
+                            }
+
+                            if (context->LaunchProtectedValid)
+                            {
+                                launchProtectedInfo.dwLaunchProtected = launchProtected;
+
+                                if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_LAUNCH_PROTECTED, &launchProtectedInfo))
+                                {
+                                    // For now, ignore errors here.
+                                    // win32Result = GetLastError();
+                                }
+                            }
+
                             CloseServiceHandle(serviceHandle);
                         }
                         else
@@ -481,49 +658,18 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                                 ) == IDRETRY)
                             {
                                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
-                                goto EndOfSave;
                             }
                         }
                     }
 
-                    if (context->TriggerContext)
-                    {
-                        if (!EsSaveServiceTriggerInfo(context->TriggerContext, &win32Result))
-                        {
-                            if (PhShowMessage(
-                                hwndDlg,
-                                MB_ICONERROR | MB_RETRYCANCEL,
-                                L"Unable to change service trigger information: %s",
-                                ((PPH_STRING)PHA_DEREFERENCE(PhGetWin32Message(win32Result)))->Buffer
-                                ) == IDRETRY)
-                            {
-                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
-                                goto EndOfSave;
-                            }
-                        }
-                    }
-
-EndOfSave:
                     return TRUE;
                 }
                 break;
             case LVN_ITEMCHANGED:
                 {
-                    if (header->hwndFrom == context->TriggersLv && context->TriggerContext)
-                    {
-                        EsHandleEventServiceTrigger(context->TriggerContext, ES_TRIGGER_EVENT_SELECTIONCHANGED);
-                    }
-                    else if (header->hwndFrom == context->PrivilegesLv)
+                    if (header->hwndFrom == context->PrivilegesLv)
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDC_REMOVE), ListView_GetSelectedCount(context->PrivilegesLv) == 1);
-                    }
-                }
-                break;
-            case NM_DBLCLK:
-                {
-                    if (header->hwndFrom == context->TriggersLv && context->TriggerContext)
-                    {
-                        EsHandleEventServiceTrigger(context->TriggerContext, ES_TRIGGER_EVENT_EDIT);
                     }
                 }
                 break;

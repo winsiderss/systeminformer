@@ -2,7 +2,7 @@
  * Process Hacker Extended Services -
  *   trigger editor
  *
- * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -757,12 +757,6 @@ BOOLEAN EsSaveServiceTriggerInfo(
     if (Context->InitialNumberOfTriggers == 0 && Context->InfoList->Count == 0)
         return TRUE;
 
-    if (!(serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_CHANGE_CONFIG)))
-    {
-        *Win32Result = GetLastError();
-        return FALSE;
-    }
-
     PhInitializeAutoPool(&autoPool);
 
     memset(&triggerInfo, 0, sizeof(SERVICE_TRIGGER_INFO));
@@ -822,15 +816,23 @@ BOOLEAN EsSaveServiceTriggerInfo(
         }
     }
 
-    if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo))
+    if (serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_CHANGE_CONFIG))
+    {
+        if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo))
+        {
+            result = FALSE;
+            *Win32Result = GetLastError();
+        }
+
+        CloseServiceHandle(serviceHandle);
+    }
+    else
     {
         result = FALSE;
         *Win32Result = GetLastError();
     }
 
     PhDeleteAutoPool(&autoPool);
-
-    CloseServiceHandle(serviceHandle);
 
     return result;
 }
