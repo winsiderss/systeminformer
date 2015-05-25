@@ -830,7 +830,7 @@ NTSTATUS PhGetProcessCommandLine(
 {
     NTSTATUS status;
 
-    if (WindowsVersion >= WINDOWS_81)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
         PUNICODE_STRING commandLine;
 

@@ -944,7 +944,7 @@ static VOID PhpUpdateProcessOsContext(
                 if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
                 {
                     if (memcmp(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID, sizeof(GUID)) == 0)
-                        ProcessNode->OsContextVersion = WINDOWS_81;
+                        ProcessNode->OsContextVersion = WINDOWS_8_1;
                     else if (memcmp(&ProcessNode->OsContextGuid, &WIN8_CONTEXT_GUID, sizeof(GUID)) == 0)
                         ProcessNode->OsContextVersion = WINDOWS_8;
                     else if (memcmp(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID, sizeof(GUID)) == 0)
@@ -2477,7 +2477,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     switch (node->OsContextVersion)
                     {
-                    case WINDOWS_81:
+                    case WINDOWS_8_1:
                         PhInitializeStringRef(&getCellText->Text, L"Windows 8.1");
                         break;
                     case WINDOWS_8:
@@ -2609,7 +2609,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_CFGUARD:
                 PhpUpdateProcessNodeImage(node);
 
-                if (WindowsVersion >= WINDOWS_81)
+                if (WindowsVersion >= WINDOWS_8_1)
                 {
                     if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
                         PhInitializeStringRef(&getCellText->Text, L"CF Guard");
