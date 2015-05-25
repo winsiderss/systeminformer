@@ -1,9 +1,7 @@
 #ifndef _WINMISC_H
 #define _WINMISC_H
 
-// Tag information
-
-// begin_private
+// Subprocess tag information
 
 typedef enum _TAG_INFO_LEVEL
 {
@@ -21,17 +19,16 @@ typedef enum _TAG_TYPE
 
 typedef struct _TAG_INFO_NAME_FROM_TAG_IN_PARAMS
 {
-    ULONG dwPid;
-    ULONG dwTag;
+    DWORD dwPid;
+    DWORD dwTag;
 } TAG_INFO_NAME_FROM_TAG_IN_PARAMS, *PTAG_INFO_NAME_FROM_TAG_IN_PARAMS;
 
 typedef struct _TAG_INFO_NAME_FROM_TAG_OUT_PARAMS
 {
-    ULONG eTagType;
-    PWSTR pszName;
+    DWORD eTagType;
+    LPWSTR pszName;
 } TAG_INFO_NAME_FROM_TAG_OUT_PARAMS, *PTAG_INFO_NAME_FROM_TAG_OUT_PARAMS;
 
-// rev
 typedef struct _TAG_INFO_NAME_FROM_TAG
 {
     TAG_INFO_NAME_FROM_TAG_IN_PARAMS InParams;
@@ -40,39 +37,38 @@ typedef struct _TAG_INFO_NAME_FROM_TAG
 
 typedef struct _TAG_INFO_NAMES_REFERENCING_MODULE_IN_PARAMS
 {
-    ULONG dwPid;
-    PWSTR pszModule;
+    DWORD dwPid;
+    LPWSTR pszModule;
 } TAG_INFO_NAMES_REFERENCING_MODULE_IN_PARAMS, *PTAG_INFO_NAMES_REFERENCING_MODULE_IN_PARAMS;
 
 typedef struct _TAG_INFO_NAMES_REFERENCING_MODULE_OUT_PARAMS
 {
-    ULONG eTagType;
-    PWSTR pmszNames;
+    DWORD eTagType;
+    LPWSTR pmszNames;
 } TAG_INFO_NAMES_REFERENCING_MODULE_OUT_PARAMS, *PTAG_INFO_NAMES_REFERENCING_MODULE_OUT_PARAMS;
 
-// rev
 typedef struct _TAG_INFO_NAMES_REFERENCING_MODULE
 {
     TAG_INFO_NAMES_REFERENCING_MODULE_IN_PARAMS InParams;
     TAG_INFO_NAMES_REFERENCING_MODULE_OUT_PARAMS OutParams;
 } TAG_INFO_NAMES_REFERENCING_MODULE, *PTAG_INFO_NAMES_REFERENCING_MODULE;
 
-typedef struct _TAG_INFO_NAME_TAG_MAPPING_ELEMENT
-{
-    ULONG eTagType;
-    ULONG dwTag;
-    PWSTR pszName;
-    PWSTR pszGroupName;
-} TAG_INFO_NAME_TAG_MAPPING_ELEMENT, *PTAG_INFO_NAME_TAG_MAPPING_ELEMENT;
-
 typedef struct _TAG_INFO_NAME_TAG_MAPPING_IN_PARAMS
 {
-    ULONG dwPid;
+    DWORD dwPid;
 } TAG_INFO_NAME_TAG_MAPPING_IN_PARAMS, *PTAG_INFO_NAME_TAG_MAPPING_IN_PARAMS;
+
+typedef struct _TAG_INFO_NAME_TAG_MAPPING_ELEMENT
+{
+    DWORD eTagType;
+    DWORD dwTag;
+    LPWSTR pszName;
+    LPWSTR pszGroupName;
+} TAG_INFO_NAME_TAG_MAPPING_ELEMENT, *PTAG_INFO_NAME_TAG_MAPPING_ELEMENT;
 
 typedef struct _TAG_INFO_NAME_TAG_MAPPING_OUT_PARAMS
 {
-    ULONG cElements;
+    DWORD cElements;
     PTAG_INFO_NAME_TAG_MAPPING_ELEMENT pNameTagMappingElements;
 } TAG_INFO_NAME_TAG_MAPPING_OUT_PARAMS, *PTAG_INFO_NAME_TAG_MAPPING_OUT_PARAMS;
 
@@ -82,13 +78,19 @@ typedef struct _TAG_INFO_NAME_TAG_MAPPING
     PTAG_INFO_NAME_TAG_MAPPING_OUT_PARAMS pOutParams;
 } TAG_INFO_NAME_TAG_MAPPING, *PTAG_INFO_NAME_TAG_MAPPING;
 
-// end_private
+_Must_inspect_result_
+DWORD
+WINAPI
+I_QueryTagInformation(
+    _In_opt_ LPCWSTR pszMachineName,
+    _In_ TAG_INFO_LEVEL eInfoLevel,
+    _Inout_ PVOID pTagInfo
+    );
 
-// rev
-typedef ULONG (WINAPI *PQUERY_TAG_INFORMATION)(
-    _In_ PCWSTR Reserved, // ?
-    _In_ TAG_INFO_LEVEL InfoLevel,
-    _Inout_ PVOID Data
+typedef DWORD (WINAPI *PQUERY_TAG_INFORMATION)(
+    _In_opt_ LPCWSTR pszMachineName,
+    _In_ TAG_INFO_LEVEL eInfoLevel,
+    _Inout_ PVOID pTagInfo
     );
 
 #endif

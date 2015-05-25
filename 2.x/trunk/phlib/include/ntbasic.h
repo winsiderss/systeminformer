@@ -41,6 +41,8 @@ typedef CCHAR *PCCHAR;
 typedef CSHORT *PCSHORT;
 typedef CLONG *PCLONG;
 
+typedef PCSTR PCSZ;
+
 // Specific
 
 typedef UCHAR KIRQL, *PKIRQL;

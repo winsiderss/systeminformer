@@ -41,6 +41,92 @@
 #define SE_CREATE_SYMBOLIC_LINK_PRIVILEGE (35L)
 #define SE_MAX_WELL_KNOWN_PRIVILEGE SE_CREATE_SYMBOLIC_LINK_PRIVILEGE
 
+
+// Authz
+
+// begin_rev
+
+// Types
+
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_INVALID 0x00
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64 0x01
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 0x02
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING 0x03
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN 0x04
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_SID 0x05
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN 0x06
+#define TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING 0x10
+
+// Flags
+
+#define TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE 0x0001
+#define TOKEN_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE 0x0002
+#define TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY 0x0004
+#define TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT 0x0008
+#define TOKEN_SECURITY_ATTRIBUTE_DISABLED 0x0010
+#define TOKEN_SECURITY_ATTRIBUTE_MANDATORY 0x0020
+
+#define TOKEN_SECURITY_ATTRIBUTE_VALID_FLAGS ( \
+    TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE | \
+    TOKEN_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE | \
+    TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY | \
+    TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT | \
+    TOKEN_SECURITY_ATTRIBUTE_DISABLED | \
+    TOKEN_SECURITY_ATTRIBUTE_MANDATORY)
+
+#define TOKEN_SECURITY_ATTRIBUTE_CUSTOM_FLAGS 0xffff0000
+
+// end_rev
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE
+{
+    ULONG64 Version;
+    UNICODE_STRING Name;
+} TOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE, *PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE;
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE
+{
+    PVOID pValue;
+    ULONG ValueLength;
+} TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE, *PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE;
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTE_V1
+{
+    UNICODE_STRING Name;
+    USHORT ValueType;
+    USHORT Reserved;
+    ULONG Flags;
+    ULONG ValueCount;
+    union
+    {
+        PLONG64 pInt64;
+        PULONG64 pUint64;
+        PUNICODE_STRING pString;
+        PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE pFqbn;
+        PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE pOctetString;
+    } Values;
+} TOKEN_SECURITY_ATTRIBUTE_V1, *PTOKEN_SECURITY_ATTRIBUTE_V1;
+
+// rev
+#define TOKEN_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1 1
+// rev
+#define TOKEN_SECURITY_ATTRIBUTES_INFORMATION_VERSION TOKEN_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTES_INFORMATION
+{
+    USHORT Version;
+    USHORT Reserved;
+    ULONG AttributeCount;
+    union
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 pAttributeV1;
+    } Attribute;
+} TOKEN_SECURITY_ATTRIBUTES_INFORMATION, *PTOKEN_SECURITY_ATTRIBUTES_INFORMATION;
+
 // Tokens
 
 NTSYSCALLAPI
@@ -61,6 +147,48 @@ NtCreateToken(
     _In_opt_ PTOKEN_DEFAULT_DACL DefaultDacl,
     _In_ PTOKEN_SOURCE TokenSource
     );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateLowBoxToken(
+    _Out_ PHANDLE TokenHandle,
+    _In_ HANDLE ExistingTokenHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PSID PackageSid,
+    _In_ ULONG CapabilityCount,
+    _In_reads_opt_(CapabilityCount) PSID_AND_ATTRIBUTES Capabilities,
+    _In_ ULONG HandleCount,
+    _In_reads_opt_(HandleCount) HANDLE *Handles
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateTokenEx(
+    _Out_ PHANDLE TokenHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ TOKEN_TYPE TokenType,
+    _In_ PLUID AuthenticationId,
+    _In_ PLARGE_INTEGER ExpirationTime,
+    _In_ PTOKEN_USER User,
+    _In_ PTOKEN_GROUPS Groups,
+    _In_ PTOKEN_PRIVILEGES Privileges,
+    _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION UserAttributes,
+    _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION DeviceAttributes,
+    _In_opt_ PTOKEN_GROUPS DeviceGroups,
+    _In_opt_ PTOKEN_MANDATORY_POLICY TokenMandatoryPolicy,
+    _In_opt_ PTOKEN_OWNER Owner,
+    _In_ PTOKEN_PRIMARY_GROUP PrimaryGroup,
+    _In_opt_ PTOKEN_DEFAULT_DACL DefaultDacl,
+    _In_ PTOKEN_SOURCE TokenSource
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -101,6 +229,17 @@ NtOpenThreadTokenEx(
     _In_ ULONG HandleAttributes,
     _Out_ PHANDLE TokenHandle
     );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenJobObjectToken(
+    _In_ HANDLE JobHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -159,6 +298,30 @@ NtAdjustGroupsToken(
     _Out_ PULONG ReturnLength
     );
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAdjustTokenClaimsAndDeviceGroups(
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN UserResetToDefault,
+    _In_ BOOLEAN DeviceResetToDefault,
+    _In_ BOOLEAN DeviceGroupsResetToDefault,
+    _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION NewUserState,
+    _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION NewDeviceState,
+    _In_opt_ PTOKEN_GROUPS NewDeviceGroupsState,
+    _In_ ULONG UserBufferLength,
+    _Out_writes_bytes_to_opt_(UserBufferLength, *UserReturnLength) PTOKEN_SECURITY_ATTRIBUTES_INFORMATION PreviousUserState,
+    _In_ ULONG DeviceBufferLength,
+    _Out_writes_bytes_to_opt_(DeviceBufferLength, *DeviceReturnLength) PTOKEN_SECURITY_ATTRIBUTES_INFORMATION PreviousDeviceState,
+    _In_ ULONG DeviceGroupsBufferLength,
+    _Out_writes_bytes_to_opt_(DeviceGroupsBufferLength, *DeviceGroupsReturnBufferLength) PTOKEN_GROUPS PreviousDeviceGroups,
+    _Out_opt_ PULONG UserReturnLength,
+    _Out_opt_ PULONG DeviceReturnLength,
+    _Out_opt_ PULONG DeviceGroupsReturnBufferLength
+    );
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -170,6 +333,28 @@ NtFilterToken(
     _In_opt_ PTOKEN_GROUPS RestrictedSids,
     _Out_ PHANDLE NewTokenHandle
     );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFilterTokenEx(
+    _In_ HANDLE ExistingTokenHandle,
+    _In_ ULONG Flags,
+    _In_opt_ PTOKEN_GROUPS SidsToDisable,
+    _In_opt_ PTOKEN_PRIVILEGES PrivilegesToDelete,
+    _In_opt_ PTOKEN_GROUPS RestrictedSids,
+    _In_ ULONG DisableUserClaimsCount,
+    _In_opt_ PUNICODE_STRING UserClaimsToDisable,
+    _In_ ULONG DisableDeviceClaimsCount,
+    _In_opt_ PUNICODE_STRING DeviceClaimsToDisable,
+    _In_opt_ PTOKEN_GROUPS DeviceGroupsToDisable,
+    _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION RestrictedUserAttributes,
+    _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION RestrictedDeviceAttributes,
+    _In_opt_ PTOKEN_GROUPS RestrictedDeviceGroups,
+    _Out_ PHANDLE NewTokenHandle
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -195,6 +380,21 @@ NTAPI
 NtImpersonateAnonymousToken(
     _In_ HANDLE ThreadHandle
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySecurityAttributesToken(
+    _In_ HANDLE TokenHandle,
+    _In_reads_opt_(NumberOfAttributes) PUNICODE_STRING Attributes,
+    _In_ ULONG NumberOfAttributes,
+    _Out_writes_bytes_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
+    _In_ ULONG Length,
+    _Out_ PULONG ReturnLength
+    );
+#endif
 
 // Access checking
 
@@ -245,6 +445,38 @@ NtAccessCheckByTypeResultList(
     _Out_writes_(ObjectTypeListLength) PACCESS_MASK GrantedAccess,
     _Out_writes_(ObjectTypeListLength) PNTSTATUS AccessStatus
     );
+
+// Signing
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
+// rev
+typedef ULONG SE_SIGNING_LEVEL, *PSE_SIGNING_LEVEL; // ?
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetCachedSigningLevel(
+    _In_ ULONG Flags, 
+    _In_ SE_SIGNING_LEVEL InputSigningLevel,
+    _In_reads_(SourceFileCount) PHANDLE SourceFiles,
+    _In_ ULONG SourceFileCount,
+    _In_opt_ HANDLE TargetFile
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetCachedSigningLevel(
+    _In_ HANDLE File,
+    _Out_ PULONG Flags,
+    _Out_ PSE_SIGNING_LEVEL SigningLevel,
+    _Out_writes_bytes_to_opt_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
+    _Inout_opt_ PULONG ThumbprintSize,
+    _Out_opt_ PULONG ThumbprintAlgorithm
+    );
+
+#endif
 
 // Audit alarm
 
@@ -391,103 +623,26 @@ NtPrivilegedServiceAuditAlarm(
     _In_ BOOLEAN AccessGranted
     );
 
-// Authz
+// Misc.
 
-// begin_rev
-
-// Types
-
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_INVALID 0x00
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64 0x01
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 0x02
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING 0x03
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN 0x04
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_SID 0x05
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN 0x06
-#define TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING 0x10
-
-// Flags
-
-#define TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE 0x0001
-#define TOKEN_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE 0x0002
-#define TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY 0x0004
-#define TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT 0x0008
-#define TOKEN_SECURITY_ATTRIBUTE_DISABLED 0x0010
-#define TOKEN_SECURITY_ATTRIBUTE_MANDATORY 0x0020
-
-#define TOKEN_SECURITY_ATTRIBUTE_VALID_FLAGS ( \
-    TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE | \
-    TOKEN_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE | \
-    TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY | \
-    TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT | \
-    TOKEN_SECURITY_ATTRIBUTE_DISABLED | \
-    TOKEN_SECURITY_ATTRIBUTE_MANDATORY)
-
-#define TOKEN_SECURITY_ATTRIBUTE_CUSTOM_FLAGS 0xffff0000
-
-// end_rev
-
-// private
-typedef struct _TOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE
+typedef enum _FILTER_BOOT_OPTION_OPERATION
 {
-    ULONG64 Version;
-    UNICODE_STRING Name;
-} TOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE, *PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE;
+    FilterBootOptionOperationOpenSystemStore,
+    FilterBootOptionOperationSetElement,
+    FilterBootOptionOperationDeleteElement,
+    FilterBootOptionOperationMax
+} FILTER_BOOT_OPTION_OPERATION;
 
-// private
-typedef struct _TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE
-{
-    PVOID pValue;
-    ULONG ValueLength;
-} TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE, *PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE;
-
-// private
-typedef struct _TOKEN_SECURITY_ATTRIBUTE_V1
-{
-    UNICODE_STRING Name;
-    USHORT ValueType;
-    USHORT Reserved;
-    ULONG Flags;
-    ULONG ValueCount;
-    union
-    {
-        PLONG64 pInt64;
-        PULONG64 pUint64;
-        PUNICODE_STRING pString;
-        PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE pFqbn;
-        PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE pOctetString;
-    } Values;
-} TOKEN_SECURITY_ATTRIBUTE_V1, *PTOKEN_SECURITY_ATTRIBUTE_V1;
-
-// rev
-#define TOKEN_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1 1
-// rev
-#define TOKEN_SECURITY_ATTRIBUTES_INFORMATION_VERSION TOKEN_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1
-
-// private
-typedef struct _TOKEN_SECURITY_ATTRIBUTES_INFORMATION
-{
-    USHORT Version;
-    USHORT Reserved;
-    ULONG AttributeCount;
-    union
-    {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 pAttributeV1;
-    } Attribute;
-} TOKEN_SECURITY_ATTRIBUTES_INFORMATION, *PTOKEN_SECURITY_ATTRIBUTES_INFORMATION;
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-// rev
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtQuerySecurityAttributesToken(
-    _In_ HANDLE TokenHandle,
-    _In_reads_opt_(NumberOfAttributes) PUNICODE_STRING Attributes,
-    _In_ ULONG NumberOfAttributes,
-    _Out_writes_bytes_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
-    _In_ ULONG Length,
-    _Out_ PULONG ReturnLength
+NtFilterBootOption(
+    _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
+    _In_ ULONG ObjectType,
+    _In_ ULONG ElementType,
+    _In_reads_bytes_opt_(DataSize) PVOID Data,
+    _In_ ULONG DataSize
     );
 #endif
 

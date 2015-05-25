@@ -98,6 +98,7 @@ typedef enum _PLUGPLAY_CONTROL_CLASS
     MaxPlugPlayControl
 } PLUGPLAY_CONTROL_CLASS, *PPLUGPLAY_CONTROL_CLASS;
 
+#if (PHNT_VERSION < PHNT_WIN8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -107,6 +108,7 @@ NtGetPlugPlayEvent(
     _Out_writes_bytes_(EventBufferSize) PPLUGPLAY_EVENT_BLOCK EventBlock,
     _In_ ULONG EventBufferSize
     );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -118,17 +120,31 @@ NtPlugPlayControl(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
-// rev
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSerializeBoot(
     VOID
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtEnableLastKnownGood(
+    VOID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDisableLastKnownGood(
+    VOID
+    );
+
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

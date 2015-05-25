@@ -108,7 +108,7 @@ NTSTATUS
 NTAPI
 NtCreatePort(
     _Out_ PHANDLE PortHandle,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG MaxConnectionInfoLength,
     _In_ ULONG MaxMessageLength,
     _In_opt_ ULONG MaxPoolUsage
@@ -119,7 +119,7 @@ NTSTATUS
 NTAPI
 NtCreateWaitablePort(
     _Out_ PHANDLE PortHandle,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG MaxConnectionInfoLength,
     _In_ ULONG MaxMessageLength,
     _In_opt_ ULONG MaxPoolUsage
@@ -137,7 +137,7 @@ NtConnectPort(
     _Inout_opt_ PPORT_VIEW ClientView,
     _Inout_opt_ PREMOTE_PORT_VIEW ServerView,
     _Out_opt_ PULONG MaxMessageLength,
-    _Inout_opt_ PVOID ConnectionInformation,
+    _Inout_updates_bytes_to_opt_(*ConnectionInformationLength, *ConnectionInformationLength) PVOID ConnectionInformation,
     _Inout_opt_ PULONG ConnectionInformationLength
     );
 
@@ -152,7 +152,7 @@ NtSecureConnectPort(
     _In_opt_ PSID RequiredServerSid,
     _Inout_opt_ PREMOTE_PORT_VIEW ServerView,
     _Out_opt_ PULONG MaxMessageLength,
-    _Inout_opt_ PVOID ConnectionInformation,
+    _Inout_updates_bytes_to_opt_(*ConnectionInformationLength, *ConnectionInformationLength) PVOID ConnectionInformation,
     _Inout_opt_ PULONG ConnectionInformationLength
     );
 
@@ -192,7 +192,7 @@ NTSTATUS
 NTAPI
 NtRequestPort(
     _In_ HANDLE PortHandle,
-    _In_ PPORT_MESSAGE RequestMessage
+    _In_reads_bytes_(RequestMessage->u1.s1.TotalLength) PPORT_MESSAGE RequestMessage
     );
 
 NTSYSCALLAPI
@@ -200,7 +200,7 @@ NTSTATUS
 NTAPI
 NtRequestWaitReplyPort(
     _In_ HANDLE PortHandle,
-    _In_ PPORT_MESSAGE RequestMessage,
+    _In_reads_bytes_(RequestMessage->u1.s1.TotalLength) PPORT_MESSAGE RequestMessage,
     _Out_ PPORT_MESSAGE ReplyMessage
     );
 
@@ -209,7 +209,7 @@ NTSTATUS
 NTAPI
 NtReplyPort(
     _In_ HANDLE PortHandle,
-    _In_ PPORT_MESSAGE ReplyMessage
+    _In_reads_bytes_(ReplyMessage->u1.s1.TotalLength) PPORT_MESSAGE ReplyMessage
     );
 
 NTSYSCALLAPI
@@ -226,7 +226,7 @@ NTAPI
 NtReplyWaitReceivePort(
     _In_ HANDLE PortHandle,
     _Out_opt_ PVOID *PortContext,
-    _In_opt_ PPORT_MESSAGE ReplyMessage,
+    _In_reads_bytes_opt_(ReplyMessage->u1.s1.TotalLength) PPORT_MESSAGE ReplyMessage,
     _Out_ PPORT_MESSAGE ReceiveMessage
     );
 
@@ -236,7 +236,7 @@ NTAPI
 NtReplyWaitReceivePortEx(
     _In_ HANDLE PortHandle,
     _Out_opt_ PVOID *PortContext,
-    _In_opt_ PPORT_MESSAGE ReplyMessage,
+    _In_reads_bytes_opt_(ReplyMessage->u1.s1.TotalLength) PPORT_MESSAGE ReplyMessage,
     _Out_ PPORT_MESSAGE ReceiveMessage,
     _In_opt_ PLARGE_INTEGER Timeout
     );
@@ -256,7 +256,7 @@ NtReadRequestData(
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE Message,
     _In_ ULONG DataEntryIndex,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _Out_writes_bytes_to_(BufferSize, *NumberOfBytesRead) PVOID Buffer,
     _In_ SIZE_T BufferSize,
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
@@ -285,17 +285,15 @@ NTAPI
 NtQueryInformationPort(
     _In_ HANDLE PortHandle,
     _In_ PORT_INFORMATION_CLASS PortInformationClass,
-    _Out_writes_bytes_(Length) PVOID PortInformation,
+    _Out_writes_bytes_to_(Length, *ReturnLength) PVOID PortInformation,
     _In_ ULONG Length,
     _Out_opt_ PULONG ReturnLength
     );
 
 // Asynchronous Local Inter-process Communication
 
-// ALPC handles aren't NT object manager handles, and
-// it seems traditional to use a typedef in these cases.
 // rev
-typedef PVOID ALPC_HANDLE, *PALPC_HANDLE;
+typedef HANDLE ALPC_HANDLE, *PALPC_HANDLE;
 
 #define ALPC_PORFLG_ALLOW_LPC_REQUESTS 0x20000 // rev
 #define ALPC_PORFLG_WAITABLE_PORT 0x40000 // dbg
@@ -509,7 +507,7 @@ NTSTATUS
 NTAPI
 NtAlpcCreatePort(
     _Out_ PHANDLE PortHandle,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes
     );
 
@@ -525,9 +523,9 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAlpcQueryInformation(
-    _In_ HANDLE PortHandle,
+    _In_opt_ HANDLE PortHandle,
     _In_ ALPC_PORT_INFORMATION_CLASS PortInformationClass,
-    _Out_writes_bytes_(Length) PVOID PortInformation,
+    _Inout_updates_bytes_to_(Length, *ReturnLength) PVOID PortInformation,
     _In_ ULONG Length,
     _Out_opt_ PULONG ReturnLength
     );
@@ -538,7 +536,7 @@ NTAPI
 NtAlpcSetInformation(
     _In_ HANDLE PortHandle,
     _In_ ALPC_PORT_INFORMATION_CLASS PortInformationClass,
-    _In_reads_bytes_(Length) PVOID PortInformation,
+    _In_reads_bytes_opt_(Length) PVOID PortInformation,
     _In_ ULONG Length
     );
 
@@ -634,7 +632,7 @@ NtAlpcQueryInformationMessage(
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE PortMessage,
     _In_ ALPC_MESSAGE_INFORMATION_CLASS MessageInformationClass,
-    _Out_writes_bytes_(Length) PVOID MessageInformation,
+    _Out_writes_bytes_to_opt_(Length, *ReturnLength) PVOID MessageInformation,
     _In_ ULONG Length,
     _Out_opt_ PULONG ReturnLength
     );
@@ -653,16 +651,35 @@ NTAPI
 NtAlpcConnectPort(
     _Out_ PHANDLE PortHandle,
     _In_ PUNICODE_STRING PortName,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
     _In_ ULONG Flags,
     _In_opt_ PSID RequiredServerSid,
-    _Inout_ PPORT_MESSAGE ConnectionMessage,
+    _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
     _Inout_opt_ PULONG BufferLength,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout
     );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcConnectPortEx(
+    _Out_ PHANDLE PortHandle,
+    _In_ POBJECT_ATTRIBUTES ConnectionPortObjectAttributes,
+    _In_opt_ POBJECT_ATTRIBUTES ClientPortObjectAttributes,
+    _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
+    _In_ ULONG Flags,
+    _In_opt_ PSECURITY_DESCRIPTOR ServerSecurityRequirements,
+    _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
+    _Inout_opt_ PSIZE_T BufferLength,
+    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
+    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -671,10 +688,10 @@ NtAlpcAcceptConnectPort(
     _Out_ PHANDLE PortHandle,
     _In_ HANDLE ConnectionPortHandle,
     _In_ ULONG Flags,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ PALPC_PORT_ATTRIBUTES PortAttributes,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
     _In_opt_ PVOID PortContext,
-    _In_ PPORT_MESSAGE ConnectionRequest,
+    _In_reads_bytes_(ConnectionRequest->u1.s1.TotalLength) PPORT_MESSAGE ConnectionRequest,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES ConnectionMessageAttributes,
     _In_ BOOLEAN AcceptConnection
     );
@@ -685,10 +702,10 @@ NTAPI
 NtAlpcSendWaitReceivePort(
     _In_ HANDLE PortHandle,
     _In_ ULONG Flags,
-    _In_opt_ PPORT_MESSAGE SendMessage,
-    _In_opt_ PALPC_MESSAGE_ATTRIBUTES SendMessageAttributes,
-    _Inout_opt_ PPORT_MESSAGE ReceiveMessage,
-    _Inout_opt_ PULONG BufferLength,
+    _In_reads_bytes_opt_(SendMessage->u1.s1.TotalLength) PPORT_MESSAGE SendMessage,
+    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES SendMessageAttributes,
+    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ReceiveMessage,
+    _Inout_opt_ PSIZE_T BufferLength,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES ReceiveMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout
     );
@@ -711,9 +728,20 @@ NTSTATUS
 NTAPI
 NtAlpcImpersonateClientOfPort(
     _In_ HANDLE PortHandle,
-    _In_ PPORT_MESSAGE PortMessage,
-    _Reserved_ PVOID Reserved
+    _In_ PPORT_MESSAGE Message,
+    _In_ PVOID Flags
     );
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcImpersonateClientContainerOfPort(
+    _In_ HANDLE PortHandle,
+    _In_ PPORT_MESSAGE Message,
+    _In_ ULONG Flags
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -722,7 +750,7 @@ NtAlpcOpenSenderProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE PortMessage,
-    _Reserved_ ULONG Flags,
+    _In_ ULONG Flags,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
@@ -734,7 +762,7 @@ NtAlpcOpenSenderThread(
     _Out_ PHANDLE ThreadHandle,
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE PortMessage,
-    _Reserved_ ULONG Flags,
+    _In_ ULONG Flags,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
