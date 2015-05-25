@@ -167,7 +167,7 @@ NTSTATUS PhGetProcessSwitchContext(
     if (!data)
         return STATUS_UNSUCCESSFUL; // no compatibility context data
 
-    if (WindowsVersion >= WINDOWS_81)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
         if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,

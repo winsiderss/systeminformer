@@ -920,7 +920,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (WINDOWS_HAS_LIMITED_ACCESS && processHandle)
             {
-                if (WindowsVersion >= WINDOWS_81)
+                if (WindowsVersion >= WINDOWS_8_1)
                 {
                     PS_PROTECTION protection;
 
