@@ -10,12 +10,12 @@ extern LIST_ENTRY EtNetworkBlockListHead;
 extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
 
-#define SETTING_PREFIX L"ProcessHacker.ExtendedTools"
-#define SETTING_NAME_DISK_TREE_LIST_COLUMNS (SETTING_PREFIX L".DiskTreeListColumns")
-#define SETTING_NAME_DISK_TREE_LIST_SORT (SETTING_PREFIX L".DiskTreeListSort")
-#define SETTING_NAME_ENABLE_ETW_MONITOR (SETTING_PREFIX L".EnableEtwMonitor")
-#define SETTING_NAME_ENABLE_GPU_MONITOR (SETTING_PREFIX L".EnableGpuMonitor")
-#define SETTING_NAME_GPU_NODE_BITMAP (SETTING_PREFIX L".GpuNodeBitmap")
+#define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
+#define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
+#define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
+#define SETTING_NAME_ENABLE_ETW_MONITOR (PLUGIN_NAME L".EnableEtwMonitor")
+#define SETTING_NAME_ENABLE_GPU_MONITOR (PLUGIN_NAME L".EnableGpuMonitor")
+#define SETTING_NAME_GPU_NODE_BITMAP (PLUGIN_NAME L".GpuNodeBitmap")
 
 // Process icon
 

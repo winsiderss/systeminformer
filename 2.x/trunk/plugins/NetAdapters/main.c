@@ -91,7 +91,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_INTERFACE_LIST, L"" }
             };
 
-            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;

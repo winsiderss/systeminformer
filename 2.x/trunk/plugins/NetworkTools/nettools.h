@@ -42,12 +42,12 @@
 
 #include "resource.h"
 
-#define SETTING_PREFIX L"ProcessHacker.NetworkTools"
-#define SETTING_NAME_TRACERT_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
-#define SETTING_NAME_TRACERT_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
-#define SETTING_NAME_PING_WINDOW_POSITION (SETTING_PREFIX L".PingWindowPosition")
-#define SETTING_NAME_PING_WINDOW_SIZE (SETTING_PREFIX L".PingWindowSize")
-#define SETTING_NAME_PING_TIMEOUT (SETTING_PREFIX L".PingMaxTimeout")
+#define PLUGIN_NAME L"ProcessHacker.NetworkTools"
+#define SETTING_NAME_TRACERT_WINDOW_POSITION (PLUGIN_NAME L".WindowPosition")
+#define SETTING_NAME_TRACERT_WINDOW_SIZE (PLUGIN_NAME L".WindowSize")
+#define SETTING_NAME_PING_WINDOW_POSITION (PLUGIN_NAME L".PingWindowPosition")
+#define SETTING_NAME_PING_WINDOW_SIZE (PLUGIN_NAME L".PingWindowSize")
+#define SETTING_NAME_PING_TIMEOUT (PLUGIN_NAME L".PingMaxTimeout")
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
 // The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure

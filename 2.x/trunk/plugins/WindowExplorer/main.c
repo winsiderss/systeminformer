@@ -112,7 +112,7 @@ LOGICAL DllMain(
                 break;
             }
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.WindowExplorer", Instance, &info);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;

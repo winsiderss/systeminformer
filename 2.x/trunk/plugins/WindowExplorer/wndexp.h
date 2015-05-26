@@ -7,11 +7,11 @@
 extern BOOLEAN IsHookClient;
 extern PPH_PLUGIN PluginInstance;
 
-#define SETTING_PREFIX L"ProcessHacker.WindowExplorer."
-#define SETTING_NAME_SHOW_DESKTOP_WINDOWS (SETTING_PREFIX L"ShowDesktopWindows")
-#define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (SETTING_PREFIX L"WindowTreeListColumns")
-#define SETTING_NAME_WINDOWS_WINDOW_POSITION (SETTING_PREFIX L"WindowsWindowPosition")
-#define SETTING_NAME_WINDOWS_WINDOW_SIZE (SETTING_PREFIX L"WindowsWindowSize")
+#define PLUGIN_NAME L"ProcessHacker.WindowExplorer"
+#define SETTING_NAME_SHOW_DESKTOP_WINDOWS (PLUGIN_NAME L".ShowDesktopWindows")
+#define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (PLUGIN_NAME L".WindowTreeListColumns")
+#define SETTING_NAME_WINDOWS_WINDOW_POSITION (PLUGIN_NAME L".WindowsWindowPosition")
+#define SETTING_NAME_WINDOWS_WINDOW_SIZE (PLUGIN_NAME L".WindowsWindowSize")
 
 // hook
 
