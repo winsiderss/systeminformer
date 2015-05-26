@@ -111,7 +111,7 @@ typedef struct _FILE_PATH
     ULONG Version;
     ULONG Length;
     ULONG Type;
-    WCHAR FilePath[1];
+    UCHAR FilePath[1];
 } FILE_PATH, *PFILE_PATH;
 
 // private
