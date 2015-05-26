@@ -163,7 +163,7 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.ExtendedTools", Instance, &info);
+            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
