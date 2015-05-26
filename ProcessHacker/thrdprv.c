@@ -135,7 +135,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
 
     if (!NT_SUCCESS(PhCreateObject(
         &threadProvider,
-        sizeof(PH_THREAD_PROVIDER),
+        PhEmGetObjectSize(EmThreadProviderType, sizeof(PH_THREAD_PROVIDER)),
         0,
         PhThreadProviderType
         )))
@@ -174,6 +174,8 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     PhReferenceObject(threadProvider);
     PhpQueueThreadWorkQueueItem(PhpThreadProviderLoadSymbols, threadProvider);
 
+    PhEmCallObjectOperation(EmThreadProviderType, threadProvider, EmObjectCreate);
+
     return threadProvider;
 }
 
@@ -183,6 +185,8 @@ VOID PhpThreadProviderDeleteProcedure(
     )
 {
     PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Object;
+
+    PhEmCallObjectOperation(EmThreadProviderType, threadProvider, EmObjectDelete);
 
     // Dereference all thread items (we referenced them
     // when we added them to the hashtable).

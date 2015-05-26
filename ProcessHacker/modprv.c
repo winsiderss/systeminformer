@@ -88,7 +88,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     if (!NT_SUCCESS(PhCreateObject(
         &moduleProvider,
-        sizeof(PH_MODULE_PROVIDER),
+        PhEmGetObjectSize(EmModuleProviderType, sizeof(PH_MODULE_PROVIDER)),
         0,
         PhModuleProviderType
         )))
@@ -139,6 +139,8 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
 
+    PhEmCallObjectOperation(EmModuleProviderType, moduleProvider, EmObjectCreate);
+
     return moduleProvider;
 }
 
@@ -148,6 +150,8 @@ VOID PhpModuleProviderDeleteProcedure(
     )
 {
     PPH_MODULE_PROVIDER moduleProvider = (PPH_MODULE_PROVIDER)Object;
+
+    PhEmCallObjectOperation(EmModuleProviderType, moduleProvider, EmObjectDelete);
 
     // Dereference all module items (we referenced them
     // when we added them to the hashtable).

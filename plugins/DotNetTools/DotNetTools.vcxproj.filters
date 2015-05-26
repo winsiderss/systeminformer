@@ -33,6 +33,9 @@
     <ClCompile Include="stackext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="treeext.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dn.h">

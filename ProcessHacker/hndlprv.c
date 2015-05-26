@@ -69,7 +69,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
 
     if (!NT_SUCCESS(PhCreateObject(
         &handleProvider,
-        sizeof(PH_HANDLE_PROVIDER),
+        PhEmGetObjectSize(EmHandleProviderType, sizeof(PH_HANDLE_PROVIDER)),
         0,
         PhHandleProviderType
         )))
@@ -96,6 +96,8 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
 
     handleProvider->TempListHashtable = PhCreateSimpleHashtable(20);
 
+    PhEmCallObjectOperation(EmHandleProviderType, handleProvider, EmObjectCreate);
+
     return handleProvider;
 }
 
@@ -105,6 +107,8 @@ VOID PhpHandleProviderDeleteProcedure(
     )
 {
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
+
+    PhEmCallObjectOperation(EmHandleProviderType, handleProvider, EmObjectDelete);
 
     // Dereference all handle items (we referenced them
     // when we added them to the hashtable).
