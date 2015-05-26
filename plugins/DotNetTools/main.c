@@ -2,7 +2,7 @@
  * Process Hacker .NET Tools -
  *   main program
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -78,9 +78,31 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     _In_opt_ PVOID Context
     );
 
+VOID NTAPI ThreadTreeNewInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI ThreadTreeNewUninitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
 VOID NTAPI ThreadStackControlCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
+    );
+
+VOID NTAPI ThreadItemCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    );
+
+VOID NTAPI ThreadItemDeleteCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
     );
 
 PPH_PLUGIN PluginInstance;
@@ -95,6 +117,8 @@ PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadTreeNewUninitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
 
 LOGICAL DllMain(
@@ -144,12 +168,12 @@ LOGICAL DllMain(
             //    NULL,
             //    &PluginMenuItemCallbackRegistration
             //    );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
-            //    TreeNewMessageCallback,
-            //    NULL,
-            //    &PluginTreeNewMessageCallbackRegistration
-            //    );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
+                TreeNewMessageCallback,
+                NULL,
+                &PluginTreeNewMessageCallbackRegistration
+                );
 
             //PhRegisterCallback(
             //    PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
@@ -188,11 +212,32 @@ LOGICAL DllMain(
             //    &ProcessTreeNewInitializingCallbackRegistration
             //    );
             PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackThreadTreeNewInitializing),
+                ThreadTreeNewInitializingCallback,
+                NULL,
+                &ThreadTreeNewInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackThreadTreeNewUninitializing),
+                ThreadTreeNewUninitializingCallback,
+                NULL,
+                &ThreadTreeNewUninitializingCallbackRegistration
+                );
+            PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackThreadStackControl),
                 ThreadStackControlCallback,
                 NULL,
                 &ThreadStackControlCallbackRegistration
                 );
+
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmThreadItemType,
+                sizeof(DN_THREAD_ITEM),
+                ThreadItemCreateCallback,
+                ThreadItemDeleteCallback
+                );
+            InitializeTreeNewObjectExtensions();
 
             {
                 static PH_SETTING_CREATE settings[] =
@@ -253,17 +298,24 @@ VOID NTAPI TreeNewMessageCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
-
-    NOTHING;
+    DispatchTreeNewMessage(Parameter);
 }
 
-VOID NTAPI MainWindowShowingCallback(
+
+VOID NTAPI ThreadTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
+    ThreadTreeNewInitializing(Parameter);
+}
+
+VOID NTAPI ThreadTreeNewUninitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    ThreadTreeNewUninitializing(Parameter);
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
@@ -326,4 +378,27 @@ VOID NTAPI ThreadStackControlCallback(
     )
 {
     ProcessThreadStackControl(Parameter);
+}
+
+VOID NTAPI ThreadItemCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PDN_THREAD_ITEM dnThread = Extension;
+
+    memset(dnThread, 0, sizeof(DN_THREAD_ITEM));
+    dnThread->ThreadItem = Object;
+}
+
+VOID NTAPI ThreadItemDeleteCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PDN_THREAD_ITEM dnThread = Extension;
+
+    PhSwapReference(&dnThread->AppDomainText, NULL);
 }
