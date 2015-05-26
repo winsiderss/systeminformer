@@ -448,10 +448,10 @@ NtAccessCheckByTypeResultList(
 
 // Signing
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
-
 // rev
 typedef ULONG SE_SIGNING_LEVEL, *PSE_SIGNING_LEVEL; // ?
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 
 NTSYSCALLAPI
 NTSTATUS

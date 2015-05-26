@@ -159,7 +159,8 @@ WCHAR *PhKThreadStateNames[MaximumThreadState] =
     L"Waiting",
     L"Transition",
     L"DeferredReady",
-    L"GateWait"
+    L"GateWait",
+    L"WaitingForProcessInSwap"
 };
 
 DECLSPEC_SELECTANY
