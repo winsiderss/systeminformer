@@ -835,7 +835,6 @@ NtResumeProcess(
 #define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
 #define NtCurrentThreadId() (NtCurrentTeb()->ClientId.UniqueThread)
 
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1106,6 +1105,8 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
     PsAttributeMitigationOptions, // in UCHAR
     PsAttributeProtectionLevel,
+    PsAttributeSecureProcess, // since THRESHOLD
+    PsAttributeJobList,
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -1219,14 +1220,6 @@ typedef enum _PS_CREATE_STATE
     PsCreateMaximumStates
 } PS_CREATE_STATE;
 
-typedef enum _PS_IFEO_KEY_STATE
-{
-    PsReadIFEOAllValues,
-    PsSkipIFEODebugger,
-    PsSkipAllIFEO,
-    PsMaxIFEOKeyStates
-} PS_IFEO_KEY_STATE, *PPS_IFEO_KEY_STATE;
-
 typedef struct _PS_CREATE_INFO
 {
     SIZE_T Size;
@@ -1243,9 +1236,10 @@ typedef struct _PS_CREATE_INFO
                 {
                     UCHAR WriteOutputOnExit : 1;
                     UCHAR DetectManifest : 1;
-                    UCHAR SpareBits1 : 6;
-                    UCHAR IFEOKeyState : 2; // PS_IFEO_KEY_STATE
-                    UCHAR SpareBits2 : 6;
+                    UCHAR IFEOSkipDebugger : 1;
+                    UCHAR IFEODoNotPropagateKeyState : 1;
+                    UCHAR SpareBits1 : 4;
+                    UCHAR SpareBits2 : 8;
                     USHORT ProhibitedImageCharacteristics : 16;
                 };
             };
@@ -1257,6 +1251,12 @@ typedef struct _PS_CREATE_INFO
         {
             HANDLE FileHandle;
         } FailSection;
+
+        // PsCreateFailExeFormat
+        struct
+        {
+            USHORT DllCharacteristics;
+        } ExeFormat;
 
         // PsCreateFailExeName
         struct
@@ -1276,7 +1276,8 @@ typedef struct _PS_CREATE_INFO
                     UCHAR AddressSpaceOverride : 1;
                     UCHAR DevOverrideEnabled : 1; // from Image File Execution Options
                     UCHAR ManifestDetected : 1;
-                    UCHAR SpareBits1 : 4;
+                    UCHAR ProtectedProcessLight : 1;
+                    UCHAR SpareBits1 : 3;
                     UCHAR SpareBits2 : 8;
                     USHORT SpareBits3 : 16;
                 };

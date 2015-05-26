@@ -305,7 +305,7 @@ NtQueryVirtualMemory(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+// begin_private
 
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
@@ -319,6 +319,10 @@ typedef struct _MEMORY_RANGE_ENTRY
     PVOID VirtualAddress;
     SIZE_T NumberOfBytes;
 } MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
+
+// end_private
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -442,8 +446,7 @@ NtAreMappedFilesTheSame(
 
 // Partitions
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
-
+// private
 typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
 {
     SystemMemoryPartitionInformation,
@@ -451,6 +454,8 @@ typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
     SystemMemoryPartitionAddPagefile,
     SystemMemoryPartitionCombineMemory
 } MEMORY_PARTITION_INFORMATION_CLASS;
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 
 NTSYSCALLAPI
 NTSTATUS

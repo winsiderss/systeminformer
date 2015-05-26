@@ -18,7 +18,8 @@ typedef enum _KTHREAD_STATE
     Waiting,
     Transition,
     DeferredReady,
-    GateWait,
+    GateWaitObsolete,
+    WaitingForProcessInSwap,
     MaximumThreadState
 } KTHREAD_STATE, *PKTHREAD_STATE;
 
