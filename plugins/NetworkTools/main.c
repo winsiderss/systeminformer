@@ -120,7 +120,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_PING_TIMEOUT, L"3e8" } // 1000 timeout.
             };
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.NetworkTools", Instance, &info);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;

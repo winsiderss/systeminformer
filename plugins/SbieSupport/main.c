@@ -122,7 +122,7 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.SbieSupport", Instance, &info);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
@@ -180,7 +180,7 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
-                    { StringSettingType, L"ProcessHacker.SbieSupport.SbieDllPath", L"C:\\Program Files\\Sandboxie\\SbieDll.dll" }
+                    { StringSettingType, SETTING_NAME_SBIE_DLL_PATH, L"C:\\Program Files\\Sandboxie\\SbieDll.dll" }
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
@@ -224,7 +224,7 @@ VOID NTAPI LoadCallback(
         32
         );
 
-    sbieDllPath = PhGetStringSetting(L"ProcessHacker.SbieSupport.SbieDllPath");
+    sbieDllPath = PhGetStringSetting(SETTING_NAME_SBIE_DLL_PATH);
     module = LoadLibrary(sbieDllPath->Buffer);
     PhDereferenceObject(sbieDllPath);
 
@@ -494,7 +494,7 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             PPH_STRING sbieDllPath;
 
-            sbieDllPath = PhGetStringSetting(L"ProcessHacker.SbieSupport.SbieDllPath");
+            sbieDllPath = PhGetStringSetting(SETTING_NAME_SBIE_DLL_PATH);
             SetDlgItemText(hwndDlg, IDC_SBIEDLLPATH, sbieDllPath->Buffer);
             PhDereferenceObject(sbieDllPath);
         }
@@ -508,7 +508,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PhSetStringSetting2(L"ProcessHacker.SbieSupport.SbieDllPath",
+                    PhSetStringSetting2(SETTING_NAME_SBIE_DLL_PATH,
                         &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SBIEDLLPATH)->sr);
 
                     EndDialog(hwndDlg, IDOK);

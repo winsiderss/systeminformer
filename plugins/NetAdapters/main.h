@@ -25,9 +25,9 @@
 
 #pragma comment(lib, "Iphlpapi.lib")
 
-#define SETTING_PREFIX L"ProcessHacker.NetAdapters"
-#define SETTING_NAME_ENABLE_NDIS (SETTING_PREFIX L".EnableNDIS")
-#define SETTING_NAME_INTERFACE_LIST (SETTING_PREFIX L".InterfaceList")
+#define PLUGIN_NAME L"ProcessHacker.NetAdapters"
+#define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
+#define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".InterfaceList")
 
 #define CINTERFACE
 #define COBJMACROS

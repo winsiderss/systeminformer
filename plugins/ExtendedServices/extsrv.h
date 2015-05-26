@@ -12,8 +12,8 @@ typedef NTSTATUS (NTAPI *_RtlCreateServiceSid)(
 extern PPH_PLUGIN PluginInstance;
 extern _RtlCreateServiceSid RtlCreateServiceSid_I;
 
-#define SETTING_PREFIX L"ProcessHacker.ExtendedServices"
-#define SETTING_NAME_ENABLE_SERVICES_MENU (SETTING_PREFIX L".EnableServicesMenu")
+#define PLUGIN_NAME L"ProcessHacker.ExtendedServices"
+#define SETTING_NAME_ENABLE_SERVICES_MENU (PLUGIN_NAME L".EnableServicesMenu")
 
 // depend
 
