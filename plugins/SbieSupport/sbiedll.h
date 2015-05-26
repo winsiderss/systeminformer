@@ -1,6 +1,9 @@
 #ifndef SBIEDLL_H
 #define SBIEDLL_H
 
+#define PLUGIN_NAME L"ProcessHacker.SbieSupport"
+#define SETTING_NAME_SBIE_DLL_PATH (PLUGIN_NAME L".SbieDllPath")
+
 typedef LONG (__stdcall *P_SbieApi_QueryBoxPath)(
     const WCHAR *box_name,      // pointer to WCHAR [34]
     WCHAR *file_path,

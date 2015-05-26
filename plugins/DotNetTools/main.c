@@ -133,7 +133,7 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.DotNetTools", Instance, &info);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;

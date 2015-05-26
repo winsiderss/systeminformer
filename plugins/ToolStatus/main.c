@@ -923,7 +923,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_REBARDISPLAYLOCATION, L"0" }
             };
 
-            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
