@@ -70,6 +70,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="perfpage.c" />
     <ClCompile Include="stackext.c" />
+    <ClCompile Include="treeext.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clretw.h" />

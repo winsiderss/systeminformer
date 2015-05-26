@@ -18,6 +18,9 @@ typedef enum _PH_EM_OBJECT_TYPE
     EmThreadsContextType,
     EmModulesContextType,
     EmHandlesContextType,
+    EmThreadProviderType,
+    EmModuleProviderType,
+    EmHandleProviderType,
     EmMaximumObjectType
 } PH_EM_OBJECT_TYPE;
 

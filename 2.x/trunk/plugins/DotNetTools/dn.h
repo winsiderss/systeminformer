@@ -9,6 +9,16 @@ extern PPH_PLUGIN PluginInstance;
 #define SETTING_PREFIX L"ProcessHacker.DotNetTools."
 #define SETTING_NAME_ASM_TREE_LIST_COLUMNS (SETTING_PREFIX L"AsmTreeListColumns")
 
+typedef struct _THREAD_TREE_CONTEXT;
+
+typedef struct _DN_THREAD_ITEM
+{
+    PPH_THREAD_ITEM ThreadItem;
+
+    BOOLEAN ClrDataValid;
+    PPH_STRING AppDomainText;
+} DN_THREAD_ITEM, *PDN_THREAD_ITEM;
+
 // counters
 
 typedef struct _PERF_OBJECT_TYPE_INFO
@@ -64,6 +74,26 @@ VOID AddPerfPageToPropContext(
 
 VOID ProcessThreadStackControl(
     _In_ PPH_PLUGIN_THREAD_STACK_CONTROL Control
+    );
+
+// treeext
+
+VOID InitializeTreeNewObjectExtensions(
+    VOID
+    );
+
+VOID DispatchTreeNewMessage(
+    __in PVOID Parameter
+    );
+
+#define DNTHTNC_APPDOMAIN 1
+
+VOID ThreadTreeNewInitializing(
+    __in PVOID Parameter
+    );
+
+VOID ThreadTreeNewUninitializing(
+    __in PVOID Parameter
     );
 
 #endif
