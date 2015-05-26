@@ -72,8 +72,6 @@ NtEnumerateSystemEnvironmentValuesEx(
 
 // EFI
 
-#if (PHNT_VERSION >= PHNT_VISTA)
-
 // private
 typedef struct _BOOT_ENTRY
 {
@@ -130,6 +128,8 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
     ULONG NextEntryOffset;
     EFI_DRIVER_ENTRY DriverEntry;
 } EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
+
+#if (PHNT_VERSION >= PHNT_VISTA)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -639,8 +639,6 @@ NtSetIRTimer(
 
 #endif
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
-
 typedef struct _T2_SET_PARAMETERS_V0
 {
     ULONG Version;
@@ -649,6 +647,8 @@ typedef struct _T2_SET_PARAMETERS_V0
 } T2_SET_PARAMETERS, *PT2_SET_PARAMETERS;
 
 typedef PVOID PT2_CANCEL_PARAMETERS;
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -808,8 +808,6 @@ NtUmsThreadYield(
 
 // WNF
 
-#if (PHNT_VERSION >= PHNT_WIN8)
-
 // begin_private
 
 typedef struct _WNF_STATE_NAME
@@ -864,6 +862,8 @@ typedef struct _WNF_DELIVERY_DESCRIPTOR
 } WNF_DELIVERY_DESCRIPTOR, *PWNF_DELIVERY_DESCRIPTOR;
 
 // end_private
+
+#if (PHNT_VERSION >= PHNT_WIN8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1008,8 +1008,11 @@ typedef enum _WORKERFACTORYINFOCLASS
     WorkerFactoryBasicInformation,
     WorkerFactoryAdjustThreadGoal,
     WorkerFactoryCallbackType,
-    WorkerFactoryStackInformation,
+    WorkerFactoryStackInformation, // 10
     WorkerFactoryThreadBasePriority,
+    WorkerFactoryTimeoutWaiters, // since THRESHOLD
+    WorkerFactoryFlags,
+    WorkerFactoryThreadSoftMaximum,
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 
@@ -1040,6 +1043,8 @@ typedef struct _WORKER_FACTORY_BASIC_INFORMATION
     SIZE_T StackCommit;
     NTSTATUS LastThreadCreationStatus;
 } WORKER_FACTORY_BASIC_INFORMATION, *PWORKER_FACTORY_BASIC_INFORMATION;
+
+// end_private
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
@@ -1113,8 +1118,6 @@ NtWaitForWorkViaWorkerFactory(
     );
 
 #endif
-
-// end_private
 
 // Time
 
@@ -1352,7 +1355,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSoftRebootInformation,
     SystemElamCertificateInformation,
     SystemOfflineDumpConfigInformation,
-    SystemProcessorFeaturesInformation,
+    SystemProcessorFeaturesInformation, // q: SYSTEM_PROCESSOR_FEATURES_INFORMATION
     SystemRegistryReconciliationInformation,
     SystemEdidInformation,
     SystemManufacturingInformation, // q: SYSTEM_MANUFACTURING_INFORMATION // since THRESHOLD
@@ -1360,7 +1363,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHypervisorDetailInformation, // q: SYSTEM_HYPERVISOR_DETAIL_INFORMATION
     SystemProcessorCycleStatsInformation, // q: SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION // 160
     SystemVmGenerationCountInformation,
-    SystemTrustedPlatformModuleInformation,
+    SystemTrustedPlatformModuleInformation, // q: SYSTEM_TPM_INFORMATION
     SystemKernelDebuggerFlags,
     SystemCodeIntegrityPolicyInformation,
     SystemIsolatedUserModeInformation,
@@ -2233,6 +2236,30 @@ typedef struct _PROCESS_DISK_COUNTERS
 } PROCESS_DISK_COUNTERS, *PPROCESS_DISK_COUNTERS;
 
 // private
+typedef struct _PROCESS_ENERGY_VALUES
+{
+    ULONGLONG Cycles[2][4];
+    ULONGLONG DiskEnergy;
+    ULONGLONG NetworkTailEnergy;
+    ULONGLONG MBBTailEnergy;
+    ULONGLONG NetworkTxRxBytes;
+    ULONGLONG MBBTxRxBytes;
+    union
+    {
+        struct
+        {
+            ULONG Foreground : 1;
+        };
+        ULONG WindowInformation;
+    };
+    ULONG PixelArea;
+    LONGLONG PixelReportTimestamp;
+    ULONGLONG PixelTime;
+    LONGLONG ForegroundReportTimestamp;
+    ULONGLONG ForegroundTime;
+} PROCESS_ENERGY_VALUES, *PPROCESS_ENERGY_VALUES;
+
+// private
 typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
 {
     PROCESS_DISK_COUNTERS DiskCounters;
@@ -2247,6 +2274,9 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
         };
     };
     ULONG UserSidOffset;
+    ULONG PackageFullNameOffset; // since THRESHOLD
+    PROCESS_ENERGY_VALUES EnergyValues; // since THRESHOLD
+    ULONG AppIdOffset; // since THRESHOLD
 } SYSTEM_PROCESS_INFORMATION_EXTENSION, *PSYSTEM_PROCESS_INFORMATION_EXTENSION;
 
 // private
@@ -2256,6 +2286,13 @@ typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX
     BOOLEAN DebuggerEnabled;
     BOOLEAN DebuggerPresent;
 } SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION_EX;
+
+// private
+typedef struct _SYSTEM_PROCESSOR_FEATURES_INFORMATION
+{
+    ULONGLONG ProcessorFeatureBits;
+    ULONGLONG Reserved[3];
+} SYSTEM_PROCESSOR_FEATURES_INFORMATION, *PSYSTEM_PROCESSOR_FEATURES_INFORMATION;
 
 // private
 typedef struct _SYSTEM_MANUFACTURING_INFORMATION
@@ -2293,6 +2330,12 @@ typedef struct _SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION
 {
     ULONGLONG Cycles[2][4];
 } SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION, *PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION;
+
+// private
+typedef struct _SYSTEM_TPM_INFORMATION
+{
+    ULONG Flags;
+} SYSTEM_TPM_INFORMATION, *PSYSTEM_TPM_INFORMATION;
 
 // private
 typedef struct _SYSTEM_SINGLE_MODULE_INFORMATION
