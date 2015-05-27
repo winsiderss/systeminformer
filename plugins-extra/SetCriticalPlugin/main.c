@@ -25,11 +25,11 @@
 
 #define CRITICAL_MENU_ITEM 1
 
-PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION MenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+static PPH_PLUGIN PluginInstance;
+static PH_CALLBACK_REGISTRATION MenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 
-VOID MenuItemCallback(
+static VOID MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -91,7 +91,7 @@ VOID MenuItemCallback(
     }
 }
 
-VOID ProcessMenuInitializingCallback(
+static VOID ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -151,10 +151,18 @@ LOGICAL DllMain(
         info->Description = L"Adds Miscellaneous > Critical menu item.";
         info->Author = L"wj32";
 
-        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-            MenuItemCallback, NULL, &MenuItemCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
-            ProcessMenuInitializingCallback, NULL, &ProcessMenuInitializingCallbackRegistration);
+        PhRegisterCallback(
+            PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+            MenuItemCallback, 
+            NULL, 
+            &MenuItemCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
+            ProcessMenuInitializingCallback, 
+            NULL, 
+            &ProcessMenuInitializingCallbackRegistration
+            );
     }
 
     return TRUE;

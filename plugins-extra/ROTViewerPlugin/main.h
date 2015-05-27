@@ -24,9 +24,9 @@
 #define _ROT_H_
 
 #define ROT_TABLE_MENUITEM 1000
-#define SETTING_PREFIX L"dmex.RunningObjectTable"
-#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
-#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
+#define PLUGIN_NAME L"dmex.RunningObjectTable"
+#define SETTING_NAME_WINDOW_POSITION (PLUGIN_NAME L".WindowPosition")
+#define SETTING_NAME_WINDOW_SIZE (PLUGIN_NAME L".WindowSize")
 
 #define CINTERFACE
 #define COBJMACROS

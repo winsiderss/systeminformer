@@ -23,10 +23,10 @@
 #ifndef _DNS_H_
 #define _DNS_H_
 
-#define SETTING_PREFIX L"dmex.DnsCachePlugin"
-#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
-#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
-#define SETTING_NAME_COLUMNS (SETTING_PREFIX L".WindowColumns")
+#define PLUGIN_NAME L"dmex.DnsCachePlugin"
+#define SETTING_NAME_WINDOW_POSITION (PLUGIN_NAME L".WindowPosition")
+#define SETTING_NAME_WINDOW_SIZE (PLUGIN_NAME L".WindowSize")
+#define SETTING_NAME_COLUMNS (PLUGIN_NAME L".WindowColumns")
 
 #define DNSCACHE_MENUITEM   1000
 #define INET_ADDRSTRLEN     22
