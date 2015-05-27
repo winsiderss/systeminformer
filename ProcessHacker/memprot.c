@@ -121,7 +121,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                         ULONG oldProtect;
 
                         baseAddress = context->MemoryItem->BaseAddress;
-                        regionSize = context->MemoryItem->Size;
+                        regionSize = context->MemoryItem->RegionSize;
 
                         status = NtProtectVirtualMemory(
                             processHandle,
@@ -132,7 +132,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                             );
 
                         if (NT_SUCCESS(status))
-                            context->MemoryItem->Protection = (ULONG)protect;
+                            context->MemoryItem->Protect = (ULONG)protect;
                     }
 
                     if (NT_SUCCESS(status))

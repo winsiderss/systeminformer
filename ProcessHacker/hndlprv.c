@@ -20,7 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define PH_HNDLPRV_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
 #include <extmgri.h>

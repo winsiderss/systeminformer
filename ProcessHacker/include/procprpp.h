@@ -211,10 +211,14 @@ typedef struct _PH_HANDLES_CONTEXT
 
 typedef struct _PH_MEMORY_CONTEXT
 {
-    PH_MEMORY_PROVIDER Provider;
+    HANDLE ProcessId;
+    PH_MEMORY_ITEM_LIST MemoryItemList;
+    BOOLEAN MemoryItemListValid;
+    HWND WindowHandle;
 
-    PPH_LIST MemoryList;
-    HWND ListViewHandle;
+    PH_MEMORY_LIST_CONTEXT ListContext;
+    NTSTATUS LastRunStatus;
+    PPH_STRING ErrorMessage;
 } PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
 
 #define WM_PH_STATISTICS_UPDATE (WM_APP + 231)

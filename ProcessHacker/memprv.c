@@ -25,37 +25,6 @@
 
 #define MAX_HEAPS 1000
 
-typedef enum _PHP_KNOWN_MEMORY_REGION_TYPE
-{
-    PebRegion,
-    Peb32Region,
-    TebRegion,
-    Teb32Region,
-    StackRegion,
-    Stack32Region,
-    HeapRegion,
-    Heap32Region
-} PHP_KNOWN_MEMORY_REGION_TYPE;
-
-typedef struct _PHP_KNOWN_MEMORY_REGION
-{
-    LIST_ENTRY ListEntry;
-    PH_AVL_LINKS Links;
-    PHP_KNOWN_MEMORY_REGION_TYPE Type;
-    ULONG_PTR Address;
-    SIZE_T Size;
-    PPH_STRING Name;
-
-    union
-    {
-        // HeapRegion and Heap32Region
-        struct
-        {
-            ULONG Index;
-        } Heap;
-    } u;
-} PHP_KNOWN_MEMORY_REGION, *PPHP_KNOWN_MEMORY_REGION;
-
 VOID PhpMemoryItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -76,70 +45,6 @@ BOOLEAN PhMemoryProviderInitialization(
         return FALSE;
 
     return TRUE;
-}
-
-VOID PhInitializeMemoryProvider(
-    _Out_ PPH_MEMORY_PROVIDER Provider,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_MEMORY_PROVIDER_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    )
-{
-    Provider->Callback = Callback;
-    Provider->Context = Context;
-    Provider->ProcessId = ProcessId;
-    Provider->ProcessHandle = NULL;
-    Provider->IgnoreFreeRegions = FALSE;
-
-    if (!NT_SUCCESS(PhOpenProcess(
-        &Provider->ProcessHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessId
-        )))
-    {
-        PhOpenProcess(
-            &Provider->ProcessHandle,
-            PROCESS_QUERY_INFORMATION,
-            ProcessId
-            );
-    }
-}
-
-VOID PhDeleteMemoryProvider(
-    _Inout_ PPH_MEMORY_PROVIDER Provider
-    )
-{
-    if (Provider->ProcessHandle)
-        NtClose(Provider->ProcessHandle);
-}
-
-PPH_MEMORY_ITEM PhCreateMemoryItem(
-    VOID
-    )
-{
-    PPH_MEMORY_ITEM memoryItem;
-
-    if (!NT_SUCCESS(PhCreateObject(
-        &memoryItem,
-        sizeof(PH_MEMORY_ITEM),
-        0,
-        PhMemoryItemType
-        )))
-        return NULL;
-
-    memset(memoryItem, 0, sizeof(PH_MEMORY_ITEM));
-
-    return memoryItem;
-}
-
-VOID PhpMemoryItemDeleteProcedure(
-    _In_ PVOID Object,
-    _In_ ULONG Flags
-    )
-{
-    PPH_MEMORY_ITEM memoryItem = (PPH_MEMORY_ITEM)Object;
-
-    PhSwapReference(&memoryItem->Name, NULL);
 }
 
 VOID PhGetMemoryProtectionString(
@@ -229,238 +134,87 @@ PWSTR PhGetMemoryTypeString(
         return L"Unknown";
 }
 
-static LONG NTAPI PhpCompareKnownMemoryRegionCompareFunction(
+PPH_MEMORY_ITEM PhCreateMemoryItem(
+    VOID
+    )
+{
+    PPH_MEMORY_ITEM memoryItem;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &memoryItem,
+        sizeof(PH_MEMORY_ITEM),
+        0,
+        PhMemoryItemType
+        )))
+        return NULL;
+
+    memset(memoryItem, 0, sizeof(PH_MEMORY_ITEM));
+
+    return memoryItem;
+}
+
+VOID PhpMemoryItemDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_MEMORY_ITEM memoryItem = Object;
+
+    switch (memoryItem->RegionType)
+    {
+    case CustomRegion:
+        PhSwapReference(&memoryItem->u.Custom.Text, NULL);
+        break;
+    case MappedFileRegion:
+        PhSwapReference(&memoryItem->u.MappedFile.FileName, NULL);
+        break;
+    }
+}
+
+static LONG NTAPI PhpMemoryItemCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
     )
 {
-    PPHP_KNOWN_MEMORY_REGION knownMemoryRegion1 = CONTAINING_RECORD(Links1, PHP_KNOWN_MEMORY_REGION, Links);
-    PPHP_KNOWN_MEMORY_REGION knownMemoryRegion2 = CONTAINING_RECORD(Links2, PHP_KNOWN_MEMORY_REGION, Links);
+    PPH_MEMORY_ITEM memoryItem1 = CONTAINING_RECORD(Links1, PH_MEMORY_ITEM, Links);
+    PPH_MEMORY_ITEM memoryItem2 = CONTAINING_RECORD(Links2, PH_MEMORY_ITEM, Links);
 
-    return uintptrcmp(knownMemoryRegion1->Address, knownMemoryRegion2->Address);
+    return uintptrcmp((ULONG_PTR)memoryItem1->BaseAddress, (ULONG_PTR)memoryItem2->BaseAddress);
 }
 
-PPHP_KNOWN_MEMORY_REGION PhpAddKnownMemoryRegion(
-    _Inout_ PPH_AVL_TREE KnownMemoryRegionsSet,
-    _Inout_ PLIST_ENTRY KnownMemoryRegionsListHead,
-    _In_ PHP_KNOWN_MEMORY_REGION_TYPE Type,
-    _In_ ULONG_PTR Address,
-    _In_ SIZE_T Size,
-    _In_ _Assume_refs_(1) PPH_STRING Name
-    )
-{
-    PPHP_KNOWN_MEMORY_REGION knownMemoryRegion;
-    PPH_AVL_LINKS existingLinks;
-
-    knownMemoryRegion = PhAllocate(sizeof(PHP_KNOWN_MEMORY_REGION));
-    knownMemoryRegion->Type = Type;
-    knownMemoryRegion->Address = Address;
-    knownMemoryRegion->Size = Size;
-    knownMemoryRegion->Name = Name;
-
-    if (existingLinks = PhAddElementAvlTree(KnownMemoryRegionsSet, &knownMemoryRegion->Links))
-    {
-        // Duplicate address.
-        PhDereferenceObject(Name);
-        PhFree(knownMemoryRegion);
-        return CONTAINING_RECORD(existingLinks, PHP_KNOWN_MEMORY_REGION, Links);
-    }
-
-    InsertTailList(KnownMemoryRegionsListHead, &knownMemoryRegion->ListEntry);
-
-    return knownMemoryRegion;
-}
-
-VOID PhpCreateKnownMemoryRegions(
-    _In_ HANDLE ProcessId,
-    _In_ HANDLE ProcessHandle,
-    _Out_ PPH_AVL_TREE KnownMemoryRegionsSet,
-    _Out_ PLIST_ENTRY KnownMemoryRegionsListHead
-    )
-{
-    PVOID processes;
-    PSYSTEM_PROCESS_INFORMATION process;
-    ULONG i;
-    BOOLEAN isWow64 = FALSE;
-
-    PhInitializeAvlTree(KnownMemoryRegionsSet, PhpCompareKnownMemoryRegionCompareFunction);
-    InitializeListHead(KnownMemoryRegionsListHead);
-
-    if (!NT_SUCCESS(PhEnumProcessesEx(&processes, SystemExtendedProcessInformation)))
-        return;
-
-    process = PhFindProcessInformation(processes, ProcessId);
-
-    if (!process)
-    {
-        PhFree(processes);
-        return;
-    }
-
-    // PEB, heaps
-    {
-        PROCESS_BASIC_INFORMATION basicInfo;
-        PVOID peb32;
-        ULONG numberOfHeaps;
-        PVOID processHeapsPtr;
-        PVOID *processHeaps;
-        ULONG processHeapsPtr32;
-        ULONG *processHeaps32;
-        ULONG i;
-        PPHP_KNOWN_MEMORY_REGION knownMemoryRegion;
-
-        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
-        {
-            PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                PebRegion, (ULONG_PTR)basicInfo.PebBaseAddress, PAGE_SIZE,
-                PhCreateString(L"Process PEB"));
-
-            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
-                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, NumberOfHeaps)),
-                &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
-            {
-                processHeaps = PhAllocate(numberOfHeaps * sizeof(PVOID));
-
-                if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
-                    PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessHeaps)),
-                    &processHeapsPtr, sizeof(PVOID), NULL)) &&
-                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
-                    processHeapsPtr,
-                    processHeaps, numberOfHeaps * sizeof(PVOID), NULL)))
-                {
-                    for (i = 0; i < numberOfHeaps; i++)
-                    {
-                        knownMemoryRegion = PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                            HeapRegion, (ULONG_PTR)processHeaps[i], PAGE_SIZE,
-                            PhFormatString(L"Heap %u", i));
-                        knownMemoryRegion->u.Heap.Index = i;
-                    }
-                }
-
-                PhFree(processHeaps);
-            }
-        }
-
-        if (NT_SUCCESS(PhGetProcessPeb32(ProcessHandle, &peb32)) && peb32 != 0)
-        {
-            isWow64 = TRUE;
-            PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                Peb32Region, (ULONG_PTR)peb32, PAGE_SIZE,
-                PhCreateString(L"Process 32-bit PEB"));
-
-            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
-                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, NumberOfHeaps)),
-                &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
-            {
-                processHeaps32 = PhAllocate(numberOfHeaps * sizeof(ULONG));
-
-                if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
-                    PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessHeaps)),
-                    &processHeapsPtr32, sizeof(ULONG), NULL)) &&
-                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
-                    (PVOID)processHeapsPtr32,
-                    processHeaps32, numberOfHeaps * sizeof(ULONG), NULL)))
-                {
-                    for (i = 0; i < numberOfHeaps; i++)
-                    {
-                        knownMemoryRegion = PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                            Heap32Region, (ULONG_PTR)processHeaps32[i], PAGE_SIZE,
-                            PhFormatString(L"32-bit Heap %u", i));
-                        knownMemoryRegion->u.Heap.Index = i;
-                    }
-                }
-
-                PhFree(processHeaps32);
-            }
-        }
-    }
-
-    // TEB, stacks
-    for (i = 0; i < process->NumberOfThreads; i++)
-    {
-        PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
-
-        if (thread->TebBase)
-        {
-            NT_TIB ntTib;
-            SIZE_T bytesRead;
-
-            PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                TebRegion, (ULONG_PTR)thread->TebBase, PAGE_SIZE,
-                PhFormatString(L"Thread %u TEB", (ULONG)thread->ThreadInfo.ClientId.UniqueThread));
-
-            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
-                bytesRead == sizeof(NT_TIB))
-            {
-                if ((ULONG_PTR)ntTib.StackLimit < (ULONG_PTR)ntTib.StackBase)
-                {
-                    PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                        StackRegion, (ULONG_PTR)ntTib.StackLimit, (ULONG_PTR)ntTib.StackBase - (ULONG_PTR)ntTib.StackLimit,
-                        PhFormatString(L"Thread %u Stack", (ULONG)thread->ThreadInfo.ClientId.UniqueThread));
-                }
-
-                if (isWow64 && ntTib.ExceptionList)
-                {
-                    ULONG teb32 = (ULONG)ntTib.ExceptionList;
-                    NT_TIB32 ntTib32;
-
-                    // This is actually pointless because the 64-bit and 32-bit TEBs usually share the same memory region.
-                    PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                        Teb32Region, teb32, PAGE_SIZE,
-                        PhFormatString(L"Thread %u 32-bit TEB", (ULONG)thread->ThreadInfo.ClientId.UniqueThread));
-
-                    if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, (PVOID)teb32, &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
-                        bytesRead == sizeof(NT_TIB32))
-                    {
-                        if (ntTib32.StackLimit < ntTib32.StackBase)
-                        {
-                            PhpAddKnownMemoryRegion(KnownMemoryRegionsSet, KnownMemoryRegionsListHead,
-                                Stack32Region, ntTib32.StackLimit, ntTib32.StackBase - ntTib32.StackLimit,
-                                PhFormatString(L"Thread %u 32-bit Stack", (ULONG)thread->ThreadInfo.ClientId.UniqueThread));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    PhFree(processes);
-}
-
-VOID PhpFreeKnownMemoryRegions(
-    _In_ PLIST_ENTRY KnownMemoryRegionsListHead
+VOID PhDeleteMemoryItemList(
+    _In_ PPH_MEMORY_ITEM_LIST List
     )
 {
     PLIST_ENTRY listEntry;
-    PPHP_KNOWN_MEMORY_REGION knownMemoryRegion;
+    PPH_MEMORY_ITEM memoryItem;
 
-    listEntry = KnownMemoryRegionsListHead->Flink;
+    listEntry = List->ListHead.Flink;
 
-    while (listEntry != KnownMemoryRegionsListHead)
+    while (listEntry != &List->ListHead)
     {
-        knownMemoryRegion = CONTAINING_RECORD(listEntry, PHP_KNOWN_MEMORY_REGION, ListEntry);
+        memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
         listEntry = listEntry->Flink;
 
-        PhSwapReference(&knownMemoryRegion->Name, NULL);
-        PhFree(knownMemoryRegion);
+        PhDereferenceObject(memoryItem);
     }
 }
 
-PPHP_KNOWN_MEMORY_REGION PhpFindKnownMemoryRegion(
-    _In_ PPH_AVL_TREE KnownMemoryRegionsSet,
-    _In_ ULONG_PTR Address
+PPH_MEMORY_ITEM PhLookupMemoryItemList(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ PVOID Address
     )
 {
-    PHP_KNOWN_MEMORY_REGION lookupKnownMemoryRegion;
+    PH_MEMORY_ITEM lookupMemoryItem;
     PPH_AVL_LINKS links;
-    PPHP_KNOWN_MEMORY_REGION knownMemoryRegion;
+    PPH_MEMORY_ITEM memoryItem;
     LONG result;
 
-    // Do an approximate search on the set to locate the known memory region with the largest
+    // Do an approximate search on the set to locate the memory item with the largest
     // base address that is still smaller than the given address.
-    lookupKnownMemoryRegion.Address = Address;
-    links = PhFindElementAvlTree2(KnownMemoryRegionsSet, &lookupKnownMemoryRegion.Links, &result);
-    knownMemoryRegion = NULL;
+    lookupMemoryItem.BaseAddress = Address;
+    links = PhFindElementAvlTree2(&List->Set, &lookupMemoryItem.Links, &result);
+    memoryItem = NULL;
 
     if (links)
     {
@@ -484,7 +238,7 @@ PPHP_KNOWN_MEMORY_REGION PhpFindKnownMemoryRegion(
 
         if (links)
         {
-            knownMemoryRegion = CONTAINING_RECORD(links, PHP_KNOWN_MEMORY_REGION, Links);
+            memoryItem = CONTAINING_RECORD(links, PH_MEMORY_ITEM, Links);
         }
     }
     else
@@ -492,91 +246,211 @@ PPHP_KNOWN_MEMORY_REGION PhpFindKnownMemoryRegion(
         // No modules loaded.
     }
 
-    if (knownMemoryRegion && Address < knownMemoryRegion->Address + knownMemoryRegion->Size)
-        return knownMemoryRegion;
+    if (memoryItem && (ULONG_PTR)Address < (ULONG_PTR)memoryItem->BaseAddress + memoryItem->RegionSize)
+        return memoryItem;
     else
         return NULL;
 }
 
-VOID PhMemoryProviderUpdate(
-    _In_ PPH_MEMORY_PROVIDER Provider
+PPH_MEMORY_ITEM PhpSetMemoryRegionType(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ PVOID Address,
+    _In_ BOOLEAN GoToAllocationBase,
+    _In_ PH_MEMORY_REGION_TYPE RegionType
     )
 {
-    PH_AVL_TREE knownMemoryRegionsSet;
-    LIST_ENTRY knownMemoryRegionsListHead;
-    PVOID baseAddress;
-    MEMORY_BASIC_INFORMATION basicInfo;
+    PPH_MEMORY_ITEM memoryItem;
 
-    if (!Provider->ProcessHandle)
+    memoryItem = PhLookupMemoryItemList(List, Address);
+
+    if (!memoryItem)
+        return NULL;
+
+    if (GoToAllocationBase && memoryItem->AllocationBaseItem)
+        memoryItem = memoryItem->AllocationBaseItem;
+
+    if (memoryItem->RegionType != UnknownRegion)
+        return NULL;
+
+    memoryItem->RegionType = RegionType;
+
+    return memoryItem;
+}
+
+VOID PhpUpdateMemoryRegionTypes(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ HANDLE ProcessHandle
+    )
+{
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+    ULONG i;
+    BOOLEAN isWow64 = FALSE;
+    PPH_MEMORY_ITEM memoryItem;
+    PLIST_ENTRY listEntry;
+
+    if (!NT_SUCCESS(PhEnumProcessesEx(&processes, SystemExtendedProcessInformation)))
         return;
 
-    PhpCreateKnownMemoryRegions(Provider->ProcessId, Provider->ProcessHandle, &knownMemoryRegionsSet, &knownMemoryRegionsListHead);
+    process = PhFindProcessInformation(processes, List->ProcessId);
 
-    baseAddress = (PVOID)0;
-
-    while (NT_SUCCESS(NtQueryVirtualMemory(
-        Provider->ProcessHandle,
-        baseAddress,
-        MemoryBasicInformation,
-        &basicInfo,
-        sizeof(MEMORY_BASIC_INFORMATION),
-        NULL
-        )))
+    if (!process)
     {
-        PPH_MEMORY_ITEM memoryItem;
-        BOOLEAN cont;
+        PhFree(processes);
+        return;
+    }
 
-        if (Provider->IgnoreFreeRegions && basicInfo.Type == MEM_FREE)
-            goto ContinueLoop;
+    // USER_SHARED_DATA
+    PhpSetMemoryRegionType(List, USER_SHARED_DATA, TRUE, UserSharedDataRegion);
 
-        memoryItem = PhCreateMemoryItem();
+    // PEB, heaps
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID peb32;
+        ULONG numberOfHeaps;
+        PVOID processHeapsPtr;
+        PVOID *processHeaps;
+        ULONG processHeapsPtr32;
+        ULONG *processHeaps32;
+        ULONG i;
 
-        memoryItem->BaseAddress = basicInfo.BaseAddress;
-        PhPrintPointer(memoryItem->BaseAddressString, memoryItem->BaseAddress);
-        memoryItem->Size = basicInfo.RegionSize;
-        memoryItem->Flags = basicInfo.State | basicInfo.Type;
-        memoryItem->Protection = basicInfo.Protect;
+        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        {
+            PhpSetMemoryRegionType(List, basicInfo.PebBaseAddress, TRUE, PebRegion);
 
-        // Get the mapped file name.
-        if (memoryItem->Flags & (MEM_MAPPED | MEM_IMAGE))
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, NumberOfHeaps)),
+                &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
+            {
+                processHeaps = PhAllocate(numberOfHeaps * sizeof(PVOID));
+
+                if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                    PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessHeaps)),
+                    &processHeapsPtr, sizeof(PVOID), NULL)) &&
+                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                    processHeapsPtr,
+                    processHeaps, numberOfHeaps * sizeof(PVOID), NULL)))
+                {
+                    for (i = 0; i < numberOfHeaps; i++)
+                    {
+                        if (memoryItem = PhpSetMemoryRegionType(List, processHeaps[i], TRUE, HeapRegion))
+                            memoryItem->u.Heap.Index = i;
+                    }
+                }
+
+                PhFree(processHeaps);
+            }
+        }
+
+        if (NT_SUCCESS(PhGetProcessPeb32(ProcessHandle, &peb32)) && peb32 != 0)
+        {
+            isWow64 = TRUE;
+            PhpSetMemoryRegionType(List, peb32, TRUE, Peb32Region);
+
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, NumberOfHeaps)),
+                &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
+            {
+                processHeaps32 = PhAllocate(numberOfHeaps * sizeof(ULONG));
+
+                if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                    PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessHeaps)),
+                    &processHeapsPtr32, sizeof(ULONG), NULL)) &&
+                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                    (PVOID)processHeapsPtr32,
+                    processHeaps32, numberOfHeaps * sizeof(ULONG), NULL)))
+                {
+                    for (i = 0; i < numberOfHeaps; i++)
+                    {
+                        if (memoryItem = PhpSetMemoryRegionType(List, (PVOID)processHeaps32[i], TRUE, Heap32Region))
+                            memoryItem->u.Heap.Index = i;
+                    }
+                }
+
+                PhFree(processHeaps32);
+            }
+        }
+    }
+
+    // TEB, stacks
+    for (i = 0; i < process->NumberOfThreads; i++)
+    {
+        PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
+
+        if (thread->TebBase)
+        {
+            NT_TIB ntTib;
+            SIZE_T bytesRead;
+
+            if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBase, TRUE, TebRegion))
+                memoryItem->u.Teb.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
+
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
+                bytesRead == sizeof(NT_TIB))
+            {
+                if ((ULONG_PTR)ntTib.StackLimit < (ULONG_PTR)ntTib.StackBase)
+                {
+                    if (memoryItem = PhpSetMemoryRegionType(List, ntTib.StackLimit, TRUE, StackRegion))
+                        memoryItem->u.Stack.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
+                }
+
+                if (isWow64 && ntTib.ExceptionList)
+                {
+                    ULONG teb32 = (ULONG)ntTib.ExceptionList;
+                    NT_TIB32 ntTib32;
+
+                    // 64-bit and 32-bit TEBs usually share the same memory region, so don't do anything for the 32-bit
+                    // TEB.
+
+                    if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, (PVOID)teb32, &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
+                        bytesRead == sizeof(NT_TIB32))
+                    {
+                        if (ntTib32.StackLimit < ntTib32.StackBase)
+                        {
+                            if (memoryItem = PhpSetMemoryRegionType(List, (PVOID)ntTib32.StackLimit, TRUE, Stack32Region))
+                                memoryItem->u.Stack.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Mapped files, heap segments
+    for (listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
+    {
+        memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+
+        if (memoryItem->RegionType != UnknownRegion)
+            continue;
+
+        if ((memoryItem->Type & (MEM_MAPPED | MEM_IMAGE)) && memoryItem->AllocationBaseItem == memoryItem)
         {
             PPH_STRING fileName;
 
-            if (NT_SUCCESS(PhGetProcessMappedFileName(Provider->ProcessHandle, memoryItem->BaseAddress, &fileName)))
+            if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, memoryItem->BaseAddress, &fileName)))
             {
-                memoryItem->Name = PhGetBaseName(fileName);
-                PhDereferenceObject(fileName);
+                PPH_STRING newFileName = PhResolveDevicePrefix(fileName);
+
+                if (newFileName)
+                    PhSwapReference2(&fileName, newFileName);
+
+                memoryItem->RegionType = MappedFileRegion;
+                memoryItem->u.MappedFile.FileName = fileName;
+                continue;
             }
         }
 
-        // Get a known memory region name.
-        if (!memoryItem->Name && basicInfo.BaseAddress)
-        {
-            PPHP_KNOWN_MEMORY_REGION knownMemoryRegion;
-
-            knownMemoryRegion = PhpFindKnownMemoryRegion(&knownMemoryRegionsSet, (ULONG_PTR)basicInfo.BaseAddress);
-
-            // TODO: Assign known memory regions based on AllocationBase, not BaseAddress.
-            if (!knownMemoryRegion)
-                knownMemoryRegion = PhpFindKnownMemoryRegion(&knownMemoryRegionsSet, (ULONG_PTR)basicInfo.AllocationBase);
-
-            if (knownMemoryRegion)
-            {
-                PhReferenceObject(knownMemoryRegion->Name);
-                memoryItem->Name = knownMemoryRegion->Name;
-            }
-        }
-
-        if (!memoryItem->Name && (memoryItem->Flags & MEM_COMMIT))
+        if (memoryItem->State & MEM_COMMIT)
         {
             UCHAR buffer[HEAP_SEGMENT_MAX_SIZE];
 
-            if (NT_SUCCESS(PhReadVirtualMemory(Provider->ProcessHandle, basicInfo.BaseAddress,
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress,
                 buffer, sizeof(buffer), NULL)))
             {
                 PVOID candidateHeap = NULL;
                 ULONG candidateHeap32 = 0;
-                PPHP_KNOWN_MEMORY_REGION knownMemoryRegion;
+                PPH_MEMORY_ITEM heapMemoryItem;
 
                 if (WindowsVersion >= WINDOWS_VISTA)
                 {
@@ -601,29 +475,108 @@ VOID PhMemoryProviderUpdate(
 
                 if (candidateHeap)
                 {
-                    knownMemoryRegion = PhpFindKnownMemoryRegion(&knownMemoryRegionsSet, (ULONG_PTR)candidateHeap);
+                    heapMemoryItem = PhLookupMemoryItemList(List, candidateHeap);
 
-                    if (knownMemoryRegion && knownMemoryRegion->Type == HeapRegion)
-                        memoryItem->Name = PhFormatString(L"Heap %u Segment", knownMemoryRegion->u.Heap.Index);
+                    if (heapMemoryItem && heapMemoryItem->BaseAddress == candidateHeap &&
+                        heapMemoryItem->RegionType == HeapRegion)
+                    {
+                        memoryItem->RegionType = HeapSegmentRegion;
+                        memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
+                        continue;
+                    }
                 }
                 else if (candidateHeap32)
                 {
-                    knownMemoryRegion = PhpFindKnownMemoryRegion(&knownMemoryRegionsSet, (ULONG_PTR)candidateHeap32);
+                    heapMemoryItem = PhLookupMemoryItemList(List, (PVOID)candidateHeap32);
 
-                    if (knownMemoryRegion && knownMemoryRegion->Type == Heap32Region)
-                        memoryItem->Name = PhFormatString(L"32-bit Heap %u Segment", knownMemoryRegion->u.Heap.Index);
+                    if (heapMemoryItem && heapMemoryItem->BaseAddress == (PVOID)candidateHeap32 &&
+                        heapMemoryItem->RegionType == Heap32Region)
+                    {
+                        memoryItem->RegionType = HeapSegment32Region;
+                        memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
+                        continue;
+                    }
                 }
             }
         }
+    }
 
-        cont = Provider->Callback(Provider, memoryItem);
+    PhFree(processes);
+}
 
-        if (!cont)
-            break;
+NTSTATUS PhQueryMemoryItemList(
+    _In_ HANDLE ProcessId,
+    _In_ ULONG Flags,
+    _Out_ PPH_MEMORY_ITEM_LIST List
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    PVOID baseAddress = (PVOID)0;
+    MEMORY_BASIC_INFORMATION basicInfo;
+    PPH_MEMORY_ITEM allocationBaseItem = NULL;
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        ProcessId
+        )))
+    {
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION,
+            ProcessId
+            )))
+        {
+            return status;
+        }
+    }
+
+    List->ProcessId = ProcessId;
+    PhInitializeAvlTree(&List->Set, PhpMemoryItemCompareFunction);
+    InitializeListHead(&List->ListHead);
+
+    while (NT_SUCCESS(NtQueryVirtualMemory(
+        processHandle,
+        baseAddress,
+        MemoryBasicInformation,
+        &basicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
+    {
+        PPH_MEMORY_ITEM memoryItem;
+
+        if (basicInfo.State == MEM_FREE)
+        {
+            if (Flags & PH_QUERY_MEMORY_IGNORE_FREE)
+                goto ContinueLoop;
+
+            basicInfo.AllocationBase = basicInfo.BaseAddress;
+        }
+
+        memoryItem = PhCreateMemoryItem();
+
+        memoryItem->BasicInfo = basicInfo;
+
+        if (basicInfo.AllocationBase == basicInfo.BaseAddress)
+            allocationBaseItem = memoryItem;
+        if (allocationBaseItem && basicInfo.AllocationBase == allocationBaseItem->BaseAddress)
+            memoryItem->AllocationBaseItem = allocationBaseItem;
+
+        PhAddElementAvlTree(&List->Set, &memoryItem->Links);
+        InsertTailList(&List->ListHead, &memoryItem->ListEntry);
 
 ContinueLoop:
         baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
     }
 
-    PhpFreeKnownMemoryRegions(&knownMemoryRegionsListHead);
+    if (Flags & PH_QUERY_MEMORY_REGION_TYPE)
+    {
+        PhpUpdateMemoryRegionTypes(List, processHandle);
+    }
+
+    NtClose(processHandle);
+
+    return STATUS_SUCCESS;
 }

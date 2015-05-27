@@ -499,7 +499,14 @@ static VOID PhpRefreshSectionPageInfo(
     }
 
     if (NT_SUCCESS(PhGetSectionFileName(sectionHandle, &fileName)))
-        PhSwapReference2(&fileName, PhResolveDevicePrefix(fileName));
+    {
+        PPH_STRING newFileName;
+
+        PhAutoDereferenceObject(fileName);
+
+        if (newFileName = PhResolveDevicePrefix(fileName))
+            fileName = PhAutoDereferenceObject(newFileName);
+    }
 
     SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);
     SetDlgItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
