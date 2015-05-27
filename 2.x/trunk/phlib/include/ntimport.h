@@ -10,8 +10,6 @@
 // Only functions appearing in Windows XP and below may be
 // imported normally. The other functions are imported here.
 
-#if !(PHNT_VERSION >= PHNT_WS03)
-
 typedef NTSTATUS (NTAPI *_NtGetNextProcess)(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -28,12 +26,6 @@ typedef NTSTATUS (NTAPI *_NtGetNextThread)(
     _In_ ULONG Flags,
     _Out_ PHANDLE NewThreadHandle
     );
-
-EXT _NtGetNextProcess NtGetNextProcess;
-EXT _NtGetNextThread NtGetNextThread;
-#endif
-
-#if !(PHNT_VERSION >= PHNT_VISTA)
 
 typedef NTSTATUS (NTAPI *_NtQueryInformationEnlistment)(
     _In_ HANDLE EnlistmentHandle,
@@ -67,11 +59,12 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationTransactionManager)(
     _Out_opt_ PULONG ReturnLength
     );
 
-EXT _NtQueryInformationEnlistment NtQueryInformationEnlistment;
-EXT _NtQueryInformationResourceManager NtQueryInformationResourceManager;
-EXT _NtQueryInformationTransaction NtQueryInformationTransaction;
-EXT _NtQueryInformationTransactionManager NtQueryInformationTransactionManager;
-#endif
+EXT _NtGetNextProcess NtGetNextProcess_I;
+EXT _NtGetNextThread NtGetNextThread_I;
+EXT _NtQueryInformationEnlistment NtQueryInformationEnlistment_I;
+EXT _NtQueryInformationResourceManager NtQueryInformationResourceManager_I;
+EXT _NtQueryInformationTransaction NtQueryInformationTransaction_I;
+EXT _NtQueryInformationTransactionManager NtQueryInformationTransactionManager_I;
 
 BOOLEAN PhInitializeImports();
 

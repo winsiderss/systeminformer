@@ -40,7 +40,6 @@
 #define IDD_FINDOBJECTS                 130
 #define IDD_OBJTOKEN                    131
 #define ID_PLUGIN_MENU_ITEM             131
-#define IDD_HEAPS                       132
 #define ID_SHOWCONTEXTMENU              132
 #define IDR_PRIVILEGE                   133
 #define IDC_SEPARATOR                   133
@@ -189,7 +188,6 @@
 #define IDC_SOURCELUID                  1060
 #define IDC_APPCONTAINERSID             1060
 #define IDC_LIST                        1061
-#define IDC_SIZESINBYTES                1062
 #define IDC_PROCESSES                   1063
 #define IDC_SCAN                        1064
 #define IDC_SAVE                        1065

@@ -2956,14 +2956,14 @@ NTSTATUS PhpQueryTransactionManagerVariableSize(
     PVOID buffer;
     ULONG bufferSize = 0x100;
 
-    if (!NtQueryInformationTransactionManager)
+    if (!NtQueryInformationTransactionManager_I)
         return STATUS_NOT_SUPPORTED;
 
     buffer = PhAllocate(bufferSize);
 
     while (TRUE)
     {
-        status = NtQueryInformationTransactionManager(
+        status = NtQueryInformationTransactionManager_I(
             TransactionManagerHandle,
             TransactionManagerInformationClass,
             buffer,
@@ -3004,9 +3004,9 @@ NTSTATUS PhGetTransactionManagerBasicInformation(
     _Out_ PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
     )
 {
-    if (NtQueryInformationTransactionManager)
+    if (NtQueryInformationTransactionManager_I)
     {
-        return NtQueryInformationTransactionManager(
+        return NtQueryInformationTransactionManager_I(
             TransactionManagerHandle,
             TransactionManagerBasicInformation,
             BasicInformation,
@@ -3056,14 +3056,14 @@ NTSTATUS PhpQueryTransactionVariableSize(
     PVOID buffer;
     ULONG bufferSize = 0x100;
 
-    if (!NtQueryInformationTransaction)
+    if (!NtQueryInformationTransaction_I)
         return STATUS_NOT_SUPPORTED;
 
     buffer = PhAllocate(bufferSize);
 
     while (TRUE)
     {
-        status = NtQueryInformationTransaction(
+        status = NtQueryInformationTransaction_I(
             TransactionHandle,
             TransactionInformationClass,
             buffer,
@@ -3104,9 +3104,9 @@ NTSTATUS PhGetTransactionBasicInformation(
     _Out_ PTRANSACTION_BASIC_INFORMATION BasicInformation
     )
 {
-    if (NtQueryInformationTransaction)
+    if (NtQueryInformationTransaction_I)
     {
-        return NtQueryInformationTransaction(
+        return NtQueryInformationTransaction_I(
             TransactionHandle,
             TransactionBasicInformation,
             BasicInformation,
@@ -3172,14 +3172,14 @@ NTSTATUS PhpQueryResourceManagerVariableSize(
     PVOID buffer;
     ULONG bufferSize = 0x100;
 
-    if (!NtQueryInformationResourceManager)
+    if (!NtQueryInformationResourceManager_I)
         return STATUS_NOT_SUPPORTED;
 
     buffer = PhAllocate(bufferSize);
 
     while (TRUE)
     {
-        status = NtQueryInformationResourceManager(
+        status = NtQueryInformationResourceManager_I(
             ResourceManagerHandle,
             ResourceManagerInformationClass,
             buffer,
@@ -3256,9 +3256,9 @@ NTSTATUS PhGetEnlistmentBasicInformation(
     _Out_ PENLISTMENT_BASIC_INFORMATION BasicInformation
     )
 {
-    if (NtQueryInformationEnlistment)
+    if (NtQueryInformationEnlistment_I)
     {
-        return NtQueryInformationEnlistment(
+        return NtQueryInformationEnlistment_I(
             EnlistmentHandle,
             EnlistmentBasicInformation,
             BasicInformation,
