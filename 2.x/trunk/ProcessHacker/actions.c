@@ -3000,7 +3000,7 @@ BOOLEAN PhUiFreeMemory(
         PWSTR verb;
         PWSTR message;
 
-        if (!(MemoryItem->Flags & (MEM_MAPPED | MEM_IMAGE)))
+        if (!(MemoryItem->Type & (MEM_MAPPED | MEM_IMAGE)))
         {
             if (Free)
             {
@@ -3046,13 +3046,13 @@ BOOLEAN PhUiFreeMemory(
 
         baseAddress = MemoryItem->BaseAddress;
 
-        if (!(MemoryItem->Flags & (MEM_MAPPED | MEM_IMAGE)))
+        if (!(MemoryItem->Type & (MEM_MAPPED | MEM_IMAGE)))
         {
             // The size needs to be 0 if we're freeing.
             if (Free)
                 regionSize = 0;
             else
-                regionSize = MemoryItem->Size;
+                regionSize = MemoryItem->RegionSize;
 
             status = NtFreeVirtualMemory(
                 processHandle,
@@ -3073,7 +3073,7 @@ BOOLEAN PhUiFreeMemory(
     {
         PWSTR message;
 
-        if (!(MemoryItem->Flags & (MEM_MAPPED | MEM_IMAGE)))
+        if (!(MemoryItem->Type & (MEM_MAPPED | MEM_IMAGE)))
         {
             if (Free)
                 message = L"Unable to free the memory region";

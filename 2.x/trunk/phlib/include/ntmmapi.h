@@ -85,7 +85,7 @@ typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
     union
     {
         MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
-        ULONG Long;
+        ULONG_PTR Long;
     } u1;
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 

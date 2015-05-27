@@ -62,7 +62,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
 VOID PhInitializeHandleList(
     _In_ HWND ParentWindowHandle,
     _In_ HWND TreeNewHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {

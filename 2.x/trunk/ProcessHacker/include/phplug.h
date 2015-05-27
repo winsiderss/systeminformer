@@ -40,6 +40,9 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackThreadStackControl = 26, // PPH_PLUGIN_THREAD_STACK_CONTROL Data [properties thread]
     GeneralCallbackSystemInformationInitializing = 27, // PPH_PLUGIN_SYSINFO_POINTERS Data [system information thread]
     GeneralCallbackMainWindowTabChanged = 28, // INT NewIndex [main thread]
+    GeneralCallbackMemoryTreeNewInitializing = 29, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
+    GeneralCallbackMemoryTreeNewUninitializing = 30, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
+    GeneralCallbackMemoryItemListControl = 31, // PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL Data [properties thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -143,8 +146,8 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
         struct
         {
             HANDLE ProcessId;
-            PPH_MEMORY_ITEM *MemoryItems;
-            ULONG NumberOfMemoryItems;
+            PPH_MEMORY_NODE *MemoryNodes;
+            ULONG NumberOfMemoryNodes;
         } Memory;
         struct
         {
@@ -209,6 +212,25 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
         } WalkStack;
     } u;
 } PH_PLUGIN_THREAD_STACK_CONTROL, *PPH_PLUGIN_THREAD_STACK_CONTROL;
+
+typedef enum _PH_PLUGIN_MEMORY_ITEM_LIST_CONTROL_TYPE
+{
+    PluginMemoryItemListInitialized,
+    PluginMemoryItemListMaximum
+} PH_PLUGIN_MEMORY_ITEM_LIST_CONTROL_TYPE;
+
+typedef struct _PH_PLUGIN_MEMORY_ITEM_LIST_CONTROL
+{
+    PH_PLUGIN_MEMORY_ITEM_LIST_CONTROL_TYPE Type;
+
+    union
+    {
+        struct
+        {
+            PPH_MEMORY_ITEM_LIST List;
+        } Initialized;
+    } u;
+} PH_PLUGIN_MEMORY_ITEM_LIST_CONTROL, *PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL;
 
 typedef PPH_SYSINFO_SECTION (NTAPI *PPH_SYSINFO_CREATE_SECTION)(
     _In_ PPH_SYSINFO_SECTION Template

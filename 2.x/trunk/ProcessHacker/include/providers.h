@@ -516,10 +516,8 @@ PWSTR PhGetTcpStateName(
 
 // modprv
 
-#ifndef PH_MODPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhModuleProviderType;
 extern PPH_OBJECT_TYPE PhModuleItemType;
-#endif
 
 typedef struct _PH_MODULE_ITEM
 {
@@ -591,10 +589,8 @@ VOID PhModuleProviderUpdate(
 
 // thrdprv
 
-#ifndef PH_THRDPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhThreadProviderType;
 extern PPH_OBJECT_TYPE PhThreadItemType;
-#endif
 
 typedef struct _PH_THREAD_ITEM
 {
@@ -693,10 +689,8 @@ VOID PhThreadProviderInitialUpdate(
 
 // hndlprv
 
-#ifndef PH_HNDLPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhHandleProviderType;
 extern PPH_OBJECT_TYPE PhHandleItemType;
-#endif
 
 #define PH_HANDLE_FILE_SHARED_READ 0x1
 #define PH_HANDLE_FILE_SHARED_WRITE 0x2
@@ -775,52 +769,107 @@ VOID PhHandleProviderUpdate(
 
 // memprv
 
-#ifndef PH_MEMPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhMemoryItemType;
-#endif
+
+typedef enum _PH_MEMORY_REGION_TYPE
+{
+    UnknownRegion,
+    CustomRegion,
+    MappedFileRegion,
+    UserSharedDataRegion,
+    PebRegion,
+    Peb32Region,
+    TebRegion,
+    Teb32Region, // Not used
+    StackRegion,
+    Stack32Region,
+    HeapRegion,
+    Heap32Region,
+    HeapSegmentRegion,
+    HeapSegment32Region
+} PH_MEMORY_REGION_TYPE;
 
 typedef struct _PH_MEMORY_ITEM
 {
-    PVOID BaseAddress;
-    ULONG_PTR Size;
-    ULONG Flags;
-    ULONG Protection;
+    LIST_ENTRY ListEntry;
+    PH_AVL_LINKS Links;
 
-    WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
-    PPH_STRING Name;
+    union
+    {
+        struct
+        {
+            PVOID BaseAddress;
+            PVOID AllocationBase;
+            ULONG AllocationProtect;
+            SIZE_T RegionSize;
+            ULONG State;
+            ULONG Protect;
+            ULONG Type;
+        };
+        MEMORY_BASIC_INFORMATION BasicInfo;
+    };
+
+    struct _PH_MEMORY_ITEM *AllocationBaseItem;
+
+    ULONG NumberOfPrivatePages;
+    ULONG NumberOfSharedPages;
+    ULONG NumberOfShareablePages;
+    ULONG NumberOfLockedPages;
+
+    PH_MEMORY_REGION_TYPE RegionType;
+
+    union
+    {
+        struct
+        {
+            PPH_STRING Text;
+            BOOLEAN PropertyOfAllocationBase;
+        } Custom;
+        struct
+        {
+            PPH_STRING FileName;
+        } MappedFile;
+        struct
+        {
+            HANDLE ThreadId;
+        } Teb;
+        struct
+        {
+            HANDLE ThreadId;
+        } Stack;
+        struct
+        {
+            ULONG Index;
+        } Heap;
+        struct
+        {
+            struct _PH_MEMORY_ITEM *HeapItem;
+        } HeapSegment;
+    } u;
 } PH_MEMORY_ITEM, *PPH_MEMORY_ITEM;
 
-typedef struct _PH_MEMORY_PROVIDER *PPH_MEMORY_PROVIDER;
-
-typedef BOOLEAN (NTAPI *PPH_MEMORY_PROVIDER_CALLBACK)(
-    _In_ PPH_MEMORY_PROVIDER Provider,
-    _In_ _Assume_refs_(1) PPH_MEMORY_ITEM MemoryItem
-    );
-
-typedef struct _PH_MEMORY_PROVIDER
+typedef struct _PH_MEMORY_ITEM_LIST
 {
-    PPH_MEMORY_PROVIDER_CALLBACK Callback;
-    PVOID Context;
-
     HANDLE ProcessId;
-    HANDLE ProcessHandle;
-
-    BOOLEAN IgnoreFreeRegions;
-} PH_MEMORY_PROVIDER, *PPH_MEMORY_PROVIDER;
+    PH_AVL_TREE Set;
+    LIST_ENTRY ListHead;
+} PH_MEMORY_ITEM_LIST, *PPH_MEMORY_ITEM_LIST;
 
 BOOLEAN PhMemoryProviderInitialization(
     VOID
     );
 
-VOID PhInitializeMemoryProvider(
-    _Out_ PPH_MEMORY_PROVIDER Provider,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_MEMORY_PROVIDER_CALLBACK Callback,
-    _In_opt_ PVOID Context
+VOID PhGetMemoryProtectionString(
+    _In_ ULONG Protection,
+    _Out_writes_(17) PWSTR String
     );
 
-VOID PhDeleteMemoryProvider(
-    _Inout_ PPH_MEMORY_PROVIDER Provider
+PWSTR PhGetMemoryStateString(
+    _In_ ULONG State
+    );
+
+PWSTR PhGetMemoryTypeString(
+    _In_ ULONG Type
     );
 
 PPH_MEMORY_ITEM PhCreateMemoryItem(
@@ -828,23 +877,25 @@ PPH_MEMORY_ITEM PhCreateMemoryItem(
     );
 
 PHAPPAPI
-VOID PhGetMemoryProtectionString(
-    _In_ ULONG Protection,
-    _Out_writes_(17) PWSTR String
+VOID PhDeleteMemoryItemList(
+    _In_ PPH_MEMORY_ITEM_LIST List
     );
 
 PHAPPAPI
-PWSTR PhGetMemoryStateString(
-    _In_ ULONG State
+PPH_MEMORY_ITEM PhLookupMemoryItemList(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ PVOID Address
     );
+
+#define PH_QUERY_MEMORY_IGNORE_FREE 0x1
+#define PH_QUERY_MEMORY_REGION_TYPE 0x2
+#define PH_QUERY_MEMORY_WS_COUNTERS 0x4
 
 PHAPPAPI
-PWSTR PhGetMemoryTypeString(
-    _In_ ULONG Type
-    );
-
-VOID PhMemoryProviderUpdate(
-    _In_ PPH_MEMORY_PROVIDER Provider
+NTSTATUS PhQueryMemoryItemList(
+    _In_ HANDLE ProcessId,
+    _In_ ULONG Flags,
+    _Out_ PPH_MEMORY_ITEM_LIST List
     );
 
 #endif
