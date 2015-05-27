@@ -287,7 +287,8 @@ VOID PhReplaceMemoryList(
             }
             else
             {
-                PhpCopyMemoryRegionTypeInfo(allocationBaseNode->MemoryItem, memoryItem);
+                if (memoryItem->RegionType == UnknownRegion)
+                    PhpCopyMemoryRegionTypeInfo(allocationBaseNode->MemoryItem, memoryItem);
             }
         }
 
@@ -339,11 +340,11 @@ PPH_STRING PhpGetMemoryRegionUseText(
     case HeapRegion:
     case Heap32Region:
         return PhFormatString(L"Heap%s (ID %u)",
-            type == Heap32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.Heap.Index);
+            type == Heap32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.Heap.Index + 1);
     case HeapSegmentRegion:
     case HeapSegment32Region:
         return PhFormatString(L"Heap Segment%s (ID %u)",
-            type == HeapSegment32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.HeapSegment.HeapItem->u.Heap.Index);
+            type == HeapSegment32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.HeapSegment.HeapItem->u.Heap.Index + 1);
     default:
         return PhReferenceEmptyString();
     }
