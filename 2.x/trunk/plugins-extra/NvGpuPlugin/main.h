@@ -23,9 +23,9 @@
 #ifndef _NVGPU_H_
 #define _NVGPU_H_
 
-#define SETTING_PREFIX L"dmex.NvGpuPlugin"
-#define SETTING_NAME_ENABLE_MONITORING (SETTING_PREFIX L".Enabled")
-#define SETTING_NAME_ENABLE_FAHRENHEIT (SETTING_PREFIX L".EnableFahrenheit")
+#define PLUGIN_NAME L"dmex.NvGpuPlugin"
+#define SETTING_NAME_ENABLE_MONITORING (PLUGIN_NAME L".Enabled")
+#define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".EnableFahrenheit")
 
 #define CINTERFACE
 #define COBJMACROS
