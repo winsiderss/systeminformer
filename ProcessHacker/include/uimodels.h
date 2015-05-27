@@ -1005,6 +1005,7 @@ typedef struct _PH_MEMORY_LIST_CONTEXT
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
+    BOOLEAN HideFreeRegions;
 
     PPH_LIST AllocationBaseNodeList; // Allocation base nodes (list should always be sorted by base address)
     PPH_LIST RegionNodeList; // Memory region nodes
@@ -1026,6 +1027,11 @@ VOID PhLoadSettingsMemoryList(
 
 VOID PhSaveSettingsMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
+    );
+
+VOID PhSetOptionsMemoryList(
+    _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
+    _In_ BOOLEAN HideFreeRegions
     );
 
 VOID PhReplaceMemoryList(
