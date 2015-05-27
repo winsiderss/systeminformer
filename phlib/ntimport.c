@@ -2,7 +2,7 @@
  * Process Hacker -
  *   function import module
  *
- * Copyright (C) 2009-2010 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -23,7 +23,7 @@
 #define _PH_NTIMPORT_PRIVATE
 #include <ph.h>
 
-#define InitProc(DllHandle, ProcName) ((ProcName) = (_##ProcName)GetProcAddress(DllHandle, #ProcName))
+#define InitProc(DllHandle, ProcName) ((ProcName##_I) = (_##ProcName)GetProcAddress(DllHandle, #ProcName))
 
 BOOLEAN PhInitializeImports()
 {
@@ -33,17 +33,12 @@ BOOLEAN PhInitializeImports()
 
     if (ntdll)
     {
-#if !(PHNT_VERSION >= PHNT_WS03)
         InitProc(ntdll, NtGetNextProcess);
         InitProc(ntdll, NtGetNextThread);
-#endif
-
-#if !(PHNT_VERSION >= PHNT_VISTA)
         InitProc(ntdll, NtQueryInformationEnlistment);
         InitProc(ntdll, NtQueryInformationResourceManager);
         InitProc(ntdll, NtQueryInformationTransaction);
         InitProc(ntdll, NtQueryInformationTransactionManager);
-#endif
     }
 
     return TRUE;

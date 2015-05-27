@@ -264,7 +264,6 @@
     <ClCompile Include="extmgr.c" />
     <ClCompile Include="findobj.c" />
     <ClCompile Include="gdihndl.c" />
-    <ClCompile Include="heapinfo.c" />
     <ClCompile Include="hidnproc.c" />
     <ClCompile Include="hndllist.c" />
     <ClCompile Include="hndlprp.c" />
@@ -357,6 +356,7 @@
     <ClInclude Include="include\colmgr.h" />
     <ClInclude Include="include\extmgr.h" />
     <ClInclude Include="include\extmgri.h" />
+    <ClInclude Include="include\heapstruct.h" />
     <ClInclude Include="include\mainwndp.h" />
     <ClInclude Include="include\notifico.h" />
     <ClInclude Include="include\phsvccl.h" />

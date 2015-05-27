@@ -2,6 +2,7 @@ Process Hacker
 
 2.36
  * NEW/IMPROVED:
+   * Added names for heap regions in Memory tab
    * Added trigger and delayed start information to service list
    * Updated DotNetTools plugin:
      * Added AppDomain column for threads in .NET programs
