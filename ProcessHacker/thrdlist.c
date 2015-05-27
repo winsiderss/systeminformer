@@ -63,7 +63,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 VOID PhInitializeThreadList(
     _In_ HWND ParentWindowHandle,
     _In_ HWND TreeNewHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PPH_THREAD_LIST_CONTEXT Context
     )
 {

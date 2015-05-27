@@ -48,7 +48,8 @@ typedef struct _PH_TREENEW_NODE
             ULONG Expanded : 1;
             ULONG UseAutoForeColor : 1;
             ULONG UseTempBackColor : 1;
-            ULONG SpareFlags : 27;
+            ULONG Unselectable : 1;
+            ULONG SpareFlags : 26;
         };
     };
 

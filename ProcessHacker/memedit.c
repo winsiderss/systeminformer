@@ -386,7 +386,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                     while (PhaChoiceDialog(
                         hwndDlg,
-                        L"Goto Offset",
+                        L"Go to Offset",
                         L"Enter an offset:",
                         NULL,
                         0,

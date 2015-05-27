@@ -2,7 +2,7 @@
  * Process Hacker -
  *   process properties
  *
- * Copyright (C) 2009-2013 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -43,6 +43,7 @@ static PWSTR ProtectedSignerStrings[] = { L"", L" (Authenticode)", L" (CodeGen)"
 static PH_STRINGREF LoadingText = PH_STRINGREF_INIT(L"Loading...");
 static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");
 static PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
+static PH_STRINGREF EmptyMemoryText = PH_STRINGREF_INIT(L"There are no memory regions to display.");
 static PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
 
 BOOLEAN PhProcessPropInitialization(
@@ -2574,10 +2575,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             threadsContext->WindowHandle = hwndDlg;
 
             // Initialize the list.
-            threadsContext->ListContext.TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            tnHandle = threadsContext->ListContext.TreeNewHandle;
+            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
-            PhInitializeThreadList(hwndDlg, tnHandle, processItem, &threadsContext->ListContext);
+            PhInitializeThreadList(hwndDlg, tnHandle, &threadsContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &EmptyThreadsText, 0);
             threadsContext->NeedsRedraw = FALSE;
 
@@ -3458,10 +3458,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->WindowHandle = hwndDlg;
 
             // Initialize the list.
-            modulesContext->ListContext.TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            tnHandle = modulesContext->ListContext.TreeNewHandle;
+            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
-            PhInitializeModuleList(hwndDlg, tnHandle, processItem, &modulesContext->ListContext);
+            PhInitializeModuleList(hwndDlg, tnHandle, &modulesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &LoadingText, 0);
             modulesContext->NeedsRedraw = FALSE;
             modulesContext->LastRunStatus = -1;
@@ -3730,159 +3729,155 @@ VOID PhpRefreshProcessMemoryList(
 {
     PPH_MEMORY_CONTEXT memoryContext = PropPageContext->Context;
 
-    ExtendedListView_SetRedraw(memoryContext->ListViewHandle, FALSE);
-
-    // Get rid of existing memory items.
-    PhDereferenceObjects(memoryContext->MemoryList->Items, memoryContext->MemoryList->Count);
-    PhClearList(memoryContext->MemoryList);
-    ListView_DeleteAllItems(memoryContext->ListViewHandle);
-
-    PhMemoryProviderUpdate(&memoryContext->Provider);
-    ExtendedListView_SortItems(memoryContext->ListViewHandle);
-    ExtendedListView_SetRedraw(memoryContext->ListViewHandle, TRUE);
-}
-
-BOOLEAN NTAPI PhpProcessMemoryCallback(
-    _In_ PPH_MEMORY_PROVIDER Provider,
-    _In_ _Assume_refs_(1) PPH_MEMORY_ITEM MemoryItem
-    )
-{
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext = Provider->Context;
-    PPH_MEMORY_CONTEXT memoryContext = propPageContext->Context;
-    INT lvItemIndex;
-    PPH_STRING string;
-    PWSTR name;
-    WCHAR protectionString[17];
-
-    PhAddItemList(memoryContext->MemoryList, MemoryItem);
-
-    // Name
-
-    string = NULL;
-
-    if (MemoryItem->Name)
+    if (memoryContext->MemoryItemListValid)
     {
-        string = PhConcatStrings(
-            6,
-            MemoryItem->Name->Buffer,
-            L": ",
-            PhGetMemoryTypeString(MemoryItem->Flags),
-            L" (",
-            PhGetMemoryStateString(MemoryItem->Flags),
-            L")"
-            );
-        name = string->Buffer;
+        PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
+        memoryContext->MemoryItemListValid = FALSE;
     }
-    else if (MemoryItem->Flags & MEM_FREE)
+
+    memoryContext->LastRunStatus = PhQueryMemoryItemList(
+        memoryContext->ProcessId,
+        PH_QUERY_MEMORY_REGION_TYPE | PH_QUERY_MEMORY_WS_COUNTERS,
+        &memoryContext->MemoryItemList
+        );
+
+    if (NT_SUCCESS(memoryContext->LastRunStatus))
     {
-        name = L"Free";
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_MEMORY_ITEM_LIST_CONTROL control;
+
+            control.Type = PluginMemoryItemListInitialized;
+            control.u.Initialized.List = &memoryContext->MemoryItemList;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMemoryItemListControl), &control);
+        }
+
+        memoryContext->MemoryItemListValid = TRUE;
+        TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);
+        PhReplaceMemoryList(&memoryContext->ListContext, &memoryContext->MemoryItemList);
     }
     else
     {
-        string = PhConcatStrings(
-            4,
-            PhGetMemoryTypeString(MemoryItem->Flags),
-            L" (",
-            PhGetMemoryStateString(MemoryItem->Flags),
-            L")"
-            );
-        name = string->Buffer;
+        PPH_STRING message;
+
+        message = PhGetStatusMessage(memoryContext->LastRunStatus, 0);
+        PhSwapReference2(&memoryContext->ErrorMessage, PhFormatString(L"Unable to query memory information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
+        PhSwapReference(&message, NULL);
+        TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &memoryContext->ErrorMessage->sr, 0);
+
+        PhReplaceMemoryList(&memoryContext->ListContext, NULL);
     }
-
-    lvItemIndex = PhAddListViewItem(memoryContext->ListViewHandle, MAXINT, name, MemoryItem);
-
-    if (string)
-        PhDereferenceObject(string);
-
-    // Base address
-    PhSetListViewSubItem(memoryContext->ListViewHandle, lvItemIndex, 1, MemoryItem->BaseAddressString);
-
-    // Size
-    string = PhFormatSize(MemoryItem->Size, -1);
-    PhSetListViewSubItem(memoryContext->ListViewHandle, lvItemIndex, 2, string->Buffer);
-    PhDereferenceObject(string);
-
-    // Protection
-    PhGetMemoryProtectionString(MemoryItem->Protection, protectionString);
-    PhSetListViewSubItem(memoryContext->ListViewHandle, lvItemIndex, 3, protectionString);
-
-    return TRUE;
-}
-
-VOID PhpUpdateMemoryItemInListView(
-    _In_ HANDLE ListViewHandle,
-    _In_ PPH_MEMORY_ITEM MemoryItem
-    )
-{
-    INT lvItemIndex;
-
-    lvItemIndex = PhFindListViewItemByParam(ListViewHandle, -1, MemoryItem);
-
-    if (lvItemIndex != -1)
-    {
-        WCHAR protectionString[17];
-
-        PhGetMemoryProtectionString(MemoryItem->Protection, protectionString);
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, protectionString);
-    }
-}
-
-INT NTAPI PhpMemoryAddressCompareFunction(
-    _In_ PVOID Item1,
-    _In_ PVOID Item2,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_MEMORY_ITEM item1 = Item1;
-    PPH_MEMORY_ITEM item2 = Item2;
-
-    return uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress);
-}
-
-INT NTAPI PhpMemorySizeCompareFunction(
-    _In_ PVOID Item1,
-    _In_ PVOID Item2,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_MEMORY_ITEM item1 = Item1;
-    PPH_MEMORY_ITEM item2 = Item2;
-
-    return uintptrcmp(item1->Size, item2->Size);
 }
 
 VOID PhpInitializeMemoryMenu(
     _In_ PPH_EMENU Menu,
     _In_ HANDLE ProcessId,
-    _In_ PPH_MEMORY_ITEM *MemoryItems,
-    _In_ ULONG NumberOfMemoryItems
+    _In_ PPH_MEMORY_NODE *MemoryNodes,
+    _In_ ULONG NumberOfMemoryNodes
     )
 {
-    if (NumberOfMemoryItems == 0)
+    if (NumberOfMemoryNodes == 0)
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
-    else if (NumberOfMemoryItems == 1)
+    else if (NumberOfMemoryNodes == 1 && !MemoryNodes[0]->IsAllocationBase)
     {
-        if (MemoryItems[0]->Flags & MEM_FREE)
+        if (MemoryNodes[0]->MemoryItem->State & MEM_FREE)
         {
             PhEnableEMenuItem(Menu, ID_MEMORY_CHANGEPROTECTION, FALSE);
             PhEnableEMenuItem(Menu, ID_MEMORY_FREE, FALSE);
             PhEnableEMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
         }
-        else if (MemoryItems[0]->Flags & (MEM_MAPPED | MEM_IMAGE))
+        else if (MemoryNodes[0]->MemoryItem->Type & (MEM_MAPPED | MEM_IMAGE))
         {
             PhEnableEMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
         }
     }
     else
     {
+        ULONG i;
+        ULONG numberOfAllocationBase = 0;
+
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
-        PhEnableEMenuItem(Menu, ID_MEMORY_SAVE, TRUE);
         PhEnableEMenuItem(Menu, ID_MEMORY_COPY, TRUE);
+
+        for (i = 0; i < NumberOfMemoryNodes; i++)
+        {
+            if (MemoryNodes[i]->IsAllocationBase)
+                numberOfAllocationBase++;
+        }
+
+        if (numberOfAllocationBase == 0 || numberOfAllocationBase == NumberOfMemoryNodes)
+            PhEnableEMenuItem(Menu, ID_MEMORY_SAVE, TRUE);
     }
 
     PhEnableEMenuItem(Menu, ID_MEMORY_READWRITEADDRESS, TRUE);
+}
+
+VOID PhShowMemoryContextMenu(
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_MEMORY_CONTEXT Context,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
+    )
+{
+    PPH_MEMORY_NODE *memoryNodes;
+    ULONG numberOfMemoryNodes;
+
+    PhGetSelectedMemoryNodes(&Context->ListContext, &memoryNodes, &numberOfMemoryNodes);
+
+    if (numberOfMemoryNodes != 0)
+    {
+        PPH_EMENU menu;
+        PPH_EMENU_ITEM item;
+
+        menu = PhCreateEMenu();
+        PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMORY), 0);
+        PhSetFlagsEMenuItem(menu, ID_MEMORY_READWRITEMEMORY, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
+        PhpInitializeMemoryMenu(menu, ProcessItem->ProcessId, memoryNodes, numberOfMemoryNodes);
+        PhInsertCopyCellEMenuItem(menu, ID_MEMORY_COPY, Context->ListContext.TreeNewHandle, ContextMenu->Column);
+
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+            menuInfo.Menu = menu;
+            menuInfo.OwnerWindow = hwndDlg;
+            menuInfo.u.Memory.ProcessId = ProcessItem->ProcessId;
+            menuInfo.u.Memory.MemoryNodes = memoryNodes;
+            menuInfo.u.Memory.NumberOfMemoryNodes = numberOfMemoryNodes;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMemoryMenuInitializing), &menuInfo);
+        }
+
+        item = PhShowEMenu(
+            menu,
+            hwndDlg,
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+            ContextMenu->Location.x,
+            ContextMenu->Location.y
+            );
+
+        if (item)
+        {
+            BOOLEAN handled = FALSE;
+
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled && PhPluginsEnabled)
+                handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+
+            if (!handled)
+                SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+        }
+
+        PhDestroyEMenu(menu);
+    }
+
+    PhFree(memoryNodes);
 }
 
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
@@ -3895,59 +3890,77 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
-    HWND lvHandle;
+    PPH_MEMORY_CONTEXT memoryContext;
+    HWND tnHandle;
 
-    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
-        return FALSE;
+    {
+        memoryContext = (PPH_MEMORY_CONTEXT)propPageContext->Context;
 
-    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+        if (memoryContext)
+            tnHandle = memoryContext->ListContext.TreeNewHandle;
+    }
+    else
+    {
+        return FALSE;
+    }
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PPH_MEMORY_CONTEXT memoryContext;
-
             memoryContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_MEMORY_CONTEXT));
-            PhInitializeMemoryProvider(
-                &memoryContext->Provider,
-                processItem->ProcessId,
-                PhpProcessMemoryCallback,
-                propPageContext
-                );
-            memoryContext->MemoryList = PhCreateList(40);
-            memoryContext->ListViewHandle = lvHandle;
+                PhAllocate(PhEmGetObjectSize(EmMemoryContextType, sizeof(PH_MEMORY_CONTEXT)));
+            memset(memoryContext, 0, sizeof(PH_MEMORY_CONTEXT));
+            memoryContext->ProcessId = processItem->ProcessId;
 
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Address");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 60, L"Size");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 60, L"Protection");
+            // Initialize the list.
+            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            BringWindowToTop(tnHandle);
+            PhInitializeMemoryList(hwndDlg, tnHandle, &memoryContext->ListContext);
+            TreeNew_SetEmptyText(tnHandle, &LoadingText, 0);
+            memoryContext->LastRunStatus = -1;
+            memoryContext->ErrorMessage = NULL;
 
-            PhSetExtendedListView(lvHandle);
-            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpMemoryAddressCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpMemorySizeCompareFunction);
-            PhLoadListViewColumnsFromSetting(L"MemoryListViewColumns", lvHandle);
-            ExtendedListView_SetSort(lvHandle, 1, AscendingSortOrder);
+            PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectCreate);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &memoryContext->ListContext.Cm;
+                treeNewInfo.SystemContext = memoryContext;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMemoryTreeNewInitializing), &treeNewInfo);
+            }
+
+            PhLoadSettingsMemoryList(&memoryContext->ListContext);
 
             PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
         }
         break;
     case WM_DESTROY:
         {
-            PPH_MEMORY_CONTEXT memoryContext;
+            PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectDelete);
 
-            memoryContext = propPageContext->Context;
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-            PhDereferenceObjects(memoryContext->MemoryList->Items, memoryContext->MemoryList->Count);
-            PhDereferenceObject(memoryContext->MemoryList);
-            PhDeleteMemoryProvider(&memoryContext->Provider);
+                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.CmData = &memoryContext->ListContext.Cm;
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMemoryTreeNewUninitializing), &treeNewInfo);
+            }
+
+            PhSaveSettingsMemoryList(&memoryContext->ListContext);
+            PhDeleteMemoryList(&memoryContext->ListContext);
+
+            if (memoryContext->MemoryItemListValid)
+                PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
+
+            PhSwapReference(&memoryContext->ErrorMessage, NULL);
             PhFree(memoryContext);
-
-            PhSaveListViewColumnsToSetting(L"MemoryListViewColumns", lvHandle);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -3962,7 +3975,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, lvHandle,
+                PhAddPropPageLayoutItem(hwndDlg, memoryContext->ListContext.TreeNewHandle,
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
@@ -3975,20 +3988,25 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         {
             switch (LOWORD(wParam))
             {
+            case ID_SHOWCONTEXTMENU:
+                {
+                    PhShowMemoryContextMenu(hwndDlg, processItem, memoryContext, (PPH_TREENEW_CONTEXT_MENU)lParam);
+                }
+                break;
             case ID_MEMORY_READWRITEMEMORY:
                 {
-                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MEMORY_NODE memoryNode = PhGetSelectedMemoryNode(&memoryContext->ListContext);
 
-                    if (memoryItem)
+                    if (memoryNode && !memoryNode->IsAllocationBase)
                     {
-                        if (memoryItem->Flags & MEM_COMMIT)
+                        if (memoryNode->MemoryItem->State & MEM_COMMIT)
                         {
                             PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
 
                             memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
                             showMemoryEditor->ProcessId = processItem->ProcessId;
-                            showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
-                            showMemoryEditor->RegionSize = memoryItem->Size;
+                            showMemoryEditor->BaseAddress = memoryNode->MemoryItem->BaseAddress;
+                            showMemoryEditor->RegionSize = memoryNode->MemoryItem->RegionSize;
                             showMemoryEditor->SelectOffset = -1;
                             showMemoryEditor->SelectLength = 0;
                             ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
@@ -4004,8 +4022,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                 {
                     NTSTATUS status;
                     HANDLE processHandle;
-                    PPH_MEMORY_ITEM *memoryItems;
-                    ULONG numberOfMemoryItems;
+                    PPH_MEMORY_NODE *memoryNodes;
+                    ULONG numberOfMemoryNodes;
 
                     if (!NT_SUCCESS(status = PhOpenProcess(
                         &processHandle,
@@ -4017,9 +4035,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         break;
                     }
 
-                    PhGetSelectedListViewItemParams(lvHandle, &memoryItems, &numberOfMemoryItems);
+                    PhGetSelectedMemoryNodes(&memoryContext->ListContext, &memoryNodes, &numberOfMemoryNodes);
 
-                    if (numberOfMemoryItems != 0)
+                    if (numberOfMemoryNodes != 0)
                     {
                         static PH_FILETYPE_FILTER filters[] =
                         {
@@ -4057,14 +4075,15 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                                 // Go through each selected memory item and append the region contents
                                 // to the file.
-                                for (i = 0; i < numberOfMemoryItems; i++)
+                                for (i = 0; i < numberOfMemoryNodes; i++)
                                 {
-                                    PPH_MEMORY_ITEM memoryItem = memoryItems[i];
+                                    PPH_MEMORY_NODE memoryNode = memoryNodes[i];
+                                    PPH_MEMORY_ITEM memoryItem = memoryNode->MemoryItem;
 
-                                    if (!(memoryItem->Flags & MEM_COMMIT))
+                                    if (!memoryNode->IsAllocationBase && !(memoryItem->State & MEM_COMMIT))
                                         continue;
 
-                                    for (offset = 0; offset < memoryItem->Size; offset += PAGE_SIZE)
+                                    for (offset = 0; offset < memoryItem->RegionSize; offset += PAGE_SIZE)
                                     {
                                         if (NT_SUCCESS(PhReadVirtualMemory(
                                             processHandle,
@@ -4091,54 +4110,56 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         PhFreeFileDialog(fileDialog);
                     }
 
-                    PhFree(memoryItems);
+                    PhFree(memoryNodes);
                     NtClose(processHandle);
                 }
                 break;
             case ID_MEMORY_CHANGEPROTECTION:
                 {
-                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MEMORY_NODE memoryNode = PhGetSelectedMemoryNode(&memoryContext->ListContext);
 
-                    if (memoryItem)
+                    if (memoryNode)
                     {
-                        PhReferenceObject(memoryItem);
+                        PhReferenceObject(memoryNode->MemoryItem);
 
-                        PhShowMemoryProtectDialog(hwndDlg, processItem, memoryItem);
-                        PhpUpdateMemoryItemInListView(lvHandle, memoryItem);
+                        PhShowMemoryProtectDialog(hwndDlg, processItem, memoryNode->MemoryItem);
+                        PhUpdateMemoryNode(&memoryContext->ListContext, memoryNode);
 
-                        PhDereferenceObject(memoryItem);
+                        PhDereferenceObject(memoryNode->MemoryItem);
                     }
                 }
                 break;
             case ID_MEMORY_FREE:
                 {
-                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MEMORY_NODE memoryNode = PhGetSelectedMemoryNode(&memoryContext->ListContext);
 
-                    if (memoryItem)
+                    if (memoryNode)
                     {
-                        PhReferenceObject(memoryItem);
-                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryItem, TRUE);
-                        PhDereferenceObject(memoryItem);
+                        PhReferenceObject(memoryNode->MemoryItem);
+                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryNode->MemoryItem, TRUE);
+                        PhDereferenceObject(memoryNode->MemoryItem);
                         // TODO: somehow update the list
                     }
                 }
                 break;
             case ID_MEMORY_DECOMMIT:
                 {
-                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MEMORY_NODE memoryNode = PhGetSelectedMemoryNode(&memoryContext->ListContext);
 
-                    if (memoryItem)
+                    if (memoryNode)
                     {
-                        PhReferenceObject(memoryItem);
-                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryItem, FALSE);
-                        PhDereferenceObject(memoryItem);
+                        PhReferenceObject(memoryNode->MemoryItem);
+                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryNode->MemoryItem, FALSE);
+                        PhDereferenceObject(memoryNode->MemoryItem);
                     }
                 }
                 break;
             case ID_MEMORY_READWRITEADDRESS:
                 {
-                    PPH_MEMORY_CONTEXT memoryContext = propPageContext->Context;
                     PPH_STRING selectedChoice = NULL;
+
+                    if (!memoryContext->MemoryItemListValid)
+                        break;
 
                     while (PhaChoiceDialog(
                         hwndDlg,
@@ -4154,43 +4175,27 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         ))
                     {
                         ULONG64 address64;
-                        ULONG_PTR address;
+                        PVOID address;
 
                         if (selectedChoice->Length == 0)
                             continue;
 
                         if (PhStringToInteger64(&selectedChoice->sr, 0, &address64))
                         {
-                            ULONG i;
-                            PPH_MEMORY_ITEM memoryItem = NULL;
-                            BOOLEAN found = FALSE;
+                            PPH_MEMORY_ITEM memoryItem;
 
-                            address = (ULONG_PTR)address64;
+                            address = (PVOID)address64;
+                            memoryItem = PhLookupMemoryItemList(&memoryContext->MemoryItemList, address);
 
-                            for (i = 0; i < memoryContext->MemoryList->Count; i++)
-                            {
-                                memoryItem = memoryContext->MemoryList->Items[i];
-
-                                // Dumb linear search.
-                                if (
-                                    address >= (ULONG_PTR)memoryItem->BaseAddress &&
-                                    address < (ULONG_PTR)memoryItem->BaseAddress + memoryItem->Size
-                                    )
-                                {
-                                    found = TRUE;
-                                    break;
-                                }
-                            }
-
-                            if (found)
+                            if (memoryItem)
                             {
                                 PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
 
                                 memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
                                 showMemoryEditor->ProcessId = processItem->ProcessId;
                                 showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
-                                showMemoryEditor->RegionSize = memoryItem->Size;
-                                showMemoryEditor->SelectOffset = (ULONG)(address - (ULONG_PTR)memoryItem->BaseAddress);
+                                showMemoryEditor->RegionSize = memoryItem->RegionSize;
+                                showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)memoryItem->BaseAddress);
                                 showMemoryEditor->SelectLength = 0;
                                 ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
                                 break;
@@ -4205,7 +4210,11 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                 break;
             case ID_MEMORY_COPY:
                 {
-                    PhCopyListView(lvHandle);
+                    PPH_STRING text;
+
+                    text = PhGetTreeNewText(tnHandle, 0);
+                    PhSetClipboardString(tnHandle, &text->sr);
+                    PhDereferenceObject(text);
                 }
                 break;
             case IDC_REFRESH:
@@ -4214,94 +4223,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             case IDC_STRINGS:
                 PhShowMemoryStringDialog(hwndDlg, processItem);
                 break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            PhHandleListViewNotifyBehaviors(lParam, lvHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
-
-            switch (header->code)
-            {
-            case NM_DBLCLK:
-                {
-                    if (header->hwndFrom == lvHandle)
-                    {
-                        SendMessage(hwndDlg, WM_COMMAND, ID_MEMORY_READWRITEMEMORY, 0);
-                    }
-                }
-                break;
-            }
-        }
-        break;
-    case WM_CONTEXTMENU:
-        {
-            if ((HWND)wParam == lvHandle)
-            {
-                POINT point;
-                PPH_MEMORY_ITEM *memoryItems;
-                ULONG numberOfMemoryItems;
-
-                point.x = (SHORT)LOWORD(lParam);
-                point.y = (SHORT)HIWORD(lParam);
-
-                if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
-
-                PhGetSelectedListViewItemParams(lvHandle, &memoryItems, &numberOfMemoryItems);
-
-                // Allow menu to show when there are no items selected so
-                // the user can use Read/Write Address.
-                //if (numberOfMemoryItems != 0)
-                {
-                    PPH_EMENU menu;
-                    PPH_EMENU_ITEM item;
-
-                    menu = PhCreateEMenu();
-                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMORY), 0);
-                    PhSetFlagsEMenuItem(menu, ID_MEMORY_READWRITEMEMORY, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
-
-                    PhpInitializeMemoryMenu(menu, processItem->ProcessId, memoryItems, numberOfMemoryItems);
-
-                    if (PhPluginsEnabled)
-                    {
-                        PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-                        menuInfo.Menu = menu;
-                        menuInfo.OwnerWindow = hwndDlg;
-                        menuInfo.u.Memory.ProcessId = processItem->ProcessId;
-                        menuInfo.u.Memory.MemoryItems = memoryItems;
-                        menuInfo.u.Memory.NumberOfMemoryItems = numberOfMemoryItems;
-
-                        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMemoryMenuInitializing), &menuInfo);
-                    }
-
-                    item = PhShowEMenu(
-                        menu,
-                        hwndDlg,
-                        PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        point.x,
-                        point.y
-                        );
-
-                    if (item)
-                    {
-                        BOOLEAN handled = FALSE;
-
-                        if (PhPluginsEnabled)
-                            handled = PhPluginTriggerEMenuItem(hwndDlg, item);
-
-                        if (!handled)
-                            SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
-                    }
-
-                    PhDestroyEMenu(menu);
-                }
-
-                PhFree(memoryItems);
             }
         }
         break;
@@ -5022,10 +4943,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             handlesContext->WindowHandle = hwndDlg;
 
             // Initialize the list.
-            handlesContext->ListContext.TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            tnHandle = handlesContext->ListContext.TreeNewHandle;
+            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
-            PhInitializeHandleList(hwndDlg, tnHandle, processItem, &handlesContext->ListContext);
+            PhInitializeHandleList(hwndDlg, tnHandle, &handlesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &EmptyHandlesText, 0);
             handlesContext->NeedsRedraw = FALSE;
             handlesContext->LastRunStatus = -1;

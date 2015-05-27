@@ -3642,7 +3642,7 @@ VOID PhTnpSelectRange(
     {
         node = Context->FlatList->Items[i];
 
-        if ((Flags & TN_SELECT_TOGGLE) || node->Selected != targetValue)
+        if (!node->Unselectable && ((Flags & TN_SELECT_TOGGLE) || node->Selected != targetValue))
         {
             node->Selected = !node->Selected;
 
@@ -6495,7 +6495,7 @@ VOID PhTnpProcessDragSelect(
 
         if (VirtualKeys & MK_CONTROL)
         {
-            if (inOldRect != inNewRect)
+            if (!node->Unselectable && inOldRect != inNewRect)
             {
                 node->Selected = !node->Selected;
 
@@ -6507,7 +6507,7 @@ VOID PhTnpProcessDragSelect(
         }
         else
         {
-            if (inOldRect != inNewRect)
+            if (!node->Unselectable && inOldRect != inNewRect)
             {
                 node->Selected = inNewRect;
 
