@@ -126,6 +126,18 @@ typedef struct _PH_HANDLE_NODE
     // ...
 } PH_HANDLE_NODE, *PPH_HANDLE_NODE;
 
+typedef struct _PH_MEMORY_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    BOOLEAN IsAllocationBase;
+    BOOLEAN Reserved1;
+    USHORT Reserved2;
+    PPH_MEMORY_ITEM MemoryItem;
+
+    // ...
+} PH_MEMORY_NODE, *PPH_MEMORY_NODE;
+
 // procprpp
 
 typedef struct _PH_THREADS_CONTEXT
@@ -179,6 +191,17 @@ typedef struct _PH_HANDLES_CONTEXT
 
     // ...
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
+
+typedef struct _PH_MEMORY_CONTEXT
+{
+    HANDLE ProcessId;
+    HWND WindowHandle;
+
+    HWND Private1;
+    HWND TreeNewHandle;
+
+    // ...
+} PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
 
 // proctree
 
@@ -1496,7 +1519,7 @@ PhSetStringSetting2(
 
 // High-level settings creation
 
-typedef struct _PH_CREATE_SETTING
+typedef struct _PH_SETTING_CREATE
 {
     PH_SETTING_TYPE Type;
     PWSTR Name;
