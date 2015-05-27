@@ -3827,7 +3827,7 @@ VOID PhShowMemoryContextMenu(
 
     PhGetSelectedMemoryNodes(&Context->ListContext, &memoryNodes, &numberOfMemoryNodes);
 
-    if (numberOfMemoryNodes != 0)
+    //if (numberOfMemoryNodes != 0)
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
