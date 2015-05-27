@@ -23,9 +23,9 @@
 #ifndef _HIGHLIGHT_H_
 #define _HIGHLIGHT_H_
 
-#define SETTING_PREFIX L"dmex.HighlightPlugin"
-#define SETTING_NAME_COLOR_LIST (SETTING_PREFIX L".ColorProcessList")
-#define SETTING_NAME_CUSTOM_COLOR_LIST (SETTING_PREFIX L".ColorCustomList")
+#define PLUGIN_NAME L"dmex.HighlightPlugin"
+#define SETTING_NAME_COLOR_LIST (PLUGIN_NAME L".ColorProcessList")
+#define SETTING_NAME_CUSTOM_COLOR_LIST (PLUGIN_NAME L".ColorCustomList")
 
 #define CINTERFACE
 #define COBJMACROS

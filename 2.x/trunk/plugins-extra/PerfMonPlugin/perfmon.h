@@ -25,8 +25,8 @@
 
 #pragma comment(lib, "pdh.lib")
 
-#define SETTING_PREFIX L"dmex.PerfMonPlugin"
-#define SETTING_NAME_PERFMON_LIST (SETTING_PREFIX L".CountersList")
+#define PLUGIN_NAME L"dmex.PerfMonPlugin"
+#define SETTING_NAME_PERFMON_LIST (PLUGIN_NAME L".CountersList")
 
 #define CINTERFACE
 #define COBJMACROS

@@ -23,8 +23,8 @@
 #ifndef _DISK_H_
 #define _DISK_H_
 
-#define SETTING_PREFIX L"dmex.DiskDrivesPlugin"
-#define SETTING_NAME_DISK_LIST (SETTING_PREFIX L".DiskList")
+#define PLUGIN_NAME L"dmex.DiskDrivesPlugin"
+#define SETTING_NAME_DISK_LIST (PLUGIN_NAME L".DiskList")
 
 #define CINTERFACE
 #define COBJMACROS

@@ -27,10 +27,10 @@
 #include "resource.h"
 
 #define ATOM_TABLE_MENUITEM 1000
-#define SETTING_PREFIX L"dmex.AtomTablePlugin"
-#define SETTING_NAME_WINDOW_POSITION (SETTING_PREFIX L".WindowPosition")
-#define SETTING_NAME_WINDOW_SIZE (SETTING_PREFIX L".WindowSize")
-#define SETTING_NAME_LISTVIEW_COLUMNS (SETTING_PREFIX L".ListViewColumns")
+#define PLUGIN_NAME L"dmex.AtomTablePlugin"
+#define SETTING_NAME_WINDOW_POSITION (PLUGIN_NAME L".WindowPosition")
+#define SETTING_NAME_WINDOW_SIZE (PLUGIN_NAME L".WindowSize")
+#define SETTING_NAME_LISTVIEW_COLUMNS (PLUGIN_NAME L".ListViewColumns")
 
 VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
@@ -72,7 +72,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_LISTVIEW_COLUMNS, L"" }
             };
 
-            PluginInstance = PhRegisterPlugin(SETTING_PREFIX, Instance, &info);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
