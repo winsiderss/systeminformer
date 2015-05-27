@@ -11,6 +11,7 @@ Process Hacker
  * FIXED:
    * Fixed file dialog crash in Windows PE environments
    * Fixed Read/Write Address crash
+   * Fixed string scanning false positive case
 
 2.35
  * NEW/IMPROVED:
