@@ -3936,6 +3936,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             }
 
             PhLoadSettingsMemoryList(&memoryContext->ListContext);
+            PhSetOptionsMemoryList(&memoryContext->ListContext, TRUE);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS),
+                memoryContext->ListContext.HideFreeRegions ? BST_CHECKED : BST_UNCHECKED);
 
             PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
         }
@@ -3973,6 +3976,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                 dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STRINGS),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, memoryContext->ListContext.TreeNewHandle,
@@ -4217,11 +4222,19 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
-            case IDC_REFRESH:
-                PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
+            case IDC_HIDEFREEREGIONS:
+                {
+                    BOOLEAN hide;
+
+                    hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS)) == BST_CHECKED;
+                    PhSetOptionsMemoryList(&memoryContext->ListContext, hide);
+                }
                 break;
             case IDC_STRINGS:
                 PhShowMemoryStringDialog(hwndDlg, processItem);
+                break;
+            case IDC_REFRESH:
+                PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
                 break;
             }
         }

@@ -140,6 +140,51 @@ VOID PhSaveSettingsMemoryList(
     PhDereferenceObject(sortSettings);*/
 }
 
+VOID PhSetOptionsMemoryList(
+    _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
+    _In_ BOOLEAN HideFreeRegions
+    )
+{
+    ULONG i;
+    ULONG k;
+    BOOLEAN modified;
+
+    if (Context->HideFreeRegions != HideFreeRegions)
+    {
+        PPH_LIST lists[2];
+
+        Context->HideFreeRegions = HideFreeRegions;
+        modified = FALSE;
+        lists[0] = Context->AllocationBaseNodeList;
+        lists[1] = Context->RegionNodeList;
+
+        for (k = 0; k < 2; k++)
+        {
+            for (i = 0; i < lists[k]->Count; i++)
+            {
+                PPH_MEMORY_NODE node = lists[k]->Items[i];
+                BOOLEAN visible;
+
+                visible = TRUE;
+
+                if (HideFreeRegions && (node->MemoryItem->State & MEM_FREE))
+                    visible = FALSE;
+
+                if (node->Node.Visible != visible)
+                {
+                    node->Node.Visible = visible;
+                    modified = TRUE;
+                }
+            }
+        }
+
+        if (modified)
+        {
+            TreeNew_NodesStructured(Context->TreeNewHandle);
+        }
+    }
+}
+
 VOID PhpDestroyMemoryNode(
     _In_ PPH_MEMORY_NODE MemoryNode
     )
@@ -258,6 +303,9 @@ VOID PhReplaceMemoryList(
 
         memoryNode = PhpAddRegionNode(Context, memoryItem);
 
+        if (Context->HideFreeRegions && (memoryItem->State & MEM_FREE))
+            memoryNode->Node.Visible = FALSE;
+
         if (allocationBaseNode && memoryItem->AllocationBase == allocationBaseNode->MemoryItem->BaseAddress)
         {
             if (!(memoryItem->State & MEM_FREE))
@@ -284,6 +332,9 @@ VOID PhReplaceMemoryList(
 
                 if (memoryItem->RegionType != CustomRegion || memoryItem->u.Custom.PropertyOfAllocationBase)
                     PhpCopyMemoryRegionTypeInfo(memoryItem, allocationBaseNode->MemoryItem);
+
+                if (Context->HideFreeRegions && (allocationBaseNode->MemoryItem->State & MEM_FREE))
+                    allocationBaseNode->Node.Visible = FALSE;
             }
             else
             {
