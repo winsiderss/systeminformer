@@ -1314,18 +1314,6 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_MISCELLANEOUS_HEAPS:
-        {
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
-
-            if (processItem)
-            {
-                PhReferenceObject(processItem);
-                PhShowProcessHeapsDialog(PhMainWndHandle, processItem);
-                PhDereferenceObject(processItem);
-            }
-        }
-        break;
     case ID_MISCELLANEOUS_INJECTDLL:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();

@@ -1507,18 +1507,6 @@ VOID PhShowGdiHandlesDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
-// heapinfo
-
-VOID PhShowProcessHeapsDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem
-    );
-
-NTSTATUS PhGetProcessDefaultHeap(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PPVOID Heap
-    );
-
 // hidnproc
 
 VOID PhShowHiddenProcessesDialog(

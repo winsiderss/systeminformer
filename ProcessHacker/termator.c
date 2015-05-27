@@ -288,10 +288,10 @@ static NTSTATUS NTAPI TerminatorTP1a(
     HANDLE processHandle = NtCurrentProcess();
     ULONG i;
 
-    if (!NtGetNextProcess)
+    if (!NtGetNextProcess_I)
         return STATUS_NOT_SUPPORTED;
 
-    if (!NT_SUCCESS(status = NtGetNextProcess(
+    if (!NT_SUCCESS(status = NtGetNextProcess_I(
         NtCurrentProcess(),
         ProcessQueryAccess | PROCESS_TERMINATE,
         0,
@@ -314,7 +314,7 @@ static NTSTATUS NTAPI TerminatorTP1a(
             }
         }
 
-        if (NT_SUCCESS(status = NtGetNextProcess(
+        if (NT_SUCCESS(status = NtGetNextProcess_I(
             processHandle,
             ProcessQueryAccess | PROCESS_TERMINATE,
             0,
@@ -344,7 +344,7 @@ static NTSTATUS NTAPI TerminatorTT1a(
     HANDLE threadHandle;
     ULONG i;
 
-    if (!NtGetNextThread)
+    if (!NtGetNextThread_I)
         return STATUS_NOT_SUPPORTED;
 
     if (NT_SUCCESS(status = PhOpenProcess(
@@ -353,7 +353,7 @@ static NTSTATUS NTAPI TerminatorTT1a(
         ProcessId
         )))
     {
-        if (!NT_SUCCESS(status = NtGetNextThread(
+        if (!NT_SUCCESS(status = NtGetNextThread_I(
             processHandle,
             NULL,
             THREAD_TERMINATE,
@@ -372,7 +372,7 @@ static NTSTATUS NTAPI TerminatorTT1a(
 
             PhTerminateThread(threadHandle, STATUS_SUCCESS);
 
-            if (NT_SUCCESS(NtGetNextThread(
+            if (NT_SUCCESS(NtGetNextThread_I(
                 processHandle,
                 threadHandle,
                 THREAD_TERMINATE,
