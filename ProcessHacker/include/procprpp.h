@@ -212,11 +212,11 @@ typedef struct _PH_HANDLES_CONTEXT
 typedef struct _PH_MEMORY_CONTEXT
 {
     HANDLE ProcessId;
-    PH_MEMORY_ITEM_LIST MemoryItemList;
-    BOOLEAN MemoryItemListValid;
     HWND WindowHandle;
 
     PH_MEMORY_LIST_CONTEXT ListContext;
+    PH_MEMORY_ITEM_LIST MemoryItemList;
+    BOOLEAN MemoryItemListValid;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 } PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;

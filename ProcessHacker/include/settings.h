@@ -93,7 +93,7 @@ VOID PhResetSettings(
 
 // High-level settings creation
 
-typedef struct _PH_CREATE_SETTING
+typedef struct _PH_SETTING_CREATE
 {
     PH_SETTING_TYPE Type;
     PWSTR Name;
