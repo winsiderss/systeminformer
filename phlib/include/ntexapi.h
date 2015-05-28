@@ -1516,7 +1516,7 @@ typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
     PVOID StackBase;
     PVOID StackLimit;
     PVOID Win32StartAddress;
-    PTEB TebBase;
+    PTEB TebBase; // since VISTA
     ULONG_PTR Reserved2;
     ULONG_PTR Reserved3;
     ULONG_PTR Reserved4;

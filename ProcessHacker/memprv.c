@@ -379,6 +379,20 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     {
         PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
 
+        if (WindowsVersion < WINDOWS_VISTA)
+        {
+            HANDLE threadHandle;
+            THREAD_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(PhOpenThread(&threadHandle, ThreadQueryAccess, thread->ThreadInfo.ClientId.UniqueThread)))
+            {
+                if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
+                    thread->TebBase = basicInfo.TebBaseAddress;
+
+                NtClose(threadHandle);
+            }
+        }
+
         if (thread->TebBase)
         {
             NT_TIB ntTib;
