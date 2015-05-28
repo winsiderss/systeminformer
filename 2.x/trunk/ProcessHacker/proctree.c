@@ -1351,7 +1351,7 @@ BEGIN_SORT_FUNCTION(PrivateWs)
 {
     PhpUpdateProcessNodeWsCounters(node1);
     PhpUpdateProcessNodeWsCounters(node2);
-    sortResult = uintcmp(node1->WsCounters.NumberOfPrivatePages, node2->WsCounters.NumberOfPrivatePages);
+    sortResult = uintptrcmp(node1->WsCounters.NumberOfPrivatePages, node2->WsCounters.NumberOfPrivatePages);
 }
 END_SORT_FUNCTION
 
@@ -1365,7 +1365,7 @@ BEGIN_SORT_FUNCTION(SharedWs)
 {
     PhpUpdateProcessNodeWsCounters(node1);
     PhpUpdateProcessNodeWsCounters(node2);
-    sortResult = uintcmp(node1->WsCounters.NumberOfSharedPages, node2->WsCounters.NumberOfSharedPages);
+    sortResult = uintptrcmp(node1->WsCounters.NumberOfSharedPages, node2->WsCounters.NumberOfSharedPages);
 }
 END_SORT_FUNCTION
 
@@ -1373,7 +1373,7 @@ BEGIN_SORT_FUNCTION(ShareableWs)
 {
     PhpUpdateProcessNodeWsCounters(node1);
     PhpUpdateProcessNodeWsCounters(node2);
-    sortResult = uintcmp(node1->WsCounters.NumberOfShareablePages, node2->WsCounters.NumberOfShareablePages);
+    sortResult = uintptrcmp(node1->WsCounters.NumberOfShareablePages, node2->WsCounters.NumberOfShareablePages);
 }
 END_SORT_FUNCTION
 
@@ -2102,18 +2102,18 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 else
                 {
                     PhpUpdateProcessNodeWsCounters(node);
-                    PhSwapReference2(&node->PrivateWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfPrivatePages, PAGE_SIZE), -1));
+                    PhSwapReference2(&node->PrivateWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfPrivatePages * PAGE_SIZE, -1));
                 }
                 getCellText->Text = node->PrivateWsText->sr;
                 break;
             case PHPRTLC_SHAREDWS:
                 PhpUpdateProcessNodeWsCounters(node);
-                PhSwapReference2(&node->SharedWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfSharedPages, PAGE_SIZE), -1));
+                PhSwapReference2(&node->SharedWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfSharedPages * PAGE_SIZE, -1));
                 getCellText->Text = node->SharedWsText->sr;
                 break;
             case PHPRTLC_SHAREABLEWS:
                 PhpUpdateProcessNodeWsCounters(node);
-                PhSwapReference2(&node->ShareableWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfShareablePages, PAGE_SIZE), -1));
+                PhSwapReference2(&node->ShareableWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfShareablePages * PAGE_SIZE, -1));
                 getCellText->Text = node->ShareableWsText->sr;
                 break;
             case PHPRTLC_VIRTUALSIZE:

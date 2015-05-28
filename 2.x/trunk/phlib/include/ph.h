@@ -250,10 +250,10 @@ NTSTATUS PhGetProcessWorkingSetInformation(
 
 typedef struct _PH_PROCESS_WS_COUNTERS
 {
-    ULONG NumberOfPages;
-    ULONG NumberOfPrivatePages;
-    ULONG NumberOfSharedPages;
-    ULONG NumberOfShareablePages;
+    SIZE_T NumberOfPages;
+    SIZE_T NumberOfPrivatePages;
+    SIZE_T NumberOfSharedPages;
+    SIZE_T NumberOfShareablePages;
 } PH_PROCESS_WS_COUNTERS, *PPH_PROCESS_WS_COUNTERS;
 
 PHLIBAPI

@@ -18,7 +18,7 @@
 
 #define PAGE_SIZE 0x1000
 
-#define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
+#define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)
 
 // Exceptions
 
