@@ -122,6 +122,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
     PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
+    PhpAddIntegerSetting(L"MemEditBytesPerRow", L"10"); // 16
     PhpAddStringSetting(L"MemEditGotoChoices", L"");
     PhpAddIntegerPairSetting(L"MemEditPosition", L"450,450");
     PhpAddIntegerPairSetting(L"MemEditSize", L"600,500");

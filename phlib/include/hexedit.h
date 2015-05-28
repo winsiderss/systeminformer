@@ -12,11 +12,12 @@ BOOLEAN PhHexEditInitialization(
     VOID
     );
 
-#define HEM_SETBUFFER (WM_APP + 1401)
-#define HEM_SETDATA (WM_APP + 1402)
-#define HEM_GETBUFFER (WM_APP + 1403)
-#define HEM_SETSEL (WM_APP + 1404)
-#define HEM_SETEDITMODE (WM_APP + 1405)
+#define HEM_SETBUFFER (WM_USER + 1)
+#define HEM_SETDATA (WM_USER + 2)
+#define HEM_GETBUFFER (WM_USER + 3)
+#define HEM_SETSEL (WM_USER + 4)
+#define HEM_SETEDITMODE (WM_USER + 5)
+#define HEM_SETBYTESPERROW (WM_USER + 6)
 
 #define HexEdit_SetBuffer(hWnd, Buffer, Length) \
     SendMessage((hWnd), HEM_SETBUFFER, (WPARAM)(Length), (LPARAM)(Buffer))
@@ -24,13 +25,16 @@ BOOLEAN PhHexEditInitialization(
 #define HexEdit_SetData(hWnd, Buffer, Length) \
     SendMessage((hWnd), HEM_SETDATA, (WPARAM)(Length), (LPARAM)(Buffer))
 
-#define HexEdit_GetBuffer(hWnd, Buffer, Length) \
-    ((PUCHAR)SendMessage((hWnd), HEM_GETBUFFER, 0, 0))
+#define HexEdit_GetBuffer(hWnd, Length) \
+    ((PUCHAR)SendMessage((hWnd), HEM_GETBUFFER, (WPARAM)(Length), 0))
 
 #define HexEdit_SetSel(hWnd, Start, End) \
     SendMessage((hWnd), HEM_SETSEL, (WPARAM)(Start), (LPARAM)(End))
 
 #define HexEdit_SetEditMode(hWnd, Mode) \
     SendMessage((hWnd), HEM_SETEDITMODE, (WPARAM)(Mode), 0)
+
+#define HexEdit_SetBytesPerRow(hWnd, BytesPerRow) \
+    SendMessage((hWnd), HEM_SETBYTESPERROW, (WPARAM)(BytesPerRow), 0)
 
 #endif
