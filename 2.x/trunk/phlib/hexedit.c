@@ -2,7 +2,7 @@
  * Process Hacker -
  *   hex editor control
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -1560,6 +1560,7 @@ VOID PhpHexEditCopyEdit(
     if (OpenClipboard(hwnd))
     {
         EmptyClipboard();
+        PhpHexEditNormalizeSel(hwnd, Context);
 
         if (Context->CurrentMode != EDIT_ASCII)
         {
@@ -1766,7 +1767,7 @@ VOID PhpHexEditSelDelete(
     _In_ LONG E
     )
 {
-    if (Context->AllowLengthChange)
+    if (Context->AllowLengthChange && Context->Length > 0)
     {
         PUCHAR p = PhAllocate(Context->Length - (E - S) + 1);
 
@@ -1776,8 +1777,8 @@ VOID PhpHexEditSelDelete(
             memcpy(&p[S], &Context->Data[E], Context->Length - E);
 
         PhFree(Context->Data);
-        PhpHexEditSetSel(hwnd, Context, -1, -1);
         Context->Data = p;
+        PhpHexEditSetSel(hwnd, Context, -1, -1);
         Context->Length -= E - S;
 
         if (Context->CurrentAddress > Context->Length)
@@ -1806,8 +1807,8 @@ VOID PhpHexEditSelInsert(
         memcpy(&p[S + L], &Context->Data[S], Context->Length - S);
 
         PhFree(Context->Data);
-        PhpHexEditSetSel(hwnd, Context, -1, -1);
         Context->Data = p;
+        PhpHexEditSetSel(hwnd, Context, -1, -1);
         Context->Length += L;
 
         Context->Update = TRUE;
@@ -1841,7 +1842,7 @@ VOID PhpHexEditSetData(
     _In_ ULONG Length
     )
 {
-    PhFree(Context->Data);
+    if (Context->Data) PhFree(Context->Data);
     Context->Data = PhAllocate(Length);
     memcpy(Context->Data, Data, Length);
     PhpHexEditSetBuffer(hwnd, Context, Context->Data, Length);
