@@ -775,6 +775,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             case VK_RETURN:
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MEMORY_READWRITEMEMORY, 0);
                 break;
+            case VK_F5:
+                SendMessage(context->ParentWindowHandle, WM_COMMAND, IDC_REFRESH, 0);
+                break;
             }
         }
         return TRUE;
