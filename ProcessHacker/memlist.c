@@ -74,9 +74,17 @@ VOID PhInitializeMemoryList(
     // Default columns
     PhAddTreeNewColumn(hwnd, PHMMTLC_BASEADDRESS, TRUE, L"Base Address", 120, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(hwnd, PHMMTLC_TYPE, TRUE, L"Type", 90, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumnEx(hwnd, PHMMTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_SIZE, TRUE, L"Size", 80, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHMMTLC_PROTECTION, TRUE, L"Protection", 60, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(hwnd, PHMMTLC_USE, TRUE, L"Use", 200, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_TOTALWS, TRUE, L"Total WS", 80, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_PRIVATEWS, TRUE, L"Private WS", 80, PH_ALIGN_RIGHT, 5, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_SHAREABLEWS, TRUE, L"Shareable WS", 80, PH_ALIGN_RIGHT, 6, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_SHAREDWS, TRUE, L"Shared WS", 80, PH_ALIGN_RIGHT, 7, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_LOCKEDWS, TRUE, L"Locked WS", 80, PH_ALIGN_RIGHT, 8, DT_RIGHT, TRUE);
+
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_COMMITTED, FALSE, L"Committed", 80, PH_ALIGN_RIGHT, 9, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMMTLC_PRIVATE, FALSE, L"Private", 80, PH_ALIGN_RIGHT, 10, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -116,28 +124,28 @@ VOID PhLoadSettingsMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
-   /* PPH_STRING settings;
+    PPH_STRING settings;
     PPH_STRING sortSettings;
 
     settings = PhGetStringSetting(L"MemoryTreeListColumns");
     sortSettings = PhGetStringSetting(L"MemoryTreeListSort");
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
-    PhDereferenceObject(sortSettings);*/
+    PhDereferenceObject(sortSettings);
 }
 
 VOID PhSaveSettingsMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
-    /*PPH_STRING settings;
+    PPH_STRING settings;
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
     PhSetStringSetting2(L"MemoryTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"MemoryTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
-    PhDereferenceObject(sortSettings);*/
+    PhDereferenceObject(sortSettings);
 }
 
 VOID PhSetOptionsMemoryList(
@@ -193,6 +201,14 @@ VOID PhpDestroyMemoryNode(
 
     PhSwapReference(&MemoryNode->SizeText, NULL);
     PhSwapReference(&MemoryNode->UseText, NULL);
+    PhSwapReference(&MemoryNode->TotalWsText, NULL);
+    PhSwapReference(&MemoryNode->PrivateWsText, NULL);
+    PhSwapReference(&MemoryNode->ShareableWsText, NULL);
+    PhSwapReference(&MemoryNode->SharedWsText, NULL);
+    PhSwapReference(&MemoryNode->LockedWsText, NULL);
+    PhSwapReference(&MemoryNode->CommittedText, NULL);
+    PhSwapReference(&MemoryNode->PrivateText, NULL);
+
     PhSwapReference(&MemoryNode->Children, NULL);
     PhDereferenceObject(MemoryNode->MemoryItem);
 
@@ -316,10 +332,13 @@ VOID PhReplaceMemoryList(
 
             // Aggregate various statistics.
             allocationBaseNode->MemoryItem->RegionSize += memoryItem->RegionSize;
-            allocationBaseNode->MemoryItem->NumberOfPrivatePages += memoryItem->NumberOfPrivatePages;
-            allocationBaseNode->MemoryItem->NumberOfSharedPages += memoryItem->NumberOfSharedPages;
-            allocationBaseNode->MemoryItem->NumberOfShareablePages += memoryItem->NumberOfShareablePages;
-            allocationBaseNode->MemoryItem->NumberOfLockedPages += memoryItem->NumberOfLockedPages;
+            allocationBaseNode->MemoryItem->CommittedSize += memoryItem->CommittedSize;
+            allocationBaseNode->MemoryItem->PrivateSize += memoryItem->PrivateSize;
+            allocationBaseNode->MemoryItem->TotalWorkingSetPages += memoryItem->TotalWorkingSetPages;
+            allocationBaseNode->MemoryItem->PrivateWorkingSetPages += memoryItem->PrivateWorkingSetPages;
+            allocationBaseNode->MemoryItem->SharedWorkingSetPages += memoryItem->SharedWorkingSetPages;
+            allocationBaseNode->MemoryItem->ShareableWorkingSetPages += memoryItem->ShareableWorkingSetPages;
+            allocationBaseNode->MemoryItem->LockedWorkingSetPages += memoryItem->LockedWorkingSetPages;
 
             if (memoryItem->AllocationBaseItem == memoryItem)
             {
@@ -372,6 +391,8 @@ PPH_STRING PhpGetMemoryRegionUseText(
     case CustomRegion:
         PhReferenceObject(MemoryItem->u.Custom.Text);
         return MemoryItem->u.Custom.Text;
+    case UnusableRegion:
+        return PhReferenceEmptyString();
     case MappedFileRegion:
         PhReferenceObject(MemoryItem->u.MappedFile.FileName);
         return MemoryItem->u.MappedFile.FileName;
@@ -407,6 +428,16 @@ VOID PhpUpdateMemoryNodeUseText(
 {
     if (!MemoryNode->UseText)
         MemoryNode->UseText = PhpGetMemoryRegionUseText(MemoryNode->MemoryItem);
+}
+
+PPH_STRING PhpFormatSizeIfNonZero(
+    _In_ ULONG64 Size
+    )
+{
+    if (Size != 0)
+        return PhFormatSize(Size, 1);
+    else
+        return NULL;
 }
 
 #define SORT_FUNCTION(Column) PhpMemoryTreeNewCompare##Column
@@ -452,6 +483,9 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(Type)
 {
     sortResult = uintcmp(memoryItem1->Type | memoryItem1->State, memoryItem2->Type | memoryItem2->State);
+
+    if (sortResult == 0)
+        sortResult = intcmp(memoryItem1->RegionType, memoryItem2->RegionType);
 }
 END_SORT_FUNCTION
 
@@ -472,6 +506,48 @@ BEGIN_SORT_FUNCTION(Use)
     PhpUpdateMemoryNodeUseText(node1);
     PhpUpdateMemoryNodeUseText(node2);
     sortResult = PhCompareStringWithNull(node1->UseText, node2->UseText, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(TotalWs)
+{
+    sortResult = uintptrcmp(memoryItem1->TotalWorkingSetPages, memoryItem2->TotalWorkingSetPages);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PrivateWs)
+{
+    sortResult = uintptrcmp(memoryItem1->PrivateWorkingSetPages, memoryItem2->PrivateWorkingSetPages);
+}
+END_SORT_FUNCTION 
+
+BEGIN_SORT_FUNCTION(ShareableWs)
+{
+    sortResult = uintptrcmp(memoryItem1->ShareableWorkingSetPages, memoryItem2->ShareableWorkingSetPages);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(SharedWs)
+{
+    sortResult = uintptrcmp(memoryItem1->SharedWorkingSetPages, memoryItem2->SharedWorkingSetPages);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LockedWs)
+{
+    sortResult = uintptrcmp(memoryItem1->LockedWorkingSetPages, memoryItem2->LockedWorkingSetPages);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Committed)
+{
+    sortResult = uintptrcmp(memoryItem1->CommittedSize, memoryItem2->CommittedSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Private)
+{
+    sortResult = uintptrcmp(memoryItem1->PrivateSize, memoryItem2->PrivateSize);
 }
 END_SORT_FUNCTION
 
@@ -522,7 +598,14 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                         SORT_FUNCTION(Type),
                         SORT_FUNCTION(Size),
                         SORT_FUNCTION(Protection),
-                        SORT_FUNCTION(Use)
+                        SORT_FUNCTION(Use),
+                        SORT_FUNCTION(TotalWs),
+                        SORT_FUNCTION(PrivateWs),
+                        SORT_FUNCTION(ShareableWs),
+                        SORT_FUNCTION(SharedWs),
+                        SORT_FUNCTION(LockedWs),
+                        SORT_FUNCTION(Committed),
+                        SORT_FUNCTION(Private)
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -584,7 +667,10 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             case PHMMTLC_TYPE:
                 if (memoryItem->State & MEM_FREE)
                 {
-                    PhInitializeStringRef(&getCellText->Text, L"Free");
+                    if (memoryItem->RegionType == UnusableRegion)
+                        PhInitializeStringRef(&getCellText->Text, L"Free (Unusable)");
+                    else
+                        PhInitializeStringRef(&getCellText->Text, L"Free");
                 }
                 else if (node->IsAllocationBase)
                 {
@@ -607,8 +693,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 }
                 break;
             case PHMMTLC_SIZE:
-                if (!node->SizeText)
-                    node->SizeText = PhFormatSize(memoryItem->RegionSize, -1);
+                PhSwapReference2(&node->SizeText, PhFormatSize(memoryItem->RegionSize, 1));
                 getCellText->Text = PhGetStringRef(node->SizeText);
                 break;
             case PHMMTLC_PROTECTION:
@@ -617,6 +702,34 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             case PHMMTLC_USE:
                 PhpUpdateMemoryNodeUseText(node);
                 getCellText->Text = PhGetStringRef(node->UseText);
+                break;
+            case PHMMTLC_TOTALWS:
+                PhSwapReference2(&node->TotalWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->TotalWorkingSetPages * PAGE_SIZE));
+                getCellText->Text = PhGetStringRef(node->TotalWsText);
+                break;
+            case PHMMTLC_PRIVATEWS:
+                PhSwapReference2(&node->PrivateWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->PrivateWorkingSetPages * PAGE_SIZE));
+                getCellText->Text = PhGetStringRef(node->PrivateWsText);
+                break;
+            case PHMMTLC_SHAREABLEWS:
+                PhSwapReference2(&node->ShareableWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->ShareableWorkingSetPages * PAGE_SIZE));
+                getCellText->Text = PhGetStringRef(node->ShareableWsText);
+                break;
+            case PHMMTLC_SHAREDWS:
+                PhSwapReference2(&node->SharedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->SharedWorkingSetPages * PAGE_SIZE));
+                getCellText->Text = PhGetStringRef(node->SharedWsText);
+                break;
+            case PHMMTLC_LOCKEDWS:
+                PhSwapReference2(&node->LockedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->LockedWorkingSetPages * PAGE_SIZE));
+                getCellText->Text = PhGetStringRef(node->LockedWsText);
+                break;
+            case PHMMTLC_COMMITTED:
+                PhSwapReference2(&node->CommittedText, PhpFormatSizeIfNonZero(memoryItem->CommittedSize));
+                getCellText->Text = PhGetStringRef(node->CommittedText);
+                break;
+            case PHMMTLC_PRIVATE:
+                PhSwapReference2(&node->PrivateText, PhpFormatSizeIfNonZero(memoryItem->PrivateSize));
+                getCellText->Text = PhGetStringRef(node->PrivateText);
                 break;
             default:
                 return FALSE;

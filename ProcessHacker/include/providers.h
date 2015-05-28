@@ -775,6 +775,7 @@ typedef enum _PH_MEMORY_REGION_TYPE
 {
     UnknownRegion,
     CustomRegion,
+    UnusableRegion,
     MappedFileRegion,
     UserSharedDataRegion,
     PebRegion,
@@ -811,10 +812,14 @@ typedef struct _PH_MEMORY_ITEM
 
     struct _PH_MEMORY_ITEM *AllocationBaseItem;
 
-    ULONG NumberOfPrivatePages;
-    ULONG NumberOfSharedPages;
-    ULONG NumberOfShareablePages;
-    ULONG NumberOfLockedPages;
+    SIZE_T CommittedSize;
+    SIZE_T PrivateSize;
+
+    SIZE_T TotalWorkingSetPages;
+    SIZE_T PrivateWorkingSetPages;
+    SIZE_T SharedWorkingSetPages;
+    SIZE_T ShareableWorkingSetPages;
+    SIZE_T LockedWorkingSetPages;
 
     PH_MEMORY_REGION_TYPE RegionType;
 
