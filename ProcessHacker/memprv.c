@@ -703,9 +703,12 @@ NTSTATUS PhQueryMemoryItemList(
             memoryItem->AllocationBaseItem = allocationBaseItem;
 
         if (basicInfo.State & MEM_COMMIT)
+        {
             memoryItem->CommittedSize = memoryItem->RegionSize;
-        if (basicInfo.Type & MEM_PRIVATE)
-            memoryItem->PrivateSize = memoryItem->RegionSize;
+
+            if (basicInfo.Type & MEM_PRIVATE)
+                memoryItem->PrivateSize = memoryItem->RegionSize;
+        }
 
         PhAddElementAvlTree(&List->Set, &memoryItem->Links);
         InsertTailList(&List->ListHead, &memoryItem->ListEntry);
