@@ -100,7 +100,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessBasicInformation, // 0, q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
     ProcessQuotaLimits, // qs: QUOTA_LIMITS, QUOTA_LIMITS_EX
     ProcessIoCounters, // q: IO_COUNTERS
-    ProcessVmCounters, // q: VM_COUNTERS, VM_COUNTERS_EX
+    ProcessVmCounters, // q: VM_COUNTERS, VM_COUNTERS_EX, VM_COUNTERS_EX2
     ProcessTimes, // q: KERNEL_USER_TIMES
     ProcessBasePriority, // s: KPRIORITY
     ProcessRaisePriority, // s: ULONG
@@ -296,6 +296,14 @@ typedef struct _VM_COUNTERS_EX
     SIZE_T PeakPagefileUsage;
     SIZE_T PrivateUsage;
 } VM_COUNTERS_EX, *PVM_COUNTERS_EX;
+
+// private
+typedef struct _VM_COUNTERS_EX2
+{
+    VM_COUNTERS_EX CountersEx;
+    SIZE_T PrivateWorkingSetSize;
+    SIZE_T SharedCommitUsage;
+} VM_COUNTERS_EX2, *PVM_COUNTERS_EX2;
 
 typedef struct _KERNEL_USER_TIMES
 {
