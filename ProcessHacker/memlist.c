@@ -838,12 +838,15 @@ PPH_MEMORY_NODE PhGetSelectedMemoryNode(
 {
     ULONG i;
 
-    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    if (Context->TreeNewSortOrder == NoSortOrder)
     {
-        PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
+        for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+        {
+            PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
 
-        if (node->Node.Selected)
-            return node;
+            if (node->Node.Selected)
+                return node;
+        }
     }
 
     for (i = 0; i < Context->RegionNodeList->Count; i++)
@@ -868,12 +871,15 @@ VOID PhGetSelectedMemoryNodes(
 
     list = PhCreateList(2);
 
-    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    if (Context->TreeNewSortOrder == NoSortOrder)
     {
-        PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
+        for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+        {
+            PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
 
-        if (node->Node.Selected)
-            PhAddItemList(list, node);
+            if (node->Node.Selected)
+                PhAddItemList(list, node);
+        }
     }
 
     for (i = 0; i < Context->RegionNodeList->Count; i++)
