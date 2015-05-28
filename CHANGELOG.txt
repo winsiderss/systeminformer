@@ -2,7 +2,7 @@ Process Hacker
 
 2.36
  * NEW/IMPROVED:
-   * Completely new Memory tab for processes, with heap and stack memory usage
+   * Completely new Memory tab for processes, with heap, stack and working set usage
    * Added customizable bytes per row setting for memory editor
    * Added trigger and delayed start information to service list
    * Updated DotNetTools plugin:

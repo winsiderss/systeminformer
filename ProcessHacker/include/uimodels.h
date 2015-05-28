@@ -974,8 +974,15 @@ VOID PhDeselectAllHandleNodes(
 #define PHMMTLC_SIZE 2
 #define PHMMTLC_PROTECTION 3
 #define PHMMTLC_USE 4
+#define PHMMTLC_TOTALWS 5
+#define PHMMTLC_PRIVATEWS 6
+#define PHMMTLC_SHAREABLEWS 7
+#define PHMMTLC_SHAREDWS 8
+#define PHMMTLC_LOCKEDWS 9
+#define PHMMTLC_COMMITTED 10
+#define PHMMTLC_PRIVATE 11
 
-#define PHMMTLC_MAXIMUM 5
+#define PHMMTLC_MAXIMUM 12
 
 typedef struct _PH_MEMORY_NODE
 {
@@ -996,6 +1003,13 @@ typedef struct _PH_MEMORY_NODE
     PPH_STRING SizeText;
     WCHAR ProtectionText[17];
     PPH_STRING UseText;
+    PPH_STRING TotalWsText;
+    PPH_STRING PrivateWsText;
+    PPH_STRING ShareableWsText;
+    PPH_STRING SharedWsText;
+    PPH_STRING LockedWsText;
+    PPH_STRING CommittedText;
+    PPH_STRING PrivateText;
 } PH_MEMORY_NODE, *PPH_MEMORY_NODE;
 
 typedef struct _PH_MEMORY_LIST_CONTEXT

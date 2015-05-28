@@ -55,7 +55,8 @@ typedef struct _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Locked : 1;
             ULONG_PTR LargePage : 1;
             ULONG_PTR Priority : 3;
-            ULONG_PTR Reserved : 4;
+            ULONG_PTR Reserved : 3;
+            ULONG_PTR SharedOriginal : 1;
             ULONG_PTR Bad : 1;
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 32;
@@ -69,7 +70,10 @@ typedef struct _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Reserved1 : 5;
             ULONG_PTR PageTable : 1;
             ULONG_PTR Location : 2;
-            ULONG_PTR Reserved2 : 7;
+            ULONG_PTR Priority : 3;
+            ULONG_PTR ModifiedList : 1;
+            ULONG_PTR Reserved2 : 2;
+            ULONG_PTR SharedOriginal : 1;
             ULONG_PTR Bad : 1;
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 32;

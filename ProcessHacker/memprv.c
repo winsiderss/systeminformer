@@ -24,6 +24,7 @@
 #include <heapstruct.h>
 
 #define MAX_HEAPS 1000
+#define WS_REQUEST_COUNT (PAGE_SIZE / sizeof(MEMORY_WORKING_SET_EX_INFORMATION))
 
 VOID PhpMemoryItemDeleteProcedure(
     _In_ PVOID Object,
@@ -113,7 +114,7 @@ PWSTR PhGetMemoryStateString(
     if (State & MEM_COMMIT)
         return L"Commit";
     else if (State & MEM_RESERVE)
-        return L"Reserve";
+        return L"Reserved";
     else if (State & MEM_FREE)
         return L"Free";
     else
@@ -277,11 +278,12 @@ PPH_MEMORY_ITEM PhpSetMemoryRegionType(
     return memoryItem;
 }
 
-VOID PhpUpdateMemoryRegionTypes(
+NTSTATUS PhpUpdateMemoryRegionTypes(
     _In_ PPH_MEMORY_ITEM_LIST List,
     _In_ HANDLE ProcessHandle
     )
 {
+    NTSTATUS status;
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG i;
@@ -289,21 +291,21 @@ VOID PhpUpdateMemoryRegionTypes(
     PPH_MEMORY_ITEM memoryItem;
     PLIST_ENTRY listEntry;
 
-    if (!NT_SUCCESS(PhEnumProcessesEx(&processes, SystemExtendedProcessInformation)))
-        return;
+    if (!NT_SUCCESS(status = PhEnumProcessesEx(&processes, SystemExtendedProcessInformation)))
+        return status;
 
     process = PhFindProcessInformation(processes, List->ProcessId);
 
     if (!process)
     {
         PhFree(processes);
-        return;
+        return STATUS_NOT_FOUND;
     }
 
     // USER_SHARED_DATA
     PhpSetMemoryRegionType(List, USER_SHARED_DATA, TRUE, UserSharedDataRegion);
 
-    // PEB, heaps
+    // PEB, heap
     {
         PROCESS_BASIC_INFORMATION basicInfo;
         PVOID peb32;
@@ -372,7 +374,7 @@ VOID PhpUpdateMemoryRegionTypes(
         }
     }
 
-    // TEB, stacks
+    // TEB, stack
     for (i = 0; i < process->NumberOfThreads; i++)
     {
         PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
@@ -416,7 +418,7 @@ VOID PhpUpdateMemoryRegionTypes(
         }
     }
 
-    // Mapped files, heap segments
+    // Mapped file, heap segment, unusable
     for (listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
     {
         memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
@@ -502,6 +504,125 @@ VOID PhpUpdateMemoryRegionTypes(
     }
 
     PhFree(processes);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhpUpdateMemoryWsCounters(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ HANDLE ProcessHandle
+    )
+{
+    PLIST_ENTRY listEntry;
+    PMEMORY_WORKING_SET_EX_INFORMATION info;
+
+    info = PhAllocatePage(WS_REQUEST_COUNT * sizeof(MEMORY_WORKING_SET_EX_INFORMATION), NULL);
+
+    if (!info)
+        return STATUS_NO_MEMORY;
+
+    for (listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
+    {
+        PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+        ULONG_PTR virtualAddress;
+        SIZE_T remainingPages;
+        SIZE_T requestPages;
+        SIZE_T i;
+
+        if (!(memoryItem->State & MEM_COMMIT))
+            continue;
+
+        virtualAddress = (ULONG_PTR)memoryItem->BaseAddress;
+        remainingPages = memoryItem->RegionSize / PAGE_SIZE;
+
+        while (remainingPages != 0)
+        {
+            requestPages = min(remainingPages, WS_REQUEST_COUNT);
+
+            for (i = 0; i < requestPages; i++)
+            {
+                info[i].VirtualAddress = (PVOID)virtualAddress;
+                virtualAddress += PAGE_SIZE;
+            }
+
+            if (NT_SUCCESS(NtQueryVirtualMemory(
+                ProcessHandle,
+                NULL,
+                MemoryWorkingSetExInformation,
+                info,
+                requestPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
+                NULL
+                )))
+            {
+                for (i = 0; i < requestPages; i++)
+                {
+                    PMEMORY_WORKING_SET_EX_BLOCK block = &info[i].u1.VirtualAttributes;
+
+                    if (block->Valid)
+                    {
+                        memoryItem->TotalWorkingSetPages++;
+
+                        if (block->ShareCount > 1)
+                            memoryItem->SharedWorkingSetPages++;
+                        if (block->ShareCount == 0)
+                            memoryItem->PrivateWorkingSetPages++;
+                        if (block->Shared)
+                            memoryItem->ShareableWorkingSetPages++;
+                        if (block->Locked)
+                            memoryItem->LockedWorkingSetPages++;
+                    }
+                }
+            }
+
+            remainingPages -= requestPages;
+        }
+    }
+
+    PhFreePage(info);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhpUpdateMemoryWsCountersOld(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+    PMEMORY_WORKING_SET_INFORMATION info;
+    PPH_MEMORY_ITEM memoryItem = NULL;
+    ULONG_PTR i;
+
+    if (!NT_SUCCESS(status = PhGetProcessWorkingSetInformation(ProcessHandle, &info)))
+        return status;
+
+    for (i = 0; i < info->NumberOfEntries; i++)
+    {
+        PMEMORY_WORKING_SET_BLOCK block = &info->WorkingSetInfo[i];
+        ULONG_PTR virtualAddress = block->VirtualPage * PAGE_SIZE;
+
+        if (!memoryItem || virtualAddress < (ULONG_PTR)memoryItem->BaseAddress ||
+            virtualAddress >= (ULONG_PTR)memoryItem->BaseAddress + memoryItem->RegionSize)
+        {
+            memoryItem = PhLookupMemoryItemList(List, (PVOID)virtualAddress);
+        }
+
+        if (memoryItem)
+        {
+            memoryItem->TotalWorkingSetPages++;
+
+            if (block->ShareCount > 1)
+                memoryItem->SharedWorkingSetPages++;
+            if (block->ShareCount == 0)
+                memoryItem->PrivateWorkingSetPages++;
+            if (block->Shared)
+                memoryItem->ShareableWorkingSetPages++;
+        }
+    }
+
+    PhFree(info);
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhQueryMemoryItemList(
@@ -512,9 +633,11 @@ NTSTATUS PhQueryMemoryItemList(
 {
     NTSTATUS status;
     HANDLE processHandle;
+    ULONG_PTR allocationGranularity;
     PVOID baseAddress = (PVOID)0;
     MEMORY_BASIC_INFORMATION basicInfo;
     PPH_MEMORY_ITEM allocationBaseItem = NULL;
+    PPH_MEMORY_ITEM previousMemoryItem = NULL;
 
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -536,6 +659,8 @@ NTSTATUS PhQueryMemoryItemList(
     PhInitializeAvlTree(&List->Set, PhpMemoryItemCompareFunction);
     InitializeListHead(&List->ListHead);
 
+    allocationGranularity = PhSystemBasicInformation.AllocationGranularity;
+
     while (NT_SUCCESS(NtQueryVirtualMemory(
         processHandle,
         baseAddress,
@@ -547,7 +672,7 @@ NTSTATUS PhQueryMemoryItemList(
     {
         PPH_MEMORY_ITEM memoryItem;
 
-        if (basicInfo.State == MEM_FREE)
+        if (basicInfo.State & MEM_FREE)
         {
             if (Flags & PH_QUERY_MEMORY_IGNORE_FREE)
                 goto ContinueLoop;
@@ -556,7 +681,6 @@ NTSTATUS PhQueryMemoryItemList(
         }
 
         memoryItem = PhCreateMemoryItem();
-
         memoryItem->BasicInfo = basicInfo;
 
         if (basicInfo.AllocationBase == basicInfo.BaseAddress)
@@ -564,16 +688,69 @@ NTSTATUS PhQueryMemoryItemList(
         if (allocationBaseItem && basicInfo.AllocationBase == allocationBaseItem->BaseAddress)
             memoryItem->AllocationBaseItem = allocationBaseItem;
 
+        if (basicInfo.State & MEM_COMMIT)
+            memoryItem->CommittedSize = memoryItem->RegionSize;
+        if (basicInfo.Type & MEM_PRIVATE)
+            memoryItem->PrivateSize = memoryItem->RegionSize;
+
         PhAddElementAvlTree(&List->Set, &memoryItem->Links);
         InsertTailList(&List->ListHead, &memoryItem->ListEntry);
+
+        if (basicInfo.State & MEM_FREE)
+        {
+            if ((ULONG_PTR)basicInfo.BaseAddress & (allocationGranularity - 1))
+            {
+                ULONG_PTR nextAllocationBase;
+                ULONG_PTR potentialUnusableSize;
+
+                // Split this free region into an unusable and a (possibly empty) usable region.
+
+                nextAllocationBase = ((ULONG_PTR)basicInfo.BaseAddress + allocationGranularity - 1) & ~(allocationGranularity - 1);
+                potentialUnusableSize = nextAllocationBase - (ULONG_PTR)basicInfo.BaseAddress;
+
+                memoryItem->RegionType = UnusableRegion;
+
+                // VMMap does this, but is it correct?
+                //if (previousMemoryItem && (previousMemoryItem->State & MEM_COMMIT))
+                //    memoryItem->CommittedSize = min(potentialUnusableSize, basicInfo.RegionSize);
+
+                if (nextAllocationBase < (ULONG_PTR)basicInfo.BaseAddress + basicInfo.RegionSize)
+                {
+                    PPH_MEMORY_ITEM otherMemoryItem;
+
+                    memoryItem->RegionSize = potentialUnusableSize;
+
+                    otherMemoryItem = PhCreateMemoryItem();
+                    otherMemoryItem->BasicInfo = basicInfo;
+                    otherMemoryItem->BaseAddress = (PVOID)nextAllocationBase;
+                    otherMemoryItem->AllocationBase = otherMemoryItem->BaseAddress;
+                    otherMemoryItem->RegionSize = basicInfo.RegionSize - potentialUnusableSize;
+                    otherMemoryItem->AllocationBaseItem = otherMemoryItem;
+
+                    PhAddElementAvlTree(&List->Set, &otherMemoryItem->Links);
+                    InsertTailList(&List->ListHead, &otherMemoryItem->ListEntry);
+
+                    previousMemoryItem = otherMemoryItem;
+                    goto ContinueLoop;
+                }
+            }
+        }
+
+        previousMemoryItem = memoryItem;
 
 ContinueLoop:
         baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
     }
 
     if (Flags & PH_QUERY_MEMORY_REGION_TYPE)
-    {
         PhpUpdateMemoryRegionTypes(List, processHandle);
+
+    if (Flags & PH_QUERY_MEMORY_WS_COUNTERS)
+    {
+        if (WindowsVersion >= WINDOWS_SERVER_2003)
+            PhpUpdateMemoryWsCounters(List, processHandle);
+        else
+            PhpUpdateMemoryWsCountersOld(List, processHandle);
     }
 
     NtClose(processHandle);

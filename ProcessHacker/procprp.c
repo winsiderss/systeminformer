@@ -1365,9 +1365,9 @@ VOID PhpUpdateProcessStatistics(
 
             if (NT_SUCCESS(PhGetProcessWsCounters(Context->ProcessHandle, &wsCounters)))
             {
-                privateWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfPrivatePages, PAGE_SIZE), -1);
-                shareableWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfShareablePages, PAGE_SIZE), -1);
-                sharedWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfSharedPages, PAGE_SIZE), -1);
+                privateWs = PhaFormatSize((ULONG64)wsCounters.NumberOfPrivatePages * PAGE_SIZE, -1);
+                shareableWs = PhaFormatSize((ULONG64)wsCounters.NumberOfShareablePages * PAGE_SIZE, -1);
+                sharedWs = PhaFormatSize((ULONG64)wsCounters.NumberOfSharedPages * PAGE_SIZE, -1);
                 gotWsCounters = TRUE;
             }
         }

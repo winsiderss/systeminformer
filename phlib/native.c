@@ -1512,8 +1512,7 @@ NTSTATUS PhGetProcessWorkingSetInformation(
         PhFree(buffer);
         bufferSize *= 2;
 
-        // Fail if we're resizing the buffer to over
-        // 16 MB.
+        // Fail if we're resizing the buffer to something very large.
         if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -1547,7 +1546,7 @@ NTSTATUS PhGetProcessWsCounters(
     NTSTATUS status;
     PMEMORY_WORKING_SET_INFORMATION wsInfo;
     PH_PROCESS_WS_COUNTERS wsCounters;
-    ULONG i;
+    ULONG_PTR i;
 
     if (!NT_SUCCESS(status = PhGetProcessWorkingSetInformation(
         ProcessHandle,
@@ -4913,8 +4912,7 @@ NTSTATUS PhEnumHandles(
         PhFree(buffer);
         bufferSize *= 2;
 
-        // Fail if we're resizing the buffer to something
-        // very large.
+        // Fail if we're resizing the buffer to something very large.
         if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -4970,8 +4968,7 @@ NTSTATUS PhEnumHandlesEx(
         PhFree(buffer);
         bufferSize *= 2;
 
-        // Fail if we're resizing the buffer to something
-        // very large.
+        // Fail if we're resizing the buffer to something very large.
         if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -5022,8 +5019,7 @@ NTSTATUS PhEnumPagefiles(
         PhFree(buffer);
         bufferSize *= 2;
 
-        // Fail if we're resizing the buffer to something
-        // very large.
+        // Fail if we're resizing the buffer to something very large.
         if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
