@@ -27,6 +27,8 @@ typedef struct _PHP_HEXEDIT_CONTEXT
     HFONT Font;
     LONG LineHeight;
     LONG NullWidth;
+    PWCHAR CharBuffer;
+    ULONG CharBufferLength;
     BOOLEAN Update;
 
     LONG HexOffset;
@@ -61,6 +63,12 @@ LRESULT CALLBACK PhpHexEditWndProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+VOID PhpHexEditUpdateMetrics(
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_opt_ HDC hdc
     );
 
 VOID PhpHexEditOnPaint(

@@ -94,9 +94,8 @@ VOID PhpFreeHexEditContext(
     _In_ _Post_invalid_ PPHP_HEXEDIT_CONTEXT Context
     )
 {
-    if (!Context->UserBuffer && Context->Data)
-        PhFree(Context->Data);
-
+    if (!Context->UserBuffer && Context->Data) PhFree(Context->Data);
+    if (Context->CharBuffer) PhFree(Context->CharBuffer);
     if (Context->Font) DeleteObject(Context->Font);
     PhFree(Context);
 }
@@ -819,7 +818,14 @@ LRESULT CALLBACK PhpHexEditWndProc(
         }
         return TRUE;
     case HEM_GETBUFFER:
-        return (LPARAM)context->Data;
+        {
+            PULONG length = (PULONG)wParam;
+
+            if (length)
+                *length = context->Length;
+
+            return (LPARAM)context->Data;
+        }
     case HEM_SETSEL:
         {
             LONG selStart = (LONG)wParam;
@@ -839,6 +845,22 @@ LRESULT CALLBACK PhpHexEditWndProc(
     case HEM_SETEDITMODE:
         {
             context->CurrentMode = (LONG)wParam;
+            REDRAW_WINDOW(hwnd);
+        }
+        return TRUE;
+    case HEM_SETBYTESPERROW:
+        {
+            LONG bytesPerRow = (LONG)wParam;
+
+            if (bytesPerRow >= 4)
+            {
+                context->BytesPerRow = bytesPerRow;
+                PhpHexEditUpdateMetrics(hwnd, context, NULL);
+                PhpHexEditUpdateScrollbars(hwnd, context);
+                PhpHexEditScrollTo(hwnd, context, context->CurrentAddress);
+                PhpHexEditRepositionCaret(hwnd, context, context->CurrentAddress);
+                REDRAW_WINDOW(hwnd);
+            }
         }
         return TRUE;
     }
@@ -929,6 +951,49 @@ FORCEINLINE COLORREF GetLighterHighlightColor(
     return RGB(r, g, b);
 }
 
+VOID PhpHexEditUpdateMetrics(
+    _In_ HWND hwnd,
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_opt_ HDC hdc
+    )
+{
+    BOOLEAN freeHdc = FALSE;
+    RECT clientRect;
+    SIZE size;
+
+    if (!hdc)
+    {
+        hdc = CreateCompatibleDC(hdc);
+        SelectObject(hdc, Context->Font);
+        freeHdc = TRUE;
+    }
+
+    GetClientRect(hwnd, &clientRect);
+    GetCharWidth(hdc, '0', '0', &Context->NullWidth);
+    GetTextExtentPoint32(hdc, L"0", 1, &size);
+    Context->LineHeight = size.cy;
+
+    Context->HexOffset = Context->ShowAddress ? (Context->AddressIsWide ? Context->NullWidth * 9 : Context->NullWidth * 5) : 0;
+    Context->AsciiOffset = Context->HexOffset + (Context->ShowHex ? (Context->BytesPerRow * 3 * Context->NullWidth) : 0);
+
+    Context->LinesPerPage = clientRect.bottom / Context->LineHeight;
+    Context->HalfPage = FALSE;
+
+    if (Context->LinesPerPage * Context->BytesPerRow > Context->Length)
+    {
+        Context->LinesPerPage = (Context->Length + Context->BytesPerRow / 2) / Context->BytesPerRow;
+
+        if (Context->Length % Context->BytesPerRow != 0)
+        {
+            Context->HalfPage = TRUE;
+            Context->LinesPerPage++;
+        }
+    }
+
+    if (freeHdc && hdc)
+        DeleteDC(hdc);
+}
+
 VOID PhpHexEditOnPaint(
     _In_ HWND hwnd,
     _In_ PPHP_HEXEDIT_CONTEXT Context,
@@ -944,7 +1009,8 @@ VOID PhpHexEditOnPaint(
     LONG x;
     LONG y;
     LONG i;
-    WCHAR buffer[256];
+    ULONG requiredBufferLength;
+    PWCHAR buffer;
 
     GetClientRect(hwnd, &clientRect);
 
@@ -954,39 +1020,29 @@ VOID PhpHexEditOnPaint(
 
     SetDCBrushColor(bufferDc, GetSysColor(COLOR_WINDOW));
     FillRect(bufferDc, &clientRect, GetStockObject(DC_BRUSH));
-
     SelectObject(bufferDc, Context->Font);
-
     SetBoundsRect(bufferDc, &clientRect, DCB_DISABLE);
+
+    requiredBufferLength = (max(8, Context->BytesPerRow * 3) + 1) * sizeof(WCHAR);
+
+    if (Context->CharBufferLength < requiredBufferLength)
+    {
+        if (Context->CharBuffer)
+            PhFree(Context->CharBuffer);
+
+        Context->CharBuffer = PhAllocate(requiredBufferLength);
+        Context->CharBufferLength = requiredBufferLength;
+        buffer = Context->CharBuffer;
+    }
+
+    buffer = Context->CharBuffer;
 
     if (Context->Data)
     {
         // Get character dimensions.
         if (Context->Update)
         {
-            SIZE size;
-
-            GetCharWidth(bufferDc, '0', '0', &Context->NullWidth);
-            GetTextExtentPoint32(bufferDc, L"0", 1, &size);
-            Context->LineHeight = size.cy;
-
-            Context->HexOffset = Context->ShowAddress ? (Context->AddressIsWide ? Context->NullWidth * 9 : Context->NullWidth * 5) : 0;
-            Context->AsciiOffset = Context->HexOffset + (Context->ShowHex ? (Context->BytesPerRow * 3 * Context->NullWidth) : 0);
-
-            Context->LinesPerPage = clientRect.bottom / Context->LineHeight;
-            Context->HalfPage = FALSE;
-
-            if (Context->LinesPerPage * Context->BytesPerRow > Context->Length)
-            {
-                Context->LinesPerPage = (Context->Length + Context->BytesPerRow / 2) / Context->BytesPerRow;
-
-                if (Context->Length % Context->BytesPerRow != 0)
-                {
-                    Context->HalfPage = TRUE;
-                    Context->LinesPerPage++;
-                }
-            }
-
+            PhpHexEditUpdateMetrics(hwnd, Context, bufferDc);
             Context->Update = FALSE;
             PhpHexEditUpdateScrollbars(hwnd, Context);
         }
@@ -1012,7 +1068,7 @@ VOID PhpHexEditOnPaint(
             for (i = Context->TopIndex; i < Context->Length && rect.top < height; i += Context->BytesPerRow)
             {
                 format.u.Int32 = i;
-                PhFormatToBuffer(&format, 1, buffer, sizeof(buffer), NULL);
+                PhFormatToBuffer(&format, 1, buffer, requiredBufferLength, NULL);
                 DrawText(bufferDc, buffer, w, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                 rect.top += Context->LineHeight;
             }
@@ -1190,7 +1246,7 @@ VOID PhpHexEditOnPaint(
 
                     for (n = 0; n < Context->BytesPerRow && i < Context->Length; n++)
                     {
-                        *p++ = IS_PRINTABLE(Context->Data[i]) ? Context->Data[i] : '.';
+                        *p++ = IS_PRINTABLE(Context->Data[i]) ? Context->Data[i] : '.'; // 1
                         i++;
                     }
 

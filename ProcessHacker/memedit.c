@@ -244,6 +244,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL,
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BYTESPERROW), NULL,
+                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GOTO), NULL,
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_WRITE), NULL,
@@ -284,6 +286,27 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                 PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
                 PhSetIntegerPairSetting(L"MemEditSize", windowRectangle.Size);
+            }
+
+            {
+                PWSTR bytesPerRowStrings[7];
+                ULONG i;
+                ULONG bytesPerRow;
+
+                for (i = 0; i < sizeof(bytesPerRowStrings) / sizeof(PWSTR); i++)
+                    bytesPerRowStrings[i] = PhaFormatString(L"%u bytes per row", 1 << (2 + i))->Buffer;
+
+                PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_BYTESPERROW),
+                    bytesPerRowStrings, sizeof(bytesPerRowStrings) / sizeof(PWSTR));
+
+                bytesPerRow = PhGetIntegerSetting(L"MemEditBytesPerRow");
+
+                if (bytesPerRow >= 4)
+                {
+                    HexEdit_SetBytesPerRow(context->HexEditHandle, bytesPerRow);
+                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_BYTESPERROW),
+                        PhaFormatString(L"%u bytes per row", bytesPerRow)->Buffer, FALSE);
+                }
             }
 
             context->LoadCompleted = TRUE;
@@ -449,6 +472,25 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     }
 
                     InvalidateRect(context->HexEditHandle, NULL, TRUE);
+                }
+                break;
+            case IDC_BYTESPERROW:
+                if (HIWORD(wParam) == CBN_SELCHANGE)
+                {
+                    PPH_STRING bytesPerRowString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BYTESPERROW);
+                    PH_STRINGREF firstPart;
+                    PH_STRINGREF secondPart;
+                    ULONG64 bytesPerRow64;
+
+                    if (PhSplitStringRefAtChar(&bytesPerRowString->sr, ' ', &firstPart, &secondPart))
+                    {
+                        if (PhStringToInteger64(&firstPart, 10, &bytesPerRow64))
+                        {
+                            PhSetIntegerSetting(L"MemEditBytesPerRow", (ULONG)bytesPerRow64);
+                            HexEdit_SetBytesPerRow(context->HexEditHandle, (ULONG)bytesPerRow64);
+                            SetFocus(context->HexEditHandle);
+                        }
+                    }
                 }
                 break;
             }
