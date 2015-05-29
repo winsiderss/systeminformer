@@ -140,20 +140,8 @@ static NTSTATUS PhEnumerateBootEntries(
     _In_opt_ PVOID Context
     )
 {
-    HANDLE tokenHandle;
     ULONG bufferLength = 0;
     PVOID buffer = NULL;
-
-    // Enable required privileges
-    if (NT_SUCCESS(PhOpenProcessToken(
-        &tokenHandle,
-        TOKEN_ADJUST_PRIVILEGES,
-        NtCurrentProcess()
-        )))
-    {
-        PhSetTokenPrivilege(tokenHandle, SE_SYSTEM_ENVIRONMENT_NAME, NULL, SE_PRIVILEGE_ENABLED);
-        NtClose(tokenHandle);
-    }
 
     __try
     {
@@ -188,10 +176,52 @@ static NTSTATUS PhEnumerateBootEntries(
     return STATUS_SUCCESS;
 }
 
+static VOID QueryBootOptions(
+    VOID
+    )
+{
+    ULONG bufferLength = 0;
+    PVOID buffer = NULL;
+
+    __try
+    {
+        if (NtQueryBootOptions_I(NULL, &bufferLength) != STATUS_BUFFER_TOO_SMALL)
+            __leave;
+
+        buffer = PhAllocate(bufferLength);
+
+        if (NT_SUCCESS(NtQueryBootOptions_I(buffer, &bufferLength)))
+        {
+            PBOOT_OPTIONS bootOptions = buffer;
+        }
+    }
+    __finally
+    {
+        if (buffer)
+        {
+            PhFree(buffer);
+        }
+    }
+}
+
 static NTSTATUS EnumerateBootEntriesThread(
     _In_ PVOID ThreadParam
     )
 {
+    HANDLE tokenHandle;
+
+    // Enable required privileges
+    if (NT_SUCCESS(PhOpenProcessToken(
+        &tokenHandle,
+        TOKEN_ADJUST_PRIVILEGES,
+        NtCurrentProcess()
+        )))
+    {
+        PhSetTokenPrivilege(tokenHandle, SE_SYSTEM_ENVIRONMENT_NAME, NULL, SE_PRIVILEGE_ENABLED);
+        NtClose(tokenHandle);
+    }
+
+    //QueryBootOptions();
     PhEnumerateBootEntries(BootEntryCallback, ThreadParam);
 
     return STATUS_SUCCESS;
@@ -216,7 +246,6 @@ static BOOLEAN IsLegacySystem(
 
     return FALSE;
 }
-
 
 static PPH_STRING PhGetSelectedListViewItemText(
     _In_ HWND hWnd
