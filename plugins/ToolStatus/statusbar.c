@@ -82,6 +82,9 @@ VOID ShowStatusMenu(
             case STATUS_MAXIOPROCESS:
                 id = ID_STATUS_MAX_IO_PROCESS;
                 break;
+            case STATUS_VISIBLEITEMS:
+                id = ID_STATUS_NUMBEROFITEMS;
+                break;
             }
 
             CheckMenuItem(subMenu, id, MF_CHECKED);
@@ -131,6 +134,9 @@ VOID ShowStatusMenu(
         break;
     case ID_STATUS_MAX_IO_PROCESS:
         bit = STATUS_MAXIOPROCESS;
+        break;
+    case ID_STATUS_NUMBEROFITEMS:
+        bit = STATUS_VISIBLEITEMS;
         break;
     default:
         return;
@@ -201,99 +207,170 @@ VOID UpdateStatusBar(
             switch (i)
             {
             case STATUS_CPUUSAGE:
-                text[count] = PhFormatString(L"CPU Usage: %.2f%%", (statistics.CpuKernelUsage + statistics.CpuUserUsage) * 100);
+                {
+                    text[count] = PhFormatString(
+                        L"CPU Usage: %.2f%%", 
+                        (statistics.CpuKernelUsage + statistics.CpuUserUsage) * 100
+                        );
+                }
                 break;
             case STATUS_COMMIT:
-                text[count] = PhFormatString(L"Commit Charge: %.2f%%",
-                    (FLOAT)statistics.CommitPages * 100 / statistics.Performance->CommitLimit);
+                {
+                    text[count] = PhFormatString(
+                        L"Commit Charge: %.2f%%",
+                        (FLOAT)statistics.CommitPages * 100 / statistics.Performance->CommitLimit
+                        );
+                }
                 break;
             case STATUS_PHYSICAL:
-                text[count] = PhFormatString(L"Physical Memory: %.2f%%",
-                    (FLOAT)statistics.PhysicalPages * 100 / PhSystemBasicInformation.NumberOfPhysicalPages);
+                {
+                    text[count] = PhFormatString(
+                        L"Physical Memory: %.2f%%",
+                        (FLOAT)statistics.PhysicalPages * 100 / PhSystemBasicInformation.NumberOfPhysicalPages
+                        );
+                }
                 break;
             case STATUS_NUMBEROFPROCESSES:
-                text[count] = PhConcatStrings2(L"Processes: ",
-                    PhaFormatUInt64(statistics.NumberOfProcesses, TRUE)->Buffer);
+                {
+                    text[count] = PhConcatStrings2(
+                        L"Processes: ",
+                        PhaFormatUInt64(statistics.NumberOfProcesses, TRUE)->Buffer
+                        );
+                }
                 break;
             case STATUS_NUMBEROFTHREADS:
-                text[count] = PhConcatStrings2(L"Threads: ",
-                    PhaFormatUInt64(statistics.NumberOfThreads, TRUE)->Buffer);
+                {
+                    text[count] = PhConcatStrings2(
+                        L"Threads: ",
+                        PhaFormatUInt64(statistics.NumberOfThreads, TRUE)->Buffer
+                        );
+                }
                 break;
             case STATUS_NUMBEROFHANDLES:
-                text[count] = PhConcatStrings2(L"Handles: ",
-                    PhaFormatUInt64(statistics.NumberOfHandles, TRUE)->Buffer);
+                {
+                    text[count] = PhConcatStrings2(
+                        L"Handles: ",
+                        PhaFormatUInt64(statistics.NumberOfHandles, TRUE)->Buffer
+                        );
+                }
                 break;
             case STATUS_IOREADOTHER:
-                text[count] = PhConcatStrings2(L"I/O R+O: ", PhaFormatSize(
-                    statistics.IoReadDelta.Delta + statistics.IoOtherDelta.Delta, -1)->Buffer);
+                {
+                    text[count] = PhConcatStrings2(
+                        L"I/O R+O: ", 
+                        PhaFormatSize(statistics.IoReadDelta.Delta + statistics.IoOtherDelta.Delta, -1)->Buffer
+                        );
+                }
                 break;
             case STATUS_IOWRITE:
-                text[count] = PhConcatStrings2(L"I/O W: ", PhaFormatSize(
-                    statistics.IoWriteDelta.Delta, -1)->Buffer);
+                {
+                    text[count] = PhConcatStrings2(
+                        L"I/O W: ", 
+                        PhaFormatSize(statistics.IoWriteDelta.Delta, -1)->Buffer
+                        );
+                }
                 break;
             case STATUS_MAXCPUPROCESS:
-                if (statistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(statistics.MaxCpuProcessId)))
                 {
-                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                    if (statistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(statistics.MaxCpuProcessId)))
                     {
-                        text[count] = PhFormatString(
-                            L"%s (%u): %.2f%%",
-                            processItem->ProcessName->Buffer,
-                            HandleToUlong(processItem->ProcessId),
-                            processItem->CpuUsage * 100
-                            );
+                        if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                        {
+                            text[count] = PhFormatString(
+                                L"%s (%u): %.2f%%",
+                                processItem->ProcessName->Buffer,
+                                HandleToUlong(processItem->ProcessId),
+                                processItem->CpuUsage * 100
+                                );
+                        }
+                        else
+                        {
+                            text[count] = PhFormatString(
+                                L"%s: %.2f%%",
+                                processItem->ProcessName->Buffer,
+                                processItem->CpuUsage * 100
+                                );
+                        }
+
+                        PhDereferenceObject(processItem);
                     }
                     else
                     {
-                        text[count] = PhFormatString(
-                            L"%s: %.2f%%",
-                            processItem->ProcessName->Buffer,
-                            processItem->CpuUsage * 100
-                            );
+                        text[count] = PhCreateString(L"-");
                     }
 
-                    PhDereferenceObject(processItem);
+                    if (resetMaxWidths)
+                        StatusBarMaxWidths[index] = 0;
                 }
-                else
-                {
-                    text[count] = PhCreateString(L"-");
-                }
-
-                if (resetMaxWidths)
-                    StatusBarMaxWidths[index] = 0;
-
                 break;
             case STATUS_MAXIOPROCESS:
-                if (statistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(statistics.MaxIoProcessId)))
                 {
-                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                    if (statistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(statistics.MaxIoProcessId)))
                     {
+                        if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                        {
+                            text[count] = PhFormatString(
+                                L"%s (%u): %s",
+                                processItem->ProcessName->Buffer,
+                                HandleToUlong(processItem->ProcessId),
+                                PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                                );
+                        }
+                        else
+                        {
+                            text[count] = PhFormatString(
+                                L"%s: %s",
+                                processItem->ProcessName->Buffer,
+                                PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                                );
+                        }
+
+                        PhDereferenceObject(processItem);
+                    }
+                    else
+                    {
+                        text[count] = PhCreateString(L"-");
+                    }
+
+                    if (resetMaxWidths)
+                        StatusBarMaxWidths[index] = 0;
+                }
+                break;
+            case STATUS_VISIBLEITEMS:
+                {
+                    HWND tnHandle = NULL;
+
+                    switch (SelectedTabIndex)
+                    {
+                    case 0:
+                        tnHandle = ProcessTreeNewHandle;
+                        break;
+                    case 1:
+                        tnHandle = ServiceTreeNewHandle;
+                        break;
+                    case 2:
+                        tnHandle = NetworkTreeNewHandle;
+                        break;
+                    }
+
+                    if (tnHandle)
+                    {
+                        ULONG visibleCount = 0;
+
+                        visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
+
                         text[count] = PhFormatString(
-                            L"%s (%u): %s",
-                            processItem->ProcessName->Buffer,
-                            HandleToUlong(processItem->ProcessId),
-                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                            L"Visible: %u",
+                            visibleCount
                             );
                     }
                     else
                     {
                         text[count] = PhFormatString(
-                            L"%s: %s",
-                            processItem->ProcessName->Buffer,
-                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                            L"Visible: N/A"
                             );
                     }
-
-                    PhDereferenceObject(processItem);
                 }
-                else
-                {
-                    text[count] = PhCreateString(L"-");
-                }
-
-                if (resetMaxWidths)
-                    StatusBarMaxWidths[index] = 0;
-
                 break;
             }
 
