@@ -143,7 +143,8 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationReconnectedFromId,
     WinStationEffectsPolicy,
     WinStationType,
-    WinStationInformationEx
+    WinStationInformationEx,
+    WinStationValidationInfo
 } WINSTATIONINFOCLASS;
 
 // WinStationCreateData
@@ -345,7 +346,7 @@ typedef struct _WINSTATIONINFORMATIONEX_LEVEL1
 {
     ULONG SessionId;
     WINSTATIONSTATECLASS SessionState;
-    ULONG SessionFlags;
+    LONG SessionFlags;
     WINSTATIONNAME WinStationName;
     WCHAR UserName[USERNAME_LENGTH + 1];
     WCHAR DomainName[DOMAIN_LENGTH + 1];
@@ -362,7 +363,7 @@ typedef struct _WINSTATIONINFORMATIONEX_LEVEL2
 {
     ULONG SessionId;
     WINSTATIONSTATECLASS SessionState;
-    ULONG SessionFlags;
+    LONG SessionFlags;
     WINSTATIONNAME WinStationName;
     WCHAR SamCompatibleUserName[USERNAME_LENGTH + 1];
     WCHAR SamCompatibleDomainName[DOMAIN_LENGTH + 1];
