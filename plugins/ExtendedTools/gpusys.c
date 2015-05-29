@@ -673,7 +673,7 @@ PPH_STRING EtpGetMaxNodeString(
         maxGpuUsage = PhGetItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, Index);
 
         maxUsageString = PhaFormatString(
-            L"\n%s (%u): %.2f%%",
+            L"\n%s (%lu): %.2f%%",
             maxProcessRecord->ProcessName->Buffer,
             HandleToUlong(maxProcessRecord->ProcessId),
             maxGpuUsage * 100

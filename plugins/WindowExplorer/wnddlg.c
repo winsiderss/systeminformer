@@ -264,7 +264,7 @@ PPH_STRING WepGetWindowTitleForSelector(
         break;
     case WeWindowSelectorThread:
         {
-            return PhFormatString(L"Windows - Thread %u", HandleToUlong(Selector->Thread.ThreadId));
+            return PhFormatString(L"Windows - Thread %lu", HandleToUlong(Selector->Thread.ThreadId));
         }
         break;
     case WeWindowSelectorProcess:
