@@ -122,7 +122,7 @@ static PPH_STRING SaveAdaptersList(
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)FilterList->Items[i];
 
         PhAppendFormatStringBuilder(&stringBuilder,
-            L"%u,%I64u,%s,",
+            L"%lu,%I64u,%s,",
             entry->InterfaceIndex,    // This value is UNSAFE and may change after reboot.
             entry->InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
             entry->InterfaceGuid->Buffer

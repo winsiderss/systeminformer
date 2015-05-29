@@ -517,7 +517,7 @@ VOID NotifyGrowl(
             );
 
         message = PhFormatString(
-            L"The process %s (%u) was started by %s.",
+            L"The process %s (%lu) was started by %s.",
             processItem->ProcessName->Buffer,
             HandleToUlong(processItem->ProcessId),
             parentProcessItem ? parentProcessItem->ProcessName->Buffer : L"an unknown process"
@@ -533,7 +533,7 @@ VOID NotifyGrowl(
         title = processItem->ProcessName;
         PhReferenceObject(title);
 
-        message = PhFormatString(L"The process %s (%u) was terminated.",
+        message = PhFormatString(L"The process %s (%lu) was terminated.",
             processItem->ProcessName->Buffer,
             HandleToUlong(processItem->ProcessId)
             );

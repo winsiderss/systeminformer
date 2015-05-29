@@ -422,7 +422,7 @@ PPH_STRING EtpGetMaxDiskString(
     if (maxProcessRecord = EtpReferenceMaxDiskRecord(Index))
     {
         maxUsageString = PhaFormatString(
-            L"\n%s (%u)",
+            L"\n%s (%lu)",
             maxProcessRecord->ProcessName->Buffer,
             HandleToUlong(maxProcessRecord->ProcessId)
             );
@@ -794,7 +794,7 @@ PPH_STRING EtpGetMaxNetworkString(
     if (maxProcessRecord = EtpReferenceMaxNetworkRecord(Index))
     {
         maxUsageString = PhaFormatString(
-            L"\n%s (%u)",
+            L"\n%s (%lu)",
             maxProcessRecord->ProcessName->Buffer,
             HandleToUlong(maxProcessRecord->ProcessId)
             );

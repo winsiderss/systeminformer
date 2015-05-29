@@ -126,7 +126,7 @@ static VOID RaiseUploadError(
             Context->DialogHandle,
             UM_ERROR,
             0,
-            (LPARAM)PhFormatString(L"Error: [%u] %s", ErrorCode, Error)
+            (LPARAM)PhFormatString(L"Error: [%lu] %s", ErrorCode, Error)
             );
     }
 }

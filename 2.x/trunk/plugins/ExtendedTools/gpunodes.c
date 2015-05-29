@@ -140,7 +140,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
-                nodeString = PhFormatString(L"Node %u", i);
+                nodeString = PhFormatString(L"Node %lu", i);
 
                 GraphHandle[i] = CreateWindow(
                     PH_GRAPH_CLASSNAME,
@@ -383,7 +383,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                             PhSwapReference(&adapterDescription, NULL);
 
                                         if (!adapterDescription)
-                                            adapterDescription = PhFormatString(L"Adapter %u", adapterIndex);
+                                            adapterDescription = PhFormatString(L"Adapter %lu", adapterIndex);
                                     }
                                     else
                                     {
@@ -391,7 +391,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                     }
 
                                     PhSwapReference2(&GraphState[i].TooltipText, PhFormatString(
-                                        L"Node %u on %s\n%.2f%%\n%s",
+                                        L"Node %lu on %s\n%.2f%%\n%s",
                                         i,
                                         adapterDescription->Buffer,
                                         gpu * 100,
