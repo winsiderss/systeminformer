@@ -638,65 +638,56 @@ PPH_STRING PhGetServiceTooltipText(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    PPH_STRING tempString;
     SC_HANDLE serviceHandle;
 
     PhInitializeStringBuilder(&stringBuilder, 200);
 
     if (serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_QUERY_CONFIG))
     {
-        //LPQUERY_SERVICE_CONFIG config;
+        PPH_STRING fileName;
+        PPH_STRING description;
 
         // File information
-        // (Disabled for now because of file name resolution issues)
 
-        /*if (config = PhGetServiceConfig(serviceHandle))
+        if (fileName = PhGetServiceRelevantFileName(&Service->Name->sr, serviceHandle))
         {
-            PPH_STRING fileName;
-            PPH_STRING newFileName;
             PH_IMAGE_VERSION_INFO versionInfo;
-
-            fileName = PhCreateString(config->lpBinaryPathName);
-            newFileName = PhGetFileName(fileName);
-            PhDereferenceObject(fileName);
-            fileName = newFileName;
+            PPH_STRING versionInfoText;
 
             if (PhInitializeImageVersionInfo(
                 &versionInfo,
                 fileName->Buffer
                 ))
             {
-                tempString = PhFormatImageVersionInfo(
+                versionInfoText = PhFormatImageVersionInfo(
                     fileName,
                     &versionInfo,
                     L"    ",
                     0
                     );
 
-                if (!PhIsNullOrEmptyString(tempString))
+                if (!PhIsNullOrEmptyString(versionInfoText))
                 {
                     PhAppendStringBuilder2(&stringBuilder, L"File:\n");
-                    PhAppendStringBuilder(&stringBuilder, tempString);
+                    PhAppendStringBuilder(&stringBuilder, versionInfoText);
                     PhAppendCharStringBuilder(&stringBuilder, '\n');
                 }
 
-                if (tempString)
-                    PhDereferenceObject(tempString);
-
+                PhSwapReference(&versionInfoText, NULL);
                 PhDeleteImageVersionInfo(&versionInfo);
             }
 
             PhDereferenceObject(fileName);
-            PhFree(config);
-        }*/
+        }
 
         // Description
 
-        if (tempString = PhGetServiceDescription(serviceHandle))
+        if (description = PhGetServiceDescription(serviceHandle))
         {
-            PhAppendStringBuilder(&stringBuilder, tempString);
+            PhAppendStringBuilder2(&stringBuilder, L"Description:\n    ");
+            PhAppendStringBuilder(&stringBuilder, description);
             PhAppendCharStringBuilder(&stringBuilder, '\n');
-            PhDereferenceObject(tempString);
+            PhDereferenceObject(description);
         }
 
         CloseServiceHandle(serviceHandle);

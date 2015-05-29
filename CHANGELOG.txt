@@ -5,6 +5,7 @@ Process Hacker
    * Completely new Memory tab for processes, with heap, stack and working set usage
    * Added customizable bytes per row setting for memory editor
    * Added trigger and delayed start information to service list
+   * Added file information to service list tooltips
    * Updated DotNetTools plugin:
      * Added AppDomain column for threads in .NET programs
    * Updated ExtendedServices plugin:
