@@ -288,6 +288,10 @@ VOID PhMwpShowIconContextMenu(
     _In_ POINT Location
     );
 
+VOID PhMwpClearLastNotificationDetails(
+    VOID
+    );
+
 BOOLEAN PhMwpPluginNotifyEvent(
     _In_ ULONG Type,
     _In_ PVOID Parameter

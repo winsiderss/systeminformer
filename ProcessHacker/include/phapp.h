@@ -704,6 +704,10 @@ VOID PhShowIconNotification(
     _In_ ULONG Flags
     );
 
+VOID PhShowDetailsForIconNotification(
+    VOID
+    );
+
 VOID PhShowProcessContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     );

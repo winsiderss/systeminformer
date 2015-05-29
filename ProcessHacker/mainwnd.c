@@ -118,6 +118,13 @@ static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 //static PPH_TN_FILTER_ENTRY SignedNetworkFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
 
+static ULONG LastNotificationType;
+static union
+{
+    HANDLE ProcessId;
+    PPH_STRING ServiceName;
+} LastNotificationDetails;
+
 BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     )
@@ -3871,6 +3878,58 @@ VOID PhShowIconNotification(
     PhNfShowBalloonTip(0, Title, Text, 10, Flags);
 }
 
+VOID PhShowDetailsForIconNotification(
+    VOID
+    )
+{
+    switch (LastNotificationType)
+    {
+    case PH_NOTIFY_PROCESS_CREATE:
+        {
+            PPH_PROCESS_NODE processNode;
+
+            if (processNode = PhFindProcessNode(LastNotificationDetails.ProcessId))
+            {
+                ProcessHacker_SelectTabPage(PhMainWndHandle, ProcessesTabIndex);
+                ProcessHacker_SelectProcessNode(PhMainWndHandle, processNode);
+                ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
+            }
+        }
+        break;
+    case PH_NOTIFY_SERVICE_CREATE:
+    case PH_NOTIFY_SERVICE_START:
+    case PH_NOTIFY_SERVICE_STOP:
+        {
+            PPH_SERVICE_ITEM serviceItem;
+
+            if (LastNotificationDetails.ServiceName &&
+                (serviceItem = PhReferenceServiceItem(LastNotificationDetails.ServiceName->Buffer)))
+            {
+                ProcessHacker_SelectTabPage(PhMainWndHandle, ServicesTabIndex);
+                ProcessHacker_SelectServiceItem(PhMainWndHandle, serviceItem);
+                ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
+
+                PhDereferenceObject(serviceItem);
+            }
+        }
+        break;
+    }
+}
+
+VOID PhMwpClearLastNotificationDetails(
+    VOID
+    )
+{
+    if (LastNotificationType &
+        (PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE | PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
+    {
+        PhSwapReference(&LastNotificationDetails.ServiceName, NULL);
+    }
+
+    LastNotificationType = 0;
+    memset(&LastNotificationDetails, 0, sizeof(LastNotificationDetails));
+}
+
 BOOLEAN PhMwpPluginNotifyEvent(
     _In_ ULONG Type,
     _In_ PVOID Parameter
@@ -4416,6 +4475,10 @@ VOID PhMwpOnProcessAdded(
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_PROCESS_CREATE, ProcessItem))
             {
+                PhMwpClearLastNotificationDetails();
+                LastNotificationType = PH_NOTIFY_PROCESS_CREATE;
+                LastNotificationDetails.ProcessId = ProcessItem->ProcessId;
+
                 PhShowIconNotification(L"Process Created", PhaFormatString(
                     L"The process %s (%u) was created by %s (%u)",
                     ProcessItem->ProcessName->Buffer,
@@ -4473,6 +4536,10 @@ VOID PhMwpOnProcessRemoved(
     {
         if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_PROCESS_DELETE, ProcessItem))
         {
+            PhMwpClearLastNotificationDetails();
+            LastNotificationType = PH_NOTIFY_PROCESS_DELETE;
+            LastNotificationDetails.ProcessId = ProcessItem->ProcessId;
+
             PhShowIconNotification(L"Process Terminated", PhaFormatString(
                 L"The process %s (%u) was terminated.",
                 ProcessItem->ProcessName->Buffer,
@@ -4743,6 +4810,10 @@ VOID PhMwpOnServiceAdded(
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_CREATE, ServiceItem))
             {
+                PhMwpClearLastNotificationDetails();
+                LastNotificationType = PH_NOTIFY_SERVICE_CREATE;
+                PhSwapReference(&LastNotificationDetails.ServiceName, ServiceItem->Name);
+
                 PhShowIconNotification(L"Service Created", PhaFormatString(
                     L"The service %s (%s) has been created.",
                     ServiceItem->Name->Buffer,
@@ -4811,6 +4882,10 @@ VOID PhMwpOnServiceModified(
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_START, serviceItem))
             {
+                PhMwpClearLastNotificationDetails();
+                LastNotificationType = PH_NOTIFY_SERVICE_START;
+                PhSwapReference(&LastNotificationDetails.ServiceName, serviceItem->Name);
+
                 PhShowIconNotification(L"Service Started", PhaFormatString(
                     L"The service %s (%s) has been started.",
                     serviceItem->Name->Buffer,
@@ -4820,6 +4895,10 @@ VOID PhMwpOnServiceModified(
         }
         else if (serviceChange == ServiceStopped && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_STOP))
         {
+            PhMwpClearLastNotificationDetails();
+            LastNotificationType = PH_NOTIFY_SERVICE_STOP;
+            PhSwapReference(&LastNotificationDetails.ServiceName, serviceItem->Name);
+
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_STOP, serviceItem))
             {
                 PhShowIconNotification(L"Service Stopped", PhaFormatString(
@@ -4851,6 +4930,10 @@ VOID PhMwpOnServiceRemoved(
     {
         if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_DELETE, ServiceItem))
         {
+            PhMwpClearLastNotificationDetails();
+            LastNotificationType = PH_NOTIFY_SERVICE_DELETE;
+            PhSwapReference(&LastNotificationDetails.ServiceName, ServiceItem->Name);
+
             PhShowIconNotification(L"Service Deleted", PhaFormatString(
                 L"The service %s (%s) has been deleted.",
                 ServiceItem->Name->Buffer,
