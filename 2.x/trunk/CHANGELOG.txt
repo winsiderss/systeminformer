@@ -6,6 +6,7 @@ Process Hacker
    * Added customizable bytes per row setting for memory editor
    * Added trigger and delayed start information to service list
    * Added file information to service list tooltips
+   * Balloon tips for process/service notifications are now clickable
    * Updated DotNetTools plugin:
      * Added AppDomain column for threads in .NET programs
    * Updated ExtendedServices plugin:
