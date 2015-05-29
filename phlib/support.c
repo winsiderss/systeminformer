@@ -3760,6 +3760,7 @@ PVOID PhCreateOpenFileDialog(
     )
 {
     OPENFILENAME *ofn;
+    PVOID ofnFileDialog;
 
     if (PHP_USE_IFILEDIALOG)
     {
@@ -3779,9 +3780,10 @@ PVOID PhCreateOpenFileDialog(
     }
 
     ofn = PhpCreateOpenFileName();
-    PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_FILEMUSTEXIST | PH_FILEDIALOG_STRICTFILETYPES);
+    ofnFileDialog = PhpCreateFileDialog(FALSE, ofn, NULL);
+    PhSetFileDialogOptions(ofnFileDialog, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_FILEMUSTEXIST | PH_FILEDIALOG_STRICTFILETYPES);
 
-    return PhpCreateFileDialog(FALSE, ofn, NULL);
+    return ofnFileDialog;
 }
 
 /**
@@ -3797,6 +3799,7 @@ PVOID PhCreateSaveFileDialog(
     )
 {
     OPENFILENAME *ofn;
+    PVOID ofnFileDialog;
 
     if (PHP_USE_IFILEDIALOG)
     {
@@ -3816,9 +3819,10 @@ PVOID PhCreateSaveFileDialog(
     }
 
     ofn = PhpCreateOpenFileName();
-    PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_OVERWRITEPROMPT | PH_FILEDIALOG_STRICTFILETYPES);
+    ofnFileDialog = PhpCreateFileDialog(TRUE, ofn, NULL);
+    PhSetFileDialogOptions(ofnFileDialog, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_OVERWRITEPROMPT | PH_FILEDIALOG_STRICTFILETYPES);
 
-    return PhpCreateFileDialog(TRUE, ofn, NULL);
+    return ofnFileDialog;
 }
 
 /**
