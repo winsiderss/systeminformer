@@ -1,8 +1,8 @@
 /*
- * Process Hacker Update Checker -
- *   Update Window
+ * Process Hacker Plugins -
+ *   Update Checker Plugin
  *
- * Copyright (C) 2011-2014 dmex
+ * Copyright (C) 2011-2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -13,11 +13,11 @@
  *
  * Process Hacker is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Process Hacker. If not, see <http://www.gnu.org/licenses/>.
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "updater.h"

@@ -1,3 +1,25 @@
+/*
+ * Process Hacker Plugins -
+ *   Update Checker Plugin
+ *
+ * Copyright (C) 2011-2015 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef __UPDATER_H__
 #define __UPDATER_H__
 
@@ -28,9 +50,9 @@
 #define PH_HASHFAILURE     (WM_APP + 106)
 #define WM_SHOWDIALOG      (WM_APP + 150)
 
-DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
+#define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
+#define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 
-#define SETTING_AUTO_CHECK L"ProcessHacker.Updater.PromptStart"
 #define MAKEDLLVERULL(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \
     ((ULONGLONG)(minor) << 32) | \

@@ -1,8 +1,8 @@
 /*
- * Process Hacker Update Checker -
- *   options dialog
+ * Process Hacker Plugins -
+ *   Update Checker Plugin
  *
- * Copyright (C) 2011-2013 dmex
+ * Copyright (C) 2011-2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -33,7 +33,7 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            if (PhGetIntegerSetting(SETTING_AUTO_CHECK))
+            if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
         }
         break;
@@ -47,7 +47,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDOK:
                 {
                     PhSetIntegerSetting(
-                        SETTING_AUTO_CHECK,
+                        SETTING_NAME_AUTO_CHECK,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
 
                     EndDialog(hwndDlg, IDOK);
