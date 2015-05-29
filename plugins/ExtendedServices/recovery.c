@@ -319,7 +319,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 {
                     PhShowWarning(
                         hwndDlg,
-                        L"The service has %u failure actions configured, but this program only supports editing 3. "
+                        L"The service has %lu failure actions configured, but this program only supports editing 3. "
                         L"If you save the recovery information using this program, the additional failure actions will be lost.",
                         context->NumberOfActions
                         );

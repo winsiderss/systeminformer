@@ -650,7 +650,7 @@ static NTSTATUS UpdateDownloadThread(
         if (PhIsNullOrEmptyString(setupTempPath))
             __leave;
 
-        // Append the tempath to our string: %TEMP%processhacker-%u.%u-setup.exe
+        // Append the tempath to our string: %TEMP%processhacker-%lu.%lu-setup.exe
         // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-2.90-setup.exe
         context->SetupFilePath = PhFormatString(
             L"%sprocesshacker-%lu.%lu-setup.exe",
@@ -1117,7 +1117,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case PH_UPDATEAVAILABLE:
         {
             PPH_STRING summaryText = PhFormatString(
-                L"Process Hacker %u.%u (r%u)",
+                L"Process Hacker %lu.%lu (r%lu)",
                 context->MajorVersion,
                 context->MinorVersion,
                 context->RevisionVersion
@@ -1154,7 +1154,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case PH_UPDATEISCURRENT:
         {
             PPH_STRING versionText = PhFormatString(
-                L"Stable release build: v%u.%u (r%u)",
+                L"Stable release build: v%lu.%lu (r%lu)",
                 context->CurrentMajorVersion,
                 context->CurrentMinorVersion,
                 context->CurrentRevisionVersion
@@ -1177,7 +1177,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
     case PH_UPDATENEWER:
         {
             PPH_STRING versionText = PhFormatString(
-                L"SVN release build: v%u.%u (r%u)",
+                L"SVN release build: v%lu.%lu (r%lu)",
                 context->CurrentMajorVersion,
                 context->CurrentMinorVersion,
                 context->CurrentRevisionVersion

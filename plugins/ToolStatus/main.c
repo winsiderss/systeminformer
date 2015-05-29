@@ -789,7 +789,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                 }
                                 else
                                 {
-                                    PhShowError(hWnd, L"The process (PID %u) does not exist.", processId);
+                                    PhShowError(hWnd, L"The process (PID %lu) does not exist.", processId);
                                 }
                             }
                             break;
@@ -804,7 +804,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                 }
                                 else
                                 {
-                                    PhShowError(hWnd, L"The process (PID %u) does not exist.", processId);
+                                    PhShowError(hWnd, L"The process (PID %lu) does not exist.", processId);
                                 }
                             }
                             break;

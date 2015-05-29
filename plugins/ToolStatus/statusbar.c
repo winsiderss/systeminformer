@@ -277,7 +277,7 @@ VOID UpdateStatusBar(
                         if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
                         {
                             text[count] = PhFormatString(
-                                L"%s (%u): %.2f%%",
+                                L"%s (%lu): %.2f%%",
                                 processItem->ProcessName->Buffer,
                                 HandleToUlong(processItem->ProcessId),
                                 processItem->CpuUsage * 100
@@ -310,7 +310,7 @@ VOID UpdateStatusBar(
                         if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
                         {
                             text[count] = PhFormatString(
-                                L"%s (%u): %s",
+                                L"%s (%lu): %s",
                                 processItem->ProcessName->Buffer,
                                 HandleToUlong(processItem->ProcessId),
                                 PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
@@ -360,7 +360,7 @@ VOID UpdateStatusBar(
                         visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
 
                         text[count] = PhFormatString(
-                            L"Visible: %u",
+                            L"Visible: %lu",
                             visibleCount
                             );
                     }
