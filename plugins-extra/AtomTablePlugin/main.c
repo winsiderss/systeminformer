@@ -32,106 +32,12 @@
 #define SETTING_NAME_WINDOW_SIZE (PLUGIN_NAME L".WindowSize")
 #define SETTING_NAME_LISTVIEW_COLUMNS (PLUGIN_NAME L".ListViewColumns")
 
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-VOID NTAPI MainWindowShowingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-INT_PTR CALLBACK MainWindowDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static HWND ListViewWndHandle;
 static PH_LAYOUT_MANAGER LayoutManager;
 static PPH_PLUGIN PluginInstance;
-
-LOGICAL DllMain(
-    _In_ HINSTANCE Instance,
-    _In_ ULONG Reason,
-    _Reserved_ PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-            PH_SETTING_CREATE settings [] =
-            {
-                { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
-                { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
-                { StringSettingType, SETTING_NAME_LISTVIEW_COLUMNS, L"" }
-            };
-
-            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->Author = L"dmex";
-            info->DisplayName = L"Global Atom Table";
-            info->Description = L"Plugin for viewing the Global Atom Table via the Tools menu.";
-            info->HasOptions = FALSE;
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
-                NULL,
-                &MainWindowShowingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
-
-            PhAddSettings(settings, _countof(settings));
-        }
-        break;
-    }
-
-    return TRUE;
-}
-
-static VOID NTAPI MainWindowShowingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ATOM_TABLE_MENUITEM, L"Global Atom Table", NULL);
-}
-
-static VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
-
-    switch (menuItem->Id)
-    {
-    case ATOM_TABLE_MENUITEM:
-        {
-            DialogBox(
-                PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_ATOMDIALOG),
-                NULL,
-                MainWindowDlgProc
-                );
-        }
-        break;
-    }
-}
 
 static NTSTATUS PhEnumAtomTable(
     _Out_ PATOM_TABLE_INFORMATION* AtomTable
@@ -381,7 +287,7 @@ static VOID ShowStatusMenu(
     }
 }
 
-INT_PTR CALLBACK MainWindowDlgProc(
+static INT_PTR CALLBACK MainWindowDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -454,4 +360,83 @@ INT_PTR CALLBACK MainWindowDlgProc(
     }
 
     return FALSE;
+}
+
+static VOID NTAPI MainWindowShowingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$", ATOM_TABLE_MENUITEM, L"Global Atom Table", NULL);
+}
+
+static VOID NTAPI MenuItemCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+
+    switch (menuItem->Id)
+    {
+    case ATOM_TABLE_MENUITEM:
+        {
+            DialogBox(
+                PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_ATOMDIALOG),
+                NULL,
+                MainWindowDlgProc
+                );
+        }
+        break;
+    }
+}
+
+LOGICAL DllMain(
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
+    )
+{
+    switch (Reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        {
+            PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"350,350" },
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"510,380" },
+                { StringSettingType, SETTING_NAME_LISTVIEW_COLUMNS, L"" }
+            };
+
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->Author = L"dmex";
+            info->DisplayName = L"Global Atom Table";
+            info->Description = L"Plugin for viewing the Global Atom Table via the Tools menu.";
+            info->HasOptions = FALSE;
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+
+            PhAddSettings(settings, _countof(settings));
+        }
+        break;
+    }
+
+    return TRUE;
 }
