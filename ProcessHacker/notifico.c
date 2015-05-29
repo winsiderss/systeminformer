@@ -285,6 +285,9 @@ VOID PhNfForwardMessage(
             PhShowIconContextMenu(location);
         }
         break;
+    case NIN_BALLOONUSERCLICK:
+        PhShowDetailsForIconNotification();
+        break;
     }
 }
 
