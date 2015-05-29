@@ -1663,41 +1663,9 @@ VOID PhMwpOnCommand(
 
             if (serviceItem && (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
             {
-                PPH_STRING fileName = NULL;
-                LPQUERY_SERVICE_CONFIG config;
+                PPH_STRING fileName;
 
-                if (config = PhGetServiceConfig(serviceHandle))
-                {
-                    PhGetServiceDllParameter(&serviceItem->Name->sr, &fileName);
-
-                    if (!fileName)
-                    {
-                        PPH_STRING commandLine;
-
-                        commandLine = PhCreateString(config->lpBinaryPathName);
-
-                        if (config->dwServiceType & SERVICE_WIN32)
-                        {
-                            PH_STRINGREF dummyFileName;
-                            PH_STRINGREF dummyArguments;
-
-                            PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
-
-                            if (!fileName)
-                                PhSwapReference(&fileName, commandLine);
-                        }
-                        else
-                        {
-                            fileName = PhGetFileName(commandLine);
-                        }
-
-                        PhDereferenceObject(commandLine);
-                    }
-
-                    PhFree(config);
-                }
-
-                if (fileName)
+                if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
                 {
                     PhShellExploreFile(PhMainWndHandle, fileName->Buffer);
                     PhDereferenceObject(fileName);
