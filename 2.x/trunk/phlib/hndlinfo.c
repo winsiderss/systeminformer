@@ -41,7 +41,8 @@ typedef enum _PHP_QUERY_OBJECT_WORK
 {
     NtQueryObjectWork,
     NtQuerySecurityObjectWork,
-    NtSetSecurityObjectWork
+    NtSetSecurityObjectWork,
+    KphDuplicateObjectWork
 } PHP_QUERY_OBJECT_WORK;
 
 typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
@@ -73,6 +74,16 @@ typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
             SECURITY_INFORMATION SecurityInformation;
             PSECURITY_DESCRIPTOR SecurityDescriptor;
         } NtSetSecurityObject;
+        struct
+        {
+            HANDLE SourceProcessHandle;
+            HANDLE SourceHandle;
+            HANDLE TargetProcessHandle;
+            PHANDLE TargetHandle;
+            ACCESS_MASK DesiredAccess;
+            ULONG HandleAttributes;
+            ULONG Options;
+        } KphDuplicateObject;
     } u;
 } PHP_QUERY_OBJECT_COMMON_CONTEXT, *PPHP_QUERY_OBJECT_COMMON_CONTEXT;
 
@@ -1674,6 +1685,17 @@ NTSTATUS PhpCommonQueryObjectRoutine(
             context->u.NtSetSecurityObject.SecurityDescriptor
             );
         break;
+    case KphDuplicateObjectWork:
+        context->Status = KphDuplicateObject(
+            context->u.KphDuplicateObject.SourceProcessHandle,
+            context->u.KphDuplicateObject.SourceHandle,
+            context->u.KphDuplicateObject.TargetProcessHandle,
+            context->u.KphDuplicateObject.TargetHandle,
+            context->u.KphDuplicateObject.DesiredAccess,
+            context->u.KphDuplicateObject.HandleAttributes,
+            context->u.KphDuplicateObject.Options
+            );
+        break;
     default:
         context->Status = STATUS_INVALID_PARAMETER;
         break;
@@ -1758,6 +1780,32 @@ NTSTATUS PhCallNtSetSecurityObjectWithTimeout(
     context->u.NtSetSecurityObject.Handle = Handle;
     context->u.NtSetSecurityObject.SecurityInformation = SecurityInformation;
     context->u.NtSetSecurityObject.SecurityDescriptor = SecurityDescriptor;
+
+    return PhpCommonQueryObjectWithTimeout(context);
+}
+
+NTSTATUS PhCallKphDuplicateObjectWithTimeout(
+    _In_ HANDLE SourceProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_opt_ HANDLE TargetProcessHandle,
+    _Out_opt_ PHANDLE TargetHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Options
+    )
+{
+    PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
+
+    context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
+    context->Work = KphDuplicateObjectWork;
+    context->Status = STATUS_UNSUCCESSFUL;
+    context->u.KphDuplicateObject.SourceProcessHandle = SourceProcessHandle;
+    context->u.KphDuplicateObject.SourceHandle = SourceHandle;
+    context->u.KphDuplicateObject.TargetProcessHandle = TargetProcessHandle;
+    context->u.KphDuplicateObject.TargetHandle = TargetHandle;
+    context->u.KphDuplicateObject.DesiredAccess = DesiredAccess;
+    context->u.KphDuplicateObject.HandleAttributes = HandleAttributes;
+    context->u.KphDuplicateObject.Options = Options;
 
     return PhpCommonQueryObjectWithTimeout(context);
 }

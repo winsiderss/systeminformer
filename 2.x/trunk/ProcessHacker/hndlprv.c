@@ -488,7 +488,7 @@ VOID PhHandleProviderUpdate(
     ULONG i;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_KEY_VALUE_PAIR handlePair;
-    BOOLEAN useWorkQueue;
+    BOOLEAN useWorkQueue = FALSE;
     PH_WORK_QUEUE workQueue;
 
     if (!handleProvider->ProcessHandle)
