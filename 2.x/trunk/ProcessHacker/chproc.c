@@ -136,10 +136,7 @@ static VOID PhpRefreshProcessList(
         }
 
         if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID && !userName && PhLocalSystemName)
-        {
-            userName = PhLocalSystemName;
-            PhReferenceObject(userName);
-        }
+            PhSetReference(&userName, PhLocalSystemName);
 
         if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID && process->UniqueProcessId != SYSTEM_PROCESS_ID)
             PhGetProcessImageFileNameByProcessId(process->UniqueProcessId, &fileName);
@@ -148,7 +145,7 @@ static VOID PhpRefreshProcessList(
             fileName = PhGetKernelFileName();
 
         if (fileName)
-            PhSwapReference2(&fileName, PhGetFileName(fileName));
+            PhMoveReference(&fileName, PhGetFileName(fileName));
 
         icon = PhGetFileShellIcon(PhGetString(fileName), L".exe", FALSE);
 

@@ -274,8 +274,7 @@ VOID NTAPI MenuItemCallback(
                 WE_WINDOW_SELECTOR selector;
 
                 selector.Type = WeWindowSelectorDesktop;
-                PhReferenceObject(selectedChoice);
-                selector.Desktop.DesktopName = selectedChoice;
+                PhSetReference(&selector.Desktop.DesktopName, selectedChoice);
                 WeShowWindowsDialog(WE_PhMainWndHandle, &selector);
             }
 

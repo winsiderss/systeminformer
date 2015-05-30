@@ -362,8 +362,7 @@ static BOOLEAN PhpSettingFromString(
         {
             if (String)
             {
-                PhReferenceObject(String);
-                Setting->u.Pointer = String;
+                PhSetReference(&Setting->u.Pointer, String);
             }
             else
             {
@@ -522,8 +521,7 @@ _May_raise_ PPH_STRING PhGetStringSetting(
     {
         if (setting->u.Pointer)
         {
-            value = setting->u.Pointer;
-            PhReferenceObject(value);
+            PhSetReference(&value, setting->u.Pointer);
         }
         else
         {

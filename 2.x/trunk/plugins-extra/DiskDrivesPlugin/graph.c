@@ -216,14 +216,14 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
                             }
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->GraphState.Data1,
                                 max,
                                 drawInfo->LineDataCount
                                 );
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->GraphState.Data2,
                                 max,
                                 drawInfo->LineDataCount
@@ -251,7 +251,7 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->GraphState.TooltipText, PhFormatString(
+                                PhMoveReference(&context->GraphState.TooltipText, PhFormatString(
                                     L"R: %s\nW: %s\n%s",
                                     PhaFormatSize(diskReadValue, -1)->Buffer,
                                     PhaFormatSize(diskWriteValue, -1)->Buffer,
@@ -309,7 +309,7 @@ static BOOLEAN DiskDriveSectionCallback(
         return TRUE;
     case SysInfoDestroy:
         {
-            PhSwapReference2(&context->DiskLength, NULL);
+            PhMoveReference(&context->DiskLength, NULL);
 
             PhDeleteCircularBuffer_ULONG64(&context->ReadBuffer);
             PhDeleteCircularBuffer_ULONG64(&context->WriteBuffer);
@@ -430,14 +430,14 @@ static BOOLEAN DiskDriveSectionCallback(
                 }
 
                 // Scale the data.
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
 
                 // Scale the data.
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -460,7 +460,7 @@ static BOOLEAN DiskDriveSectionCallback(
                 getTooltipText->Index
                 );
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nW: %s\n%s",
                 PhaFormatSize(diskReadValue, -1)->Buffer,
                 PhaFormatSize(diskWriteValue, -1)->Buffer,

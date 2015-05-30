@@ -129,12 +129,12 @@ BOOLEAN EtpDiskSectionCallback(
 
                 // Scale the data.
 
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -153,7 +153,7 @@ BOOLEAN EtpDiskSectionCallback(
             diskRead = PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, getTooltipText->Index);
             diskWrite = PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, getTooltipText->Index);
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nW: %s%s\n%s",
                 PhaFormatSize(diskRead, -1)->Buffer,
                 PhaFormatSize(diskWrite, -1)->Buffer,
@@ -308,12 +308,12 @@ VOID EtpNotifyDiskGraph(
 
                 // Scale the data.
 
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     DiskGraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     DiskGraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -337,7 +337,7 @@ VOID EtpNotifyDiskGraph(
                     diskRead = PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, getTooltipText->Index);
                     diskWrite = PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&DiskGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&DiskGraphState.TooltipText, PhFormatString(
                         L"R: %s\nW: %s%s\n%s",
                         PhaFormatSize(diskRead, -1)->Buffer,
                         PhaFormatSize(diskWrite, -1)->Buffer,
@@ -501,12 +501,12 @@ BOOLEAN EtpNetworkSectionCallback(
 
                 // Scale the data.
 
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -525,7 +525,7 @@ BOOLEAN EtpNetworkSectionCallback(
             networkReceive = PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, getTooltipText->Index);
             networkSend = PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, getTooltipText->Index);
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nS: %s%s\n%s",
                 PhaFormatSize(networkReceive, -1)->Buffer,
                 PhaFormatSize(networkSend, -1)->Buffer,
@@ -680,12 +680,12 @@ VOID EtpNotifyNetworkGraph(
 
                 // Scale the data.
 
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     NetworkGraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     NetworkGraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -709,7 +709,7 @@ VOID EtpNotifyNetworkGraph(
                     networkReceive = PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, getTooltipText->Index);
                     networkSend = PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&NetworkGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&NetworkGraphState.TooltipText, PhFormatString(
                         L"R: %s\nS: %s%s\n%s",
                         PhaFormatSize(networkReceive, -1)->Buffer,
                         PhaFormatSize(networkSend, -1)->Buffer,

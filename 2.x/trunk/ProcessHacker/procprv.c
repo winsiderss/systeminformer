@@ -786,7 +786,7 @@ VERIFY_RESULT PhVerifyFileCached(
             result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
 
             if (result != VrTrusted)
-                PhSwapReference(&signerName, NULL);
+                PhClearReference(&signerName);
         }
         else
         {
@@ -844,7 +844,7 @@ VERIFY_RESULT PhVerifyFileCached(
     result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
 
     if (result != VrTrusted)
-        PhSwapReference(&signerName, NULL);
+        PhClearReference(&signerName);
 
     if (SignerName)
     {
@@ -2473,26 +2473,10 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     processRecord->SessionId = ProcessItem->SessionId;
     processRecord->CreateTime = ProcessItem->CreateTime;
 
-    PhReferenceObject(ProcessItem->ProcessName);
-    processRecord->ProcessName = ProcessItem->ProcessName;
-
-    if (ProcessItem->FileName)
-    {
-        PhReferenceObject(ProcessItem->FileName);
-        processRecord->FileName = ProcessItem->FileName;
-    }
-
-    if (ProcessItem->CommandLine)
-    {
-        PhReferenceObject(ProcessItem->CommandLine);
-        processRecord->CommandLine = ProcessItem->CommandLine;
-    }
-
-    /*if (ProcessItem->UserName)
-    {
-        PhReferenceObject(ProcessItem->UserName);
-        processRecord->UserName = ProcessItem->UserName;
-    }*/
+    PhSetReference(&processRecord->ProcessName, ProcessItem->ProcessName);
+    PhSetReference(&processRecord->FileName, ProcessItem->FileName);
+    PhSetReference(&processRecord->CommandLine, ProcessItem->CommandLine);
+    //PhSetReference(&processRecord->UserName, ProcessItem->UserName);
 
     return processRecord;
 }

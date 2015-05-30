@@ -712,7 +712,10 @@ VOID PhHandleProviderUpdate(
     }
 
     if (useWorkQueue)
-        PhDeleteWorkQueue(&workQueue, TRUE);
+    {
+        PhWaitForWorkQueue(&workQueue);
+        PhDeleteWorkQueue(&workQueue);
+    }
 
     PhFree(handleInfo);
 

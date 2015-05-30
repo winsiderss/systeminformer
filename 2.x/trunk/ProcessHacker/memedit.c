@@ -327,7 +327,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (context->Buffer) PhFreePage(context->Buffer);
             if (context->ProcessHandle) NtClose(context->ProcessHandle);
-            PhSwapReference(&context->Title, NULL);
+            PhClearReference(&context->Title);
 
             if ((context->Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && context->ProcessId == NtCurrentProcessId())
                 NtUnmapViewOfSection(NtCurrentProcess(), context->BaseAddress);
@@ -477,7 +477,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             case IDC_BYTESPERROW:
                 if (HIWORD(wParam) == CBN_SELCHANGE)
                 {
-                    PPH_STRING bytesPerRowString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BYTESPERROW);
+                    PPH_STRING bytesPerRowString = PhaGetDlgItemText(hwndDlg, IDC_BYTESPERROW);
                     PH_STRINGREF firstPart;
                     PH_STRINGREF secondPart;
                     ULONG64 bytesPerRow64;

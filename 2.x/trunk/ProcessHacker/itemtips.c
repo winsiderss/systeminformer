@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <phplug.h>
+#include <verify.h>
 #define CINTERFACE
 #define COBJMACROS
 #include <taskschd.h>
@@ -534,8 +535,8 @@ VOID PhpFillUmdfDrivers(
 
                         PhAppendCharStringBuilder(Drivers, '\n');
 
-                        PhSwapReference(&hardwareId, NULL);
-                        PhSwapReference(&deviceDesc, NULL);
+                        PhClearReference(&hardwareId);
+                        PhClearReference(&deviceDesc);
                         NtClose(driverKeyHandle);
                     }
 
@@ -673,7 +674,7 @@ PPH_STRING PhGetServiceTooltipText(
                     PhAppendCharStringBuilder(&stringBuilder, '\n');
                 }
 
-                PhSwapReference(&versionInfoText, NULL);
+                PhClearReference(&versionInfoText);
                 PhDeleteImageVersionInfo(&versionInfo);
             }
 

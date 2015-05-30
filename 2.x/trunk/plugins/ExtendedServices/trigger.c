@@ -1102,7 +1102,7 @@ static VOID EspFixServiceTriggerControls(
         if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM)))
         {
             EnableWindow(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM), FALSE);
-            PhSwapReference2(&Context->LastCustomSubType, PhGetWindowText(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM)));
+            PhMoveReference(&Context->LastCustomSubType, PhGetWindowText(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM)));
             SetDlgItemText(hwndDlg, IDC_SUBTYPECUSTOM, L"");
         }
     }
@@ -1351,7 +1351,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSwapReference(&context->LastCustomSubType, NULL);
+            PhClearReference(&context->LastCustomSubType);
         }
         break;
     case WM_COMMAND:
@@ -1403,7 +1403,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         PhDereferenceObject(text);
                     }
 
-                    PhSwapReference(&context->EditingValue, NULL);
+                    PhClearReference(&context->EditingValue);
                 }
                 break;
             case IDC_EDIT:
@@ -1437,14 +1437,14 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                             {
                                 PPH_STRING text;
 
-                                PhSwapReference2(&data->String, EspConvertNewLinesToNulls(context->EditingValue));
+                                PhMoveReference(&data->String, EspConvertNewLinesToNulls(context->EditingValue));
 
                                 EspFormatTriggerData(data, &text);
                                 PhSetListViewSubItem(lvHandle, lvItemIndex, 0, text->Buffer);
                                 PhDereferenceObject(text);
                             }
 
-                            PhSwapReference(&context->EditingValue, NULL);
+                            PhClearReference(&context->EditingValue);
                         }
                     }
                 }
@@ -1486,10 +1486,10 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                     PhInitializeAutoPool(&autoPool);
 
-                    typeString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TYPE);
-                    subTypeString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SUBTYPE);
-                    customSubTypeString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SUBTYPECUSTOM);
-                    actionString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_ACTION);
+                    typeString = PhaGetDlgItemText(hwndDlg, IDC_TYPE);
+                    subTypeString = PhaGetDlgItemText(hwndDlg, IDC_SUBTYPE);
+                    customSubTypeString = PhaGetDlgItemText(hwndDlg, IDC_SUBTYPECUSTOM);
+                    actionString = PhaGetDlgItemText(hwndDlg, IDC_ACTION);
 
                     for (i = 0; i < sizeof(TypeEntries) / sizeof(TYPE_ENTRY); i++)
                     {
@@ -1589,7 +1589,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                             EspDestroyTriggerData(context->EditingInfo->DataList->Items[i]);
                         }
 
-                        PhSwapReference(&context->EditingInfo->DataList, NULL);
+                        PhClearReference(&context->EditingInfo->DataList);
                     }
 
                     EndDialog(hwndDlg, IDOK);
@@ -1688,7 +1688,7 @@ static INT_PTR CALLBACK ValueDlgProc(
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             case IDOK:
-                PhSwapReference2(&context->EditingValue, PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUES)));
+                PhMoveReference(&context->EditingValue, PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUES)));
                 EndDialog(hwndDlg, IDOK);
                 break;
             }

@@ -37,7 +37,7 @@ ULONG KphpGetKernelRevisionNumber(
 
     result = 0;
     kernelFileName = PhGetKernelFileName();
-    PhSwapReference2(&kernelFileName, PhGetFileName(kernelFileName));
+    PhMoveReference(&kernelFileName, PhGetFileName(kernelFileName));
     versionInfo = PhGetFileVersionInfo(kernelFileName->Buffer);
     PhDereferenceObject(kernelFileName);
 

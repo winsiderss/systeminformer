@@ -454,14 +454,9 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             indexOfLastDot = PhFindLastCharInString(context->ProcessItem->ProcessName, 0, '.');
 
             if (indexOfLastDot != -1)
-            {
                 context->InstanceName = PhSubstring(context->ProcessItem->ProcessName, 0, indexOfLastDot);
-            }
             else
-            {
-                context->InstanceName = context->ProcessItem->ProcessName;
-                PhReferenceObject(context->InstanceName);
-            }
+                PhSetReference(&context->InstanceName, context->ProcessItem->ProcessName);
 
             appDomainsLv = GetDlgItem(hwndDlg, IDC_APPDOMAINS);
             PhSetListViewStyle(appDomainsLv, FALSE, TRUE);

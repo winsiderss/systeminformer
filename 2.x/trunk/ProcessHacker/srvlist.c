@@ -306,7 +306,7 @@ VOID PhUpdateServiceNode(
     )
 {
     memset(ServiceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
-    PhSwapReference(&ServiceNode->TooltipText, NULL);
+    PhClearReference(&ServiceNode->TooltipText);
 
     ServiceNode->ValidMask = 0;
     PhInvalidateTreeNewNode(&ServiceNode->Node, TN_CACHE_ICON);
@@ -341,9 +341,9 @@ static VOID PhpUpdateServiceNodeConfig(
             if (serviceConfig = PhGetServiceConfig(serviceHandle))
             {
                 if (serviceConfig->lpBinaryPathName)
-                    PhSwapReference2(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
+                    PhMoveReference(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
                 if (serviceConfig->lpLoadOrderGroup)
-                    PhSwapReference2(&ServiceNode->LoadOrderGroup, PhCreateString(serviceConfig->lpLoadOrderGroup));
+                    PhMoveReference(&ServiceNode->LoadOrderGroup, PhCreateString(serviceConfig->lpLoadOrderGroup));
 
                 PhFree(serviceConfig);
             }
@@ -365,7 +365,7 @@ static VOID PhpUpdateServiceNodeDescription(
 
         if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
         {
-            PhSwapReference2(&ServiceNode->Description, PhGetServiceDescription(serviceHandle));
+            PhMoveReference(&ServiceNode->Description, PhGetServiceDescription(serviceHandle));
 
             CloseServiceHandle(serviceHandle);
         }

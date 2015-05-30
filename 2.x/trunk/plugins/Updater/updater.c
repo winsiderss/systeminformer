@@ -288,15 +288,15 @@ static VOID FreeUpdateContext(
     Context->CurrentMajorVersion = 0;
     Context->CurrentRevisionVersion = 0;
 
-    PhSwapReference(&Context->UserAgent, NULL);
-    PhSwapReference(&Context->Version, NULL);
-    PhSwapReference(&Context->RevVersion, NULL);
-    PhSwapReference(&Context->RelDate, NULL);
-    PhSwapReference(&Context->Size, NULL);
-    PhSwapReference(&Context->Hash, NULL);
-    PhSwapReference(&Context->ReleaseNotesUrl, NULL);
-    PhSwapReference(&Context->SetupFilePath, NULL);
-    PhSwapReference(&Context->SetupFileDownloadUrl, NULL);
+    PhClearReference(&Context->UserAgent);
+    PhClearReference(&Context->Version);
+    PhClearReference(&Context->RevVersion);
+    PhClearReference(&Context->RelDate);
+    PhClearReference(&Context->Size);
+    PhClearReference(&Context->Hash);
+    PhClearReference(&Context->ReleaseNotesUrl);
+    PhClearReference(&Context->SetupFilePath);
+    PhClearReference(&Context->SetupFileDownloadUrl);
 
     if (Context->IconHandle)
     {
@@ -886,9 +886,9 @@ static NTSTATUS UpdateDownloadThread(
         if (httpSessionHandle)
             WinHttpCloseHandle(httpSessionHandle);
 
-        PhSwapReference(&setupTempPath, NULL);
-        PhSwapReference(&downloadHostPath, NULL);
-        PhSwapReference(&downloadUrlPath, NULL);
+        PhClearReference(&setupTempPath);
+        PhClearReference(&downloadHostPath);
+        PhClearReference(&downloadUrlPath);
     }
 
     if (context->SetupFilePath && PhVerifyFile(context->SetupFilePath->Buffer, NULL) == VrTrusted)

@@ -345,17 +345,6 @@ FORCEINLINE PVOID PhAllocateCopy(
     return copy;
 }
 
-// basesupx (basic)
-
-PHLIBAPI
-unsigned long
-__cdecl
-ph_crc32(unsigned long crc, char *buf, size_t len);
-
-unsigned short
-__cdecl
-ph_chksum(unsigned long sum, unsigned short *buf, unsigned long count);
-
 // Event
 
 #define PH_EVENT_SET 0x1
@@ -1615,6 +1604,22 @@ FORCEINLINE ULONG_PTR PhFindStringInString(
 }
 
 /**
+ * Creates a substring of a string.
+ *
+ * \param String The original string.
+ * \param StartIndex The start index, in characters.
+ * \param Count The number of characters to use.
+ */
+FORCEINLINE PPH_STRING PhSubstring(
+    _In_ PPH_STRING String,
+    _In_ SIZE_T StartIndex,
+    _In_ SIZE_T Count
+    )
+{
+    return PhCreateStringEx(&String->Buffer[StartIndex], Count * sizeof(WCHAR));
+}
+
+/**
  * Converts a string to lowercase in-place.
  *
  * \param String The string to convert.
@@ -1636,22 +1641,6 @@ FORCEINLINE VOID PhUpperString(
     )
 {
     _wcsupr(String->Buffer);
-}
-
-/**
- * Creates a substring of a string.
- *
- * \param String The original string.
- * \param StartIndex The start index, in characters.
- * \param Count The number of characters to use.
- */
-FORCEINLINE PPH_STRING PhSubstring(
-    _In_ PPH_STRING String,
-    _In_ SIZE_T StartIndex,
-    _In_ SIZE_T Count
-    )
-{
-    return PhCreateStringEx(&String->Buffer[StartIndex], Count * sizeof(WCHAR));
 }
 
 /**
@@ -3034,13 +3023,6 @@ PhExponentiate64(
     );
 
 PHLIBAPI
-ULONG
-NTAPI
-PhLog2(
-    _In_ ULONG Exponent
-    );
-
-PHLIBAPI
 BOOLEAN
 NTAPI
 PhHexStringToBuffer(
@@ -3097,6 +3079,30 @@ PhPrintTimeSpan(
     _In_ ULONG64 Ticks,
     _In_opt_ ULONG Mode
     );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFillMemoryUlong(
+    _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
+    _In_ ULONG Value,
+    _In_ SIZE_T Count
+    );
+
+/** Deprecated. Use PhFillMemoryUlong instead. */
+PHLIBAPI VOID FASTCALL PhxfFillMemoryUlong(PULONG Memory, ULONG Value, ULONG Count);
+
+PHLIBAPI
+VOID
+NTAPI
+PhDivideSinglesBySingle(
+    _Inout_updates_(Count) PFLOAT A,
+    _In_ FLOAT B,
+    _In_ SIZE_T Count
+    );
+
+/** Deprecated. Use PhDivideSinglesBySingle instead. */
+PHLIBAPI VOID FASTCALL PhxfDivideSingle2U(PFLOAT A, FLOAT B, ULONG Count);
 
 // Format
 
@@ -3305,53 +3311,6 @@ PhaSubstring(
     _In_ PPH_STRING String,
     _In_ SIZE_T StartIndex,
     _In_ SIZE_T Count
-    );
-
-// basesupx (extra)
-
-PHLIBAPI
-VOID
-FASTCALL
-PhxfFillMemoryUlong(
-    _Inout_ PULONG Memory,
-    _In_ ULONG Value,
-    _In_ ULONG Count
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhxfAddInt32(
-    _Inout_ _Needs_align_(16) PLONG A,
-    _In_ _Needs_align_(16) PLONG B,
-    _In_ ULONG Count
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhxfAddInt32U(
-    _Inout_ PLONG A,
-    _In_ PLONG B,
-    _In_ ULONG Count
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhxfDivideSingleU(
-    _Inout_ PFLOAT A,
-    _In_ PFLOAT B,
-    _In_ ULONG Count
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhxfDivideSingle2U(
-    _Inout_ PFLOAT A,
-    _In_ FLOAT B,
-    _In_ ULONG Count
     );
 
 // error
@@ -3723,8 +3682,14 @@ PHLIBAPI
 VOID
 NTAPI
 PhDeleteWorkQueue(
-    _Inout_ PPH_WORK_QUEUE WorkQueue,
-    _In_ BOOLEAN WaitForCompletion
+    _Inout_ PPH_WORK_QUEUE WorkQueue
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhWaitForWorkQueue(
+    _Inout_ PPH_WORK_QUEUE WorkQueue
     );
 
 PHLIBAPI

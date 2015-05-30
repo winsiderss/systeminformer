@@ -390,7 +390,7 @@ NTSTATUS PhSvcApiUnloadDriver(
     if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.UnloadDriver.i.Name, TRUE, &name)))
     {
         status = PhUnloadDriver(Message->u.UnloadDriver.i.BaseAddress, PhGetString(name));
-        PhSwapReference(&name, NULL);
+        PhClearReference(&name);
     }
 
     return status;
@@ -634,12 +634,12 @@ CleanupExit:
         PhDereferenceObject(password);
     }
 
-    PhSwapReference(&serviceStartName, NULL);
-    PhSwapReference(&dependencies, NULL);
-    PhSwapReference(&loadOrderGroup, NULL);
-    PhSwapReference(&binaryPathName, NULL);
-    PhSwapReference(&displayName, NULL);
-    PhSwapReference(&serviceName, NULL);
+    PhClearReference(&serviceStartName);
+    PhClearReference(&dependencies);
+    PhClearReference(&loadOrderGroup);
+    PhClearReference(&binaryPathName);
+    PhClearReference(&displayName);
+    PhClearReference(&serviceName);
 
     return status;
 }
@@ -706,7 +706,7 @@ NTSTATUS PhSvcApiChangeServiceConfig(
     }
 
 CleanupExit:
-    PhSwapReference(&displayName, NULL);
+    PhClearReference(&displayName);
 
     if (password)
     {
@@ -714,11 +714,11 @@ CleanupExit:
         PhDereferenceObject(password);
     }
 
-    PhSwapReference(&serviceStartName, NULL);
-    PhSwapReference(&dependencies, NULL);
-    PhSwapReference(&loadOrderGroup, NULL);
-    PhSwapReference(&binaryPathName, NULL);
-    PhSwapReference(&serviceName, NULL);
+    PhClearReference(&serviceStartName);
+    PhClearReference(&dependencies);
+    PhClearReference(&loadOrderGroup);
+    PhClearReference(&binaryPathName);
+    PhClearReference(&serviceName);
 
     return status;
 }

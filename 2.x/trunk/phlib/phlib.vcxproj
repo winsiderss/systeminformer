@@ -140,7 +140,6 @@
   <ItemGroup>
     <ClCompile Include="basesup.c" />
     <ClCompile Include="basesupa.c" />
-    <ClCompile Include="basesupx.c" />
     <ClCompile Include="circbuf.c" />
     <ClCompile Include="collect.c" />
     <ClCompile Include="colorbox.c" />

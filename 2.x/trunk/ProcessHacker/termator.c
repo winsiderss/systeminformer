@@ -108,9 +108,9 @@ static PVOID GetExitProcessFunction(
 {
     // Vista and above export.
     if (WindowsVersion >= WINDOWS_VISTA)
-        return PhGetProcAddress(L"ntdll.dll", "RtlExitUserProcess");
+        return PhGetModuleProcAddress(L"ntdll.dll", "RtlExitUserProcess");
     else
-        return PhGetProcAddress(L"kernel32.dll", "ExitProcess");
+        return PhGetModuleProcAddress(L"kernel32.dll", "ExitProcess");
 }
 
 static NTSTATUS NTAPI TerminatorTP1(

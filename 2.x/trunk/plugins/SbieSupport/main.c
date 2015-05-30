@@ -509,7 +509,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDOK:
                 {
                     PhSetStringSetting2(SETTING_NAME_SBIE_DLL_PATH,
-                        &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SBIEDLLPATH)->sr);
+                        &PhaGetDlgItemText(hwndDlg, IDC_SBIEDLLPATH)->sr);
 
                     EndDialog(hwndDlg, IDOK);
                 }
@@ -527,7 +527,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SBIEDLLPATH));
+                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_SBIEDLLPATH));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
                     PhDereferenceObject(fileName);
 

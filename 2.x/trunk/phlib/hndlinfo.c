@@ -456,8 +456,7 @@ PPH_STRING PhFormatNativeKeyName(
     }
     else
     {
-        newName = Name;
-        PhReferenceObject(Name);
+        PhSetReference(&newName, Name);
     }
 
     return newName;
@@ -674,8 +673,7 @@ NTSTATUS PhpGetBestObjectName(
         if (!bestObjectName)
         {
             // The file doesn't have a DOS name.
-            bestObjectName = ObjectName;
-            PhReferenceObject(ObjectName);
+            PhSetReference(&bestObjectName, ObjectName);
         }
 
         if (PhIsNullOrEmptyString(bestObjectName) && KphIsConnected())
@@ -698,7 +696,7 @@ NTSTATUS PhpGetBestObjectName(
                 {
                     static PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Unnamed file: ");
 
-                    PhSwapReference2(&bestObjectName, PhConcatStringRef2(&prefix, &driverName->sr));
+                    PhMoveReference(&bestObjectName, PhConcatStringRef2(&prefix, &driverName->sr));
                     PhDereferenceObject(driverName);
                 }
 
@@ -1138,10 +1136,7 @@ NTSTATUS PhpGetBestObjectName(
 CleanupExit:
 
     if (!bestObjectName)
-    {
-        bestObjectName = ObjectName;
-        PhReferenceObject(ObjectName);
-    }
+        PhSetReference(&bestObjectName, ObjectName);
 
     *BestObjectName = bestObjectName;
 
@@ -1200,7 +1195,16 @@ NTSTATUS PhGetHandleInformation(
 
     // Fail if any component failed, for compatibility reasons.
     if (!NT_SUCCESS(subStatus))
+    {
+        if (TypeName)
+            PhClearReference(TypeName);
+        if (ObjectName)
+            PhClearReference(ObjectName);
+        if (BestObjectName)
+            PhClearReference(BestObjectName);
+
         return subStatus;
+    }
 
     return status;
 }
@@ -1401,37 +1405,21 @@ CleanupExit:
     if (NT_SUCCESS(status))
     {
         if (SubStatus)
-        {
             *SubStatus = subStatus;
-        }
-
-        if (TypeName && typeName)
-        {
-            *TypeName = typeName;
-            PhReferenceObject(typeName);
-        }
-
-        if (ObjectName && objectName)
-        {
-            *ObjectName = objectName;
-            PhReferenceObject(objectName);
-        }
-
-        if (BestObjectName && bestObjectName)
-        {
-            *BestObjectName = bestObjectName;
-            PhReferenceObject(bestObjectName);
-        }
+        if (TypeName)
+            PhSetReference(TypeName, typeName);
+        if (ObjectName)
+            PhSetReference(ObjectName, objectName);
+        if (BestObjectName)
+            PhSetReference(BestObjectName, bestObjectName);
     }
 
     if (dupHandle && ProcessHandle != NtCurrentProcess())
         NtClose(dupHandle);
-    if (typeName)
-        PhDereferenceObject(typeName);
-    if (objectName)
-        PhDereferenceObject(objectName);
-    if (bestObjectName)
-        PhDereferenceObject(bestObjectName);
+
+    PhClearReference(&typeName);
+    PhClearReference(&objectName);
+    PhClearReference(&bestObjectName);
 
     return status;
 }

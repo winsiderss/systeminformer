@@ -86,7 +86,7 @@ LOGICAL DllMain(
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1113";
             info->HasOptions = TRUE;
 
-            RtlCreateServiceSid_I = PhGetProcAddress(L"ntdll.dll", "RtlCreateServiceSid");
+            RtlCreateServiceSid_I = PhGetModuleProcAddress(L"ntdll.dll", "RtlCreateServiceSid");
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

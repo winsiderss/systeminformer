@@ -25,6 +25,7 @@
 #include <kphuser.h>
 #include <settings.h>
 #include <emenu.h>
+#include <verify.h>
 #include <phsvccl.h>
 #include <phplug.h>
 #include <cpysave.h>
@@ -2157,7 +2158,7 @@ ULONG_PTR PhMwpOnUserMessage(
                 showMemoryEditor->Title,
                 showMemoryEditor->Flags
                 );
-            PhSwapReference(&showMemoryEditor->Title, NULL);
+            PhClearReference(&showMemoryEditor->Title);
             PhFree(showMemoryEditor);
         }
         break;
@@ -2931,7 +2932,7 @@ HBITMAP PhMwpGetShieldBitmap(
         // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
         // resolution and look very bad when scaled down to the small icon size.
 
-        loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
+        loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
 
         if (loadIconMetric)
         {
@@ -3923,7 +3924,7 @@ VOID PhMwpClearLastNotificationDetails(
     if (LastNotificationType &
         (PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE | PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
     {
-        PhSwapReference(&LastNotificationDetails.ServiceName, NULL);
+        PhClearReference(&LastNotificationDetails.ServiceName);
     }
 
     LastNotificationType = 0;
@@ -4620,7 +4621,7 @@ VOID PhMwpNeedServiceTreeList(
             // Force a re-draw.
             PhMwpOnServicesUpdated();
 
-            PhSwapReference(&ServicesPendingList, NULL);
+            PhClearReference(&ServicesPendingList);
         }
     }
 }

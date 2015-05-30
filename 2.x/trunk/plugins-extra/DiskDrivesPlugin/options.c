@@ -29,8 +29,8 @@ static VOID FreeDiskDriveEntry(
     _In_ PPH_DISK_ENTRY Entry
     )
 {
-    PhSwapReference2(&Entry->DiskFriendlyName, NULL);
-    PhSwapReference2(&Entry->DiskDevicePath, NULL);
+    PhMoveReference(&Entry->DiskFriendlyName, NULL);
+    PhMoveReference(&Entry->DiskDevicePath, NULL);
 
     PhFree(Entry);
 }
