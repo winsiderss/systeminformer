@@ -1,7 +1,7 @@
 #include <windows.h>
 
-#define VER_COMMA 2,7,0,0
-#define VER_STR "2.7\0"
+#define VER_COMMA 2,8,0,0
+#define VER_STR "2.8\0"
 
 #define VER_FILEVERSION VER_COMMA
 #define VER_FILEVERSION_STR VER_STR

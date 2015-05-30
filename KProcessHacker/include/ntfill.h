@@ -125,6 +125,8 @@ ZwQuerySystemInformation(
 
 // OB
 
+// These definitions are no longer correct, but they produce correct results.
+
 #define OBJ_PROTECT_CLOSE 0x00000001
 #define OBJ_HANDLE_ATTRIBUTES (OBJ_PROTECT_CLOSE | OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)
 

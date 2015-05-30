@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -1113,6 +1113,64 @@ NTSTATUS KpiQueryInformationObject(
             }
 
             returnLength = sizeof(KPH_FILE_OBJECT_INFORMATION);
+        }
+        break;
+    case KphObjectFileObjectDriver:
+        {
+            PFILE_OBJECT fileObject;
+            HANDLE driverHandle;
+
+            if (ObjectInformationLength == sizeof(KPH_FILE_OBJECT_DRIVER))
+            {
+                KeStackAttachProcess(process, &apcState);
+                status = ObReferenceObjectByHandle(
+                    Handle,
+                    0,
+                    *IoFileObjectType,
+                    referenceMode,
+                    &fileObject,
+                    NULL
+                    );
+                KeUnstackDetachProcess(&apcState);
+
+                if (NT_SUCCESS(status))
+                {
+                    if (fileObject->DeviceObject && fileObject->DeviceObject->DriverObject)
+                    {
+                        status = ObOpenObjectByPointer(
+                            fileObject->DeviceObject->DriverObject,
+                            0,
+                            NULL,
+                            0,
+                            *IoDriverObjectType,
+                            KernelMode,
+                            &driverHandle
+                            );
+                    }
+                    else
+                    {
+                        driverHandle = NULL;
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        __try
+                        {
+                            ((PKPH_FILE_OBJECT_DRIVER)ObjectInformation)->DriverHandle = driverHandle;
+                        }
+                        __except (EXCEPTION_EXECUTE_HANDLER)
+                        {
+                            status = GetExceptionCode();
+                        }
+                    }
+
+                    ObDereferenceObject(fileObject);
+                }
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
         }
         break;
     default:
