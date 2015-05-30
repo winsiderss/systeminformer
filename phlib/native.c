@@ -242,6 +242,8 @@ NTSTATUS PhGetObjectSecurity(
 
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
+    // This is required (especially for File objects) because some drivers don't seem to handle QuerySecurity properly.
+    memset(buffer, 0, bufferSize);
 
     status = NtQuerySecurityObject(
         Handle,
@@ -255,6 +257,7 @@ NTSTATUS PhGetObjectSecurity(
     {
         PhFree(buffer);
         buffer = PhAllocate(bufferSize);
+        memset(buffer, 0, bufferSize);
 
         status = NtQuerySecurityObject(
             Handle,
