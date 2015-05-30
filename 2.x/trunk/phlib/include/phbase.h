@@ -2944,8 +2944,7 @@ typedef struct _PH_CALLBACK
     LIST_ENTRY ListHead;
     /** A lock protecting the callbacks list. */
     PH_QUEUED_LOCK ListLock;
-    /** A condition variable pulsed when
-     * the callback becomes free. */
+    /** A condition variable pulsed when the callback becomes free. */
     PH_QUEUED_LOCK BusyCondition;
 } PH_CALLBACK, *PPH_CALLBACK;
 
@@ -3681,6 +3680,7 @@ typedef struct _PH_WORK_QUEUE
 
     LIST_ENTRY QueueListHead;
     PH_QUEUED_LOCK QueueLock;
+    PH_QUEUED_LOCK QueueEmptyCondition;
 
     ULONG MaximumThreads;
     ULONG MinimumThreads;
@@ -3689,14 +3689,20 @@ typedef struct _PH_WORK_QUEUE
     PH_QUEUED_LOCK StateLock;
     HANDLE SemaphoreHandle;
     ULONG CurrentThreads;
-    ULONG BusyThreads;
+    ULONG BusyCount;
 } PH_WORK_QUEUE, *PPH_WORK_QUEUE;
+
+typedef VOID (NTAPI *PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION)(
+    _In_ PUSER_THREAD_START_ROUTINE Function,
+    _In_ PVOID Context
+    );
 
 typedef struct _PH_WORK_QUEUE_ITEM
 {
     LIST_ENTRY ListEntry;
-    PTHREAD_START_ROUTINE Function;
+    PUSER_THREAD_START_ROUTINE Function;
     PVOID Context;
+    PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction;
 } PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
 
 VOID PhWorkQueueInitialization(
@@ -3717,7 +3723,8 @@ PHLIBAPI
 VOID
 NTAPI
 PhDeleteWorkQueue(
-    _Inout_ PPH_WORK_QUEUE WorkQueue
+    _Inout_ PPH_WORK_QUEUE WorkQueue,
+    _In_ BOOLEAN WaitForCompletion
     );
 
 PHLIBAPI
@@ -3725,15 +3732,22 @@ VOID
 NTAPI
 PhQueueItemWorkQueue(
     _Inout_ PPH_WORK_QUEUE WorkQueue,
-    _In_ PTHREAD_START_ROUTINE Function,
+    _In_ PUSER_THREAD_START_ROUTINE Function,
     _In_opt_ PVOID Context
+    );
+
+VOID PhQueueItemWorkQueueEx(
+    _Inout_ PPH_WORK_QUEUE WorkQueue,
+    _In_ PUSER_THREAD_START_ROUTINE Function,
+    _In_opt_ PVOID Context,
+    _In_opt_ PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhQueueItemGlobalWorkQueue(
-    _In_ PTHREAD_START_ROUTINE Function,
+    _In_ PUSER_THREAD_START_ROUTINE Function,
     _In_opt_ PVOID Context
     );
 

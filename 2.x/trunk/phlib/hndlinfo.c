@@ -2,7 +2,7 @@
  * Process Hacker -
  *   handle information
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -23,40 +23,83 @@
 #include <ph.h>
 #include <kphuser.h>
 
-typedef enum _PH_QUERY_OBJECT_WORK
+#define PH_QUERY_HACK_MAX_THREADS 20
+
+typedef struct _PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT
 {
-    QueryNameHack,
-    QuerySecurityHack,
-    SetSecurityHack
-} PH_QUERY_OBJECT_WORK;
+    SLIST_ENTRY ListEntry;
 
-typedef struct _PH_QUERY_OBJECT_CONTEXT
+    PUSER_THREAD_START_ROUTINE Routine;
+    PVOID Context;
+
+    HANDLE StartEventHandle;
+    HANDLE CompletedEventHandle;
+    HANDLE ThreadHandle;
+} PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT, *PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT;
+
+typedef enum _PHP_QUERY_OBJECT_WORK
 {
-    LOGICAL Initialized;
-    PH_QUERY_OBJECT_WORK Work;
+    NtQueryObjectWork,
+    NtQuerySecurityObjectWork,
+    NtSetSecurityObjectWork
+} PHP_QUERY_OBJECT_WORK;
 
-    HANDLE Handle;
-    SECURITY_INFORMATION SecurityInformation;
-    PVOID Buffer;
-    ULONG Length;
-
+typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
+{
+    PHP_QUERY_OBJECT_WORK Work;
     NTSTATUS Status;
-    ULONG ReturnLength;
-} PH_QUERY_OBJECT_CONTEXT, *PPH_QUERY_OBJECT_CONTEXT;
 
-NTSTATUS PhpQueryObjectThreadStart(
+    union
+    {
+        struct
+        {
+            HANDLE Handle;
+            OBJECT_INFORMATION_CLASS ObjectInformationClass;
+            PVOID ObjectInformation;
+            ULONG ObjectInformationLength;
+            PULONG ReturnLength;
+        } NtQueryObject;
+        struct
+        {
+            HANDLE Handle;
+            SECURITY_INFORMATION SecurityInformation;
+            PSECURITY_DESCRIPTOR SecurityDescriptor;
+            ULONG Length;
+            PULONG LengthNeeded;
+        } NtQuerySecurityObject;
+        struct
+        {
+            HANDLE Handle;
+            SECURITY_INFORMATION SecurityInformation;
+            PSECURITY_DESCRIPTOR SecurityDescriptor;
+        } NtSetSecurityObject;
+    } u;
+} PHP_QUERY_OBJECT_COMMON_CONTEXT, *PPHP_QUERY_OBJECT_COMMON_CONTEXT;
+
+PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+VOID PhpReleaseCallWithTimeoutThread(
+    _Inout_ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT ThreadContext
+    );
+
+NTSTATUS PhpCallWithTimeout(
+    _Inout_ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT ThreadContext,
+    _In_ PUSER_THREAD_START_ROUTINE Routine,
+    _In_opt_ PVOID Context,
+    _In_ PLARGE_INTEGER Timeout
+    );
+
+NTSTATUS PhpCallWithTimeoutThreadStart(
     _In_ PVOID Parameter
     );
 
-static HANDLE PhQueryObjectThreadHandle = NULL;
-static PVOID PhQueryObjectFiber = NULL;
-static PH_QUEUED_LOCK PhQueryObjectMutex;
-static HANDLE PhQueryObjectStartEvent = NULL;
-static HANDLE PhQueryObjectCompletedEvent = NULL;
-static PH_QUERY_OBJECT_CONTEXT PhQueryObjectContext;
-
 static PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
 static PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = NULL;
+
+static SLIST_HEADER PhpCallWithTimeoutThreadListHead;
+static PH_QUEUED_LOCK PhpCallWithTimeoutThreadReleaseEvent = PH_QUEUED_LOCK_INIT;
 
 VOID PhHandleInfoInitialization(
     VOID
@@ -239,6 +282,7 @@ NTSTATUS PhpGetObjectTypeName(
 NTSTATUS PhpGetObjectName(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
+    _In_ BOOLEAN WithTimeout,
     _Out_ PPH_STRING *ObjectName
     )
 {
@@ -266,13 +310,26 @@ NTSTATUS PhpGetObjectName(
         }
         else
         {
-            status = NtQueryObject(
-                Handle,
-                ObjectNameInformation,
-                buffer,
-                bufferSize,
-                &bufferSize
-                );
+            if (WithTimeout)
+            {
+                status = PhCallNtQueryObjectWithTimeout(
+                    Handle,
+                    ObjectNameInformation,
+                    buffer,
+                    bufferSize,
+                    &bufferSize
+                    );
+            }
+            else
+            {
+                status = NtQueryObject(
+                    Handle,
+                    ObjectNameInformation,
+                    buffer,
+                    bufferSize,
+                    &bufferSize
+                    );
+            }
         }
 
         if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_INFO_LENGTH_MISMATCH ||
@@ -1224,45 +1281,27 @@ NTSTATUS PhGetHandleInformationEx(
         goto CleanupExit;
 
     // Get the object name.
-    // If we're dealing with a file handle we must take
-    // special precautions so we don't hang.
+    // If we're dealing with a file handle we must take special precautions so we don't hang.
     if (PhEqualString2(typeName, L"File", TRUE) && !KphIsConnected())
     {
-        // 0: Query normally.
-        // 1: Hack.
-        // 2: Fail.
-        ULONG hackLevel = 1;
+#define QUERY_NORMALLY 0
+#define QUERY_WITH_TIMEOUT 1
+#define QUERY_FAIL 2
 
-        // We can't use the hack on XP because hanging threads
-        // can't even be terminated!
+        ULONG hackLevel = QUERY_WITH_TIMEOUT;
+
+        // We can't use the timeout method on XP because hanging threads can't even be terminated!
         if (WindowsVersion <= WINDOWS_XP)
-            hackLevel = 2;
+            hackLevel = QUERY_FAIL;
 
-        if (hackLevel == 0)
+        if (hackLevel == QUERY_NORMALLY || hackLevel == QUERY_WITH_TIMEOUT)
         {
             status = PhpGetObjectName(
                 ProcessHandle,
                 KphIsConnected() ? Handle : dupHandle,
+                hackLevel == QUERY_WITH_TIMEOUT,
                 &objectName
                 );
-        }
-        else if (hackLevel == 1)
-        {
-            POBJECT_NAME_INFORMATION buffer;
-
-            buffer = PhAllocate(0x800);
-
-            status = PhQueryObjectNameHack(
-                dupHandle,
-                buffer,
-                0x800,
-                NULL
-                );
-
-            if (NT_SUCCESS(status))
-                objectName = PhCreateStringEx(buffer->Name.Buffer, buffer->Name.Length);
-
-            PhFree(buffer);
         }
         else
         {
@@ -1277,6 +1316,7 @@ NTSTATUS PhGetHandleInformationEx(
         status = PhpGetObjectName(
             ProcessHandle,
             KphIsConnected() ? Handle : dupHandle,
+            FALSE,
             &objectName
             );
     }
@@ -1347,214 +1387,377 @@ CleanupExit:
     return status;
 }
 
-BOOLEAN PhpHeadQueryObjectHack(
-    VOID
+NTSTATUS PhEnumObjectTypes(
+    _Out_ POBJECT_TYPES_INFORMATION *ObjectTypes
     )
 {
-    PhAcquireQueuedLockExclusive(&PhQueryObjectMutex);
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
 
-    // Create a query thread if we don't have one.
-    if (!PhQueryObjectThreadHandle)
+    bufferSize = 0x1000;
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQueryObject(
+        NULL,
+        ObjectTypesInformation,
+        buffer,
+        bufferSize,
+        NULL
+        )) == STATUS_INFO_LENGTH_MISMATCH)
     {
-        PhQueryObjectThreadHandle = CreateThread(NULL, 0, PhpQueryObjectThreadStart, NULL, 0, NULL);
+        PhFree(buffer);
+        bufferSize *= 2;
 
-        if (!PhQueryObjectThreadHandle)
-        {
-            PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
-            return FALSE;
-        }
+        // Fail if we're resizing the buffer to something very large.
+        if (bufferSize > PH_LARGE_BUFFER_SIZE)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = PhAllocate(bufferSize);
     }
 
-    // Create the events if they don't exist.
-
-    if (!PhQueryObjectStartEvent)
+    if (!NT_SUCCESS(status))
     {
-        if (!NT_SUCCESS(NtCreateEvent(
-            &PhQueryObjectStartEvent,
-            EVENT_ALL_ACCESS,
-            NULL,
-            SynchronizationEvent,
-            FALSE
-            )))
-        {
-            PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
-            return FALSE;
-        }
+        PhFree(buffer);
+        return status;
     }
 
-    if (!PhQueryObjectCompletedEvent)
-    {
-        if (!NT_SUCCESS(NtCreateEvent(
-            &PhQueryObjectCompletedEvent,
-            EVENT_ALL_ACCESS,
-            NULL,
-            SynchronizationEvent,
-            FALSE
-            )))
-        {
-            PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
-            return FALSE;
-        }
-    }
+    *ObjectTypes = (POBJECT_TYPES_INFORMATION)buffer;
 
-    return TRUE;
+    return status;
 }
 
-NTSTATUS PhpTailQueryObjectHack(
-    _Out_opt_ PULONG ReturnLength
+ULONG PhGetObjectTypeNumber(
+    _In_ PUNICODE_STRING TypeName
+    )
+{
+    POBJECT_TYPES_INFORMATION objectTypes;
+    POBJECT_TYPE_INFORMATION objectType;
+    ULONG i;
+
+    if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+    {
+        objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+
+        for (i = 0; i < objectTypes->NumberOfTypes; i++)
+        {
+            if (RtlEqualUnicodeString(&objectType->TypeName, TypeName, TRUE))
+            {
+                if (WindowsVersion >= WINDOWS_8_1)
+                    return objectType->TypeIndex;
+                else if (WindowsVersion >= WINDOWS_7)
+                    return i + 2;
+                else
+                    return i + 1;
+            }
+
+            objectType = PH_NEXT_OBJECT_TYPE(objectType);
+        }
+
+        PhFree(objectTypes);
+    }
+
+    return -1;
+}
+
+PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT threadContext;
+    PSLIST_ENTRY listEntry;
+    PH_QUEUED_WAIT_BLOCK waitBlock;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        ULONG i;
+
+        for (i = 0; i < PH_QUERY_HACK_MAX_THREADS; i++)
+        {
+            threadContext = PhAllocate(sizeof(PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT));
+            memset(threadContext, 0, sizeof(PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT));
+            RtlInterlockedPushEntrySList(&PhpCallWithTimeoutThreadListHead, &threadContext->ListEntry);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    while (TRUE)
+    {
+        if (listEntry = RtlInterlockedPopEntrySList(&PhpCallWithTimeoutThreadListHead))
+            break;
+
+        if (!Timeout || Timeout->QuadPart != 0)
+        {
+            PhQueueWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, &waitBlock);
+
+            if (listEntry = RtlInterlockedPopEntrySList(&PhpCallWithTimeoutThreadListHead))
+            {
+                // A new entry has just become available; cancel the wait.
+                PhSetWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, &waitBlock);
+                break;
+            }
+            else
+            {
+                PhWaitForWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, &waitBlock, FALSE, Timeout);
+            }
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+
+    return CONTAINING_RECORD(listEntry, PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT, ListEntry);
+}
+
+VOID PhpReleaseCallWithTimeoutThread(
+    _Inout_ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT ThreadContext
+    )
+{
+    RtlInterlockedPushEntrySList(&PhpCallWithTimeoutThreadListHead, &ThreadContext->ListEntry);
+    PhSetWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, NULL);
+}
+
+NTSTATUS PhpCallWithTimeout(
+    _Inout_ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT ThreadContext,
+    _In_ PUSER_THREAD_START_ROUTINE Routine,
+    _In_opt_ PVOID Context,
+    _In_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+
+    // Create objects if necessary.
+
+    if (!ThreadContext->StartEventHandle)
+    {
+        if (!NT_SUCCESS(status = NtCreateEvent(&ThreadContext->StartEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+            return status;
+    }
+
+    if (!ThreadContext->CompletedEventHandle)
+    {
+        if (!NT_SUCCESS(status = NtCreateEvent(&ThreadContext->CompletedEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+            return status;
+    }
+
+    // Create a query thread if we don't have one.
+    if (!ThreadContext->ThreadHandle)
+    {
+        CLIENT_ID clientId;
+
+        NtClearEvent(ThreadContext->StartEventHandle);
+        NtClearEvent(ThreadContext->CompletedEventHandle);
+
+        if (!NT_SUCCESS(status = RtlCreateUserThread(
+            NtCurrentProcess(),
+            NULL,
+            FALSE,
+            0,
+            0,
+            32 * 1024,
+            PhpCallWithTimeoutThreadStart,
+            ThreadContext,
+            &ThreadContext->ThreadHandle,
+            &clientId)))
+        {
+            return status;
+        }
+
+        // Wait for the thread to initialize.
+        NtWaitForSingleObject(ThreadContext->CompletedEventHandle, FALSE, NULL);
+    }
+
+    ThreadContext->Routine = Routine;
+    ThreadContext->Context = Context;
+
+    NtSetEvent(ThreadContext->StartEventHandle, NULL);
+    status = NtWaitForSingleObject(ThreadContext->CompletedEventHandle, FALSE, Timeout);
+
+    ThreadContext->Routine = NULL;
+    MemoryBarrier();
+    ThreadContext->Context = NULL;
+
+    if (status != STATUS_WAIT_0)
+    {
+        // The operation timed out, or there was an error. Kill the thread.
+        // On Vista and above, the thread stack is freed automatically.
+        NtTerminateThread(ThreadContext->ThreadHandle, STATUS_UNSUCCESSFUL);
+        status = NtWaitForSingleObject(ThreadContext->ThreadHandle, FALSE, NULL);
+        NtClose(ThreadContext->ThreadHandle);
+        ThreadContext->ThreadHandle = NULL;
+
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+    return status;
+}
+
+NTSTATUS PhpCallWithTimeoutThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT threadContext = Parameter;
+
+    NtSetEvent(threadContext->CompletedEventHandle, NULL);
+
+    while (TRUE)
+    {
+        if (NtWaitForSingleObject(threadContext->StartEventHandle, FALSE, NULL) != STATUS_WAIT_0)
+            continue;
+
+        if (threadContext->Routine)
+            threadContext->Routine(threadContext->Context);
+
+        NtSetEvent(threadContext->CompletedEventHandle, NULL);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhCallWithTimeout(
+    _In_ PUSER_THREAD_START_ROUTINE Routine,
+    _In_opt_ PVOID Context,
+    _In_opt_ PLARGE_INTEGER AcquireTimeout,
+    _In_ PLARGE_INTEGER CallTimeout
+    )
+{
+    NTSTATUS status;
+    PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT threadContext;
+
+    if (threadContext = PhpAcquireCallWithTimeoutThread(AcquireTimeout))
+    {
+        status = PhpCallWithTimeout(threadContext, Routine, Context, CallTimeout);
+        PhpReleaseCallWithTimeoutThread(threadContext);
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+    return status;
+}
+
+NTSTATUS PhpCommonQueryObjectRoutine(
+    _In_ PVOID Parameter
+    )
+{
+    PPHP_QUERY_OBJECT_COMMON_CONTEXT context = Parameter;
+
+    switch (context->Work)
+    {
+    case NtQueryObjectWork:
+        context->Status = NtQueryObject(
+            context->u.NtQueryObject.Handle,
+            context->u.NtQueryObject.ObjectInformationClass,
+            context->u.NtQueryObject.ObjectInformation,
+            context->u.NtQueryObject.ObjectInformationLength,
+            context->u.NtQueryObject.ReturnLength
+            );
+        break;
+    case NtQuerySecurityObjectWork:
+        context->Status = NtQuerySecurityObject(
+            context->u.NtQuerySecurityObject.Handle,
+            context->u.NtQuerySecurityObject.SecurityInformation,
+            context->u.NtQuerySecurityObject.SecurityDescriptor,
+            context->u.NtQuerySecurityObject.Length,
+            context->u.NtQuerySecurityObject.LengthNeeded
+            );
+        break;
+    case NtSetSecurityObjectWork:
+        context->Status = NtSetSecurityObject(
+            context->u.NtSetSecurityObject.Handle,
+            context->u.NtSetSecurityObject.SecurityInformation,
+            context->u.NtSetSecurityObject.SecurityDescriptor
+            );
+        break;
+    default:
+        context->Status = STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhpCommonQueryObjectWithTimeout(
+    _In_ PPHP_QUERY_OBJECT_COMMON_CONTEXT Context
     )
 {
     NTSTATUS status;
     LARGE_INTEGER timeout;
 
-    PhQueryObjectContext.Initialized = TRUE;
+    timeout.QuadPart = -1 * PH_TIMEOUT_SEC;
+    status = PhCallWithTimeout(PhpCommonQueryObjectRoutine, Context, NULL, &timeout);
 
-    // Allow the worker thread to start.
-    NtSetEvent(PhQueryObjectStartEvent, NULL);
-    // Wait for the work to complete, with a timeout of 1 second.
-    timeout.QuadPart = -1000 * PH_TIMEOUT_MS;
-    status = NtWaitForSingleObject(PhQueryObjectCompletedEvent, FALSE, &timeout);
+    if (NT_SUCCESS(status))
+        status = Context->Status;
 
-    PhQueryObjectContext.Initialized = FALSE;
+    PhFree(Context);
 
-    // Return normally if the work was completed.
-    if (status == STATUS_WAIT_0)
-    {
-        ULONG returnLength;
-
-        status = PhQueryObjectContext.Status;
-        returnLength = PhQueryObjectContext.ReturnLength;
-
-        PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
-
-        if (ReturnLength)
-            *ReturnLength = returnLength;
-
-        return status;
-    }
-    // Kill the worker thread if it took too long.
-    // else if (status == STATUS_TIMEOUT)
-    else
-    {
-        // Kill the thread.
-        if (NT_SUCCESS(NtTerminateThread(PhQueryObjectThreadHandle, STATUS_TIMEOUT)))
-        {
-            PhQueryObjectThreadHandle = NULL;
-
-            // Delete the fiber (and free the thread stack).
-            DeleteFiber(PhQueryObjectFiber);
-            PhQueryObjectFiber = NULL;
-        }
-
-        PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
-
-        return STATUS_UNSUCCESSFUL;
-    }
+    return status;
 }
 
-NTSTATUS PhQueryObjectNameHack(
+NTSTATUS PhCallNtQueryObjectWithTimeout(
     _In_ HANDLE Handle,
-    _Out_writes_bytes_(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
-    _In_ ULONG ObjectNameInformationLength,
+    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
     _Out_opt_ PULONG ReturnLength
     )
 {
-    if (!PhpHeadQueryObjectHack())
-        return STATUS_UNSUCCESSFUL;
+    PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
 
-    PhQueryObjectContext.Work = QueryNameHack;
-    PhQueryObjectContext.Handle = Handle;
-    PhQueryObjectContext.Buffer = ObjectNameInformation;
-    PhQueryObjectContext.Length = ObjectNameInformationLength;
+    context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
+    context->Work = NtQueryObjectWork;
+    context->Status = STATUS_UNSUCCESSFUL;
+    context->u.NtQueryObject.Handle = Handle;
+    context->u.NtQueryObject.ObjectInformationClass = ObjectInformationClass;
+    context->u.NtQueryObject.ObjectInformation = ObjectInformation;
+    context->u.NtQueryObject.ObjectInformationLength = ObjectInformationLength;
+    context->u.NtQueryObject.ReturnLength = ReturnLength;
 
-    return PhpTailQueryObjectHack(ReturnLength);
+    return PhpCommonQueryObjectWithTimeout(context);
 }
 
-NTSTATUS PhQueryObjectSecurityHack(
+NTSTATUS PhCallNtQuerySecurityObjectWithTimeout(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_opt_(Length) PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ ULONG Length,
-    _Out_opt_ PULONG ReturnLength
+    _Out_ PULONG LengthNeeded
     )
 {
-    if (!PhpHeadQueryObjectHack())
-        return STATUS_UNSUCCESSFUL;
+    PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
 
-    PhQueryObjectContext.Work = QuerySecurityHack;
-    PhQueryObjectContext.Handle = Handle;
-    PhQueryObjectContext.SecurityInformation = SecurityInformation;
-    PhQueryObjectContext.Buffer = Buffer;
-    PhQueryObjectContext.Length = Length;
+    context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
+    context->Work = NtQuerySecurityObjectWork;
+    context->Status = STATUS_UNSUCCESSFUL;
+    context->u.NtQuerySecurityObject.Handle = Handle;
+    context->u.NtQuerySecurityObject.SecurityInformation = SecurityInformation;
+    context->u.NtQuerySecurityObject.SecurityDescriptor = SecurityDescriptor;
+    context->u.NtQuerySecurityObject.Length = Length;
+    context->u.NtQuerySecurityObject.LengthNeeded = LengthNeeded;
 
-    return PhpTailQueryObjectHack(ReturnLength);
+    return PhpCommonQueryObjectWithTimeout(context);
 }
 
-NTSTATUS PhSetObjectSecurityHack(
+NTSTATUS PhCallNtSetSecurityObjectWithTimeout(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PVOID Buffer
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
-    if (!PhpHeadQueryObjectHack())
-        return STATUS_UNSUCCESSFUL;
+    PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
 
-    PhQueryObjectContext.Work = SetSecurityHack;
-    PhQueryObjectContext.Handle = Handle;
-    PhQueryObjectContext.SecurityInformation = SecurityInformation;
-    PhQueryObjectContext.Buffer = Buffer;
+    context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
+    context->Work = NtSetSecurityObjectWork;
+    context->Status = STATUS_UNSUCCESSFUL;
+    context->u.NtSetSecurityObject.Handle = Handle;
+    context->u.NtSetSecurityObject.SecurityInformation = SecurityInformation;
+    context->u.NtSetSecurityObject.SecurityDescriptor = SecurityDescriptor;
 
-    return PhpTailQueryObjectHack(NULL);
-}
-
-NTSTATUS PhpQueryObjectThreadStart(
-    _In_ PVOID Parameter
-    )
-{
-    PhQueryObjectFiber = ConvertThreadToFiber(Parameter);
-
-    while (TRUE)
-    {
-        // Wait for work.
-        if (NtWaitForSingleObject(PhQueryObjectStartEvent, FALSE, NULL) != STATUS_WAIT_0)
-            continue;
-
-        // Make sure we actually have work.
-        if (PhQueryObjectContext.Initialized)
-        {
-            switch (PhQueryObjectContext.Work)
-            {
-            case QueryNameHack:
-                PhQueryObjectContext.Status = NtQueryObject(
-                    PhQueryObjectContext.Handle,
-                    ObjectNameInformation,
-                    PhQueryObjectContext.Buffer,
-                    PhQueryObjectContext.Length,
-                    &PhQueryObjectContext.ReturnLength
-                    );
-                break;
-            case QuerySecurityHack:
-                PhQueryObjectContext.Status = NtQuerySecurityObject(
-                    PhQueryObjectContext.Handle,
-                    PhQueryObjectContext.SecurityInformation,
-                    (PSECURITY_DESCRIPTOR)PhQueryObjectContext.Buffer,
-                    PhQueryObjectContext.Length,
-                    &PhQueryObjectContext.ReturnLength
-                    );
-                break;
-            case SetSecurityHack:
-                PhQueryObjectContext.Status = NtSetSecurityObject(
-                    PhQueryObjectContext.Handle,
-                    PhQueryObjectContext.SecurityInformation,
-                    (PSECURITY_DESCRIPTOR)PhQueryObjectContext.Buffer
-                    );
-                break;
-            }
-
-            // Work done.
-            NtSetEvent(PhQueryObjectCompletedEvent, NULL);
-        }
-    }
-
-    return STATUS_SUCCESS;
+    return PhpCommonQueryObjectWithTimeout(context);
 }

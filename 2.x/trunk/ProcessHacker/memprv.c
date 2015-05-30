@@ -722,7 +722,7 @@ NTSTATUS PhQueryMemoryItemList(
 
                 // Split this free region into an unusable and a (possibly empty) usable region.
 
-                nextAllocationBase = ((ULONG_PTR)basicInfo.BaseAddress + allocationGranularity - 1) & ~(allocationGranularity - 1);
+                nextAllocationBase = ALIGN_UP_BY(basicInfo.BaseAddress, allocationGranularity);
                 potentialUnusableSize = nextAllocationBase - (ULONG_PTR)basicInfo.BaseAddress;
 
                 memoryItem->RegionType = UnusableRegion;

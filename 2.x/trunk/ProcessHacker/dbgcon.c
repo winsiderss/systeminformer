@@ -1315,7 +1315,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     wprintf(L"No work timeout: %d\n", workQueue->NoWorkTimeout);
 
                     wprintf(L"Current threads: %u\n", workQueue->CurrentThreads);
-                    wprintf(L"Busy threads: %u\n", workQueue->BusyThreads);
+                    wprintf(L"Busy count: %u\n", workQueue->BusyCount);
 
                     PhAcquireQueuedLockExclusive(&workQueue->QueueLock);
 
