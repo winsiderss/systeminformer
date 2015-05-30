@@ -85,6 +85,8 @@ typedef struct _OBJECT_TYPE_INFORMATION
     ULONG ValidAccessMask;
     BOOLEAN SecurityRequired;
     BOOLEAN MaintainHandleCount;
+    UCHAR TypeIndex; // since WINBLUE
+    CHAR ReservedByte;
     ULONG PoolType;
     ULONG DefaultPagedPoolCharge;
     ULONG DefaultNonPagedPoolCharge;
@@ -93,7 +95,6 @@ typedef struct _OBJECT_TYPE_INFORMATION
 typedef struct _OBJECT_TYPES_INFORMATION
 {
     ULONG NumberOfTypes;
-    OBJECT_TYPE_INFORMATION TypeInformation[1];
 } OBJECT_TYPES_INFORMATION, *POBJECT_TYPES_INFORMATION;
 
 typedef struct _OBJECT_HANDLE_FLAG_INFORMATION

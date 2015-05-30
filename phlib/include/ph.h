@@ -1009,25 +1009,48 @@ NTSTATUS PhGetHandleInformationEx(
     _Reserved_ PVOID *ExtraInformation
     );
 
-NTSTATUS PhQueryObjectNameHack(
+#define PH_FIRST_OBJECT_TYPE(ObjectTypes) \
+    (POBJECT_TYPE_INFORMATION)((PCHAR)(ObjectTypes) + ALIGN_UP(sizeof(OBJECT_TYPES_INFORMATION), ULONG_PTR))
+
+#define PH_NEXT_OBJECT_TYPE(ObjectType) \
+    (POBJECT_TYPE_INFORMATION)((PCHAR)(ObjectType) + sizeof(OBJECT_TYPE_INFORMATION) + \
+    ALIGN_UP(ObjectType->TypeName.MaximumLength, ULONG_PTR))
+
+NTSTATUS PhEnumObjectTypes(
+    _Out_ POBJECT_TYPES_INFORMATION *ObjectTypes
+    );
+
+ULONG PhGetObjectTypeNumber(
+    _In_ PUNICODE_STRING TypeName
+    );
+
+NTSTATUS PhCallWithTimeout(
+    _In_ PUSER_THREAD_START_ROUTINE Routine,
+    _In_opt_ PVOID Context,
+    _In_opt_ PLARGE_INTEGER AcquireTimeout,
+    _In_ PLARGE_INTEGER CallTimeout
+    );
+
+NTSTATUS PhCallNtQueryObjectWithTimeout(
     _In_ HANDLE Handle,
-    _Out_writes_bytes_(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
-    _In_ ULONG ObjectNameInformationLength,
+    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
 
-NTSTATUS PhQueryObjectSecurityHack(
+NTSTATUS PhCallNtQuerySecurityObjectWithTimeout(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_opt_(Length) PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ ULONG Length,
-    _Out_opt_ PULONG ReturnLength
+    _Out_ PULONG LengthNeeded
     );
 
-NTSTATUS PhSetObjectSecurityHack(
+NTSTATUS PhCallNtSetSecurityObjectWithTimeout(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PVOID Buffer
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 // mapimg

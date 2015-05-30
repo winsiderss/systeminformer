@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object search
  *
- * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <emenu.h>
+#include <kphuser.h>
 #include <procprpp.h>
 #include <windowsx.h>
 
@@ -664,6 +665,77 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
     return FALSE;
 }
 
+typedef struct _SEARCH_HANDLE_CONTEXT
+{
+    BOOLEAN NeedToFree;
+    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
+    HANDLE ProcessHandle;
+} SEARCH_HANDLE_CONTEXT, *PSEARCH_HANDLE_CONTEXT;
+
+static NTSTATUS NTAPI SearchHandleFunction(
+    _In_ PVOID Parameter
+    )
+{
+    PSEARCH_HANDLE_CONTEXT context = Parameter;
+    PPH_STRING typeName;
+    PPH_STRING bestObjectName;
+
+    if (!SearchStop && NT_SUCCESS(PhGetHandleInformation(
+        context->ProcessHandle,
+        (HANDLE)context->HandleInfo->HandleValue,
+        context->HandleInfo->ObjectTypeIndex,
+        NULL,
+        &typeName,
+        NULL,
+        &bestObjectName
+        )))
+    {
+        PPH_STRING upperBestObjectName;
+
+        upperBestObjectName = PhDuplicateString(bestObjectName);
+        PhUpperString(upperBestObjectName);
+
+        if (
+            PhFindStringInString(upperBestObjectName, 0, SearchString->Buffer) != -1 ||
+            (UseSearchPointer && context->HandleInfo->Object == (PVOID)SearchPointer)
+            )
+        {
+            PPHP_OBJECT_SEARCH_RESULT searchResult;
+
+            searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
+            searchResult->ProcessId = (HANDLE)context->HandleInfo->UniqueProcessId;
+            searchResult->ResultType = HandleSearchResult;
+            searchResult->Handle = (HANDLE)context->HandleInfo->HandleValue;
+            searchResult->TypeName = typeName;
+            searchResult->Name = bestObjectName;
+            PhPrintPointer(searchResult->HandleString, (PVOID)searchResult->Handle);
+            searchResult->Info = *context->HandleInfo;
+
+            PhAcquireQueuedLockExclusive(&SearchResultsLock);
+
+            PhAddItemList(SearchResults, searchResult);
+
+            // Update the search results in batches of 40.
+            if (SearchResults->Count % 40 == 0)
+                PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
+
+            PhReleaseQueuedLockExclusive(&SearchResultsLock);
+        }
+        else
+        {
+            PhDereferenceObject(typeName);
+            PhDereferenceObject(bestObjectName);
+        }
+
+        PhDereferenceObject(upperBestObjectName);
+    }
+
+    if (context->NeedToFree)
+        PhFree(context);
+
+    return STATUS_SUCCESS;
+}
+
 static BOOLEAN NTAPI EnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_opt_ PVOID Context
@@ -742,15 +814,33 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        static ULONG fileObjectTypeIndex = -1;
+
+        BOOLEAN useWorkQueue = FALSE;
+        PH_WORK_QUEUE workQueue;
         processHandleHashtable = PhCreateSimpleHashtable(8);
+
+        if (!KphIsConnected() && WindowsVersion >= WINDOWS_VISTA)
+        {
+            useWorkQueue = TRUE;
+            PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
+
+            if (PhBeginInitOnce(&initOnce))
+            {
+                UNICODE_STRING fileTypeName;
+
+                RtlInitUnicodeString(&fileTypeName, L"File");
+                fileObjectTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
+                PhEndInitOnce(&initOnce);
+            }
+        }
 
         for (i = 0; i < handles->NumberOfHandles; i++)
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handles->Handles[i];
             PPVOID processHandlePtr;
             HANDLE processHandle;
-            PPH_STRING typeName;
-            PPH_STRING bestObjectName;
 
             if (SearchStop)
                 break;
@@ -786,58 +876,29 @@ static NTSTATUS PhpFindObjectsThreadStart(
                 }
             }
 
-            // Get handle information.
-
-            if (NT_SUCCESS(PhGetHandleInformation(
-                processHandle,
-                (HANDLE)handleInfo->HandleValue,
-                handleInfo->ObjectTypeIndex,
-                NULL,
-                &typeName,
-                NULL,
-                &bestObjectName
-                )))
+            if (useWorkQueue && handleInfo->ObjectTypeIndex == (USHORT)fileObjectTypeIndex)
             {
-                PPH_STRING upperBestObjectName;
+                PSEARCH_HANDLE_CONTEXT searchHandleContext;
 
-                upperBestObjectName = PhDuplicateString(bestObjectName);
-                PhUpperString(upperBestObjectName);
+                searchHandleContext = PhAllocate(sizeof(SEARCH_HANDLE_CONTEXT));
+                searchHandleContext->NeedToFree = TRUE;
+                searchHandleContext->HandleInfo = handleInfo;
+                searchHandleContext->ProcessHandle = processHandle;
+                PhQueueItemWorkQueue(&workQueue, SearchHandleFunction, searchHandleContext);
+            }
+            else
+            {
+                SEARCH_HANDLE_CONTEXT searchHandleContext;
 
-                if (
-                    PhFindStringInString(upperBestObjectName, 0, SearchString->Buffer) != -1 ||
-                    (UseSearchPointer && handleInfo->Object == (PVOID)SearchPointer)
-                    )
-                {
-                    PPHP_OBJECT_SEARCH_RESULT searchResult;
-
-                    searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
-                    searchResult->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
-                    searchResult->ResultType = HandleSearchResult;
-                    searchResult->Handle = (HANDLE)handleInfo->HandleValue;
-                    searchResult->TypeName = typeName;
-                    searchResult->Name = bestObjectName;
-                    PhPrintPointer(searchResult->HandleString, (PVOID)searchResult->Handle);
-                    searchResult->Info = *handleInfo;
-
-                    PhAcquireQueuedLockExclusive(&SearchResultsLock);
-
-                    PhAddItemList(SearchResults, searchResult);
-
-                    // Update the search results in batches of 40.
-                    if (SearchResults->Count % 40 == 0)
-                        PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
-
-                    PhReleaseQueuedLockExclusive(&SearchResultsLock);
-                }
-                else
-                {
-                    PhDereferenceObject(typeName);
-                    PhDereferenceObject(bestObjectName);
-                }
-
-                PhDereferenceObject(upperBestObjectName);
+                searchHandleContext.NeedToFree = FALSE;
+                searchHandleContext.HandleInfo = handleInfo;
+                searchHandleContext.ProcessHandle = processHandle;
+                SearchHandleFunction(&searchHandleContext);
             }
         }
+
+        if (useWorkQueue)
+            PhDeleteWorkQueue(&workQueue, TRUE);
 
         {
             PPH_KEY_VALUE_PAIR entry;

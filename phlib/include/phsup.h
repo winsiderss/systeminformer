@@ -12,9 +12,10 @@
 
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
-#define PTR_ALIGN(Pointer, Align) ((PVOID)(((ULONG_PTR)(Pointer) + (Align) - 1) & ~((Align) - 1)))
-#define REBASE_ADDRESS(Pointer, OldBase, NewBase) \
-    ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(OldBase) + (ULONG_PTR)(NewBase)))
+#define ALIGN_UP_BY(Address, Align) (((ULONG_PTR)(Address) + (Align) - 1) & ~((Align) - 1))
+#define ALIGN_UP_POINTER_BY(Pointer, Align) ((PVOID)ALIGN_UP_BY(Pointer, Align))
+#define ALIGN_UP(Address, Type) ALIGN_UP_BY(Address, sizeof(Type))
+#define ALIGN_UP_POINTER(Pointer, Type) ((PVOID)ALIGN_UP(Pointer, Type))
 
 #define PAGE_SIZE 0x1000
 
