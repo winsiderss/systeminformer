@@ -1547,7 +1547,7 @@ PATTRIBUTE_NODE PhpAddAttributeNode(
     else
         PhAddItemList(Context->RootList, node);
 
-    PhSwapReference2(&node->Text, Text);
+    PhMoveReference(&node->Text, Text);
 
     return node;
 }
@@ -1557,7 +1557,7 @@ VOID PhpDestroyAttributeNode(
     )
 {
     PhDereferenceObject(Node->Children);
-    PhSwapReference(&Node->Text, NULL);
+    PhClearReference(&Node->Text);
     PhFree(Node);
 }
 

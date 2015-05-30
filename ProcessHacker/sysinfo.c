@@ -355,7 +355,7 @@ VOID PhSipOnInitDialog(
         );
 
     if (!EnableThemeDialogTexture_I)
-        EnableThemeDialogTexture_I = PhGetProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
+        EnableThemeDialogTexture_I = PhGetModuleProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
 
     PhSetControlTheme(PhSipWindow, L"explorer");
     PhSipUpdateThemeData();
@@ -1181,9 +1181,9 @@ VOID PhSipDrawPanel(
         PhSipDefaultDrawPanel(Section, &sysInfoDrawPanel);
     }
 
-    PhSwapReference(&sysInfoDrawPanel.Title, NULL);
-    PhSwapReference(&sysInfoDrawPanel.SubTitle, NULL);
-    PhSwapReference(&sysInfoDrawPanel.SubTitleOverflow, NULL);
+    PhClearReference(&sysInfoDrawPanel.Title);
+    PhClearReference(&sysInfoDrawPanel.SubTitle);
+    PhClearReference(&sysInfoDrawPanel.SubTitleOverflow);
 }
 
 VOID PhSipDefaultDrawPanel(
@@ -2051,7 +2051,7 @@ BOOLEAN PhSipCpuSectionCallback(
             cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
             cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"%.2f%%%s\n%s",
                 (cpuKernel + cpuUser) * 100,
                 PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
@@ -2530,7 +2530,7 @@ VOID PhSipNotifyCpuGraph(
                         cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
                         cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
 
-                        PhSwapReference2(&CpuGraphState.TooltipText, PhFormatString(
+                        PhMoveReference(&CpuGraphState.TooltipText, PhFormatString(
                             L"%.2f%%%s\n%s",
                             (cpuKernel + cpuUser) * 100,
                             PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
@@ -2550,7 +2550,7 @@ VOID PhSipNotifyCpuGraph(
                         cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], getTooltipText->Index);
                         cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[Index], getTooltipText->Index);
 
-                        PhSwapReference2(&CpusGraphState[Index].TooltipText, PhFormatString(
+                        PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormatString(
                             L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
                             (cpuKernel + cpuUser) * 100,
                             cpuKernel * 100,
@@ -2967,7 +2967,7 @@ BOOLEAN PhSipMemorySectionCallback(
                     if (PhPerfInformation.CommitLimit != 0)
                     {
                         // Scale the data.
-                        PhxfDivideSingle2U(
+                        PhDivideSinglesBySingle(
                             Section->GraphState.Data1,
                             (FLOAT)PhPerfInformation.CommitLimit,
                             drawInfo->LineDataCount
@@ -2993,7 +2993,7 @@ BOOLEAN PhSipMemorySectionCallback(
                     if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
                     {
                         // Scale the data.
-                        PhxfDivideSingle2U(
+                        PhDivideSinglesBySingle(
                             Section->GraphState.Data1,
                             (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
                             drawInfo->LineDataCount
@@ -3014,7 +3014,7 @@ BOOLEAN PhSipMemorySectionCallback(
             {
                 usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
 
-                PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                     L"Commit Charge: %s\n%s",
                     PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                     ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -3025,7 +3025,7 @@ BOOLEAN PhSipMemorySectionCallback(
             {
                 usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
-                PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+                PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                     L"Physical Memory: %s\n%s",
                     PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                     ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -3155,7 +3155,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
 
             if (!getPhysicallyInstalledSystemMemory)
-                getPhysicallyInstalledSystemMemory = PhGetProcAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory");
+                getPhysicallyInstalledSystemMemory = PhGetModuleProcAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory");
 
             if (getPhysicallyInstalledSystemMemory && getPhysicallyInstalledSystemMemory(&installedMemory))
             {
@@ -3372,7 +3372,7 @@ VOID PhSipNotifyCommitGraph(
                 if (PhPerfInformation.CommitLimit != 0)
                 {
                     // Scale the data.
-                    PhxfDivideSingle2U(
+                    PhDivideSinglesBySingle(
                         CommitGraphState.Data1,
                         (FLOAT)PhPerfInformation.CommitLimit,
                         drawInfo->LineDataCount
@@ -3395,7 +3395,7 @@ VOID PhSipNotifyCommitGraph(
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&CommitGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&CommitGraphState.TooltipText, PhFormatString(
                         L"Commit Charge: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -3440,7 +3440,7 @@ VOID PhSipNotifyPhysicalGraph(
                 if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
                 {
                     // Scale the data.
-                    PhxfDivideSingle2U(
+                    PhDivideSinglesBySingle(
                         PhysicalGraphState.Data1,
                         (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
                         drawInfo->LineDataCount
@@ -3463,7 +3463,7 @@ VOID PhSipNotifyPhysicalGraph(
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&PhysicalGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&PhysicalGraphState.TooltipText, PhFormatString(
                         L"Physical Memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -3829,12 +3829,12 @@ BOOLEAN PhSipIoSectionCallback(
 
                 // Scale the data.
 
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -3855,7 +3855,7 @@ BOOLEAN PhSipIoSectionCallback(
             ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
             ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nW: %s\nO: %s%s\n%s",
                 PhaFormatSize(ioRead, -1)->Buffer,
                 PhaFormatSize(ioWrite, -1)->Buffer,
@@ -4058,12 +4058,12 @@ VOID PhSipNotifyIoGraph(
 
                 // Scale the data.
 
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     IoGraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     IoGraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -4089,7 +4089,7 @@ VOID PhSipNotifyIoGraph(
                     ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
                     ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&IoGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&IoGraphState.TooltipText, PhFormatString(
                         L"R: %s\nW: %s\nO: %s%s\n%s",
                         PhaFormatSize(ioRead, -1)->Buffer,
                         PhaFormatSize(ioWrite, -1)->Buffer,

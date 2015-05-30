@@ -1048,7 +1048,7 @@ INT_PTR CALLBACK LoggingDlgProc(
                     fileDialog = PhCreateSaveFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_LOGFILENAME));
+                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
                     PhDereferenceObject(fileName);
 
@@ -1073,7 +1073,7 @@ INT_PTR CALLBACK LoggingDlgProc(
             {
             case PSN_APPLY:
                 {
-                    PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_LOGFILENAME)->sr);
+                    PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)->sr);
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }

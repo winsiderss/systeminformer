@@ -168,7 +168,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                             }
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->GraphState.Data1,
                                 maxGraphHeight,
                                 drawInfo->LineDataCount
@@ -191,7 +191,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->GraphState.TooltipText, PhFormatString(
+                                PhMoveReference(&context->GraphState.TooltipText, PhFormatString(
                                     L"%lu\n%s",
                                     itemUsage,
                                     ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -326,7 +326,7 @@ static BOOLEAN PerfCounterSectionCallback(
                 }
 
                 // Scale the data.
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data1,
                     maxGraphHeight,
                     drawInfo->LineDataCount
@@ -345,7 +345,7 @@ static BOOLEAN PerfCounterSectionCallback(
                 getTooltipText->Index
                 );
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"%lu\n%s",
                 counterValue,
                 ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer

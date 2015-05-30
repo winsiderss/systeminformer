@@ -34,6 +34,7 @@
 #include <phplug.h>
 #include <cpysave.h>
 #include <emenu.h>
+#include <verify.h>
 
 VOID PhpEnableColumnCustomDraw(
     _In_ HWND hwnd,
@@ -842,7 +843,7 @@ static VOID PhpUpdateProcessNodeWindow(
         ProcessNode->WindowHandle = NULL;
         PhEnumChildWindows(NULL, 0x800, PhpEnumProcessNodeWindowsProc, (LPARAM)ProcessNode);
 
-        PhSwapReference(&ProcessNode->WindowText, NULL);
+        PhClearReference(&ProcessNode->WindowText);
 
         if (ProcessNode->WindowHandle)
         {
@@ -1052,7 +1053,7 @@ static VOID PhpUpdateProcessNodeAppId(
         ULONG windowFlags;
         PPH_STRING windowTitle;
 
-        PhSwapReference(&ProcessNode->AppIdText, NULL);
+        PhClearReference(&ProcessNode->AppIdText);
 
         if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
         {
@@ -1098,7 +1099,7 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        getProcessDpiAwarenessInternal = PhGetProcAddress(L"user32.dll", "GetProcessDpiAwarenessInternal");
+        getProcessDpiAwarenessInternal = PhGetModuleProcAddress(L"user32.dll", "GetProcessDpiAwarenessInternal");
         PhEndInitOnce(&initOnce);
     }
 
@@ -1194,14 +1195,14 @@ static VOID PhpUpdateProcessNodeCycles(
     }
 
     if (ProcessNode->CyclesDelta.Value != 0)
-        PhSwapReference2(&ProcessNode->CyclesText, PhFormatUInt64(ProcessNode->CyclesDelta.Value, TRUE));
+        PhMoveReference(&ProcessNode->CyclesText, PhFormatUInt64(ProcessNode->CyclesDelta.Value, TRUE));
     else
-        PhSwapReference2(&ProcessNode->CyclesText, NULL);
+        PhClearReference(&ProcessNode->CyclesText);
 
     if (ProcessNode->CyclesDelta.Delta != 0)
-        PhSwapReference2(&ProcessNode->CyclesDeltaText, PhFormatUInt64(ProcessNode->CyclesDelta.Delta, TRUE));
+        PhMoveReference(&ProcessNode->CyclesDeltaText, PhFormatUInt64(ProcessNode->CyclesDelta.Delta, TRUE));
     else
-        PhSwapReference2(&ProcessNode->CyclesDeltaText, NULL);
+        PhClearReference(&ProcessNode->CyclesDeltaText);
 }
 
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
@@ -2052,13 +2053,13 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
-                        PhSwapReference2(&node->IoTotalRateText, PhFormat(format, 2, 0));
+                        PhMoveReference(&node->IoTotalRateText, PhFormat(format, 2, 0));
                         getCellText->Text = node->IoTotalRateText->sr;
                     }
                 }
                 break;
             case PHPRTLC_PRIVATEBYTES:
-                PhSwapReference2(&node->PrivateBytesText, PhFormatSize(processItem->VmCounters.PagefileUsage, -1));
+                PhMoveReference(&node->PrivateBytesText, PhFormatSize(processItem->VmCounters.PagefileUsage, -1));
                 getCellText->Text = node->PrivateBytesText->sr;
                 break;
             case PHPRTLC_USERNAME:
@@ -2083,49 +2084,49 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRefOrEmpty(processItem->CommandLine);
                 break;
             case PHPRTLC_PEAKPRIVATEBYTES:
-                PhSwapReference2(&node->PeakPrivateBytesText, PhFormatSize(processItem->VmCounters.PeakPagefileUsage, -1));
+                PhMoveReference(&node->PeakPrivateBytesText, PhFormatSize(processItem->VmCounters.PeakPagefileUsage, -1));
                 getCellText->Text = node->PeakPrivateBytesText->sr;
                 break;
             case PHPRTLC_WORKINGSET:
-                PhSwapReference2(&node->WorkingSetText, PhFormatSize(processItem->VmCounters.WorkingSetSize, -1));
+                PhMoveReference(&node->WorkingSetText, PhFormatSize(processItem->VmCounters.WorkingSetSize, -1));
                 getCellText->Text = node->WorkingSetText->sr;
                 break;
             case PHPRTLC_PEAKWORKINGSET:
-                PhSwapReference2(&node->PeakWorkingSetText, PhFormatSize(processItem->VmCounters.PeakWorkingSetSize, -1));
+                PhMoveReference(&node->PeakWorkingSetText, PhFormatSize(processItem->VmCounters.PeakWorkingSetSize, -1));
                 getCellText->Text = node->PeakWorkingSetText->sr;
                 break;
             case PHPRTLC_PRIVATEWS:
                 if (WindowsVersion >= WINDOWS_7)
                 {
-                    PhSwapReference2(&node->PrivateWsText, PhFormatSize(processItem->WorkingSetPrivateSize, -1));
+                    PhMoveReference(&node->PrivateWsText, PhFormatSize(processItem->WorkingSetPrivateSize, -1));
                 }
                 else
                 {
                     PhpUpdateProcessNodeWsCounters(node);
-                    PhSwapReference2(&node->PrivateWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfPrivatePages * PAGE_SIZE, -1));
+                    PhMoveReference(&node->PrivateWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfPrivatePages * PAGE_SIZE, -1));
                 }
                 getCellText->Text = node->PrivateWsText->sr;
                 break;
             case PHPRTLC_SHAREDWS:
                 PhpUpdateProcessNodeWsCounters(node);
-                PhSwapReference2(&node->SharedWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfSharedPages * PAGE_SIZE, -1));
+                PhMoveReference(&node->SharedWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfSharedPages * PAGE_SIZE, -1));
                 getCellText->Text = node->SharedWsText->sr;
                 break;
             case PHPRTLC_SHAREABLEWS:
                 PhpUpdateProcessNodeWsCounters(node);
-                PhSwapReference2(&node->ShareableWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfShareablePages * PAGE_SIZE, -1));
+                PhMoveReference(&node->ShareableWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfShareablePages * PAGE_SIZE, -1));
                 getCellText->Text = node->ShareableWsText->sr;
                 break;
             case PHPRTLC_VIRTUALSIZE:
-                PhSwapReference2(&node->VirtualSizeText, PhFormatSize(processItem->VmCounters.VirtualSize, -1));
+                PhMoveReference(&node->VirtualSizeText, PhFormatSize(processItem->VmCounters.VirtualSize, -1));
                 getCellText->Text = node->VirtualSizeText->sr;
                 break;
             case PHPRTLC_PEAKVIRTUALSIZE:
-                PhSwapReference2(&node->PeakVirtualSizeText, PhFormatSize(processItem->VmCounters.PeakVirtualSize, -1));
+                PhMoveReference(&node->PeakVirtualSizeText, PhFormatSize(processItem->VmCounters.PeakVirtualSize, -1));
                 getCellText->Text = node->PeakVirtualSizeText->sr;
                 break;
             case PHPRTLC_PAGEFAULTS:
-                PhSwapReference2(&node->PageFaultsText, PhFormatUInt64(processItem->VmCounters.PageFaultCount, TRUE));
+                PhMoveReference(&node->PageFaultsText, PhFormatUInt64(processItem->VmCounters.PageFaultCount, TRUE));
                 getCellText->Text = node->PageFaultsText->sr;
                 break;
             case PHPRTLC_SESSIONID:
@@ -2173,7 +2174,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
-                        PhSwapReference2(&node->IoRoRateText, PhFormat(format, 2, 0));
+                        PhMoveReference(&node->IoRoRateText, PhFormat(format, 2, 0));
                         getCellText->Text = node->IoRoRateText->sr;
                     }
                 }
@@ -2199,7 +2200,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
-                        PhSwapReference2(&node->IoWRateText, PhFormat(format, 2, 0));
+                        PhMoveReference(&node->IoWRateText, PhFormat(format, 2, 0));
                         getCellText->Text = node->IoWRateText->sr;
                     }
                 }
@@ -2235,7 +2236,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (processItem->CreateTime.QuadPart != 0)
                     {
                         PhLargeIntegerToLocalSystemTime(&systemTime, &processItem->CreateTime);
-                        PhSwapReference2(&node->StartTimeText, PhFormatDateTime(&systemTime));
+                        PhMoveReference(&node->StartTimeText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->StartTimeText->sr;
                     }
                 }
@@ -2283,7 +2284,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhQuerySystemTime(&currentTime);
                         startTimeString = PhFormatTimeSpanRelative(currentTime.QuadPart - processItem->CreateTime.QuadPart);
-                        PhSwapReference2(&node->RelativeStartTimeText, PhConcatStrings2(startTimeString->Buffer, L" ago"));
+                        PhMoveReference(&node->RelativeStartTimeText, PhConcatStrings2(startTimeString->Buffer, L" ago"));
                         PhDereferenceObject(startTimeString);
                         getCellText->Text = node->RelativeStartTimeText->sr;
                     }
@@ -2344,7 +2345,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (processItem->CycleTimeDelta.Value != 0)
                     {
-                        PhSwapReference2(&node->CyclesText, PhFormatUInt64(processItem->CycleTimeDelta.Value, TRUE));
+                        PhMoveReference(&node->CyclesText, PhFormatUInt64(processItem->CycleTimeDelta.Value, TRUE));
                         getCellText->Text = node->CyclesText->sr;
                     }
                 }
@@ -2358,7 +2359,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (processItem->CycleTimeDelta.Delta != 0)
                     {
-                        PhSwapReference2(&node->CyclesDeltaText, PhFormatUInt64(processItem->CycleTimeDelta.Delta, TRUE));
+                        PhMoveReference(&node->CyclesDeltaText, PhFormatUInt64(processItem->CycleTimeDelta.Delta, TRUE));
                         getCellText->Text = node->CyclesDeltaText->sr;
                     }
                 }
@@ -2389,84 +2390,84 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_CONTEXTSWITCHES:
                 if (processItem->ContextSwitchesDelta.Value != 0)
                 {
-                    PhSwapReference2(&node->ContextSwitchesText, PhFormatUInt64(processItem->ContextSwitchesDelta.Value, TRUE));
+                    PhMoveReference(&node->ContextSwitchesText, PhFormatUInt64(processItem->ContextSwitchesDelta.Value, TRUE));
                     getCellText->Text = node->ContextSwitchesText->sr;
                 }
                 break;
             case PHPRTLC_CONTEXTSWITCHESDELTA:
                 if ((LONG)processItem->ContextSwitchesDelta.Delta > 0) // the delta may be negative if a thread exits - just don't show anything
                 {
-                    PhSwapReference2(&node->ContextSwitchesDeltaText, PhFormatUInt64(processItem->ContextSwitchesDelta.Delta, TRUE));
+                    PhMoveReference(&node->ContextSwitchesDeltaText, PhFormatUInt64(processItem->ContextSwitchesDelta.Delta, TRUE));
                     getCellText->Text = node->ContextSwitchesDeltaText->sr;
                 }
                 break;
             case PHPRTLC_PAGEFAULTSDELTA:
                 if (processItem->PageFaultsDelta.Delta != 0)
                 {
-                    PhSwapReference2(&node->PageFaultsDeltaText, PhFormatUInt64(processItem->PageFaultsDelta.Delta, TRUE));
+                    PhMoveReference(&node->PageFaultsDeltaText, PhFormatUInt64(processItem->PageFaultsDelta.Delta, TRUE));
                     getCellText->Text = node->PageFaultsDeltaText->sr;
                 }
                 break;
             case PHPRTLC_IOREADS:
                 if (processItem->IoReadCountDelta.Value != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[0], PhFormatUInt64(processItem->IoReadCountDelta.Value, TRUE));
+                    PhMoveReference(&node->IoGroupText[0], PhFormatUInt64(processItem->IoReadCountDelta.Value, TRUE));
                     getCellText->Text = node->IoGroupText[0]->sr;
                 }
                 break;
             case PHPRTLC_IOWRITES:
                 if (processItem->IoWriteCountDelta.Value != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[1], PhFormatUInt64(processItem->IoWriteCountDelta.Value, TRUE));
+                    PhMoveReference(&node->IoGroupText[1], PhFormatUInt64(processItem->IoWriteCountDelta.Value, TRUE));
                     getCellText->Text = node->IoGroupText[1]->sr;
                 }
                 break;
             case PHPRTLC_IOOTHER:
                 if (processItem->IoOtherCountDelta.Value != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[2], PhFormatUInt64(processItem->IoOtherCountDelta.Value, TRUE));
+                    PhMoveReference(&node->IoGroupText[2], PhFormatUInt64(processItem->IoOtherCountDelta.Value, TRUE));
                     getCellText->Text = node->IoGroupText[2]->sr;
                 }
                 break;
             case PHPRTLC_IOREADBYTES:
                 if (processItem->IoReadDelta.Value != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[3], PhFormatSize(processItem->IoReadDelta.Value, -1));
+                    PhMoveReference(&node->IoGroupText[3], PhFormatSize(processItem->IoReadDelta.Value, -1));
                     getCellText->Text = node->IoGroupText[3]->sr;
                 }
                 break;
             case PHPRTLC_IOWRITEBYTES:
                 if (processItem->IoWriteDelta.Value != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[4], PhFormatSize(processItem->IoWriteDelta.Value, -1));
+                    PhMoveReference(&node->IoGroupText[4], PhFormatSize(processItem->IoWriteDelta.Value, -1));
                     getCellText->Text = node->IoGroupText[4]->sr;
                 }
                 break;
             case PHPRTLC_IOOTHERBYTES:
                 if (processItem->IoOtherDelta.Value != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[5], PhFormatSize(processItem->IoOtherDelta.Value, -1));
+                    PhMoveReference(&node->IoGroupText[5], PhFormatSize(processItem->IoOtherDelta.Value, -1));
                     getCellText->Text = node->IoGroupText[5]->sr;
                 }
                 break;
             case PHPRTLC_IOREADSDELTA:
                 if (processItem->IoReadCountDelta.Delta != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[6], PhFormatUInt64(processItem->IoReadCountDelta.Delta, TRUE));
+                    PhMoveReference(&node->IoGroupText[6], PhFormatUInt64(processItem->IoReadCountDelta.Delta, TRUE));
                     getCellText->Text = node->IoGroupText[6]->sr;
                 }
                 break;
             case PHPRTLC_IOWRITESDELTA:
                 if (processItem->IoWriteCountDelta.Delta != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[7], PhFormatUInt64(processItem->IoWriteCountDelta.Delta, TRUE));
+                    PhMoveReference(&node->IoGroupText[7], PhFormatUInt64(processItem->IoWriteCountDelta.Delta, TRUE));
                     getCellText->Text = node->IoGroupText[7]->sr;
                 }
                 break;
             case PHPRTLC_IOOTHERDELTA:
                 if (processItem->IoOtherCountDelta.Delta != 0)
                 {
-                    PhSwapReference2(&node->IoGroupText[8], PhFormatUInt64(processItem->IoOtherCountDelta.Delta, TRUE));
+                    PhMoveReference(&node->IoGroupText[8], PhFormatUInt64(processItem->IoOtherCountDelta.Delta, TRUE));
                     getCellText->Text = node->IoGroupText[8]->sr;
                 }
                 break;
@@ -2500,29 +2501,29 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_PAGEDPOOL:
-                PhSwapReference2(&node->PagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPagedPoolUsage, -1));
+                PhMoveReference(&node->PagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPagedPoolUsage, -1));
                 getCellText->Text = node->PagedPoolText->sr;
                 break;
             case PHPRTLC_PEAKPAGEDPOOL:
-                PhSwapReference2(&node->PeakPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakPagedPoolUsage, -1));
+                PhMoveReference(&node->PeakPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakPagedPoolUsage, -1));
                 getCellText->Text = node->PeakPagedPoolText->sr;
                 break;
             case PHPRTLC_NONPAGEDPOOL:
-                PhSwapReference2(&node->NonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaNonPagedPoolUsage, -1));
+                PhMoveReference(&node->NonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaNonPagedPoolUsage, -1));
                 getCellText->Text = node->NonPagedPoolText->sr;
                 break;
             case PHPRTLC_PEAKNONPAGEDPOOL:
-                PhSwapReference2(&node->PeakNonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakNonPagedPoolUsage, -1));
+                PhMoveReference(&node->PeakNonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakNonPagedPoolUsage, -1));
                 getCellText->Text = node->PeakNonPagedPoolText->sr;
                 break;
             case PHPRTLC_MINIMUMWORKINGSET:
                 PhpUpdateProcessNodeQuotaLimits(node);
-                PhSwapReference2(&node->MinimumWorkingSetText, PhFormatSize(node->MinimumWorkingSetSize, -1));
+                PhMoveReference(&node->MinimumWorkingSetText, PhFormatSize(node->MinimumWorkingSetSize, -1));
                 getCellText->Text = node->MinimumWorkingSetText->sr;
                 break;
             case PHPRTLC_MAXIMUMWORKINGSET:
                 PhpUpdateProcessNodeQuotaLimits(node);
-                PhSwapReference2(&node->MaximumWorkingSetText, PhFormatSize(node->MaximumWorkingSetSize, -1));
+                PhMoveReference(&node->MaximumWorkingSetText, PhFormatSize(node->MaximumWorkingSetSize, -1));
                 getCellText->Text = node->MaximumWorkingSetText->sr;
                 break;
             case PHPRTLC_PRIVATEBYTESDELTA:
@@ -2549,7 +2550,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         format[1].Radix = (UCHAR)PhMaxSizeUnit;
                         format[1].u.Size = delta;
 
-                        PhSwapReference2(&node->PrivateBytesDeltaText, PhFormat(format, 2, 0));
+                        PhMoveReference(&node->PrivateBytesDeltaText, PhFormat(format, 2, 0));
                         getCellText->Text = node->PrivateBytesDeltaText->sr;
                     }
                 }
@@ -2727,7 +2728,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             tickCount = GetTickCount();
 
             if ((LONG)(node->TooltipTextValidToTickCount - tickCount) < 0)
-                PhSwapReference(&node->TooltipText, NULL);
+                PhClearReference(&node->TooltipText);
             if (!node->TooltipText)
                 node->TooltipText = PhGetProcessTooltipText(node->ProcessItem, &node->TooltipTextValidToTickCount);
 
@@ -2833,7 +2834,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         if (max != 0)
                         {
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 node->PrivateGraphBuffers.Data1,
                                 max,
                                 drawInfo.LineDataCount
@@ -2890,12 +2891,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         {
                             // Scale the data.
 
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 node->IoGraphBuffers.Data1,
                                 max,
                                 drawInfo.LineDataCount
                                 );
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 node->IoGraphBuffers.Data2,
                                 max,
                                 drawInfo.LineDataCount

@@ -199,17 +199,17 @@ VOID PhpDestroyMemoryNode(
 {
     PhEmCallObjectOperation(EmMemoryNodeType, MemoryNode, EmObjectDelete);
 
-    PhSwapReference(&MemoryNode->SizeText, NULL);
-    PhSwapReference(&MemoryNode->UseText, NULL);
-    PhSwapReference(&MemoryNode->TotalWsText, NULL);
-    PhSwapReference(&MemoryNode->PrivateWsText, NULL);
-    PhSwapReference(&MemoryNode->ShareableWsText, NULL);
-    PhSwapReference(&MemoryNode->SharedWsText, NULL);
-    PhSwapReference(&MemoryNode->LockedWsText, NULL);
-    PhSwapReference(&MemoryNode->CommittedText, NULL);
-    PhSwapReference(&MemoryNode->PrivateText, NULL);
+    PhClearReference(&MemoryNode->SizeText);
+    PhClearReference(&MemoryNode->UseText);
+    PhClearReference(&MemoryNode->TotalWsText);
+    PhClearReference(&MemoryNode->PrivateWsText);
+    PhClearReference(&MemoryNode->ShareableWsText);
+    PhClearReference(&MemoryNode->SharedWsText);
+    PhClearReference(&MemoryNode->LockedWsText);
+    PhClearReference(&MemoryNode->CommittedText);
+    PhClearReference(&MemoryNode->PrivateText);
 
-    PhSwapReference(&MemoryNode->Children, NULL);
+    PhClearReference(&MemoryNode->Children);
     PhDereferenceObject(MemoryNode->MemoryItem);
 
     PhFree(MemoryNode);
@@ -280,9 +280,9 @@ VOID PhpCopyMemoryRegionTypeInfo(
     )
 {
     if (Destination->RegionType == CustomRegion)
-        PhSwapReference(&Destination->u.Custom.Text, NULL);
+        PhClearReference(&Destination->u.Custom.Text);
     else if (Destination->RegionType == MappedFileRegion)
-        PhSwapReference(&Destination->u.MappedFile.FileName, NULL);
+        PhClearReference(&Destination->u.MappedFile.FileName);
 
     Destination->RegionType = Source->RegionType;
     Destination->u = Source->u;
@@ -693,7 +693,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 }
                 break;
             case PHMMTLC_SIZE:
-                PhSwapReference2(&node->SizeText, PhFormatSize(memoryItem->RegionSize, 1));
+                PhMoveReference(&node->SizeText, PhFormatSize(memoryItem->RegionSize, 1));
                 getCellText->Text = PhGetStringRef(node->SizeText);
                 break;
             case PHMMTLC_PROTECTION:
@@ -704,31 +704,31 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->UseText);
                 break;
             case PHMMTLC_TOTALWS:
-                PhSwapReference2(&node->TotalWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->TotalWorkingSetPages * PAGE_SIZE));
+                PhMoveReference(&node->TotalWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->TotalWorkingSetPages * PAGE_SIZE));
                 getCellText->Text = PhGetStringRef(node->TotalWsText);
                 break;
             case PHMMTLC_PRIVATEWS:
-                PhSwapReference2(&node->PrivateWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->PrivateWorkingSetPages * PAGE_SIZE));
+                PhMoveReference(&node->PrivateWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->PrivateWorkingSetPages * PAGE_SIZE));
                 getCellText->Text = PhGetStringRef(node->PrivateWsText);
                 break;
             case PHMMTLC_SHAREABLEWS:
-                PhSwapReference2(&node->ShareableWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->ShareableWorkingSetPages * PAGE_SIZE));
+                PhMoveReference(&node->ShareableWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->ShareableWorkingSetPages * PAGE_SIZE));
                 getCellText->Text = PhGetStringRef(node->ShareableWsText);
                 break;
             case PHMMTLC_SHAREDWS:
-                PhSwapReference2(&node->SharedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->SharedWorkingSetPages * PAGE_SIZE));
+                PhMoveReference(&node->SharedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->SharedWorkingSetPages * PAGE_SIZE));
                 getCellText->Text = PhGetStringRef(node->SharedWsText);
                 break;
             case PHMMTLC_LOCKEDWS:
-                PhSwapReference2(&node->LockedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->LockedWorkingSetPages * PAGE_SIZE));
+                PhMoveReference(&node->LockedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->LockedWorkingSetPages * PAGE_SIZE));
                 getCellText->Text = PhGetStringRef(node->LockedWsText);
                 break;
             case PHMMTLC_COMMITTED:
-                PhSwapReference2(&node->CommittedText, PhpFormatSizeIfNonZero(memoryItem->CommittedSize));
+                PhMoveReference(&node->CommittedText, PhpFormatSizeIfNonZero(memoryItem->CommittedSize));
                 getCellText->Text = PhGetStringRef(node->CommittedText);
                 break;
             case PHMMTLC_PRIVATE:
-                PhSwapReference2(&node->PrivateText, PhpFormatSizeIfNonZero(memoryItem->PrivateSize));
+                PhMoveReference(&node->PrivateText, PhpFormatSizeIfNonZero(memoryItem->PrivateSize));
                 getCellText->Text = PhGetStringRef(node->PrivateText);
                 break;
             default:

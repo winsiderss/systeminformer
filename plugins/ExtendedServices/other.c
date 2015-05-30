@@ -462,9 +462,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                             }
                         }
 
-                        privilegeString = selectedChoice;
-                        PhReferenceObject(privilegeString);
-
+                        PhSetReference(&privilegeString, selectedChoice);
                         PhAddItemList(context->PrivilegeList, privilegeString);
 
                         lvItemIndex = PhAddListViewItem(context->PrivilegesLv, MAXINT, privilegeString->Buffer, privilegeString);

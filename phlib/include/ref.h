@@ -2,7 +2,7 @@
  * Process Hacker -
  *   internal object manager
  *
- * Copyright (C) 2009 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -199,6 +199,16 @@ PhGetObjectTypeInformation(
     _Out_ PPH_OBJECT_TYPE_INFORMATION Information
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateAlloc(
+    _Out_ PVOID *Alloc,
+    _In_ SIZE_T Size
+    );
+
+// Object reference functions
+
 FORCEINLINE VOID PhSwapReference(
     _Inout_ PVOID *ObjectReference,
     _In_opt_ PVOID NewObject
@@ -213,7 +223,7 @@ FORCEINLINE VOID PhSwapReference(
     if (oldObject) PhDereferenceObject(oldObject);
 }
 
-FORCEINLINE VOID PhSwapReference2(
+FORCEINLINE VOID PhMoveReference(
     _Inout_ PVOID *ObjectReference,
     _In_opt_ _Assume_refs_(1) PVOID NewObject
     )
@@ -226,13 +236,24 @@ FORCEINLINE VOID PhSwapReference2(
     if (oldObject) PhDereferenceObject(oldObject);
 }
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhCreateAlloc(
-    _Out_ PVOID *Alloc,
-    _In_ SIZE_T Size
-    );
+FORCEINLINE VOID PhSetReference(
+    _Out_ PVOID *ObjectReference,
+    _In_opt_ PVOID NewObject
+    )
+{
+    *ObjectReference = NewObject;
+
+    if (NewObject) PhReferenceObject(NewObject);
+}
+
+FORCEINLINE VOID PhClearReference(
+    _Inout_ PVOID *ObjectReference
+    )
+{
+    PhMoveReference(ObjectReference, NULL);
+}
+
+// Auto-dereference pool
 
 /** The size of the static array in an auto-release pool. */
 #define PH_AUTO_POOL_STATIC_SIZE 64
@@ -291,14 +312,8 @@ PhAutoDereferenceObject(
     _In_opt_ PVOID Object
     );
 
-// Deprecated. Use PhAutoDereferenceObject instead.
-_May_raise_
-PHLIBAPI
-VOID
-NTAPI
-PhaDereferenceObject(
-    _In_ PVOID Object
-    );
+/** Deprecated. Use PhAutoDereferenceObject instead. */
+PHLIBAPI VOID NTAPI PhaDereferenceObject(PVOID Object);
 
 #ifdef __cplusplus
 }

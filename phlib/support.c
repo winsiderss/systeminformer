@@ -3376,8 +3376,7 @@ PPH_STRING PhExpandKeyName(
     }
     else
     {
-        keyName = KeyName;
-        PhReferenceObject(KeyName);
+        PhSetReference(&keyName, KeyName);
     }
 
     if (Computer)
@@ -4402,6 +4401,20 @@ CleanupExit:
     return status;
 }
 
+ULONG PhCrc32(
+    _In_ ULONG Crc,
+    _In_reads_(Length) PCHAR Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    Crc ^= 0xffffffff;
+
+    while (Length--)
+        Crc = (Crc >> 8) ^ PhCrc32Table[(Crc ^ *Buffer++) & 0xff];
+
+    return Crc ^ 0xffffffff;
+}
+
 C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(MD5_CTX));
 C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(A_SHA_CTX));
 
@@ -4460,7 +4473,7 @@ VOID PhUpdateHash(
         A_SHAUpdate((A_SHA_CTX *)Context->Context, (PUCHAR)Buffer, Length);
         break;
     case Crc32HashAlgorithm:
-        Context->Context[0] = ph_crc32(Context->Context[0], (PUCHAR)Buffer, Length);
+        Context->Context[0] = PhCrc32(Context->Context[0], (PUCHAR)Buffer, Length);
         break;
     default:
         PhRaiseStatus(STATUS_INVALID_PARAMETER);

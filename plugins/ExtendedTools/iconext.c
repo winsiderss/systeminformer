@@ -232,8 +232,8 @@ VOID EtpDiskIconUpdateCallback(
             max = lineData1[i] + lineData2[i];
     }
 
-    PhxfDivideSingle2U(lineData1, max, lineDataCount);
-    PhxfDivideSingle2U(lineData2, max, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, max, lineDataCount);
+    PhDivideSinglesBySingle(lineData2, max, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
@@ -334,8 +334,8 @@ VOID EtpNetworkIconUpdateCallback(
             max = lineData1[i] + lineData2[i];
     }
 
-    PhxfDivideSingle2U(lineData1, max, lineDataCount);
-    PhxfDivideSingle2U(lineData2, max, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, max, lineDataCount);
+    PhDivideSinglesBySingle(lineData2, max, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;

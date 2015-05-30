@@ -131,7 +131,7 @@ PTOOLSTATUS_TAB_INFO RegisterTabInfo(
 
     if (!PhAddItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex, tabInfoCopy))
     {
-        PhSwapReference(&tabInfoCopy, NULL);
+        PhClearReference(&tabInfoCopy);
 
         if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex))
             tabInfoCopy = *entry;
@@ -380,7 +380,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             case EN_CHANGE:
                 {
                     // Cache the current search text for our callback.
-                    PhSwapReference2(&SearchboxText, PhGetWindowText(SearchboxHandle));
+                    PhMoveReference(&SearchboxText, PhGetWindowText(SearchboxHandle));
 
                     // Expand the nodes so we can search them
                     PhExpandAllProcessNodes(TRUE);
@@ -742,7 +742,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             );
 
                         if (!HungWindowFromGhostWindow_I)
-                            HungWindowFromGhostWindow_I = PhGetProcAddress(L"user32.dll", "HungWindowFromGhostWindow");
+                            HungWindowFromGhostWindow_I = PhGetModuleProcAddress(L"user32.dll", "HungWindowFromGhostWindow");
 
                         if (HungWindowFromGhostWindow_I)
                         {

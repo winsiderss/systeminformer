@@ -100,8 +100,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     }
     else
     {
-        propContext->Title = ProcessItem->ProcessName;
-        PhReferenceObject(propContext->Title);
+        PhSetReference(&propContext->Title, ProcessItem->ProcessName);
     }
 
     memset(&propSheetHeader, 0, sizeof(PROPSHEETHEADER));
@@ -127,8 +126,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
 
     memcpy(&propContext->PropSheetHeader, &propSheetHeader, sizeof(PROPSHEETHEADER));
 
-    propContext->ProcessItem = ProcessItem;
-    PhReferenceObject(ProcessItem);
+    PhSetReference(&propContext->ProcessItem, ProcessItem);
     PhInitializeEvent(&propContext->CreatedEvent);
 
     return propContext;
@@ -1665,7 +1663,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&performanceContext->CpuGraphState.Text,
+                            PhMoveReference(&performanceContext->CpuGraphState.Text,
                                 PhFormatString(L"%.2f%%",
                                 (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
                                 ));
@@ -1704,7 +1702,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&performanceContext->PrivateGraphState.Text,
+                            PhMoveReference(&performanceContext->PrivateGraphState.Text,
                                 PhConcatStrings2(
                                 L"Private Bytes: ",
                                 PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
@@ -1742,7 +1740,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             if (processItem->VmCounters.PeakPagefileUsage != 0)
                             {
                                 // Scale the data.
-                                PhxfDivideSingle2U(
+                                PhDivideSinglesBySingle(
                                     performanceContext->PrivateGraphState.Data1,
                                     (FLOAT)processItem->VmCounters.PeakPagefileUsage,
                                     drawInfo->LineDataCount
@@ -1758,7 +1756,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&performanceContext->IoGraphState.Text,
+                            PhMoveReference(&performanceContext->IoGraphState.Text,
                                 PhFormatString(
                                 L"R+O: %s, W: %s",
                                 PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
@@ -1808,12 +1806,12 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             {
                                 // Scale the data.
 
-                                PhxfDivideSingle2U(
+                                PhDivideSinglesBySingle(
                                     performanceContext->IoGraphState.Data1,
                                     max,
                                     drawInfo->LineDataCount
                                     );
-                                PhxfDivideSingle2U(
+                                PhDivideSinglesBySingle(
                                     performanceContext->IoGraphState.Data2,
                                     max,
                                     drawInfo->LineDataCount
@@ -1842,7 +1840,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             cpuKernel = PhGetItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
                             cpuUser = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
-                            PhSwapReference2(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
+                            PhMoveReference(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
                                 L"%.2f%%\n%s",
                                 (cpuKernel + cpuUser) * 100,
                                 ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
@@ -1862,7 +1860,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             privateBytes = PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
 
-                            PhSwapReference2(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
+                            PhMoveReference(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
                                 L"Private Bytes: %s\n%s",
                                 PhaFormatSize(privateBytes, -1)->Buffer,
                                 ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
@@ -1886,7 +1884,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             ioWrite = PhGetItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
                             ioOther = PhGetItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
 
-                            PhSwapReference2(&performanceContext->IoGraphState.TooltipText, PhFormatString(
+                            PhMoveReference(&performanceContext->IoGraphState.TooltipText, PhFormatString(
                                 L"R: %s\nW: %s\nO: %s\n%s",
                                 PhaFormatSize(ioRead, -1)->Buffer,
                                 PhaFormatSize(ioWrite, -1)->Buffer,
@@ -3519,7 +3517,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhSaveSettingsModuleList(&modulesContext->ListContext);
             PhDeleteModuleList(&modulesContext->ListContext);
 
-            PhSwapReference(&modulesContext->ErrorMessage, NULL);
+            PhClearReference(&modulesContext->ErrorMessage);
             PhFree(modulesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
@@ -3702,8 +3700,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 else
                 {
                     message = PhGetStatusMessage(status, 0);
-                    PhSwapReference2(&modulesContext->ErrorMessage, PhFormatString(L"Unable to query module information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
-                    PhSwapReference(&message, NULL);
+                    PhMoveReference(&modulesContext->ErrorMessage, PhFormatString(L"Unable to query module information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
+                    PhClearReference(&message);
                     TreeNew_SetEmptyText(tnHandle, &modulesContext->ErrorMessage->sr, 0);
                 }
 
@@ -3762,8 +3760,8 @@ VOID PhpRefreshProcessMemoryList(
         PPH_STRING message;
 
         message = PhGetStatusMessage(memoryContext->LastRunStatus, 0);
-        PhSwapReference2(&memoryContext->ErrorMessage, PhFormatString(L"Unable to query memory information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
-        PhSwapReference(&message, NULL);
+        PhMoveReference(&memoryContext->ErrorMessage, PhFormatString(L"Unable to query memory information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
+        PhClearReference(&message);
         TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &memoryContext->ErrorMessage->sr, 0);
 
         PhReplaceMemoryList(&memoryContext->ListContext, NULL);
@@ -3962,7 +3960,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             if (memoryContext->MemoryItemListValid)
                 PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
 
-            PhSwapReference(&memoryContext->ErrorMessage, NULL);
+            PhClearReference(&memoryContext->ErrorMessage);
             PhFree(memoryContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
@@ -4469,23 +4467,23 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
         if (PhEqualString2(Info->TypeName, L"File", TRUE))
             PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES2, L"File Properties", NULL, NULL), indexInParent);
 
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Open &File Location", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open &File Location", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Key", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Open Key", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open Key", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Process", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Process Properties", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Process Properties", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Section", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Read/Write Memory", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Read/Write Memory", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PHA_APPEND_CTRL_ENTER(L"Go to Thread", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to Thread", EnableShortcut), NULL, NULL), indexInParent);
     }
 }
 
@@ -4667,7 +4665,7 @@ VOID PhShowHandleObjectProperties1(
                 }
             }
 
-            PhSwapReference(&sectionName, NULL);
+            PhClearReference(&sectionName);
 
             NtClose(handle);
         }
@@ -5229,8 +5227,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 else
                 {
                     message = PhGetStatusMessage(status, 0);
-                    PhSwapReference2(&handlesContext->ErrorMessage, PhFormatString(L"Unable to query handle information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
-                    PhSwapReference(&message, NULL);
+                    PhMoveReference(&handlesContext->ErrorMessage, PhFormatString(L"Unable to query handle information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
+                    PhClearReference(&message);
                     TreeNew_SetEmptyText(tnHandle, &handlesContext->ErrorMessage->sr, 0);
                 }
 

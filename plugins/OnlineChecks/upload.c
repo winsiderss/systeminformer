@@ -839,8 +839,8 @@ static NTSTATUS UploadCheckThreadStart(
                 0
                 );
 
-            PhSwapReference(&phVersion, NULL);
-            PhSwapReference(&userAgent, NULL);
+            PhClearReference(&phVersion);
+            PhClearReference(&userAgent);
 
             if (!context->HttpHandle)
                 __leave;
@@ -1029,8 +1029,8 @@ static NTSTATUS UploadCheckThreadStart(
     }
     __finally
     {
-        PhSwapReference2(&hashString, NULL);
-        PhSwapReference2(&subObjectName, NULL);
+        PhMoveReference(&hashString, NULL);
+        PhMoveReference(&subObjectName, NULL);
 
         if (requestHandle)
         {
@@ -1071,11 +1071,11 @@ static INT_PTR CALLBACK UploadDlgProc(
 
         if (uMsg == WM_NCDESTROY)
         {
-            PhSwapReference2(&context->FileName, NULL);
-            PhSwapReference2(&context->BaseFileName, NULL);
-            PhSwapReference2(&context->WindowFileName, NULL);
-            PhSwapReference2(&context->LaunchCommand, NULL);
-            PhSwapReference2(&context->ObjectName, NULL);
+            PhMoveReference(&context->FileName, NULL);
+            PhMoveReference(&context->BaseFileName, NULL);
+            PhMoveReference(&context->WindowFileName, NULL);
+            PhMoveReference(&context->LaunchCommand, NULL);
+            PhMoveReference(&context->ObjectName, NULL);
 
             if (context->MessageFont)
                 DeleteObject(context->MessageFont);
@@ -1230,7 +1230,7 @@ static INT_PTR CALLBACK UploadDlgProc(
             if (errorMessage)
             {
                 Static_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), errorMessage->Buffer);
-                PhSwapReference2(&errorMessage, NULL);
+                PhMoveReference(&errorMessage, NULL);
             }
             else
             {

@@ -273,7 +273,7 @@ NTSTATUS PhpSymbolCallbackWorker(
 
     dprintf("symbol event %d: %S\n", data->Type, data->FileName->Buffer);
     PhInvokeCallback(&data->SymbolProvider->EventCallback, data);
-    PhSwapReference(&data->FileName, NULL);
+    PhClearReference(&data->FileName);
     PhDereferenceObject(data);
 
     return STATUS_SUCCESS;
@@ -511,8 +511,7 @@ ULONG64 PhGetModuleFromAddress(
 
     if (module && Address < module->BaseAddress + module->Size)
     {
-        foundFileName = module->FileName;
-        PhReferenceObject(foundFileName);
+        PhSetReference(&foundFileName, module->FileName);
         foundBaseAddress = module->BaseAddress;
     }
 
@@ -717,8 +716,7 @@ PPH_STRING PhGetSymbolFromAddress(
         if (existingLinks)
         {
             symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
-            modFileName = symbolModule->FileName;
-            PhReferenceObject(modFileName);
+            PhSetReference(&modFileName, symbolModule->FileName);
         }
 
         PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
@@ -792,29 +790,15 @@ CleanupExit:
     if (ResolveLevel)
         *ResolveLevel = resolveLevel;
     if (FileName)
-    {
-        *FileName = modFileName;
-
-        if (modFileName)
-            PhReferenceObject(modFileName);
-    }
+        PhSetReference(FileName, modFileName);
     if (SymbolName)
-    {
-        *SymbolName = symbolName;
-
-        if (symbolName)
-            PhReferenceObject(symbolName);
-    }
+        PhSetReference(SymbolName, symbolName);
     if (Displacement)
         *Displacement = displacement;
 
-    if (modFileName)
-        PhDereferenceObject(modFileName);
-    if (modBaseName)
-        PhDereferenceObject(modBaseName);
-    if (symbolName)
-        PhDereferenceObject(symbolName);
-
+    PhClearReference(&modFileName);
+    PhClearReference(&modBaseName);
+    PhClearReference(&symbolName);
     PhFree(symbolInfo);
 
     return symbol;
@@ -1048,7 +1032,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     ULONG i;
     BOOLEAN foundNull;
 
-    rtlGetFunctionTableListHead = PhGetProcAddress(L"ntdll.dll", "RtlGetFunctionTableListHead");
+    rtlGetFunctionTableListHead = PhGetModuleProcAddress(L"ntdll.dll", "RtlGetFunctionTableListHead");
 
     if (!rtlGetFunctionTableListHead)
         return STATUS_PROCEDURE_NOT_FOUND;

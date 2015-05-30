@@ -700,10 +700,10 @@ VOID NTAPI DotNetEventCallback(
 
                 if (node)
                 {
-                    PhSwapReference2(&node->PathText, PhCreateStringEx(moduleILPath, moduleILPathLength));
+                    PhMoveReference(&node->PathText, PhCreateStringEx(moduleILPath, moduleILPathLength));
 
                     if (moduleNativePathLength != 0)
-                        PhSwapReference2(&node->NativePathText, PhCreateStringEx(moduleNativePath, moduleNativePathLength));
+                        PhMoveReference(&node->NativePathText, PhCreateStringEx(moduleNativePath, moduleNativePathLength));
                 }
             }
             break;
@@ -835,7 +835,7 @@ ULONG UpdateDotNetTraceInfo(
     PGUID guidToEnable;
 
     if (!EnableTraceEx_I)
-        EnableTraceEx_I = (_EnableTraceEx)PhGetProcAddress(L"advapi32.dll", "EnableTraceEx");
+        EnableTraceEx_I = (_EnableTraceEx)PhGetModuleProcAddress(L"advapi32.dll", "EnableTraceEx");
     if (!EnableTraceEx_I)
         return ERROR_NOT_SUPPORTED;
 

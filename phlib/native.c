@@ -1737,7 +1737,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
     PVOID setProcessDepPolicy;
     ULONG flags;
 
-    setProcessDepPolicy = PhGetProcAddress(L"kernel32.dll", "SetProcessDEPPolicy");
+    setProcessDepPolicy = PhGetModuleProcAddress(L"kernel32.dll", "SetProcessDEPPolicy");
 
     if (!setProcessDepPolicy)
         return STATUS_NOT_SUPPORTED;
@@ -1845,7 +1845,7 @@ NTSTATUS PhInjectDllProcess(
     if (!isModule32)
     {
 #endif
-        threadStart = PhGetProcAddress(L"kernel32.dll", "LoadLibraryW");
+        threadStart = PhGetModuleProcAddress(L"kernel32.dll", "LoadLibraryW");
 #ifdef _WIN64
     }
     else
@@ -2014,7 +2014,7 @@ NTSTATUS PhUnloadDllProcess(
     if (!isModule32)
     {
 #endif
-        threadStart = PhGetProcAddress(L"ntdll.dll", "LdrUnloadDll");
+        threadStart = PhGetModuleProcAddress(L"ntdll.dll", "LdrUnloadDll");
 #ifdef _WIN64
     }
     else

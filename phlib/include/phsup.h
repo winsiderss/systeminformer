@@ -419,16 +419,6 @@ FORCEINLINE VOID PhPrintPointer(
 
 // Misc.
 
-FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus()
-{
-    ULONG win32Result;
-
-    // This is needed because NTSTATUS_FROM_WIN32 uses the argument multiple times.
-    win32Result = GetLastError();
-
-    return NTSTATUS_FROM_WIN32(win32Result);
-}
-
 FORCEINLINE ULONG PhCountBits(
     _In_ ULONG Value
     )
@@ -469,21 +459,6 @@ FORCEINLINE ULONG PhRoundNumber(
         return newValue + Multiplier;
 }
 
-FORCEINLINE PVOID PhGetProcAddress(
-    _In_ PWSTR LibraryName,
-    _In_ PSTR ProcName
-    )
-{
-    HMODULE module;
-
-    module = GetModuleHandle(LibraryName);
-
-    if (module)
-        return GetProcAddress(module, ProcName);
-    else
-        return NULL;
-}
-
 FORCEINLINE VOID PhProbeAddress(
     _In_ PVOID UserAddress,
     _In_ SIZE_T UserLength,
@@ -517,6 +492,31 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
     Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
 
     return Timeout;
+}
+
+FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus()
+{
+    ULONG win32Result;
+
+    // This is needed because NTSTATUS_FROM_WIN32 uses the argument multiple times.
+    win32Result = GetLastError();
+
+    return NTSTATUS_FROM_WIN32(win32Result);
+}
+
+FORCEINLINE PVOID PhGetModuleProcAddress(
+    _In_ PWSTR ModuleName,
+    _In_ PSTR ProcName
+    )
+{
+    HMODULE module;
+
+    module = GetModuleHandle(ModuleName);
+
+    if (module)
+        return GetProcAddress(module, ProcName);
+    else
+        return NULL;
 }
 
 #endif

@@ -634,7 +634,7 @@ VOID EtDeleteProcessBlock(
 
     for (i = 1; i <= ETPRTNC_MAXIMUM; i++)
     {
-        PhSwapReference(&Block->TextCache[i], NULL);
+        PhClearReference(&Block->TextCache[i]);
     }
 
     RemoveEntryList(&Block->ListEntry);
@@ -659,7 +659,7 @@ VOID EtDeleteNetworkBlock(
 
     for (i = 1; i <= ETNETNC_MAXIMUM; i++)
     {
-        PhSwapReference(&Block->TextCache[i], NULL);
+        PhClearReference(&Block->TextCache[i]);
     }
 
     RemoveEntryList(&Block->ListEntry);

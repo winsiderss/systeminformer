@@ -137,7 +137,7 @@ VOID PhShowThreadStackDialog(
         (LPARAM)&threadStackContext
         );
 
-    PhSwapReference(&threadStackContext.StatusMessage, NULL);
+    PhClearReference(&threadStackContext.StatusMessage);
     PhDereferenceObject(threadStackContext.NewList);
     PhDereferenceObject(threadStackContext.List);
 
@@ -405,7 +405,7 @@ static VOID PhpFreeThreadStackItem(
     _In_ PTHREAD_STACK_ITEM StackItem
     )
 {
-    PhSwapReference(&StackItem->Symbol, NULL);
+    PhClearReference(&StackItem->Symbol);
     PhFree(StackItem);
 }
 
@@ -417,7 +417,7 @@ static NTSTATUS PhpRefreshThreadStack(
     ULONG i;
 
     ThreadStackContext->StopWalk = FALSE;
-    PhSwapReference2(&ThreadStackContext->StatusMessage, PhCreateString(L"Loading stack..."));
+    PhMoveReference(&ThreadStackContext->StatusMessage, PhCreateString(L"Loading stack..."));
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -480,7 +480,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         return FALSE;
 
     PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
-    PhSwapReference2(&threadStackContext->StatusMessage,
+    PhMoveReference(&threadStackContext->StatusMessage,
         PhFormatString(L"Processing frame %u...", threadStackContext->NewList->Count));
     PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
     PostMessage(threadStackContext->ProgressWindowHandle, WM_PH_STATUS_UPDATE, 0, 0);

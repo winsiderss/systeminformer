@@ -1289,6 +1289,12 @@ NTSTATUS PhGetMappedImageDelayImports(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
+USHORT PhCheckSum(
+    _In_ ULONG Sum,
+    _In_reads_(Count) PUSHORT Buffer,
+    _In_ ULONG Count
+    );
+
 PHLIBAPI
 ULONG PhCheckSumMappedImage(
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -1623,26 +1629,6 @@ NTSTATUS PhWriteStringFormatAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ _Printf_format_string_ PWSTR Format,
     ...
-    );
-
-// verify
-
-typedef enum _VERIFY_RESULT
-{
-    VrUnknown = 0,
-    VrNoSignature,
-    VrTrusted,
-    VrExpired,
-    VrRevoked,
-    VrDistrust,
-    VrSecuritySettings,
-    VrBadSignature
-} VERIFY_RESULT, *PVERIFY_RESULT;
-
-PHLIBAPI
-VERIFY_RESULT PhVerifyFile(
-    _In_ PWSTR FileName,
-    _Out_opt_ PPH_STRING *SignerName
     );
 
 // provider
@@ -2758,6 +2744,12 @@ NTSTATUS PhIsExecutablePacked(
     _Out_ PBOOLEAN IsPacked,
     _Out_opt_ PULONG NumberOfModules,
     _Out_opt_ PULONG NumberOfFunctions
+    );
+
+ULONG PhCrc32(
+    _In_ ULONG Crc,
+    _In_reads_(Length) PCHAR Buffer,
+    _In_ SIZE_T Length
     );
 
 typedef enum _PH_HASH_ALGORITHM

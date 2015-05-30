@@ -139,14 +139,9 @@ PDB_OBJECT CreateDbObject(
         object->Key = object->Name->sr;
 
         if (Comment)
-        {
-            object->Comment = Comment;
-            PhReferenceObject(Comment);
-        }
+            PhSetReference(&object->Comment, Comment);
         else
-        {
             object->Comment = PhReferenceEmptyString();
-        }
     }
     else
     {
@@ -261,13 +256,13 @@ NTSTATUS LoadDb(
             for (i = 0; i < (ULONG)currentNode->value.element.num_attrs; i++)
             {
                 if (stricmp(currentNode->value.element.attrs[i].name, "tag") == 0)
-                    PhSwapReference2(&tag, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                    PhMoveReference(&tag, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
-                    PhSwapReference2(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                    PhMoveReference(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
-                    PhSwapReference2(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                    PhMoveReference(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
-                    PhSwapReference2(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                    PhMoveReference(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
             }
         }
 
@@ -292,11 +287,11 @@ NTSTATUS LoadDb(
             object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;
         }
 
-        PhSwapReference(&tag, NULL);
-        PhSwapReference(&name, NULL);
-        PhSwapReference(&priorityClass, NULL);
-        PhSwapReference(&ioPriorityPlusOne, NULL);
-        PhSwapReference(&comment, NULL);
+        PhClearReference(&tag);
+        PhClearReference(&name);
+        PhClearReference(&priorityClass);
+        PhClearReference(&ioPriorityPlusOne);
+        PhClearReference(&comment);
 
         currentNode = currentNode->next;
     }

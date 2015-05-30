@@ -5799,11 +5799,11 @@ VOID PhTnpGetTooltipText(
 
         if (getCellTooltip.Text.Buffer && getCellTooltip.Text.Length != 0)
         {
-            PhSwapReference2(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
+            PhMoveReference(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
         }
         else
         {
-            PhSwapReference(&Context->TooltipText, NULL);
+            PhClearReference(&Context->TooltipText);
 
             if (unfoldingTooltipFromViewCancelled)
             {
@@ -5988,7 +5988,7 @@ VOID PhTnpGetHeaderTooltipText(
             return;
 
         Context->TooltipColumnId = column->Id;
-        PhSwapReference2(&Context->TooltipText, PhCreateStringEx(text, textCount * sizeof(WCHAR)));
+        PhMoveReference(&Context->TooltipText, PhCreateStringEx(text, textCount * sizeof(WCHAR)));
     }
 
     *Text = Context->TooltipText->Buffer;

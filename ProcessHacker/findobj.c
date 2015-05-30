@@ -619,8 +619,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                 if (processItem)
                 {
-                    searchResult->ProcessName = processItem->ProcessName;
-                    PhReferenceObject(searchResult->ProcessName);
+                    PhSetReference(&searchResult->ProcessName, processItem->ProcessName);
                     PhDereferenceObject(processItem);
                 }
                 else
@@ -768,8 +767,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = (HANDLE)Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
-        PhReferenceObject(Module->FileName);
-        searchResult->Name = Module->FileName;
+        PhSetReference(&searchResult->Name, Module->FileName);
         PhPrintPointer(searchResult->HandleString, Module->BaseAddress);
         memset(&searchResult->Info, 0, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
 
@@ -894,7 +892,10 @@ static NTSTATUS PhpFindObjectsThreadStart(
         }
 
         if (useWorkQueue)
-            PhDeleteWorkQueue(&workQueue, TRUE);
+        {
+            PhWaitForWorkQueue(&workQueue);
+            PhDeleteWorkQueue(&workQueue);
+        }
 
         {
             PPH_KEY_VALUE_PAIR entry;

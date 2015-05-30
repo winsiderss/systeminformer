@@ -694,14 +694,14 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                             //    max = 1024 * 1024;
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->GraphState.Data1,
                                 max,
                                 drawInfo->LineDataCount
                                 );
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->GraphState.Data2,
                                 max,
                                 drawInfo->LineDataCount
@@ -729,7 +729,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->GraphState.TooltipText, PhFormatString(
+                                PhMoveReference(&context->GraphState.TooltipText, PhFormatString(
                                     L"R: %s\nS: %s\n%s",
                                     PhaFormatSize(adapterInboundValue, -1)->Buffer,
                                     PhaFormatSize(adapterOutboundValue, -1)->Buffer,
@@ -978,14 +978,14 @@ static BOOLEAN NetAdapterSectionCallback(
                 //    max = 1024 * 1024;
 
                 // Scale the data.
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data1,
                     max,
                     drawInfo->LineDataCount
                     );
 
                 // Scale the data.
-                PhxfDivideSingle2U(
+                PhDivideSinglesBySingle(
                     Section->GraphState.Data2,
                     max,
                     drawInfo->LineDataCount
@@ -1008,7 +1008,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 getTooltipText->Index
                 );
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nS: %s\n%s",
                 PhaFormatSize(adapterInboundValue, -1)->Buffer,
                 PhaFormatSize(adapterOutboundValue, -1)->Buffer,

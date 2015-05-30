@@ -513,7 +513,7 @@ VOID PhpUpdateNetworkItemOwner(
         serviceName = PhGetServiceNameFromTag(NetworkItem->ProcessId, serviceTag);
 
         if (serviceName)
-            PhSwapReference2(&NetworkItem->OwnerName, serviceName);
+            PhMoveReference(&NetworkItem->OwnerName, serviceName);
     }
 }
 
@@ -615,9 +615,9 @@ VOID PhNetworkProviderUpdate(
             entry = entry->Next;
 
             if (data->Remote)
-                PhSwapReference2(&data->NetworkItem->RemoteHostString, data->HostString);
+                PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
             else
-                PhSwapReference2(&data->NetworkItem->LocalHostString, data->HostString);
+                PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
 
             data->NetworkItem->JustResolved = TRUE;
 

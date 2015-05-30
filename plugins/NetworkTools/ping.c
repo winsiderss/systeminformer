@@ -535,7 +535,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             if (context->FontHandle)
                 DeleteObject(context->FontHandle);
 
-            PhDeleteWorkQueue(&context->PingWorkQueue, FALSE);
+            PhDeleteWorkQueue(&context->PingWorkQueue);
             PhDeleteGraphState(&context->PingGraphState);
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -622,7 +622,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                         {
                             HDC hdc = Graph_GetBufferedContext(context->PingGraphHandle);
 
-                            PhSwapReference2(&context->PingGraphState.Text,
+                            PhMoveReference(&context->PingGraphState.Text,
                                 PhFormatString(L"Ping: %ums", context->CurrentPingMs)
                                 );
 
@@ -684,7 +684,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                             {
                                 ULONG pingMs = PhGetItemCircularBuffer_ULONG(&context->PingHistory, getTooltipText->Index);
 
-                                PhSwapReference2(&context->PingGraphState.TooltipText,
+                                PhMoveReference(&context->PingGraphState.TooltipText,
                                     PhFormatString(L"Ping: %ums", pingMs)
                                     );
                             }

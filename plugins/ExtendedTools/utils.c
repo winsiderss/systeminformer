@@ -40,7 +40,7 @@ VOID EtFormatRate(
 
         PhInitFormatSize(&format[0], number);
         PhInitFormatS(&format[1], L"/s");
-        PhSwapReference2(Buffer, PhFormat(format, 2, 0));
+        PhMoveReference(Buffer, PhFormat(format, 2, 0));
 
         if (String)
             *String = (*Buffer)->sr;

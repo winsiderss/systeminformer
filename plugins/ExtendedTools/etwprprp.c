@@ -390,7 +390,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&context->DiskGraphState.Text, PhFormatString(
+                            PhMoveReference(&context->DiskGraphState.Text, PhFormatString(
                                 L"R: %s, W: %s",
                                 PhaFormatSize(context->CurrentDiskRead, -1)->Buffer,
                                 PhaFormatSize(context->CurrentDiskWrite, -1)->Buffer
@@ -431,14 +431,14 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             //    max = 1024 * 1024;
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->DiskGraphState.Data1,
                                 max,
                                 drawInfo->LineDataCount
                                 );
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->DiskGraphState.Data2,
                                 max,
                                 drawInfo->LineDataCount
@@ -453,7 +453,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&context->NetworkGraphState.Text, PhFormatString(
+                            PhMoveReference(&context->NetworkGraphState.Text, PhFormatString(
                                 L"R: %s, S: %s",
                                 PhaFormatSize(context->CurrentNetworkReceive, -1)->Buffer,
                                 PhaFormatSize(context->CurrentNetworkSend, -1)->Buffer
@@ -494,14 +494,14 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             //    max = 1024 * 1024;
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->NetworkGraphState.Data1,
                                 max,
                                 drawInfo->LineDataCount
                                 );
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->NetworkGraphState.Data2,
                                 max,
                                 drawInfo->LineDataCount
@@ -532,7 +532,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->DiskGraphState.TooltipText, PhFormatString(
+                                PhMoveReference(&context->DiskGraphState.TooltipText, PhFormatString(
                                     L"R: %s\nW: %s\n%s",
                                     PhaFormatSize(diskRead, -1)->Buffer,
                                     PhaFormatSize(diskWrite, -1)->Buffer,
@@ -556,7 +556,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->NetworkGraphState.TooltipText, PhFormatString(
+                                PhMoveReference(&context->NetworkGraphState.TooltipText, PhFormatString(
                                     L"S: %s\nR: %s\n%s",
                                     PhaFormatSize(networkSend, -1)->Buffer,
                                     PhaFormatSize(networkReceive, -1)->Buffer,

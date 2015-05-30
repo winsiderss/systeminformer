@@ -272,7 +272,7 @@ VOID WepDereferenceWindowPropertiesContext(
     {
         PLIST_ENTRY listEntry;
 
-        PhSwapReference(&Context->SymbolProvider, NULL);
+        PhClearReference(&Context->SymbolProvider);
 
         // Destroy results that have not been processed by any property pages.
 
@@ -285,13 +285,13 @@ VOID WepDereferenceWindowPropertiesContext(
             resolveContext = CONTAINING_RECORD(listEntry, SYMBOL_RESOLVE_CONTEXT, ListEntry);
             listEntry = listEntry->Flink;
 
-            PhSwapReference(&resolveContext->Symbol, NULL);
+            PhClearReference(&resolveContext->Symbol);
             PhFree(resolveContext);
         }
 
-        PhSwapReference(&Context->WndProcSymbol, NULL);
-        PhSwapReference(&Context->DlgProcSymbol, NULL);
-        PhSwapReference(&Context->ClassWndProcSymbol, NULL);
+        PhClearReference(&Context->WndProcSymbol);
+        PhClearReference(&Context->DlgProcSymbol);
+        PhClearReference(&Context->ClassWndProcSymbol);
 
         PhFree(Context);
     }
@@ -849,7 +849,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             {
             case IDC_REFRESH:
                 context->HookDataValid = FALSE;
-                PhSwapReference(&context->WndProcSymbol, NULL);
+                PhClearReference(&context->WndProcSymbol);
                 WepRefreshWindowGeneralInfo(hwndDlg, context);
                 break;
             }
@@ -866,9 +866,9 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
                 PhReleaseQueuedLockExclusive(&context->ResolveListLock);
 
                 if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
-                    PhSwapReference(&resolveContext->Symbol, NULL);
+                    PhClearReference(&resolveContext->Symbol);
 
-                PhSwapReference2(&context->WndProcSymbol, resolveContext->Symbol);
+                PhMoveReference(&context->WndProcSymbol, resolveContext->Symbol);
                 PhFree(resolveContext);
 
                 context->WndProcResolving--;
@@ -880,9 +880,9 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
                 PhReleaseQueuedLockExclusive(&context->ResolveListLock);
 
                 if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
-                    PhSwapReference(&resolveContext->Symbol, NULL);
+                    PhClearReference(&resolveContext->Symbol);
 
-                PhSwapReference2(&context->DlgProcSymbol, resolveContext->Symbol);
+                PhMoveReference(&context->DlgProcSymbol, resolveContext->Symbol);
                 PhFree(resolveContext);
 
                 context->DlgProcResolving--;
@@ -1096,7 +1096,7 @@ INT_PTR CALLBACK WepWindowClassDlgProc(
             {
             case IDC_REFRESH:
                 context->HookDataValid = FALSE;
-                PhSwapReference(&context->ClassWndProcSymbol, NULL);
+                PhClearReference(&context->ClassWndProcSymbol);
                 WepRefreshWindowClassInfo(hwndDlg, context);
                 break;
             }
@@ -1111,9 +1111,9 @@ INT_PTR CALLBACK WepWindowClassDlgProc(
             PhReleaseQueuedLockExclusive(&context->ResolveListLock);
 
             if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
-                PhSwapReference(&resolveContext->Symbol, NULL);
+                PhClearReference(&resolveContext->Symbol);
 
-            PhSwapReference2(&context->ClassWndProcSymbol, resolveContext->Symbol);
+            PhMoveReference(&context->ClassWndProcSymbol, resolveContext->Symbol);
             PhFree(resolveContext);
 
             context->ClassWndProcResolving--;

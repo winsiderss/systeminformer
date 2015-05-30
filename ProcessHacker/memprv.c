@@ -164,10 +164,10 @@ VOID PhpMemoryItemDeleteProcedure(
     switch (memoryItem->RegionType)
     {
     case CustomRegion:
-        PhSwapReference(&memoryItem->u.Custom.Text, NULL);
+        PhClearReference(&memoryItem->u.Custom.Text);
         break;
     case MappedFileRegion:
-        PhSwapReference(&memoryItem->u.MappedFile.FileName, NULL);
+        PhClearReference(&memoryItem->u.MappedFile.FileName);
         break;
     }
 }
@@ -449,7 +449,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 PPH_STRING newFileName = PhResolveDevicePrefix(fileName);
 
                 if (newFileName)
-                    PhSwapReference2(&fileName, newFileName);
+                    PhMoveReference(&fileName, newFileName);
 
                 memoryItem->RegionType = MappedFileRegion;
                 memoryItem->u.MappedFile.FileName = fileName;

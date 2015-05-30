@@ -378,9 +378,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     PPH_STRING desktopName;
                     BOOLEAN useLinkedToken;
 
-                    program = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PROGRAM);
-                    userName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME);
-                    logonTypeString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TYPE);
+                    program = PhaGetDlgItemText(hwndDlg, IDC_PROGRAM);
+                    userName = PhaGetDlgItemText(hwndDlg, IDC_USERNAME);
+                    logonTypeString = PhaGetDlgItemText(hwndDlg, IDC_TYPE);
 
                     // Fix up the user name if it doesn't have a domain.
                     if (PhFindCharInString(userName, 0, '\\') == -1)
@@ -408,7 +408,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         password = NULL;
 
                     sessionId = GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE);
-                    desktopName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DESKTOP);
+                    desktopName = PhaGetDlgItemText(hwndDlg, IDC_DESKTOP);
 
                     if (WINDOWS_HAS_UAC)
                         useLinkedToken = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION)) == BST_CHECKED;
@@ -513,7 +513,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-                    PhSetFileDialogFileName(fileDialog, PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PROGRAM)->Buffer);
+                    PhSetFileDialogFileName(fileDialog, PhaGetDlgItemText(hwndDlg, IDC_PROGRAM)->Buffer);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
@@ -540,7 +540,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         HIWORD(wParam) == CBN_CLOSEUP
                         ))
                     {
-                        userName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME);
+                        userName = PhaGetDlgItemText(hwndDlg, IDC_USERNAME);
                     }
 
                     if (userName)

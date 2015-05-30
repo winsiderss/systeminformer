@@ -512,7 +512,7 @@ int __cdecl main(int argc, char *argv[])
                         A_SHAUpdate(&shaContext, buffer, (ULONG)isb.Information);
                         break;
                     case HASH_CRC32:
-                        crc = ph_crc32(crc, buffer, isb.Information);
+                        crc = PhCrc32(crc, buffer, isb.Information);
                         break;
                     }
 

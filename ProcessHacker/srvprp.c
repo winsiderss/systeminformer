@@ -169,7 +169,7 @@ static VOID PhpRefreshControls(
 {
     if (
         WindowsVersion >= WINDOWS_VISTA &&
-        PhEqualString2(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_STARTTYPE), L"Auto Start", FALSE)
+        PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_STARTTYPE), L"Auto Start", FALSE)
         )
     {
         EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), TRUE);
@@ -330,7 +330,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    commandLine = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BINARYPATH);
+                    commandLine = PhaGetDlgItemText(hwndDlg, IDC_BINARYPATH);
 
                     if (context->ServiceItem->Type & SERVICE_WIN32)
                     {

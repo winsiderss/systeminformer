@@ -210,14 +210,9 @@ PET_DISK_ITEM EtReferenceDiskItem(
         );
 
     if (diskItemPtr)
-    {
-        diskItem = *diskItemPtr;
-        PhReferenceObject(diskItem);
-    }
+        PhSetReference(&diskItem, *diskItemPtr);
     else
-    {
         diskItem = NULL;
-    }
 
     PhReleaseQueuedLockShared(&EtDiskHashtableLock);
 
@@ -266,7 +261,7 @@ VOID EtDiskProcessFileEvent(
         PhAcquireQueuedLockExclusive(&EtFileNameHashtableLock);
 
         realPair = PhAddEntryHashtableEx(EtFileNameHashtable, &pair, NULL);
-        PhSwapReference2(&realPair->Value, PhCreateStringEx(Event->FileName.Buffer, Event->FileName.Length));
+        PhMoveReference(&realPair->Value, PhCreateStringEx(Event->FileName.Buffer, Event->FileName.Length));
 
         PhReleaseQueuedLockExclusive(&EtFileNameHashtableLock);
     }
@@ -304,10 +299,7 @@ PPH_STRING EtFileObjectToFileName(
     realPair = PhFindEntryHashtable(EtFileNameHashtable, &pair);
 
     if (realPair)
-    {
-        fileName = realPair->Value;
-        PhReferenceObject(fileName);
-    }
+        PhSetReference(&fileName, realPair->Value);
 
     PhReleaseQueuedLockShared(&EtFileNameHashtableLock);
 
@@ -346,15 +338,12 @@ VOID EtpProcessDiskPacket(
         diskItem = EtCreateDiskItem();
 
         diskItem->ProcessId = diskEvent->ClientId.UniqueProcess;
-        diskItem->FileName = Packet->FileName;
-        PhReferenceObject(Packet->FileName);
+        PhSetReference(&diskItem->FileName, Packet->FileName);
         diskItem->FileNameWin32 = PhGetFileName(diskItem->FileName);
 
         if (processItem = PhReferenceProcessItem(diskItem->ProcessId))
         {
-            diskItem->ProcessName = processItem->ProcessName;
-            PhReferenceObject(processItem->ProcessName);
-
+            PhSetReference(&diskItem->ProcessName, processItem->ProcessName);
             diskItem->ProcessIcon = EtProcIconReferenceSmallProcessIcon(EtGetProcessBlock(processItem));
             diskItem->ProcessRecord = processItem->Record;
             PhReferenceProcessRecord(diskItem->ProcessRecord);
@@ -551,8 +540,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
                 {
                     if (!diskItem->ProcessName)
                     {
-                        diskItem->ProcessName = processItem->ProcessName;
-                        PhReferenceObject(processItem->ProcessName);
+                        PhSetReference(&diskItem->ProcessName, processItem->ProcessName);
                         modified = TRUE;
                     }
 
