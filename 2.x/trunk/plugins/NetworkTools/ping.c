@@ -535,7 +535,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             if (context->FontHandle)
                 DeleteObject(context->FontHandle);
 
-            PhDeleteWorkQueue(&context->PingWorkQueue);
+            PhDeleteWorkQueue(&context->PingWorkQueue, FALSE);
             PhDeleteGraphState(&context->PingGraphState);
             PhDeleteLayoutManager(&context->LayoutManager);
 
