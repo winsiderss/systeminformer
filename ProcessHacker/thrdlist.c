@@ -534,7 +534,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 {
                     if (threadItem->CyclesDelta.Delta != threadItem->CyclesDelta.Value && threadItem->CyclesDelta.Delta != 0)
                     {
-                        PhSwapReference2(&node->CyclesDeltaText, PhFormatUInt64(threadItem->CyclesDelta.Delta, TRUE));
+                        PhMoveReference(&node->CyclesDeltaText, PhFormatUInt64(threadItem->CyclesDelta.Delta, TRUE));
                         getCellText->Text = node->CyclesDeltaText->sr;
                     }
                 }
@@ -542,7 +542,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 {
                     if (threadItem->ContextSwitchesDelta.Delta != threadItem->ContextSwitchesDelta.Value && threadItem->ContextSwitchesDelta.Delta != 0)
                     {
-                        PhSwapReference2(&node->CyclesDeltaText, PhFormatUInt64(threadItem->ContextSwitchesDelta.Delta, TRUE));
+                        PhMoveReference(&node->CyclesDeltaText, PhFormatUInt64(threadItem->ContextSwitchesDelta.Delta, TRUE));
                         getCellText->Text = node->CyclesDeltaText->sr;
                     }
                 }
@@ -552,7 +552,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->StartAddressText);
                 break;
             case PHTHTLC_PRIORITY:
-                PhSwapReference2(&node->PriorityText, PhGetThreadPriorityWin32String(threadItem->PriorityWin32));
+                PhMoveReference(&node->PriorityText, PhGetThreadPriorityWin32String(threadItem->PriorityWin32));
                 getCellText->Text = PhGetStringRef(node->PriorityText);
                 break;
             case PHTHTLC_SERVICE:

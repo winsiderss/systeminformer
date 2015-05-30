@@ -192,7 +192,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                     PhFindIntegerSiKeyValuePairs(
                         VirtualKeyPairs,
                         sizeof(VirtualKeyPairs),
-                        PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_VIRTUALKEY)->Buffer,
+                        PhaGetDlgItemText(hwndDlg, IDC_VIRTUALKEY)->Buffer,
                         &virtualKey
                         );
 

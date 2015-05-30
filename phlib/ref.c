@@ -868,9 +868,7 @@ _May_raise_ PVOID PhAutoDereferenceObject(
     return Object;
 }
 
-_May_raise_ VOID PhaDereferenceObject(
-    _In_ PVOID Object
-    )
+VOID PhaDereferenceObject(PVOID Object)
 {
     if (!Object)
         PhRaiseStatus(STATUS_INVALID_PARAMETER);

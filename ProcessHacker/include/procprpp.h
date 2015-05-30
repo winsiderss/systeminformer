@@ -106,7 +106,7 @@ typedef struct _PH_HANDLE_ITEM_INFO
     PPH_STRING BestObjectName;
 } PH_HANDLE_ITEM_INFO, *PPH_HANDLE_ITEM_INFO;
 
-#define PHA_APPEND_CTRL_ENTER(Text, Enable) ((Enable) ? PhaConcatStrings2((Text), L"\tCtrl+Enter")->Buffer : (Text))
+#define PhaAppendCtrlEnter(Text, Enable) ((Enable) ? PhaConcatStrings2((Text), L"\tCtrl+Enter")->Buffer : (Text))
 
 VOID PhInsertHandleObjectPropertiesEMenuItems(
     _In_ struct _PH_EMENU_ITEM *Menu,

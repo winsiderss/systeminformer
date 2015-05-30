@@ -101,7 +101,7 @@ INT WINAPI wWinMain(
         targetFileName = PvResolveShortcutTarget(PvFileName);
 
         if (targetFileName)
-            PhSwapReference2(&PvFileName, targetFileName);
+            PhMoveReference(&PvFileName, targetFileName);
     }
 
     if (!PhEndsWithString2(PvFileName, L".lib", TRUE))

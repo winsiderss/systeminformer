@@ -108,7 +108,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                     HANDLE processHandle;
                     ULONG64 protect;
 
-                    PhStringToInteger64(&PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_VALUE)->sr, 0, &protect);
+                    PhStringToInteger64(&PhaGetDlgItemText(hwndDlg, IDC_VALUE)->sr, 0, &protect);
 
                     if (NT_SUCCESS(status = PhOpenProcess(
                         &processHandle,

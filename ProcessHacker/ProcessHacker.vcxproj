@@ -208,7 +208,6 @@
   <ItemGroup>
     <ClCompile Include="..\phlib\basesup.c" />
     <ClCompile Include="..\phlib\basesupa.c" />
-    <ClCompile Include="..\phlib\basesupx.c" />
     <ClCompile Include="..\phlib\circbuf.c" />
     <ClCompile Include="..\phlib\collect.c" />
     <ClCompile Include="..\phlib\colorbox.c" />

@@ -166,13 +166,13 @@ VOID ProcessThreadStackControl(
                 {
                     if (displacement != 0)
                     {
-                        PhSwapReference2(&managedSymbol, PhFormatString(L"%s + 0x%I64x", managedSymbol->Buffer, displacement));
+                        PhMoveReference(&managedSymbol, PhFormatString(L"%s + 0x%I64x", managedSymbol->Buffer, displacement));
                     }
 
                     if (Control->u.ResolveSymbol.Symbol->Buffer)
-                        PhSwapReference2(&managedSymbol, PhFormatString(L"%s <-- %s", managedSymbol->Buffer, Control->u.ResolveSymbol.Symbol->Buffer));
+                        PhMoveReference(&managedSymbol, PhFormatString(L"%s <-- %s", managedSymbol->Buffer, Control->u.ResolveSymbol.Symbol->Buffer));
 
-                    PhSwapReference2(&Control->u.ResolveSymbol.Symbol, managedSymbol);
+                    PhMoveReference(&Control->u.ResolveSymbol.Symbol, managedSymbol);
                 }
             }
         }

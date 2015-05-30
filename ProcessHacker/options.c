@@ -366,14 +366,9 @@ static BOOLEAN GetCurrentFont(
     PPH_STRING fontHexString;
 
     if (NewFontSelection)
-    {
-        fontHexString = NewFontSelection;
-        PhReferenceObject(NewFontSelection);
-    }
+        PhSetReference(&fontHexString, NewFontSelection);
     else
-    {
         fontHexString = PhGetStringSetting(L"Font");
-    }
 
     if (fontHexString->Length / 2 / 2 == sizeof(LOGFONT))
         result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
@@ -407,8 +402,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             for (i = 0; i < sizeof(PhSizeUnitNames) / sizeof(PWSTR); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
 
-            SetDlgItemText(hwndDlg, IDC_SEARCHENGINE, PHA_GET_STRING_SETTING(L"SearchEngine")->Buffer);
-            SetDlgItemText(hwndDlg, IDC_PEVIEWER, PHA_GET_STRING_SETTING(L"ProgramInspectExecutables")->Buffer);
+            SetDlgItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(L"SearchEngine")->Buffer);
+            SetDlgItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(L"ProgramInspectExecutables")->Buffer);
 
             if (PhMaxSizeUnit != -1)
                 ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
@@ -441,7 +436,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             if (CurrentFontInstance)
                 DeleteObject(CurrentFontInstance);
 
-            PhSwapReference(&NewFontSelection, NULL);
+            PhClearReference(&NewFontSelection);
         }
         break;
     case WM_COMMAND:
@@ -469,7 +464,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                     if (ChooseFont(&chooseFont))
                     {
-                        PhSwapReference2(&NewFontSelection, PhBufferToHexString((PUCHAR)&font, sizeof(LOGFONT)));
+                        PhMoveReference(&NewFontSelection, PhBufferToHexString((PUCHAR)&font, sizeof(LOGFONT)));
 
                         // Update the button's font.
 
@@ -492,8 +487,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             {
             case PSN_APPLY:
                 {
-                    PhSetStringSetting2(L"SearchEngine", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SEARCHENGINE)->sr));
-                    PhSetStringSetting2(L"ProgramInspectExecutables", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PEVIEWER)->sr));
+                    PhSetStringSetting2(L"SearchEngine", &(PhaGetDlgItemText(hwndDlg, IDC_SEARCHENGINE)->sr));
+                    PhSetStringSetting2(L"ProgramInspectExecutables", &(PhaGetDlgItemText(hwndDlg, IDC_PEVIEWER)->sr));
                     PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
                     PhSetIntegerSetting(L"IconProcesses", GetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, NULL, FALSE));
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
@@ -845,8 +840,8 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
         {
             PhpPageInit(hwndDlg);
 
-            SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, PHA_GET_STRING_SETTING(L"DbgHelpPath")->Buffer);
-            SetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PHA_GET_STRING_SETTING(L"DbgHelpSearchPath")->Buffer);
+            SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, PhaGetStringSetting(L"DbgHelpPath")->Buffer);
+            SetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
 
             SetDlgItemCheckForSetting(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
         }
@@ -868,7 +863,7 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH));
+                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
                     PhDereferenceObject(fileName);
 
@@ -896,14 +891,14 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
                     PPH_STRING dbgHelpPath;
                     PPH_STRING existingDbgHelpPath;
 
-                    dbgHelpPath = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH);
+                    dbgHelpPath = PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH);
                     existingDbgHelpPath = PhAutoDereferenceObject(PhGetStringSetting(L"DbgHelpPath"));
 
                     if (!PhEqualString(dbgHelpPath, existingDbgHelpPath, TRUE))
                         RestartRequired = TRUE;
 
                     PhSetStringSetting2(L"DbgHelpPath", &dbgHelpPath->sr);
-                    PhSetStringSetting2(L"DbgHelpSearchPath", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
+                    PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
                     SetSettingForDlgItemCheck(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);

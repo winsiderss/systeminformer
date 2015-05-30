@@ -33,9 +33,6 @@
     <ClCompile Include="..\phlib\basesupa.c">
       <Filter>phlib</Filter>
     </ClCompile>
-    <ClCompile Include="..\phlib\basesupx.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="..\phlib\circbuf.c">
       <Filter>phlib</Filter>
     </ClCompile>

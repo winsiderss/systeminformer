@@ -866,8 +866,8 @@ VOID PhNfpUpdateIconIoHistory(
             max = lineData1[i] + lineData2[i];
     }
 
-    PhxfDivideSingle2U(lineData1, max, lineDataCount);
-    PhxfDivideSingle2U(lineData2, max, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, max, lineDataCount);
+    PhDivideSinglesBySingle(lineData2, max, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
@@ -961,7 +961,7 @@ VOID PhNfpUpdateIconCommitHistory(
     for (i = 0; i < lineDataCount; i++)
         lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
 
-    PhxfDivideSingle2U(lineData1, (FLOAT)PhPerfInformation.CommitLimit, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, (FLOAT)PhPerfInformation.CommitLimit, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
@@ -1037,7 +1037,7 @@ VOID PhNfpUpdateIconPhysicalHistory(
     for (i = 0; i < lineDataCount; i++)
         lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
 
-    PhxfDivideSingle2U(lineData1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;

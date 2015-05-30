@@ -28,9 +28,9 @@ static VOID DbgFreeLogEntry(
     _Inout_ PDEBUG_LOG_ENTRY Entry
     )
 {
-    PhSwapReference2(&Entry->FilePath, NULL);
-    PhSwapReference2(&Entry->ProcessName, NULL);
-    PhSwapReference2(&Entry->Message, NULL);
+    PhMoveReference(&Entry->FilePath, NULL);
+    PhMoveReference(&Entry->ProcessName, NULL);
+    PhMoveReference(&Entry->Message, NULL);
 
     PhFree(Entry);
 }
@@ -147,7 +147,7 @@ static VOID DbgProcessLogMessageEntry(
     if (!NT_SUCCESS(status))
         fileName = PhGetKernelFileName();
 
-    PhSwapReference2(&fileName, PhGetFileName(fileName));
+    PhMoveReference(&fileName, PhGetFileName(fileName));
 
     icon = PhGetFileShellIcon(PhGetString(fileName), L".exe", TRUE);
 

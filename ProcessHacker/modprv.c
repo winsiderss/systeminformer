@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <verify.h>
 #include <extmgri.h>
 
 typedef struct _PH_MODULE_QUERY_DATA

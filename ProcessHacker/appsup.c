@@ -215,7 +215,7 @@ PPH_STRING PhGetProcessPackageFullName(
     ULONG nameLength;
 
     if (!getPackageFullName)
-        getPackageFullName = PhGetProcAddress(L"kernel32.dll", "GetPackageFullName");
+        getPackageFullName = PhGetModuleProcAddress(L"kernel32.dll", "GetPackageFullName");
     if (!getPackageFullName)
         return NULL;
 
@@ -255,7 +255,7 @@ PACKAGE_ID *PhPackageIdFromFullName(
     ULONG packageIdBufferSize;
 
     if (!packageIdFromFullName)
-        packageIdFromFullName = PhGetProcAddress(L"kernel32.dll", "PackageIdFromFullName");
+        packageIdFromFullName = PhGetModuleProcAddress(L"kernel32.dll", "PackageIdFromFullName");
     if (!packageIdFromFullName)
         return NULL;
 
@@ -294,7 +294,7 @@ PPH_STRING PhGetPackagePath(
     ULONG pathLength;
 
     if (!getPackagePath)
-        getPackagePath = PhGetProcAddress(L"kernel32.dll", "GetPackagePath");
+        getPackagePath = PhGetModuleProcAddress(L"kernel32.dll", "GetPackagePath");
     if (!getPackagePath)
         return NULL;
 
@@ -815,8 +815,7 @@ VOID PhShellExecuteUserString(
     }
     else
     {
-        newString = executeString;
-        PhReferenceObject(newString);
+        PhSetReference(&newString, executeString);
     }
 
     PhDereferenceObject(executeString);
@@ -1324,8 +1323,8 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
 
-    if (!(debugSetProcessKillOnExit = PhGetProcAddress(L"kernel32.dll", "DebugSetProcessKillOnExit")) ||
-        !(debugActiveProcessStop = PhGetProcAddress(L"kernel32.dll", "DebugActiveProcessStop")))
+    if (!(debugSetProcessKillOnExit = PhGetModuleProcAddress(L"kernel32.dll", "DebugSetProcessKillOnExit")) ||
+        !(debugActiveProcessStop = PhGetModuleProcAddress(L"kernel32.dll", "DebugActiveProcessStop")))
         return FALSE;
 
     result = FALSE;

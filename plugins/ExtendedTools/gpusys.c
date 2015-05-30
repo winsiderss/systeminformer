@@ -108,7 +108,7 @@ BOOLEAN EtpGpuSectionCallback(
 
             gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"%.2f%%%s\n%s",
                 gpu * 100,
                 PhGetStringOrEmpty(EtpGetMaxNodeString(getTooltipText->Index)),
@@ -433,7 +433,7 @@ VOID EtpNotifyGpuGraph(
 
                     gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&GpuGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&GpuGraphState.TooltipText, PhFormatString(
                         L"%.2f%%%s\n%s",
                         gpu * 100,
                         PhGetStringOrEmpty(EtpGetMaxNodeString(getTooltipText->Index)),
@@ -499,7 +499,7 @@ VOID EtpNotifyDedicatedGraph(
                 if (EtGpuDedicatedLimit != 0)
                 {
                     // Scale the data.
-                    PhxfDivideSingle2U(
+                    PhDivideSinglesBySingle(
                         DedicatedGraphState.Data1,
                         (FLOAT)EtGpuDedicatedLimit / PAGE_SIZE,
                         drawInfo->LineDataCount
@@ -522,7 +522,7 @@ VOID EtpNotifyDedicatedGraph(
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&EtGpuDedicatedHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&DedicatedGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&DedicatedGraphState.TooltipText, PhFormatString(
                         L"Dedicated Memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -568,7 +568,7 @@ VOID EtpNotifySharedGraph(
                 if (EtGpuSharedLimit != 0)
                 {
                     // Scale the data.
-                    PhxfDivideSingle2U(
+                    PhDivideSinglesBySingle(
                         SharedGraphState.Data1,
                         (FLOAT)EtGpuSharedLimit / PAGE_SIZE,
                         drawInfo->LineDataCount
@@ -591,7 +591,7 @@ VOID EtpNotifySharedGraph(
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&EtGpuSharedHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&SharedGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&SharedGraphState.TooltipText, PhFormatString(
                         L"Shared Memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer

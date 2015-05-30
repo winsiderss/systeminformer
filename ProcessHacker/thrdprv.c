@@ -817,7 +817,7 @@ VOID PhpThreadProviderUpdate(
                 data->ThreadItem->StartAddressResolveLevel = data->StartAddressResolveLevel;
             }
 
-            PhSwapReference2(&data->ThreadItem->ServiceName, data->ServiceName);
+            PhMoveReference(&data->ThreadItem->ServiceName, data->ServiceName);
 
             data->ThreadItem->JustResolved = TRUE;
 
@@ -995,7 +995,7 @@ VOID PhpThreadProviderUpdate(
                         &threadItem->StartAddressResolveLevel
                         );
 
-                    PhSwapReference2(
+                    PhMoveReference(
                         &threadItem->StartAddressString,
                         newStartAddressString
                         );

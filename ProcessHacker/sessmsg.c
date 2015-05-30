@@ -114,17 +114,17 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
                     ULONG64 timeout = 0;
                     ULONG response;
 
-                    title = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TITLE);
-                    text = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TEXT);
+                    title = PhaGetDlgItemText(hwndDlg, IDC_TITLE);
+                    text = PhaGetDlgItemText(hwndDlg, IDC_TEXT);
 
                     PhFindIntegerSiKeyValuePairs(
                         PhpMessageBoxIconPairs,
                         sizeof(PhpMessageBoxIconPairs),
-                        PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TYPE)->Buffer,
+                        PhaGetDlgItemText(hwndDlg, IDC_TYPE)->Buffer,
                         &icon
                         );
                     PhStringToInteger64(
-                        &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TIMEOUT)->sr,
+                        &PhaGetDlgItemText(hwndDlg, IDC_TIMEOUT)->sr,
                         10,
                         &timeout
                         );

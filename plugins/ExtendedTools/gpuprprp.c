@@ -436,7 +436,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&context->GpuGraphState.Text, PhFormatString(
+                            PhMoveReference(&context->GpuGraphState.Text, PhFormatString(
                                 L"%.2f%%",
                                 context->CurrentGpuUsage * 100
                                 ));
@@ -467,7 +467,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&context->MemoryGraphState.Text, PhFormatString(
+                            PhMoveReference(&context->MemoryGraphState.Text, PhFormatString(
                                 L"%s",
                                 PhaFormatSize(UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE), -1)->Buffer
                                 ));
@@ -507,7 +507,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             if (EtGpuDedicatedLimit != 0)
                             {
-                                PhxfDivideSingle2U(
+                                PhDivideSinglesBySingle(
                                     context->MemoryGraphState.Data1,
                                     (FLOAT)EtGpuDedicatedLimit / PAGE_SIZE,
                                     drawInfo->LineDataCount
@@ -523,7 +523,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         {
                             HDC hdc;
 
-                            PhSwapReference2(&context->MemorySharedGraphState.Text, PhFormatString(
+                            PhMoveReference(&context->MemorySharedGraphState.Text, PhFormatString(
                                 L"%s",
                                 PhaFormatSize(UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE), -1)->Buffer
                                 ));
@@ -557,7 +557,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             if (EtGpuSharedLimit != 0)
                             {
-                                PhxfDivideSingle2U(
+                                PhDivideSinglesBySingle(
                                     context->MemorySharedGraphState.Data1,
                                     (FLOAT)EtGpuSharedLimit / PAGE_SIZE,
                                     drawInfo->LineDataCount
@@ -584,7 +584,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->GpuGraphState.TooltipText, PhFormatString(
+                                PhMoveReference(&context->GpuGraphState.TooltipText, PhFormatString(
                                     L"%.2f%%",
                                     gpuUsage * 100
                                     ));
@@ -601,7 +601,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->MemoryGraphState.TooltipText,
+                                PhMoveReference(&context->MemoryGraphState.TooltipText,
                                     PhFormatSize(UInt32x32To64(gpuMemory, PAGE_SIZE), -1)
                                     );
                             }
@@ -617,7 +617,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                     getTooltipText->Index
                                     );
 
-                                PhSwapReference2(&context->MemorySharedGraphState.TooltipText,
+                                PhMoveReference(&context->MemorySharedGraphState.TooltipText,
                                     PhFormatSize(UInt32x32To64(gpuSharedMemory, PAGE_SIZE), -1)
                                     );
                             }

@@ -929,7 +929,7 @@ VOID PhpInitializeServiceNonPoll(
 
     // Dynamically import the required functions.
 
-    NotifyServiceStatusChangeW_I = PhGetProcAddress(L"advapi32.dll", "NotifyServiceStatusChangeW");
+    NotifyServiceStatusChangeW_I = PhGetModuleProcAddress(L"advapi32.dll", "NotifyServiceStatusChangeW");
 
     if (!NotifyServiceStatusChangeW_I)
         return;

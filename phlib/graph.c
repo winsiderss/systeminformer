@@ -471,7 +471,7 @@ VOID PhDrawGraphDirect(
     }
     else
     {
-        PhxfFillMemoryUlong(bits, COLORREF_TO_BITS(DrawInfo->BackColor), numberOfPixels);
+        PhFillMemoryUlong(bits, COLORREF_TO_BITS(DrawInfo->BackColor), numberOfPixels);
     }
 
     x = width - 1;

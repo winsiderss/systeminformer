@@ -351,7 +351,7 @@ VOID UpdateProcessComment(
         }
         else
         {
-            PhSwapReference(&Extension->Comment, NULL);
+            PhClearReference(&Extension->Comment);
         }
 
         UnlockDb();
@@ -401,7 +401,7 @@ VOID UpdateServiceComment(
         }
         else
         {
-            PhSwapReference(&Extension->Comment, NULL);
+            PhClearReference(&Extension->Comment);
         }
 
         UnlockDb();
@@ -745,7 +745,7 @@ VOID ProcessItemDeleteCallback(
     PPH_PROCESS_ITEM processItem = Object;
     PPROCESS_EXTENSION extension = Extension;
 
-    PhSwapReference(&extension->Comment, NULL);
+    PhClearReference(&extension->Comment);
     PhAcquireQueuedLockExclusive(&ProcessListLock);
     RemoveEntryList(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ProcessListLock);
@@ -775,7 +775,7 @@ VOID ServiceItemDeleteCallback(
     PPH_SERVICE_ITEM processItem = Object;
     PSERVICE_EXTENSION extension = Extension;
 
-    PhSwapReference(&extension->Comment, NULL);
+    PhClearReference(&extension->Comment);
     PhAcquireQueuedLockExclusive(&ServiceListLock);
     RemoveEntryList(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ServiceListLock);
@@ -877,7 +877,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDOK:
                 {
                     PhSetStringSetting2(L"ProcessHacker.UserNotes.DatabasePath",
-                        &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DATABASE)->sr);
+                        &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
 
                     EndDialog(hwndDlg, IDOK);
                 }
@@ -895,7 +895,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DATABASE));
+                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DATABASE));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
                     PhDereferenceObject(fileName);
 
@@ -956,8 +956,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
             if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_COMMENT))
             {
-                comment = object->Comment;
-                PhReferenceObject(comment);
+                PhSetReference(&comment, object->Comment);
 
                 if (processItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->Comment->Length != 0)
                 {
@@ -1015,7 +1014,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
                 if (object)
                 {
-                    PhSwapReference2(&object->Comment, PhReferenceEmptyString());
+                    PhMoveReference(&object->Comment, PhReferenceEmptyString());
                     DeleteDbObjectForProcessIfUnused(object);
                 }
 
@@ -1050,7 +1049,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
                         (matchCommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)))
                         )
                     {
-                        PhSwapReference2(&object->Comment, PhReferenceEmptyString());
+                        PhMoveReference(&object->Comment, PhReferenceEmptyString());
                         DeleteDbObjectForProcessIfUnused(object);
                     }
                 }
@@ -1156,14 +1155,9 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
             LockDb();
 
             if (object = FindDbObject(SERVICE_TAG, &serviceItem->Name->sr))
-            {
-                comment = object->Comment;
-                PhReferenceObject(comment);
-            }
+                PhSetReference(&comment, object->Comment);
             else
-            {
                 comment = PhReferenceEmptyString();
-            }
 
             UnlockDb();
 

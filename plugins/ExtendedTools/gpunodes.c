@@ -380,7 +380,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         adapterDescription = EtGetGpuAdapterDescription(adapterIndex);
 
                                         if (adapterDescription && adapterDescription->Length == 0)
-                                            PhSwapReference(&adapterDescription, NULL);
+                                            PhClearReference(&adapterDescription);
 
                                         if (!adapterDescription)
                                             adapterDescription = PhFormatString(L"Adapter %lu", adapterIndex);
@@ -390,7 +390,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         adapterDescription = PhCreateString(L"Unknown Adapter");
                                     }
 
-                                    PhSwapReference2(&GraphState[i].TooltipText, PhFormatString(
+                                    PhMoveReference(&GraphState[i].TooltipText, PhFormatString(
                                         L"Node %lu on %s\n%.2f%%\n%s",
                                         i,
                                         adapterDescription->Buffer,

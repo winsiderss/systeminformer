@@ -277,7 +277,7 @@ static VOID NvGpuNotifyUsageGraph(
 
                     gpuUsageValue = PhGetItemCircularBuffer_FLOAT(&Context->GpuUtilizationHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&Context->GpuGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&Context->GpuGraphState.TooltipText, PhFormatString(
                         L"%.0f%%\n%s",
                         gpuUsageValue * 100,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -317,7 +317,7 @@ static VOID NvGpuNotifyMemoryGraph(
                 if (GpuMemoryLimit != 0)
                 {
                     // Scale the data.
-                    PhxfDivideSingle2U(
+                    PhDivideSinglesBySingle(
                         Context->MemGraphState.Data1,
                         (FLOAT)GpuMemoryLimit,
                         drawInfo->LineDataCount
@@ -340,7 +340,7 @@ static VOID NvGpuNotifyMemoryGraph(
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&Context->GpuMemoryHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&Context->MemGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&Context->MemGraphState.TooltipText, PhFormatString(
                         L"%s / %s (%.2f%%)\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, 1024), -1)->Buffer,
                         PhaFormatSize(UInt32x32To64(GpuMemoryLimit, 1024), -1)->Buffer,
@@ -396,7 +396,7 @@ static VOID NvGpuNotifySharedGraph(
 
                     usedPages = PhGetItemCircularBuffer_FLOAT(&Context->GpuBoardHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&Context->SharedGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&Context->SharedGraphState.TooltipText, PhFormatString(
                         L"%.0f%%\n%s",
                         usedPages * 100,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -450,7 +450,7 @@ static VOID NvGpuNotifyBusGraph(
 
                     busUsage = PhGetItemCircularBuffer_FLOAT(&Context->GpuBusHistory, getTooltipText->Index);
 
-                    PhSwapReference2(&Context->BusGraphState.TooltipText, PhFormatString(
+                    PhMoveReference(&Context->BusGraphState.TooltipText, PhFormatString(
                         L"%.0f%%\n%s",
                         busUsage * 100,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
@@ -731,7 +731,7 @@ static BOOLEAN NvGpuSectionCallback(
 
             gpuUsageValue = PhGetItemCircularBuffer_FLOAT(&context->GpuUtilizationHistory, getTooltipText->Index);
 
-            PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"%.0f%%\n%s",
                 gpuUsageValue * 100,
                 ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer

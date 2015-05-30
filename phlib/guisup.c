@@ -55,9 +55,9 @@ VOID PhGuiSupportInitialization(
     uxthemeHandle = LoadLibrary(L"uxtheme.dll");
 
     if (WINDOWS_HAS_UAC)
-        ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
+        ChangeWindowMessageFilter_I = PhGetModuleProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
     if (WINDOWS_HAS_IMMERSIVE)
-        IsImmersiveProcess_I = PhGetProcAddress(L"user32.dll", "IsImmersiveProcess");
+        IsImmersiveProcess_I = PhGetModuleProcAddress(L"user32.dll", "IsImmersiveProcess");
     RunFileDlg = (PVOID)GetProcAddress(shell32Handle, (PSTR)61);
     SetWindowTheme_I = (PVOID)GetProcAddress(uxthemeHandle, "SetWindowTheme");
     IsThemeActive_I = (PVOID)GetProcAddress(uxthemeHandle, "IsThemeActive");
@@ -71,7 +71,7 @@ VOID PhGuiSupportInitialization(
     SHCreateShellItem_I = (PVOID)GetProcAddress(shell32Handle, "SHCreateShellItem");
     SHOpenFolderAndSelectItems_I = (PVOID)GetProcAddress(shell32Handle, "SHOpenFolderAndSelectItems");
     SHParseDisplayName_I = (PVOID)GetProcAddress(shell32Handle, "SHParseDisplayName");
-    TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
+    TaskDialogIndirect_I = PhGetModuleProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
 
 VOID PhSetControlTheme(

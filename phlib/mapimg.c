@@ -1176,6 +1176,23 @@ NTSTATUS PhGetMappedImageDelayImports(
     return STATUS_SUCCESS;
 }
 
+USHORT PhCheckSum(
+    _In_ ULONG Sum,
+    _In_reads_(Count) PUSHORT Buffer,
+    _In_ ULONG Count
+    )
+{
+    while (Count--)
+    {
+        Sum += *Buffer++;
+        Sum = (Sum >> 16) + (Sum & 0xffff);
+    }
+
+    Sum = (Sum >> 16) + Sum;
+
+    return (USHORT)Sum;
+}
+
 ULONG PhCheckSumMappedImage(
     _In_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -1184,11 +1201,7 @@ ULONG PhCheckSumMappedImage(
     USHORT partialSum;
     PUSHORT adjust;
 
-    partialSum = ph_chksum(
-        0,
-        (PUSHORT)MappedImage->ViewBase,
-        (ULONG)(MappedImage->Size + 1) / 2
-        );
+    partialSum = PhCheckSum(0, (PUSHORT)MappedImage->ViewBase, (ULONG)(MappedImage->Size + 1) / 2);
 
     // This is actually the same for 32-bit and 64-bit executables.
     adjust = (PUSHORT)&MappedImage->NtHeaders->OptionalHeader.CheckSum;

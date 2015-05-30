@@ -400,5 +400,5 @@ VOID NTAPI ThreadItemDeleteCallback(
 {
     PDN_THREAD_ITEM dnThread = Extension;
 
-    PhSwapReference(&dnThread->AppDomainText, NULL);
+    PhClearReference(&dnThread->AppDomainText);
 }

@@ -628,7 +628,7 @@ static BOOLEAN PhpIsDangerousProcess(
     if (!NT_SUCCESS(status))
         return FALSE;
 
-    PhSwapReference2(&fileName, PhGetFileName(fileName));
+    PhMoveReference(&fileName, PhGetFileName(fileName));
     PhAutoDereferenceObject(fileName);
 
     systemDirectory = PhAutoDereferenceObject(PhGetSystemDirectory());
@@ -2285,7 +2285,7 @@ BOOLEAN PhUiCloseConnections(
     _SetTcpEntry SetTcpEntry_I;
     MIB_TCPROW tcpRow;
 
-    SetTcpEntry_I = PhGetProcAddress(L"iphlpapi.dll", "SetTcpEntry");
+    SetTcpEntry_I = PhGetModuleProcAddress(L"iphlpapi.dll", "SetTcpEntry");
 
     if (!SetTcpEntry_I)
     {
@@ -3305,7 +3305,7 @@ BOOLEAN PhUiDestroyHeap(
                 0,
                 0,
                 0,
-                (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "RtlDestroyHeap"),
+                (PUSER_THREAD_START_ROUTINE)PhGetModuleProcAddress(L"ntdll.dll", "RtlDestroyHeap"),
                 HeapHandle,
                 &threadHandle,
                 NULL
@@ -3317,7 +3317,7 @@ BOOLEAN PhUiDestroyHeap(
                 processHandle,
                 NULL,
                 0,
-                (PTHREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "RtlDestroyHeap"),
+                (PTHREAD_START_ROUTINE)PhGetModuleProcAddress(L"ntdll.dll", "RtlDestroyHeap"),
                 HeapHandle,
                 0,
                 NULL

@@ -127,8 +127,7 @@ VOID PhInitializeWorkQueue(
  * \param WorkQueue A work queue object.
  */
 VOID PhDeleteWorkQueue(
-    _Inout_ PPH_WORK_QUEUE WorkQueue,
-    _In_ BOOLEAN WaitForCompletion
+    _Inout_ PPH_WORK_QUEUE WorkQueue
     )
 {
     PLIST_ENTRY listEntry;
@@ -143,16 +142,6 @@ VOID PhDeleteWorkQueue(
         PhRemoveItemList(PhDbgWorkQueueList, index);
     PhReleaseQueuedLockExclusive(&PhDbgWorkQueueListLock);
 #endif
-
-    if (WaitForCompletion)
-    {
-        PhAcquireQueuedLockExclusive(&WorkQueue->QueueLock);
-
-        while (!IsListEmpty(&WorkQueue->QueueListHead))
-            PhWaitForCondition(&WorkQueue->QueueEmptyCondition, &WorkQueue->QueueLock, NULL);
-
-        PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
-    }
 
     // Wait for all worker threads to exit.
     WorkQueue->Terminating = TRUE;
@@ -171,6 +160,23 @@ VOID PhDeleteWorkQueue(
     }
 
     NtClose(WorkQueue->SemaphoreHandle);
+}
+
+/**
+ * Waits for all queued work items to be executed.
+ *
+ * \param WorkQueue A work queue object.
+ */
+VOID PhWaitForWorkQueue(
+    _Inout_ PPH_WORK_QUEUE WorkQueue
+    )
+{
+    PhAcquireQueuedLockExclusive(&WorkQueue->QueueLock);
+
+    while (!IsListEmpty(&WorkQueue->QueueListHead))
+        PhWaitForCondition(&WorkQueue->QueueEmptyCondition, &WorkQueue->QueueLock, NULL);
+
+    PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
 }
 
 BOOLEAN PhpCreateWorkQueueThread(

@@ -306,7 +306,7 @@ VOID PhUpdateNetworkNode(
 {
     memset(NetworkNode->TextCache, 0, sizeof(PH_STRINGREF) * PHNETLC_MAXIMUM);
     PhpUpdateNetworkNodeAddressStrings(NetworkNode);
-    PhSwapReference(&NetworkNode->TooltipText, NULL);
+    PhClearReference(&NetworkNode->TooltipText);
 
     PhInvalidateTreeNewNode(&NetworkNode->Node, TN_CACHE_ICON);
     TreeNew_NodesStructured(NetworkTreeListHandle);
@@ -526,7 +526,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     if (networkItem->CreateTime.QuadPart != 0)
                     {
                         PhLargeIntegerToLocalSystemTime(&systemTime, &networkItem->CreateTime);
-                        PhSwapReference2(&node->TimeStampText, PhFormatDateTime(&systemTime));
+                        PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->TimeStampText->sr;
                     }
                     else

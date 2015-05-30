@@ -412,7 +412,7 @@ PPH_STRING PhGetServiceNameFromTag(
 
     if (!I_QueryTagInformation)
     {
-        I_QueryTagInformation = PhGetProcAddress(L"advapi32.dll", "I_QueryTagInformation");
+        I_QueryTagInformation = PhGetModuleProcAddress(L"advapi32.dll", "I_QueryTagInformation");
 
         if (!I_QueryTagInformation)
             return NULL;

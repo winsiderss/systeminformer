@@ -25,6 +25,7 @@
 #include <extmgri.h>
 #include <phplug.h>
 #include <emenu.h>
+#include <verify.h>
 
 BOOLEAN PhpModuleNodeHashtableCompareFunction(
     _In_ PVOID Entry1,
@@ -307,7 +308,7 @@ VOID PhUpdateModuleNode(
     )
 {
     memset(ModuleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
-    PhSwapReference(&ModuleNode->TooltipText, NULL);
+    PhClearReference(&ModuleNode->TooltipText);
 
     ModuleNode->ValidMask = 0;
     PhInvalidateTreeNewNode(&ModuleNode->Node, TN_CACHE_COLOR);
@@ -681,7 +682,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     {
                         RtlSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
                         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
-                        PhSwapReference2(&node->TimeStampText, PhFormatDateTime(&systemTime));
+                        PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->TimeStampText->sr;
                     }
                     else
@@ -708,7 +709,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     if (moduleItem->LoadTime.QuadPart != 0)
                     {
                         PhLargeIntegerToLocalSystemTime(&systemTime, &moduleItem->LoadTime);
-                        PhSwapReference2(&node->LoadTimeText, PhFormatDateTime(&systemTime));
+                        PhMoveReference(&node->LoadTimeText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->LoadTimeText->sr;
                     }
                     else

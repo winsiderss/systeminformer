@@ -304,8 +304,7 @@ PET_DISK_NODE EtAddDiskNode(
     memset(diskNode, 0, sizeof(ET_DISK_NODE));
     PhInitializeTreeNewNode(&diskNode->Node);
 
-    diskNode->DiskItem = DiskItem;
-    PhReferenceObject(DiskItem);
+    PhSetReference(&diskNode->DiskItem, DiskItem);
 
     memset(diskNode->TextCache, 0, sizeof(PH_STRINGREF) * ETDSTNC_MAXIMUM);
     diskNode->Node.TextCache = diskNode->TextCache;
@@ -549,7 +548,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     PH_FORMAT format;
 
                     PhInitFormatF(&format, diskItem->ResponseTimeAverage, 0);
-                    PhSwapReference2(&node->ResponseTimeText, PhFormat(&format, 1, 0));
+                    PhMoveReference(&node->ResponseTimeText, PhFormat(&format, 1, 0));
                     getCellText->Text = node->ResponseTimeText->sr;
                 }
                 break;
@@ -1062,7 +1061,7 @@ static VOID NTAPI EtpOnDiskItemsUpdated(
         // The name and file name never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (ETDSTNC_MAXIMUM - 2));
         // Always get the newest tooltip text from the process tree.
-        PhSwapReference(&node->TooltipText, NULL);
+        PhClearReference(&node->TooltipText);
     }
 
     InvalidateRect(DiskTreeNewHandle, NULL, FALSE);

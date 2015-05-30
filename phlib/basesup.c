@@ -21,7 +21,7 @@
  */
 
 /*
- * This file contains basic low-level code as well as general algorithmic code.
+ * This file contains basic low-level code as well as general algorithms and data structures.
  *
  * Memory allocation. PhAllocate is a wrapper around RtlAllocateHeap, and always allocates
  * from the phlib heap. PhAllocatePage is a wrapper around NtAllocateVirtualMemory and allocates
@@ -5191,27 +5191,6 @@ ULONG64 PhExponentiate64(
     return result;
 }
 
-/*
- * Calculates the binary logarithm of a number.
- *
- * \return The floor of the binary logarithm of the number.
- * This is the same as the position of the highest set bit.
- */
-ULONG PhLog2(
-    _In_ ULONG Exponent
-    )
-{
-    ULONG result = 0;
-
-    while (Exponent)
-    {
-        result++;
-        Exponent >>= 1;
-    }
-
-    return result;
-}
-
 /**
  * Converts a sequence of hexadecimal digits into a byte array.
  *
@@ -5529,4 +5508,181 @@ VOID PhPrintTimeSpan(
             );
         break;
     }
+}
+
+/**
+ * Fills a memory block with a ULONG pattern.
+ *
+ * \param Memory The memory block. The block must be 4 byte aligned.
+ * \param Value The ULONG pattern.
+ * \param Count The number of elements.
+ */
+VOID PhFillMemoryUlong(
+    _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
+    _In_ ULONG Value,
+    _In_ SIZE_T Count
+    )
+{
+    __m128i pattern;
+    SIZE_T count;
+
+    if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+    {
+        if (Count != 0)
+        {
+            do
+            {
+                *Memory++ = Value;
+            } while (--Count != 0);
+        }
+
+        return;
+    }
+
+    if ((ULONG_PTR)Memory & 0xf)
+    {
+        switch ((ULONG_PTR)Memory & 0xf)
+        {
+        case 0x4:
+            if (Count >= 1)
+            {
+                *Memory++ = Value;
+                Count--;
+            }
+            __fallthrough;
+        case 0x8:
+            if (Count >= 1)
+            {
+                *Memory++ = Value;
+                Count--;
+            }
+            __fallthrough;
+        case 0xc:
+            if (Count >= 1)
+            {
+                *Memory++ = Value;
+                Count--;
+            }
+            break;
+        }
+    }
+
+    pattern = _mm_set1_epi32(Value);
+    count = Count / 4;
+
+    if (count != 0)
+    {
+        do
+        {
+            _mm_store_si128((__m128i *)Memory, pattern);
+            Memory += 4;
+        } while (--count != 0);
+    }
+
+    switch (Count & 0x3)
+    {
+    case 0x3:
+        *Memory++ = Value;
+        __fallthrough;
+    case 0x2:
+        *Memory++ = Value;
+        __fallthrough;
+    case 0x1:
+        *Memory++ = Value;
+        break;
+    }
+}
+
+VOID FASTCALL PhxfFillMemoryUlong(PULONG Memory, ULONG Value, ULONG Count)
+{
+    PhFillMemoryUlong(Memory, Value, Count);
+}
+
+/**
+ * Divides an array of numbers by a number.
+ *
+ * \param A The destination array, divided by \a B.
+ * \param B The number.
+ * \param Count The number of elements.
+ */
+VOID PhDivideSinglesBySingle(
+    _Inout_updates_(Count) PFLOAT A,
+    _In_ FLOAT B,
+    _In_ SIZE_T Count
+    )
+{
+    PFLOAT endA;
+    __m128 b;
+
+    if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE])
+    {
+        while (Count--)
+            *A++ /= B;
+
+        return;
+    }
+
+    if ((ULONG_PTR)A & 0xf)
+    {
+        switch ((ULONG_PTR)A & 0xf)
+        {
+        case 0x4:
+            if (Count >= 1)
+            {
+                *A++ /= B;
+                Count--;
+            }
+            __fallthrough;
+        case 0x8:
+            if (Count >= 1)
+            {
+                *A++ /= B;
+                Count--;
+            }
+            __fallthrough;
+        case 0xc:
+            if (Count >= 1)
+            {
+                *A++ /= B;
+                Count--;
+            }
+            else
+            {
+                return; // essential; A may not be aligned properly
+            }
+            break;
+        }
+    }
+
+    endA = (PFLOAT)((ULONG_PTR)(A + Count) & ~0xf);
+    b = _mm_load1_ps(&B);
+
+    while (A != endA)
+    {
+        __m128 a;
+
+        a = _mm_load_ps(A);
+        a = _mm_div_ps(a, b);
+        _mm_store_ps(A, a);
+
+        A += 4;
+    }
+
+    switch (Count & 0x3)
+    {
+    case 0x3:
+        *A++ /= B;
+        __fallthrough;
+    case 0x2:
+        *A++ /= B;
+        __fallthrough;
+    case 0x1:
+        *A++ /= B;
+        break;
+    }
+}
+
+VOID FASTCALL PhxfDivideSingle2U(PFLOAT A, FLOAT B, ULONG Count)
+{
+    PhDivideSinglesBySingle(A, B, Count);
 }

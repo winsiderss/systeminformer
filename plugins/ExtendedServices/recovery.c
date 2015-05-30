@@ -256,9 +256,9 @@ NTSTATUS EspLoadRecoveryInfo(
     }
 
     if (failureActions->lpRebootMsg && failureActions->lpRebootMsg[0] != 0)
-        PhSwapReference2(&Context->RebootMessage, PhCreateString(failureActions->lpRebootMsg));
+        PhMoveReference(&Context->RebootMessage, PhCreateString(failureActions->lpRebootMsg));
     else
-        PhSwapReference2(&Context->RebootMessage, NULL);
+        PhMoveReference(&Context->RebootMessage, NULL);
 
     // Run program
 
@@ -346,7 +346,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSwapReference2(&context->RebootMessage, NULL);
+            PhMoveReference(&context->RebootMessage, NULL);
             PhFree(context);
         }
         break;
@@ -388,7 +388,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_RUNPROGRAM);
+                    fileName = PhaGetDlgItemText(hwndDlg, IDC_RUNPROGRAM);
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
@@ -452,7 +452,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
                     failureActions.dwResetPeriod = GetDlgItemInt(hwndDlg, IDC_RESETFAILCOUNT, NULL, FALSE) * 60 * 60 * 24;
                     failureActions.lpRebootMsg = PhGetStringOrEmpty(context->RebootMessage);
-                    failureActions.lpCommand = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_RUNPROGRAM)->Buffer;
+                    failureActions.lpCommand = PhaGetDlgItemText(hwndDlg, IDC_RUNPROGRAM)->Buffer;
                     failureActions.cActions = 3;
                     failureActions.lpsaActions = actions;
 
@@ -601,9 +601,9 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
                     context->RebootAfter = GetDlgItemInt(hwndDlg, IDC_RESTARTCOMPAFTER, NULL, FALSE) * 1000 * 60;
 
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE)) == BST_CHECKED)
-                        PhSwapReference2(&context->RebootMessage, PhGetWindowText(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)));
+                        PhMoveReference(&context->RebootMessage, PhGetWindowText(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)));
                     else
-                        PhSwapReference2(&context->RebootMessage, NULL);
+                        PhMoveReference(&context->RebootMessage, NULL);
 
                     context->Dirty = TRUE;
 

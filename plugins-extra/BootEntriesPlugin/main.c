@@ -460,15 +460,15 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    NtAddBootEntry_I = PhGetProcAddress(L"ntdll.dll", "NtAddBootEntry");
-    NtDeleteBootEntry_I = PhGetProcAddress(L"ntdll.dll", "NtDeleteBootEntry");
-    NtModifyBootEntry_I = PhGetProcAddress(L"ntdll.dll", "NtModifyBootEntry");
-    NtEnumerateBootEntries_I = PhGetProcAddress(L"ntdll.dll", "NtEnumerateBootEntries");
-    NtQueryBootEntryOrder_I = PhGetProcAddress(L"ntdll.dll", "NtQueryBootEntryOrder");
-    NtSetBootEntryOrder_I = PhGetProcAddress(L"ntdll.dll", "NtSetBootEntryOrder");
-    NtQueryBootOptions_I = PhGetProcAddress(L"ntdll.dll", "NtQueryBootOptions");
-    NtSetBootOptions_I = PhGetProcAddress(L"ntdll.dll", "NtSetBootOptions");
-    NtTranslateFilePath_I = PhGetProcAddress(L"ntdll.dll", "NtTranslateFilePath");
+    NtAddBootEntry_I = PhGetModuleProcAddress(L"ntdll.dll", "NtAddBootEntry");
+    NtDeleteBootEntry_I = PhGetModuleProcAddress(L"ntdll.dll", "NtDeleteBootEntry");
+    NtModifyBootEntry_I = PhGetModuleProcAddress(L"ntdll.dll", "NtModifyBootEntry");
+    NtEnumerateBootEntries_I = PhGetModuleProcAddress(L"ntdll.dll", "NtEnumerateBootEntries");
+    NtQueryBootEntryOrder_I = PhGetModuleProcAddress(L"ntdll.dll", "NtQueryBootEntryOrder");
+    NtSetBootEntryOrder_I = PhGetModuleProcAddress(L"ntdll.dll", "NtSetBootEntryOrder");
+    NtQueryBootOptions_I = PhGetModuleProcAddress(L"ntdll.dll", "NtQueryBootOptions");
+    NtSetBootOptions_I = PhGetModuleProcAddress(L"ntdll.dll", "NtSetBootOptions");
+    NtTranslateFilePath_I = PhGetModuleProcAddress(L"ntdll.dll", "NtTranslateFilePath");
 }
 
 static VOID NTAPI UnloadCallback(
