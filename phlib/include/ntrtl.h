@@ -2623,6 +2623,7 @@ FORCEINLINE VOID RtlExitUserThread_R(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+
 // private
 NTSYSAPI
 NTSTATUS
@@ -2635,6 +2636,15 @@ RtlCreateUserStack(
     _In_ ULONG_PTR ReserveAlignment,
     _Out_ PINITIAL_TEB InitialTeb
     );
+
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFreeUserStack(
+    _In_ PVOID AllocationBase
+    );
+
 #endif
 
 NTSYSAPI

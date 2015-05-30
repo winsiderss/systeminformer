@@ -4959,7 +4959,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
             PhInitializeHandleList(hwndDlg, tnHandle, &handlesContext->ListContext);
-            TreeNew_SetEmptyText(tnHandle, &EmptyHandlesText, 0);
+            TreeNew_SetEmptyText(tnHandle, &LoadingText, 0);
             handlesContext->NeedsRedraw = FALSE;
             handlesContext->LastRunStatus = -1;
             handlesContext->ErrorMessage = NULL;
