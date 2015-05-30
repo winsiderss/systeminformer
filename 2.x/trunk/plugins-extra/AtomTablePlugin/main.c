@@ -115,7 +115,7 @@ static VOID LoadAtomTable(VOID)
 
         if (!NT_SUCCESS(PhQueryAtomTableEntry(atomTable->Atoms[i], &atomInfo)))
         {
-            PhAddListViewItem(ListViewWndHandle, MAXINT, PhaFormatString(L"(Error) #%u", i)->Buffer, NULL);
+            PhAddListViewItem(ListViewWndHandle, MAXINT, PhaFormatString(L"(Error) #%lu", i)->Buffer, NULL);
             continue;
         }
 

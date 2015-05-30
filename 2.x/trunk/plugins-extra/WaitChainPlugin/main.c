@@ -97,10 +97,10 @@ static VOID WaitChainCheckThread(
             rootNode->WctInfo = *wctNode;
             rootNode->ThreadId = UlongToHandle(wctNode->ThreadObject.ThreadId);
             rootNode->ProcessId = UlongToHandle(wctNode->ThreadObject.ProcessId);
-            rootNode->ThreadIdString = PhFormatString(L"%u", wctNode->ThreadObject.ThreadId);
-            rootNode->ProcessIdString = PhFormatString(L"%u", wctNode->ThreadObject.ProcessId);
-            rootNode->WaitTimeString = PhFormatString(L"%u", wctNode->ThreadObject.WaitTime);
-            rootNode->ContextSwitchesString = PhFormatString(L"%u", wctNode->ThreadObject.ContextSwitches);
+            rootNode->ThreadIdString = PhFormatString(L"%lu", wctNode->ThreadObject.ThreadId);
+            rootNode->ProcessIdString = PhFormatString(L"%lu", wctNode->ThreadObject.ProcessId);
+            rootNode->WaitTimeString = PhFormatString(L"%lu", wctNode->ThreadObject.WaitTime);
+            rootNode->ContextSwitchesString = PhFormatString(L"%lu", wctNode->ThreadObject.ContextSwitches);
             rootNode->TimeoutString = PhFormatString(L"%I64d", wctNode->LockObject.Timeout.QuadPart);
 
             if (wctNode->LockObject.ObjectName[0] != '\0')
@@ -120,7 +120,7 @@ static VOID WaitChainCheckThread(
                 }
                 //else
                 //{
-                //    rootNode->ObjectNameString = PhFormatString(L"[%u, %u]",
+                //    rootNode->ObjectNameString = PhFormatString(L"[%lu, %lu]",
                 //        wctNode.LockObject.ObjectName[0],
                 //        wctNode.LockObject.ObjectName[2]
                 //        );

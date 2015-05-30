@@ -96,7 +96,7 @@ static PPH_STRING DbgGetStringForSelectedLogEntries(
         PhAppendStringBuilder2(&stringBuilder, L": ");
 
         temp = PhFormatString(
-            L"%s (%u): %s",
+            L"%s (%lu): %s",
             entry->ProcessName->Buffer, // entry->FilePath->Buffer;
             HandleToUlong(entry->ProcessId),
             entry->Message->Buffer
@@ -231,7 +231,7 @@ static VOID ShowDropdownMenu(
 
     if (Context->ExcludeList->Count > 0)
     {
-        resetMenuItem->Text = PhaFormatString(L"Reset Filters [%u]", Context->ExcludeList->Count)->Buffer;
+        resetMenuItem->Text = PhaFormatString(L"Reset Filters [%lu]", Context->ExcludeList->Count)->Buffer;
         resetMenuItem->Flags &= ~PH_EMENU_DISABLED;
     }
 

@@ -65,7 +65,7 @@ static VOID DiskDriveUpdatePanel(
         PhaFormatString(L"Average Response Time: %s ms", PhaFormatUInt64(Context->ResponseTime, TRUE)->Buffer)->Buffer
         );
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH,
-        PhaFormatString(L"Queue Length: %u", Context->QueueDepth)->Buffer
+        PhaFormatString(L"Queue Length: %lu", Context->QueueDepth)->Buffer
         );
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_CAPACITY,
         PhaFormatString(L"Capacity: %s", Context->DiskLength->Buffer)->Buffer
