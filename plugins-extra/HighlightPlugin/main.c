@@ -115,7 +115,7 @@ static PPH_STRING SaveColorList(
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%s,%u,",
+            L"%s,%lu,",
             colorEntry->ProcessName->Buffer,
             colorEntry->BackColor
             );
@@ -157,7 +157,7 @@ static PPH_STRING SaveCustomColors(
 
     for (SIZE_T i = 0; i < _countof(ProcessCustomColors); i++)
     {
-        PhAppendFormatStringBuilder(&stringBuilder, L"%u,", ProcessCustomColors[i]);
+        PhAppendFormatStringBuilder(&stringBuilder, L"%lu,", ProcessCustomColors[i]);
     }
 
     if (stringBuilder.String->Length != 0)
