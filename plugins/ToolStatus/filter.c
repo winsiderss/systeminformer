@@ -22,6 +22,7 @@
  */
 
 #include "toolstatus.h"
+#include <verify.h>
 
 BOOLEAN WordMatchStringRef(
     _In_ PPH_STRINGREF Text
