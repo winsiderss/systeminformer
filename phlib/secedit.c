@@ -357,6 +357,52 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     return E_NOTIMPL;
 }
 
+NTSTATUS PhpGetObjectSecurityWithTimeout(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    ULONG bufferSize;
+    PVOID buffer;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = PhCallNtQuerySecurityObjectWithTimeout(
+        Handle,
+        SecurityInformation,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = PhCallNtQuerySecurityObjectWithTimeout(
+            Handle,
+            SecurityInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *SecurityDescriptor = (PSECURITY_DESCRIPTOR)buffer;
+
+    return status;
+}
+
 /**
  * Retrieves the security descriptor of an object.
  *
@@ -391,10 +437,15 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (WSTR_IEQUAL(stdObjectSecurity->ObjectType, L"Service"))
+    if (PhEqualStringZ(stdObjectSecurity->ObjectType, L"Service", TRUE))
     {
         status = PhGetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
+    }
+    else if (PhEqualStringZ(stdObjectSecurity->ObjectType, L"File", TRUE))
+    {
+        status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
+        NtClose(handle);
     }
     else
     {
