@@ -673,8 +673,37 @@ NTSTATUS PhpGetBestObjectName(
 
         if (!bestObjectName)
         {
+            // The file doesn't have a DOS name.
             bestObjectName = ObjectName;
             PhReferenceObject(ObjectName);
+        }
+
+        if (PhIsNullOrEmptyString(bestObjectName) && KphIsConnected())
+        {
+            KPH_FILE_OBJECT_DRIVER fileObjectDriver;
+            PPH_STRING driverName;
+
+            status = KphQueryInformationObject(
+                ProcessHandle,
+                Handle,
+                KphObjectFileObjectDriver,
+                &fileObjectDriver,
+                sizeof(KPH_FILE_OBJECT_DRIVER),
+                NULL
+                );
+
+            if (NT_SUCCESS(status) && fileObjectDriver.DriverHandle)
+            {
+                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
+                {
+                    static PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Unnamed file: ");
+
+                    PhSwapReference2(&bestObjectName, PhConcatStringRef2(&prefix, &driverName->sr));
+                    PhDereferenceObject(driverName);
+                }
+
+                NtClose(fileObjectDriver.DriverHandle);
+            }
         }
     }
     else if (PhEqualString2(TypeName, L"Job", TRUE))
@@ -1334,9 +1363,18 @@ NTSTATUS PhGetHandleInformationEx(
 
     if (!NT_SUCCESS(status))
     {
-        subStatus = status;
-        status = STATUS_SUCCESS;
-        goto CleanupExit;
+        if (PhEqualString2(typeName, L"File", TRUE) && KphIsConnected())
+        {
+            // PhpGetBestObjectName can provide us with a name.
+            objectName = PhReferenceEmptyString();
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            subStatus = status;
+            status = STATUS_SUCCESS;
+            goto CleanupExit;
+        }
     }
 
     // Exit early if we don't need to get the best object name.

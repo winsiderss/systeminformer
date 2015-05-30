@@ -60,6 +60,7 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     KphObjectThreadBasicInformation, // q: THREAD_BASIC_INFORMATION
     KphObjectEtwRegBasicInformation, // q: ETWREG_BASIC_INFORMATION
     KphObjectFileObjectInformation, // q: KPH_FILE_OBJECT_INFORMATION
+    KphObjectFileObjectDriver, // q: KPH_FILE_OBJECT_DRIVER
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
 
@@ -76,6 +77,11 @@ typedef struct _KPH_FILE_OBJECT_INFORMATION
     LARGE_INTEGER CurrentByteOffset;
     ULONG Flags;
 } KPH_FILE_OBJECT_INFORMATION, *PKPH_FILE_OBJECT_INFORMATION;
+
+typedef struct _KPH_FILE_OBJECT_DRIVER
+{
+    HANDLE DriverHandle;
+} KPH_FILE_OBJECT_DRIVER, *PKPH_FILE_OBJECT_DRIVER;
 
 // Driver information
 

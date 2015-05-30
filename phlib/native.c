@@ -3461,6 +3461,42 @@ NTSTATUS PhpQueryDriverVariableSize(
 }
 
 /**
+ * Gets the object name of a driver.
+ *
+ * \param DriverHandle A handle to a driver.
+ * \param Name A variable which receives a pointer
+ * to a string containing the object name. You must
+ * free the string using PhDereferenceObject() when you no
+ * longer need it.
+ *
+ * \remarks This function requires a valid KProcessHacker
+ * handle.
+ */
+NTSTATUS PhGetDriverName(
+    _In_ HANDLE DriverHandle,
+    _Out_ PPH_STRING *Name
+    )
+{
+    NTSTATUS status;
+    PUNICODE_STRING unicodeString;
+
+    if (!NT_SUCCESS(status = PhpQueryDriverVariableSize(
+        DriverHandle,
+        DriverNameInformation,
+        &unicodeString
+        )))
+        return status;
+
+    *Name = PhCreateStringEx(
+        unicodeString->Buffer,
+        unicodeString->Length
+        );
+    PhFree(unicodeString);
+
+    return status;
+}
+
+/**
  * Gets the service key name of a driver.
  *
  * \param DriverHandle A handle to a driver.

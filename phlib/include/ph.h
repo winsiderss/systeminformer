@@ -496,13 +496,16 @@ NTSTATUS PhGetEnlistmentBasicInformation(
     _Out_ PENLISTMENT_BASIC_INFORMATION BasicInformation
     );
 
-PHLIBAPI
 NTSTATUS PhOpenDriverByBaseAddress(
     _Out_ PHANDLE DriverHandle,
     _In_ PVOID BaseAddress
     );
 
-PHLIBAPI
+NTSTATUS PhGetDriverName(
+    _In_ HANDLE DriverHandle,
+    _Out_ PPH_STRING *Name
+    );
+
 NTSTATUS PhGetDriverServiceKeyName(
     _In_ HANDLE DriverHandle,
     _Out_ PPH_STRING *ServiceKeyName
@@ -1016,6 +1019,7 @@ NTSTATUS PhGetHandleInformationEx(
     (POBJECT_TYPE_INFORMATION)((PCHAR)(ObjectType) + sizeof(OBJECT_TYPE_INFORMATION) + \
     ALIGN_UP(ObjectType->TypeName.MaximumLength, ULONG_PTR))
 
+PHLIBAPI
 NTSTATUS PhEnumObjectTypes(
     _Out_ POBJECT_TYPES_INFORMATION *ObjectTypes
     );
