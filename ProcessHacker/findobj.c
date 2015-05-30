@@ -695,10 +695,8 @@ static NTSTATUS NTAPI SearchHandleFunction(
         upperBestObjectName = PhDuplicateString(bestObjectName);
         PhUpperString(upperBestObjectName);
 
-        if (
-            PhFindStringInString(upperBestObjectName, 0, SearchString->Buffer) != -1 ||
-            (UseSearchPointer && context->HandleInfo->Object == (PVOID)SearchPointer)
-            )
+        if (PhFindStringInString(upperBestObjectName, 0, SearchString->Buffer) != -1 ||
+            (UseSearchPointer && context->HandleInfo->Object == (PVOID)SearchPointer))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
@@ -746,10 +744,8 @@ static BOOLEAN NTAPI EnumModulesCallback(
     upperFileName = PhDuplicateString(Module->FileName);
     PhUpperString(upperFileName);
 
-    if (
-        PhFindStringInString(upperFileName, 0, SearchString->Buffer) != -1 ||
-        (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer)
-        )
+    if (PhFindStringInString(upperFileName, 0, SearchString->Buffer) != -1 ||
+        (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
         PWSTR typeName;

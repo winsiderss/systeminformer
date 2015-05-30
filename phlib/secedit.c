@@ -369,6 +369,8 @@ NTSTATUS PhpGetObjectSecurityWithTimeout(
 
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
+    // This is required (especially for File objects) because some drivers don't seem to handle QuerySecurity properly.
+    memset(buffer, 0, bufferSize);
 
     status = PhCallNtQuerySecurityObjectWithTimeout(
         Handle,
@@ -382,6 +384,7 @@ NTSTATUS PhpGetObjectSecurityWithTimeout(
     {
         PhFree(buffer);
         buffer = PhAllocate(bufferSize);
+        memset(buffer, 0, bufferSize);
 
         status = PhCallNtQuerySecurityObjectWithTimeout(
             Handle,
@@ -527,10 +530,7 @@ NTSTATUS PhGetSeObjectSecurity(
     if (win32Result != ERROR_SUCCESS)
         return NTSTATUS_FROM_WIN32(win32Result);
 
-    *SecurityDescriptor = PhAllocateCopy(
-        securityDescriptor,
-        RtlLengthSecurityDescriptor(securityDescriptor)
-        );
+    *SecurityDescriptor = PhAllocateCopy(securityDescriptor, RtlLengthSecurityDescriptor(securityDescriptor));
     LocalFree(securityDescriptor);
 
     return STATUS_SUCCESS;
