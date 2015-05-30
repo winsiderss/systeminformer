@@ -165,10 +165,10 @@ VOID WctAddChildWindowNode(
     childNode->IsDeadLocked = TRUE;
 
     childNode->ThreadId = UlongToHandle(WctNode->ThreadObject.ThreadId);
-    childNode->ProcessIdString = PhFormatString(L"%u", WctNode->ThreadObject.ProcessId);
-    childNode->ThreadIdString = PhFormatString(L"%u", WctNode->ThreadObject.ThreadId);
-    childNode->WaitTimeString = PhFormatString(L"%u", WctNode->ThreadObject.WaitTime);
-    childNode->ContextSwitchesString = PhFormatString(L"%u", WctNode->ThreadObject.ContextSwitches);
+    childNode->ProcessIdString = PhFormatString(L"%lu", WctNode->ThreadObject.ProcessId);
+    childNode->ThreadIdString = PhFormatString(L"%lu", WctNode->ThreadObject.ThreadId);
+    childNode->WaitTimeString = PhFormatString(L"%lu", WctNode->ThreadObject.WaitTime);
+    childNode->ContextSwitchesString = PhFormatString(L"%lu", WctNode->ThreadObject.ContextSwitches);
 
     if (WctNode->LockObject.ObjectName[0] != L'\0')
         childNode->ObjectNameString = PhFormatString(L"%s", WctNode->LockObject.ObjectName);

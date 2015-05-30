@@ -52,7 +52,7 @@ static BOOLEAN BootEntryCallback(
     PWSTR bootEntryName = (PWSTR)((PBYTE)BootEntry + BootEntry->FriendlyNameOffset);
     PFILE_PATH bootFilePath = (PFILE_PATH)((PBYTE)BootEntry + BootEntry->BootFilePathOffset);
 
-    PPH_STRING bootEntryID = PhFormatString(L"%u", BootEntry->Id);
+    PPH_STRING bootEntryID = PhFormatString(L"%lu", BootEntry->Id);
     INT index = PhAddListViewItem(
         listViewHandle,
         MAXINT,

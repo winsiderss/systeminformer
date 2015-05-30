@@ -203,7 +203,7 @@ PPH_STRING NvGpuQueryDriverVersion(VOID)
     {
         if (NvAPI_SYS_GetDriverAndBranchVersion(&driverVersion, driverAndBranchString) == NVAPI_OK)
         {
-            return PhFormatString(L"%u.%u", driverVersion / 100, driverVersion % 100);
+            return PhFormatString(L"%lu.%lu", driverVersion / 100, driverVersion % 100);
         }
     }
 
@@ -251,16 +251,16 @@ PPH_STRING NvGpuQueryFanSpeed(VOID)
         {
             if (NvAPI_GPU_GetCoolerSettings(NvGpuPhysicalHandleList->Items[0], NVAPI_COOLER_TARGET_ALL, &coolerInfo) == NVAPI_OK)
             {
-                return PhFormatString(L"%u RPM (%u%%)", tachValue, coolerInfo.cooler[0].currentLevel);
+                return PhFormatString(L"%lu RPM (%lu%%)", tachValue, coolerInfo.cooler[0].currentLevel);
             }
 
-            return PhFormatString(L"%u RPM", tachValue);
+            return PhFormatString(L"%lu RPM", tachValue);
         }
         else
         {
             if (NvAPI_GPU_GetCoolerSettings(NvGpuPhysicalHandleList->Items[0], NVAPI_COOLER_TARGET_ALL, &coolerInfo) == NVAPI_OK)
             {
-                return PhFormatString(L"%u%%", coolerInfo.cooler[0].currentLevel);
+                return PhFormatString(L"%lu%%", coolerInfo.cooler[0].currentLevel);
             }
         }
     }
@@ -357,7 +357,7 @@ VOID NvGpuUpdateValues(VOID)
         //{
         //    if (voltageDomains.domain[i].domainId == NVAPI_GPU_PERF_VOLTAGE_INFO_DOMAIN_CORE)
         //    {
-        //        OutputDebugString(PhaFormatString(L"Voltage: [%u] %u\r\n", i, voltageDomains.domain[0].mvolt / 1000))->Buffer);
+        //        OutputDebugString(PhaFormatString(L"Voltage: [%lu] %lu\r\n", i, voltageDomains.domain[0].mvolt / 1000))->Buffer);
         //    }
         //}
     }

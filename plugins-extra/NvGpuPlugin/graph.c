@@ -501,9 +501,9 @@ static VOID NvGpuUpdatePanel(
     _Inout_ PPH_NVGPU_SYSINFO_CONTEXT Context
     )
 {
-    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_CORE, PhaFormatString(L"%u MHz", GpuCurrentCoreClock)->Buffer);
-    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_MEMORY, PhaFormatString(L"%u MHz", GpuCurrentMemoryClock)->Buffer);
-    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_SHADER, PhaFormatString(L"%u MHz", GpuCurrentShaderClock)->Buffer);
+    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_CORE, PhaFormatString(L"%lu MHz", GpuCurrentCoreClock)->Buffer);
+    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_MEMORY, PhaFormatString(L"%lu MHz", GpuCurrentMemoryClock)->Buffer);
+    SetDlgItemText(Context->GpuPanel, IDC_CLOCK_SHADER, PhaFormatString(L"%lu MHz", GpuCurrentShaderClock)->Buffer);
     SetDlgItemText(Context->GpuPanel, IDC_FAN_PERCENT, ((PPH_STRING)PhAutoDereferenceObject(NvGpuQueryFanSpeed()))->Buffer);
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
@@ -514,12 +514,12 @@ static VOID NvGpuUpdatePanel(
     }
     else
     {
-        SetDlgItemText(Context->GpuPanel, IDC_TEMP_VALUE, PhaFormatString(L"%u\u00b0C", GpuCurrentCoreTemp)->Buffer);
+        SetDlgItemText(Context->GpuPanel, IDC_TEMP_VALUE, PhaFormatString(L"%lu\u00b0C", GpuCurrentCoreTemp)->Buffer);
     }
 
     //SetDlgItemText(Context->GpuPanel, IDC_TEMP_VALUE, PhaFormatString(L"%s\u00b0C", PhaFormatUInt64(GpuCurrentBoardTemp, TRUE)->Buffer)->Buffer);
 
-    SetDlgItemText(Context->GpuPanel, IDC_VOLTAGE, PhaFormatString(L"%umV", GpuCurrentVoltage)->Buffer);
+    SetDlgItemText(Context->GpuPanel, IDC_VOLTAGE, PhaFormatString(L"%lumV", GpuCurrentVoltage)->Buffer);
 }
 
 static INT_PTR CALLBACK NvGpuDialogProc(

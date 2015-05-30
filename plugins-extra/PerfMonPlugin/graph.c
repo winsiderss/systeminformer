@@ -192,7 +192,7 @@ static INT_PTR CALLBACK PerfCounterDialogProc(
                                     );
 
                                 PhSwapReference2(&context->GraphState.TooltipText, PhFormatString(
-                                    L"%u\n%s",
+                                    L"%lu\n%s",
                                     itemUsage,
                                     ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
@@ -346,7 +346,7 @@ static BOOLEAN PerfCounterSectionCallback(
                 );
 
             PhSwapReference2(&Section->GraphState.TooltipText, PhFormatString(
-                L"%u\n%s",
+                L"%lu\n%s",
                 counterValue,
                 ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
@@ -360,7 +360,7 @@ static BOOLEAN PerfCounterSectionCallback(
 
             drawPanel->Title = PhCreateString(Section->Name.Buffer);
             drawPanel->SubTitle = PhFormatString(
-                L"%u",
+                L"%lu",
                 context->GraphValue
                 );
         }
