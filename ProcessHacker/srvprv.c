@@ -369,7 +369,7 @@ VOID PhpAddProcessItemService(
     PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
     ServiceItem->PendingProcess = FALSE;
-    ProcessItem->JustProcessed = TRUE;
+    InterlockedExchange(&ProcessItem->JustProcessed, 1);
 }
 
 VOID PhpRemoveProcessItemService(
@@ -392,7 +392,7 @@ VOID PhpRemoveProcessItemService(
 
     PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
-    ProcessItem->JustProcessed = TRUE;
+    InterlockedExchange(&ProcessItem->JustProcessed, 1);
 }
 
 VOID PhpUpdateServiceItemConfig(
