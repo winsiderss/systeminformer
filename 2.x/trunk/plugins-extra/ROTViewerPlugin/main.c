@@ -179,7 +179,7 @@ static VOID NTAPI MenuItemCallback(
 
     switch (menuItem->Id)
     {
-        case ROT_TABLE_MENUITEM:
+    case ROT_TABLE_MENUITEM:
         {
             DialogBox(
                 PluginInstance->DllBase,
@@ -188,7 +188,7 @@ static VOID NTAPI MenuItemCallback(
                 RotViewDlgProc
                 );
         }
-            break;
+        break;
     }
 }
 
@@ -211,6 +211,11 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"100,100" },
+                { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"490,340" }
+            };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
@@ -234,15 +239,8 @@ LOGICAL DllMain(
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
-            {
-                PH_SETTING_CREATE settings[] =
-                {
-                    { IntegerPairSettingType, SETTING_NAME_WINDOW_POSITION, L"100,100" },
-                    { IntegerPairSettingType, SETTING_NAME_WINDOW_SIZE, L"490,340" }
-                };
 
-                PhAddSettings(settings, _countof(settings));
-            }
+            PhAddSettings(settings, _countof(settings));
         }
         break;
     }
