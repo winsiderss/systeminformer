@@ -1778,6 +1778,51 @@ PPH_STRING PhGetStatisticsTimeString(
     }
 }
 
+VOID PhFlushProcessQueryData(
+    _In_ BOOLEAN SendModifiedEvent
+    )
+{
+    PSLIST_ENTRY entry;
+    PPH_PROCESS_QUERY_DATA data;
+    BOOLEAN processed;
+
+    if (RtlQueryDepthSList(&PhProcessQueryDataListHead) == 0)
+        return;
+
+    entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);
+
+    while (entry)
+    {
+        data = CONTAINING_RECORD(entry, PH_PROCESS_QUERY_DATA, ListEntry);
+        entry = entry->Next;
+        processed = FALSE;
+
+        if (data->Stage == 1)
+        {
+            PhpFillProcessItemStage1((PPH_PROCESS_QUERY_S1_DATA)data);
+            PhSetEvent(&data->ProcessItem->Stage1Event);
+            processed = TRUE;
+        }
+        else if (data->Stage == 2)
+        {
+            PhpFillProcessItemStage2((PPH_PROCESS_QUERY_S2_DATA)data);
+            processed = TRUE;
+        }
+
+        if (processed)
+        {
+            // Invoke the modified event only if the main provider has sent the added event already.
+            if (SendModifiedEvent && data->ProcessItem->AddedEventSent)
+                PhInvokeCallback(&PhProcessModifiedEvent, data->ProcessItem);
+            else
+                InterlockedExchange(&data->ProcessItem->JustProcessed, 1);
+        }
+
+        PhDereferenceObject(data->ProcessItem);
+        PhFree(data);
+    }
+}
+
 VOID PhpGetProcessThreadInformation(
     _In_ PSYSTEM_PROCESS_INFORMATION Process,
     _Out_opt_ PBOOLEAN IsSuspended,
@@ -1848,7 +1893,7 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
-    if (runCount % 8 == 0)
+    if (runCount % 5 == 0)
     {
         PhUpdateDosDevicePrefixes();
     }
@@ -2066,34 +2111,7 @@ VOID PhProcessProviderUpdate(
     }
 
     // Go through the queued process query data.
-    if (RtlQueryDepthSList(&PhProcessQueryDataListHead) != 0)
-    {
-        PSLIST_ENTRY entry;
-        PPH_PROCESS_QUERY_DATA data;
-
-        entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);
-
-        while (entry)
-        {
-            data = CONTAINING_RECORD(entry, PH_PROCESS_QUERY_DATA, ListEntry);
-            entry = entry->Next;
-
-            if (data->Stage == 1)
-            {
-                PhpFillProcessItemStage1((PPH_PROCESS_QUERY_S1_DATA)data);
-                PhSetEvent(&data->ProcessItem->Stage1Event);
-                data->ProcessItem->JustProcessed = TRUE;
-            }
-            else if (data->Stage == 2)
-            {
-                PhpFillProcessItemStage2((PPH_PROCESS_QUERY_S2_DATA)data);
-                data->ProcessItem->JustProcessed = TRUE;
-            }
-
-            PhDereferenceObject(data->ProcessItem);
-            PhFree(data);
-        }
-    }
+    PhFlushProcessQueryData(FALSE);
 
     if (sysTotalTime == 0)
         sysTotalTime = -1; // max. value
@@ -2187,10 +2205,10 @@ VOID PhProcessProviderUpdate(
 
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
+            processItem->AddedEventSent = TRUE;
 
             // (Ref: for the process item being in the hashtable.)
-            // Instead of referencing then dereferencing we simply don't
-            // do anything.
+            // Instead of referencing then dereferencing we simply don't do anything.
             // Dereferenced in PhpRemoveProcessItem.
         }
         else
@@ -2228,11 +2246,8 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, processItem->VmCounters.PagefileUsage);
             //PhAddItemCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, processItem->VmCounters.WorkingSetSize);
 
-            if (processItem->JustProcessed)
-            {
-                processItem->JustProcessed = FALSE;
+            if (InterlockedExchange(&processItem->JustProcessed, 0) != 0)
                 modified = TRUE;
-            }
 
             if (isCycleCpuUsageEnabled)
             {

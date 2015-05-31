@@ -121,10 +121,6 @@ VOID PhUnregisterMessageLoopFilter(
     _In_ struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
     );
 
-VOID PhApplyUpdateInterval(
-    _In_ ULONG Interval
-    );
-
 VOID PhInitializeFont(
     _In_ HWND hWnd
     );

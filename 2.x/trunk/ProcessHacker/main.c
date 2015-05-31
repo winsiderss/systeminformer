@@ -393,14 +393,6 @@ VOID PhUnregisterMessageLoopFilter(
     PhFree(FilterEntry);
 }
 
-VOID PhApplyUpdateInterval(
-    _In_ ULONG Interval
-    )
-{
-    PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
-    PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
-}
-
 VOID PhActivatePreviousInstance(
     VOID
     )

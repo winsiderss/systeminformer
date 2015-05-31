@@ -1,6 +1,12 @@
 #ifndef MAINWNDP_H
 #define MAINWNDP_H
 
+#define PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_1 250
+#define PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_2 750
+#define PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM 1000
+
+#define TIMER_FLUSH_PROCESS_QUERY_DATA 1
+
 LRESULT CALLBACK PhMwpWndProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -16,6 +22,10 @@ BOOLEAN PhMwpInitializeWindowClass(
 
 VOID PhMwpInitializeProviders(
     VOID
+    );
+
+VOID PhMwpApplyUpdateInterval(
+    _In_ ULONG Interval
     );
 
 VOID PhMwpInitializeControls(
@@ -81,6 +91,10 @@ VOID PhMwpOnSizing(
 
 VOID PhMwpOnSetFocus(
     VOID
+    );
+
+VOID PhMwpOnTimer(
+    _In_ ULONG Id
     );
 
 BOOLEAN PhMwpOnNotify(
