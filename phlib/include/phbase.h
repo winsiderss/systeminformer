@@ -357,6 +357,7 @@ PhAllocateCopy(
 #define PH_EVENT_SET_SHIFT 0
 #define PH_EVENT_REFCOUNT_SHIFT 1
 #define PH_EVENT_REFCOUNT_INC 0x2
+#define PH_EVENT_REFCOUNT_MASK (((ULONG_PTR)1 << 15) - 1)
 
 /**
  * A fast event object.
@@ -368,11 +369,26 @@ PhAllocateCopy(
  */
 typedef struct _PH_EVENT
 {
-    ULONG_PTR Value;
+    union
+    {
+        ULONG_PTR Value;
+        struct
+        {
+            USHORT Set : 1;
+            USHORT RefCount : 15;
+            UCHAR Reserved;
+            UCHAR AvailableForUse;
+#ifdef _WIN64
+            ULONG Spare;
+#endif
+        };
+    };
     HANDLE EventHandle;
 } PH_EVENT, *PPH_EVENT;
 
-#define PH_EVENT_INIT { PH_EVENT_REFCOUNT_INC, NULL }
+C_ASSERT(sizeof(PH_EVENT) == sizeof(ULONG_PTR) + sizeof(HANDLE));
+
+#define PH_EVENT_INIT { { PH_EVENT_REFCOUNT_INC }, NULL }
 
 PHLIBAPI
 VOID
@@ -389,7 +405,6 @@ PhfSetEvent(
     _Inout_ PPH_EVENT Event
     );
 
-#define PhWaitForEvent PhfWaitForEvent
 PHLIBAPI
 BOOLEAN
 FASTCALL
@@ -397,6 +412,19 @@ PhfWaitForEvent(
     _Inout_ PPH_EVENT Event,
     _In_opt_ PLARGE_INTEGER Timeout
     );
+
+FORCEINLINE
+BOOLEAN
+PhWaitForEvent(
+    _Inout_ PPH_EVENT Event,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    if (Event->Set)
+        return TRUE;
+
+    return PhfWaitForEvent(Event, Timeout);
+}
 
 #define PhResetEvent PhfResetEvent
 PHLIBAPI
@@ -429,7 +457,7 @@ PhTestEvent(
     _In_ PPH_EVENT Event
     )
 {
-    return !!(Event->Value & PH_EVENT_SET);
+    return (BOOLEAN)Event->Set;
 }
 
 // Barrier
@@ -602,17 +630,18 @@ PhWaitForRundownProtection(
 
 // One-time initialization
 
-#define PH_INITONCE_UNINITIALIZED 0
-#define PH_INITONCE_INITIALIZED 1
-#define PH_INITONCE_INITIALIZING 2
+#define PH_INITONCE_SHIFT 31
+#define PH_INITONCE_INITIALIZING (0x1 << PH_INITONCE_SHIFT)
+#define PH_INITONCE_INITIALIZING_SHIFT PH_INITONCE_SHIFT
 
 typedef struct _PH_INITONCE
 {
-    LONG State;
-    PH_EVENT WakeEvent;
+    PH_EVENT Event;
 } PH_INITONCE, *PPH_INITONCE;
 
-#define PH_INITONCE_INIT { PH_INITONCE_UNINITIALIZED, PH_EVENT_INIT }
+C_ASSERT(PH_INITONCE_SHIFT >= FIELD_OFFSET(PH_EVENT, AvailableForUse) * 8);
+
+#define PH_INITONCE_INIT { PH_EVENT_INIT }
 
 #define PhInitializeInitOnce PhfInitializeInitOnce
 PHLIBAPI
@@ -643,7 +672,7 @@ PhBeginInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     )
 {
-    if (InitOnce->State == PH_INITONCE_INITIALIZED)
+    if (InitOnce->Event.Set)
         return FALSE;
     else
         return PhfBeginInitOnce(InitOnce);
@@ -655,7 +684,7 @@ PhTestInitOnce(
     _In_ PPH_INITONCE InitOnce
     )
 {
-    return InitOnce->State == PH_INITONCE_INITIALIZED;
+    return (BOOLEAN)InitOnce->Event.Set;
 }
 
 // String
