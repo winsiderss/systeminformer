@@ -106,7 +106,7 @@ static VOID PhpRefreshProcessList(
         INT imageIndex;
 
         if (process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
-            name = PhCreateStringEx(process->ImageName.Buffer, process->ImageName.Length);
+            name = PhCreateStringFromUnicodeString(&process->ImageName);
         else
             name = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
 

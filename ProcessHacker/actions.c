@@ -1347,7 +1347,7 @@ BOOLEAN PhUiDebugProcess(
                 if (PhSplitStringRefAtChar(&debugger->sr, '"', &dummy, &commandPart) &&
                     PhSplitStringRefAtChar(&commandPart, '"', &commandPart, &dummy))
                 {
-                    DebuggerCommand = PhCreateStringEx(commandPart.Buffer, commandPart.Length);
+                    DebuggerCommand = PhCreateString2(&commandPart);
                 }
 
                 PhDereferenceObject(debugger);

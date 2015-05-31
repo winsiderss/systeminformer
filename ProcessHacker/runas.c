@@ -1014,13 +1014,13 @@ static VOID PhpSplitUserName(
 
     if (PhSplitStringRefAtChar(&userName, '\\', &domainPart, &userPart))
     {
-        *DomainPart = PhCreateStringEx(domainPart.Buffer, domainPart.Length);
-        *UserPart = PhCreateStringEx(userPart.Buffer, userPart.Length);
+        *DomainPart = PhCreateString2(&domainPart);
+        *UserPart = PhCreateString2(&userPart);
     }
     else
     {
         *DomainPart = NULL;
-        *UserPart = PhCreateStringEx(userName.Buffer, userName.Length);
+        *UserPart = PhCreateString2(&userName);
     }
 }
 

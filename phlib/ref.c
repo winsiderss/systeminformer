@@ -215,8 +215,10 @@ _May_raise_ NTSTATUS PhCreateObject(
  * References the specified object.
  *
  * \param Object A pointer to the object to reference.
+ *
+ * \return The object.
  */
-VOID PhReferenceObject(
+PVOID PhReferenceObject(
     _In_ PVOID Object
     )
 {
@@ -225,6 +227,8 @@ VOID PhReferenceObject(
     objectHeader = PhObjectToObjectHeader(Object);
     // Increment the reference count.
     _InterlockedIncrement(&objectHeader->RefCount);
+
+    return Object;
 }
 
 /**

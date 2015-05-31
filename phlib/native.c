@@ -640,7 +640,7 @@ NTSTATUS PhGetProcessImageFileName(
     if (!NT_SUCCESS(status))
         return status;
 
-    *FileName = PhCreateStringEx(fileName->Buffer, fileName->Length);
+    *FileName = PhCreateStringFromUnicodeString(fileName);
     PhFree(fileName);
 
     return status;
@@ -675,7 +675,7 @@ NTSTATUS PhGetProcessImageFileNameWin32(
     if (!NT_SUCCESS(status))
         return status;
 
-    *FileName = PhCreateStringEx(fileName->Buffer, fileName->Length);
+    *FileName = PhCreateStringFromUnicodeString(fileName);
     PhFree(fileName);
 
     return status;
@@ -845,7 +845,7 @@ NTSTATUS PhGetProcessCommandLine(
 
         if (NT_SUCCESS(status))
         {
-            *CommandLine = PhCreateStringEx(commandLine->Buffer, commandLine->Length);
+            *CommandLine = PhCreateStringFromUnicodeString(commandLine);
             PhFree(commandLine);
 
             return status;
@@ -4304,8 +4304,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
                     if (PhStartsWithStringRef(&fullDllName, &systemRootString, TRUE))
                     {
-                        fullDllName.Buffer = (PWCHAR)((PCHAR)fullDllName.Buffer + systemRootString.Length);
-                        fullDllName.Length -= systemRootString.Length;
+                        PhSkipStringRef(&fullDllName, systemRootString.Length);
 
                         if (PhStartsWithStringRef(&fullDllName, &system32String, TRUE))
                         {
@@ -5134,7 +5133,7 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
         return status;
     }
 
-    *FileName = PhCreateStringEx(processIdInfo.ImageName.Buffer, processIdInfo.ImageName.Length);
+    *FileName = PhCreateStringFromUnicodeString(&processIdInfo.ImageName);
     PhFree(buffer);
 
     return status;
@@ -5488,8 +5487,8 @@ NTSTATUS PhEnumDirectoryObjects(
             if (!info->Name.Buffer)
                 break;
 
-            name = PhCreateStringEx(info->Name.Buffer, info->Name.Length);
-            typeName = PhCreateStringEx(info->TypeName.Buffer, info->TypeName.Length);
+            name = PhCreateStringFromUnicodeString(&info->Name);
+            typeName = PhCreateStringFromUnicodeString(&info->TypeName);
 
             cont = Callback(name, typeName, Context);
 
@@ -6043,14 +6042,14 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         PhAddEntryHashtable(context->BaseAddressHashtable, &Module->DllBase);
     }
 
-    fileName = PhCreateStringEx(Module->FullDllName.Buffer, Module->FullDllName.Length);
+    fileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
 
     moduleInfo.Type = context->Type;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
     moduleInfo.EntryPoint = Module->EntryPoint;
     moduleInfo.Flags = Module->Flags;
-    moduleInfo.Name = PhCreateStringEx(Module->BaseDllName.Buffer, Module->BaseDllName.Length);
+    moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
     moduleInfo.FileName = PhGetFileName(fileName);
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->ObsoleteLoadCount;

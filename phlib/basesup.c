@@ -1509,17 +1509,17 @@ ULONG_PTR PhFindLastCharInStringRef(
 /**
  * Locates a string in a string.
  *
- * \param String1 The string to search.
- * \param String2 The string to search for.
+ * \param String The string to search.
+ * \param SubString The string to search for.
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
  * FALSE.
  *
  * \return The index, in characters, of the first occurrence of
- * \a String2 in \a String1. If \a String2 was not found, -1 is returned.
+ * \a SubString in \a String. If \a SubString was not found, -1 is returned.
  */
 ULONG_PTR PhFindStringInStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String,
+    _In_ PPH_STRINGREF SubString,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -1530,8 +1530,8 @@ ULONG_PTR PhFindStringInStringRef(
     WCHAR c;
     SIZE_T i;
 
-    length1 = String1->Length / sizeof(WCHAR);
-    length2 = String2->Length / sizeof(WCHAR);
+    length1 = String->Length / sizeof(WCHAR);
+    length2 = SubString->Length / sizeof(WCHAR);
 
     // Can't be a substring if it's bigger than the first string.
     if (length2 > length1)
@@ -1540,10 +1540,10 @@ ULONG_PTR PhFindStringInStringRef(
     if (length2 == 0)
         return 0;
 
-    sr1.Buffer = String1->Buffer;
-    sr1.Length = String2->Length - sizeof(WCHAR);
-    sr2.Buffer = String2->Buffer;
-    sr2.Length = String2->Length - sizeof(WCHAR);
+    sr1.Buffer = String->Buffer;
+    sr1.Length = SubString->Length - sizeof(WCHAR);
+    sr2.Buffer = SubString->Buffer;
+    sr2.Length = SubString->Length - sizeof(WCHAR);
 
     if (!IgnoreCase)
     {
@@ -1572,7 +1572,7 @@ ULONG_PTR PhFindStringInStringRef(
 
     return -1;
 FoundUString:
-    return (ULONG_PTR)(sr1.Buffer - String1->Buffer - 1);
+    return (ULONG_PTR)(sr1.Buffer - String->Buffer - 1);
 }
 
 /**
@@ -1834,7 +1834,7 @@ BOOLEAN PhSplitStringRefEx(
 
     charSet = Separator->Buffer;
     charSetCount = Separator->Length / sizeof(WCHAR);
-    memset(charSetTable, 0, 256);
+    memset(charSetTable, 0, sizeof(charSetTable));
     charSetTableComplete = TRUE;
 
     for (i = 0; i < charSetCount; i++)
@@ -1978,6 +1978,148 @@ SeparatorNotFound:
     return FALSE;
 }
 
+VOID PhTrimStringRef(
+    _Inout_ PPH_STRINGREF String,
+    _In_ PPH_STRINGREF CharSet,
+    _In_ ULONG Flags
+    )
+{
+    PWCHAR charSet;
+    SIZE_T charSetCount;
+    BOOLEAN charSetTable[256];
+    BOOLEAN charSetTableComplete;
+    SIZE_T i;
+    SIZE_T j;
+    USHORT c;
+    SIZE_T trimCount;
+    SIZE_T count;
+    PWCHAR s;
+
+    if (String->Length == 0 || CharSet->Length == 0)
+        return;
+
+    if (CharSet->Length == sizeof(WCHAR))
+    {
+        c = CharSet->Buffer[0];
+
+        if (!(Flags & PH_TRIM_END_ONLY))
+        {
+            trimCount = 0;
+            count = String->Length / sizeof(WCHAR);
+            s = String->Buffer;
+
+            while (count-- != 0)
+            {
+                if (*s++ != c)
+                    break;
+
+                trimCount++;
+            }
+
+            PhSkipStringRef(String, trimCount * sizeof(WCHAR));
+        }
+
+        if (!(Flags & PH_TRIM_START_ONLY))
+        {
+            trimCount = 0;
+            count = String->Length / sizeof(WCHAR);
+            s = (PWCHAR)((PCHAR)String->Buffer + String->Length - sizeof(WCHAR));
+
+            while (count-- != 0)
+            {
+                if (*s-- != c)
+                    break;
+
+                trimCount++;
+            }
+
+            String->Length -= trimCount * sizeof(WCHAR);
+        }
+
+        return;
+    }
+
+    // Build the character set lookup table.
+
+    charSet = CharSet->Buffer;
+    charSetCount = CharSet->Length / sizeof(WCHAR);
+    memset(charSetTable, 0, sizeof(charSetTable));
+    charSetTableComplete = TRUE;
+
+    for (i = 0; i < charSetCount; i++)
+    {
+        c = charSet[i];
+        charSetTable[c & 0xff] = TRUE;
+
+        if (c >= 256)
+            charSetTableComplete = FALSE;
+    }
+
+    // Trim the string.
+
+    if (!(Flags & PH_TRIM_END_ONLY))
+    {
+        trimCount = 0;
+        count = String->Length / sizeof(WCHAR);
+        s = String->Buffer;
+
+        while (count-- != 0)
+        {
+            c = *s++;
+
+            if (!charSetTable[c & 0xff])
+                break;
+
+            if (!charSetTableComplete)
+            {
+                for (j = 0; j < charSetCount; j++)
+                {
+                    if (charSet[j] == c)
+                        goto CharFound;
+                }
+
+                break;
+            }
+
+CharFound:
+            trimCount++;
+        }
+
+        PhSkipStringRef(String, trimCount * sizeof(WCHAR));
+    }
+
+    if (!(Flags & PH_TRIM_START_ONLY))
+    {
+        trimCount = 0;
+        count = String->Length / sizeof(WCHAR);
+        s = (PWCHAR)((PCHAR)String->Buffer + String->Length - sizeof(WCHAR));
+
+        while (count-- != 0)
+        {
+            c = *s--;
+
+            if (!charSetTable[c & 0xff])
+                break;
+
+            if (!charSetTableComplete)
+            {
+                for (j = 0; j < charSetCount; j++)
+                {
+                    if (charSet[j] == c)
+                        goto CharFound2;
+                }
+
+                break;
+            }
+
+CharFound2:
+            trimCount++;
+        }
+
+        String->Length -= trimCount * sizeof(WCHAR);
+    }
+}
+
 /**
  * Creates a string object from an existing
  * null-terminated string.
@@ -2057,9 +2199,7 @@ PPH_STRING PhReferenceEmptyString(
         }
     }
 
-    PhReferenceObject(string);
-
-    return string;
+    return PhReferenceObject(string);
 }
 
 /**
@@ -3276,10 +3416,9 @@ VOID PhInitializeStringBuilder(
         StringBuilder->AllocatedLength
         );
 
-    // We will keep modifying the Length field of the string so:
+    // We will keep modifying the Length field of the string so that:
     // 1. We know how much of the string is used, and
-    // 2. The user can simply get a reference to the
-    //    string and use it as-is.
+    // 2. The user can simply get a reference to the string and use it as-is.
 
     StringBuilder->String->Length = 0;
 
@@ -3363,12 +3502,7 @@ PPH_STRING PhReferenceStringBuilderString(
     _In_ PPH_STRING_BUILDER StringBuilder
     )
 {
-    PPH_STRING string;
-
-    string = StringBuilder->String;
-    PhReferenceObject(string);
-
-    return string;
+    return PhReferenceObject(StringBuilder->String);
 }
 
 /**
@@ -5363,8 +5497,7 @@ BOOLEAN PhStringToInteger64(
         if (string.Buffer[0] == '-')
             negative = TRUE;
 
-        string.Buffer += 1;
-        string.Length -= sizeof(WCHAR);
+        PhSkipStringRef(&string, sizeof(WCHAR));
     }
 
     // If the caller specified a base, don't perform any
@@ -5413,10 +5546,7 @@ BOOLEAN PhStringToInteger64(
             }
 
             if (base != 10)
-            {
-                string.Buffer += 2;
-                string.Length -= 2 * sizeof(WCHAR);
-            }
+                PhSkipStringRef(&string, 2 * sizeof(WCHAR));
         }
     }
 

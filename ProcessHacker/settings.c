@@ -366,7 +366,7 @@ static BOOLEAN PhpSettingFromString(
             }
             else
             {
-                Setting->u.Pointer = PhCreateStringEx(StringRef->Buffer, StringRef->Length);
+                Setting->u.Pointer = PhCreateString2(StringRef);
             }
 
             return TRUE;
@@ -639,7 +639,7 @@ _May_raise_ VOID PhSetStringSetting2(
     if (setting && setting->Type == StringSettingType)
     {
         PhpFreeSettingValue(StringSettingType, setting);
-        setting->u.Pointer = PhCreateStringEx(Value->Buffer, Value->Length);
+        setting->u.Pointer = PhCreateString2(Value);
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);

@@ -4310,10 +4310,9 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                         if (variable.Name.Length == 0)
                             continue;
 
-                        // The strings are not guaranteed to be null-terminated, so we need to create
-                        // some temporary strings.
-                        nameString = PhCreateStringEx(variable.Name.Buffer, variable.Name.Length);
-                        valueString = PhCreateStringEx(variable.Value.Buffer, variable.Value.Length);
+                        // The strings are not guaranteed to be null-terminated, so we need to create some temporary strings.
+                        nameString = PhCreateString2(&variable.Name);
+                        valueString = PhCreateString2(&variable.Value);
 
                         lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, nameString->Buffer, NULL);
                         PhSetListViewSubItem(lvHandle, lvItemIndex, 1, valueString->Buffer);

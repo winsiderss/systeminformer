@@ -2045,9 +2045,9 @@ BOOLEAN PhMwpOnNotify(
             PhParseCommandLineFuzzy(&string, &fileName, &arguments, &fullFileName);
 
             if (!fullFileName)
-                fullFileName = PhCreateStringEx(fileName.Buffer, fileName.Length);
+                fullFileName = PhCreateString2(&fileName);
 
-            argumentsString = PhCreateStringEx(arguments.Buffer, arguments.Length);
+            argumentsString = PhCreateString2(&arguments);
 
             if (PhShellExecuteEx(PhMainWndHandle, fullFileName->Buffer, argumentsString->Buffer,
                 runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))

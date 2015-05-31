@@ -102,7 +102,7 @@ VOID LoadAdaptersList(
         }
         if (part3.Buffer)
         {
-            entry->InterfaceGuid = PhCreateStringEx(part3.Buffer, part3.Length);
+            entry->InterfaceGuid = PhCreateString2(&part3);
         }
 
         PhAddItemList(FilterList, entry);

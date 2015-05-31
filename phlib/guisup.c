@@ -279,47 +279,41 @@ BOOLEAN PhLoadListViewColumnSettings(
     )
 {
 #define ORDER_LIMIT 50
-    SIZE_T i;
-    SIZE_T length;
+    PH_STRINGREF remainingPart;
     ULONG columnIndex;
-    ULONG_PTR indexOfComma;
-    ULONG_PTR indexOfPipe;
-    PH_STRINGREF stringRef;
-    ULONG64 integer;
-    LVCOLUMN lvColumn;
     ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
-    ULONG order;
     ULONG maxOrder;
 
     if (Settings->Length == 0)
         return FALSE;
 
-    i = 0;
-    length = Settings->Length / 2;
+    remainingPart = Settings->sr;
     columnIndex = 0;
-    lvColumn.mask = LVCF_WIDTH;
-
     memset(orderArray, 0, sizeof(orderArray));
     maxOrder = 0;
 
-    while (i < length)
+    while (remainingPart.Length != 0)
     {
-        indexOfComma = PhFindCharInString(Settings, i, ',');
+        PH_STRINGREF columnPart;
+        PH_STRINGREF orderPart;
+        PH_STRINGREF widthPart;
+        ULONG64 integer;
+        ULONG order;
+        LVCOLUMN lvColumn;
 
-        if (indexOfComma == -1)
+        PhSplitStringRefAtChar(&remainingPart, '|', &columnPart, &remainingPart);
+
+        if (columnPart.Length == 0)
             return FALSE;
 
-        indexOfPipe = PhFindCharInString(Settings, i, '|');
+        PhSplitStringRefAtChar(&columnPart, ',', &orderPart, &widthPart);
 
-        if (indexOfPipe == -1) // last pair in string
-            indexOfPipe = Settings->Length / 2;
+        if (orderPart.Length == 0 || widthPart.Length == 0)
+            return FALSE;
 
         // Order
 
-        stringRef.Buffer = &Settings->Buffer[i];
-        stringRef.Length = (indexOfComma - i) * 2;
-
-        if (!PhStringToInteger64(&stringRef, 10, &integer))
+        if (!PhStringToInteger64(&orderPart, 10, &integer))
             return FALSE;
 
         order = (ULONG)integer;
@@ -334,17 +328,13 @@ BOOLEAN PhLoadListViewColumnSettings(
 
         // Width
 
-        stringRef.Buffer = &Settings->Buffer[indexOfComma + 1];
-        stringRef.Length = (indexOfPipe - indexOfComma - 1) * 2;
-
-        if (!PhStringToInteger64(&stringRef, 10, &integer))
+        if (!PhStringToInteger64(&widthPart, 10, &integer))
             return FALSE;
 
+        lvColumn.mask = LVCF_WIDTH;
         lvColumn.cx = (ULONG)integer;
-
         ListView_SetColumn(ListViewHandle, columnIndex, &lvColumn);
 
-        i = indexOfPipe + 1;
         columnIndex++;
     }
 

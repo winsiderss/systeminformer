@@ -1714,7 +1714,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         PhInitFormatI64U(&format, Attribute->Values.pUint64[ValueIndex]);
         return PhFormat(&format, 1, 0);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
-        return PhCreateStringEx(Attribute->Values.pString[ValueIndex].Buffer, Attribute->Values.pString[ValueIndex].Length);
+        return PhCreateStringFromUnicodeString(&Attribute->Values.pString[ValueIndex]);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
         return PhFormatString(L"Version %I64u: %.*s",
             Attribute->Values.pFqbn[ValueIndex].Version,
@@ -1884,7 +1884,7 @@ BOOLEAN PhpAddTokenAttributes(
 
             // Attribute
             node = PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, NULL,
-                PhCreateStringEx(attribute->Name.Buffer, attribute->Name.Length));
+                PhCreateStringFromUnicodeString(&attribute->Name));
             // Type
             PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, node,
                 PhFormatString(L"Type: %s", PhGetSecurityAttributeTypeString(attribute->ValueType)));

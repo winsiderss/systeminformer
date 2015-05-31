@@ -163,7 +163,7 @@ PPH_STRING FiFormatFileName(
             NULL
             ))
         {
-            fileName = PhCreateStringEx(fileNameUs.Buffer, fileNameUs.Length);
+            fileName = PhCreateStringFromUnicodeString(&fileNameUs);
             RtlFreeHeap(RtlProcessHeap(), 0, fileNameUs.Buffer);
 
             return fileName;
@@ -193,8 +193,7 @@ PPH_STRING FiFormatFileName(
         }
         else
         {
-            PhReferenceObject(FileName);
-            return FileName;
+            return PhReferenceObject(FileName);
         }
     }
 }
@@ -368,10 +367,7 @@ int __cdecl main(int argc, char *argv[])
         PhEqualString2(FiArgAction, L"dir", TRUE)
         ))
     {
-        FiArgFileName = PhCreateStringEx(
-            NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
-            NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Length
-            );
+        FiArgFileName = PhCreateStringFromUnicodeString(&NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath);
     }
 
     if (!FiArgAction)
