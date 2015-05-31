@@ -229,6 +229,10 @@ BOOLEAN PhMainWndInitialization(
     PhStartProviderThread(&PhPrimaryProviderThread);
     PhStartProviderThread(&PhSecondaryProviderThread);
 
+    // See PhMwpOnTimer for more details.
+    if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_1)
+        SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_1, NULL);
+
     UpdateWindow(PhMainWndHandle);
 
     if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfTestIconMask(PH_ICON_ALL))
@@ -333,6 +337,11 @@ LRESULT CALLBACK PhMwpWndProc(
             PhMwpOnSetFocus();
         }
         break;
+    case WM_TIMER:
+        {
+            PhMwpOnTimer((ULONG)wParam);
+        }
+        break;
     case WM_NOTIFY:
         {
             LRESULT result;
@@ -404,6 +413,19 @@ VOID PhMwpInitializeProviders(
     PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
     PhSetEnabledProvider(&ServiceProviderRegistration, TRUE);
     PhRegisterProvider(&PhPrimaryProviderThread, PhNetworkProviderUpdate, NULL, &NetworkProviderRegistration);
+}
+
+VOID PhMwpApplyUpdateInterval(
+    _In_ ULONG Interval
+    )
+{
+    PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
+    PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
+
+    if (Interval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
+        SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM, NULL);
+    else
+        KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA); // Might not exist
 }
 
 VOID PhMwpInitializeControls(
@@ -1044,7 +1066,7 @@ VOID PhMwpOnCommand(
             }
 
             PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
-            PhApplyUpdateInterval(interval);
+            PhMwpApplyUpdateInterval(interval);
         }
         break;
     case ID_VIEW_UPDATEAUTOMATICALLY:
@@ -1954,6 +1976,48 @@ VOID PhMwpOnSetFocus(
         SetFocus(ServiceTreeListHandle);
     else if (selectedIndex == NetworkTabIndex)
         SetFocus(NetworkTreeListHandle);
+}
+
+VOID PhMwpOnTimer(
+    _In_ ULONG Id
+    )
+{
+    if (Id == TIMER_FLUSH_PROCESS_QUERY_DATA)
+    {
+        static ULONG state = 1;
+
+        // If the update interval is too large, the user might have to wait a while before seeing some types of
+        // process-related data. Here we force an update.
+        //
+        // In addition, we force updates shortly after the program starts up to make things appear more quickly.
+
+        switch (state)
+        {
+        case 1:
+            state = 2;
+
+            if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_2)
+                SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_2, NULL);
+            else
+                KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
+
+            break;
+        case 2:
+            state = 3;
+
+            if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
+                SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM, NULL);
+            else
+                KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
+
+            break;
+        default:
+            NOTHING;
+            break;
+        }
+
+        PhFlushProcessQueryData(TRUE);
+    }
 }
 
 BOOLEAN PhMwpOnNotify(

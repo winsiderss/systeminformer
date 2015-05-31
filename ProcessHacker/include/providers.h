@@ -166,13 +166,14 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsImmersive : 1;
             ULONG IsWow64Valid : 1;
             ULONG IsPartiallySuspended : 1;
-            ULONG Spare : 19;
+            ULONG AddedEventSent : 1;
+            ULONG Spare : 18;
         };
     };
 
     // Misc.
 
-    BOOLEAN JustProcessed;
+    ULONG JustProcessed;
     PH_EVENT Stage1Event;
 
     PPH_POINTER_LIST ServiceList;
@@ -311,6 +312,10 @@ PHAPPAPI
 PPH_STRING PhGetStatisticsTimeString(
     _In_opt_ PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG Index
+    );
+
+VOID PhFlushProcessQueryData(
+    _In_ BOOLEAN SendModifiedEvent
     );
 
 VOID PhProcessProviderUpdate(

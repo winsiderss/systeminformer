@@ -18,6 +18,7 @@ Process Hacker
    * Fixed Read/Write Address crash
    * Fixed string scanning false positive case
    * Fixed hang when viewing handle security for certain File objects
+   * Fixed lack of information on startup when using slower refresh intervals
 
 2.35
  * NEW/IMPROVED:
