@@ -83,7 +83,7 @@ VOID PvHandleListViewNotifyForCopy(
     _In_ HWND ListViewHandle
     )
 {
-    if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle)
+    if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle && ((LPNMHDR)lParam)->code == LVN_KEYDOWN)
     {
         LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)lParam;
 
@@ -92,6 +92,10 @@ VOID PvHandleListViewNotifyForCopy(
         case 'C':
             if (GetKeyState(VK_CONTROL) < 0)
                 PvCopyListView(ListViewHandle);
+            break;
+        case 'A':
+            if (GetKeyState(VK_CONTROL) < 0)
+                PhSetStateAllListViewItems(ListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
             break;
         }
     }
