@@ -19,6 +19,7 @@ Process Hacker
    * Fixed string scanning false positive case
    * Fixed hang when viewing handle security for certain File objects
    * Fixed lack of information on startup when using slower refresh intervals
+   * Fixed service non-polling mode on Windows 8 and above
 
 2.35
  * NEW/IMPROVED:
