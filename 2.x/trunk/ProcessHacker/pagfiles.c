@@ -57,7 +57,7 @@ static VOID PhpAddPagefileItems(
         PPH_STRING newFileName;
         PPH_STRING usage;
 
-        fileName = PhCreateStringEx(pagefile->PageFileName.Buffer, pagefile->PageFileName.Length);
+        fileName = PhCreateStringFromUnicodeString(&pagefile->PageFileName);
         newFileName = PhGetFileName(fileName);
         PhDereferenceObject(fileName);
 

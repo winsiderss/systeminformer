@@ -1264,7 +1264,7 @@ VOID PhpFillProcessItem(
 
     if (ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
     {
-        ProcessItem->ProcessName = PhCreateStringEx(Process->ImageName.Buffer, Process->ImageName.Length);
+        ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&Process->ImageName);
     }
     else
     {

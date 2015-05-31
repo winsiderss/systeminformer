@@ -261,7 +261,7 @@ VOID EtDiskProcessFileEvent(
         PhAcquireQueuedLockExclusive(&EtFileNameHashtableLock);
 
         realPair = PhAddEntryHashtableEx(EtFileNameHashtable, &pair, NULL);
-        PhMoveReference(&realPair->Value, PhCreateStringEx(Event->FileName.Buffer, Event->FileName.Length));
+        PhMoveReference(&realPair->Value, PhCreateString2(&Event->FileName));
 
         PhReleaseQueuedLockExclusive(&EtFileNameHashtableLock);
     }

@@ -117,7 +117,7 @@ PhCreateObject(
     );
 
 PHLIBAPI
-VOID
+PVOID
 NTAPI
 PhReferenceObject(
     _In_ PVOID Object

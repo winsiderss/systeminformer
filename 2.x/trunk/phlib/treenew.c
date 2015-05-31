@@ -5799,7 +5799,7 @@ VOID PhTnpGetTooltipText(
 
         if (getCellTooltip.Text.Buffer && getCellTooltip.Text.Length != 0)
         {
-            PhMoveReference(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
+            PhMoveReference(&Context->TooltipText, PhCreateString2(&getCellTooltip.Text));
         }
         else
         {

@@ -547,58 +547,47 @@ PPH_STRING PhpGetCertNameString(
 }
 
 PPH_STRING PhpGetX500Value(
-    _In_ PPH_STRING String,
+    _In_ PPH_STRINGREF String,
     _In_ PPH_STRINGREF KeyName
     )
 {
-    WCHAR keyNamePlusEquals[10];
+    WCHAR keyNamePlusEqualsBuffer[10];
+    PH_STRINGREF keyNamePlusEquals;
     SIZE_T keyNameLength;
-    ULONG_PTR startIndex;
-    ULONG_PTR endIndex;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF remainingPart;
 
     keyNameLength = KeyName->Length / sizeof(WCHAR);
-    assert(!(keyNameLength > sizeof(keyNamePlusEquals) / sizeof(WCHAR) - 2));
+    assert(!(keyNameLength > sizeof(keyNamePlusEquals) / sizeof(WCHAR) - 1));
+    keyNamePlusEquals.Buffer = keyNamePlusEqualsBuffer;
+    keyNamePlusEquals.Length = (keyNameLength + 1) * sizeof(WCHAR);
 
-    memcpy(keyNamePlusEquals, KeyName->Buffer, KeyName->Length);
-    keyNamePlusEquals[keyNameLength] = '=';
-    keyNamePlusEquals[keyNameLength + 1] = 0;
+    memcpy(keyNamePlusEquals.Buffer, KeyName->Buffer, KeyName->Length);
+    keyNamePlusEquals.Buffer[keyNameLength] = '=';
 
     // Find "Key=".
-    startIndex = PhFindStringInString(String, 0, keyNamePlusEquals);
 
-    if (startIndex == -1)
+    if (!PhSplitStringRefAtString(String, &keyNamePlusEquals, FALSE, &firstPart, &remainingPart))
+        return NULL;
+    if (remainingPart.Length == 0)
         return NULL;
 
-    startIndex += keyNameLength + 1;
-
-    if (startIndex * sizeof(WCHAR) >= String->Length)
-        return NULL;
-
-    // Is the value quoted?
-    if (String->Buffer[startIndex] == '"')
+    // Is the value quoted? If so, return the part inside the quotes.
+    if (remainingPart.Buffer[0] == '"')
     {
-        startIndex++;
+        PhSkipStringRef(&remainingPart, sizeof(WCHAR));
 
-        if (startIndex * sizeof(WCHAR) >= String->Length)
+        if (!PhSplitStringRefAtChar(&remainingPart, '"', &firstPart, &remainingPart))
             return NULL;
 
-        endIndex = PhFindCharInString(String, startIndex, '"');
-
-        // It's an error if we didn't find the matching quotation mark.
-        if (endIndex == -1)
-            return NULL;
+        return PhCreateString2(&firstPart);
     }
     else
     {
-        endIndex = PhFindCharInString(String, startIndex, ',');
+        PhSplitStringRefAtChar(&remainingPart, ',', &firstPart, &remainingPart);
 
-        // If we didn't find a comma, it means the key/value pair is
-        // the last one in the string.
-        if (endIndex == -1)
-            endIndex = String->Length / sizeof(WCHAR);
+        return PhCreateString2(&firstPart);
     }
-
-    return PhSubstring(String, startIndex, endIndex - startIndex);
 }
 
 PPH_STRING PhGetSignerNameFromCertificate(
@@ -624,12 +613,12 @@ PPH_STRING PhGetSignerNameFromCertificate(
     // Subject X.500 string -> CN or OU value
 
     PhInitializeStringRef(&keyName, L"CN");
-    value = PhpGetX500Value(name, &keyName);
+    value = PhpGetX500Value(&name->sr, &keyName);
 
     if (!value)
     {
         PhInitializeStringRef(&keyName, L"OU");
-        value = PhpGetX500Value(name, &keyName);
+        value = PhpGetX500Value(&name->sr, &keyName);
     }
 
     PhDereferenceObject(name);

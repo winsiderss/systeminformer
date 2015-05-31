@@ -198,8 +198,8 @@ BOOLEAN PhShowDsObjectPickerDialog(
 
             if (PhStartsWithStringRef(&path, &prefix, TRUE))
             {
-                path.Buffer += prefix.Length / sizeof(WCHAR);
-                path.Length -= sizeof(WCHAR); // ignore ">" at end
+                PhSkipStringRef(&path, prefix.Length);
+                path.Length -= sizeof(WCHAR); // Ignore ">" at end
 
                 sid = PhAllocate(path.Length / sizeof(WCHAR) / 2);
 

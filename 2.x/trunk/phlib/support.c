@@ -289,30 +289,18 @@ PPH_STRING PhGetNtMessage(
     else
         message = PhGetWin32Message(WIN32_FROM_NTSTATUS(Status));
 
-    if (!message)
-        return NULL;
-    if (message->Length == 0)
+    if (PhIsNullOrEmptyString(message))
         return message;
 
     // Fix those messages which are formatted like:
     // {Asdf}\r\nAsdf asdf asdf...
     if (message->Buffer[0] == '{')
     {
-        ULONG_PTR indexOfNewLine = PhFindCharInString(message, 0, '\n');
+        PH_STRINGREF titlePart;
+        PH_STRINGREF remainingPart;
 
-        if (indexOfNewLine != -1)
-        {
-            PPH_STRING newMessage;
-
-            newMessage = PhSubstring(
-                message,
-                indexOfNewLine + 1,
-                message->Length / 2 - indexOfNewLine - 1
-                );
-            PhDereferenceObject(message);
-
-            message = newMessage;
-        }
+        if (PhSplitStringRefAtChar(&message->sr, '\n', &titlePart, &remainingPart))
+            PhMoveReference(&message, PhCreateString2(&remainingPart));
     }
 
     return message;
@@ -811,8 +799,7 @@ PPH_STRING PhEllipsisString(
         DesiredCount < 3
         )
     {
-        PhReferenceObject(String);
-        return String;
+        return PhReferenceObject(String);
     }
     else
     {
@@ -856,8 +843,7 @@ PPH_STRING PhEllipsisStringPath(
         DesiredCount < 3
         )
     {
-        PhReferenceObject(String);
-        return String;
+        return PhReferenceObject(String);
     }
     else
     {
@@ -1456,7 +1442,7 @@ PPH_STRING PhFormatGuid(
     if (!NT_SUCCESS(RtlStringFromGUID(Guid, &unicodeString)))
         return NULL;
 
-    string = PhCreateStringEx(unicodeString.Buffer, unicodeString.Length);
+    string = PhCreateStringFromUnicodeString(&unicodeString);
     RtlFreeUnicodeString(&unicodeString);
 
     return string;
@@ -1927,21 +1913,13 @@ PPH_STRING PhGetBaseName(
     _In_ PPH_STRING FileName
     )
 {
-    ULONG_PTR lastIndexOfBackslash;
+    PH_STRINGREF pathPart;
+    PH_STRINGREF baseNamePart;
 
-    lastIndexOfBackslash = PhFindLastCharInString(FileName, 0, '\\');
+    if (!PhSplitStringRefAtLastChar(&FileName->sr, '\\', &pathPart, &baseNamePart))
+        return PhReferenceObject(FileName);
 
-    if (lastIndexOfBackslash == -1)
-    {
-        PhReferenceObject(FileName);
-        return FileName;
-    }
-
-    return PhSubstring(
-        FileName,
-        lastIndexOfBackslash + 1,
-        FileName->Length / 2 - lastIndexOfBackslash - 1
-        );
+    return PhCreateString2(&baseNamePart);
 }
 
 /**
@@ -1962,10 +1940,7 @@ PPH_STRING PhGetSystemDirectory(
     systemDirectory = cachedSystemDirectory;
 
     if (systemDirectory)
-    {
-        PhReferenceObject(systemDirectory);
-        return systemDirectory;
-    }
+        return PhReferenceObject(systemDirectory);
 
     bufferSize = 0x40;
     systemDirectory = PhCreateStringEx(NULL, bufferSize * 2);
@@ -2113,7 +2088,7 @@ PPH_STRING PhGetDllFileName(
     entry = PhFindLoaderEntry(DllHandle, NULL, NULL);
 
     if (entry)
-        fileName = PhCreateStringEx(entry->FullDllName.Buffer, entry->FullDllName.Length);
+        fileName = PhCreateStringFromUnicodeString(&entry->FullDllName);
     else
         fileName = NULL;
 
@@ -4852,24 +4827,6 @@ PPH_STRING PhEscapeCommandLinePart(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-VOID PhpSkipWhitespaceStringRef(
-    _Inout_ PPH_STRINGREF String
-    )
-{
-    WCHAR c;
-
-    while (String->Length != 0)
-    {
-        c = *String->Buffer;
-
-        if (c != ' ' && c != '\t')
-            break;
-
-        String->Buffer++;
-        String->Length -= sizeof(WCHAR);
-    }
-}
-
 BOOLEAN PhpSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension,
@@ -4943,6 +4900,8 @@ BOOLEAN PhParseCommandLineFuzzy(
     _Out_opt_ PPH_STRING *FullFileName
     )
 {
+    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
+
     PH_STRINGREF commandLine;
     PH_STRINGREF temp;
     PH_STRINGREF currentPart;
@@ -4951,21 +4910,7 @@ BOOLEAN PhParseCommandLineFuzzy(
     WCHAR originalChar;
 
     commandLine = *CommandLine;
-
-    // Remove leading whitespace.
-    PhpSkipWhitespaceStringRef(&commandLine);
-
-    // Remove trailing whitespace.
-    while (commandLine.Length != 0)
-    {
-        if (commandLine.Buffer[commandLine.Length / 2 - 1] != ' ' &&
-            commandLine.Buffer[commandLine.Length / 2 - 1] != '\t')
-        {
-            break;
-        }
-
-        commandLine.Length -= sizeof(WCHAR);
-    }
+    PhTrimStringRef(&commandLine, &whitespace, 0);
 
     if (commandLine.Length == 0)
     {
@@ -4982,15 +4927,14 @@ BOOLEAN PhParseCommandLineFuzzy(
     {
         PH_STRINGREF arguments;
 
-        commandLine.Buffer++;
-        commandLine.Length -= sizeof(WCHAR);
+        PhSkipStringRef(&commandLine, sizeof(WCHAR));
 
         // Find the matching quote character and we have our file name.
 
         if (!PhSplitStringRefAtChar(&commandLine, '"', &commandLine, &arguments))
         {
-            FileName->Buffer = commandLine.Buffer - 1;
-            FileName->Length = commandLine.Length + sizeof(WCHAR);
+            PhSkipStringRef(&commandLine, -(LONG_PTR)sizeof(WCHAR)); // Unskip the initial quote character
+            *FileName = commandLine;
             PhInitializeEmptyStringRef(Arguments);
 
             if (FullFileName)
@@ -4999,7 +4943,7 @@ BOOLEAN PhParseCommandLineFuzzy(
             return FALSE;
         }
 
-        PhpSkipWhitespaceStringRef(&arguments);
+        PhTrimStringRef(&arguments, &whitespace, PH_TRIM_START_ONLY);
         *FileName = commandLine;
         *Arguments = arguments;
 
@@ -5007,7 +4951,7 @@ BOOLEAN PhParseCommandLineFuzzy(
         {
             PPH_STRING tempCommandLine;
 
-            tempCommandLine = PhCreateStringEx(commandLine.Buffer, commandLine.Length);
+            tempCommandLine = PhCreateString2(&commandLine);
 
             if (PhpSearchFilePath(tempCommandLine->Buffer, L".exe", buffer))
             {
@@ -5068,7 +5012,7 @@ BOOLEAN PhParseCommandLineFuzzy(
             FileName->Buffer = commandLine.Buffer;
             FileName->Length = ((PCHAR)currentPart.Buffer - (PCHAR)temp.Buffer) + currentPart.Length;
 
-            PhpSkipWhitespaceStringRef(&remainingPart);
+            PhTrimStringRef(&remainingPart, &whitespace, PH_TRIM_START_ONLY);
             *Arguments = remainingPart;
 
             if (FullFileName)

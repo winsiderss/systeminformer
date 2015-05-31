@@ -88,8 +88,8 @@ VOID LoadDiskDriveList(
         PhSplitStringRefAtChar(&remaining, '|', &part1, &remaining);
         PhSplitStringRefAtChar(&remaining, '|', &part2, &remaining);
 
-        entry->DiskFriendlyName = PhCreateStringEx(part1.Buffer, part1.Length);
-        entry->DiskDevicePath = PhCreateStringEx(part2.Buffer, part2.Length);
+        entry->DiskFriendlyName = PhCreateString2(&part1);
+        entry->DiskDevicePath = PhCreateString2(&part2);
 
         PhAddItemList(FilterList, entry);
     }

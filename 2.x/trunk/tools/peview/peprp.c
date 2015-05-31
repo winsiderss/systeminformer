@@ -223,8 +223,7 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
             PH_STRINGREF baseFileName;
 
             remainingFileName = FileName->sr;
-            remainingFileName.Buffer = (PWCHAR)((PCHAR)remainingFileName.Buffer + windowsAppsPath->Length);
-            remainingFileName.Length -= windowsAppsPath->Length;
+            PhSkipStringRef(&remainingFileName, windowsAppsPath->Length);
             indexOfBackslash = PhFindCharInStringRef(&remainingFileName, '\\', FALSE);
 
             if (indexOfBackslash != -1)
