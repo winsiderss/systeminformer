@@ -1815,7 +1815,7 @@ VOID PhFlushProcessQueryData(
             if (SendModifiedEvent && data->ProcessItem->AddedEventSent)
                 PhInvokeCallback(&PhProcessModifiedEvent, data->ProcessItem);
             else
-                InterlockedExchange(&data->ProcessItem->JustProcessed, 1);
+                data->ProcessItem->JustProcessed = 1;
         }
 
         PhDereferenceObject(data->ProcessItem);
