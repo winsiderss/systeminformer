@@ -179,7 +179,9 @@ PhCreateThread(
 
 // DLLs
 
-FORCEINLINE PVOID PhGetDllHandle(
+FORCEINLINE
+PVOID
+PhGetDllHandle(
     _In_ PWSTR DllName
     )
 {
@@ -194,7 +196,9 @@ FORCEINLINE PVOID PhGetDllHandle(
         return NULL;
 }
 
-FORCEINLINE PVOID PhGetProcedureAddress(
+FORCEINLINE
+PVOID
+PhGetProcedureAddress(
     _In_ PVOID DllHandle,
     _In_opt_ PSTR ProcedureName,
     _In_opt_ ULONG ProcedureNumber
@@ -332,7 +336,9 @@ PhFreePage(
     _Frees_ptr_opt_ PVOID Memory
     );
 
-FORCEINLINE PVOID PhAllocateCopy(
+FORCEINLINE
+PVOID
+PhAllocateCopy(
     _In_ PVOID Data,
     _In_ SIZE_T Size
     )
@@ -400,7 +406,9 @@ PhfResetEvent(
     _Inout_ PPH_EVENT Event
     );
 
-FORCEINLINE VOID PhInitializeEvent(
+FORCEINLINE
+VOID
+PhInitializeEvent(
     _Out_ PPH_EVENT Event
     )
 {
@@ -415,7 +423,9 @@ FORCEINLINE VOID PhInitializeEvent(
  *
  * \return TRUE if the event object is set, otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhTestEvent(
+FORCEINLINE
+BOOLEAN
+PhTestEvent(
     _In_ PPH_EVENT Event
     )
 {
@@ -461,7 +471,9 @@ PhfWaitForBarrier(
     _In_ BOOLEAN Spin
     );
 
-FORCEINLINE VOID PhInitializeBarrier(
+FORCEINLINE
+VOID
+PhInitializeBarrier(
     _Out_ PPH_BARRIER Barrier,
     _In_ ULONG_PTR Target
     )
@@ -517,14 +529,18 @@ PhfWaitForRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     );
 
-FORCEINLINE VOID PhInitializeRundownProtection(
+FORCEINLINE
+VOID
+PhInitializeRundownProtection(
     _Out_ PPH_RUNDOWN_PROTECT Protection
     )
 {
     Protection->Value = 0;
 }
 
-FORCEINLINE BOOLEAN PhAcquireRundownProtection(
+FORCEINLINE
+BOOLEAN
+PhAcquireRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
 {
@@ -546,7 +562,9 @@ FORCEINLINE BOOLEAN PhAcquireRundownProtection(
     }
 }
 
-FORCEINLINE VOID PhReleaseRundownProtection(
+FORCEINLINE
+VOID
+PhReleaseRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
 {
@@ -564,7 +582,9 @@ FORCEINLINE VOID PhReleaseRundownProtection(
     }
 }
 
-FORCEINLINE VOID PhWaitForRundownProtection(
+FORCEINLINE
+VOID
+PhWaitForRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
 {
@@ -617,7 +637,9 @@ PhfEndInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     );
 
-FORCEINLINE BOOLEAN PhBeginInitOnce(
+FORCEINLINE
+BOOLEAN
+PhBeginInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     )
 {
@@ -627,7 +649,9 @@ FORCEINLINE BOOLEAN PhBeginInitOnce(
         return PhfBeginInitOnce(InitOnce);
 }
 
-FORCEINLINE BOOLEAN PhTestInitOnce(
+FORCEINLINE
+BOOLEAN
+PhTestInitOnce(
     _In_ PPH_INITONCE InitOnce
     )
 {
@@ -710,7 +734,9 @@ PhCompareStringZNatural(
     _In_ BOOLEAN IgnoreCase
     );
 
-FORCEINLINE BOOLEAN PhAreCharactersDifferent(
+FORCEINLINE
+BOOLEAN
+PhAreCharactersDifferent(
     _In_ WCHAR Char1,
     _In_ WCHAR Char2
     )
@@ -727,14 +753,18 @@ FORCEINLINE BOOLEAN PhAreCharactersDifferent(
     return FALSE;
 }
 
-FORCEINLINE BOOLEAN PhIsDigitCharacter(
+FORCEINLINE
+BOOLEAN
+PhIsDigitCharacter(
     _In_ WCHAR Char
     )
 {
     return (USHORT)(Char - '0') < 10;
 }
 
-FORCEINLINE LONG PhCompareStringZ(
+FORCEINLINE
+LONG
+PhCompareStringZ(
     _In_ PWSTR String1,
     _In_ PWSTR String2,
     _In_ BOOLEAN IgnoreCase
@@ -746,7 +776,9 @@ FORCEINLINE LONG PhCompareStringZ(
         return wcsicmp(String1, String2);
 }
 
-FORCEINLINE BOOLEAN PhEqualStringZ(
+FORCEINLINE
+BOOLEAN
+PhEqualStringZ(
     _In_ PWSTR String1,
     _In_ PWSTR String2,
     _In_ BOOLEAN IgnoreCase
@@ -793,7 +825,9 @@ typedef struct _PH_RELATIVE_STRINGREF
 #define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(WCHAR), (String) }
 #define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(CHAR), (String) }
 
-FORCEINLINE VOID PhInitializeStringRef(
+FORCEINLINE
+VOID
+PhInitializeStringRef(
     _Out_ PPH_STRINGREF String,
     _In_ PWSTR Buffer
     )
@@ -802,7 +836,9 @@ FORCEINLINE VOID PhInitializeStringRef(
     String->Buffer = Buffer;
 }
 
-FORCEINLINE VOID PhInitializeBytesRef(
+FORCEINLINE
+VOID
+PhInitializeBytesRef(
     _Out_ PPH_BYTESREF Bytes,
     _In_ PSTR Buffer
     )
@@ -811,7 +847,9 @@ FORCEINLINE VOID PhInitializeBytesRef(
     Bytes->Buffer = Buffer;
 }
 
-FORCEINLINE VOID PhInitializeEmptyStringRef(
+FORCEINLINE
+VOID
+PhInitializeEmptyStringRef(
     _Out_ PPH_STRINGREF String
     )
 {
@@ -819,14 +857,9 @@ FORCEINLINE VOID PhInitializeEmptyStringRef(
     String->Buffer = NULL;
 }
 
-FORCEINLINE BOOLEAN PhIsNullOrEmptyStringRef(
-    _In_opt_ PPH_STRINGREF String
-    )
-{
-    return !String || String->Length == 0;
-}
-
-FORCEINLINE BOOLEAN PhStringRefToUnicodeString(
+FORCEINLINE
+BOOLEAN
+PhStringRefToUnicodeString(
     _In_ PPH_STRINGREF String,
     _Out_ PUNICODE_STRING UnicodeString
     )
@@ -838,7 +871,9 @@ FORCEINLINE BOOLEAN PhStringRefToUnicodeString(
     return String->Length <= UNICODE_STRING_MAX_BYTES;
 }
 
-FORCEINLINE VOID PhUnicodeStringToStringRef(
+FORCEINLINE
+VOID
+PhUnicodeStringToStringRef(
     _In_ PUNICODE_STRING UnicodeString,
     _Out_ PPH_STRINGREF String
     )
@@ -887,8 +922,8 @@ PHLIBAPI
 ULONG_PTR
 NTAPI
 PhFindStringInStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String,
+    _In_ PPH_STRINGREF SubString,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -943,7 +978,21 @@ PhSplitStringRefEx(
     _Out_opt_ PPH_STRINGREF SeparatorPart
     );
 
-FORCEINLINE LONG PhCompareStringRef2(
+#define PH_TRIM_START_ONLY 0x1
+#define PH_TRIM_END_ONLY 0x2
+
+PHLIBAPI
+VOID
+NTAPI
+PhTrimStringRef(
+    _Inout_ PPH_STRINGREF String,
+    _In_ PPH_STRINGREF CharSet,
+    _In_ ULONG Flags
+    );
+
+FORCEINLINE
+LONG
+PhCompareStringRef2(
     _In_ PPH_STRINGREF String1,
     _In_ PWSTR String2,
     _In_ BOOLEAN IgnoreCase
@@ -956,7 +1005,9 @@ FORCEINLINE LONG PhCompareStringRef2(
     return PhCompareStringRef(String1, &sr2, IgnoreCase);
 }
 
-FORCEINLINE BOOLEAN PhEqualStringRef2(
+FORCEINLINE
+BOOLEAN
+PhEqualStringRef2(
     _In_ PPH_STRINGREF String1,
     _In_ PWSTR String2,
     _In_ BOOLEAN IgnoreCase
@@ -969,67 +1020,88 @@ FORCEINLINE BOOLEAN PhEqualStringRef2(
     return PhEqualStringRef(String1, &sr2, IgnoreCase);
 }
 
-FORCEINLINE BOOLEAN PhStartsWithStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+FORCEINLINE
+BOOLEAN
+PhStartsWithStringRef(
+    _In_ PPH_STRINGREF String,
+    _In_ PPH_STRINGREF Prefix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr1;
+    PH_STRINGREF sr;
 
-    sr1.Buffer = String1->Buffer;
-    sr1.Length = String2->Length;
+    sr.Buffer = String->Buffer;
+    sr.Length = Prefix->Length;
 
-    if (String1->Length < sr1.Length)
+    if (String->Length < sr.Length)
         return FALSE;
 
-    return PhEqualStringRef(&sr1, String2, IgnoreCase);
+    return PhEqualStringRef(&sr, Prefix, IgnoreCase);
 }
 
-FORCEINLINE BOOLEAN PhStartsWithStringRef2(
-    _In_ PPH_STRINGREF String1,
-    _In_ PWSTR String2,
+FORCEINLINE
+BOOLEAN
+PhStartsWithStringRef2(
+    _In_ PPH_STRINGREF String,
+    _In_ PWSTR Prefix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr2;
+    PH_STRINGREF prefix;
 
-    PhInitializeStringRef(&sr2, String2);
+    PhInitializeStringRef(&prefix, Prefix);
 
-    return PhStartsWithStringRef(String1, &sr2, IgnoreCase);
+    return PhStartsWithStringRef(String, &prefix, IgnoreCase);
 }
 
-FORCEINLINE BOOLEAN PhEndsWithStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+FORCEINLINE
+BOOLEAN
+PhEndsWithStringRef(
+    _In_ PPH_STRINGREF String,
+    _In_ PPH_STRINGREF Suffix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr1;
+    PH_STRINGREF sr;
 
-    if (String2->Length > String1->Length)
+    if (Suffix->Length > String->Length)
         return FALSE;
 
-    sr1.Buffer = (PWCHAR)((PCHAR)String1->Buffer + String1->Length - String2->Length);
-    sr1.Length = String2->Length;
+    sr.Buffer = (PWCHAR)((PCHAR)String->Buffer + String->Length - Suffix->Length);
+    sr.Length = Suffix->Length;
 
-    return PhEqualStringRef(&sr1, String2, IgnoreCase);
+    return PhEqualStringRef(&sr, Suffix, IgnoreCase);
 }
 
-FORCEINLINE BOOLEAN PhEndsWithStringRef2(
-    _In_ PPH_STRINGREF String1,
-    _In_ PWSTR String2,
+FORCEINLINE
+BOOLEAN
+PhEndsWithStringRef2(
+    _In_ PPH_STRINGREF String,
+    _In_ PWSTR Suffix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr2;
+    PH_STRINGREF suffix;
 
-    PhInitializeStringRef(&sr2, String2);
+    PhInitializeStringRef(&suffix, Suffix);
 
-    return PhEndsWithStringRef(String1, &sr2, IgnoreCase);
+    return PhEndsWithStringRef(String, &suffix, IgnoreCase);
 }
 
-FORCEINLINE VOID PhReverseStringRef(
+FORCEINLINE
+VOID
+PhSkipStringRef(
+    _Inout_ PPH_STRINGREF String,
+    _In_ LONG_PTR Length
+    )
+{
+    String->Buffer = (PWCH)((PCHAR)String->Buffer + Length);
+    String->Length -= Length;
+}
+
+FORCEINLINE
+VOID
+PhReverseStringRef(
     _In_ PPH_STRINGREF String
     )
 {
@@ -1098,6 +1170,24 @@ PhCreateStringEx(
     _In_opt_ PWCHAR Buffer,
     _In_ SIZE_T Length
     );
+
+FORCEINLINE
+PPH_STRING
+PhCreateString2(
+    _In_ PPH_STRINGREF String
+    )
+{
+    return PhCreateStringEx(String->Buffer, String->Length);
+}
+
+FORCEINLINE
+PPH_STRING
+PhCreateStringFromUnicodeString(
+    _In_ PUNICODE_STRING UnicodeString
+    )
+{
+    return PhCreateStringEx(UnicodeString->Buffer, UnicodeString->Length);
+}
 
 PHLIBAPI
 PPH_STRING
@@ -1174,7 +1264,9 @@ PhFormatString_V(
  * if the supplied pointer is non-NULL, otherwise
  * NULL.
  */
-FORCEINLINE PWSTR PhGetString(
+FORCEINLINE
+PWSTR
+PhGetString(
     _In_opt_ PPH_STRING String
     )
 {
@@ -1184,20 +1276,18 @@ FORCEINLINE PWSTR PhGetString(
         return NULL;
 }
 
-FORCEINLINE PH_STRINGREF PhGetStringRef(
+FORCEINLINE
+PH_STRINGREF
+PhGetStringRef(
     _In_opt_ PPH_STRING String
     )
 {
     PH_STRINGREF sr;
 
     if (String)
-    {
         sr = String->sr;
-    }
     else
-    {
         PhInitializeEmptyStringRef(&sr);
-    }
 
     return sr;
 }
@@ -1212,7 +1302,9 @@ FORCEINLINE PH_STRINGREF PhGetStringRef(
  * if the supplied pointer is non-NULL, otherwise
  * an empty string.
  */
-FORCEINLINE PWSTR PhGetStringOrEmpty(
+FORCEINLINE
+PWSTR
+PhGetStringOrEmpty(
     _In_opt_ PPH_STRING String
     )
 {
@@ -1222,7 +1314,9 @@ FORCEINLINE PWSTR PhGetStringOrEmpty(
         return L"";
 }
 
-FORCEINLINE PH_STRINGREF PhGetStringRefOrEmpty(
+FORCEINLINE
+PH_STRINGREF
+PhGetStringRefOrEmpty(
     _In_opt_ PPH_STRING String
     )
 {
@@ -1252,7 +1346,9 @@ FORCEINLINE PH_STRINGREF PhGetStringRefOrEmpty(
  * if the supplied pointer is non-NULL, otherwise
  * the specified alternative string.
  */
-FORCEINLINE PWSTR PhGetStringOrDefault(
+FORCEINLINE
+PWSTR
+PhGetStringOrDefault(
     _In_opt_ PPH_STRING String,
     _In_ PWSTR DefaultString
     )
@@ -1268,7 +1364,9 @@ FORCEINLINE PWSTR PhGetStringOrDefault(
  *
  * \param String A pointer to a string object.
  */
-FORCEINLINE BOOLEAN PhIsNullOrEmptyString(
+FORCEINLINE
+BOOLEAN
+PhIsNullOrEmptyString(
     _In_opt_ PPH_STRING String
     )
 {
@@ -1280,7 +1378,9 @@ FORCEINLINE BOOLEAN PhIsNullOrEmptyString(
  *
  * \param String A string to duplicate.
  */
-FORCEINLINE PPH_STRING PhDuplicateString(
+FORCEINLINE
+PPH_STRING
+PhDuplicateString(
     _In_ PPH_STRING String
     )
 {
@@ -1294,7 +1394,9 @@ FORCEINLINE PPH_STRING PhDuplicateString(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE LONG PhCompareString(
+FORCEINLINE
+LONG
+PhCompareString(
     _In_ PPH_STRING String1,
     _In_ PPH_STRING String2,
     _In_ BOOLEAN IgnoreCase
@@ -1313,7 +1415,9 @@ FORCEINLINE LONG PhCompareString(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE LONG PhCompareString2(
+FORCEINLINE
+LONG
+PhCompareString2(
     _In_ PPH_STRING String1,
     _In_ PWSTR String2,
     _In_ BOOLEAN IgnoreCase
@@ -1336,7 +1440,9 @@ FORCEINLINE LONG PhCompareString2(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE LONG PhCompareStringWithNull(
+FORCEINLINE
+LONG
+PhCompareStringWithNull(
     _In_opt_ PPH_STRING String1,
     _In_opt_ PPH_STRING String2,
     _In_ BOOLEAN IgnoreCase
@@ -1363,7 +1469,9 @@ FORCEINLINE LONG PhCompareStringWithNull(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE BOOLEAN PhEqualString(
+FORCEINLINE
+BOOLEAN
+PhEqualString(
     _In_ PPH_STRING String1,
     _In_ PPH_STRING String2,
     _In_ BOOLEAN IgnoreCase
@@ -1379,7 +1487,9 @@ FORCEINLINE BOOLEAN PhEqualString(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE BOOLEAN PhEqualString2(
+FORCEINLINE
+BOOLEAN
+PhEqualString2(
     _In_ PPH_STRING String1,
     _In_ PWSTR String2,
     _In_ BOOLEAN IgnoreCase
@@ -1398,85 +1508,89 @@ FORCEINLINE BOOLEAN PhEqualString2(
 /**
  * Determines whether a string starts with another.
  *
- * \param String1 The first string.
- * \param String2 The second string.
+ * \param String The first string.
+ * \param Prefix The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 starts with \a String2,
- * otherwise FALSE.
+ * \return TRUE if \a String starts with \a Prefix, otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhStartsWithString(
-    _In_ PPH_STRING String1,
-    _In_ PPH_STRING String2,
+FORCEINLINE
+BOOLEAN
+PhStartsWithString(
+    _In_ PPH_STRING String,
+    _In_ PPH_STRING Prefix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    return PhStartsWithStringRef(&String1->sr, &String2->sr, IgnoreCase);
+    return PhStartsWithStringRef(&String->sr, &Prefix->sr, IgnoreCase);
 }
 
 /**
  * Determines whether a string starts with another.
  *
- * \param String1 The first string.
- * \param String2 The second string.
+ * \param String The first string.
+ * \param Prefix The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 starts with \a String2,
- * otherwise FALSE.
+ * \return TRUE if \a String starts with \a Prefix, otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhStartsWithString2(
-    _In_ PPH_STRING String1,
-    _In_ PWSTR String2,
+FORCEINLINE
+BOOLEAN
+PhStartsWithString2(
+    _In_ PPH_STRING String,
+    _In_ PWSTR Prefix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr2;
+    PH_STRINGREF prefix;
 
-    PhInitializeStringRef(&sr2, String2);
+    PhInitializeStringRef(&prefix, Prefix);
 
-    return PhStartsWithStringRef(&String1->sr, &sr2, IgnoreCase);
+    return PhStartsWithStringRef(&String->sr, &prefix, IgnoreCase);
 }
 
 /**
  * Determines whether a string ends with another.
  *
- * \param String1 The first string.
- * \param String2 The second string.
+ * \param String The first string.
+ * \param Suffix The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 ends with \a String2,
- * otherwise FALSE.
+ * \return TRUE if \a String ends with \a Suffix, otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhEndsWithString(
-    _In_ PPH_STRING String1,
-    _In_ PPH_STRING String2,
+FORCEINLINE
+BOOLEAN
+PhEndsWithString(
+    _In_ PPH_STRING String,
+    _In_ PPH_STRING Suffix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    return PhEndsWithStringRef(&String1->sr, &String2->sr, IgnoreCase);
+    return PhEndsWithStringRef(&String->sr, &Suffix->sr, IgnoreCase);
 }
 
 /**
  * Determines whether a string ends with another.
  *
- * \param String1 The first string.
- * \param String2 The second string.
+ * \param String The first string.
+ * \param Suffix The second string.
  * \param IgnoreCase Whether to ignore character cases.
  *
- * \return TRUE if \a String1 ends with \a String2,
- * otherwise FALSE.
+ * \return TRUE if \a String ends with \a Suffix, otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhEndsWithString2(
-    _In_ PPH_STRING String1,
-    _In_ PWSTR String2,
+FORCEINLINE
+BOOLEAN
+PhEndsWithString2(
+    _In_ PPH_STRING String,
+    _In_ PWSTR Suffix,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr2;
+    PH_STRINGREF suffix;
 
-    PhInitializeStringRef(&sr2, String2);
+    PhInitializeStringRef(&suffix, Suffix);
 
-    return PhEndsWithStringRef(&String1->sr, &sr2, IgnoreCase);
+    return PhEndsWithStringRef(&String->sr, &suffix, IgnoreCase);
 }
 
 /**
@@ -1490,7 +1604,9 @@ FORCEINLINE BOOLEAN PhEndsWithString2(
  * \a Char in \a String after \a StartIndex. If \a Char was not
  * found, -1 is returned.
  */
-FORCEINLINE ULONG_PTR PhFindCharInString(
+FORCEINLINE
+ULONG_PTR
+PhFindCharInString(
     _In_ PPH_STRING String,
     _In_ SIZE_T StartIndex,
     _In_ WCHAR Char
@@ -1502,10 +1618,7 @@ FORCEINLINE ULONG_PTR PhFindCharInString(
         PH_STRINGREF sr;
 
         sr = String->sr;
-
-        sr.Buffer += StartIndex;
-        sr.Length -= StartIndex * sizeof(WCHAR);
-
+        PhSkipStringRef(&sr, StartIndex * sizeof(WCHAR));
         r = PhFindCharInStringRef(&sr, Char, FALSE);
 
         if (r != -1)
@@ -1530,7 +1643,9 @@ FORCEINLINE ULONG_PTR PhFindCharInString(
  * \a Char in \a String after \a StartIndex. If \a Char was not
  * found, -1 is returned.
  */
-FORCEINLINE ULONG_PTR PhFindLastCharInString(
+FORCEINLINE
+ULONG_PTR
+PhFindLastCharInString(
     _In_ PPH_STRING String,
     _In_ SIZE_T StartIndex,
     _In_ WCHAR Char
@@ -1542,10 +1657,7 @@ FORCEINLINE ULONG_PTR PhFindLastCharInString(
         PH_STRINGREF sr;
 
         sr = String->sr;
-
-        sr.Buffer += StartIndex;
-        sr.Length -= StartIndex * sizeof(WCHAR);
-
+        PhSkipStringRef(&sr, StartIndex * sizeof(WCHAR));
         r = PhFindLastCharInStringRef(&sr, Char, FALSE);
 
         if (r != -1)
@@ -1562,34 +1674,33 @@ FORCEINLINE ULONG_PTR PhFindLastCharInString(
 /**
  * Locates a string in a string.
  *
- * \param String1 The string to search.
+ * \param String The string to search.
  * \param StartIndex The index, in characters, to start searching at.
- * \param String2 The string to search for.
+ * \param SubString The string to search for.
  *
  * \return The index, in characters, of the first occurrence of
- * \a String2 in \a String1 after \a StartIndex. If \a String2 was not
+ * \a SubString in \a String after \a StartIndex. If \a SubString was not
  * found, -1 is returned.
  */
-FORCEINLINE ULONG_PTR PhFindStringInString(
-    _In_ PPH_STRING String1,
+FORCEINLINE
+ULONG_PTR
+PhFindStringInString(
+    _In_ PPH_STRING String,
     _In_ SIZE_T StartIndex,
-    _In_ PWSTR String2
+    _In_ PWSTR SubString
     )
 {
     PH_STRINGREF sr2;
 
-    PhInitializeStringRef(&sr2, String2);
+    PhInitializeStringRef(&sr2, SubString);
 
     if (StartIndex != 0)
     {
         ULONG_PTR r;
         PH_STRINGREF sr1;
 
-        sr1 = String1->sr;
-
-        sr1.Buffer += StartIndex;
-        sr1.Length -= StartIndex * sizeof(WCHAR);
-
+        sr1 = String->sr;
+        PhSkipStringRef(&sr1, StartIndex * sizeof(WCHAR));
         r = PhFindStringInStringRef(&sr1, &sr2, FALSE);
 
         if (r != -1)
@@ -1599,7 +1710,7 @@ FORCEINLINE ULONG_PTR PhFindStringInString(
     }
     else
     {
-        return PhFindStringInStringRef(&String1->sr, &sr2, FALSE);
+        return PhFindStringInStringRef(&String->sr, &sr2, FALSE);
     }
 }
 
@@ -1610,7 +1721,9 @@ FORCEINLINE ULONG_PTR PhFindStringInString(
  * \param StartIndex The start index, in characters.
  * \param Count The number of characters to use.
  */
-FORCEINLINE PPH_STRING PhSubstring(
+FORCEINLINE
+PPH_STRING
+PhSubstring(
     _In_ PPH_STRING String,
     _In_ SIZE_T StartIndex,
     _In_ SIZE_T Count
@@ -1624,7 +1737,9 @@ FORCEINLINE PPH_STRING PhSubstring(
  *
  * \param String The string to convert.
  */
-FORCEINLINE VOID PhLowerString(
+FORCEINLINE
+VOID
+PhLowerString(
     _Inout_ PPH_STRING String
     )
 {
@@ -1636,7 +1751,9 @@ FORCEINLINE VOID PhLowerString(
  *
  * \param String The string to convert.
  */
-FORCEINLINE VOID PhUpperString(
+FORCEINLINE
+VOID
+PhUpperString(
     _Inout_ PPH_STRING String
     )
 {
@@ -1653,7 +1770,9 @@ FORCEINLINE VOID PhUpperString(
  * \remarks Use this function after modifying a string
  * object's buffer manually.
  */
-FORCEINLINE VOID PhTrimToNullTerminatorString(
+FORCEINLINE
+VOID
+PhTrimToNullTerminatorString(
     _Inout_ PPH_STRING String
     )
 {
@@ -1712,6 +1831,15 @@ PhCreateBytesEx(
     _In_ SIZE_T Length
     );
 
+FORCEINLINE
+PPH_BYTES
+PhCreateBytes2(
+    _In_ PPH_BYTESREF Bytes
+    )
+{
+    return PhCreateBytesEx(Bytes->Buffer, Bytes->Length);
+}
+
 // Unicode
 
 #define PH_UNICODE_BYTE_ORDER_MARK 0xfeff
@@ -1761,7 +1889,9 @@ typedef struct _PH_UNICODE_DECODER
     } u;
 } PH_UNICODE_DECODER, *PPH_UNICODE_DECODER;
 
-FORCEINLINE VOID PhInitializeUnicodeDecoder(
+FORCEINLINE
+VOID
+PhInitializeUnicodeDecoder(
     _Out_ PPH_UNICODE_DECODER Decoder,
     _In_ UCHAR Encoding
     )
@@ -1815,7 +1945,9 @@ PhZeroExtendToUtf16Ex(
     _In_ SIZE_T InputLength
     );
 
-FORCEINLINE PPH_STRING PhZeroExtendToUtf16(
+FORCEINLINE
+PPH_STRING
+PhZeroExtendToUtf16(
     _In_ PSTR Input
     )
 {
@@ -1833,7 +1965,9 @@ PhConvertUtf16ToAsciiEx(
     _In_opt_ CHAR Replacement
     );
 
-FORCEINLINE PPH_BYTES PhConvertUtf16ToAscii(
+FORCEINLINE
+PPH_BYTES
+PhConvertUtf16ToAscii(
     _In_ PWSTR Buffer,
     _In_opt_ CHAR Replacement
     )
@@ -2285,7 +2419,9 @@ PhRemoveItemPointerList(
     _In_ HANDLE PointerHandle
     );
 
-FORCEINLINE BOOLEAN PhEnumPointerList(
+FORCEINLINE
+BOOLEAN
+PhEnumPointerList(
     _In_ PPH_POINTER_LIST PointerList,
     _Inout_ PULONG EnumerationKey,
     _Out_ PVOID *Pointer
@@ -2324,7 +2460,9 @@ typedef struct _PH_HASH_ENTRY
  * \param Buckets The bucket array.
  * \param NumberOfBuckets The number of buckets.
  */
-FORCEINLINE VOID PhInitializeHashSet(
+FORCEINLINE
+VOID
+PhInitializeHashSet(
     _Out_ PPH_HASH_ENTRY *Buckets,
     _In_ ULONG NumberOfBuckets
     )
@@ -2340,7 +2478,9 @@ FORCEINLINE VOID PhInitializeHashSet(
  * \return The allocated hash set. You must free it with
  * PhFree() when you no longer need it.
  */
-FORCEINLINE PPH_HASH_ENTRY *PhCreateHashSet(
+FORCEINLINE
+PPH_HASH_ENTRY *
+PhCreateHashSet(
     _In_ ULONG NumberOfBuckets
     )
 {
@@ -2360,7 +2500,9 @@ FORCEINLINE PPH_HASH_ENTRY *PhCreateHashSet(
  *
  * \return The number of entries in the hash set.
  */
-FORCEINLINE ULONG PhCountHashSet(
+FORCEINLINE
+ULONG
+PhCountHashSet(
     _In_ PPH_HASH_ENTRY *Buckets,
     _In_ ULONG NumberOfBuckets
     )
@@ -2390,7 +2532,9 @@ FORCEINLINE ULONG PhCountHashSet(
  *
  * \remarks \a NewBuckets and \a OldBuckets must be different.
  */
-FORCEINLINE VOID PhDistributeHashSet(
+FORCEINLINE
+VOID
+PhDistributeHashSet(
     _Inout_ PPH_HASH_ENTRY *NewBuckets,
     _In_ ULONG NumberOfNewBuckets,
     _In_ PPH_HASH_ENTRY *OldBuckets,
@@ -2429,7 +2573,9 @@ FORCEINLINE VOID PhDistributeHashSet(
  *
  * \remarks This function does not check for duplicates.
  */
-FORCEINLINE VOID PhAddEntryHashSet(
+FORCEINLINE
+VOID
+PhAddEntryHashSet(
     _Inout_ PPH_HASH_ENTRY *Buckets,
     _In_ ULONG NumberOfBuckets,
     _Out_ PPH_HASH_ENTRY Entry,
@@ -2457,7 +2603,9 @@ FORCEINLINE VOID PhAddEntryHashSet(
  * \remarks If the function returns NULL, the entry
  * does not exist in the hash set.
  */
-FORCEINLINE PPH_HASH_ENTRY PhFindEntryHashSet(
+FORCEINLINE
+PPH_HASH_ENTRY
+PhFindEntryHashSet(
     _In_ PPH_HASH_ENTRY *Buckets,
     _In_ ULONG NumberOfBuckets,
     _In_ ULONG Hash
@@ -2473,7 +2621,9 @@ FORCEINLINE PPH_HASH_ENTRY PhFindEntryHashSet(
  * \param NumberOfBuckets The number of buckets.
  * \param Entry An entry present in the hash set.
  */
-FORCEINLINE VOID PhRemoveEntryHashSet(
+FORCEINLINE
+VOID
+PhRemoveEntryHashSet(
     _Inout_ PPH_HASH_ENTRY *Buckets,
     _In_ ULONG NumberOfBuckets,
     _Inout_ PPH_HASH_ENTRY Entry
@@ -2517,7 +2667,9 @@ FORCEINLINE VOID PhRemoveEntryHashSet(
  * new number of buckets is stored in this variable.
  * \param NewNumberOfBuckets The new number of buckets.
  */
-FORCEINLINE VOID PhResizeHashSet(
+FORCEINLINE
+VOID
+PhResizeHashSet(
     _Inout_ PPH_HASH_ENTRY **Buckets,
     _Inout_ PULONG NumberOfBuckets,
     _In_ ULONG NewNumberOfBuckets
@@ -2694,7 +2846,9 @@ typedef struct _PH_HASHTABLE_ENUM_CONTEXT
     ULONG_PTR Step;
 } PH_HASHTABLE_ENUM_CONTEXT, *PPH_HASHTABLE_ENUM_CONTEXT;
 
-FORCEINLINE VOID PhBeginEnumHashtable(
+FORCEINLINE
+VOID
+PhBeginEnumHashtable(
     _In_ PPH_HASHTABLE Hashtable,
     _Out_ PPH_HASHTABLE_ENUM_CONTEXT Context
     )
@@ -2704,7 +2858,9 @@ FORCEINLINE VOID PhBeginEnumHashtable(
     Context->End = Context->Current + (ULONG_PTR)Hashtable->NextEntry * Context->Step;
 }
 
-FORCEINLINE PVOID PhNextEnumHashtable(
+FORCEINLINE
+PVOID
+PhNextEnumHashtable(
     _Inout_ PPH_HASHTABLE_ENUM_CONTEXT Context
     )
 {
@@ -2751,7 +2907,9 @@ PhfHashBytesSdbm(
     _In_ SIZE_T Length
     );
 
-FORCEINLINE ULONG PhHashInt32(
+FORCEINLINE
+ULONG
+PhHashInt32(
     _In_ ULONG Value
     )
 {
@@ -2760,7 +2918,9 @@ FORCEINLINE ULONG PhHashInt32(
     return Value ^ (Value >> 7) ^ (Value >> 4);
 }
 
-FORCEINLINE ULONG PhHashInt64(
+FORCEINLINE
+ULONG
+PhHashInt64(
     _In_ ULONG64 Value
     )
 {
@@ -2776,7 +2936,9 @@ FORCEINLINE ULONG PhHashInt64(
     return (ULONG)Value;
 }
 
-FORCEINLINE ULONG PhHashIntPtr(
+FORCEINLINE
+ULONG
+PhHashIntPtr(
     _In_ ULONG_PTR Value
     )
 {

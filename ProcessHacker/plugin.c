@@ -83,40 +83,25 @@ BOOLEAN PhpLocateDisabledPlugin(
     _Out_opt_ PULONG FoundIndex
     )
 {
-    BOOLEAN found;
-    SIZE_T i;
-    SIZE_T length;
-    ULONG_PTR endOfPart;
-    PH_STRINGREF part;
+    PH_STRINGREF namePart;
+    PH_STRINGREF remainingPart;
 
-    found = FALSE;
-    i = 0;
-    length = List->Length / 2;
+    remainingPart = List->sr;
 
-    while (i < length)
+    while (remainingPart.Length != 0)
     {
-        endOfPart = PhFindCharInString(List, i, '|');
+        PhSplitStringRefAtChar(&remainingPart, '|', &namePart, &remainingPart);
 
-        if (endOfPart == -1)
-            endOfPart = length;
-
-        part.Buffer = &List->Buffer[i];
-        part.Length = (endOfPart - i) * sizeof(WCHAR);
-
-        if (PhEqualStringRef(&part, BaseName, TRUE))
+        if (PhEqualStringRef(&namePart, BaseName, TRUE))
         {
-            found = TRUE;
-
             if (FoundIndex)
-                *FoundIndex = (ULONG)i;
+                *FoundIndex = (ULONG)(namePart.Buffer - List->Buffer);
 
-            break;
+            return TRUE;
         }
-
-        i = endOfPart + 1;
     }
 
-    return found;
+    return FALSE;
 }
 
 BOOLEAN PhIsPluginDisabled(
@@ -384,7 +369,7 @@ VOID PhpExecuteCallbackForAllPlugins(
                     if (!parameters)
                         parameters = PhCreateList(3);
 
-                    PhAddItemList(parameters, PhCreateStringEx(parameter.Buffer, parameter.Length));
+                    PhAddItemList(parameters, PhCreateString2(&parameter));
                 }
             }
         }

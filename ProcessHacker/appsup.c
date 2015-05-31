@@ -399,8 +399,7 @@ NTSTATUS PhGetProcessKnownType(
         // 1. \\xyz.exe - Windows executable.
         // 2. \\System32\\xyz.exe - system32 executable.
         // 3. \\SysWow64\\xyz.exe - system32 executable + WOW64.
-        name.Buffer += systemRootPrefix.Length / 2;
-        name.Length -= systemRootPrefix.Length;
+        PhSkipStringRef(&name, systemRootPrefix.Length);
 
         if (PhEqualStringRef2(&name, L"\\explorer.exe", TRUE))
         {
@@ -414,8 +413,7 @@ NTSTATUS PhGetProcessKnownType(
             )
         {
             // SysTem32 and SysWow64 are both 8 characters long.
-            name.Buffer += 9;
-            name.Length -= 9 * 2;
+            PhSkipStringRef(&name, 9 * sizeof(WCHAR));
 
             if (FALSE)
                 ; // Dummy
@@ -522,7 +520,8 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // rundll32.exe <DllName>,<ProcedureName> ...
 
             SIZE_T i;
-            ULONG_PTR lastIndexOfComma;
+            PH_STRINGREF dllNamePart;
+            PH_STRINGREF procedureNamePart;
             PPH_STRING dllName;
             PPH_STRING procedureName;
 
@@ -551,17 +550,11 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // The procedure name begins after the last comma.
 
-            lastIndexOfComma = PhFindLastCharInString(dllName, 0, ',');
-
-            if (lastIndexOfComma == -1)
+            if (!PhSplitStringRefAtLastChar(&dllName->sr, ',', &dllNamePart, &procedureNamePart))
                 return FALSE;
 
-            procedureName = PhaSubstring(
-                dllName,
-                lastIndexOfComma + 1,
-                dllName->Length / 2 - lastIndexOfComma - 1
-                );
-            dllName = PhaSubstring(dllName, 0, lastIndexOfComma);
+            dllName = PhAutoDereferenceObject(PhCreateString2(&dllNamePart));
+            procedureName = PhAutoDereferenceObject(PhCreateString2(&procedureNamePart));
 
             // If the DLL name isn't an absolute path, assume it's in system32.
             // TODO: Use a proper search function.

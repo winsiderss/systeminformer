@@ -610,7 +610,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                         if (callback(ProcessTreeNewHandle, TreeNewGetCellTooltip, &fakeGetCellTooltip, NULL, callbackContext))
                         {
-                            node->TooltipText = PhCreateStringEx(fakeGetCellTooltip.Text.Buffer, fakeGetCellTooltip.Text.Length);
+                            node->TooltipText = PhCreateString2(&fakeGetCellTooltip.Text);
                         }
                     }
                 }

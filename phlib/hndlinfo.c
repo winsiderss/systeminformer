@@ -262,7 +262,7 @@ NTSTATUS PhpGetObjectTypeName(
         }
 
         // Create a copy of the type name.
-        typeName = PhCreateStringEx(buffer->TypeName.Buffer, buffer->TypeName.Length);
+        typeName = PhCreateStringFromUnicodeString(&buffer->TypeName);
 
         if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         {
@@ -357,7 +357,7 @@ NTSTATUS PhpGetObjectName(
 
     if (NT_SUCCESS(status))
     {
-        *ObjectName = PhCreateStringEx(buffer->Name.Buffer, buffer->Name.Length);
+        *ObjectName = PhCreateStringFromUnicodeString(&buffer->Name);
     }
 
     PhFree(buffer);
@@ -426,32 +426,27 @@ PPH_STRING PhFormatNativeKeyName(
 
     if (PhStartsWithStringRef(&name, &hkcrPrefix, TRUE))
     {
-        name.Buffer += hkcrPrefix.Length / sizeof(WCHAR);
-        name.Length -= hkcrPrefix.Length;
+        PhSkipStringRef(&name, hkcrPrefix.Length);
         newName = PhConcatStringRef2(&hkcrString, &name);
     }
     else if (PhStartsWithStringRef(&name, &hklmPrefix, TRUE))
     {
-        name.Buffer += hklmPrefix.Length / sizeof(WCHAR);
-        name.Length -= hklmPrefix.Length;
+        PhSkipStringRef(&name, hklmPrefix.Length);
         newName = PhConcatStringRef2(&hklmString, &name);
     }
     else if (PhStartsWithStringRef(&name, &hkcucrPrefix->sr, TRUE))
     {
-        name.Buffer += hkcucrPrefix->Length / sizeof(WCHAR);
-        name.Length -= hkcucrPrefix->Length;
+        PhSkipStringRef(&name, hkcucrPrefix->Length);
         newName = PhConcatStringRef2(&hkcucrString, &name);
     }
     else if (PhStartsWithStringRef(&name, &hkcuPrefix->sr, TRUE))
     {
-        name.Buffer += hkcuPrefix->Length / sizeof(WCHAR);
-        name.Length -= hkcuPrefix->Length;
+        PhSkipStringRef(&name, hkcuPrefix->Length);
         newName = PhConcatStringRef2(&hkcuString, &name);
     }
     else if (PhStartsWithStringRef(&name, &hkuPrefix, TRUE))
     {
-        name.Buffer += hkuPrefix.Length / sizeof(WCHAR);
-        name.Length -= hkuPrefix.Length;
+        PhSkipStringRef(&name, hkuPrefix.Length);
         newName = PhConcatStringRef2(&hkuString, &name);
     }
     else

@@ -236,7 +236,7 @@ VOID PhpAddDisabledPlugins(
                 PhAddItemList(DisabledPluginInstances, disabledPlugin);
                 PhAddItemSimpleHashtable(DisabledPluginLookup, disabledPlugin, NULL);
 
-                displayText = PhCreateStringEx(part.Buffer, part.Length);
+                displayText = PhCreateString2(&part);
                 lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, displayText->Buffer, disabledPlugin);
                 PhDereferenceObject(displayText);
             }
