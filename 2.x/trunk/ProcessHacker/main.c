@@ -245,8 +245,7 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
-#ifndef _WIN64
-    if (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+    if (PH_EXECUTING_IN_WOW64)
     {
         PhShowWarning(
             NULL,
@@ -255,7 +254,6 @@ INT WINAPI wWinMain(
             L"Please run the 64-bit version of Process Hacker instead."
             );
     }
-#endif
 
     PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins;
 
