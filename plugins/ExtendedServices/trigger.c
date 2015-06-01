@@ -908,7 +908,7 @@ VOID EsHandleEventServiceTrigger(
 
             lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
 
-            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PPVOID)&info))
+            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
             {
                 index = PhFindItemList(Context->InfoList, info);
 
@@ -959,7 +959,7 @@ VOID EsHandleEventServiceTrigger(
 
             lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
 
-            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PPVOID)&info))
+            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
             {
                 index = PhFindItemList(Context->InfoList, info);
 
@@ -1417,7 +1417,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     lvItemIndex = ListView_GetNextItem(lvHandle, -1, LVNI_SELECTED);
 
                     if (
-                        lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PPVOID)&data) &&
+                        lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data) &&
                         data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING // editing binary values is not supported
                         )
                     {
@@ -1459,7 +1459,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
                     lvItemIndex = ListView_GetNextItem(lvHandle, -1, LVNI_SELECTED);
 
-                    if (lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PPVOID)&data))
+                    if (lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data))
                     {
                         index = PhFindItemList(context->EditingInfo->DataList, data);
 

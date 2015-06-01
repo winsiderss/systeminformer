@@ -124,7 +124,7 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
     )
 {
     return _InterlockedExchangePointer(
-        (PPVOID)&PhHandleGetClientIdName,
+        (PVOID *)&PhHandleGetClientIdName,
         GetClientIdName
         );
 }

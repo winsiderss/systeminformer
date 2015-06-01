@@ -4677,7 +4677,7 @@ VOID PhMwpNeedServiceTreeList(
             PPH_SERVICE_ITEM serviceItem;
             ULONG enumerationKey = 0;
 
-            while (PhEnumPointerList(ServicesPendingList, &enumerationKey, (PPVOID)&serviceItem))
+            while (PhEnumPointerList(ServicesPendingList, &enumerationKey, (PVOID *)&serviceItem))
             {
                 PhMwpOnServiceAdded(serviceItem, 1);
             }
