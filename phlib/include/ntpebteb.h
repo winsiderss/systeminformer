@@ -1,10 +1,6 @@
 #ifndef _NTPEBTEB_H
 #define _NTPEBTEB_H
 
-#if (PHNT_MODE == PHNT_MODE_KERNEL)
-typedef PVOID *PPVOID;
-#endif
-
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
 
@@ -66,7 +62,7 @@ typedef struct _PEB
     ULONG TlsBitmapBits[2];
     PVOID ReadOnlySharedMemoryBase;
     PVOID HotpatchInformation;
-    PPVOID ReadOnlyStaticServerData;
+    PVOID *ReadOnlyStaticServerData;
     PVOID AnsiCodePageData;
     PVOID OemCodePageData;
     PVOID UnicodeCaseTableData;
@@ -82,7 +78,7 @@ typedef struct _PEB
 
     ULONG NumberOfHeaps;
     ULONG MaximumNumberOfHeaps;
-    PPVOID ProcessHeaps;
+    PVOID *ProcessHeaps;
 
     PVOID GdiSharedHandleTable;
     PVOID ProcessStarterHelper;
@@ -121,7 +117,7 @@ typedef struct _PEB
 
     SIZE_T MinimumStackCommit;
 
-    PPVOID FlsCallback;
+    PVOID *FlsCallback;
     LIST_ENTRY FlsListHead;
     PVOID FlsBitmap;
     ULONG FlsBitmapBits[FLS_MAXIMUM_AVAILABLE / (sizeof(ULONG) * 8)];
@@ -258,7 +254,7 @@ typedef struct _TEB
     PVOID SavedPriorityState;
     ULONG_PTR SoftPatchPtr1;
     PVOID ThreadPoolData;
-    PPVOID TlsExpansionSlots;
+    PVOID *TlsExpansionSlots;
 #ifdef _WIN64
     PVOID DeallocationBStore;
     PVOID BStoreLimit;

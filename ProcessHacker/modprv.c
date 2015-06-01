@@ -283,7 +283,7 @@ VOID PhDereferenceAllModuleItems(
 
     PhAcquireFastLockExclusive(&ModuleProvider->ModuleHashtableLock);
 
-    while (PhEnumHashtable(ModuleProvider->ModuleHashtable, (PPVOID)&moduleItem, &enumerationKey))
+    while (PhEnumHashtable(ModuleProvider->ModuleHashtable, (PVOID *)&moduleItem, &enumerationKey))
     {
         PhDereferenceObject(*moduleItem);
     }
@@ -386,7 +386,7 @@ VOID PhModuleProviderUpdate(
         ULONG enumerationKey = 0;
         PPH_MODULE_ITEM *moduleItem;
 
-        while (PhEnumHashtable(moduleProvider->ModuleHashtable, (PPVOID)&moduleItem, &enumerationKey))
+        while (PhEnumHashtable(moduleProvider->ModuleHashtable, (PVOID *)&moduleItem, &enumerationKey))
         {
             BOOLEAN found = FALSE;
 

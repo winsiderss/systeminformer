@@ -198,7 +198,7 @@ FORCEINLINE VOID PhAcquireQueuedLockShared(
     )
 {
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PPVOID)&QueuedLock->Value,
+        (PVOID *)&QueuedLock->Value,
         (PVOID)(PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC),
         (PVOID)0
         ) != 0)
@@ -247,7 +247,7 @@ FORCEINLINE VOID PhReleaseQueuedLockShared(
     value = PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC;
 
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PPVOID)&QueuedLock->Value,
+        (PVOID *)&QueuedLock->Value,
         (PVOID)0,
         (PVOID)value
         ) != value)

@@ -492,7 +492,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                     lvItemIndex = ListView_GetNextItem(context->PrivilegesLv, -1, LVNI_SELECTED);
 
-                    if (lvItemIndex != -1 && PhGetListViewItemParam(context->PrivilegesLv, lvItemIndex, (PPVOID)&privilegeString))
+                    if (lvItemIndex != -1 && PhGetListViewItemParam(context->PrivilegesLv, lvItemIndex, (PVOID *)&privilegeString))
                     {
                         index = PhFindItemList(context->PrivilegeList, privilegeString);
 

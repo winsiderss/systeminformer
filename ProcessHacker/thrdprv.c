@@ -499,7 +499,7 @@ VOID PhDereferenceAllThreadItems(
 
     PhAcquireFastLockExclusive(&ThreadProvider->ThreadHashtableLock);
 
-    while (PhEnumHashtable(ThreadProvider->ThreadHashtable, (PPVOID)&threadItem, &enumerationKey))
+    while (PhEnumHashtable(ThreadProvider->ThreadHashtable, (PVOID *)&threadItem, &enumerationKey))
     {
         PhDereferenceObject(*threadItem);
     }
@@ -754,7 +754,7 @@ VOID PhpThreadProviderUpdate(
         ULONG enumerationKey = 0;
         PPH_THREAD_ITEM *threadItem;
 
-        while (PhEnumHashtable(threadProvider->ThreadHashtable, (PPVOID)&threadItem, &enumerationKey))
+        while (PhEnumHashtable(threadProvider->ThreadHashtable, (PVOID *)&threadItem, &enumerationKey))
         {
             BOOLEAN found = FALSE;
 
