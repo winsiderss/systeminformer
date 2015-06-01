@@ -205,9 +205,9 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             // Disable the CPU checkboxes which aren't part of the system affinity mask,
             // and check the CPU checkboxes which are part of the affinity mask.
 
-            for (i = 0; i < sizeof(ULONG_PTR) * 8; i++)
+            for (i = 0; i < 8 * 8; i++)
             {
-                if ((systemAffinityMask >> i) & 0x1)
+                if ((i < sizeof(ULONG_PTR) * 8) && ((systemAffinityMask >> i) & 0x1))
                 {
                     if ((affinityMask >> i) & 0x1)
                     {
