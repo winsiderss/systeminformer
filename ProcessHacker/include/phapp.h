@@ -44,6 +44,12 @@ extern COLORREF PhSysWindowColor;
 
 // main
 
+#ifdef _WIN64
+#define PH_EXECUTING_IN_WOW64 (FALSE)
+#else
+#define PH_EXECUTING_IN_WOW64 (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+#endif
+
 typedef struct _PH_STARTUP_PARAMETERS
 {
     union
