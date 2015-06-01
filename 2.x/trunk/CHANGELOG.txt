@@ -9,6 +9,7 @@ Process Hacker
    * Added file information to service list tooltips
    * Balloon tips for process/service notifications are now clickable
    * Added handle names for unnamed File objects
+   * Added warning for users who attempt to start the 32-bit version on 64-bit Windows
    * Updated DotNetTools plugin:
      * Added AppDomain column for threads in .NET programs
    * Updated ExtendedServices plugin:
