@@ -245,6 +245,18 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
+#ifndef _WIN64
+    if (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+    {
+        PhShowWarning(
+            NULL,
+            L"You are attempting to run the 32-bit version of Process Hacker on 64-bit Windows. "
+            L"Most features will not work correctly.\n\n"
+            L"Please run the 64-bit version of Process Hacker instead."
+            );
+    }
+#endif
+
     PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins;
 
     if (PhPluginsEnabled)
