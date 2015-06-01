@@ -283,7 +283,7 @@ typedef struct _PEB32
     ULONG TlsBitmapBits[2];
     WOW64_POINTER(PVOID) ReadOnlySharedMemoryBase;
     WOW64_POINTER(PVOID) HotpatchInformation;
-    WOW64_POINTER(PPVOID) ReadOnlyStaticServerData;
+    WOW64_POINTER(PVOID *) ReadOnlyStaticServerData;
     WOW64_POINTER(PVOID) AnsiCodePageData;
     WOW64_POINTER(PVOID) OemCodePageData;
     WOW64_POINTER(PVOID) UnicodeCaseTableData;
@@ -299,7 +299,7 @@ typedef struct _PEB32
 
     ULONG NumberOfHeaps;
     ULONG MaximumNumberOfHeaps;
-    WOW64_POINTER(PPVOID) ProcessHeaps;
+    WOW64_POINTER(PVOID *) ProcessHeaps;
 
     WOW64_POINTER(PVOID) GdiSharedHandleTable;
     WOW64_POINTER(PVOID) ProcessStarterHelper;
@@ -338,7 +338,7 @@ typedef struct _PEB32
 
     WOW64_POINTER(SIZE_T) MinimumStackCommit;
 
-    WOW64_POINTER(PPVOID) FlsCallback;
+    WOW64_POINTER(PVOID *) FlsCallback;
     LIST_ENTRY32 FlsListHead;
     WOW64_POINTER(PVOID) FlsBitmap;
     ULONG FlsBitmapBits[FLS_MAXIMUM_AVAILABLE / (sizeof(ULONG) * 8)];

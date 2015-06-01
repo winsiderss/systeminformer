@@ -306,7 +306,7 @@ BOOLEAN FASTCALL PhfWaitForBarrier(
                 newValue = value + PH_BARRIER_COUNT_INC + PH_BARRIER_WAKING;
 
             if ((newValue = (ULONG_PTR)_InterlockedCompareExchangePointer(
-                (PPVOID)&Barrier->Value,
+                (PVOID *)&Barrier->Value,
                 (PVOID)newValue,
                 (PVOID)value
                 )) == value)
@@ -387,7 +387,7 @@ BOOLEAN FASTCALL PhfAcquireRundownProtection(
             return FALSE;
 
         if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-            (PPVOID)&Protection->Value,
+            (PVOID *)&Protection->Value,
             (PVOID)(value + PH_RUNDOWN_REF_INC),
             (PVOID)value
             ) == value)
@@ -427,7 +427,7 @@ VOID FASTCALL PhfReleaseRundownProtection(
             // Decrement the reference count normally.
 
             if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-                (PPVOID)&Protection->Value,
+                (PVOID *)&Protection->Value,
                 (PVOID)(value - PH_RUNDOWN_REF_INC),
                 (PVOID)value
                 ) == value)
@@ -448,7 +448,7 @@ VOID FASTCALL PhfWaitForRundownProtection(
     // Fast path. If the reference count is 0 or
     // rundown has already been completed, return.
     value = (ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PPVOID)&Protection->Value,
+        (PVOID *)&Protection->Value,
         (PVOID)PH_RUNDOWN_ACTIVE,
         (PVOID)0
         );
@@ -474,7 +474,7 @@ VOID FASTCALL PhfWaitForRundownProtection(
         waitBlock.Count = count;
 
         if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-            (PPVOID)&Protection->Value,
+            (PVOID *)&Protection->Value,
             (PVOID)((ULONG_PTR)&waitBlock | PH_RUNDOWN_ACTIVE),
             (PVOID)value
             ) == value)

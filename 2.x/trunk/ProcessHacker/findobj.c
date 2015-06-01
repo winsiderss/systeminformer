@@ -833,7 +833,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
         for (i = 0; i < handles->NumberOfHandles; i++)
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handles->Handles[i];
-            PPVOID processHandlePtr;
+            PVOID *processHandlePtr;
             HANDLE processHandle;
 
             if (SearchStop)

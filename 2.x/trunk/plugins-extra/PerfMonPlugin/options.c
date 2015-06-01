@@ -380,7 +380,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
                     {
                         PPH_PERFMON_ENTRY entry;
 
-                        if (PhGetListViewItemParam(context->ListViewHandle, itemIndex, (PPVOID)&entry))
+                        if (PhGetListViewItemParam(context->ListViewHandle, itemIndex, (PVOID *)&entry))
                         {
                             ULONG index = PhFindItemList(context->CountersListEdited, entry);
 

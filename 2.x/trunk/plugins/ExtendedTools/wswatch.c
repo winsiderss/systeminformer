@@ -322,7 +322,7 @@ static BOOLEAN EtpUpdateWsWatch(
 
     while (wsWatchInfo->BasicInfo.FaultingPc)
     {
-        PPVOID entry;
+        PVOID *entry;
         WCHAR buffer[PH_INT32_STR_LEN_1];
         INT lvItemIndex;
         ULONG newCount;
