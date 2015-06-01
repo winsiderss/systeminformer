@@ -35,15 +35,33 @@
 #include <phappresource.h>
 #include "resource.h"
 
+extern PPH_PLUGIN PluginInstance;
+
 typedef struct _BOOT_WINDOW_CONTEXT
 {
     HWND ListViewHandle;
     PH_LAYOUT_MANAGER LayoutManager;
 } BOOT_WINDOW_CONTEXT, *PBOOT_WINDOW_CONTEXT;
 
+INT_PTR CALLBACK BootEntriesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 typedef BOOLEAN (NTAPI *PPH_BOOT_ENTRY_CALLBACK)(
     _In_ PBOOT_ENTRY BootEntry,
     _In_ PVOID Context
+    );
+
+NTSTATUS PhEnumerateBootEntries(    
+    _In_ PPH_BOOT_ENTRY_CALLBACK BootEntryCallback,
+    _In_opt_ PVOID Context
+    );
+
+NTSTATUS EnumerateBootEntriesThread(
+    _In_ PVOID ThreadParam
     );
 
 #define EFI_DRIVER_ENTRY_VERSION 1
@@ -128,5 +146,15 @@ typedef NTSTATUS (NTAPI* _NtTranslateFilePath)(
     _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
     _Inout_opt_ PULONG OutputFilePathLength
     );
+
+extern _NtAddBootEntry NtAddBootEntry_I;
+extern _NtDeleteBootEntry NtDeleteBootEntry_I;
+extern _NtModifyBootEntry NtModifyBootEntry_I;
+extern _NtEnumerateBootEntries NtEnumerateBootEntries_I;
+extern _NtQueryBootEntryOrder NtQueryBootEntryOrder_I;
+extern _NtSetBootEntryOrder NtSetBootEntryOrder_I;
+extern _NtQueryBootOptions NtQueryBootOptions_I;
+extern _NtSetBootOptions NtSetBootOptions_I;
+extern _NtTranslateFilePath NtTranslateFilePath_I;
 
 #endif _BOOT_H_
