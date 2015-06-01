@@ -63,6 +63,8 @@
     <Import Project="..\ExtraPlugins.props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="boot.c" />
+    <ClCompile Include="dialog.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
