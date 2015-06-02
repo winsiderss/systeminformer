@@ -2,7 +2,7 @@
  * Process Hacker -
  *   main window
  *
- * Copyright (C) 2009-2013 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -2692,17 +2692,13 @@ VOID PhMwpSaveWindowSettings(
         PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
 }
 
-VOID PhMwpSymInitHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID PhLoadDbgHelpFromPath(
+    _In_ PWSTR DbgHelpPath
     )
 {
-    PPH_STRING dbghelpPath;
     HMODULE dbghelpModule;
 
-    dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
-
-    if (dbghelpModule = LoadLibrary(dbghelpPath->Buffer))
+    if (dbghelpModule = LoadLibrary(DbgHelpPath))
     {
         PPH_STRING fullDbghelpPath;
         ULONG indexOfFileName;
@@ -2734,9 +2730,19 @@ VOID PhMwpSymInitHandler(
         LoadLibrary(L"dbghelp.dll");
     }
 
-    PhDereferenceObject(dbghelpPath);
-
     PhSymbolProviderDynamicImport();
+}
+
+VOID PhMwpSymInitHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_STRING dbghelpPath;
+
+    dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
+    PhLoadDbgHelpFromPath(dbghelpPath->Buffer);
+    PhDereferenceObject(dbghelpPath);
 }
 
 VOID PhMwpUpdateLayoutPadding(

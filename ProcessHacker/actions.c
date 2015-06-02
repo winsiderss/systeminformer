@@ -2,7 +2,7 @@
  * Process Hacker -
  *   UI actions
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -47,6 +47,7 @@ static PWSTR DangerousProcesses[] =
 static PPH_STRING DebuggerCommand = NULL;
 static PH_INITONCE DebuggerCommandInitOnce = PH_INITONCE_INIT;
 static ULONG PhSvcReferenceCount = 0;
+static PH_PHSVC_MODE PhSvcCurrentMode;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
 
 HRESULT CALLBACK PhpElevateActionCallbackProc(
@@ -290,13 +291,131 @@ BOOLEAN PhUiConnectToPhSvc(
     _In_ BOOLEAN ConnectOnly
     )
 {
+    return PhUiConnectToPhSvcEx(hWnd, ElevatedPhSvcMode, ConnectOnly);
+}
+
+VOID PhpGetPhSvcPortName(
+    _In_ PH_PHSVC_MODE Mode,
+    _Out_ PUNICODE_STRING PortName
+    )
+{
+    switch (Mode)
+    {
+    case ElevatedPhSvcMode:
+        if (!PhIsExecutingInWow64())
+            RtlInitUnicodeString(PortName, PHSVC_PORT_NAME);
+        else
+        RtlInitUnicodeString(PortName, PHSVC_WOW64_PORT_NAME);
+        break;
+    case Wow64PhSvcMode:
+        RtlInitUnicodeString(PortName, PHSVC_WOW64_PORT_NAME);
+        break;
+    default:
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
+        break;
+    }
+}
+
+BOOLEAN PhpStartPhSvcProcess(
+    _In_opt_ HWND hWnd,
+    _In_ PH_PHSVC_MODE Mode
+    )
+{
+    switch (Mode)
+    {
+    case ElevatedPhSvcMode:
+        if (PhShellProcessHacker(
+            hWnd,
+            L"-phsvc",
+            SW_HIDE,
+            PH_SHELL_EXECUTE_ADMIN,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS,
+            0,
+            NULL
+            ))
+        {
+            return TRUE;
+        }
+
+        break;
+    case Wow64PhSvcMode:
+        {
+            static PWSTR relativeFileNames[] =
+            {
+                L"\\x86\\ProcessHacker.exe",
+                L"\\..\\x86\\ProcessHacker.exe",
+#ifdef DEBUG
+                L"\\..\\Debug32\\ProcessHacker.exe",
+#endif
+                L"\\..\\Release32\\ProcessHacker.exe"
+            };
+
+            ULONG i;
+
+            for (i = 0; i < sizeof(relativeFileNames) / sizeof(PWSTR); i++)
+            {
+                PPH_STRING fileName;
+
+                fileName = PhConcatStrings2(PhApplicationDirectory->Buffer, relativeFileNames[i]);
+                PhMoveReference(&fileName, PhGetFullPath(fileName->Buffer, NULL));
+
+                if (fileName && RtlDoesFileExists_U(fileName->Buffer))
+                {
+                    if (PhShellProcessHackerEx(
+                        hWnd,
+                        fileName->Buffer,
+                        L"-phsvc",
+                        SW_HIDE,
+                        0,
+                        PH_SHELL_APP_PROPAGATE_PARAMETERS,
+                        0,
+                        NULL
+                        ))
+                    {
+                        PhDereferenceObject(fileName);
+                        return TRUE;
+                    }
+                }
+
+                PhClearReference(&fileName);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+/**
+ * Connects to phsvc.
+ *
+ * \param hWnd The window to display user interface components on.
+ * \param Mode The type of phsvc instance to connect to.
+ * \param ConnectOnly TRUE to only try to connect to phsvc, otherwise
+ * FALSE to try to elevate and start phsvc if the initial connection
+ * attempt failed.
+ */
+BOOLEAN PhUiConnectToPhSvcEx(
+    _In_opt_ HWND hWnd,
+    _In_ PH_PHSVC_MODE Mode,
+    _In_ BOOLEAN ConnectOnly
+    )
+{
     NTSTATUS status;
     BOOLEAN started;
     UNICODE_STRING portName;
 
     if (_InterlockedIncrementNoZero(&PhSvcReferenceCount))
     {
-        started = TRUE;
+        if (PhSvcCurrentMode == Mode)
+        {
+            started = TRUE;
+        }
+        else
+        {
+            _InterlockedDecrement(&PhSvcReferenceCount);
+            started = FALSE;
+        }
     }
     else
     {
@@ -305,7 +424,7 @@ BOOLEAN PhUiConnectToPhSvc(
         if (PhSvcReferenceCount == 0)
         {
             started = FALSE;
-            RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
+            PhpGetPhSvcPortName(Mode, &portName);
 
             // Try to connect first, then start the server if we failed.
             status = PhSvcConnectToServer(&portName, 0);
@@ -313,24 +432,15 @@ BOOLEAN PhUiConnectToPhSvc(
             if (NT_SUCCESS(status))
             {
                 started = TRUE;
+                PhSvcCurrentMode = Mode;
                 _InterlockedIncrement(&PhSvcReferenceCount);
             }
             else if (!ConnectOnly)
             {
                 // Prompt for elevation, and then try to connect to the server.
 
-                if (PhShellProcessHacker(
-                    hWnd,
-                    L"-phsvc",
-                    SW_HIDE,
-                    PH_SHELL_EXECUTE_ADMIN,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS,
-                    0,
-                    NULL
-                    ))
-                {
+                if (PhpStartPhSvcProcess(hWnd, Mode))
                     started = TRUE;
-                }
 
                 if (started)
                 {
@@ -353,14 +463,22 @@ BOOLEAN PhUiConnectToPhSvc(
                     // Increment the reference count even if we failed.
                     // We don't want to prompt the user again.
 
+                    PhSvcCurrentMode = Mode;
                     _InterlockedIncrement(&PhSvcReferenceCount);
                 }
             }
         }
         else
         {
-            started = TRUE;
-            _InterlockedIncrement(&PhSvcReferenceCount);
+            if (PhSvcCurrentMode == Mode)
+            {
+                started = TRUE;
+                _InterlockedIncrement(&PhSvcReferenceCount);
+            }
+            else
+            {
+                started = FALSE;
+            }
         }
 
         PhReleaseQueuedLockExclusive(&PhSvcStartLock);

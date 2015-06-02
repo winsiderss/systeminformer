@@ -169,7 +169,7 @@ VOID ProcessThreadStackControl(
                         PhMoveReference(&managedSymbol, PhFormatString(L"%s + 0x%I64x", managedSymbol->Buffer, displacement));
                     }
 
-                    if (Control->u.ResolveSymbol.Symbol->Buffer)
+                    if (Control->u.ResolveSymbol.Symbol)
                         PhMoveReference(&managedSymbol, PhFormatString(L"%s <-- %s", managedSymbol->Buffer, Control->u.ResolveSymbol.Symbol->Buffer));
 
                     PhMoveReference(&Control->u.ResolveSymbol.Symbol, managedSymbol);

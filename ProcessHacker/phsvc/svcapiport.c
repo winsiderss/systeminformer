@@ -85,7 +85,7 @@ NTSTATUS PhSvcApiPortInitialization(
         &PhSvcApiPortHandle,
         &objectAttributes,
         sizeof(PHSVC_API_CONNECTINFO),
-        sizeof(PHSVC_API_MSG),
+        PhIsExecutingInWow64() ? sizeof(PHSVC_API_MSG64) : sizeof(PHSVC_API_MSG),
         0
         );
     PhFree(securityDescriptor);
@@ -123,10 +123,12 @@ NTSTATUS PhSvcApiRequestThreadStart(
     PHSVC_THREAD_CONTEXT threadContext;
     HANDLE portHandle;
     PVOID portContext;
-    PHSVC_API_MSG receiveMessage;
-    PPHSVC_API_MSG replyMessage;
+    SIZE_T messageSize;
+    PPORT_MESSAGE receiveMessage;
+    PPORT_MESSAGE replyMessage;
     CSHORT messageType;
     PPHSVC_CLIENT client;
+    PPHSVC_API_PAYLOAD payload;
 
     threadContext.CurrentClient = NULL;
     threadContext.OldClient = NULL;
@@ -134,6 +136,8 @@ NTSTATUS PhSvcApiRequestThreadStart(
     TlsSetValue(PhSvcApiThreadContextTlsIndex, &threadContext);
 
     portHandle = PhSvcApiPortHandle;
+    messageSize = PhIsExecutingInWow64() ? sizeof(PHSVC_API_MSG64) : sizeof(PHSVC_API_MSG);
+    receiveMessage = PhAllocate(messageSize);
     replyMessage = NULL;
 
     while (TRUE)
@@ -141,8 +145,8 @@ NTSTATUS PhSvcApiRequestThreadStart(
         status = NtReplyWaitReceivePort(
             portHandle,
             &portContext,
-            (PPORT_MESSAGE)replyMessage,
-            (PPORT_MESSAGE)&receiveMessage
+            replyMessage,
+            receiveMessage
             );
 
         portHandle = PhSvcApiPortHandle;
@@ -154,23 +158,29 @@ NTSTATUS PhSvcApiRequestThreadStart(
             continue;
         }
 
-        messageType = receiveMessage.h.u2.s2.Type;
+        messageType = receiveMessage->u2.s2.Type;
 
         if (messageType == LPC_CONNECTION_REQUEST)
         {
-            PhSvcHandleConnectionRequest(&receiveMessage);
+            PhSvcHandleConnectionRequest(receiveMessage);
             continue;
         }
 
         if (!portContext)
             continue;
 
-        client = (PPHSVC_CLIENT)portContext;
+        client = portContext;
         threadContext.CurrentClient = client;
 
         if (messageType == LPC_REQUEST)
         {
-            PhSvcDispatchApiCall(client, &receiveMessage, &replyMessage, &portHandle);
+            if (PhIsExecutingInWow64())
+                payload = &((PPHSVC_API_MSG64)receiveMessage)->p;
+            else
+                payload = &((PPHSVC_API_MSG)receiveMessage)->p;
+
+            PhSvcDispatchApiCall(client, payload, &portHandle);
+            replyMessage = receiveMessage;
         }
         else if (messageType == LPC_PORT_CLOSED)
         {
@@ -187,35 +197,66 @@ NTSTATUS PhSvcApiRequestThreadStart(
 }
 
 VOID PhSvcHandleConnectionRequest(
-    _In_ PPHSVC_API_MSG Message
+    _In_ PPORT_MESSAGE PortMessage
     )
 {
     NTSTATUS status;
+    PPHSVC_API_MSG message;
+    PPHSVC_API_MSG64 message64;
+    CLIENT_ID clientId;
     PPHSVC_CLIENT client;
     HANDLE portHandle;
     REMOTE_PORT_VIEW clientView;
+    REMOTE_PORT_VIEW64 clientView64;
+    PREMOTE_PORT_VIEW actualClientView;
 
-    client = PhSvcCreateClient(&Message->h.ClientId);
+    message = (PPHSVC_API_MSG)PortMessage;
+    message64 = (PPHSVC_API_MSG64)PortMessage;
+
+    if (PhIsExecutingInWow64())
+    {
+        clientId.UniqueProcess = (HANDLE)message64->h.ClientId.UniqueProcess;
+        clientId.UniqueThread = (HANDLE)message64->h.ClientId.UniqueThread;
+    }
+    else
+    {
+        clientId = message->h.ClientId;
+    }
+
+    client = PhSvcCreateClient(&clientId);
 
     if (!client)
     {
-        NtAcceptConnectPort(&portHandle, NULL, &Message->h, FALSE, NULL, NULL);
+        NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
         return;
     }
 
-    Message->ConnectInfo.ServerProcessId = NtCurrentProcessId();
+    if (PhIsExecutingInWow64())
+    {
+        message64->p.ConnectInfo.ServerProcessId = HandleToUlong(NtCurrentProcessId());
 
-    clientView.Length = sizeof(REMOTE_PORT_VIEW);
-    clientView.ViewSize = 0;
-    clientView.ViewBase = NULL;
+        clientView64.Length = sizeof(REMOTE_PORT_VIEW64);
+        clientView64.ViewSize = 0;
+        clientView64.ViewBase = 0;
+        actualClientView = (PREMOTE_PORT_VIEW)&clientView64;
+    }
+    else
+    {
+        message->p.ConnectInfo.ServerProcessId = HandleToUlong(NtCurrentProcessId());
+
+        clientView.Length = sizeof(REMOTE_PORT_VIEW);
+        clientView.ViewSize = 0;
+        clientView.ViewBase = NULL;
+        actualClientView = &clientView;
+    }
 
     status = NtAcceptConnectPort(
         &portHandle,
         client,
-        &Message->h,
+        PortMessage,
         TRUE,
         NULL,
-        &clientView
+        actualClientView
         );
 
     if (!NT_SUCCESS(status))
@@ -225,8 +266,17 @@ VOID PhSvcHandleConnectionRequest(
     }
 
     client->PortHandle = portHandle;
-    client->ClientViewBase = clientView.ViewBase;
-    client->ClientViewLimit = (PCHAR)clientView.ViewBase + clientView.ViewSize;
+
+    if (PhIsExecutingInWow64())
+    {
+        client->ClientViewBase = (PVOID)clientView64.ViewBase;
+        client->ClientViewLimit = (PCHAR)clientView64.ViewBase + (ULONG)clientView64.ViewSize;
+    }
+    else
+    {
+        client->ClientViewBase = clientView.ViewBase;
+        client->ClientViewLimit = (PCHAR)clientView.ViewBase + clientView.ViewSize;
+    }
 
     status = NtCompleteConnectPort(portHandle);
 

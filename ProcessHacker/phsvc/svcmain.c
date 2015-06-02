@@ -38,7 +38,11 @@ NTSTATUS PhSvcMain(
 
     if (!PortName)
     {
-        RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
+        if (PhIsExecutingInWow64())
+            RtlInitUnicodeString(&portName, PHSVC_WOW64_PORT_NAME);
+        else
+            RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
+
         PortName = &portName;
     }
 

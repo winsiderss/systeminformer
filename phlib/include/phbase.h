@@ -128,22 +128,41 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 /** Retrieves token information (e.g. elevation status). */
 #define PHLIB_INIT_TOKEN_INFO 0x100000
 
-NTSTATUS PhInitializePhLib(
+NTSTATUS
+PhInitializePhLib(
     VOID
     );
 
-NTSTATUS PhInitializePhLibEx(
+NTSTATUS
+PhInitializePhLibEx(
     _In_ ULONG Flags,
     _In_opt_ SIZE_T HeapReserveSize,
     _In_opt_ SIZE_T HeapCommitSize
     );
+
+#ifdef _WIN64
+FORCEINLINE
+BOOLEAN
+PhIsExecutingInWow64(
+    VOID
+    )
+{
+    return FALSE;
+}
+#else
+BOOLEAN
+PhIsExecutingInWow64(
+    VOID
+    );
+#endif
 
 // basesup
 
 struct _PH_OBJECT_TYPE;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
-BOOLEAN PhInitializeBase(
+BOOLEAN
+PhInitializeBase(
     _In_ ULONG Flags
     );
 
@@ -3692,25 +3711,23 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
 #define PH_HANDLE_TABLE_STRICT_FIFO 0x1
 #define PH_HANDLE_TABLE_VALID_FLAGS 0x1
 
-VOID PhHandleTableInitialization(
+VOID
+PhHandleTableInitialization(
     VOID
     );
 
-PHLIBAPI
 PPH_HANDLE_TABLE
 NTAPI
 PhCreateHandleTable(
     VOID
     );
 
-PHLIBAPI
 VOID
 NTAPI
 PhDestroyHandleTable(
     _In_ _Post_invalid_ PPH_HANDLE_TABLE HandleTable
     );
 
-PHLIBAPI
 BOOLEAN
 NTAPI
 PhLockHandleTableEntry(
@@ -3718,7 +3735,6 @@ PhLockHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-PHLIBAPI
 VOID
 NTAPI
 PhUnlockHandleTableEntry(
@@ -3726,7 +3742,6 @@ PhUnlockHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-PHLIBAPI
 HANDLE
 NTAPI
 PhCreateHandle(
@@ -3734,7 +3749,6 @@ PhCreateHandle(
     _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-PHLIBAPI
 BOOLEAN
 NTAPI
 PhDestroyHandle(
@@ -3743,7 +3757,6 @@ PhDestroyHandle(
     _In_opt_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-PHLIBAPI
 PPH_HANDLE_TABLE_ENTRY
 NTAPI
 PhLookupHandleTableEntry(
@@ -3758,7 +3771,6 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_HANDLE_TABLE_CALLBACK)(
     _In_opt_ PVOID Context
     );
 
-PHLIBAPI
 VOID
 NTAPI
 PhEnumHandleTable(
@@ -3767,7 +3779,6 @@ PhEnumHandleTable(
     _In_opt_ PVOID Context
     );
 
-PHLIBAPI
 VOID
 NTAPI
 PhSweepHandleTable(
@@ -3795,7 +3806,6 @@ typedef struct _PH_HANDLE_TABLE_FLAGS_INFORMATION
     ULONG Flags;
 } PH_HANDLE_TABLE_FLAGS_INFORMATION, *PPH_HANDLE_TABLE_FLAGS_INFORMATION;
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryInformationHandleTable(
@@ -3806,7 +3816,6 @@ PhQueryInformationHandleTable(
     _Out_opt_ PULONG ReturnLength
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhSetInformationHandleTable(
@@ -3855,7 +3864,8 @@ typedef struct _PH_WORK_QUEUE_ITEM
     PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction;
 } PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
 
-VOID PhWorkQueueInitialization(
+VOID
+PhWorkQueueInitialization(
     VOID
     );
 
@@ -3892,7 +3902,8 @@ PhQueueItemWorkQueue(
     _In_opt_ PVOID Context
     );
 
-VOID PhQueueItemWorkQueueEx(
+VOID
+PhQueueItemWorkQueueEx(
     _Inout_ PPH_WORK_QUEUE WorkQueue,
     _In_ PUSER_THREAD_START_ROUTINE Function,
     _In_opt_ PVOID Context,

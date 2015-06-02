@@ -287,7 +287,9 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG i;
+#ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
+#endif
     PPH_MEMORY_ITEM memoryItem;
     PLIST_ENTRY listEntry;
 
@@ -308,13 +310,15 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     // PEB, heap
     {
         PROCESS_BASIC_INFORMATION basicInfo;
-        PVOID peb32;
         ULONG numberOfHeaps;
         PVOID processHeapsPtr;
         PVOID *processHeaps;
+        ULONG i;
+#ifdef _WIN64
+        PVOID peb32;
         ULONG processHeapsPtr32;
         ULONG *processHeaps32;
-        ULONG i;
+#endif
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
         {
@@ -343,6 +347,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 PhFree(processHeaps);
             }
         }
+#ifdef _WIN64
 
         if (NT_SUCCESS(PhGetProcessPeb32(ProcessHandle, &peb32)) && peb32 != 0)
         {
@@ -372,6 +377,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 PhFree(processHeaps32);
             }
         }
+#endif
     }
 
     // TEB, stack
@@ -409,6 +415,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                     if (memoryItem = PhpSetMemoryRegionType(List, ntTib.StackLimit, TRUE, StackRegion))
                         memoryItem->u.Stack.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
                 }
+#ifdef _WIN64
 
                 if (isWow64 && ntTib.ExceptionList)
                 {
@@ -428,6 +435,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                         }
                     }
                 }
+#endif
             }
         }
     }
