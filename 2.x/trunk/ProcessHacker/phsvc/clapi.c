@@ -97,7 +97,7 @@ NTSTATUS PhSvcConnectToServer(
     if (!NT_SUCCESS(status))
         return status;
 
-    PhSvcClServerProcessId = connectInfo.ServerProcessId;
+    PhSvcClServerProcessId = UlongToHandle(connectInfo.ServerProcessId);
 
     // Create the port heap.
 
@@ -205,7 +205,7 @@ NTSTATUS PhSvcpCallServer(
 {
     NTSTATUS status;
 
-    Message->h.u1.s1.DataLength = sizeof(PHSVC_API_MSG) - FIELD_OFFSET(PHSVC_API_MSG, ApiNumber);
+    Message->h.u1.s1.DataLength = sizeof(PHSVC_API_MSG) - FIELD_OFFSET(PHSVC_API_MSG, p);
     Message->h.u1.s1.TotalLength = sizeof(PHSVC_API_MSG);
     Message->h.u2.ZeroInit = 0;
 
@@ -214,7 +214,45 @@ NTSTATUS PhSvcpCallServer(
     if (!NT_SUCCESS(status))
         return status;
 
-    return Message->ReturnStatus;
+    return Message->p.ReturnStatus;
+}
+
+NTSTATUS PhSvcCallPlugin(
+    _In_ PPH_STRINGREF ApiId,
+    _In_reads_bytes_opt_(InLength) PVOID InBuffer,
+    _In_ ULONG InLength,
+    _Out_writes_bytes_opt_(OutLength) PVOID OutBuffer,
+    _In_ ULONG OutLength
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID apiId = NULL;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+    if (InLength > sizeof(m.p.u.Plugin.i.Data))
+        return STATUS_BUFFER_OVERFLOW;
+
+    m.p.ApiNumber = PhSvcPluginApiNumber;
+
+    if (!(apiId = PhSvcpCreateString(ApiId->Buffer, ApiId->Length, &m.p.u.Plugin.i.ApiId)))
+        return STATUS_NO_MEMORY;
+
+    if (InLength != 0)
+        memcpy(m.p.u.Plugin.i.Data, InBuffer, InLength);
+
+    status = PhSvcpCallServer(&m);
+
+    if (OutLength != 0)
+        memcpy(OutBuffer, m.p.u.Plugin.o.Data, min(OutLength, sizeof(m.p.u.Plugin.o.Data)));
+
+    if (apiId)
+        PhSvcpFreeHeap(apiId);
+
+    return status;
 }
 
 NTSTATUS PhSvcpCallExecuteRunAsCommand(
@@ -238,35 +276,35 @@ NTSTATUS PhSvcpCallExecuteRunAsCommand(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = ApiNumber;
+    m.p.ApiNumber = ApiNumber;
 
-    m.u.ExecuteRunAsCommand.i.ProcessId = Parameters->ProcessId;
-    m.u.ExecuteRunAsCommand.i.LogonType = Parameters->LogonType;
-    m.u.ExecuteRunAsCommand.i.SessionId = Parameters->SessionId;
-    m.u.ExecuteRunAsCommand.i.UseLinkedToken = Parameters->UseLinkedToken;
+    m.p.u.ExecuteRunAsCommand.i.ProcessId = Parameters->ProcessId;
+    m.p.u.ExecuteRunAsCommand.i.LogonType = Parameters->LogonType;
+    m.p.u.ExecuteRunAsCommand.i.SessionId = Parameters->SessionId;
+    m.p.u.ExecuteRunAsCommand.i.UseLinkedToken = Parameters->UseLinkedToken;
 
     status = STATUS_NO_MEMORY;
 
-    if (Parameters->UserName && !(userName = PhSvcpCreateString(Parameters->UserName, -1, &m.u.ExecuteRunAsCommand.i.UserName)))
+    if (Parameters->UserName && !(userName = PhSvcpCreateString(Parameters->UserName, -1, &m.p.u.ExecuteRunAsCommand.i.UserName)))
         goto CleanupExit;
 
     if (Parameters->Password)
     {
-        if (!(password = PhSvcpCreateString(Parameters->Password, -1, &m.u.ExecuteRunAsCommand.i.Password)))
+        if (!(password = PhSvcpCreateString(Parameters->Password, -1, &m.p.u.ExecuteRunAsCommand.i.Password)))
             goto CleanupExit;
 
-        passwordLength = m.u.ExecuteRunAsCommand.i.Password.Length;
+        passwordLength = m.p.u.ExecuteRunAsCommand.i.Password.Length;
     }
 
-    if (Parameters->CurrentDirectory && !(currentDirectory = PhSvcpCreateString(Parameters->CurrentDirectory, -1, &m.u.ExecuteRunAsCommand.i.CurrentDirectory)))
+    if (Parameters->CurrentDirectory && !(currentDirectory = PhSvcpCreateString(Parameters->CurrentDirectory, -1, &m.p.u.ExecuteRunAsCommand.i.CurrentDirectory)))
         goto CleanupExit;
-    if (Parameters->CommandLine && !(commandLine = PhSvcpCreateString(Parameters->CommandLine, -1, &m.u.ExecuteRunAsCommand.i.CommandLine)))
+    if (Parameters->CommandLine && !(commandLine = PhSvcpCreateString(Parameters->CommandLine, -1, &m.p.u.ExecuteRunAsCommand.i.CommandLine)))
         goto CleanupExit;
-    if (Parameters->FileName && !(fileName = PhSvcpCreateString(Parameters->FileName, -1, &m.u.ExecuteRunAsCommand.i.FileName)))
+    if (Parameters->FileName && !(fileName = PhSvcpCreateString(Parameters->FileName, -1, &m.p.u.ExecuteRunAsCommand.i.FileName)))
         goto CleanupExit;
-    if (Parameters->DesktopName && !(desktopName = PhSvcpCreateString(Parameters->DesktopName, -1, &m.u.ExecuteRunAsCommand.i.DesktopName)))
+    if (Parameters->DesktopName && !(desktopName = PhSvcpCreateString(Parameters->DesktopName, -1, &m.p.u.ExecuteRunAsCommand.i.DesktopName)))
         goto CleanupExit;
-    if (Parameters->ServiceName && !(serviceName = PhSvcpCreateString(Parameters->ServiceName, -1, &m.u.ExecuteRunAsCommand.i.ServiceName)))
+    if (Parameters->ServiceName && !(serviceName = PhSvcpCreateString(Parameters->ServiceName, -1, &m.p.u.ExecuteRunAsCommand.i.ServiceName)))
         goto CleanupExit;
 
     status = PhSvcpCallServer(&m);
@@ -310,13 +348,13 @@ NTSTATUS PhSvcCallUnloadDriver(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcUnloadDriverApiNumber;
+    m.p.ApiNumber = PhSvcUnloadDriverApiNumber;
 
-    m.u.UnloadDriver.i.BaseAddress = BaseAddress;
+    m.p.u.UnloadDriver.i.BaseAddress = BaseAddress;
 
     if (Name)
     {
-        name = PhSvcpCreateString(Name, -1, &m.u.UnloadDriver.i.Name);
+        name = PhSvcpCreateString(Name, -1, &m.p.u.UnloadDriver.i.Name);
 
         if (!name)
             return STATUS_NO_MEMORY;
@@ -341,10 +379,10 @@ NTSTATUS PhSvcCallControlProcess(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcControlProcessApiNumber;
-    m.u.ControlProcess.i.ProcessId = ProcessId;
-    m.u.ControlProcess.i.Command = Command;
-    m.u.ControlProcess.i.Argument = Argument;
+    m.p.ApiNumber = PhSvcControlProcessApiNumber;
+    m.p.u.ControlProcess.i.ProcessId = ProcessId;
+    m.p.u.ControlProcess.i.Command = Command;
+    m.p.u.ControlProcess.i.Argument = Argument;
 
     return PhSvcpCallServer(&m);
 }
@@ -361,10 +399,10 @@ NTSTATUS PhSvcCallControlService(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcControlServiceApiNumber;
+    m.p.ApiNumber = PhSvcControlServiceApiNumber;
 
-    serviceName = PhSvcpCreateString(ServiceName, -1, &m.u.ControlService.i.ServiceName);
-    m.u.ControlService.i.Command = Command;
+    serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.ControlService.i.ServiceName);
+    m.p.u.ControlService.i.Command = Command;
 
     if (serviceName)
     {
@@ -411,22 +449,22 @@ NTSTATUS PhSvcCallCreateService(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcCreateServiceApiNumber;
+    m.p.ApiNumber = PhSvcCreateServiceApiNumber;
 
-    m.u.CreateService.i.ServiceType = ServiceType;
-    m.u.CreateService.i.StartType = StartType;
-    m.u.CreateService.i.ErrorControl = ErrorControl;
-    m.u.CreateService.i.TagIdSpecified = TagId != NULL;
+    m.p.u.CreateService.i.ServiceType = ServiceType;
+    m.p.u.CreateService.i.StartType = StartType;
+    m.p.u.CreateService.i.ErrorControl = ErrorControl;
+    m.p.u.CreateService.i.TagIdSpecified = TagId != NULL;
 
     status = STATUS_NO_MEMORY;
 
-    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.u.CreateService.i.ServiceName)))
+    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.CreateService.i.ServiceName)))
         goto CleanupExit;
-    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, -1, &m.u.CreateService.i.DisplayName)))
+    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, -1, &m.p.u.CreateService.i.DisplayName)))
         goto CleanupExit;
-    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, -1, &m.u.CreateService.i.BinaryPathName)))
+    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, -1, &m.p.u.CreateService.i.BinaryPathName)))
         goto CleanupExit;
-    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, -1, &m.u.CreateService.i.LoadOrderGroup)))
+    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, -1, &m.p.u.CreateService.i.LoadOrderGroup)))
         goto CleanupExit;
 
     if (Dependencies)
@@ -445,19 +483,19 @@ NTSTATUS PhSvcCallCreateService(
             dependenciesLength += partCount * sizeof(WCHAR);
         } while (partCount != 1); // stop at empty dependency part
 
-        if (!(dependencies = PhSvcpCreateString(Dependencies, dependenciesLength, &m.u.CreateService.i.Dependencies)))
+        if (!(dependencies = PhSvcpCreateString(Dependencies, dependenciesLength, &m.p.u.CreateService.i.Dependencies)))
             goto CleanupExit;
     }
 
-    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.u.CreateService.i.ServiceStartName)))
+    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.p.u.CreateService.i.ServiceStartName)))
         goto CleanupExit;
 
     if (Password)
     {
-        if (!(password = PhSvcpCreateString(Password, -1, &m.u.CreateService.i.Password)))
+        if (!(password = PhSvcpCreateString(Password, -1, &m.p.u.CreateService.i.Password)))
             goto CleanupExit;
 
-        passwordLength = m.u.CreateService.i.Password.Length;
+        passwordLength = m.p.u.CreateService.i.Password.Length;
     }
 
     status = PhSvcpCallServer(&m);
@@ -465,7 +503,7 @@ NTSTATUS PhSvcCallCreateService(
     if (NT_SUCCESS(status))
     {
         if (TagId)
-            *TagId = m.u.CreateService.o.TagId;
+            *TagId = m.p.u.CreateService.o.TagId;
     }
 
 CleanupExit:
@@ -515,20 +553,20 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcChangeServiceConfigApiNumber;
+    m.p.ApiNumber = PhSvcChangeServiceConfigApiNumber;
 
-    m.u.ChangeServiceConfig.i.ServiceType = ServiceType;
-    m.u.ChangeServiceConfig.i.StartType = StartType;
-    m.u.ChangeServiceConfig.i.ErrorControl = ErrorControl;
-    m.u.ChangeServiceConfig.i.TagIdSpecified = TagId != NULL;
+    m.p.u.ChangeServiceConfig.i.ServiceType = ServiceType;
+    m.p.u.ChangeServiceConfig.i.StartType = StartType;
+    m.p.u.ChangeServiceConfig.i.ErrorControl = ErrorControl;
+    m.p.u.ChangeServiceConfig.i.TagIdSpecified = TagId != NULL;
 
     status = STATUS_NO_MEMORY;
 
-    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.u.ChangeServiceConfig.i.ServiceName)))
+    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.ChangeServiceConfig.i.ServiceName)))
         goto CleanupExit;
-    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, -1, &m.u.ChangeServiceConfig.i.BinaryPathName)))
+    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, -1, &m.p.u.ChangeServiceConfig.i.BinaryPathName)))
         goto CleanupExit;
-    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, -1, &m.u.ChangeServiceConfig.i.LoadOrderGroup)))
+    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, -1, &m.p.u.ChangeServiceConfig.i.LoadOrderGroup)))
         goto CleanupExit;
 
     if (Dependencies)
@@ -547,22 +585,22 @@ NTSTATUS PhSvcCallChangeServiceConfig(
             dependenciesLength += partCount * sizeof(WCHAR);
         } while (partCount != 1); // stop at empty dependency part
 
-        if (!(dependencies = PhSvcpCreateString(Dependencies, dependenciesLength, &m.u.ChangeServiceConfig.i.Dependencies)))
+        if (!(dependencies = PhSvcpCreateString(Dependencies, dependenciesLength, &m.p.u.ChangeServiceConfig.i.Dependencies)))
             goto CleanupExit;
     }
 
-    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.u.ChangeServiceConfig.i.ServiceStartName)))
+    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.p.u.ChangeServiceConfig.i.ServiceStartName)))
         goto CleanupExit;
 
     if (Password)
     {
-        if (!(password = PhSvcpCreateString(Password, -1, &m.u.ChangeServiceConfig.i.Password)))
+        if (!(password = PhSvcpCreateString(Password, -1, &m.p.u.ChangeServiceConfig.i.Password)))
             goto CleanupExit;
 
-        passwordLength = m.u.ChangeServiceConfig.i.Password.Length;
+        passwordLength = m.p.u.ChangeServiceConfig.i.Password.Length;
     }
 
-    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, -1, &m.u.ChangeServiceConfig.i.DisplayName)))
+    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, -1, &m.p.u.ChangeServiceConfig.i.DisplayName)))
         goto CleanupExit;
 
     status = PhSvcpCallServer(&m);
@@ -570,7 +608,7 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     if (NT_SUCCESS(status))
     {
         if (TagId)
-            *TagId = m.u.ChangeServiceConfig.o.TagId;
+            *TagId = m.p.u.ChangeServiceConfig.o.TagId;
     }
 
 CleanupExit:
@@ -605,16 +643,16 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcChangeServiceConfig2ApiNumber;
+    m.p.ApiNumber = PhSvcChangeServiceConfig2ApiNumber;
 
-    m.u.ChangeServiceConfig2.i.InfoLevel = InfoLevel;
+    m.p.u.ChangeServiceConfig2.i.InfoLevel = InfoLevel;
 
-    if (serviceName = PhSvcpCreateString(ServiceName, -1, &m.u.ChangeServiceConfig2.i.ServiceName))
+    if (serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.ChangeServiceConfig2.i.ServiceName))
     {
         switch (InfoLevel)
         {
         case SERVICE_CONFIG_DELAYED_AUTO_START_INFO:
-            info = PhSvcpCreateString(Info, sizeof(SERVICE_DELAYED_AUTO_START_INFO), &m.u.ChangeServiceConfig2.i.Info);
+            info = PhSvcpCreateString(Info, sizeof(SERVICE_DELAYED_AUTO_START_INFO), &m.p.u.ChangeServiceConfig2.i.Info);
             break;
         default:
             return STATUS_INVALID_PARAMETER;
@@ -655,13 +693,13 @@ NTSTATUS PhSvcCallSetTcpEntry(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcSetTcpEntryApiNumber;
+    m.p.ApiNumber = PhSvcSetTcpEntryApiNumber;
 
-    m.u.SetTcpEntry.i.State = tcpRow->dwState;
-    m.u.SetTcpEntry.i.LocalAddress = tcpRow->dwLocalAddr;
-    m.u.SetTcpEntry.i.LocalPort = tcpRow->dwLocalPort;
-    m.u.SetTcpEntry.i.RemoteAddress = tcpRow->dwRemoteAddr;
-    m.u.SetTcpEntry.i.RemotePort = tcpRow->dwRemotePort;
+    m.p.u.SetTcpEntry.i.State = tcpRow->dwState;
+    m.p.u.SetTcpEntry.i.LocalAddress = tcpRow->dwLocalAddr;
+    m.p.u.SetTcpEntry.i.LocalPort = tcpRow->dwLocalPort;
+    m.p.u.SetTcpEntry.i.RemoteAddress = tcpRow->dwRemoteAddr;
+    m.p.u.SetTcpEntry.i.RemotePort = tcpRow->dwRemotePort;
 
     return PhSvcpCallServer(&m);
 }
@@ -677,10 +715,10 @@ NTSTATUS PhSvcCallControlThread(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcControlThreadApiNumber;
-    m.u.ControlThread.i.ThreadId = ThreadId;
-    m.u.ControlThread.i.Command = Command;
-    m.u.ControlThread.i.Argument = Argument;
+    m.p.ApiNumber = PhSvcControlThreadApiNumber;
+    m.p.u.ControlThread.i.ThreadId = ThreadId;
+    m.p.u.ControlThread.i.Command = Command;
+    m.p.u.ControlThread.i.Argument = Argument;
 
     return PhSvcpCallServer(&m);
 }
@@ -698,13 +736,13 @@ NTSTATUS PhSvcCallAddAccountRight(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcAddAccountRightApiNumber;
+    m.p.ApiNumber = PhSvcAddAccountRightApiNumber;
 
     status = STATUS_NO_MEMORY;
 
-    if (!(accountSid = PhSvcpCreateString(AccountSid, RtlLengthSid(AccountSid), &m.u.AddAccountRight.i.AccountSid)))
+    if (!(accountSid = PhSvcpCreateString(AccountSid, RtlLengthSid(AccountSid), &m.p.u.AddAccountRight.i.AccountSid)))
         goto CleanupExit;
-    if (!(userRight = PhSvcpCreateString(UserRight->Buffer, UserRight->Length, &m.u.AddAccountRight.i.UserRight)))
+    if (!(userRight = PhSvcpCreateString(UserRight->Buffer, UserRight->Length, &m.p.u.AddAccountRight.i.UserRight)))
         goto CleanupExit;
 
     status = PhSvcpCallServer(&m);
@@ -732,8 +770,8 @@ NTSTATUS PhSvcCallIssueMemoryListCommand(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcIssueMemoryListCommandApiNumber;
-    m.u.IssueMemoryListCommand.i.Command = Command;
+    m.p.ApiNumber = PhSvcIssueMemoryListCommandApiNumber;
+    m.p.u.IssueMemoryListCommand.i.Command = Command;
 
     return PhSvcpCallServer(&m);
 }
@@ -750,11 +788,11 @@ NTSTATUS PhSvcCallPostMessage(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcPostMessageApiNumber;
-    m.u.PostMessage.i.hWnd = hWnd;
-    m.u.PostMessage.i.Msg = Msg;
-    m.u.PostMessage.i.wParam = wParam;
-    m.u.PostMessage.i.lParam = lParam;
+    m.p.ApiNumber = PhSvcPostMessageApiNumber;
+    m.p.u.PostMessage.i.hWnd = hWnd;
+    m.p.u.PostMessage.i.Msg = Msg;
+    m.p.u.PostMessage.i.wParam = wParam;
+    m.p.u.PostMessage.i.lParam = lParam;
 
     return PhSvcpCallServer(&m);
 }
@@ -771,11 +809,11 @@ NTSTATUS PhSvcCallSendMessage(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcSendMessageApiNumber;
-    m.u.PostMessage.i.hWnd = hWnd;
-    m.u.PostMessage.i.Msg = Msg;
-    m.u.PostMessage.i.wParam = wParam;
-    m.u.PostMessage.i.lParam = lParam;
+    m.p.ApiNumber = PhSvcSendMessageApiNumber;
+    m.p.u.PostMessage.i.hWnd = hWnd;
+    m.p.u.PostMessage.i.Msg = Msg;
+    m.p.u.PostMessage.i.wParam = wParam;
+    m.p.u.PostMessage.i.lParam = lParam;
 
     return PhSvcpCallServer(&m);
 }
@@ -793,8 +831,8 @@ NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber;
-    fileName = PhSvcpCreateString(FileName, -1, &m.u.CreateProcessIgnoreIfeoDebugger.i.FileName);
+    m.p.ApiNumber = PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber;
+    fileName = PhSvcpCreateString(FileName, -1, &m.p.u.CreateProcessIgnoreIfeoDebugger.i.FileName);
 
     if (!fileName)
         return STATUS_NO_MEMORY;
@@ -859,13 +897,13 @@ NTSTATUS PhSvcCallSetServiceSecurity(
         goto CleanupExit;
     }
 
-    m.ApiNumber = PhSvcSetServiceSecurityApiNumber;
-    m.u.SetServiceSecurity.i.SecurityInformation = SecurityInformation;
+    m.p.ApiNumber = PhSvcSetServiceSecurityApiNumber;
+    m.p.u.SetServiceSecurity.i.SecurityInformation = SecurityInformation;
     status = STATUS_NO_MEMORY;
 
-    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.u.SetServiceSecurity.i.ServiceName)))
+    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.SetServiceSecurity.i.ServiceName)))
         goto CleanupExit;
-    if (!(copiedSelfRelativeSecurityDescriptor = PhSvcpCreateString(selfRelativeSecurityDescriptor, bufferSize, &m.u.SetServiceSecurity.i.SecurityDescriptor)))
+    if (!(copiedSelfRelativeSecurityDescriptor = PhSvcpCreateString(selfRelativeSecurityDescriptor, bufferSize, &m.p.u.SetServiceSecurity.i.SecurityDescriptor)))
         goto CleanupExit;
 
     status = PhSvcpCallServer(&m);
@@ -874,6 +912,94 @@ CleanupExit:
     if (selfRelativeSecurityDescriptor) PhFree(selfRelativeSecurityDescriptor);
     if (serviceName) PhSvcpFreeHeap(serviceName);
     if (copiedSelfRelativeSecurityDescriptor) PhSvcpFreeHeap(copiedSelfRelativeSecurityDescriptor);
+
+    return status;
+}
+
+NTSTATUS PhSvcCallLoadDbgHelp(
+    _In_ PWSTR DbgHelpPath
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID dbgHelpPath = NULL;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.p.ApiNumber = PhSvcLoadDbgHelpApiNumber;
+    dbgHelpPath = PhSvcpCreateString(DbgHelpPath, -1, &m.p.u.LoadDbgHelp.i.DbgHelpPath);
+
+    if (!dbgHelpPath)
+        return STATUS_NO_MEMORY;
+
+    status = PhSvcpCallServer(&m);
+
+    if (dbgHelpPath)
+        PhSvcpFreeHeap(dbgHelpPath);
+
+    return status;
+}
+
+NTSTATUS PhSvcCallWriteMiniDumpProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE FileHandle,
+    _In_ ULONG DumpType
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    HANDLE serverHandle = NULL;
+    HANDLE remoteProcessHandle = NULL;
+    HANDLE remoteFileHandle = NULL;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    // For typical uses of this function, the client has more privileges than the server.
+    // We therefore duplicate our handles into the server's process.
+
+    m.p.ApiNumber = PhSvcWriteMiniDumpProcessApiNumber;
+
+    if (!NT_SUCCESS(status = PhOpenProcess(&serverHandle, PROCESS_DUP_HANDLE, PhSvcClServerProcessId)))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhDuplicateObject(NtCurrentProcess(), ProcessHandle, serverHandle, &remoteProcessHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, 0)))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhDuplicateObject(NtCurrentProcess(), FileHandle, serverHandle, &remoteFileHandle,
+        FILE_GENERIC_WRITE, 0, 0)))
+    {
+        goto CleanupExit;
+    }
+
+    m.p.u.WriteMiniDumpProcess.i.LocalProcessHandle = HandleToUlong(remoteProcessHandle);
+    m.p.u.WriteMiniDumpProcess.i.ProcessId = HandleToUlong(ProcessId);
+    m.p.u.WriteMiniDumpProcess.i.LocalFileHandle = HandleToUlong(remoteFileHandle);
+    m.p.u.WriteMiniDumpProcess.i.DumpType = DumpType;
+
+    status = PhSvcpCallServer(&m);
+
+CleanupExit:
+    if (serverHandle)
+    {
+        if (remoteProcessHandle)
+            PhDuplicateObject(serverHandle, remoteProcessHandle, NULL, NULL, 0, 0, DUPLICATE_CLOSE_SOURCE);
+        if (remoteFileHandle)
+            PhDuplicateObject(serverHandle, remoteFileHandle, NULL, NULL, 0, 0, DUPLICATE_CLOSE_SOURCE);
+
+        NtClose(serverHandle);
+    }
 
     return status;
 }

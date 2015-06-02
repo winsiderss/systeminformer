@@ -3,6 +3,8 @@
 
 #include <phsvcapi.h>
 
+extern HANDLE PhSvcClServerProcessId;
+
 NTSTATUS PhSvcConnectToServer(
     _In_ PUNICODE_STRING PortName,
     _In_opt_ SIZE_T PortSectionSize
@@ -10,6 +12,24 @@ NTSTATUS PhSvcConnectToServer(
 
 VOID PhSvcDisconnectFromServer(
     VOID
+    );
+
+VOID PhSvcpFreeHeap(
+    _In_ PVOID Memory
+    );
+
+PVOID PhSvcpCreateString(
+    _In_ PVOID String,
+    _In_ SIZE_T Length,
+    _Out_ PPH_RELATIVE_STRINGREF StringRef
+    );
+
+NTSTATUS PhSvcCallPlugin(
+    _In_ PPH_STRINGREF ApiId,
+    _In_reads_bytes_opt_(InLength) PVOID InBuffer,
+    _In_ ULONG InLength,
+    _Out_writes_bytes_opt_(OutLength) PVOID OutBuffer,
+    _In_ ULONG OutLength
     );
 
 NTSTATUS PhSvcCallExecuteRunAsCommand(
@@ -115,6 +135,17 @@ NTSTATUS PhSvcCallSetServiceSecurity(
     _In_ PWSTR ServiceName,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+NTSTATUS PhSvcCallLoadDbgHelp(
+    _In_ PWSTR DbgHelpPath
+    );
+
+NTSTATUS PhSvcCallWriteMiniDumpProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE FileHandle,
+    _In_ ULONG DumpType
     );
 
 #endif

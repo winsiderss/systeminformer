@@ -43,9 +43,19 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMemoryTreeNewInitializing = 29, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackMemoryTreeNewUninitializing = 30, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackMemoryItemListControl = 31, // PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL Data [properties thread]
-
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
+
+typedef enum _PH_PLUGIN_CALLBACK
+{
+    PluginCallbackLoad = 0, // PPH_LIST Parameters [main thread] // list of strings, might be NULL
+    PluginCallbackUnload = 1, // [main thread]
+    PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
+    PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
+    PluginCallbackTreeNewMessage = 4, // PPH_PLUGIN_TREENEW_MESSAGE Message [main/properties thread]
+    PluginCallbackPhSvcRequest = 5, // PPH_PLUGIN_PHSVC_REQUEST Message [phsvc thread]
+    PluginCallbackMaximum
+} PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
 
 typedef struct _PH_PLUGIN_GET_HIGHLIGHTING_COLOR
 {
@@ -274,16 +284,49 @@ typedef LONG (NTAPI *PPH_PLUGIN_TREENEW_SORT_FUNCTION)(
     _In_ PVOID Context
     );
 
-typedef enum _PH_PLUGIN_CALLBACK
-{
-    PluginCallbackLoad = 0, // PPH_LIST Parameters [main thread] // list of strings, might be NULL
-    PluginCallbackUnload = 1, // [main thread]
-    PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
-    PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
-    PluginCallbackTreeNewMessage = 4, // PPH_PLUGIN_TREENEW_MESSAGE Message [main/properties thread]
+typedef NTSTATUS (NTAPI *PPHSVC_SERVER_CAPTURE_BUFFER)(
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PVOID *CapturedBuffer
+    );
 
-    PluginCallbackMaximum
-} PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
+typedef NTSTATUS (NTAPI *PPHSVC_SERVER_CAPTURE_STRING)(
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PPH_STRING *CapturedString
+    );
+
+typedef struct _PH_PLUGIN_PHSVC_REQUEST
+{
+    ULONG SubId;
+    NTSTATUS ReturnStatus;
+    PVOID InBuffer;
+    ULONG InLength;
+    PVOID OutBuffer;
+    ULONG OutLength;
+
+    PPHSVC_SERVER_CAPTURE_BUFFER CaptureBuffer;
+    PPHSVC_SERVER_CAPTURE_STRING CaptureString;
+} PH_PLUGIN_PHSVC_REQUEST, *PPH_PLUGIN_PHSVC_REQUEST;
+
+typedef VOID (NTAPI *PPHSVC_CLIENT_FREE_HEAP)(
+    _In_ PVOID Memory
+    );
+
+typedef PVOID (NTAPI *PPHSVC_CLIENT_CREATE_STRING)(
+    _In_ PVOID String,
+    _In_ SIZE_T Length,
+    _Out_ PPH_RELATIVE_STRINGREF StringRef
+    );
+
+typedef struct _PH_PLUGIN_PHSVC_CLIENT
+{
+    HANDLE ServerProcessId;
+    PPHSVC_CLIENT_FREE_HEAP FreeHeap;
+    PPHSVC_CLIENT_CREATE_STRING CreateString;
+} PH_PLUGIN_PHSVC_CLIENT, *PPH_PLUGIN_PHSVC_CLIENT;
+
+// Plugin structures
 
 typedef struct _PH_PLUGIN_INFORMATION
 {
@@ -315,6 +358,8 @@ typedef struct _PH_PLUGIN
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
     PH_EM_APP_CONTEXT AppContext;
 } PH_PLUGIN, *PPH_PLUGIN;
+
+// Plugin API
 
 PHAPPAPI
 PPH_PLUGIN
@@ -512,6 +557,25 @@ NTAPI
 PhPluginEnableTreeNewNotify(
     _In_ PPH_PLUGIN Plugin,
     _In_ PVOID CmData
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhPluginQueryPhSvc(
+    _Out_ PPH_PLUGIN_PHSVC_CLIENT Client
+    );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhPluginCallPhSvc(
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG SubId,
+    _In_reads_bytes_opt_(InLength) PVOID InBuffer,
+    _In_ ULONG InLength,
+    _Out_writes_bytes_opt_(OutLength) PVOID OutBuffer,
+    _In_ ULONG OutLength
     );
 
 #ifdef __cplusplus

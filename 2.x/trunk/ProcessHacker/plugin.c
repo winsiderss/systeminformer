@@ -2,7 +2,7 @@
  * Process Hacker -
  *   plugin support
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -26,6 +26,7 @@
 #include <phplug.h>
 #include <extmgri.h>
 #include <notifico.h>
+#include <phsvccl.h>
 
 INT NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
@@ -277,6 +278,10 @@ VOID PhpHandlePluginLoadError(
 {
     PPH_STRING baseName;
 
+    // In certain startup modes we want to ignore all plugin load errors.
+    if (PhStartupParameters.PhSvc)
+        return;
+
     baseName = PhGetBaseName(FileName);
 
     if (PhShowMessage(
@@ -483,17 +488,34 @@ PPH_PLUGIN PhRegisterPlugin(
  *
  * \param Name The name of the plugin.
  *
- * \return A plugin instance structure, or NULL if the plugin
- * was not found.
+ * \return A plugin instance structure, or NULL if the plugin was not found.
  */
 PPH_PLUGIN PhFindPlugin(
     _In_ PWSTR Name
     )
 {
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhFindPlugin2(&name);
+}
+
+/**
+ * Locates a plugin instance structure.
+ *
+ * \param Name The name of the plugin.
+ *
+ * \return A plugin instance structure, or NULL if the plugin was not found.
+ */
+PPH_PLUGIN PhFindPlugin2(
+    _In_ PPH_STRINGREF Name
+    )
+{
     PPH_AVL_LINKS links;
     PH_PLUGIN lookupPlugin;
 
-    PhInitializeStringRef(&lookupPlugin.Name, Name);
+    lookupPlugin.Name = *Name;
     links = PhFindElementAvlTree(&PhPluginsByName, &lookupPlugin.Links);
 
     if (links)
@@ -884,4 +906,43 @@ VOID PhPluginEnableTreeNewNotify(
     )
 {
     PhCmSetNotifyPlugin(CmData, Plugin);
+}
+
+BOOLEAN PhPluginQueryPhSvc(
+    _Out_ PPH_PLUGIN_PHSVC_CLIENT Client
+    )
+{
+    if (!PhSvcClServerProcessId)
+        return FALSE;
+
+    Client->ServerProcessId = PhSvcClServerProcessId;
+    Client->FreeHeap = PhSvcpFreeHeap;
+    Client->CreateString = PhSvcpCreateString;
+
+    return TRUE;
+}
+
+NTSTATUS PhPluginCallPhSvc(
+    _In_ PPH_PLUGIN Plugin,
+    _In_ ULONG SubId,
+    _In_reads_bytes_opt_(InLength) PVOID InBuffer,
+    _In_ ULONG InLength,
+    _Out_writes_bytes_opt_(OutLength) PVOID OutBuffer,
+    _In_ ULONG OutLength
+    )
+{
+    NTSTATUS status;
+    PPH_STRING apiId;
+    PH_FORMAT format[4];
+
+    PhInitFormatC(&format[0], '+');
+    PhInitFormatSR(&format[1], Plugin->Name);
+    PhInitFormatC(&format[2], '+');
+    PhInitFormatU(&format[3], SubId);
+    apiId = PhFormat(format, 4, 50);
+
+    status = PhSvcCallPlugin(&apiId->sr, InBuffer, InLength, OutBuffer, OutLength);
+    PhDereferenceObject(apiId);
+
+    return status;
 }

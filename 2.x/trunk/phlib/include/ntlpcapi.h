@@ -29,7 +29,7 @@ typedef struct _PORT_MESSAGE
     union
     {
         CLIENT_ID ClientId;
-        QUAD DoNotUseThisField;
+        double DoNotUseThisField;
     };
     ULONG MessageId;
     union
@@ -100,6 +100,68 @@ typedef struct _REMOTE_PORT_VIEW
     SIZE_T ViewSize;
     PVOID ViewBase;
 } REMOTE_PORT_VIEW, *PREMOTE_PORT_VIEW;
+
+// WOW64 definitions
+
+// Except in a small number of special cases, WOW64 programs using the LPC APIs must use the 64-bit versions of the
+// PORT_MESSAGE, PORT_VIEW and REMOTE_PORT_VIEW data structures. Note that we take a different approach than the
+// official NT headers, which produce 64-bit versions in a 32-bit environment when USE_LPC6432 is defined.
+
+typedef struct _PORT_MESSAGE64
+{
+    union
+    {
+        struct
+        {
+            CSHORT DataLength;
+            CSHORT TotalLength;
+        } s1;
+        ULONG Length;
+    } u1;
+    union
+    {
+        struct
+        {
+            CSHORT Type;
+            CSHORT DataInfoOffset;
+        } s2;
+        ULONG ZeroInit;
+    } u2;
+    union
+    {
+        CLIENT_ID64 ClientId;
+        double DoNotUseThisField;
+    };
+    ULONG MessageId;
+    union
+    {
+        ULONGLONG ClientViewSize; // only valid for LPC_CONNECTION_REQUEST messages
+        ULONG CallbackId; // only valid for LPC_REQUEST messages
+    };
+} PORT_MESSAGE64, *PPORT_MESSAGE64;
+
+typedef struct _LPC_CLIENT_DIED_MSG64
+{
+    PORT_MESSAGE64 PortMsg;
+    LARGE_INTEGER CreateTime;
+} LPC_CLIENT_DIED_MSG64, *PLPC_CLIENT_DIED_MSG64;
+
+typedef struct _PORT_VIEW64
+{
+    ULONG Length;
+    ULONGLONG SectionHandle;
+    ULONG SectionOffset;
+    ULONGLONG ViewSize;
+    ULONGLONG ViewBase;
+    ULONGLONG ViewRemoteBase;
+} PORT_VIEW64, *PPORT_VIEW64;
+
+typedef struct _REMOTE_PORT_VIEW64
+{
+    ULONG Length;
+    ULONGLONG ViewSize;
+    ULONGLONG ViewBase;
+} REMOTE_PORT_VIEW64, *PREMOTE_PORT_VIEW64;
 
 // Port creation
 

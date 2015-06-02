@@ -44,12 +44,6 @@ extern COLORREF PhSysWindowColor;
 
 // main
 
-#ifdef _WIN64
-#define PH_EXECUTING_IN_WOW64 (FALSE)
-#else
-#define PH_EXECUTING_IN_WOW64 (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-#endif
-
 typedef struct _PH_STARTUP_PARAMETERS
 {
     union
@@ -354,6 +348,17 @@ VOID PhWritePhTextHeader(
 PHAPPAPI
 BOOLEAN PhShellProcessHacker(
     _In_opt_ HWND hWnd,
+    _In_opt_ PWSTR Parameters,
+    _In_ ULONG ShowWindowType,
+    _In_ ULONG Flags,
+    _In_ ULONG AppFlags,
+    _In_opt_ ULONG Timeout,
+    _Out_opt_ PHANDLE ProcessHandle
+    );
+
+BOOLEAN PhShellProcessHackerEx(
+    _In_opt_ HWND hWnd,
+    _In_opt_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
@@ -695,6 +700,10 @@ BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     );
 
+VOID PhLoadDbgHelpFromPath(
+    _In_ PWSTR DbgHelpPath
+    );
+
 VOID PhShowIconContextMenu(
     _In_ POINT Location
     );
@@ -745,6 +754,10 @@ VOID PhLoadPlugins(
 
 VOID PhUnloadPlugins(
     VOID
+    );
+
+struct _PH_PLUGIN *PhFindPlugin2(
+    _In_ PPH_STRINGREF Name
     );
 
 // procprp
@@ -1124,9 +1137,22 @@ typedef enum _PH_ACTION_ELEVATION_LEVEL
     AlwaysElevateAction = 2
 } PH_ACTION_ELEVATION_LEVEL;
 
+typedef enum _PH_PHSVC_MODE
+{
+    ElevatedPhSvcMode,
+    Wow64PhSvcMode
+} PH_PHSVC_MODE;
+
 PHAPPAPI
 BOOLEAN PhUiConnectToPhSvc(
     _In_opt_ HWND hWnd,
+    _In_ BOOLEAN ConnectOnly
+    );
+
+PHAPPAPI
+BOOLEAN PhUiConnectToPhSvcEx(
+    _In_opt_ HWND hWnd,
+    _In_ PH_PHSVC_MODE Mode,
     _In_ BOOLEAN ConnectOnly
     );
 

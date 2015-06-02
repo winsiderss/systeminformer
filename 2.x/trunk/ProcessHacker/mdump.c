@@ -21,7 +21,9 @@
  */
 
 #include <phapp.h>
+#include <settings.h>
 #include <symprv.h>
+#include <phsvccl.h>
 
 #define WM_PH_MINIDUMP_STATUS_UPDATE (WM_APP + 301)
 
@@ -34,6 +36,7 @@ typedef struct _PROCESS_MINIDUMP_CONTEXT
     HANDLE ProcessId;
     PWSTR FileName;
     MINIDUMP_TYPE DumpType;
+    BOOLEAN IsWow64;
 
     HANDLE ProcessHandle;
     HANDLE FileHandle;
@@ -109,12 +112,10 @@ BOOLEAN PhpCreateProcessMiniDumpWithProgress(
     NTSTATUS status;
     PROCESS_MINIDUMP_CONTEXT context;
 
+    memset(&context, 0, sizeof(PROCESS_MINIDUMP_CONTEXT));
     context.ProcessId = ProcessId;
     context.FileName = FileName;
     context.DumpType = DumpType;
-
-    context.Stop = FALSE;
-    context.Succeeded = FALSE;
 
     if (!NT_SUCCESS(status = PhOpenProcess(
         &context.ProcessHandle,
@@ -126,10 +127,14 @@ BOOLEAN PhpCreateProcessMiniDumpWithProgress(
         return FALSE;
     }
 
+#ifdef _WIN64
+    PhGetProcessIsWow64(context.ProcessHandle, &context.IsWow64);
+#endif
+
     status = PhCreateFileWin32(
         &context.FileHandle,
         FileName,
-        FILE_GENERIC_WRITE,
+        FILE_GENERIC_WRITE | DELETE,
         0,
         0,
         FILE_OVERWRITE_IF,
@@ -218,6 +223,81 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = context;
 
+#ifdef _WIN64
+    if (context->IsWow64)
+    {
+        if (PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE))
+        {
+            NTSTATUS status;
+            PPH_STRING dbgHelpPath;
+
+            dbgHelpPath = PhGetStringSetting(L"DbgHelpPath");
+            PhSvcCallLoadDbgHelp(dbgHelpPath->Buffer);
+            PhDereferenceObject(dbgHelpPath);
+
+            if (NT_SUCCESS(status = PhSvcCallWriteMiniDumpProcess(
+                context->ProcessHandle,
+                context->ProcessId,
+                context->FileHandle,
+                context->DumpType
+                )))
+            {
+                context->Succeeded = TRUE;
+            }
+            else
+            {
+                // We may have an old version of dbghelp - in that case, try using minimal dump flags.
+                if (status == STATUS_INVALID_PARAMETER && NT_SUCCESS(status = PhSvcCallWriteMiniDumpProcess(
+                    context->ProcessHandle,
+                    context->ProcessId,
+                    context->FileHandle,
+                    MiniDumpWithFullMemory | MiniDumpWithHandleData
+                    )))
+                {
+                    context->Succeeded = TRUE;
+                }
+                else
+                {
+                    SendMessage(
+                        context->WindowHandle,
+                        WM_PH_MINIDUMP_STATUS_UPDATE,
+                        PH_MINIDUMP_ERROR,
+                        (LPARAM)PhNtStatusToDosError(status)
+                        );
+                }
+            }
+
+            PhUiDisconnectFromPhSvc();
+
+            goto Completed;
+        }
+        else
+        {
+            if (PhShowMessage(
+                context->WindowHandle,
+                MB_YESNO | MB_ICONWARNING,
+                L"The process is 32-bit, but the 32-bit version of Process Hacker could not be located. "
+                L"A 64-bit dump will be created instead. Do you want to continue?"
+                ) == IDNO)
+            {
+                FILE_DISPOSITION_INFORMATION dispositionInfo;
+                IO_STATUS_BLOCK isb;
+
+                dispositionInfo.DeleteFile = TRUE;
+                NtSetInformationFile(
+                    context->FileHandle,
+                    &isb,
+                    &dispositionInfo,
+                    sizeof(FILE_DISPOSITION_INFORMATION),
+                    FileDispositionInformation
+                    );
+
+                goto Completed;
+            }
+        }
+    }
+#endif
+
     if (PhWriteMiniDumpProcess(
         context->ProcessHandle,
         context->ProcessId,
@@ -232,8 +312,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
     else
     {
-        // We may have an old version of dbghelp - in that case, try
-        // using minimal dump flags.
+        // We may have an old version of dbghelp - in that case, try using minimal dump flags.
         if (GetLastError() == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER) && PhWriteMiniDumpProcess(
             context->ProcessHandle,
             context->ProcessId,
@@ -257,6 +336,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         }
     }
 
+Completed:
     SendMessage(
         context->WindowHandle,
         WM_PH_MINIDUMP_STATUS_UPDATE,

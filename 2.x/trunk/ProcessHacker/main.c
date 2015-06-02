@@ -155,7 +155,7 @@ INT WINAPI wWinMain(
         )
         PhActivatePreviousInstance();
 
-    if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph)
+    if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64())
         PhInitializeKph();
 
     if (
@@ -174,6 +174,51 @@ INT WINAPI wWinMain(
         }
 
         RtlExitUserProcess(status);
+    }
+
+#ifdef DEBUG
+    dbg.ClientId = NtCurrentTeb()->ClientId;
+    dbg.StartAddress = wWinMain;
+    dbg.Parameter = NULL;
+    InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
+    TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
+#endif
+
+    PhInitializeAutoPool(&BaseAutoPool);
+
+    PhEmInitialization();
+    PhGuiSupportInitialization();
+    PhTreeNewInitialization();
+    PhGraphControlInitialization();
+    PhHexEditInitialization();
+    PhColorBoxInitialization();
+
+    PhSmallIconSize.X = GetSystemMetrics(SM_CXSMICON);
+    PhSmallIconSize.Y = GetSystemMetrics(SM_CYSMICON);
+
+    if (PhStartupParameters.ShowOptions)
+    {
+        // Elevated options dialog for changing the value of Replace Task Manager with Process Hacker.
+        PhShowOptionsDialog(PhStartupParameters.WindowHandle);
+        RtlExitUserProcess(STATUS_SUCCESS);
+    }
+
+    if (PhIsExecutingInWow64() && !PhStartupParameters.PhSvc)
+    {
+        PhShowWarning(
+            NULL,
+            L"You are attempting to run the 32-bit version of Process Hacker on 64-bit Windows. "
+            L"Most features will not work correctly.\n\n"
+            L"Please run the 64-bit version of Process Hacker instead."
+            );
+    }
+
+    PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins;
+
+    if (PhPluginsEnabled)
+    {
+        PhPluginsInitialization();
+        PhLoadPlugins();
     }
 
     if (PhStartupParameters.PhSvc)
@@ -216,51 +261,6 @@ INT WINAPI wWinMain(
             priorityClass.PriorityClass = (UCHAR)PhStartupParameters.PriorityClass;
 
         NtSetInformationProcess(NtCurrentProcess(), ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
-    }
-
-#ifdef DEBUG
-    dbg.ClientId = NtCurrentTeb()->ClientId;
-    dbg.StartAddress = wWinMain;
-    dbg.Parameter = NULL;
-    InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
-    TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
-#endif
-
-    PhInitializeAutoPool(&BaseAutoPool);
-
-    PhEmInitialization();
-    PhGuiSupportInitialization();
-    PhTreeNewInitialization();
-    PhGraphControlInitialization();
-    PhHexEditInitialization();
-    PhColorBoxInitialization();
-
-    PhSmallIconSize.X = GetSystemMetrics(SM_CXSMICON);
-    PhSmallIconSize.Y = GetSystemMetrics(SM_CYSMICON);
-
-    if (PhStartupParameters.ShowOptions)
-    {
-        // Elevated options dialog for changing the value of Replace Task Manager with Process Hacker.
-        PhShowOptionsDialog(PhStartupParameters.WindowHandle);
-        RtlExitUserProcess(STATUS_SUCCESS);
-    }
-
-    if (PH_EXECUTING_IN_WOW64)
-    {
-        PhShowWarning(
-            NULL,
-            L"You are attempting to run the 32-bit version of Process Hacker on 64-bit Windows. "
-            L"Most features will not work correctly.\n\n"
-            L"Please run the 64-bit version of Process Hacker instead."
-            );
-    }
-
-    PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins;
-
-    if (PhPluginsEnabled)
-    {
-        PhPluginsInitialization();
-        PhLoadPlugins();
     }
 
     if (!PhMainWndInitialization(nCmdShow))
