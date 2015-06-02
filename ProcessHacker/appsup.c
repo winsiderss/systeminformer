@@ -1206,6 +1206,29 @@ BOOLEAN PhShellProcessHacker(
     _Out_opt_ PHANDLE ProcessHandle
     )
 {
+    return PhShellProcessHackerEx(
+        hWnd,
+        NULL,
+        Parameters,
+        ShowWindowType,
+        Flags,
+        AppFlags,
+        Timeout,
+        ProcessHandle
+        );
+}
+
+BOOLEAN PhShellProcessHackerEx(
+    _In_opt_ HWND hWnd,
+    _In_opt_ PWSTR FileName,
+    _In_opt_ PWSTR Parameters,
+    _In_ ULONG ShowWindowType,
+    _In_ ULONG Flags,
+    _In_ ULONG AppFlags,
+    _In_opt_ ULONG Timeout,
+    _Out_opt_ PHANDLE ProcessHandle
+    )
+{
     BOOLEAN result;
     PH_STRING_BUILDER sb;
     PWSTR parameters;
@@ -1291,7 +1314,7 @@ BOOLEAN PhShellProcessHacker(
 
     result = PhShellExecuteEx(
         hWnd,
-        PhApplicationFileName->Buffer,
+        FileName ? FileName : PhApplicationFileName->Buffer,
         parameters,
         ShowWindowType,
         Flags,

@@ -122,6 +122,15 @@ NTSTATUS PhInitializePhLibEx(
     return STATUS_SUCCESS;
 }
 
+#ifndef _WIN64
+BOOLEAN PhIsExecutingInWow64(
+    VOID
+    )
+{
+    return USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
+}
+#endif
+
 static VOID PhInitializeSecurity(
     _In_ ULONG Flags
     )

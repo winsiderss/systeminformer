@@ -22,6 +22,9 @@
 
 #include <phapp.h>
 #include <phsvc.h>
+#include <phplug.h>
+#include <extmgri.h>
+#include <symprv.h>
 #include <accctrl.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
@@ -37,7 +40,7 @@ typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
 
 PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
 {
-    PhSvcApiDefault,
+    PhSvcApiPlugin,
     PhSvcApiExecuteRunAsCommand,
     PhSvcApiUnloadDriver,
     PhSvcApiControlProcess,
@@ -53,7 +56,9 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiPostMessage,
     PhSvcApiSendMessage,
     PhSvcApiCreateProcessIgnoreIfeoDebugger,
-    PhSvcApiSetServiceSecurity
+    PhSvcApiSetServiceSecurity,
+    PhSvcApiLoadDbgHelp,
+    PhSvcApiWriteMiniDumpProcess
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -66,29 +71,26 @@ NTSTATUS PhSvcApiInitialization(
 
 VOID PhSvcDispatchApiCall(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message,
-    _Out_ PPHSVC_API_MSG *ReplyMessage,
+    _Inout_ PPHSVC_API_PAYLOAD Payload,
     _Out_ PHANDLE ReplyPortHandle
     )
 {
     NTSTATUS status;
 
     if (
-        Message->ApiNumber == 0 ||
-        (ULONG)Message->ApiNumber >= (ULONG)PhSvcMaximumApiNumber ||
-        !PhSvcApiCallTable[Message->ApiNumber - 1]
+        Payload->ApiNumber == 0 ||
+        (ULONG)Payload->ApiNumber >= (ULONG)PhSvcMaximumApiNumber ||
+        !PhSvcApiCallTable[Payload->ApiNumber - 1]
         )
     {
-        Message->ReturnStatus = STATUS_INVALID_SYSTEM_SERVICE;
-        *ReplyMessage = Message;
+        Payload->ReturnStatus = STATUS_INVALID_SYSTEM_SERVICE;
         *ReplyPortHandle = Client->PortHandle;
         return;
     }
 
-    status = PhSvcApiCallTable[Message->ApiNumber - 1](Client, Message);
-    Message->ReturnStatus = status;
+    status = PhSvcApiCallTable[Payload->ApiNumber - 1](Client, Payload);
+    Payload->ReturnStatus = status;
 
-    *ReplyMessage = Message;
     *ReplyPortHandle = Client->PortHandle;
 }
 
@@ -106,11 +108,9 @@ NTSTATUS PhSvcCaptureBuffer(
     {
         address = (PCHAR)client->ClientViewBase + String->Offset;
 
-        if (
-            (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
+        if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
             (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit
-            )
+            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit)
         {
             return STATUS_ACCESS_VIOLATION;
         }
@@ -157,11 +157,9 @@ NTSTATUS PhSvcCaptureString(
             return STATUS_DATATYPE_MISALIGNMENT;
         }
 
-        if (
-            (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
+        if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
             (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit
-            )
+            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit)
         {
             return STATUS_ACCESS_VIOLATION;
         }
@@ -196,11 +194,9 @@ NTSTATUS PhSvcCaptureSid(
 
     if (sid)
     {
-        if (
-            String->Length < FIELD_OFFSET(struct _SID, IdentifierAuthority) ||
+        if (String->Length < FIELD_OFFSET(struct _SID, IdentifierAuthority) ||
             String->Length < RtlLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
-            !RtlValidSid(sid)
-            )
+            !RtlValidSid(sid))
         {
             PhFree(sid);
             return STATUS_INVALID_SID;
@@ -271,15 +267,55 @@ NTSTATUS PhSvcCaptureSecurityDescriptor(
 
 NTSTATUS PhSvcApiDefault(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     return STATUS_NOT_IMPLEMENTED;
 }
 
+NTSTATUS PhSvcApiPlugin(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_PAYLOAD Payload
+    )
+{
+    NTSTATUS status;
+    PPH_STRING apiId;
+    PPH_PLUGIN plugin;
+    PH_STRINGREF pluginName;
+    PH_PLUGIN_PHSVC_REQUEST request;
+
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.Plugin.i.ApiId, FALSE, &apiId)))
+    {
+        if (PhPluginsEnabled &&
+            PhEmParseCompoundId(&apiId->sr, &pluginName, &request.SubId) &&
+            (plugin = PhFindPlugin2(&apiId->sr)))
+        {
+            request.ReturnStatus = STATUS_NOT_IMPLEMENTED;
+            request.InBuffer = Payload->u.Plugin.i.Data;
+            request.InLength = sizeof(Payload->u.Plugin.i.Data);
+            request.OutBuffer = Payload->u.Plugin.o.Data;
+            request.OutLength = sizeof(Payload->u.Plugin.o.Data);
+
+            request.CaptureBuffer = PhSvcCaptureBuffer;
+            request.CaptureString = PhSvcCaptureString;
+
+            PhInvokeCallback(PhGetPluginCallback(plugin, PluginCallbackPhSvcRequest), &request);
+            status = request.ReturnStatus;
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+
+        PhDereferenceObject(apiId);
+    }
+
+    return status;
+}
+
 NTSTATUS PhSvcpCaptureRunAsServiceParameters(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message,
+    _Inout_ PPHSVC_API_PAYLOAD Payload,
     _Out_ PPH_RUNAS_SERVICE_PARAMETERS Parameters,
     _Out_ PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS CapturedParameters
     )
@@ -288,31 +324,31 @@ NTSTATUS PhSvcpCaptureRunAsServiceParameters(
 
     memset(CapturedParameters, 0, sizeof(PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS));
 
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.UserName, TRUE, &CapturedParameters->UserName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ExecuteRunAsCommand.i.UserName, TRUE, &CapturedParameters->UserName)))
         return status;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.Password, TRUE, &CapturedParameters->Password)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ExecuteRunAsCommand.i.Password, TRUE, &CapturedParameters->Password)))
         return status;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.CurrentDirectory, TRUE, &CapturedParameters->CurrentDirectory)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ExecuteRunAsCommand.i.CurrentDirectory, TRUE, &CapturedParameters->CurrentDirectory)))
         return status;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.CommandLine, TRUE, &CapturedParameters->CommandLine)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ExecuteRunAsCommand.i.CommandLine, TRUE, &CapturedParameters->CommandLine)))
         return status;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.FileName, TRUE, &CapturedParameters->FileName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ExecuteRunAsCommand.i.FileName, TRUE, &CapturedParameters->FileName)))
         return status;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.DesktopName, TRUE, &CapturedParameters->DesktopName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ExecuteRunAsCommand.i.DesktopName, TRUE, &CapturedParameters->DesktopName)))
         return status;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.ServiceName, TRUE, &CapturedParameters->ServiceName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ExecuteRunAsCommand.i.ServiceName, TRUE, &CapturedParameters->ServiceName)))
         return status;
 
-    Parameters->ProcessId = Message->u.ExecuteRunAsCommand.i.ProcessId;
+    Parameters->ProcessId = Payload->u.ExecuteRunAsCommand.i.ProcessId;
     Parameters->UserName = PhGetString(CapturedParameters->UserName);
     Parameters->Password = PhGetString(CapturedParameters->Password);
-    Parameters->LogonType = Message->u.ExecuteRunAsCommand.i.LogonType;
-    Parameters->SessionId = Message->u.ExecuteRunAsCommand.i.SessionId;
+    Parameters->LogonType = Payload->u.ExecuteRunAsCommand.i.LogonType;
+    Parameters->SessionId = Payload->u.ExecuteRunAsCommand.i.SessionId;
     Parameters->CurrentDirectory = PhGetString(CapturedParameters->CurrentDirectory);
     Parameters->CommandLine = PhGetString(CapturedParameters->CommandLine);
     Parameters->FileName = PhGetString(CapturedParameters->FileName);
     Parameters->DesktopName = PhGetString(CapturedParameters->DesktopName);
-    Parameters->UseLinkedToken = Message->u.ExecuteRunAsCommand.i.UseLinkedToken;
+    Parameters->UseLinkedToken = Payload->u.ExecuteRunAsCommand.i.UseLinkedToken;
     Parameters->ServiceName = PhGetString(CapturedParameters->ServiceName);
 
     return status;
@@ -359,14 +395,14 @@ NTSTATUS PhSvcpValidateRunAsServiceParameters(
 
 NTSTATUS PhSvcApiExecuteRunAsCommand(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
     PH_RUNAS_SERVICE_PARAMETERS parameters;
     PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS capturedParameters;
 
-    if (NT_SUCCESS(status = PhSvcpCaptureRunAsServiceParameters(Client, Message, &parameters, &capturedParameters)))
+    if (NT_SUCCESS(status = PhSvcpCaptureRunAsServiceParameters(Client, Payload, &parameters, &capturedParameters)))
     {
         if (NT_SUCCESS(status = PhSvcpValidateRunAsServiceParameters(&parameters)))
         {
@@ -381,15 +417,15 @@ NTSTATUS PhSvcApiExecuteRunAsCommand(
 
 NTSTATUS PhSvcApiUnloadDriver(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
     PPH_STRING name;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.UnloadDriver.i.Name, TRUE, &name)))
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.UnloadDriver.i.Name, TRUE, &name)))
     {
-        status = PhUnloadDriver(Message->u.UnloadDriver.i.BaseAddress, PhGetString(name));
+        status = PhUnloadDriver(Payload->u.UnloadDriver.i.BaseAddress, PhGetString(name));
         PhClearReference(&name);
     }
 
@@ -398,16 +434,16 @@ NTSTATUS PhSvcApiUnloadDriver(
 
 NTSTATUS PhSvcApiControlProcess(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
     HANDLE processId;
     HANDLE processHandle;
 
-    processId = Message->u.ControlProcess.i.ProcessId;
+    processId = Payload->u.ControlProcess.i.ProcessId;
 
-    switch (Message->u.ControlProcess.i.Command)
+    switch (Payload->u.ControlProcess.i.Command)
     {
     case PhSvcControlProcessTerminate:
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_TERMINATE, processId)))
@@ -436,7 +472,7 @@ NTSTATUS PhSvcApiControlProcess(
             PROCESS_PRIORITY_CLASS priorityClass;
 
             priorityClass.Foreground = FALSE;
-            priorityClass.PriorityClass = (UCHAR)Message->u.ControlProcess.i.Argument;
+            priorityClass.PriorityClass = (UCHAR)Payload->u.ControlProcess.i.Argument;
             status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
 
             NtClose(processHandle);
@@ -445,7 +481,7 @@ NTSTATUS PhSvcApiControlProcess(
     case PhSvcControlProcessIoPriority:
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
         {
-            status = PhSetProcessIoPriority(processHandle, Message->u.ControlProcess.i.Argument);
+            status = PhSetProcessIoPriority(processHandle, Payload->u.ControlProcess.i.Argument);
             NtClose(processHandle);
         }
         break;
@@ -459,7 +495,7 @@ NTSTATUS PhSvcApiControlProcess(
 
 NTSTATUS PhSvcApiControlService(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
@@ -467,9 +503,9 @@ NTSTATUS PhSvcApiControlService(
     SC_HANDLE serviceHandle;
     SERVICE_STATUS serviceStatus;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ControlService.i.ServiceName, FALSE, &serviceName)))
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ControlService.i.ServiceName, FALSE, &serviceName)))
     {
-        switch (Message->u.ControlService.i.Command)
+        switch (Payload->u.ControlService.i.Command)
         {
         case PhSvcControlServiceStart:
             if (serviceHandle = PhOpenService(
@@ -564,7 +600,7 @@ NTSTATUS PhSvcApiControlService(
 
 NTSTATUS PhSvcApiCreateService(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
@@ -579,19 +615,19 @@ NTSTATUS PhSvcApiCreateService(
     SC_HANDLE scManagerHandle;
     SC_HANDLE serviceHandle;
 
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.ServiceName, FALSE, &serviceName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateService.i.ServiceName, FALSE, &serviceName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.DisplayName, TRUE, &displayName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateService.i.DisplayName, TRUE, &displayName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.BinaryPathName, TRUE, &binaryPathName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateService.i.BinaryPathName, TRUE, &binaryPathName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.LoadOrderGroup, TRUE, &loadOrderGroup)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateService.i.LoadOrderGroup, TRUE, &loadOrderGroup)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.Dependencies, TRUE, &dependencies)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateService.i.Dependencies, TRUE, &dependencies)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.ServiceStartName, TRUE, &serviceStartName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateService.i.ServiceStartName, TRUE, &serviceStartName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.Password, TRUE, &password)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateService.i.Password, TRUE, &password)))
         goto CleanupExit;
 
     if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
@@ -601,18 +637,18 @@ NTSTATUS PhSvcApiCreateService(
             serviceName->Buffer,
             PhGetString(displayName),
             SERVICE_CHANGE_CONFIG,
-            Message->u.CreateService.i.ServiceType,
-            Message->u.CreateService.i.StartType,
-            Message->u.CreateService.i.ErrorControl,
+            Payload->u.CreateService.i.ServiceType,
+            Payload->u.CreateService.i.StartType,
+            Payload->u.CreateService.i.ErrorControl,
             PhGetString(binaryPathName),
             PhGetString(loadOrderGroup),
-            Message->u.CreateService.i.TagIdSpecified ? &tagId : NULL,
+            Payload->u.CreateService.i.TagIdSpecified ? &tagId : NULL,
             PhGetString(dependencies),
             PhGetString(serviceStartName),
             PhGetString(password)
             ))
         {
-            Message->u.CreateService.o.TagId = tagId;
+            Payload->u.CreateService.o.TagId = tagId;
             CloseServiceHandle(serviceHandle);
         }
         else
@@ -646,7 +682,7 @@ CleanupExit:
 
 NTSTATUS PhSvcApiChangeServiceConfig(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
@@ -660,38 +696,38 @@ NTSTATUS PhSvcApiChangeServiceConfig(
     ULONG tagId = 0;
     SC_HANDLE serviceHandle;
 
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.ServiceName, FALSE, &serviceName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.ServiceName, FALSE, &serviceName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.BinaryPathName, TRUE, &binaryPathName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.BinaryPathName, TRUE, &binaryPathName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.LoadOrderGroup, TRUE, &loadOrderGroup)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.LoadOrderGroup, TRUE, &loadOrderGroup)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.Dependencies, TRUE, &dependencies)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.Dependencies, TRUE, &dependencies)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.ServiceStartName, TRUE, &serviceStartName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.ServiceStartName, TRUE, &serviceStartName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.Password, TRUE, &password)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.Password, TRUE, &password)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.DisplayName, TRUE, &displayName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.DisplayName, TRUE, &displayName)))
         goto CleanupExit;
 
     if (serviceHandle = PhOpenService(serviceName->Buffer, SERVICE_CHANGE_CONFIG))
     {
         if (ChangeServiceConfig(
             serviceHandle,
-            Message->u.ChangeServiceConfig.i.ServiceType,
-            Message->u.ChangeServiceConfig.i.StartType,
-            Message->u.ChangeServiceConfig.i.ErrorControl,
+            Payload->u.ChangeServiceConfig.i.ServiceType,
+            Payload->u.ChangeServiceConfig.i.StartType,
+            Payload->u.ChangeServiceConfig.i.ErrorControl,
             PhGetString(binaryPathName),
             PhGetString(loadOrderGroup),
-            Message->u.ChangeServiceConfig.i.TagIdSpecified ? &tagId : NULL,
+            Payload->u.ChangeServiceConfig.i.TagIdSpecified ? &tagId : NULL,
             PhGetString(dependencies),
             PhGetString(serviceStartName),
             PhGetString(password),
             PhGetString(displayName)
             ))
         {
-            Message->u.ChangeServiceConfig.o.TagId = tagId;
+            Payload->u.ChangeServiceConfig.o.TagId = tagId;
         }
         else
         {
@@ -725,7 +761,7 @@ CleanupExit:
 
 NTSTATUS PhSvcApiChangeServiceConfig2(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
@@ -733,12 +769,12 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
     PVOID info;
     SC_HANDLE serviceHandle;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig2.i.ServiceName, FALSE, &serviceName)))
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig2.i.ServiceName, FALSE, &serviceName)))
     {
-        switch (Message->u.ChangeServiceConfig2.i.InfoLevel)
+        switch (Payload->u.ChangeServiceConfig2.i.InfoLevel)
         {
         case SERVICE_CONFIG_DELAYED_AUTO_START_INFO:
-            if (NT_SUCCESS(status = PhSvcCaptureBuffer(&Message->u.ChangeServiceConfig2.i.Info, FALSE, &info)))
+            if (NT_SUCCESS(status = PhSvcCaptureBuffer(&Payload->u.ChangeServiceConfig2.i.Info, FALSE, &info)))
             {
                 if (serviceHandle = PhOpenService(serviceName->Buffer, SERVICE_CHANGE_CONFIG))
                 {
@@ -774,7 +810,7 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
 
 NTSTATUS PhSvcApiSetTcpEntry(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     static PVOID setTcpEntry = NULL;
@@ -817,11 +853,11 @@ NTSTATUS PhSvcApiSetTcpEntry(
     if (!localSetTcpEntry)
         return STATUS_NOT_SUPPORTED;
 
-    tcpRow.dwState = Message->u.SetTcpEntry.i.State;
-    tcpRow.dwLocalAddr = Message->u.SetTcpEntry.i.LocalAddress;
-    tcpRow.dwLocalPort = Message->u.SetTcpEntry.i.LocalPort;
-    tcpRow.dwRemoteAddr = Message->u.SetTcpEntry.i.RemoteAddress;
-    tcpRow.dwRemotePort = Message->u.SetTcpEntry.i.RemotePort;
+    tcpRow.dwState = Payload->u.SetTcpEntry.i.State;
+    tcpRow.dwLocalAddr = Payload->u.SetTcpEntry.i.LocalAddress;
+    tcpRow.dwLocalPort = Payload->u.SetTcpEntry.i.LocalPort;
+    tcpRow.dwRemoteAddr = Payload->u.SetTcpEntry.i.RemoteAddress;
+    tcpRow.dwRemotePort = Payload->u.SetTcpEntry.i.RemotePort;
     result = localSetTcpEntry(&tcpRow);
 
     return NTSTATUS_FROM_WIN32(result);
@@ -829,16 +865,16 @@ NTSTATUS PhSvcApiSetTcpEntry(
 
 NTSTATUS PhSvcApiControlThread(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
     HANDLE threadId;
     HANDLE threadHandle;
 
-    threadId = Message->u.ControlThread.i.ThreadId;
+    threadId = Payload->u.ControlThread.i.ThreadId;
 
-    switch (Message->u.ControlThread.i.Command)
+    switch (Payload->u.ControlThread.i.Command)
     {
     case PhSvcControlThreadTerminate:
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
@@ -864,7 +900,7 @@ NTSTATUS PhSvcApiControlThread(
     case PhSvcControlThreadIoPriority:
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SET_INFORMATION, threadId)))
         {
-            status = PhSetThreadIoPriority(threadHandle, Message->u.ControlThread.i.Argument);
+            status = PhSetThreadIoPriority(threadHandle, Payload->u.ControlThread.i.Argument);
             NtClose(threadHandle);
         }
         break;
@@ -878,7 +914,7 @@ NTSTATUS PhSvcApiControlThread(
 
 NTSTATUS PhSvcApiAddAccountRight(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
@@ -887,9 +923,9 @@ NTSTATUS PhSvcApiAddAccountRight(
     LSA_HANDLE policyHandle;
     UNICODE_STRING userRightUs;
 
-    if (NT_SUCCESS(status = PhSvcCaptureSid(&Message->u.AddAccountRight.i.AccountSid, FALSE, &accountSid)))
+    if (NT_SUCCESS(status = PhSvcCaptureSid(&Payload->u.AddAccountRight.i.AccountSid, FALSE, &accountSid)))
     {
-        if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.AddAccountRight.i.UserRight, FALSE, &userRight)))
+        if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.AddAccountRight.i.UserRight, FALSE, &userRight)))
         {
             if (NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, NULL)))
             {
@@ -909,14 +945,14 @@ NTSTATUS PhSvcApiAddAccountRight(
 
 NTSTATUS PhSvcApiInvokeRunAsService(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
     PH_RUNAS_SERVICE_PARAMETERS parameters;
     PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS capturedParameters;
 
-    if (NT_SUCCESS(status = PhSvcpCaptureRunAsServiceParameters(Client, Message, &parameters, &capturedParameters)))
+    if (NT_SUCCESS(status = PhSvcpCaptureRunAsServiceParameters(Client, Payload, &parameters, &capturedParameters)))
     {
         if (NT_SUCCESS(status = PhSvcpValidateRunAsServiceParameters(&parameters)))
         {
@@ -931,14 +967,14 @@ NTSTATUS PhSvcApiInvokeRunAsService(
 
 NTSTATUS PhSvcApiIssueMemoryListCommand(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
 
     status = NtSetSystemInformation(
         SystemMemoryListInformation,
-        &Message->u.IssueMemoryListCommand.i.Command,
+        &Payload->u.IssueMemoryListCommand.i.Command,
         sizeof(SYSTEM_MEMORY_LIST_COMMAND)
         );
 
@@ -947,14 +983,14 @@ NTSTATUS PhSvcApiIssueMemoryListCommand(
 
 NTSTATUS PhSvcApiPostMessage(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     if (PostMessage(
-        Message->u.PostMessage.i.hWnd,
-        Message->u.PostMessage.i.Msg,
-        Message->u.PostMessage.i.wParam,
-        Message->u.PostMessage.i.lParam
+        Payload->u.PostMessage.i.hWnd,
+        Payload->u.PostMessage.i.Msg,
+        Payload->u.PostMessage.i.wParam,
+        Payload->u.PostMessage.i.lParam
         ))
     {
         return STATUS_SUCCESS;
@@ -967,14 +1003,14 @@ NTSTATUS PhSvcApiPostMessage(
 
 NTSTATUS PhSvcApiSendMessage(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     if (SendMessage(
-        Message->u.PostMessage.i.hWnd,
-        Message->u.PostMessage.i.Msg,
-        Message->u.PostMessage.i.wParam,
-        Message->u.PostMessage.i.lParam
+        Payload->u.PostMessage.i.hWnd,
+        Payload->u.PostMessage.i.Msg,
+        Payload->u.PostMessage.i.wParam,
+        Payload->u.PostMessage.i.lParam
         ))
     {
         return STATUS_SUCCESS;
@@ -987,16 +1023,18 @@ NTSTATUS PhSvcApiSendMessage(
 
 NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
     PPH_STRING fileName;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateProcessIgnoreIfeoDebugger.i.FileName, FALSE, &fileName)))
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateProcessIgnoreIfeoDebugger.i.FileName, FALSE, &fileName)))
     {
         if (!PhCreateProcessIgnoreIfeoDebugger(fileName->Buffer))
             status = STATUS_UNSUCCESSFUL;
+
+        PhDereferenceObject(fileName);
     }
 
     return status;
@@ -1004,7 +1042,7 @@ NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
 
 NTSTATUS PhSvcApiSetServiceSecurity(
     _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_MSG Message
+    _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
@@ -1013,24 +1051,24 @@ NTSTATUS PhSvcApiSetServiceSecurity(
     ACCESS_MASK desiredAccess;
     SC_HANDLE serviceHandle;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.SetServiceSecurity.i.ServiceName, FALSE, &serviceName)))
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.SetServiceSecurity.i.ServiceName, FALSE, &serviceName)))
     {
-        if (NT_SUCCESS(status = PhSvcCaptureSecurityDescriptor(&Message->u.SetServiceSecurity.i.SecurityDescriptor, FALSE, 0, &securityDescriptor)))
+        if (NT_SUCCESS(status = PhSvcCaptureSecurityDescriptor(&Payload->u.SetServiceSecurity.i.SecurityDescriptor, FALSE, 0, &securityDescriptor)))
         {
             desiredAccess = 0;
 
-            if ((Message->u.SetServiceSecurity.i.SecurityInformation & OWNER_SECURITY_INFORMATION) ||
-                (Message->u.SetServiceSecurity.i.SecurityInformation & GROUP_SECURITY_INFORMATION))
+            if ((Payload->u.SetServiceSecurity.i.SecurityInformation & OWNER_SECURITY_INFORMATION) ||
+                (Payload->u.SetServiceSecurity.i.SecurityInformation & GROUP_SECURITY_INFORMATION))
             {
                 desiredAccess |= WRITE_OWNER;
             }
 
-            if (Message->u.SetServiceSecurity.i.SecurityInformation & DACL_SECURITY_INFORMATION)
+            if (Payload->u.SetServiceSecurity.i.SecurityInformation & DACL_SECURITY_INFORMATION)
             {
                 desiredAccess |= WRITE_DAC;
             }
 
-            if (Message->u.SetServiceSecurity.i.SecurityInformation & SACL_SECURITY_INFORMATION)
+            if (Payload->u.SetServiceSecurity.i.SecurityInformation & SACL_SECURITY_INFORMATION)
             {
                 desiredAccess |= ACCESS_SYSTEM_SECURITY;
             }
@@ -1040,7 +1078,7 @@ NTSTATUS PhSvcApiSetServiceSecurity(
                 status = PhSetSeObjectSecurity(
                     serviceHandle,
                     SE_SERVICE,
-                    Message->u.SetServiceSecurity.i.SecurityInformation,
+                    Payload->u.SetServiceSecurity.i.SecurityInformation,
                     securityDescriptor
                     );
                 CloseServiceHandle(serviceHandle);
@@ -1057,4 +1095,57 @@ NTSTATUS PhSvcApiSetServiceSecurity(
     }
 
     return status;
+}
+
+NTSTATUS PhSvcApiLoadDbgHelp(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_PAYLOAD Payload
+    )
+{
+    static BOOLEAN alreadyLoaded;
+
+    NTSTATUS status;
+    PPH_STRING dbgHelpPath;
+
+    if (alreadyLoaded)
+        return STATUS_SOME_NOT_MAPPED;
+
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.LoadDbgHelp.i.DbgHelpPath, FALSE, &dbgHelpPath)))
+    {
+        PhLoadDbgHelpFromPath(dbgHelpPath->Buffer);
+        PhDereferenceObject(dbgHelpPath);
+        alreadyLoaded = TRUE;
+    }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiWriteMiniDumpProcess(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_PAYLOAD Payload
+    )
+{
+    if (PhWriteMiniDumpProcess(
+        UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle),
+        UlongToHandle(Payload->u.WriteMiniDumpProcess.i.ProcessId),
+        UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalFileHandle),
+        Payload->u.WriteMiniDumpProcess.i.DumpType,
+        NULL,
+        NULL,
+        NULL
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        ULONG error;
+
+        error = GetLastError();
+
+        if (error == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER))
+            return STATUS_INVALID_PARAMETER;
+        else
+            return STATUS_UNSUCCESSFUL;
+    }
 }

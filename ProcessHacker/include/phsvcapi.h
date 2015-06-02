@@ -2,10 +2,11 @@
 #define PHSVCAPI_H
 
 #define PHSVC_PORT_NAME (L"\\BaseNamedObjects\\PhSvcApiPort")
+#define PHSVC_WOW64_PORT_NAME (L"\\BaseNamedObjects\\PhSvcWow64ApiPort")
 
 typedef enum _PHSVC_API_NUMBER
 {
-    PhSvcReserved1ApiNumber = 1,
+    PhSvcPluginApiNumber = 1,
     PhSvcExecuteRunAsCommandApiNumber = 2,
     PhSvcUnloadDriverApiNumber = 3,
     PhSvcControlProcessApiNumber = 4,
@@ -22,13 +23,28 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcSendMessageApiNumber = 15,
     PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber = 16,
     PhSvcSetServiceSecurityApiNumber = 17,
+    PhSvcLoadDbgHelpApiNumber = 18, // WOW64 compatible
+    PhSvcWriteMiniDumpProcessApiNumber = 19, // WOW64 compatible
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
 typedef struct _PHSVC_API_CONNECTINFO
 {
-    HANDLE ServerProcessId;
+    ULONG ServerProcessId;
 } PHSVC_API_CONNECTINFO, *PPHSVC_API_CONNECTINFO;
+
+typedef union _PHSVC_API_PLUGIN
+{
+    struct
+    {
+        PH_RELATIVE_STRINGREF ApiId;
+        ULONG Data[30];
+    } i;
+    struct
+    {
+        ULONG Data[32];
+    } o;
+} PHSVC_API_PLUGIN, *PPHSVC_API_PLUGIN;
 
 typedef union _PHSVC_API_EXECUTERUNASCOMMAND
 {
@@ -225,36 +241,69 @@ typedef union _PHSVC_API_SETSERVICESECURITY
     } i;
 } PHSVC_API_SETSERVICESECURITY, *PPHSVC_API_SETSERVICESECURITY;
 
+typedef union _PHSVC_API_LOADDBGHELP
+{
+    struct
+    {
+        PH_RELATIVE_STRINGREF DbgHelpPath;
+    } i;
+} PHSVC_API_LOADDBGHELP, *PPHSVC_API_LOADDBGHELP;
+
+typedef union _PHSVC_API_WRITEMINIDUMPPROCESS
+{
+    struct
+    {
+        ULONG LocalProcessHandle;
+        ULONG ProcessId;
+        ULONG LocalFileHandle;
+        ULONG DumpType;
+    } i;
+} PHSVC_API_WRITEMINIDUMPPROCESS, *PPHSVC_API_WRITEMINIDUMPPROCESS;
+
+typedef union _PHSVC_API_PAYLOAD
+{
+    PHSVC_API_CONNECTINFO ConnectInfo;
+    struct
+    {
+        PHSVC_API_NUMBER ApiNumber;
+        NTSTATUS ReturnStatus;
+
+        union
+        {
+            PHSVC_API_PLUGIN Plugin;
+            PHSVC_API_EXECUTERUNASCOMMAND ExecuteRunAsCommand;
+            PHSVC_API_UNLOADDRIVER UnloadDriver;
+            PHSVC_API_CONTROLPROCESS ControlProcess;
+            PHSVC_API_CONTROLSERVICE ControlService;
+            PHSVC_API_CREATESERVICE CreateService;
+            PHSVC_API_CHANGESERVICECONFIG ChangeServiceConfig;
+            PHSVC_API_CHANGESERVICECONFIG2 ChangeServiceConfig2;
+            PHSVC_API_SETTCPENTRY SetTcpEntry;
+            PHSVC_API_CONTROLTHREAD ControlThread;
+            PHSVC_API_ADDACCOUNTRIGHT AddAccountRight;
+            PHSVC_API_ISSUEMEMORYLISTCOMMAND IssueMemoryListCommand;
+            PHSVC_API_POSTMESSAGE PostMessage;
+            PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER CreateProcessIgnoreIfeoDebugger;
+            PHSVC_API_SETSERVICESECURITY SetServiceSecurity;
+            PHSVC_API_LOADDBGHELP LoadDbgHelp;
+            PHSVC_API_WRITEMINIDUMPPROCESS WriteMiniDumpProcess;
+        } u;
+    };
+} PHSVC_API_PAYLOAD, *PPHSVC_API_PAYLOAD;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
-    union
-    {
-        PHSVC_API_CONNECTINFO ConnectInfo;
-        struct
-        {
-            PHSVC_API_NUMBER ApiNumber;
-            NTSTATUS ReturnStatus;
-
-            union
-            {
-                PHSVC_API_EXECUTERUNASCOMMAND ExecuteRunAsCommand;
-                PHSVC_API_UNLOADDRIVER UnloadDriver;
-                PHSVC_API_CONTROLPROCESS ControlProcess;
-                PHSVC_API_CONTROLSERVICE ControlService;
-                PHSVC_API_CREATESERVICE CreateService;
-                PHSVC_API_CHANGESERVICECONFIG ChangeServiceConfig;
-                PHSVC_API_CHANGESERVICECONFIG2 ChangeServiceConfig2;
-                PHSVC_API_SETTCPENTRY SetTcpEntry;
-                PHSVC_API_CONTROLTHREAD ControlThread;
-                PHSVC_API_ADDACCOUNTRIGHT AddAccountRight;
-                PHSVC_API_ISSUEMEMORYLISTCOMMAND IssueMemoryListCommand;
-                PHSVC_API_POSTMESSAGE PostMessage;
-                PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER CreateProcessIgnoreIfeoDebugger;
-                PHSVC_API_SETSERVICESECURITY SetServiceSecurity;
-            } u;
-        };
-    };
+    PHSVC_API_PAYLOAD p;
 } PHSVC_API_MSG, *PPHSVC_API_MSG;
+
+typedef struct _PHSVC_API_MSG64
+{
+    PORT_MESSAGE64 h;
+    PHSVC_API_PAYLOAD p;
+} PHSVC_API_MSG64, *PPHSVC_API_MSG64;
+
+C_ASSERT(FIELD_OFFSET(PHSVC_API_PAYLOAD, u) == 8);
+C_ASSERT(sizeof(PHSVC_API_MSG) <= PORT_MAXIMUM_MESSAGE_LENGTH);
 
 #endif
