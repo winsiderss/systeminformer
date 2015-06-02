@@ -336,7 +336,9 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         }
     }
 
+#ifdef _WIN64
 Completed:
+#endif
     SendMessage(
         context->WindowHandle,
         WM_PH_MINIDUMP_STATUS_UPDATE,
