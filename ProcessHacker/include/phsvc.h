@@ -98,6 +98,16 @@ VOID PhSvcDispatchApiCall(
     _Out_ PHANDLE ReplyPortHandle
     );
 
+PVOID PhSvcValidateString(
+    _In_ PPH_RELATIVE_STRINGREF String
+    );
+
+NTSTATUS PhSvcProbeBuffer(
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PVOID *Pointer
+    );
+
 NTSTATUS PhSvcCaptureBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ BOOLEAN AllowNull,

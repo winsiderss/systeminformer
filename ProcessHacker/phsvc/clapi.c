@@ -169,7 +169,7 @@ VOID PhSvcpFreeHeap(
 }
 
 PVOID PhSvcpCreateString(
-    _In_ PVOID String,
+    _In_opt_ PVOID String,
     _In_ SIZE_T Length,
     _Out_ PPH_RELATIVE_STRINGREF StringRef
     )
@@ -191,7 +191,8 @@ PVOID PhSvcpCreateString(
     if (!memory)
         return NULL;
 
-    memcpy(memory, String, length);
+    if (String)
+        memcpy(memory, String, length);
 
     StringRef->Length = (ULONG)length;
     StringRef->Offset = offset;

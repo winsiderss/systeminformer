@@ -284,6 +284,12 @@ typedef LONG (NTAPI *PPH_PLUGIN_TREENEW_SORT_FUNCTION)(
     _In_ PVOID Context
     );
 
+typedef NTSTATUS (NTAPI *PPHSVC_SERVER_PROBE_BUFFER)(
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PVOID *Pointer
+    );
+
 typedef NTSTATUS (NTAPI *PPHSVC_SERVER_CAPTURE_BUFFER)(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ BOOLEAN AllowNull,
@@ -305,6 +311,7 @@ typedef struct _PH_PLUGIN_PHSVC_REQUEST
     PVOID OutBuffer;
     ULONG OutLength;
 
+    PPHSVC_SERVER_PROBE_BUFFER ProbeBuffer;
     PPHSVC_SERVER_CAPTURE_BUFFER CaptureBuffer;
     PPHSVC_SERVER_CAPTURE_STRING CaptureString;
 } PH_PLUGIN_PHSVC_REQUEST, *PPH_PLUGIN_PHSVC_REQUEST;
@@ -314,7 +321,7 @@ typedef VOID (NTAPI *PPHSVC_CLIENT_FREE_HEAP)(
     );
 
 typedef PVOID (NTAPI *PPHSVC_CLIENT_CREATE_STRING)(
-    _In_ PVOID String,
+    _In_opt_ PVOID String,
     _In_ SIZE_T Length,
     _Out_ PPH_RELATIVE_STRINGREF StringRef
     );
