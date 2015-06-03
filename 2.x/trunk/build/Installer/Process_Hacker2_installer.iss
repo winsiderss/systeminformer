@@ -166,6 +166,7 @@ Source: ..\..\bin\Release64\peview.exe;                           DestDir: {app}
 
 Source: ..\..\bin\Release32\plugins\DotNetTools.dll;              DestDir: {app}\plugins; Components: plugins\dotnettools;           Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\DotNetTools.dll;              DestDir: {app}\plugins; Components: plugins\dotnettools;           Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\bin\Release32\plugins\DotNetTools.dll;              DestDir: {app}\x86\plugins; Components: plugins\dotnettools;       Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\ExtendedNotifications.dll;    DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\ExtendedNotifications.dll;    DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\ExtendedServices.dll;         DestDir: {app}\plugins; Components: plugins\extendedservices;      Flags: ignoreversion; Check: not Is64BitInstallMode()
