@@ -2,7 +2,7 @@
  * Process Hacker -
  *   thread stack viewer
  *
- * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -552,6 +552,13 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
 
     if (defaultWalk)
     {
+        PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+        control.UniqueKey = threadStackContext;
+
+        control.Type = PluginThreadStackBeginDefaultWalkStack;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
         status = PhWalkThreadStack(
             threadStackContext->ThreadHandle,
             threadStackContext->SymbolProvider->ProcessHandle,
@@ -560,6 +567,9 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
             PhpWalkThreadStackCallback,
             threadStackContext
             );
+
+        control.Type = PluginThreadStackEndDefaultWalkStack;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
     }
 
     if (threadStackContext->NewList->Count != 0)

@@ -1,10 +1,14 @@
 Process Hacker
 
 2.36
- * NEW/IMPROVED:
+ * HIGHLIGHTS:
    * Completely new Memory tab for processes, with heap, stack and working set usage
    * Process Hacker now takes 32-bit dumps of 32-bit processes on 64-bit Windows
      * NOTE: When using the portable (.zip) release, the entire archive must be extracted
+   * Updated DotNetTools plugin:
+     * Process Hacker now displays managed stack traces for 32-bit .NET processes on 64-bit Windows
+     * Added AppDomain column for threads in .NET programs
+ * OTHER CHANGES:
    * Added customizable bytes per row setting for memory editor
    * Dramatically faster handle listing and search when running without administrative privileges
    * Added trigger and delayed start information to service list
@@ -12,12 +16,8 @@ Process Hacker
    * Balloon tips for process/service notifications are now clickable
    * Added handle names for unnamed File objects
    * Added warning for users who attempt to start the 32-bit version on 64-bit Windows
-   * Updated DotNetTools plugin:
-     * Added stack trace support for 32-bit processes on 64-bit Windows
-     * Added AppDomain column for threads in .NET programs
    * Updated ExtendedServices plugin:
      * Added service protection and SID information
- * FIXED:
    * Fixed a bug in phsvc that caused hangs when automatically elevating actions
    * Fixed hang when viewing handle security for certain File objects
    * Fixed lack of information on startup when using slower refresh intervals
