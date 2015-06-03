@@ -182,6 +182,8 @@ typedef enum _PH_PLUGIN_THREAD_STACK_CONTROL_TYPE
     PluginThreadStackResolveSymbol,
     PluginThreadStackGetTooltip,
     PluginThreadStackWalkStack,
+    PluginThreadStackBeginDefaultWalkStack,
+    PluginThreadStackEndDefaultWalkStack,
     PluginThreadStackMaximum
 } PH_PLUGIN_THREAD_STACK_CONTROL_TYPE;
 

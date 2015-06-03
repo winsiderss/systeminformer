@@ -114,6 +114,77 @@ CleanupExit:
     return status;
 }
 
+VOID CallPredictAddressesFromClrData(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PVOID PcAddress,
+    _In_ PVOID FrameAddress,
+    _In_ PVOID StackAddress,
+    _Out_ PVOID *PredictedEip,
+    _Out_ PVOID *PredictedEbp,
+    _Out_ PVOID *PredictedEsp
+    )
+{
+    PH_PLUGIN_PHSVC_CLIENT client;
+    DN_API_PREDICTADDRESSESFROMCLRDATA in;
+    DN_API_PREDICTADDRESSESFROMCLRDATA out;
+
+    *PredictedEip = NULL;
+    *PredictedEbp = NULL;
+    *PredictedEsp = NULL;
+
+    if (!PhPluginQueryPhSvc(&client))
+        return;
+
+    in.i.ProcessId = HandleToUlong(ProcessId);
+    in.i.ThreadId = HandleToUlong(ThreadId);
+    in.i.PcAddress = PtrToUlong(PcAddress);
+    in.i.FrameAddress = PtrToUlong(FrameAddress);
+    in.i.StackAddress = PtrToUlong(StackAddress);
+
+    if (NT_SUCCESS(PhPluginCallPhSvc(PluginInstance, DnPredictAddressesFromClrDataApiNumber, &in, sizeof(in), &out, sizeof(out))))
+    {
+        *PredictedEip = UlongToPtr(out.o.PredictedEip);
+        *PredictedEbp = UlongToPtr(out.o.PredictedEbp);
+        *PredictedEsp = UlongToPtr(out.o.PredictedEsp);
+    }
+}
+
+NTSTATUS DispatchPredictAddressesFromClrData(
+    _In_ PPH_PLUGIN_PHSVC_REQUEST Request,
+    _In_ PDN_API_PREDICTADDRESSESFROMCLRDATA In,
+    _Out_ PDN_API_PREDICTADDRESSESFROMCLRDATA Out
+    )
+{
+    PCLR_PROCESS_SUPPORT support;
+    PVOID predictedEip;
+    PVOID predictedEbp;
+    PVOID predictedEsp;
+
+    support = CreateClrProcessSupport(UlongToHandle(In->i.ProcessId));
+
+    if (!support)
+        return STATUS_UNSUCCESSFUL;
+
+    PredictAddressesFromClrData(
+        support,
+        UlongToHandle(In->i.ThreadId),
+        UlongToPtr(In->i.PcAddress),
+        UlongToPtr(In->i.FrameAddress),
+        UlongToPtr(In->i.StackAddress),
+        &predictedEip,
+        &predictedEbp,
+        &predictedEsp
+        );
+    FreeClrProcessSupport(support);
+
+    Out->o.PredictedEip = PtrToUlong(predictedEip);
+    Out->o.PredictedEbp = PtrToUlong(predictedEbp);
+    Out->o.PredictedEsp = PtrToUlong(predictedEsp);
+
+    return STATUS_SUCCESS;
+}
+
 VOID DispatchPhSvcRequest(
     _In_ PVOID Parameter
     )
@@ -128,6 +199,9 @@ VOID DispatchPhSvcRequest(
     {
     case DnGetRuntimeNameByAddressApiNumber:
         request->ReturnStatus = DispatchGetRuntimeNameByAddress(request, inBuffer, request->OutBuffer);
+        break;
+    case DnPredictAddressesFromClrDataApiNumber:
+        request->ReturnStatus = DispatchPredictAddressesFromClrData(request, inBuffer, request->OutBuffer);
         break;
     }
 

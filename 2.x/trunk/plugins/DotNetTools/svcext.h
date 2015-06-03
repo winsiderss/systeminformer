@@ -51,4 +51,15 @@ PPH_STRING CallGetRuntimeNameByAddress(
     _Out_opt_ PULONG64 Displacement
     );
 
+VOID CallPredictAddressesFromClrData(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ PVOID PcAddress,
+    _In_ PVOID FrameAddress,
+    _In_ PVOID StackAddress,
+    _Out_ PVOID *PredictedEip,
+    _Out_ PVOID *PredictedEbp,
+    _Out_ PVOID *PredictedEsp
+    );
+
 #endif
