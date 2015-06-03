@@ -28,6 +28,12 @@
 #include <notifico.h>
 #include <phsvccl.h>
 
+typedef struct _PHP_PLUGIN_LOAD_ERROR
+{
+    PPH_STRING FileName;
+    PPH_STRING ErrorMessage;
+} PHP_PLUGIN_LOAD_ERROR, *PPHP_PLUGIN_LOAD_ERROR;
+
 INT NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
@@ -45,7 +51,7 @@ PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
-static PPH_STRING LoadingPluginFileName;
+static PPH_LIST LoadErrors;
 static ULONG NextPluginId = IDPLUGINS + 1;
 
 VOID PhPluginsInitialization(
@@ -251,6 +257,49 @@ VOID PhLoadPlugins(
         NtClose(pluginsDirectoryHandle);
     }
 
+    // Handle load errors.
+    // In certain startup modes we want to ignore all plugin load errors.
+    if (LoadErrors && LoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
+    {
+        PH_STRING_BUILDER sb;
+        ULONG i;
+        PPHP_PLUGIN_LOAD_ERROR loadError;
+        PPH_STRING baseName;
+
+        PhInitializeStringBuilder(&sb, 100);
+        PhAppendStringBuilder2(&sb, L"Unable to load the following plugin(s):\n\n");
+
+        for (i = 0; i < LoadErrors->Count; i++)
+        {
+            loadError = LoadErrors->Items[i];
+            baseName = PhGetBaseName(loadError->FileName);
+            PhAppendFormatStringBuilder(&sb, L"%s: %s\n",
+                baseName->Buffer, PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred."));
+            PhDereferenceObject(baseName);
+        }
+
+        PhAppendStringBuilder2(&sb, L"\nDo you want to disable the above plugin(s)?");
+
+        if (PhShowMessage(
+            NULL,
+            MB_ICONERROR | MB_YESNO,
+            sb.String->Buffer
+            ) == IDYES)
+        {
+            ULONG i;
+
+            for (i = 0; i < LoadErrors->Count; i++)
+            {
+                loadError = LoadErrors->Items[i];
+                baseName = PhGetBaseName(loadError->FileName);
+                PhSetPluginDisabled(&baseName->sr, TRUE);
+                PhDereferenceObject(baseName);
+            }
+        }
+
+        PhDeleteStringBuilder(&sb);
+    }
+
     // When we loaded settings before, we didn't know about plugin settings, so they
     // went into the ignored settings list. Now that they've had a chance to add
     // settings, we should scan the ignored settings list and move the settings to
@@ -271,33 +320,6 @@ VOID PhUnloadPlugins(
     PhpExecuteCallbackForAllPlugins(PluginCallbackUnload);
 }
 
-VOID PhpHandlePluginLoadError(
-    _In_ PPH_STRING FileName,
-    _In_opt_ PPH_STRING ErrorMessage
-    )
-{
-    PPH_STRING baseName;
-
-    // In certain startup modes we want to ignore all plugin load errors.
-    if (PhStartupParameters.PhSvc)
-        return;
-
-    baseName = PhGetBaseName(FileName);
-
-    if (PhShowMessage(
-        NULL,
-        MB_ICONERROR | MB_YESNO,
-        L"Unable to load %s: %s\nDo you want to disable the plugin?",
-        baseName->Buffer,
-        PhGetStringOrDefault(ErrorMessage, L"An unknown error occurred.")
-        ) == IDYES)
-    {
-        PhSetPluginDisabled(&baseName->sr, TRUE);
-    }
-
-    PhDereferenceObject(baseName);
-}
-
 /**
  * Loads a plugin.
  *
@@ -314,12 +336,7 @@ BOOLEAN PhLoadPlugin(
     fileName = PhGetFullPath(FileName->Buffer, NULL);
 
     if (!fileName)
-    {
-        fileName = FileName;
-        PhReferenceObject(fileName);
-    }
-
-    LoadingPluginFileName = fileName;
+        PhSetReference(&fileName, FileName);
 
     success = TRUE;
 
@@ -331,14 +348,22 @@ BOOLEAN PhLoadPlugin(
 
     if (!success)
     {
-        PhpHandlePluginLoadError(fileName, errorMessage);
+        PPHP_PLUGIN_LOAD_ERROR loadError;
+
+        loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
+        PhSetReference(&loadError->FileName, fileName);
+        PhSetReference(&loadError->ErrorMessage, errorMessage);
+
+        if (!LoadErrors)
+            LoadErrors = PhCreateList(2);
+
+        PhAddItemList(LoadErrors, loadError);
 
         if (errorMessage)
             PhDereferenceObject(errorMessage);
     }
 
     PhDereferenceObject(fileName);
-    LoadingPluginFileName = NULL;
 
     return success;
 }

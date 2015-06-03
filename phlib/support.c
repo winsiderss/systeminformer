@@ -292,6 +292,16 @@ PPH_STRING PhGetNtMessage(
     if (PhIsNullOrEmptyString(message))
         return message;
 
+    PhTrimToNullTerminatorString(message);
+
+    // Remove any trailing newline.
+    if (message->Length >= 2 * sizeof(WCHAR) &&
+        message->Buffer[message->Length / sizeof(WCHAR) - 2] == '\r' &&
+        message->Buffer[message->Length / sizeof(WCHAR) - 1] == '\n')
+    {
+        PhMoveReference(&message, PhCreateStringEx(message->Buffer, message->Length - 2 * sizeof(WCHAR)));
+    }
+
     // Fix those messages which are formatted like:
     // {Asdf}\r\nAsdf asdf asdf...
     if (message->Buffer[0] == '{')
@@ -315,7 +325,22 @@ PPH_STRING PhGetWin32Message(
     _In_ ULONG Result
     )
 {
-    return PhGetMessage(GetModuleHandle(L"kernel32.dll"), 0xb, GetUserDefaultLangID(), Result);
+    PPH_STRING message;
+    
+    message = PhGetMessage(GetModuleHandle(L"kernel32.dll"), 0xb, GetUserDefaultLangID(), Result);
+
+    if (message)
+        PhTrimToNullTerminatorString(message);
+
+    // Remove any trailing newline.
+    if (message && message->Length >= 2 * sizeof(WCHAR) &&
+        message->Buffer[message->Length / sizeof(WCHAR) - 2] == '\r' &&
+        message->Buffer[message->Length / sizeof(WCHAR) - 1] == '\n')
+    {
+        PhMoveReference(&message, PhCreateStringEx(message->Buffer, message->Length - 2 * sizeof(WCHAR)));
+    }
+
+    return message;
 }
 
 /**
