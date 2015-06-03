@@ -1,5 +1,5 @@
 1.4
- * Added stack trace support for 32-bit processes on 64-bit Windows
+ * Process Hacker now displays managed stack traces for 32-bit .NET processes on 64-bit Windows
  * Added AppDomain column for threads in .NET programs
 
 1.3
