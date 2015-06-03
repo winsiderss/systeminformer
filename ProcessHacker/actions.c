@@ -305,7 +305,7 @@ VOID PhpGetPhSvcPortName(
         if (!PhIsExecutingInWow64())
             RtlInitUnicodeString(PortName, PHSVC_PORT_NAME);
         else
-        RtlInitUnicodeString(PortName, PHSVC_WOW64_PORT_NAME);
+            RtlInitUnicodeString(PortName, PHSVC_WOW64_PORT_NAME);
         break;
     case Wow64PhSvcMode:
         RtlInitUnicodeString(PortName, PHSVC_WOW64_PORT_NAME);
