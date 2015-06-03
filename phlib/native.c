@@ -586,13 +586,17 @@ NTSTATUS PhpQueryProcessVariableSize(
     PVOID buffer;
     ULONG returnLength = 0;
 
-    NtQueryInformationProcess(
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessInformationClass,
         NULL,
         0,
         &returnLength
         );
+
+    if (status != STATUS_BUFFER_OVERFLOW && status != STATUS_BUFFER_TOO_SMALL && status != STATUS_INFO_LENGTH_MISMATCH)
+        return status;
+
     buffer = PhAllocate(returnLength);
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -2876,11 +2880,7 @@ NTSTATUS PhpQueryFileVariableSize(
             FileInformationClass
             );
 
-        if (
-            status == STATUS_BUFFER_OVERFLOW ||
-            status == STATUS_BUFFER_TOO_SMALL ||
-            status == STATUS_INFO_LENGTH_MISMATCH
-            )
+        if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
         {
             PhFree(buffer);
             bufferSize *= 2;
