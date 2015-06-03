@@ -36,6 +36,15 @@ static VOID NTAPI LoadCallback(
 {
     PPH_STRING string = NULL;
 
+    if (WindowsVersion > WINDOWS_VISTA)
+    {
+        if (IphlpHandle = GetModuleHandle(L"iphlpapi.dll"))
+        {
+            GetIfEntry2_I = (_GetIfEntry2)GetProcAddress(IphlpHandle, "GetIfEntry2");
+            GetInterfaceDescriptionFromGuid_I = (_GetInterfaceDescriptionFromGuid)GetProcAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid");
+        }
+    }
+
     NetworkAdaptersList = PhCreateList(1);
 
     string = PhGetStringSetting(SETTING_NAME_INTERFACE_LIST);
