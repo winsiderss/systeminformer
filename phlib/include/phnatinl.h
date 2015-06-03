@@ -113,9 +113,6 @@ FORCEINLINE NTSTATUS PhGetProcessSessionId(
  * must have PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param IsWow64 A variable which receives a boolean
  * indicating whether the process is 32-bit.
- *
- * \remarks Do not use this function under a 32-bit
- * environment.
  */
 FORCEINLINE NTSTATUS PhGetProcessIsWow64(
     _In_ HANDLE ProcessHandle,
@@ -149,9 +146,6 @@ FORCEINLINE NTSTATUS PhGetProcessIsWow64(
  * \param Peb32 A variable which receives the base address
  * of the process' WOW64 PEB. If the process is 64-bit,
  * the variable receives NULL.
- *
- * \remarks Do not use this function under a 32-bit
- * environment.
  */
 FORCEINLINE NTSTATUS PhGetProcessPeb32(
     _In_ HANDLE ProcessHandle,
