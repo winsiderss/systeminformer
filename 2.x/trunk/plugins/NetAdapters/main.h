@@ -46,19 +46,6 @@
 extern PPH_PLUGIN PluginInstance;
 extern PPH_LIST NetworkAdaptersList;
 
-typedef ULONG (WINAPI* _GetIfEntry2)(
-    _Inout_ PMIB_IF_ROW2 Row
-    );
-
-// dmex: rev
-typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
-    _Inout_ PGUID InterfaceGuid,
-    _Out_opt_ PWSTR InterfaceDescription,
-    _Inout_ PSIZE_T LengthAddress,
-    PVOID Unknown1,
-    PVOID Unknown2
-    );
-
 typedef struct _PH_NETADAPTER_ENTRY
 {
     NET_IFINDEX InterfaceIndex;
@@ -90,10 +77,6 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
     HWND GraphHandle;
 
     HANDLE DeviceHandle;
-    HMODULE IphlpHandle;
-
-    _GetIfEntry2 GetIfEntry2_I;
-    _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I;
 
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
@@ -116,6 +99,76 @@ VOID ShowOptionsDialog(
 VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ PPH_NETADAPTER_ENTRY AdapterInfo
+    );
+
+
+// ndis.c
+
+#define BITS_IN_ONE_BYTE 8
+#define NDIS_UNIT_OF_MEASUREMENT 100
+
+typedef ULONG (WINAPI* _GetIfEntry2)(
+    _Inout_ PMIB_IF_ROW2 Row
+    );
+
+// dmex: rev
+typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
+    _Inout_ PGUID InterfaceGuid,
+    _Out_opt_ PWSTR InterfaceDescription,
+    _Inout_ PSIZE_T LengthAddress,
+    PVOID Unknown1,
+    PVOID Unknown2
+    );
+
+extern HMODULE IphlpHandle;
+extern _GetIfEntry2 GetIfEntry2_I;
+extern _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I;
+
+BOOLEAN NetworkAdapterQuerySupported(
+    _In_ HANDLE DeviceHandle
+    );
+
+BOOLEAN NetworkAdapterQueryNdisVersion(
+    _In_ HANDLE DeviceHandle,
+    _Out_opt_ PUINT MajorVersion,
+    _Out_opt_ PUINT MinorVersion
+    );
+
+PPH_STRING NetworkAdapterQueryName(
+    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    );
+
+NTSTATUS NetworkAdapterQueryStatistics(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNDIS_STATISTICS_INFO Info
+    );
+
+NTSTATUS NetworkAdapterQueryLinkState(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNDIS_LINK_STATE State
+    );
+
+BOOLEAN NetworkAdapterQueryMediaType(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNDIS_PHYSICAL_MEDIUM Medium
+    );
+
+NTSTATUS NetworkAdapterQueryLinkSpeed(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PULONG64 LinkSpeed
+    );
+
+ULONG64 NetworkAdapterQueryValue(
+    _In_ HANDLE DeviceHandle,
+    _In_ NDIS_OID OpCode
+    );
+
+MIB_IF_ROW2 QueryInterfaceRowVista(
+    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    );
+
+MIB_IFROW QueryInterfaceRowXP(
+    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
     );
 
 #endif _NETADAPTER_H_
