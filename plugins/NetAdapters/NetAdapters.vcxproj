@@ -65,6 +65,7 @@
   <ItemGroup>
     <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="ndis.c" />
     <ClCompile Include="options.c" />
   </ItemGroup>
   <ItemGroup>
