@@ -2,7 +2,7 @@
  * Process Hacker -
  *   server API port
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -171,6 +171,7 @@ NTSTATUS PhSvcApiRequestThreadStart(
 
         client = portContext;
         threadContext.CurrentClient = client;
+        PhWaitForEvent(&client->ReadyEvent, NULL);
 
         if (messageType == LPC_REQUEST)
         {
@@ -265,6 +266,10 @@ VOID PhSvcHandleConnectionRequest(
         return;
     }
 
+    // IMPORTANT: Since Vista, NtCompleteConnectPort does not do anything and simply returns STATUS_SUCCESS.
+    // We will call it anyway (for completeness), but we need to use an event to ensure that other threads don't try
+    // to process requests before we have finished setting up the client object.
+
     client->PortHandle = portHandle;
 
     if (PhIsExecutingInWow64())
@@ -278,13 +283,8 @@ VOID PhSvcHandleConnectionRequest(
         client->ClientViewLimit = (PCHAR)clientView.ViewBase + clientView.ViewSize;
     }
 
-    status = NtCompleteConnectPort(portHandle);
-
-    if (!NT_SUCCESS(status))
-    {
-        PhDereferenceObject(client);
-        return;
-    }
+    NtCompleteConnectPort(portHandle);
+    PhSetEvent(&client->ReadyEvent);
 
     if (_InterlockedIncrement(&PhSvcApiNumberOfClients) == 1)
     {
