@@ -30,6 +30,7 @@ typedef struct _PHSVC_CLIENT
 {
     LIST_ENTRY ListEntry;
 
+    PH_EVENT ReadyEvent;
     CLIENT_ID ClientId;
     HANDLE PortHandle;
     PVOID ClientViewBase;

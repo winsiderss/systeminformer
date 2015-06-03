@@ -2,7 +2,7 @@
  * Process Hacker -
  *   server client
  *
- * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -68,6 +68,7 @@ PPHSVC_CLIENT PhSvcCreateClient(
     }
 
     memset(client, 0, sizeof(PHSVC_CLIENT));
+    PhInitializeEvent(&client->ReadyEvent);
 
     if (ClientId)
         client->ClientId = *ClientId;
