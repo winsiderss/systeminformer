@@ -127,7 +127,17 @@ BOOLEAN PhIsExecutingInWow64(
     VOID
     )
 {
-    return USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
+    static BOOLEAN valid = FALSE;
+    static BOOLEAN isWow64;
+
+    if (!valid)
+    {
+        PhGetProcessIsWow64(NtCurrentProcess(), &isWow64);
+        MemoryBarrier();
+        valid = TRUE;
+    }
+
+    return isWow64;
 }
 #endif
 
