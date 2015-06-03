@@ -48,6 +48,11 @@ VOID NTAPI TreeNewMessageCallback(
     _In_opt_ PVOID Context
     );
 
+VOID NTAPI PhSvcRequestCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
 VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -111,6 +116,7 @@ PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
@@ -173,6 +179,12 @@ LOGICAL DllMain(
                 TreeNewMessageCallback,
                 NULL,
                 &PluginTreeNewMessageCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackPhSvcRequest),
+                PhSvcRequestCallback,
+                NULL,
+                &PluginPhSvcRequestCallbackRegistration
                 );
 
             //PhRegisterCallback(
@@ -301,6 +313,13 @@ VOID NTAPI TreeNewMessageCallback(
     DispatchTreeNewMessage(Parameter);
 }
 
+VOID NTAPI PhSvcRequestCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    DispatchPhSvcRequest(Parameter);
+}
 
 VOID NTAPI ThreadTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,

@@ -76,6 +76,12 @@ VOID ProcessThreadStackControl(
     _In_ PPH_PLUGIN_THREAD_STACK_CONTROL Control
     );
 
+// svcext
+
+VOID DispatchPhSvcRequest(
+    _In_ PVOID Parameter
+    );
+
 // treeext
 
 VOID InitializeTreeNewObjectExtensions(

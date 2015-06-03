@@ -70,6 +70,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="perfpage.c" />
     <ClCompile Include="stackext.c" />
+    <ClCompile Include="svcext.c" />
     <ClCompile Include="treeext.c" />
   </ItemGroup>
   <ItemGroup>
@@ -77,6 +78,7 @@
     <ClInclude Include="clrsup.h" />
     <ClInclude Include="dn.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="svcext.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />

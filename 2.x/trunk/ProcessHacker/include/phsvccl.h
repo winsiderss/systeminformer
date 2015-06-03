@@ -19,7 +19,7 @@ VOID PhSvcpFreeHeap(
     );
 
 PVOID PhSvcpCreateString(
-    _In_ PVOID String,
+    _In_opt_ PVOID String,
     _In_ SIZE_T Length,
     _Out_ PPH_RELATIVE_STRINGREF StringRef
     );

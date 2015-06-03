@@ -94,26 +94,68 @@ VOID PhSvcDispatchApiCall(
     *ReplyPortHandle = Client->PortHandle;
 }
 
+PVOID PhSvcValidateString(
+    _In_ PPH_RELATIVE_STRINGREF String
+    )
+{
+    PPHSVC_CLIENT client = PhSvcGetCurrentClient();
+    PVOID address;
+
+    address = (PCHAR)client->ClientViewBase + String->Offset;
+
+    if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
+        (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
+        (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit)
+    {
+        return NULL;
+    }
+
+    return address;
+}
+
+NTSTATUS PhSvcProbeBuffer(
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ BOOLEAN AllowNull,
+    _Out_ PVOID *Pointer
+    )
+{
+    PVOID address;
+
+    if (String->Offset != 0)
+    {
+        address = PhSvcValidateString(String);
+
+        if (!address)
+            return STATUS_ACCESS_VIOLATION;
+
+        *Pointer = address;
+    }
+    else
+    {
+        if (!AllowNull)
+            return STATUS_ACCESS_VIOLATION;
+
+        *Pointer = NULL;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS PhSvcCaptureBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ BOOLEAN AllowNull,
     _Out_ PVOID *CapturedBuffer
     )
 {
-    PPHSVC_CLIENT client = PhSvcGetCurrentClient();
     PVOID address;
     PVOID buffer;
 
     if (String->Offset != 0)
     {
-        address = (PCHAR)client->ClientViewBase + String->Offset;
+        address = PhSvcValidateString(String);
 
-        if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
-            (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit)
-        {
+        if (!address)
             return STATUS_ACCESS_VIOLATION;
-        }
 
         buffer = PhAllocateSafe(String->Length);
 
@@ -140,7 +182,6 @@ NTSTATUS PhSvcCaptureString(
     _Out_ PPH_STRING *CapturedString
     )
 {
-    PPHSVC_CLIENT client = PhSvcGetCurrentClient();
     PVOID address;
 
     if (String->Length & 1)
@@ -150,19 +191,12 @@ NTSTATUS PhSvcCaptureString(
 
     if (String->Offset != 0)
     {
-        address = (PCHAR)client->ClientViewBase + String->Offset;
+        address = PhSvcValidateString(String);
 
-        if ((ULONG_PTR)address & 1)
-        {
-            return STATUS_DATATYPE_MISALIGNMENT;
-        }
-
-        if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
-            (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit)
-        {
+        if (!address)
             return STATUS_ACCESS_VIOLATION;
-        }
+        if ((ULONG_PTR)address & 1)
+            return STATUS_DATATYPE_MISALIGNMENT;
 
         if (String->Length != 0)
             *CapturedString = PhCreateStringEx(address, String->Length);
@@ -288,7 +322,7 @@ NTSTATUS PhSvcApiPlugin(
     {
         if (PhPluginsEnabled &&
             PhEmParseCompoundId(&apiId->sr, &pluginName, &request.SubId) &&
-            (plugin = PhFindPlugin2(&apiId->sr)))
+            (plugin = PhFindPlugin2(&pluginName)))
         {
             request.ReturnStatus = STATUS_NOT_IMPLEMENTED;
             request.InBuffer = Payload->u.Plugin.i.Data;
@@ -296,6 +330,7 @@ NTSTATUS PhSvcApiPlugin(
             request.OutBuffer = Payload->u.Plugin.o.Data;
             request.OutLength = sizeof(Payload->u.Plugin.o.Data);
 
+            request.ProbeBuffer = PhSvcProbeBuffer;
             request.CaptureBuffer = PhSvcCaptureBuffer;
             request.CaptureString = PhSvcCaptureString;
 

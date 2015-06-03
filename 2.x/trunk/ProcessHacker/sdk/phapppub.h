@@ -1020,11 +1020,26 @@ PhFormatLogEntry(
 
 // actions
 
+typedef enum _PH_PHSVC_MODE
+{
+    ElevatedPhSvcMode,
+    Wow64PhSvcMode
+} PH_PHSVC_MODE;
+
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiConnectToPhSvc(
     _In_opt_ HWND hWnd,
+    _In_ BOOLEAN ConnectOnly
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiConnectToPhSvcEx(
+    _In_opt_ HWND hWnd,
+    _In_ PH_PHSVC_MODE Mode,
     _In_ BOOLEAN ConnectOnly
     );
 
