@@ -55,6 +55,8 @@ typedef struct _ETP_GPU_ADAPTER
     ULONG NodeCount;
     ULONG FirstNodeIndex;
 
+    BOOLEAN HasActivity;
+
     RTL_BITMAP ApertureBitMap;
     ULONG ApertureBitMapBuffer[1];
 } ETP_GPU_ADAPTER, *PETP_GPU_ADAPTER;

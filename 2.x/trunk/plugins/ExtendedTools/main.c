@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   main program
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -298,7 +298,8 @@ LOGICAL DllMain(
                     { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                     { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                     { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
-                    { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" }
+                    { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
+                    { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" }
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));

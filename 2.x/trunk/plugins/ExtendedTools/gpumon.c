@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   GPU monitoring
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -113,7 +113,9 @@ VOID EtGpuMonitorInitialization(
     {
         ULONG sampleCount;
         ULONG i;
+        ULONG j;
         PPH_STRING bitmapString;
+        D3DKMT_QUERYSTATISTICS queryStatistics;
 
         sampleCount = PhGetIntegerSetting(L"SampleCount");
         PhInitializeCircularBuffer_FLOAT(&EtGpuNodeHistory, sampleCount);
@@ -150,42 +152,44 @@ VOID EtGpuMonitorInitialization(
 
         PhDereferenceObject(bitmapString);
 
-        // Fix up the node bitmap.
-        // If "Microsoft Basic Render Driver" is the only adapter selected, try to select other adapters.
-        if (EtGpuNodeBitMapBitsSet == 1 && EtpGpuAdapterList->Count > 1)
+        // Fix up the node bitmap if the current node count differs from what we've seen.
+        if (EtGpuTotalNodeCount != PhGetIntegerSetting(SETTING_NAME_GPU_LAST_NODE_COUNT))
         {
-            BOOLEAN basicDriverSelected = FALSE;
+            RtlClearAllBits(&EtGpuNodeBitMap);
+            EtGpuNodeBitMapBitsSet = 0;
 
             for (i = 0; i < EtpGpuAdapterList->Count; i++)
             {
                 PETP_GPU_ADAPTER gpuAdapter = EtpGpuAdapterList->Items[i];
 
-                if (PhEqualString2(gpuAdapter->Description, L"Microsoft Basic Render Driver", TRUE))
+                for (j = 0; j < gpuAdapter->NodeCount; j++)
                 {
-                    if (RtlCheckBit(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex))
-                        basicDriverSelected = TRUE;
+                    memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+                    queryStatistics.Type = D3DKMT_QUERYSTATISTICS_NODE;
+                    queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+                    queryStatistics.QueryNode.NodeId = j;
 
-                    break;
-                }
-            }
-
-            if (basicDriverSelected)
-            {
-                RtlClearAllBits(&EtGpuNodeBitMap);
-                EtGpuNodeBitMapBitsSet = 0;
-
-                // Select the first node of every other adapter.
-                for (i = 0; i < EtpGpuAdapterList->Count; i++)
-                {
-                    PETP_GPU_ADAPTER gpuAdapter = EtpGpuAdapterList->Items[i];
-
-                    if (!PhEqualString2(gpuAdapter->Description, L"Microsoft Basic Render Driver", TRUE))
+                    if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
                     {
-                        RtlSetBits(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex, 1);
-                        EtGpuNodeBitMapBitsSet++;
+                        // The numbers below are quite arbitrary.
+                        if (queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart != 0 &&
+                            queryStatistics.QueryResult.NodeInformation.GlobalInformation.ContextSwitch > 10000)
+                        {
+                            RtlSetBits(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j, 1);
+                            EtGpuNodeBitMapBitsSet++;
+                        }
                     }
                 }
             }
+
+            // Just in case
+            if (EtGpuNodeBitMapBitsSet == 0)
+            {
+                RtlSetBits(&EtGpuNodeBitMap, 0, 1);
+                EtGpuNodeBitMapBitsSet = 1;
+            }
+
+            PhSetIntegerSetting(SETTING_NAME_GPU_LAST_NODE_COUNT, EtGpuTotalNodeCount);
         }
     }
 }
