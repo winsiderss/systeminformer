@@ -68,7 +68,6 @@
 #define IDD_SESSION                     153
 #define IDD_PROCMEMORY                  154
 #define IDD_CHOOSE                      155
-#define IDB_COGEDIT                     156
 #define IDB_PENCIL                      157
 #define IDB_FOLDER                      158
 #define IDB_MAGNIFIER                   159
@@ -80,8 +79,6 @@
 #define IDD_CREATESERVICE               168
 #define IDD_PROCPERFORMANCE             169
 #define IDD_PROCSTATISTICS              170
-#define IDB_BRICKS                      170
-#define IDB_APPLICATION                 171
 #define IDD_OPTADVANCED                 171
 #define IDR_ICON                        173
 #define IDD_GDIHANDLES                  175
