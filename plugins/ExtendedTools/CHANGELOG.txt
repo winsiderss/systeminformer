@@ -1,3 +1,6 @@
+1.15
+ * Improved automatic GPU node selection
+
 1.14
  * Added Disk and Network graphs for all processes
 
