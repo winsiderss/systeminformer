@@ -2397,12 +2397,9 @@ END
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
-IDB_COGEDIT             BITMAP                  "resources\\cog_edit.bmp"
 IDB_PENCIL              BITMAP                  "resources\\pencil.bmp"
 IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
-IDB_BRICKS              BITMAP                  "resources\\bricks.bmp"
-IDB_APPLICATION         BITMAP                  "resources\\application.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
