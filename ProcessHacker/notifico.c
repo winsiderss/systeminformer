@@ -287,16 +287,23 @@ VOID PhNfForwardMessage(
         }
         break;
     case NIN_KEYSELECT:
-        ProcessHacker_IconClick(PhMainWndHandle);
+        // HACK: explorer seems to send two NIN_KEYSELECT messages when the user selects the icon and presses ENTER.
+        if (GetForegroundWindow() != PhMainWndHandle)
+            ProcessHacker_IconClick(PhMainWndHandle);
         break;
     case NIN_BALLOONUSERCLICK:
         PhShowDetailsForIconNotification();
         break;
     case NIN_POPUPOPEN:
-        dprintf("Popup open\n");
+        {
+            POINT location;
+
+            GetCursorPos(&location);
+            PhShowMiniInformationDialog(MiniInfoIconPinType, 1, 0, &location);
+        }
         break;
     case NIN_POPUPCLOSE:
-        dprintf("Popup close\n");
+        PhShowMiniInformationDialog(MiniInfoIconPinType, -1, 350, NULL);
         break;
     }
 }

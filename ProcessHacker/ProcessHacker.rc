@@ -1830,14 +1830,13 @@ BEGIN
     RTEXT           "Static",IDC_ZPAGINGMAPPEDWRITESDELTA_V,191,108,31,8,SS_ENDELLIPSIS
 END
 
-IDD_MINIINFO DIALOGEX 0, 0, 311, 174
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP
-EXSTYLE WS_EX_TOPMOST
+IDD_MINIINFO DIALOGEX 0, 0, 217, 150
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Pin",IDC_PIN,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,284,149,17,15
-    PUSHBUTTON      "Options",IDC_OPTIONS,265,149,17,15
-    CONTROL         "<a>Open Process Hacker</a>",IDC_OPEN,"SysLink",WS_TABSTOP,192,152,70,10
+    CONTROL         "Pin",IDC_PIN,"Button",BS_AUTOCHECKBOX | BS_BITMAP | BS_PUSHLIKE | WS_TABSTOP,197,132,17,15
+    PUSHBUTTON      "Options",IDC_OPTIONS,178,132,17,15,BS_BITMAP
+    CONTROL         "<a>Open Process Hacker</a>",IDC_OPEN,"SysLink",WS_TABSTOP,105,136,70,10
 END
 
 
@@ -2359,10 +2358,10 @@ BEGIN
 
     IDD_MINIINFO, DIALOG
     BEGIN
-        LEFTMARGIN, 10
-        RIGHTMARGIN, 301
-        TOPMARGIN, 10
-        BOTTOMMARGIN, 164
+        LEFTMARGIN, 3
+        RIGHTMARGIN, 214
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 147
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2418,6 +2417,8 @@ IDB_TICK                BITMAP                  "resources\\tick.bmp"
 IDB_PENCIL              BITMAP                  "resources\\pencil.bmp"
 IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
+IDB_PIN                 BITMAP                  "resources\\pin.bmp"
+IDB_COG                 BITMAP                  "resources\\cog.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //

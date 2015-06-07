@@ -414,6 +414,10 @@
   <ItemGroup>
     <Manifest Include="ProcessHacker.manifest" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\cog.bmp" />
+    <Image Include="resources\pin.bmp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
