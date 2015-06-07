@@ -278,6 +278,7 @@ VOID PhNfForwardMessage(
         }
         break;
     case WM_RBUTTONUP:
+    case WM_CONTEXTMENU:
         {
             POINT location;
 
@@ -285,8 +286,17 @@ VOID PhNfForwardMessage(
             PhShowIconContextMenu(location);
         }
         break;
+    case NIN_KEYSELECT:
+        ProcessHacker_IconClick(PhMainWndHandle);
+        break;
     case NIN_BALLOONUSERCLICK:
         PhShowDetailsForIconNotification();
+        break;
+    case NIN_POPUPOPEN:
+        dprintf("Popup open\n");
+        break;
+    case NIN_POPUPCLOSE:
+        dprintf("Popup close\n");
         break;
     }
 }
@@ -502,12 +512,16 @@ BOOLEAN PhNfpAddNotifyIcon(
     notifyIcon.uID = Id;
     notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
-
     wcsncpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), PhApplicationName, _TRUNCATE);
-
     notifyIcon.hIcon = PhNfpGetBlackIcon();
 
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        notifyIcon.uVersion = NOTIFYICON_VERSION_4;
+        Shell_NotifyIcon(NIM_SETVERSION, &notifyIcon);
+    }
 
     return TRUE;
 }
