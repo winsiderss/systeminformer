@@ -115,6 +115,8 @@
 #define IDD_CONTAINER                   205
 #define IDD_SYSINFO_MEMPANELXP          206
 #define IDD_MINIINFO                    207
+#define IDB_PIN                         208
+#define IDB_COG                         209
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -725,7 +727,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        208
+#define _APS_NEXT_RESOURCE_VALUE        210
 #define _APS_NEXT_COMMAND_VALUE         40287
 #define _APS_NEXT_CONTROL_VALUE         1374
 #define _APS_NEXT_SYMED_VALUE           169

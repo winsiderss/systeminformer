@@ -633,4 +633,12 @@
       <Filter>Resources</Filter>
     </Manifest>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\pin.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\cog.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

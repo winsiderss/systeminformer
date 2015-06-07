@@ -1041,6 +1041,23 @@ VOID PhShowSystemInformationDialog(
     _In_opt_ PWSTR SectionName
     );
 
+// miniinfo
+
+typedef enum _PH_MINIINFO_PIN_TYPE
+{
+    MiniInfoManualPinType,
+    MiniInfoIconPinType,
+    MiniInfoHoverPinType,
+    MaxMiniInfoPinType
+} PH_MINIINFO_PIN_TYPE;
+
+VOID PhShowMiniInformationDialog(
+    _In_ PH_MINIINFO_PIN_TYPE PinType,
+    _In_ LONG PinCount,
+    _In_opt_ ULONG PinDelayMs,
+    _In_opt_ PPOINT SourcePoint
+    );
+
 // log
 
 #define PH_LOG_ENTRY_PROCESS_FIRST 1
