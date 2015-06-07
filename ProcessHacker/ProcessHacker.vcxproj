@@ -287,6 +287,7 @@
     <ClCompile Include="memprv.c" />
     <ClCompile Include="memrslt.c" />
     <ClCompile Include="memsrch.c" />
+    <ClCompile Include="miniinfo.c" />
     <ClCompile Include="modlist.c" />
     <ClCompile Include="modprv.c" />
     <ClCompile Include="netlist.c" />
@@ -362,6 +363,7 @@
     <ClInclude Include="include\extmgri.h" />
     <ClInclude Include="include\heapstruct.h" />
     <ClInclude Include="include\mainwndp.h" />
+    <ClInclude Include="include\miniinfop.h" />
     <ClInclude Include="include\notifico.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\uimodels.h" />

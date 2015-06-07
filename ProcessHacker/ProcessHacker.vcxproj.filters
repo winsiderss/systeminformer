@@ -456,6 +456,9 @@
     <ClCompile Include="memlist.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="miniinfo.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -555,6 +558,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\heapstruct.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\miniinfop.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
