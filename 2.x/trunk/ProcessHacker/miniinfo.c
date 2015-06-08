@@ -36,7 +36,7 @@ static LONG PhMipMaxPinCounts[] =
     1, // MiniInfoIconPinType
     1, // MiniInfoActivePinType
     1, // MiniInfoHoverPinType
-    1 // MiniInfoChildControlPinType
+    1, // MiniInfoChildControlPinType
 };
 C_ASSERT(sizeof(PhMipMaxPinCounts) / sizeof(LONG) == MaxMiniInfoPinType);
 static LONG PhMipDelayedPinAdjustments[MaxMiniInfoPinType];
@@ -61,6 +61,7 @@ VOID PhPinMiniInformation(
     _In_ LONG PinCount,
     _In_opt_ ULONG PinDelayMs,
     _In_ ULONG Flags,
+    _In_opt_ PWSTR SectionName,
     _In_opt_ PPOINT SourcePoint
     )
 {
@@ -108,7 +109,7 @@ VOID PhPinMiniInformation(
             PhMipContainerWindow = CreateWindow(
                 MIP_CONTAINER_CLASSNAME,
                 L"Process Hacker",
-                WS_THICKFRAME | WS_POPUP,
+                WS_BORDER | WS_THICKFRAME | WS_POPUP,
                 0,
                 0,
                 400,
@@ -127,6 +128,9 @@ VOID PhPinMiniInformation(
                 );
             ShowWindow(PhMipWindow, SW_SHOW);
 
+            if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
+                PhMipSetPinned(TRUE);
+
             MinimumSize.left = 0;
             MinimumSize.top = 0;
             MinimumSize.right = 210;
@@ -134,48 +138,47 @@ VOID PhPinMiniInformation(
             MapDialogRect(PhMipWindow, &MinimumSize);
         }
 
-        PhMipCalculateWindowRectangle(&PhMipSourcePoint, &windowRectangle);
-        SetWindowPos(
-            PhMipContainerWindow,
-            HWND_TOPMOST,
-            windowRectangle.Left,
-            windowRectangle.Top,
-            windowRectangle.Width,
-            windowRectangle.Height,
-            SWP_NOACTIVATE
-            );
+        if (!(Flags & PH_MINIINFO_LOAD_POSITION))
+        {
+            PhMipCalculateWindowRectangle(&PhMipSourcePoint, &windowRectangle);
+            SetWindowPos(
+                PhMipContainerWindow,
+                HWND_TOPMOST,
+                windowRectangle.Left,
+                windowRectangle.Top,
+                windowRectangle.Width,
+                windowRectangle.Height,
+                SWP_NOACTIVATE
+                );
+        }
+        else
+        {
+            PhLoadWindowPlacementFromSetting(L"MiniInfoWindowPosition", L"MiniInfoWindowSize", PhMipContainerWindow);
+            SetWindowPos(PhMipContainerWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+        }
+
         ShowWindow(PhMipContainerWindow, (Flags & PH_MINIINFO_ACTIVATE_WINDOW) ? SW_SHOW : SW_SHOWNOACTIVATE);
-        PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
-
-        PhMipMessageLoopFilterEntry = PhRegisterMessageLoopFilter(PhMipMessageLoopFilter, NULL);
-
-        PhRegisterCallback(
-            &PhProcessesUpdatedEvent,
-            PhMipUpdateHandler,
-            NULL,
-            &ProcessesUpdatedRegistration
-            );
     }
     else if (adjustPinResult == HideAdjustPinResult)
     {
-        PhUnregisterCallback(
-            &PhProcessesUpdatedEvent,
-            &ProcessesUpdatedRegistration
-            );
-
-        if (PhMipMessageLoopFilterEntry)
-        {
-            PhUnregisterMessageLoopFilter(PhMipMessageLoopFilterEntry);
-            PhMipMessageLoopFilterEntry = NULL;
-        }
-
         if (PhMipContainerWindow)
             ShowWindow(PhMipContainerWindow, SW_HIDE);
     }
     else
     {
-        if (PinCount > 0 && (Flags & PH_MINIINFO_ACTIVATE_WINDOW) && IsWindowVisible(PhMipContainerWindow))
+        if ((Flags & PH_MINIINFO_ACTIVATE_WINDOW) && IsWindowVisible(PhMipContainerWindow))
             SetActiveWindow(PhMipContainerWindow);
+    }
+
+    if (SectionName)
+    {
+        PH_STRINGREF sectionName;
+        PPH_MINIINFO_SECTION section;
+
+        PhInitializeStringRef(&sectionName, SectionName);
+
+        if (section = PhMipFindSection(&sectionName))
+            PhMipChangeSection(section);
     }
 }
 
@@ -206,6 +209,11 @@ LRESULT CALLBACK PhMipContainerWndProc(
     case WM_SIZING:
         {
             PhMipContainerOnSizing((ULONG)wParam, (PRECT)lParam);
+        }
+        break;
+    case WM_EXITSIZEMOVE:
+        {
+            PhMipContainerOnExitSizeMove();
         }
         break;
     case WM_CLOSE:
@@ -299,9 +307,44 @@ VOID PhMipContainerOnShowWindow(
     )
 {
     if (Showing)
+    {
+        PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+
+        PhMipMessageLoopFilterEntry = PhRegisterMessageLoopFilter(PhMipMessageLoopFilter, NULL);
+
+        PhRegisterCallback(
+            &PhProcessesUpdatedEvent,
+            PhMipUpdateHandler,
+            NULL,
+            &ProcessesUpdatedRegistration
+            );
+
         PhMipContainerOnSize();
+    }
     else
+    {
+        ULONG i;
+
+        for (i = 0; i < MaxMiniInfoPinType; i++)
+            PhMipPinCounts[i] = 0;
+
+        Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PIN), BST_UNCHECKED);
+        PhMipSetPinned(FALSE);
+        PhSetIntegerSetting(L"MiniInfoWindowPinned", FALSE);
+
+        PhUnregisterCallback(
+            &PhProcessesUpdatedEvent,
+            &ProcessesUpdatedRegistration
+            );
+
+        if (PhMipMessageLoopFilterEntry)
+        {
+            PhUnregisterMessageLoopFilter(PhMipMessageLoopFilterEntry);
+            PhMipMessageLoopFilterEntry = NULL;
+        }
+
         PhSaveWindowPlacementToSetting(L"MiniInfoWindowPosition", L"MiniInfoWindowSize", PhMipContainerWindow);
+    }
 }
 
 VOID PhMipContainerOnActivate(
@@ -311,11 +354,11 @@ VOID PhMipContainerOnActivate(
 {
     if (Type == WA_ACTIVE || Type == WA_CLICKACTIVE)
     {
-        PhPinMiniInformation(MiniInfoActivePinType, 1, 0, 0, NULL);
+        PhPinMiniInformation(MiniInfoActivePinType, 1, 0, 0, NULL, NULL);
     }
     else if (Type == WA_INACTIVE)
     {
-        PhPinMiniInformation(MiniInfoActivePinType, -1, 0, 0, NULL);
+        PhPinMiniInformation(MiniInfoActivePinType, -1, 0, 0, NULL, NULL);
     }
 }
 
@@ -338,6 +381,13 @@ VOID PhMipContainerOnSizing(
     PhResizingMinimumSize(DragRectangle, Edge, MinimumSize.right, MinimumSize.bottom);
 }
 
+VOID PhMipContainerOnExitSizeMove(
+    VOID
+    )
+{
+    PhSaveWindowPlacementToSetting(L"MiniInfoWindowPosition", L"MiniInfoWindowSize", PhMipContainerWindow);
+}
+
 BOOLEAN PhMipContainerOnEraseBkgnd(
     _In_ HDC hdc
     )
@@ -354,7 +404,7 @@ VOID PhMipContainerOnTimer(
         PH_MINIINFO_PIN_TYPE pinType = Id - MIP_TIMER_PIN_FIRST;
 
         // PhPinMiniInformation kills the timer for us.
-        PhPinMiniInformation(pinType, PhMipDelayedPinAdjustments[pinType], 0, 0, NULL);
+        PhPinMiniInformation(pinType, PhMipDelayedPinAdjustments[pinType], 0, 0, NULL, NULL);
     }
 }
 
@@ -382,6 +432,26 @@ VOID PhMipOnInitDialog(
         PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PIN), NULL,
         PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+    SeparatorControl = CreateWindow(
+        L"STATIC",
+        NULL,
+        WS_CHILD | SS_OWNERDRAW,
+        0,
+        0,
+        3,
+        3,
+        PhMipWindow,
+        (HMENU)IDC_SEPARATOR,
+        PhInstanceHandle,
+        NULL
+        );
+    ShowWindow(SeparatorControl, SW_SHOW);
+
+    SectionControlOldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
+    SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
+
+    Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PIN), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
 }
 
 VOID PhMipOnShowWindow(
@@ -405,24 +475,6 @@ VOID PhMipOnShowWindow(
     PhMipCreateInternalSection(L"I/O", 0, PhMipCpuSectionCallback);
 
     PhMipChangeSection(section);
-
-    SeparatorControl = CreateWindow(
-        L"STATIC",
-        NULL,
-        WS_CHILD | SS_OWNERDRAW,
-        0,
-        0,
-        3,
-        3,
-        PhMipWindow,
-        (HMENU)IDC_SEPARATOR,
-        PhInstanceHandle,
-        NULL
-        );
-    ShowWindow(SeparatorControl, SW_SHOW);
-
-    SectionControlOldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
-    SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
 }
 
 VOID PhMipOnCommand(
@@ -443,7 +495,7 @@ VOID PhMipOnCommand(
                 PPH_EMENU_ITEM menuItem;
                 POINT point;
 
-                PhPinMiniInformation(MiniInfoChildControlPinType, 1, 0, 0, NULL);
+                PhPinMiniInformation(MiniInfoChildControlPinType, 1, 0, 0, NULL, NULL);
                 menu = PhCreateEMenu();
 
                 for (i = 0; i < SectionList->Count; i++)
@@ -469,7 +521,7 @@ VOID PhMipOnCommand(
                 }
 
                 PhDestroyEMenu(menu);
-                PhPinMiniInformation(MiniInfoChildControlPinType, -1, MIP_UNPIN_SECTION_CHOICE_DELAY, 0, NULL);
+                PhPinMiniInformation(MiniInfoChildControlPinType, -1, MIP_UNPIN_SECTION_CHOICE_DELAY, 0, NULL, NULL);
                 PostMessage(PhMipWindow, WM_MOUSEMOVE, 0, 0); // Re-evaluate hover pin
             }
             break;
@@ -477,7 +529,12 @@ VOID PhMipOnCommand(
         break;
     case IDC_PIN:
         {
-            // TODO
+            BOOLEAN pinned;
+
+            pinned = Button_GetCheck(GetDlgItem(PhMipWindow, IDC_PIN)) == BST_CHECKED;
+            PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
+            PhMipSetPinned(pinned);
+            PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
         }
         break;
     }
@@ -496,8 +553,8 @@ BOOLEAN PhMipOnNotify(
             {
             case IDC_OPEN:
                 // Clear most pin types.
-                PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL);
-                PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL);
+                PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
+                PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL, NULL);
                 ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
                 break;
             }
@@ -592,15 +649,15 @@ BOOLEAN PhMipMessageLoopFilter(
                 PhMipLastNcTrackedWindow = Message->hwnd;
             }
 
-            PhPinMiniInformation(MiniInfoHoverPinType, 1, 0, 0, NULL);
+            PhPinMiniInformation(MiniInfoHoverPinType, 1, 0, 0, NULL, NULL);
         }
         else if (Message->message == WM_MOUSELEAVE && Message->hwnd == PhMipLastTrackedWindow)
         {
-            PhPinMiniInformation(MiniInfoHoverPinType, -1, MIP_UNPIN_HOVER_DELAY, 0, NULL);
+            PhPinMiniInformation(MiniInfoHoverPinType, -1, MIP_UNPIN_HOVER_DELAY, 0, NULL, NULL);
         }
         else if (Message->message == WM_NCMOUSELEAVE && Message->hwnd == PhMipLastNcTrackedWindow)
         {
-            PhPinMiniInformation(MiniInfoHoverPinType, -1, MIP_UNPIN_HOVER_DELAY, 0, NULL);
+            PhPinMiniInformation(MiniInfoHoverPinType, -1, MIP_UNPIN_HOVER_DELAY, 0, NULL, NULL);
         }
     }
 
@@ -869,6 +926,14 @@ VOID PhMipLayout(
     }
 
     MoveWindow(SeparatorControl, 0, layoutRect.bottom, rect.right, MIP_SEPARATOR_HEIGHT, TRUE);
+}
+
+VOID PhMipSetPinned(
+    _In_ BOOLEAN Pinned
+    )
+{
+    PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
+    SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
 }
 
 LRESULT CALLBACK PhMipSectionControlHookWndProc(
