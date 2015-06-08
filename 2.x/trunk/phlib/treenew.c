@@ -2,7 +2,7 @@
  * Process Hacker -
  *   tree new (tree list control)
  *
- * Copyright (C) 2011-2014 wj32
+ * Copyright (C) 2011-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -405,11 +405,13 @@ BOOLEAN PhTnpOnCreate(
 
     if (!(Context->Style & TN_STYLE_NO_COLUMN_SORT))
         headerStyle |= HDS_BUTTONS;
+    if (!(Context->Style & TN_STYLE_NO_COLUMN_HEADER))
+        headerStyle |= WS_VISIBLE;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | headerStyle,
+        WS_CHILD | WS_CLIPSIBLINGS | headerStyle,
         0,
         0,
         0,
@@ -429,7 +431,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->HeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | headerStyle,
+        WS_CHILD | WS_CLIPSIBLINGS | headerStyle,
         0,
         0,
         0,
@@ -1929,6 +1931,22 @@ ULONG_PTR PhTnpOnUserMessage(
             Context->EmptyText = *text;
         }
         return TRUE;
+    case TNM_SETROWHEIGHT:
+        {
+            LONG rowHeight = (LONG)WParam;
+
+            if (rowHeight != 0)
+            {
+                Context->CustomRowHeight = TRUE;
+                Context->RowHeight = rowHeight;
+            }
+            else
+            {
+                Context->CustomRowHeight = FALSE;
+                PhTnpUpdateTextMetrics(Context);
+            }
+        }
+        return TRUE;
     }
 
     return 0;
@@ -2001,27 +2019,30 @@ VOID PhTnpUpdateTextMetrics(
         SelectObject(hdc, Context->Font);
         GetTextMetrics(hdc, &Context->TextMetrics);
 
-        // Below we try to match the row height as calculated by
-        // the list view, even if it involves magic numbers.
-        // On Vista and above there seems to be extra padding.
-
-        Context->RowHeight = Context->TextMetrics.tmHeight;
-
-        if (Context->Style & TN_STYLE_ICONS)
+        if (!Context->CustomRowHeight)
         {
-            if (Context->RowHeight < SmallIconHeight)
-                Context->RowHeight = SmallIconHeight;
-        }
-        else
-        {
+            // Below we try to match the row height as calculated by
+            // the list view, even if it involves magic numbers.
+            // On Vista and above there seems to be extra padding.
+
+            Context->RowHeight = Context->TextMetrics.tmHeight;
+
+            if (Context->Style & TN_STYLE_ICONS)
+            {
+                if (Context->RowHeight < SmallIconHeight)
+                    Context->RowHeight = SmallIconHeight;
+            }
+            else
+            {
+                if (WindowsVersion >= WINDOWS_VISTA && !(Context->Style & TN_STYLE_THIN_ROWS))
+                    Context->RowHeight += 1; // HACK
+            }
+
+            Context->RowHeight += 1; // HACK
+
             if (WindowsVersion >= WINDOWS_VISTA && !(Context->Style & TN_STYLE_THIN_ROWS))
-                Context->RowHeight += 1; // HACK
+                Context->RowHeight += 2; // HACK
         }
-
-        Context->RowHeight += 1; // HACK
-
-        if (WindowsVersion >= WINDOWS_VISTA && !(Context->Style & TN_STYLE_THIN_ROWS))
-            Context->RowHeight += 2; // HACK
 
         ReleaseDC(Context->Handle, hdc);
     }
@@ -2165,22 +2186,29 @@ VOID PhTnpLayoutHeader(
     hdl.prc = &rect;
     hdl.pwpos = &windowPos;
 
-    // Fixed portion header control
-    rect.left = 0;
-    rect.top = 0;
-    rect.right = Context->NormalLeft;
-    rect.bottom = Context->ClientRect.bottom;
-    Header_Layout(Context->FixedHeaderHandle, &hdl);
-    SetWindowPos(Context->FixedHeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
-    Context->HeaderHeight = windowPos.cy;
+    if (!(Context->Style & TN_STYLE_NO_COLUMN_HEADER))
+    {
+        // Fixed portion header control
+        rect.left = 0;
+        rect.top = 0;
+        rect.right = Context->NormalLeft;
+        rect.bottom = Context->ClientRect.bottom;
+        Header_Layout(Context->FixedHeaderHandle, &hdl);
+        SetWindowPos(Context->FixedHeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
+        Context->HeaderHeight = windowPos.cy;
 
-    // Normal portion header control
-    rect.left = Context->NormalLeft - Context->HScrollPosition;
-    rect.top = 0;
-    rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-    rect.bottom = Context->ClientRect.bottom;
-    Header_Layout(Context->HeaderHandle, &hdl);
-    SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
+        // Normal portion header control
+        rect.left = Context->NormalLeft - Context->HScrollPosition;
+        rect.top = 0;
+        rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+        rect.bottom = Context->ClientRect.bottom;
+        Header_Layout(Context->HeaderHandle, &hdl);
+        SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
+    }
+    else
+    {
+        Context->HeaderHeight = 0;
+    }
 
     if (Context->TooltipsHandle)
     {
@@ -2627,17 +2655,18 @@ VOID PhTnpUpdateColumnMaps(
     Context->TotalViewX = x;
 
     if (Context->FixedColumnVisible)
-    {
         Context->FirstColumn = Context->FixedColumn;
-    }
     else if (Context->NumberOfColumnsByDisplay != 0)
-    {
         Context->FirstColumn = Context->ColumnsByDisplay[0];
-    }
     else
-    {
         Context->FirstColumn = NULL;
-    }
+
+    if (Context->NumberOfColumnsByDisplay != 0)
+        Context->LastColumn = Context->ColumnsByDisplay[Context->NumberOfColumnsByDisplay - 1];
+    else if (Context->FixedColumnVisible)
+        Context->LastColumn = Context->FixedColumn;
+    else
+        Context->LastColumn = NULL;
 }
 
 LONG PhTnpInsertColumnHeader(
