@@ -1037,7 +1037,7 @@ VOID PhLoadWindowPlacementFromSetting(
             &windowRectangle
             );
 
-        // Let the window adjust the minimum size if needed.
+        // Let the window adjust for the minimum size if needed.
         rectForAdjust = PhRectangleToRect(windowRectangle);
         SendMessage(WindowHandle, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&rectForAdjust);
         windowRectangle = PhRectToRectangle(rectForAdjust);

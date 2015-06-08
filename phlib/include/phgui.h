@@ -226,11 +226,6 @@ do { \
         return atomName.Buffer; \
 } while (0)
 
-HWND PhCreateListViewControl(
-    _In_ HWND ParentHandle,
-    _In_ INT_PTR Id
-    );
-
 FORCEINLINE VOID PhSetListViewStyle(
     _In_ HWND Handle,
     _In_ BOOLEAN AllowDragDrop,
@@ -479,6 +474,29 @@ VOID PhSetClipboardStringEx(
     _In_ HWND hWnd,
     _In_ PWSTR Buffer,
     _In_ SIZE_T Length
+    );
+
+typedef struct _DLGTEMPLATEEX
+{
+    WORD dlgVer;
+    WORD signature;
+    DWORD helpID;
+    DWORD exStyle;
+    DWORD style;
+    WORD cDlgItems;
+    short x;
+    short y;
+    short cx;
+    short cy;
+} DLGTEMPLATEEX, *PDLGTEMPLATEEX;
+
+HWND PhCreateDialogFromTemplate(
+    _In_ HWND Parent,
+    _In_ ULONG Style,
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
     );
 
 #define PH_ANCHOR_LEFT 0x1
