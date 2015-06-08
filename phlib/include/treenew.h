@@ -95,6 +95,7 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_NO_COLUMN_SORT 0x10
 #define TN_STYLE_NO_COLUMN_REORDER 0x20
 #define TN_STYLE_THIN_ROWS 0x40
+#define TN_STYLE_NO_COLUMN_HEADER 0x80
 
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1
@@ -384,7 +385,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_GETVISIBLECOLUMNCOUNT (WM_USER + 41)
 #define TNM_AUTOSIZECOLUMN (WM_USER + 42)
 #define TNM_SETEMPTYTEXT (WM_USER + 43)
-#define TNM_LAST (WM_USER + 43)
+#define TNM_SETROWHEIGHT (WM_USER + 44)
+#define TNM_LAST (WM_USER + 44)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -509,6 +511,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TreeNew_SetEmptyText(hWnd, Text, Flags) \
     SendMessage((hWnd), TNM_SETEMPTYTEXT, (WPARAM)(Flags), (LPARAM)(Text))
 
+#define TreeNew_SetRowHeight(hWnd, RowHeight) \
+    SendMessage((hWnd), TNM_SETROWHEIGHT, (WPARAM)(RowHeight), 0)
+
 typedef struct _PH_TREENEW_VIEW_PARTS
 {
     RECT ClientRect;
@@ -604,6 +609,39 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumnEx(
     if (DisplayIndex == -2)
         column.Fixed = TRUE;
     if (SortDescending)
+        column.SortDescending = TRUE;
+
+    return !!TreeNew_AddColumn(hwnd, &column);
+}
+
+FORCEINLINE BOOLEAN PhAddTreeNewColumnEx2(
+    _In_ HWND hwnd,
+    _In_ ULONG Id,
+    _In_ BOOLEAN Visible,
+    _In_ PWSTR Text,
+    _In_ ULONG Width,
+    _In_ ULONG Alignment,
+    _In_ ULONG DisplayIndex,
+    _In_ ULONG TextFlags,
+    _In_ ULONG ExtraFlags
+    )
+{
+    PH_TREENEW_COLUMN column;
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Id = Id;
+    column.Visible = Visible;
+    column.Text = Text;
+    column.Width = Width;
+    column.Alignment = Alignment;
+    column.DisplayIndex = DisplayIndex;
+    column.TextFlags = TextFlags;
+
+    if (DisplayIndex == -2)
+        column.Fixed = TRUE;
+    if (ExtraFlags & TN_COLUMN_FLAG_CUSTOMDRAW)
+        column.CustomDraw = TRUE;
+    if (ExtraFlags & TN_COLUMN_FLAG_SORTDESCENDING)
         column.SortDescending = TRUE;
 
     return !!TreeNew_AddColumn(hwnd, &column);

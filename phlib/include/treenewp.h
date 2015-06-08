@@ -58,7 +58,8 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG SuspendUpdateMoveMouse : 1;
             ULONG DragSelectionActive : 1;
             ULONG SelectionRectangleAlpha : 1; // use alpha blending for the selection rectangle
-            ULONG Spare : 5;
+            ULONG CustomRowHeight : 1;
+            ULONG Spare : 4;
         };
         ULONG Flags;
     };
@@ -101,7 +102,8 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG NumberOfColumnsByDisplay; // the number of visible columns (excluding the fixed column)
     LONG TotalViewX; // total width of normal columns
     PPH_TREENEW_COLUMN FixedColumn;
-    PPH_TREENEW_COLUMN FirstColumn;
+    PPH_TREENEW_COLUMN FirstColumn; // first column, by display order (including the fixed column)
+    PPH_TREENEW_COLUMN LastColumn; // last column, by display order (including the fixed column)
 
     PPH_TREENEW_COLUMN ResizingColumn;
     LONG OldColumnWidth;

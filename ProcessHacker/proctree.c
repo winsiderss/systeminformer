@@ -36,11 +36,6 @@
 #include <emenu.h>
 #include <verify.h>
 
-VOID PhpEnableColumnCustomDraw(
-    _In_ HWND hwnd,
-    _In_ ULONG Id
-    );
-
 VOID PhpRemoveProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
@@ -164,9 +159,9 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_WINDOWSTATUS, FALSE, L"Window Status", 60, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CYCLES, FALSE, L"Cycles", 110, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CYCLESDELTA, FALSE, L"Cycles Delta", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUHISTORY, FALSE, L"CPU History", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private Bytes History", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx2(hwnd, PHPRTLC_CPUHISTORY, FALSE, L"CPU History", 100, PH_ALIGN_LEFT, -1, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumnEx2(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private Bytes History", 100, PH_ALIGN_LEFT, -1, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumnEx2(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DEPSTATUS, FALSE, L"DEP Status", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_VIRTUALIZED, FALSE, L"Virtualized", 80, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CONTEXTSWITCHES, FALSE, L"Context Switches", 100, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
@@ -201,10 +196,6 @@ VOID PhInitializeProcessTreeList(
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
-    PhpEnableColumnCustomDraw(hwnd, PHPRTLC_CPUHISTORY);
-    PhpEnableColumnCustomDraw(hwnd, PHPRTLC_PRIVATEBYTESHISTORY);
-    PhpEnableColumnCustomDraw(hwnd, PHPRTLC_IOHISTORY);
-
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
@@ -220,18 +211,6 @@ VOID PhInitializeProcessTreeList(
     }
 
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
-}
-
-static VOID PhpEnableColumnCustomDraw(
-    _In_ HWND hwnd,
-    _In_ ULONG Id
-    )
-{
-    PH_TREENEW_COLUMN column;
-
-    column.Id = Id;
-    column.CustomDraw = TRUE;
-    TreeNew_SetColumn(hwnd, TN_COLUMN_FLAG_CUSTOMDRAW, &column);
 }
 
 VOID PhLoadSettingsProcessTreeList(
