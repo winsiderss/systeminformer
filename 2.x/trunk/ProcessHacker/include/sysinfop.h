@@ -177,13 +177,6 @@ VOID PhSipRestoreSummaryView(
     VOID
     );
 
-HWND PhSipDefaultCreateDialog(
-    _In_ PVOID Instance,
-    _In_ PWSTR Template,
-    _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
-    );
-
 VOID PhSipCreateSectionDialog(
     _In_ PPH_SYSINFO_SECTION Section
     );

@@ -511,8 +511,7 @@ VOID PhSipOnShowWindow(
 
     sectionName = PhGetStringSetting(L"SysInfoWindowSection");
 
-    if (sectionName->Length != 0 &&
-        (section = PhSipFindSection(&sectionName->sr)))
+    if (sectionName->Length != 0 && (section = PhSipFindSection(&sectionName->sr)))
     {
         PhSipEnterSectionView(section);
     }
@@ -1563,58 +1562,6 @@ VOID PhSipRestoreSummaryView(
     PhSipLayoutSummaryView();
 }
 
-HWND PhSipDefaultCreateDialog(
-    _In_ PVOID Instance,
-    _In_ PWSTR Template,
-    _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
-    )
-{
-    HRSRC resourceInfo;
-    ULONG resourceSize;
-    HGLOBAL resourceHandle;
-    PDLGTEMPLATEEX dialog;
-    PDLGTEMPLATEEX dialogCopy;
-    HWND dialogHandle;
-
-    resourceInfo = FindResource(Instance, Template, MAKEINTRESOURCE(RT_DIALOG));
-
-    if (!resourceInfo)
-        return NULL;
-
-    resourceSize = SizeofResource(Instance, resourceInfo);
-
-    if (resourceSize == 0)
-        return NULL;
-
-    resourceHandle = LoadResource(Instance, resourceInfo);
-
-    if (!resourceHandle)
-        return NULL;
-
-    dialog = LockResource(resourceHandle);
-
-    if (!dialog)
-        return NULL;
-
-    dialogCopy = PhAllocateCopy(dialog, resourceSize);
-
-    if (dialogCopy->signature == 0xffff)
-    {
-        dialogCopy->style = DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD;
-    }
-    else
-    {
-        ((DLGTEMPLATE *)dialogCopy)->style = DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD;
-    }
-
-    dialogHandle = CreateDialogIndirectParam(Instance, (DLGTEMPLATE *)dialogCopy, ContainerControl, DialogProc, (LPARAM)Parameter);
-
-    PhFree(dialogCopy);
-
-    return dialogHandle;
-}
-
 VOID PhSipCreateSectionDialog(
     _In_ PPH_SYSINFO_SECTION Section
     )
@@ -1627,7 +1574,14 @@ VOID PhSipCreateSectionDialog(
     {
         if (!createDialog.CustomCreate)
         {
-            Section->DialogHandle = PhSipDefaultCreateDialog(createDialog.Instance, createDialog.Template, createDialog.DialogProc, createDialog.Parameter);
+            Section->DialogHandle = PhCreateDialogFromTemplate(
+                ContainerControl,
+                DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD,
+                createDialog.Instance,
+                createDialog.Template,
+                createDialog.DialogProc,
+                createDialog.Parameter
+                );
         }
     }
 }
