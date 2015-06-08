@@ -269,6 +269,9 @@ BOOLEAN PhMainWndInitialization(
     if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
 
+    if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
+        PhPinMiniInformation(MiniInfoManualPinType, 1, 0, PH_MINIINFO_LOAD_POSITION, NULL, NULL);
+
     return TRUE;
 }
 

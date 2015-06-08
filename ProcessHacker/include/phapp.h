@@ -1100,12 +1100,14 @@ typedef enum _PH_MINIINFO_PIN_TYPE
 } PH_MINIINFO_PIN_TYPE;
 
 #define PH_MINIINFO_ACTIVATE_WINDOW 0x1
+#define PH_MINIINFO_LOAD_POSITION 0x2
 
 VOID PhPinMiniInformation(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
     _In_ LONG PinCount,
     _In_opt_ ULONG PinDelayMs,
     _In_ ULONG Flags,
+    _In_opt_ PWSTR SectionName,
     _In_opt_ PPOINT SourcePoint
     );
 

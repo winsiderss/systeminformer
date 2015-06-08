@@ -59,6 +59,10 @@ VOID PhMipContainerOnSizing(
     _In_ PRECT DragRectangle
     );
 
+VOID PhMipContainerOnExitSizeMove(
+    VOID
+    );
+
 BOOLEAN PhMipContainerOnEraseBkgnd(
     _In_ HDC hdc
     );
@@ -167,6 +171,10 @@ VOID PhMipChangeSection(
 
 VOID PhMipLayout(
     VOID
+    );
+
+VOID PhMipSetPinned(
+    _In_ BOOLEAN Pinned
     );
 
 LRESULT CALLBACK PhMipSectionControlHookWndProc(
