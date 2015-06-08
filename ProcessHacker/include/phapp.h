@@ -764,22 +764,6 @@ struct _PH_PLUGIN *PhFindPlugin2(
 
 #define PH_PROCESS_PROPCONTEXT_MAXPAGES 20
 
-#ifndef DLGTEMPLATEEX
-typedef struct _DLGTEMPLATEEX
-{
-    WORD dlgVer;
-    WORD signature;
-    DWORD helpID;
-    DWORD exStyle;
-    DWORD style;
-    WORD cDlgItems;
-    short x;
-    short y;
-    short cx;
-    short cy;
-} DLGTEMPLATEEX, *PDLGTEMPLATEEX;
-#endif
-
 typedef struct _PH_PROCESS_PROPCONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
@@ -1043,18 +1027,85 @@ VOID PhShowSystemInformationDialog(
 
 // miniinfo
 
+typedef struct _PH_MINIINFO_PARAMETERS
+{
+    HWND ContainerWindowHandle;
+    HWND MiniInfoWindowHandle;
+
+    HFONT Font;
+    HFONT MediumFont;
+    ULONG FontHeight;
+    ULONG FontAverageWidth;
+    ULONG MediumFontHeight;
+    ULONG MediumFontAverageWidth;
+} PH_MINIINFO_PARAMETERS, *PPH_MINIINFO_PARAMETERS;
+
+typedef enum _PH_MINIINFO_SECTION_MESSAGE
+{
+    MiniInfoCreate,
+    MiniInfoDestroy,
+    MiniInfoTick,
+    MiniInfoViewChanging, // PPH_MINIINFO_SECTION Parameter1
+    MiniInfoCreateDialog, // PPH_MINIINFO_CREATE_DIALOG Parameter1
+    MaxMiniInfoMessage
+} PH_MINIINFO_SECTION_MESSAGE;
+
+typedef BOOLEAN (NTAPI *PPH_MINIINFO_SECTION_CALLBACK)(
+    _In_ struct _PH_MINIINFO_SECTION *Section,
+    _In_ PH_MINIINFO_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+typedef struct _PH_MINIINFO_CREATE_DIALOG
+{
+    BOOLEAN CustomCreate;
+
+    // Parameters for default create
+    PVOID Instance;
+    PWSTR Template;
+    DLGPROC DialogProc;
+    PVOID Parameter;
+} PH_MINIINFO_CREATE_DIALOG, *PPH_MINIINFO_CREATE_DIALOG;
+
+typedef struct _PH_MINIINFO_SECTION
+{
+    // Public
+
+    // Initialization
+    PH_STRINGREF Name;
+    ULONG Flags;
+    PPH_MINIINFO_SECTION_CALLBACK Callback;
+    PVOID Context;
+    PPH_MINIINFO_PARAMETERS Parameters;
+    PVOID Reserved[2];
+
+    // Private
+
+    struct
+    {
+        ULONG SpareFlags : 32;
+    };
+    HWND DialogHandle;
+} PH_MINIINFO_SECTION, *PPH_MINIINFO_SECTION;
+
 typedef enum _PH_MINIINFO_PIN_TYPE
 {
-    MiniInfoManualPinType,
-    MiniInfoIconPinType,
-    MiniInfoHoverPinType,
+    MiniInfoManualPinType, // User pin
+    MiniInfoIconPinType, // Notification icon
+    MiniInfoActivePinType, // Window is active
+    MiniInfoHoverPinType, // Cursor is over mini info window
+    MiniInfoChildControlPinType, // Interacting with child control
     MaxMiniInfoPinType
 } PH_MINIINFO_PIN_TYPE;
 
-VOID PhShowMiniInformationDialog(
+#define PH_MINIINFO_ACTIVATE_WINDOW 0x1
+
+VOID PhPinMiniInformation(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
     _In_ LONG PinCount,
     _In_opt_ ULONG PinDelayMs,
+    _In_ ULONG Flags,
     _In_opt_ PPOINT SourcePoint
     );
 

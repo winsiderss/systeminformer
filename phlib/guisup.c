@@ -2,7 +2,7 @@
  * Process Hacker -
  *   GUI support functions
  *
- * Copyright (C) 2009-2013 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -84,26 +84,6 @@ VOID PhSetControlTheme(
         if (SetWindowTheme_I)
             SetWindowTheme_I(Handle, Theme, NULL);
     }
-}
-
-HWND PhCreateListViewControl(
-    _In_ HWND ParentHandle,
-    _In_ INT_PTR Id
-    )
-{
-    return CreateWindow(
-        WC_LISTVIEW,
-        NULL,
-        WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS,
-        0,
-        0,
-        3,
-        3,
-        ParentHandle,
-        (HMENU)Id,
-        PhLibImageBase,
-        NULL
-        );
 }
 
 INT PhAddListViewColumn(
@@ -945,6 +925,60 @@ VOID PhSetClipboardStringEx(
     GlobalUnlock(memory);
 
     PhpSetClipboardData(hWnd, CF_UNICODETEXT, data);
+}
+
+HWND PhCreateDialogFromTemplate(
+    _In_ HWND Parent,
+    _In_ ULONG Style,
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
+    )
+{
+    HRSRC resourceInfo;
+    ULONG resourceSize;
+    HGLOBAL resourceHandle;
+    PDLGTEMPLATEEX dialog;
+    PDLGTEMPLATEEX dialogCopy;
+    HWND dialogHandle;
+
+    resourceInfo = FindResource(Instance, Template, MAKEINTRESOURCE(RT_DIALOG));
+
+    if (!resourceInfo)
+        return NULL;
+
+    resourceSize = SizeofResource(Instance, resourceInfo);
+
+    if (resourceSize == 0)
+        return NULL;
+
+    resourceHandle = LoadResource(Instance, resourceInfo);
+
+    if (!resourceHandle)
+        return NULL;
+
+    dialog = LockResource(resourceHandle);
+
+    if (!dialog)
+        return NULL;
+
+    dialogCopy = PhAllocateCopy(dialog, resourceSize);
+
+    if (dialogCopy->signature == 0xffff)
+    {
+        dialogCopy->style = Style;
+    }
+    else
+    {
+        ((DLGTEMPLATE *)dialogCopy)->style = Style;
+    }
+
+    dialogHandle = CreateDialogIndirectParam(Instance, (DLGTEMPLATE *)dialogCopy, Parent, DialogProc, (LPARAM)Parameter);
+
+    PhFree(dialogCopy);
+
+    return dialogHandle;
 }
 
 VOID PhInitializeLayoutManager(
