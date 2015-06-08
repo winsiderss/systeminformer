@@ -282,7 +282,7 @@ VOID PhNfForwardMessage(
         {
             POINT location;
 
-            PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL);
+            PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
             PhShowIconContextMenu(location);
         }
@@ -300,11 +300,11 @@ VOID PhNfForwardMessage(
             POINT location;
 
             GetCursorPos(&location);
-            PhPinMiniInformation(MiniInfoIconPinType, 1, 0, 0, &location);
+            PhPinMiniInformation(MiniInfoIconPinType, 1, 0, 0, NULL, &location);
         }
         break;
     case NIN_POPUPCLOSE:
-        PhPinMiniInformation(MiniInfoIconPinType, -1, 350, 0, NULL);
+        PhPinMiniInformation(MiniInfoIconPinType, -1, 350, 0, NULL, NULL);
         break;
     }
 }
