@@ -43,9 +43,9 @@ BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network adapters plugin for Process Hacker"
             VALUE "FileVersion", "1.1"
-            VALUE "InternalName", "NetworkAdaptersPlugin"
+            VALUE "InternalName", "NetAdapters"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
-            VALUE "OriginalFilename", "NetworkAdaptersPlugin.dll"
+            VALUE "OriginalFilename", "NetAdapters.dll"
             VALUE "ProductName", "Network adapters plugin for Process Hacker"
             VALUE "ProductVersion", "1.1"
         END
