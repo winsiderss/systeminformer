@@ -12,10 +12,11 @@
 #define MIP_MSG_UPDATE (WM_APP + 150)
 #define MIP_MSG_LAST (WM_APP + 151)
 
-#define MIP_UNPIN_SECTION_CHOICE_DELAY 1000
+#define MIP_UNPIN_CHILD_CONTROL_DELAY 1000
 #define MIP_UNPIN_HOVER_DELAY 250
 
 #define MIP_SEPARATOR_HEIGHT 2
+#define MIP_PADDING_SIZE 3
 
 // Misc.
 
@@ -173,6 +174,14 @@ VOID PhMipLayout(
     VOID
     );
 
+VOID PhMipBeginChildControlPin(
+    VOID
+    );
+
+VOID PhMipEndChildControlPin(
+    VOID
+    );
+
 VOID PhMipSetPinned(
     _In_ BOOLEAN Pinned
     );
@@ -191,6 +200,13 @@ BOOLEAN PhMipCpuSectionCallback(
     _In_ PH_MINIINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
+    );
+
+INT_PTR CALLBACK PhMipCpuDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 #endif

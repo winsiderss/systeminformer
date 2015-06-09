@@ -456,6 +456,26 @@ BEGIN
     END
 END
 
+IDR_MINIINFO MENU
+BEGIN
+    POPUP "Mini Info"
+    BEGIN
+        POPUP "&Opacity"
+        BEGIN
+            MENUITEM "10%",                         ID_OPACITY_10
+            MENUITEM "20%",                         ID_OPACITY_20
+            MENUITEM "30%",                         ID_OPACITY_30
+            MENUITEM "40%",                         ID_OPACITY_40
+            MENUITEM "50%",                         ID_OPACITY_50
+            MENUITEM "60%",                         ID_OPACITY_60
+            MENUITEM "70%",                         ID_OPACITY_70
+            MENUITEM "80%",                         ID_OPACITY_80
+            MENUITEM "90%",                         ID_OPACITY_90
+            MENUITEM "Opaque",                      ID_OPACITY_OPAQUE
+        END
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1834,11 +1854,21 @@ IDD_MINIINFO DIALOGEX 0, 0, 217, 150
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Pin",IDC_PIN,"Button",BS_AUTOCHECKBOX | BS_BITMAP | BS_PUSHLIKE | WS_TABSTOP,197,132,17,15
-    PUSHBUTTON      "Options",IDC_OPTIONS,178,132,17,15,BS_BITMAP
-    CONTROL         "<a>Open Process Hacker</a>",IDC_OPEN,"SysLink",LWS_RIGHT | WS_TABSTOP,76,133,98,14
-    CONTROL         "Section",IDC_SECTION,"Static",SS_LEFTNOWORDWRAP | SS_NOTIFY | SS_ENDELLIPSIS | WS_GROUP,3,133,55,14
-    LTEXT           "Content layout",IDC_LAYOUT,3,3,211,123,NOT WS_VISIBLE
+    LTEXT           "Content layout",IDC_LAYOUT,1,21,215,129,NOT WS_VISIBLE
+    CONTROL         "Section",IDC_SECTION,"Static",SS_LEFTNOWORDWRAP | SS_NOTIFY | SS_ENDELLIPSIS | WS_GROUP,3,4,69,13
+    CONTROL         "<a>Open Process Hacker</a>",IDC_OPEN,"SysLink",LWS_RIGHT | WS_TABSTOP,82,4,96,13
+    PUSHBUTTON      "Options",IDC_OPTIONS,182,3,15,14,BS_BITMAP
+    CONTROL         "Pin",IDC_PIN,"Button",BS_AUTOCHECKBOX | BS_BITMAP | BS_PUSHLIKE | WS_TABSTOP,199,3,15,14
+END
+
+IDD_MINIINFO_CPU DIALOGEX 0, 0, 217, 141
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "CPU"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0x82,0,0,217,124,WS_EX_CLIENTEDGE
+    LTEXT           "CPU usage:",IDC_UTILIZATION_L,2,130,38,8
+    LTEXT           "Static",IDC_UTILIZATION,44,127,62,13
 END
 
 
@@ -2360,10 +2390,13 @@ BEGIN
 
     IDD_MINIINFO, DIALOG
     BEGIN
-        LEFTMARGIN, 3
-        RIGHTMARGIN, 214
-        TOPMARGIN, 3
-        BOTTOMMARGIN, 147
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 216
+        TOPMARGIN, 1
+    END
+
+    IDD_MINIINFO_CPU, DIALOG
+    BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
