@@ -658,6 +658,9 @@ VOID ProcessesUpdatedCallback(
 {
     PLIST_ENTRY listEntry;
 
+    if (GetNumberOfDbObjects() == 0)
+        return;
+
     PhAcquireQueuedLockExclusive(&ProcessListLock);
     LockDb();
 
