@@ -700,8 +700,8 @@ VOID PhPluginGetSystemStatistics(
     Statistics->CommitPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, 0);
     Statistics->PhysicalPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, 0);
 
-    Statistics->MaxCpuProcessId = LongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
-    Statistics->MaxIoProcessId = LongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0));
+    Statistics->MaxCpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
+    Statistics->MaxIoProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0));
 
     Statistics->CpuKernelHistory = &PhCpuKernelHistory;
     Statistics->CpuUserHistory = &PhCpuUserHistory;
