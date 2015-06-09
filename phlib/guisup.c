@@ -393,24 +393,67 @@ PPH_STRING PhGetWindowText(
     _In_ HWND hwnd
     )
 {
+    PPH_STRING text;
+
+    PhGetWindowTextEx(hwnd, 0, &text);
+    return text;
+}
+
+ULONG PhGetWindowTextEx(
+    _In_ HWND hwnd,
+    _In_ ULONG Flags,
+    _Out_opt_ PPH_STRING *Text
+    )
+{
     PPH_STRING string;
     ULONG length;
 
-    length = GetWindowTextLength(hwnd);
-
-    if (length == 0)
-        return PhReferenceEmptyString();
-
-    string = PhCreateStringEx(NULL, length * 2);
-
-    if (GetWindowText(hwnd, string->Buffer, (ULONG)string->Length / 2 + 1))
+    if (Flags & PH_GET_WINDOW_TEXT_INTERNAL)
     {
-        return string;
+        // TODO: Resize the buffer until we get the entire thing.
+        string = PhCreateStringEx(NULL, 256 * 2);
+        length = InternalGetWindowText(hwnd, string->Buffer, (ULONG)string->Length / 2 + 1);
+        string->Length = length * 2;
+
+        if (Text)
+            *Text = string;
+        else
+            PhDereferenceObject(string);
+
+        return length;
     }
     else
     {
-        PhDereferenceObject(string);
-        return NULL;
+        length = GetWindowTextLength(hwnd);
+
+        if (length == 0)
+        {
+            if (Text)
+                *Text = PhReferenceEmptyString();
+
+            return length;
+        }
+
+        string = PhCreateStringEx(NULL, length * 2);
+
+        if (GetWindowText(hwnd, string->Buffer, (ULONG)string->Length / 2 + 1))
+        {
+            if (Text)
+                *Text = string;
+            else
+                PhDereferenceObject(string);
+
+            return length;
+        }
+        else
+        {
+            if (Text)
+                *Text = PhReferenceEmptyString();
+
+            PhDereferenceObject(string);
+
+            return 0;
+        }
     }
 }
 

@@ -796,7 +796,7 @@ static VOID PhpUpdateProcessNodeWindow(
 
         if (ProcessNode->WindowHandle)
         {
-            ProcessNode->WindowText = PhGetWindowText(ProcessNode->WindowHandle);
+            PhGetWindowTextEx(ProcessNode->WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, &ProcessNode->WindowText);
             ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
         }
 

@@ -353,6 +353,15 @@ PPH_STRING PhGetWindowText(
     _In_ HWND hwnd
     );
 
+#define PH_GET_WINDOW_TEXT_INTERNAL 0x1
+
+PHLIBAPI
+ULONG PhGetWindowTextEx(
+    _In_ HWND hwnd,
+    _In_ ULONG Flags,
+    _Out_opt_ PPH_STRING *Text
+    );
+
 PHLIBAPI
 VOID PhAddComboBoxStrings(
     _In_ HWND hWnd,
