@@ -4249,32 +4249,6 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     }
 }
 
-static BOOL CALLBACK EnumProcessWindowsProc(
-    _In_ HWND hwnd,
-    _In_ LPARAM lParam
-    )
-{
-    ULONG processId;
-    HWND parentWindow;
-
-    if (!IsWindowVisible(hwnd))
-        return TRUE;
-
-    GetWindowThreadProcessId(hwnd, &processId);
-
-    if (
-        processId == (ULONG)lParam &&
-        !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        GetWindowTextLength(hwnd) != 0
-        )
-    {
-        SelectedProcessWindowHandle = hwnd;
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 VOID PhMwpInitializeProcessMenu(
     _In_ PPH_EMENU Menu,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -4416,8 +4390,7 @@ VOID PhMwpInitializeProcessMenu(
             WINDOWPLACEMENT placement = { sizeof(placement) };
 
             // Get a handle to the process' top-level window (if any).
-            SelectedProcessWindowHandle = NULL;
-            PhEnumChildWindows(NULL, 0x800, EnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
+            SelectedProcessWindowHandle = PhGetProcessMainWindow(Processes[0]->ProcessId, Processes[0]->QueryHandle);
 
             if (!SelectedProcessWindowHandle)
                 item->Flags |= PH_EMENU_DISABLED;

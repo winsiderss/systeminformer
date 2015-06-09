@@ -784,43 +784,13 @@ static VOID PhpUpdateProcessNodeIoPagePriority(
     }
 }
 
-static BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
-    _In_ HWND hwnd,
-    _In_ LPARAM lParam
-    )
-{
-    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)lParam;
-    ULONG threadId;
-    ULONG processId;
-
-    threadId = GetWindowThreadProcessId(hwnd, &processId);
-
-    if (UlongToHandle(processId) == processNode->ProcessId)
-    {
-        HWND parentWindow;
-
-        if (
-            !IsWindowVisible(hwnd) || // skip invisible windows
-            ((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) || // skip windows with visible parents
-            GetWindowTextLength(hwnd) == 0 // skip windows with no title
-            )
-            return TRUE;
-
-        processNode->WindowHandle = hwnd;
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 static VOID PhpUpdateProcessNodeWindow(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_WINDOW))
     {
-        ProcessNode->WindowHandle = NULL;
-        PhEnumChildWindows(NULL, 0x800, PhpEnumProcessNodeWindowsProc, (LPARAM)ProcessNode);
+        ProcessNode->WindowHandle = PhGetProcessMainWindow(ProcessNode->ProcessId, ProcessNode->ProcessItem->QueryHandle);
 
         PhClearReference(&ProcessNode->WindowText);
 

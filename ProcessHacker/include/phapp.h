@@ -157,13 +157,6 @@ PPH_STRING PhGetPackagePath(
     _In_ PACKAGE_ID *PackageId
     );
 
-VOID PhEnumChildWindows(
-    _In_opt_ HWND hWnd,
-    _In_ ULONG Limit,
-    _In_ WNDENUMPROC Callback,
-    _In_ LPARAM lParam
-    );
-
 typedef enum _PH_KNOWN_PROCESS_TYPE
 {
     UnknownProcessType,
@@ -217,6 +210,23 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     _In_ PPH_STRING CommandLine,
     _In_ PH_KNOWN_PROCESS_TYPE KnownProcessType,
     _Out_ PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
+    );
+
+VOID PhEnumChildWindows(
+    _In_opt_ HWND hWnd,
+    _In_ ULONG Limit,
+    _In_ WNDENUMPROC Callback,
+    _In_ LPARAM lParam
+    );
+
+HWND PhGetProcessMainWindow(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle
+    );
+
+PPH_STRING PhGetServiceRelevantFileName(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ SC_HANDLE ServiceHandle
     );
 
 PPH_STRING PhEscapeStringForDelimiter(
@@ -485,11 +495,6 @@ BOOLEAN PhHandleCopyCellEMenuItem(
 BOOLEAN PhShellOpenKey2(
     _In_ HWND hWnd,
     _In_ PPH_STRING KeyName
-    );
-
-PPH_STRING PhGetServiceRelevantFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ SC_HANDLE ServiceHandle
     );
 
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)

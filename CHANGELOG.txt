@@ -27,6 +27,7 @@ Process Hacker
    * Fixed service non-polling mode on Windows 8 and above
    * Fixed file dialog crash in Windows PE environments
    * Fixed string scanning false positive case
+   * Fixed process window detection for Modern UI apps
 
 2.35
  * NEW/IMPROVED:

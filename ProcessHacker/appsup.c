@@ -323,25 +323,6 @@ PPH_STRING PhGetPackagePath(
     }
 }
 
-VOID PhEnumChildWindows(
-    _In_opt_ HWND hWnd,
-    _In_ ULONG Limit,
-    _In_ WNDENUMPROC Callback,
-    _In_ LPARAM lParam
-    )
-{
-    HWND childWindow = NULL;
-    ULONG i = 0;
-
-    while (i < Limit && (childWindow = FindWindowEx(hWnd, childWindow, NULL, NULL)))
-    {
-        if (!Callback(childWindow, lParam))
-            return;
-
-        i++;
-    }
-}
-
 /**
  * Determines the type of a process based on its image file name.
  *
@@ -680,6 +661,138 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     }
 
     return TRUE;
+}
+
+VOID PhEnumChildWindows(
+    _In_opt_ HWND hWnd,
+    _In_ ULONG Limit,
+    _In_ WNDENUMPROC Callback,
+    _In_ LPARAM lParam
+    )
+{
+    HWND childWindow = NULL;
+    ULONG i = 0;
+
+    while (i < Limit && (childWindow = FindWindowEx(hWnd, childWindow, NULL, NULL)))
+    {
+        if (!Callback(childWindow, lParam))
+            return;
+
+        i++;
+    }
+}
+
+typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
+{
+    HWND Window;
+    HWND ImmersiveWindow;
+    HANDLE ProcessId;
+    BOOLEAN IsImmersive;
+} GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
+
+static BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
+    _In_ HWND hwnd,
+    _In_ LPARAM lParam
+    )
+{
+    PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)lParam;
+    ULONG processId;
+    HWND parentWindow;
+    WINDOWINFO windowInfo;
+
+    if (!IsWindowVisible(hwnd))
+        return TRUE;
+
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    if (UlongToHandle(processId) == context->ProcessId &&
+        !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
+        GetWindowTextLength(hwnd) != 0) // skip windows with no title
+    {
+        if (context->IsImmersive && GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
+        {
+            context->ImmersiveWindow = hwnd;
+        }
+
+        windowInfo.cbSize = sizeof(WINDOWINFO);
+
+        if (GetWindowInfo(hwnd, &windowInfo) && (windowInfo.dwStyle & WS_DLGFRAME))
+        {
+            context->Window = hwnd;
+            // Keep searching - we want the topmost window.
+        }
+    }
+
+    return TRUE;
+}
+
+HWND PhGetProcessMainWindow(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle
+    )
+{
+    GET_PROCESS_MAIN_WINDOW_CONTEXT context;
+    HANDLE processHandle = NULL;
+
+    memset(&context, 0, sizeof(GET_PROCESS_MAIN_WINDOW_CONTEXT));
+    context.ProcessId = ProcessId;
+
+    if (ProcessHandle)
+        processHandle = ProcessHandle;
+    else
+        PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessId);
+
+    if (processHandle && IsImmersiveProcess_I)
+        context.IsImmersive = IsImmersiveProcess_I(processHandle);
+
+    PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, (LPARAM)&context);
+
+    if (!ProcessHandle && processHandle)
+        NtClose(processHandle);
+
+    return context.ImmersiveWindow ? context.ImmersiveWindow : context.Window;
+}
+
+PPH_STRING PhGetServiceRelevantFileName(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    PPH_STRING fileName = NULL;
+    LPQUERY_SERVICE_CONFIG config;
+
+    if (config = PhGetServiceConfig(ServiceHandle))
+    {
+        PhGetServiceDllParameter(ServiceName, &fileName);
+
+        if (!fileName)
+        {
+            PPH_STRING commandLine;
+
+            commandLine = PhCreateString(config->lpBinaryPathName);
+
+            if (config->dwServiceType & SERVICE_WIN32)
+            {
+                PH_STRINGREF dummyFileName;
+                PH_STRINGREF dummyArguments;
+
+                PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
+
+                if (!fileName)
+                    PhSwapReference(&fileName, commandLine);
+            }
+            else
+            {
+                fileName = PhGetFileName(commandLine);
+            }
+
+            PhDereferenceObject(commandLine);
+        }
+
+        PhFree(config);
+    }
+
+    return fileName;
 }
 
 PPH_STRING PhEscapeStringForDelimiter(
@@ -1939,46 +2052,4 @@ CleanupExit:
         PhUiDisconnectFromPhSvc();
 
     return result;
-}
-
-PPH_STRING PhGetServiceRelevantFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ SC_HANDLE ServiceHandle
-    )
-{
-    PPH_STRING fileName = NULL;
-    LPQUERY_SERVICE_CONFIG config;
-
-    if (config = PhGetServiceConfig(ServiceHandle))
-    {
-        PhGetServiceDllParameter(ServiceName, &fileName);
-
-        if (!fileName)
-        {
-            PPH_STRING commandLine;
-
-            commandLine = PhCreateString(config->lpBinaryPathName);
-
-            if (config->dwServiceType & SERVICE_WIN32)
-            {
-                PH_STRINGREF dummyFileName;
-                PH_STRINGREF dummyArguments;
-
-                PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
-
-                if (!fileName)
-                    PhSwapReference(&fileName, commandLine);
-            }
-            else
-            {
-                fileName = PhGetFileName(commandLine);
-            }
-
-            PhDereferenceObject(commandLine);
-        }
-
-        PhFree(config);
-    }
-
-    return fileName;
 }
