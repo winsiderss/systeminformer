@@ -56,6 +56,9 @@ static PPH_LIST SectionList;
 static PH_MINIINFO_PARAMETERS CurrentParameters;
 static PPH_MINIINFO_SECTION CurrentSection;
 
+static HWND CpuDialog;
+static PH_LAYOUT_MANAGER CpuLayoutManager;
+
 VOID PhPinMiniInformation(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
     _In_ LONG PinCount,
@@ -425,13 +428,13 @@ VOID PhMipOnInitDialog(
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL,
         PH_ANCHOR_ALL);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_SECTION), NULL,
-        PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
+        PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_TOP | PH_LAYOUT_FORCE_INVALIDATE);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPEN), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PIN), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
 
     SeparatorControl = CreateWindow(
         L"STATIC",
@@ -495,7 +498,7 @@ VOID PhMipOnCommand(
                 PPH_EMENU_ITEM menuItem;
                 POINT point;
 
-                PhPinMiniInformation(MiniInfoChildControlPinType, 1, 0, 0, NULL, NULL);
+                PhMipBeginChildControlPin();
                 menu = PhCreateEMenu();
 
                 for (i = 0; i < SectionList->Count; i++)
@@ -521,10 +524,32 @@ VOID PhMipOnCommand(
                 }
 
                 PhDestroyEMenu(menu);
-                PhPinMiniInformation(MiniInfoChildControlPinType, -1, MIP_UNPIN_SECTION_CHOICE_DELAY, 0, NULL, NULL);
-                PostMessage(PhMipWindow, WM_MOUSEMOVE, 0, 0); // Re-evaluate hover pin
+                PhMipEndChildControlPin();
             }
             break;
+        }
+        break;
+    case IDC_OPTIONS:
+        {
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM menuItem;
+            RECT rect;
+
+            PhMipBeginChildControlPin();
+            menu = PhCreateEMenu();
+            PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MINIINFO), 0);
+
+            GetWindowRect(GetDlgItem(PhMipWindow, IDC_OPTIONS), &rect);
+            menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, rect.left, rect.bottom);
+
+            if (menuItem)
+            {
+                // TODO
+            }
+
+            PhDestroyEMenu(menu);
+            PhMipEndChildControlPin();
         }
         break;
     case IDC_PIN:
@@ -761,7 +786,7 @@ VOID PhMipInitializeParameters(
 
     hdc = GetDC(PhMipWindow);
 
-    logFont.lfHeight -= MulDiv(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= MulDiv(2, GetDeviceCaps(hdc, LOGPIXELSY), 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
     originalFont = SelectObject(hdc, CurrentParameters.Font);
@@ -899,33 +924,63 @@ VOID PhMipLayout(
     VOID
     )
 {
+    RECT clientRect;
     RECT rect;
-    RECT layoutRect;
 
-    GetClientRect(PhMipContainerWindow, &rect);
+    GetClientRect(PhMipContainerWindow, &clientRect);
     MoveWindow(
         PhMipWindow,
-        rect.left, rect.top,
-        rect.right - rect.left, rect.bottom - rect.top,
+        clientRect.left, clientRect.top,
+        clientRect.right - clientRect.left, clientRect.bottom - clientRect.top,
         FALSE
         );
 
     PhLayoutManagerLayout(&PhMipLayoutManager);
 
-    GetWindowRect(GetDlgItem(PhMipWindow, IDC_LAYOUT), &layoutRect);
-    MapWindowPoints(NULL, PhMipWindow, (POINT *)&layoutRect, 2);
+    GetWindowRect(GetDlgItem(PhMipWindow, IDC_LAYOUT), &rect);
+    MapWindowPoints(NULL, PhMipWindow, (POINT *)&rect, 2);
 
     if (CurrentSection && CurrentSection->DialogHandle)
     {
+        LONG leftDistance = rect.left - clientRect.left;
+        LONG rightDistance = clientRect.right - rect.right;
+        LONG minDistance;
+
+        if (leftDistance != rightDistance)
+        {
+            // HACK: Enforce symmetry. Sometimes these are off by a pixel.
+            minDistance = min(leftDistance, rightDistance);
+            rect.left = clientRect.left + minDistance;
+            rect.right = clientRect.right - minDistance;
+        }
+
         MoveWindow(
             CurrentSection->DialogHandle,
-            layoutRect.left, layoutRect.top,
-            layoutRect.right - layoutRect.left, layoutRect.bottom - layoutRect.top,
+            rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
             TRUE
             );
     }
 
-    MoveWindow(SeparatorControl, 0, layoutRect.bottom, rect.right, MIP_SEPARATOR_HEIGHT, TRUE);
+    GetWindowRect(GetDlgItem(PhMipWindow, IDC_PIN), &rect);
+    MapWindowPoints(NULL, PhMipWindow, (POINT *)&rect, 2);
+
+    MoveWindow(SeparatorControl, 0, rect.bottom + MIP_PADDING_SIZE, clientRect.right, MIP_SEPARATOR_HEIGHT, TRUE);
+}
+
+VOID PhMipBeginChildControlPin(
+    VOID
+    )
+{
+    PhPinMiniInformation(MiniInfoChildControlPinType, 1, 0, 0, NULL, NULL);
+}
+
+VOID PhMipEndChildControlPin(
+    VOID
+    )
+{
+    PhPinMiniInformation(MiniInfoChildControlPinType, -1, MIP_UNPIN_CHILD_CONTROL_DELAY, 0, NULL, NULL);
+    PostMessage(PhMipWindow, WM_MOUSEMOVE, 0, 0); // Re-evaluate hover pin
 }
 
 VOID PhMipSetPinned(
@@ -962,5 +1017,64 @@ BOOLEAN PhMipCpuSectionCallback(
     _In_opt_ PVOID Parameter2
     )
 {
+    switch (Message)
+    {
+    case MiniInfoCreateDialog:
+        {
+            PPH_MINIINFO_CREATE_DIALOG createDialog = Parameter1;
+
+            createDialog->Instance = PhInstanceHandle;
+            createDialog->Template = MAKEINTRESOURCE(IDD_MINIINFO_CPU);
+            createDialog->DialogProc = PhMipCpuDialogProc;
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhMipCpuDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            CpuDialog = hwndDlg;
+            PhInitializeLayoutManager(&CpuLayoutManager, hwndDlg);
+            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_UTILIZATION_L), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_UTILIZATION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+
+            SendMessage(GetDlgItem(hwndDlg, IDC_UTILIZATION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&CpuLayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&CpuLayoutManager);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hdc = (HDC)wParam;
+
+            SetBkMode(hdc, TRANSPARENT);
+
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+        }
+        break;
+    }
+
     return FALSE;
 }
