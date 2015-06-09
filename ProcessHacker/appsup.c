@@ -709,17 +709,21 @@ static BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
         !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
         GetWindowTextLength(hwnd) != 0) // skip windows with no title
     {
-        if (context->IsImmersive && GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
+        if (!context->ImmersiveWindow && context->IsImmersive &&
+            GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
         {
             context->ImmersiveWindow = hwnd;
         }
 
         windowInfo.cbSize = sizeof(WINDOWINFO);
 
-        if (GetWindowInfo(hwnd, &windowInfo) && (windowInfo.dwStyle & WS_DLGFRAME))
+        if (!context->Window && GetWindowInfo(hwnd, &windowInfo) && (windowInfo.dwStyle & WS_DLGFRAME))
         {
             context->Window = hwnd;
-            // Keep searching - we want the topmost window.
+
+            // If we're not looking at an immersive process, there's no need to search any more windows.
+            if (!context->IsImmersive)
+                return FALSE;
         }
     }
 
