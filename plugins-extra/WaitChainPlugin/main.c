@@ -192,7 +192,7 @@ static NTSTATUS WaitChainCallbackThread(
 
     if (context->Ole32ModuleHandle)
     {
-        LdrUnloadDll(context->Ole32ModuleHandle);
+        FreeLibrary(context->Ole32ModuleHandle);
     }
 
     return status;
