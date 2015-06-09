@@ -28,6 +28,7 @@ Process Hacker
    * Fixed file dialog crash in Windows PE environments
    * Fixed string scanning false positive case
    * Fixed process window detection for Modern UI apps
+   * Fixed handle list selection bug when disabling "Hide unnamed handles"
 
 2.35
  * NEW/IMPROVED:

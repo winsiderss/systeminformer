@@ -195,6 +195,9 @@ VOID PhSetOptionsHandleList(
             {
                 node->Node.Visible = visible;
                 modified = TRUE;
+
+                if (!visible)
+                    node->Node.Selected = FALSE;
             }
         }
 
