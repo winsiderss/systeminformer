@@ -282,7 +282,7 @@ static INT_PTR CALLBACK DnsCacheDlgProc(
         {
             if (DnsApiHandle)
             {
-                LdrUnloadDll(DnsApiHandle);
+                FreeLibrary(DnsApiHandle);
                 DnsApiHandle = NULL;
             }
 

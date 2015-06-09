@@ -189,7 +189,7 @@ BOOLEAN DestroyNvApi(VOID)
         NvAPI_Unload();
 
     if (NvApiLibrary)
-        LdrUnloadDll(NvApiLibrary);
+        FreeLibrary(NvApiLibrary);
 
     return TRUE;
 }
