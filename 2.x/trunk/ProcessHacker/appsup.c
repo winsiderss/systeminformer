@@ -707,7 +707,7 @@ static BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
 
     if (UlongToHandle(processId) == context->ProcessId &&
         !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        GetWindowTextLength(hwnd) != 0) // skip windows with no title
+        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL, NULL) != 0) // skip windows with no title
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
             GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
