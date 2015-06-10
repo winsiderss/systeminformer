@@ -1,178 +1,217 @@
 #ifndef _PH_SYMPRV_H
 #define _PH_SYMPRV_H
 
-#include <dbghelp.h>
+extern PPH_OBJECT_TYPE PhSymbolProviderType;
+extern PH_CALLBACK PhSymInitCallback;
+extern PVOID PhSymPreferredDbgHelpBase;
 
-typedef BOOL (WINAPI *_SymInitialize)(
-    _In_ HANDLE hProcess,
-    _In_opt_ PCSTR UserSearchPath,
-    _In_ BOOL fInvadeProcess
+//#define PH_SYMBOL_PROVIDER_DELAY_INIT
+
+#define PH_MAX_SYMBOL_NAME_LEN 128
+
+typedef struct _PH_SYMBOL_PROVIDER
+{
+    LIST_ENTRY ModulesListHead;
+    PH_QUEUED_LOCK ModulesListLock;
+    HANDLE ProcessHandle;
+    BOOLEAN IsRealHandle;
+    BOOLEAN IsRegistered;
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    PH_INITONCE InitOnce;
+#endif
+    PH_AVL_TREE ModulesSet;
+    PH_CALLBACK EventCallback;
+} PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
+
+typedef enum _PH_SYMBOL_RESOLVE_LEVEL
+{
+    PhsrlFunction,
+    PhsrlModule,
+    PhsrlAddress,
+    PhsrlInvalid
+} PH_SYMBOL_RESOLVE_LEVEL, *PPH_SYMBOL_RESOLVE_LEVEL;
+
+typedef struct _PH_SYMBOL_INFORMATION
+{
+    ULONG64 Address;
+    ULONG64 ModuleBase;
+    ULONG Index;
+    ULONG Size;
+} PH_SYMBOL_INFORMATION, *PPH_SYMBOL_INFORMATION;
+
+typedef struct _PH_SYMBOL_LINE_INFORMATION
+{
+    ULONG LineNumber;
+    ULONG64 Address;
+} PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_INFORMATION;
+
+typedef enum _PH_SYMBOL_EVENT_TYPE
+{
+    SymbolDeferredSymbolLoadStart = 1,
+    SymbolDeferredSymbolLoadComplete = 2,
+    SymbolDeferredSymbolLoadFailure = 3,
+    SymbolSymbolsUnloaded = 4,
+    SymbolDeferredSymbolLoadCancel = 7
+} PH_SYMBOL_EVENT_TYPE;
+
+typedef struct _PH_SYMBOL_EVENT_DATA
+{
+    PPH_SYMBOL_PROVIDER SymbolProvider;
+    PH_SYMBOL_EVENT_TYPE Type;
+
+    ULONG64 BaseAddress;
+    ULONG CheckSum;
+    ULONG TimeStamp;
+    PPH_STRING FileName;
+} PH_SYMBOL_EVENT_DATA, *PPH_SYMBOL_EVENT_DATA;
+
+BOOLEAN
+NTAPI
+PhSymbolProviderInitialization(
+    VOID
     );
 
-typedef BOOL (WINAPI *_SymCleanup)(
-    _In_ HANDLE hProcess
+VOID
+NTAPI
+PhSymbolProviderDynamicImport(
+    VOID
     );
 
-typedef BOOL (WINAPI *_SymEnumSymbols)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_opt_ PCSTR Mask,
-    _In_ PSYM_ENUMERATESYMBOLS_CALLBACK EnumSymbolsCallback,
-    _In_opt_ const PVOID UserContext
+PHLIBAPI
+PPH_SYMBOL_PROVIDER
+NTAPI
+PhCreateSymbolProvider(
+    _In_opt_ HANDLE ProcessId
     );
 
-typedef BOOL (WINAPI *_SymEnumSymbolsW)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_opt_ PCWSTR Mask,
-    _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
-    _In_opt_ const PVOID UserContext
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetLineFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address,
+    _Out_ PPH_STRING *FileName,
+    _Out_opt_ PULONG Displacement,
+    _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
     );
 
-typedef BOOL (WINAPI *_SymFromAddr)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD64 Address,
-    _Out_opt_ PDWORD64 Displacement,
-    _Inout_ PSYMBOL_INFO Symbol
+PHLIBAPI
+ULONG64
+NTAPI
+PhGetModuleFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address,
+    _Out_opt_ PPH_STRING *FileName
     );
 
-typedef BOOL (WINAPI *_SymFromAddrW)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD64 Address,
-    _Out_opt_ PDWORD64 Displacement,
-    _Inout_ PSYMBOL_INFOW Symbol
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSymbolFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address,
+    _Out_opt_ PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
+    _Out_opt_ PPH_STRING *FileName,
+    _Out_opt_ PPH_STRING *SymbolName,
+    _Out_opt_ PULONG64 Displacement
     );
 
-typedef BOOL (WINAPI *_SymFromName)(
-    _In_ HANDLE hProcess,
-    _In_ PCSTR Name,
-    _Inout_ PSYMBOL_INFO Symbol
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetSymbolFromName(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PWSTR Name,
+    _Out_ PPH_SYMBOL_INFORMATION Information
     );
 
-typedef BOOL (WINAPI *_SymFromNameW)(
-    _In_ HANDLE hProcess,
-    _In_ PCWSTR Name,
-    _Inout_ PSYMBOL_INFOW Symbol
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoadModuleSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PWSTR FileName,
+    _In_ ULONG64 BaseAddress,
+    _In_ ULONG Size
     );
 
-typedef BOOL (WINAPI *_SymGetLineFromAddr64)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD64 dwAddr,
-    _Out_ PDWORD pdwDisplacement,
-    _Out_ PIMAGEHLP_LINE64 Line
+PHLIBAPI
+VOID
+NTAPI
+PhSetOptionsSymbolProvider(
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     );
 
-typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD64 dwAddr,
-    _Out_ PDWORD pdwDisplacement,
-    _Out_ PIMAGEHLP_LINEW64 Line
-    );
-
-typedef DWORD64 (WINAPI *_SymLoadModule64)(
-    _In_ HANDLE hProcess,
-    _In_opt_ HANDLE hFile,
-    _In_opt_ PCSTR ImageName,
-    _In_opt_ PCSTR ModuleName,
-    _In_ DWORD64 BaseOfDll,
-    _In_ DWORD SizeOfDll
-    );
-
-typedef DWORD (WINAPI *_SymGetOptions)();
-
-typedef DWORD (WINAPI *_SymSetOptions)(
-    _In_ DWORD SymOptions
-    );
-
-typedef BOOL (WINAPI *_SymGetSearchPath)(
-    _In_ HANDLE hProcess,
-    _Out_ PSTR SearchPath,
-    _In_ DWORD SearchPathLength
-    );
-
-typedef BOOL (WINAPI *_SymGetSearchPathW)(
-    _In_ HANDLE hProcess,
-    _Out_ PWSTR SearchPath,
-    _In_ DWORD SearchPathLength
-    );
-
-typedef BOOL (WINAPI *_SymSetSearchPath)(
-    _In_ HANDLE hProcess,
-    _In_opt_ PCSTR SearchPath
-    );
-
-typedef BOOL (WINAPI *_SymSetSearchPathW)(
-    _In_ HANDLE hProcess,
-    _In_opt_ PCWSTR SearchPath
-    );
-
-typedef BOOL (WINAPI *_SymUnloadModule64)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD64 BaseOfDll
-    );
-
-typedef PVOID (WINAPI *_SymFunctionTableAccess64)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD64 AddrBase
-    );
-
-typedef DWORD64 (WINAPI *_SymGetModuleBase64)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD64 dwAddr
-    );
-
-typedef BOOL (WINAPI *_SymRegisterCallbackW64)(
-    _In_ HANDLE hProcess,
-    _In_ PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction,
-    _In_ ULONG64 UserContext
-    );
-
-typedef BOOL (WINAPI *_StackWalk64)(
-    _In_ DWORD MachineType,
-    _In_ HANDLE hProcess,
-    _In_ HANDLE hThread,
-    _Inout_ LPSTACKFRAME64 StackFrame,
-    _Inout_ PVOID ContextRecord,
-    _In_opt_ PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
-    _In_opt_ PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
-    _In_opt_ PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
-    _In_opt_ PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
-    );
-
-typedef BOOL (WINAPI *_MiniDumpWriteDump)(
-    _In_ HANDLE hProcess,
-    _In_ DWORD ProcessId,
-    _In_ HANDLE hFile,
-    _In_ MINIDUMP_TYPE DumpType,
-    _In_ PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-    _In_ PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-    _In_ PMINIDUMP_CALLBACK_INFORMATION CallbackParam
-    );
-
-typedef UINT_PTR (CALLBACK *_SymbolServerGetOptions)();
-
-typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
-    _In_ UINT_PTR options,
-    _In_ ULONG64 data
+PHLIBAPI
+VOID
+NTAPI
+PhSetSearchPathSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PWSTR Path
     );
 
 #ifdef _WIN64
-NTSTATUS PhAccessOutOfProcessFunctionEntry(
+NTSTATUS
+NTAPI
+PhAccessOutOfProcessFunctionEntry(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 ControlPc,
     _Out_ PRUNTIME_FUNCTION Function
     );
 #endif
 
-ULONG64 __stdcall PhGetModuleBase64(
+ULONG64
+__stdcall
+PhGetModuleBase64(
     _In_ HANDLE hProcess,
     _In_ DWORD64 dwAddr
     );
 
-PVOID __stdcall PhFunctionTableAccess64(
+PVOID
+__stdcall
+PhFunctionTableAccess64(
     _In_ HANDLE hProcess,
     _In_ DWORD64 AddrBase
     );
+
+#ifndef _DBGHELP_
+
+// Some of the types used below are defined in dbghelp.h.
+
+typedef struct _tagSTACKFRAME64 *LPSTACKFRAME64;
+typedef struct _tagADDRESS64 *LPADDRESS64;
+
+typedef BOOL (__stdcall *PREAD_PROCESS_MEMORY_ROUTINE64)(
+    _In_ HANDLE hProcess,
+    _In_ DWORD64 qwBaseAddress,
+    _Out_writes_bytes_(nSize) PVOID lpBuffer,
+    _In_ DWORD nSize,
+    _Out_ LPDWORD lpNumberOfBytesRead
+    );
+
+typedef PVOID (__stdcall *PFUNCTION_TABLE_ACCESS_ROUTINE64)(
+    _In_ HANDLE ahProcess,
+    _In_ DWORD64 AddrBase
+    );
+
+typedef DWORD64 (__stdcall *PGET_MODULE_BASE_ROUTINE64)(
+    _In_ HANDLE hProcess,
+    _In_ DWORD64 Address
+    );
+
+typedef DWORD64 (__stdcall *PTRANSLATE_ADDRESS_ROUTINE64)(
+    _In_ HANDLE hProcess,
+    _In_ HANDLE hThread,
+    _In_ LPADDRESS64 lpaddr
+    );
+
+typedef enum _MINIDUMP_TYPE MINIDUMP_TYPE;
+typedef struct _MINIDUMP_EXCEPTION_INFORMATION *PMINIDUMP_EXCEPTION_INFORMATION;
+typedef struct _MINIDUMP_USER_STREAM_INFORMATION *PMINIDUMP_USER_STREAM_INFORMATION;
+typedef struct _MINIDUMP_CALLBACK_INFORMATION *PMINIDUMP_CALLBACK_INFORMATION;
+
+#endif
 
 PHLIBAPI
 BOOLEAN
@@ -181,7 +220,7 @@ PhStackWalk(
     _In_ ULONG MachineType,
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ThreadHandle,
-    _Inout_ STACKFRAME64 *StackFrame,
+    _Inout_ LPSTACKFRAME64 StackFrame,
     _Inout_ PVOID ContextRecord,
     _In_opt_ PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
     _In_opt_ PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
@@ -202,9 +241,50 @@ PhWriteMiniDumpProcess(
     _In_opt_ PMINIDUMP_CALLBACK_INFORMATION CallbackParam
     );
 
-#ifndef _PH_SYMPRV_PRIVATE
-extern PH_CALLBACK PhSymInitCallback;
-extern PVOID PhSymPreferredDbgHelpBase;
-#endif
+// High-level stack walking
+
+/** Contains information about a thread stack frame. */
+typedef struct _PH_THREAD_STACK_FRAME
+{
+    PVOID PcAddress;
+    PVOID ReturnAddress;
+    PVOID FrameAddress;
+    PVOID StackAddress;
+    PVOID BStoreAddress;
+    PVOID Params[4];
+} PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
+
+#define PH_WALK_I386_STACK 0x1
+#define PH_WALK_AMD64_STACK 0x2
+#define PH_WALK_KERNEL_STACK 0x10
+
+/**
+ * A callback function passed to PhWalkThreadStack()
+ * and called for each stack frame.
+ *
+ * \param StackFrame A structure providing information about
+ * the stack frame.
+ * \param Context A user-defined value passed to
+ * PhWalkThreadStack().
+ *
+ * \return TRUE to continue the stack walk, FALSE to
+ * stop.
+ */
+typedef BOOLEAN (NTAPI *PPH_WALK_THREAD_STACK_CALLBACK)(
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWalkThreadStack(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ PCLIENT_ID ClientId,
+    _In_ ULONG Flags,
+    _In_ PPH_WALK_THREAD_STACK_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
 
 #endif

@@ -21,7 +21,7 @@
  */
 
 #include <phapp.h>
-#include <procprpp.h>
+#include <secedit.h>
 #include <kphuser.h>
 #include <settings.h>
 #include <cpysave.h>
@@ -29,6 +29,7 @@
 #include <phplug.h>
 #include <extmgri.h>
 #include <verify.h>
+#include <procprpp.h>
 #include <windowsx.h>
 
 #define SET_BUTTON_BITMAP(Id, Bitmap) \

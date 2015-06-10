@@ -548,7 +548,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     selectedItem = PhShowEMenu(
                         menu,
                         hWnd,
-                        PH_EMENU_SHOW_NONOTIFY | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         rebar->rc.left,
                         rebar->rc.bottom

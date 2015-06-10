@@ -15,7 +15,9 @@
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param BasicInformation A variable which receives the information.
  */
-FORCEINLINE NTSTATUS PhGetProcessBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetProcessBasicInformation(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_BASIC_INFORMATION BasicInformation
     )
@@ -36,7 +38,9 @@ FORCEINLINE NTSTATUS PhGetProcessBasicInformation(
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param ExtendedBasicInformation A variable which receives the information.
  */
-FORCEINLINE NTSTATUS PhGetProcessExtendedBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetProcessExtendedBasicInformation(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
     )
@@ -59,7 +63,9 @@ FORCEINLINE NTSTATUS PhGetProcessExtendedBasicInformation(
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param Times A variable which receives the information.
  */
-FORCEINLINE NTSTATUS PhGetProcessTimes(
+FORCEINLINE
+NTSTATUS
+PhGetProcessTimes(
     _In_ HANDLE ProcessHandle,
     _Out_ PKERNEL_USER_TIMES Times
     )
@@ -81,7 +87,9 @@ FORCEINLINE NTSTATUS PhGetProcessTimes(
  * \param SessionId A variable which receives the
  * process' session ID.
  */
-FORCEINLINE NTSTATUS PhGetProcessSessionId(
+FORCEINLINE
+NTSTATUS
+PhGetProcessSessionId(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG SessionId
     )
@@ -114,7 +122,9 @@ FORCEINLINE NTSTATUS PhGetProcessSessionId(
  * \param IsWow64 A variable which receives a boolean
  * indicating whether the process is 32-bit.
  */
-FORCEINLINE NTSTATUS PhGetProcessIsWow64(
+FORCEINLINE
+NTSTATUS
+PhGetProcessIsWow64(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsWow64
     )
@@ -147,7 +157,9 @@ FORCEINLINE NTSTATUS PhGetProcessIsWow64(
  * of the process' WOW64 PEB. If the process is 64-bit,
  * the variable receives NULL.
  */
-FORCEINLINE NTSTATUS PhGetProcessPeb32(
+FORCEINLINE
+NTSTATUS
+PhGetProcessPeb32(
     _In_ HANDLE ProcessHandle,
     _Out_ PVOID *Peb32
     )
@@ -179,7 +191,9 @@ FORCEINLINE NTSTATUS PhGetProcessPeb32(
  * \param IsBeingDebugged A variable which receives a boolean
  * indicating whether the process is being debugged.
  */
-FORCEINLINE NTSTATUS PhGetProcessIsBeingDebugged(
+FORCEINLINE
+NTSTATUS
+PhGetProcessIsBeingDebugged(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsBeingDebugged
     )
@@ -215,7 +229,9 @@ FORCEINLINE NTSTATUS PhGetProcessIsBeingDebugged(
  * \retval STATUS_PORT_NOT_SET The process is not being
  * debugged and has no associated debug object.
  */
-FORCEINLINE NTSTATUS PhGetProcessDebugObject(
+FORCEINLINE
+NTSTATUS
+PhGetProcessDebugObject(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE DebugObjectHandle
     )
@@ -237,7 +253,9 @@ FORCEINLINE NTSTATUS PhGetProcessDebugObject(
  * \param IoPriority A variable which receives the I/O
  * priority of the process.
  */
-FORCEINLINE NTSTATUS PhGetProcessIoPriority(
+FORCEINLINE
+NTSTATUS
+PhGetProcessIoPriority(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG IoPriority
     )
@@ -259,7 +277,9 @@ FORCEINLINE NTSTATUS PhGetProcessIoPriority(
  * \param PagePriority A variable which receives the page
  * priority of the process.
  */
-FORCEINLINE NTSTATUS PhGetProcessPagePriority(
+FORCEINLINE
+NTSTATUS
+PhGetProcessPagePriority(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG PagePriority
     )
@@ -291,7 +311,9 @@ FORCEINLINE NTSTATUS PhGetProcessPagePriority(
  * \param CycleTime A variable which receives the 64-bit cycle
  * time.
  */
-FORCEINLINE NTSTATUS PhGetProcessCycleTime(
+FORCEINLINE
+NTSTATUS
+PhGetProcessCycleTime(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG64 CycleTime
     )
@@ -315,7 +337,9 @@ FORCEINLINE NTSTATUS PhGetProcessCycleTime(
     return status;
 }
 
-FORCEINLINE NTSTATUS PhGetProcessConsoleHostProcessId(
+FORCEINLINE
+NTSTATUS
+PhGetProcessConsoleHostProcessId(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE ConsoleHostProcessId
     )
@@ -340,13 +364,37 @@ FORCEINLINE NTSTATUS PhGetProcessConsoleHostProcessId(
 }
 
 /**
+ * Sets a process' affinity mask.
+ *
+ * \param ProcessHandle A handle to a process. The handle
+ * must have PROCESS_SET_INFORMATION access.
+ * \param AffinityMask The new affinity mask.
+ */
+FORCEINLINE
+NTSTATUS
+PhSetProcessAffinityMask(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG_PTR AffinityMask
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &AffinityMask,
+        sizeof(ULONG_PTR)
+        );
+}
+
+/**
  * Gets basic information for a thread.
  *
  * \param ThreadHandle A handle to a thread. The handle must have
  * THREAD_QUERY_LIMITED_INFORMATION access.
  * \param BasicInformation A variable which receives the information.
  */
-FORCEINLINE NTSTATUS PhGetThreadBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetThreadBasicInformation(
     _In_ HANDLE ThreadHandle,
     _Out_ PTHREAD_BASIC_INFORMATION BasicInformation
     )
@@ -368,7 +416,9 @@ FORCEINLINE NTSTATUS PhGetThreadBasicInformation(
  * \param IoPriority A variable which receives the I/O
  * priority of the thread.
  */
-FORCEINLINE NTSTATUS PhGetThreadIoPriority(
+FORCEINLINE
+NTSTATUS
+PhGetThreadIoPriority(
     _In_ HANDLE ThreadHandle,
     _Out_ PULONG IoPriority
     )
@@ -390,7 +440,9 @@ FORCEINLINE NTSTATUS PhGetThreadIoPriority(
  * \param PagePriority A variable which receives the page
  * priority of the thread.
  */
-FORCEINLINE NTSTATUS PhGetThreadPagePriority(
+FORCEINLINE
+NTSTATUS
+PhGetThreadPagePriority(
     _In_ HANDLE ThreadHandle,
     _Out_ PULONG PagePriority
     )
@@ -422,7 +474,9 @@ FORCEINLINE NTSTATUS PhGetThreadPagePriority(
  * \param CycleTime A variable which receives the 64-bit cycle
  * time.
  */
-FORCEINLINE NTSTATUS PhGetThreadCycleTime(
+FORCEINLINE
+NTSTATUS
+PhGetThreadCycleTime(
     _In_ HANDLE ThreadHandle,
     _Out_ PULONG64 CycleTime
     )
@@ -446,7 +500,31 @@ FORCEINLINE NTSTATUS PhGetThreadCycleTime(
     return status;
 }
 
-FORCEINLINE NTSTATUS PhGetJobBasicAndIoAccounting(
+/**
+ * Sets a thread's affinity mask.
+ *
+ * \param ThreadHandle A handle to a thread. The handle
+ * must have THREAD_SET_LIMITED_INFORMATION access.
+ * \param AffinityMask The new affinity mask.
+ */
+FORCEINLINE
+NTSTATUS
+PhSetThreadAffinityMask(
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG_PTR AffinityMask
+    )
+{
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadAffinityMask,
+        &AffinityMask,
+        sizeof(ULONG_PTR)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetJobBasicAndIoAccounting(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
     )
@@ -460,7 +538,9 @@ FORCEINLINE NTSTATUS PhGetJobBasicAndIoAccounting(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetJobBasicLimits(
+FORCEINLINE
+NTSTATUS
+PhGetJobBasicLimits(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
     )
@@ -474,7 +554,9 @@ FORCEINLINE NTSTATUS PhGetJobBasicLimits(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetJobExtendedLimits(
+FORCEINLINE
+NTSTATUS
+PhGetJobExtendedLimits(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
     )
@@ -488,7 +570,9 @@ FORCEINLINE NTSTATUS PhGetJobExtendedLimits(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetJobBasicUiRestrictions(
+FORCEINLINE
+NTSTATUS
+PhGetJobBasicUiRestrictions(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
     )
@@ -510,7 +594,9 @@ FORCEINLINE NTSTATUS PhGetJobBasicUiRestrictions(
  * \param SessionId A variable which receives the
  * session ID.
  */
-FORCEINLINE NTSTATUS PhGetTokenSessionId(
+FORCEINLINE
+NTSTATUS
+PhGetTokenSessionId(
     _In_ HANDLE TokenHandle,
     _Out_ PULONG SessionId
     )
@@ -534,7 +620,9 @@ FORCEINLINE NTSTATUS PhGetTokenSessionId(
  * \param ElevationType A variable which receives the
  * elevation type.
  */
-FORCEINLINE NTSTATUS PhGetTokenElevationType(
+FORCEINLINE
+NTSTATUS
+PhGetTokenElevationType(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_ELEVATION_TYPE ElevationType
     )
@@ -558,7 +646,9 @@ FORCEINLINE NTSTATUS PhGetTokenElevationType(
  * \param Elevated A variable which receives a
  * boolean indicating whether the token is elevated.
  */
-FORCEINLINE NTSTATUS PhGetTokenIsElevated(
+FORCEINLINE
+NTSTATUS
+PhGetTokenIsElevated(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN Elevated
     )
@@ -591,7 +681,9 @@ FORCEINLINE NTSTATUS PhGetTokenIsElevated(
  * \param Statistics A variable which receives the
  * token's statistics.
  */
-FORCEINLINE NTSTATUS PhGetTokenStatistics(
+FORCEINLINE
+NTSTATUS
+PhGetTokenStatistics(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_STATISTICS Statistics
     )
@@ -615,7 +707,9 @@ FORCEINLINE NTSTATUS PhGetTokenStatistics(
  * \param Source A variable which receives the
  * token's source.
  */
-FORCEINLINE NTSTATUS PhGetTokenSource(
+FORCEINLINE
+NTSTATUS
+PhGetTokenSource(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_SOURCE Source
     )
@@ -640,7 +734,9 @@ FORCEINLINE NTSTATUS PhGetTokenSource(
  * handle to the linked token. You must close the handle
  * using NtClose() when you no longer need it.
  */
-FORCEINLINE NTSTATUS PhGetTokenLinkedToken(
+FORCEINLINE
+NTSTATUS
+PhGetTokenLinkedToken(
     _In_ HANDLE TokenHandle,
     _Out_ PHANDLE LinkedTokenHandle
     )
@@ -674,7 +770,9 @@ FORCEINLINE NTSTATUS PhGetTokenLinkedToken(
  * a boolean indicating whether virtualization is allowed
  * for the token.
  */
-FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationAllowed(
+FORCEINLINE
+NTSTATUS
+PhGetTokenIsVirtualizationAllowed(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsVirtualizationAllowed
     )
@@ -708,7 +806,9 @@ FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationAllowed(
  * a boolean indicating whether virtualization is enabled
  * for the token.
  */
-FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationEnabled(
+FORCEINLINE
+NTSTATUS
+PhGetTokenIsVirtualizationEnabled(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsVirtualizationEnabled
     )
@@ -733,7 +833,9 @@ FORCEINLINE NTSTATUS PhGetTokenIsVirtualizationEnabled(
     return status;
 }
 
-FORCEINLINE NTSTATUS PhGetEventBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetEventBasicInformation(
     _In_ HANDLE EventHandle,
     _Out_ PEVENT_BASIC_INFORMATION BasicInformation
     )
@@ -747,7 +849,9 @@ FORCEINLINE NTSTATUS PhGetEventBasicInformation(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetMutantBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetMutantBasicInformation(
     _In_ HANDLE MutantHandle,
     _Out_ PMUTANT_BASIC_INFORMATION BasicInformation
     )
@@ -761,7 +865,9 @@ FORCEINLINE NTSTATUS PhGetMutantBasicInformation(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetMutantOwnerInformation(
+FORCEINLINE
+NTSTATUS
+PhGetMutantOwnerInformation(
     _In_ HANDLE MutantHandle,
     _Out_ PMUTANT_OWNER_INFORMATION OwnerInformation
     )
@@ -775,7 +881,9 @@ FORCEINLINE NTSTATUS PhGetMutantOwnerInformation(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetSectionBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetSectionBasicInformation(
     _In_ HANDLE SectionHandle,
     _Out_ PSECTION_BASIC_INFORMATION BasicInformation
     )
@@ -789,7 +897,9 @@ FORCEINLINE NTSTATUS PhGetSectionBasicInformation(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetSemaphoreBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetSemaphoreBasicInformation(
     _In_ HANDLE SemaphoreHandle,
     _Out_ PSEMAPHORE_BASIC_INFORMATION BasicInformation
     )
@@ -803,7 +913,9 @@ FORCEINLINE NTSTATUS PhGetSemaphoreBasicInformation(
         );
 }
 
-FORCEINLINE NTSTATUS PhGetTimerBasicInformation(
+FORCEINLINE
+NTSTATUS
+PhGetTimerBasicInformation(
     _In_ HANDLE TimerHandle,
     _Out_ PTIMER_BASIC_INFORMATION BasicInformation
     )

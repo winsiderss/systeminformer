@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <emenu.h>
 #include <settings.h>
 #include <memsrch.h>
 #include "pcre/pcre.h"
@@ -481,48 +482,46 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 break;
             case IDC_FILTER:
                 {
-                    HMENU menu;
-                    HMENU subMenu;
+                    PPH_EMENU menu;
                     RECT buttonRect;
                     POINT point;
-                    UINT selectedItem;
+                    PPH_EMENU_ITEM selectedItem;
                     ULONG filterType = 0;
 
-                    menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMFILTER));
-                    subMenu = GetSubMenu(menu, 0);
+                    menu = PhCreateEMenu();
+                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMFILTER), 0);
 
                     GetClientRect(GetDlgItem(hwndDlg, IDC_FILTER), &buttonRect);
                     point.x = 0;
                     point.y = buttonRect.bottom;
 
                     ClientToScreen(GetDlgItem(hwndDlg, IDC_FILTER), &point);
-                    selectedItem = PhShowContextMenu2(
-                        hwndDlg,
-                        GetDlgItem(hwndDlg, IDC_FILTER),
-                        subMenu,
-                        point
-                        );
+                    selectedItem = PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
 
-                    switch (selectedItem)
+                    if (selectedItem)
                     {
-                    case ID_FILTER_CONTAINS:
-                        filterType = FILTER_CONTAINS;
-                        break;
-                    case ID_FILTER_CONTAINS_CASEINSENSITIVE:
-                        filterType = FILTER_CONTAINS_IGNORECASE;
-                        break;
-                    case ID_FILTER_REGEX:
-                        filterType = FILTER_REGEX;
-                        break;
-                    case ID_FILTER_REGEX_CASEINSENSITIVE:
-                        filterType = FILTER_REGEX_IGNORECASE;
-                        break;
+                        switch (selectedItem->Id)
+                        {
+                        case ID_FILTER_CONTAINS:
+                            filterType = FILTER_CONTAINS;
+                            break;
+                        case ID_FILTER_CONTAINS_CASEINSENSITIVE:
+                            filterType = FILTER_CONTAINS_IGNORECASE;
+                            break;
+                        case ID_FILTER_REGEX:
+                            filterType = FILTER_REGEX;
+                            break;
+                        case ID_FILTER_REGEX_CASEINSENSITIVE:
+                            filterType = FILTER_REGEX_IGNORECASE;
+                            break;
+                        }
                     }
 
                     if (filterType != 0)
                         FilterResults(hwndDlg, context, filterType);
 
-                    DestroyMenu(menu);
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }

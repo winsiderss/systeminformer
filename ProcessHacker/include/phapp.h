@@ -11,6 +11,7 @@
 #include <treenew.h>
 #include <graph.h>
 #include <circbuf.h>
+#include <dltmgr.h>
 #include <phnet.h>
 #include <providers.h>
 #include <colmgr.h>
@@ -21,26 +22,7 @@
             L"or could not be loaded. Make sure Process Hacker is running " \
             L"with administrative privileges.")
 
-#ifndef PH_MAIN_PRIVATE
-
-extern PPH_STRING PhApplicationDirectory;
-extern PPH_STRING PhApplicationFileName;
-extern HFONT PhApplicationFont;
-extern PPH_STRING PhCurrentUserName;
-extern HINSTANCE PhInstanceHandle;
-extern PPH_STRING PhLocalSystemName;
-extern BOOLEAN PhPluginsEnabled;
-extern PPH_STRING PhProcDbFileName;
-extern PPH_STRING PhSettingsFileName;
-extern PH_INTEGER_PAIR PhSmallIconSize;
-extern PH_STARTUP_PARAMETERS PhStartupParameters;
-
-extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
-extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
-
-extern COLORREF PhSysWindowColor;
-
-#endif
+typedef struct _PH_SYMBOL_PROVIDER *PPH_SYMBOL_PROVIDER;
 
 // main
 
@@ -88,6 +70,23 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_LIST PluginParameters;
     PPH_STRING SelectTab;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
+
+extern PPH_STRING PhApplicationDirectory;
+extern PPH_STRING PhApplicationFileName;
+PHAPPAPI extern HFONT PhApplicationFont;
+extern PPH_STRING PhCurrentUserName;
+extern HINSTANCE PhInstanceHandle;
+extern PPH_STRING PhLocalSystemName;
+extern BOOLEAN PhPluginsEnabled;
+extern PPH_STRING PhProcDbFileName;
+extern PPH_STRING PhSettingsFileName;
+extern PH_INTEGER_PAIR PhSmallIconSize;
+extern PH_STARTUP_PARAMETERS PhStartupParameters;
+
+extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
+extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
+
+extern COLORREF PhSysWindowColor;
 
 PHAPPAPI
 VOID PhRegisterDialog(

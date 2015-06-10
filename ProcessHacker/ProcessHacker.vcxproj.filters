@@ -105,9 +105,6 @@
     <ClCompile Include="..\phlib\native.c">
       <Filter>phlib</Filter>
     </ClCompile>
-    <ClCompile Include="..\phlib\ntimport.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="..\phlib\provider.c">
       <Filter>phlib</Filter>
     </ClCompile>
@@ -458,6 +455,9 @@
     </ClCompile>
     <ClCompile Include="miniinfo.c">
       <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\apiimport.c">
+      <Filter>phlib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -617,7 +617,7 @@ typedef struct _PH_THREAD_ITEM
     ULONG64 StartAddress;
     PPH_STRING StartAddressString;
     PPH_STRING StartAddressFileName;
-    PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
+    enum _PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
     KTHREAD_STATE State;
     KWAIT_REASON WaitReason;
     LONG PriorityWin32;
@@ -646,7 +646,7 @@ typedef struct _PH_THREAD_PROVIDER
     HANDLE ProcessId;
     HANDLE ProcessHandle;
     BOOLEAN HasServices;
-    PPH_SYMBOL_PROVIDER SymbolProvider;
+    struct _PH_SYMBOL_PROVIDER *SymbolProvider;
     PH_EVENT SymbolsLoadedEvent;
     LONG SymbolsLoading;
     SLIST_HEADER QueryListHead;

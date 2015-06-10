@@ -22,6 +22,7 @@
 
 #include "exttools.h"
 #include "resource.h"
+#include <symprv.h>
 
 typedef struct _COMMON_PAGE_CONTEXT
 {

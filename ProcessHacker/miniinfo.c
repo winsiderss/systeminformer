@@ -515,7 +515,7 @@ VOID PhMipOnCommand(
                 }
 
                 GetCursorPos(&point);
-                menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
+                menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
                     PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
 
                 if (menuItem)
@@ -540,7 +540,7 @@ VOID PhMipOnCommand(
             PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MINIINFO), 0);
 
             GetWindowRect(GetDlgItem(PhMipWindow, IDC_OPTIONS), &rect);
-            menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
+            menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, rect.left, rect.bottom);
 
             if (menuItem)

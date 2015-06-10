@@ -22,6 +22,7 @@
 
 #include <ph.h>
 #include <phintrnl.h>
+#include <symprv.h>
 
 VOID PhInitializeSecurity(
     _In_ ULONG Flags
@@ -94,20 +95,10 @@ NTSTATUS PhInitializePhLibEx(
     PhLibImageBase = NtCurrentPeb()->ImageBaseAddress;
 
     PhInitializeWindowsVersion();
-
-    if (Flags & PHLIB_INIT_MODULE_NTIMPORTS)
-    {
-        if (!PhInitializeImports())
-            return STATUS_UNSUCCESSFUL;
-    }
-
     PhInitializeSystemInformation();
 
     if (!PhQueuedLockInitialization())
         return STATUS_UNSUCCESSFUL;
-
-    if (Flags & PHLIB_INIT_MODULE_FAST_LOCK)
-        PhFastLockInitialization();
 
     if (!NT_SUCCESS(PhInitializeRef()))
         return STATUS_UNSUCCESSFUL;
@@ -184,11 +175,6 @@ static BOOLEAN PhInitializeSystem(
     {
         if (!PhSymbolProviderInitialization())
             return FALSE;
-    }
-
-    if (Flags & PHLIB_INIT_MODULE_HANDLE_INFO)
-    {
-        PhHandleInfoInitialization();
     }
 
     return TRUE;

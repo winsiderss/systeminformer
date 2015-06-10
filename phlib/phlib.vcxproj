@@ -138,6 +138,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="apiimport.c" />
     <ClCompile Include="basesup.c" />
     <ClCompile Include="basesupa.c" />
     <ClCompile Include="circbuf.c" />
@@ -167,7 +168,6 @@
     <ClCompile Include="maplib.c" />
     <ClCompile Include="md5.c" />
     <ClCompile Include="native.c" />
-    <ClCompile Include="ntimport.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />
     <ClCompile Include="ref.c" />
@@ -183,6 +183,7 @@
     <ClCompile Include="workqueue.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\apiimport.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\filepool.h" />
     <ClInclude Include="include\filepoolp.h" />
@@ -195,6 +196,8 @@
     <ClInclude Include="include\circbuf_h.h" />
     <ClInclude Include="circbuf_i.h" />
     <ClInclude Include="include\colorbox.h" />
+    <ClInclude Include="include\secedit.h" />
+    <ClInclude Include="include\symprvp.h" />
     <ClInclude Include="include\treenew.h" />
     <ClInclude Include="include\treenewp.h" />
     <ClInclude Include="include\verify.h" />
@@ -217,7 +220,6 @@
     <ClInclude Include="include\ntdbg.h" />
     <ClInclude Include="include\ntexapi.h" />
     <ClInclude Include="include\ntgdi.h" />
-    <ClInclude Include="include\ntimport.h" />
     <ClInclude Include="include\ntioapi.h" />
     <ClInclude Include="include\ntkeapi.h" />
     <ClInclude Include="include\ntldr.h" />

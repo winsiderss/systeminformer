@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <symprv.h>
 #include <cpysave.h>
 #include <phappres.h>
 #include <emenu.h>

@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <phappres.h>
+#include <symprv.h>
 
 static INT_PTR CALLBACK PhpAboutDlgProc(
     _In_ HWND hwndDlg,
