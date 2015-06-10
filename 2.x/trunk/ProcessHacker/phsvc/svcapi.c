@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <secedit.h>
 #include <phsvc.h>
 #include <phplug.h>
 #include <extmgri.h>

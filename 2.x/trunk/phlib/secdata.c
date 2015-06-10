@@ -21,6 +21,7 @@
  */
 
 #include <phgui.h>
+#include <secedit.h>
 
 #define ACCESS_ENTRIES(Type) static PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
 #define ACCESS_ENTRY(Type, HasSynchronize) \

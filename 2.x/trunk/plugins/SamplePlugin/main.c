@@ -148,20 +148,26 @@ VOID ShowOptionsCallback(
 }
 
 BOOLEAN NTAPI EnumDirectoryObjectsCallback(
-    __in PPH_STRING Name,
-    __in PPH_STRING TypeName,
+    __in PPH_STRINGREF Name,
+    __in PPH_STRINGREF TypeName,
     __in_opt PVOID Context
     )
 {
     INT result;
+    PPH_STRING name;
+    PPH_STRING typeName;
 
+    name = PhCreateString2(Name);
+    typeName = PhCreateString2(TypeName);
     result = PhShowMessage(
         PhMainWndHandle,
         MB_ICONINFORMATION | MB_OKCANCEL,
         L"%s: %s",
-        Name->Buffer,
-        TypeName->Buffer
+        name->Buffer,
+        typeName->Buffer
         );
+    PhDereferenceObject(name);
+    PhDereferenceObject(typeName);
 
     return result == IDOK;
 }

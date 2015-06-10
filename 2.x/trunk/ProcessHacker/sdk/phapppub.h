@@ -428,7 +428,7 @@ PHAPPAPI
 VOID
 NTAPI
 PhLoadSymbolProviderOptions(
-    _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
+    _Inout_ struct _PH_SYMBOL_PROVIDER *SymbolProvider
     );
 
 PHAPPAPI

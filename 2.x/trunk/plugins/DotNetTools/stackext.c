@@ -23,6 +23,7 @@
 #include "dn.h"
 #include "clrsup.h"
 #include "svcext.h"
+#include <symprv.h>
 
 typedef struct _THREAD_STACK_CONTEXT
 {

@@ -2,7 +2,7 @@
  * Process Hacker -
  *   process provider
  *
- * Copyright (C) 2009-2013 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -1263,13 +1263,9 @@ VOID PhpFillProcessItem(
     ProcessItem->CreateTime = Process->CreateTime;
 
     if (ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
-    {
         ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&Process->ImageName);
-    }
     else
-    {
         ProcessItem->ProcessName = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
-    }
 
     PhPrintUInt32(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
@@ -1285,21 +1281,28 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID)
-                status = PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName);
-            else if (processHandle)
-                status = PhGetProcessImageFileName(processHandle, &fileName);
-            else
-                status = STATUS_UNSUCCESSFUL;
-
-            if (NT_SUCCESS(status))
+            if (WindowsVersion >= WINDOWS_VISTA)
             {
-                PPH_STRING newFileName;
-
-                newFileName = PhGetFileName(fileName);
-                ProcessItem->FileName = newFileName;
-
-                PhDereferenceObject(fileName);
+                if (processHandle)
+                {
+                    PhGetProcessImageFileNameWin32(processHandle, &ProcessItem->FileName);
+                }
+                else
+                {
+                    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName)))
+                    {
+                        ProcessItem->FileName = PhGetFileName(fileName);
+                        PhDereferenceObject(fileName);
+                    }
+                }
+            }
+            else
+            {
+                if (processHandle && NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
+                {
+                    ProcessItem->FileName = PhGetFileName(fileName);
+                    PhDereferenceObject(fileName);
+                }
             }
         }
         else
@@ -1310,11 +1313,7 @@ VOID PhpFillProcessItem(
 
             if (fileName)
             {
-                PPH_STRING newFileName;
-
-                newFileName = PhGetFileName(fileName);
-                ProcessItem->FileName = newFileName;
-
+                ProcessItem->FileName = PhGetFileName(fileName);
                 PhDereferenceObject(fileName);
             }
         }
@@ -1355,8 +1354,7 @@ VOID PhpFillProcessItem(
             ProcessItem->ProcessId == SYSTEM_PROCESS_ID // System token can't be opened on XP
             )
         {
-            PhReferenceObject(PhLocalSystemName);
-            ProcessItem->UserName = PhLocalSystemName;
+            PhSetReference(&ProcessItem->UserName, PhLocalSystemName);
         }
     }
 

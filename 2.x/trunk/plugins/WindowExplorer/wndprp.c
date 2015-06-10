@@ -25,6 +25,7 @@
 
 #include "wndexp.h"
 #include "resource.h"
+#include <symprv.h>
 #include <windowsx.h>
 
 #define NUMBER_OF_PAGES 4

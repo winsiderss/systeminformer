@@ -1141,7 +1141,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                     PPH_STRING text;
 
                     text = PhGetTreeNewText(context->TnHandle, 0);
-                    PhSetClipboardStringEx(context->TnHandle, text->Buffer, text->Length);
+                    PhSetClipboardString(context->TnHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;

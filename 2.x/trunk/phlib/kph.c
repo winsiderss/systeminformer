@@ -934,6 +934,48 @@ NTSTATUS KphEnumerateProcessHandles(
         );
 }
 
+NTSTATUS KphEnumerateProcessHandles2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKPH_PROCESS_HANDLE_INFORMATION *Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 2048;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphEnumerateProcessHandles(
+            ProcessHandle,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Handles = buffer;
+
+    return status;
+}
+
 NTSTATUS KphQueryInformationObject(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,

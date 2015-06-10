@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <kphuser.h>
+#include <secedit.h>
 #include <phplug.h>
 
 typedef struct _HANDLE_PROPERTIES_CONTEXT

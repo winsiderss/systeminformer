@@ -34,6 +34,7 @@
  */
 
 #include <phapp.h>
+#include <symprv.h>
 
 typedef HWND (WINAPI *_GetSendMessageReceiver)(
     _In_ HANDLE ThreadId
