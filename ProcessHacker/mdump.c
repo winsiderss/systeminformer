@@ -21,8 +21,9 @@
  */
 
 #include <phapp.h>
-#include <settings.h>
+#include <dbghelp.h>
 #include <symprv.h>
+#include <settings.h>
 #include <phsvccl.h>
 
 #define WM_PH_MINIDUMP_STATUS_UPDATE (WM_APP + 301)

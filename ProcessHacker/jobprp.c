@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <secedit.h>
 #include <settings.h>
 
 typedef struct _JOB_PAGE_CONTEXT

@@ -9,14 +9,12 @@ typedef struct _KPH_PARAMETERS
     BOOLEAN CreateDynamicConfiguration;
 } KPH_PARAMETERS, *PKPH_PARAMETERS;
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect(
     _In_opt_ PWSTR DeviceName
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect2(
@@ -24,7 +22,6 @@ KphConnect2(
     _In_ PWSTR FileName
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect2Ex(
@@ -33,21 +30,18 @@ KphConnect2Ex(
     _In_opt_ PKPH_PARAMETERS Parameters
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphDisconnect(
     VOID
     );
 
-PHLIBAPI
 BOOLEAN
 NTAPI
 KphIsConnected(
     VOID
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetParameters(
@@ -55,7 +49,6 @@ KphSetParameters(
     _In_ PKPH_PARAMETERS Parameters
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphInstall(
@@ -63,7 +56,6 @@ KphInstall(
     _In_ PWSTR FileName
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphInstallEx(
@@ -72,21 +64,18 @@ KphInstallEx(
     _In_opt_ PKPH_PARAMETERS Parameters
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphUninstall(
     _In_opt_ PWSTR DeviceName
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphGetFeatures(
     _Out_ PULONG Features
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenProcess(
@@ -95,7 +84,6 @@ KphOpenProcess(
     _In_ PCLIENT_ID ClientId
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenProcessToken(
@@ -104,7 +92,6 @@ KphOpenProcessToken(
     _Out_ PHANDLE TokenHandle
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenProcessJob(
@@ -113,21 +100,18 @@ KphOpenProcessJob(
     _Out_ PHANDLE JobHandle
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphSuspendProcess(
     _In_ HANDLE ProcessHandle
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphResumeProcess(
     _In_ HANDLE ProcessHandle
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphTerminateProcess(
@@ -135,7 +119,6 @@ KphTerminateProcess(
     _In_ NTSTATUS ExitStatus
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphReadVirtualMemory(
@@ -146,7 +129,6 @@ KphReadVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphWriteVirtualMemory(
@@ -157,7 +139,6 @@ KphWriteVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphReadVirtualMemoryUnsafe(
@@ -168,7 +149,6 @@ KphReadVirtualMemoryUnsafe(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphQueryInformationProcess(
@@ -179,7 +159,6 @@ KphQueryInformationProcess(
     _Out_opt_ PULONG ReturnLength
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetInformationProcess(
@@ -189,7 +168,6 @@ KphSetInformationProcess(
     _In_ ULONG ProcessInformationLength
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenThread(
@@ -198,7 +176,6 @@ KphOpenThread(
     _In_ PCLIENT_ID ClientId
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenThreadProcess(
@@ -207,7 +184,6 @@ KphOpenThreadProcess(
     _Out_ PHANDLE ProcessHandle
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphTerminateThread(
@@ -215,7 +191,6 @@ KphTerminateThread(
     _In_ NTSTATUS ExitStatus
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphTerminateThreadUnsafe(
@@ -223,7 +198,6 @@ KphTerminateThreadUnsafe(
     _In_ NTSTATUS ExitStatus
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphGetContextThread(
@@ -231,7 +205,6 @@ KphGetContextThread(
     _Inout_ PCONTEXT ThreadContext
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetContextThread(
@@ -239,7 +212,6 @@ KphSetContextThread(
     _In_ PCONTEXT ThreadContext
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphCaptureStackBackTraceThread(
@@ -251,7 +223,6 @@ KphCaptureStackBackTraceThread(
     _Out_opt_ PULONG BackTraceHash
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphQueryInformationThread(
@@ -262,7 +233,6 @@ KphQueryInformationThread(
     _Out_opt_ PULONG ReturnLength
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetInformationThread(
@@ -272,7 +242,6 @@ KphSetInformationThread(
     _In_ ULONG ThreadInformationLength
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphEnumerateProcessHandles(
@@ -282,7 +251,13 @@ KphEnumerateProcessHandles(
     _Out_opt_ PULONG ReturnLength
     );
 
-PHLIBAPI
+NTSTATUS
+NTAPI
+KphEnumerateProcessHandles2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKPH_PROCESS_HANDLE_INFORMATION *Handles
+    );
+
 NTSTATUS
 NTAPI
 KphQueryInformationObject(
@@ -294,7 +269,6 @@ KphQueryInformationObject(
     _Out_opt_ PULONG ReturnLength
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetInformationObject(
@@ -305,7 +279,6 @@ KphSetInformationObject(
     _In_ ULONG ObjectInformationLength
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphDuplicateObject(
@@ -318,7 +291,6 @@ KphDuplicateObject(
     _In_ ULONG Options
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphOpenDriver(
@@ -326,7 +298,6 @@ KphOpenDriver(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphQueryInformationDriver(
@@ -339,7 +310,9 @@ KphQueryInformationDriver(
 
 // kphdata
 
-NTSTATUS KphInitializeDynamicPackage(
+NTSTATUS
+NTAPI
+KphInitializeDynamicPackage(
     _Out_ PKPH_DYN_PACKAGE Package
     );
 

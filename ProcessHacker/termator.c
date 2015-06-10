@@ -23,6 +23,23 @@
 #include <phapp.h>
 #include <kphuser.h>
 
+typedef NTSTATUS (NTAPI *_NtGetNextProcess)(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE NewProcessHandle
+    );
+
+typedef NTSTATUS (NTAPI *_NtGetNextThread)(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE NewThreadHandle
+    );
+
 #define CROSS_INDEX 0
 #define TICK_INDEX 1
 
@@ -285,13 +302,16 @@ static NTSTATUS NTAPI TerminatorTP1a(
     )
 {
     NTSTATUS status;
+    _NtGetNextProcess ntGetNextProcess;
     HANDLE processHandle = NtCurrentProcess();
     ULONG i;
 
-    if (!NtGetNextProcess_I)
+    ntGetNextProcess = PhGetModuleProcAddress(L"ntdll.dll", "NtGetNextProcess");
+
+    if (!ntGetNextProcess)
         return STATUS_NOT_SUPPORTED;
 
-    if (!NT_SUCCESS(status = NtGetNextProcess_I(
+    if (!NT_SUCCESS(status = ntGetNextProcess(
         NtCurrentProcess(),
         ProcessQueryAccess | PROCESS_TERMINATE,
         0,
@@ -314,7 +334,7 @@ static NTSTATUS NTAPI TerminatorTP1a(
             }
         }
 
-        if (NT_SUCCESS(status = NtGetNextProcess_I(
+        if (NT_SUCCESS(status = ntGetNextProcess(
             processHandle,
             ProcessQueryAccess | PROCESS_TERMINATE,
             0,
@@ -340,11 +360,14 @@ static NTSTATUS NTAPI TerminatorTT1a(
     )
 {
     NTSTATUS status;
+    _NtGetNextThread ntGetNextThread;
     HANDLE processHandle;
     HANDLE threadHandle;
     ULONG i;
 
-    if (!NtGetNextThread_I)
+    ntGetNextThread = PhGetModuleProcAddress(L"ntdll.dll", "NtGetNextThread");
+
+    if (!ntGetNextThread)
         return STATUS_NOT_SUPPORTED;
 
     if (NT_SUCCESS(status = PhOpenProcess(
@@ -353,7 +376,7 @@ static NTSTATUS NTAPI TerminatorTT1a(
         ProcessId
         )))
     {
-        if (!NT_SUCCESS(status = NtGetNextThread_I(
+        if (!NT_SUCCESS(status = ntGetNextThread(
             processHandle,
             NULL,
             THREAD_TERMINATE,
@@ -372,7 +395,7 @@ static NTSTATUS NTAPI TerminatorTT1a(
 
             PhTerminateThread(threadHandle, STATUS_SUCCESS);
 
-            if (NT_SUCCESS(NtGetNextThread_I(
+            if (NT_SUCCESS(ntGetNextThread(
                 processHandle,
                 threadHandle,
                 THREAD_TERMINATE,

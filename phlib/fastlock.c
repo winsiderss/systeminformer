@@ -52,18 +52,6 @@
     (PH_LOCK_EXCLUSIVE_WAKING | \
     (PH_LOCK_EXCLUSIVE_WAITERS_MASK << PH_LOCK_EXCLUSIVE_WAITERS_SHIFT))
 
-static ULONG PhFastLockSpinCount = 2000;
-
-VOID PhFastLockInitialization(
-    VOID
-    )
-{
-    if ((ULONG)PhSystemBasicInformation.NumberOfProcessors > 1)
-        PhFastLockSpinCount = 4000;
-    else
-        PhFastLockSpinCount = 0;
-}
-
 VOID PhInitializeFastLock(
     _Out_ PPH_FAST_LOCK FastLock
     )
@@ -111,12 +99,25 @@ FORCEINLINE VOID PhpEnsureEventCreated(
     }
 }
 
+FORCEINLINE ULONG PhpGetSpinCount(
+    VOID
+    )
+{
+    if ((ULONG)PhSystemBasicInformation.NumberOfProcessors > 1)
+        return 4000;
+    else
+        return 0;
+}
+
 _May_raise_ VOID FASTCALL PhfAcquireFastLockExclusive(
     _Inout_ PPH_FAST_LOCK FastLock
     )
 {
     ULONG value;
     ULONG i = 0;
+    ULONG spinCount;
+
+    spinCount = PhpGetSpinCount();
 
     while (TRUE)
     {
@@ -131,7 +132,7 @@ _May_raise_ VOID FASTCALL PhfAcquireFastLockExclusive(
                 ) == value)
                 break;
         }
-        else if (i >= PhFastLockSpinCount)
+        else if (i >= spinCount)
         {
             PhpEnsureEventCreated(&FastLock->ExclusiveWakeEvent);
 
@@ -172,6 +173,9 @@ _May_raise_ VOID FASTCALL PhfAcquireFastLockShared(
 {
     ULONG value;
     ULONG i = 0;
+    ULONG spinCount;
+
+    spinCount = PhpGetSpinCount();
 
     while (TRUE)
     {
@@ -203,7 +207,7 @@ _May_raise_ VOID FASTCALL PhfAcquireFastLockShared(
                 ) == value)
                 break;
         }
-        else if (i >= PhFastLockSpinCount)
+        else if (i >= spinCount)
         {
             PhpEnsureEventCreated(&FastLock->SharedWakeEvent);
 

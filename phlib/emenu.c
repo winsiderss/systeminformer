@@ -708,7 +708,7 @@ VOID PhLoadResourceEMenuItem(
  * \param Menu A menu.
  * \param WindowHandle The window that owns the popup menu.
  * \param Flags A combination of the following:
- * \li \c PH_EMENU_SHOW_NONOTIFY Notifications are not sent to the window
+ * \li \c PH_EMENU_SHOW_SEND_COMMAND A WM_COMMAND message is sent to the window
  * when the user clicks on a menu item.
  * \li \c PH_EMENU_SHOW_LEFTRIGHT The user can select menu items with both
  * the left and right mouse buttons.
@@ -734,12 +734,9 @@ PPH_EMENU_ITEM PhShowEMenu(
     HMENU popupMenu;
 
     selectedItem = NULL;
-    flags = TPM_RETURNCMD;
+    flags = TPM_RETURNCMD | TPM_NONOTIFY;
 
     // Flags
-
-    if (Flags & PH_EMENU_SHOW_NONOTIFY)
-        flags |= TPM_NONOTIFY;
 
     if (Flags & PH_EMENU_SHOW_LEFTRIGHT)
         flags |= TPM_RIGHTBUTTON;
@@ -785,6 +782,9 @@ PPH_EMENU_ITEM PhShowEMenu(
     }
 
     PhDeleteEMenuData(&data);
+
+    if ((Flags & PH_EMENU_SHOW_SEND_COMMAND) && selectedItem && selectedItem->Id != 0)
+        SendMessage(WindowHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
 
     return selectedItem;
 }

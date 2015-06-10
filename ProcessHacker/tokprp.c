@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <secedit.h>
 #include <emenu.h>
 #include <cpysave.h>
 
@@ -323,44 +324,6 @@ PWSTR PhGetElevationTypeString(
     default:
         return L"N/A";
     }
-}
-
-PWSTR PhGetBuiltinCapabilityString(
-    _In_ PSID CapabilitySid
-    )
-{
-    static SID_IDENTIFIER_AUTHORITY appPackageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
-
-    if (memcmp(RtlIdentifierAuthoritySid(CapabilitySid), &appPackageAuthority, sizeof(SID_IDENTIFIER_AUTHORITY)) == 0 &&
-        *RtlSubAuthorityCountSid(CapabilitySid) == SECURITY_BUILTIN_CAPABILITY_RID_COUNT &&
-        *RtlSubAuthoritySid(CapabilitySid, 0) == SECURITY_CAPABILITY_BASE_RID)
-    {
-        switch (*RtlSubAuthoritySid(CapabilitySid, 1))
-        {
-        case SECURITY_CAPABILITY_INTERNET_CLIENT:
-            return L"Internet Client";
-        case SECURITY_CAPABILITY_INTERNET_CLIENT_SERVER:
-            return L"Internet Client Server";
-        case SECURITY_CAPABILITY_PRIVATE_NETWORK_CLIENT_SERVER:
-            return L"Private Network Client Server";
-        case SECURITY_CAPABILITY_PICTURES_LIBRARY:
-            return L"Pictures Library";
-        case SECURITY_CAPABILITY_VIDEOS_LIBRARY:
-            return L"Videos Library";
-        case SECURITY_CAPABILITY_MUSIC_LIBRARY:
-            return L"Music Library";
-        case SECURITY_CAPABILITY_DOCUMENTS_LIBRARY:
-            return L"Documents Library";
-        case SECURITY_CAPABILITY_ENTERPRISE_AUTHENTICATION:
-            return L"Default Windows Credentials";
-        case SECURITY_CAPABILITY_SHARED_USER_CERTIFICATES:
-            return L"Shared User Certificates";
-        case SECURITY_CAPABILITY_REMOVABLE_STORAGE:
-            return L"Removable Storage";
-        }
-    }
-
-    return NULL;
 }
 
 BOOLEAN PhpUpdateTokenGroups(
@@ -846,7 +809,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     selectedItem = PhShowEMenu(
                         menu,
                         hwndDlg,
-                        PH_EMENU_SHOW_NONOTIFY | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         rect.left,
                         rect.bottom
@@ -941,19 +904,13 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                 if (ListView_GetSelectedCount(tokenPageContext->PrivilegesListViewHandle) != 0)
                 {
-                    HMENU menu;
-                    HMENU subMenu;
+                    PPH_EMENU menu;
 
-                    menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PRIVILEGE));
-                    subMenu = GetSubMenu(menu, 0);
-
-                    PhShowContextMenu(
-                        hwndDlg,
-                        tokenPageContext->PrivilegesListViewHandle,
-                        subMenu,
-                        point
-                        );
-                    DestroyMenu(menu);
+                    menu = PhCreateEMenu();
+                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_PRIVILEGE), 0);
+                    PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
+                    PhDestroyEMenu(menu);
                 }
             }
         }
@@ -1389,31 +1346,24 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                     for (i = 0; i < tokenPageContext->Capabilities->GroupCount; i++)
                     {
                         INT lvItemIndex;
-                        PWSTR name;
-                        PPH_STRING sidString;
+                        PPH_STRING name;
                         PPH_STRING attributesString;
 
-                        name = PhGetBuiltinCapabilityString(tokenPageContext->Capabilities->Groups[i].Sid);
-                        sidString = NULL;
+                        name = PhGetSidFullName(tokenPageContext->Capabilities->Groups[i].Sid, TRUE, NULL);
 
                         if (!name)
-                        {
-                            sidString = PhSidToStringSid(tokenPageContext->Capabilities->Groups[i].Sid);
-                            name = PhGetString(sidString);
-                        }
+                            name = PhSidToStringSid(tokenPageContext->Capabilities->Groups[i].Sid);
 
                         if (name)
                         {
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name,
+                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer,
                                 &tokenPageContext->Capabilities->Groups[i]);
                             attributesString = PhGetGroupAttributesString(
                                 tokenPageContext->Capabilities->Groups[i].Attributes);
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, attributesString->Buffer);
 
                             PhDereferenceObject(attributesString);
-
-                            if (sidString)
-                                PhDereferenceObject(sidString);
+                            PhDereferenceObject(name);
                         }
                     }
 

@@ -546,26 +546,20 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 if (numberOfResults != 0)
                 {
                     PPH_EMENU menu;
-                    PPH_EMENU_ITEM item;
 
                     menu = PhCreateEMenu();
                     PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_FINDOBJ), 0);
                     PhSetFlagsEMenuItem(menu, ID_OBJECT_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
                     PhpInitializeFindObjMenu(menu, results, numberOfResults);
-
-                    item = PhShowEMenu(
+                    PhShowEMenu(
                         menu,
-                        PhFindObjectsListViewHandle,
-                        PH_EMENU_SHOW_LEFTRIGHT,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
                         point.y
                         );
-
-                    if (item)
-                        SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
-
                     PhDestroyEMenu(menu);
                 }
 

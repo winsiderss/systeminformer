@@ -151,7 +151,7 @@ VOID PhLoadResourceEMenuItem(
     _In_ ULONG SubMenuIndex
     );
 
-#define PH_EMENU_SHOW_NONOTIFY 0x1
+#define PH_EMENU_SHOW_SEND_COMMAND 0x1
 #define PH_EMENU_SHOW_LEFTRIGHT 0x2
 
 PHLIBAPI

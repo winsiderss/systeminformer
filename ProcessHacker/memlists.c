@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <phsvccl.h>
+#include <emenu.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 
@@ -193,42 +194,40 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                 break;
             case IDC_EMPTY:
                 {
-                    HMENU menu;
-                    HMENU subMenu;
+                    PPH_EMENU menu;
                     RECT buttonRect;
                     POINT point;
-                    UINT selectedItem;
+                    PPH_EMENU_ITEM selectedItem;
                     SYSTEM_MEMORY_LIST_COMMAND command = -1;
 
-                    menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_EMPTYMEMLISTS));
-                    subMenu = GetSubMenu(menu, 0);
+                    menu = PhCreateEMenu();
+                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_EMPTYMEMLISTS), 0);
 
                     GetClientRect(GetDlgItem(hwndDlg, IDC_EMPTY), &buttonRect);
                     point.x = 0;
                     point.y = buttonRect.bottom;
 
                     ClientToScreen(GetDlgItem(hwndDlg, IDC_EMPTY), &point);
-                    selectedItem = PhShowContextMenu2(
-                        hwndDlg,
-                        GetDlgItem(hwndDlg, IDC_EMPTY),
-                        subMenu,
-                        point
-                        );
+                    selectedItem = PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
 
-                    switch (selectedItem)
+                    if (selectedItem)
                     {
-                    case ID_EMPTY_EMPTYWORKINGSETS:
-                        command = MemoryEmptyWorkingSets;
-                        break;
-                    case ID_EMPTY_EMPTYMODIFIEDPAGELIST:
-                        command = MemoryFlushModifiedList;
-                        break;
-                    case ID_EMPTY_EMPTYSTANDBYLIST:
-                        command = MemoryPurgeStandbyList;
-                        break;
-                    case ID_EMPTY_EMPTYPRIORITY0STANDBYLIST:
-                        command = MemoryPurgeLowPriorityStandbyList;
-                        break;
+                        switch (selectedItem->Id)
+                        {
+                        case ID_EMPTY_EMPTYWORKINGSETS:
+                            command = MemoryEmptyWorkingSets;
+                            break;
+                        case ID_EMPTY_EMPTYMODIFIEDPAGELIST:
+                            command = MemoryFlushModifiedList;
+                            break;
+                        case ID_EMPTY_EMPTYSTANDBYLIST:
+                            command = MemoryPurgeStandbyList;
+                            break;
+                        case ID_EMPTY_EMPTYPRIORITY0STANDBYLIST:
+                            command = MemoryPurgeLowPriorityStandbyList;
+                            break;
+                        }
                     }
 
                     if (command != -1)
@@ -268,7 +267,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                         }
                     }
 
-                    DestroyMenu(menu);
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }

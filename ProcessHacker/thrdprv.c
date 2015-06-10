@@ -30,6 +30,7 @@
 #define PH_THRDPRV_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
+#include <symprv.h>
 #include <extmgri.h>
 
 typedef struct _PH_THREAD_QUERY_DATA

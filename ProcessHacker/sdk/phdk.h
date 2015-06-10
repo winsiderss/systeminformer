@@ -9,6 +9,7 @@
 #include "phgui.h"
 
 #include "circbuf.h"
+#include "dltmgr.h"
 #include "phnet.h"
 #include "providers.h"
 

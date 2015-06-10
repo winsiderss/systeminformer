@@ -68,6 +68,7 @@ for %%a in (
     phsync.h
     queuedlock.h
     ref.h
+    secedit.h
     symprv.h
     templ.h
     treenew.h

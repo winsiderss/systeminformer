@@ -187,6 +187,14 @@ typedef enum _PH_PLUGIN_THREAD_STACK_CONTROL_TYPE
     PluginThreadStackMaximum
 } PH_PLUGIN_THREAD_STACK_CONTROL_TYPE;
 
+typedef struct _PH_SYMBOL_PROVIDER *PPH_SYMBOL_PROVIDER;
+typedef struct _PH_THREAD_STACK_FRAME *PPH_THREAD_STACK_FRAME;
+
+typedef BOOLEAN (NTAPI *PPH_PLUGIN_WALK_THREAD_STACK_CALLBACK)(
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _In_opt_ PVOID Context
+    );
+
 typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
 {
     PH_PLUGIN_THREAD_STACK_CONTROL_TYPE Type;
@@ -219,7 +227,7 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
             HANDLE ProcessHandle;
             PCLIENT_ID ClientId;
             ULONG Flags;
-            PPH_WALK_THREAD_STACK_CALLBACK Callback;
+            PPH_PLUGIN_WALK_THREAD_STACK_CALLBACK Callback;
             PVOID CallbackContext;
         } WalkStack;
     } u;

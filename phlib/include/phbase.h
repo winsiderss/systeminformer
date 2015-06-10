@@ -35,7 +35,6 @@
 #include <ntbasic.h>
 #include <phnt.h>
 #include <phsup.h>
-#include <ntimport.h>
 #include <ref.h>
 #include <fastlock.h>
 #include <queuedlock.h>
@@ -109,10 +108,8 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 
 // Imports
 
-/** Needed to use supplied dynamically imported functions from ntdll.dll. */
-#define PHLIB_INIT_MODULE_NTIMPORTS 0x1
-/** Needed to use fast locks. */
-#define PHLIB_INIT_MODULE_FAST_LOCK 0x2
+#define PHLIB_INIT_MODULE_RESERVED1 0x1
+#define PHLIB_INIT_MODULE_RESERVED2 0x2
 /** Needed to use work queues. */
 #define PHLIB_INIT_MODULE_WORK_QUEUE 0x4
 /** Needed to use handle tables. */
@@ -121,8 +118,7 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define PHLIB_INIT_MODULE_IO_SUPPORT 0x10
 /** Needed to use symbol providers. */
 #define PHLIB_INIT_MODULE_SYMBOL_PROVIDER 0x20
-/** Needed to use the handle information module. */
-#define PHLIB_INIT_MODULE_HANDLE_INFO 0x40
+#define PHLIB_INIT_MODULE_RESERVED3 0x40
 
 // Misc.
 /** Retrieves token information (e.g. elevation status). */

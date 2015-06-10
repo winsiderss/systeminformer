@@ -20,7 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _PH_GUISUP_PRIVATE
 #include <phgui.h>
 #include <guisupp.h>
 #include <windowsx.h>
@@ -219,23 +218,6 @@ VOID PhSetListViewItemImageIndex(
     ListView_SetItem(ListViewHandle, &item);
 }
 
-VOID PhSetListViewItemStateImage(
-    _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT StateImage
-    )
-{
-    LVITEM item;
-
-    item.mask = LVIF_STATE;
-    item.iItem = Index;
-    item.iSubItem = 0;
-    item.state = INDEXTOSTATEIMAGEMASK(StateImage);
-    item.stateMask = LVIS_STATEIMAGEMASK;
-
-    ListView_SetItem(ListViewHandle, &item);
-}
-
 VOID PhSetListViewSubItem(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
@@ -350,29 +332,6 @@ PPH_STRING PhSaveListViewColumnSettings(
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
     return PhFinalStringBuilderString(&stringBuilder);
-}
-
-HWND PhCreateTabControl(
-    _In_ HWND ParentHandle
-    )
-{
-    HWND tabControlHandle;
-
-    tabControlHandle = CreateWindow(
-        WC_TABCONTROL,
-        NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
-        0,
-        0,
-        3,
-        3,
-        ParentHandle,
-        NULL,
-        PhLibImageBase,
-        NULL
-        );
-
-    return tabControlHandle;
 }
 
 INT PhAddTabControlTab(
@@ -563,112 +522,6 @@ PPH_STRING PhGetListBoxString(
     {
         PhDereferenceObject(string);
         return NULL;
-    }
-}
-
-VOID PhShowContextMenu(
-    _In_ HWND hwnd,
-    _In_ HWND subHwnd,
-    _In_ HMENU menu,
-    _In_ POINT point
-    )
-{
-    TrackPopupMenu(
-        menu,
-        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
-        point.x,
-        point.y,
-        0,
-        hwnd,
-        NULL
-        );
-}
-
-UINT PhShowContextMenu2(
-    _In_ HWND hwnd,
-    _In_ HWND subHwnd,
-    _In_ HMENU menu,
-    _In_ POINT point
-    )
-{
-    return (UINT)TrackPopupMenu(
-        menu,
-        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-        point.x,
-        point.y,
-        0,
-        hwnd,
-        NULL
-        );
-}
-
-VOID PhSetMenuItemBitmap(
-    _In_ HMENU Menu,
-    _In_ ULONG Item,
-    _In_ BOOLEAN ByPosition,
-    _In_ HBITMAP Bitmap
-    )
-{
-    MENUITEMINFO info = { sizeof(info) };
-
-    info.fMask = MIIM_BITMAP;
-    info.hbmpItem = Bitmap;
-
-    SetMenuItemInfo(Menu, Item, ByPosition, &info);
-}
-
-VOID PhSetRadioCheckMenuItem(
-    _In_ HMENU Menu,
-    _In_ ULONG Id,
-    _In_ BOOLEAN RadioCheck
-    )
-{
-    MENUITEMINFO info = { sizeof(info) };
-
-    info.fMask = MIIM_FTYPE;
-    GetMenuItemInfo(Menu, Id, FALSE, &info);
-
-    if (RadioCheck)
-        info.fType |= MFT_RADIOCHECK;
-    else
-        info.fType &= ~MFT_RADIOCHECK;
-
-    SetMenuItemInfo(Menu, Id, FALSE, &info);
-}
-
-VOID PhEnableMenuItem(
-    _In_ HMENU Menu,
-    _In_ ULONG Id,
-    _In_ BOOLEAN Enable
-    )
-{
-    EnableMenuItem(Menu, Id, Enable ? MF_ENABLED : (MF_DISABLED | MF_GRAYED));
-}
-
-VOID PhEnableAllMenuItems(
-    _In_ HMENU Menu,
-    _In_ BOOLEAN Enable
-    )
-{
-    ULONG i;
-    ULONG count = GetMenuItemCount(Menu);
-
-    if (count == -1)
-        return;
-
-    if (Enable)
-    {
-        for (i = 0; i < count; i++)
-        {
-            EnableMenuItem(Menu, i, MF_ENABLED | MF_BYPOSITION);
-        }
-    }
-    else
-    {
-        for (i = 0; i < count; i++)
-        {
-            EnableMenuItem(Menu, i, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
-        }
     }
 }
 
@@ -947,23 +800,14 @@ VOID PhSetClipboardString(
     _In_ PPH_STRINGREF String
     )
 {
-    PhSetClipboardStringEx(hWnd, String->Buffer, String->Length);
-}
-
-VOID PhSetClipboardStringEx(
-    _In_ HWND hWnd,
-    _In_ PWSTR Buffer,
-    _In_ SIZE_T Length
-    )
-{
     HANDLE data;
     PVOID memory;
 
-    data = GlobalAlloc(GMEM_MOVEABLE, Length + 2);
+    data = GlobalAlloc(GMEM_MOVEABLE, String->Length + sizeof(WCHAR));
     memory = GlobalLock(data);
 
-    memcpy(memory, Buffer, Length);
-    *(PWCHAR)((PCHAR)memory + Length) = 0;
+    memcpy(memory, String->Buffer, String->Length);
+    *(PWCHAR)((PCHAR)memory + String->Length) = 0;
 
     GlobalUnlock(memory);
 

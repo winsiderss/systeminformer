@@ -89,9 +89,6 @@
     <ClCompile Include="native.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ntimport.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -138,6 +135,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="kphdata.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="apiimport.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -206,9 +206,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ntgdi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntimport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ntioapi.h">
@@ -362,6 +359,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\verify.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\secedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\symprvp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\apiimport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

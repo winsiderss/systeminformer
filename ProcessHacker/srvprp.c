@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <secedit.h>
 #include <phplug.h>
 #include <phsvccl.h>
 #include <windowsx.h>

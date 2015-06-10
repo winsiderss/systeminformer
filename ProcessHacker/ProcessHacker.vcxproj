@@ -206,6 +206,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\phlib\apiimport.c" />
     <ClCompile Include="..\phlib\basesup.c" />
     <ClCompile Include="..\phlib\basesupa.c" />
     <ClCompile Include="..\phlib\circbuf.c" />
@@ -235,7 +236,6 @@
     <ClCompile Include="..\phlib\maplib.c" />
     <ClCompile Include="..\phlib\md5.c" />
     <ClCompile Include="..\phlib\native.c" />
-    <ClCompile Include="..\phlib\ntimport.c" />
     <ClCompile Include="..\phlib\provider.c" />
     <ClCompile Include="..\phlib\queuedlock.c" />
     <ClCompile Include="..\phlib\ref.c" />

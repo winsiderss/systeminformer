@@ -28,6 +28,7 @@
 
 #include <phapp.h>
 #include <phintrnl.h>
+#include <symprv.h>
 #include <refp.h>
 
 typedef struct _STRING_TABLE_ENTRY

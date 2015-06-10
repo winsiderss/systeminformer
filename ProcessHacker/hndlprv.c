@@ -330,7 +330,7 @@ NTSTATUS PhEnumHandlesGeneric(
         // Enumerate handles using KProcessHacker. Unlike with NtQuerySystemInformation,
         // this only enumerates handles for a single process and saves a lot of processing.
 
-        if (NT_SUCCESS(status = PhEnumProcessHandles(ProcessHandle, &handles)))
+        if (NT_SUCCESS(status = KphEnumerateProcessHandles2(ProcessHandle, &handles)))
         {
             convertedHandles = PhAllocate(
                 FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
