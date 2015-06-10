@@ -1019,6 +1019,14 @@ BOOLEAN PhMipCpuSectionCallback(
 {
     switch (Message)
     {
+    case MiniInfoTick:
+        {
+            if (CpuDialog)
+            {
+                PhMipTickCpuDialog();
+            }
+        }
+        break;
     case MiniInfoCreateDialog:
         {
             PPH_MINIINFO_CREATE_DIALOG createDialog = Parameter1;
@@ -1031,6 +1039,13 @@ BOOLEAN PhMipCpuSectionCallback(
     }
 
     return FALSE;
+}
+
+VOID PhMipTickCpuDialog(
+    VOID
+    )
+{
+    SetDlgItemText(CpuDialog, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
 }
 
 INT_PTR CALLBACK PhMipCpuDialogProc(
@@ -1051,6 +1066,8 @@ INT_PTR CALLBACK PhMipCpuDialogProc(
             PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_UTILIZATION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_UTILIZATION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
+
+            PhMipTickCpuDialog();
         }
         break;
     case WM_DESTROY:

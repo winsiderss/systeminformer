@@ -202,6 +202,10 @@ BOOLEAN PhMipCpuSectionCallback(
     _In_opt_ PVOID Parameter2
     );
 
+VOID PhMipTickCpuDialog(
+    VOID
+    );
+
 INT_PTR CALLBACK PhMipCpuDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
