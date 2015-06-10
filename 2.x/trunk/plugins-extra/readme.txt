@@ -1,1 +1,0 @@
-These are small plugins that are not included with Process Hacker by default.
