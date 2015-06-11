@@ -170,6 +170,15 @@ VOID PhMipChangeSection(
     _In_ PPH_MINIINFO_SECTION NewSection
     );
 
+VOID PhMipSetSectionText(
+    _In_ struct _PH_MINIINFO_SECTION *Section,
+    _In_opt_ PPH_STRING Text
+    );
+
+VOID PhMipUpdateSectionText(
+    _In_ PPH_MINIINFO_SECTION Section
+    );
+
 VOID PhMipLayout(
     VOID
     );
