@@ -154,12 +154,6 @@ static VOID FreeUpdateContext(
     PhClearReference(&Context->SetupFilePath);
     PhClearReference(&Context->SetupFileDownloadUrl);
 
-    if (Context->IconHandle)
-    {
-        DestroyIcon(Context->IconHandle);
-        Context->IconHandle = NULL;
-    }
-
     if (Context->FontHandle)
     {
         DeleteObject(Context->FontHandle);
@@ -170,6 +164,12 @@ static VOID FreeUpdateContext(
     {
         DeleteObject(Context->IconBitmap);
         Context->IconBitmap = NULL;
+    }
+
+    if (Context->IconHandle)
+    {
+        DestroyIcon(Context->IconHandle);
+        Context->IconHandle = NULL;
     }
 
     PhFree(Context);
@@ -823,7 +823,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 IMAGE_ICON,
                 32,
                 32,
-                LR_SHARED
+                0
                 );
             
             context->IconBitmap = PhIconToBitmap(context->IconHandle, 32, 32);
