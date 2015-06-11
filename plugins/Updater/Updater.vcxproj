@@ -75,9 +75,6 @@
     <None Include="CHANGELOG.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\sf_logo.png" />
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="Updater.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

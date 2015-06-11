@@ -37,11 +37,6 @@
     <None Include="CHANGELOG.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\sf_logo.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="Updater.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
