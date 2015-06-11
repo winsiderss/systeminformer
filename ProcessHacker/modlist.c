@@ -660,7 +660,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_VERIFIEDSIGNER:
-                getCellText->Text = PhGetStringRefOrEmpty(moduleItem->VerifySignerName);
+                getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
                 break;
             case PHMOTLC_ASLR:
                 if (WindowsVersion >= WINDOWS_VISTA)
