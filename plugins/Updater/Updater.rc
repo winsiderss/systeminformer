@@ -102,7 +102,7 @@ BEGIN
     CONTROL         "",IDC_STATUS,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,7,72,135,8,WS_EX_TRANSPARENT
     PUSHBUTTON      "Start",IDC_DOWNLOAD,149,70,50,14
     DEFPUSHBUTTON   "Close",IDOK,203,70,50,14
-    CONTROL         "",IDC_UPDATEICON,"Static",SS_BITMAP | SS_CENTERIMAGE,218,3,38,38,WS_EX_TRANSPARENT
+    CONTROL         "",IDC_UPDATEICON,"Static",SS_BITMAP | SS_CENTERIMAGE,224,0,32,32,WS_EX_TRANSPARENT
 END
 
 IDD_OPTIONS DIALOGEX 0, 0, 215, 54
@@ -143,13 +143,6 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// PNG
-//
-
-IDB_SF_PNG              PNG                     "resources\\sf_logo.png"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

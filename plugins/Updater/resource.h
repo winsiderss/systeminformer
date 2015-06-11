@@ -3,7 +3,6 @@
 // Used by Updater.rc
 //
 #define IDD_UPDATE                      101
-#define IDB_SF_PNG                      102
 #define IDD_OPTIONS                     103
 #define IDB_PNG1                        104
 #define IDC_MESSAGE                     1001
