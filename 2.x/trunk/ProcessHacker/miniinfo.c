@@ -55,10 +55,6 @@ static PPH_LIST SectionList;
 static PH_MINIINFO_PARAMETERS CurrentParameters;
 static PPH_MINIINFO_SECTION CurrentSection;
 
-static PPH_MINIINFO_SECTION CpuSection;
-static HWND CpuDialog;
-static PH_LAYOUT_MANAGER CpuLayoutManager;
-
 VOID PhPinMiniInformation(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
     _In_ LONG PinCount,
@@ -453,9 +449,9 @@ VOID PhMipOnShowWindow(
 
     SendMessage(GetDlgItem(PhMipWindow, IDC_SECTION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
 
-    CpuSection = PhMipCreateInternalSection(L"CPU", 0, PhMipCpuSectionCallback);
-    PhMipCreateInternalSection(L"Memory", 0, PhMipCpuSectionCallback);
-    PhMipCreateInternalSection(L"I/O", 0, PhMipCpuSectionCallback);
+    PhMipCreateInternalListSection(L"CPU", 0, PhMipCpuListSectionCallback, NULL);
+    PhMipCreateInternalListSection(L"Memory", 0, PhMipCpuListSectionCallback, NULL);
+    PhMipCreateInternalListSection(L"I/O", 0, PhMipCpuListSectionCallback, NULL);
 
     PhMipChangeSection(SectionList->Items[0]);
 }
@@ -982,22 +978,68 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     return CallWindowProc(SectionControlOldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
-BOOLEAN PhMipCpuSectionCallback(
+PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_MINIINFO_LIST_SECTION Template
+    )
+{
+    PPH_MINIINFO_LIST_SECTION listSection;
+    PH_MINIINFO_SECTION section;
+
+    listSection = PhAllocate(sizeof(PH_MINIINFO_LIST_SECTION));
+    memset(listSection, 0, sizeof(PH_MINIINFO_LIST_SECTION));
+
+    listSection->Context = Template->Context;
+    listSection->Callback = Template->Callback;
+    listSection->CompareFunction = Template->CompareFunction;
+
+    memset(&section, 0, sizeof(PH_MINIINFO_SECTION));
+    PhInitializeStringRef(&section.Name, Name);
+    section.Flags = Flags;
+    section.Callback = PhMipListSectionCallback;
+    section.Context = listSection;
+    listSection->Section = PhMipCreateSection(&section);
+
+    return listSection;
+}
+
+PPH_MINIINFO_LIST_SECTION PhMipCreateInternalListSection(
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_MINIINFO_LIST_SECTION_CALLBACK Callback,
+    _In_opt_ PC_COMPARE_FUNCTION CompareFunction
+    )
+{
+    PH_MINIINFO_LIST_SECTION listSection;
+
+    memset(&listSection, 0, sizeof(PH_MINIINFO_LIST_SECTION));
+    listSection.Callback = Callback;
+    listSection.CompareFunction = CompareFunction;
+
+    return PhMipCreateListSection(Name, Flags, &listSection);
+}
+
+BOOLEAN PhMipListSectionCallback(
     _In_ PPH_MINIINFO_SECTION Section,
     _In_ PH_MINIINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     )
 {
+    PPH_MINIINFO_LIST_SECTION listSection = Section->Context;
+
     switch (Message)
     {
+    case MiniInfoCreate:
+        listSection->Callback(listSection, MiListSectionCreate, NULL, NULL);
+        break;
+    case MiniInfoDestroy:
+        listSection->Callback(listSection, MiListSectionDestroy, NULL, NULL);
+        PhFree(listSection);
+        break;
     case MiniInfoTick:
-        {
-            if (CpuDialog)
-            {
-                PhMipTickCpuDialog();
-            }
-        }
+        PhMipTickListSection(listSection);
         break;
     case MiniInfoCreateDialog:
         {
@@ -1005,7 +1047,8 @@ BOOLEAN PhMipCpuSectionCallback(
 
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_MINIINFO_LIST);
-            createDialog->DialogProc = PhMipCpuDialogProc;
+            createDialog->DialogProc = PhMipListSectionDialogProc;
+            createDialog->Parameter = listSection;
         }
         return TRUE;
     }
@@ -1013,43 +1056,67 @@ BOOLEAN PhMipCpuSectionCallback(
     return FALSE;
 }
 
-VOID PhMipTickCpuDialog(
-    VOID
-    )
-{
-    CurrentParameters.SetSectionText(
-        CpuSection,
-        PhaFormatString(L"\t%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)
-        );
-}
-
-INT_PTR CALLBACK PhMipCpuDialogProc(
+INT_PTR CALLBACK PhMipListSectionDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
+    PPH_MINIINFO_LIST_SECTION listSection = (PPH_MINIINFO_LIST_SECTION)GetProp(hwndDlg, PhMakeContextAtom());
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            CpuDialog = hwndDlg;
-            PhInitializeLayoutManager(&CpuLayoutManager, hwndDlg);
-            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            listSection = (PPH_MINIINFO_LIST_SECTION)lParam;
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)listSection);
 
-            PhMipTickCpuDialog();
+            listSection->DialogHandle = hwndDlg;
+            listSection->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhInitializeLayoutManager(&listSection->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&listSection->LayoutManager, listSection->TreeNewHandle, NULL, PH_ANCHOR_ALL);
+
+            listSection->Callback(listSection, MiListSectionDialogCreated, hwndDlg, NULL);
+            PhMipTickListSection(listSection);
         }
         break;
     case WM_DESTROY:
         {
-            PhDeleteLayoutManager(&CpuLayoutManager);
+            PhDeleteLayoutManager(&listSection->LayoutManager);
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_SIZE:
         {
-            PhLayoutManagerLayout(&CpuLayoutManager);
+            PhLayoutManagerLayout(&listSection->LayoutManager);
         }
+        break;
+    }
+
+    return FALSE;
+}
+
+VOID PhMipTickListSection(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection
+    )
+{
+    ListSection->Callback(ListSection, MiListSectionTick, NULL, NULL);
+}
+
+BOOLEAN PhMipCpuListSectionCallback(
+    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    )
+{
+    switch (Message)
+    {
+    case MiListSectionTick:
+        ListSection->Section->Parameters->SetSectionText(ListSection->Section,
+            PhaFormatString(L"\t%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100));
         break;
     }
 

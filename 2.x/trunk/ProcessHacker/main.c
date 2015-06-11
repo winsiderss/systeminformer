@@ -65,19 +65,15 @@ PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 PHAPPAPI HFONT PhApplicationFont;
 PPH_STRING PhCurrentUserName = NULL;
-HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
 PPH_STRING PhLocalSystemName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
-PPH_STRING PhProcDbFileName = NULL;
 PPH_STRING PhSettingsFileName = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_STARTUP_PARAMETERS PhStartupParameters;
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
-
-COLORREF PhSysWindowColor;
 
 static PPH_LIST DialogList = NULL;
 static PPH_LIST FilterList = NULL;

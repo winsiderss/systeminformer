@@ -369,15 +369,23 @@ ULONG PhGetWindowTextEx(
 
     if (Flags & PH_GET_WINDOW_TEXT_INTERNAL)
     {
-        // TODO: Resize the buffer until we get the entire thing.
-        string = PhCreateStringEx(NULL, 256 * 2);
-        length = InternalGetWindowText(hwnd, string->Buffer, (ULONG)string->Length / 2 + 1);
-        string->Length = length * 2;
-
-        if (Text)
-            *Text = string;
+        if (Flags & PH_GET_WINDOW_TEXT_LENGTH_ONLY)
+        {
+            WCHAR buffer[32];
+            length = InternalGetWindowText(hwnd, buffer, sizeof(buffer) / sizeof(WCHAR));
+        }
         else
-            PhDereferenceObject(string);
+        {
+            // TODO: Resize the buffer until we get the entire thing.
+            string = PhCreateStringEx(NULL, 256 * sizeof(WCHAR));
+            length = InternalGetWindowText(hwnd, string->Buffer, (ULONG)string->Length / sizeof(WCHAR) + 1);
+            string->Length = length * sizeof(WCHAR);
+
+            if (Text)
+                *Text = string;
+            else
+                PhDereferenceObject(string);
+        }
 
         return length;
     }
@@ -385,7 +393,7 @@ ULONG PhGetWindowTextEx(
     {
         length = GetWindowTextLength(hwnd);
 
-        if (length == 0)
+        if (length == 0 || (Flags & PH_GET_WINDOW_TEXT_LENGTH_ONLY))
         {
             if (Text)
                 *Text = PhReferenceEmptyString();
@@ -393,9 +401,9 @@ ULONG PhGetWindowTextEx(
             return length;
         }
 
-        string = PhCreateStringEx(NULL, length * 2);
+        string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
-        if (GetWindowText(hwnd, string->Buffer, (ULONG)string->Length / 2 + 1))
+        if (GetWindowText(hwnd, string->Buffer, (ULONG)string->Length / sizeof(WCHAR) + 1))
         {
             if (Text)
                 *Text = string;

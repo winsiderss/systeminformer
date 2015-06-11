@@ -202,24 +202,46 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     _In_ LPARAM lParam
     );
 
-// CPU section
+// List-based section
 
-BOOLEAN PhMipCpuSectionCallback(
+PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_MINIINFO_LIST_SECTION Template
+    );
+
+PPH_MINIINFO_LIST_SECTION PhMipCreateInternalListSection(
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_MINIINFO_LIST_SECTION_CALLBACK Callback,
+    _In_opt_ PC_COMPARE_FUNCTION CompareFunction
+    );
+
+BOOLEAN PhMipListSectionCallback(
     _In_ PPH_MINIINFO_SECTION Section,
     _In_ PH_MINIINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     );
 
-VOID PhMipTickCpuDialog(
-    VOID
-    );
-
-INT_PTR CALLBACK PhMipCpuDialogProc(
+INT_PTR CALLBACK PhMipListSectionDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+VOID PhMipTickListSection(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection
+    );
+
+// CPU section
+
+BOOLEAN PhMipCpuListSectionCallback(
+    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 #endif
