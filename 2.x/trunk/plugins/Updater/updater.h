@@ -24,7 +24,6 @@
 #define __UPDATER_H__
 
 #pragma comment(lib, "Winhttp.lib")
-#pragma comment(lib, "WindowsCodecs.lib")
 
 #define CINTERFACE
 #define COBJMACROS
@@ -76,7 +75,7 @@ typedef struct _PH_UPDATER_CONTEXT
 {
     BOOLEAN HaveData;
     PH_UPDATER_STATE UpdaterState;
-    HBITMAP SourceforgeBitmap;
+    HBITMAP IconBitmap;
     HICON IconHandle;
     HFONT FontHandle;
     HWND StatusHandle;
