@@ -80,6 +80,7 @@ extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_INTEGER_PAIR PhSmallIconSize;
+extern PH_INTEGER_PAIR PhLargeIconSize;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
 extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
@@ -1030,14 +1031,14 @@ VOID PhShowSystemInformationDialog(
 
 typedef struct _PH_PROCESS_GROUP
 {
-    PPH_PROCESS_NODE Representative;
-    PPH_LIST Processes;
+    PPH_PROCESS_ITEM Representative; // An element of Processes (no extra reference added)
+    PPH_LIST Processes; // List of PPH_PROCESS_ITEM
 } PH_PROCESS_GROUP, *PPH_PROCESS_GROUP;
 
 #define PH_GROUP_PROCESSES_DONT_GROUP 0x1
 
 PPH_LIST PhCreateProcessGroupList(
-    _In_opt_ PC_COMPARE_FUNCTION CompareFunction,
+    _In_opt_ PC_COMPARE_FUNCTION CompareFunction, // Compare PPH_PROCESS_NODE objects
     _In_opt_ PVOID Context,
     _In_ ULONG MaximumGroups,
     _In_ ULONG Flags
@@ -1074,7 +1075,8 @@ typedef enum _PH_MINIINFO_SECTION_MESSAGE
     MiniInfoCreate,
     MiniInfoDestroy,
     MiniInfoTick,
-    MiniInfoViewChanging, // PPH_MINIINFO_SECTION Parameter1
+    MiniInfoSectionChanging, // PPH_MINIINFO_SECTION Parameter1
+    MiniInfoShowing, // BOOLEAN Parameter1 (Showing)
     MiniInfoCreateDialog, // PPH_MINIINFO_CREATE_DIALOG Parameter1
     MaxMiniInfoMessage
 } PH_MINIINFO_SECTION_MESSAGE;
@@ -1126,7 +1128,9 @@ typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
     MiListSectionCreate,
     MiListSectionDestroy,
     MiListSectionTick,
-    MiListSectionDialogCreated,
+    MiListSectionShowing, // BOOLEAN Parameter1 (Showing)
+    MiListSectionDialogCreated, // HWND Parameter1
+    MiListSectionGetUsageText, // PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT Parameter1
     MaxMiListSectionMessage
 } PH_MINIINFO_LIST_SECTION_MESSAGE;
 
@@ -1136,6 +1140,12 @@ typedef BOOLEAN (NTAPI *PPH_MINIINFO_LIST_SECTION_CALLBACK)(
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     );
+
+typedef struct _PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT
+{
+    PPH_PROCESS_GROUP ProcessGroup;
+    PPH_STRING Text;
+} PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT, *PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT;
 
 typedef struct _PH_MINIINFO_LIST_SECTION
 {
@@ -1151,6 +1161,11 @@ typedef struct _PH_MINIINFO_LIST_SECTION
     // Private
 
     PH_LAYOUT_MANAGER LayoutManager;
+    ULONG RunCount;
+    PPH_LIST ProcessGroupList;
+    PPH_LIST NodeList;
+    HANDLE SelectedRepresentativeProcessId;
+    LARGE_INTEGER SelectedRepresentativeCreateTime;
 } PH_MINIINFO_LIST_SECTION, *PPH_MINIINFO_LIST_SECTION;
 
 typedef enum _PH_MINIINFO_PIN_TYPE

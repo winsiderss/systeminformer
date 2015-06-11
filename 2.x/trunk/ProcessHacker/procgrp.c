@@ -43,8 +43,13 @@ PPH_LIST PhpCreateProcessDataList(
         PPH_PROCESS_NODE process = Processes->Items[i];
         PPHP_PROCESS_DATA processData;
 
+        if (PH_IS_FAKE_PROCESS_ID(process->ProcessId) || process->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+            continue;
+
         processData = PhAllocate(sizeof(PHP_PROCESS_DATA));
+        memset(processData, 0, sizeof(PHP_PROCESS_DATA));
         processData->Process = process;
+        PhAddItemList(processDataList, processData);
     }
 
     return processDataList;
@@ -179,7 +184,8 @@ VOID PhpAddGroupMember(
     _Inout_ PPH_LIST List
     )
 {
-    PhAddItemList(List, ProcessData->Process);
+    PhReferenceObject(ProcessData->Process->ProcessItem);
+    PhAddItemList(List, ProcessData->Process->ProcessItem);
     RemoveEntryList(&ProcessData->ListEntry);
 }
 
@@ -225,7 +231,6 @@ PPH_LIST PhCreateProcessGroupList(
     PPH_HASHTABLE processDataHashtable; // Process ID to process data hashtable
     QUERY_WINDOWS_CONTEXT queryWindowsContext;
     PPH_LIST processGroupList;
-    PLIST_ENTRY listEntry;
 
     // We group together processes that share a common ancestor and have the same file name, where the ancestor must
     // have a visible window and all other processes in the group do not have a visible window. All processes in the
@@ -246,16 +251,14 @@ PPH_LIST PhCreateProcessGroupList(
     PhEnumChildWindows(NULL, 0x800, PhpQueryWindowsEnumWindowsProc, (LPARAM)&queryWindowsContext);
 
     processGroupList = PhCreateList(10);
-    listEntry = processDataListHead.Flink;
 
-    while (listEntry != &processDataListHead && processGroupList->Count < MaximumGroups)
+    while (processDataListHead.Flink != &processDataListHead && processGroupList->Count < MaximumGroups)
     {
-        PPHP_PROCESS_DATA processData = CONTAINING_RECORD(listEntry, PHP_PROCESS_DATA, ListEntry);
+        PPHP_PROCESS_DATA processData = CONTAINING_RECORD(processDataListHead.Flink, PHP_PROCESS_DATA, ListEntry);
         PPH_PROCESS_GROUP processGroup;
         PPH_STRING fileName;
         PPH_STRING userName;
 
-        listEntry = listEntry->Flink;
         processGroup = PhAllocate(sizeof(PH_PROCESS_GROUP));
         processGroup->Processes = PhCreateList(4);
         fileName = processData->Process->ProcessItem->FileName;
@@ -263,13 +266,13 @@ PPH_LIST PhCreateProcessGroupList(
 
         if (!fileName || !userName || (Flags & PH_GROUP_PROCESSES_DONT_GROUP))
         {
-            processGroup->Representative = processData->Process;
+            processGroup->Representative = processData->Process->ProcessItem;
             PhpAddGroupMember(processData, processGroup->Processes);
         }
         else
         {
             processData = PhpFindGroupRoot(processData, processDataHashtable);
-            processGroup->Representative = processData->Process;
+            processGroup->Representative = processData->Process->ProcessItem;
             PhpAddGroupMembersFromRoot(processData, processGroup->Processes, processDataHashtable);
         }
 
@@ -292,6 +295,7 @@ VOID PhFreeProcessGroupList(
     {
         PPH_PROCESS_GROUP processGroup = List->Items[i];
 
+        PhDereferenceObjects(processGroup->Processes->Items, processGroup->Processes->Count);
         PhDereferenceObject(processGroup->Processes);
         PhFree(processGroup);
     }
