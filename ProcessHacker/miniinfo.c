@@ -64,7 +64,7 @@ VOID PhPinMiniInformation(
     _In_opt_ PPOINT SourcePoint
     )
 {
-    MIP_ADJUST_PIN_RESULT adjustPinResult;
+    PH_MIP_ADJUST_PIN_RESULT adjustPinResult;
 
     if (PinDelayMs && PinCount < 0)
     {
@@ -305,6 +305,9 @@ VOID PhMipContainerOnShowWindow(
     _In_ ULONG State
     )
 {
+    ULONG i;
+    PPH_MINIINFO_SECTION section;
+
     if (Showing)
     {
         PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
@@ -343,6 +346,15 @@ VOID PhMipContainerOnShowWindow(
         }
 
         PhSaveWindowPlacementToSetting(L"MiniInfoWindowPosition", L"MiniInfoWindowSize", PhMipContainerWindow);
+    }
+
+    if (SectionList)
+    {
+        for (i = 0; i < SectionList->Count; i++)
+        {
+            section = SectionList->Items[i];
+            section->Callback(section, MiniInfoShowing, (PVOID)Showing, NULL);
+        }
     }
 }
 
@@ -449,7 +461,7 @@ VOID PhMipOnShowWindow(
 
     SendMessage(GetDlgItem(PhMipWindow, IDC_SECTION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
 
-    PhMipCreateInternalListSection(L"CPU", 0, PhMipCpuListSectionCallback, NULL);
+    PhMipCreateInternalListSection(L"CPU", 0, PhMipCpuListSectionCallback, PhMipCpuListSectionCompareFunction);
     PhMipCreateInternalListSection(L"Memory", 0, PhMipCpuListSectionCallback, NULL);
     PhMipCreateInternalListSection(L"I/O", 0, PhMipCpuListSectionCallback, NULL);
 
@@ -644,7 +656,7 @@ VOID NTAPI PhMipUpdateHandler(
     PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
 }
 
-MIP_ADJUST_PIN_RESULT PhMipAdjustPin(
+PH_MIP_ADJUST_PIN_RESULT PhMipAdjustPin(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
     _In_ LONG PinCount
     )
@@ -853,7 +865,7 @@ VOID PhMipChangeSection(
 
     if (oldSection)
     {
-        oldSection->Callback(oldSection, MiniInfoViewChanging, CurrentSection, NULL);
+        oldSection->Callback(oldSection, MiniInfoSectionChanging, CurrentSection, NULL);
 
         if (oldSection->DialogHandle)
             ShowWindow(oldSection->DialogHandle, SW_HIDE);
@@ -1032,14 +1044,34 @@ BOOLEAN PhMipListSectionCallback(
     switch (Message)
     {
     case MiniInfoCreate:
-        listSection->Callback(listSection, MiListSectionCreate, NULL, NULL);
+        {
+            listSection->NodeList = PhCreateList(2);
+            listSection->Callback(listSection, MiListSectionCreate, NULL, NULL);
+        }
         break;
     case MiniInfoDestroy:
-        listSection->Callback(listSection, MiListSectionDestroy, NULL, NULL);
-        PhFree(listSection);
+        {
+            listSection->Callback(listSection, MiListSectionDestroy, NULL, NULL);
+
+            PhMipClearListSection(listSection);
+            PhDereferenceObject(listSection->NodeList);
+            PhFree(listSection);
+        }
         break;
     case MiniInfoTick:
         PhMipTickListSection(listSection);
+        break;
+    case MiniInfoShowing:
+        {
+            listSection->Callback(listSection, MiListSectionShowing, Parameter1, Parameter2);
+
+            if (!Parameter1) // Showing
+            {
+                // We don't want to hold process item references while the mini info window
+                // is hidden.
+                PhMipClearListSection(listSection);
+            }
+        }
         break;
     case MiniInfoCreateDialog:
         {
@@ -1078,6 +1110,12 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
             PhInitializeLayoutManager(&listSection->LayoutManager, hwndDlg);
             PhAddLayoutItem(&listSection->LayoutManager, listSection->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
+            PhSetControlTheme(listSection->TreeNewHandle, L"explorer");
+            TreeNew_SetCallback(listSection->TreeNewHandle, PhMipListSectionTreeNewCallback, listSection);
+            TreeNew_SetRowHeight(listSection->TreeNewHandle, PhMipCalculateRowHeight());
+            PhAddTreeNewColumnEx2(listSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TRUE, L"Process", 1,
+                PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+
             listSection->Callback(listSection, MiListSectionDialogCreated, hwndDlg, NULL);
             PhMipTickListSection(listSection);
         }
@@ -1091,6 +1129,7 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&listSection->LayoutManager);
+            TreeNew_AutoSizeColumn(listSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TN_AUTOSIZE_REMAINING_SPACE);
         }
         break;
     }
@@ -1102,7 +1141,225 @@ VOID PhMipTickListSection(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection
     )
 {
+    ULONG i;
+    PPH_MIP_GROUP_NODE node;
+
+    PhMipClearListSection(ListSection);
+
+    ListSection->ProcessGroupList = PhCreateProcessGroupList(
+        ListSection->CompareFunction,
+        ListSection->Context,
+        MIP_MAX_PROCESS_GROUPS,
+        0
+        );
+
+    if (!ListSection->ProcessGroupList)
+        return;
+
+    for (i = 0; i < ListSection->ProcessGroupList->Count; i++)
+    {
+        node = PhMipAddGroupNode(ListSection, ListSection->ProcessGroupList->Items[i]);
+
+        if (node->RepresentativeProcessId == ListSection->SelectedRepresentativeProcessId &&
+            node->RepresentativeCreateTime.QuadPart == ListSection->SelectedRepresentativeCreateTime.QuadPart)
+        {
+            node->Node.Selected = TRUE;
+        }
+    }
+
+    TreeNew_NodesStructured(ListSection->TreeNewHandle);
+    TreeNew_AutoSizeColumn(ListSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TN_AUTOSIZE_REMAINING_SPACE);
+
     ListSection->Callback(ListSection, MiListSectionTick, NULL, NULL);
+}
+
+VOID PhMipClearListSection(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection
+    )
+{
+    ULONG i;
+
+    if (ListSection->ProcessGroupList)
+    {
+        PhFreeProcessGroupList(ListSection->ProcessGroupList);
+        ListSection->ProcessGroupList = NULL;
+    }
+
+    for (i = 0; i < ListSection->NodeList->Count; i++)
+        PhMipDestroyGroupNode(ListSection->NodeList->Items[i]);
+
+    PhClearList(ListSection->NodeList);
+}
+
+LONG PhMipCalculateRowHeight(
+    VOID
+    )
+{
+    LONG iconHeight;
+    LONG titleAndSubtitleHeight;
+
+    iconHeight = MIP_ICON_PADDING + PhLargeIconSize.Y + MIP_CELL_PADDING;
+    titleAndSubtitleHeight =
+        MIP_CELL_PADDING * 2 + CurrentParameters.FontHeight + MIP_INNER_PADDING + CurrentParameters.FontHeight;
+
+    return max(iconHeight, titleAndSubtitleHeight);
+}
+
+PPH_MIP_GROUP_NODE PhMipAddGroupNode(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_PROCESS_GROUP ProcessGroup
+    )
+{
+    PPH_MIP_GROUP_NODE node;
+
+    node = PhAllocate(sizeof(PH_MIP_GROUP_NODE));
+    memset(node, 0, sizeof(PH_MIP_GROUP_NODE));
+
+    PhInitializeTreeNewNode(&node->Node);
+    node->ProcessGroup = ProcessGroup;
+    node->RepresentativeProcessId = ProcessGroup->Representative->ProcessId;
+    node->RepresentativeCreateTime = ProcessGroup->Representative->CreateTime;
+
+    PhAddItemList(ListSection->NodeList, node);
+
+    return node;
+}
+
+VOID PhMipDestroyGroupNode(
+    _In_ PPH_MIP_GROUP_NODE Node
+    )
+{
+    PhFree(Node);
+}
+
+BOOLEAN PhMipListSectionTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MINIINFO_LIST_SECTION listSection = Context;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren->Node)
+            {
+                getChildren->Children = (PPH_TREENEW_NODE *)listSection->NodeList->Items;
+                getChildren->NumberOfChildren = listSection->NodeList->Count;
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+            isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewCustomDraw:
+        {
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
+            PPH_MIP_GROUP_NODE node = (PPH_MIP_GROUP_NODE)customDraw->Node;
+            PPH_PROCESS_ITEM processItem = node->ProcessGroup->Representative;
+            HDC hdc = customDraw->Dc;
+            RECT rect = customDraw->CellRect;
+            ULONG baseTextFlags = DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE;
+            HICON icon;
+            RECT topRect;
+            PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText;
+            ULONG usageTextWidth = 0;
+            PH_STRINGREF title;
+
+            rect.left += MIP_ICON_PADDING;
+            rect.top += MIP_ICON_PADDING;
+            rect.right -= MIP_CELL_PADDING;
+            rect.bottom -= MIP_CELL_PADDING;
+
+            if (processItem->LargeIcon)
+                icon = processItem->LargeIcon;
+            else
+                PhGetStockApplicationIcon(NULL, &icon);
+
+            DrawIconEx(hdc, rect.left, rect.top, icon, PhLargeIconSize.X, PhLargeIconSize.Y,
+                0, NULL, DI_NORMAL);
+            rect.left += (MIP_CELL_PADDING - MIP_ICON_PADDING) + PhLargeIconSize.X + MIP_CELL_PADDING;
+            rect.top += MIP_CELL_PADDING - MIP_ICON_PADDING;
+            SelectObject(hdc, CurrentParameters.Font);
+
+            // Top line
+
+            topRect = rect;
+            topRect.bottom = topRect.top + CurrentParameters.FontHeight;
+
+            getUsageText.ProcessGroup = node->ProcessGroup;
+            getUsageText.Text = NULL;
+
+            if (listSection->Callback(listSection, MiListSectionGetUsageText, &getUsageText, NULL))
+            {
+                PH_STRINGREF usageText;
+                RECT textRect;
+                SIZE textSize;
+
+                usageText = PhGetStringRef(getUsageText.Text);
+                GetTextExtentPoint32(hdc, usageText.Buffer, (ULONG)usageText.Length / 2, &textSize);
+                usageTextWidth = textSize.cx;
+                textRect = topRect;
+                textRect.left = textRect.right - textSize.cx;
+                DrawText(hdc, usageText.Buffer, (ULONG)usageText.Length / 2,
+                    &textRect, baseTextFlags | DT_RIGHT);
+                PhClearReference(&getUsageText.Text);
+            }
+
+            if (processItem->VersionInfo.FileDescription)
+                title = processItem->VersionInfo.FileDescription->sr;
+            else
+                title = processItem->ProcessName->sr;
+
+            if (title.Length != 0)
+            {
+                RECT textRect;
+
+                textRect = topRect;
+                textRect.right -= usageTextWidth + MIP_INNER_PADDING;
+                DrawText(
+                    hdc,
+                    title.Buffer,
+                    (ULONG)title.Length / 2,
+                    &textRect,
+                    baseTextFlags | DT_END_ELLIPSIS
+                    );
+            }
+        }
+        return TRUE;
+    case TreeNewSelectionChanged:
+        {
+            ULONG i;
+            PPH_MIP_GROUP_NODE node;
+
+            listSection->SelectedRepresentativeProcessId = NULL;
+            listSection->SelectedRepresentativeCreateTime.QuadPart = 0;
+
+            for (i = 0; i < listSection->NodeList->Count; i++)
+            {
+                node = listSection->NodeList->Items[i];
+
+                if (node->Node.Selected)
+                {
+                    listSection->SelectedRepresentativeProcessId = node->RepresentativeProcessId;
+                    listSection->SelectedRepresentativeCreateTime = node->RepresentativeCreateTime;
+                    break;
+                }
+            }
+        }
+        break;
+    }
+
+    return FALSE;
 }
 
 BOOLEAN PhMipCpuListSectionCallback(
@@ -1118,7 +1375,32 @@ BOOLEAN PhMipCpuListSectionCallback(
         ListSection->Section->Parameters->SetSectionText(ListSection->Section,
             PhaFormatString(L"\t%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100));
         break;
+    case MiListSectionGetUsageText:
+        {
+            PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText = Parameter1;
+            PPH_LIST processes = getUsageText->ProcessGroup->Processes;
+            FLOAT cpuUsage = 0;
+            ULONG i;
+
+            for (i = 0; i < processes->Count; i++)
+                cpuUsage += ((PPH_PROCESS_ITEM)processes->Items[i])->CpuUsage;
+
+            getUsageText->Text = PhFormatString(L"%.2f%%", cpuUsage * 100);
+        }
+        return TRUE;
     }
 
     return FALSE;
+}
+
+int __cdecl PhMipCpuListSectionCompareFunction(
+    _In_ void *context,
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)elem1;
+    PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)elem2;
+
+    return singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
 }

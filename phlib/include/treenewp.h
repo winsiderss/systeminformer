@@ -483,7 +483,8 @@ BOOLEAN PhTnpSetColumnHeaderSortIcon(
 VOID PhTnpAutoSizeColumnHeader(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HWND HeaderHandle,
-    _In_ PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG Flags
     );
 
 // Nodes

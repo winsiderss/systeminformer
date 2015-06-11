@@ -1629,7 +1629,7 @@ BOOLEAN PhHandleTreeNewColumnMenu(
         {
             if (Data->MouseEvent && Data->MouseEvent->Column)
             {
-                TreeNew_AutoSizeColumn(Data->TreeNewHandle, Data->MouseEvent->Column->Id);
+                TreeNew_AutoSizeColumn(Data->TreeNewHandle, Data->MouseEvent->Column->Id, 0);
             }
         }
         break;
@@ -1643,7 +1643,7 @@ BOOLEAN PhHandleTreeNewColumnMenu(
 
             while (id <= maxId)
             {
-                TreeNew_AutoSizeColumn(Data->TreeNewHandle, id);
+                TreeNew_AutoSizeColumn(Data->TreeNewHandle, id, 0);
                 id++;
             }
         }

@@ -70,6 +70,7 @@ PPH_STRING PhLocalSystemName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
+PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 PH_STARTUP_PARAMETERS PhStartupParameters;
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
@@ -190,6 +191,8 @@ INT WINAPI wWinMain(
 
     PhSmallIconSize.X = GetSystemMetrics(SM_CXSMICON);
     PhSmallIconSize.Y = GetSystemMetrics(SM_CYSMICON);
+    PhLargeIconSize.X = GetSystemMetrics(SM_CXICON);
+    PhLargeIconSize.Y = GetSystemMetrics(SM_CYICON);
 
     if (PhStartupParameters.ShowOptions)
     {
