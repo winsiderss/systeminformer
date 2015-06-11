@@ -117,7 +117,7 @@
 #define IDD_MINIINFO                    207
 #define IDB_PIN                         208
 #define IDB_COG                         209
-#define IDD_MINIINFO_CPU                210
+#define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
@@ -523,9 +523,7 @@
 #define IDC_PIN                         1370
 #define IDC_ZPAGINGMAPPEDWRITESDELTA_V  1371
 #define IDC_ZLISTMODIFIEDPAGEFILE_V     1373
-#define IDC_OPEN                        1373
 #define IDC_SECTION                     1375
-#define IDC_UTILIZATION_L               1376
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003

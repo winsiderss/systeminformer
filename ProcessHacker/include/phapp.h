@@ -1031,6 +1031,11 @@ VOID PhShowSystemInformationDialog(
 
 // miniinfo
 
+typedef VOID (NTAPI *PPH_MINIINFO_SET_SECTION_TEXT)(
+    _In_ struct _PH_MINIINFO_SECTION *Section,
+    _In_opt_ PPH_STRING Text
+    );
+
 typedef struct _PH_MINIINFO_PARAMETERS
 {
     HWND ContainerWindowHandle;
@@ -1042,6 +1047,8 @@ typedef struct _PH_MINIINFO_PARAMETERS
     ULONG FontAverageWidth;
     ULONG MediumFontHeight;
     ULONG MediumFontAverageWidth;
+
+    PPH_MINIINFO_SET_SECTION_TEXT SetSectionText;
 } PH_MINIINFO_PARAMETERS, *PPH_MINIINFO_PARAMETERS;
 
 typedef enum _PH_MINIINFO_SECTION_MESSAGE
@@ -1091,6 +1098,7 @@ typedef struct _PH_MINIINFO_SECTION
         ULONG SpareFlags : 32;
     };
     HWND DialogHandle;
+    PPH_STRING Text;
 } PH_MINIINFO_SECTION, *PPH_MINIINFO_SECTION;
 
 typedef enum _PH_MINIINFO_PIN_TYPE

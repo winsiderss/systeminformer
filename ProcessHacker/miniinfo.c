@@ -49,13 +49,13 @@ static PH_LAYOUT_MANAGER PhMipLayoutManager;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 static PH_STRINGREF DownArrowPrefix = PH_STRINGREF_INIT(L"\u25be ");
-static HWND SeparatorControl;
 static WNDPROC SectionControlOldWndProc;
 
 static PPH_LIST SectionList;
 static PH_MINIINFO_PARAMETERS CurrentParameters;
 static PPH_MINIINFO_SECTION CurrentSection;
 
+static PPH_MINIINFO_SECTION CpuSection;
 static HWND CpuDialog;
 static PH_LAYOUT_MANAGER CpuLayoutManager;
 
@@ -428,28 +428,11 @@ VOID PhMipOnInitDialog(
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL,
         PH_ANCHOR_ALL);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_SECTION), NULL,
-        PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_TOP | PH_LAYOUT_FORCE_INVALIDATE);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPEN), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
+        PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
+        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PIN), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
-
-    SeparatorControl = CreateWindow(
-        L"STATIC",
-        NULL,
-        WS_CHILD | SS_OWNERDRAW,
-        0,
-        0,
-        3,
-        3,
-        PhMipWindow,
-        (HMENU)IDC_SEPARATOR,
-        PhInstanceHandle,
-        NULL
-        );
-    ShowWindow(SeparatorControl, SW_SHOW);
+        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
     SectionControlOldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
     SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
@@ -462,8 +445,6 @@ VOID PhMipOnShowWindow(
     _In_ ULONG State
     )
 {
-    PPH_MINIINFO_SECTION section;
-
     if (SectionList)
         return;
 
@@ -471,13 +452,12 @@ VOID PhMipOnShowWindow(
     PhMipInitializeParameters();
 
     SendMessage(GetDlgItem(PhMipWindow, IDC_SECTION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
-    SendMessage(GetDlgItem(PhMipWindow, IDC_OPEN), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
 
-    section = PhMipCreateInternalSection(L"CPU", 0, PhMipCpuSectionCallback);
+    CpuSection = PhMipCreateInternalSection(L"CPU", 0, PhMipCpuSectionCallback);
     PhMipCreateInternalSection(L"Memory", 0, PhMipCpuSectionCallback);
     PhMipCreateInternalSection(L"I/O", 0, PhMipCpuSectionCallback);
 
-    PhMipChangeSection(section);
+    PhMipChangeSection(SectionList->Items[0]);
 }
 
 VOID PhMipOnCommand(
@@ -505,7 +485,7 @@ VOID PhMipOnCommand(
                 {
                     section = SectionList->Items[i];
                     menuItem = PhCreateEMenuItem(
-                        0,
+                        (section == CurrentSection ? (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK) : 0),
                         0,
                         ((PPH_STRING)PhAutoDereferenceObject(PhCreateString2(&section->Name)))->Buffer,
                         NULL,
@@ -541,7 +521,7 @@ VOID PhMipOnCommand(
 
             GetWindowRect(GetDlgItem(PhMipWindow, IDC_OPTIONS), &rect);
             menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP, rect.left, rect.bottom);
+                PH_ALIGN_LEFT | PH_ALIGN_BOTTOM, rect.left, rect.top);
 
             if (menuItem)
             {
@@ -570,23 +550,6 @@ BOOLEAN PhMipOnNotify(
     _Out_ LRESULT *Result
     )
 {
-    switch (Header->code)
-    {
-    case NM_CLICK:
-        {
-            switch (Header->idFrom)
-            {
-            case IDC_OPEN:
-                // Clear most pin types.
-                PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
-                PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL, NULL);
-                ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
-                break;
-            }
-        }
-        break;
-    }
-
     return FALSE;
 }
 
@@ -605,18 +568,6 @@ BOOLEAN PhMipOnDrawItem(
     _In_ DRAWITEMSTRUCT *DrawItemStruct
     )
 {
-    if (Id == IDC_SEPARATOR)
-    {
-        RECT rect;
-
-        rect = DrawItemStruct->rcItem;
-        FillRect(DrawItemStruct->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
-        rect.top += 1;
-        FillRect(DrawItemStruct->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
-
-        return TRUE;
-    }
-
     return FALSE;
 }
 
@@ -799,6 +750,8 @@ VOID PhMipInitializeParameters(
     CurrentParameters.MediumFontHeight = textMetrics.tmHeight;
     CurrentParameters.MediumFontAverageWidth = textMetrics.tmAveCharWidth;
 
+    CurrentParameters.SetSectionText = PhMipSetSectionText;
+
     SelectObject(hdc, originalFont);
     ReleaseDC(PhMipWindow, hdc);
 }
@@ -831,6 +784,7 @@ VOID PhMipDestroySection(
 {
     Section->Callback(Section, MiniInfoDestroy, NULL, NULL);
 
+    PhClearReference(&Section->Text);
     PhFree(Section);
 }
 
@@ -914,10 +868,30 @@ VOID PhMipChangeSection(
     if (NewSection->DialogHandle)
         ShowWindow(NewSection->DialogHandle, SW_SHOW);
 
-    SetDlgItemText(PhMipWindow, IDC_SECTION,
-        ((PPH_STRING)PhAutoDereferenceObject(PhConcatStringRef2(&DownArrowPrefix, &NewSection->Name)))->Buffer);
-
+    PhMipUpdateSectionText(NewSection);
     PhMipLayout();
+}
+
+VOID PhMipSetSectionText(
+    _In_ struct _PH_MINIINFO_SECTION *Section,
+    _In_opt_ PPH_STRING Text
+    )
+{
+    PhSwapReference(&Section->Text, Text);
+
+    if (Section == CurrentSection)
+        PhMipUpdateSectionText(Section);
+}
+
+VOID PhMipUpdateSectionText(
+    _In_ PPH_MINIINFO_SECTION Section
+    )
+{
+    PH_STRINGREF text;
+
+    text = PhGetStringRef(Section->Text);
+    SetDlgItemText(PhMipWindow, IDC_SECTION, ((PPH_STRING)PhAutoDereferenceObject(
+        PhConcatStringRef3(&DownArrowPrefix, &Section->Name, &text)))->Buffer);
 }
 
 VOID PhMipLayout(
@@ -964,8 +938,6 @@ VOID PhMipLayout(
 
     GetWindowRect(GetDlgItem(PhMipWindow, IDC_PIN), &rect);
     MapWindowPoints(NULL, PhMipWindow, (POINT *)&rect, 2);
-
-    MoveWindow(SeparatorControl, 0, rect.bottom + MIP_PADDING_SIZE, clientRect.right, MIP_SEPARATOR_HEIGHT, TRUE);
 }
 
 VOID PhMipBeginChildControlPin(
@@ -1032,7 +1004,7 @@ BOOLEAN PhMipCpuSectionCallback(
             PPH_MINIINFO_CREATE_DIALOG createDialog = Parameter1;
 
             createDialog->Instance = PhInstanceHandle;
-            createDialog->Template = MAKEINTRESOURCE(IDD_MINIINFO_CPU);
+            createDialog->Template = MAKEINTRESOURCE(IDD_MINIINFO_LIST);
             createDialog->DialogProc = PhMipCpuDialogProc;
         }
         return TRUE;
@@ -1045,7 +1017,10 @@ VOID PhMipTickCpuDialog(
     VOID
     )
 {
-    SetDlgItemText(CpuDialog, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
+    CurrentParameters.SetSectionText(
+        CpuSection,
+        PhaFormatString(L"\t%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)
+        );
 }
 
 INT_PTR CALLBACK PhMipCpuDialogProc(
@@ -1062,10 +1037,6 @@ INT_PTR CALLBACK PhMipCpuDialogProc(
             CpuDialog = hwndDlg;
             PhInitializeLayoutManager(&CpuLayoutManager, hwndDlg);
             PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_UTILIZATION_L), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_UTILIZATION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-
-            SendMessage(GetDlgItem(hwndDlg, IDC_UTILIZATION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
 
             PhMipTickCpuDialog();
         }
@@ -1078,17 +1049,6 @@ INT_PTR CALLBACK PhMipCpuDialogProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&CpuLayoutManager);
-        }
-        break;
-    case WM_CTLCOLORBTN:
-    case WM_CTLCOLORDLG:
-    case WM_CTLCOLORSTATIC:
-        {
-            HDC hdc = (HDC)wParam;
-
-            SetBkMode(hdc, TRANSPARENT);
-
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
