@@ -113,12 +113,12 @@ VOID PhMipOnUserMessage(
 
 // Framework
 
-typedef enum _MIP_ADJUST_PIN_RESULT
+typedef enum _PH_MIP_ADJUST_PIN_RESULT
 {
     NoAdjustPinResult,
     ShowAdjustPinResult,
     HideAdjustPinResult
-} MIP_ADJUST_PIN_RESULT;
+} PH_MIP_ADJUST_PIN_RESULT;
 
 BOOLEAN NTAPI PhMipMessageLoopFilter(
     _In_ PMSG Message,
@@ -130,7 +130,7 @@ VOID NTAPI PhMipUpdateHandler(
     _In_opt_ PVOID Context
     );
 
-MIP_ADJUST_PIN_RESULT PhMipAdjustPin(
+PH_MIP_ADJUST_PIN_RESULT PhMipAdjustPin(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
     _In_ LONG PinCount
     );
@@ -204,6 +204,21 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
 
 // List-based section
 
+#define MIP_MAX_PROCESS_GROUPS 10
+#define MIP_SINGLE_COLUMN_ID 0
+
+#define MIP_CELL_PADDING 6
+#define MIP_ICON_PADDING 3
+#define MIP_INNER_PADDING 3
+
+typedef struct _PH_MIP_GROUP_NODE
+{
+    PH_TREENEW_NODE Node;
+    PPH_PROCESS_GROUP ProcessGroup;
+    HANDLE RepresentativeProcessId;
+    LARGE_INTEGER RepresentativeCreateTime;
+} PH_MIP_GROUP_NODE, *PPH_MIP_GROUP_NODE;
+
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
     _In_ PWSTR Name,
     _In_ ULONG Flags,
@@ -235,6 +250,31 @@ VOID PhMipTickListSection(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection
     );
 
+VOID PhMipClearListSection(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection
+    );
+
+LONG PhMipCalculateRowHeight(
+    VOID
+    );
+
+PPH_MIP_GROUP_NODE PhMipAddGroupNode(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_PROCESS_GROUP ProcessGroup
+    );
+
+VOID PhMipDestroyGroupNode(
+    _In_ PPH_MIP_GROUP_NODE Node
+    );
+
+BOOLEAN PhMipListSectionTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    );
+
 // CPU section
 
 BOOLEAN PhMipCpuListSectionCallback(
@@ -242,6 +282,12 @@ BOOLEAN PhMipCpuListSectionCallback(
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
+    );
+
+int __cdecl PhMipCpuListSectionCompareFunction(
+    _In_ void *context,
+    _In_ const void *elem1,
+    _In_ const void *elem2
     );
 
 #endif

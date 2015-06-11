@@ -153,6 +153,9 @@ typedef struct _PH_TREENEW_NODE
 #define TN_SELECT_TOGGLE 0x2
 #define TN_SELECT_RESET 0x4
 
+// Auto-size flags
+#define TN_AUTOSIZE_REMAINING_SPACE 0x1
+
 typedef struct _PH_TREENEW_CELL_PARTS
 {
     ULONG Flags;
@@ -505,8 +508,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TreeNew_GetVisibleColumnCount(hWnd) \
     ((ULONG)SendMessage((hWnd), TNM_GETVISIBLECOLUMNCOUNT, 0, 0))
 
-#define TreeNew_AutoSizeColumn(hWnd, Id) \
-    SendMessage((hWnd), TNM_AUTOSIZECOLUMN, (WPARAM)(Id), 0)
+#define TreeNew_AutoSizeColumn(hWnd, Id, Flags) \
+    SendMessage((hWnd), TNM_AUTOSIZECOLUMN, (WPARAM)(Id), (LPARAM)(Flags))
 
 #define TreeNew_SetEmptyText(hWnd, Text, Flags) \
     SendMessage((hWnd), TNM_SETEMPTYTEXT, (WPARAM)(Flags), (LPARAM)(Text))

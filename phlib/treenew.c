@@ -1549,7 +1549,8 @@ BOOLEAN PhTnpOnNotify(
                     PhTnpAutoSizeColumnHeader(
                         Context,
                         Header->hwndFrom,
-                        (PPH_TREENEW_COLUMN)item.lParam
+                        (PPH_TREENEW_COLUMN)item.lParam,
+                        0
                         );
                 }
             }
@@ -1912,6 +1913,7 @@ ULONG_PTR PhTnpOnUserMessage(
     case TNM_AUTOSIZECOLUMN:
         {
             ULONG id = (ULONG)WParam;
+            ULONG flags = (ULONG)LParam;
             PPH_TREENEW_COLUMN column;
 
             if (!(column = PhTnpLookupColumnById(Context, id)))
@@ -1920,7 +1922,12 @@ ULONG_PTR PhTnpOnUserMessage(
             if (!column->Visible)
                 return FALSE;
 
-            PhTnpAutoSizeColumnHeader(Context, column->Fixed ? Context->FixedHeaderHandle : Context->HeaderHandle, column);
+            PhTnpAutoSizeColumnHeader(
+                Context,
+                column->Fixed ? Context->FixedHeaderHandle : Context->HeaderHandle,
+                column,
+                flags
+                );
         }
         return TRUE;
     case TNM_SETEMPTYTEXT:
@@ -3029,40 +3036,60 @@ BOOLEAN PhTnpSetColumnHeaderSortIcon(
 VOID PhTnpAutoSizeColumnHeader(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HWND HeaderHandle,
-    _In_ PPH_TREENEW_COLUMN Column
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG Flags
     )
 {
-    ULONG i;
-    LONG maximumWidth;
-    PH_TREENEW_CELL_PARTS parts;
-    LONG width;
+    LONG newWidth;
     HDITEM item;
 
-    if (Context->FlatList->Count == 0)
-        return;
-    if (Column->CustomDraw)
-        return;
-
-    maximumWidth = 0;
-
-    for (i = 0; i < Context->FlatList->Count; i++)
+    if (Flags & TN_AUTOSIZE_REMAINING_SPACE)
     {
-        if (PhTnpGetCellParts(Context, i, Column, TN_MEASURE_TEXT, &parts) &&
-            (parts.Flags & TN_PART_CELL) && (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
-        {
-            width = parts.TextRect.right - parts.TextRect.left; // text width
-            width += parts.ContentRect.left - parts.CellRect.left; // left padding
+        newWidth = Context->ClientRect.right - (Context->TotalViewX - Column->Width);
 
-            if (maximumWidth < width)
-                maximumWidth = width;
+        if (Context->FixedColumn)
+            newWidth -= Context->FixedColumn->Width;
+        if (Context->VScrollVisible)
+            newWidth -= Context->VScrollWidth;
+
+        if (newWidth <= 0)
+            return;
+    }
+    else
+    {
+        ULONG i;
+        LONG maximumWidth;
+        PH_TREENEW_CELL_PARTS parts;
+        LONG width;
+
+        if (Context->FlatList->Count == 0)
+            return;
+        if (Column->CustomDraw)
+            return;
+
+        maximumWidth = 0;
+
+        for (i = 0; i < Context->FlatList->Count; i++)
+        {
+            if (PhTnpGetCellParts(Context, i, Column, TN_MEASURE_TEXT, &parts) &&
+                (parts.Flags & TN_PART_CELL) && (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
+            {
+                width = parts.TextRect.right - parts.TextRect.left; // text width
+                width += parts.ContentRect.left - parts.CellRect.left; // left padding
+
+                if (maximumWidth < width)
+                    maximumWidth = width;
+            }
         }
+
+        newWidth = maximumWidth + TNP_CELL_RIGHT_MARGIN; // right padding
+
+        if (Column->Fixed)
+            newWidth++;
     }
 
     item.mask = HDI_WIDTH;
-    item.cxy = maximumWidth + TNP_CELL_RIGHT_MARGIN; // right padding
-
-    if (Column->Fixed)
-        item.cxy++;
+    item.cxy = newWidth;
 
     Header_SetItem(HeaderHandle, Column->s.ViewIndex, &item);
 }
