@@ -502,7 +502,7 @@ static COLORREF NTAPI PhpHiddenProcessesColorFunction(
         return RGB(0x77, 0x77, 0x77);
     }
 
-    return PhSysWindowColor;
+    return GetSysColor(COLOR_WINDOW);
 }
 
 static BOOLEAN NTAPI PhpHiddenProcessesCallback(

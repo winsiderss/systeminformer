@@ -691,7 +691,7 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     BOOLEAN IsImmersive;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
-static BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
+BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     _In_ HWND hwnd,
     _In_ LPARAM lParam
     )
@@ -708,7 +708,7 @@ static BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
 
     if (UlongToHandle(processId) == context->ProcessId &&
         !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL, NULL) != 0) // skip windows with no title
+        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // skip windows with no title
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
             GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))

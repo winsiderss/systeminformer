@@ -675,8 +675,6 @@ VOID PhMwpOnSettingChange(
     VOID
     )
 {
-    PhSysWindowColor = GetSysColor(COLOR_WINDOW);
-
     if (PhApplicationFont)
         DeleteObject(PhApplicationFont);
 

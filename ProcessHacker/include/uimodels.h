@@ -408,6 +408,10 @@ VOID PhWriteProcessTree(
     _In_ ULONG Mode
     );
 
+PPH_LIST PhDuplicateProcessNodeList(
+    VOID
+    );
+
 // srvlist
 
 // Columns

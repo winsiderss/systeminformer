@@ -242,6 +242,8 @@ FORCEINLINE int wcsicmp2(
         return 1;
 }
 
+typedef int (__cdecl *PC_COMPARE_FUNCTION)(void *, const void *, const void *);
+
 // Synchronization
 
 #ifndef _WIN64

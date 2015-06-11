@@ -254,13 +254,13 @@ COLORREF PhGetGroupAttributesColor(
         if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
             return RGB(0xe0, 0xf0, 0xe0);
         else
-            return PhSysWindowColor;
+            return GetSysColor(COLOR_WINDOW);
     }
 
     if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
         return RGB(0xe0, 0xf0, 0xe0);
     else if (Attributes & SE_GROUP_ENABLED)
-        return PhSysWindowColor;
+        return GetSysColor(COLOR_WINDOW);
     else
         return RGB(0xf0, 0xe0, 0xe0);
 }

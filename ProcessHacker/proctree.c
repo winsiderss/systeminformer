@@ -3283,3 +3283,15 @@ VOID PhWriteProcessTree(
 
     PhDereferenceObject(lines);
 }
+
+PPH_LIST PhDuplicateProcessNodeList(
+    VOID
+    )
+{
+    PPH_LIST newList;
+
+    newList = PhCreateList(ProcessNodeList->Count);
+    PhInsertItemsList(newList, 0, ProcessNodeList->Items, ProcessNodeList->Count);
+
+    return newList;
+}

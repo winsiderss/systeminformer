@@ -78,15 +78,12 @@ extern PPH_STRING PhCurrentUserName;
 extern HINSTANCE PhInstanceHandle;
 extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
-extern PPH_STRING PhProcDbFileName;
 extern PPH_STRING PhSettingsFileName;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
 extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
 extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
-
-extern COLORREF PhSysWindowColor;
 
 PHAPPAPI
 VOID PhRegisterDialog(
@@ -1029,6 +1026,27 @@ VOID PhShowSystemInformationDialog(
     _In_opt_ PWSTR SectionName
     );
 
+// procgrp
+
+typedef struct _PH_PROCESS_GROUP
+{
+    PPH_PROCESS_NODE Representative;
+    PPH_LIST Processes;
+} PH_PROCESS_GROUP, *PPH_PROCESS_GROUP;
+
+#define PH_GROUP_PROCESSES_DONT_GROUP 0x1
+
+PPH_LIST PhCreateProcessGroupList(
+    _In_opt_ PC_COMPARE_FUNCTION CompareFunction,
+    _In_opt_ PVOID Context,
+    _In_ ULONG MaximumGroups,
+    _In_ ULONG Flags
+    );
+
+VOID PhFreeProcessGroupList(
+    _In_ PPH_LIST List
+    );
+
 // miniinfo
 
 typedef VOID (NTAPI *PPH_MINIINFO_SET_SECTION_TEXT)(
@@ -1088,8 +1106,10 @@ typedef struct _PH_MINIINFO_SECTION
     ULONG Flags;
     PPH_MINIINFO_SECTION_CALLBACK Callback;
     PVOID Context;
+    PVOID Reserved1[3];
+
     PPH_MINIINFO_PARAMETERS Parameters;
-    PVOID Reserved[2];
+    PVOID Reserved2[3];
 
     // Private
 
@@ -1100,6 +1120,38 @@ typedef struct _PH_MINIINFO_SECTION
     HWND DialogHandle;
     PPH_STRING Text;
 } PH_MINIINFO_SECTION, *PPH_MINIINFO_SECTION;
+
+typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
+{
+    MiListSectionCreate,
+    MiListSectionDestroy,
+    MiListSectionTick,
+    MiListSectionDialogCreated,
+    MaxMiListSectionMessage
+} PH_MINIINFO_LIST_SECTION_MESSAGE;
+
+typedef BOOLEAN (NTAPI *PPH_MINIINFO_LIST_SECTION_CALLBACK)(
+    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+typedef struct _PH_MINIINFO_LIST_SECTION
+{
+    // Public
+
+    PPH_MINIINFO_SECTION Section;
+    HWND DialogHandle; // State
+    HWND TreeNewHandle; // State
+    PVOID Context;
+    PPH_MINIINFO_LIST_SECTION_CALLBACK Callback;
+    PC_COMPARE_FUNCTION CompareFunction;
+
+    // Private
+
+    PH_LAYOUT_MANAGER LayoutManager;
+} PH_MINIINFO_LIST_SECTION, *PPH_MINIINFO_LIST_SECTION;
 
 typedef enum _PH_MINIINFO_PIN_TYPE
 {
