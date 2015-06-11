@@ -284,7 +284,7 @@ static COLORREF PhpPluginColorFunction(
     if (PhFindItemSimpleHashtable(DisabledPluginLookup, plugin))
         return RGB(0x77, 0x77, 0x77); // fake disabled plugin
 
-    return PhSysWindowColor;
+    return GetSysColor(COLOR_WINDOW);
 }
 
 INT_PTR CALLBACK PhpPluginsDlgProc(

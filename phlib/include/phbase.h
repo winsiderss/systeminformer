@@ -3004,6 +3004,24 @@ PhFindItemSimpleHashtable(
     _In_opt_ PVOID Key
     );
 
+FORCEINLINE
+PVOID
+NTAPI
+PhFindItemSimpleHashtable2(
+    _In_ PPH_HASHTABLE SimpleHashtable,
+    _In_opt_ PVOID Key
+    )
+{
+    PVOID *item;
+
+    item = PhFindItemSimpleHashtable(SimpleHashtable, Key);
+
+    if (item)
+        return *item;
+    else
+        return NULL;
+}
+
 PHLIBAPI
 BOOLEAN
 NTAPI

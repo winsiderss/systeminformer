@@ -321,6 +321,7 @@
     <ClCompile Include="phsvc\svcmain.c" />
     <ClCompile Include="plugin.c" />
     <ClCompile Include="plugman.c" />
+    <ClCompile Include="procgrp.c" />
     <ClCompile Include="procprp.c" />
     <ClCompile Include="procprv.c" />
     <ClCompile Include="procrec.c" />
