@@ -2012,7 +2012,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = node->PrivateBytesText->sr;
                 break;
             case PHPRTLC_USERNAME:
-                getCellText->Text = PhGetStringRefOrEmpty(processItem->UserName);
+                getCellText->Text = PhGetStringRef(processItem->UserName);
                 break;
             case PHPRTLC_DESCRIPTION:
                 if (processItem->VersionInfo.FileDescription)
@@ -2021,16 +2021,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     getCellText->Text = node->DescriptionText;
                 break;
             case PHPRTLC_COMPANYNAME:
-                getCellText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.CompanyName);
+                getCellText->Text = PhGetStringRef(processItem->VersionInfo.CompanyName);
                 break;
             case PHPRTLC_VERSION:
-                getCellText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.FileVersion);
+                getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileVersion);
                 break;
             case PHPRTLC_FILENAME:
-                getCellText->Text = PhGetStringRefOrEmpty(processItem->FileName);
+                getCellText->Text = PhGetStringRef(processItem->FileName);
                 break;
             case PHPRTLC_COMMANDLINE:
-                getCellText->Text = PhGetStringRefOrEmpty(processItem->CommandLine);
+                getCellText->Text = PhGetStringRef(processItem->CommandLine);
                 break;
             case PHPRTLC_PEAKPRIVATEBYTES:
                 PhMoveReference(&node->PeakPrivateBytesText, PhFormatSize(processItem->VmCounters.PeakPagefileUsage, -1));
@@ -2209,7 +2209,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhInitializeStringRef(&getCellText->Text, L"Trusted");
                 break;
             case PHPRTLC_VERIFIEDSIGNER:
-                getCellText->Text = PhGetStringRefOrEmpty(processItem->VerifySignerName);
+                getCellText->Text = PhGetStringRef(processItem->VerifySignerName);
                 break;
             case PHPRTLC_ASLR:
                 PhpUpdateProcessNodeImage(node);

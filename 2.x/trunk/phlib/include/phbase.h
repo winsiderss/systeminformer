@@ -1358,27 +1358,6 @@ PhGetStringOrEmpty(
         return L"";
 }
 
-FORCEINLINE
-PH_STRINGREF
-PhGetStringRefOrEmpty(
-    _In_opt_ PPH_STRING String
-    )
-{
-    PH_STRINGREF sr;
-
-    if (String)
-    {
-        sr = String->sr;
-    }
-    else
-    {
-        sr.Length = 0;
-        sr.Buffer = L"";
-    }
-
-    return sr;
-}
-
 /**
  * Retrieves a pointer to a string object's buffer
  * or returns the specified alternative string.
