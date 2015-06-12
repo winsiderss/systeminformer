@@ -46,18 +46,13 @@ static VOID NTAPI MainMenuInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
 
     // Check this menu is the Help menu
     if (menuInfo->u.MainMenu.SubMenuIndex != 4)
         return;
 
-    // Add our menu item at index 0
-    PhInsertEMenuItem(
-        menuInfo->Menu,
-        PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for Updates", NULL),
-        0
-        );
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for Updates", NULL), 0);
 }
 
 static VOID NTAPI MenuItemCallback(
