@@ -52,7 +52,7 @@ VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Context
     );
 
-VOID NTAPI MainWindowShowingCallback(
+VOID NTAPI MainMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
@@ -93,7 +93,7 @@ PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
 PH_CALLBACK_REGISTRATION GetProcessTooltipTextCallbackRegistration;
@@ -153,10 +153,10 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
+                PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
+                MainMenuInitializingCallback,
                 NULL,
-                &MainWindowShowingCallbackRegistration
+                &MainMenuInitializingCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
@@ -297,15 +297,18 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
-VOID NTAPI MainWindowShowingCallback(
+VOID NTAPI MainMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$",
-        0, L"-", NULL);
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$",
-        1, L"Terminate Sandboxed Processes", NULL);
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+
+    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
+        return;
+
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, L"", NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, 1, L"Terminate Sandboxed Processes", NULL), -1);
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
