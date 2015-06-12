@@ -1,3 +1,6 @@
+2.1
+ * Fixed Auto-hide Searchbox (Ctrl+K to show)
+
 2.0
  * Added Toolbar customization
  * Added Rebar Chevron support

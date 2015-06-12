@@ -88,6 +88,17 @@ INT_PTR CALLBACK OptionsDlgProc(
                     LoadToolbarSettings();
                     InvalidateRect(ToolBarHandle, NULL, TRUE);
 
+                    if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
+                    {
+                        if (RebarBandExists(BandID_SearchBox))
+                            RebarBandRemove(BandID_SearchBox);
+                    }
+                    else
+                    {
+                        if (!RebarBandExists(BandID_SearchBox))
+                            RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+                    }
+
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;

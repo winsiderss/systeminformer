@@ -396,6 +396,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_UNDO:
     case WM_KEYUP:
     case WM_SETTEXT:
+    //case WM_SETFOCUS:
     case WM_KILLFOCUS:
         RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
@@ -413,6 +414,14 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             // Force the edit control to update its non-client area.
             RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
             //SetWindowPos(hwndDlg, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+        }
+        break;
+    case WM_SETFOCUS:
+        {
+            if (!RebarBandExists(BandID_SearchBox))
+            {
+                RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+            }
         }
         break;
     }
@@ -584,7 +593,7 @@ HWND CreateSearchControl(
         WS_EX_CLIENTEDGE,
         WC_EDIT,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL | (SearchBoxDisplayStyle != SearchBoxDisplayAutoHide ? WS_VISIBLE : 0),
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         RebarHandle,
         NULL,
