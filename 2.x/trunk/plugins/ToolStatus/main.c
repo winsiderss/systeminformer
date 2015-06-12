@@ -253,37 +253,6 @@ static VOID NTAPI LayoutPaddingCallback(
 
         MoveWindow(RebarHandle, x, y, cx, cy, TRUE);
 #endif
-
-        if (WindowsVersion >= WINDOWS_VISTA && SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
-        {
-            static BOOLEAN isSearchboxVisible = FALSE;
-            SIZE idealWidth;
-
-            // Query the the Toolbar ideal width
-            SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth);
-
-            // Hide the Searcbox band if the window size is too small...
-            if (rebarRect.right > idealWidth.cx)
-            {
-                if (isSearchboxVisible)
-                {
-                    if (!RebarBandExists(BandID_SearchBox))
-                        RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
-
-                    isSearchboxVisible = FALSE;
-                }
-            }
-            else
-            {
-                if (!isSearchboxVisible)
-                {
-                    if (RebarBandExists(BandID_SearchBox))
-                        RebarBandRemove(BandID_SearchBox);
-
-                    isSearchboxVisible = TRUE;
-                }
-            }
-        }
     }
 
     if (StatusBarHandle && EnableStatusBar)
@@ -393,6 +362,21 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     PhInvokeCallback(&SearchChangedEvent, SearchboxText);
 
                     goto DefaultWndProc;
+                }
+                break;
+            case EN_KILLFOCUS:
+                {
+                    if (SearchBoxDisplayStyle != SearchBoxDisplayAutoHide)
+                        break;
+
+                    if ((HWND)lParam != SearchboxHandle)
+                        break;
+
+                    if (SearchboxText->Length == 0)
+                    {
+                        if (RebarBandExists(BandID_SearchBox))
+                            RebarBandRemove(BandID_SearchBox);
+                    }
                 }
                 break;
             }
