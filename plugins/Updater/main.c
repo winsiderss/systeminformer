@@ -24,6 +24,7 @@
 
 PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
@@ -32,15 +33,31 @@ static VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
-    // Add our menu item, 4 = Help menu.
-    PhPluginAddMenuItem(PluginInstance, 4, NULL, UPDATE_MENUITEM, L"Check for Updates", NULL);
-
     // Check if the user want's us to auto-check for updates.
     if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
     {
         // All good, queue up our update check.
         StartInitialCheck();
     }
+}
+
+static VOID NTAPI MainMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
+
+    // Check this menu is the Help menu
+    if (menuInfo->u.MainMenu.SubMenuIndex != 4)
+        return;
+
+    // Add our menu item at index 0
+    PhInsertEMenuItem(
+        menuInfo->Menu,
+        PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for Updates", NULL),
+        0
+        );
 }
 
 static VOID NTAPI MenuItemCallback(
@@ -137,6 +154,12 @@ LOGICAL DllMain(
                 MainWindowShowingCallback,
                 NULL,
                 &MainWindowShowingCallbackRegistration
+                ); 
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
+                MainMenuInitializingCallback,
+                NULL,
+                &MainMenuInitializingCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
