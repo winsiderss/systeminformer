@@ -80,9 +80,8 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
 
 typedef enum _SEARCHBOX_DISPLAY_STYLE
 {
-    SearchBoxDisplayAutoHide,
-    SearchBoxDisplayAlwaysShow,
-    SearchBoxDisplayHideInactive
+    SearchBoxDisplayAlwaysShow = 0,
+    SearchBoxDisplayHideInactive = 1
 } SEARCHBOX_DISPLAY_STYLE;
 
 typedef enum _REBAR_BAND_ID

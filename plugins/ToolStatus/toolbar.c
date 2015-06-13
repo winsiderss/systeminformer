@@ -313,15 +313,12 @@ static VOID RebarLoadSettings(
 
     if (EnableSearchBox)
     {
-        if (SearchBoxDisplayStyle != SearchBoxDisplayAutoHide)
-        {
-            // Add the Searchbox band into the rebar control.
-            if (!RebarBandExists(BandID_SearchBox))
-                RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+        // Add the Searchbox band into the rebar control.
+        if (!RebarBandExists(BandID_SearchBox))
+            RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
 
-            if (SearchboxHandle && !IsWindowVisible(SearchboxHandle))
-                ShowWindow(SearchboxHandle, SW_SHOW);
-        }
+        if (SearchboxHandle && !IsWindowVisible(SearchboxHandle))
+            ShowWindow(SearchboxHandle, SW_SHOW);
     }
     else
     {
@@ -338,6 +335,18 @@ static VOID RebarLoadSettings(
             if (IsWindowVisible(SearchboxHandle))
                 ShowWindow(SearchboxHandle, SW_HIDE);
         }
+    }
+
+    // TODO: Fix above code...
+    if (SearchBoxDisplayStyle == SearchBoxDisplayHideInactive)
+    {
+        if (RebarBandExists(BandID_SearchBox))
+            RebarBandRemove(BandID_SearchBox);
+    }
+    else
+    {
+        if (!RebarBandExists(BandID_SearchBox))
+            RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
     }
 
     if (EnableStatusBar)

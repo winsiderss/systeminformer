@@ -42,13 +42,9 @@ INT_PTR CALLBACK OptionsDlgProc(
             ComboBox_AddString(toolbarCombo, L"Show Text Labels"); // Displays text labels for the toolbar buttons.
             ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
 
-            ComboBox_AddString(searchboxCombo, L"Auto-hide");
             ComboBox_AddString(searchboxCombo, L"Always show");
-            //ComboBox_AddString(searchboxCombo, L"Hide when inactive");
+            ComboBox_AddString(searchboxCombo, L"Hide when inactive");
             ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE));
-
-            if (WindowsVersion < WINDOWS_VISTA)
-                EnableWindow(searchboxCombo, FALSE);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR) ? BST_CHECKED : BST_UNCHECKED);
@@ -87,17 +83,6 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                     LoadToolbarSettings();
                     InvalidateRect(ToolBarHandle, NULL, TRUE);
-
-                    //if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
-                    //{
-                    //    if (RebarBandExists(BandID_SearchBox))
-                    //        RebarBandRemove(BandID_SearchBox);
-                    //}
-                    //else
-                    //{
-                    //    if (!RebarBandExists(BandID_SearchBox))
-                    //        RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
-                    //}
 
                     EndDialog(hwndDlg, IDOK);
                 }
