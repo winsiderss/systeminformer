@@ -593,7 +593,7 @@ HWND CreateSearchControl(
         WS_EX_CLIENTEDGE,
         WC_EDIT,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL | (SearchBoxDisplayStyle != SearchBoxDisplayAutoHide ? WS_VISIBLE : 0),
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL | (SearchBoxDisplayStyle != SearchBoxDisplayHideInactive ? WS_VISIBLE : 0),
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         RebarHandle,
         NULL,
