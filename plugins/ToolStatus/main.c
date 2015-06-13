@@ -44,7 +44,7 @@ BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
-SEARCHBOX_DISPLAY_STYLE SearchBoxDisplayStyle = SearchBoxDisplayAutoHide;
+SEARCHBOX_DISPLAY_STYLE SearchBoxDisplayStyle = SearchBoxDisplayAlwaysShow;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = RebarLocationTop;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
@@ -366,7 +366,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case EN_KILLFOCUS:
                 {
-                    if (SearchBoxDisplayStyle != SearchBoxDisplayAutoHide)
+                    if (SearchBoxDisplayStyle != SearchBoxDisplayHideInactive)
                         break;
 
                     if ((HWND)lParam != SearchboxHandle)
