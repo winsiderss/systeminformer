@@ -41,10 +41,11 @@ INT_PTR CALLBACK OptionsDlgProc(
             ComboBox_AddString(toolbarCombo, L"Selective Text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
             ComboBox_AddString(toolbarCombo, L"Show Text Labels"); // Displays text labels for the toolbar buttons.
             ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
-
+            
             ComboBox_AddString(searchboxCombo, L"Always show");
             ComboBox_AddString(searchboxCombo, L"Hide when inactive");
-            ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE));
+            //ComboBox_AddString(searchboxCombo, L"Auto-hide");
+            ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR) ? BST_CHECKED : BST_UNCHECKED);
@@ -70,8 +71,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                 {
                     PhSetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE,
                         (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
-                    PhSetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYSTYLE,
-                        (SearchBoxDisplayStyle = (SEARCHBOX_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_SEARCHBOX_DISPLAYSTYLECOMBO))));
+                    PhSetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE,
+                        (SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_SEARCHBOX_DISPLAYSTYLECOMBO))));
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR,
                         (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED));
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX,

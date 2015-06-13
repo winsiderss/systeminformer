@@ -338,7 +338,7 @@ static VOID RebarLoadSettings(
     }
 
     // TODO: Fix above code...
-    if (SearchBoxDisplayStyle == SearchBoxDisplayHideInactive)
+    if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
     {
         if (RebarBandExists(BandID_SearchBox))
             RebarBandRemove(BandID_SearchBox);
