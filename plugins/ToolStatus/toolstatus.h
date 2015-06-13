@@ -46,8 +46,7 @@
 #define SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS (PLUGIN_NAME L".ResolveGhostWindows")
 #define SETTING_NAME_ENABLE_STATUSMASK (PLUGIN_NAME L".StatusMask")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
-#define SETTING_NAME_SEARCHBOXDISPLAYSTYLE (PLUGIN_NAME L".SearchBoxDisplayStyle")
-#define SETTING_NAME_REBARDISPLAYLOCATION (PLUGIN_NAME L".RebarDisplayLocation")
+#define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 
@@ -78,11 +77,12 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
     ToolbarDisplayAllText
 } TOOLBAR_DISPLAY_STYLE;
 
-typedef enum _SEARCHBOX_DISPLAY_STYLE
+typedef enum _SEARCHBOX_DISPLAY_MODE
 {
     SearchBoxDisplayAlwaysShow = 0,
-    SearchBoxDisplayHideInactive = 1
-} SEARCHBOX_DISPLAY_STYLE;
+    SearchBoxDisplayHideInactive = 1,
+    //SearchBoxDisplayAutoHide = 2
+} SEARCHBOX_DISPLAY_MODE;
 
 typedef enum _REBAR_BAND_ID
 {
@@ -107,7 +107,7 @@ extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
 extern BOOLEAN ToolbarInitialized;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
-extern SEARCHBOX_DISPLAY_STYLE SearchBoxDisplayStyle;
+extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 extern ULONG StatusMask;
 extern ULONG ProcessesUpdatedCount;
