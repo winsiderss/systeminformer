@@ -200,7 +200,7 @@ static VOID RebarLoadSettings(
 
         // Create the ReBar window.
         RebarHandle = CreateWindowEx(
-            0,
+            WS_EX_TOOLWINDOW,
             REBARCLASSNAME,
             NULL,
             WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT | RBS_AUTOSIZE, // CCS_NOPARENTALIGN | RBS_FIXEDORDER
@@ -391,10 +391,8 @@ VOID LoadToolbarSettings(
 
             if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
             {
-                BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
-
                 // Set the pressed state
-                if (isAlwaysOnTopEnabled)
+                if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
                 {
                     button.fsState |= TBSTATE_PRESSED;
                 }
