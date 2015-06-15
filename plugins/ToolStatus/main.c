@@ -469,30 +469,20 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         else
                         {
                             PPH_EMENU_ITEM menuItem;
+                            HICON menuIcon;
 
                             // Add buttons to menu.
                             menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
 
-                            // Add Toolbar icons to the menu (doesn't work very well on XP).
-                            if (WindowsVersion >= WINDOWS_VISTA)
-                            {
-                                HICON menuIcon;
-
-                                menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL);
-
-                                menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
-                                menuItem->Bitmap = PhIconToBitmap(menuIcon, 16, 16);
-
-                                DestroyIcon(menuIcon);
-                            }
+                            menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL);
+                            menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
+                            menuItem->Bitmap = PhIconToBitmap(menuIcon, 16, 16);
+                            DestroyIcon(menuIcon);
 
                             if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
                             {
-                                // Query the settings.
-                                BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
-
                                 // Set the pressed state.
-                                if (isAlwaysOnTopEnabled)
+                                if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
                                     menuItem->Flags |= PH_EMENU_CHECKED;
                             }
 
