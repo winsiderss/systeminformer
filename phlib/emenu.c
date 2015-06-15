@@ -490,6 +490,17 @@ HMENU PhEMenuToHMenu(
 
     PhEMenuToHMenu2(menuHandle, Menu, Flags, Data);
 
+    if (!(Menu->Flags & PH_EMENU_SEPARATECHECKSPACE))
+    {
+        MENUINFO menuInfo;
+
+        memset(&menuInfo, 0, sizeof(MENUINFO));
+        menuInfo.cbSize = sizeof(MENUINFO);
+        menuInfo.fMask = MIM_STYLE;
+        menuInfo.dwStyle = MNS_CHECKORBMP;
+        SetMenuInfo(menuHandle, &menuInfo);
+    }
+
     return menuHandle;
 }
 
