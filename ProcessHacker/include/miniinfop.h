@@ -204,7 +204,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
 
 // List-based section
 
-#define MIP_MAX_PROCESS_GROUPS 10
+#define MIP_MAX_PROCESS_GROUPS 15
 #define MIP_SINGLE_COLUMN_ID 0
 
 #define MIP_CELL_PADDING 5
@@ -213,7 +213,11 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
 
 typedef struct _PH_MIP_GROUP_NODE
 {
-    PH_TREENEW_NODE Node;
+    union
+    {
+        PH_TREENEW_NODE Node;
+        PH_MINIINFO_LIST_SECTION_SORT_DATA SortData;
+    };
     PPH_PROCESS_GROUP ProcessGroup;
     HANDLE RepresentativeProcessId;
     LARGE_INTEGER RepresentativeCreateTime;
@@ -228,8 +232,7 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
 PPH_MINIINFO_LIST_SECTION PhMipCreateInternalListSection(
     _In_ PWSTR Name,
     _In_ ULONG Flags,
-    _In_ PPH_MINIINFO_LIST_SECTION_CALLBACK Callback,
-    _In_opt_ PC_COMPARE_FUNCTION CompareFunction
+    _In_ PPH_MINIINFO_LIST_SECTION_CALLBACK Callback
     );
 
 BOOLEAN PhMipListSectionCallback(
@@ -244,6 +247,11 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+VOID PhMipListSectionSortFunction(
+    _In_ PPH_LIST List,
+    _In_opt_ PVOID Context
     );
 
 VOID PhMipTickListSection(
@@ -284,8 +292,69 @@ BOOLEAN PhMipCpuListSectionCallback(
     _In_opt_ PVOID Parameter2
     );
 
-int __cdecl PhMipCpuListSectionCompareFunction(
-    _In_ void *context,
+int __cdecl PhMipCpuListSectionProcessCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    );
+
+int __cdecl PhMipCpuListSectionNodeCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    );
+
+// Commit Charge section
+
+BOOLEAN PhMipCommitListSectionCallback(
+    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+int __cdecl PhMipCommitListSectionProcessCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    );
+
+int __cdecl PhMipCommitListSectionNodeCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    );
+
+// Physical Memory section
+
+BOOLEAN PhMipPhysicalListSectionCallback(
+    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+int __cdecl PhMipPhysicalListSectionProcessCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    );
+
+int __cdecl PhMipPhysicalListSectionNodeCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    );
+
+// I/O section
+
+BOOLEAN PhMipIoListSectionCallback(
+    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+int __cdecl PhMipIoListSectionProcessCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    );
+
+int __cdecl PhMipIoListSectionNodeCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
     );
