@@ -60,9 +60,9 @@ static VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
 
-    if (menuItem != NULL && menuItem->Id == UPDATE_MENUITEM)
+    if (menuItem->Id == UPDATE_MENUITEM)
     {
         ShowUpdateDialog(NULL);
     }
