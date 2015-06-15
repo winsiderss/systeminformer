@@ -249,7 +249,7 @@ VOID PhpAddGroupMembersFromRoot(
 }
 
 PPH_LIST PhCreateProcessGroupList(
-    _In_opt_ PC_COMPARE_FUNCTION CompareFunction,
+    _In_opt_ PPH_SORT_LIST_FUNCTION SortListFunction,
     _In_opt_ PVOID Context,
     _In_ ULONG MaximumGroups,
     _In_ ULONG Flags
@@ -269,8 +269,8 @@ PPH_LIST PhCreateProcessGroupList(
 
     processList = PhDuplicateProcessNodeList();
 
-    if (CompareFunction)
-        qsort_s(processList->Items, processList->Count, sizeof(PPH_PROCESS_NODE), CompareFunction, Context);
+    if (SortListFunction)
+        SortListFunction(processList, Context);
 
     processDataList = PhpCreateProcessDataList(processList);
     PhDereferenceObject(processList);

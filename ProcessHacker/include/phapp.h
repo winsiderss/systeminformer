@@ -1035,11 +1035,16 @@ typedef struct _PH_PROCESS_GROUP
     PPH_LIST Processes; // List of PPH_PROCESS_ITEM
 } PH_PROCESS_GROUP, *PPH_PROCESS_GROUP;
 
+typedef VOID (NTAPI *PPH_SORT_LIST_FUNCTION)(
+    _In_ PPH_LIST List,
+    _In_opt_ PVOID Context
+    );
+
 #define PH_GROUP_PROCESSES_DONT_GROUP 0x1
 #define PH_GROUP_PROCESSES_FILE_PATH 0x2
 
 PPH_LIST PhCreateProcessGroupList(
-    _In_opt_ PC_COMPARE_FUNCTION CompareFunction, // Compare PPH_PROCESS_NODE objects
+    _In_opt_ PPH_SORT_LIST_FUNCTION SortListFunction, // Sort a list of PPH_PROCESS_NODE
     _In_opt_ PVOID Context,
     _In_ ULONG MaximumGroups,
     _In_ ULONG Flags
@@ -1133,6 +1138,9 @@ typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
     MiListSectionTick,
     MiListSectionShowing, // BOOLEAN Parameter1 (Showing)
     MiListSectionDialogCreated, // HWND Parameter1
+    MiListSectionSortProcessList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
+    MiListSectionAssignSortData, // PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA Parameter1
+    MiListSectionSortNodeList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
     MiListSectionGetTitleText, // PPH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT Parameter1
     MiListSectionGetUsageText, // PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT Parameter1
     MaxMiListSectionMessage
@@ -1145,9 +1153,29 @@ typedef BOOLEAN (NTAPI *PPH_MINIINFO_LIST_SECTION_CALLBACK)(
     _In_opt_ PVOID Parameter2
     );
 
+typedef struct _PH_MINIINFO_LIST_SECTION_SORT_DATA
+{
+    PH_TREENEW_NODE DoNotModify;
+    ULONGLONG UserData[4];
+} PH_MINIINFO_LIST_SECTION_SORT_DATA, *PPH_MINIINFO_LIST_SECTION_SORT_DATA;
+
+typedef struct _PH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA
+{
+    PPH_PROCESS_GROUP ProcessGroup;
+    PPH_MINIINFO_LIST_SECTION_SORT_DATA SortData;
+} PH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA, *PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA;
+
+typedef struct _PH_MINIINFO_LIST_SECTION_SORT_LIST
+{
+    // MiListSectionSortProcessList: List of PPH_PROCESS_NODE
+    // MiListSectionSortNodeList: List of PPH_MINIINFO_LIST_SECTION_SORT_DATA
+    PPH_LIST List;
+} PH_MINIINFO_LIST_SECTION_SORT_LIST, *PPH_MINIINFO_LIST_SECTION_SORT_LIST;
+
 typedef struct _PH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT
 {
     PPH_PROCESS_GROUP ProcessGroup;
+    PPH_MINIINFO_LIST_SECTION_SORT_DATA SortData;
     PPH_STRING Title; // Top line (may already contain a string)
     PPH_STRING Subtitle; // Bottom line (may already contain a string)
     COLORREF TitleColor;
@@ -1157,6 +1185,7 @@ typedef struct _PH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT
 typedef struct _PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT
 {
     PPH_PROCESS_GROUP ProcessGroup;
+    PPH_MINIINFO_LIST_SECTION_SORT_DATA SortData;
     PPH_STRING Line1; // Top line
     PPH_STRING Line2; // Bottom line
     COLORREF Line1Color;
@@ -1172,7 +1201,6 @@ typedef struct _PH_MINIINFO_LIST_SECTION
     HWND TreeNewHandle; // State
     PVOID Context;
     PPH_MINIINFO_LIST_SECTION_CALLBACK Callback;
-    PC_COMPARE_FUNCTION CompareFunction;
 
     // Private
 
