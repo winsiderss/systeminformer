@@ -1889,6 +1889,7 @@ VOID PhMwpOnInitMenuPopup(
 {
     ULONG i;
     BOOLEAN found;
+    MENUINFO menuInfo;
     PPH_EMENU menu;
 
     found = FALSE;
@@ -1923,6 +1924,13 @@ VOID PhMwpOnInitMenuPopup(
     // Delete the previous EMENU for this submenu.
     if (SubMenuObjects[Index])
         PhDestroyEMenu(SubMenuObjects[Index]);
+
+    // Make sure the menu style is set correctly.
+    memset(&menuInfo, 0, sizeof(MENUINFO));
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_STYLE;
+    menuInfo.dwStyle = MNS_CHECKORBMP;
+    SetMenuInfo(Menu, &menuInfo);
 
     menu = PhCreateEMenu();
     PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND), Index);
@@ -3686,24 +3694,16 @@ VOID PhMwpAddIconProcesses(
             processItem->ProcessId
             );
 
-        // Menu icons only work properly on Vista and above.
-        if (WindowsVersion >= WINDOWS_VISTA)
+        if (processItem->SmallIcon)
         {
-            if (processItem->SmallIcon)
-            {
-                iconBitmap = PhIconToBitmap(processItem->SmallIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-            }
-            else
-            {
-                HICON icon;
-
-                PhGetStockApplicationIcon(&icon, NULL);
-                iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
-            }
+            iconBitmap = PhIconToBitmap(processItem->SmallIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
         }
         else
         {
-            iconBitmap = NULL;
+            HICON icon;
+
+            PhGetStockApplicationIcon(&icon, NULL);
+            iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
         }
 
         subMenu->Bitmap = iconBitmap;
