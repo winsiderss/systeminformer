@@ -211,49 +211,6 @@ static VOID NTAPI LayoutPaddingCallback(
         // Adjust the PH client area and exclude the rebar width.
         data->Padding.top += rebarRect.bottom;
 
-#ifdef _REBAR_LOCATION_
-        RECT clientRect;
-        INT x, y, cx, cy;
-
-        GetClientRect(PhMainWndHandle, &clientRect);
-
-        switch (RebarDisplayLocation)
-        {
-        case RebarLocationLeft:
-            //x = 0;
-            //y = 0;
-            //cx = rebarRect.right - rebarRect.left;
-            //cy = clientRect.bottom - clientRect.top;
-            break;
-        case RebarLocationTop:
-            x = 0;
-            y = 0;
-            cx = clientRect.right - clientRect.left;
-            cy = clientRect.bottom - clientRect.top;
-
-            // Adjust the PH client area and exclude the rebar width.
-            data->Padding.top += rebarRect.bottom;
-            break;
-        case RebarLocationRight:
-            //x = clientRect.right - (rebarRect.right - rebarRect.left);
-            //y = 0;
-            //cx = rebarRect.right - rebarRect.left;
-            //cy = clientRect.bottom - clientRect.top;
-            break;
-        case RebarLocationBottom:
-            x = 0;
-            y = clientRect.bottom - (rebarRect.bottom - rebarRect.top) - (EnableStatusBar ? rebarRect.bottom + 1 : 0);
-            cx = clientRect.right - clientRect.left;
-            cy = rebarRect.bottom - rebarRect.top;
-
-            // Adjust the PH client area and exclude the rebar width.
-            data->Padding.bottom += rebarRect.bottom;
-            break;
-        }
-
-        MoveWindow(RebarHandle, x, y, cx, cy, TRUE);
-#endif
-
         //if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
         //{
         //    static BOOLEAN isSearchboxVisible = FALSE;
@@ -296,13 +253,6 @@ static VOID NTAPI LayoutPaddingCallback(
 
         // Adjust the PH client area and exclude the StatusBar width.
         data->Padding.bottom += statusBarRect.bottom;
-
-#ifdef _REBAR_LOCATION_
-        if (RebarDisplayLocation == RebarLocationBottom)
-        {
-            InvalidateRect(StatusBarHandle, &statusBarRect, TRUE);
-        }
-#endif
     }
 }
 
@@ -524,7 +474,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
 
                             // Add Toolbar icons to the menu (doesn't work very well on XP).
-                            if (WindowsVersion >= WINDOWS_VISTA)
+                            //if (WindowsVersion >= WINDOWS_VISTA)
                             {
                                 HICON menuIcon;
 
