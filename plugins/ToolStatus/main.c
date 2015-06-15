@@ -474,7 +474,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
 
                             // Add Toolbar icons to the menu (doesn't work very well on XP).
-                            //if (WindowsVersion >= WINDOWS_VISTA)
+                            if (WindowsVersion >= WINDOWS_VISTA)
                             {
                                 HICON menuIcon;
 
