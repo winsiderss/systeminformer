@@ -712,7 +712,44 @@ VOID PhMipCalculateWindowRectangle(
     {
         PH_RECTANGLE bounds;
 
+        if (memcmp(&monitorInfo.rcWork, &monitorInfo.rcMonitor, sizeof(RECT)) == 0)
+        {
+            HWND trayWindow;
+            RECT taskbarRect;
+
+            // The taskbar probably has auto-hide enabled. We need to adjust for that.
+            if ((trayWindow = FindWindow(L"Shell_TrayWnd", NULL)) &&
+                GetMonitorInfo(MonitorFromWindow(trayWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo) && // Just in case
+                GetWindowRect(trayWindow, &taskbarRect))
+            {
+                LONG monitorMidX = (monitorInfo.rcMonitor.left + monitorInfo.rcMonitor.right) / 2;
+                LONG monitorMidY = (monitorInfo.rcMonitor.top + monitorInfo.rcMonitor.bottom) / 2;
+
+                if (taskbarRect.right < monitorMidX)
+                {
+                    // Left
+                    monitorInfo.rcWork.left += taskbarRect.right - taskbarRect.left;
+                }
+                else if (taskbarRect.bottom < monitorMidY)
+                {
+                    // Top
+                    monitorInfo.rcWork.top += taskbarRect.bottom - taskbarRect.top;
+                }
+                else if (taskbarRect.left > monitorMidX)
+                {
+                    // Right
+                    monitorInfo.rcWork.right -= taskbarRect.right - taskbarRect.left;
+                }
+                else if (taskbarRect.top > monitorMidY)
+                {
+                    // Bottom
+                    monitorInfo.rcWork.bottom -= taskbarRect.bottom - taskbarRect.top;
+                }
+            }
+        }
+
         bounds = PhRectToRectangle(monitorInfo.rcWork);
+
         PhAdjustRectangleToBounds(&windowRectangle, &bounds);
     }
 
@@ -924,16 +961,25 @@ VOID PhMipLayout(
 
     if (CurrentSection && CurrentSection->DialogHandle)
     {
-        LONG leftDistance = rect.left - clientRect.left;
-        LONG rightDistance = clientRect.right - rect.right;
-        LONG minDistance;
-
-        if (leftDistance != rightDistance)
+        if (CurrentSection->Flags & PH_MINIINFO_SECTION_NO_UPPER_MARGINS)
         {
-            // HACK: Enforce symmetry. Sometimes these are off by a pixel.
-            minDistance = min(leftDistance, rightDistance);
-            rect.left = clientRect.left + minDistance;
-            rect.right = clientRect.right - minDistance;
+            rect.left = 0;
+            rect.top = 0;
+            rect.right = clientRect.right;
+        }
+        else
+        {
+            LONG leftDistance = rect.left - clientRect.left;
+            LONG rightDistance = clientRect.right - rect.right;
+            LONG minDistance;
+
+            if (leftDistance != rightDistance)
+            {
+                // HACK: Enforce symmetry. Sometimes these are off by a pixel.
+                minDistance = min(leftDistance, rightDistance);
+                rect.left = clientRect.left + minDistance;
+                rect.right = clientRect.right - minDistance;
+            }
         }
 
         MoveWindow(
@@ -1008,7 +1054,7 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
 
     memset(&section, 0, sizeof(PH_MINIINFO_SECTION));
     PhInitializeStringRef(&section.Name, Name);
-    section.Flags = Flags;
+    section.Flags = PH_MINIINFO_SECTION_NO_UPPER_MARGINS;
     section.Callback = PhMipListSectionCallback;
     section.Context = listSection;
     listSection->Section = PhMipCreateSection(&section);
@@ -1101,6 +1147,8 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PPH_LAYOUT_ITEM layoutItem;
+
             listSection = (PPH_MINIINFO_LIST_SECTION)lParam;
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)listSection);
 
@@ -1108,7 +1156,12 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
             listSection->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhInitializeLayoutManager(&listSection->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&listSection->LayoutManager, listSection->TreeNewHandle, NULL, PH_ANCHOR_ALL);
+            layoutItem = PhAddLayoutItem(&listSection->LayoutManager, listSection->TreeNewHandle, NULL, PH_ANCHOR_ALL);
+
+            // Use negative margins to maximize our use of the window area.
+            layoutItem->Margin.left = -1;
+            layoutItem->Margin.top = -1;
+            layoutItem->Margin.right = -1;
 
             PhSetControlTheme(listSection->TreeNewHandle, L"explorer");
             TreeNew_SetCallback(listSection->TreeNewHandle, PhMipListSectionTreeNewCallback, listSection);
