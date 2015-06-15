@@ -643,6 +643,19 @@ BOOLEAN PhMipMessageLoopFilter(
         {
             PhPinMiniInformation(MiniInfoHoverPinType, -1, MIP_UNPIN_HOVER_DELAY, 0, NULL, NULL);
         }
+        else if (Message->message == WM_KEYDOWN)
+        {
+            switch (Message->wParam)
+            {
+            case VK_F5:
+                ProcessHacker_Refresh(PhMainWndHandle);
+                break;
+            case VK_F6:
+            case VK_PAUSE:
+                ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
+                break;
+            }
+        }
     }
 
     return FALSE;
@@ -1324,9 +1337,11 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             ULONG baseTextFlags = DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE;
             HICON icon;
             RECT topRect;
+            RECT bottomRect;
             PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText;
-            ULONG usageTextWidth = 0;
-            PH_STRINGREF title;
+            ULONG usageTextTopWidth = 0;
+            ULONG usageTextBottomWidth = 0;
+            PH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT getTitleText;
 
             rect.left += MIP_ICON_PADDING;
             rect.top += MIP_ICON_PADDING;
@@ -1344,49 +1359,107 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             rect.top += MIP_CELL_PADDING - MIP_ICON_PADDING;
             SelectObject(hdc, CurrentParameters.Font);
 
-            // Top line
+            // Usage text
 
             topRect = rect;
             topRect.bottom = topRect.top + CurrentParameters.FontHeight;
+            bottomRect = rect;
+            bottomRect.top = bottomRect.bottom - CurrentParameters.FontHeight;
 
             getUsageText.ProcessGroup = node->ProcessGroup;
-            getUsageText.Text = NULL;
+            getUsageText.Line1 = NULL;
+            getUsageText.Line2 = NULL;
+            getUsageText.Line1Color = 0;
+            getUsageText.Line2Color = 0;
 
             if (listSection->Callback(listSection, MiListSectionGetUsageText, &getUsageText, NULL))
             {
-                PH_STRINGREF usageText;
+                PH_STRINGREF text;
                 RECT textRect;
                 SIZE textSize;
 
-                usageText = PhGetStringRef(getUsageText.Text);
-                GetTextExtentPoint32(hdc, usageText.Buffer, (ULONG)usageText.Length / 2, &textSize);
-                usageTextWidth = textSize.cx;
+                // Top
+                text = PhGetStringRef(getUsageText.Line1);
+                GetTextExtentPoint32(hdc, text.Buffer, (ULONG)text.Length / 2, &textSize);
+                usageTextTopWidth = textSize.cx;
                 textRect = topRect;
                 textRect.left = textRect.right - textSize.cx;
-                DrawText(hdc, usageText.Buffer, (ULONG)usageText.Length / 2,
-                    &textRect, baseTextFlags | DT_RIGHT);
-                PhClearReference(&getUsageText.Text);
+                SetTextColor(hdc, getUsageText.Line1Color);
+                DrawText(hdc, text.Buffer, (ULONG)text.Length / 2, &textRect, baseTextFlags | DT_RIGHT);
+                PhClearReference(&getUsageText.Line1);
+
+                // Bottom
+                text = PhGetStringRef(getUsageText.Line2);
+                GetTextExtentPoint32(hdc, text.Buffer, (ULONG)text.Length / 2, &textSize);
+                usageTextBottomWidth = textSize.cx;
+                textRect = bottomRect;
+                textRect.left = textRect.right - textSize.cx;
+                SetTextColor(hdc, getUsageText.Line2Color);
+                DrawText(hdc, text.Buffer, (ULONG)text.Length / 2, &textRect, baseTextFlags | DT_RIGHT);
+                PhClearReference(&getUsageText.Line2);
             }
 
-            if (processItem->VersionInfo.FileDescription)
-                title = processItem->VersionInfo.FileDescription->sr;
-            else
-                title = processItem->ProcessName->sr;
+            // Title, subtitle
 
-            if (title.Length != 0)
+            getTitleText.ProcessGroup = node->ProcessGroup;
+
+            if (processItem->VersionInfo.FileDescription)
+                PhSetReference(&getTitleText.Title, processItem->VersionInfo.FileDescription);
+            else
+                PhSetReference(&getTitleText.Title, processItem->ProcessName);
+
+            if (node->ProcessGroup->Processes->Count == 1)
+            {
+                PhSetReference(&getTitleText.Subtitle, processItem->ProcessName);
+            }
+            else
+            {
+                getTitleText.Subtitle = PhFormatString(
+                    L"%s (%u processes)",
+                    processItem->ProcessName->Buffer,
+                    node->ProcessGroup->Processes->Count
+                    );
+            }
+
+            getTitleText.TitleColor = 0;
+            getTitleText.SubtitleColor = RGB(0x70, 0x70, 0x70);
+
+            listSection->Callback(listSection, MiListSectionGetTitleText, &getTitleText, NULL);
+
+            if (!PhIsNullOrEmptyString(getTitleText.Title))
             {
                 RECT textRect;
 
                 textRect = topRect;
-                textRect.right -= usageTextWidth + MIP_INNER_PADDING;
+                textRect.right -= usageTextTopWidth + MIP_INNER_PADDING;
+                SetTextColor(hdc, getTitleText.TitleColor);
                 DrawText(
                     hdc,
-                    title.Buffer,
-                    (ULONG)title.Length / 2,
+                    getTitleText.Title->Buffer,
+                    (ULONG)getTitleText.Title->Length / 2,
                     &textRect,
                     baseTextFlags | DT_END_ELLIPSIS
                     );
             }
+
+            if (!PhIsNullOrEmptyString(getTitleText.Subtitle))
+            {
+                RECT textRect;
+
+                textRect = bottomRect;
+                textRect.right -= usageTextBottomWidth + MIP_INNER_PADDING;
+                SetTextColor(hdc, getTitleText.SubtitleColor);
+                DrawText(
+                    hdc,
+                    getTitleText.Subtitle->Buffer,
+                    (ULONG)getTitleText.Subtitle->Length / 2,
+                    &textRect,
+                    baseTextFlags | DT_END_ELLIPSIS
+                    );
+            }
+
+            PhClearReference(&getTitleText.Title);
+            PhClearReference(&getTitleText.Subtitle);
         }
         return TRUE;
     case TreeNewSelectionChanged:
@@ -1438,7 +1511,7 @@ BOOLEAN PhMipCpuListSectionCallback(
             for (i = 0; i < processes->Count; i++)
                 cpuUsage += ((PPH_PROCESS_ITEM)processes->Items[i])->CpuUsage;
 
-            getUsageText->Text = PhFormatString(L"%.2f%%", cpuUsage * 100);
+            PhMoveReference(&getUsageText->Line1, PhFormatString(L"%.2f%%", cpuUsage * 100));
         }
         return TRUE;
     }

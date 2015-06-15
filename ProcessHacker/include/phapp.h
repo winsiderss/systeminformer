@@ -1036,6 +1036,7 @@ typedef struct _PH_PROCESS_GROUP
 } PH_PROCESS_GROUP, *PPH_PROCESS_GROUP;
 
 #define PH_GROUP_PROCESSES_DONT_GROUP 0x1
+#define PH_GROUP_PROCESSES_FILE_PATH 0x2
 
 PPH_LIST PhCreateProcessGroupList(
     _In_opt_ PC_COMPARE_FUNCTION CompareFunction, // Compare PPH_PROCESS_NODE objects
@@ -1132,6 +1133,7 @@ typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
     MiListSectionTick,
     MiListSectionShowing, // BOOLEAN Parameter1 (Showing)
     MiListSectionDialogCreated, // HWND Parameter1
+    MiListSectionGetTitleText, // PPH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT Parameter1
     MiListSectionGetUsageText, // PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT Parameter1
     MaxMiListSectionMessage
 } PH_MINIINFO_LIST_SECTION_MESSAGE;
@@ -1143,10 +1145,22 @@ typedef BOOLEAN (NTAPI *PPH_MINIINFO_LIST_SECTION_CALLBACK)(
     _In_opt_ PVOID Parameter2
     );
 
+typedef struct _PH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT
+{
+    PPH_PROCESS_GROUP ProcessGroup;
+    PPH_STRING Title; // Top line (may already contain a string)
+    PPH_STRING Subtitle; // Bottom line (may already contain a string)
+    COLORREF TitleColor;
+    COLORREF SubtitleColor;
+} PH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT, *PPH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT;
+
 typedef struct _PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT
 {
     PPH_PROCESS_GROUP ProcessGroup;
-    PPH_STRING Text;
+    PPH_STRING Line1; // Top line
+    PPH_STRING Line2; // Bottom line
+    COLORREF Line1Color;
+    COLORREF Line2Color;
 } PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT, *PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT;
 
 typedef struct _PH_MINIINFO_LIST_SECTION
