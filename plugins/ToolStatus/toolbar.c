@@ -65,9 +65,10 @@ VOID RebarBandInsert(
     rebarBandInfo.cyMinChild = cyMinChild;
     rebarBandInfo.cxMinChild = cxMinChild;
 
-    // Hack for Rebar band sizing bugs
-    if (WindowsVersion < WINDOWS_VISTA)
+    if (BandID == BandID_SearchBox)
+    {
         rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
+    }
 
     SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
@@ -103,13 +104,7 @@ static VOID RebarLoadSettings(
     // Initialize the Toolbar Imagelist.
     if (EnableToolBar && !ToolBarImageList)
     {
-        HBITMAP arrowIconBitmap = NULL;
-        HBITMAP cogIconBitmap = NULL;
-        HBITMAP findIconBitmap = NULL;
-        HBITMAP chartIconBitmap = NULL;
-        HBITMAP appIconBitmap = NULL;
-        HBITMAP goIconBitmap = NULL;
-        HBITMAP crossIconBitmap = NULL;
+        HBITMAP iconBitmap = NULL;
 
         // Create the toolbar imagelist
         ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
@@ -117,80 +112,80 @@ static VOID RebarLoadSettings(
         ImageList_SetImageCount(ToolBarImageList, 8);
 
         // Add the images to the imagelist
-        if (arrowIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
         {
-            ImageList_Replace(ToolBarImageList, 0, arrowIconBitmap, NULL);
-            DeleteObject(arrowIconBitmap);
+            ImageList_Replace(ToolBarImageList, 0, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
         }
 
-        if (cogIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))
         {
-            ImageList_Replace(ToolBarImageList, 1, cogIconBitmap, NULL);
-            DeleteObject(cogIconBitmap);
+            ImageList_Replace(ToolBarImageList, 1, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
         }
 
-        if (findIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
         {
-            ImageList_Replace(ToolBarImageList, 2, findIconBitmap, NULL);
-            DeleteObject(findIconBitmap);
+            ImageList_Replace(ToolBarImageList, 2, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
         }
 
-        if (chartIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)))
         {
-            ImageList_Replace(ToolBarImageList, 3, chartIconBitmap, NULL);
-            DeleteObject(chartIconBitmap);
+            ImageList_Replace(ToolBarImageList, 3, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
         }
 
-        if (appIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)))
         {
-            ImageList_Replace(ToolBarImageList, 4, appIconBitmap, NULL);
-            DeleteObject(appIconBitmap);
+            ImageList_Replace(ToolBarImageList, 4, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
         }
 
-        if (goIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
         {
-            ImageList_Replace(ToolBarImageList, 5, goIconBitmap, NULL);
-            DeleteObject(goIconBitmap);
+            ImageList_Replace(ToolBarImageList, 5, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
         }
 
-        if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)))
         {
-            ImageList_Replace(ToolBarImageList, 6, crossIconBitmap, NULL);
-            DeleteObject(crossIconBitmap);
+            ImageList_Replace(ToolBarImageList, 6, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 6, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
         }
 
-        if (crossIconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
+        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
         {
-            ImageList_Replace(ToolBarImageList, 7, crossIconBitmap, NULL);
-            DeleteObject(crossIconBitmap);
+            ImageList_Replace(ToolBarImageList, 7, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
         }
         else
         {
@@ -261,7 +256,7 @@ static VOID RebarLoadSettings(
         //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
         // HACK: Query the toolbar width/height.
-        ULONG_PTR toolbarButtonSize = (ULONG_PTR)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+        ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
         // Inset the toolbar into the rebar control.
         RebarBandInsert(BandID_ToolBar, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
@@ -442,33 +437,23 @@ VOID LoadToolbarSettings(
 
     if (EnableToolBar && RebarHandle)
     {
-        ULONG index = 0;
-        ULONG buttonCount = 0;
+        INT index;
+        REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
+        rebarBandInfo.fMask = RBBIM_IDEALSIZE;
 
-        buttonCount = (ULONG)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+        index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID_ToolBar, 0);
 
-        for (index = 0; index < buttonCount; index++)
+        // Get settings for Rebar band.
+        if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo) != -1)
         {
-            REBARBANDINFO band = { sizeof(REBARBANDINFO) };
-            band.fMask = RBBIM_ID | RBBIM_IDEALSIZE;
+            SIZE idealWidth;
 
-            // Get settings for Rebar band.
-            if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&band) == -1)
-                break;
+            // Reset the cxIdeal for the Chevron
+            SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth);
 
-            if (band.wID != BandID_ToolBar)
-                continue;
-            else
-            {
-                SIZE idealWidth;
+            rebarBandInfo.cxIdeal = idealWidth.cx;
 
-                // Reset the IdealSize for the Chevron
-                SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth);
-
-                band.cxIdeal = idealWidth.cx;
-
-                SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&band);
-            }
+            SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&rebarBandInfo);
         }
     }
 
