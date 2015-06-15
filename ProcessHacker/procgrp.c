@@ -138,9 +138,39 @@ BOOL CALLBACK PhpQueryWindowsEnumWindowsProc(
     return TRUE;
 }
 
+PPH_STRING PhpGetRelevantFileName(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Flags
+    )
+{
+    if (Flags & PH_GROUP_PROCESSES_FILE_PATH)
+        return ProcessItem->FileName;
+    else
+        return ProcessItem->ProcessName;
+}
+
+BOOLEAN PhpEqualFileNameAndUserName(
+    _In_ PPH_STRING FileName,
+    _In_ PPH_STRING UserName,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Flags
+    )
+{
+    PPH_STRING otherFileName;
+    PPH_STRING otherUserName;
+
+    otherFileName = PhpGetRelevantFileName(ProcessItem, Flags);
+    otherUserName = ProcessItem->UserName;
+
+    return 
+        otherFileName && PhEqualString(otherFileName, FileName, TRUE) &&
+        otherUserName && PhEqualString(otherUserName, UserName, TRUE);
+}
+
 PPHP_PROCESS_DATA PhpFindGroupRoot(
     _In_ PPHP_PROCESS_DATA ProcessData,
-    _In_ PPH_HASHTABLE ProcessDataHashtable
+    _In_ PPH_HASHTABLE ProcessDataHashtable,
+    _In_ ULONG Flags
     )
 {
     PPH_PROCESS_NODE root;
@@ -152,7 +182,7 @@ PPHP_PROCESS_DATA PhpFindGroupRoot(
 
     root = ProcessData->Process;
     rootProcessData = ProcessData;
-    fileName = ProcessData->Process->ProcessItem->FileName;
+    fileName = PhpGetRelevantFileName(ProcessData->Process->ProcessItem, Flags);
     userName = ProcessData->Process->ProcessItem->UserName;
 
     if (ProcessData->HasWindow)
@@ -161,8 +191,7 @@ PPHP_PROCESS_DATA PhpFindGroupRoot(
     while (parent = root->Parent)
     {
         if ((processData = PhFindItemSimpleHashtable2(ProcessDataHashtable, parent->ProcessId)) &&
-            parent->ProcessItem->FileName && PhEqualString(parent->ProcessItem->FileName, fileName, TRUE) &&
-            parent->ProcessItem->UserName && PhEqualString(parent->ProcessItem->UserName, userName, TRUE))
+            PhpEqualFileNameAndUserName(fileName, userName, parent->ProcessItem, Flags))
         {
             root = parent;
             rootProcessData = processData;
@@ -192,7 +221,8 @@ VOID PhpAddGroupMember(
 VOID PhpAddGroupMembersFromRoot(
     _In_ PPHP_PROCESS_DATA ProcessData,
     _Inout_ PPH_LIST List,
-    _In_ PPH_HASHTABLE ProcessDataHashtable
+    _In_ PPH_HASHTABLE ProcessDataHashtable,
+    _In_ ULONG Flags
     )
 {
     PPH_STRING fileName;
@@ -200,7 +230,7 @@ VOID PhpAddGroupMembersFromRoot(
     ULONG i;
 
     PhpAddGroupMember(ProcessData, List);
-    fileName = ProcessData->Process->ProcessItem->FileName;
+    fileName = PhpGetRelevantFileName(ProcessData->Process->ProcessItem, Flags);
     userName = ProcessData->Process->ProcessItem->UserName;
 
     for (i = 0; i < ProcessData->Process->Children->Count; i++)
@@ -209,11 +239,11 @@ VOID PhpAddGroupMembersFromRoot(
         PPHP_PROCESS_DATA processData;
 
         if ((processData = PhFindItemSimpleHashtable2(ProcessDataHashtable, node->ProcessId)) &&
-            node->ProcessItem->FileName && PhEqualString(node->ProcessItem->FileName, fileName, TRUE) &&
+            PhpEqualFileNameAndUserName(fileName, userName, node->ProcessItem, Flags) &&
             node->ProcessItem->UserName && PhEqualString(node->ProcessItem->UserName, userName, TRUE) &&
             !processData->HasWindow)
         {
-            PhpAddGroupMembersFromRoot(processData, List, ProcessDataHashtable);
+            PhpAddGroupMembersFromRoot(processData, List, ProcessDataHashtable, Flags);
         }
     }
 }
@@ -261,7 +291,7 @@ PPH_LIST PhCreateProcessGroupList(
 
         processGroup = PhAllocate(sizeof(PH_PROCESS_GROUP));
         processGroup->Processes = PhCreateList(4);
-        fileName = processData->Process->ProcessItem->FileName;
+        fileName = PhpGetRelevantFileName(processData->Process->ProcessItem, Flags);
         userName = processData->Process->ProcessItem->UserName;
 
         if (!fileName || !userName || (Flags & PH_GROUP_PROCESSES_DONT_GROUP))
@@ -271,9 +301,9 @@ PPH_LIST PhCreateProcessGroupList(
         }
         else
         {
-            processData = PhpFindGroupRoot(processData, processDataHashtable);
+            processData = PhpFindGroupRoot(processData, processDataHashtable, Flags);
             processGroup->Representative = processData->Process->ProcessItem;
-            PhpAddGroupMembersFromRoot(processData, processGroup->Processes, processDataHashtable);
+            PhpAddGroupMembersFromRoot(processData, processGroup->Processes, processDataHashtable, Flags);
         }
 
         PhAddItemList(processGroupList, processGroup);
