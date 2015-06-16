@@ -1,5 +1,5 @@
-#ifndef PHSVCCL_H
-#define PHSVCCL_H
+#ifndef PH_PHSVCCL_H
+#define PH_PHSVCCL_H
 
 #include <phsvcapi.h>
 

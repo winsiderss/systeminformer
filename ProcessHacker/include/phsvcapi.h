@@ -1,5 +1,5 @@
-#ifndef PHSVCAPI_H
-#define PHSVCAPI_H
+#ifndef PH_PHSVCAPI_H
+#define PH_PHSVCAPI_H
 
 #define PHSVC_PORT_NAME (L"\\BaseNamedObjects\\PhSvcApiPort")
 #define PHSVC_WOW64_PORT_NAME (L"\\BaseNamedObjects\\PhSvcWow64ApiPort")

@@ -1,5 +1,5 @@
-#ifndef SYSINFOP_H
-#define SYSINFOP_H
+#ifndef PH_SYSINFOP_H
+#define PH_SYSINFOP_H
 
 // Constants
 

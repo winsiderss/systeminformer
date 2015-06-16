@@ -1,5 +1,5 @@
-#ifndef _APIIMPORT_H
-#define _APIIMPORT_H
+#ifndef _PH_APIIMPORT_H
+#define _PH_APIIMPORT_H
 
 typedef NTSTATUS (NTAPI *_NtQueryInformationEnlistment)(
     _In_ HANDLE EnlistmentHandle,
