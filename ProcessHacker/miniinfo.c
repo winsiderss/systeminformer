@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <emenu.h>
+#include <miniinfo.h>
 #include <windowsx.h>
 #include <uxtheme.h>
 #include <miniinfop.h>
@@ -1523,6 +1524,17 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                     listSection->SelectedRepresentativeCreateTime = node->RepresentativeCreateTime;
                     break;
                 }
+            }
+        }
+        break;
+    case TreeNewLeftDoubleClick:
+        {
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_MIP_GROUP_NODE node = (PPH_MIP_GROUP_NODE)mouseEvent->Node;
+
+            if (node)
+            {
+
             }
         }
         break;

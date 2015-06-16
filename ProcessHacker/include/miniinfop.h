@@ -1,5 +1,5 @@
-#ifndef MINIINFOP_H
-#define MINIINFOP_H
+#ifndef PH_MINIINFOP_H
+#define PH_MINIINFOP_H
 
 // Constants
 

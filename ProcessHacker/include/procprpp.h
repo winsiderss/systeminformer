@@ -1,5 +1,5 @@
-#ifndef PROCPRPP_H
-#define PROCPRPP_H
+#ifndef PH_PROCPRPP_H
+#define PH_PROCPRPP_H
 
 typedef struct _PH_PROCESS_PROPSHEETCONTEXT
 {

@@ -1,5 +1,5 @@
-#ifndef SETTINGSP_H
-#define SETTINGSP_H
+#ifndef PH_SETTINGSP_H
+#define PH_SETTINGSP_H
 
 #include <shlobj.h>
 

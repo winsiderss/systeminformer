@@ -2,6 +2,8 @@
 #define PH_PHPLUG_H
 
 #include <extmgr.h>
+#include <sysinfo.h>
+#include <miniinfo.h>
 
 #ifdef __cplusplus
 extern "C" {

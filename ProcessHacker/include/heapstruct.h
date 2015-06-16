@@ -1,5 +1,5 @@
-#ifndef HEAPSTRUCT_H
-#define HEAPSTRUCT_H
+#ifndef PH_HEAPSTRUCT_H
+#define PH_HEAPSTRUCT_H
 
 // Not the actual structure, but has the same size.
 typedef struct _HEAP_ENTRY

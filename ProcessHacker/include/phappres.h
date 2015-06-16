@@ -1,8 +1,8 @@
 // Notes:
 // * Do not use /* comments */ since ISPP is buggy and it will throw an error.
 
-#ifndef PHAPPRES_H
-#define PHAPPRES_H
+#ifndef PH_PHAPPRES_H
+#define PH_PHAPPRES_H
 
 #include "phapprev.h"
 

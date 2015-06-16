@@ -363,7 +363,9 @@
     <ClInclude Include="include\miniinfop.h" />
     <ClInclude Include="include\notifico.h" />
     <ClInclude Include="include\phsvccl.h" />
+    <ClInclude Include="include\sysinfo.h" />
     <ClInclude Include="include\uimodels.h" />
+    <ClInclude Include="include\miniinfo.h" />
     <ClInclude Include="mxml\config.h" />
     <ClInclude Include="include\hidnproc.h" />
     <ClInclude Include="include\memsrch.h" />
@@ -378,6 +380,7 @@
     <ClInclude Include="pcre\pcreposix.h" />
     <ClInclude Include="pcre\pcre_internal.h" />
     <ClInclude Include="pcre\ucp.h" />
+    <ClInclude Include="include\procgrp.h" />
     <ClInclude Include="sdk\phapppub.h" />
     <ClInclude Include="sdk\phdk.h" />
     <ClInclude Include="include\phplug.h" />
