@@ -45,6 +45,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMemoryTreeNewInitializing = 29, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackMemoryTreeNewUninitializing = 30, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackMemoryItemListControl = 31, // PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL Data [properties thread]
+    GeneralCallbackMiListSectionMenuInitializing = 32, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 
@@ -174,6 +175,11 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
             PPH_HANDLE_ITEM *Handles;
             ULONG NumberOfHandles;
         } Handle;
+        struct
+        {
+            PPH_STRINGREF SectionName;
+            PPH_PROCESS_GROUP ProcessGroup;
+        } MiListSection;
     } u;
 
     ULONG Flags;

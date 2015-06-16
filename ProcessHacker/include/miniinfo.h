@@ -3,6 +3,8 @@
 
 #include <procgrp.h>
 
+// Section
+
 typedef VOID (NTAPI *PPH_MINIINFO_SET_SECTION_TEXT)(
     _In_ struct _PH_MINIINFO_SECTION *Section,
     _In_opt_ PPH_STRING Text
@@ -78,6 +80,31 @@ typedef struct _PH_MINIINFO_SECTION
     PPH_STRING Text;
 } PH_MINIINFO_SECTION, *PPH_MINIINFO_SECTION;
 
+typedef enum _PH_MINIINFO_PIN_TYPE
+{
+    MiniInfoManualPinType, // User pin
+    MiniInfoIconPinType, // Notification icon
+    MiniInfoActivePinType, // Window is active
+    MiniInfoHoverPinType, // Cursor is over mini info window
+    MiniInfoChildControlPinType, // Interacting with child control
+    MaxMiniInfoPinType
+} PH_MINIINFO_PIN_TYPE;
+
+#define PH_MINIINFO_ACTIVATE_WINDOW 0x1
+#define PH_MINIINFO_LOAD_POSITION 0x2
+#define PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED 0x4
+
+VOID PhPinMiniInformation(
+    _In_ PH_MINIINFO_PIN_TYPE PinType,
+    _In_ LONG PinCount,
+    _In_opt_ ULONG PinDelayMs,
+    _In_ ULONG Flags,
+    _In_opt_ PWSTR SectionName,
+    _In_opt_ PPOINT SourcePoint
+    );
+
+// List section
+
 typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
 {
     MiListSectionCreate,
@@ -90,6 +117,8 @@ typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
     MiListSectionSortGroupList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
     MiListSectionGetTitleText, // PPH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT Parameter1
     MiListSectionGetUsageText, // PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT Parameter1
+    MiListSectionInitializeContextMenu, // PPH_MINIINFO_LIST_SECTION_MENU_INFORMATION Parameter1
+    MiListSectionHandleContextMenu, // PPH_MINIINFO_LIST_SECTION_MENU_INFORMATION Parameter1
     MaxMiListSectionMessage
 } PH_MINIINFO_LIST_SECTION_MESSAGE;
 
@@ -149,6 +178,15 @@ typedef struct _PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT
     COLORREF Line2Color;
 } PH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT, *PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT;
 
+typedef struct _PH_MINIINFO_LIST_SECTION_MENU_INFORMATION
+{
+    PPH_PROCESS_GROUP ProcessGroup;
+    PPH_MINIINFO_LIST_SECTION_SORT_DATA SortData;
+    PPH_TREENEW_CONTEXT_MENU ContextMenu;
+    struct _PH_EMENU_ITEM *SelectedItem;
+    BOOLEAN Handled;
+} PH_MINIINFO_LIST_SECTION_MENU_INFORMATION, *PPH_MINIINFO_LIST_SECTION_MENU_INFORMATION;
+
 typedef struct _PH_MINIINFO_LIST_SECTION
 {
     // Public
@@ -168,28 +206,5 @@ typedef struct _PH_MINIINFO_LIST_SECTION
     HANDLE SelectedRepresentativeProcessId;
     LARGE_INTEGER SelectedRepresentativeCreateTime;
 } PH_MINIINFO_LIST_SECTION, *PPH_MINIINFO_LIST_SECTION;
-
-typedef enum _PH_MINIINFO_PIN_TYPE
-{
-    MiniInfoManualPinType, // User pin
-    MiniInfoIconPinType, // Notification icon
-    MiniInfoActivePinType, // Window is active
-    MiniInfoHoverPinType, // Cursor is over mini info window
-    MiniInfoChildControlPinType, // Interacting with child control
-    MaxMiniInfoPinType
-} PH_MINIINFO_PIN_TYPE;
-
-#define PH_MINIINFO_ACTIVATE_WINDOW 0x1
-#define PH_MINIINFO_LOAD_POSITION 0x2
-#define PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED 0x4
-
-VOID PhPinMiniInformation(
-    _In_ PH_MINIINFO_PIN_TYPE PinType,
-    _In_ LONG PinCount,
-    _In_opt_ ULONG PinDelayMs,
-    _In_ ULONG Flags,
-    _In_opt_ PWSTR SectionName,
-    _In_opt_ PPOINT SourcePoint
-    );
 
 #endif

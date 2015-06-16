@@ -476,6 +476,15 @@ BEGIN
     END
 END
 
+IDR_MINIINFO_PROCESS MENU
+BEGIN
+    POPUP "Process"
+    BEGIN
+        MENUITEM SEPARATOR
+        MENUITEM "&Go to Process",              ID_PROCESS_GOTOPROCESS
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
