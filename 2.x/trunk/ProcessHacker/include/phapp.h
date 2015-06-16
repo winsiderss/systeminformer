@@ -1140,7 +1140,7 @@ typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
     MiListSectionDialogCreated, // HWND Parameter1
     MiListSectionSortProcessList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
     MiListSectionAssignSortData, // PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA Parameter1
-    MiListSectionSortNodeList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
+    MiListSectionSortGroupList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
     MiListSectionGetTitleText, // PPH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT Parameter1
     MiListSectionGetUsageText, // PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT Parameter1
     MaxMiListSectionMessage
@@ -1152,6 +1152,16 @@ typedef BOOLEAN (NTAPI *PPH_MINIINFO_LIST_SECTION_CALLBACK)(
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     );
+
+// The list section performs the following steps when constructing the list of process groups:
+// 1. MiListSectionSortProcessList is sent in order to sort the process list.
+// 2. A small number of process groups is created from the first few processes in the sorted list (typically high
+//    resource consumers).
+// 3. MiListSectionAssignSortData is sent for each process group so that the user can assign custom sort data to
+//    each process group.
+// 4. MiListSectionSortGroupList is sent in order to ensure that the process groups are correctly sorted by resource
+//    usage.
+// The user also has access to the sort data when handling MiListSectionGetTitleText and MiListSectionGetUsageText.
 
 typedef struct _PH_MINIINFO_LIST_SECTION_SORT_DATA
 {
@@ -1168,7 +1178,7 @@ typedef struct _PH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA
 typedef struct _PH_MINIINFO_LIST_SECTION_SORT_LIST
 {
     // MiListSectionSortProcessList: List of PPH_PROCESS_NODE
-    // MiListSectionSortNodeList: List of PPH_MINIINFO_LIST_SECTION_SORT_DATA
+    // MiListSectionSortGroupList: List of PPH_MINIINFO_LIST_SECTION_SORT_DATA
     PPH_LIST List;
 } PH_MINIINFO_LIST_SECTION_SORT_LIST, *PPH_MINIINFO_LIST_SECTION_SORT_LIST;
 
@@ -1224,6 +1234,7 @@ typedef enum _PH_MINIINFO_PIN_TYPE
 
 #define PH_MINIINFO_ACTIVATE_WINDOW 0x1
 #define PH_MINIINFO_LOAD_POSITION 0x2
+#define PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED 0x4
 
 VOID PhPinMiniInformation(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
