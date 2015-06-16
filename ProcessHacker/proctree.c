@@ -3091,36 +3091,61 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    PPH_PROCESS_NODE processNode;
+    PhSelectAndEnsureVisibleProcessNodes(&ProcessNode, 1);
+}
+
+VOID PhSelectAndEnsureVisibleProcessNodes(
+    _In_ PPH_PROCESS_NODE *ProcessNodes,
+    _In_ ULONG NumberOfProcessNodes
+    )
+{
+    ULONG i;
+    PPH_PROCESS_NODE leader = NULL;
+    PPH_PROCESS_NODE node;
     BOOLEAN needsRestructure = FALSE;
 
     PhDeselectAllProcessNodes();
 
-    if (!ProcessNode->Node.Visible)
-        return;
-
-    // Expand recursively, upwards.
-
-    processNode = ProcessNode->Parent;
-
-    while (processNode)
+    for (i = 0; i < NumberOfProcessNodes; i++)
     {
-        if (!processNode->Node.Expanded)
-            needsRestructure = TRUE;
-
-        processNode->Node.Expanded = TRUE;
-        processNode = processNode->Parent;
+        if (ProcessNodes[i]->Node.Visible)
+        {
+            leader = ProcessNodes[i];
+            break;
+        }
     }
 
-    ProcessNode->Node.Selected = TRUE;
+    if (!leader)
+        return;
+
+    // Expand recursively upwards, and select the nodes.
+
+    for (i = 0; i < NumberOfProcessNodes; i++)
+    {
+        if (!ProcessNodes[i]->Node.Visible)
+            continue;
+
+        node = ProcessNodes[i]->Parent;
+
+        while (node)
+        {
+            if (!node->Node.Expanded)
+                needsRestructure = TRUE;
+
+            node->Node.Expanded = TRUE;
+            node = node->Parent;
+        }
+
+        ProcessNodes[i]->Node.Selected = TRUE;
+    }
 
     if (needsRestructure)
         TreeNew_NodesStructured(ProcessTreeListHandle);
 
-    TreeNew_SetFocusNode(ProcessTreeListHandle, &ProcessNode->Node);
-    TreeNew_SetMarkNode(ProcessTreeListHandle, &ProcessNode->Node);
-    TreeNew_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node);
-    TreeNew_InvalidateNode(ProcessTreeListHandle, &ProcessNode->Node);
+    TreeNew_SetFocusNode(ProcessTreeListHandle, &leader->Node);
+    TreeNew_SetMarkNode(ProcessTreeListHandle, &leader->Node);
+    TreeNew_EnsureVisible(ProcessTreeListHandle, &leader->Node);
+    TreeNew_InvalidateNode(ProcessTreeListHandle, &leader->Node);
 }
 
 VOID PhpPopulateTableWithProcessNodes(

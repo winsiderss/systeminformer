@@ -392,6 +392,11 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
 
+VOID PhSelectAndEnsureVisibleProcessNodes(
+    _In_ PPH_PROCESS_NODE *ProcessNodes,
+    _In_ ULONG NumberOfProcessNodes
+    );
+
 PPH_LIST PhGetProcessTreeListLines(
     _In_ HWND TreeListHandle,
     _In_ ULONG NumberOfNodes,
