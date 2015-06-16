@@ -24,6 +24,7 @@
 #include <settings.h>
 #include <emenu.h>
 #include <miniinfo.h>
+#include <phplug.h>
 #include <windowsx.h>
 #include <uxtheme.h>
 #include <miniinfop.h>
@@ -626,15 +627,9 @@ BOOLEAN PhMipMessageLoopFilter(
             TrackMouseEvent(&trackMouseEvent);
 
             if (Message->message == WM_MOUSEMOVE)
-            {
                 PhMipLastTrackedWindow = Message->hwnd;
-                PhMipLastNcTrackedWindow = NULL;
-            }
             else
-            {
-                PhMipLastTrackedWindow = NULL;
                 PhMipLastNcTrackedWindow = Message->hwnd;
-            }
 
             PhPinMiniInformation(MiniInfoHoverPinType, 1, 0, 0, NULL, NULL);
         }
@@ -1533,14 +1528,151 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             PPH_MIP_GROUP_NODE node = (PPH_MIP_GROUP_NODE)mouseEvent->Node;
 
             if (node)
-            {
+                PhMipHandleListSectionCommand(listSection, node->ProcessGroup, ID_PROCESS_GOTOPROCESS);
+        }
+        break;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            }
+            PhMipShowListSectionContextMenu(listSection, contextMenu);
         }
         break;
     }
 
     return FALSE;
+}
+
+VOID PhMipShowListSectionContextMenu(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
+    )
+{
+    ULONG i;
+    PPH_MIP_GROUP_NODE selectedNode = NULL;
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM item;
+    PH_MINIINFO_LIST_SECTION_MENU_INFORMATION menuInfo;
+    PH_PLUGIN_MENU_INFORMATION pluginMenuInfo;
+
+    for (i = 0; i < ListSection->NodeList->Count; i++)
+    {
+        PPH_MIP_GROUP_NODE node = ListSection->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            selectedNode = node;
+            break;
+        }
+    }
+
+    if (!selectedNode)
+        return;
+
+    menu = PhCreateEMenu();
+    // TODO: If there are multiple processes, then create submenus for each process.
+    PhAddMiniProcessMenuItems(menu, ListSection->SelectedRepresentativeProcessId);
+    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MINIINFO_PROCESS), 0);
+    PhSetFlagsEMenuItem(menu, ID_PROCESS_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
+    if (selectedNode->ProcessGroup->Processes->Count != 1)
+    {
+        if (item = PhFindEMenuItem(menu, 0, NULL, ID_PROCESS_GOTOPROCESS))
+        {
+            if (item->Text && (item->Flags & PH_EMENU_TEXT_OWNED))
+                PhFree(item->Text);
+
+            item->Text = PhDuplicateStringZ(L"&Go to Processes");
+        }
+    }
+
+    memset(&menuInfo, 0, sizeof(PH_MINIINFO_LIST_SECTION_MENU_INFORMATION));
+    menuInfo.ProcessGroup = selectedNode->ProcessGroup;
+    menuInfo.SortData = &selectedNode->SortData;
+    menuInfo.ContextMenu = ContextMenu;
+    ListSection->Callback(ListSection, MiListSectionInitializeContextMenu, &menuInfo, NULL);
+
+    if (PhPluginsEnabled)
+    {
+        PhPluginInitializeMenuInfo(&pluginMenuInfo, menu, ListSection->DialogHandle, 0);
+        pluginMenuInfo.Menu = menu;
+        pluginMenuInfo.OwnerWindow = PhMipWindow;
+        pluginMenuInfo.u.MiListSection.SectionName = &ListSection->Section->Name;
+        pluginMenuInfo.u.MiListSection.ProcessGroup = selectedNode->ProcessGroup;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMiListSectionMenuInitializing), &pluginMenuInfo);
+    }
+
+    PhMipBeginChildControlPin();
+    item = PhShowEMenu(
+        menu,
+        PhMipWindow,
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        ContextMenu->Location.x,
+        ContextMenu->Location.y
+        );
+    PhMipEndChildControlPin();
+
+    if (item)
+    {
+        BOOLEAN handled = FALSE;
+
+        if (!handled && PhPluginsEnabled)
+            handled = PhPluginTriggerEMenuItem(&pluginMenuInfo, item);
+
+        if (!handled)
+        {
+            menuInfo.SelectedItem = item;
+            menuInfo.Handled = FALSE;
+            ListSection->Callback(ListSection, MiListSectionHandleContextMenu, &menuInfo, NULL);
+            handled = menuInfo.Handled;
+        }
+
+        if (!handled)
+            PhHandleMiniProcessMenuItem(item);
+
+        if (!handled)
+            PhMipHandleListSectionCommand(ListSection, selectedNode->ProcessGroup, item->Id);
+    }
+
+    PhDestroyEMenu(menu);
+}
+
+VOID PhMipHandleListSectionCommand(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_PROCESS_GROUP ProcessGroup,
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case ID_PROCESS_GOTOPROCESS:
+        {
+            PPH_LIST nodes;
+            ULONG i;
+
+            nodes = PhCreateList(ProcessGroup->Processes->Count);
+
+            for (i = 0; i < ProcessGroup->Processes->Count; i++)
+            {
+                PPH_PROCESS_NODE node;
+
+                if (node = PhFindProcessNode(((PPH_PROCESS_ITEM)ProcessGroup->Processes->Items[i])->ProcessId))
+                    PhAddItemList(nodes, node);
+            }
+
+            PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
+            PhPinMiniInformation(MiniInfoActivePinType, -1, 0, 0, NULL, NULL);
+            PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL, NULL);
+
+            ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
+            ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
+            PhSelectAndEnsureVisibleProcessNodes((PPH_PROCESS_NODE *)nodes->Items, nodes->Count);
+            PhDereferenceObject(nodes);
+        }
+        break;
+    }
 }
 
 BOOLEAN PhMipCpuListSectionCallback(

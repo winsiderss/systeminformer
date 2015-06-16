@@ -119,6 +119,7 @@
 #define IDB_COG                         209
 #define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
+#define IDR_MINIINFO_PROCESS            212
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -722,6 +723,7 @@
 #define ID_OBJECT_GOTOOWNINGPROCESS     40284
 #define ID_NETWORK_GOTOSERVICE          40285
 #define ID_SERVICE_OPENFILELOCATION     40286
+#define ID_PROCESS_GOTOPROCESS          40287
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -729,8 +731,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        212
-#define _APS_NEXT_COMMAND_VALUE         40287
+#define _APS_NEXT_RESOURCE_VALUE        213
+#define _APS_NEXT_COMMAND_VALUE         40288
 #define _APS_NEXT_CONTROL_VALUE         1377
 #define _APS_NEXT_SYMED_VALUE           169
 #endif

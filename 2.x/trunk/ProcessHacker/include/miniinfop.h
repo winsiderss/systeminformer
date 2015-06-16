@@ -283,6 +283,17 @@ BOOLEAN PhMipListSectionTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
+VOID PhMipShowListSectionContextMenu(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
+    );
+
+VOID PhMipHandleListSectionCommand(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_PROCESS_GROUP ProcessGroup,
+    _In_ ULONG Id
+    );
+
 // CPU section
 
 BOOLEAN PhMipCpuListSectionCallback(
