@@ -1926,8 +1926,7 @@ VOID PhMwpOnInitMenuPopup(
     {
         PH_PLUGIN_MENU_INFORMATION menuInfo;
 
-        menuInfo.Menu = menu;
-        menuInfo.OwnerWindow = PhMainWndHandle;
+        PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, PH_PLUGIN_MENU_DISALLOW_HOOKS);
         menuInfo.u.MainMenu.SubMenuIndex = Index;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainMenuInitializing), &menuInfo);
     }
@@ -2917,11 +2916,15 @@ VOID PhMwpDispatchMenuCommand(
     case ID_PLUGIN_MENU_ITEM:
         {
             PPH_EMENU_ITEM menuItem;
+            PH_PLUGIN_MENU_INFORMATION menuInfo;
 
             menuItem = (PPH_EMENU_ITEM)ItemData;
 
             if (menuItem)
-                PhPluginTriggerEMenuItem(PhMainWndHandle, menuItem);
+            {
+                PhPluginInitializeMenuInfo(&menuInfo, NULL, PhMainWndHandle, 0);
+                PhPluginTriggerEMenuItem(&menuInfo, menuItem);
+            }
 
             return;
         }
@@ -3827,6 +3830,7 @@ VOID PhShowIconContextMenu(
 {
     PPH_EMENU menu;
     PPH_EMENU_ITEM item;
+    PH_PLUGIN_MENU_INFORMATION menuInfo;
     ULONG numberOfProcesses;
     ULONG id;
     ULONG i;
@@ -3886,11 +3890,7 @@ VOID PhShowIconContextMenu(
 
     if (PhPluginsEnabled)
     {
-        PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-        menuInfo.Menu = menu;
-        menuInfo.OwnerWindow = PhMainWndHandle;
-
+        PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, 0);
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackIconMenuInitializing), &menuInfo);
     }
 
@@ -3909,7 +3909,7 @@ VOID PhShowIconContextMenu(
         BOOLEAN handled = FALSE;
 
         if (PhPluginsEnabled && !handled)
-            handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
+            handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
         if (!handled)
             handled = PhHandleMiniProcessMenuItem(item);
@@ -4487,6 +4487,7 @@ VOID PhShowProcessContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
+    PH_PLUGIN_MENU_INFORMATION menuInfo;
     PPH_PROCESS_ITEM *processes;
     ULONG numberOfProcesses;
 
@@ -4506,10 +4507,7 @@ VOID PhShowProcessContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-            menuInfo.Menu = menu;
-            menuInfo.OwnerWindow = PhMainWndHandle;
+            PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, 0);
             menuInfo.u.Process.Processes = processes;
             menuInfo.u.Process.NumberOfProcesses = numberOfProcesses;
 
@@ -4532,7 +4530,7 @@ VOID PhShowProcessContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled && PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
+                handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
                 SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
@@ -4831,6 +4829,7 @@ VOID PhShowServiceContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
+    PH_PLUGIN_MENU_INFORMATION menuInfo;
     PPH_SERVICE_ITEM *services;
     ULONG numberOfServices;
 
@@ -4850,10 +4849,7 @@ VOID PhShowServiceContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-            menuInfo.Menu = menu;
-            menuInfo.OwnerWindow = PhMainWndHandle;
+            PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, 0);
             menuInfo.u.Service.Services = services;
             menuInfo.u.Service.NumberOfServices = numberOfServices;
 
@@ -4876,7 +4872,7 @@ VOID PhShowServiceContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled && PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
+                handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
                 SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
@@ -5199,6 +5195,7 @@ VOID PhShowNetworkContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
+    PH_PLUGIN_MENU_INFORMATION menuInfo;
     PPH_NETWORK_ITEM *networkItems;
     ULONG numberOfNetworkItems;
 
@@ -5218,10 +5215,7 @@ VOID PhShowNetworkContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-            menuInfo.Menu = menu;
-            menuInfo.OwnerWindow = PhMainWndHandle;
+            PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, 0);
             menuInfo.u.Network.NetworkItems = networkItems;
             menuInfo.u.Network.NumberOfNetworkItems = numberOfNetworkItems;
 
@@ -5244,7 +5238,7 @@ VOID PhShowNetworkContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled && PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
+                handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
                 SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);

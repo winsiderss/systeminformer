@@ -2455,6 +2455,7 @@ VOID PhShowThreadContextMenu(
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
+        PH_PLUGIN_MENU_INFORMATION menuInfo;
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_THREAD), 0);
@@ -2465,10 +2466,7 @@ VOID PhShowThreadContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-            menuInfo.Menu = menu;
-            menuInfo.OwnerWindow = hwndDlg;
+            PhPluginInitializeMenuInfo(&menuInfo, menu, hwndDlg, 0);
             menuInfo.u.Thread.ProcessId = ProcessItem->ProcessId;
             menuInfo.u.Thread.Threads = threads;
             menuInfo.u.Thread.NumberOfThreads = numberOfThreads;
@@ -2492,7 +2490,7 @@ VOID PhShowThreadContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled && PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+                handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
                 SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
@@ -3337,6 +3335,7 @@ VOID PhShowModuleContextMenu(
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
+        PH_PLUGIN_MENU_INFORMATION menuInfo;
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE), 0);
@@ -3347,10 +3346,7 @@ VOID PhShowModuleContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-            menuInfo.Menu = menu;
-            menuInfo.OwnerWindow = hwndDlg;
+            PhPluginInitializeMenuInfo(&menuInfo, menu, hwndDlg, 0);
             menuInfo.u.Module.ProcessId = ProcessItem->ProcessId;
             menuInfo.u.Module.Modules = modules;
             menuInfo.u.Module.NumberOfModules = numberOfModules;
@@ -3374,7 +3370,7 @@ VOID PhShowModuleContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled && PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+                handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
                 SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
@@ -3830,6 +3826,7 @@ VOID PhShowMemoryContextMenu(
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
+        PH_PLUGIN_MENU_INFORMATION menuInfo;
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMORY), 0);
@@ -3840,10 +3837,7 @@ VOID PhShowMemoryContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-            menuInfo.Menu = menu;
-            menuInfo.OwnerWindow = hwndDlg;
+            PhPluginInitializeMenuInfo(&menuInfo, menu, hwndDlg, 0);
             menuInfo.u.Memory.ProcessId = ProcessItem->ProcessId;
             menuInfo.u.Memory.MemoryNodes = memoryNodes;
             menuInfo.u.Memory.NumberOfMemoryNodes = numberOfMemoryNodes;
@@ -3867,7 +3861,7 @@ VOID PhShowMemoryContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled && PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+                handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
                 SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
@@ -4836,6 +4830,7 @@ VOID PhShowHandleContextMenu(
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
+        PH_PLUGIN_MENU_INFORMATION menuInfo;
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_HANDLE), 0);
@@ -4846,10 +4841,7 @@ VOID PhShowHandleContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-            menuInfo.Menu = menu;
-            menuInfo.OwnerWindow = hwndDlg;
+            PhPluginInitializeMenuInfo(&menuInfo, menu, hwndDlg, 0);
             menuInfo.u.Handle.ProcessId = ProcessItem->ProcessId;
             menuInfo.u.Handle.Handles = handles;
             menuInfo.u.Handle.NumberOfHandles = numberOfHandles;
@@ -4873,7 +4865,7 @@ VOID PhShowHandleContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled && PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+                handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
                 SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
