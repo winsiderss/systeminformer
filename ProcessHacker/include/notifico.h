@@ -50,14 +50,31 @@ typedef BOOLEAN (NTAPI *PPH_NF_ICON_MESSAGE_CALLBACK)(
     _In_opt_ PVOID Context
     );
 
+// Special messages
+// The message type is stored in LOWORD(LParam), and the message data is in WParam.
+
+#define PH_NF_MSG_SHOWMINIINFOSECTION (WM_APP + 1)
+
+typedef struct _PH_NF_MSG_SHOWMINIINFOSECTION_DATA
+{
+    PWSTR SectionName; // NULL to leave unchanged
+} PH_NF_MSG_SHOWMINIINFOSECTION_DATA, *PPH_NF_MSG_SHOWMINIINFOSECTION_DATA;
+
+// Structures and internal functions
+
 #define PH_NF_ICON_UNAVAILABLE 0x1
+#define PH_NF_ICON_SHOW_MINIINFO 0x2
 
 typedef struct _PH_NF_ICON
 {
+    // Public
+
     struct _PH_PLUGIN *Plugin;
     ULONG SubId;
     PVOID Context;
     PPH_NF_POINTERS Pointers;
+
+    // Private
 
     PWSTR Text;
     ULONG Flags;

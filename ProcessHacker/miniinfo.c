@@ -170,7 +170,7 @@ VOID PhPinMiniInformation(
             SetActiveWindow(PhMipContainerWindow);
     }
 
-    if (SectionName)
+    if (SectionName && (!PhMipPinned || !(Flags & PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED)))
     {
         PH_STRINGREF sectionName;
         PPH_MINIINFO_SECTION section;
@@ -917,6 +917,9 @@ VOID PhMipChangeSection(
 {
     PPH_MINIINFO_SECTION oldSection;
 
+    if (NewSection == CurrentSection)
+        return;
+
     oldSection = CurrentSection;
     CurrentSection = NewSection;
 
@@ -935,6 +938,8 @@ VOID PhMipChangeSection(
 
     PhMipUpdateSectionText(NewSection);
     PhMipLayout();
+
+    NewSection->Callback(NewSection, MiniInfoTick, NULL, NULL);
 }
 
 VOID PhMipSetSectionText(
@@ -1349,7 +1354,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                 getChildren->NumberOfChildren = listSection->NodeList->Count;
 
                 sortList.List = listSection->NodeList;
-                listSection->Callback(listSection, MiListSectionSortNodeList, &sortList, NULL);
+                listSection->Callback(listSection, MiListSectionSortGroupList, &sortList, NULL);
             }
         }
         return TRUE;
@@ -1560,7 +1565,7 @@ BOOLEAN PhMipCpuListSectionCallback(
             *(PFLOAT)assignSortData->SortData->UserData = cpuUsage;
         }
         return TRUE;
-    case MiListSectionSortNodeList:
+    case MiListSectionSortGroupList:
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
@@ -1656,7 +1661,7 @@ BOOLEAN PhMipCommitListSectionCallback(
             *(PULONG64)assignSortData->SortData->UserData = privateBytes;
         }
         return TRUE;
-    case MiListSectionSortNodeList:
+    case MiListSectionSortGroupList:
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
@@ -1747,7 +1752,7 @@ BOOLEAN PhMipPhysicalListSectionCallback(
             *(PULONG64)assignSortData->SortData->UserData = workingSet;
         }
         return TRUE;
-    case MiListSectionSortNodeList:
+    case MiListSectionSortGroupList:
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
@@ -1844,7 +1849,7 @@ BOOLEAN PhMipIoListSectionCallback(
             assignSortData->SortData->UserData[1] = ioWriteDelta;
         }
         return TRUE;
-    case MiListSectionSortNodeList:
+    case MiListSectionSortGroupList:
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
