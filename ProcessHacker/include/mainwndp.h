@@ -333,9 +333,15 @@ BOOLEAN PhMwpExecuteProcessPriorityCommand(
     _In_ ULONG NumberOfProcesses
     );
 
+BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
+    _In_ ULONG Id,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
+    );
+
 VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ PPH_EMENU Menu,
-    _In_ PPH_PROCESS_ITEM Process,
+    _In_ HANDLE ProcessId,
     _In_ BOOLEAN SetPriority,
     _In_ BOOLEAN SetIoPriority,
     _In_ BOOLEAN SetPagePriority

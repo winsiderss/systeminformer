@@ -706,6 +706,15 @@ VOID PhLoadDbgHelpFromPath(
     _In_ PWSTR DbgHelpPath
     );
 
+VOID PhAddMiniProcessMenuItems(
+    _Inout_ struct _PH_EMENU_ITEM *Menu,
+    _In_ HANDLE ProcessId
+    );
+
+BOOLEAN PhHandleMiniProcessMenuItem(
+    _Inout_ struct _PH_EMENU_ITEM *MenuItem
+    );
+
 VOID PhShowIconContextMenu(
     _In_ POINT Location
     );
