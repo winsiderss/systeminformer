@@ -34,6 +34,12 @@ typedef struct _PHP_PLUGIN_LOAD_ERROR
     PPH_STRING ErrorMessage;
 } PHP_PLUGIN_LOAD_ERROR, *PPHP_PLUGIN_LOAD_ERROR;
 
+typedef struct _PHP_PLUGIN_MENU_HOOK
+{
+    PPH_PLUGIN Plugin;
+    PVOID Context;
+} PHP_PLUGIN_MENU_HOOK, *PPHP_PLUGIN_MENU_HOOK;
+
 INT NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
@@ -782,26 +788,101 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
 }
 
 /**
+ * Adds a menu hook.
+ *
+ * \param MenuInfo The plugin menu information structure.
+ * \param Plugin A plugin instance structure.
+ * \param Context A user-defined value that is later accessible from the callback.
+ *
+ * \remarks The \ref PluginCallbackMenuHook callback is invoked when any menu item
+ * from the menu is chosen.
+ */
+BOOLEAN PhPluginAddMenuHook(
+    _Inout_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
+    _In_ PPH_PLUGIN Plugin,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_PLUGIN_MENU_HOOK hook;
+
+    if (MenuInfo->Flags & PH_PLUGIN_MENU_DISALLOW_HOOKS)
+        return FALSE;
+
+    if (!MenuInfo->PluginHookList)
+        MenuInfo->PluginHookList = PhAutoDereferenceObject(PhCreateList(2));
+
+    PhCreateAlloc(&hook, sizeof(PHP_PLUGIN_MENU_HOOK));
+    PhAutoDereferenceObject(hook);
+    hook->Plugin = Plugin;
+    hook->Context = Context;
+    PhAddItemList(MenuInfo->PluginHookList, hook);
+
+    return TRUE;
+}
+
+/**
+ * Initializes a plugin menu information structure.
+ *
+ * \param MenuInfo The structure to initialize.
+ * \param Menu The menu being shown.
+ * \param OwnerWindow The window that owns the menu.
+ * \param Flags Additional flags.
+ *
+ * \remarks This function is reserved for internal use.
+ */
+VOID PhPluginInitializeMenuInfo(
+    _Out_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
+    _In_opt_ PPH_EMENU Menu,
+    _In_ HWND OwnerWindow,
+    _In_ ULONG Flags
+    )
+{
+    memset(MenuInfo, 0, sizeof(PH_PLUGIN_MENU_INFORMATION));
+    MenuInfo->Menu = Menu;
+    MenuInfo->OwnerWindow = OwnerWindow;
+    MenuInfo->Flags = Flags;
+}
+
+/**
  * Triggers a plugin menu item.
  *
- * \param OwnerWindow The window that owns the menu containing the menu item.
+ * \param MenuInfo The plugin menu information structure.
  * \param Item The menu item chosen by the user.
  *
  * \remarks This function is reserved for internal use.
  */
 BOOLEAN PhPluginTriggerEMenuItem(
-    _In_ HWND OwnerWindow,
+    _In_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
     _In_ PPH_EMENU_ITEM Item
     )
 {
     PPH_PLUGIN_MENU_ITEM pluginMenuItem;
+    ULONG i;
+    PPHP_PLUGIN_MENU_HOOK hook;
+    PH_PLUGIN_MENU_HOOK_INFORMATION menuHookInfo;
+
+    if (MenuInfo->PluginHookList)
+    {
+        for (i = 0; i < MenuInfo->PluginHookList->Count; i++)
+        {
+            hook = MenuInfo->PluginHookList->Items[i];
+            menuHookInfo.MenuInfo = MenuInfo;
+            menuHookInfo.SelectedItem = Item;
+            menuHookInfo.Context = hook->Context;
+            menuHookInfo.Handled = FALSE;
+            PhInvokeCallback(PhGetPluginCallback(hook->Plugin, PluginCallbackMenuHook), &menuHookInfo);
+
+            if (menuHookInfo.Handled)
+                return TRUE;
+        }
+    }
 
     if (Item->Id != ID_PLUGIN_MENU_ITEM)
         return FALSE;
 
     pluginMenuItem = Item->Context;
 
-    pluginMenuItem->OwnerWindow = OwnerWindow;
+    pluginMenuItem->OwnerWindow = MenuInfo->OwnerWindow;
 
     PhInvokeCallback(PhGetPluginCallback(pluginMenuItem->Plugin, PluginCallbackMenuItem), pluginMenuItem);
 

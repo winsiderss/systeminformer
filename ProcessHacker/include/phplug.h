@@ -56,6 +56,7 @@ typedef enum _PH_PLUGIN_CALLBACK
     PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
     PluginCallbackTreeNewMessage = 4, // PPH_PLUGIN_TREENEW_MESSAGE Message [main/properties thread]
     PluginCallbackPhSvcRequest = 5, // PPH_PLUGIN_PHSVC_REQUEST Message [phsvc thread]
+    PluginCallbackMenuHook = 6, // PH_PLUGIN_MENU_HOOK_INFORMATION MenuHookInfo [menu thread]
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
 
@@ -117,6 +118,8 @@ typedef struct _PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT
 
 typedef struct _PH_EMENU_ITEM *PPH_EMENU_ITEM, *PPH_EMENU;
 
+#define PH_PLUGIN_MENU_DISALLOW_HOOKS 0x1
+
 typedef struct _PH_PLUGIN_MENU_INFORMATION
 {
     PPH_EMENU Menu;
@@ -124,6 +127,10 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
 
     union
     {
+        struct
+        {
+            PVOID Reserved[8]; // Reserve space for future expansion of this union
+        } DoNotUse;
         struct
         {
             ULONG SubMenuIndex;
@@ -168,7 +175,20 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
             ULONG NumberOfHandles;
         } Handle;
     } u;
+
+    ULONG Flags;
+    PPH_LIST PluginHookList;
 } PH_PLUGIN_MENU_INFORMATION, *PPH_PLUGIN_MENU_INFORMATION;
+
+C_ASSERT(RTL_FIELD_SIZE(PH_PLUGIN_MENU_INFORMATION, u) == RTL_FIELD_SIZE(PH_PLUGIN_MENU_INFORMATION, u.DoNotUse));
+
+typedef struct _PH_PLUGIN_MENU_HOOK_INFORMATION
+{
+    PPH_PLUGIN_MENU_INFORMATION MenuInfo;
+    PPH_EMENU SelectedItem;
+    PVOID Context;
+    BOOLEAN Handled;
+} PH_PLUGIN_MENU_HOOK_INFORMATION, *PPH_PLUGIN_MENU_HOOK_INFORMATION;
 
 typedef struct _PH_PLUGIN_TREENEW_INFORMATION
 {
@@ -521,8 +541,25 @@ PhPluginCreateEMenuItem(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhPluginTriggerEMenuItem(
+PhPluginAddMenuHook(
+    _Inout_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
+    _In_ PPH_PLUGIN Plugin,
+    _In_opt_ PVOID Context
+    );
+
+VOID
+NTAPI
+PhPluginInitializeMenuInfo(
+    _Out_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
+    _In_opt_ PPH_EMENU Menu,
     _In_ HWND OwnerWindow,
+    _In_ ULONG Flags
+    );
+
+BOOLEAN
+NTAPI
+PhPluginTriggerEMenuItem(
+    _In_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
     _In_ PPH_EMENU_ITEM Item
     );
 
