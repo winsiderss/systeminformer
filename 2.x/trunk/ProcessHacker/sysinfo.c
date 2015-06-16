@@ -59,6 +59,7 @@
 #include <kphuser.h>
 #include <symprv.h>
 #include <settings.h>
+#include <sysinfo.h>
 #include <phplug.h>
 #include <windowsx.h>
 #include <uxtheme.h>

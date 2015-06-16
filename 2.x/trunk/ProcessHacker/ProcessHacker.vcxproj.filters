@@ -566,6 +566,15 @@
     <ClInclude Include="include\miniinfop.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\miniinfo.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procgrp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sysinfo.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp">

@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procgrp.h>
 
 typedef struct _PHP_PROCESS_DATA
 {

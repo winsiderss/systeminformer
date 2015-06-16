@@ -1,5 +1,5 @@
-#ifndef UIMODELS_H
-#define UIMODELS_H
+#ifndef PH_UIMODELS_H
+#define PH_UIMODELS_H
 
 // Common state highlighting support
 

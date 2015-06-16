@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <extmgri.h>
+#include <miniinfo.h>
 #include <phplug.h>
 #include <notifico.h>
 #include <windowsx.h>

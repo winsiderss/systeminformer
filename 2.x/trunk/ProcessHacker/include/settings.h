@@ -1,5 +1,5 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef PH_SETTINGS_H
+#define PH_SETTINGS_H
 
 typedef enum _PH_SETTING_TYPE
 {

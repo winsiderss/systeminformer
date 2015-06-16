@@ -1,5 +1,5 @@
-#ifndef MEMSRCH_H
-#define MEMSRCH_H
+#ifndef PH_MEMSRCH_H
+#define PH_MEMSRCH_H
 
 typedef struct _PH_MEMORY_RESULT
 {
