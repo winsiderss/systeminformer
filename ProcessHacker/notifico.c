@@ -243,19 +243,20 @@ VOID PhNfForwardMessage(
     _In_ ULONG_PTR LParam
     )
 {
-    ULONG iconIndex;
-
-    iconIndex = HIWORD(LParam);
+    ULONG iconIndex = HIWORD(LParam);
+    PPH_NF_ICON registeredIcon = NULL;
 
     if (iconIndex < sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON) && PhNfRegisteredIcons[iconIndex])
     {
-        if (PhNfRegisteredIcons[iconIndex]->MessageCallback)
+        registeredIcon = PhNfRegisteredIcons[iconIndex];
+
+        if (registeredIcon->MessageCallback)
         {
-            if (PhNfRegisteredIcons[iconIndex]->MessageCallback(
-                PhNfRegisteredIcons[iconIndex],
+            if (registeredIcon->MessageCallback(
+                registeredIcon,
                 WParam,
                 LParam,
-                PhNfRegisteredIcons[iconIndex]->Context
+                registeredIcon->Context
                 ))
             {
                 return;
@@ -297,10 +298,46 @@ VOID PhNfForwardMessage(
         break;
     case NIN_POPUPOPEN:
         {
+            PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
             POINT location;
 
+            if (registeredIcon)
+            {
+                showMiniInfoSectionData.SectionName = NULL;
+
+                if (registeredIcon->MessageCallback)
+                {
+                    registeredIcon->MessageCallback(
+                        registeredIcon,
+                        (ULONG_PTR)&showMiniInfoSectionData,
+                        MAKELPARAM(PH_NF_MSG_SHOWMINIINFOSECTION, 0),
+                        registeredIcon->Context
+                        );
+                }
+            }
+            else
+            {
+                switch (1 << iconIndex)
+                {
+                case PH_ICON_CPU_HISTORY:
+                case PH_ICON_CPU_USAGE:
+                    showMiniInfoSectionData.SectionName = L"CPU";
+                    break;
+                case PH_ICON_IO_HISTORY:
+                    showMiniInfoSectionData.SectionName = L"I/O";
+                    break;
+                case PH_ICON_COMMIT_HISTORY:
+                    showMiniInfoSectionData.SectionName = L"Commit Charge";
+                    break;
+                case PH_ICON_PHYSICAL_HISTORY:
+                    showMiniInfoSectionData.SectionName = L"Physical Memory";
+                    break;
+                }
+            }
+
             GetCursorPos(&location);
-            PhPinMiniInformation(MiniInfoIconPinType, 1, 0, 0, NULL, &location);
+            PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
+                showMiniInfoSectionData.SectionName, &location);
         }
         break;
     case NIN_POPUPCLOSE:
@@ -503,7 +540,7 @@ BOOLEAN PhNfpAddNotifyIcon(
     _In_ ULONG Id
     )
 {
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
     PPH_NF_ICON icon;
 
     if (PhNfTerminating)
@@ -523,6 +560,9 @@ BOOLEAN PhNfpAddNotifyIcon(
     wcsncpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), PhApplicationName, _TRUNCATE);
     notifyIcon.hIcon = PhNfpGetBlackIcon();
 
+    if (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO))
+        notifyIcon.uFlags |= NIF_SHOWTIP;
+
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
 
     if (WindowsVersion >= WINDOWS_VISTA)
@@ -538,7 +578,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
     _In_ ULONG Id
     )
 {
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
     PPH_NF_ICON icon;
 
     if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
@@ -562,7 +602,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
     _In_opt_ HICON Icon
     )
 {
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
     PPH_NF_ICON icon;
     ULONG notifyId;
 
@@ -582,6 +622,9 @@ BOOLEAN PhNfpModifyNotifyIcon(
         wcsncpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), Text, _TRUNCATE);
 
     notifyIcon.hIcon = Icon;
+
+    if (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO))
+        notifyIcon.uFlags |= NIF_SHOWTIP;
 
     if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIcon))
     {
