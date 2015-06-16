@@ -657,7 +657,8 @@ BOOLEAN PhMipMessageLoopFilter(
                 break;
             case VK_F6:
             case VK_PAUSE:
-                ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
+                if (PhMipPinned)
+                    ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
                 break;
             }
         }
