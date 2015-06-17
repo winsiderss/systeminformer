@@ -45,7 +45,8 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMemoryTreeNewInitializing = 29, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackMemoryTreeNewUninitializing = 30, // PPH_PLUGIN_TREENEW_INFORMATION Data [properties thread]
     GeneralCallbackMemoryItemListControl = 31, // PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL Data [properties thread]
-    GeneralCallbackMiListSectionMenuInitializing = 32, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+    GeneralCallbackMiniInformationInitializing = 32, // PPH_PLUGIN_MINIINFO_POINTERS Data [main thread]
+    GeneralCallbackMiListSectionMenuInitializing = 33, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 
@@ -304,6 +305,28 @@ typedef struct _PH_PLUGIN_SYSINFO_POINTERS
     PPH_SYSINFO_ENTER_SECTION_VIEW EnterSectionView;
     PPH_SYSINFO_RESTORE_SUMMARY_VIEW RestoreSummaryView;
 } PH_PLUGIN_SYSINFO_POINTERS, *PPH_PLUGIN_SYSINFO_POINTERS;
+
+typedef PPH_MINIINFO_SECTION (NTAPI *PPH_MINIINFO_CREATE_SECTION)(
+    _In_ PPH_MINIINFO_SECTION Template
+    );
+
+typedef PPH_MINIINFO_SECTION (NTAPI *PPH_MINIINFO_FIND_SECTION)(
+    _In_ PPH_STRINGREF Name
+    );
+
+typedef PPH_MINIINFO_LIST_SECTION (NTAPI *PPH_MINIINFO_CREATE_LIST_SECTION)(
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_MINIINFO_LIST_SECTION Template
+    );
+
+typedef struct _PH_PLUGIN_MINIINFO_POINTERS
+{
+    HWND WindowHandle;
+    PPH_MINIINFO_CREATE_SECTION CreateSection;
+    PPH_MINIINFO_FIND_SECTION FindSection;
+    PPH_MINIINFO_CREATE_LIST_SECTION CreateListSection;
+} PH_PLUGIN_MINIINFO_POINTERS, *PPH_PLUGIN_MINIINFO_POINTERS;
 
 typedef struct _PH_PLUGIN_TREENEW_MESSAGE
 {

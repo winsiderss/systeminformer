@@ -35,6 +35,13 @@ VOID EtpGpuIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
+BOOLEAN EtpGpuIconMessageCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    );
+
 VOID EtpDiskIconUpdateCallback(
     _In_ struct _PH_NF_ICON *Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -43,11 +50,25 @@ VOID EtpDiskIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
+BOOLEAN EtpDiskIconMessageCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    );
+
 VOID EtpNetworkIconUpdateCallback(
     _In_ struct _PH_NF_ICON *Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
+BOOLEAN EtpNetworkIconMessageCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
     );
 
@@ -60,32 +81,35 @@ VOID EtRegisterNotifyIcons(
     data.MessageCallback = NULL;
 
     data.UpdateCallback = EtpGpuIconUpdateCallback;
+    data.MessageCallback = EtpGpuIconMessageCallback;
     PhPluginRegisterIcon(
         PluginInstance,
         GPU_ICON_ID,
         NULL,
         L"GPU History",
-        EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        PH_NF_ICON_SHOW_MINIINFO | (EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
         &data
         );
 
     data.UpdateCallback = EtpDiskIconUpdateCallback;
+    data.MessageCallback = EtpDiskIconMessageCallback;
     PhPluginRegisterIcon(
         PluginInstance,
         DISK_ICON_ID,
         NULL,
         L"Disk History",
-        EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        PH_NF_ICON_SHOW_MINIINFO | (EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
         &data
         );
 
     data.UpdateCallback = EtpNetworkIconUpdateCallback;
+    data.MessageCallback = EtpNetworkIconMessageCallback;
     PhPluginRegisterIcon(
         PluginInstance,
         NETWORK_ICON_ID,
         NULL,
         L"Network History",
-        EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        PH_NF_ICON_SHOW_MINIINFO | (EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
         &data
         );
 }
@@ -173,6 +197,27 @@ VOID EtpGpuIconUpdateCallback(
 
     *NewText = PhFormat(format, maxGpuProcessItem ? 8 : 3, 128);
     if (maxGpuProcessItem) PhDereferenceObject(maxGpuProcessItem);
+}
+
+BOOLEAN EtpGpuIconMessageCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    )
+{
+    switch (LOWORD(LParam))
+    {
+    case PH_NF_MSG_SHOWMINIINFOSECTION:
+        {
+            PPH_NF_MSG_SHOWMINIINFOSECTION_DATA data = (PVOID)WParam;
+
+            data->SectionName = L"GPU";
+        }
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 VOID EtpDiskIconUpdateCallback(
@@ -277,6 +322,27 @@ VOID EtpDiskIconUpdateCallback(
     if (maxDiskProcessItem) PhDereferenceObject(maxDiskProcessItem);
 }
 
+BOOLEAN EtpDiskIconMessageCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    )
+{
+    switch (LOWORD(LParam))
+    {
+    case PH_NF_MSG_SHOWMINIINFOSECTION:
+        {
+            PPH_NF_MSG_SHOWMINIINFOSECTION_DATA data = (PVOID)WParam;
+
+            data->SectionName = L"Disk";
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID EtpNetworkIconUpdateCallback(
     _In_ struct _PH_NF_ICON *Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -377,4 +443,25 @@ VOID EtpNetworkIconUpdateCallback(
 
     *NewText = PhFormat(format, maxNetworkProcessItem ? 6 : 4, 128);
     if (maxNetworkProcessItem) PhDereferenceObject(maxNetworkProcessItem);
+}
+
+BOOLEAN EtpNetworkIconMessageCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    )
+{
+    switch (LOWORD(LParam))
+    {
+    case PH_NF_MSG_SHOWMINIINFOSECTION:
+        {
+            PPH_NF_MSG_SHOWMINIINFOSECTION_DATA data = (PVOID)WParam;
+
+            data->SectionName = L"Network";
+        }
+        return TRUE;
+    }
+
+    return FALSE;
 }

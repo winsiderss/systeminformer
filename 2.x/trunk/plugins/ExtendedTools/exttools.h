@@ -464,6 +464,12 @@ VOID EtEtwSystemInformationInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
+// etwmini
+
+VOID EtEtwMiniInformationInitializing(
+    _In_ PPH_PLUGIN_MINIINFO_POINTERS Pointers
+    );
+
 // gpunodes
 
 VOID EtShowGpuNodesDialog(
@@ -475,6 +481,12 @@ VOID EtShowGpuNodesDialog(
 
 VOID EtGpuSystemInformationInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    );
+
+// gpumini
+
+VOID EtGpuMiniInformationInitializing(
+    _In_ PPH_PLUGIN_MINIINFO_POINTERS Pointers
     );
 
 // iconext

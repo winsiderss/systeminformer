@@ -46,12 +46,12 @@ VOID EtGpuSystemInformationInitializing(
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     PhInitializeStringRef(&section.Name, L"GPU");
     section.Flags = 0;
-    section.Callback = EtpGpuSectionCallback;
+    section.Callback = EtpGpuSysInfoSectionCallback;
 
     GpuSection = Pointers->CreateSection(&section);
 }
 
-BOOLEAN EtpGpuSectionCallback(
+BOOLEAN EtpGpuSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,

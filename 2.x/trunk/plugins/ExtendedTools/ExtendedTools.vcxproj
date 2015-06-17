@@ -65,7 +65,9 @@
   <ItemGroup>
     <ClCompile Include="disktab.c" />
     <ClCompile Include="etwdisk.c" />
+    <ClCompile Include="etwmini.c" />
     <ClCompile Include="etwmon.c" />
+    <ClCompile Include="gpumini.c" />
     <ClCompile Include="gpumon.c" />
     <ClCompile Include="gpunodes.c" />
     <ClCompile Include="gpuprprp.c" />
@@ -88,9 +90,11 @@
   <ItemGroup>
     <ClInclude Include="d3dkmt.h" />
     <ClInclude Include="disktabp.h" />
+    <ClInclude Include="etwmini.h" />
     <ClInclude Include="etwmon.h" />
     <ClInclude Include="etwsys.h" />
     <ClInclude Include="exttools.h" />
+    <ClInclude Include="gpumini.h" />
     <ClInclude Include="gpumon.h" />
     <ClInclude Include="gpusys.h" />
     <ClInclude Include="resource.h" />
