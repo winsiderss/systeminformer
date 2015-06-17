@@ -5,10 +5,7 @@
 #include <sysinfo.h>
 #include <miniinfo.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+// begin_phapppub
 // Callbacks
 
 typedef enum _PH_GENERAL_CALLBACK
@@ -408,15 +405,20 @@ typedef struct _PH_PLUGIN_INFORMATION
 } PH_PLUGIN_INFORMATION, *PPH_PLUGIN_INFORMATION;
 
 #define PH_PLUGIN_FLAG_RESERVED 0x1
+// end_phapppub
 
+// begin_phapppub
 typedef struct _PH_PLUGIN
 {
+    // Public
+
     PH_AVL_LINKS Links;
 
     PVOID Reserved;
     PVOID DllBase;
+// end_phapppub
 
-    // Everything below is private and should not be accessed by plugins.
+    // Private
 
     PPH_STRING FileName;
     ULONG Flags;
@@ -425,8 +427,11 @@ typedef struct _PH_PLUGIN
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
     PH_EM_APP_CONTEXT AppContext;
+// begin_phapppub
 } PH_PLUGIN, *PPH_PLUGIN;
+// end_phapppub
 
+// begin_phapppub
 // Plugin API
 
 PHAPPAPI
@@ -575,6 +580,7 @@ PhPluginAddMenuHook(
     _In_ PPH_PLUGIN Plugin,
     _In_opt_ PVOID Context
     );
+// end_phapppub
 
 VOID
 NTAPI
@@ -592,6 +598,7 @@ PhPluginTriggerEMenuItem(
     _In_ PPH_EMENU_ITEM Item
     );
 
+// begin_phapppub
 PHAPPAPI
 BOOLEAN
 NTAPI
@@ -662,9 +669,6 @@ PhPluginCallPhSvc(
     _Out_writes_bytes_opt_(OutLength) PVOID OutBuffer,
     _In_ ULONG OutLength
     );
-
-#ifdef __cplusplus
-}
-#endif
+// end_phapppub
 
 #endif

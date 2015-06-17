@@ -1,6 +1,7 @@
 #ifndef PH_EXTMGR_H
 #define PH_EXTMGR_H
 
+// begin_phapppub
 typedef enum _PH_EM_OBJECT_TYPE
 {
     EmProcessItemType,
@@ -38,6 +39,7 @@ typedef VOID (NTAPI *PPH_EM_OBJECT_CALLBACK)(
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
     );
+// end_phapppub
 
 typedef struct _PH_EM_APP_CONTEXT
 {

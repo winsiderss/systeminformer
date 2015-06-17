@@ -13,6 +13,7 @@
 #define PH_ICON_LIMIT 0x80000000
 #define PH_ICON_ALL 0xffffffff
 
+// begin_phapppub
 typedef VOID (NTAPI *PPH_NF_UPDATE_REGISTERED_ICON)(
     _In_ struct _PH_NF_ICON *Icon
     );
@@ -64,7 +65,9 @@ typedef struct _PH_NF_MSG_SHOWMINIINFOSECTION_DATA
 
 #define PH_NF_ICON_UNAVAILABLE 0x1
 #define PH_NF_ICON_SHOW_MINIINFO 0x2
+// end_phapppub
 
+// begin_phapppub
 typedef struct _PH_NF_ICON
 {
     // Public
@@ -73,6 +76,7 @@ typedef struct _PH_NF_ICON
     ULONG SubId;
     PVOID Context;
     PPH_NF_POINTERS Pointers;
+// end_phapppub
 
     // Private
 
@@ -81,7 +85,9 @@ typedef struct _PH_NF_ICON
     ULONG IconId;
     PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback;
     PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback;
+// begin_phapppub
 } PH_NF_ICON, *PPH_NF_ICON;
+// end_phapppub
 
 VOID PhNfLoadStage1(
     VOID
@@ -152,6 +158,7 @@ VOID PhNfNotifyMiniInfoPinned(
     _In_ BOOLEAN Pinned
     );
 
+// begin_phapppub
 // Public registration data
 
 typedef struct _PH_NF_ICON_REGISTRATION_DATA
@@ -159,5 +166,6 @@ typedef struct _PH_NF_ICON_REGISTRATION_DATA
     PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback;
     PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback;
 } PH_NF_ICON_REGISTRATION_DATA, *PPH_NF_ICON_REGISTRATION_DATA;
+// end_phapppub
 
 #endif

@@ -320,9 +320,13 @@ BOOLEAN ProcessTreeFilterCallback(
                 }
             }
 
-            if (serviceItem->ProcessIdString[0] != 0)
+            if (serviceItem->ProcessId)
             {
-                if (WordMatchStringZ(serviceItem->ProcessIdString))
+                WCHAR processIdString[PH_INT32_STR_LEN_1];
+
+                PhPrintUInt32(processIdString, (ULONG)serviceItem->ProcessId);
+
+                if (WordMatchStringZ(processIdString))
                 {
                     matched = TRUE;
                     break;
@@ -374,9 +378,13 @@ BOOLEAN ServiceTreeFilterCallback(
             return TRUE;
     }
 
-    if (serviceNode->ServiceItem->ProcessIdString[0] != 0)
+    if (serviceNode->ServiceItem->ProcessId)
     {
-        if (WordMatchStringZ(serviceNode->ServiceItem->ProcessIdString))
+        WCHAR processIdString[PH_INT32_STR_LEN_1];
+
+        PhPrintUInt32(processIdString, (ULONG)serviceNode->ServiceItem->ProcessId);
+
+        if (WordMatchStringZ(processIdString))
             return TRUE;
     }
 

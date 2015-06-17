@@ -1,6 +1,7 @@
 #ifndef PH_SYSINFO_H
 #define PH_SYSINFO_H
 
+// begin_phapppub
 typedef enum _PH_SYSINFO_VIEW_TYPE
 {
     SysInfoSummaryView,
@@ -82,7 +83,9 @@ typedef struct _PH_SYSINFO_DRAW_PANEL
     PPH_STRING SubTitle;
     PPH_STRING SubTitleOverflow;
 } PH_SYSINFO_DRAW_PANEL, *PPH_SYSINFO_DRAW_PANEL;
+// end_phapppub
 
+// begin_phapppub
 typedef struct _PH_SYSINFO_SECTION
 {
     // Public
@@ -99,6 +102,7 @@ typedef struct _PH_SYSINFO_SECTION
     PH_GRAPH_STATE GraphState;
     PPH_SYSINFO_PARAMETERS Parameters;
     PVOID Reserved2[3];
+// end_phapppub
 
     // Private
 
@@ -115,18 +119,24 @@ typedef struct _PH_SYSINFO_SECTION
     ULONG PanelId;
     WNDPROC GraphOldWndProc;
     WNDPROC PanelOldWndProc;
+// begin_phapppub
 } PH_SYSINFO_SECTION, *PPH_SYSINFO_SECTION;
+// end_phapppub
 
 VOID PhSiNotifyChangeSettings(
     VOID
     );
 
+// begin_phapppub
 PHAPPAPI
-VOID PhSiSetColorsGraphDrawInfo(
+VOID
+NTAPI
+PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
     _In_ COLORREF Color2
     );
+// end_phapppub
 
 VOID PhShowSystemInformationDialog(
     _In_opt_ PWSTR SectionName

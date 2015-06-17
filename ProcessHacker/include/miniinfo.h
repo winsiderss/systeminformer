@@ -3,6 +3,7 @@
 
 #include <procgrp.h>
 
+// begin_phapppub
 // Section
 
 typedef VOID (NTAPI *PPH_MINIINFO_SET_SECTION_TEXT)(
@@ -55,7 +56,9 @@ typedef struct _PH_MINIINFO_CREATE_DIALOG
 } PH_MINIINFO_CREATE_DIALOG, *PPH_MINIINFO_CREATE_DIALOG;
 
 #define PH_MINIINFO_SECTION_NO_UPPER_MARGINS 0x1
+// end_phapppub
 
+// begin_phapppub
 typedef struct _PH_MINIINFO_SECTION
 {
     // Public
@@ -69,6 +72,7 @@ typedef struct _PH_MINIINFO_SECTION
 
     PPH_MINIINFO_PARAMETERS Parameters;
     PVOID Reserved2[3];
+// end_phapppub
 
     // Private
 
@@ -78,7 +82,9 @@ typedef struct _PH_MINIINFO_SECTION
     };
     HWND DialogHandle;
     PPH_STRING Text;
+// begin_phapppub
 } PH_MINIINFO_SECTION, *PPH_MINIINFO_SECTION;
+// end_phapppub
 
 typedef enum _PH_MINIINFO_PIN_TYPE
 {
@@ -103,6 +109,7 @@ VOID PhPinMiniInformation(
     _In_opt_ PPOINT SourcePoint
     );
 
+// begin_phapppub
 // List section
 
 typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
@@ -185,7 +192,9 @@ typedef struct _PH_MINIINFO_LIST_SECTION_MENU_INFORMATION
     PPH_TREENEW_CONTEXT_MENU ContextMenu;
     struct _PH_EMENU_ITEM *SelectedItem;
 } PH_MINIINFO_LIST_SECTION_MENU_INFORMATION, *PPH_MINIINFO_LIST_SECTION_MENU_INFORMATION;
+// end_phapppub
 
+// begin_phapppub
 typedef struct _PH_MINIINFO_LIST_SECTION
 {
     // Public
@@ -195,6 +204,7 @@ typedef struct _PH_MINIINFO_LIST_SECTION
     HWND TreeNewHandle; // State
     PVOID Context; // Initialization
     PPH_MINIINFO_LIST_SECTION_CALLBACK Callback; // Initialization
+// end_phapppub
 
     // Private
 
@@ -205,6 +215,8 @@ typedef struct _PH_MINIINFO_LIST_SECTION
     PPH_LIST NodeList;
     HANDLE SelectedRepresentativeProcessId;
     LARGE_INTEGER SelectedRepresentativeCreateTime;
+// begin_phapppub
 } PH_MINIINFO_LIST_SECTION, *PPH_MINIINFO_LIST_SECTION;
+// end_phapppub
 
 #endif
