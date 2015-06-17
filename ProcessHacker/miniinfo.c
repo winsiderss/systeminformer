@@ -1129,7 +1129,8 @@ BOOLEAN PhMipListSectionCallback(
         }
         break;
     case MiniInfoTick:
-        PhMipTickListSection(listSection);
+        if (listSection->SuspendUpdate == 0)
+            PhMipTickListSection(listSection);
         break;
     case MiniInfoShowing:
         {
@@ -1528,14 +1529,24 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             PPH_MIP_GROUP_NODE node = (PPH_MIP_GROUP_NODE)mouseEvent->Node;
 
             if (node)
+            {
+                listSection->SuspendUpdate++;
                 PhMipHandleListSectionCommand(listSection, node->ProcessGroup, ID_PROCESS_GOTOPROCESS);
+                listSection->SuspendUpdate--;
+            }
         }
         break;
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
+            // Prevent the node list from being updated (otherwise any nodes we're using might be destroyed while we're
+            // in a modal message loop).
+            listSection->SuspendUpdate++;
+            PhMipBeginChildControlPin();
             PhMipShowListSectionContextMenu(listSection, contextMenu);
+            PhMipEndChildControlPin();
+            listSection->SuspendUpdate--;
         }
         break;
     }
@@ -1603,7 +1614,6 @@ VOID PhMipShowListSectionContextMenu(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMiListSectionMenuInitializing), &pluginMenuInfo);
     }
 
-    PhMipBeginChildControlPin();
     item = PhShowEMenu(
         menu,
         PhMipWindow,
@@ -1612,7 +1622,6 @@ VOID PhMipShowListSectionContextMenu(
         ContextMenu->Location.x,
         ContextMenu->Location.y
         );
-    PhMipEndChildControlPin();
 
     if (item)
     {

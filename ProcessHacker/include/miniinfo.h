@@ -201,6 +201,7 @@ typedef struct _PH_MINIINFO_LIST_SECTION
 
     PH_LAYOUT_MANAGER LayoutManager;
     ULONG RunCount;
+    LONG SuspendUpdate;
     PPH_LIST ProcessGroupList;
     PPH_LIST NodeList;
     HANDLE SelectedRepresentativeProcessId;
