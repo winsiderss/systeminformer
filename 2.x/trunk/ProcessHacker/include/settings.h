@@ -1,12 +1,14 @@
 #ifndef PH_SETTINGS_H
 #define PH_SETTINGS_H
 
+// begin_phapppub
 typedef enum _PH_SETTING_TYPE
 {
     StringSettingType,
     IntegerSettingType,
     IntegerPairSettingType
 } PH_SETTING_TYPE, PPH_SETTING_TYPE;
+// end_phapppub
 
 typedef struct _PH_SETTING
 {
@@ -30,44 +32,60 @@ VOID PhUpdateCachedSettings(
     VOID
     );
 
+// begin_phapppub
 PHAPPAPI
-_May_raise_ ULONG PhGetIntegerSetting(
+_May_raise_ ULONG
+NTAPI
+PhGetIntegerSetting(
     _In_ PWSTR Name
     );
 
 PHAPPAPI
-_May_raise_ PH_INTEGER_PAIR PhGetIntegerPairSetting(
+_May_raise_ PH_INTEGER_PAIR
+NTAPI
+PhGetIntegerPairSetting(
     _In_ PWSTR Name
     );
 
 PHAPPAPI
-_May_raise_ PPH_STRING PhGetStringSetting(
+_May_raise_ PPH_STRING
+NTAPI
+PhGetStringSetting(
     _In_ PWSTR Name
     );
 
 PHAPPAPI
-_May_raise_ VOID PhSetIntegerSetting(
+_May_raise_ VOID
+NTAPI
+PhSetIntegerSetting(
     _In_ PWSTR Name,
     _In_ ULONG Value
     );
 
 PHAPPAPI
-_May_raise_ VOID PhSetIntegerPairSetting(
+_May_raise_ VOID
+NTAPI
+PhSetIntegerPairSetting(
     _In_ PWSTR Name,
     _In_ PH_INTEGER_PAIR Value
     );
 
 PHAPPAPI
-_May_raise_ VOID PhSetStringSetting(
+_May_raise_ VOID
+NTAPI
+PhSetStringSetting(
     _In_ PWSTR Name,
     _In_ PWSTR Value
     );
 
 PHAPPAPI
-_May_raise_ VOID PhSetStringSetting2(
+_May_raise_ VOID
+NTAPI
+PhSetStringSetting2(
     _In_ PWSTR Name,
     _In_ PPH_STRINGREF Value
     );
+// end_phapppub
 
 VOID PhClearIgnoredSettings(
     VOID
@@ -89,8 +107,9 @@ VOID PhResetSettings(
     VOID
     );
 
-#define PhaGetStringSetting(Name) ((PPH_STRING)PhAutoDereferenceObject(PhGetStringSetting(Name)))
+#define PhaGetStringSetting(Name) ((PPH_STRING)PhAutoDereferenceObject(PhGetStringSetting(Name))) // phapppub
 
+// begin_phapppub
 // High-level settings creation
 
 typedef struct _PH_SETTING_CREATE
@@ -101,10 +120,13 @@ typedef struct _PH_SETTING_CREATE
 } PH_SETTING_CREATE, *PPH_SETTING_CREATE;
 
 PHAPPAPI
-VOID PhAddSettings(
+VOID
+NTAPI
+PhAddSettings(
     _In_ PPH_SETTING_CREATE Settings,
     _In_ ULONG NumberOfSettings
     );
+// end_phapppub
 
 // Cached settings
 

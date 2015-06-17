@@ -25,7 +25,6 @@
 #include <windowsx.h>
 #include <evntcons.h>
 #include "clretw.h"
-#include <colmgr.h>
 
 #define DNATNC_STRUCTURE 0
 #define DNATNC_ID 1

@@ -1,11 +1,13 @@
 #ifndef PH_PROCGRP_H
 #define PH_PROCGRP_H
 
+// begin_phapppub
 typedef struct _PH_PROCESS_GROUP
 {
     PPH_PROCESS_ITEM Representative; // An element of Processes (no extra reference added)
     PPH_LIST Processes; // List of PPH_PROCESS_ITEM
 } PH_PROCESS_GROUP, *PPH_PROCESS_GROUP;
+// end_phapppub
 
 typedef VOID (NTAPI *PPH_SORT_LIST_FUNCTION)(
     _In_ PPH_LIST List,

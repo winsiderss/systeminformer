@@ -3,12 +3,14 @@
 
 #define PH_CM_ORDER_LIMIT 160
 
+// begin_phapppub
 typedef LONG (NTAPI *PPH_CM_POST_SORT_FUNCTION)(
     _In_ LONG Result,
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ PH_SORT_ORDER SortOrder
     );
+// end_phapppub
 
 typedef struct _PH_CM_MANAGER
 {
@@ -77,6 +79,7 @@ BOOLEAN PhCmForwardSort(
     _In_ PPH_CM_MANAGER Manager
     );
 
+// begin_phapppub
 PHAPPAPI
 BOOLEAN
 NTAPI
@@ -84,6 +87,7 @@ PhCmLoadSettings(
     _In_ HWND TreeNewHandle,
     _In_ PPH_STRINGREF Settings
     );
+// end_phapppub
 
 #define PH_CM_COLUMN_WIDTHS_ONLY 0x1
 
@@ -95,12 +99,14 @@ BOOLEAN PhCmLoadSettingsEx(
     _In_opt_ PPH_STRINGREF SortSettings
     );
 
+// begin_phapppub
 PHAPPAPI
 PPH_STRING
 NTAPI
 PhCmSaveSettings(
     _In_ HWND TreeNewHandle
     );
+// end_phapppub
 
 PPH_STRING PhCmSaveSettingsEx(
     _In_ HWND TreeNewHandle,

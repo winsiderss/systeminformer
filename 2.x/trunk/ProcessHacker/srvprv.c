@@ -20,7 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define PH_SRVPRV_PRIVATE
 #include <phapp.h>
 #include <winevt.h>
 #include <extmgri.h>

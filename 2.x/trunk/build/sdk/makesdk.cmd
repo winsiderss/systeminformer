@@ -77,17 +77,7 @@ for %%a in (
     winsta.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\%%a
 
-for %%a in (
-    colmgr.h
-    extmgr.h
-    hidnproc.h
-    miniinfo.h
-    notifico.h
-    phplug.h
-    procgrp.h
-    providers.h
-    sysinfo.h
-    ) do copy ..\..\ProcessHacker\include\%%a ..\..\sdk\include\%%a
+call phapppub_gen.cmd
 
 for %%a in (
     phapppub.h

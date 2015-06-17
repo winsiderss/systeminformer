@@ -21,7 +21,6 @@
  */
 
 #include "exttools.h"
-#include <notifico.h>
 
 #define GPU_ICON_ID 1
 #define DISK_ICON_ID 2

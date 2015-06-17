@@ -147,6 +147,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 #define WM_PH_THREADS_UPDATED (WM_APP + 204)
 #define WM_PH_THREAD_SELECTION_CHANGED (WM_APP + 205)
 
+// begin_phapppub
 typedef struct _PH_THREADS_CONTEXT
 {
     PPH_THREAD_PROVIDER Provider;
@@ -158,16 +159,28 @@ typedef struct _PH_THREADS_CONTEXT
     PH_CALLBACK_REGISTRATION LoadingStateChangedEventRegistration;
 
     HWND WindowHandle;
+// end_phapppub
 
-    PH_THREAD_LIST_CONTEXT ListContext;
+    union
+    {
+        PH_THREAD_LIST_CONTEXT ListContext;
+        struct
+        {
+            HWND Private; // phapppub
+            HWND TreeNewHandle; // phapppub
+        } PublicUse;
+    };
     BOOLEAN NeedsRedraw;
+// begin_phapppub
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
+// end_phapppub
 
 #define WM_PH_MODULE_ADDED (WM_APP + 211)
 #define WM_PH_MODULE_MODIFIED (WM_APP + 212)
 #define WM_PH_MODULE_REMOVED (WM_APP + 213)
 #define WM_PH_MODULES_UPDATED (WM_APP + 214)
 
+// begin_phapppub
 typedef struct _PH_MODULES_CONTEXT
 {
     PPH_MODULE_PROVIDER Provider;
@@ -178,18 +191,30 @@ typedef struct _PH_MODULES_CONTEXT
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
+// end_phapppub
 
-    PH_MODULE_LIST_CONTEXT ListContext;
+    union
+    {
+        PH_MODULE_LIST_CONTEXT ListContext;
+        struct
+        {
+            HWND Private; // phapppub
+            HWND TreeNewHandle; // phapppub
+        } PublicUse;
+    };
     BOOLEAN NeedsRedraw;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
+// begin_phapppub
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
+// end_phapppub
 
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
 #define WM_PH_HANDLE_MODIFIED (WM_APP + 222)
 #define WM_PH_HANDLE_REMOVED (WM_APP + 223)
 #define WM_PH_HANDLES_UPDATED (WM_APP + 224)
 
+// begin_phapppub
 typedef struct _PH_HANDLES_CONTEXT
 {
     PPH_HANDLE_PROVIDER Provider;
@@ -200,26 +225,49 @@ typedef struct _PH_HANDLES_CONTEXT
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
+// end_phapppub
 
-    PH_HANDLE_LIST_CONTEXT ListContext;
+    union
+    {
+        PH_HANDLE_LIST_CONTEXT ListContext;
+        struct
+        {
+            HWND Private; // phapppub
+            HWND TreeNewHandle; // phapppub
+        } PublicUse;
+    };
     BOOLEAN NeedsRedraw;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
+// begin_phapppub
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
+// end_phapppub
 
+// begin_phapppub
 typedef struct _PH_MEMORY_CONTEXT
 {
     HANDLE ProcessId;
     HWND WindowHandle;
+// end_phapppub
 
-    PH_MEMORY_LIST_CONTEXT ListContext;
+    union
+    {
+        PH_MEMORY_LIST_CONTEXT ListContext;
+        struct
+        {
+            HWND Private; // phapppub
+            HWND TreeNewHandle; // phapppub
+        } PublicUse;
+    };
     PH_MEMORY_ITEM_LIST MemoryItemList;
     BOOLEAN MemoryItemListValid;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
+// begin_phapppub
 } PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
+// end_phapppub
 
 #define WM_PH_STATISTICS_UPDATE (WM_APP + 231)
 

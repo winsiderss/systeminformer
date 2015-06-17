@@ -30,8 +30,6 @@
 #define COBJMACROS
 #define INITGUID
 #include <phdk.h>
-#include <phapppub.h>
-#include <phplug.h>
 #include <phappresource.h>
 #include <windowsx.h>
 #include <Wincodec.h>

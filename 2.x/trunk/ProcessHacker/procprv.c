@@ -55,7 +55,6 @@
  * available for DPCs and Interrupts separately (only a "system" cycle time).
  */
 
-#define PH_PROCPRV_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
 #include <extmgri.h>

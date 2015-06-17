@@ -21,7 +21,6 @@
  */
 
 #include "wndexp.h"
-#include <colmgr.h>
 #include "resource.h"
 
 BOOLEAN WepWindowNodeHashtableCompareFunction(
