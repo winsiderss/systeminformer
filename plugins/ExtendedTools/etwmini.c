@@ -123,6 +123,7 @@ int __cdecl EtpDiskListSectionProcessCompareFunction(
     _In_ const void *elem2
     )
 {
+    int result;
     PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)elem1;
     PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)elem2;
     PET_PROCESS_BLOCK block1 = EtGetProcessBlock(node1->ProcessItem);
@@ -130,7 +131,14 @@ int __cdecl EtpDiskListSectionProcessCompareFunction(
     ULONG64 total1 = block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta;
     ULONG64 total2 = block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta;
 
-    return uint64cmp(total2, total1);
+    result = uint64cmp(total2, total1);
+
+    if (result == 0)
+        result = uint64cmp(block2->DiskReadRaw + block2->DiskWriteRaw, block1->DiskReadRaw + block1->DiskWriteRaw);
+    if (result == 0)
+        result = singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
+
+    return result;
 }
 
 int __cdecl EtpDiskListSectionNodeCompareFunction(
@@ -227,6 +235,7 @@ int __cdecl EtpNetworkListSectionProcessCompareFunction(
     _In_ const void *elem2
     )
 {
+    int result;
     PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)elem1;
     PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)elem2;
     PET_PROCESS_BLOCK block1 = EtGetProcessBlock(node1->ProcessItem);
@@ -234,7 +243,14 @@ int __cdecl EtpNetworkListSectionProcessCompareFunction(
     ULONG64 total1 = block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta;
     ULONG64 total2 = block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta;
 
-    return uint64cmp(total2, total1);
+    result = uint64cmp(total2, total1);
+
+    if (result == 0)
+        result = uint64cmp(block2->NetworkReceiveRaw + block2->NetworkSendRaw, block1->NetworkReceiveRaw + block1->NetworkSendRaw);
+    if (result == 0)
+        result = singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
+
+    return result;
 }
 
 int __cdecl EtpNetworkListSectionNodeCompareFunction(

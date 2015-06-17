@@ -1912,10 +1912,16 @@ int __cdecl PhMipCpuListSectionProcessCompareFunction(
     _In_ const void *elem2
     )
 {
+    int result;
     PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)elem1;
     PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)elem2;
 
-    return singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
+    result = singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
+
+    if (result == 0)
+        result = uint64cmp(node2->ProcessItem->UserTime.QuadPart, node1->ProcessItem->UserTime.QuadPart);
+
+    return result;
 }
 
 int __cdecl PhMipCpuListSectionNodeCompareFunction(
@@ -2197,12 +2203,20 @@ int __cdecl PhMipIoListSectionProcessCompareFunction(
     _In_ const void *elem2
     )
 {
+    int result;
     PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)elem1;
     PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)elem2;
-    ULONG64 total1 = node1->ProcessItem->IoReadDelta.Delta + node1->ProcessItem->IoWriteDelta.Delta + node1->ProcessItem->IoOtherDelta.Delta;
-    ULONG64 total2 = node2->ProcessItem->IoReadDelta.Delta + node2->ProcessItem->IoWriteDelta.Delta + node2->ProcessItem->IoOtherDelta.Delta;
+    ULONG64 delta1 = node1->ProcessItem->IoReadDelta.Delta + node1->ProcessItem->IoWriteDelta.Delta + node1->ProcessItem->IoOtherDelta.Delta;
+    ULONG64 delta2 = node2->ProcessItem->IoReadDelta.Delta + node2->ProcessItem->IoWriteDelta.Delta + node2->ProcessItem->IoOtherDelta.Delta;
+    ULONG64 value1 = node1->ProcessItem->IoReadDelta.Value + node1->ProcessItem->IoWriteDelta.Value + node1->ProcessItem->IoOtherDelta.Value;
+    ULONG64 value2 = node2->ProcessItem->IoReadDelta.Value + node2->ProcessItem->IoWriteDelta.Value + node2->ProcessItem->IoOtherDelta.Value;
 
-    return uint64cmp(total2, total1);
+    result = uint64cmp(delta2, delta1);
+
+    if (result == 0)
+        result = uint64cmp(value2, value1);
+
+    return result;
 }
 
 int __cdecl PhMipIoListSectionNodeCompareFunction(
