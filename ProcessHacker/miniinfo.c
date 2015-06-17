@@ -1966,10 +1966,16 @@ BOOLEAN PhMipIoListSectionCallback(
 
             PhInitFormatS(&format[0], L"I/O    R: ");
             PhInitFormatSize(&format[1], PhIoReadDelta.Delta);
+            format[1].Type |= FormatUsePrecision;
+            format[1].Precision = 0;
             PhInitFormatS(&format[2], L"  W: ");
             PhInitFormatSize(&format[3], PhIoWriteDelta.Delta);
+            format[3].Type |= FormatUsePrecision;
+            format[3].Precision = 0;
             PhInitFormatS(&format[4], L"  O: ");
             PhInitFormatSize(&format[5], PhIoOtherDelta.Delta);
+            format[5].Type |= FormatUsePrecision;
+            format[5].Precision = 0;
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
                 PhAutoDereferenceObject(PhFormat(format, 6, 80)));
         }
