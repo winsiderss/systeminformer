@@ -221,6 +221,8 @@ typedef struct _PH_MIP_GROUP_NODE
     PPH_PROCESS_GROUP ProcessGroup;
     HANDLE RepresentativeProcessId;
     LARGE_INTEGER RepresentativeCreateTime;
+
+    PPH_STRING TooltipText;
 } PH_MIP_GROUP_NODE, *PPH_MIP_GROUP_NODE;
 
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
@@ -281,6 +283,15 @@ BOOLEAN PhMipListSectionTreeNewCallback(
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
     _In_opt_ PVOID Context
+    );
+
+PPH_STRING PhMipGetGroupNodeTooltip(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_MIP_GROUP_NODE Node
+    );
+
+PPH_MIP_GROUP_NODE PhMipGetSelectedGroupNode(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection
     );
 
 VOID PhMipShowListSectionContextMenu(

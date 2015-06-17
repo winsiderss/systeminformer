@@ -66,14 +66,14 @@ PPH_EMENU_ITEM PhAllocateEMenuItem(
  * \li \c PH_EMENU_RADIOCHECK Uses a radio-button mark instead of a check mark.
  * \param Id A unique identifier for the menu item.
  * \param Text The text displayed for the menu item.
- * \param Bitmap Reserved.
+ * \param Bitmap A bitmap image for the menu item.
  * \param Context A user-defined value.
  */
 PPH_EMENU_ITEM PhCreateEMenuItem(
     _In_ ULONG Flags,
     _In_ ULONG Id,
     _In_ PWSTR Text,
-    _In_opt_ PWSTR Bitmap,
+    _In_opt_ HBITMAP Bitmap,
     _In_opt_ PVOID Context
     )
 {
@@ -84,11 +84,7 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
     item->Flags = Flags;
     item->Id = Id;
     item->Text = Text;
-
-    if (Bitmap)
-    {
-        // TODO
-    }
+    item->Bitmap = Bitmap;
 
     item->Context = Context;
 
@@ -809,7 +805,7 @@ PPH_EMENU_ITEM PhShowEMenu(
  * \param Value The new value of the flags.
  */
 BOOLEAN PhSetFlagsEMenuItem(
-    _In_ PPH_EMENU_ITEM Item,
+    _Inout_ PPH_EMENU_ITEM Item,
     _In_ ULONG Id,
     _In_ ULONG Mask,
     _In_ ULONG Value
@@ -853,5 +849,34 @@ VOID PhSetFlagsAllEMenuItems(
 
         item->Flags &= ~Mask;
         item->Flags |= Value;
+    }
+}
+
+VOID PhModifyEMenuItem(
+    _Inout_ PPH_EMENU_ITEM Item,
+    _In_ ULONG ModifyFlags,
+    _In_ ULONG OwnedFlags,
+    _In_opt_ PWSTR Text,
+    _In_opt_ HBITMAP Bitmap
+    )
+{
+    if (ModifyFlags & PH_EMENU_MODIFY_TEXT)
+    {
+        if ((Item->Flags & PH_EMENU_TEXT_OWNED) && Item->Text)
+            PhFree(Item->Text);
+
+        Item->Text = Text;
+        Item->Flags &= ~PH_EMENU_TEXT_OWNED;
+        Item->Flags |= OwnedFlags & PH_EMENU_TEXT_OWNED;
+    }
+
+    if (ModifyFlags & PH_EMENU_MODIFY_BITMAP)
+    {
+        if ((Item->Flags & PH_EMENU_BITMAP_OWNED) && Item->Bitmap)
+            DeleteObject(Item->Bitmap);
+
+        Item->Bitmap = Bitmap;
+        Item->Flags &= ~PH_EMENU_BITMAP_OWNED;
+        Item->Flags |= OwnedFlags & PH_EMENU_BITMAP_OWNED;
     }
 }
