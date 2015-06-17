@@ -25,6 +25,7 @@
 #include <emenu.h>
 #include <miniinfo.h>
 #include <phplug.h>
+#include <notifico.h>
 #include <windowsx.h>
 #include <uxtheme.h>
 #include <miniinfop.h>
@@ -1022,6 +1023,8 @@ VOID PhMipSetPinned(
     PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
     SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
     PhMipPinned = Pinned;
+
+    PhNfNotifyMiniInfoPinned(Pinned);
 }
 
 VOID PhMipShowSectionMenu(

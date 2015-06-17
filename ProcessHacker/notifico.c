@@ -52,7 +52,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
 BOOLEAN PhNfpModifyNotifyIcon(
     _In_ ULONG Id,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PPH_STRING Text,
     _In_opt_ HICON Icon
     );
 
@@ -109,6 +109,8 @@ ULONG PhNfIconMask;
 ULONG PhNfIconNotifyMask;
 ULONG PhNfMaximumIconId = PH_ICON_DEFAULT_MAXIMUM;
 PPH_NF_ICON PhNfRegisteredIcons[32] = { 0 };
+PPH_STRING PhNfIconTextCache[32] = { 0 };
+BOOLEAN PhNfMiniInfoPinned;
 
 PH_NF_POINTERS PhNfpPointers;
 PH_CALLBACK_REGISTRATION PhNfpProcessesUpdatedRegistration;
@@ -519,6 +521,32 @@ PPH_NF_ICON PhNfFindIcon(
     return NULL;
 }
 
+VOID PhNfNotifyMiniInfoPinned(
+    _In_ BOOLEAN Pinned
+    )
+{
+    ULONG i;
+    ULONG id;
+
+    if (PhNfMiniInfoPinned != Pinned)
+    {
+        PhNfMiniInfoPinned = Pinned;
+
+        // Go through every icon and set/clear the NIF_SHOWTIP flag depending on whether the mini info window is
+        // pinned. If it's pinned then we want to show normal tooltips, because the section doesn't change
+        // automatically when the cursor hovers over an icon.
+        for (i = 0; i < sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON); i++)
+        {
+            id = 1 << i;
+
+            if (PhNfIconMask & id)
+            {
+                PhNfpModifyNotifyIcon(id, NIF_TIP, PhNfIconTextCache[i], NULL);
+            }
+        }
+    }
+}
+
 HICON PhNfpGetBlackIcon(
     VOID
     )
@@ -569,10 +597,14 @@ BOOLEAN PhNfpAddNotifyIcon(
     notifyIcon.uID = Id;
     notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
-    wcsncpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), PhApplicationName, _TRUNCATE);
+    wcsncpy_s(
+        notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR),
+        PhGetStringOrDefault(PhNfIconTextCache[Id], PhApplicationName),
+        _TRUNCATE
+        );
     notifyIcon.hIcon = PhNfpGetBlackIcon();
 
-    if (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO))
+    if (PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
@@ -610,7 +642,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
 BOOLEAN PhNfpModifyNotifyIcon(
     _In_ ULONG Id,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PPH_STRING Text,
     _In_opt_ HICON Icon
     )
 {
@@ -630,12 +662,20 @@ BOOLEAN PhNfpModifyNotifyIcon(
     notifyIcon.uID = notifyId;
     notifyIcon.uFlags = Flags;
 
-    if (Text)
-        wcsncpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), Text, _TRUNCATE);
+    if (Flags & NIF_TIP)
+    {
+        PhSwapReference(&PhNfIconTextCache[notifyId], Text);
+        wcsncpy_s(
+            notifyIcon.szTip,
+            sizeof(notifyIcon.szTip) / sizeof(WCHAR),
+            PhGetStringOrDefault(Text, PhApplicationName),
+            _TRUNCATE
+            );
+    }
 
     notifyIcon.hIcon = Icon;
 
-    if (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO))
+    if (PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIcon))
@@ -725,7 +765,7 @@ VOID PhNfpUpdateRegisteredIcon(
         flags |= NIF_TIP;
 
     if (flags != 0)
-        PhNfpModifyNotifyIcon(Icon->IconId, flags, PhGetString(newText), newIcon);
+        PhNfpModifyNotifyIcon(Icon->IconId, flags, newText, newIcon);
 
     if (newIcon && (updateFlags & PH_NF_UPDATE_IS_BITMAP))
         DestroyIcon(newIcon);
@@ -879,7 +919,7 @@ VOID PhNfpUpdateIconCpuHistory(
     text = PhFormat(format, maxCpuProcessItem ? 8 : 3, 128);
     if (maxCpuProcessItem) PhDereferenceObject(maxCpuProcessItem);
 
-    PhNfpModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+    PhNfpModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text, icon);
 
     DestroyIcon(icon);
     PhDereferenceObject(text);
@@ -988,7 +1028,7 @@ VOID PhNfpUpdateIconIoHistory(
     text = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
     if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
 
-    PhNfpModifyNotifyIcon(PH_ICON_IO_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+    PhNfpModifyNotifyIcon(PH_ICON_IO_HISTORY, NIF_TIP | NIF_ICON, text, icon);
 
     DestroyIcon(icon);
     PhDereferenceObject(text);
@@ -1063,7 +1103,7 @@ VOID PhNfpUpdateIconCommitHistory(
 
     text = PhFormat(format, 5, 96);
 
-    PhNfpModifyNotifyIcon(PH_ICON_COMMIT_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+    PhNfpModifyNotifyIcon(PH_ICON_COMMIT_HISTORY, NIF_TIP | NIF_ICON, text, icon);
 
     DestroyIcon(icon);
     PhDereferenceObject(text);
@@ -1140,7 +1180,7 @@ VOID PhNfpUpdateIconPhysicalHistory(
 
     text = PhFormat(format, 5, 96);
 
-    PhNfpModifyNotifyIcon(PH_ICON_PHYSICAL_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+    PhNfpModifyNotifyIcon(PH_ICON_PHYSICAL_HISTORY, NIF_TIP | NIF_ICON, text, icon);
 
     DestroyIcon(icon);
     PhDereferenceObject(text);
@@ -1265,7 +1305,7 @@ VOID PhNfpUpdateIconCpuUsage(
     text = PhFormatString(L"CPU Usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 
-    PhNfpModifyNotifyIcon(PH_ICON_CPU_USAGE, NIF_TIP | NIF_ICON, text->Buffer, icon);
+    PhNfpModifyNotifyIcon(PH_ICON_CPU_USAGE, NIF_TIP | NIF_ICON, text, icon);
 
     DestroyIcon(icon);
     PhDereferenceObject(text);

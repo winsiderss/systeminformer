@@ -148,6 +148,10 @@ PPH_NF_ICON PhNfFindIcon(
     _In_ ULONG SubId
     );
 
+VOID PhNfNotifyMiniInfoPinned(
+    _In_ BOOLEAN Pinned
+    );
+
 // Public registration data
 
 typedef struct _PH_NF_ICON_REGISTRATION_DATA
