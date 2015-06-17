@@ -102,12 +102,20 @@ int __cdecl EtpGpuListSectionProcessCompareFunction(
     _In_ const void *elem2
     )
 {
+    int result;
     PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)elem1;
     PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)elem2;
     PET_PROCESS_BLOCK block1 = EtGetProcessBlock(node1->ProcessItem);
     PET_PROCESS_BLOCK block2 = EtGetProcessBlock(node2->ProcessItem);
 
-    return singlecmp(block2->GpuNodeUsage, block1->GpuNodeUsage);
+    result = singlecmp(block2->GpuNodeUsage, block1->GpuNodeUsage);
+
+    if (result == 0)
+        result = uint64cmp(block2->GpuRunningTimeDelta.Value, block1->GpuRunningTimeDelta.Value);
+    if (result == 0)
+        result = singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
+
+    return result;
 }
 
 int __cdecl EtpGpuListSectionNodeCompareFunction(
