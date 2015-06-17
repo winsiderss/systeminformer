@@ -1135,6 +1135,33 @@ HFONT PhDuplicateFontWithNewWeight(
     }
 }
 
+VOID PhSetWindowOpacity(
+    _In_ HWND WindowHandle,
+    _In_ ULONG OpacityPercent
+    )
+{
+    if (OpacityPercent == 0)
+    {
+        // Make things a bit faster by removing the WS_EX_LAYERED bit.
+        PhSetWindowExStyle(WindowHandle, WS_EX_LAYERED, 0);
+        RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+        return;
+    }
+
+    PhSetWindowExStyle(WindowHandle, WS_EX_LAYERED, WS_EX_LAYERED);
+
+    // Disallow opacity values of less than 10%.
+    OpacityPercent = min(OpacityPercent, 90);
+
+    // The opacity value is backwards - 0 means opaque, 100 means transparent.
+    SetLayeredWindowAttributes(
+        WindowHandle,
+        0,
+        (BYTE)(255 * (100 - OpacityPercent) / 100),
+        LWA_ALPHA
+        );
+}
+
 VOID PhLoadWindowPlacementFromSetting(
     _In_opt_ PWSTR PositionSettingName,
     _In_opt_ PWSTR SizeSettingName,

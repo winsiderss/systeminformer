@@ -304,6 +304,14 @@ HFONT PhDuplicateFontWithNewWeight(
     _In_ LONG NewWeight
     );
 
+VOID PhSetWindowOpacity(
+    _In_ HWND WindowHandle,
+    _In_ ULONG OpacityPercent
+    );
+
+#define PH_OPACITY_TO_ID(Opacity) (ID_OPACITY_10 + (10 - (Opacity) / 10) - 1)
+#define PH_ID_TO_OPACITY(Id) (100 - (((Id) - ID_OPACITY_10) + 1) * 10)
+
 PHAPPAPI
 VOID PhLoadWindowPlacementFromSetting(
     _In_opt_ PWSTR PositionSettingName,

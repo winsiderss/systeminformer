@@ -473,6 +473,9 @@ BEGIN
             MENUITEM "90%",                         ID_OPACITY_90
             MENUITEM "Opaque",                      ID_OPACITY_OPAQUE
         END
+        MENUITEM SEPARATOR
+        MENUITEM "&Refresh\aF5",                ID_MINIINFO_REFRESH
+        MENUITEM "Refresh A&utomatically\aF6",  ID_MINIINFO_REFRESHAUTOMATICALLY
     END
 END
 

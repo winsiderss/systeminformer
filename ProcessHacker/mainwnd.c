@@ -1030,9 +1030,9 @@ VOID PhMwpOnCommand(
         {
             ULONG opacity;
 
-            opacity = 100 - ((Id - ID_OPACITY_10) + 1) * 10;
+            opacity = PH_ID_TO_OPACITY(Id);
             PhSetIntegerSetting(L"MainWindowOpacity", opacity);
-            PhMwpSetWindowOpacity(opacity);
+            PhSetWindowOpacity(PhMainWndHandle, opacity);
         }
         break;
     case ID_VIEW_REFRESH:
@@ -2615,7 +2615,7 @@ VOID PhMwpLoadSettings(
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
 
     if (opacity != 0)
-        PhMwpSetWindowOpacity(opacity);
+        PhSetWindowOpacity(PhMainWndHandle, opacity);
 
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
@@ -2785,32 +2785,6 @@ VOID PhMwpLayout(
     UpdateWindow(TabControlHandle);
 
     PhMwpLayoutTabControl(DeferHandle);
-}
-
-VOID PhMwpSetWindowOpacity(
-    _In_ ULONG Opacity
-    )
-{
-    if (Opacity == 0)
-    {
-        // Make things a bit faster by removing the WS_EX_LAYERED bit.
-        PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, 0);
-        RedrawWindow(PhMainWndHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
-        return;
-    }
-
-    PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, WS_EX_LAYERED);
-
-    // Disallow opacity values of less than 10%.
-    if (Opacity > 90)
-        return;
-
-    SetLayeredWindowAttributes(
-        PhMainWndHandle,
-        0,
-        (BYTE)(255 * (100 - Opacity) / 100),
-        LWA_ALPHA
-        );
 }
 
 VOID PhMwpSetupComputerMenu(
@@ -3131,8 +3105,7 @@ VOID PhMwpInitializeSubMenu(
         if (AlwaysOnTop && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_ALWAYSONTOP)))
             menuItem->Flags |= PH_EMENU_CHECKED;
 
-        // The opacity setting is stored backwards - 0 means opaque, 100 means transparent.
-        id = ID_OPACITY_10 + (10 - PhGetIntegerSetting(L"MainWindowOpacity") / 10) - 1;
+        id = PH_OPACITY_TO_ID(PhGetIntegerSetting(L"MainWindowOpacity"));
 
         if (menuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, NULL, id))
             menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;

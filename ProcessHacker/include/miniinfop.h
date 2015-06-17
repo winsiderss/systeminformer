@@ -18,6 +18,11 @@
 #define MIP_SEPARATOR_HEIGHT 2
 #define MIP_PADDING_SIZE 3
 
+#define MIP_REFRESH_AUTOMATICALLY_PINNED 0x1
+#define MIP_REFRESH_AUTOMATICALLY_UNPINNED 0x2
+#define MIP_REFRESH_AUTOMATICALLY_FLAG(Pinned) \
+    ((Pinned) ? MIP_REFRESH_AUTOMATICALLY_PINNED : MIP_REFRESH_AUTOMATICALLY_UNPINNED)
+
 // Misc.
 
 #define SET_BUTTON_BITMAP(hwndDlg, Id, Bitmap) \
@@ -191,8 +196,24 @@ VOID PhMipEndChildControlPin(
     VOID
     );
 
+VOID PhMipRefresh(
+    VOID
+    );
+
+VOID PhMipToggleRefreshAutomatically(
+    VOID
+    );
+
 VOID PhMipSetPinned(
     _In_ BOOLEAN Pinned
+    );
+
+VOID PhMipShowSectionMenu(
+    VOID
+    );
+
+VOID PhMipShowOptionsMenu(
+    VOID
     );
 
 LRESULT CALLBACK PhMipSectionControlHookWndProc(

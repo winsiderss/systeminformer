@@ -45,6 +45,7 @@ static LONG PhMipDelayedPinAdjustments[MaxMiniInfoPinType];
 static PPH_MESSAGE_LOOP_FILTER_ENTRY PhMipMessageLoopFilterEntry;
 static HWND PhMipLastTrackedWindow;
 static HWND PhMipLastNcTrackedWindow;
+static ULONG PhMipRefreshAutomatically;
 static BOOLEAN PhMipPinned;
 
 static HWND PhMipWindow = NULL;
@@ -86,6 +87,7 @@ VOID PhPinMiniInformation(
     if (adjustPinResult == ShowAdjustPinResult)
     {
         PH_RECTANGLE windowRectangle;
+        ULONG opacity;
 
         if (SourcePoint)
             PhMipSourcePoint = *SourcePoint;
@@ -132,6 +134,13 @@ VOID PhPinMiniInformation(
 
             if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
                 PhMipSetPinned(TRUE);
+
+            PhMipRefreshAutomatically = PhGetIntegerSetting(L"MiniInfoWindowRefreshAutomatically");
+
+            opacity = PhGetIntegerSetting(L"MiniInfoWindowOpacity");
+
+            if (opacity != 0)
+                PhSetWindowOpacity(PhMipContainerWindow, opacity);
 
             MinimumSize.left = 0;
             MinimumSize.top = 0;
@@ -483,66 +492,12 @@ VOID PhMipOnCommand(
         switch (Code)
         {
         case STN_CLICKED:
-            {
-                PPH_EMENU menu;
-                ULONG i;
-                PPH_MINIINFO_SECTION section;
-                PPH_EMENU_ITEM menuItem;
-                POINT point;
-
-                PhMipBeginChildControlPin();
-                menu = PhCreateEMenu();
-
-                for (i = 0; i < SectionList->Count; i++)
-                {
-                    section = SectionList->Items[i];
-                    menuItem = PhCreateEMenuItem(
-                        (section == CurrentSection ? (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK) : 0),
-                        0,
-                        ((PPH_STRING)PhAutoDereferenceObject(PhCreateString2(&section->Name)))->Buffer,
-                        NULL,
-                        section
-                        );
-                    PhInsertEMenuItem(menu, menuItem, -1);
-                }
-
-                GetCursorPos(&point);
-                menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
-                    PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
-
-                if (menuItem)
-                {
-                    PhMipChangeSection(menuItem->Context);
-                }
-
-                PhDestroyEMenu(menu);
-                PhMipEndChildControlPin();
-            }
+            PhMipShowSectionMenu();
             break;
         }
         break;
     case IDC_OPTIONS:
-        {
-            PPH_EMENU menu;
-            PPH_EMENU_ITEM menuItem;
-            RECT rect;
-
-            PhMipBeginChildControlPin();
-            menu = PhCreateEMenu();
-            PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MINIINFO), 0);
-
-            GetWindowRect(GetDlgItem(PhMipWindow, IDC_OPTIONS), &rect);
-            menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_BOTTOM, rect.left, rect.top);
-
-            if (menuItem)
-            {
-                // TODO
-            }
-
-            PhDestroyEMenu(menu);
-            PhMipEndChildControlPin();
-        }
+        PhMipShowOptionsMenu();
         break;
     case IDC_PIN:
         {
@@ -646,15 +601,11 @@ BOOLEAN PhMipMessageLoopFilter(
             switch (Message->wParam)
             {
             case VK_F5:
-                if (PhMipPinned)
-                    ProcessHacker_Refresh(PhMainWndHandle);
-                else
-                    PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+                PhMipRefresh();
                 break;
             case VK_F6:
             case VK_PAUSE:
-                if (PhMipPinned)
-                    ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
+                PhMipToggleRefreshAutomatically();
                 break;
             }
         }
@@ -668,7 +619,7 @@ VOID NTAPI PhMipUpdateHandler(
     _In_opt_ PVOID Context
     )
 {
-    if (PhMipPinned)
+    if (PhMipRefreshAutomatically & MIP_REFRESH_AUTOMATICALLY_FLAG(PhMipPinned))
         PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
 }
 
@@ -1035,6 +986,24 @@ VOID PhMipEndChildControlPin(
     PostMessage(PhMipWindow, WM_MOUSEMOVE, 0, 0); // Re-evaluate hover pin
 }
 
+VOID PhMipRefresh(
+    VOID
+    )
+{
+    if (PhMipPinned)
+        ProcessHacker_Refresh(PhMainWndHandle);
+
+    PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+}
+
+VOID PhMipToggleRefreshAutomatically(
+    VOID
+    )
+{
+    PhMipRefreshAutomatically ^= MIP_REFRESH_AUTOMATICALLY_FLAG(PhMipPinned);
+    PhSetIntegerSetting(L"MiniInfoWindowRefreshAutomatically", PhMipRefreshAutomatically);
+}
+
 VOID PhMipSetPinned(
     _In_ BOOLEAN Pinned
     )
@@ -1042,6 +1011,111 @@ VOID PhMipSetPinned(
     PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
     SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
     PhMipPinned = Pinned;
+}
+
+VOID PhMipShowSectionMenu(
+    VOID
+    )
+{
+    PPH_EMENU menu;
+    ULONG i;
+    PPH_MINIINFO_SECTION section;
+    PPH_EMENU_ITEM menuItem;
+    POINT point;
+
+    PhMipBeginChildControlPin();
+    menu = PhCreateEMenu();
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        section = SectionList->Items[i];
+        menuItem = PhCreateEMenuItem(
+            (section == CurrentSection ? (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK) : 0),
+            0,
+            ((PPH_STRING)PhAutoDereferenceObject(PhCreateString2(&section->Name)))->Buffer,
+            NULL,
+            section
+            );
+        PhInsertEMenuItem(menu, menuItem, -1);
+    }
+
+    GetCursorPos(&point);
+    menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
+
+    if (menuItem)
+    {
+        PhMipChangeSection(menuItem->Context);
+    }
+
+    PhDestroyEMenu(menu);
+    PhMipEndChildControlPin();
+}
+
+VOID PhMipShowOptionsMenu(
+    VOID
+    )
+{
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM menuItem;
+    ULONG id;
+    RECT rect;
+
+    PhMipBeginChildControlPin();
+    menu = PhCreateEMenu();
+    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MINIINFO), 0);
+
+    // Opacity
+
+    id = PH_OPACITY_TO_ID(PhGetIntegerSetting(L"MiniInfoWindowOpacity"));
+
+    if (menuItem = PhFindEMenuItem(menu, PH_EMENU_FIND_DESCEND, NULL, id))
+        menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+
+    // Refresh Automatically
+
+    if (PhMipRefreshAutomatically & MIP_REFRESH_AUTOMATICALLY_FLAG(PhMipPinned))
+        PhSetFlagsEMenuItem(menu, ID_MINIINFO_REFRESHAUTOMATICALLY, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+
+    // Show the menu.
+
+    GetWindowRect(GetDlgItem(PhMipWindow, IDC_OPTIONS), &rect);
+    menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_BOTTOM, rect.left, rect.top);
+
+    if (menuItem)
+    {
+        switch (menuItem->Id)
+        {
+        case ID_OPACITY_10:
+        case ID_OPACITY_20:
+        case ID_OPACITY_30:
+        case ID_OPACITY_40:
+        case ID_OPACITY_50:
+        case ID_OPACITY_60:
+        case ID_OPACITY_70:
+        case ID_OPACITY_80:
+        case ID_OPACITY_90:
+        case ID_OPACITY_OPAQUE:
+            {
+                ULONG opacity;
+
+                opacity = PH_ID_TO_OPACITY(menuItem->Id);
+                PhSetIntegerSetting(L"MiniInfoWindowOpacity", opacity);
+                PhSetWindowOpacity(PhMipContainerWindow, opacity);
+            }
+            break;
+        case ID_MINIINFO_REFRESH:
+            PhMipRefresh();
+            break;
+        case ID_MINIINFO_REFRESHAUTOMATICALLY:
+            PhMipToggleRefreshAutomatically();
+            break;
+        }
+    }
+
+    PhDestroyEMenu(menu);
+    PhMipEndChildControlPin();
 }
 
 LRESULT CALLBACK PhMipSectionControlHookWndProc(

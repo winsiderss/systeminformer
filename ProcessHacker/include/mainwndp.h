@@ -214,10 +214,6 @@ VOID PhMwpSetCheckOpacityMenu(
     _In_ ULONG Opacity
     );
 
-VOID PhMwpSetWindowOpacity(
-    _In_ ULONG Opacity
-    );
-
 VOID PhMwpSetupComputerMenu(
     _In_ PPH_EMENU_ITEM Root
     );
