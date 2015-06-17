@@ -50,7 +50,8 @@ BOOLEAN PhLoadPlugin(
     );
 
 VOID PhpExecuteCallbackForAllPlugins(
-    _In_ PH_PLUGIN_CALLBACK Callback
+    _In_ PH_PLUGIN_CALLBACK Callback,
+    _In_ BOOLEAN StartupParameters
     );
 
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
@@ -313,7 +314,7 @@ VOID PhLoadPlugins(
     if (PhSettingsFileName)
         PhConvertIgnoredSettings();
 
-    PhpExecuteCallbackForAllPlugins(PluginCallbackLoad);
+    PhpExecuteCallbackForAllPlugins(PluginCallbackLoad, TRUE);
 }
 
 /**
@@ -323,7 +324,7 @@ VOID PhUnloadPlugins(
     VOID
     )
 {
-    PhpExecuteCallbackForAllPlugins(PluginCallbackUnload);
+    PhpExecuteCallbackForAllPlugins(PluginCallbackUnload, FALSE);
 }
 
 /**
@@ -375,7 +376,8 @@ BOOLEAN PhLoadPlugin(
 }
 
 VOID PhpExecuteCallbackForAllPlugins(
-    _In_ PH_PLUGIN_CALLBACK Callback
+    _In_ PH_PLUGIN_CALLBACK Callback,
+    _In_ BOOLEAN StartupParameters
     )
 {
     PPH_AVL_LINKS links;
@@ -388,7 +390,7 @@ VOID PhpExecuteCallbackForAllPlugins(
         PPH_LIST parameters = NULL;
 
         // Find relevant startup parameters for this plugin.
-        if (PhStartupParameters.PluginParameters)
+        if (StartupParameters && PhStartupParameters.PluginParameters)
         {
             ULONG i;
 
