@@ -31,8 +31,6 @@
 #define COBJMACROS
 #include <windowsx.h>
 #include <phdk.h>
-#include <phapppub.h>
-#include <phplug.h>
 #include <phappresource.h>
 #include <windowsx.h>
 #include <winsock2.h>

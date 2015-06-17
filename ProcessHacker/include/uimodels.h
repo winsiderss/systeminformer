@@ -1,6 +1,7 @@
 #ifndef PH_UIMODELS_H
 #define PH_UIMODELS_H
 
+// begin_phapppub
 // Common state highlighting support
 
 typedef struct _PH_SH_STATE
@@ -9,6 +10,7 @@ typedef struct _PH_SH_STATE
     HANDLE StateListHandle;
     ULONG TickCount;
 } PH_SH_STATE, *PPH_SH_STATE;
+// end_phapppub
 
 FORCEINLINE VOID PhChangeShStateTn(
     _Inout_ PPH_TREENEW_NODE Node,
@@ -206,6 +208,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPN_APPID 0x200
 #define PHPN_DPIAWARENESS 0x400
 
+// begin_phapppub
 typedef struct _PH_PROCESS_NODE
 {
     PH_TREENEW_NODE Node;
@@ -219,6 +222,7 @@ typedef struct _PH_PROCESS_NODE
 
     struct _PH_PROCESS_NODE *Parent;
     PPH_LIST Children;
+// end_phapppub
 
     PH_STRINGREF TextCache[PHPRTLC_MAXIMUM];
 
@@ -311,7 +315,9 @@ typedef struct _PH_PROCESS_NODE
     PH_GRAPH_BUFFERS CpuGraphBuffers;
     PH_GRAPH_BUFFERS PrivateGraphBuffers;
     PH_GRAPH_BUFFERS IoGraphBuffers;
+// begin_phapppub
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
+// end_phapppub
 
 VOID PhProcessTreeListInitialization(
     VOID
@@ -333,64 +339,90 @@ VOID PhReloadSettingsProcessTreeList(
     VOID
     );
 
+// begin_phapppub
 PHAPPAPI
-struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportProcessTreeList(
+struct _PH_TN_FILTER_SUPPORT *
+NTAPI
+PhGetFilterSupportProcessTreeList(
     VOID
     );
+// end_phapppub
 
 PPH_PROCESS_NODE PhAddProcessNode(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG RunId
     );
 
+// begin_phapppub
 PHAPPAPI
-PPH_PROCESS_NODE PhFindProcessNode(
+PPH_PROCESS_NODE
+NTAPI
+PhFindProcessNode(
     _In_ HANDLE ProcessId
     );
+// end_phapppub
 
 VOID PhRemoveProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
 
+// begin_phapppub
 PHAPPAPI
-VOID PhUpdateProcessNode(
+VOID
+NTAPI
+PhUpdateProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
+// end_phapppub
 
 VOID PhTickProcessNodes(
     VOID
     );
 
+// begin_phapppub
 PHAPPAPI
-PPH_PROCESS_ITEM PhGetSelectedProcessItem(
+PPH_PROCESS_ITEM
+NTAPI
+PhGetSelectedProcessItem(
     VOID
     );
 
 PHAPPAPI
-VOID PhGetSelectedProcessItems(
+VOID
+NTAPI
+PhGetSelectedProcessItems(
     _Out_ PPH_PROCESS_ITEM **Processes,
     _Out_ PULONG NumberOfProcesses
     );
 
 PHAPPAPI
-VOID PhDeselectAllProcessNodes(
+VOID
+NTAPI
+PhDeselectAllProcessNodes(
     VOID
     );
 
 PHAPPAPI
-VOID PhExpandAllProcessNodes(
+VOID
+NTAPI
+PhExpandAllProcessNodes(
     _In_ BOOLEAN Expand
     );
 
 PHAPPAPI
-VOID PhInvalidateAllProcessNodes(
+VOID
+NTAPI
+PhInvalidateAllProcessNodes(
     VOID
     );
 
 PHAPPAPI
-VOID PhSelectAndEnsureVisibleProcessNode(
+VOID
+NTAPI
+PhSelectAndEnsureVisibleProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
+// end_phapppub
 
 VOID PhSelectAndEnsureVisibleProcessNodes(
     _In_ PPH_PROCESS_NODE *ProcessNodes,
@@ -438,6 +470,7 @@ PPH_LIST PhDuplicateProcessNodeList(
 #define PHSN_CONFIG 0x1
 #define PHSN_DESCRIPTION 0x2
 
+// begin_phapppub
 typedef struct _PH_SERVICE_NODE
 {
     PH_TREENEW_NODE Node;
@@ -445,6 +478,7 @@ typedef struct _PH_SERVICE_NODE
     PH_SH_STATE ShState;
 
     PPH_SERVICE_ITEM ServiceItem;
+// end_phapppub
 
     PH_STRINGREF TextCache[PHSVTLC_MAXIMUM];
 
@@ -458,7 +492,9 @@ typedef struct _PH_SERVICE_NODE
     PPH_STRING Description;
 
     PPH_STRING TooltipText;
+// begin_phapppub
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
+// end_phapppub
 
 VOID PhServiceTreeListInitialization(
     VOID
@@ -476,54 +512,76 @@ VOID PhSaveSettingsServiceTreeList(
     VOID
     );
 
+// begin_phapppub
 PHAPPAPI
-struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportServiceTreeList(
+struct _PH_TN_FILTER_SUPPORT *
+NTAPI
+PhGetFilterSupportServiceTreeList(
     VOID
     );
+// end_phapppub
 
 PPH_SERVICE_NODE PhAddServiceNode(
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ ULONG RunId
     );
 
+// begin_phapppub
 PHAPPAPI
-PPH_SERVICE_NODE PhFindServiceNode(
+PPH_SERVICE_NODE
+NTAPI
+PhFindServiceNode(
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
+// end_phapppub
 
 VOID PhRemoveServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     );
 
+// begin_phapppub
 PHAPPAPI
-VOID PhUpdateServiceNode(
+VOID
+NTAPI
+PhUpdateServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     );
+// end_phapppub
 
 VOID PhTickServiceNodes(
     VOID
     );
 
+// begin_phapppub
 PHAPPAPI
-PPH_SERVICE_ITEM PhGetSelectedServiceItem(
+PPH_SERVICE_ITEM
+NTAPI
+PhGetSelectedServiceItem(
     VOID
     );
 
 PHAPPAPI
-VOID PhGetSelectedServiceItems(
+VOID
+NTAPI
+PhGetSelectedServiceItems(
     _Out_ PPH_SERVICE_ITEM **Services,
     _Out_ PULONG NumberOfServices
     );
 
 PHAPPAPI
-VOID PhDeselectAllServiceNodes(
+VOID
+NTAPI
+PhDeselectAllServiceNodes(
     VOID
     );
 
 PHAPPAPI
-VOID PhSelectAndEnsureVisibleServiceNode(
+VOID
+NTAPI
+PhSelectAndEnsureVisibleServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     );
+// end_phapppub
 
 VOID PhCopyServiceList(
     VOID
@@ -549,6 +607,7 @@ VOID PhWriteServiceList(
 #define PHNETLC_TIMESTAMP 8
 #define PHNETLC_MAXIMUM 9
 
+// begin_phapppub
 typedef struct _PH_NETWORK_NODE
 {
     PH_TREENEW_NODE Node;
@@ -556,6 +615,7 @@ typedef struct _PH_NETWORK_NODE
     PH_SH_STATE ShState;
 
     PPH_NETWORK_ITEM NetworkItem;
+// end_phapppub
 
     PH_STRINGREF TextCache[PHNETLC_MAXIMUM];
 
@@ -566,7 +626,9 @@ typedef struct _PH_NETWORK_NODE
     PPH_STRING TimeStampText;
 
     PPH_STRING TooltipText;
+// begin_phapppub
 } PH_NETWORK_NODE, *PPH_NETWORK_NODE;
+// end_phapppub
 
 VOID PhNetworkTreeListInitialization(
     VOID
@@ -584,22 +646,28 @@ VOID PhSaveSettingsNetworkTreeList(
     VOID
     );
 
+// begin_phapppub
 PHAPPAPI
-struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportNetworkTreeList(
+struct _PH_TN_FILTER_SUPPORT *
+NTAPI
+PhGetFilterSupportNetworkTreeList(
     VOID
     );
+// end_phapppub
 
 PPH_NETWORK_NODE PhAddNetworkNode(
     _In_ PPH_NETWORK_ITEM NetworkItem,
     _In_ ULONG RunId
     );
 
+// begin_phapppub
 PHAPPAPI
 PPH_NETWORK_NODE
 NTAPI
 PhFindNetworkNode(
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
+// end_phapppub
 
 VOID PhRemoveNetworkNode(
     _In_ PPH_NETWORK_NODE NetworkNode
@@ -652,6 +720,7 @@ VOID PhWriteNetworkList(
 
 #define PHTHTLC_MAXIMUM 6
 
+// begin_phapppub
 typedef struct _PH_THREAD_NODE
 {
     PH_TREENEW_NODE Node;
@@ -660,6 +729,7 @@ typedef struct _PH_THREAD_NODE
 
     HANDLE ThreadId;
     PPH_THREAD_ITEM ThreadItem;
+// end_phapppub
 
     PH_STRINGREF TextCache[PHTHTLC_MAXIMUM];
 
@@ -669,7 +739,9 @@ typedef struct _PH_THREAD_NODE
     PPH_STRING CyclesDeltaText; // used for Context Switches Delta as well
     PPH_STRING StartAddressText;
     PPH_STRING PriorityText;
+// begin_phapppub
 } PH_THREAD_NODE, *PPH_THREAD_NODE;
+// end_phapppub
 
 typedef struct _PH_THREAD_LIST_CONTEXT
 {
@@ -770,6 +842,7 @@ VOID PhDeselectAllThreadNodes(
 
 #define PHMOTLC_MAXIMUM 16
 
+// begin_phapppub
 typedef struct _PH_MODULE_NODE
 {
     PH_TREENEW_NODE Node;
@@ -777,6 +850,7 @@ typedef struct _PH_MODULE_NODE
     PH_SH_STATE ShState;
 
     PPH_MODULE_ITEM ModuleItem;
+// end_phapppub
 
     PH_STRINGREF TextCache[PHMOTLC_MAXIMUM];
 
@@ -788,7 +862,9 @@ typedef struct _PH_MODULE_NODE
     WCHAR LoadCountText[PH_INT32_STR_LEN_1];
     PPH_STRING TimeStampText;
     PPH_STRING LoadTimeText;
+// begin_phapppub
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
+// end_phapppub
 
 typedef struct _PH_MODULE_LIST_CONTEXT
 {
@@ -881,6 +957,7 @@ VOID PhDeselectAllModuleNodes(
 
 #define PHHNTLC_MAXIMUM 9
 
+// begin_phapppub
 typedef struct _PH_HANDLE_NODE
 {
     PH_TREENEW_NODE Node;
@@ -889,12 +966,15 @@ typedef struct _PH_HANDLE_NODE
 
     HANDLE Handle;
     PPH_HANDLE_ITEM HandleItem;
+// end_phapppub
 
     PH_STRINGREF TextCache[PHHNTLC_MAXIMUM];
 
     PPH_STRING GrantedAccessSymbolicText;
     WCHAR FileShareAccessText[4];
+// begin_phapppub
 } PH_HANDLE_NODE, *PPH_HANDLE_NODE;
+// end_phapppub
 
 typedef struct _PH_HANDLE_LIST_CONTEXT
 {
@@ -993,6 +1073,7 @@ VOID PhDeselectAllHandleNodes(
 
 #define PHMMTLC_MAXIMUM 12
 
+// begin_phapppub
 typedef struct _PH_MEMORY_NODE
 {
     PH_TREENEW_NODE Node;
@@ -1004,6 +1085,7 @@ typedef struct _PH_MEMORY_NODE
 
     struct _PH_MEMORY_NODE *Parent;
     PPH_LIST Children;
+// end_phapppub
 
     PH_STRINGREF TextCache[PHMMTLC_MAXIMUM];
 
@@ -1019,7 +1101,9 @@ typedef struct _PH_MEMORY_NODE
     PPH_STRING LockedWsText;
     PPH_STRING CommittedText;
     PPH_STRING PrivateText;
+// begin_phapppub
 } PH_MEMORY_NODE, *PPH_MEMORY_NODE;
+// end_phapppub
 
 typedef struct _PH_MEMORY_LIST_CONTEXT
 {
