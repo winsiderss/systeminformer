@@ -1325,6 +1325,7 @@ VOID PhMipDestroyGroupNode(
     _In_ PPH_MIP_GROUP_NODE Node
     )
 {
+    PhClearReference(&Node->TooltipText);
     PhFree(Node);
 }
 
@@ -1502,6 +1503,32 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             PhClearReference(&getTitleText.Subtitle);
         }
         return TRUE;
+    case TreeNewGetCellTooltip:
+        {
+            PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
+            PPH_MIP_GROUP_NODE node = (PPH_MIP_GROUP_NODE)getCellTooltip->Node;
+            ULONG tickCount;
+
+            tickCount = GetTickCount();
+
+            // This is useless most of the time because the tooltip doesn't display unless the window is active.
+            // TODO: Find a way to make the tooltip display all the time.
+
+            if (!node->TooltipText)
+                node->TooltipText = PhMipGetGroupNodeTooltip(listSection, node);
+
+            if (!PhIsNullOrEmptyString(node->TooltipText))
+            {
+                getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Unfolding = FALSE;
+                getCellTooltip->MaximumWidth = -1;
+            }
+            else
+            {
+                return FALSE;
+            }
+        }
+        return TRUE;
     case TreeNewSelectionChanged:
         {
             ULONG i;
@@ -1523,6 +1550,38 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             }
         }
         break;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+            PPH_MIP_GROUP_NODE node;
+
+            listSection->SuspendUpdate++;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case VK_DELETE:
+                if (node = PhMipGetSelectedGroupNode(listSection))
+                    PhUiTerminateProcesses(listSection->DialogHandle, &node->ProcessGroup->Representative, 1);
+                break;
+            case VK_RETURN:
+                if (node = PhMipGetSelectedGroupNode(listSection))
+                {
+                    if (GetKeyState(VK_CONTROL) >= 0)
+                    {
+                        PhMipHandleListSectionCommand(listSection, node->ProcessGroup, ID_PROCESS_GOTOPROCESS);
+                    }
+                    else
+                    {
+                        if (node->ProcessGroup->Representative->FileName)
+                            PhShellExploreFile(listSection->DialogHandle, node->ProcessGroup->Representative->FileName->Buffer);
+                    }
+                }
+                break;
+            }
+
+            listSection->SuspendUpdate--;
+        }
+        return TRUE;
     case TreeNewLeftDoubleClick:
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
@@ -1554,28 +1613,50 @@ BOOLEAN PhMipListSectionTreeNewCallback(
     return FALSE;
 }
 
+PPH_STRING PhMipGetGroupNodeTooltip(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PPH_MIP_GROUP_NODE Node
+    )
+{
+    PH_STRING_BUILDER sb;
+
+    PhInitializeStringBuilder(&sb, 100);
+
+    // TODO
+
+    return PhFinalStringBuilderString(&sb);
+}
+
+PPH_MIP_GROUP_NODE PhMipGetSelectedGroupNode(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection
+    )
+{
+    ULONG i;
+    PPH_MIP_GROUP_NODE node;
+
+    for (i = 0; i < ListSection->NodeList->Count; i++)
+    {
+        node = ListSection->NodeList->Items[i];
+
+        if (node->Node.Selected)
+            return node;
+    }
+
+    return NULL;
+}
+
 VOID PhMipShowListSectionContextMenu(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
-    ULONG i;
-    PPH_MIP_GROUP_NODE selectedNode = NULL;
+    PPH_MIP_GROUP_NODE selectedNode;
     PPH_EMENU menu;
     PPH_EMENU_ITEM item;
     PH_MINIINFO_LIST_SECTION_MENU_INFORMATION menuInfo;
     PH_PLUGIN_MENU_INFORMATION pluginMenuInfo;
 
-    for (i = 0; i < ListSection->NodeList->Count; i++)
-    {
-        PPH_MIP_GROUP_NODE node = ListSection->NodeList->Items[i];
-
-        if (node->Node.Selected)
-        {
-            selectedNode = node;
-            break;
-        }
-    }
+    selectedNode = PhMipGetSelectedGroupNode(ListSection);
 
     if (!selectedNode)
         return;
@@ -1589,12 +1670,7 @@ VOID PhMipShowListSectionContextMenu(
     if (selectedNode->ProcessGroup->Processes->Count != 1)
     {
         if (item = PhFindEMenuItem(menu, 0, NULL, ID_PROCESS_GOTOPROCESS))
-        {
-            if (item->Text && (item->Flags & PH_EMENU_TEXT_OWNED))
-                PhFree(item->Text);
-
-            item->Text = PhDuplicateStringZ(L"&Go to Processes");
-        }
+            PhModifyEMenuItem(item, PH_EMENU_MODIFY_TEXT, 0, L"&Go to Processes", NULL);
     }
 
     memset(&menuInfo, 0, sizeof(PH_MINIINFO_LIST_SECTION_MENU_INFORMATION));
@@ -1633,9 +1709,7 @@ VOID PhMipShowListSectionContextMenu(
         if (!handled)
         {
             menuInfo.SelectedItem = item;
-            menuInfo.Handled = FALSE;
-            ListSection->Callback(ListSection, MiListSectionHandleContextMenu, &menuInfo, NULL);
-            handled = menuInfo.Handled;
+            handled = ListSection->Callback(ListSection, MiListSectionHandleContextMenu, &menuInfo, NULL);
         }
 
         if (!handled)
