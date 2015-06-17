@@ -557,8 +557,11 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
 
         control.UniqueKey = threadStackContext;
 
-        control.Type = PluginThreadStackBeginDefaultWalkStack;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+        if (PhPluginsEnabled)
+        {
+            control.Type = PluginThreadStackBeginDefaultWalkStack;
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+        }
 
         status = PhWalkThreadStack(
             threadStackContext->ThreadHandle,
@@ -569,8 +572,11 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
             threadStackContext
             );
 
-        control.Type = PluginThreadStackEndDefaultWalkStack;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+        if (PhPluginsEnabled)
+        {
+            control.Type = PluginThreadStackEndDefaultWalkStack;
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+        }
     }
 
     if (threadStackContext->NewList->Count != 0)
