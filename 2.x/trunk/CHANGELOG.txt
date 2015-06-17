@@ -2,6 +2,7 @@ Process Hacker
 
 2.36
  * HIGHLIGHTS:
+   * New rich pop-up UI when hovering the cursor over a tray icon, showing the most active processes
    * Completely new Memory tab for processes, with heap, stack and working set usage
    * Process Hacker now takes 32-bit dumps of 32-bit processes on 64-bit Windows
      * NOTE: When using the portable (.zip) release, the entire archive must be extracted
